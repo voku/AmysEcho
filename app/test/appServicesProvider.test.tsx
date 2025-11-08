@@ -98,10 +98,24 @@ const { useServices } = require('../src/context/ServicesContext');
 const ErrorMessage = require('../src/components/ErrorMessage').default;
 const { MessageProvider } = require('../src/context/MessageContext');
 
-const flushAsync = async (iterations = 5) => {
+type TimerMode = 'real' | 'fake';
+
+interface FlushAsyncOptions {
+  iterations?: number;
+  timerMode?: TimerMode;
+}
+
+/**
+ * Deterministically flushes microtasks between assertions.
+ *
+ * Tests that opt into Jest fake timers must explicitly pass `timerMode: 'fake'`
+ * so the helper advances timers instead of awaiting real clock progression.
+ * Real timer tests should rely on the default behaviour.
+ */
+const flushAsync = async ({ iterations = 5, timerMode = 'real' }: FlushAsyncOptions = {}) => {
   for (let i = 0; i < iterations; i++) {
     await Promise.resolve();
-    if (jest.isMockFunction(setTimeout as unknown as jest.Mock)) {
+    if (timerMode === 'fake') {
       jest.advanceTimersByTime(0);
       await Promise.resolve();
     } else {
@@ -110,7 +124,15 @@ const flushAsync = async (iterations = 5) => {
   }
 };
 
-const expectEventually = async (assertion: () => void, timeoutMs = 3000) => {
+interface ExpectEventuallyOptions {
+  timeoutMs?: number;
+  flush?: FlushAsyncOptions;
+}
+
+const expectEventually = async (
+  assertion: () => void,
+  { timeoutMs = 3000, flush }: ExpectEventuallyOptions = {},
+) => {
   const start = Date.now();
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -121,7 +143,7 @@ const expectEventually = async (assertion: () => void, timeoutMs = 3000) => {
       if (Date.now() - start > timeoutMs) {
         throw error;
       }
-      await flushAsync();
+      await flushAsync(flush);
     }
   }
 };
@@ -356,9 +378,12 @@ describe('AppServicesProvider', () => {
       const component = await renderProvider();
       await expectChildRendered(component);
 
-      await expectEventually(() => {
-        expect(checkForModelUpdateMock).toHaveBeenCalled();
-      });
+      await expectEventually(
+        () => {
+          expect(checkForModelUpdateMock).toHaveBeenCalled();
+        },
+        { flush: { timerMode: 'fake' } },
+      );
 
       const initialCalls = checkForModelUpdateMock.mock.calls.length;
 
@@ -375,9 +400,12 @@ describe('AppServicesProvider', () => {
         resolveFirstRefresh?.();
       });
 
-      await expectEventually(() => {
-        expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls + 1);
-      });
+      await expectEventually(
+        () => {
+          expect(checkForModelUpdateMock.mock.calls.length).toBe(initialCalls + 1);
+        },
+        { flush: { timerMode: 'fake' } },
+      );
 
       await act(async () => {
         component.unmount();
