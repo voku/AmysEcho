@@ -23,12 +23,27 @@ export class ClipCaptureError extends Error {
 
 export const CLIP_CAPTURE_ERROR_MESSAGES = {
   clip_capture_failed: 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!',
+  clip_capture_cancelled: 'Die Videoaufnahme wurde abgebrochen. Versuch es nochmal.',
+  clip_capture_timeout: 'Die Videoaufnahme hat zu lange gedauert. Versuch es bitte erneut.',
   clip_payload_invalid: 'Videodaten waren ungültig. Bitte nimm die Geste erneut auf.',
   clip_write_failed: 'Videodatei konnte nicht gespeichert werden. Prüfe den Gerätespeicher und versuche es erneut.',
   clip_directory_unavailable: 'Speicherort für Videoclips ist nicht verfügbar. Bitte Gerät neu starten.',
   clip_path_components_invalid: 'Videodateiname ist ungültig. Bitte Aufnahme erneut starten.',
   clip_payload_empty: 'Von der Kamera wurde kein Video übertragen. Versuch es bitte nochmal.',
   clip_stop_failed: 'Videorekorder konnte nicht gestoppt werden. Versuch die Aufnahme erneut.',
+  clip_start_failed: 'Videorekorder konnte nicht gestartet werden. Versuch es bitte erneut.',
+  clip_error: 'Unbekannter Fehler bei der Videoaufnahme. Versuch es bitte erneut.',
+  no_active_clip_capture: 'Es läuft keine Videoaufnahme. Starte zuerst eine neue Aufnahme.',
+  webview_not_ready: 'Die Kameraansicht ist noch nicht bereit. Warte kurz und versuch es erneut.',
+  media_recorder_unavailable:
+    'Dieses Gerät unterstützt keine Videoaufnahmen in der Kameraansicht. Amy speichert trotzdem deine Handbewegungen.',
+  media_recorder_not_supported:
+    'Videoaufnahmen werden auf diesem Gerät nicht unterstützt. Amy speichert trotzdem deine Handbewegungen.',
+  orchestrator_unavailable:
+    'Videoaufnahmen konnten nicht vorbereitet werden. Bitte starte die App neu und versuch es erneut.',
+  no_camera_stream: 'Es steht kein Kamerabild zur Verfügung. Bitte prüfe die Kamera und versuch es erneut.',
+  recorder_init_failed: 'Die Videoaufnahme konnte nicht vorbereitet werden. Versuch es bitte erneut.',
+  recorder_start_failed: 'Die Videoaufnahme konnte nicht gestartet werden. Versuch es bitte erneut.',
 } as const;
 
 export type ClipCaptureErrorCode = keyof typeof CLIP_CAPTURE_ERROR_MESSAGES;

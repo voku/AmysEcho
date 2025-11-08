@@ -164,6 +164,18 @@ describe('clipPersistence', () => {
     );
   });
 
+  it('returns media recorder specific messaging when provided as string code', () => {
+    expect(getClipCaptureErrorMessage('media_recorder_not_supported')).toBe(
+      'Videoaufnahmen werden auf diesem Gerät nicht unterstützt. Amy speichert trotzdem deine Handbewegungen.',
+    );
+  });
+
+  it('supports timeout errors bubbling up from the detector', () => {
+    expect(getClipCaptureErrorMessage(new Error('clip_capture_timeout'))).toBe(
+      'Die Videoaufnahme hat zu lange gedauert. Versuch es bitte erneut.',
+    );
+  });
+
   it('falls back to the default message for unknown errors', () => {
     expect(getClipCaptureErrorMessage(new Error('unexpected'))).toBe(DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE);
   });
