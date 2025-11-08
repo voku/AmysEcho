@@ -101,7 +101,12 @@ const { MessageProvider } = require('../src/context/MessageContext');
 const flushAsync = async (iterations = 5) => {
   for (let i = 0; i < iterations; i++) {
     await Promise.resolve();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (jest.isMockFunction(setTimeout as unknown as jest.Mock)) {
+      jest.advanceTimersByTime(0);
+      await Promise.resolve();
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
 };
 
