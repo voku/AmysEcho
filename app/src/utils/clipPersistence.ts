@@ -66,22 +66,18 @@ export const getClipCaptureErrorMessage = (error: unknown): string => {
     return DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
   }
 
+  let message: string | null | undefined = null;
+
   if (typeof error === 'string') {
-    const resolved = resolveClipCaptureErrorCode(error);
-    return resolved ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode] : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+    message = error;
+  } else if (error instanceof Error) {
+    message = error.message;
   }
 
-  if (error instanceof ClipCaptureError) {
-    const resolved = resolveClipCaptureErrorCode(error.message);
-    return resolved ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode] : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
-  }
-
-  if (error instanceof Error) {
-    const resolved = resolveClipCaptureErrorCode(error.message);
-    return resolved ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode] : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
-  }
-
-  return DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+  const resolved = resolveClipCaptureErrorCode(message);
+  return resolved
+    ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode]
+    : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
 };
 
 export const getExtensionFromMime = (mimeType: string): string => {
