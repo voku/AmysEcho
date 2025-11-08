@@ -44,6 +44,42 @@ export const getExtensionFromMime = (mimeType: string): string => {
   return 'mp4';
 };
 
+const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
+
+export const sanitizeClipBase64 = (payload: string): string => {
+  if (typeof payload !== 'string') {
+    return '';
+  }
+
+  let sanitized = payload.trim();
+  if (sanitized.length === 0) {
+    return '';
+  }
+
+  if (sanitized.startsWith('data:')) {
+    const commaIndex = sanitized.indexOf(',');
+    if (commaIndex >= 0) {
+      sanitized = sanitized.slice(commaIndex + 1);
+    }
+  }
+
+  sanitized = sanitized.replace(/\s+/g, '');
+
+  if (sanitized.length === 0) {
+    return '';
+  }
+
+  if (!BASE64_PATTERN.test(sanitized)) {
+    return '';
+  }
+
+  if (sanitized.length % 4 !== 0) {
+    return '';
+  }
+
+  return sanitized;
+};
+
 const ensureDirectory = async (
   fs: ExpoFileSystemCompat,
   directoryUri: string,
@@ -89,7 +125,7 @@ export const persistClipToDirectory = async ({
     throw new ClipCaptureError('clip_path_components_invalid');
   }
 
-  const baseDirectory = fs.cacheDirectory ?? fs.documentDirectory;
+  const baseDirectory = fs.documentDirectory ?? fs.cacheDirectory;
   if (!baseDirectory) {
     throw new ClipCaptureError('clip_directory_unavailable');
   }
@@ -101,6 +137,21 @@ export const persistClipToDirectory = async ({
   const extension = getExtensionFromMime(clip.mimeType);
   const targetUri = `${clipDirectory}${filePrefix}-${clip.id}.${extension}`;
   const encoding: FileEncoding = fs.EncodingType?.Base64 ?? 'base64';
-  await fs.writeAsStringAsync(targetUri, clip.base64, { encoding });
+  const base64Payload = sanitizeClipBase64(clip.base64);
+  if (!base64Payload) {
+    logger?.warn('Clip base64 payload missing or invalid', {
+      clipId: clip.id,
+      mimeType: clip.mimeType,
+    });
+    throw new ClipCaptureError('clip_payload_invalid');
+  }
+
+  try {
+    await fs.writeAsStringAsync(targetUri, base64Payload, { encoding });
+  } catch (writeError) {
+    logger?.warn('Clip konnte nicht gespeichert werden', writeError);
+    throw new ClipCaptureError('clip_write_failed');
+  }
+
   return targetUri;
 };
