@@ -18,7 +18,11 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import BottomNav from '../components/BottomNav';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
-import { persistClipToDirectory, type ExpoFileSystemCompat } from '../utils/clipPersistence';
+import {
+  getClipCaptureErrorMessage,
+  persistClipToDirectory,
+  type ExpoFileSystemCompat,
+} from '../utils/clipPersistence';
 import {
   MediaPipeGestureDetector,
   MediaPipeGestureDetectorHandle,
@@ -44,7 +48,6 @@ import {
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 const UNSUPPORTED_CLIP_REASONS = new Set([
   'media_recorder_unavailable',
   'media_recorder_not_supported',
@@ -354,6 +357,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       }
 
       let clipUri: string | null = null;
+      let clipFailure: unknown = null;
       let clipMode: typeof clipCaptureMode = clipCaptureMode;
       if (clipMode === 'enabled') {
         if (persistFallbackIfUnsupported(clipSupportReasonRef.current)) {
@@ -369,8 +373,10 @@ export default function TrainingScreen({ navigation, route }: any) {
           }
           clipUri = await persistClip(clipResult);
         } catch (error) {
+          clipFailure = error;
           const reason = error instanceof Error ? error.message ?? 'clip_stop_failed' : 'clip_stop_failed';
           logger.warn('Failed to stop clip capture, switching to fallback mode', error);
+          showToast({ message: getClipCaptureErrorMessage(error), tone: 'error' });
           clipMode = 'fallback';
           enterClipFallback(reason);
           clipUri = '';
@@ -391,7 +397,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       }
 
       if (clipMode === 'enabled' && !clipUri) {
-        showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
+        showToast({ message: getClipCaptureErrorMessage(clipFailure), tone: 'error' });
         return;
       }
 
@@ -1131,7 +1137,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                   void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_failed', {
                     reason,
                   });
-                  showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
+                  showToast({ message: getClipCaptureErrorMessage(reason), tone: 'error' });
                 }
                 return;
               }

@@ -21,6 +21,65 @@ export class ClipCaptureError extends Error {
   }
 }
 
+export const CLIP_CAPTURE_ERROR_MESSAGES = {
+  clip_capture_failed: 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!',
+  clip_capture_cancelled: 'Die Videoaufnahme wurde abgebrochen. Versuch es nochmal.',
+  clip_capture_timeout: 'Die Videoaufnahme hat zu lange gedauert. Versuch es bitte erneut.',
+  clip_payload_invalid: 'Videodaten waren ungültig. Bitte nimm die Geste erneut auf.',
+  clip_write_failed: 'Videodatei konnte nicht gespeichert werden. Prüfe den Gerätespeicher und versuche es erneut.',
+  clip_directory_unavailable: 'Speicherort für Videoclips ist nicht verfügbar. Bitte Gerät neu starten.',
+  clip_path_components_invalid: 'Videodateiname ist ungültig. Bitte Aufnahme erneut starten.',
+  clip_payload_empty: 'Von der Kamera wurde kein Video übertragen. Versuch es bitte nochmal.',
+  clip_stop_failed: 'Videorekorder konnte nicht gestoppt werden. Versuch die Aufnahme erneut.',
+  clip_start_failed: 'Videorekorder konnte nicht gestartet werden. Versuch es bitte erneut.',
+  clip_error: 'Unbekannter Fehler bei der Videoaufnahme. Versuch es bitte erneut.',
+  no_active_clip_capture: 'Es läuft keine Videoaufnahme. Starte zuerst eine neue Aufnahme.',
+  webview_not_ready: 'Die Kameraansicht ist noch nicht bereit. Warte kurz und versuch es erneut.',
+  media_recorder_unavailable:
+    'Dieses Gerät unterstützt keine Videoaufnahmen in der Kameraansicht. Amy speichert trotzdem deine Handbewegungen.',
+  media_recorder_not_supported:
+    'Videoaufnahmen werden auf diesem Gerät nicht unterstützt. Amy speichert trotzdem deine Handbewegungen.',
+  orchestrator_unavailable:
+    'Videoaufnahmen konnten nicht vorbereitet werden. Bitte starte die App neu und versuch es erneut.',
+  no_camera_stream: 'Es steht kein Kamerabild zur Verfügung. Bitte prüfe die Kamera und versuch es erneut.',
+  recorder_init_failed: 'Die Videoaufnahme konnte nicht vorbereitet werden. Versuch es bitte erneut.',
+  recorder_start_failed: 'Die Videoaufnahme konnte nicht gestartet werden. Versuch es bitte erneut.',
+} as const;
+
+export type ClipCaptureErrorCode = keyof typeof CLIP_CAPTURE_ERROR_MESSAGES;
+
+export const DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE =
+  CLIP_CAPTURE_ERROR_MESSAGES.clip_capture_failed;
+
+const resolveClipCaptureErrorCode = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  if (value in CLIP_CAPTURE_ERROR_MESSAGES) {
+    return value;
+  }
+  return null;
+};
+
+export const getClipCaptureErrorMessage = (error: unknown): string => {
+  if (!error) {
+    return DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+  }
+
+  let message: string | null | undefined = null;
+
+  if (typeof error === 'string') {
+    message = error;
+  } else if (error instanceof Error) {
+    message = error.message;
+  }
+
+  const resolved = resolveClipCaptureErrorCode(message);
+  return resolved
+    ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode]
+    : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+};
+
 export const getExtensionFromMime = (mimeType: string): string => {
   const normalized = mimeType?.toLowerCase() ?? '';
   const known: Record<string, string> = {
@@ -42,6 +101,29 @@ export const getExtensionFromMime = (mimeType: string): string => {
   }
 
   return 'mp4';
+};
+
+const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
+
+export const sanitizeClipBase64 = (payload: string): string => {
+  if (typeof payload !== 'string') {
+    return '';
+  }
+
+  const trimmed = payload.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const commaIndex = trimmed.startsWith('data:') ? trimmed.indexOf(',') : -1;
+  const withoutPrefix = commaIndex >= 0 ? trimmed.slice(commaIndex + 1) : trimmed;
+  const sanitized = withoutPrefix.replace(/\s+/g, '');
+
+  if (!sanitized || sanitized.length % 4 !== 0 || !BASE64_PATTERN.test(sanitized)) {
+    return '';
+  }
+
+  return sanitized;
 };
 
 const ensureDirectory = async (
@@ -89,7 +171,7 @@ export const persistClipToDirectory = async ({
     throw new ClipCaptureError('clip_path_components_invalid');
   }
 
-  const baseDirectory = fs.cacheDirectory ?? fs.documentDirectory;
+  const baseDirectory = fs.documentDirectory ?? fs.cacheDirectory;
   if (!baseDirectory) {
     throw new ClipCaptureError('clip_directory_unavailable');
   }
@@ -101,6 +183,21 @@ export const persistClipToDirectory = async ({
   const extension = getExtensionFromMime(clip.mimeType);
   const targetUri = `${clipDirectory}${filePrefix}-${clip.id}.${extension}`;
   const encoding: FileEncoding = fs.EncodingType?.Base64 ?? 'base64';
-  await fs.writeAsStringAsync(targetUri, clip.base64, { encoding });
+  const base64Payload = sanitizeClipBase64(clip.base64);
+  if (!base64Payload) {
+    logger?.warn('Clip-base64-Payload fehlt oder ist ungültig', {
+      clipId: clip.id,
+      mimeType: clip.mimeType,
+    });
+    throw new ClipCaptureError('clip_payload_invalid');
+  }
+
+  try {
+    await fs.writeAsStringAsync(targetUri, base64Payload, { encoding });
+  } catch (writeError) {
+    logger?.warn('Clip konnte nicht gespeichert werden', writeError);
+    throw new ClipCaptureError('clip_write_failed');
+  }
+
   return targetUri;
 };

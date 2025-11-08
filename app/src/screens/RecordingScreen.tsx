@@ -17,7 +17,11 @@ import { validateLandmarkSequence } from '../services/TrainingDataValidator';
 import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
-import { persistClipToDirectory, type ExpoFileSystemCompat } from '../utils/clipPersistence';
+import {
+  getClipCaptureErrorMessage,
+  persistClipToDirectory,
+  type ExpoFileSystemCompat,
+} from '../utils/clipPersistence';
 import {
   MediaPipeGestureDetector,
   MediaPipeGestureDetectorHandle,
@@ -39,7 +43,6 @@ import {
   getNextCameraFacingMode,
 } from '../constants/cameraToggle';
 
-const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 const MIN_PREVIEW_SIZE = 200;
 const MAX_PREVIEW_SIZE = 420;
 const PANEL_HORIZONTAL_PADDING = SPACING.lg * 2;
@@ -319,14 +322,15 @@ export default function RecordingScreen({ navigation, route }: any) {
     if (!gestureId || !cameraReady) return;
 
     let clipUri: string | null = null;
+    let clipFailure: unknown = null;
     if (clipRequestIdRef.current && detectorRef.current) {
       try {
         const clipResult = await detectorRef.current.stopClipCapture();
         clipUri = await persistClip(clipResult);
       } catch (error) {
+        clipFailure = error;
         logger.warn('Failed to stop clip capture', error);
         detectorRef.current.cancelClipCapture();
-        showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
       } finally {
         clipRequestIdRef.current = null;
       }
@@ -336,7 +340,7 @@ export default function RecordingScreen({ navigation, route }: any) {
     }
 
     if (!clipUri) {
-      showToast({ message: CLIP_RECORDING_ERROR_TEXT, tone: 'error' });
+      showToast({ message: getClipCaptureErrorMessage(clipFailure), tone: 'error' });
       return;
     }
 

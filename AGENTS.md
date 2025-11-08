@@ -76,7 +76,7 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
    - Server: services in `server/src/services/*`, tools in `server/src/tools/*`, tests in `server/test/*`.
 4. **Plan thoroughly** before implementing - explain your approach and get feedback if possible.
 5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
-6. **Use German for all user-facing text and error messages in the app.**
+6. **Use German for all user-facing text and any error messages that Amy sees in the app. Developer-facing logs, console output, and internal identifiers can remain in English.**
 7. **Update the documentation** to reflect your changes. This includes the `docs/` directory and any relevant `README.md` files.
 
 ## Testing Rules

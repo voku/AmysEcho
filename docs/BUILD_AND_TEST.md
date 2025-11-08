@@ -29,6 +29,10 @@ npm test
 
 If all tests pass, you should see a success message in the console. This indicates that the core functionality of the application is working as expected.
 
+### Coordinating timer modes in unit tests
+
+`AppServicesProvider` exercises asynchronous queues that occasionally rely on `jest.useFakeTimers()`. Tests use the shared `flushAsync` helper (see `app/test/appServicesProvider.test.tsx`) to advance pending work deterministically. Pass `flush: { timerMode: 'fake' }` whenever a test switches to fake timers so the helper advances mocked timers instead of awaiting the real clock. Real timer tests can call `expectEventually` without options and the helper will default to real-time progression. This explicit timer mode contract keeps the GitHub Actions CI (which runs `npm test --prefix app -- --watchAll=false`) stable and documents why the helper accepts a timer mode flag.
+
 ## Testing the Server
 
 The backend relies on both Jest (TypeScript) and Pytest (Python). Make sure Node.js 18 or newer is installed so the compiled server bundle is available to the Python suite. Before running the Python tests, compile the TypeScript sources so `dist/server.js` and helper modules exist:

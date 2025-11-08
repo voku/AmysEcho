@@ -85,44 +85,49 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       }
     };
 
-    const startRefresh = async (): Promise<void> => {
+    const drainRefreshQueue = (): Promise<void> => {
       if (cancelled) {
         refreshState.queued = 0;
-        refreshState.promise = Promise.resolve();
-        refreshState.running = false;
-        return;
-      }
-
-      refreshState.running = true;
-
-      try {
-        await performRefresh();
-
-        while (!cancelled && refreshState.queued > 0) {
-          refreshState.queued -= 1;
-          await performRefresh();
-        }
-      } finally {
-        if (cancelled) {
-          refreshState.queued = 0;
-        }
-
         refreshState.running = false;
         refreshState.promise = Promise.resolve();
-      }
-    };
-
-    const runModelRefresh = (): Promise<void> => {
-      if (cancelled) {
         return refreshState.promise;
       }
 
       if (refreshState.running) {
-        refreshState.queued = Math.max(refreshState.queued, 1);
         return refreshState.promise;
       }
 
-      const promise = startRefresh();
+      if (refreshState.queued === 0) {
+        refreshState.promise = Promise.resolve();
+        return refreshState.promise;
+      }
+
+      refreshState.running = true;
+
+      const promise = (async () => {
+        let shouldRecurse = false;
+        try {
+          while (!cancelled && refreshState.queued > 0) {
+            refreshState.queued -= 1;
+            await performRefresh();
+          }
+        } finally {
+          if (cancelled) {
+            refreshState.queued = 0;
+          }
+
+          refreshState.running = false;
+
+          if (!cancelled && refreshState.queued > 0) {
+            shouldRecurse = true;
+          }
+        }
+
+        if (shouldRecurse) {
+          return drainRefreshQueue();
+        }
+      })();
+
       refreshState.promise = promise;
       return promise;
     };
@@ -132,12 +137,8 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
         return refreshState.promise;
       }
 
-      if (refreshState.running) {
-        refreshState.queued = Math.max(refreshState.queued, 1);
-        return refreshState.promise;
-      }
-
-      return runModelRefresh();
+      refreshState.queued = Math.max(refreshState.queued, 1);
+      return drainRefreshQueue();
     };
     async function initializeServices(): Promise<(() => void) | undefined> {
       let unsubscribeModelUpdates: (() => void) | undefined;

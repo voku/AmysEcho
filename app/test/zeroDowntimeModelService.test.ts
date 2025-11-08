@@ -258,7 +258,7 @@ describe('ZeroDowntimeModelService (React Native implementation)', () => {
 
       expect(result).toBe(false);
       expect(service.getUpdateStatus().status).toBe('failed');
-      expect(service.getUpdateStatus().message).toContain('status 404');
+      expect(service.getUpdateStatus().message).toContain('Status 404');
       expect(mockReadAsStringAsync).not.toHaveBeenCalled();
       expect(mockDeleteAsync).toHaveBeenCalledWith('file://mock-model', { idempotent: true });
     });
@@ -270,7 +270,7 @@ describe('ZeroDowntimeModelService (React Native implementation)', () => {
 
       expect(result).toBe(false);
       expect(service.getUpdateStatus().status).toBe('failed');
-      expect(service.getUpdateStatus().message).toContain('Model file too small');
+      expect(service.getUpdateStatus().message).toContain('Modelldatei ist zu klein');
     });
 
     it('tracks progress with elapsed time estimation', async () => {

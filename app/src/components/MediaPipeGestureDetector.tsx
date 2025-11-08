@@ -22,6 +22,7 @@ import { logger } from '../utils/logger';
 import { useModelInjection } from '../hooks/useModelInjection';
 import { fetchMlpModel, getCachedMlpModel, getCachedMlpMeta } from '../services/dgsModelClient';
 import { loadActiveProfileId, onActiveProfileChange } from '../storage';
+import { getClipCaptureErrorMessage } from '../utils/clipPersistence';
 import type { ClipReadyPayload, FrameBatchPayload, FrameCapturePayload } from '../types/frames';
 
 const MAX_ERROR_PAYLOAD_SNIPPET_LENGTH = 200;
@@ -121,7 +122,6 @@ const PREDICTION_ERROR_TEXT = "Das hat nicht geklappt. Lass es uns nochmal versu
 const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
 const CAMERA_RETRY_PROMPT_TEXT = 'Die Kamera braucht einen Moment. Tippe, um sie neu zu starten.';
 const GESTURE_PROCESSING_ERROR_TEXT = "Das hat nicht geklappt. Probier's einfach nochmal!";
-const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
 const CLIP_UNSUPPORTED_DEVICE_TEXT = 'Dieses Gerät unterstützt keine Videoaufnahmen.';
 const DEFAULT_GESTURE_SIZE_TOLERANCE = 0.3;
 
@@ -831,7 +831,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           if (reason === 'media_recorder_unavailable' || reason === 'media_recorder_not_supported') {
             setWebviewError(CLIP_UNSUPPORTED_DEVICE_TEXT);
           } else {
-            setWebviewError(CLIP_RECORDING_ERROR_TEXT);
+            setWebviewError(getClipCaptureErrorMessage(reason));
           }
           const details: MediaPipeErrorDetails = { reason };
           onError('clip_error', details);
