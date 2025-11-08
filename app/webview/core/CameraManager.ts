@@ -22,16 +22,47 @@ export class CameraManager {
    */
   async startCamera(): Promise<void> {
     const facingMode = (window as any).__facingMode || 'user';
+    const requestClipAudio = Boolean((window as any).__requestClipAudio);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: requestClipAudio
+            ? {
+                echoCancellation: true,
+                noiseSuppression: true,
+              }
+            : false,
+        });
+      } catch (mediaError) {
+        if (requestClipAudio) {
+          console.warn('getUserMedia with audio failed, retrying without audio:', mediaError);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false,
+          });
+        } else {
+          throw mediaError;
+        }
+      }
 
       this.stream = stream;
       this.video.srcObject = stream;
       this.resourceManager.registerMediaStream(stream);
+
+      if (requestClipAudio) {
+        try {
+          const audioTracks = stream.getAudioTracks();
+          for (const track of audioTracks) {
+            // Keep the audio track attached so MediaRecorder stays happy, but disable capture.
+            track.enabled = false;
+          }
+        } catch (audioError) {
+          console.warn('Failed to disable audio tracks for clip capture:', audioError);
+        }
+      }
 
       // Set up video properties
       this.video.muted = true;

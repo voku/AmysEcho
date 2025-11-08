@@ -7,7 +7,7 @@ import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
 import { MemoryOptimizer, CircularBuffer } from '../utils/MemoryOptimizer';
 import { ProcessingPipeline, ProcessingStep, ProcessingContext } from '../utils/ProcessingPipeline';
 
-describe.skip('PerformanceOptimizer', () => {
+describe('PerformanceOptimizer', () => {
   let optimizer: PerformanceOptimizer;
 
   beforeEach(() => {
@@ -98,7 +98,7 @@ describe.skip('PerformanceOptimizer', () => {
   });
 });
 
-describe.skip('MemoryOptimizer', () => {
+describe('MemoryOptimizer', () => {
   let optimizer: MemoryOptimizer;
 
   beforeEach(() => {
@@ -170,7 +170,7 @@ describe.skip('MemoryOptimizer', () => {
   });
 });
 
-describe.skip('CircularBuffer', () => {
+describe('CircularBuffer', () => {
   let buffer: CircularBuffer<number>;
 
   beforeEach(() => {
@@ -228,7 +228,7 @@ describe.skip('CircularBuffer', () => {
   });
 });
 
-describe.skip('ProcessingPipeline', () => {
+describe('ProcessingPipeline', () => {
   let pipeline: ProcessingPipeline;
   let mockStep: ProcessingStep;
 
