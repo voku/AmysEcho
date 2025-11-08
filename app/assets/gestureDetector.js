@@ -1341,13 +1341,26 @@
       const facingMode2 = window.__facingMode || "user";
       const requestClipAudio = Boolean(window.__requestClipAudio);
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facingMode2, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: requestClipAudio ? {
-            echoCancellation: true,
-            noiseSuppression: true
-          } : false
-        });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: facingMode2, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: requestClipAudio ? {
+              echoCancellation: true,
+              noiseSuppression: true
+            } : false
+          });
+        } catch (mediaError) {
+          if (requestClipAudio) {
+            console.warn("getUserMedia with audio failed, retrying without audio:", mediaError);
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: facingMode2, width: { ideal: 1280 }, height: { ideal: 720 } },
+              audio: false
+            });
+          } else {
+            throw mediaError;
+          }
+        }
         this.stream = stream;
         this.video.srcObject = stream;
         this.resourceManager.registerMediaStream(stream);

@@ -2,6 +2,8 @@
  * Type definitions for MediaPipe Tasks Vision results and related interfaces
  */
 
+import type { GestureWindowAugmentations } from './windowAugmentations';
+
 // MediaPipe Hand Landmark
 export interface HandLandmark {
   x: number;
@@ -128,45 +130,7 @@ export type WebViewMessagePayload =
 
 // Window extensions for custom properties
 declare global {
-  interface Window {
-    // MediaPipe and related
-    fileset_resolver?: { FilesetResolver: any };
-    vision?: { GestureRecognizer: any };
-
-    // Custom gesture detector properties
-    __tapToStart?: string;
-    __recognizerInitFailed?: string;
-    __predictionError?: string;
-    __cameraError?: string;
-    __facingMode?: string;
-    __mirrorOverlay?: boolean;
-    __mlpThreshold?: number;
-    __fallbackThreshold?: number;
-    __visionBundleNonce?: string;
-    __visionBundleSri?: string;
-    __mediapipeVersion?: string;
-    __allowCdnEsm?: boolean;
-    __autostartCamera?: boolean;
-    __requestClipAudio?: boolean;
-    __requestCameraStart?: (source?: string) => Promise<boolean> | boolean;
-    __gestureSizeTolerance?: number;
-
-    // MLP prediction function
-    __mlpPredict?: (
-      landmarks: number[][][],
-      handednesses: unknown,
-    ) => { label: string; score: number } | null;
-
-    // React Native WebView
-    ReactNativeWebView?: {
-      postMessage?: (message: string) => void;
-    };
-
-
-
-    // Cleanup function
-    __cleanupGestureDetector?: (() => void) | undefined;
-  }
+  interface Window extends GestureWindowAugmentations {}
 }
 
 // Type guards

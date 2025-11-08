@@ -25,15 +25,28 @@ export class CameraManager {
     const requestClipAudio = Boolean((window as any).__requestClipAudio);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: requestClipAudio
-          ? {
-              echoCancellation: true,
-              noiseSuppression: true,
-            }
-          : false,
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: requestClipAudio
+            ? {
+                echoCancellation: true,
+                noiseSuppression: true,
+              }
+            : false,
+        });
+      } catch (mediaError) {
+        if (requestClipAudio) {
+          console.warn('getUserMedia with audio failed, retrying without audio:', mediaError);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false,
+          });
+        } else {
+          throw mediaError;
+        }
+      }
 
       this.stream = stream;
       this.video.srcObject = stream;

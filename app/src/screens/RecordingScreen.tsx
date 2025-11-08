@@ -46,6 +46,18 @@ const PANEL_HORIZONTAL_PADDING = SPACING.lg * 2;
 
 const expoFs = FileSystem as ExpoFileSystemCompat;
 
+const transformLandmarkCoordinates = (
+  x: number,
+  y: number,
+  mirror: boolean,
+): { x: number; y: number } => {
+  const mirroredX = mirror ? 1 - x : x;
+  return {
+    x: Math.max(0, Math.min(1, mirroredX)),
+    y: Math.max(0, Math.min(1, y)),
+  };
+};
+
 export default function RecordingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const { width: windowWidth } = useWindowDimensions();
@@ -719,9 +731,11 @@ export default function RecordingScreen({ navigation, route }: any) {
                         if (typeof x !== 'number' || typeof y !== 'number') {
                           return null;
                         }
-                        const mirroredX = mirrorPreview ? 1 - x : x;
-                        const clampedX = Math.max(0, Math.min(1, mirroredX));
-                        const clampedY = Math.max(0, Math.min(1, y));
+                        const { x: clampedX, y: clampedY } = transformLandmarkCoordinates(
+                          x,
+                          y,
+                          mirrorPreview,
+                        );
                         return (
                           <Circle
                             key={`${handIdx}-${lmIdx}`}
