@@ -6,6 +6,47 @@ const path = require('path');
 const appDir = path.resolve(__dirname, '..');
 const logRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'amys-echo-jest-'));
 
+const suspiciousErrorPatterns = [
+  /\bconsole\.error\b/i,
+  /\b(?:Type|Range|Reference|Syntax|Eval|URI|Aggregate|Internal)?Error:/,
+  /\bException\b/i,
+  /UnhandledPromiseRejectionWarning/i,
+  /Unhandled\s+promise\s+rejection/i,
+  /Unhandled\s+exception/i,
+];
+
+const allowedErrorPatterns = [
+  /node:internal\/modules\/cjs\/loader\.js/, // noisy node internals when stack traces appear elsewhere
+];
+
+function extractSuspiciousErrorLines(output) {
+  const seen = new Set();
+  const lines = [];
+
+  output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      if (seen.has(line)) {
+        return;
+      }
+
+      if (!suspiciousErrorPatterns.some((pattern) => pattern.test(line))) {
+        return;
+      }
+
+      if (allowedErrorPatterns.some((pattern) => pattern.test(line))) {
+        return;
+      }
+
+      seen.add(line);
+      lines.push(line);
+    });
+
+  return lines;
+}
+
 function sanitizeLabel(label) {
   return label.replace(/[^a-z0-9.-]+/gi, '_');
 }
@@ -33,6 +74,20 @@ function handleJestResult(result, label) {
     console.error(
       `Jest reported skipped tests (${skippedMatch[0].trim()}). See ${logFile} for full output.`
     );
+    process.exit(1);
+  }
+
+  const stderrOutput = stderr.toString();
+  const suspiciousLines = extractSuspiciousErrorLines(stderrOutput);
+  if (suspiciousLines.length > 0) {
+    console.error(
+      `Detected unexpected error output while running tests. See ${logFile} for full output.`
+    );
+    const preview = suspiciousLines.slice(0, 5);
+    preview.forEach((line) => console.error(`  ${line}`));
+    if (suspiciousLines.length > preview.length) {
+      console.error(`  …and ${suspiciousLines.length - preview.length} more line(s)`);
+    }
     process.exit(1);
   }
 
