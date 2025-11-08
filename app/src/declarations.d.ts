@@ -60,6 +60,7 @@ declare global {
     __mlpThreshold?: number;
     __fallbackThreshold?: number;
     __gestureSizeTolerance?: number;
+    __requestClipAudio?: boolean;
     __amyIntensity?: 'gentle' | 'normal' | 'strong';
     __amyTimeBased?: boolean;
     __amyContextAware?: boolean;

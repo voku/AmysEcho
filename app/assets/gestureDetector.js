@@ -1339,14 +1339,28 @@
      */
     async startCamera() {
       const facingMode2 = window.__facingMode || "user";
+      const requestClipAudio = Boolean(window.__requestClipAudio);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facingMode2, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
+          audio: requestClipAudio ? {
+            echoCancellation: true,
+            noiseSuppression: true
+          } : false
         });
         this.stream = stream;
         this.video.srcObject = stream;
         this.resourceManager.registerMediaStream(stream);
+        if (requestClipAudio) {
+          try {
+            const audioTracks = stream.getAudioTracks();
+            for (const track of audioTracks) {
+              track.enabled = false;
+            }
+          } catch (audioError) {
+            console.warn("Failed to disable audio tracks for clip capture:", audioError);
+          }
+        }
         this.video.muted = true;
         this.video.setAttribute("autoplay", "");
         this.video.setAttribute("playsinline", "");

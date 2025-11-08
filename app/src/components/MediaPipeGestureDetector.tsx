@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import type { WebViewPermissionRequestEvent } from '../webviewTypes';
 
@@ -401,6 +401,8 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     return gestureSizeTolerance;
   }, [gestureSizeTolerance]);
 
+  const shouldRequestClipAudio = Platform.OS === 'android';
+
   const htmlContent = useMemo(() => {
     const tapToStart = escapeJs(TAP_TO_START_TEXT);
     const recognizerFailed = escapeJs(RECOGNIZER_INIT_FAILED_TEXT);
@@ -422,6 +424,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     window.__mirrorOverlay = ${facingMode === 'user'};
     window.__gestureSizeTolerance = ${sanitizedGestureSizeTolerance};
     window.__autostartCamera = true;
+    window.__requestClipAudio = ${shouldRequestClipAudio};
   </script>
   <script>
     (function loadGestureBundle() {
@@ -463,7 +466,12 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
 </head>
 <body></body>
 </html>`;
-  }, [facingMode, inlineGestureDetectorSource, sanitizedGestureSizeTolerance]);
+  }, [
+    facingMode,
+    inlineGestureDetectorSource,
+    sanitizedGestureSizeTolerance,
+    shouldRequestClipAudio,
+  ]);
 
   const cameraStartRetryRef = useRef<{
     attempts: number;
@@ -610,23 +618,41 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
         return;
       }
 
-      const wantsCamera = Array.isArray(resources) && resources.includes('VIDEO_CAPTURE');
-      if (wantsCamera) {
-        grant?.(['VIDEO_CAPTURE']);
-      } else {
-        logger.warn('WebView permission denied: camera access not requested', {
+      const requestedResources = Array.isArray(resources)
+        ? resources.filter((item): item is 'VIDEO_CAPTURE' | 'AUDIO_CAPTURE' =>
+            item === 'VIDEO_CAPTURE' || item === 'AUDIO_CAPTURE',
+          )
+        : [];
+
+      const allowVideo = requestedResources.includes('VIDEO_CAPTURE');
+      const allowAudio =
+        shouldRequestClipAudio && requestedResources.includes('AUDIO_CAPTURE');
+
+      if (!allowVideo && !allowAudio) {
+        logger.warn('WebView permission denied: unsupported resources requested', {
           origin: normalizedOrigin,
           resources,
         });
         deny?.();
+        return;
       }
+
+      const grants: Array<'VIDEO_CAPTURE' | 'AUDIO_CAPTURE'> = [];
+      if (allowVideo) {
+        grants.push('VIDEO_CAPTURE');
+      }
+      if (allowAudio) {
+        grants.push('AUDIO_CAPTURE');
+      }
+
+      grant?.(grants);
     } catch (err) {
       logger.warn('Permission request handling failed', err);
       try {
         event?.nativeEvent?.deny?.();
       } catch {}
     }
-  }, []);
+  }, [shouldRequestClipAudio]);
 
   const forwardLandmarks = useCallback(
     (payload: unknown) => {

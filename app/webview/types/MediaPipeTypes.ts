@@ -147,6 +147,7 @@ declare global {
     __mediapipeVersion?: string;
     __allowCdnEsm?: boolean;
     __autostartCamera?: boolean;
+    __requestClipAudio?: boolean;
     __requestCameraStart?: (source?: string) => Promise<boolean> | boolean;
     __gestureSizeTolerance?: number;
 

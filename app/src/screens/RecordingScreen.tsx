@@ -80,6 +80,7 @@ export default function RecordingScreen({ navigation, route }: any) {
   const clipRequestIdRef = useRef<string | null>(null);
   const clipFileRef = useRef<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const mirrorPreview = facingMode === 'user';
 
   useEffect(() => {
     setGestureId(initialGesture);
@@ -718,11 +719,14 @@ export default function RecordingScreen({ navigation, route }: any) {
                         if (typeof x !== 'number' || typeof y !== 'number') {
                           return null;
                         }
+                        const mirroredX = mirrorPreview ? 1 - x : x;
+                        const clampedX = Math.max(0, Math.min(1, mirroredX));
+                        const clampedY = Math.max(0, Math.min(1, y));
                         return (
                           <Circle
                             key={`${handIdx}-${lmIdx}`}
-                            cx={x * previewSize}
-                            cy={y * previewSize}
+                            cx={clampedX * previewSize}
+                            cy={clampedY * previewSize}
                             r={3}
                             fill={COLORS.warning}
                           />
