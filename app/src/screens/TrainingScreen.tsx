@@ -105,20 +105,6 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
-    if (!canUseClipStorage(expoFs)) {
-      clipSupportReasonRef.current = 'clip_directory_unavailable';
-      setClipCaptureMode((mode) => {
-        if (mode !== 'fallback') {
-          announceClipFallback();
-          return 'fallback';
-        }
-        announceClipFallback();
-        return mode;
-      });
-    }
-  }, [announceClipFallback]);
-
-  useEffect(() => {
     if (clipCaptureMode === 'fallback') {
       announceClipFallback();
     }
@@ -151,6 +137,23 @@ export default function TrainingScreen({ navigation, route }: any) {
       announceClipFallback();
     },
     [announceClipFallback, clipCaptureMode, persistFallbackIfUnsupported],
+  );
+
+  const ensureClipCaptureMode = useCallback(
+    (mode: typeof clipCaptureMode): typeof clipCaptureMode => {
+      let nextMode = mode;
+      if (nextMode === 'enabled' && !canUseClipStorage(expoFs)) {
+        enterClipFallback('clip_directory_unavailable');
+        nextMode = 'fallback';
+      }
+      if (nextMode === 'enabled') {
+        if (persistFallbackIfUnsupported(clipSupportReasonRef.current)) {
+          nextMode = 'fallback';
+        }
+      }
+      return nextMode;
+    },
+    [enterClipFallback, persistFallbackIfUnsupported],
   );
 
   const persistClip = useCallback(async (clip: ClipReadyPayload): Promise<string> => {
@@ -340,22 +343,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     await cleanupClipFile();
 
     let clipId: string | null = null;
-    let clipMode: typeof clipCaptureMode = clipCaptureMode;
-
-    if (clipMode === 'enabled' && !canUseClipStorage(expoFs)) {
-      clipSupportReasonRef.current = 'clip_directory_unavailable';
-      clipMode = 'fallback';
-      if (clipCaptureMode !== 'fallback') {
-        setClipCaptureMode('fallback');
-      }
-      announceClipFallback();
-    }
-
-    if (clipMode === 'enabled') {
-      if (persistFallbackIfUnsupported(clipSupportReasonRef.current)) {
-        clipMode = 'fallback';
-      }
-    }
+    let clipMode: typeof clipCaptureMode = ensureClipCaptureMode(clipCaptureMode);
 
     if (clipMode === 'enabled' && detectorRef.current) {
       try {
@@ -377,10 +365,10 @@ export default function TrainingScreen({ navigation, route }: any) {
     cameraReady,
     cleanupClipFile,
     clipCaptureMode,
+    ensureClipCaptureMode,
     enterClipFallback,
     gestureId,
     isPractice,
-    persistFallbackIfUnsupported,
     recordingState,
   ]);
 
@@ -393,20 +381,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       let clipUri: string | null = null;
       let clipFailure: unknown = null;
-      let clipMode: typeof clipCaptureMode = clipCaptureMode;
-      if (clipMode === 'enabled' && !canUseClipStorage(expoFs)) {
-        clipSupportReasonRef.current = 'clip_directory_unavailable';
-        clipMode = 'fallback';
-        if (clipCaptureMode !== 'fallback') {
-          setClipCaptureMode('fallback');
-        }
-        announceClipFallback();
-      }
-      if (clipMode === 'enabled') {
-        if (persistFallbackIfUnsupported(clipSupportReasonRef.current)) {
-          clipMode = 'fallback';
-        }
-      }
+      let clipMode: typeof clipCaptureMode = ensureClipCaptureMode(clipCaptureMode);
 
       if (clipMode === 'enabled' && clipRequestIdRef.current && detectorRef.current) {
         try {
@@ -420,11 +395,7 @@ export default function TrainingScreen({ navigation, route }: any) {
           const reason = error instanceof Error ? error.message ?? 'clip_stop_failed' : 'clip_stop_failed';
           logger.warn('Failed to stop clip capture, switching to fallback mode', error);
           const message = getClipCaptureErrorMessage(error);
-          const tone: 'error' | 'info' =
-            reason === 'clip_directory_unavailable' ||
-            message.includes('keine Videoclips speichern')
-              ? 'info'
-              : 'error';
+          const tone: 'error' | 'info' = reason === 'clip_directory_unavailable' ? 'info' : 'error';
           showToast({ message, tone });
           clipMode = 'fallback';
           enterClipFallback(reason);
@@ -506,12 +477,12 @@ export default function TrainingScreen({ navigation, route }: any) {
     cameraReady,
     cleanupClipFile,
     clipCaptureMode,
+    ensureClipCaptureMode,
     enterClipFallback,
     framesCaptured,
     gestureId,
     isPractice,
     persistClip,
-    persistFallbackIfUnsupported,
     profile?.id,
     recordedFrames,
     showToast,

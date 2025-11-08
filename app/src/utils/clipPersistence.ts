@@ -7,6 +7,9 @@ type FileEncoding = 'utf8' | 'base64';
 export type ExpoFileSystemCompat = FileSystemModule & {
   cacheDirectory?: string | null;
   documentDirectory?: string | null;
+  storageDirectory?: string | null;
+  externalDirectory?: string | null;
+  externalCacheDirectory?: string | null;
   EncodingType?: { Base64?: FileEncoding } | null;
 };
 
@@ -52,14 +55,33 @@ export type ClipCaptureErrorCode = keyof typeof CLIP_CAPTURE_ERROR_MESSAGES;
 export const DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE =
   CLIP_CAPTURE_ERROR_MESSAGES.clip_capture_failed;
 
+const ensureTrailingSlash = (directory: string): string =>
+  directory.endsWith('/') ? directory : `${directory}/`;
+
+const resolveClipBaseDirectoryCandidates = (fs: ExpoFileSystemCompat): string[] => {
+  const candidates = [
+    fs.documentDirectory,
+    fs.storageDirectory,
+    fs.externalDirectory,
+    fs.cacheDirectory,
+    fs.externalCacheDirectory,
+  ];
+
+  const normalized = candidates
+    .filter((directory): directory is string => typeof directory === 'string' && directory.length > 0)
+    .map(ensureTrailingSlash);
+
+  return Array.from(new Set(normalized));
+};
+
 export const resolveClipBaseDirectory = (
   fs: ExpoFileSystemCompat,
 ): string | null => {
-  return fs.documentDirectory ?? fs.cacheDirectory ?? null;
+  return resolveClipBaseDirectoryCandidates(fs)[0] ?? null;
 };
 
 export const canUseClipStorage = (fs: ExpoFileSystemCompat): boolean => {
-  return Boolean(resolveClipBaseDirectory(fs));
+  return resolveClipBaseDirectoryCandidates(fs).length > 0;
 };
 
 const resolveClipCaptureErrorCode = (value: string | null | undefined): string | null => {
@@ -182,17 +204,13 @@ export const persistClipToDirectory = async ({
     throw new ClipCaptureError('clip_path_components_invalid');
   }
 
-  const baseDirectory = resolveClipBaseDirectory(fs);
-  if (!baseDirectory) {
+  const baseDirectories = resolveClipBaseDirectoryCandidates(fs);
+  if (baseDirectories.length === 0) {
     throw new ClipCaptureError('clip_directory_unavailable');
   }
 
   const normalizedDirectoryName = directoryName.replace(/\/+$/, '');
-  const clipDirectory = `${baseDirectory}${normalizedDirectoryName}/`;
-  await ensureDirectory(fs, clipDirectory, logger);
-
   const extension = getExtensionFromMime(clip.mimeType);
-  const targetUri = `${clipDirectory}${filePrefix}-${clip.id}.${extension}`;
   const encoding: FileEncoding = fs.EncodingType?.Base64 ?? 'base64';
   const base64Payload = sanitizeClipBase64(clip.base64);
   if (!base64Payload) {
@@ -203,12 +221,32 @@ export const persistClipToDirectory = async ({
     throw new ClipCaptureError('clip_payload_invalid');
   }
 
-  try {
-    await fs.writeAsStringAsync(targetUri, base64Payload, { encoding });
-  } catch (writeError) {
-    logger?.warn('Clip konnte nicht gespeichert werden', writeError);
-    throw new ClipCaptureError('clip_write_failed');
+  let lastFailure: ClipCaptureError | null = null;
+
+  for (const baseDirectory of baseDirectories) {
+    const clipDirectory = `${baseDirectory}${normalizedDirectoryName}/`;
+
+    try {
+      await ensureDirectory(fs, clipDirectory, logger);
+    } catch (directoryError) {
+      if (directoryError instanceof ClipCaptureError && directoryError.message === 'clip_directory_unavailable') {
+        lastFailure = directoryError;
+        continue;
+      }
+      throw directoryError;
+    }
+
+    const targetUri = `${clipDirectory}${filePrefix}-${clip.id}.${extension}`;
+
+    try {
+      await fs.writeAsStringAsync(targetUri, base64Payload, { encoding });
+      return targetUri;
+    } catch (writeError) {
+      logger?.warn('Clip konnte nicht gespeichert werden', writeError);
+      lastFailure = new ClipCaptureError('clip_write_failed');
+      continue;
+    }
   }
 
-  return targetUri;
+  throw lastFailure ?? new ClipCaptureError('clip_directory_unavailable');
 };
