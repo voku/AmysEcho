@@ -103,7 +103,7 @@ describe('clipPersistence', () => {
       }),
     ).rejects.toMatchObject({ message: 'clip_payload_invalid' });
 
-    expect(warn).toHaveBeenCalledWith('Clip base64 payload missing or invalid', {
+    expect(warn).toHaveBeenCalledWith('Clip-base64-Payload fehlt oder ist ungültig', {
       clipId: 'clip123',
       mimeType: 'video/webm',
     });
@@ -125,7 +125,7 @@ describe('clipPersistence', () => {
       }),
     ).rejects.toMatchObject({ message: 'clip_payload_invalid' });
 
-    expect(warn).toHaveBeenCalledWith('Clip base64 payload missing or invalid', {
+    expect(warn).toHaveBeenCalledWith('Clip-base64-Payload fehlt oder ist ungültig', {
       clipId: 'clip123',
       mimeType: 'video/webm',
     });

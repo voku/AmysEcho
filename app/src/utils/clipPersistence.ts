@@ -51,29 +51,16 @@ export const sanitizeClipBase64 = (payload: string): string => {
     return '';
   }
 
-  let sanitized = payload.trim();
-  if (sanitized.length === 0) {
+  const trimmed = payload.trim();
+  if (!trimmed) {
     return '';
   }
 
-  if (sanitized.startsWith('data:')) {
-    const commaIndex = sanitized.indexOf(',');
-    if (commaIndex >= 0) {
-      sanitized = sanitized.slice(commaIndex + 1);
-    }
-  }
+  const commaIndex = trimmed.startsWith('data:') ? trimmed.indexOf(',') : -1;
+  const withoutPrefix = commaIndex >= 0 ? trimmed.slice(commaIndex + 1) : trimmed;
+  const sanitized = withoutPrefix.replace(/\s+/g, '');
 
-  sanitized = sanitized.replace(/\s+/g, '');
-
-  if (sanitized.length === 0) {
-    return '';
-  }
-
-  if (!BASE64_PATTERN.test(sanitized)) {
-    return '';
-  }
-
-  if (sanitized.length % 4 !== 0) {
+  if (!sanitized || sanitized.length % 4 !== 0 || !BASE64_PATTERN.test(sanitized)) {
     return '';
   }
 
@@ -139,7 +126,7 @@ export const persistClipToDirectory = async ({
   const encoding: FileEncoding = fs.EncodingType?.Base64 ?? 'base64';
   const base64Payload = sanitizeClipBase64(clip.base64);
   if (!base64Payload) {
-    logger?.warn('Clip base64 payload missing or invalid', {
+    logger?.warn('Clip-base64-Payload fehlt oder ist ungültig', {
       clipId: clip.id,
       mimeType: clip.mimeType,
     });
