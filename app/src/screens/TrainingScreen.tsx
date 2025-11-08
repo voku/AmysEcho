@@ -392,7 +392,8 @@ export default function TrainingScreen({ navigation, route }: any) {
           clipUri = await persistClip(clipResult);
         } catch (error) {
           clipFailure = error;
-          const reason = error instanceof Error ? error.message ?? 'clip_stop_failed' : 'clip_stop_failed';
+          const reason =
+            error instanceof Error ? error.message ?? 'clip_stop_failed' : String(error ?? 'clip_stop_failed');
           logger.warn('Failed to stop clip capture, switching to fallback mode', error);
           const message = getClipCaptureErrorMessage(error);
           const tone: 'error' | 'info' = reason === 'clip_directory_unavailable' ? 'info' : 'error';
