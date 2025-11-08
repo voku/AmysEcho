@@ -23,7 +23,7 @@ export class LazyComponent extends React.Component<LazyComponentProps, LazyCompo
     this.state = {
       Component: null,
       isLoading: true,
-      error: null
+      error: null,
     };
   }
 
@@ -45,7 +45,7 @@ export class LazyComponent extends React.Component<LazyComponentProps, LazyCompo
       logger.error(`Failed to load component ${componentName}:`, error);
       this.setState({
         isLoading: false,
-        error: `Failed to load ${componentName}`
+        error: `Komponente ${componentName} konnte nicht geladen werden`,
       });
     }
   }
@@ -60,7 +60,7 @@ export class LazyComponent extends React.Component<LazyComponentProps, LazyCompo
       }
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Component konnte nicht geladen werden</Text>
+          <Text style={styles.errorText}>Komponente konnte nicht geladen werden</Text>
         </View>
       );
     }
@@ -79,7 +79,7 @@ export class LazyComponent extends React.Component<LazyComponentProps, LazyCompo
     if (!Component) {
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Component nicht verfügbar</Text>
+          <Text style={styles.errorText}>Komponente nicht verfügbar</Text>
         </View>
       );
     }
@@ -113,7 +113,7 @@ export function useLazyComponent(componentName: string) {
         }
       } catch (err) {
         if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load component');
+          setError('Komponente konnte nicht geladen werden');
           setIsLoading(false);
         }
       }

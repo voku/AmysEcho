@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 import { base64ToArrayBuffer } from '../utils/base64';
 
 export class DownloadAbortedError extends Error {
-  constructor(message = 'Download aborted') {
+  constructor(message = 'Download abgebrochen') {
     super(message);
     this.name = 'DownloadAbortedError';
   }
@@ -37,7 +37,7 @@ class ZeroDowntimeModelService {
   private static instance: ZeroDowntimeModelService;
   private currentModel: ModelVersion | null = null;
   private pendingModel: ModelVersion | null = null;
-  private updateStatus: ModelUpdateStatus = { status: 'idle', progress: 0, message: 'Ready' };
+  private updateStatus: ModelUpdateStatus = { status: 'idle', progress: 0, message: 'Bereit' };
   private updateCallbacks: ((status: ModelUpdateStatus) => void)[] = [];
   private isUpdating = false;
   private abortController: AbortController | null = null;
@@ -79,7 +79,12 @@ class ZeroDowntimeModelService {
     this.downloadStartTime = startTime;
 
     try {
-      this.updateStatus = { status: 'downloading', progress: 0, message: 'Downloading new model...', estimatedTimeRemaining: 0 };
+      this.updateStatus = {
+        status: 'downloading',
+        progress: 0,
+        message: 'Neues Modell wird heruntergeladen...',
+        estimatedTimeRemaining: 0,
+      };
       this.notifyCallbacks();
 
       // Download model in background
@@ -88,7 +93,7 @@ class ZeroDowntimeModelService {
         this.downloadStartTime = null;
       }
 
-      this.updateStatus = { status: 'validating', progress: 75, message: 'Validating model...' };
+      this.updateStatus = { status: 'validating', progress: 75, message: 'Modell wird überprüft...' };
       this.notifyCallbacks();
 
       // Validate the downloaded model
@@ -116,7 +121,7 @@ class ZeroDowntimeModelService {
       this.updateStatus = {
         status: 'ready',
         progress: 100,
-        message: 'New model ready for activation',
+        message: 'Neues Modell bereit zur Aktivierung',
         estimatedTimeRemaining: 0
       };
       this.notifyCallbacks();
@@ -129,12 +134,19 @@ class ZeroDowntimeModelService {
     } catch (error) {
       logger.error('Model update failed:', error);
       if (error instanceof DownloadAbortedError) {
-        this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled', estimatedTimeRemaining: 0 };
+        this.updateStatus = {
+          status: 'idle',
+          progress: 0,
+          message: 'Aktualisierung abgebrochen',
+          estimatedTimeRemaining: 0,
+        };
       } else {
         this.updateStatus = {
           status: 'failed',
           progress: 0,
-          message: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          message: `Aktualisierung fehlgeschlagen: ${
+            error instanceof Error ? error.message : 'Unbekannter Fehler'
+          }`,
         };
       }
       this.notifyCallbacks();
@@ -258,7 +270,12 @@ class ZeroDowntimeModelService {
     this.currentDownloadTask = null;
     this.downloadStartTime = null;
 
-    this.updateStatus = { status: 'idle', progress: 0, message: 'Update cancelled', estimatedTimeRemaining: 0 };
+    this.updateStatus = {
+      status: 'idle',
+      progress: 0,
+      message: 'Aktualisierung abgebrochen',
+      estimatedTimeRemaining: 0,
+    };
     this.notifyCallbacks();
     logger.info('Model update cancelled');
   }
@@ -290,7 +307,7 @@ class ZeroDowntimeModelService {
   private async downloadModel(url: string, expectedSize?: number): Promise<ArrayBuffer> {
     const directory = FileSystem.cacheDirectory || FileSystem.documentDirectory;
     if (!directory) {
-      throw new Error('No writable directory available for downloads');
+      throw new Error('Kein beschreibbares Verzeichnis für Downloads verfügbar');
     }
 
     const normalizedDirectory = directory.endsWith('/') ? directory : `${directory}/`;
@@ -308,15 +325,15 @@ class ZeroDowntimeModelService {
           this.updateStatus = {
             status: 'downloading',
             progress: Math.min(progress, 75),
-            message: `Downloading... ${Math.round(progress)}%`,
-            estimatedTimeRemaining: this.estimateTimeRemaining(totalBytesWritten, total)
+            message: `Download läuft... ${Math.round(progress)}%`,
+            estimatedTimeRemaining: this.estimateTimeRemaining(totalBytesWritten, total),
           };
         } else {
           this.updateStatus = {
             status: 'downloading',
             progress: 0,
-            message: 'Downloading...',
-            estimatedTimeRemaining: 0
+            message: 'Download läuft...',
+            estimatedTimeRemaining: 0,
           };
         }
 
@@ -343,13 +360,13 @@ class ZeroDowntimeModelService {
       downloadResult = await downloadResumable.downloadAsync();
 
       if (!downloadResult) {
-        throw new Error('Download failed to produce a result');
+        throw new Error('Download lieferte kein Ergebnis');
       }
 
       const { status: statusCode, uri } = downloadResult;
       if (statusCode < 200 || statusCode >= 300) {
         await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
-        throw new Error(`Download failed with status ${statusCode}`);
+        throw new Error(`Download fehlgeschlagen (Status ${statusCode})`);
       }
 
       if (abortError) {
@@ -358,7 +375,7 @@ class ZeroDowntimeModelService {
 
       const info = await FileSystem.getInfoAsync(downloadResult.uri);
       if (!info.exists) {
-        throw new Error('Downloaded file not found');
+        throw new Error('Heruntergeladene Datei nicht gefunden');
       }
 
       const base64 = await FileSystem.readAsStringAsync(downloadResult.uri, {
@@ -395,12 +412,12 @@ class ZeroDowntimeModelService {
     try {
       // Basic validation - check if it's a valid model file
       if (modelData.byteLength === 0) {
-        return { valid: false, error: 'Model file is empty' };
+        return { valid: false, error: 'Modelldatei ist leer' };
       }
 
       // Check minimum size (arbitrary threshold)
       if (modelData.byteLength < 1024) {
-        return { valid: false, error: 'Model file too small' };
+        return { valid: false, error: 'Modelldatei ist zu klein' };
       }
 
       // Here you would add more sophisticated validation
@@ -418,7 +435,7 @@ class ZeroDowntimeModelService {
     } catch (error) {
       return {
         valid: false,
-        error: error instanceof Error ? error.message : 'Validation failed'
+        error: error instanceof Error ? error.message : 'Validierung fehlgeschlagen'
       };
     }
   }

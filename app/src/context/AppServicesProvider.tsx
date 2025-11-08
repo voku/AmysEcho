@@ -105,6 +105,7 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
       refreshState.running = true;
 
       const promise = (async () => {
+        let shouldRecurse = false;
         try {
           while (!cancelled && refreshState.queued > 0) {
             refreshState.queued -= 1;
@@ -118,8 +119,12 @@ export const AppServicesProvider = ({ children, offline = false }: ProviderProps
           refreshState.running = false;
 
           if (!cancelled && refreshState.queued > 0) {
-            return drainRefreshQueue();
+            shouldRecurse = true;
           }
+        }
+
+        if (shouldRecurse) {
+          return drainRefreshQueue();
         }
       })();
 

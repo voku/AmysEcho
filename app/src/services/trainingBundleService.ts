@@ -314,7 +314,7 @@ export async function uploadTrainingBundle(
     );
 
     if (uploadResult.status < 200 || uploadResult.status >= 300) {
-      throw new Error(`Upload fehlgeschlagen (Status ${uploadResult.status}). (Upload failed.)`);
+      throw new Error(`Upload fehlgeschlagen (Status ${uploadResult.status}).`);
     }
 
     let responseJson: unknown;
@@ -323,16 +323,14 @@ export async function uploadTrainingBundle(
         responseJson = JSON.parse(uploadResult.body);
       } catch (error) {
         logger.warn(
-          'Upload-Antwort konnte nicht geparst werden (Failed to parse upload response)',
+          'Upload-Antwort konnte nicht geparst werden',
           error instanceof Error ? error.message : error,
         );
       }
     }
 
     if (!isUploadResponse(responseJson)) {
-      throw new Error(
-        'Serverantwort enthält keine gültige Bundle-ID. (Server response missing bundle identifier.)',
-      );
+      throw new Error('Serverantwort enthält keine gültige Bundle-ID.');
     }
 
     const trainingJob = parseTrainingJob(responseJson.trainingJob);
@@ -344,19 +342,15 @@ export async function uploadTrainingBundle(
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(
-        'Zeitüberschreitung beim Hochladen des Trainingspakets. (Training bundle upload timed out.)',
-      );
+      throw new Error('Zeitüberschreitung beim Hochladen des Trainingspakets.');
     }
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `Hochladen des Trainingspakets fehlgeschlagen: ${message}. (Training bundle upload failed.)`,
-    );
+    throw new Error(`Hochladen des Trainingspakets fehlgeschlagen: ${message}.`);
   } finally {
     try {
       await FileSystem.deleteAsync(zipPath, { idempotent: true } as any);
     } catch (cleanupError) {
-      logger.warn('Bereinigung der ZIP-Datei fehlgeschlagen (ZIP cleanup failed)', cleanupError);
+      logger.warn('Bereinigung der ZIP-Datei fehlgeschlagen', cleanupError);
     }
   }
 }
