@@ -160,15 +160,16 @@ for (let i = 0; i < filteredArgs.length; i += 1) {
   fileArgs.push(arg);
 }
 
-const shouldRunSequentially = fileArgs.length > 0 || jestArgs.length === 0;
+const shouldRunSequentially = fileArgs.length > 0;
 
 const baseJestArgs = [
   require.resolve('jest/bin/jest'),
-  '--runInBand',
   '--detectOpenHandles',
   '--watchAll=false',
   '--verbose',
 ];
+
+const sequentialJestArgs = [...baseJestArgs, '--runInBand'];
 
 if (shouldRunSequentially) {
   let files = fileArgs;
@@ -196,7 +197,7 @@ if (shouldRunSequentially) {
     console.log('Running', file);
     const result = spawnSync(
       process.execPath,
-      [...baseJestArgs, ...jestArgs, file],
+      [...sequentialJestArgs, ...jestArgs, file],
       {
         cwd: appDir,
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -211,7 +212,11 @@ if (shouldRunSequentially) {
   console.log('All tests passed');
   console.log('Jest logs saved to:', logFiles.join(', '));
 } else {
-  console.log('Running Jest with flags', jestArgs.join(' '));
+  if (jestArgs.length > 0) {
+    console.log('Running Jest with flags', jestArgs.join(' '));
+  } else {
+    console.log('Running full Jest suite in a single Jest process');
+  }
   const result = spawnSync(
     process.execPath,
     [...baseJestArgs, ...jestArgs],
