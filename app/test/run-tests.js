@@ -1,8 +1,47 @@
 const { spawnSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const appDir = path.resolve(__dirname, '..');
+const logRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'amys-echo-jest-'));
+
+function sanitizeLabel(label) {
+  return label.replace(/[^a-z0-9.-]+/gi, '_');
+}
+
+function handleJestResult(result, label) {
+  const stdout = result.stdout ? result.stdout.toString() : '';
+  const stderr = result.stderr ? result.stderr.toString() : '';
+  const logFile = path.join(logRoot, `${sanitizeLabel(label)}.log`);
+
+  fs.writeFileSync(logFile, stdout);
+  if (stderr) {
+    fs.appendFileSync(logFile, stderr);
+  }
+
+  if (stdout) {
+    process.stdout.write(stdout);
+  }
+  if (stderr) {
+    process.stderr.write(stderr);
+  }
+
+  const combinedOutput = `${stdout}\n${stderr}`;
+  const skippedMatch = combinedOutput.match(/Tests:[^\n]*\b(\d+)\s+skipped\b/i);
+  if (skippedMatch && Number(skippedMatch[1]) > 0) {
+    console.error(
+      `Jest reported skipped tests (${skippedMatch[0].trim()}). See ${logFile} for full output.`
+    );
+    process.exit(1);
+  }
+
+  if (result.status !== 0) {
+    process.exit(result.status);
+  }
+
+  return logFile;
+}
 
 function ensureWebviewBundle() {
   const bundlePath = path.join(appDir, 'webview', 'dist', 'gestureDetector.js');
@@ -96,6 +135,8 @@ if (shouldRunSequentially) {
       .filter(Boolean);
   }
 
+  const logFiles = [];
+
   for (const file of files) {
     console.log('Running', file);
     const result = spawnSync(
@@ -103,16 +144,17 @@ if (shouldRunSequentially) {
       [...baseJestArgs, ...jestArgs, file],
       {
         cwd: appDir,
-        stdio: 'inherit',
+        stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env, NODE_OPTIONS: '--max_old_space_size=8192', CI: '1' },
+        maxBuffer: 10 * 1024 * 1024,
       }
     );
-    if (result.status !== 0) {
-      process.exit(result.status);
-    }
+    const relativeFile = path.relative(appDir, file) || path.basename(file);
+    logFiles.push(handleJestResult(result, relativeFile));
   }
 
   console.log('All tests passed');
+  console.log('Jest logs saved to:', logFiles.join(', '));
 } else {
   console.log('Running Jest with flags', jestArgs.join(' '));
   const result = spawnSync(
@@ -120,12 +162,12 @@ if (shouldRunSequentially) {
     [...baseJestArgs, ...jestArgs],
     {
       cwd: appDir,
-      stdio: 'inherit',
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, NODE_OPTIONS: '--max_old_space_size=8192', CI: '1' },
+      maxBuffer: 10 * 1024 * 1024,
     }
   );
 
-  if (result.status !== 0) {
-    process.exit(result.status);
-  }
+  const logFile = handleJestResult(result, jestArgs.length > 0 ? jestArgs.join('_') : 'all-tests');
+  console.log('Jest log saved to:', logFile);
 }
