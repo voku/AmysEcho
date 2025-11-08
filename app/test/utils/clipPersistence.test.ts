@@ -4,6 +4,8 @@ import {
   getClipCaptureErrorMessage,
   persistClipToDirectory,
   sanitizeClipBase64,
+  canUseClipStorage,
+  resolveClipBaseDirectory,
 } from '../../src/utils/clipPersistence';
 import type { ClipReadyPayload } from '../../src/types/frames';
 
@@ -92,6 +94,18 @@ describe('clipPersistence', () => {
     });
 
     expect(uri).toBe('file:///cache/amy/amy-clip123.webm');
+  });
+
+  it('erkennt vorhandenen Speicherort für Clips', () => {
+    const fs = createFs();
+    expect(resolveClipBaseDirectory(fs as any)).toBe('file:///docs/');
+    expect(canUseClipStorage(fs as any)).toBe(true);
+  });
+
+  it('meldet fehlenden Speicherort für Clips', () => {
+    const fs = createFs({ documentDirectory: null, cacheDirectory: null });
+    expect(resolveClipBaseDirectory(fs as any)).toBeNull();
+    expect(canUseClipStorage(fs as any)).toBe(false);
   });
 
   it('throws a ClipCaptureError when the payload is empty after sanitization', async () => {

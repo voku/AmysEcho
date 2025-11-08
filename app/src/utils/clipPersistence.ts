@@ -27,7 +27,8 @@ export const CLIP_CAPTURE_ERROR_MESSAGES = {
   clip_capture_timeout: 'Die Videoaufnahme hat zu lange gedauert. Versuch es bitte erneut.',
   clip_payload_invalid: 'Videodaten waren ungültig. Bitte nimm die Geste erneut auf.',
   clip_write_failed: 'Videodatei konnte nicht gespeichert werden. Prüfe den Gerätespeicher und versuche es erneut.',
-  clip_directory_unavailable: 'Speicherort für Videoclips ist nicht verfügbar. Bitte Gerät neu starten.',
+  clip_directory_unavailable:
+    'Amy kann auf diesem Gerät keine Videoclips speichern. Deine Handbewegungen werden trotzdem gespeichert.',
   clip_path_components_invalid: 'Videodateiname ist ungültig. Bitte Aufnahme erneut starten.',
   clip_payload_empty: 'Von der Kamera wurde kein Video übertragen. Versuch es bitte nochmal.',
   clip_stop_failed: 'Videorekorder konnte nicht gestoppt werden. Versuch die Aufnahme erneut.',
@@ -50,6 +51,16 @@ export type ClipCaptureErrorCode = keyof typeof CLIP_CAPTURE_ERROR_MESSAGES;
 
 export const DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE =
   CLIP_CAPTURE_ERROR_MESSAGES.clip_capture_failed;
+
+export const resolveClipBaseDirectory = (
+  fs: ExpoFileSystemCompat,
+): string | null => {
+  return fs.documentDirectory ?? fs.cacheDirectory ?? null;
+};
+
+export const canUseClipStorage = (fs: ExpoFileSystemCompat): boolean => {
+  return Boolean(resolveClipBaseDirectory(fs));
+};
 
 const resolveClipCaptureErrorCode = (value: string | null | undefined): string | null => {
   if (!value) {
@@ -171,7 +182,7 @@ export const persistClipToDirectory = async ({
     throw new ClipCaptureError('clip_path_components_invalid');
   }
 
-  const baseDirectory = fs.documentDirectory ?? fs.cacheDirectory;
+  const baseDirectory = resolveClipBaseDirectory(fs);
   if (!baseDirectory) {
     throw new ClipCaptureError('clip_directory_unavailable');
   }
