@@ -21,6 +21,54 @@ export class ClipCaptureError extends Error {
   }
 }
 
+export const CLIP_CAPTURE_ERROR_MESSAGES = {
+  clip_capture_failed: 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!',
+  clip_payload_invalid: 'Videodaten waren ungültig. Bitte nimm die Geste erneut auf.',
+  clip_write_failed: 'Videodatei konnte nicht gespeichert werden. Prüfe den Gerätespeicher und versuche es erneut.',
+  clip_directory_unavailable: 'Speicherort für Videoclips ist nicht verfügbar. Bitte Gerät neu starten.',
+  clip_path_components_invalid: 'Videodateiname ist ungültig. Bitte Aufnahme erneut starten.',
+  clip_payload_empty: 'Von der Kamera wurde kein Video übertragen. Versuch es bitte nochmal.',
+  clip_stop_failed: 'Videorekorder konnte nicht gestoppt werden. Versuch die Aufnahme erneut.',
+} as const;
+
+export type ClipCaptureErrorCode = keyof typeof CLIP_CAPTURE_ERROR_MESSAGES;
+
+export const DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE =
+  CLIP_CAPTURE_ERROR_MESSAGES.clip_capture_failed;
+
+const resolveClipCaptureErrorCode = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  if (value in CLIP_CAPTURE_ERROR_MESSAGES) {
+    return value;
+  }
+  return null;
+};
+
+export const getClipCaptureErrorMessage = (error: unknown): string => {
+  if (!error) {
+    return DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+  }
+
+  if (typeof error === 'string') {
+    const resolved = resolveClipCaptureErrorCode(error);
+    return resolved ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode] : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+  }
+
+  if (error instanceof ClipCaptureError) {
+    const resolved = resolveClipCaptureErrorCode(error.message);
+    return resolved ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode] : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+  }
+
+  if (error instanceof Error) {
+    const resolved = resolveClipCaptureErrorCode(error.message);
+    return resolved ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode] : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+  }
+
+  return DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+};
+
 export const getExtensionFromMime = (mimeType: string): string => {
   const normalized = mimeType?.toLowerCase() ?? '';
   const known: Record<string, string> = {

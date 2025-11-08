@@ -26,6 +26,8 @@ import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import {
   ClipCaptureError,
+  DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE,
+  getClipCaptureErrorMessage,
   persistClipToDirectory,
   type ExpoFileSystemCompat,
 } from '../utils/clipPersistence';
@@ -46,7 +48,7 @@ import type { ClipReadyPayload } from '../types/frames';
 
 const expoFs = FileSystem as ExpoFileSystemCompat;
 
-const CLIP_RECORDING_ERROR_TEXT = 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!';
+const CLIP_RECORDING_ERROR_TEXT = DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
 
 const PREVIEW_SIZE = 240;
 
@@ -421,7 +423,7 @@ export default function TeachingScreen({ navigation }: any) {
       }
 
       if (e instanceof ClipCaptureError) {
-        setError(CLIP_RECORDING_ERROR_TEXT);
+        setError(getClipCaptureErrorMessage(e));
       } else if (e instanceof Error && e.message) {
         setError(e.message);
       } else {

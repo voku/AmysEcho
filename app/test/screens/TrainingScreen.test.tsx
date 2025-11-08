@@ -301,7 +301,7 @@ describe('TrainingScreen', () => {
     });
 
     expect(fs.writeAsStringAsync).toHaveBeenCalledWith(
-      'file://cache/amy-training-clips/amy-training-clip-id.mov',
+      'file://documents/amy-training-clips/amy-training-clip-id.mov',
       expect.any(String),
       expect.any(Object),
     );
@@ -343,6 +343,9 @@ describe('TrainingScreen', () => {
       detector.props.onLandmarks?.([[[1, 2, 3]]], ['Left']);
     });
 
+    const { ClipCaptureError } = jest.requireActual('../../src/utils/clipPersistence');
+    stopClipCaptureMock.mockRejectedValueOnce(new ClipCaptureError('clip_directory_unavailable'));
+
     await act(async () => {
       recordPressable.props.onPress();
       await Promise.resolve();
@@ -350,7 +353,7 @@ describe('TrainingScreen', () => {
 
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: 'Videoclip konnte nicht gespeichert werden. Versuch es nochmal!',
+        message: 'Speicherort für Videoclips ist nicht verfügbar. Bitte Gerät neu starten.',
         tone: 'error',
       }),
     );

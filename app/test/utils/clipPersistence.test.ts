@@ -1,4 +1,10 @@
-import { ClipCaptureError, persistClipToDirectory, sanitizeClipBase64 } from '../../src/utils/clipPersistence';
+import {
+  ClipCaptureError,
+  DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE,
+  getClipCaptureErrorMessage,
+  persistClipToDirectory,
+  sanitizeClipBase64,
+} from '../../src/utils/clipPersistence';
 import type { ClipReadyPayload } from '../../src/types/frames';
 
 type MockFs = {
@@ -150,5 +156,15 @@ describe('clipPersistence', () => {
     ).rejects.toEqual(new ClipCaptureError('clip_write_failed'));
 
     expect(warn).toHaveBeenCalledWith('Clip konnte nicht gespeichert werden', writeError);
+  });
+
+  it('returns specific user message for clip payload issues', () => {
+    expect(getClipCaptureErrorMessage(new ClipCaptureError('clip_payload_invalid'))).toBe(
+      'Videodaten waren ungültig. Bitte nimm die Geste erneut auf.',
+    );
+  });
+
+  it('falls back to the default message for unknown errors', () => {
+    expect(getClipCaptureErrorMessage(new Error('unexpected'))).toBe(DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE);
   });
 });
