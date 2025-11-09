@@ -2047,7 +2047,7 @@
   var MAX_CAPTURE_DIMENSION = 640;
   var MAX_DATA_URL_LENGTH = 4e5;
   var frameCaptureEnabled = false;
-  var frameCaptureInterval = 500;
+  var frameCaptureInterval = 150;
   var lastCapturedFrame = null;
   var lastCaptureTimestamp = 0;
   var captureCanvas = null;
@@ -3904,9 +3904,10 @@
   };
 
   // webview/utils/MessageBatcher.ts
-  var BATCH_INTERVAL_MS = 50;
-  var MAX_BATCH_SIZE = 5;
-  var FRAME_LATENCY_SAMPLE_INTERVAL = 10;
+  var BATCH_INTERVAL_MS = 35;
+  var MAX_BATCH_SIZE = 6;
+  var FRAME_LATENCY_SAMPLE_INTERVAL = 6;
+  var MAX_QUEUE_LATENCY_MS = 120;
   var MessageBatcher = class {
     constructor() {
       this.queue = [];
@@ -3922,6 +3923,11 @@
         return;
       }
       if (this.queue.length >= MAX_BATCH_SIZE || this.frameCount > 0 && this.frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0) {
+        this.flushBatch();
+        return;
+      }
+      const now = Date.now();
+      if (this.lastSentAt && now - this.lastSentAt >= MAX_QUEUE_LATENCY_MS) {
         this.flushBatch();
         return;
       }
@@ -4420,11 +4426,319 @@
     };
   }
 
+  // webview/utils/FallbackClipRecorder.ts
+  var DEFAULT_FRAME_INTERVAL_MS = 120;
+  var MAX_CAPTURE_FRAMES = 180;
+  var MIN_FPS = 6;
+  var MAX_FPS = 24;
+  var FallbackClipRecorder = class {
+    constructor(video2, options = {}) {
+      this.video = video2;
+      this.startedAt = 0;
+      this.frames = [];
+      this.timer = null;
+      this.cancelled = false;
+      this.width = 0;
+      this.height = 0;
+      this.lastCapturedBase64 = null;
+      this.previousCaptureState = {
+        enabled: frameCaptureState.frameCaptureEnabled,
+        interval: frameCaptureState.frameCaptureInterval
+      };
+      this.frameIntervalMs = Math.max(60, options.frameIntervalMs ?? DEFAULT_FRAME_INTERVAL_MS);
+      this.maxFrames = Math.max(10, options.maxFrames ?? MAX_CAPTURE_FRAMES);
+      this.mimeType = options.mimeType ?? "video/avi";
+    }
+    start() {
+      if (!this.video) {
+        throw new Error("fallback_video_unavailable");
+      }
+      const width = Math.max(1, this.video.videoWidth || 0);
+      const height = Math.max(1, this.video.videoHeight || 0);
+      if (!width || !height) {
+        throw new Error("fallback_video_not_ready");
+      }
+      this.width = width;
+      this.height = height;
+      this.startedAt = Date.now();
+      this.cancelled = false;
+      this.frames = [];
+      const previousInterval = this.previousCaptureState.interval;
+      const desiredInterval = typeof previousInterval === "number" && previousInterval > 0 ? Math.min(previousInterval, this.frameIntervalMs) : this.frameIntervalMs;
+      setFrameCaptureEnabled(true, desiredInterval);
+      this.captureFrame();
+      if (this.timer !== null) {
+        clearInterval(this.timer);
+      }
+      this.timer = window.setInterval(() => this.captureFrame(), this.frameIntervalMs);
+    }
+    async stop() {
+      if (!this.startedAt) {
+        throw new Error("fallback_not_started");
+      }
+      this.clearTimer();
+      if (this.frames.length === 0) {
+        this.restoreCaptureState();
+        throw new Error("fallback_no_frames");
+      }
+      try {
+        const fps = this.computeFps();
+        const encoder = new MjpegAviEncoder(this.width, this.height, fps);
+        for (const frame of this.frames) {
+          encoder.addFrame(frame);
+        }
+        const aviBytes = encoder.build();
+        const base64 = uint8ArrayToBase64(aviBytes);
+        const durationMs = Math.max(
+          Date.now() - this.startedAt,
+          Math.round(this.frames.length / fps * 1e3)
+        );
+        return {
+          base64,
+          mimeType: this.mimeType,
+          durationMs,
+          frameCount: this.frames.length,
+          capturedAt: new Date(this.startedAt).toISOString()
+        };
+      } finally {
+        this.restoreCaptureState();
+      }
+    }
+    cancel() {
+      this.cancelled = true;
+      this.clearTimer();
+      this.frames = [];
+      this.restoreCaptureState();
+    }
+    getMimeType() {
+      return this.mimeType;
+    }
+    computeFps() {
+      const estimated = Math.round(1e3 / this.frameIntervalMs);
+      return Math.max(MIN_FPS, Math.min(MAX_FPS, estimated || MIN_FPS));
+    }
+    clearTimer() {
+      if (this.timer !== null) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
+    }
+    restoreCaptureState() {
+      setFrameCaptureEnabled(this.previousCaptureState.enabled, this.previousCaptureState.interval);
+    }
+    captureFrame() {
+      if (this.cancelled) {
+        return;
+      }
+      try {
+        if (this.frames.length >= this.maxFrames) {
+          this.clearTimer();
+          return;
+        }
+        const dataUrl = captureFrameForOpenAI(this.video) ?? getLastCapturedFrame();
+        if (!dataUrl) {
+          return;
+        }
+        const base64 = extractBase64(dataUrl);
+        if (!base64 || base64 === this.lastCapturedBase64) {
+          return;
+        }
+        this.lastCapturedBase64 = base64;
+        const bytes = base64ToUint8Array(base64);
+        if (bytes.length === 0) {
+          return;
+        }
+        this.frames.push(bytes);
+      } catch (error) {
+        console.warn("FallbackClipRecorder capture failed:", error);
+      }
+    }
+  };
+  var MjpegAviEncoder = class {
+    constructor(width, height, fps) {
+      this.width = width;
+      this.height = height;
+      this.fps = fps;
+      this.frames = [];
+      this.chunkSizes = [];
+      this.frameOffsets = [];
+      this.totalSize = 0;
+    }
+    addFrame(frame) {
+      const paddedLength = frame.length + frame.length % 2;
+      this.frames.push(frame);
+      this.chunkSizes.push(frame.length);
+      this.frameOffsets.push(this.totalSize);
+      this.totalSize += 8 + paddedLength;
+    }
+    build() {
+      const frameCount = this.frames.length;
+      if (frameCount === 0) {
+        throw new Error("mjpeg_encoder_empty");
+      }
+      const frameBlockSize = this.totalSize;
+      const idx1Size = 16 * frameCount;
+      const avihChunkSize = 8 + 56;
+      const strhChunkSize = 8 + 56;
+      const strfChunkSize = 8 + 40;
+      const strlListSize = 12 + strhChunkSize + strfChunkSize;
+      const hdrlListSize = 12 + avihChunkSize + strlListSize;
+      const moviListSize = 12 + frameBlockSize;
+      const idx1ChunkSize = 8 + idx1Size;
+      const totalSize = 12 + hdrlListSize + moviListSize + idx1ChunkSize;
+      const riffSize = totalSize - 8;
+      const buffer = new ArrayBuffer(totalSize);
+      const view = new DataView(buffer);
+      const bytes = new Uint8Array(buffer);
+      let offset = 0;
+      const writeFourCC = (value) => {
+        for (let i = 0; i < 4; i++) {
+          bytes[offset + i] = value.charCodeAt(i) & 255;
+        }
+        offset += 4;
+      };
+      const writeUint32 = (value) => {
+        view.setUint32(offset, value, true);
+        offset += 4;
+      };
+      writeFourCC("RIFF");
+      writeUint32(riffSize);
+      writeFourCC("AVI ");
+      writeFourCC("LIST");
+      writeUint32(hdrlListSize - 8);
+      writeFourCC("hdrl");
+      writeFourCC("avih");
+      writeUint32(56);
+      writeUint32(Math.round(1e6 / this.fps));
+      writeUint32(this.averageBytesPerSecond());
+      writeUint32(0);
+      writeUint32(16);
+      writeUint32(frameCount);
+      writeUint32(0);
+      writeUint32(1);
+      writeUint32(this.maxFrameSize());
+      writeUint32(this.width);
+      writeUint32(this.height);
+      writeUint32(0);
+      writeUint32(0);
+      writeUint32(0);
+      writeUint32(0);
+      writeFourCC("LIST");
+      writeUint32(strlListSize - 8);
+      writeFourCC("strl");
+      writeFourCC("strh");
+      writeUint32(56);
+      writeFourCC("vids");
+      writeFourCC("MJPG");
+      writeUint32(0);
+      writeUint16(view, offset, 0);
+      offset += 2;
+      writeUint16(view, offset, 0);
+      offset += 2;
+      writeUint32(0);
+      writeUint32(1);
+      writeUint32(this.fps);
+      writeUint32(0);
+      writeUint32(frameCount);
+      writeUint32(this.maxFrameSize());
+      writeUint32(0);
+      writeUint32(0);
+      writeUint16(view, offset, 0);
+      offset += 2;
+      writeUint16(view, offset, 0);
+      offset += 2;
+      writeFourCC("strf");
+      writeUint32(40);
+      writeUint32(40);
+      writeUint32(this.width);
+      writeUint32(this.height);
+      writeUint16(view, offset, 1);
+      offset += 2;
+      writeUint16(view, offset, 24);
+      offset += 2;
+      writeFourCC("MJPG");
+      writeUint32(this.maxFrameSize());
+      writeUint32(0);
+      writeUint32(0);
+      writeUint32(0);
+      writeUint32(0);
+      writeFourCC("LIST");
+      writeUint32(frameBlockSize + 4);
+      writeFourCC("movi");
+      for (let index = 0; index < frameCount; index++) {
+        const frame = this.frames[index];
+        const size = frame.length;
+        writeFourCC("00db");
+        writeUint32(size);
+        bytes.set(frame, offset);
+        offset += size;
+        if (size % 2 === 1) {
+          bytes[offset] = 0;
+          offset += 1;
+        }
+      }
+      writeFourCC("idx1");
+      writeUint32(idx1Size);
+      let currentOffset = 4;
+      for (let index = 0; index < frameCount; index++) {
+        writeFourCC("00db");
+        writeUint32(16);
+        writeUint32(this.frameOffsets[index] + currentOffset);
+        writeUint32(this.chunkSizes[index]);
+      }
+      return new Uint8Array(buffer);
+    }
+    averageBytesPerSecond() {
+      const total = this.chunkSizes.reduce((sum, value) => sum + value, 0);
+      return Math.max(1, Math.round(total * this.fps / Math.max(1, this.frames.length)));
+    }
+    maxFrameSize() {
+      return this.chunkSizes.reduce((max2, value) => Math.max(max2, value), 0);
+    }
+  };
+  function writeUint16(view, offset, value) {
+    view.setUint16(offset, value, true);
+  }
+  function extractBase64(dataUrl) {
+    if (typeof dataUrl !== "string") {
+      return null;
+    }
+    const commaIndex = dataUrl.indexOf(",");
+    const payload = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
+    return payload && payload.trim().length > 0 ? payload.trim() : null;
+  }
+  function base64ToUint8Array(base64) {
+    try {
+      const binary = atob(base64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    } catch (error) {
+      console.warn("Failed to decode base64 frame", error);
+      return new Uint8Array();
+    }
+  }
+  function uint8ArrayToBase64(bytes) {
+    let binary = "";
+    const chunk = 32768;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      const slice = bytes.subarray(i, Math.min(bytes.length, i + chunk));
+      binary += String.fromCharCode(...slice);
+    }
+    return btoa(binary);
+  }
+
   // webview/core/GestureRecognitionOrchestrator.ts
   var FALLBACK_CONFIDENCE_THRESHOLD = typeof window.__fallbackThreshold === "number" ? window.__fallbackThreshold : 0.35;
   var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.05;
-  var FRAME_BATCH_INTERVAL_MS = 400;
+  var FRAME_BATCH_INTERVAL_MS = 250;
   var FRAME_BUFFER_LIMIT = 24;
+  var DEFAULT_LANDMARK_INTERVAL_MS = 120;
+  var MIN_LANDMARK_INTERVAL_MS = 80;
+  var MAX_LANDMARK_INTERVAL_MS = 320;
   var GestureRecognitionOrchestrator = class {
     constructor(video2, overlay2, dependencies = {}) {
       this.video = video2;
@@ -4434,6 +4748,7 @@
       this.isRunning = false;
       this.frameSampleCounter = 0;
       this.lastLandmarkSendTime = 0;
+      this.landmarkSendIntervalMs = DEFAULT_LANDMARK_INTERVAL_MS;
       this.frameBuffer = [];
       this.frameBatchTimer = null;
       this.clipCaptureState = null;
@@ -4489,7 +4804,7 @@
         });
         await this.gestureDetector.initialize();
         this.batteryMonitor.startMonitoring();
-        setFrameCaptureEnabled(true);
+        setFrameCaptureEnabled(true, 150);
         this.isInitialized = true;
       } catch (error) {
         console.error("Failed to initialize gesture recognition orchestrator:", error);
@@ -4541,7 +4856,7 @@
         const processingResult = await this.processingPipeline.executePipeline(context);
         const hasLandmarks = normalized.landmarks.some((hand) => hand.length > 0);
         const now = Date.now();
-        if (hasLandmarks && now - this.lastLandmarkSendTime > 500) {
+        if (hasLandmarks && now - this.lastLandmarkSendTime >= this.landmarkSendIntervalMs) {
           this.sendLandmarks(normalized.landmarks, normalized.handednesses, timestamp);
           this.lastLandmarkSendTime = now;
         }
@@ -4577,6 +4892,7 @@
           }, results);
         }
         this.performanceOptimizer.recordProcessingTime(processingResult.processingTime);
+        this.updateLandmarkInterval();
         this.frameSampleCounter += 1;
         if (this.frameSampleCounter >= FRAME_LATENCY_SAMPLE_INTERVAL) {
           const metrics = this.performanceOptimizer.getPerformanceMetrics();
@@ -4606,7 +4922,7 @@
         if (this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
           this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
         }
-        if (this.clipCaptureState) {
+        if (this.clipCaptureState?.mode === "media_recorder") {
           this.clipCaptureState.frameCount += 1;
         }
         if (this.frameBatchTimer === null) {
@@ -4647,7 +4963,7 @@
         return;
       }
       if (typeof window.MediaRecorder === "undefined") {
-        this.sendClipError(requestId, "media_recorder_unavailable");
+        this.startFallbackClipCapture(requestId);
         return;
       }
       const stream = this.gestureDetector?.getCameraStream();
@@ -4657,6 +4973,10 @@
       }
       const recorderResult = this.createMediaRecorder(stream);
       if ("errorReason" in recorderResult) {
+        if (recorderResult.errorReason === "media_recorder_not_supported") {
+          this.startFallbackClipCapture(requestId);
+          return;
+        }
         this.sendClipError(requestId, recorderResult.errorReason, recorderResult.errorDetails);
         return;
       }
@@ -4723,9 +5043,53 @@
         timesliceMs: state.timesliceMs
       });
     }
+    startFallbackClipCapture(requestId) {
+      try {
+        const recorder = new FallbackClipRecorder(this.video);
+        recorder.start();
+        const state = {
+          mode: "fallback",
+          id: requestId,
+          recorder,
+          startedAt: Date.now(),
+          timeoutHandle: null,
+          aborted: false
+        };
+        state.timeoutHandle = window.setTimeout(() => {
+          state.aborted = true;
+          try {
+            recorder.cancel();
+          } catch (cancelError) {
+            console.warn("Failed to cancel fallback recorder after timeout:", cancelError);
+          }
+          this.sendClipError(requestId, "recorder_timeout");
+          this.resetClipCapture(false);
+        }, 15e3);
+        this.clipCaptureState = state;
+        this.sendClipTelemetry("clip_started", requestId, {
+          mode: "fallback",
+          mimeType: recorder.getMimeType()
+        });
+      } catch (error) {
+        this.sendClipError(requestId, "fallback_recorder_failed", error);
+      }
+    }
     stopClipCapture(requestId) {
       if (!this.clipCaptureState || this.clipCaptureState.id !== requestId) {
         this.sendClipError(requestId, "unknown_capture_id");
+        return;
+      }
+      if (this.clipCaptureState.mode === "fallback") {
+        if (this.clipCaptureState.timeoutHandle) {
+          clearTimeout(this.clipCaptureState.timeoutHandle);
+          this.clipCaptureState.timeoutHandle = null;
+        }
+        const state = this.clipCaptureState;
+        state.recorder.stop().then((clip) => this.handleFallbackClipStop(state, clip)).catch((error) => {
+          this.sendClipError(requestId, "fallback_recorder_failed", error);
+          this.resetClipCapture(false);
+        });
+        this.sendClipTelemetry("clip_stop_requested", requestId, { mode: "fallback" });
         return;
       }
       try {
@@ -4752,8 +5116,12 @@
       }
       this.clipCaptureState.aborted = true;
       try {
-        if (this.clipCaptureState.recorder.state !== "inactive") {
-          this.clipCaptureState.recorder.stop();
+        if (this.clipCaptureState.mode === "media_recorder") {
+          if (this.clipCaptureState.recorder.state !== "inactive") {
+            this.clipCaptureState.recorder.stop();
+          }
+        } else {
+          this.clipCaptureState.recorder.cancel();
         }
       } catch (error) {
         console.warn("Failed to cancel clip capture:", error);
@@ -4767,31 +5135,43 @@
       const state = this.clipCaptureState;
       if (state.timeoutHandle) {
         clearTimeout(state.timeoutHandle);
+        state.timeoutHandle = null;
       }
-      if (state.requestDataInterval) {
-        clearInterval(state.requestDataInterval);
-        state.requestDataInterval = null;
-      }
-      if (stopRecorder) {
-        try {
-          if (state.recorder.state !== "inactive") {
-            state.recorder.stop();
-          }
-        } catch (error) {
-          console.warn("Failed to stop recorder during reset:", error);
+      if (state.mode === "media_recorder") {
+        if (state.requestDataInterval) {
+          clearInterval(state.requestDataInterval);
+          state.requestDataInterval = null;
         }
-      }
-      try {
-        state.recorder.ondataavailable = null;
-        state.recorder.onerror = null;
-        state.recorder.onstop = null;
-        state.recorder.onstart = null;
-      } catch (error) {
-        console.warn("Failed to detach recorder listeners during reset:", error);
+        if (stopRecorder) {
+          try {
+            if (state.recorder.state !== "inactive") {
+              state.recorder.stop();
+            }
+          } catch (error) {
+            console.warn("Failed to stop recorder during reset:", error);
+          }
+        }
+        try {
+          state.recorder.ondataavailable = null;
+          state.recorder.onerror = null;
+          state.recorder.onstop = null;
+          state.recorder.onstart = null;
+        } catch (error) {
+          console.warn("Failed to detach recorder listeners during reset:", error);
+        }
+      } else if (stopRecorder && !state.aborted) {
+        try {
+          state.recorder.cancel();
+        } catch (error) {
+          console.warn("Failed to cancel fallback recorder during reset:", error);
+        }
       }
       this.clipCaptureState = null;
     }
     handleClipStop(state) {
+      if (state.mode !== "media_recorder") {
+        return;
+      }
       if (state.timeoutHandle) {
         clearTimeout(state.timeoutHandle);
       }
@@ -4841,6 +5221,32 @@
         reader.readAsDataURL(blob);
       } catch (error) {
         this.sendClipError(state.id, "clip_read_failed", error);
+        this.resetClipCapture(false);
+      }
+    }
+    handleFallbackClipStop(state, clip) {
+      if (state.timeoutHandle) {
+        clearTimeout(state.timeoutHandle);
+        state.timeoutHandle = null;
+      }
+      if (state.aborted) {
+        return;
+      }
+      try {
+        if (!clip.base64) {
+          throw new Error("fallback_clip_empty");
+        }
+        this.postClipReady({
+          id: state.id,
+          base64: clip.base64,
+          mimeType: clip.mimeType,
+          durationMs: clip.durationMs,
+          frameCount: clip.frameCount,
+          capturedAt: clip.capturedAt
+        });
+      } catch (error) {
+        this.sendClipError(state.id, "fallback_recorder_failed", error);
+      } finally {
         this.resetClipCapture(false);
       }
     }
@@ -5014,6 +5420,9 @@
       }
     }
     resolveClipMimeType(state) {
+      if (state.mode === "fallback") {
+        return state.recorder.getMimeType();
+      }
       for (const chunk of state.chunks) {
         if (chunk instanceof Blob && typeof chunk.type === "string" && chunk.type.length > 0) {
           return chunk.type;
@@ -5113,6 +5522,14 @@
       } catch (error) {
         console.warn("Failed to send gesture result:", error);
       }
+    }
+    updateLandmarkInterval() {
+      const metrics = this.performanceOptimizer.getPerformanceMetrics();
+      const average = Number.isFinite(metrics.averageProcessingTime) ? metrics.averageProcessingTime : 0;
+      const adaptivePadding = metrics.adaptiveFrameSkipping ? 80 : 40;
+      const computed = average > 0 ? average * 1.6 + adaptivePadding : DEFAULT_LANDMARK_INTERVAL_MS;
+      const clamped = Math.max(MIN_LANDMARK_INTERVAL_MS, Math.min(MAX_LANDMARK_INTERVAL_MS, computed));
+      this.landmarkSendIntervalMs = Math.round(clamped);
     }
     /**
      * Get current system status

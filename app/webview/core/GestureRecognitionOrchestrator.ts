@@ -25,6 +25,7 @@ import { MediaPipeGestureResult, TwoHandGesture } from '../types/MediaPipeTypes'
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
 import { messageBatcher, FRAME_LATENCY_SAMPLE_INTERVAL } from '../utils/MessageBatcher';
 import { captureFrameForOpenAI, getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
+import { FallbackClipRecorder, FallbackClipResult } from '../utils/FallbackClipRecorder';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
@@ -50,8 +51,11 @@ interface GestureMessagePayload {
   frameCapture?: string | null;
 }
 
-const FRAME_BATCH_INTERVAL_MS = 400;
+const FRAME_BATCH_INTERVAL_MS = 250;
 const FRAME_BUFFER_LIMIT = 24;
+const DEFAULT_LANDMARK_INTERVAL_MS = 120;
+const MIN_LANDMARK_INTERVAL_MS = 80;
+const MAX_LANDMARK_INTERVAL_MS = 320;
 
 interface FrameBatchEntry {
   frame: string;
@@ -60,7 +64,8 @@ interface FrameBatchEntry {
   timestamp: number;
 }
 
-interface ClipCaptureState {
+interface MediaRecorderClipState {
+  mode: 'media_recorder';
   id: string;
   recorder: MediaRecorder;
   chunks: BlobPart[];
@@ -72,6 +77,17 @@ interface ClipCaptureState {
   timesliceMs: number | null;
   requestDataInterval?: number | null;
 }
+
+interface FallbackRecorderClipState {
+  mode: 'fallback';
+  id: string;
+  recorder: FallbackClipRecorder;
+  startedAt: number;
+  timeoutHandle?: number | null;
+  aborted: boolean;
+}
+
+type ClipCaptureState = MediaRecorderClipState | FallbackRecorderClipState;
 
 type OrchestratorDependencies = {
   createGestureDetector?: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
@@ -97,6 +113,7 @@ export class GestureRecognitionOrchestrator {
   private isRunning = false;
   private frameSampleCounter = 0;
   private lastLandmarkSendTime = 0;
+  private landmarkSendIntervalMs = DEFAULT_LANDMARK_INTERVAL_MS;
   private frameBuffer: FrameBatchEntry[] = [];
   private frameBatchTimer: number | null = null;
   private clipCaptureState: ClipCaptureState | null = null;
@@ -179,7 +196,7 @@ export class GestureRecognitionOrchestrator {
 
       // Start monitoring systems
       this.batteryMonitor.startMonitoring();
-      setFrameCaptureEnabled(true);
+      setFrameCaptureEnabled(true, 150);
 
       this.isInitialized = true;
     } catch (error) {
@@ -247,7 +264,7 @@ export class GestureRecognitionOrchestrator {
       // Send landmarks for preview and recognition at throttled rate
       const hasLandmarks = normalized.landmarks.some(hand => hand.length > 0);
       const now = Date.now();
-      if (hasLandmarks && (now - this.lastLandmarkSendTime) > 500) { // Throttle to prevent app lag
+      if (hasLandmarks && now - this.lastLandmarkSendTime >= this.landmarkSendIntervalMs) {
         this.sendLandmarks(normalized.landmarks, normalized.handednesses, timestamp);
         this.lastLandmarkSendTime = now;
       }
@@ -292,6 +309,7 @@ export class GestureRecognitionOrchestrator {
 
       // Update performance metrics
       this.performanceOptimizer.recordProcessingTime(processingResult.processingTime);
+      this.updateLandmarkInterval();
 
       this.frameSampleCounter += 1;
       if (this.frameSampleCounter >= FRAME_LATENCY_SAMPLE_INTERVAL) {
@@ -327,7 +345,7 @@ export class GestureRecognitionOrchestrator {
         this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
       }
 
-      if (this.clipCaptureState) {
+      if (this.clipCaptureState?.mode === 'media_recorder') {
         this.clipCaptureState.frameCount += 1;
       }
 
@@ -389,7 +407,7 @@ export class GestureRecognitionOrchestrator {
     }
 
     if (typeof window.MediaRecorder === 'undefined') {
-      this.sendClipError(requestId, 'media_recorder_unavailable');
+      this.startFallbackClipCapture(requestId);
       return;
     }
 
@@ -401,6 +419,10 @@ export class GestureRecognitionOrchestrator {
 
     const recorderResult = this.createMediaRecorder(stream);
     if ('errorReason' in recorderResult) {
+      if (recorderResult.errorReason === 'media_recorder_not_supported') {
+        this.startFallbackClipCapture(requestId);
+        return;
+      }
       this.sendClipError(requestId, recorderResult.errorReason, recorderResult.errorDetails);
       return;
     }
@@ -479,9 +501,60 @@ export class GestureRecognitionOrchestrator {
     });
   }
 
+  private startFallbackClipCapture(requestId: string): void {
+    try {
+      const recorder = new FallbackClipRecorder(this.video);
+      recorder.start();
+      const state: FallbackRecorderClipState = {
+        mode: 'fallback',
+        id: requestId,
+        recorder,
+        startedAt: Date.now(),
+        timeoutHandle: null,
+        aborted: false,
+      };
+
+      state.timeoutHandle = window.setTimeout(() => {
+        state.aborted = true;
+        try {
+          recorder.cancel();
+        } catch (cancelError) {
+          console.warn('Failed to cancel fallback recorder after timeout:', cancelError);
+        }
+        this.sendClipError(requestId, 'recorder_timeout');
+        this.resetClipCapture(false);
+      }, 15000);
+
+      this.clipCaptureState = state;
+      this.sendClipTelemetry('clip_started', requestId, {
+        mode: 'fallback',
+        mimeType: recorder.getMimeType(),
+      });
+    } catch (error) {
+      this.sendClipError(requestId, 'fallback_recorder_failed', error);
+    }
+  }
+
   stopClipCapture(requestId: string): void {
     if (!this.clipCaptureState || this.clipCaptureState.id !== requestId) {
       this.sendClipError(requestId, 'unknown_capture_id');
+      return;
+    }
+
+    if (this.clipCaptureState.mode === 'fallback') {
+      if (this.clipCaptureState.timeoutHandle) {
+        clearTimeout(this.clipCaptureState.timeoutHandle);
+        this.clipCaptureState.timeoutHandle = null;
+      }
+      const state = this.clipCaptureState;
+      state.recorder
+        .stop()
+        .then((clip) => this.handleFallbackClipStop(state, clip))
+        .catch((error) => {
+          this.sendClipError(requestId, 'fallback_recorder_failed', error);
+          this.resetClipCapture(false);
+        });
+      this.sendClipTelemetry('clip_stop_requested', requestId, { mode: 'fallback' });
       return;
     }
 
@@ -515,8 +588,12 @@ export class GestureRecognitionOrchestrator {
     }
     this.clipCaptureState.aborted = true;
     try {
-      if (this.clipCaptureState.recorder.state !== 'inactive') {
-        this.clipCaptureState.recorder.stop();
+      if (this.clipCaptureState.mode === 'media_recorder') {
+        if (this.clipCaptureState.recorder.state !== 'inactive') {
+          this.clipCaptureState.recorder.stop();
+        }
+      } else {
+        this.clipCaptureState.recorder.cancel();
       }
     } catch (error) {
       console.warn('Failed to cancel clip capture:', error);
@@ -532,36 +609,49 @@ export class GestureRecognitionOrchestrator {
     const state = this.clipCaptureState;
     if (state.timeoutHandle) {
       clearTimeout(state.timeoutHandle);
+      state.timeoutHandle = null;
     }
 
-    if (state.requestDataInterval) {
-      clearInterval(state.requestDataInterval);
-      state.requestDataInterval = null;
-    }
-
-    if (stopRecorder) {
-      try {
-        if (state.recorder.state !== 'inactive') {
-          state.recorder.stop();
-        }
-      } catch (error) {
-        console.warn('Failed to stop recorder during reset:', error);
+    if (state.mode === 'media_recorder') {
+      if (state.requestDataInterval) {
+        clearInterval(state.requestDataInterval);
+        state.requestDataInterval = null;
       }
-    }
 
-    try {
-      state.recorder.ondataavailable = null as any;
-      state.recorder.onerror = null as any;
-      state.recorder.onstop = null as any;
-      state.recorder.onstart = null as any;
-    } catch (error) {
-      console.warn('Failed to detach recorder listeners during reset:', error);
+      if (stopRecorder) {
+        try {
+          if (state.recorder.state !== 'inactive') {
+            state.recorder.stop();
+          }
+        } catch (error) {
+          console.warn('Failed to stop recorder during reset:', error);
+        }
+      }
+
+      try {
+        state.recorder.ondataavailable = null as any;
+        state.recorder.onerror = null as any;
+        state.recorder.onstop = null as any;
+        state.recorder.onstart = null as any;
+      } catch (error) {
+        console.warn('Failed to detach recorder listeners during reset:', error);
+      }
+    } else if (stopRecorder && !state.aborted) {
+      try {
+        state.recorder.cancel();
+      } catch (error) {
+        console.warn('Failed to cancel fallback recorder during reset:', error);
+      }
     }
 
     this.clipCaptureState = null;
   }
 
   private handleClipStop(state: ClipCaptureState): void {
+    if (state.mode !== 'media_recorder') {
+      return;
+    }
+
     if (state.timeoutHandle) {
       clearTimeout(state.timeoutHandle);
     }
@@ -617,6 +707,35 @@ export class GestureRecognitionOrchestrator {
       reader.readAsDataURL(blob);
     } catch (error) {
       this.sendClipError(state.id, 'clip_read_failed', error);
+      this.resetClipCapture(false);
+    }
+  }
+
+  private handleFallbackClipStop(state: FallbackRecorderClipState, clip: FallbackClipResult): void {
+    if (state.timeoutHandle) {
+      clearTimeout(state.timeoutHandle);
+      state.timeoutHandle = null;
+    }
+
+    if (state.aborted) {
+      return;
+    }
+
+    try {
+      if (!clip.base64) {
+        throw new Error('fallback_clip_empty');
+      }
+      this.postClipReady({
+        id: state.id,
+        base64: clip.base64,
+        mimeType: clip.mimeType,
+        durationMs: clip.durationMs,
+        frameCount: clip.frameCount,
+        capturedAt: clip.capturedAt,
+      });
+    } catch (error) {
+      this.sendClipError(state.id, 'fallback_recorder_failed', error);
+    } finally {
       this.resetClipCapture(false);
     }
   }
@@ -838,6 +957,10 @@ export class GestureRecognitionOrchestrator {
   }
 
   private resolveClipMimeType(state: ClipCaptureState): string {
+    if (state.mode === 'fallback') {
+      return state.recorder.getMimeType();
+    }
+
     for (const chunk of state.chunks) {
       if (chunk instanceof Blob && typeof chunk.type === 'string' && chunk.type.length > 0) {
         return chunk.type;
@@ -958,6 +1081,17 @@ export class GestureRecognitionOrchestrator {
     } catch (error) {
       console.warn('Failed to send gesture result:', error);
     }
+  }
+
+  private updateLandmarkInterval(): void {
+    const metrics = this.performanceOptimizer.getPerformanceMetrics();
+    const average = Number.isFinite(metrics.averageProcessingTime)
+      ? metrics.averageProcessingTime
+      : 0;
+    const adaptivePadding = metrics.adaptiveFrameSkipping ? 80 : 40;
+    const computed = average > 0 ? average * 1.6 + adaptivePadding : DEFAULT_LANDMARK_INTERVAL_MS;
+    const clamped = Math.max(MIN_LANDMARK_INTERVAL_MS, Math.min(MAX_LANDMARK_INTERVAL_MS, computed));
+    this.landmarkSendIntervalMs = Math.round(clamped);
   }
 
   /**

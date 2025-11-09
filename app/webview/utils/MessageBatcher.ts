@@ -1,8 +1,9 @@
 import type { WebViewMessagePayload } from '../types/MediaPipeTypes';
 
-export const BATCH_INTERVAL_MS = 50;
-export const MAX_BATCH_SIZE = 5;
-export const FRAME_LATENCY_SAMPLE_INTERVAL = 10;
+export const BATCH_INTERVAL_MS = 35;
+export const MAX_BATCH_SIZE = 6;
+export const FRAME_LATENCY_SAMPLE_INTERVAL = 6;
+const MAX_QUEUE_LATENCY_MS = 120;
 
 type BridgePayload = Record<string, unknown> | WebViewMessagePayload;
 
@@ -29,6 +30,12 @@ export class MessageBatcher {
       this.queue.length >= MAX_BATCH_SIZE ||
       (this.frameCount > 0 && this.frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0)
     ) {
+      this.flushBatch();
+      return;
+    }
+
+    const now = Date.now();
+    if (this.lastSentAt && now - this.lastSentAt >= MAX_QUEUE_LATENCY_MS) {
       this.flushBatch();
       return;
     }

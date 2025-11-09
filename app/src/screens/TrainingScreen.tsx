@@ -131,10 +131,12 @@ export default function TrainingScreen({ navigation, route }: any) {
     (reason: string) => {
       clipSupportReasonRef.current = reason;
       const persisted = persistFallbackIfUnsupported(reason);
-      if (!persisted && clipCaptureMode !== 'fallback') {
-        setClipCaptureMode('fallback');
+      if (persisted) {
+        if (clipCaptureMode !== 'fallback') {
+          setClipCaptureMode('fallback');
+        }
+        announceClipFallback();
       }
-      announceClipFallback();
     },
     [announceClipFallback, clipCaptureMode, persistFallbackIfUnsupported],
   );
@@ -354,6 +356,9 @@ export default function TrainingScreen({ navigation, route }: any) {
       } catch (error) {
         const reason = error instanceof Error ? error.message ?? 'clip_start_failed' : String(error ?? 'clip_start_failed');
         logger.warn('Failed to start clip capture, falling back to landmarks-only mode', error);
+        const message = getClipCaptureErrorMessage(reason);
+        const tone: 'error' | 'info' = reason === 'clip_directory_unavailable' ? 'info' : 'error';
+        showToast({ message, tone });
         clipMode = 'fallback';
         enterClipFallback(reason);
       }
