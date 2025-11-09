@@ -347,10 +347,23 @@ class MjpegAviEncoder {
   }
 }
 
+/**
+ * Write a 16-bit unsigned integer in little-endian byte order to a DataView.
+ *
+ * @param view - The DataView to write into
+ * @param offset - Byte offset within `view` where the value will be written
+ * @param value - The unsigned 16-bit integer value to write (0–65535)
+ */
 function writeUint16(view: DataView, offset: number, value: number): void {
   view.setUint16(offset, value, true);
 }
 
+/**
+ * Extracts the base64 payload from a data URL or raw string.
+ *
+ * @param dataUrl - The data URL (e.g., "data:image/jpeg;base64,...") or a raw base64 string
+ * @returns The extracted base64 payload string if non-empty, `null` otherwise
+ */
 function extractBase64(dataUrl: string): string | null {
   if (typeof dataUrl !== 'string') {
     return null;
@@ -360,6 +373,12 @@ function extractBase64(dataUrl: string): string | null {
   return payload && payload.trim().length > 0 ? payload.trim() : null;
 }
 
+/**
+ * Decode a base64-encoded string into a Uint8Array of bytes.
+ *
+ * @param base64 - The base64-encoded input string (raw payload, not a data URL)
+ * @returns The decoded bytes as a `Uint8Array`; returns an empty `Uint8Array` if decoding fails
+ */
 function base64ToUint8Array(base64: string): Uint8Array {
   try {
     const binary = atob(base64);
@@ -375,6 +394,12 @@ function base64ToUint8Array(base64: string): Uint8Array {
   }
 }
 
+/**
+ * Encodes a Uint8Array into a base64 string.
+ *
+ * @param bytes - The binary data to encode
+ * @returns The base64 representation of `bytes`
+ */
 function uint8ArrayToBase64(bytes: Uint8Array): string {
   let binary = '';
   const chunk = 0x8000;

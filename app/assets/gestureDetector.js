@@ -4397,6 +4397,24 @@
     }
     return normalized;
   }
+  /**
+   * Normalize and map a MediaPipe hand detection result into a consistent structure
+   * containing per-hand landmarks, handedness labels, and gesture predictions.
+   *
+   * @param {Object|null|undefined} result - Raw MediaPipe result object (may be null/undefined).
+   *   Expected optional properties:
+   *     - landmarks: Array of landmark arrays per hand (MediaPipe format).
+   *     - handednesses: Array of handedness predictions per hand (each an array with a categoryName).
+   *     - gestures: Array of gesture prediction arrays per hand (each gesture has categoryName and score).
+   * @returns {{hands: Array<{landmarks: number[][], handedness: string, gestures: Array<{label: string, score: number}>}>, landmarks: number[][][], handednesses: string[]}}
+   *   An object with:
+   *     - hands: list of hands that have at least one landmark, gesture, or a known handedness; each entry contains:
+   *         - landmarks: normalized landmark array for the hand.
+   *         - handedness: string label (e.g., "Left", "Right", or "unknown").
+   *         - gestures: array of gesture objects with `label` and `score`.
+   *     - landmarks: array of landmark arrays extracted from `hands`.
+   *     - handednesses: array of handedness strings extracted from `hands`.
+   */
   function mapMediaPipeResult(result) {
     if (!result) {
       return { hands: [], landmarks: [], handednesses: [] };
@@ -4696,9 +4714,20 @@
       return this.chunkSizes.reduce((max2, value) => Math.max(max2, value), 0);
     }
   };
+  /**
+   * Write a 16-bit unsigned integer into a DataView at the given byte offset using little-endian order.
+   * @param {DataView} view - The DataView to write into.
+   * @param {number} offset - Byte offset within the view where the value will be written.
+   * @param {number} value - Integer value between 0 and 65535 to write.
+   */
   function writeUint16(view, offset, value) {
     view.setUint16(offset, value, true);
   }
+  /**
+   * Extracts the base64 payload from a data URL or raw base64 string.
+   * @param {string} dataUrl - A data URL (e.g., "data:...;base64,AAA...") or a raw base64 string.
+   * @returns {string|null} The base64 payload if present and non-empty, `null` otherwise.
+   */
   function extractBase64(dataUrl) {
     if (typeof dataUrl !== "string") {
       return null;
@@ -4707,6 +4736,11 @@
     const payload = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
     return payload && payload.trim().length > 0 ? payload.trim() : null;
   }
+  /**
+   * Decode a base64-encoded string into a Uint8Array of bytes.
+   * @param {string} base64 - Base64-encoded data (without a `data:` URL prefix).
+   * @returns {Uint8Array} The decoded bytes, or an empty `Uint8Array` if decoding fails.
+   */
   function base64ToUint8Array(base64) {
     try {
       const binary = atob(base64);
@@ -4721,6 +4755,11 @@
       return new Uint8Array();
     }
   }
+  /**
+   * Encode a Uint8Array into a base64 string.
+   * @param {Uint8Array} bytes - The binary data to encode.
+   * @returns {string} The base64-encoded representation of the input bytes.
+   */
   function uint8ArrayToBase64(bytes) {
     let binary = "";
     const chunk = 32768;

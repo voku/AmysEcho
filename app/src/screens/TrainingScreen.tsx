@@ -61,6 +61,13 @@ const UNSUPPORTED_CLIP_REASONS = new Set([
 
 const expoFs = FileSystem as ExpoFileSystemCompat;
 
+/**
+ * Renders the training screen used to record gesture examples, manage recording state, and save training samples.
+ *
+ * @param navigation - React Navigation navigation object used to navigate between app routes
+ * @param route - Route object whose `params` may include `gestureLabel` (preselected gesture id), `isPractice` (practice mode flag), and `targetSamples` (override for required sample count)
+ * @returns The React element tree for the training UI, including camera/detector, controls, progress indicators, and summary views
+ */
 export default function TrainingScreen({ navigation, route }: any) {
   const { largeText, highContrast } = useAccessibility();
   const { gestureLabel, isPractice, targetSamples } = route.params || {};
