@@ -125,19 +125,13 @@ describe('clipPersistence', () => {
     expect(canUseClipStorage(fs as any)).toBe(false);
   });
 
-  it('probiert alternative Speicherpfade, wenn der erste nicht beschreibbar ist', async () => {
+  it('probiert alternative Speicherpfade, wenn das Vorbereitungsverzeichnis scheitert', async () => {
     const fs = createFs({
       getInfoAsync: jest.fn().mockImplementation((uri: string) => {
         if (uri.startsWith('file:///docs/')) {
           return Promise.reject(new Error('docs unavailable'));
         }
         return Promise.resolve({ exists: true, isDirectory: true });
-      }),
-      writeAsStringAsync: jest.fn().mockImplementation((uri: string) => {
-        if (uri.startsWith('file:///docs/')) {
-          return Promise.reject(new Error('doc read only'));
-        }
-        return Promise.resolve();
       }),
     });
 
@@ -156,6 +150,41 @@ describe('clipPersistence', () => {
       'ZGF0YQ==',
       { encoding: 'base64' },
     );
+  });
+
+  it('weicht auf einen alternativen Speicherpfad aus, wenn das Schreiben fehlschlägt', async () => {
+    const fs = createFs({
+      writeAsStringAsync: jest.fn().mockImplementation((uri: string) => {
+        if (uri.startsWith('file:///docs/')) {
+          return Promise.reject(new Error('doc read only'));
+        }
+        return Promise.resolve();
+      }),
+    });
+
+    const clip = createClip();
+    const warn = jest.fn();
+
+    const uri = await persistClipToDirectory({
+      fs: fs as any,
+      clip,
+      directoryName: 'amy',
+      filePrefix: 'amy',
+      logger: { warn },
+    });
+
+    expect(uri).toBe('file:///storage/amy/amy-clip123.webm');
+    expect(fs.writeAsStringAsync).toHaveBeenCalledWith(
+      'file:///docs/amy/amy-clip123.webm',
+      'ZGF0YQ==',
+      { encoding: 'base64' },
+    );
+    expect(fs.writeAsStringAsync).toHaveBeenCalledWith(
+      'file:///storage/amy/amy-clip123.webm',
+      'ZGF0YQ==',
+      { encoding: 'base64' },
+    );
+    expect(warn).toHaveBeenCalledWith('Clip konnte nicht gespeichert werden', expect.any(Error));
   });
 
   it('throws a ClipCaptureError when the payload is empty after sanitization', async () => {

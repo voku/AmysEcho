@@ -141,17 +141,20 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const ensureClipCaptureMode = useCallback(
     (mode: typeof clipCaptureMode): typeof clipCaptureMode => {
-      let nextMode = mode;
-      if (nextMode === 'enabled' && !canUseClipStorage(expoFs)) {
+      if (mode !== 'enabled') {
+        return mode;
+      }
+
+      if (!canUseClipStorage(expoFs)) {
         enterClipFallback('clip_directory_unavailable');
-        nextMode = 'fallback';
+        return 'fallback';
       }
-      if (nextMode === 'enabled') {
-        if (persistFallbackIfUnsupported(clipSupportReasonRef.current)) {
-          nextMode = 'fallback';
-        }
+
+      if (persistFallbackIfUnsupported(clipSupportReasonRef.current)) {
+        return 'fallback';
       }
-      return nextMode;
+
+      return 'enabled';
     },
     [enterClipFallback, persistFallbackIfUnsupported],
   );
