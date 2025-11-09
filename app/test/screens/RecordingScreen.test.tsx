@@ -290,8 +290,9 @@ describe('RecordingScreen', () => {
 
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: 'Speicherort für Videoclips ist nicht verfügbar. Bitte Gerät neu starten.',
-        tone: 'error',
+        message:
+          'Amy kann auf diesem Gerät keine Videoclips speichern. Deine Handbewegungen werden trotzdem gespeichert.',
+        tone: 'info',
       }),
     );
     expect(fs.writeAsStringAsync).not.toHaveBeenCalled();
