@@ -340,7 +340,15 @@ export default function RecordingScreen({ navigation, route }: any) {
     }
 
     if (!clipUri) {
-      showToast({ message: getClipCaptureErrorMessage(clipFailure), tone: 'error' });
+      const message = getClipCaptureErrorMessage(clipFailure);
+      const reason =
+        typeof clipFailure === 'string'
+          ? clipFailure
+          : clipFailure instanceof Error
+          ? clipFailure.message ?? null
+          : null;
+      const tone: 'error' | 'info' = reason === 'clip_directory_unavailable' ? 'info' : 'error';
+      showToast({ message, tone });
       return;
     }
 

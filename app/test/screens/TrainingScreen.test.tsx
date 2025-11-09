@@ -183,6 +183,8 @@ describe('TrainingScreen', () => {
     });
     cancelClipCaptureMock.mockImplementation(() => {});
     const fs = require('expo-file-system');
+    fs.documentDirectory = 'file://documents/';
+    fs.cacheDirectory = 'file://cache/';
     (fs.getInfoAsync as jest.Mock).mockResolvedValue({ exists: true, isDirectory: true });
     (fs.makeDirectoryAsync as jest.Mock).mockResolvedValue(undefined);
     (fs.writeAsStringAsync as jest.Mock).mockResolvedValue(undefined);
@@ -351,11 +353,16 @@ describe('TrainingScreen', () => {
       await Promise.resolve();
     });
 
-    expect(mockShowToast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: 'Speicherort für Videoclips ist nicht verfügbar. Bitte Gerät neu starten.',
-        tone: 'error',
-      }),
+    expect(mockShowToast.mock.calls).toEqual(
+      expect.arrayContaining([
+        [
+          expect.objectContaining({
+            message:
+              'Amy kann auf diesem Gerät keine Videoclips speichern. Deine Handbewegungen werden trotzdem gespeichert.',
+            tone: 'info',
+          }),
+        ],
+      ]),
     );
     expect(fs.writeAsStringAsync).not.toHaveBeenCalled();
   });

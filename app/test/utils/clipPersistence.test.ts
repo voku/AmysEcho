@@ -4,12 +4,17 @@ import {
   getClipCaptureErrorMessage,
   persistClipToDirectory,
   sanitizeClipBase64,
+  canUseClipStorage,
+  resolveClipBaseDirectory,
 } from '../../src/utils/clipPersistence';
 import type { ClipReadyPayload } from '../../src/types/frames';
 
 type MockFs = {
   documentDirectory?: string | null;
   cacheDirectory?: string | null;
+  storageDirectory?: string | null;
+  externalDirectory?: string | null;
+  externalCacheDirectory?: string | null;
   EncodingType?: { Base64?: 'base64' };
   getInfoAsync: jest.Mock<Promise<{ exists: boolean; isDirectory?: boolean }>, [string]>;
   makeDirectoryAsync: jest.Mock<Promise<void>, [string, { intermediates?: boolean }?]>;
@@ -29,6 +34,9 @@ const createClip = (overrides: Partial<ClipReadyPayload> = {}): ClipReadyPayload
 const createFs = (overrides: Partial<MockFs> = {}): MockFs => ({
   documentDirectory: 'file:///docs/',
   cacheDirectory: 'file:///cache/',
+  storageDirectory: 'file:///storage/',
+  externalDirectory: 'file:///external/',
+  externalCacheDirectory: 'file:///external-cache/',
   EncodingType: { Base64: 'base64' },
   getInfoAsync: jest.fn().mockResolvedValue({ exists: true, isDirectory: true }),
   makeDirectoryAsync: jest.fn().mockResolvedValue(),
@@ -81,7 +89,12 @@ describe('clipPersistence', () => {
   });
 
   it('falls back to cache directory when document directory is unavailable', async () => {
-    const fs = createFs({ documentDirectory: null });
+    const fs = createFs({
+      documentDirectory: null,
+      storageDirectory: null,
+      externalDirectory: null,
+      externalCacheDirectory: null,
+    });
     const clip = createClip();
 
     const uri = await persistClipToDirectory({
@@ -92,6 +105,86 @@ describe('clipPersistence', () => {
     });
 
     expect(uri).toBe('file:///cache/amy/amy-clip123.webm');
+  });
+
+  it('erkennt vorhandenen Speicherort für Clips', () => {
+    const fs = createFs();
+    expect(resolveClipBaseDirectory(fs as any)).toBe('file:///docs/');
+    expect(canUseClipStorage(fs as any)).toBe(true);
+  });
+
+  it('meldet fehlenden Speicherort für Clips', () => {
+    const fs = createFs({
+      documentDirectory: null,
+      cacheDirectory: null,
+      storageDirectory: null,
+      externalDirectory: null,
+      externalCacheDirectory: null,
+    });
+    expect(resolveClipBaseDirectory(fs as any)).toBeNull();
+    expect(canUseClipStorage(fs as any)).toBe(false);
+  });
+
+  it('probiert alternative Speicherpfade, wenn das Vorbereitungsverzeichnis scheitert', async () => {
+    const fs = createFs({
+      getInfoAsync: jest.fn().mockImplementation((uri: string) => {
+        if (uri.startsWith('file:///docs/')) {
+          return Promise.reject(new Error('docs unavailable'));
+        }
+        return Promise.resolve({ exists: true, isDirectory: true });
+      }),
+    });
+
+    const clip = createClip();
+
+    const uri = await persistClipToDirectory({
+      fs: fs as any,
+      clip,
+      directoryName: 'amy',
+      filePrefix: 'amy',
+    });
+
+    expect(uri).toBe('file:///storage/amy/amy-clip123.webm');
+    expect(fs.writeAsStringAsync).toHaveBeenCalledWith(
+      'file:///storage/amy/amy-clip123.webm',
+      'ZGF0YQ==',
+      { encoding: 'base64' },
+    );
+  });
+
+  it('weicht auf einen alternativen Speicherpfad aus, wenn das Schreiben fehlschlägt', async () => {
+    const fs = createFs({
+      writeAsStringAsync: jest.fn().mockImplementation((uri: string) => {
+        if (uri.startsWith('file:///docs/')) {
+          return Promise.reject(new Error('doc read only'));
+        }
+        return Promise.resolve();
+      }),
+    });
+
+    const clip = createClip();
+    const warn = jest.fn();
+
+    const uri = await persistClipToDirectory({
+      fs: fs as any,
+      clip,
+      directoryName: 'amy',
+      filePrefix: 'amy',
+      logger: { warn },
+    });
+
+    expect(uri).toBe('file:///storage/amy/amy-clip123.webm');
+    expect(fs.writeAsStringAsync).toHaveBeenCalledWith(
+      'file:///docs/amy/amy-clip123.webm',
+      'ZGF0YQ==',
+      { encoding: 'base64' },
+    );
+    expect(fs.writeAsStringAsync).toHaveBeenCalledWith(
+      'file:///storage/amy/amy-clip123.webm',
+      'ZGF0YQ==',
+      { encoding: 'base64' },
+    );
+    expect(warn).toHaveBeenCalledWith('Clip konnte nicht gespeichert werden', expect.any(Error));
   });
 
   it('throws a ClipCaptureError when the payload is empty after sanitization', async () => {
