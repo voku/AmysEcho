@@ -8,8 +8,13 @@
       "package": "com.anonymous.amysecho",
       "versionCode": 1,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_IMAGES",
+        "ACCESS_MEDIA_LOCATION"
       ]
     },
     "extra": {
@@ -21,15 +26,33 @@
       "bundleIdentifier": "com.anonymous.amysecho",
       "buildNumber": "1.0.0",
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow Amy's Echo to access your camera to recognize gestures.",
-        "NSMicrophoneUsageDescription": "Allow Amy's Echo to access your microphone to record audio."
+        "NSCameraUsageDescription": "Amy benötigt den Kamerazugriff, um deine Gesten zu erkennen.",
+        "NSMicrophoneUsageDescription": "Amy benötigt den Mikrofonzugriff für Trainingsvideos.",
+        "NSPhotoLibraryUsageDescription": "Amy speichert Trainingsvideos in deiner Mediathek.",
+        "NSPhotoLibraryAddUsageDescription": "Amy speichert neue Trainingsvideos in deiner Mediathek."
       }
     },
     "plugins": [
       "expo-audio",
       "expo-secure-store",
       "expo-asset",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Amy benötigt Zugriff auf Fotos, um Trainingsvideos abzulegen.",
+          "savePhotosPermission": "Amy speichert Trainingsvideos für dich.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Amy benötigt den Kamerazugriff, um deine Gesten aufzunehmen.",
+          "microphonePermission": "Amy benötigt den Mikrofonzugriff für die Videoaufnahme.",
+          "recordAudioAndroid": true
+        }
+      ]
     ]
   }
 }
