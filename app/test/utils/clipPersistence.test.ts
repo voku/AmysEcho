@@ -44,6 +44,9 @@ const createFs = (overrides: Partial<MockFs> = {}): MockFs => ({
   ...overrides,
 });
 
+const androidPlatform = { OS: 'android' as const, Version: 34 };
+const iosPlatform = { OS: 'ios' as const, Version: '17.0' };
+
 describe('clipPersistence', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -64,7 +67,7 @@ describe('clipPersistence', () => {
     expect(sanitizeClipBase64(payload)).toBe('');
   });
 
-  it('writes sanitized clip data into the document directory when available', async () => {
+  it('writes sanitized clip data into the cache directory on scoped Android devices', async () => {
     const fs = createFs();
     const clip = createClip({
       base64: 'data:video/webm;base64, A A A A /+/= ',
@@ -77,11 +80,12 @@ describe('clipPersistence', () => {
       directoryName: 'amy-training-clips',
       filePrefix: 'amy-training',
       logger: { warn },
+      platform: androidPlatform,
     });
 
-    expect(uri).toBe('file:///docs/amy-training-clips/amy-training-clip123.webm');
+    expect(uri).toBe('file:///cache/amy-training-clips/amy-training-clip123.webm');
     expect(fs.writeAsStringAsync).toHaveBeenCalledWith(
-      'file:///docs/amy-training-clips/amy-training-clip123.webm',
+      'file:///cache/amy-training-clips/amy-training-clip123.webm',
       'AAAA/+/=',
       { encoding: 'base64' },
     );
@@ -102,15 +106,31 @@ describe('clipPersistence', () => {
       clip,
       directoryName: 'amy',
       filePrefix: 'amy',
+      platform: androidPlatform,
     });
 
     expect(uri).toBe('file:///cache/amy/amy-clip123.webm');
   });
 
+  it('uses document directory on non-Android platforms when available', async () => {
+    const fs = createFs();
+    const clip = createClip();
+
+    const uri = await persistClipToDirectory({
+      fs: fs as any,
+      clip,
+      directoryName: 'amy',
+      filePrefix: 'amy',
+      platform: iosPlatform,
+    });
+
+    expect(uri).toBe('file:///docs/amy/amy-clip123.webm');
+  });
+
   it('erkennt vorhandenen Speicherort für Clips', () => {
     const fs = createFs();
-    expect(resolveClipBaseDirectory(fs as any)).toBe('file:///docs/');
-    expect(canUseClipStorage(fs as any)).toBe(true);
+    expect(resolveClipBaseDirectory(fs as any, androidPlatform as any)).toBe('file:///cache/');
+    expect(canUseClipStorage(fs as any, androidPlatform as any)).toBe(true);
   });
 
   it('meldet fehlenden Speicherort für Clips', () => {
@@ -121,8 +141,8 @@ describe('clipPersistence', () => {
       externalDirectory: null,
       externalCacheDirectory: null,
     });
-    expect(resolveClipBaseDirectory(fs as any)).toBeNull();
-    expect(canUseClipStorage(fs as any)).toBe(false);
+    expect(resolveClipBaseDirectory(fs as any, androidPlatform as any)).toBeNull();
+    expect(canUseClipStorage(fs as any, androidPlatform as any)).toBe(false);
   });
 
   it('probiert alternative Speicherpfade, wenn das Vorbereitungsverzeichnis scheitert', async () => {
@@ -142,6 +162,7 @@ describe('clipPersistence', () => {
       clip,
       directoryName: 'amy',
       filePrefix: 'amy',
+      platform: iosPlatform,
     });
 
     expect(uri).toBe('file:///storage/amy/amy-clip123.webm');
@@ -171,6 +192,7 @@ describe('clipPersistence', () => {
       directoryName: 'amy',
       filePrefix: 'amy',
       logger: { warn },
+      platform: iosPlatform,
     });
 
     expect(uri).toBe('file:///storage/amy/amy-clip123.webm');
@@ -199,6 +221,7 @@ describe('clipPersistence', () => {
         directoryName: 'amy',
         filePrefix: 'amy',
         logger: { warn },
+        platform: androidPlatform,
       }),
     ).rejects.toMatchObject({ message: 'clip_payload_invalid' });
 
@@ -221,6 +244,7 @@ describe('clipPersistence', () => {
         directoryName: 'amy',
         filePrefix: 'amy',
         logger: { warn },
+        platform: androidPlatform,
       }),
     ).rejects.toMatchObject({ message: 'clip_payload_invalid' });
 
@@ -245,6 +269,7 @@ describe('clipPersistence', () => {
         directoryName: 'amy',
         filePrefix: 'amy',
         logger: { warn },
+        platform: androidPlatform,
       }),
     ).rejects.toEqual(new ClipCaptureError('clip_write_failed'));
 
