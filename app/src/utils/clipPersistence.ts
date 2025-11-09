@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import type { ClipReadyPayload } from '../types/frames';
 
 type FileSystemModule = typeof import('expo-file-system');
@@ -12,6 +14,8 @@ export type ExpoFileSystemCompat = FileSystemModule & {
   externalCacheDirectory?: string | null;
   EncodingType?: { Base64?: FileEncoding } | null;
 };
+
+type PlatformLike = Pick<typeof Platform, 'OS' | 'Version'>;
 
 export interface ClipPersistenceLogger {
   warn: (message: string, error?: unknown) => void;
@@ -58,14 +62,39 @@ export const DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE =
 const ensureTrailingSlash = (directory: string): string =>
   directory.endsWith('/') ? directory : `${directory}/`;
 
-const resolveClipBaseDirectoryCandidates = (fs: ExpoFileSystemCompat): string[] => {
-  const candidates = [
-    fs.documentDirectory,
-    fs.storageDirectory,
-    fs.externalDirectory,
-    fs.cacheDirectory,
-    fs.externalCacheDirectory,
-  ];
+const toAndroidVersionNumber = (platform: PlatformLike): number | null => {
+  const { Version } = platform;
+  if (typeof Version === 'number') {
+    return Version;
+  }
+  if (typeof Version === 'string') {
+    const parsed = parseInt(Version, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const isScopedStorageAndroid = (platform: PlatformLike): boolean => {
+  if (platform.OS !== 'android') {
+    return false;
+  }
+  const version = toAndroidVersionNumber(platform);
+  return typeof version === 'number' && version >= 30;
+};
+
+const resolveClipBaseDirectoryCandidates = (
+  fs: ExpoFileSystemCompat,
+  platform: PlatformLike,
+): string[] => {
+  const candidates = isScopedStorageAndroid(platform)
+    ? [fs.cacheDirectory, fs.externalCacheDirectory, fs.documentDirectory]
+    : [
+        fs.documentDirectory,
+        fs.storageDirectory,
+        fs.externalDirectory,
+        fs.cacheDirectory,
+        fs.externalCacheDirectory,
+      ];
 
   const normalized = candidates
     .filter((directory): directory is string => typeof directory === 'string' && directory.length > 0)
@@ -76,12 +105,16 @@ const resolveClipBaseDirectoryCandidates = (fs: ExpoFileSystemCompat): string[] 
 
 export const resolveClipBaseDirectory = (
   fs: ExpoFileSystemCompat,
+  platform: PlatformLike = Platform,
 ): string | null => {
-  return resolveClipBaseDirectoryCandidates(fs)[0] ?? null;
+  return resolveClipBaseDirectoryCandidates(fs, platform)[0] ?? null;
 };
 
-export const canUseClipStorage = (fs: ExpoFileSystemCompat): boolean => {
-  return resolveClipBaseDirectoryCandidates(fs).length > 0;
+export const canUseClipStorage = (
+  fs: ExpoFileSystemCompat,
+  platform: PlatformLike = Platform,
+): boolean => {
+  return resolveClipBaseDirectoryCandidates(fs, platform).length > 0;
 };
 
 const resolveClipCaptureErrorCode = (value: string | null | undefined): string | null => {
@@ -187,6 +220,7 @@ export interface PersistClipOptions {
   directoryName: string;
   filePrefix: string;
   logger?: ClipPersistenceLogger;
+  platform?: PlatformLike;
 }
 
 export const persistClipToDirectory = async ({
@@ -195,6 +229,7 @@ export const persistClipToDirectory = async ({
   directoryName,
   filePrefix,
   logger,
+  platform = Platform,
 }: PersistClipOptions): Promise<string> => {
   if (/[\\/]|\.\./.test(directoryName) || /[\\/]|\.\./.test(filePrefix)) {
     logger?.warn('Ungültige Pfadbestandteile für Clip-Speicherung', {
@@ -204,7 +239,7 @@ export const persistClipToDirectory = async ({
     throw new ClipCaptureError('clip_path_components_invalid');
   }
 
-  const baseDirectories = resolveClipBaseDirectoryCandidates(fs);
+  const baseDirectories = resolveClipBaseDirectoryCandidates(fs, platform);
   if (baseDirectories.length === 0) {
     throw new ClipCaptureError('clip_directory_unavailable');
   }
