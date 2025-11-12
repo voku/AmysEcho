@@ -332,11 +332,13 @@ class MjpegAviEncoder {
     writeFourCC('idx1');
     writeUint32(idx1Size);
 
-    let currentOffset = 0; // offset is relative to movi data start (after 'movi' FourCC)
+    // The 'idx1' chunk contains offsets relative to the start of the 'movi' LIST chunk.
+    // The 'movi' LIST chunk has a 12-byte header ('LIST', size, 'movi') before the frame data.
+    const idx1OffsetFromMoviListStart = 12;
     for (let index = 0; index < frameCount; index++) {
       writeFourCC('00db');
       writeUint32(AVI_KEYFRAME); // keyframe
-      writeUint32(this.frameOffsets[index] + currentOffset);
+      writeUint32(this.frameOffsets[index] + idx1OffsetFromMoviListStart);
       writeUint32(this.chunkSizes[index]);
     }
 
