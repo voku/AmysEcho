@@ -4554,6 +4554,11 @@
       }
     }
   };
+  var AVIH_CHUNK_SIZE = 56;
+  var STRH_CHUNK_SIZE = 56;
+  var STRF_CHUNK_SIZE = 40;
+  var AVIF_HAS_INDEX = 16;
+  var AVI_KEYFRAME = 16;
   var MjpegAviEncoder = class {
     constructor(width, height, fps) {
       this.width = width;
@@ -4578,9 +4583,9 @@
       }
       const frameBlockSize = this.totalSize;
       const idx1Size = 16 * frameCount;
-      const avihChunkSize = 8 + 56;
-      const strhChunkSize = 8 + 56;
-      const strfChunkSize = 8 + 40;
+      const avihChunkSize = 8 + AVIH_CHUNK_SIZE;
+      const strhChunkSize = 8 + STRH_CHUNK_SIZE;
+      const strfChunkSize = 8 + STRF_CHUNK_SIZE;
       const strlListSize = 12 + strhChunkSize + strfChunkSize;
       const hdrlListSize = 12 + avihChunkSize + strlListSize;
       const moviListSize = 12 + frameBlockSize;
@@ -4601,6 +4606,10 @@
         view.setUint32(offset, value, true);
         offset += 4;
       };
+      const writeUint16 = (value) => {
+        view.setUint16(offset, value, true);
+        offset += 2;
+      };
       writeFourCC("RIFF");
       writeUint32(riffSize);
       writeFourCC("AVI ");
@@ -4608,11 +4617,11 @@
       writeUint32(hdrlListSize - 8);
       writeFourCC("hdrl");
       writeFourCC("avih");
-      writeUint32(56);
+      writeUint32(AVIH_CHUNK_SIZE);
       writeUint32(Math.round(1e6 / this.fps));
       writeUint32(this.averageBytesPerSecond());
       writeUint32(0);
-      writeUint32(16);
+      writeUint32(AVIF_HAS_INDEX);
       writeUint32(frameCount);
       writeUint32(0);
       writeUint32(1);
@@ -4627,14 +4636,12 @@
       writeUint32(strlListSize - 8);
       writeFourCC("strl");
       writeFourCC("strh");
-      writeUint32(56);
+      writeUint32(STRH_CHUNK_SIZE);
       writeFourCC("vids");
       writeFourCC("MJPG");
       writeUint32(0);
-      writeUint16(view, offset, 0);
-      offset += 2;
-      writeUint16(view, offset, 0);
-      offset += 2;
+      writeUint16(0);
+      writeUint16(0);
       writeUint32(0);
       writeUint32(1);
       writeUint32(this.fps);
@@ -4643,19 +4650,15 @@
       writeUint32(this.maxFrameSize());
       writeUint32(0);
       writeUint32(0);
-      writeUint16(view, offset, 0);
-      offset += 2;
-      writeUint16(view, offset, 0);
-      offset += 2;
+      writeUint16(0);
+      writeUint16(0);
       writeFourCC("strf");
-      writeUint32(40);
-      writeUint32(40);
+      writeUint32(STRF_CHUNK_SIZE);
+      writeUint32(STRF_CHUNK_SIZE);
       writeUint32(this.width);
       writeUint32(this.height);
-      writeUint16(view, offset, 1);
-      offset += 2;
-      writeUint16(view, offset, 24);
-      offset += 2;
+      writeUint16(1);
+      writeUint16(24);
       writeFourCC("MJPG");
       writeUint32(this.maxFrameSize());
       writeUint32(0);
@@ -4679,10 +4682,10 @@
       }
       writeFourCC("idx1");
       writeUint32(idx1Size);
-      let currentOffset = 4;
+      let currentOffset = 0;
       for (let index = 0; index < frameCount; index++) {
         writeFourCC("00db");
-        writeUint32(16);
+        writeUint32(AVI_KEYFRAME);
         writeUint32(this.frameOffsets[index] + currentOffset);
         writeUint32(this.chunkSizes[index]);
       }
@@ -4696,9 +4699,6 @@
       return this.chunkSizes.reduce((max2, value) => Math.max(max2, value), 0);
     }
   };
-  function writeUint16(view, offset, value) {
-    view.setUint16(offset, value, true);
-  }
   function extractBase64(dataUrl) {
     if (typeof dataUrl !== "string") {
       return null;
@@ -4739,6 +4739,9 @@
   var DEFAULT_LANDMARK_INTERVAL_MS = 120;
   var MIN_LANDMARK_INTERVAL_MS = 80;
   var MAX_LANDMARK_INTERVAL_MS = 320;
+  var PROCESSING_TIME_MULTIPLIER = 1.6;
+  var ADAPTIVE_PADDING_MS = 80;
+  var BASE_PADDING_MS = 40;
   var GestureRecognitionOrchestrator = class {
     constructor(video2, overlay2, dependencies = {}) {
       this.video = video2;
@@ -5526,8 +5529,8 @@
     updateLandmarkInterval() {
       const metrics = this.performanceOptimizer.getPerformanceMetrics();
       const average = Number.isFinite(metrics.averageProcessingTime) ? metrics.averageProcessingTime : 0;
-      const adaptivePadding = metrics.adaptiveFrameSkipping ? 80 : 40;
-      const computed = average > 0 ? average * 1.6 + adaptivePadding : DEFAULT_LANDMARK_INTERVAL_MS;
+      const adaptivePadding = metrics.adaptiveFrameSkipping ? ADAPTIVE_PADDING_MS : BASE_PADDING_MS;
+      const computed = average > 0 ? average * PROCESSING_TIME_MULTIPLIER + adaptivePadding : DEFAULT_LANDMARK_INTERVAL_MS;
       const clamped = Math.max(MIN_LANDMARK_INTERVAL_MS, Math.min(MAX_LANDMARK_INTERVAL_MS, computed));
       this.landmarkSendIntervalMs = Math.round(clamped);
     }

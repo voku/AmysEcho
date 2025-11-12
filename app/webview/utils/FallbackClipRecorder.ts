@@ -177,6 +177,13 @@ export class FallbackClipRecorder {
   }
 }
 
+// AVI header structure constants
+const AVIH_CHUNK_SIZE = 56;
+const STRH_CHUNK_SIZE = 56;
+const STRF_CHUNK_SIZE = 40;
+const AVIF_HAS_INDEX = 0x10;
+const AVI_KEYFRAME = 0x10;
+
 class MjpegAviEncoder {
   private readonly frames: Uint8Array[] = [];
   private readonly chunkSizes: number[] = [];
@@ -202,9 +209,9 @@ class MjpegAviEncoder {
     const frameBlockSize = this.totalSize;
     const idx1Size = 16 * frameCount;
 
-    const avihChunkSize = 8 + 56;
-    const strhChunkSize = 8 + 56;
-    const strfChunkSize = 8 + 40;
+    const avihChunkSize = 8 + AVIH_CHUNK_SIZE;
+    const strhChunkSize = 8 + STRH_CHUNK_SIZE;
+    const strfChunkSize = 8 + STRF_CHUNK_SIZE;
     const strlListSize = 12 + strhChunkSize + strfChunkSize;
     const hdrlListSize = 12 + avihChunkSize + strlListSize;
     const moviListSize = 12 + frameBlockSize;
@@ -231,6 +238,11 @@ class MjpegAviEncoder {
       offset += 4;
     };
 
+    const writeUint16 = (value: number) => {
+      view.setUint16(offset, value, true);
+      offset += 2;
+    };
+
     // RIFF header
     writeFourCC('RIFF');
     writeUint32(riffSize);
@@ -243,11 +255,11 @@ class MjpegAviEncoder {
 
     // avih chunk
     writeFourCC('avih');
-    writeUint32(56);
+    writeUint32(AVIH_CHUNK_SIZE);
     writeUint32(Math.round(1_000_000 / this.fps)); // dwMicroSecPerFrame
     writeUint32(this.averageBytesPerSecond());
     writeUint32(0); // dwPaddingGranularity
-    writeUint32(0x10); // dwFlags (HAS_INDEX)
+    writeUint32(AVIF_HAS_INDEX); // dwFlags (HAS_INDEX)
     writeUint32(frameCount);
     writeUint32(0); // dwInitialFrames
     writeUint32(1); // dwStreams
@@ -266,14 +278,12 @@ class MjpegAviEncoder {
 
     // strh chunk
     writeFourCC('strh');
-    writeUint32(56);
+    writeUint32(STRH_CHUNK_SIZE);
     writeFourCC('vids');
     writeFourCC('MJPG');
     writeUint32(0); // dwFlags
-    writeUint16(view, offset, 0); // wPriority
-    offset += 2;
-    writeUint16(view, offset, 0); // wLanguage
-    offset += 2;
+    writeUint16(0); // wPriority
+    writeUint16(0); // wLanguage
     writeUint32(0); // dwInitialFrames
     writeUint32(1); // dwScale
     writeUint32(this.fps); // dwRate
@@ -282,21 +292,17 @@ class MjpegAviEncoder {
     writeUint32(this.maxFrameSize()); // dwSuggestedBufferSize
     writeUint32(0); // dwQuality
     writeUint32(0); // dwSampleSize
-    writeUint16(view, offset, 0);
-    offset += 2;
-    writeUint16(view, offset, 0);
-    offset += 2;
+    writeUint16(0);
+    writeUint16(0);
 
     // strf chunk (BITMAPINFOHEADER)
     writeFourCC('strf');
-    writeUint32(40);
-    writeUint32(40); // biSize
+    writeUint32(STRF_CHUNK_SIZE);
+    writeUint32(STRF_CHUNK_SIZE); // biSize
     writeUint32(this.width);
     writeUint32(this.height);
-    writeUint16(view, offset, 1); // biPlanes
-    offset += 2;
-    writeUint16(view, offset, 24); // biBitCount
-    offset += 2;
+    writeUint16(1); // biPlanes
+    writeUint16(24); // biBitCount
     writeFourCC('MJPG');
     writeUint32(this.maxFrameSize()); // biSizeImage
     writeUint32(0); // biXPelsPerMeter
@@ -326,10 +332,10 @@ class MjpegAviEncoder {
     writeFourCC('idx1');
     writeUint32(idx1Size);
 
-    let currentOffset = 4; // skip 'movi'
+    let currentOffset = 0; // offset is relative to movi data start (after 'movi' FourCC)
     for (let index = 0; index < frameCount; index++) {
       writeFourCC('00db');
-      writeUint32(0x10); // keyframe
+      writeUint32(AVI_KEYFRAME); // keyframe
       writeUint32(this.frameOffsets[index] + currentOffset);
       writeUint32(this.chunkSizes[index]);
     }
@@ -345,10 +351,6 @@ class MjpegAviEncoder {
   private maxFrameSize(): number {
     return this.chunkSizes.reduce((max, value) => Math.max(max, value), 0);
   }
-}
-
-function writeUint16(view: DataView, offset: number, value: number): void {
-  view.setUint16(offset, value, true);
 }
 
 function extractBase64(dataUrl: string): string | null {

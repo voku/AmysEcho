@@ -57,6 +57,11 @@ const DEFAULT_LANDMARK_INTERVAL_MS = 120;
 const MIN_LANDMARK_INTERVAL_MS = 80;
 const MAX_LANDMARK_INTERVAL_MS = 320;
 
+// Adaptive landmark interval calculation constants
+const PROCESSING_TIME_MULTIPLIER = 1.6;
+const ADAPTIVE_PADDING_MS = 80;
+const BASE_PADDING_MS = 40;
+
 interface FrameBatchEntry {
   frame: string;
   landmarks: number[][][];
@@ -1088,8 +1093,8 @@ export class GestureRecognitionOrchestrator {
     const average = Number.isFinite(metrics.averageProcessingTime)
       ? metrics.averageProcessingTime
       : 0;
-    const adaptivePadding = metrics.adaptiveFrameSkipping ? 80 : 40;
-    const computed = average > 0 ? average * 1.6 + adaptivePadding : DEFAULT_LANDMARK_INTERVAL_MS;
+    const adaptivePadding = metrics.adaptiveFrameSkipping ? ADAPTIVE_PADDING_MS : BASE_PADDING_MS;
+    const computed = average > 0 ? average * PROCESSING_TIME_MULTIPLIER + adaptivePadding : DEFAULT_LANDMARK_INTERVAL_MS;
     const clamped = Math.max(MIN_LANDMARK_INTERVAL_MS, Math.min(MAX_LANDMARK_INTERVAL_MS, computed));
     this.landmarkSendIntervalMs = Math.round(clamped);
   }

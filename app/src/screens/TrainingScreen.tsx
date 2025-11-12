@@ -130,13 +130,11 @@ export default function TrainingScreen({ navigation, route }: any) {
   const enterClipFallback = useCallback(
     (reason: string) => {
       clipSupportReasonRef.current = reason;
-      const persisted = persistFallbackIfUnsupported(reason);
-      if (persisted) {
-        if (clipCaptureMode !== 'fallback') {
-          setClipCaptureMode('fallback');
-        }
-        announceClipFallback();
+      persistFallbackIfUnsupported(reason);
+      if (clipCaptureMode !== 'fallback') {
+        setClipCaptureMode('fallback');
       }
+      announceClipFallback();
     },
     [announceClipFallback, clipCaptureMode, persistFallbackIfUnsupported],
   );
