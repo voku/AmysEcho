@@ -2,7 +2,7 @@ const MAX_CAPTURE_DIMENSION = 640;
 const MAX_DATA_URL_LENGTH = 400_000; // ~400 KB cap to protect bridge bandwidth
 
 let frameCaptureEnabled = false;
-let frameCaptureInterval = 500;
+let frameCaptureInterval = 150;
 let lastCapturedFrame: string | null = null;
 let lastCaptureTimestamp = 0;
 let captureCanvas: HTMLCanvasElement | null = null;

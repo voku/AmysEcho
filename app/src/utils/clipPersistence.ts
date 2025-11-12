@@ -52,6 +52,10 @@ export const CLIP_CAPTURE_ERROR_MESSAGES = {
   no_camera_stream: 'Es steht kein Kamerabild zur Verfügung. Bitte prüfe die Kamera und versuch es erneut.',
   recorder_init_failed: 'Die Videoaufnahme konnte nicht vorbereitet werden. Versuch es bitte erneut.',
   recorder_start_failed: 'Die Videoaufnahme konnte nicht gestartet werden. Versuch es bitte erneut.',
+  fallback_recorder_failed:
+    'Amy kann aus den aktuellen Kamerabildern kein Video erstellen. Deine Handbewegung wird trotzdem gespeichert.',
+  fallback_clip_empty:
+    'Von der Kamera kamen zu wenige Bilder an. Versuch die Aufnahme bitte erneut.',
 } as const;
 
 export type ClipCaptureErrorCode = keyof typeof CLIP_CAPTURE_ERROR_MESSAGES;

@@ -524,8 +524,8 @@ describe('TrainingScreen', () => {
     expect(recordPressable.props.accessibilityLabel).toBe('Aufnahme stoppen');
     expect(mockShowToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining('Amy speichert trotzdem deine Handbewegungen'),
-        tone: 'info',
+        message: expect.stringContaining('Videoclip konnte nicht gespeichert werden'),
+        tone: 'error',
       }),
     );
   });

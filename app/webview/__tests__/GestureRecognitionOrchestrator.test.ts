@@ -84,6 +84,21 @@ jest.mock('../utils/HealthMonitor', () => ({
   })),
 }));
 
+const mockFallbackRecorderStart = jest.fn();
+const mockFallbackRecorderStop = jest.fn();
+const mockFallbackRecorderCancel = jest.fn();
+const mockFallbackGetMimeType = jest.fn(() => 'video/avi');
+
+jest.mock('../utils/FallbackClipRecorder', () => ({
+  __esModule: true,
+  FallbackClipRecorder: jest.fn().mockImplementation(() => ({
+    start: mockFallbackRecorderStart,
+    stop: mockFallbackRecorderStop,
+    cancel: mockFallbackRecorderCancel,
+    getMimeType: mockFallbackGetMimeType,
+  })),
+}));
+
 import { GestureRecognitionOrchestrator } from '../core/GestureRecognitionOrchestrator';
 import { ErrorRecoveryManager } from '../utils/ErrorRecoveryManager';
 import type { MediaPipeGestureResult } from '../types/MediaPipeTypes';
@@ -94,6 +109,8 @@ import * as FrameCaptureManager from '../utils/FrameCaptureManager';
 
 const mockVideo = document.createElement('video');
 const mockOverlay = document.createElement('canvas');
+let originalMediaRecorder: typeof MediaRecorder | undefined;
+let mockMediaRecorderClass: any;
 
 const createMockGestureResults = (overrides: Partial<MediaPipeGestureResult> = {}): MediaPipeGestureResult => ({
   landmarks: [createHandLandmarks()],
@@ -121,6 +138,35 @@ describe('GestureRecognitionOrchestrator', () => {
 
   beforeAll(() => {
     window.ReactNativeWebView = { postMessage: jest.fn() };
+    originalMediaRecorder = (window as any).MediaRecorder;
+    class MockMediaRecorder {
+      static isTypeSupported = jest.fn(() => true);
+      state: MediaRecorderState = 'inactive';
+      mimeType: string;
+      ondataavailable: ((event: BlobEvent) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+      onstop: (() => void) | null = null;
+      onstart: ((event: Event) => void) | null = null;
+      requestData = jest.fn(() => {
+        if (this.ondataavailable) {
+          const blob = new Blob(['mock'], { type: this.mimeType });
+          this.ondataavailable({ data: blob } as BlobEvent);
+        }
+      });
+      constructor(_stream: MediaStream, options?: MediaRecorderOptions) {
+        this.mimeType = options?.mimeType ?? 'video/webm';
+      }
+      start = jest.fn(() => {
+        this.state = 'recording';
+        this.onstart?.(new Event('start'));
+      });
+      stop = jest.fn(() => {
+        this.state = 'inactive';
+        this.onstop?.();
+      });
+    }
+    mockMediaRecorderClass = MockMediaRecorder;
+    (window as any).MediaRecorder = MockMediaRecorder as any;
   });
 
   beforeEach(() => {
@@ -154,6 +200,11 @@ describe('GestureRecognitionOrchestrator', () => {
       wasmBase: 'mock-wasm-base',
     }));
 
+    mockFallbackRecorderStart.mockReset();
+    mockFallbackRecorderStop.mockReset();
+    mockFallbackRecorderCancel.mockReset();
+    mockFallbackGetMimeType.mockReset().mockReturnValue('video/avi');
+
     errorRecoveryManager = new ErrorRecoveryManager();
     orchestrator = new GestureRecognitionOrchestrator(mockVideo, mockOverlay, {
       errorRecoveryManager,
@@ -171,11 +222,15 @@ describe('GestureRecognitionOrchestrator', () => {
     (window.ReactNativeWebView!.postMessage as jest.Mock).mockReset();
   });
 
+  afterAll(() => {
+    (window as any).MediaRecorder = originalMediaRecorder;
+  });
+
   describe('initialization', () => {
     it('initializes the gesture detector and monitoring components', async () => {
       await expect(orchestrator.initialize()).resolves.toBeUndefined();
       expect(mockLoadTasksVision).toHaveBeenCalled();
-      expect(toggleCaptureSpy).toHaveBeenCalledWith(true);
+      expect(toggleCaptureSpy).toHaveBeenCalledWith(true, 150);
     });
 
     it('configures the processing pipeline with all steps', () => {
@@ -293,6 +348,102 @@ describe('GestureRecognitionOrchestrator', () => {
       const gestureCall = queueSpy.mock.calls.find(([payload]) => payload.type === 'gesture');
       expect(gestureCall?.[0]).toEqual(expect.objectContaining({ frameCapture: 'frame-data' }));
       expect(gestureCall?.[1]).toEqual({ flushImmediately: true });
+    });
+
+    it('streams landmarks with higher temporal resolution when processing is fast', async () => {
+      const shouldProcessSpy = jest
+        .spyOn(PerformanceOptimizer.prototype, 'shouldProcessFrame')
+        .mockReturnValue(true);
+      const mockResults = createMockGestureResults({ gestures: [[]] as any });
+      queueSpy.mockClear();
+
+      const nowSpy = jest.spyOn(Date, 'now');
+      let current = 1000;
+      nowSpy.mockImplementation(() => current);
+
+      await (orchestrator as any).handleGestureResults(mockResults, current);
+      const firstLandmarkCalls = queueSpy.mock.calls.filter(([payload]) => payload.type === 'landmarks');
+      expect(firstLandmarkCalls.length).toBeGreaterThan(0);
+
+      current += 125;
+      await (orchestrator as any).handleGestureResults(mockResults, current);
+      const secondLandmarkCalls = queueSpy.mock.calls.filter(([payload]) => payload.type === 'landmarks');
+      expect(secondLandmarkCalls.length).toBeGreaterThan(1);
+
+      shouldProcessSpy.mockRestore();
+      nowSpy.mockRestore();
+    });
+  });
+
+  describe('fallback clip capture', () => {
+    let fallbackOrchestrator: GestureRecognitionOrchestrator;
+    let stubDetector: any;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      (window as any).MediaRecorder = undefined;
+      const stream = { id: 'mock-stream' } as unknown as MediaStream;
+      stubDetector = {
+        initialize: jest.fn().mockResolvedValue(undefined),
+        start: jest.fn().mockResolvedValue(undefined),
+        stop: jest.fn().mockResolvedValue(undefined),
+        cleanup: jest.fn().mockResolvedValue(undefined),
+        setResultCallback: jest.fn(),
+        getCameraStream: jest.fn(() => stream),
+      };
+      fallbackOrchestrator = new GestureRecognitionOrchestrator(mockVideo, mockOverlay, {
+        createGestureDetector: () => stubDetector,
+        errorRecoveryManager,
+      });
+      mockFallbackRecorderStop.mockResolvedValue({
+        base64: 'YmFzZTY0',
+        mimeType: 'video/avi',
+        durationMs: 900,
+        frameCount: 9,
+        capturedAt: new Date(0).toISOString(),
+      });
+      mockVideo.videoWidth = 640;
+      mockVideo.videoHeight = 480;
+    });
+
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+      (window as any).MediaRecorder = mockMediaRecorderClass as any;
+    });
+
+    it('falls back to the custom recorder when MediaRecorder is unavailable', async () => {
+      await fallbackOrchestrator.initialize();
+      const state = {
+        mode: 'fallback' as const,
+        id: 'fallback-clip',
+        recorder: { cancel: jest.fn(), getMimeType: () => 'video/avi' },
+        startedAt: Date.now(),
+        timeoutHandle: null,
+        aborted: false,
+      };
+      (fallbackOrchestrator as any).clipCaptureState = state;
+
+      (fallbackOrchestrator as any).handleFallbackClipStop(state, {
+        base64: 'YmFzZTY0',
+        mimeType: 'video/avi',
+        durationMs: 900,
+        frameCount: 9,
+        capturedAt: new Date(0).toISOString(),
+      });
+
+      const clipReadyCall = (window.ReactNativeWebView!.postMessage as jest.Mock).mock.calls.find(([arg]) =>
+        typeof arg === 'string' && arg.includes('"clip_ready"'),
+      );
+      expect(clipReadyCall).toBeDefined();
+      const payload = JSON.parse(clipReadyCall![0]);
+      expect(payload).toEqual(
+        expect.objectContaining({
+          type: 'clip_ready',
+          id: 'fallback-clip',
+          mimeType: 'video/avi',
+        }),
+      );
     });
   });
 
