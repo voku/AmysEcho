@@ -130,8 +130,8 @@ export default function TrainingScreen({ navigation, route }: any) {
   const enterClipFallback = useCallback(
     (reason: string) => {
       clipSupportReasonRef.current = reason;
-      persistFallbackIfUnsupported(reason);
-      if (clipCaptureMode !== 'fallback') {
+      const alreadyHandled = persistFallbackIfUnsupported(reason);
+      if (!alreadyHandled && clipCaptureMode !== 'fallback') {
         setClipCaptureMode('fallback');
       }
       announceClipFallback();
