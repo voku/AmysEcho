@@ -4682,11 +4682,11 @@
       }
       writeFourCC("idx1");
       writeUint32(idx1Size);
-      let currentOffset = 0;
+      const idx1OffsetFromMoviListStart = 12;
       for (let index = 0; index < frameCount; index++) {
         writeFourCC("00db");
         writeUint32(AVI_KEYFRAME);
-        writeUint32(this.frameOffsets[index] + currentOffset);
+        writeUint32(this.frameOffsets[index] + idx1OffsetFromMoviListStart);
         writeUint32(this.chunkSizes[index]);
       }
       return new Uint8Array(buffer);
