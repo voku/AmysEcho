@@ -43,6 +43,7 @@ export const CLIP_CAPTURE_ERROR_MESSAGES = {
   clip_error: 'Unbekannter Fehler bei der Videoaufnahme. Versuch es bitte erneut.',
   no_active_clip_capture: 'Es läuft keine Videoaufnahme. Starte zuerst eine neue Aufnahme.',
   webview_not_ready: 'Die Kameraansicht ist noch nicht bereit. Warte kurz und versuch es erneut.',
+  video_not_ready: 'Die Kamera ist noch nicht bereit. Warte kurz und versuch es erneut.',
   media_recorder_unavailable:
     'Dieses Gerät unterstützt keine Videoaufnahmen in der Kameraansicht. Amy speichert trotzdem deine Handbewegungen.',
   media_recorder_not_supported:
