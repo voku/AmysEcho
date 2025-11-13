@@ -419,9 +419,15 @@ describe('GestureRecognitionOrchestrator', () => {
 
       fallbackOrchestrator.startClipCapture('not-ready-clip');
 
-      const clipErrorCall = (window.ReactNativeWebView!.postMessage as jest.Mock).mock.calls.find(([arg]) =>
-        typeof arg === 'string' && arg.includes('"clip_error"'),
-      );
+      const clipErrorCall = (window.ReactNativeWebView!.postMessage as jest.Mock).mock.calls.find(([arg]) => {
+        if (typeof arg !== 'string') return false;
+        try {
+          const p = JSON.parse(arg);
+          return p.type === 'clip_error' && p.reason === 'video_not_ready';
+        } catch {
+          return false;
+        }
+      });
       expect(clipErrorCall).toBeDefined();
       const payload = JSON.parse(clipErrorCall![0]);
       expect(payload).toEqual(

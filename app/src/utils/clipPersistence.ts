@@ -145,10 +145,36 @@ export const getClipCaptureErrorMessage = (error: unknown): string => {
     message = error.message;
   }
 
+  // First try to match known error codes
   const resolved = resolveClipCaptureErrorCode(message);
-  return resolved
-    ? CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode]
-    : DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
+  if (resolved) {
+    return CLIP_CAPTURE_ERROR_MESSAGES[resolved as ClipCaptureErrorCode];
+  }
+
+  // For unknown errors, check for common patterns to provide better context
+  const errorText = (message ?? String(error)).toLowerCase();
+  
+  // Network/connection errors
+  if (errorText.includes('network') || errorText.includes('fetch') || errorText.includes('connection')) {
+    return 'Netzwerkfehler beim Speichern des Videos. Prüfe deine Internetverbindung und versuch es erneut.';
+  }
+  
+  // Timeout errors
+  if (errorText.includes('timeout') || errorText.includes('timed out')) {
+    return CLIP_CAPTURE_ERROR_MESSAGES.clip_capture_timeout;
+  }
+  
+  // Permission/access errors
+  if (errorText.includes('permission') || errorText.includes('denied') || errorText.includes('unauthorized')) {
+    return 'Zugriff verweigert. Prüfe die App-Berechtigungen und versuch es erneut.';
+  }
+  
+  // Storage/disk errors
+  if (errorText.includes('storage') || errorText.includes('disk') || errorText.includes('space')) {
+    return 'Nicht genug Speicherplatz. Gib etwas Speicher frei und versuch es erneut.';
+  }
+
+  return DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
 };
 
 export const getExtensionFromMime = (mimeType: string): string => {

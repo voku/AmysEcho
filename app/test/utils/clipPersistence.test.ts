@@ -297,4 +297,40 @@ describe('clipPersistence', () => {
   it('falls back to the default message for unknown errors', () => {
     expect(getClipCaptureErrorMessage(new Error('unexpected'))).toBe(DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE);
   });
+
+  it('detects network errors and provides specific message', () => {
+    expect(getClipCaptureErrorMessage(new Error('Network request failed'))).toBe(
+      'Netzwerkfehler beim Speichern des Videos. Prüfe deine Internetverbindung und versuch es erneut.'
+    );
+    expect(getClipCaptureErrorMessage(new Error('fetch failed'))).toBe(
+      'Netzwerkfehler beim Speichern des Videos. Prüfe deine Internetverbindung und versuch es erneut.'
+    );
+    expect(getClipCaptureErrorMessage(new Error('connection error'))).toBe(
+      'Netzwerkfehler beim Speichern des Videos. Prüfe deine Internetverbindung und versuch es erneut.'
+    );
+  });
+
+  it('detects permission errors and provides specific message', () => {
+    expect(getClipCaptureErrorMessage(new Error('Permission denied'))).toBe(
+      'Zugriff verweigert. Prüfe die App-Berechtigungen und versuch es erneut.'
+    );
+    expect(getClipCaptureErrorMessage(new Error('Unauthorized access'))).toBe(
+      'Zugriff verweigert. Prüfe die App-Berechtigungen und versuch es erneut.'
+    );
+  });
+
+  it('detects storage errors and provides specific message', () => {
+    expect(getClipCaptureErrorMessage(new Error('Not enough storage space'))).toBe(
+      'Nicht genug Speicherplatz. Gib etwas Speicher frei und versuch es erneut.'
+    );
+    expect(getClipCaptureErrorMessage(new Error('Disk full'))).toBe(
+      'Nicht genug Speicherplatz. Gib etwas Speicher frei und versuch es erneut.'
+    );
+  });
+
+  it('detects timeout errors and uses predefined message', () => {
+    expect(getClipCaptureErrorMessage(new Error('Operation timed out'))).toBe(
+      'Die Videoaufnahme hat zu lange gedauert. Versuch es bitte erneut.'
+    );
+  });
 });

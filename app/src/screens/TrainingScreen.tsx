@@ -1145,22 +1145,32 @@ export default function TrainingScreen({ navigation, route }: any) {
                 const reason = details?.reason ?? 'unknown';
                 setRecordingState('idle');
                 clipRequestIdRef.current = null;
-                clipSupportReasonRef.current = reason;
 
                 const unsupported = persistFallbackIfUnsupported(reason);
                 detectorRef.current?.cancelClipCapture();
                 void cleanupClipFile();
-                announceClipFallback();
 
                 if (unsupported) {
+                  clipSupportReasonRef.current = reason;
+                  announceClipFallback();
                   void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_unsupported', {
                     reason,
                   });
+                } else if (reason === 'video_not_ready') {
+                  // Transient error - video might become ready, don't switch to permanent fallback
+                  logger.info('Video not ready for clip capture, user can retry', { reason });
+                  void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_video_not_ready', {
+                    reason,
+                  });
+                  showToast({ message: getClipCaptureErrorMessage(reason), tone: 'info' });
                 } else {
+                  // Other errors indicate clip capture won't work - switch to fallback mode
                   logger.warn('TrainingScreen clip error received', { reason });
+                  clipSupportReasonRef.current = reason;
                   if (clipCaptureMode !== 'fallback') {
                     setClipCaptureMode('fallback');
                   }
+                  announceClipFallback();
                   void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'clip_capture_failed', {
                     reason,
                   });
