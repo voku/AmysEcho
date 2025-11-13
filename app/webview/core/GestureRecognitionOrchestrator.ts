@@ -411,6 +411,12 @@ export class GestureRecognitionOrchestrator {
       return;
     }
 
+    // Validate video element is ready for both MediaRecorder and fallback paths
+    if (!this.video || this.video.videoWidth === 0 || this.video.videoHeight === 0) {
+      this.sendClipError(requestId, 'video_not_ready');
+      return;
+    }
+
     if (typeof window.MediaRecorder === 'undefined') {
       this.startFallbackClipCapture(requestId);
       return;

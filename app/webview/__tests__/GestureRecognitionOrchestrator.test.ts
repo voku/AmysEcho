@@ -412,6 +412,27 @@ describe('GestureRecognitionOrchestrator', () => {
       (window as any).MediaRecorder = mockMediaRecorderClass as any;
     });
 
+    it('rejects clip capture when video element is not ready', async () => {
+      await fallbackOrchestrator.initialize();
+      mockVideo.videoWidth = 0;
+      mockVideo.videoHeight = 0;
+
+      fallbackOrchestrator.startClipCapture('not-ready-clip');
+
+      const clipErrorCall = (window.ReactNativeWebView!.postMessage as jest.Mock).mock.calls.find(([arg]) =>
+        typeof arg === 'string' && arg.includes('"clip_error"'),
+      );
+      expect(clipErrorCall).toBeDefined();
+      const payload = JSON.parse(clipErrorCall![0]);
+      expect(payload).toEqual(
+        expect.objectContaining({
+          type: 'clip_error',
+          id: 'not-ready-clip',
+          reason: 'video_not_ready',
+        }),
+      );
+    });
+
     it('falls back to the custom recorder when MediaRecorder is unavailable', async () => {
       await fallbackOrchestrator.initialize();
       const state = {

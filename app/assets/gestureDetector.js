@@ -4965,6 +4965,10 @@
         this.sendClipError(requestId, "capture_in_progress");
         return;
       }
+      if (!this.video || this.video.videoWidth === 0 || this.video.videoHeight === 0) {
+        this.sendClipError(requestId, "video_not_ready");
+        return;
+      }
       if (typeof window.MediaRecorder === "undefined") {
         this.startFallbackClipCapture(requestId);
         return;
