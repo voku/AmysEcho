@@ -497,13 +497,30 @@ describe('GestureRecognitionOrchestrator', () => {
         capturedAt: new Date(0).toISOString(),
       });
 
-      expect(capturedMessages).toContainEqual(
+      expect(capturedMessages).toEqual([
         expect.objectContaining({
           type: 'clip_error',
           id: 'clip-failure',
           reason: 'clip_capture_failed',
+          details: {
+            message: 'post failed',
+            name: 'Error',
+          },
         }),
-      );
+        expect.objectContaining({
+          type: 'telemetry',
+          event: 'clip_error',
+          requestId: 'clip-failure',
+          data: expect.objectContaining({
+            reason: 'clip_capture_failed',
+            details: {
+              message: 'post failed',
+              name: 'Error',
+            },
+          }),
+          timestamp: expect.any(Number),
+        }),
+      ]);
     });
   });
 
