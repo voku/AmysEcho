@@ -474,6 +474,56 @@ describe('GestureRecognitionOrchestrator', () => {
     });
   });
 
+  describe('clip delivery failures', () => {
+    it('emits clip_capture_failed when posting clip_ready throws', async () => {
+      const postMessageMock = window.ReactNativeWebView!.postMessage as jest.Mock;
+      const capturedMessages: Array<Record<string, unknown>> = [];
+      postMessageMock
+        .mockImplementationOnce(() => {
+          throw new Error('post failed');
+        })
+        .mockImplementation((message: string) => {
+          capturedMessages.push(JSON.parse(message));
+        });
+
+      await orchestrator.initialize();
+
+      (orchestrator as any).postClipReady({
+        id: 'clip-failure',
+        base64: 'YmFzZTY0',
+        mimeType: 'video/webm',
+        durationMs: 1000,
+        frameCount: 30,
+        capturedAt: new Date(0).toISOString(),
+      });
+
+      expect(capturedMessages).toEqual([
+        expect.objectContaining({
+          type: 'clip_error',
+          id: 'clip-failure',
+          reason: 'clip_capture_failed',
+          details: {
+            message: 'post failed',
+            name: 'Error',
+          },
+        }),
+        expect.objectContaining({
+          type: 'telemetry',
+          event: 'clip_error',
+          requestId: 'clip-failure',
+          data: expect.objectContaining({
+            reason: 'clip_capture_failed',
+            details: {
+              message: 'post failed',
+              name: 'Error',
+            },
+          }),
+          timestamp: expect.any(Number),
+        }),
+      ]);
+    });
+  });
+
   describe('status reporting', () => {
     it('reports initialization and runtime state transitions', async () => {
       let status = orchestrator.getStatus();
