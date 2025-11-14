@@ -769,6 +769,7 @@ export class GestureRecognitionOrchestrator {
       });
     } catch (error) {
       console.warn('Failed to post clip_ready message:', error);
+      this.sendClipError(payload.id, 'clip_capture_failed', error);
     }
   }
 
