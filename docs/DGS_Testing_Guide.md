@@ -239,7 +239,7 @@ jobs:
     strategy:
       matrix:
         node: [18, 20]
-        python: [3.8, 3.10]
+        python: ['3.10']
 
     steps:
       - uses: actions/checkout@v3

@@ -14,7 +14,7 @@ The DGS integration uses a comprehensive CI/CD pipeline with multi-stage testing
 │   Events    │───►│   Testing   │───►│   Audit     │───►│             │
 │             │    │             │    │             │    │             │
 │ • Push/PR   │    │ • Node 18/20│    │ • NPM Audit │    │ • Preview    │
-│ • Path      │    │ • Python 3.8+│   │ • GitLeaks  │    │ • Production │
+│ • Path      │    │ • Python 3.10│   │ • GitLeaks  │    │ • Production │
 │   Filters   │    │ • Multi-OS   │    │ • CodeQL    │    │             │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
@@ -55,7 +55,7 @@ on:
 strategy:
   matrix:
     node-version: [18, 20]
-    python-version: [3.8, 3.9, '3.10']
+    python-version: ['3.10']
 ```
 
 **Benefits**:
