@@ -175,7 +175,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     return targetUri;
   }, []);
 
-  const cleanupClipFile = useCallback(async () => {
+  const cleanupTrainingFiles = useCallback(async () => {
     const cleanupRef = async (fileRef: React.MutableRefObject<string | null>, type: string) => {
       if (fileRef.current) {
         try {
@@ -332,8 +332,8 @@ export default function TrainingScreen({ navigation, route }: any) {
     setCameraReady(false);
     clipRequestIdRef.current = null;
     detectorRef.current?.cancelClipCapture();
-    void cleanupClipFile();
-  }, [cleanupClipFile]);
+    void cleanupTrainingFiles();
+  }, [cleanupTrainingFiles]);
 
   const handleCameraStateChange = useCallback(
     (state: CameraStateEvent) => {
@@ -368,7 +368,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     setFramesCaptured(0);
     setLastDetection(0);
     setStillPreviewUri(null);
-    await cleanupClipFile();
+    await cleanupTrainingFiles();
 
     let clipId: string | null = null;
     let clipMode: typeof clipCaptureMode = ensureClipCaptureMode(clipCaptureMode);
@@ -394,7 +394,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
   }, [
     cameraReady,
-    cleanupClipFile,
+    cleanupTrainingFiles,
     clipCaptureMode,
     ensureClipCaptureMode,
     enterClipFallback,
@@ -458,7 +458,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       const validation = validateLandmarkSequence(recordedFrames.map((f) => f.landmarks));
       if (!validation.ok) {
-        await cleanupClipFile();
+        await cleanupTrainingFiles();
         const msg = `Aufnahme muss verbessert werden: ${validation.suggestions.join(' ')}`;
         setError(msg);
         return;
@@ -533,7 +533,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         });
         clipRequestIdRef.current = null;
         // Clean up orphaned files when save fails
-        await cleanupClipFile();
+        await cleanupTrainingFiles();
       }
     } finally {
       setRecordingState('idle');
@@ -541,7 +541,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, [
     audioService,
     cameraReady,
-    cleanupClipFile,
+    cleanupTrainingFiles,
     clipCaptureMode,
     ensureClipCaptureMode,
     enterClipFallback,
@@ -1226,7 +1226,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
                 const unsupported = persistFallbackIfUnsupported(reason);
                 detectorRef.current?.cancelClipCapture();
-                void cleanupClipFile();
+                void cleanupTrainingFiles();
 
                 if (unsupported) {
                   clipSupportReasonRef.current = reason;
