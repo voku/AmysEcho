@@ -329,8 +329,6 @@ export default function TrainingScreen({ navigation, route }: any) {
     setFramesCaptured(0);
     setLastDetection(0);
     setStillPreviewUri(null);
-    lastStillFrameRef.current = null;
-    stillFileRef.current = null;
     setCameraReady(false);
     clipRequestIdRef.current = null;
     detectorRef.current?.cancelClipCapture();
@@ -370,8 +368,6 @@ export default function TrainingScreen({ navigation, route }: any) {
     setFramesCaptured(0);
     setLastDetection(0);
     setStillPreviewUri(null);
-    lastStillFrameRef.current = null;
-    stillFileRef.current = null;
     await cleanupClipFile();
 
     let clipId: string | null = null;
@@ -536,6 +532,8 @@ export default function TrainingScreen({ navigation, route }: any) {
           framesCaptured,
         });
         clipRequestIdRef.current = null;
+        // Clean up orphaned files when save fails
+        await cleanupClipFile();
       }
     } finally {
       setRecordingState('idle');
