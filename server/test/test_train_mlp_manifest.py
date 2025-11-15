@@ -190,3 +190,84 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
     assert len(captured["frames"]) == 2
     assert clip_frame in captured["frames"]
     assert still_frame in captured["frames"]
+
+
+def test_still_frames_have_higher_weight_than_video_frames(monkeypatch, tmp_path):
+    """Verify that still frames are marked with higher weight for weighted averaging."""
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-weighted")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+
+    clip_rel = "clip.mp4"
+    still_rel = "still.jpg"
+    (bundle_dir / clip_rel).write_bytes(b"fake-video")
+    (bundle_dir / still_rel).write_bytes(b"fake-still")
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-weighted",
+                "profileId": None,
+                "label": "TEST",
+                "capturedAt": "2024-05-28T12:03:11Z",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "bundle": str(bundle_rel / "bundle.zip"),
+                    "files": [clip_rel, still_rel],
+                    "clip": clip_rel,
+                    "still": still_rel,
+                },
+                "metadata": {
+                    "label": "TEST",
+                    "profileId": None,
+                    "clipFilename": clip_rel,
+                    "stillFilename": still_rel,
+                },
+                "receivedAt": "2024-05-28T12:05:00Z",
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    # Video frames have landmark values of 0.0
+    clip_landmarks = [[0.0, 0.0, 0.0] for _ in range(42)]
+    clip_frame = {"landmarks": clip_landmarks}
+    
+    # Still frame has landmark values of 1.0
+    still_landmarks = [[1.0, 1.0, 1.0] for _ in range(42)]
+    still_frame = {"landmarks": still_landmarks}
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", lambda _path: [clip_frame])
+    monkeypatch.setattr(module, "extract_landmarks_from_still", lambda _path: still_frame)
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH)
+
+    assert len(samples) == 1
+    
+    # Verify the averaged landmarks are closer to still frame (1.0) than video frame (0.0)
+    # With default weight of 10.0, the weighted average should be:
+    # (0.0 * 1.0 + 1.0 * 10.0) / (1.0 + 10.0) = 10.0 / 11.0 ≈ 0.909
+    sample_landmarks = samples[0].landmarks
+    first_landmark_value = sample_landmarks[0][0]  # x coordinate of first landmark
+    
+    # The value should be much closer to 1.0 (still) than 0.0 (video)
+    assert first_landmark_value > 0.8, (
+        f"Weighted average should be dominated by still frame. "
+        f"Expected > 0.8, got {first_landmark_value}"
+    )
+    
+    # Verify it's approximately the expected weighted average
+    expected_avg = 10.0 / 11.0  # (0.0 * 1.0 + 1.0 * 10.0) / 11.0
+    assert abs(first_landmark_value - expected_avg) < 0.01, (
+        f"Weighted average calculation incorrect. "
+        f"Expected {expected_avg:.3f}, got {first_landmark_value:.3f}"
+    )
+
