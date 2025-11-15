@@ -220,7 +220,7 @@ function parseDataUrlBase64(
     return null;
   }
   const [, mime, base64Payload] = match;
-  if (!base64Payload || base64Payload.length % 4 !== 0 || !BASE64_PATTERN.test(base64Payload)) {
+  if (!mime || !base64Payload || base64Payload.length % 4 !== 0 || !BASE64_PATTERN.test(base64Payload)) {
     return null;
   }
   return { mime: mime.toLowerCase(), base64: base64Payload };

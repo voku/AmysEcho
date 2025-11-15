@@ -130,8 +130,8 @@ export const useParallelProcessing = (
           quality_score: result.quality_score ?? DEFAULT_OPENAI_QUALITY_SCORE,
           suggestions: result.suggestions ?? [],
           validation_source: result.source,
-          contextual_meaning: result.contextual_meaning,
-          reference_sources: result.reference_sources,
+          ...(result.contextual_meaning ? { contextual_meaning: result.contextual_meaning } : {}),
+          ...(result.reference_sources ? { reference_sources: result.reference_sources } : {}),
         });
 
         setShowOpenaiFeedback(true);

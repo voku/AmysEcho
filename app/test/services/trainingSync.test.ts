@@ -458,6 +458,7 @@ describe('syncTrainingData', () => {
       sampleId: 'sample1',
       profileId: 'profile1',
       clipUri: 'uri1',
+      stillUri: 'uri1-still',
       frames: [],
       label: 'test',
       capturedAt: 'date',

@@ -282,16 +282,7 @@ describe('API Integration Tests', () => {
     });
 
     it('should handle malformed base64 data', async () => {
-      const mockResponse = {
-        output_text: JSON.stringify({
-          primary_gesture: {
-            gesture: 'unknown', confidence: 0, feedback: 'Unable to analyze gesture image', quality_score: 0,
-            landmarks_detected: false, hand_count: 0,
-          }, alternative_gestures: [], overall_confidence: 0,
-        }),
-      } as any;
-
-      openAIResponses.create.mockResolvedValue(mockResponse);
+      openAIResponses.create.mockRejectedValue(new Error('Invalid image data'));
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -303,8 +294,7 @@ describe('API Integration Tests', () => {
       expect(response.body.primary_gesture.gesture).toBe('unknown');
       expect(response.body.primary_gesture.confidence).toBe(0);
       expect(response.body.service_status.available).toBe(false);
-      expect(response.body.service_status.reason).toBe('missing_api_key');
-      expect(response.body.service_status.available).toBe(true);
+      expect(response.body.service_status.reason).toBe('request_failed');
     });
   });
 
@@ -552,8 +542,8 @@ describe('API Integration Tests', () => {
         expect(response.body.service_status.available).toBe(true);
       });
 
-      // Verify OpenAI was called 5 times
-      expect(openAIResponses.create).toHaveBeenCalledTimes(5);
+      // Verify OpenAI was called: 5 requests × 2 calls each (vision + meaning refinement)
+      expect(openAIResponses.create).toHaveBeenCalledTimes(10);
     });
 
     it('should include processing time in response', async () => {

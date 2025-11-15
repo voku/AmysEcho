@@ -57,6 +57,7 @@ interface TrainingBundleManifestEntry {
     bundle: string;
     files: string[];
     clip?: string;
+    still?: string;
   };
   metadata: TrainingBundleMetadata;
   receivedAt: string;

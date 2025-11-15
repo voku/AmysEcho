@@ -176,25 +176,20 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   const cleanupClipFile = useCallback(async () => {
-    if (clipFileRef.current) {
-      try {
-        await expoFs.deleteAsync(clipFileRef.current, { idempotent: true });
-      } catch (error) {
-        logger.warn('Failed to clean up training clip file', error);
-      } finally {
-        clipFileRef.current = null;
+    const cleanupRef = async (fileRef: React.MutableRefObject<string | null>, type: string) => {
+      if (fileRef.current) {
+        try {
+          await expoFs.deleteAsync(fileRef.current, { idempotent: true });
+        } catch (error) {
+          logger.warn(`Failed to clean up training ${type}`, error);
+        } finally {
+          fileRef.current = null;
+        }
       }
-    }
+    };
 
-    if (stillFileRef.current) {
-      try {
-        await expoFs.deleteAsync(stillFileRef.current, { idempotent: true });
-      } catch (error) {
-        logger.warn('Failed to clean up training still image', error);
-      } finally {
-        stillFileRef.current = null;
-      }
-    }
+    await cleanupRef(clipFileRef, 'clip file');
+    await cleanupRef(stillFileRef, 'still image');
 
     lastStillFrameRef.current = null;
   }, []);
