@@ -557,6 +557,8 @@ export async function validateGestureWithFallback(
     feedback?: string;
     suggestions?: string[];
     quality_score?: number;
+    contextual_meaning?: string;
+    reference_sources?: string[];
   } = {
     finalGesture,
     finalConfidence,

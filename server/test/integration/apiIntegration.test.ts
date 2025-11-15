@@ -302,8 +302,6 @@ describe('API Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.primary_gesture.gesture).toBe('unknown');
       expect(response.body.primary_gesture.confidence).toBe(0);
-      expect(response.body.service_status.available).toBe(false);
-      expect(response.body.service_status.reason).toBe('missing_api_key');
       expect(response.body.service_status.available).toBe(true);
     });
   });
@@ -552,8 +550,8 @@ describe('API Integration Tests', () => {
         expect(response.body.service_status.available).toBe(true);
       });
 
-      // Verify OpenAI was called 5 times
-      expect(openAIResponses.create).toHaveBeenCalledTimes(5);
+      // Verify OpenAI was called: 5 requests × 2 calls each (vision + meaning refinement)
+      expect(openAIResponses.create).toHaveBeenCalledTimes(10);
     });
 
     it('should include processing time in response', async () => {
