@@ -244,8 +244,14 @@ export default function TrainingScreen({ navigation, route }: any) {
         return null;
       }
       const latest = matching.reduce((acc, current) => {
-        const accTime = Date.parse(acc.capturedAt ?? acc.createdAt ?? '');
-        const currentTime = Date.parse(current.capturedAt ?? current.createdAt ?? '');
+        const accTime = Date.parse(acc.capturedAt ?? acc.createdAt ?? '1970-01-01T00:00:00.000Z');
+        const currentTime = Date.parse(current.capturedAt ?? current.createdAt ?? '1970-01-01T00:00:00.000Z');
+        if (Number.isNaN(currentTime)) {
+          return acc;
+        }
+        if (Number.isNaN(accTime)) {
+          return current;
+        }
         return currentTime > accTime ? current : acc;
       });
       return { uri: latest.stillUri.trim(), capturedAt: latest.capturedAt ?? latest.createdAt };
@@ -1545,7 +1551,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                 accessibilityLabel="Standbild der letzten Aufnahme"
               />
               {referenceCapturedLabel ? (
-                <Text style={styles.stillPreviewMeta}>{`Zuletzt aktualisiert: ${referenceCapturedLabel}`}</Text>
+                <Text style={styles.stillPreviewMeta}>{`Zuletzt aktualisiert am ${referenceCapturedLabel}`}</Text>
               ) : null}
               <Text style={styles.stillPreviewCaption}>
                 Dieses Standbild speichert Amys Handform und steht allen Betreuungspersonen im Trainingsbereich zur Verfügung.
@@ -1681,6 +1687,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                           setFramesCaptured(0);
                           setLastDetection(0);
                           setError(null);
+                          setStillPreviewUri(null);
                         }}
                         accessibilityRole="button"
                         accessibilityLabel={`Geste ${gestureName} auswählen`}
@@ -1708,7 +1715,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                     <Text style={styles.summaryStillMeta}>{`Zuletzt aktualisiert am ${referenceCapturedLabel}`}</Text>
                   ) : null}
                   <Text style={styles.summaryStillCaption}>
-                    Dieses Bild hilft allen Betreuungspersonen, die Handform für {gestureId ?? 'diese Geste'} nachzuvollziehen.
+                    Dieses Bild hilft allen Betreuungspersonen, die Handform für {gestureId} nachzuvollziehen.
                   </Text>
                 </View>
               ) : (
