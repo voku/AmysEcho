@@ -260,6 +260,7 @@ export default function RecognitionScreen({
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
   const insets = useSafeAreaInsets();
+  const openAIToastReasonRef = useRef<string | null>(null);
 
   const overlaySpacingStyle = useMemo(
     () => ({
@@ -314,6 +315,7 @@ export default function RecognitionScreen({
   );
   const latestFrameRef = useRef<GestureImageCapture | null>(null);
   const activeGestureRef = useRef<string | null>(null);
+  const [openAIServiceNotice, setOpenAIServiceNotice] = useState<{ reason: string; message: string } | null>(null);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -398,6 +400,27 @@ export default function RecognitionScreen({
     return latest ? { ...latest } : null;
   }, []);
 
+  const handleOpenAIServiceError = useCallback(
+    (errorCode?: string) => {
+      if (!errorCode || !errorCode.startsWith('openai_unavailable')) {
+        return;
+      }
+      const [, rawReason] = errorCode.split(':');
+      const reason = rawReason && rawReason.length > 0 ? rawReason : 'unknown';
+      const message = reason === 'missing_api_key'
+        ? 'OpenAI Vision ist deaktiviert. Bitte hinterlege den OpenAI API-Schlüssel im Admin-Bereich.'
+        : 'OpenAI Vision antwortet gerade nicht. Wir nutzen vorübergehend die lokale Erkennung.';
+
+      setOpenAIServiceNotice({ reason, message });
+
+      if (openAIToastReasonRef.current !== reason) {
+        showToast({ message, tone: 'warning', durationMs: 6000 });
+        openAIToastReasonRef.current = reason;
+      }
+    },
+    [showToast],
+  );
+
   const startFeedbackAnimation = useCallback(() => {
     fadeAnim.setValue(0.6);
     Animated.timing(fadeAnim, {
@@ -479,6 +502,7 @@ export default function RecognitionScreen({
     setOpenaiValidationResult,
     setShowOpenaiFeedback,
     handleOpenAIValidation,
+    handleOpenAIServiceError,
   );
 
   const processGesture = useCallback(
@@ -828,6 +852,17 @@ export default function RecognitionScreen({
       ]}
     >
       <View style={styles.topSection}>
+        {openAIServiceNotice ? (
+          <View
+            style={[
+              styles.serviceHint,
+              isHandsetLayout && styles.handsetServiceHint,
+            ]}
+          >
+            <Text style={styles.serviceHintTitle}>OpenAI Vision pausiert</Text>
+            <Text style={styles.serviceHintText}>{openAIServiceNotice.message}</Text>
+          </View>
+        ) : null}
         <View
           style={[
             styles.statusCard,
@@ -1274,6 +1309,30 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'stretch',
     gap: spacing.lg,
+  },
+  serviceHint: {
+    width: '100%',
+    borderRadius: 20,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: Colors.warningBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.warning,
+    gap: spacing.xs,
+  },
+  handsetServiceHint: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  serviceHintTitle: {
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold as any,
+    color: Colors.warning,
+  },
+  serviceHintText: {
+    fontSize: typography.sizes.caption,
+    lineHeight: typography.lineHeights.relaxed,
+    color: Colors.neutral,
   },
   statusCard: {
     width: '100%',

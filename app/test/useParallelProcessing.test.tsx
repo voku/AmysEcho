@@ -27,6 +27,7 @@ describe('useParallelProcessing', () => {
   const setOpenaiValidationResult = jest.fn();
   const setShowOpenaiFeedback = jest.fn();
   const runSequentialValidation = jest.fn();
+  const onOpenAIError = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -44,6 +45,7 @@ describe('useParallelProcessing', () => {
         setOpenaiValidationResult,
         setShowOpenaiFeedback,
         sequentialHandler,
+        onOpenAIError,
       );
 
       useEffect(() => {
@@ -83,6 +85,7 @@ describe('useParallelProcessing', () => {
 
     expect(runSequentialValidation).toHaveBeenCalledTimes(1);
     expect(onGestureDetected).not.toHaveBeenCalled();
+    expect(onOpenAIError).not.toHaveBeenCalled();
   });
 
   it('skips sequential validation when OpenAI already failed for the gesture', async () => {
@@ -106,5 +109,6 @@ describe('useParallelProcessing', () => {
 
     expect(runSequentialValidation).not.toHaveBeenCalled();
     expect(onGestureDetected).toHaveBeenCalledTimes(1);
+    expect(onOpenAIError).toHaveBeenCalledWith('network error');
   });
 });

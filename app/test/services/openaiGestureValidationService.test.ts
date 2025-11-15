@@ -162,6 +162,8 @@ describe('OpenAI Gesture Validation Service', () => {
           suggestions: ['Keep hand steady'],
           landmarks_detected: true,
           hand_count: 1,
+          contextual_meaning: 'DGS: Hand nach außen bewegen – bedeutet Hallo.',
+          reference_sources: ['https://lexikon.beispiel/hallo'],
         },
         alternative_gestures: [],
         overall_confidence: 0.85,
@@ -192,6 +194,8 @@ describe('OpenAI Gesture Validation Service', () => {
       expect(result.feedback).toBe('Clear gesture execution');
       expect(result.quality_score).toBe(8.5);
       expect(result.suggestions).toEqual(['Keep hand steady']);
+      expect(result.contextual_meaning).toBe('DGS: Hand nach außen bewegen – bedeutet Hallo.');
+      expect(result.reference_sources).toEqual(['https://lexikon.beispiel/hallo']);
     });
 
     it('should return cached result for identical request within TTL', async () => {
@@ -204,6 +208,8 @@ describe('OpenAI Gesture Validation Service', () => {
           suggestions: ['Keep hand steady'],
           landmarks_detected: true,
           hand_count: 1,
+          contextual_meaning: 'DGS: Hand nach außen bewegen – bedeutet Hallo.',
+          reference_sources: ['https://lexikon.beispiel/hallo'],
         },
         overall_confidence: 0.85,
         processing_time_ms: 1500,
@@ -229,11 +235,13 @@ describe('OpenAI Gesture Validation Service', () => {
 
       const first = await validateGestureWithOpenAI(req);
       expect(first.success).toBe(true);
+      expect(first.contextual_meaning).toBe('DGS: Hand nach außen bewegen – bedeutet Hallo.');
       expect((global.fetch as MockFetch)).toHaveBeenCalledTimes(1);
 
       const second = await validateGestureWithOpenAI(req);
       // Cache hit: no extra fetch call
       expect(second.success).toBe(true);
+      expect(second.contextual_meaning).toBe('DGS: Hand nach außen bewegen – bedeutet Hallo.');
       expect((global.fetch as MockFetch)).toHaveBeenCalledTimes(1);
     });
 
@@ -310,6 +318,42 @@ describe('OpenAI Gesture Validation Service', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Network error');
+    });
+
+    it('should surface backend availability flags as openai_unavailable errors', async () => {
+      const mockResponse = {
+        primary_gesture: {
+          gesture: 'unknown',
+          confidence: 0,
+          feedback: 'Fallback',
+          quality_score: 0,
+          suggestions: [],
+          landmarks_detected: false,
+          hand_count: 0,
+        },
+        overall_confidence: 0,
+        service_status: {
+          available: false,
+          reason: 'missing_api_key',
+          detail: 'OpenAI API key is not configured',
+        },
+      };
+
+      (global.fetch as MockFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: { get: () => 'application/json', entries: function* () { yield ['content-type', 'application/json']; } },
+        json: () => Promise.resolve(mockResponse),
+        text: () => Promise.resolve(JSON.stringify(mockResponse)),
+      } as any);
+
+      const result = await validateGestureWithOpenAI({
+        image: mockImageCapture,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('openai_unavailable:missing_api_key');
     });
 
     it('handles real-world burst: dedupes identical frames within TTL while allowing uniques', async () => {
@@ -408,6 +452,8 @@ describe('OpenAI Gesture Validation Service', () => {
           suggestions: [],
           landmarks_detected: true,
           hand_count: 1,
+          contextual_meaning: 'DGS: Rechte Hand streicht über linke Hand – bedeutet Danke.',
+          reference_sources: ['https://lexikon.beispiel/danke'],
         },
         alternative_gestures: [],
         overall_confidence: 0.9,
@@ -437,6 +483,8 @@ describe('OpenAI Gesture Validation Service', () => {
       expect(result.validationSource).toBe('openai');
       expect(result.feedback).toBe('Corrected gesture');
       expect(result.quality_score).toBe(9.0);
+      expect(result.contextual_meaning).toBe('DGS: Rechte Hand streicht über linke Hand – bedeutet Danke.');
+      expect(result.reference_sources).toEqual(['https://lexikon.beispiel/danke']);
     });
 
     it('should use OpenAI result when MediaPipe confidence is low', async () => {
@@ -449,6 +497,8 @@ describe('OpenAI Gesture Validation Service', () => {
           suggestions: ['Improve hand position'],
           landmarks_detected: true,
           hand_count: 1,
+          contextual_meaning: 'DGS: Offene Hand zum Gruß – bedeutet Hallo.',
+          reference_sources: ['https://lexikon.beispiel/hallo'],
         },
         alternative_gestures: [],
         overall_confidence: 0.75,
@@ -478,6 +528,7 @@ describe('OpenAI Gesture Validation Service', () => {
       expect(result.validationSource).toBe('openai');
       expect(result.suggestions).toEqual(['Improve hand position']);
       expect(result.quality_score).toBe(8.0);
+      expect(result.contextual_meaning).toBe('DGS: Offene Hand zum Gruß – bedeutet Hallo.');
     });
   });
 

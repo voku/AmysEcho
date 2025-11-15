@@ -13,6 +13,8 @@ export type OpenAIValidationResult = {
   quality_score: number;
   suggestions?: string[];
   validation_source: 'mediapipe' | 'openai' | 'combined';
+  contextual_meaning?: string;
+  reference_sources?: string[];
 };
 
 export type Landmarks = number[][][];
@@ -100,6 +102,14 @@ export const useOpenAIValidation = (
 
         if (validationResult.suggestions) {
           result.suggestions = validationResult.suggestions;
+        }
+
+        if (validationResult.contextual_meaning) {
+          result.contextual_meaning = validationResult.contextual_meaning;
+        }
+
+        if (Array.isArray(validationResult.reference_sources) && validationResult.reference_sources.length > 0) {
+          result.reference_sources = validationResult.reference_sources;
         }
 
         setOpenaiValidationResult(result);

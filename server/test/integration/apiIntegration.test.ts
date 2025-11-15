@@ -13,10 +13,23 @@ import request from 'supertest';
 import express from 'express';
 import { validateGestureWithVision } from '../../src/services/openaiVisionService';
 
+const originalFetch = global.fetch;
+const mockFetch = jest.fn();
+
+beforeAll(() => {
+  (global as any).fetch = mockFetch;
+});
+
+afterAll(() => {
+  (global as any).fetch = originalFetch;
+});
+
 // Mock OpenAI
 jest.mock('openai', () => {
   const responses = { create: jest.fn() };
-  return jest.fn().mockImplementation(() => ({ responses }));
+  const ctor = jest.fn().mockImplementation(() => ({ responses }));
+  (ctor as any).__responses = responses;
+  return ctor;
 });
 
 // Mock auth middleware
@@ -26,13 +39,22 @@ jest.mock('../../src/middleware/auth', () => ({
 
 describe('API Integration Tests', () => {
   let app: express.Application;
-  let mockOpenAI: any;
+  let openAIResponses: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Set up test environment
     process.env.OPENAI_API_KEY = 'test-key';
+
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        AbstractText: 'DGS: Hand nach außen drehen – bedeutet Hallo.',
+        AbstractURL: 'https://lexikon.beispiel/hallo',
+      }),
+    });
 
     // Create test app with all middleware
     app = express();
@@ -45,7 +67,7 @@ describe('API Integration Tests', () => {
 
     // Mock the OpenAI instance
     const OpenAIMock = require('openai');
-    mockOpenAI = new OpenAIMock();
+    openAIResponses = (OpenAIMock as any).__responses;
 
     // Ensure auth allows by default
     const authMock = require('../../src/middleware/auth').legacyAuth;
@@ -139,7 +161,7 @@ describe('API Integration Tests', () => {
         }),
       } as any;
 
-      mockOpenAI.responses.create.mockResolvedValue(mockResponse);
+      openAIResponses.create.mockResolvedValue(mockResponse);
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -159,11 +181,15 @@ describe('API Integration Tests', () => {
       expect(response.body.primary_gesture.feedback).toBe('Clear gesture execution');
       expect(response.body.primary_gesture.quality_score).toBe(8.5);
       expect(response.body.primary_gesture.suggestions).toEqual(['Keep hand steady']);
+      expect(response.body.primary_gesture.contextual_meaning).toContain('Hallo');
+      expect(response.body.primary_gesture.reference_sources).toContain('https://lexikon.beispiel/hallo');
       expect(response.body.overall_confidence).toBe(0.85);
       expect(response.body.processing_time_ms).toBeGreaterThan(0);
+      expect(response.body.service_status.available).toBe(true);
+      expect(response.body.service_status.model).toBe('gpt-5.1');
 
       // Verify OpenAI Responses API called with image and model
-      expect(mockOpenAI.responses.create).toHaveBeenCalledWith(
+      expect(openAIResponses.create).toHaveBeenCalledWith(
         expect.objectContaining({
           model: expect.any(String),
           input: expect.arrayContaining([
@@ -242,7 +268,7 @@ describe('API Integration Tests', () => {
         }),
       } as any;
 
-      mockOpenAI.responses.create.mockResolvedValue(mockResponse);
+      openAIResponses.create.mockResolvedValue(mockResponse);
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -252,19 +278,11 @@ describe('API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.primary_gesture.gesture).toBe('hello');
+      expect(response.body.service_status.available).toBe(true);
     });
 
     it('should handle malformed base64 data', async () => {
-      const mockResponse = {
-        output_text: JSON.stringify({
-          primary_gesture: {
-            gesture: 'unknown', confidence: 0, feedback: 'Unable to analyze gesture image', quality_score: 0,
-            landmarks_detected: false, hand_count: 0,
-          }, alternative_gestures: [], overall_confidence: 0,
-        }),
-      } as any;
-
-      mockOpenAI.responses.create.mockResolvedValue(mockResponse);
+      openAIResponses.create.mockRejectedValue(new Error('Invalid image data'));
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -275,12 +293,14 @@ describe('API Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.primary_gesture.gesture).toBe('unknown');
       expect(response.body.primary_gesture.confidence).toBe(0);
+      expect(response.body.service_status.available).toBe(false);
+      expect(response.body.service_status.reason).toBe('request_failed');
     });
   });
 
   describe('Error Handling Integration', () => {
     it('should handle OpenAI API errors gracefully', async () => {
-      mockOpenAI.responses.create.mockRejectedValue(new Error('OpenAI API Error'));
+      openAIResponses.create.mockRejectedValue(new Error('OpenAI API Error'));
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -292,6 +312,9 @@ describe('API Integration Tests', () => {
       expect(response.body.primary_gesture.gesture).toBe('unknown');
       expect(response.body.primary_gesture.confidence).toBe(0);
       expect(response.body.primary_gesture.feedback).toBe('Unable to analyze gesture image');
+      expect(response.body.primary_gesture.contextual_meaning).toBe('Keine zusätzlichen Informationen gefunden. Bitte im DGS-Lexikon oder online nachsehen.');
+      expect(response.body.service_status.available).toBe(false);
+      expect(response.body.service_status.reason).toBe('request_failed');
     });
 
     it('should handle OpenAI service unavailability', async () => {
@@ -306,12 +329,15 @@ describe('API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.primary_gesture.gesture).toBe('unknown');
+      expect(response.body.service_status.available).toBe(false);
       expect(response.body.primary_gesture.confidence).toBe(0);
+      expect(response.body.primary_gesture.contextual_meaning).toBe('Keine zusätzlichen Informationen gefunden. Bitte im DGS-Lexikon oder online nachsehen.');
+      expect(response.body.service_status.available).toBe(false);
     });
 
     it('should handle malformed OpenAI responses', async () => {
       const mockResponse = { output_text: 'This is not valid JSON' } as any;
-      mockOpenAI.responses.create.mockResolvedValue(mockResponse);
+      openAIResponses.create.mockResolvedValue(mockResponse);
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -321,12 +347,14 @@ describe('API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.primary_gesture.gesture).toBe('unknown');
+      expect(response.body.service_status.available).toBe(false);
       expect(response.body.primary_gesture.confidence).toBe(0);
+      expect(response.body.primary_gesture.contextual_meaning).toBe('Keine zusätzlichen Informationen gefunden. Bitte im DGS-Lexikon oder online nachsehen.');
     });
 
     it('should handle empty OpenAI responses', async () => {
       const mockResponse = { output_text: '' } as any;
-      mockOpenAI.responses.create.mockResolvedValue(mockResponse);
+      openAIResponses.create.mockResolvedValue(mockResponse);
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -339,7 +367,7 @@ describe('API Integration Tests', () => {
     });
 
     it('should handle timeout scenarios', async () => {
-      mockOpenAI.responses.create.mockImplementation(
+      openAIResponses.create.mockImplementation(
         () => new Promise(resolve => setTimeout(resolve, 35000)) // Longer than typical timeout
       );
 
@@ -352,10 +380,11 @@ describe('API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.primary_gesture.gesture).toBe('unknown');
+      expect(response.body.service_status.available).toBe(false);
     });
 
     it('should handle server internal errors', async () => {
-      mockOpenAI.responses.create.mockImplementation(() => {
+      openAIResponses.create.mockImplementation(() => {
         throw new Error('Internal server error');
       });
 
@@ -367,6 +396,7 @@ describe('API Integration Tests', () => {
 
       expect(response.status).toBe(200); // Should return fallback result
       expect(response.body.primary_gesture.gesture).toBe('unknown');
+      expect(response.body.service_status.available).toBe(false);
     });
   });
 
@@ -391,12 +421,12 @@ describe('API Integration Tests', () => {
         }],
       };
 
-      mockOpenAI.responses.create.mockResolvedValue({ output_text: JSON.stringify({
+      openAIResponses.create.mockResolvedValue({ output_text: JSON.stringify({
         primary_gesture: { gesture: 'hello', confidence: 0.8, feedback: 'Good gesture', quality_score: 8.0, landmarks_detected: true, hand_count: 1 },
         alternative_gestures: [], overall_confidence: 0.8,
       }) });
 
-      await request(app)
+      const response = await request(app)
         .post('/api/gesture/validate-vision')
         .send({
           imageBase64: 'test-image-data',
@@ -408,12 +438,13 @@ describe('API Integration Tests', () => {
           },
         });
 
-      const callArgs = mockOpenAI.responses.create.mock.calls[0][0];
+      const callArgs = openAIResponses.create.mock.calls[0][0];
       const prompt = callArgs.input[0].content.find((c: any) => c.type === 'input_text').text;
 
       expect(prompt).toContain('Expected gesture: hello');
       expect(prompt).toContain('Environment: school');
       expect(prompt).toContain('previous_gestures');
+      expect(response.body.service_status.available).toBe(true);
     });
 
     it('should handle optional context fields', async () => {
@@ -436,7 +467,7 @@ describe('API Integration Tests', () => {
         }],
       };
 
-      mockOpenAI.responses.create.mockResolvedValue({ output_text: JSON.stringify({
+      openAIResponses.create.mockResolvedValue({ output_text: JSON.stringify({
         primary_gesture: { gesture: 'hello', confidence: 0.8, feedback: 'Good gesture', quality_score: 8.0, landmarks_detected: true, hand_count: 1 },
         alternative_gestures: [], overall_confidence: 0.8,
       }) });
@@ -450,6 +481,7 @@ describe('API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.primary_gesture.gesture).toBe('hello');
+      expect(response.body.service_status.available).toBe(true);
     });
 
     it('should validate context enum values', async () => {
@@ -488,7 +520,7 @@ describe('API Integration Tests', () => {
         }],
       };
 
-      mockOpenAI.responses.create.mockResolvedValue({ output_text: JSON.stringify({
+      openAIResponses.create.mockResolvedValue({ output_text: JSON.stringify({
         primary_gesture: { gesture: 'hello', confidence: 0.8, feedback: 'Good gesture', quality_score: 8.0, landmarks_detected: true, hand_count: 1 },
         alternative_gestures: [], overall_confidence: 0.8,
       }) });
@@ -507,10 +539,11 @@ describe('API Integration Tests', () => {
       responses.forEach(response => {
         expect(response.status).toBe(200);
         expect(response.body.primary_gesture.gesture).toBe('hello');
+        expect(response.body.service_status.available).toBe(true);
       });
 
-      // Verify OpenAI was called 5 times
-      expect(mockOpenAI.responses.create).toHaveBeenCalledTimes(5);
+      // Verify OpenAI was called: 5 requests × 2 calls each (vision + meaning refinement)
+      expect(openAIResponses.create).toHaveBeenCalledTimes(10);
     });
 
     it('should include processing time in response', async () => {
@@ -533,7 +566,7 @@ describe('API Integration Tests', () => {
         }],
       };
 
-      mockOpenAI.responses.create.mockResolvedValue({ output_text: JSON.stringify({
+      openAIResponses.create.mockResolvedValue({ output_text: JSON.stringify({
         primary_gesture: { gesture: 'hello', confidence: 0.8, feedback: 'Good gesture', quality_score: 8.0, landmarks_detected: true, hand_count: 1 },
         alternative_gestures: [], overall_confidence: 0.8,
       }) });
@@ -548,6 +581,7 @@ describe('API Integration Tests', () => {
       expect(response.body.processing_time_ms).toBeDefined();
       expect(typeof response.body.processing_time_ms).toBe('number');
       expect(response.body.processing_time_ms).toBeGreaterThan(0);
+      expect(response.body.service_status.available).toBe(true);
     });
   });
 });

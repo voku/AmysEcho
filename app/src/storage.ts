@@ -32,6 +32,7 @@ export interface TrainingSample {
   label: string;
   frames: TrainingFrame[];
   clipUri: string;
+  stillUri: string;
   source: 'HIP_2' | 'HIP_3' | 'HIP_4';
   capturedAt: string;
   createdAt: string;
@@ -44,6 +45,7 @@ export interface TrainingSampleInput {
   label: string;
   frames: TrainingFrame[];
   clipUri: string;
+  stillUri?: string;
   source?: 'HIP_2' | 'HIP_3' | 'HIP_4';
   capturedAt?: string;
 }
@@ -56,6 +58,7 @@ export function createTrainingSample(input: TrainingSampleInput): TrainingSample
     label: input.label,
     frames: input.frames,
     clipUri: input.clipUri,
+    stillUri: input.stillUri ?? '',
     source: input.source ?? 'HIP_2',
     capturedAt: input.capturedAt ?? now.toISOString(),
     createdAt: now.toISOString(),
@@ -81,6 +84,7 @@ function normalizeTrainingSample(raw: any, fallbackProfileId: string): TrainingS
     : [];
 
   const clipUri = typeof raw.clipUri === 'string' ? raw.clipUri : '';
+  const stillUri = typeof raw.stillUri === 'string' ? raw.stillUri : '';
   const source: TrainingSample['source'] = raw.source === 'HIP_3' || raw.source === 'HIP_4' ? raw.source : 'HIP_2';
   const capturedAt = typeof raw.capturedAt === 'string' ? raw.capturedAt : new Date().toISOString();
   const createdAt = typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString();
@@ -95,6 +99,7 @@ function normalizeTrainingSample(raw: any, fallbackProfileId: string): TrainingS
     label,
     frames,
     clipUri,
+    stillUri,
     source,
     capturedAt,
     createdAt,
@@ -236,6 +241,7 @@ export async function logCorrection(correctId: string, profileId?: string): Prom
     label: correctId,
     frames: [],
     clipUri: '',
+    stillUri: '',
     source: 'HIP_3',
   });
   training.push(sample);

@@ -11,14 +11,39 @@
 
 import request from 'supertest';
 import express from 'express';
-import { validateGestureWithVision } from '../../src/services/openaiVisionService';
+import {
+  validateGestureWithVision,
+  __clearGestureMeaningCacheForTests,
+} from '../../src/services/openaiVisionService';
+
+const originalFetch = global.fetch;
+const mockFetch = jest.fn();
+
+function buildRefinementPayload(meaning: string, sources: string[] = []) {
+  return {
+    output_text: JSON.stringify({
+      contextual_meaning: meaning,
+      reference_sources: sources,
+    }),
+  } as any;
+}
+
+beforeAll(() => {
+  (global as any).fetch = mockFetch;
+});
+
+afterAll(() => {
+  (global as any).fetch = originalFetch;
+});
 
 // Mock OpenAI
 jest.mock('openai', () => {
   const responses = { create: jest.fn() };
+  const ctor = jest.fn().mockImplementation(() => ({ responses }));
+  (ctor as any).__responses = responses;
   return {
     __esModule: true,
-    default: jest.fn().mockImplementation(() => ({ responses })),
+    default: ctor,
   };
 });
 
@@ -29,7 +54,7 @@ jest.mock('../../src/middleware/auth', () => ({
 
 describe('OpenAI Vision Integration', () => {
   let app: express.Application;
-  let mockOpenAI: any;
+  let responses: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -37,13 +62,22 @@ describe('OpenAI Vision Integration', () => {
     // Set up test environment
     process.env.OPENAI_API_KEY = 'test-key';
 
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        AbstractText: 'DGS: Die Hand öffnet sich zum Gruß – bedeutet Hallo.',
+        AbstractURL: 'https://lexikon.beispiel/hallo',
+      }),
+    });
+
     // Create test app
     app = express();
     app.use(express.json({ limit: '8mb' }));
 
     // Mock the OpenAI instance
     const { default: OpenAIMock } = require('openai');
-    mockOpenAI = new OpenAIMock();
+    responses = (OpenAIMock as any).__responses;
 
     // Add the validation endpoint
     app.post('/api/gesture/validate-vision', require('../../src/middleware/auth').legacyAuth, async (req: any, res: any) => {
@@ -96,6 +130,7 @@ describe('OpenAI Vision Integration', () => {
 
   afterEach(() => {
     delete process.env.OPENAI_API_KEY;
+    __clearGestureMeaningCacheForTests();
   });
 
   describe('API Endpoint Integration', () => {
@@ -109,7 +144,12 @@ describe('OpenAI Vision Integration', () => {
         }),
       } as any;
 
-      mockOpenAI.responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(
+        buildRefinementPayload('Bewegung zum Gruß – das steht in DGS für „Hallo“.', [
+          'https://lexikon.beispiel/hallo',
+        ])
+      );
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -129,12 +169,16 @@ describe('OpenAI Vision Integration', () => {
       expect(response.body.primary_gesture.feedback).toBe('Clear gesture execution');
       expect(response.body.primary_gesture.quality_score).toBe(8.5);
       expect(response.body.primary_gesture.suggestions).toEqual(['Keep hand steady']);
+      expect(response.body.primary_gesture.contextual_meaning).toContain('Hallo');
+      expect(response.body.primary_gesture.reference_sources).toContain('https://lexikon.beispiel/hallo');
       expect(response.body.overall_confidence).toBe(0.85);
       expect(response.body.processing_time_ms).toBeGreaterThan(0);
+      expect(response.body.service_status.available).toBe(true);
+      expect(response.body.service_status.model).toBe('gpt-5.1');
     });
 
     it('should handle API validation errors gracefully', async () => {
-      mockOpenAI.responses.create.mockRejectedValue(new Error('OpenAI API Error'));
+      responses.create.mockRejectedValue(new Error('OpenAI API Error'));
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -147,7 +191,12 @@ describe('OpenAI Vision Integration', () => {
       expect(response.body.primary_gesture.confidence).toBe(0);
       expect(response.body.primary_gesture.feedback).toBe('Unable to analyze gesture image');
       expect(response.body.primary_gesture.quality_score).toBe(0);
+      expect(response.body.primary_gesture.contextual_meaning).toBe(
+        'Keine zusätzlichen Informationen gefunden. Bitte im DGS-Lexikon oder online nachsehen.',
+      );
       expect(response.body.overall_confidence).toBe(0);
+      expect(response.body.service_status.available).toBe(false);
+      expect(response.body.service_status.reason).toBe('request_failed');
     });
 
     it('should validate request format', async () => {
@@ -175,7 +224,10 @@ describe('OpenAI Vision Integration', () => {
         }),
       } as any;
 
-      mockOpenAI.responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(
+        buildRefinementPayload('Großes Bild analysiert – DGS-Gruß bleibt „Hallo“.', [])
+      );
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -197,7 +249,10 @@ describe('OpenAI Vision Integration', () => {
         }),
       } as any;
 
-      mockOpenAI.responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(
+        buildRefinementPayload('Schulkontext erkannt – Pflegepersonen wissen sofort Bescheid.', [])
+      );
 
       await request(app)
         .post('/api/gesture/validate-vision')
@@ -211,7 +266,7 @@ describe('OpenAI Vision Integration', () => {
           },
         });
 
-      const callArgs = mockOpenAI.responses.create.mock.calls[0][0];
+      const callArgs = responses.create.mock.calls[0][0];
       const prompt = callArgs.input[0].content.find((c: any) => c.type === 'input_text').text;
 
       expect(prompt).toContain('Expected gesture: hello');
@@ -233,7 +288,10 @@ describe('OpenAI Vision Integration', () => {
         }),
       } as any;
 
-      mockOpenAI.responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(
+        buildRefinementPayload('Dankesgeste erkannt – freundlich bestätigen.', ['https://lexikon.beispiel/thank_you'])
+      );
 
       const result = await validateGestureWithVision({
         imageBase64: 'test-image-data',
@@ -274,7 +332,10 @@ describe('OpenAI Vision Integration', () => {
         }),
       } as any;
 
-      mockOpenAI.responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValueOnce(
+        buildRefinementPayload('Grenzwerte korrigiert – Zeichen bleibt gültig.', [])
+      );
 
       const result = await validateGestureWithVision({
         imageBase64: 'test-image-data',
@@ -289,7 +350,7 @@ describe('OpenAI Vision Integration', () => {
   describe('Error Handling Integration', () => {
     it('should handle malformed JSON responses', async () => {
       const mockResponse = { output_text: 'This is not JSON' } as any;
-      mockOpenAI.responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValue(mockResponse);
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -304,7 +365,7 @@ describe('OpenAI Vision Integration', () => {
 
     it('should handle empty API responses', async () => {
       const mockResponse = { output_text: '' } as any;
-      mockOpenAI.responses.create.mockResolvedValueOnce(mockResponse);
+      responses.create.mockResolvedValue(mockResponse);
 
       const response = await request(app)
         .post('/api/gesture/validate-vision')
@@ -317,7 +378,7 @@ describe('OpenAI Vision Integration', () => {
     });
 
     it('should handle network timeouts', async () => {
-      mockOpenAI.responses.create.mockImplementation(
+      responses.create.mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 35000)) // Longer than timeout
       );
 

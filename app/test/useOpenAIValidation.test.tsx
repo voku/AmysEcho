@@ -60,6 +60,8 @@ describe('useOpenAIValidation', () => {
       suggestions: ['tip'],
       validationSource: 'openai',
       quality_score: 9.1,
+      contextual_meaning: 'DGS: Hand bewegt sich zur Seite – bedeutet Winken.',
+      reference_sources: ['https://kestner.app/sign/winken'],
     });
     const captureImage = jest.fn().mockResolvedValue({ uri: 'x', base64: 'y' });
     const ref = React.createRef<HookRef>();
@@ -78,6 +80,8 @@ describe('useOpenAIValidation', () => {
       confidence: 0.95,
       validation_source: 'openai',
       quality_score: 9.1,
+      contextual_meaning: 'DGS: Hand bewegt sich zur Seite – bedeutet Winken.',
+      reference_sources: ['https://kestner.app/sign/winken'],
     });
     expect(ref.current!.showOpenaiFeedback).toBe(true);
   });

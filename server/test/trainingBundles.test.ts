@@ -87,6 +87,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
       clipFilename: 'clip.webm',
+      stillFilename: 'still.jpg',
       extra: 'ignored',
     };
     const landmarks = await loadSampleLandmarks();
@@ -95,6 +96,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
     zip.addFile('bundle/landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
     zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
+    zip.addFile('bundle/still.jpg', Buffer.from('fake-image-data'));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
@@ -133,15 +135,22 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(entry.profileId).toBe(metadata.profileId);
     expect(entry.label).toBe(metadata.label);
     expect(entry.storage.files).toEqual(
-      expect.arrayContaining(['bundle/metadata.json', 'bundle/landmarks.json', 'bundle/clip.webm']),
+      expect.arrayContaining([
+        'bundle/metadata.json',
+        'bundle/landmarks.json',
+        'bundle/clip.webm',
+        'bundle/still.jpg',
+      ]),
     );
     expect(entry.storage.clip).toBe('bundle/clip.webm');
+    expect(entry.storage.still).toBe('bundle/still.jpg');
     expect(entry.metadata).toEqual({
       label: metadata.label,
       profileId: metadata.profileId,
       capturedAt: metadata.capturedAt,
       source: metadata.source,
       clipFilename: metadata.clipFilename,
+      stillFilename: metadata.stillFilename,
     });
 
     const storedDir = path.join(dataDir, entry.storage.directory);
@@ -160,12 +169,18 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
   it('omits training job payload when trigger returns null but keeps queued status', async () => {
     triggerOverride = () => null;
-    const metadata = { label: 'SPASS', profileId: 'p-legacy', clipFilename: 'clip.webm' };
+    const metadata = {
+      label: 'SPASS',
+      profileId: 'p-legacy',
+      clipFilename: 'clip.webm',
+      stillFilename: 'still.jpg',
+    };
     const landmarks = await loadSampleLandmarks();
     const zip = new AdmZip();
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
     zip.addFile('bundle/landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
     zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
+    zip.addFile('bundle/still.jpg', Buffer.from('fake-image-data'));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')

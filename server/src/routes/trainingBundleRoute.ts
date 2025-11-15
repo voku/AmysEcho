@@ -43,6 +43,7 @@ interface TrainingBundleMetadata {
   capturedAt: string | null;
   source: string | null;
   clipFilename: string | null;
+  stillFilename: string | null;
 }
 
 interface TrainingBundleManifestEntry {
@@ -56,6 +57,7 @@ interface TrainingBundleManifestEntry {
     bundle: string;
     files: string[];
     clip?: string;
+    still?: string;
   };
   metadata: TrainingBundleMetadata;
   receivedAt: string;
@@ -77,6 +79,7 @@ const MetadataSchema = z
     capturedAt: z.string().optional(),
     source: z.string().optional(),
     clipFilename: z.string().optional(),
+    stillFilename: z.string().optional(),
   })
   .passthrough();
 
@@ -124,6 +127,7 @@ function isPathInside(target: string, root: string): boolean {
 }
 
 const VIDEO_FILE_EXTENSIONS = ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'];
+const IMAGE_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
 
 function hasVideoExtension(fileName: string): boolean {
   const lower = fileName.toLowerCase();
@@ -161,6 +165,41 @@ function findClipRelativePath(files: string[], clipFilename: string | null): str
   }
 
   return clipPathByExt ?? clipPathByAny;
+}
+
+function findStillRelativePath(files: string[], stillFilename: string | null): string | null {
+  let stillPathByMetadata: string | null = null;
+  let stillPathByAny: string | null = null;
+
+  const metadataExtension =
+    stillFilename && stillFilename.includes('.')
+      ? stillFilename.substring(stillFilename.lastIndexOf('.')).toLowerCase()
+      : null;
+
+  for (const fileName of files) {
+    const normalized = fileName.replace(/\\/g, '/');
+    const baseName = normalized.split('/').pop() ?? '';
+    if (!baseName) {
+      continue;
+    }
+
+    if (stillFilename && baseName === stillFilename) {
+      return fileName;
+    }
+
+    const lower = baseName.toLowerCase();
+
+    if (!stillPathByMetadata && metadataExtension && lower.endsWith(metadataExtension)) {
+      stillPathByMetadata = fileName;
+      continue;
+    }
+
+    if (!stillPathByAny && IMAGE_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
+      stillPathByAny = fileName;
+    }
+  }
+
+  return stillPathByMetadata ?? stillPathByAny;
 }
 
 export function registerTrainingBundleRoute(
@@ -278,6 +317,7 @@ export function registerTrainingBundleRoute(
       }
 
       const clipFilename = normalizeClipFilename(parsedMetadata.clipFilename);
+      const stillFilename = normalizeClipFilename(parsedMetadata.stillFilename);
 
       const sanitizedMetadata: TrainingBundleMetadata = {
         label,
@@ -285,11 +325,13 @@ export function registerTrainingBundleRoute(
         capturedAt: isNonEmptyString(parsedMetadata.capturedAt) ? parsedMetadata.capturedAt : null,
         source: isNonEmptyString(parsedMetadata.source) ? parsedMetadata.source : null,
         clipFilename,
+        stillFilename,
       };
 
       const files = Array.from(new Set(storedFiles));
 
       const clipRelativePath = findClipRelativePath(files, clipFilename);
+      const stillRelativePath = findStillRelativePath(files, stillFilename);
 
       const manifestEntry: TrainingBundleManifestEntry = {
         id: bundleId,
@@ -302,6 +344,7 @@ export function registerTrainingBundleRoute(
           bundle: path.relative(DATA_DIR, bundleZipPath),
           files,
           ...(clipRelativePath ? { clip: clipRelativePath } : {}),
+          ...(stillRelativePath ? { still: stillRelativePath } : {}),
         },
         metadata: sanitizedMetadata,
         receivedAt: new Date().toISOString(),

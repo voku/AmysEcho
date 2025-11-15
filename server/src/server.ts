@@ -551,6 +551,13 @@ app.post('/api/gesture/validate-vision', legacyAuth, async (req: Request, res: R
       options,
     });
 
+    if (result?.service_status?.available === false) {
+      console.warn('OpenAI Vision unavailable, returning fallback result', {
+        reason: result.service_status.reason,
+        detail: result.service_status.detail,
+      });
+    }
+
     res.json(result);
 
   } catch (error) {

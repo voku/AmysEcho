@@ -63,6 +63,16 @@ VIDEO_EXTENSIONS = {
     ".mkv",
 }
 
+IMAGE_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".bmp",
+    ".tif",
+    ".tiff",
+}
+
 HIDDEN_SIZE = int(os.environ.get("MLP_HIDDEN_SIZE", "128"))
 LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))
 EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
@@ -101,6 +111,10 @@ EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 LOSS_EPSILON = np.spacing(1.0)
 AUGMENTATION_EPSILON = 1e-8
 
+# Still frames represent the precise target hand position for the gesture,
+# so they should be weighted more heavily than individual video frames during averaging.
+# Default weight of 10.0 means a single still frame has the same influence as 10 video frames.
+STILL_FRAME_WEIGHT = float(os.environ.get("MLP_STILL_FRAME_WEIGHT", "10.0"))
 
 WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
@@ -192,9 +206,27 @@ def load_json(path: Path) -> Optional[dict]:
 
 
 def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
-    """Average landmarks across frames and return 42×3 list."""
+    """Average landmarks across frames with optional weighting and return 42×3 list.
+    
+    Frames can include an optional 'weight' field to indicate their relative importance.
+    Still frames typically have higher weights since they represent the precise target
+    hand position for the gesture being trained.
+    
+    Parameters
+    ----------
+    frames:
+        List of frame dictionaries, each containing 'landmarks' (required) and 
+        optionally 'weight' (default 1.0) fields.
+    
+    Returns
+    -------
+    Optional[List[List[float]]]
+        Weighted average of landmarks as a 42×3 list, or None if no valid frames.
+    """
 
     collected: List[np.ndarray] = []
+    weights: List[float] = []
+    
     for frame in frames:
         coords = frame.get("landmarks")
         if not coords:
@@ -204,10 +236,24 @@ def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
             padding = np.zeros((42 - arr.shape[0], 3), dtype=np.float32)
             arr = np.vstack([arr, padding])
         collected.append(arr[:42])
+        
+        # Extract weight for this frame (default to 1.0 for backward compatibility)
+        frame_weight = frame.get("weight", 1.0)
+        weights.append(float(frame_weight))
+    
     if not collected:
         return None
+    
     stacked = np.stack(collected, axis=0)
-    averaged = stacked.mean(axis=0)
+    weights_array = np.array(weights, dtype=np.float32)
+    total_weight = np.sum(weights_array)
+    
+    if total_weight <= 0:
+        # Fallback to simple mean if weights are invalid
+        averaged = stacked.mean(axis=0)
+    else:
+        averaged = np.average(stacked, axis=0, weights=weights_array)
+    
     return averaged.tolist()
 
 
@@ -273,6 +319,55 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
 
     cap.release()
     return frames
+
+
+def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
+    """Run MediaPipe Hands on a still image and return a landmark frame."""
+
+    if cv2 is None or mp is None:
+        print(
+            f"mediapipe/opencv unavailable; skipping still extraction for {still_path}",
+            file=sys.stderr,
+        )
+        return None
+
+    image = cv2.imread(str(still_path))
+    if image is None:
+        print(f"warning: unable to read still {still_path}", file=sys.stderr)
+        return None
+
+    with mp.solutions.hands.Hands(
+        static_image_mode=True,
+        max_num_hands=2,
+        min_detection_confidence=0.5,
+    ) as hands:
+        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        result = hands.process(rgb)
+
+    left = np.zeros((21, 3), dtype=np.float32)
+    right = np.zeros((21, 3), dtype=np.float32)
+
+    if result.multi_hand_landmarks:
+        for hand_idx, hand_landmarks in enumerate(result.multi_hand_landmarks):
+            coords = np.array(
+                [[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark],
+                dtype=np.float32,
+            )
+            label = None
+            if result.multi_handedness and len(result.multi_handedness) > hand_idx:
+                label = result.multi_handedness[hand_idx].classification[0].label
+            target = left if label and label.lower().startswith("left") else right
+            target[:] = coords
+            if label is None and hand_idx == 0:
+                left[:] = coords
+            elif label is None:
+                right[:] = coords
+
+    combined = np.vstack([left, right])
+    if not np.any(combined):
+        return None
+
+    return {"landmarks": combined.tolist()}
 
 
 def filter_samples_by_profile(samples: Iterable[Sample], profile_id: str) -> List[Sample]:
@@ -699,6 +794,70 @@ def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
     return resolve_relative_path(bundle_dir, "clip.mp4")
 
 
+def _resolve_still_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
+    storage = entry.get("storage", {}) if isinstance(entry, dict) else {}
+    if isinstance(storage, dict):
+        storage_still = storage.get("still")
+        if isinstance(storage_still, str):
+            resolved = resolve_relative_path(bundle_dir, storage_still)
+            if resolved is not None:
+                return resolved
+
+        storage_files = storage.get("files") or []
+        metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
+        still_filename_raw = metadata.get("stillFilename")
+        still_filename = None
+        if isinstance(still_filename_raw, str):
+            still_filename = still_filename_raw.strip()
+            if not still_filename:
+                still_filename = None
+
+        still_extension = Path(still_filename).suffix.lower() if still_filename else None
+        lower_still_name = still_filename.lower() if still_filename else None
+
+        resolved_by_extension: Optional[Path] = None
+        resolved_by_image_ext: Optional[Path] = None
+
+        for relative in storage_files:
+            if not isinstance(relative, str):
+                continue
+            base_name = relative.split("/")[-1]
+            if not base_name:
+                continue
+            candidate = resolve_relative_path(bundle_dir, relative)
+            if candidate is None:
+                continue
+
+            lower_base = base_name.lower()
+            if lower_still_name and lower_base == lower_still_name:
+                return candidate
+
+            if (
+                resolved_by_extension is None
+                and still_extension
+                and lower_base.endswith(still_extension)
+            ):
+                resolved_by_extension = candidate
+
+            if (
+                resolved_by_image_ext is None
+                and Path(relative).suffix.lower() in IMAGE_EXTENSIONS
+            ):
+                resolved_by_image_ext = candidate
+
+        if resolved_by_extension is not None:
+            return resolved_by_extension
+        if resolved_by_image_ext is not None:
+            return resolved_by_image_ext
+
+        if still_filename:
+            resolved = resolve_relative_path(bundle_dir, still_filename)
+            if resolved is not None:
+                return resolved
+
+    return resolve_relative_path(bundle_dir, "still.jpg")
+
+
 def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict[str, int]]:
     manifest = load_json(manifest_path)
     if not manifest:
@@ -724,8 +883,10 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         cache_path = bundle_dir / CACHE_FILENAME
 
         clip_path = _resolve_clip_path(entry, bundle_dir)
+        still_path = _resolve_still_path(entry, bundle_dir)
 
         frames: Optional[List[dict]] = None
+        frames_from_clip = False
 
         cached = load_json(cache_path)
         if cached and isinstance(cached.get("frames"), list):
@@ -739,17 +900,34 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             elif clip_path and clip_path.exists():
                 frames = extract_landmarks_from_clip(clip_path)
                 if frames:
-                    cache_writes += 1
-                    cache_path.parent.mkdir(parents=True, exist_ok=True)
-                    with cache_path.open("w", encoding="utf-8") as handle:
-                        json.dump({"frames": frames}, handle, indent=2)
+                    frames_from_clip = True
+                else:
+                    cache_misses += 1
             else:
                 cache_misses += 1
 
-        if not frames:
+        frame_list: List[dict] = list(frames) if frames else []
+
+        # Only extract and append still frame if we're processing from source (not from cache)
+        # to avoid doubling the still frame weight when cache already contains it
+        if still_path and still_path.exists() and not cached:
+            extracted = extract_landmarks_from_still(still_path)
+            if extracted:
+                # Mark still frame with higher weight since it represents the precise
+                # target hand position for this gesture
+                extracted["weight"] = STILL_FRAME_WEIGHT
+                frame_list.append(extracted)
+
+        if frames_from_clip and frame_list:
+            cache_writes += 1
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            with cache_path.open("w", encoding="utf-8") as handle:
+                json.dump({"frames": frame_list}, handle, indent=2)
+
+        if not frame_list:
             continue
 
-        averaged = flatten_landmarks_mean(frames)
+        averaged = flatten_landmarks_mean(frame_list)
         if averaged is None:
             continue
 

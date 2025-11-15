@@ -34,6 +34,7 @@ describe('trainingBundleQueue', () => {
     label: 'HALLO',
     frames: [],
     clipUri: 'file://clip.mp4',
+    stillUri: 'file://still.jpg',
     source: 'HIP_2',
     capturedAt: '2024-05-28T12:03:11Z',
     createdAt: '2024-05-28T12:03:11Z',
@@ -59,6 +60,7 @@ describe('trainingBundleQueue', () => {
       profileId: baseSample.profileId,
       label: baseSample.label,
       clipUri: baseSample.clipUri,
+      stillUri: baseSample.stillUri,
       capturedAt: baseSample.capturedAt,
     });
   });
@@ -70,6 +72,7 @@ describe('trainingBundleQueue', () => {
       id: 'sample-2',
       profileId: 'ben',
       label: 'TSCHUESS',
+      stillUri: 'file://still-b.jpg',
     };
 
     const keyAmy = await enqueueTrainingBundle(baseSample);
@@ -91,6 +94,7 @@ describe('trainingBundleQueue', () => {
       ...baseSample,
       id: 'sample-3',
       createdAt: '2024-05-28T12:05:11Z',
+      stillUri: 'file://still-c.jpg',
     };
     const nowSpy = jest.spyOn(Date, 'now');
     nowSpy.mockReturnValueOnce(Date.now() + 5);

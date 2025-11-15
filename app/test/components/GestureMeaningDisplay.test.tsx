@@ -52,6 +52,8 @@ describe('GestureMeaningDisplay', () => {
           feedback: 'Sehr klar ausgeführt',
           quality_score: 8,
           validation_source: 'openai',
+          contextual_meaning: 'Zeigefinger zeigt nach unten – DGS-Bedeutung: Urinieren.',
+          reference_sources: ['https://kestner.app/sign/urinieren'],
         }}
       />,
     );
@@ -59,6 +61,8 @@ describe('GestureMeaningDisplay', () => {
     expect(getByText('✨')).toBeTruthy();
     expect(getGestureByIdSpy).toHaveBeenCalledWith('openai-gesture');
     expect(getByText('Feedback: Sehr klar ausgeführt')).toBeTruthy();
+    expect(getByText('Kontext: Zeigefinger zeigt nach unten – DGS-Bedeutung: Urinieren.')).toBeTruthy();
+    expect(getByText('Quelle: https://kestner.app/sign/urinieren')).toBeTruthy();
   });
 
   it('shows single-hand metadata when available', () => {
