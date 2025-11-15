@@ -111,6 +111,10 @@ EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 LOSS_EPSILON = np.spacing(1.0)
 AUGMENTATION_EPSILON = 1e-8
 
+# Still frames represent the precise target hand position for the gesture,
+# so they should be weighted more heavily than individual video frames during averaging.
+# Default weight of 10.0 means a single still frame has the same influence as 10 video frames.
+STILL_FRAME_WEIGHT = float(os.environ.get("MLP_STILL_FRAME_WEIGHT", "10.0"))
 
 WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
@@ -202,9 +206,27 @@ def load_json(path: Path) -> Optional[dict]:
 
 
 def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
-    """Average landmarks across frames and return 42×3 list."""
+    """Average landmarks across frames with optional weighting and return 42×3 list.
+    
+    Frames can include an optional 'weight' field to indicate their relative importance.
+    Still frames typically have higher weights since they represent the precise target
+    hand position for the gesture being trained.
+    
+    Parameters
+    ----------
+    frames:
+        List of frame dictionaries, each containing 'landmarks' (required) and 
+        optionally 'weight' (default 1.0) fields.
+    
+    Returns
+    -------
+    Optional[List[List[float]]]
+        Weighted average of landmarks as a 42×3 list, or None if no valid frames.
+    """
 
     collected: List[np.ndarray] = []
+    weights: List[float] = []
+    
     for frame in frames:
         coords = frame.get("landmarks")
         if not coords:
@@ -214,10 +236,24 @@ def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
             padding = np.zeros((42 - arr.shape[0], 3), dtype=np.float32)
             arr = np.vstack([arr, padding])
         collected.append(arr[:42])
+        
+        # Extract weight for this frame (default to 1.0 for backward compatibility)
+        frame_weight = frame.get("weight", 1.0)
+        weights.append(float(frame_weight))
+    
     if not collected:
         return None
+    
     stacked = np.stack(collected, axis=0)
-    averaged = stacked.mean(axis=0)
+    weights_array = np.array(weights, dtype=np.float32)
+    total_weight = np.sum(weights_array)
+    
+    if total_weight <= 0:
+        # Fallback to simple mean if weights are invalid
+        averaged = stacked.mean(axis=0)
+    else:
+        averaged = np.average(stacked, axis=0, weights=weights_array)
+    
     return averaged.tolist()
 
 
@@ -872,9 +908,14 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
 
         frame_list: List[dict] = list(frames) if frames else []
 
-        if still_path and still_path.exists():
+        # Only extract and append still frame if we're processing from source (not from cache)
+        # to avoid doubling the still frame weight when cache already contains it
+        if still_path and still_path.exists() and not cached:
             extracted = extract_landmarks_from_still(still_path)
             if extracted:
+                # Mark still frame with higher weight since it represents the precise
+                # target hand position for this gesture
+                extracted["weight"] = STILL_FRAME_WEIGHT
                 frame_list.append(extracted)
 
         if frames_from_clip and frame_list:
