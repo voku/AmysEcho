@@ -1543,7 +1543,7 @@ export default function TrainingScreen({ navigation, route }: any) {
               Länge der letzten Aufnahme: {framesCaptured} Frames
             </Text>
           ) : null}
-          {!isRecording && activeStillUri ? (
+          {activeStillUri ? (
             <View style={styles.stillPreview}>
               <Image
                 source={{ uri: activeStillUri }}
