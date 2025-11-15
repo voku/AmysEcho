@@ -42,6 +42,8 @@ export interface GestureResult {
   feedback?: string;
   quality_score?: number;
   suggestions?: string[];
+  contextual_meaning?: string;
+  reference_sources?: string[];
   openaiAttempted?: boolean;
   openaiSuccess?: boolean;
   openaiError?: string;
@@ -370,6 +372,14 @@ class ParallelGestureProcessor {
         openaiResult.suggestions = [...validationResult.suggestions];
       }
 
+      if (validationResult.contextual_meaning) {
+        openaiResult.contextual_meaning = validationResult.contextual_meaning;
+      }
+
+      if (Array.isArray(validationResult.reference_sources) && validationResult.reference_sources.length > 0) {
+        openaiResult.reference_sources = [...validationResult.reference_sources];
+      }
+
       this.stats.openaiResults++;
 
       // Enhanced OpenAI processing performance monitoring
@@ -521,6 +531,14 @@ class ParallelGestureProcessor {
 
     if (Array.isArray(openaiResult.suggestions) && openaiResult.suggestions.length > 0) {
       target.suggestions = [...openaiResult.suggestions];
+    }
+
+    if (openaiResult.contextual_meaning) {
+      target.contextual_meaning = openaiResult.contextual_meaning;
+    }
+
+    if (Array.isArray(openaiResult.reference_sources) && openaiResult.reference_sources.length > 0) {
+      target.reference_sources = [...openaiResult.reference_sources];
     }
   }
 

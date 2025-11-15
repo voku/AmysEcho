@@ -376,6 +376,14 @@ export default function GestureMeaningDisplay({
       lines.push(`Feedback: ${openAiFeedback}`);
     }
 
+    if (openaiValidationResult?.contextual_meaning) {
+      lines.push(`Kontext: ${openaiValidationResult.contextual_meaning}`);
+    }
+
+    if (Array.isArray(openaiValidationResult?.reference_sources) && openaiValidationResult.reference_sources.length > 0) {
+      lines.push(`Quelle: ${openaiValidationResult.reference_sources[0]}`);
+    }
+
     return lines;
   }, [
     activeDefinition?.description,
@@ -385,6 +393,8 @@ export default function GestureMeaningDisplay({
     isSequence,
     openAiFeedback,
     openAiLabel,
+    openaiValidationResult?.contextual_meaning,
+    openaiValidationResult?.reference_sources,
     resolvedGestureMeta?.dgsVideoUri,
     sequenceStepLabels,
     showDetails,

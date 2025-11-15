@@ -279,6 +279,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
             profileId: bundle.profileId,
             frames: bundle.frames,
             clipUri: bundle.clipUri,
+            stillUri: bundle.stillUri,
             capturedAt: bundle.capturedAt,
             source: 'app://mediapipe',
           },
@@ -305,6 +306,13 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
           await FileSystem.deleteAsync(bundle.clipUri, { idempotent: true });
         } catch (clipError) {
           logger.warn('Failed to clean up clip after upload', clipError);
+        }
+        if (bundle.stillUri) {
+          try {
+            await FileSystem.deleteAsync(bundle.stillUri, { idempotent: true });
+          } catch (stillError) {
+            logger.warn('Failed to clean up still image after upload', stillError);
+          }
         }
 
         processed += 1;

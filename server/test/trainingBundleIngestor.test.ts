@@ -117,8 +117,9 @@ describe('ingestTrainingBundlesIntoDataset', () => {
           storage: {
             directory: `training_uploads/unassigned/${bundleId}`,
             bundle: `training_uploads/unassigned/${bundleId}/bundle.zip`,
-            files: ['bundle/landmarks.json', 'bundle/metadata.json', 'bundle/clip.webm'],
+            files: ['bundle/landmarks.json', 'bundle/metadata.json', 'bundle/clip.webm', 'bundle/still.jpg'],
             clip: 'bundle/clip.webm',
+            still: 'bundle/still.jpg',
           },
           metadata: {
             label: 'HALLO',
@@ -126,6 +127,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
             capturedAt: '2024-05-28T12:03:11Z',
             source: 'app://mediapipe',
             clipFilename: 'clip.webm',
+            stillFilename: 'still.jpg',
           },
           receivedAt: '2024-05-28T12:03:12Z',
         },

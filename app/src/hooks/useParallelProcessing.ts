@@ -41,6 +41,7 @@ export const useParallelProcessing = (
   setOpenaiValidationResult: Dispatch<SetStateAction<OpenAIValidationResult | null>>,
   setShowOpenaiFeedback: Dispatch<SetStateAction<boolean>>,
   runSequentialValidation?: OnGestureDetected,
+  onOpenAIError?: (errorCode: string | undefined) => void,
 ) => {
   const handleParallelProcessing = useCallback(async (
     gesture: string | null,
@@ -129,6 +130,8 @@ export const useParallelProcessing = (
           quality_score: result.quality_score ?? DEFAULT_OPENAI_QUALITY_SCORE,
           suggestions: result.suggestions ?? [],
           validation_source: result.source,
+          contextual_meaning: result.contextual_meaning,
+          reference_sources: result.reference_sources,
         });
 
         setShowOpenaiFeedback(true);
@@ -147,6 +150,10 @@ export const useParallelProcessing = (
 
       const openaiAttemptedAndFailed =
         result.openaiAttempted === true && result.openaiSuccess === false;
+
+      if (openaiAttemptedAndFailed && onOpenAIError) {
+        onOpenAIError(result.openaiError);
+      }
 
       if (runSequentialValidation && !openaiAttemptedAndFailed) {
         await runSequentialValidation(
@@ -199,6 +206,7 @@ export const useParallelProcessing = (
     onGestureDetected,
     onMergedResult,
     runSequentialValidation,
+    onOpenAIError,
     setOpenaiValidationResult,
     setShowOpenaiFeedback,
   ]);

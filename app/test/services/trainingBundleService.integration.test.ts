@@ -235,6 +235,8 @@ describe('uploadTrainingBundle spike', () => {
   it('zips landmarks and clip into a bundle and registers manifest entry', async () => {
     const clipPath = path.join(fsTempRoot, 'clip.webm');
     await fs.writeFile(clipPath, Buffer.from('clip-data'), 'utf8');
+    const stillPath = path.join(fsTempRoot, 'still.jpg');
+    await fs.writeFile(stillPath, Buffer.from('still-data'), 'utf8');
 
     const baseFrame = await loadSampleFrame();
     const cloneHand = (hand: number[][]) => hand.map((point) => [...point]);
@@ -254,6 +256,7 @@ describe('uploadTrainingBundle spike', () => {
         label: 'HILFE',
         profileId: 'p-test-123',
         clipUri: `file://${clipPath}`,
+        stillUri: `file://${stillPath}`,
         frames,
         capturedAt: '2024-05-28T12:03:11Z',
         source: 'app://mediapipe',
@@ -278,11 +281,14 @@ describe('uploadTrainingBundle spike', () => {
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
       clipFilename: 'clip.webm',
+      stillFilename: 'still.jpg',
     });
     expect(entry.frames[0].handedness).toEqual(['Left', 'Right']);
     expect(entry.frames[1].handedness).toEqual(['Left', 'Right']);
     expect(entry.frames[0].landmarks[0]).toEqual(baseFrame.landmarks[0][0]);
     expect(entry.frames[1].landmarks[0]).toEqual(baseFrame.landmarks[0][0]);
-    expect(entry.files).toEqual(expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.webm']));
+    expect(entry.files).toEqual(
+      expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.webm', 'still.jpg']),
+    );
   });
 });

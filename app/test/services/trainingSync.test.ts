@@ -158,6 +158,7 @@ describe('syncTrainingData', () => {
         sampleId: 'sample-pending',
         profileId: 'profile1',
         clipUri: 'rehydrated://clip',
+        stillUri: 'rehydrated://still',
         frames: [],
         label: 'rehydrated-label',
         capturedAt: 'rehydrated-date',
@@ -182,6 +183,7 @@ describe('syncTrainingData', () => {
         profileId: 'profile1',
         frames: [],
         clipUri: 'rehydrated://clip',
+        stillUri: 'rehydrated://still',
         capturedAt: 'rehydrated-date',
         source: 'app://mediapipe',
       },
@@ -197,8 +199,26 @@ describe('syncTrainingData', () => {
 
   it('should upload bundles and clean up', async () => {
     const bundles = [
-      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
-      { key: 'bundle2', sampleId: 'sample2', profileId: 'profile1', clipUri: 'uri2', frames: [], label: 'test', capturedAt: 'date' },
+      {
+        key: 'bundle1',
+        sampleId: 'sample1',
+        profileId: 'profile1',
+        clipUri: 'uri1',
+        stillUri: 'uri1-still',
+        frames: [],
+        label: 'test',
+        capturedAt: 'date',
+      },
+      {
+        key: 'bundle2',
+        sampleId: 'sample2',
+        profileId: 'profile1',
+        clipUri: 'uri2',
+        stillUri: 'uri2-still',
+        frames: [],
+        label: 'test',
+        capturedAt: 'date',
+      },
     ];
     mockedListQueuedTrainingBundles.mockResolvedValue(bundles);
     mockedUploadTrainingBundle.mockResolvedValue({
@@ -216,7 +236,7 @@ describe('syncTrainingData', () => {
     expect(mockedUploadTrainingBundle).toHaveBeenCalledTimes(2);
     expect(mockedRemoveQueuedTrainingBundle).toHaveBeenCalledTimes(2);
     expect(mockedUpdateTrainingSample).toHaveBeenCalledTimes(2);
-    expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(2);
+    expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(4);
     expect(onProgress).toHaveBeenNthCalledWith(1, 50);
     expect(onProgress).toHaveBeenNthCalledWith(2, 100);
     expect(mockedRefreshDgsModel).toHaveBeenCalledWith('profile1');
@@ -225,7 +245,16 @@ describe('syncTrainingData', () => {
 
   it('falls back to manual training trigger when server does not schedule a job', async () => {
     const bundles = [
-      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+      {
+        key: 'bundle1',
+        sampleId: 'sample1',
+        profileId: 'profile1',
+        clipUri: 'uri1',
+        stillUri: 'uri1-still',
+        frames: [],
+        label: 'test',
+        capturedAt: 'date',
+      },
     ];
     mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
     mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued' });
@@ -265,6 +294,7 @@ describe('syncTrainingData', () => {
       sampleId: 'sample1',
       profileId: 'profile1',
       clipUri: 'uri1',
+      stillUri: 'uri1-still',
       frames: [],
       label: 'test',
       capturedAt: 'date',
@@ -283,8 +313,26 @@ describe('syncTrainingData', () => {
 
   it('skips manual trigger if a later upload schedules the job', async () => {
     const bundles = [
-      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
-      { key: 'bundle2', sampleId: 'sample2', profileId: 'profile1', clipUri: 'uri2', frames: [], label: 'test', capturedAt: 'date' },
+      {
+        key: 'bundle1',
+        sampleId: 'sample1',
+        profileId: 'profile1',
+        clipUri: 'uri1',
+        stillUri: 'uri1-still',
+        frames: [],
+        label: 'test',
+        capturedAt: 'date',
+      },
+      {
+        key: 'bundle2',
+        sampleId: 'sample2',
+        profileId: 'profile1',
+        clipUri: 'uri2',
+        stillUri: 'uri2-still',
+        frames: [],
+        label: 'test',
+        capturedAt: 'date',
+      },
     ];
 
     mockedListQueuedTrainingBundles
@@ -307,7 +355,16 @@ describe('syncTrainingData', () => {
 
   it('skips manual trigger when server provides a job ID', async () => {
     const bundles = [
-      { key: 'bundle1', sampleId: 'sample1', profileId: 'profile1', clipUri: 'uri1', frames: [], label: 'test', capturedAt: 'date' },
+      {
+        key: 'bundle1',
+        sampleId: 'sample1',
+        profileId: 'profile1',
+        clipUri: 'uri1',
+        stillUri: 'uri1-still',
+        frames: [],
+        label: 'test',
+        capturedAt: 'date',
+      },
     ];
 
     mockedListQueuedTrainingBundles
@@ -332,6 +389,7 @@ describe('syncTrainingData', () => {
       sampleId: 'sample1',
       profileId: 'profile1',
       clipUri: 'uri1',
+      stillUri: 'uri1-still',
       frames: [],
       label: 'test',
       capturedAt: 'date',

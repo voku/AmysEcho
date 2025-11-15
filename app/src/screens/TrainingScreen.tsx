@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
 import {
@@ -21,6 +21,7 @@ import { logger } from '../utils/logger';
 import {
   getClipCaptureErrorMessage,
   persistClipToDirectory,
+  persistImageDataUrlToDirectory,
   type ExpoFileSystemCompat,
   canUseClipStorage,
 } from '../utils/clipPersistence';
@@ -74,6 +75,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const isProcessingRecording = recordingState === 'processing';
   const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
   const [framesCaptured, setFramesCaptured] = useState(0);
+  const [stillPreviewUri, setStillPreviewUri] = useState<string | null>(null);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -83,6 +85,8 @@ export default function TrainingScreen({ navigation, route }: any) {
   const detectorRef = useRef<MediaPipeGestureDetectorHandle | null>(null);
   const clipRequestIdRef = useRef<string | null>(null);
   const clipFileRef = useRef<string | null>(null);
+  const stillFileRef = useRef<string | null>(null);
+  const lastStillFrameRef = useRef<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [clipCaptureMode, setClipCaptureMode] = useState<'enabled' | 'fallback'>(() =>
     canUseClipStorage(expoFs) ? 'enabled' : 'fallback',
@@ -172,14 +176,27 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, []);
 
   const cleanupClipFile = useCallback(async () => {
-    if (!clipFileRef.current) return;
-    try {
-      await expoFs.deleteAsync(clipFileRef.current, { idempotent: true });
-    } catch (error) {
-      logger.warn('Failed to clean up training clip file', error);
-    } finally {
-      clipFileRef.current = null;
+    if (clipFileRef.current) {
+      try {
+        await expoFs.deleteAsync(clipFileRef.current, { idempotent: true });
+      } catch (error) {
+        logger.warn('Failed to clean up training clip file', error);
+      } finally {
+        clipFileRef.current = null;
+      }
     }
+
+    if (stillFileRef.current) {
+      try {
+        await expoFs.deleteAsync(stillFileRef.current, { idempotent: true });
+      } catch (error) {
+        logger.warn('Failed to clean up training still image', error);
+      } finally {
+        stillFileRef.current = null;
+      }
+    }
+
+    lastStillFrameRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -248,6 +265,17 @@ export default function TrainingScreen({ navigation, route }: any) {
       const mirrored = facingMode === 'user';
       const framesToAppend: TrainingFrame[] = [];
       const handednessBatches = Array.isArray(payload.handednesses) ? payload.handednesses : [];
+      const frameImages = Array.isArray(payload.frames)
+        ? payload.frames.filter((frame): frame is string => typeof frame === 'string')
+        : [];
+
+      if (frameImages.length > 0) {
+        const lastFrame = frameImages[frameImages.length - 1];
+        if (typeof lastFrame === 'string' && lastFrame.trim().length > 0) {
+          lastStillFrameRef.current = lastFrame;
+          setStillPreviewUri(lastFrame);
+        }
+      }
 
       payload.landmarks.forEach((frame, index) => {
         const cloned = cloneLandmarks(frame as number[][][]);
@@ -305,6 +333,9 @@ export default function TrainingScreen({ navigation, route }: any) {
     setRecordedFrames([]);
     setFramesCaptured(0);
     setLastDetection(0);
+    setStillPreviewUri(null);
+    lastStillFrameRef.current = null;
+    stillFileRef.current = null;
     setCameraReady(false);
     clipRequestIdRef.current = null;
     detectorRef.current?.cancelClipCapture();
@@ -343,6 +374,9 @@ export default function TrainingScreen({ navigation, route }: any) {
     setRecordedFrames([]);
     setFramesCaptured(0);
     setLastDetection(0);
+    setStillPreviewUri(null);
+    lastStillFrameRef.current = null;
+    stillFileRef.current = null;
     await cleanupClipFile();
 
     let clipId: string | null = null;
@@ -388,10 +422,13 @@ export default function TrainingScreen({ navigation, route }: any) {
       let clipUri: string | null = null;
       let clipFailure: unknown = null;
       let clipMode: typeof clipCaptureMode = ensureClipCaptureMode(clipCaptureMode);
+      const clipCaptureId = clipRequestIdRef.current;
+      let clipResult: ClipReadyPayload | null = null;
+      let stillUri: string | null = null;
 
       if (clipMode === 'enabled' && clipRequestIdRef.current && detectorRef.current) {
         try {
-          const clipResult = await detectorRef.current.stopClipCapture();
+          clipResult = await detectorRef.current.stopClipCapture();
           if (!clipResult?.base64) {
             throw new Error('clip_payload_empty');
           }
@@ -437,17 +474,46 @@ export default function TrainingScreen({ navigation, route }: any) {
       }
 
       const capturedAt = new Date().toISOString();
+      const stillSource = lastStillFrameRef.current;
+      if (stillSource) {
+        const tokenBasis =
+          clipResult?.id ?? clipCaptureId ?? `${gestureId ?? 'gesture'}-${Date.now().toString(36)}`;
+        const sanitizedToken = tokenBasis.replace(/[^a-zA-Z0-9_-]/g, '');
+        const stillPrefix = sanitizedToken.length > 0 ? `still-${sanitizedToken}` : `still-${Date.now().toString(36)}`;
+        try {
+          const stillPath = await persistImageDataUrlToDirectory({
+            fs: expoFs,
+            dataUrl: stillSource,
+            directoryName: 'amy-training-stills',
+            filePrefix: stillPrefix,
+            logger,
+          });
+          stillUri = stillPath;
+          stillFileRef.current = stillPath;
+          setStillPreviewUri(stillPath);
+        } catch (stillError) {
+          logger.warn('Failed to persist training still image', stillError);
+          stillUri = '';
+        }
+      } else {
+        stillUri = '';
+      }
+
       const sample = createTrainingSample({
         profileId: profile?.id ?? 'default',
         label: gestureId,
         frames: recordedFrames,
         clipUri: clipUri ?? '',
+        stillUri: stillUri ?? '',
         source: isPractice ? 'HIP_4' : 'HIP_2',
         capturedAt,
       });
 
       try {
         await saveTrainingSample(sample);
+        clipFileRef.current = null;
+        stillFileRef.current = null;
+        lastStillFrameRef.current = null;
         setRecordedFrames([]);
         setCount((c) => c + 1);
         setFramesCaptured(0);
@@ -874,6 +940,25 @@ export default function TrainingScreen({ navigation, route }: any) {
       opacity: 0.75,
       fontSize: largeText ? 14 : 12,
       textAlign: 'center',
+    },
+    stillPreview: {
+      marginTop: SPACING.sm,
+      width: '100%',
+      maxWidth: 360,
+      alignItems: 'center',
+      gap: SPACING.xs,
+    },
+    stillPreviewImage: {
+      width: '100%',
+      aspectRatio: 4 / 3,
+      borderRadius: DEFAULT_RADIUS * 1.2,
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    stillPreviewCaption: {
+      color: overlayTextColor,
+      fontSize: largeText ? 14 : 12,
+      textAlign: 'center',
+      opacity: 0.85,
     },
     exitButton: {
       marginTop: SPACING.sm,
@@ -1315,6 +1400,18 @@ export default function TrainingScreen({ navigation, route }: any) {
             <Text style={styles.captureSubHint}>
               Länge der letzten Aufnahme: {framesCaptured} Frames
             </Text>
+          ) : null}
+          {!isRecording && stillPreviewUri ? (
+            <View style={styles.stillPreview}>
+              <Image
+                source={{ uri: stillPreviewUri }}
+                style={styles.stillPreviewImage}
+                accessibilityLabel="Standbild der letzten Aufnahme"
+              />
+              <Text style={styles.stillPreviewCaption}>
+                Dieses Standbild speichert Amys Handform und wird mit dem Trainingsvideo hochgeladen.
+              </Text>
+            </View>
           ) : null}
           <Pressable
             onPress={handleFinish}

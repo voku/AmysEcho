@@ -39,6 +39,8 @@ export interface ValidationResponse {
   suggestions?: string[];
   processing_time_ms?: number;
   error?: string;
+  contextual_meaning?: string;
+  reference_sources?: string[];
 }
 
 // Simple in-memory cache to deduplicate rapid identical validations
@@ -239,6 +241,22 @@ export async function validateGestureWithOpenAI(
 
     const data = apiResponse.data;
 
+    if (data?.service_status?.available === false) {
+      const reason = typeof data.service_status.reason === 'string'
+        ? data.service_status.reason
+        : 'unknown';
+      logger.warn('OpenAI service unavailable reported by backend', {
+        reason,
+        detail: data.service_status.detail,
+      });
+      logger.clearContext();
+      return {
+        success: false,
+        error: `openai_unavailable:${reason}`,
+        processing_time_ms: Date.now() - startTime,
+      };
+    }
+
     // Validate response structure
     if (!data.primary_gesture) {
       logger.warn('OpenAI response missing primary_gesture', { responseData: data });
@@ -271,6 +289,22 @@ export async function validateGestureWithOpenAI(
 
     if (Array.isArray(data.primary_gesture?.suggestions)) {
       result.suggestions = data.primary_gesture.suggestions;
+    }
+
+    if (typeof data.primary_gesture?.contextual_meaning === 'string') {
+      const trimmedMeaning = data.primary_gesture.contextual_meaning.trim();
+      if (trimmedMeaning.length > 0) {
+        result.contextual_meaning = trimmedMeaning;
+      }
+    }
+
+    if (Array.isArray(data.primary_gesture?.reference_sources)) {
+      const filteredSources = data.primary_gesture.reference_sources.filter(
+        (entry: unknown) => typeof entry === 'string' && entry.trim().length > 0
+      );
+      if (filteredSources.length > 0) {
+        result.reference_sources = filteredSources;
+      }
     }
 
     // Cache the successful result
@@ -438,6 +472,8 @@ export async function validateGestureWithFallback(
   feedback?: string;
   suggestions?: string[];
   quality_score?: number;
+  contextual_meaning?: string;
+  reference_sources?: string[];
 }> {
   // Set logging context for this validation operation
   const fallbackLogContext: Partial<LogContext> = {
@@ -456,6 +492,8 @@ export async function validateGestureWithFallback(
   let feedback: string | undefined;
   let suggestions: string[] | undefined;
   let quality_score: number | undefined;
+  let contextual_meaning: string | undefined;
+  let reference_sources: string[] | undefined;
 
   // Check if we should trigger OpenAI validation
   if (imageCapture && shouldTriggerOpenAIValidation(mediapipeResult.confidence, mediapipeResult.gesture)) {
@@ -500,6 +538,10 @@ export async function validateGestureWithFallback(
           feedback = openaiResult.feedback;
           suggestions = openaiResult.suggestions;
           quality_score = openaiResult.quality_score;
+          contextual_meaning = openaiResult.contextual_meaning ?? contextual_meaning;
+          if (Array.isArray(openaiResult.reference_sources)) {
+            reference_sources = openaiResult.reference_sources;
+          }
         }
       }
     } catch (error) {
@@ -529,6 +571,12 @@ export async function validateGestureWithFallback(
   }
   if (quality_score !== undefined) {
     outcome.quality_score = quality_score;
+  }
+  if (contextual_meaning) {
+    outcome.contextual_meaning = contextual_meaning;
+  }
+  if (Array.isArray(reference_sources) && reference_sources.length > 0) {
+    outcome.reference_sources = reference_sources;
   }
 
   return outcome;

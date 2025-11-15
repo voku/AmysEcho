@@ -202,6 +202,30 @@ export const getExtensionFromMime = (mimeType: string): string => {
 
 const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
 
+const DATA_URL_BASE64_PATTERN = /^data:([\-\w+.]+\/[\-\w+.]+);base64,([A-Za-z0-9+/=]+)$/i;
+
+function parseDataUrlBase64(
+  payload: string,
+): { mime: string; base64: string } | null {
+  if (typeof payload !== 'string') {
+    return null;
+  }
+  const trimmed = payload.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const sanitized = trimmed.replace(/\s+/g, '');
+  const match = sanitized.match(DATA_URL_BASE64_PATTERN);
+  if (!match) {
+    return null;
+  }
+  const [, mime, base64Payload] = match;
+  if (!base64Payload || base64Payload.length % 4 !== 0 || !BASE64_PATTERN.test(base64Payload)) {
+    return null;
+  }
+  return { mime: mime.toLowerCase(), base64: base64Payload };
+}
+
 export const sanitizeClipBase64 = (payload: string): string => {
   if (typeof payload !== 'string') {
     return '';
@@ -248,6 +272,15 @@ const ensureDirectory = async (
 export interface PersistClipOptions {
   fs: ExpoFileSystemCompat;
   clip: ClipReadyPayload;
+  directoryName: string;
+  filePrefix: string;
+  logger?: ClipPersistenceLogger;
+  platform?: PlatformLike;
+}
+
+export interface PersistImageOptions {
+  fs: ExpoFileSystemCompat;
+  dataUrl: string;
   directoryName: string;
   filePrefix: string;
   logger?: ClipPersistenceLogger;
@@ -315,4 +348,60 @@ export const persistClipToDirectory = async ({
   }
 
   throw lastFailure ?? new ClipCaptureError('clip_directory_unavailable');
+};
+
+export const persistImageDataUrlToDirectory = async ({
+  fs,
+  dataUrl,
+  directoryName,
+  filePrefix,
+  logger,
+  platform = Platform,
+}: PersistImageOptions): Promise<string> => {
+  if (/[\\/]|\.\./.test(directoryName) || /[\\/]|\.\./.test(filePrefix)) {
+    logger?.warn('Ungültige Pfadbestandteile für Standbild-Speicherung', {
+      directoryName,
+      filePrefix,
+    });
+    throw new Error('still_path_components_invalid');
+  }
+
+  const parsed = parseDataUrlBase64(dataUrl);
+  if (!parsed) {
+    logger?.warn('Standbild konnte nicht gelesen werden – ungültige Daten', {
+      preview: typeof dataUrl === 'string' ? dataUrl.slice(0, 32) : null,
+    });
+    throw new Error('still_payload_invalid');
+  }
+
+  const encoding: FileEncoding = fs.EncodingType?.Base64 ?? 'base64';
+  const extension = getExtensionFromMime(parsed.mime) || 'jpg';
+  const baseDirectories = resolveClipBaseDirectoryCandidates(fs, platform);
+  if (baseDirectories.length === 0) {
+    throw new Error('still_directory_unavailable');
+  }
+
+  const normalizedDirectoryName = directoryName.replace(/\/+$/, '');
+  let lastError: Error | null = null;
+
+  for (const baseDirectory of baseDirectories) {
+    const targetDirectory = `${baseDirectory}${normalizedDirectoryName}/`;
+    try {
+      await ensureDirectory(fs, targetDirectory, logger);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      continue;
+    }
+
+    const targetUri = `${targetDirectory}${filePrefix}.${extension}`;
+    try {
+      await fs.writeAsStringAsync(targetUri, parsed.base64, { encoding });
+      return targetUri;
+    } catch (error) {
+      logger?.warn('Standbild konnte nicht gespeichert werden', error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  throw lastError ?? new Error('still_write_failed');
 };

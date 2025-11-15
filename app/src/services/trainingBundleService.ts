@@ -11,6 +11,7 @@ export interface TrainingBundlePayload {
   profileId: string;
   frames: TrainingFrame[];
   clipUri: string;
+  stillUri: string;
   capturedAt?: string;
   source?: string;
 }
@@ -65,13 +66,19 @@ function buildClipFilename(clipUri: string): string {
   return `clip.${extension}`;
 }
 
-function buildMetadata(payload: TrainingBundlePayload, clipFilename: string) {
+function buildStillFilename(stillUri: string): string {
+  const extension = extractClipExtension(stillUri) ?? 'jpg';
+  return `still.${extension}`;
+}
+
+function buildMetadata(payload: TrainingBundlePayload, clipFilename: string, stillFilename: string | null) {
   return {
     profileId: payload.profileId,
     label: payload.label,
     capturedAt: payload.capturedAt ?? new Date().toISOString(),
     source: payload.source ?? 'app://mediapipe',
     clipFilename,
+    ...(stillFilename ? { stillFilename } : {}),
   };
 }
 
@@ -238,6 +245,12 @@ export async function uploadTrainingBundle(
       'Ungültige Trainingsdaten: Es wurde kein Videoclip gespeichert. (Invalid training data: missing clip.)',
     );
   }
+  if (!payload.stillUri) {
+    logger.warn('Training bundle still image missing', {
+      label: payload.label,
+      profileId: payload.profileId,
+    });
+  }
 
   const token = options.tokenOverride ?? (await loadBackendApiToken());
   if (!token) {
@@ -273,7 +286,8 @@ export async function uploadTrainingBundle(
   //   "source": "app://mediapipe"
   // }
   const clipFilename = buildClipFilename(payload.clipUri);
-  const metadata = buildMetadata(payload, clipFilename);
+  const stillFilename = payload.stillUri ? buildStillFilename(payload.stillUri) : null;
+  const metadata = buildMetadata(payload, clipFilename, stillFilename);
   const frames = buildFrameTimeline(payload.frames);
 
   try {
@@ -284,15 +298,25 @@ export async function uploadTrainingBundle(
     });
     const clipBinary = base64ToUint8Array(clipBase64);
 
-    const zipped = zipSync({
+    const entries: Record<string, any> = {
       'metadata.json': strToU8(metadataContent),
       'landmarks.json': strToU8(landmarksContent),
-      // Store video without extra compression (level: 0) to reduce CPU and time
-      [clipFilename]: [
-        clipBinary,
-        { level: 0 },
-      ],
-    });
+      [clipFilename]: [clipBinary, { level: 0 }],
+    };
+
+    if (stillFilename && payload.stillUri) {
+      try {
+        const stillBase64 = await FileSystem.readAsStringAsync(payload.stillUri, {
+          encoding: (legacyFs.EncodingType?.Base64 ?? 'base64') as any,
+        });
+        const stillBinary = base64ToUint8Array(stillBase64);
+        entries[stillFilename] = [stillBinary, { level: 0 }];
+      } catch (stillReadError) {
+        logger.warn('Failed to read still image for training bundle', stillReadError);
+      }
+    }
+
+    const zipped = zipSync(entries);
 
     const base64Zip = uint8ArrayToBase64(zipped);
     await FileSystem.writeAsStringAsync(zipPath, base64Zip, {

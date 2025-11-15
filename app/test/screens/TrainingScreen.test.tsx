@@ -51,6 +51,7 @@ jest.mock('../../src/utils/clipPersistence', () => {
   return {
     ...actual,
     persistClipToDirectory: jest.fn(actual.persistClipToDirectory),
+    persistImageDataUrlToDirectory: jest.fn(async () => 'file://mock-still.jpg'),
   };
 });
 

@@ -11,6 +11,7 @@ export interface QueuedTrainingBundle {
   label: string;
   frames: TrainingFrame[];
   clipUri: string;
+  stillUri: string;
   capturedAt: string;
   source: string;
   queuedAt: string;
@@ -33,6 +34,7 @@ export async function enqueueTrainingBundle(
     label: sample.label,
     frames: sample.frames,
     clipUri: sample.clipUri,
+    stillUri: sample.stillUri,
     capturedAt: sample.capturedAt,
     source: sample.source,
     queuedAt: new Date().toISOString(),
@@ -73,6 +75,7 @@ export async function listQueuedTrainingBundles(profileId?: string): Promise<Que
         label: parsed.label,
         frames: parsed.frames,
         clipUri: parsed.clipUri,
+        stillUri: typeof parsed.stillUri === 'string' ? parsed.stillUri : '',
         capturedAt: parsed.capturedAt,
         source: parsed.source,
         queuedAt: parsed.queuedAt,
