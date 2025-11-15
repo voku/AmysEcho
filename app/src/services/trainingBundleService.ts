@@ -11,7 +11,7 @@ export interface TrainingBundlePayload {
   profileId: string;
   frames: TrainingFrame[];
   clipUri: string;
-  stillUri: string;
+  stillUri?: string;
   capturedAt?: string;
   source?: string;
 }

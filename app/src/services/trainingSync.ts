@@ -279,7 +279,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
             profileId: bundle.profileId,
             frames: bundle.frames,
             clipUri: bundle.clipUri,
-            stillUri: bundle.stillUri,
+            ...(bundle.stillUri ? { stillUri: bundle.stillUri } : {}),
             capturedAt: bundle.capturedAt,
             source: 'app://mediapipe',
           },

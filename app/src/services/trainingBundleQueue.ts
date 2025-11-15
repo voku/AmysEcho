@@ -11,7 +11,7 @@ export interface QueuedTrainingBundle {
   label: string;
   frames: TrainingFrame[];
   clipUri: string;
-  stillUri: string;
+  stillUri?: string;
   capturedAt: string;
   source: string;
   queuedAt: string;
@@ -75,7 +75,7 @@ export async function listQueuedTrainingBundles(profileId?: string): Promise<Que
         label: parsed.label,
         frames: parsed.frames,
         clipUri: parsed.clipUri,
-        stillUri: typeof parsed.stillUri === 'string' ? parsed.stillUri : '',
+        stillUri: typeof parsed.stillUri === 'string' ? parsed.stillUri : undefined,
         capturedAt: parsed.capturedAt,
         source: parsed.source,
         queuedAt: parsed.queuedAt,
