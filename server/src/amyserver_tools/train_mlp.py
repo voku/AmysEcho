@@ -245,17 +245,14 @@ def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
         return None
     
     stacked = np.stack(collected, axis=0)
-    weights_array = np.array(weights, dtype=np.float32).reshape(-1, 1, 1)
-    
-    # Compute weighted average
-    weighted_sum = np.sum(stacked * weights_array, axis=0)
+    weights_array = np.array(weights, dtype=np.float32)
     total_weight = np.sum(weights_array)
     
     if total_weight <= 0:
         # Fallback to simple mean if weights are invalid
         averaged = stacked.mean(axis=0)
     else:
-        averaged = weighted_sum / total_weight
+        averaged = np.average(stacked, axis=0, weights=weights_array)
     
     return averaged.tolist()
 
@@ -911,7 +908,9 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
 
         frame_list: List[dict] = list(frames) if frames else []
 
-        if still_path and still_path.exists():
+        # Only extract and append still frame if we're processing from source (not from cache)
+        # to avoid doubling the still frame weight when cache already contains it
+        if still_path and still_path.exists() and not cached:
             extracted = extract_landmarks_from_still(still_path)
             if extracted:
                 # Mark still frame with higher weight since it represents the precise

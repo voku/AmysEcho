@@ -38,8 +38,8 @@ weighted_landmarks = sum(landmarks_i × weight_i) / sum(weight_i)
 ```json
 {
   "frames": [
-    {"landmarks": [[0.1, 0.2, 0.3], ...], "weight": 1.0},  // implied
-    {"landmarks": [[0.15, 0.25, 0.35], ...], "weight": 1.0}
+    {"landmarks": [[0.1, 0.2, 0.3], ...]},  // weight defaults to 1.0
+    {"landmarks": [[0.15, 0.25, 0.35], ...]}
   ]
 }
 ```
