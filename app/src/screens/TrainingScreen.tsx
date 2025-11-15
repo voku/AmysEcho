@@ -243,16 +243,16 @@ export default function TrainingScreen({ navigation, route }: any) {
       if (matching.length === 0) {
         return null;
       }
-      const latest = matching.reduce((acc, current) => {
-        const accTime = Date.parse(acc.capturedAt ?? acc.createdAt ?? '1970-01-01T00:00:00.000Z');
-        const currentTime = Date.parse(current.capturedAt ?? current.createdAt ?? '1970-01-01T00:00:00.000Z');
+      const latest = matching.reduce((latest, current) => {
+        const latestTime = Date.parse(latest.capturedAt ?? latest.createdAt ?? '');
+        const currentTime = Date.parse(current.capturedAt ?? current.createdAt ?? '');
         if (Number.isNaN(currentTime)) {
-          return acc;
+          return latest;
         }
-        if (Number.isNaN(accTime)) {
+        if (Number.isNaN(latestTime)) {
           return current;
         }
-        return currentTime > accTime ? current : acc;
+        return currentTime > latestTime ? current : latest;
       });
       return { uri: latest.stillUri.trim(), capturedAt: latest.capturedAt ?? latest.createdAt };
     };
