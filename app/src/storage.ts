@@ -265,16 +265,12 @@ export async function saveTrainingSample(sample: TrainingSample): Promise<Traini
   const existing = await loadSamplesForProfile(sample.profileId);
   const stored: TrainingSample = { ...sample };
 
-  if (stored.clipUri) {
-    try {
-      const bundleKey = await enqueueTrainingBundle(stored);
-      stored.syncStatus = 'queued';
-      stored.bundleKey = bundleKey;
-    } catch (error) {
-      console.warn('Failed to enqueue training bundle', error);
-      stored.syncStatus = 'pending';
-    }
-  } else {
+  try {
+    const bundleKey = await enqueueTrainingBundle(stored);
+    stored.syncStatus = 'queued';
+    stored.bundleKey = bundleKey;
+  } catch (error) {
+    console.warn('Failed to enqueue training bundle', error);
     stored.syncStatus = 'pending';
   }
 
@@ -296,15 +292,6 @@ export async function rehydratePendingTrainingSamples(profileId: string): Promis
     const needsBundle =
       sample.syncStatus !== 'synced' && (sample.syncStatus === 'pending' || !sample.bundleKey);
     if (!needsBundle) {
-      continue;
-    }
-
-    if (!sample.clipUri) {
-      if (sample.syncStatus !== 'pending' || sample.bundleKey) {
-        sample.syncStatus = 'pending';
-        sample.bundleKey = null;
-        mutated = true;
-      }
       continue;
     }
 
