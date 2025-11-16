@@ -98,10 +98,6 @@ export default function TrainingScreen({ navigation, route }: any) {
     canUseClipStorage(expoFs) ? null : 'clip_directory_unavailable',
   );
   const clipFallbackToastShownRef = useRef(false);
-  const stillPreviewUriRef = useRef<string | null>(null);
-  useEffect(() => {
-    stillPreviewUriRef.current = stillPreviewUri;
-  }, [stillPreviewUri]);
   const announceClipFallback = useCallback(() => {
     if (clipFallbackToastShownRef.current) {
       return;
