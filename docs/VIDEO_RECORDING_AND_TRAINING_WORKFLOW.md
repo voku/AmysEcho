@@ -92,11 +92,12 @@ export function getClipCaptureErrorMessage(error: unknown): string
   - Creates ZIP bundles with:
     - `metadata.json` (profile, label, timestamps)
     - `landmarks.json` (hand landmark data)
-    - `clip.mp4` (video recording)
+    - `clip.mp4` (video recording, optional when the camera pipeline fails)
   - Uploads to `/api/v1/dgs/sample-bundles`
   - Queue management with AsyncStorage
   - Wi-Fi + charging checks before upload
   - Automatic retry on failure
+  - **Degraded mode**: if `clipUri` is missing the app logs a warning, skips the video attachment, and still uploads the metadata + landmark bundle so caregivers do not lose their samples. See `app/src/services/trainingSync.ts` and `app/src/services/trainingBundleService.ts` for the fallback implementation.
 
 **Code References**:
 - Bundle creation: `app/src/services/trainingBundleService.ts` (lines 1-254)
@@ -118,12 +119,20 @@ export function getClipCaptureErrorMessage(error: unknown): string
     "label": "HILFE",
     "capturedAt": "2024-05-28T12:03:11Z",
     "source": "app://mediapipe",
-    "clipFilename": "clip.mp4"
+    "clipFilename": "clip.mp4" // optional when degraded
   },
   "landmarks.json": [ /* hand landmark arrays */ ],
   "clip.mp4": /* video binary */
 }
 ```
+
+> Wenn kein Clip gespeichert wurde, enthält das ZIP nur `metadata.json`, `landmarks.json` und ggf. `still.jpg`. Die Serverroute akzeptiert dieses degradierte Paket weiterhin und kennzeichnet es lediglich ohne `clipFilename` im Manifest.
+
+**Profilzuordnung auf mehreren Geräten**:
+- Jeder Profil-Datensatz lebt in der verschlüsselten WatermelonDB (`app/db/models.ts`). Beim Aufzeichnen liest `createTrainingSample` (`app/src/storage.ts`) die aktuell aktive Profil-ID und schreibt sie direkt in das Sample.
+- `enqueueTrainingBundle` (`app/src/services/trainingBundleQueue.ts`) speichert exakt diese `profileId` sowohl im AsyncStorage-Payload als auch im Schlüssel (`trainingBundles:<profileId>:...`). Dadurch bleibt die Zuordnung erhalten, selbst wenn Amy später zu einem anderen Profil wechselt.
+- Während `trainingSync` (`app/src/services/trainingSync.ts`) hochlädt, verwendet es nur die im Bundle gespeicherte `profileId`. Deshalb werden Samples immer dem ursprünglichen Kind zugeordnet – auch wenn mehrere Geräte mit demselben Wasser­melon-Datenbestand betrieben werden oder ein anderes Gerät den Upload übernimmt.
+- Beim Einrichten eines zusätzlichen Geräts wird derselbe Profil-Dump (bzw. das Watermelon-Backup) importiert, sodass alle Installationen dieselbe `profileId` verwenden und die per-Profil-Modelle konsistent bleiben.
 
 ---
 

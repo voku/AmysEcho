@@ -243,6 +243,37 @@ describe('syncTrainingData', () => {
     expect(getTrainModelCallCount()).toBe(0);
   });
 
+  it('uploads bundles without a clip by degrading the payload', async () => {
+    const bundles = [
+      {
+        key: 'bundle1',
+        sampleId: 'sample1',
+        profileId: 'profile1',
+        clipUri: '',
+        stillUri: 'uri1-still',
+        frames: [],
+        label: 'test',
+        capturedAt: 'date',
+      },
+    ];
+
+    mockedListQueuedTrainingBundles.mockResolvedValueOnce(bundles).mockResolvedValueOnce([]);
+    mockedUploadTrainingBundle.mockResolvedValue({ id: 'upload1', status: 'queued' });
+
+    const result = await syncTrainingData();
+
+    expect(result.uploaded).toBe(1);
+    expect(mockedUploadTrainingBundle).toHaveBeenCalledTimes(1);
+    const [payload] = mockedUploadTrainingBundle.mock.calls[0];
+    expect(payload).not.toHaveProperty('clipUri');
+    expect(mockedLogger.warn).toHaveBeenCalledWith(
+      'Bundle clip missing before upload; degraded payload will be sent',
+      expect.objectContaining({ bundleKey: 'bundle1', sampleId: 'sample1', profileId: 'profile1' }),
+    );
+    expect(mockedFileSystem.deleteAsync).toHaveBeenCalledTimes(1);
+    expect(mockedFileSystem.deleteAsync).toHaveBeenCalledWith('uri1-still', { idempotent: true });
+  });
+
   it('falls back to manual training trigger when server does not schedule a job', async () => {
     const bundles = [
       {

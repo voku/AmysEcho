@@ -291,4 +291,44 @@ describe('uploadTrainingBundle spike', () => {
       expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.webm', 'still.jpg']),
     );
   });
+
+  it('creates a degraded bundle when the clip is missing', async () => {
+    const stillPath = path.join(fsTempRoot, 'still2.jpg');
+    await fs.writeFile(stillPath, Buffer.from('still-data-2'), 'utf8');
+
+    const frames: TrainingFrame[] = [await loadSampleFrame()];
+
+    const result = await uploadTrainingBundle(
+      {
+        label: 'HALLO',
+        profileId: 'p-test-456',
+        stillUri: `file://${stillPath}`,
+        frames,
+        capturedAt: '2024-05-29T09:22:00Z',
+        source: 'app://mediapipe',
+      },
+      {
+        endpointOverride: `${baseUrl}/api/v1/dgs/sample-bundles`,
+        tokenOverride: 'bundle-token',
+      },
+    );
+
+    expect(result.status).toBe('queued');
+
+    const manifestRaw = await fs.readFile(manifestPath(), 'utf8');
+    const manifest = JSON.parse(manifestRaw);
+    expect(Array.isArray(manifest.entries)).toBe(true);
+    expect(manifest.entries).toHaveLength(1);
+    const entry = manifest.entries[0];
+    expect(entry.metadata).toMatchObject({
+      label: 'HALLO',
+      profileId: 'p-test-456',
+      capturedAt: '2024-05-29T09:22:00Z',
+      source: 'app://mediapipe',
+      stillFilename: 'still.jpg',
+    });
+    expect(entry.metadata.clipFilename).toBeUndefined();
+    expect(entry.files).toEqual(expect.arrayContaining(['metadata.json', 'landmarks.json', 'still.jpg']));
+    expect(entry.files).not.toContain('clip.mp4');
+  });
 });
