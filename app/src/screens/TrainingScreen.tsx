@@ -261,9 +261,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       if (!gestureId || !profile?.id) {
         if (!cancelled) {
           setReferenceStill(null);
-          if (!stillPreviewUriRef.current) {
-            setStillPreviewUri(null);
-          }
+          setStillPreviewUri(null);
         }
         return;
       }
@@ -275,7 +273,7 @@ export default function TrainingScreen({ navigation, route }: any) {
         }
         const latest = resolveLatestStill(samples, gestureId);
         setReferenceStill(latest);
-        if (!stillPreviewUriRef.current && latest?.uri) {
+        if (latest?.uri) {
           setStillPreviewUri(latest.uri);
         }
       } catch (loadError) {
