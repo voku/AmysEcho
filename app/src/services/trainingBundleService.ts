@@ -284,7 +284,7 @@ export async function uploadTrainingBundle(
   //   "capturedAt": "2024-05-28T12:03:11Z",
   //   "source": "app://mediapipe"
   // }
-  const clipUri = typeof payload.clipUri === 'string' && payload.clipUri.trim().length > 0 ? payload.clipUri : null;
+  const clipUri = payload.clipUri?.trim() || null;
   if (!clipUri) {
     logger.warn('Training bundle clip missing; proceeding without video', {
       label: payload.label,
