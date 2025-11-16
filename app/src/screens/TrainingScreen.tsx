@@ -254,7 +254,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     };
 
     const hydrate = async () => {
-      if (!gestureId || !profile?.id) {
+      if (!gestureId || !profile) {
         if (!cancelled) {
           setReferenceStill(null);
           setStillPreviewUri(null);
@@ -422,7 +422,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     if (recordingState !== 'idle') {
       return;
     }
-    if (!gestureId || !cameraReady || !profile?.id) {
+    if (!gestureId || !cameraReady || !profile) {
       return;
     }
     setError(null);
@@ -469,7 +469,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const stopRecording = useCallback(async () => {
     setRecordingState('processing');
     try {
-      if (!gestureId || !cameraReady || !profile?.id) {
+      if (!gestureId || !cameraReady || !profile) {
         return;
       }
 

@@ -337,7 +337,7 @@ export default function TeachingScreen({ navigation }: any) {
       setError('Bitte gib einen Namen für die Geste ein.');
       return;
     }
-    if (!profile?.id) {
+    if (!profile) {
       setError('Profil wird geladen. Bitte warte einen Moment.');
       return;
     }
@@ -362,7 +362,7 @@ export default function TeachingScreen({ navigation }: any) {
     if (!sessionId.current || isRecording) {
       return;
     }
-    if (!profile?.id) {
+    if (!profile) {
       setError('Profil wird geladen. Bitte warte einen Moment.');
       return;
     }

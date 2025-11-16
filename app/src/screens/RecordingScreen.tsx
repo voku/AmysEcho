@@ -301,7 +301,7 @@ export default function RecordingScreen({ navigation, route }: any) {
   }, []);
 
   const startRecording = useCallback(async () => {
-    if (!gestureId || !cameraReady || !profile?.id) return;
+    if (!gestureId || !cameraReady || !profile) return;
     setError(null);
     setRecordedFrames([]);
     setFramesCaptured(0);
@@ -323,7 +323,7 @@ export default function RecordingScreen({ navigation, route }: any) {
 
   const stopRecording = useCallback(async () => {
     setIsRecording(false);
-    if (!gestureId || !cameraReady || !profile?.id) return;
+    if (!gestureId || !cameraReady || !profile) return;
 
     let clipUri: string | null = null;
     let clipFailure: unknown = null;
