@@ -27,11 +27,11 @@ We have MediaPipe capture working in the app and a Python MLP trainer on the ser
     "source": "app://mediapipe"
   }
   ```
-- [x] Store pending bundles per profile in AsyncStorage (keys `trainingBundles:<profileId>:[timestamp]`). Flush them through `app/src/services/trainingSync.ts` under Wi-Fi + charging checks using the existing `scheduleSync` pattern.
+- [x] Store pending bundles per profile in AsyncStorage (keys `trainingBundles:<profileId>:[timestamp]`). Flush them through `app/src/services/trainingSync.ts` as soon as Wi-Fi is available (charging is no longer required so uploads don't get stuck while the phone is asleep) using the existing `scheduleSync` pattern.
 - [x] Add unit coverage in `app/test/services/trainingSync.test.ts` that mocks the queue and asserts the zip payload matches the example above.
 
 ## 3. Ingest Bundles on the Server (`server/`)
-- [x] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/` and register them in `data/datasets/training_manifest.json`.
+- [x] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/`, reject bundles missing `landmarks.json` (or without frames) with HTTP 400 after cleaning up, and register successful uploads in `data/datasets/training_manifest.json` (including the validation summary stored in `manifestEntry.metadata`).
 - [x] (Archiviert) Das frühere Pflegeportal wurde entfernt; Bundles werden direkt über die Dateien unter `data/uploads/` geprüft.
 - [x] Write integration tests in `server/test/trainingBundles.test.ts` that POST a fixture zip and assert the manifest entry (include a fixture example in `server/test/fixtures/trainingBundle.zip`).
 

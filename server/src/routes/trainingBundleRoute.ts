@@ -44,6 +44,10 @@ interface TrainingBundleMetadata {
   source: string | null;
   clipFilename: string | null;
   stillFilename: string | null;
+  validationSummary?: {
+    frameCount: number;
+    landmarksPath: string;
+  };
 }
 
 interface TrainingBundleManifestEntry {
@@ -124,6 +128,72 @@ function isPathInside(target: string, root: string): boolean {
   const normalizedRoot = root.endsWith(path.sep) ? root : `${root}${path.sep}`;
   const resolved = path.resolve(target);
   return resolved === root || resolved.startsWith(normalizedRoot);
+}
+
+interface LandmarksValidationResult {
+  relativePath: string;
+  frameCount: number;
+}
+
+async function cleanupBundleRoot(bundleRoot: string): Promise<void> {
+  try {
+    await fs.rm(bundleRoot, { recursive: true, force: true });
+  } catch (error) {
+    console.warn('Failed to clean up invalid training bundle directory', { error, bundleRoot });
+  }
+}
+
+async function validateLandmarksFile(
+  bundleRoot: string,
+  bundleRootResolved: string,
+  files: string[],
+): Promise<LandmarksValidationResult> {
+  const relative = files.find((file) => file.replace(/\\/g, '/').endsWith('landmarks.json'));
+  if (!relative) {
+    throw new Error('landmarks.json missing from bundle');
+  }
+
+  const normalizedRelative = relative.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!normalizedRelative) {
+    throw new Error('landmarks.json path invalid');
+  }
+
+  const targetPath = path.resolve(bundleRoot, normalizedRelative.split('/').join(path.sep));
+  if (!isPathInside(targetPath, bundleRootResolved)) {
+    throw new Error('landmarks.json path escapes extraction directory');
+  }
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(targetPath, 'utf8');
+  } catch (error) {
+    throw new Error('landmarks.json could not be read');
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error('landmarks.json must be valid JSON');
+  }
+
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray((parsed as any).frames)) {
+    throw new Error('landmarks.json must include a frames array');
+  }
+
+  const frames = (parsed as { frames: Array<{ landmarks?: unknown }> }).frames;
+  let frameCount = 0;
+  for (const frame of frames) {
+    if (Array.isArray((frame ?? {}).landmarks) && (frame as { landmarks: unknown[] }).landmarks.length > 0) {
+      frameCount += 1;
+    }
+  }
+
+  if (frameCount === 0) {
+    throw new Error('landmarks.json must contain at least one frame with landmarks');
+  }
+
+  return { relativePath: relative, frameCount };
 }
 
 const VIDEO_FILE_EXTENSIONS = ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'];
@@ -313,6 +383,7 @@ export function registerTrainingBundleRoute(
         }
       } catch (error) {
         console.error('Failed to extract training bundle payload:', error);
+        await cleanupBundleRoot(bundleRoot);
         return res.status(400).json({ error: 'Failed to extract training bundle' });
       }
 
@@ -330,8 +401,28 @@ export function registerTrainingBundleRoute(
 
       const files = Array.from(new Set(storedFiles));
 
+      let landmarksValidation: LandmarksValidationResult;
+      try {
+        landmarksValidation = await validateLandmarksFile(bundleRoot, bundleRootResolved, files);
+      } catch (error: any) {
+        console.error('Invalid landmarks.json in training bundle:', error);
+        await cleanupBundleRoot(bundleRoot);
+        return res.status(400).json({
+          error: 'landmarks.json missing or invalid',
+          ...(error?.message ? { details: error.message } : {}),
+        });
+      }
+
       const clipRelativePath = findClipRelativePath(files, clipFilename);
       const stillRelativePath = findStillRelativePath(files, stillFilename);
+
+      const metadataWithSummary: TrainingBundleMetadata = {
+        ...sanitizedMetadata,
+        validationSummary: {
+          frameCount: landmarksValidation.frameCount,
+          landmarksPath: landmarksValidation.relativePath,
+        },
+      };
 
       const manifestEntry: TrainingBundleManifestEntry = {
         id: bundleId,
@@ -346,7 +437,7 @@ export function registerTrainingBundleRoute(
           ...(clipRelativePath ? { clip: clipRelativePath } : {}),
           ...(stillRelativePath ? { still: stillRelativePath } : {}),
         },
-        metadata: sanitizedMetadata,
+        metadata: metadataWithSummary,
         receivedAt: new Date().toISOString(),
       };
 

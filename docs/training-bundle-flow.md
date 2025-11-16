@@ -18,7 +18,7 @@ sequenceDiagram
 ## Wichtige Implementierungsstellen
 
 - `app/src/services/trainingBundleService.ts` – baut und lädt das ZIP mit Landmark-Timeline und Videoclip.
-- `server/src/routes/trainingBundleRoute.ts` – validiert und entpackt Trainingspakete, legt sie unter `data/uploads/` ab und erweitert das Manifest.
+- `server/src/routes/trainingBundleRoute.ts` – validiert und entpackt Trainingspakete, stellt sicher, dass `landmarks.json` vorhanden ist und mindestens einen Frame enthält, räumt fehlerhafte Extraktionen wieder auf und erweitert das Manifest inklusive `metadata.validationSummary` (Frame-Anzahl + Pfad).
 - Das ehemalige Portal (`server/src/portal/index.ts`) wurde entfernt. Pflegekräfte prüfen Bundles direkt anhand der abgelegten Dateien.
 
 ## Manuelle QA-Checkliste
@@ -27,6 +27,7 @@ sequenceDiagram
 2. **Bundle-Upload beobachten** – Sicherstellen, dass `uploadTrainingBundle` eine `queued`-Antwort vom Server erhält (Debug-Log `trainingBundleService`).
 3. **Bundle-Dateien prüfen** – Im Verzeichnis `data/uploads/<profil>/` sicherstellen, dass `bundle.zip` und extrahierte Assets vorliegen.
 4. **Videoclip abspielen** – Den abgelegten Clip (`*.mp4`) lokal öffnen und prüfen, dass die Aufnahme vollständig ist.
-5. **Manifest-Datei inspizieren** – `data/datasets/training_manifest.json` kontrollieren: neuer Eintrag mit korrekten Dateipfaden?
+5. **Landmarks-Datei validieren** – `landmarks.json` öffnen, JSON parse (mindestens ein Frame vorhanden) und bestätigen, dass die Daten mit den Logs übereinstimmen.
+6. **Manifest-Datei inspizieren** – `data/datasets/training_manifest.json` kontrollieren: neuer Eintrag mit korrekten Dateipfaden und aktualisiertem `metadata.validationSummary`?
 
-Die Schritte 3–5 stellen sicher, dass jedes Paket vollständig vorliegt, bevor es in das Training einfließt.
+Die Schritte 3–6 stellen sicher, dass jedes Paket vollständig vorliegt, bevor es in das Training einfließt.

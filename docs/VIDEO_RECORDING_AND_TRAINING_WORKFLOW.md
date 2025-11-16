@@ -95,7 +95,7 @@ export function getClipCaptureErrorMessage(error: unknown): string
     - `clip.mp4` (video recording, optional when the camera pipeline fails)
   - Uploads to `/api/v1/dgs/sample-bundles`
   - Queue management with AsyncStorage
-  - Wi-Fi + charging checks before upload
+  - Wi-Fi availability check before upload (charging is no longer required; we fire the sync immediately when Wi-Fi is reachable so the upload does not get stuck while the phone is asleep or off the charger)
   - Automatic retry on failure
   - **Degraded mode**: if `clipUri` is missing the app logs a warning, skips the video attachment, and still uploads the metadata + landmark bundle so caregivers do not lose their samples. See `app/src/services/trainingSync.ts` and `app/src/services/trainingBundleService.ts` for the fallback implementation.
 
@@ -109,6 +109,7 @@ export function getClipCaptureErrorMessage(error: unknown): string
 - Route: `server/src/routes/trainingBundleRoute.ts`
 - Endpoint: `POST /api/v1/dgs/sample-bundles`
 - Accepts: ZIP bundles up to 64MB
+- Validates that `landmarks.json` exists, parses it, requires at least one frame, and records a `validationSummary` (frame count + file path) inside `manifestEntry.metadata`. Invalid bundles are rejected with HTTP 400 and the partially extracted directory is removed to avoid orphaned files.
 - Returns: Bundle ID and training job status
 
 **Bundle Format**:
@@ -126,7 +127,7 @@ export function getClipCaptureErrorMessage(error: unknown): string
 }
 ```
 
-> Wenn kein Clip gespeichert wurde, enthält das ZIP nur `metadata.json`, `landmarks.json` und ggf. `still.jpg`. Die Serverroute akzeptiert dieses degradierte Paket weiterhin und kennzeichnet es lediglich ohne `clipFilename` im Manifest.
+> Wenn kein Clip gespeichert wurde, enthält das ZIP nur `metadata.json`, `landmarks.json` und ggf. `still.jpg`. Die Serverroute akzeptiert dieses degradierte Paket weiterhin und kennzeichnet es lediglich ohne `clipFilename` im Manifest. Wichtig: `landmarks.json` ist Pflicht – fehlt die Datei oder enthält sie keine Frames, antwortet der Server mit HTTP 400.
 
 **Profilzuordnung auf mehreren Geräten**:
 - Jeder Profil-Datensatz lebt in der verschlüsselten WatermelonDB (`app/db/models.ts`). Beim Aufzeichnen liest `createTrainingSample` (`app/src/storage.ts`) die aktuell aktive Profil-ID und schreibt sie direkt in das Sample.
@@ -287,7 +288,7 @@ export async function installMlp(
 3. UPLOAD (App - Background Sync)
    ┌──────────────────────────────────────────────────────────────┐
    │ trainingSyncScheduler                                        │
-   │   - Checks Wi-Fi + charging status                          │
+   │   - Checks Wi-Fi availability (charging optional)           │
    │   - Triggers sync when conditions met                       │
    │ ↓                                                             │
    │ uploadTrainingBundle()                                       │
