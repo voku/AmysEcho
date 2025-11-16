@@ -1,4 +1,5 @@
 const store: Record<string, string> = {};
+const PRACTICE_PROFILE_ID = 'profile-practice';
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: async (key: string) => store[key] ?? null,
   setItem: async (key: string, value: string) => { store[key] = value; },
@@ -33,13 +34,13 @@ describe('saveTrainingSample', () => {
 
   it('stores samples with default HIP_2 source', async () => {
     const sample = createTrainingSample({
-      profileId: 'default',
+      profileId: PRACTICE_PROFILE_ID,
       label: 'gesture1',
       frames: [] as TrainingFrame[],
       clipUri: 'file://clip.mp4',
     });
     const storedSample = await saveTrainingSample(sample);
-    const raw = store['gestureTrainingData_default'];
+    const raw = store[`gestureTrainingData_${PRACTICE_PROFILE_ID}`];
     expect(raw).toBeTruthy();
     const data = JSON.parse(raw as string);
     expect(data[0].source).toBe('HIP_2');
@@ -51,14 +52,14 @@ describe('saveTrainingSample', () => {
 
   it('stores samples with HIP_4 source when specified', async () => {
     const sample = createTrainingSample({
-      profileId: 'default',
+      profileId: PRACTICE_PROFILE_ID,
       label: 'gesture1',
       frames: [] as TrainingFrame[],
       clipUri: 'file://clip.mp4',
       source: 'HIP_4',
     });
     await saveTrainingSample(sample);
-    const raw = store['gestureTrainingData_default'];
+    const raw = store[`gestureTrainingData_${PRACTICE_PROFILE_ID}`];
     expect(raw).toBeTruthy();
     const data = JSON.parse(raw as string);
     expect(data[0].source).toBe('HIP_4');

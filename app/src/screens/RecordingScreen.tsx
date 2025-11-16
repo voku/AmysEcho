@@ -220,9 +220,13 @@ export default function RecordingScreen({ navigation, route }: any) {
       ? `Übe ${displayGestureName} in deinem Tempo und achte auf ruhige Bewegungen.`
       : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy ${displayGestureName} sicher erkennt.`
     : 'Wähle eine Geste aus, um mit der Aufnahme zu beginnen.';
+  const profileReady = Boolean(profile?.id);
   const primaryCtaLabel = useMemo(() => {
     if (isRecording) {
       return 'Aufnahme stoppen';
+    }
+    if (!profileReady) {
+      return 'Profil wird geladen …';
     }
     if (!gestureId) {
       return 'Geste auswählen';
@@ -231,7 +235,7 @@ export default function RecordingScreen({ navigation, route }: any) {
       return 'Kamera starten';
     }
     return `Beispiel ${count + 1} / ${TARGET_SAMPLES} aufnehmen`;
-  }, [cameraReady, count, gestureId, isRecording, TARGET_SAMPLES]);
+  }, [TARGET_SAMPLES, cameraReady, count, gestureId, isRecording, profileReady]);
   const panelBackground = highContrast ? COLORS.highContrastBackground : COLORS.panelBackground;
   const panelBorderColor = highContrast ? COLORS.highContrastText : COLORS.panelBorder;
 
@@ -297,7 +301,7 @@ export default function RecordingScreen({ navigation, route }: any) {
   }, []);
 
   const startRecording = useCallback(async () => {
-    if (!gestureId || !cameraReady) return;
+    if (!gestureId || !cameraReady || !profile) return;
     setError(null);
     setRecordedFrames([]);
     setFramesCaptured(0);
@@ -315,11 +319,11 @@ export default function RecordingScreen({ navigation, route }: any) {
     }
 
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
-  }, [cameraReady, cleanupClipFile, gestureId, isPractice]);
+  }, [cameraReady, cleanupClipFile, gestureId, isPractice, profile]);
 
   const stopRecording = useCallback(async () => {
     setIsRecording(false);
-    if (!gestureId || !cameraReady) return;
+    if (!gestureId || !cameraReady || !profile) return;
 
     let clipUri: string | null = null;
     let clipFailure: unknown = null;
@@ -362,7 +366,7 @@ export default function RecordingScreen({ navigation, route }: any) {
     try {
       const capturedAt = new Date().toISOString();
       const sample = createTrainingSample({
-        profileId: profile?.id ?? 'default',
+        profileId: profile.id,
         label: gestureId,
         frames: recordedFrames,
         clipUri,
@@ -401,7 +405,7 @@ export default function RecordingScreen({ navigation, route }: any) {
     gestureId,
     isPractice,
     persistClip,
-    profile?.id,
+    profile,
     recordedFrames,
     showToast,
   ]);
@@ -794,8 +798,9 @@ export default function RecordingScreen({ navigation, route }: any) {
                     styles.button,
                     styles.primaryButton,
                     highContrast && styles.buttonHC,
-                    (!gestureId || (!cameraReady && !isRecording)) && styles.buttonDisabled,
+                    (!profileReady || !gestureId || (!cameraReady && !isRecording)) && styles.buttonDisabled,
                     pressed &&
+                      profileReady &&
                       gestureId &&
                       (cameraReady || isRecording) &&
                       (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
@@ -810,7 +815,7 @@ export default function RecordingScreen({ navigation, route }: any) {
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={primaryCtaLabel}
-                  disabled={!gestureId || (!cameraReady && !isRecording)}
+                  disabled={!profileReady || !gestureId || (!cameraReady && !isRecording)}
                 >
                   <Text
                     style={[

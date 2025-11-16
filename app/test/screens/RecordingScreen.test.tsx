@@ -119,6 +119,15 @@ const { MediaPipeGestureDetector } = require('../../src/components/MediaPipeGest
 const startClipCaptureMock = (MediaPipeGestureDetector as any).startClipCaptureMock as jest.Mock;
 const stopClipCaptureMock = (MediaPipeGestureDetector as any).stopClipCaptureMock as jest.Mock;
 const cancelClipCaptureMock = (MediaPipeGestureDetector as any).cancelClipCaptureMock as jest.Mock;
+const storage = require('../../src/storage');
+
+const DEFAULT_PROFILE = { id: 'recording-profile', displayName: 'Testprofil' };
+const recordPressableMatchers = [
+  'Geste auswählen',
+  'Kamera starten',
+  'Aufnahme stoppen',
+  'Profil wird geladen …',
+];
 
 describe('RecordingScreen', () => {
   let component: renderer.ReactTestRenderer | null = null;
@@ -145,6 +154,7 @@ describe('RecordingScreen', () => {
     (clipPersistence.persistClipToDirectory as jest.Mock).mockImplementation(
       actualClipPersistence.persistClipToDirectory,
     );
+    (storage.loadProfile as jest.Mock).mockResolvedValue(DEFAULT_PROFILE);
   });
 
   afterEach(() => {
@@ -164,9 +174,7 @@ describe('RecordingScreen', () => {
         node.type === 'Pressable' &&
         typeof node.props.accessibilityLabel === 'string' &&
         (node.props.accessibilityLabel.includes('Beispiel') ||
-          node.props.accessibilityLabel === 'Geste auswählen' ||
-          node.props.accessibilityLabel === 'Kamera starten' ||
-          node.props.accessibilityLabel === 'Aufnahme stoppen'),
+          recordPressableMatchers.includes(node.props.accessibilityLabel)),
     );
 
     if (matches.length === 0) {
@@ -177,9 +185,6 @@ describe('RecordingScreen', () => {
   };
 
   it('disables recording controls until the camera reports ready', async () => {
-    const { loadProfile } = require('../../src/storage');
-    (loadProfile as jest.Mock).mockResolvedValue(null);
-
     await act(async () => {
       component = renderer.create(
         (
@@ -238,8 +243,7 @@ describe('RecordingScreen', () => {
   });
 
   it('zeigt eine Fehlermeldung, wenn das Clip-Verzeichnis nicht angelegt werden kann', async () => {
-    const { saveTrainingSample, loadProfile } = require('../../src/storage');
-    (loadProfile as jest.Mock).mockResolvedValue(null);
+    const { saveTrainingSample } = require('../../src/storage');
     (saveTrainingSample as jest.Mock).mockResolvedValue(undefined);
     const fs = require('expo-file-system');
     (fs.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: false, isDirectory: false });
@@ -296,6 +300,26 @@ describe('RecordingScreen', () => {
       }),
     );
     expect(fs.writeAsStringAsync).not.toHaveBeenCalled();
+  });
+
+  it('blockiert die Aufnahme, bis ein Profil geladen wurde', async () => {
+    (storage.loadProfile as jest.Mock).mockResolvedValue(null);
+
+    await act(async () => {
+      component = renderer.create(
+        (
+          <RecordingScreen
+            navigation={{ goBack: jest.fn() }}
+            route={{ params: { gestureLabel: 'hello' } }}
+          />
+        ) as any,
+      );
+      await Promise.resolve();
+    });
+
+    const recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(true);
+    expect(recordPressable.props.accessibilityLabel).toBe('Profil wird geladen …');
   });
 
 });

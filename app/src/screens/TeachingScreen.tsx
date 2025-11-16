@@ -337,8 +337,12 @@ export default function TeachingScreen({ navigation }: any) {
       setError('Bitte gib einen Namen für die Geste ein.');
       return;
     }
+    if (!profile) {
+      setError('Profil wird geladen. Bitte warte einen Moment.');
+      return;
+    }
     try {
-      const existingCount = await loadTrainingSampleCount(gestureLabel);
+      const existingCount = await loadTrainingSampleCount(gestureLabel, profile.id);
       if (existingCount >= SAMPLES_NEEDED) {
         Alert.alert('Training abgeschlossen', `Die Geste "${gestureLabel}" hat bereits genug Beispiele.`);
         return;
@@ -356,6 +360,10 @@ export default function TeachingScreen({ navigation }: any) {
 
   const recordSample = async () => {
     if (!sessionId.current || isRecording) {
+      return;
+    }
+    if (!profile) {
+      setError('Profil wird geladen. Bitte warte einen Moment.');
       return;
     }
 
@@ -400,7 +408,7 @@ export default function TeachingScreen({ navigation }: any) {
       }
 
       const sample = createTrainingSample({
-        profileId: profile?.id ?? 'default',
+        profileId: profile.id,
         label: gestureLabel,
         frames,
         clipUri,
