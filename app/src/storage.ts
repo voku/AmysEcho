@@ -230,7 +230,11 @@ function genId() {
 }
 
 export async function logCorrection(correctId: string, profileId?: string): Promise<void> {
-  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const activeProfileId = profileId || (await loadActiveProfileId());
+  if (!activeProfileId) {
+    logger.warn('logCorrection called without an active profile');
+    return;
+  }
   const trainingKey = `gestureTrainingData_${activeProfileId}`;
   const logKey = `interactionLogs_${activeProfileId}`;
 
@@ -321,13 +325,19 @@ export async function loadTrainingSampleCount(
   label: string,
   profileId?: string,
 ): Promise<number> {
-  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const activeProfileId = profileId || (await loadActiveProfileId());
+  if (!activeProfileId) {
+    return 0;
+  }
   const samples = await loadSamplesForProfile(activeProfileId);
   return samples.filter((s) => s.label === label).length;
 }
 
 export async function loadTrainingSamples(profileId?: string): Promise<TrainingSample[]> {
-  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const activeProfileId = profileId || (await loadActiveProfileId());
+  if (!activeProfileId) {
+    return [];
+  }
   return loadSamplesForProfile(activeProfileId);
 }
 
@@ -347,7 +357,10 @@ export async function updateTrainingSample(
 }
 
 export async function loadInteractionLogs(profileId?: string): Promise<any[]> {
-  const activeProfileId = profileId || (await loadActiveProfileId()) || 'default';
+  const activeProfileId = profileId || (await loadActiveProfileId());
+  if (!activeProfileId) {
+    return [];
+  }
   const logKey = `interactionLogs_${activeProfileId}`;
 
   const raw = await AsyncStorage.getItem(logKey);

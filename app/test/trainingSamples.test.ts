@@ -1,4 +1,5 @@
 const store: Record<string, string> = {};
+const TRAINING_PROFILE_ID = 'profile-training';
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: async (key: string) => store[key] ?? null,
   setItem: async (key: string, value: string) => { store[key] = value; },
@@ -28,20 +29,20 @@ describe('training sample persistence', () => {
       ],
     };
     const sampleA = createTrainingSample({
-      profileId: 'default',
+      profileId: TRAINING_PROFILE_ID,
       label: 'g1',
       frames: [frame],
       clipUri: 'file://clip.mp4',
     });
     const sampleB = createTrainingSample({
-      profileId: 'default',
+      profileId: TRAINING_PROFILE_ID,
       label: 'g1',
       frames: [frame],
       clipUri: 'file://clip.mp4',
     });
     await saveTrainingSample(sampleA);
     await saveTrainingSample(sampleB);
-    const count = await loadTrainingSampleCount('g1');
+    const count = await loadTrainingSampleCount('g1', TRAINING_PROFILE_ID);
     expect(count).toBe(2);
   });
 });

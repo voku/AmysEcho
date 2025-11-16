@@ -26,6 +26,8 @@ import {
 } from '../src/storage';
 import { enqueueTrainingBundle } from '../src/services/trainingBundleQueue';
 
+const TEST_PROFILE_ID = 'profile-storage';
+
 // Mock dependencies
 jest.mock('@react-native-async-storage/async-storage');
 jest.mock('expo-secure-store');
@@ -231,6 +233,7 @@ describe('Storage', () => {
     it('logs correction with existing training data', async () => {
       const existingData = [{ id: 'existing' }];
       mockAsyncStorage.getItem
+        .mockResolvedValueOnce('profile-log') // active profile id
         .mockResolvedValueOnce(JSON.stringify(existingData)) // training data
         .mockResolvedValueOnce(JSON.stringify([])); // logs
 
@@ -242,12 +245,14 @@ describe('Storage', () => {
       const trainingCall = mockAsyncStorage.setItem.mock.calls[0];
       const logsCall = mockAsyncStorage.setItem.mock.calls[1];
 
-      expect(JSON.parse(trainingCall[1])).toHaveLength(1);
+      expect(JSON.parse(trainingCall[1])).toHaveLength(existingData.length + 1);
       expect(JSON.parse(logsCall[1])).toHaveLength(1);
     });
 
     it('logs correction with no existing data', async () => {
-      mockAsyncStorage.getItem.mockResolvedValue(null);
+      mockAsyncStorage.getItem
+        .mockResolvedValueOnce('profile-log')
+        .mockResolvedValue(null);
       mockAsyncStorage.setItem.mockResolvedValue();
 
       await logCorrection('gesture-1');
@@ -297,7 +302,7 @@ describe('Storage', () => {
       mockDatabase.write.mockImplementation((callback) => callback());
 
       const sample = createTrainingSample({
-        profileId: 'default',
+        profileId: TEST_PROFILE_ID,
         label: 'gesture-1',
         frames,
         clipUri: 'file://clip.mp4',
@@ -307,7 +312,7 @@ describe('Storage', () => {
       await saveTrainingSample(sample);
 
       expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
-        'gestureTrainingData_default',
+        `gestureTrainingData_${TEST_PROFILE_ID}`,
         expect.stringContaining('gesture-1'),
       );
       expect(mockEnqueue).toHaveBeenCalled();
@@ -715,7 +720,7 @@ describe('Storage', () => {
       mockEnqueue.mockRejectedValueOnce(new Error('enqueue failed'));
 
       const sample = createTrainingSample({
-        profileId: 'default',
+        profileId: TEST_PROFILE_ID,
         label: 'gesture-1',
         frames,
         clipUri: 'file://clip.mp4',

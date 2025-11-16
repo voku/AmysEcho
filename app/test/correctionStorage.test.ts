@@ -1,4 +1,5 @@
 const store: Record<string, string> = {};
+const CORRECTION_PROFILE_ID = 'profile-correction';
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: async (key: string) => store[key] ?? null,
   setItem: async (key: string, value: string) => { store[key] = value; },
@@ -18,9 +19,10 @@ describe('logCorrection', () => {
   });
 
   it('stores correction samples and logs', async () => {
+    store.activeProfileId = CORRECTION_PROFILE_ID;
     await logCorrection('gesture1');
 
-    const trainingKey = 'gestureTrainingData_default';
+    const trainingKey = `gestureTrainingData_${CORRECTION_PROFILE_ID}`;
     const trainingRaw = store[trainingKey];
     expect(trainingRaw).toBeTruthy();
     const training = JSON.parse(trainingRaw as string);
@@ -28,7 +30,7 @@ describe('logCorrection', () => {
     expect(training[0].label).toBe('gesture1');
     expect(training[0].source).toBe('HIP_3');
 
-    const logsKey = 'interactionLogs_default';
+    const logsKey = `interactionLogs_${CORRECTION_PROFILE_ID}`;
     const logsRaw = store[logsKey];
     expect(logsRaw).toBeTruthy();
     const logs = JSON.parse(logsRaw as string);

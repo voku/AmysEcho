@@ -422,7 +422,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     if (recordingState !== 'idle') {
       return;
     }
-    if (!gestureId || !cameraReady) {
+    if (!gestureId || !cameraReady || !profile?.id) {
       return;
     }
     setError(null);
@@ -462,13 +462,14 @@ export default function TrainingScreen({ navigation, route }: any) {
     enterClipFallback,
     gestureId,
     isPractice,
+    profile?.id,
     recordingState,
   ]);
 
   const stopRecording = useCallback(async () => {
     setRecordingState('processing');
     try {
-      if (!gestureId || !cameraReady) {
+      if (!gestureId || !cameraReady || !profile?.id) {
         return;
       }
 
@@ -554,7 +555,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       }
 
       const sample = createTrainingSample({
-        profileId: profile?.id ?? 'default',
+        profileId: profile.id,
         label: gestureId,
         frames: recordedFrames,
         clipUri: clipUri ?? '',
@@ -690,7 +691,8 @@ export default function TrainingScreen({ navigation, route }: any) {
 
   const progressLabel = `${Math.min(count, TARGET_SAMPLES)}/${TARGET_SAMPLES} Beispiele`;
   const nextSampleNumber = Math.min(count + 1, TARGET_SAMPLES);
-  const captureDisabled = (!cameraReady && recordingState === 'idle') || isProcessingRecording;
+  const profileReady = Boolean(profile?.id);
+  const captureDisabled = !profileReady || ((!cameraReady && recordingState === 'idle') || isProcessingRecording);
 
   const captureMessaging = useMemo(
     () => {
@@ -709,6 +711,15 @@ export default function TrainingScreen({ navigation, route }: any) {
           detectionStatus: detectionActive ? 'Aufnahme läuft …' : 'Keine Hand erkannt',
           accessibilityLabel: 'Aufnahme stoppen',
           accessibilityHint: 'Tippe, um die aktuelle Aufnahme zu beenden.',
+        } as const;
+      }
+
+      if (!profileReady) {
+        return {
+          hint: 'Profil wird geladen … gleich kannst du Beispiele aufnehmen.',
+          detectionStatus: 'Profil wird geladen …',
+          accessibilityLabel: 'Aufnahme noch nicht möglich',
+          accessibilityHint: 'Bitte warte kurz, bis das Profil vollständig geladen ist.',
         } as const;
       }
 
@@ -737,7 +748,15 @@ export default function TrainingScreen({ navigation, route }: any) {
         accessibilityHint: 'Tippe, um ein neues Beispiel aufzuzeichnen.',
       } as const;
     },
-    [cameraReady, clipCaptureMode, detectionActive, isProcessingRecording, isRecording, nextSampleNumber],
+    [
+      cameraReady,
+      clipCaptureMode,
+      detectionActive,
+      isProcessingRecording,
+      isRecording,
+      nextSampleNumber,
+      profileReady,
+    ],
   );
 
   const captureHint = captureMessaging.hint;
