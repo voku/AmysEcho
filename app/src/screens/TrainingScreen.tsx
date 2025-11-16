@@ -1707,13 +1707,13 @@ export default function TrainingScreen({ navigation, route }: any) {
                   <Image
                     source={{ uri: summaryStillUri }}
                     style={styles.summaryStillImage}
-                    accessibilityLabel={`Gespeichertes Gestenbild für ${gestureId}`}
+                    accessibilityLabel={`Gespeichertes Gestenbild für ${displayGestureName}`}
                   />
                   {referenceCapturedLabel ? (
                     <Text style={styles.summaryStillMeta}>{`Zuletzt aktualisiert am ${referenceCapturedLabel}`}</Text>
                   ) : null}
                   <Text style={styles.summaryStillCaption}>
-                    Dieses Bild hilft allen Betreuungspersonen, die Handform für {gestureId} nachzuvollziehen.
+                    Dieses Bild hilft allen Betreuungspersonen, die Handform für {displayGestureName} nachzuvollziehen.
                   </Text>
                 </View>
               ) : (
