@@ -139,7 +139,10 @@ const { MediaPipeGestureDetector } = require('../../src/components/MediaPipeGest
 const startClipCaptureMock = (MediaPipeGestureDetector as any).startClipCaptureMock as jest.Mock;
 const stopClipCaptureMock = (MediaPipeGestureDetector as any).stopClipCaptureMock as jest.Mock;
 const cancelClipCaptureMock = (MediaPipeGestureDetector as any).cancelClipCaptureMock as jest.Mock;
+const storage = require('../../src/storage');
 const { logHIPEvent } = require('../../src/services/hipEvents');
+
+const DEFAULT_PROFILE = { id: 'training-profile', displayName: 'Testprofil' };
 
 describe('TrainingScreen', () => {
   let component: renderer.ReactTestRenderer | null = null;
@@ -149,6 +152,7 @@ describe('TrainingScreen', () => {
     'Kamera starten',
     'Aufnahme stoppen',
     'Videoaufnahmen nicht möglich',
+    'Aufnahme noch nicht möglich',
   ];
 
   const findRecordPressable = () => {
@@ -194,6 +198,7 @@ describe('TrainingScreen', () => {
     (clipPersistence.persistClipToDirectory as jest.Mock).mockImplementation(
       actualClipPersistence.persistClipToDirectory,
     );
+    (storage.loadProfile as jest.Mock).mockResolvedValue(DEFAULT_PROFILE);
   });
 
   afterEach(() => {
@@ -204,8 +209,7 @@ describe('TrainingScreen', () => {
   });
 
   it('records landmarks via MediaPipe gesture detector', async () => {
-    const { saveTrainingSample, loadProfile } = require('../../src/storage');
-    (loadProfile as jest.Mock).mockResolvedValue(null);
+    const { saveTrainingSample } = require('../../src/storage');
     (saveTrainingSample as jest.Mock).mockResolvedValue(undefined);
     await act(async () => {
       component = renderer.create(
@@ -311,8 +315,7 @@ describe('TrainingScreen', () => {
   });
 
   it('zeigt eine Fehlermeldung, wenn das Clip-Verzeichnis nicht angelegt werden kann', async () => {
-    const { saveTrainingSample, loadProfile } = require('../../src/storage');
-    (loadProfile as jest.Mock).mockResolvedValue(null);
+    const { saveTrainingSample } = require('../../src/storage');
     (saveTrainingSample as jest.Mock).mockResolvedValue(undefined);
     const fs = require('expo-file-system');
     (fs.getInfoAsync as jest.Mock).mockResolvedValueOnce({ exists: false, isDirectory: false });
@@ -369,9 +372,6 @@ describe('TrainingScreen', () => {
   });
 
   it('schaltet auf Landmark-Aufnahme um, wenn MediaRecorder nicht verfügbar ist', async () => {
-    const { loadProfile } = require('../../src/storage');
-    (loadProfile as jest.Mock).mockResolvedValue(null);
-
     await act(async () => {
       component = renderer.create(
         (
@@ -408,9 +408,6 @@ describe('TrainingScreen', () => {
   });
 
   it('schaltet auf Landmark-Aufnahme um, wenn MediaRecorder keine passenden Codecs unterstützt', async () => {
-    const { loadProfile } = require('../../src/storage');
-    (loadProfile as jest.Mock).mockResolvedValue(null);
-
     await act(async () => {
       component = renderer.create(
         (
@@ -447,9 +444,6 @@ describe('TrainingScreen', () => {
   });
 
   it('meldet fehlende Orchestrator-Unterstützung und nutzt Landmark-Fallback', async () => {
-    const { loadProfile } = require('../../src/storage');
-    (loadProfile as jest.Mock).mockResolvedValue(null);
-
     await act(async () => {
       component = renderer.create(
         (
@@ -493,9 +487,6 @@ describe('TrainingScreen', () => {
 
   it('startet Landmark-Aufnahme, wenn Clip-Aufnahme nicht startet', async () => {
     startClipCaptureMock.mockRejectedValueOnce(new Error('media_recorder_failed'));
-    const { loadProfile } = require('../../src/storage');
-    (loadProfile as jest.Mock).mockResolvedValue(null);
-
     await act(async () => {
       component = renderer.create(
         (
@@ -531,8 +522,32 @@ describe('TrainingScreen', () => {
     );
   });
 
+  it('blockiert Aufnahmen, solange das Profil noch lädt', async () => {
+    (storage.loadProfile as jest.Mock).mockResolvedValue(null);
+
+    await act(async () => {
+      component = renderer.create(
+        (
+          <TrainingScreen
+            navigation={{ goBack: jest.fn() }}
+            route={{ params: { gestureLabel: 'hello' } }}
+          />
+        ) as any,
+      );
+      await Promise.resolve();
+    });
+
+    const recordPressable = findRecordPressable();
+    expect(recordPressable.props.disabled).toBe(true);
+    expect(recordPressable.props.accessibilityLabel).toBe('Aufnahme noch nicht möglich');
+
+    const profileHintNode = component!.root.find(
+      (node) => node.type === 'Text' && node.props.children === 'Profil wird geladen … gleich kannst du Beispiele aufnehmen.',
+    );
+    expect(profileHintNode).toBeTruthy();
+  });
+
   it('zeigt Trainingstipps und gut sichtbare Gestenkarten, wenn noch nichts ausgewählt ist', async () => {
-    const storage = require('../../src/storage');
     (storage.loadProfile as jest.Mock).mockResolvedValue(null);
 
     await act(async () => {
