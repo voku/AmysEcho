@@ -84,8 +84,9 @@ Useful log markers:
 
 - `Received DGS sample` – upload succeeded and the bundle hit disk.
 - `Training job completed` – the Python script produced weights.
-- `Serving personalized model` – `/latest-mlp-model` returned profile-specific
-  bytes and the AsyncStorage cache updated.
+- `latest-mlp-model serving global file ...` or `latest-mlp-model resolved
+  profile file ...` – `/latest-mlp-model` streamed bytes from disk and the
+  trainer cache updated.
 
 ## Manual QA & Accessibility
 

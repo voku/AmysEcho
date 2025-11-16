@@ -10,6 +10,8 @@ Before diving into specific issues, run this checklist.
 ```bash
 # 1. Check system status
 npm test --prefix integration
+# (optional quick filter)
+npm test --prefix integration -- --grep "health"
 
 # 2. Verify model file exists
 ls -la server/data/dgs_model.npz

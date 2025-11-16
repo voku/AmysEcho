@@ -190,8 +190,15 @@ NODE_ENV: test
 **Dedicated Accessibility Testing**:
 The integration layer no longer keeps synthetic accessibility specs. Rely on
 the React Native app tests (`npm test --prefix app`) and the manual QA
-checklist in `docs/DeviceTesting.md` to verify contrast modes, focus order,
-and the "DGS-Video anzeigen" toggle.
+checklist in `docs/DeviceTesting.md` to verify:
+
+- Screen reader output for gesture feedback text and caregiver status badges
+  (VoiceOver/TalkBack announce German strings and confidence values).
+- Keyboard or Switch Control navigation for the caregiver upload + model
+  deployment flow (tab order reaches "Modell hochladen" and "Training starten"
+  buttons, ARIA labels stay in German).
+- High-contrast rendering of the "DGS-Video anzeigen" toggle so partially
+  sighted caregivers can verify when trainer playback is active.
 
 ## Deployment Pipeline
 

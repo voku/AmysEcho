@@ -27,7 +27,6 @@ import {
   saveDatabase,
   getProfileData,
   deleteProfileData,
-  createDatabase,
 } from './db.js';
 import { legacyAuth } from './middleware/auth.js';
 import {
@@ -260,28 +259,25 @@ const genId = () =>
 
 // Initialize database before starting server
 let dbInstance: Database;
-try {
-  dbInstance = await setupDatabase(DB_FILE_PATH);
-  app.locals.dbInstance = dbInstance;
-} catch (err) {
-  console.error('Database setup failed:', err);
-  if (process.env.NODE_ENV === 'test') {
-    dbInstance = createDatabase();
-    app.locals.dbInstance = dbInstance;
-    logger.warn('DB fallback created in test mode due to setup failure');
-  } else {
-    process.exit(1); // Exit if database setup fails
-  }
-}
-registerGdprRoutes(app, {
-  authMiddleware: legacyAuth,
-  db: dbInstance,
-  dbFilePath: DB_FILE_PATH,
-  getProfileData,
-  deleteProfileData,
-  withFileLock,
-  logError: (message, meta) => logger.error(message, meta),
-});
+export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
+  .then((db) => {
+    dbInstance = db;
+    app.locals.dbInstance = db;
+    registerGdprRoutes(app, {
+      authMiddleware: legacyAuth,
+      db,
+      dbFilePath: DB_FILE_PATH,
+      getProfileData,
+      deleteProfileData,
+      withFileLock,
+      logError: (message, meta) => logger.error(message, meta),
+    });
+    return db;
+  })
+  .catch((err) => {
+    console.error('Database setup failed:', err);
+    throw err;
+  });
 
 function startTrainingJob(
   samples: TrainingSample[],
@@ -773,15 +769,15 @@ app.use(errorHandler);
 
 const port = config.port;
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(port);
-  (async () => {
-    try {
+  databaseReady
+    .then(async () => {
       await ensureDataDir();
+      app.listen(port);
       logger.info('Server started successfully', { port });
-    } catch (error) {
+    })
+    .catch((error) => {
       const msg = (error as Error)?.message ?? String(error);
       logger.error('Server startup failed', { error: msg });
       process.exit(1);
-    }
-  })();
+    });
 }
