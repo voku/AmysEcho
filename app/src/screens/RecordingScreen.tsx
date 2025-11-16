@@ -319,7 +319,7 @@ export default function RecordingScreen({ navigation, route }: any) {
     }
 
     void logHIPEvent(isPractice ? 'HIP_4' : 'HIP_2', 'sample_start', { gestureId });
-  }, [cameraReady, cleanupClipFile, gestureId, isPractice, profile?.id]);
+  }, [cameraReady, cleanupClipFile, gestureId, isPractice, profile]);
 
   const stopRecording = useCallback(async () => {
     setIsRecording(false);
@@ -405,7 +405,7 @@ export default function RecordingScreen({ navigation, route }: any) {
     gestureId,
     isPractice,
     persistClip,
-    profile?.id,
+    profile,
     recordedFrames,
     showToast,
   ]);

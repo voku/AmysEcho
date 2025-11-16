@@ -462,7 +462,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     enterClipFallback,
     gestureId,
     isPractice,
-    profile?.id,
+    profile,
     recordingState,
   ]);
 
@@ -613,7 +613,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     gestureId,
     isPractice,
     persistClip,
-    profile?.id,
+    profile,
     recordedFrames,
     showToast,
   ]);
