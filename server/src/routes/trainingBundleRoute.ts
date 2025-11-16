@@ -44,6 +44,10 @@ interface TrainingBundleMetadata {
   source: string | null;
   clipFilename: string | null;
   stillFilename: string | null;
+  validationSummary?: {
+    frameCount: number;
+    landmarksPath: string;
+  };
 }
 
 interface TrainingBundleManifestEntry {
@@ -80,6 +84,19 @@ const MetadataSchema = z
     source: z.string().optional(),
     clipFilename: z.string().optional(),
     stillFilename: z.string().optional(),
+  })
+  .passthrough();
+
+const LandmarkFrameSchema = z
+  .object({
+    landmarks: z.array(z.unknown()).optional(),
+  })
+  .passthrough()
+  .nullable();
+
+const LandmarksFileSchema = z
+  .object({
+    frames: z.array(LandmarkFrameSchema),
   })
   .passthrough();
 
@@ -124,6 +141,77 @@ function isPathInside(target: string, root: string): boolean {
   const normalizedRoot = root.endsWith(path.sep) ? root : `${root}${path.sep}`;
   const resolved = path.resolve(target);
   return resolved === root || resolved.startsWith(normalizedRoot);
+}
+
+interface LandmarksValidationResult {
+  relativePath: string;
+  frameCount: number;
+}
+
+async function cleanupBundleRoot(bundleRoot: string): Promise<void> {
+  try {
+    await fs.rm(bundleRoot, { recursive: true, force: true });
+  } catch (error) {
+    console.warn('Failed to clean up invalid training bundle directory', { error, bundleRoot });
+  }
+}
+
+async function validateLandmarksFile(
+  bundleRoot: string,
+  bundleRootResolved: string,
+  files: string[],
+): Promise<LandmarksValidationResult> {
+  const relative = files.find((file) => {
+    const normalized = file.replace(/\\/g, '/');
+    const baseName = normalized.split('/').pop();
+    return baseName === 'landmarks.json';
+  });
+  if (!relative) {
+    throw new Error('landmarks.json missing from bundle');
+  }
+
+  const normalizedRelative = relative.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!normalizedRelative) {
+    throw new Error('landmarks.json path invalid');
+  }
+
+  const targetPath = path.resolve(bundleRoot, normalizedRelative.split('/').join(path.sep));
+  if (!isPathInside(targetPath, bundleRootResolved)) {
+    throw new Error('landmarks.json path escapes extraction directory');
+  }
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(targetPath, 'utf8');
+  } catch (error) {
+    throw new Error('landmarks.json could not be read');
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    throw new Error('landmarks.json must be valid JSON');
+  }
+
+  const validation = LandmarksFileSchema.safeParse(parsed);
+  if (!validation.success) {
+    throw new Error('landmarks.json must include a frames array');
+  }
+
+  const { frames } = validation.data;
+  const frameCount = frames.reduce((count, frame) => {
+    if (frame?.landmarks && frame.landmarks.length > 0) {
+      return count + 1;
+    }
+    return count;
+  }, 0);
+
+  if (frameCount === 0) {
+    throw new Error('landmarks.json must contain at least one frame with landmarks');
+  }
+
+  return { relativePath: relative, frameCount };
 }
 
 const VIDEO_FILE_EXTENSIONS = ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'];
@@ -313,6 +401,7 @@ export function registerTrainingBundleRoute(
         }
       } catch (error) {
         console.error('Failed to extract training bundle payload:', error);
+        await cleanupBundleRoot(bundleRoot);
         return res.status(400).json({ error: 'Failed to extract training bundle' });
       }
 
@@ -330,8 +419,28 @@ export function registerTrainingBundleRoute(
 
       const files = Array.from(new Set(storedFiles));
 
+      let landmarksValidation: LandmarksValidationResult;
+      try {
+        landmarksValidation = await validateLandmarksFile(bundleRoot, bundleRootResolved, files);
+      } catch (error: any) {
+        console.error('Invalid landmarks.json in training bundle:', error);
+        await cleanupBundleRoot(bundleRoot);
+        return res.status(400).json({
+          error: 'landmarks.json missing or invalid',
+          ...(error?.message ? { details: error.message } : {}),
+        });
+      }
+
       const clipRelativePath = findClipRelativePath(files, clipFilename);
       const stillRelativePath = findStillRelativePath(files, stillFilename);
+
+      const metadataWithSummary: TrainingBundleMetadata = {
+        ...sanitizedMetadata,
+        validationSummary: {
+          frameCount: landmarksValidation.frameCount,
+          landmarksPath: landmarksValidation.relativePath,
+        },
+      };
 
       const manifestEntry: TrainingBundleManifestEntry = {
         id: bundleId,
@@ -346,7 +455,7 @@ export function registerTrainingBundleRoute(
           ...(clipRelativePath ? { clip: clipRelativePath } : {}),
           ...(stillRelativePath ? { still: stillRelativePath } : {}),
         },
-        metadata: sanitizedMetadata,
+        metadata: metadataWithSummary,
         receivedAt: new Date().toISOString(),
       };
 

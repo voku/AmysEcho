@@ -1,3 +1,4 @@
+import AdmZip from 'adm-zip';
 import { spawn } from 'child_process';
 import { once } from 'events';
 import assert from 'node:assert';
@@ -11,6 +12,42 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', 'server');
 const PORT = 5050;
 let proc;
+
+const TEST_PROFILE_ID = 'p-integration';
+const TEST_LABEL = 'HALLO';
+
+function buildTestTrainingBundleZipBuffer() {
+  const metadata = {
+    profileId: TEST_PROFILE_ID,
+    label: TEST_LABEL,
+    capturedAt: '2024-05-28T12:03:11Z',
+    source: 'app://integration-test',
+    clipFilename: 'clip.webm',
+    stillFilename: 'still.jpg',
+  };
+  const landmarks = Array.from({ length: 42 }, (_, idx) => {
+    const base = idx / 100;
+    return [base, base / 2, base / 3];
+  });
+
+  const zip = new AdmZip();
+  zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+  zip.addFile(
+    'bundle/landmarks.json',
+    Buffer.from(
+      JSON.stringify(
+        {
+          frames: [{ landmarks }],
+        },
+        null,
+        2,
+      ),
+    ),
+  );
+  zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
+  zip.addFile('bundle/still.jpg', Buffer.from('fake-image-data'));
+  return zip.toBuffer();
+}
 
 async function startServer() {
   // Ensure a clean database so prior runs don't influence API tests
@@ -248,8 +285,7 @@ test('GET /latest-mlp-model serves file and client caches it', async () => {
 });
 
 test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model', async () => {
-  const bundlePath = join(serverDir, 'test', 'fixtures', 'trainingBundle.zip');
-  const bundleBuffer = await fs.readFile(bundlePath);
+  const bundleBuffer = buildTestTrainingBundleZipBuffer();
 
   const uploadRes = await fetch(`http://localhost:${PORT}/api/v1/dgs/sample-bundles`, {
     method: 'POST',

@@ -21,6 +21,19 @@ const TrainingBundleManifestEntrySchema = z
       })
       .passthrough(),
     receivedAt: z.string(),
+    metadata: z
+      .object({
+        profileId: z.string().nullable().optional(),
+        validationSummary: z
+          .object({
+            frameCount: z.number().optional(),
+            landmarksPath: z.string().optional(),
+          })
+          .passthrough()
+          .optional(),
+      })
+      .passthrough()
+      .optional(),
   })
   .passthrough();
 
@@ -63,6 +76,56 @@ function isDatasetSample(value: unknown): value is DatasetSample {
 
 const BUNDLE_SAMPLE_PREFIX = 'bundle:';
 const MAX_LANDMARK_POINTS = 42;
+
+function normalizeRelativePath(relativePath: string): string | null {
+  if (typeof relativePath !== 'string') {
+    return null;
+  }
+  const normalized = relativePath.replace(/\\/g, '/').replace(/^\/+/, '').trim();
+  if (!normalized || normalized === '.' || normalized === '..') {
+    return null;
+  }
+  const segments = normalized.split('/');
+  if (segments.some((segment) => segment.length === 0 || segment === '.' || segment === '..')) {
+    return null;
+  }
+  if (normalized.includes(':')) {
+    return null;
+  }
+  return normalized;
+}
+
+function selectLandmarksRelativePath(entry: TrainingBundleManifestEntry): string | null {
+  const summaryPath =
+    entry.metadata && typeof entry.metadata === 'object'
+      ? (entry.metadata as Record<string, unknown>).validationSummary
+      : null;
+  if (summaryPath && typeof (summaryPath as Record<string, unknown>).landmarksPath === 'string') {
+    const normalized = normalizeRelativePath(
+      (summaryPath as { landmarksPath: string }).landmarksPath,
+    );
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  const files = Array.isArray(entry.storage?.files)
+    ? entry.storage!.files.filter((file): file is string => typeof file === 'string')
+    : [];
+
+  for (const file of files) {
+    const normalized = normalizeRelativePath(file);
+    if (!normalized) {
+      continue;
+    }
+    const baseName = normalized.split('/').pop();
+    if (baseName === 'landmarks.json') {
+      return normalized;
+    }
+  }
+
+  return null;
+}
 
 function ensureInside(base: string, target: string): string {
   const baseResolved = path.resolve(base);
@@ -151,14 +214,11 @@ async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<number
   }
   const dataRoot = path.resolve(DATA_DIR);
   const bundleRoot = ensureInside(dataRoot, path.join(dataRoot, entry.storage.directory));
-  const files = Array.isArray(entry.storage.files)
-    ? entry.storage.files.filter((file): file is string => typeof file === 'string')
-    : [];
-  const relativeLandmarks = files.find((f) => f.replace(/\\/g, '/').endsWith('landmarks.json'));
+  const relativeLandmarks = selectLandmarksRelativePath(entry);
   if (!relativeLandmarks) {
     return [];
   }
-  const normalizedRelative = relativeLandmarks.replace(/\\/g, '/').replace(/^\//, '');
+  const normalizedRelative = relativeLandmarks.replace(/\\/g, '/');
   const landmarksPath = ensureInside(bundleRoot, path.join(bundleRoot, normalizedRelative));
   try {
     const raw = await fs.readFile(landmarksPath, 'utf8');

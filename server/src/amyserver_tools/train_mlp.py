@@ -194,6 +194,31 @@ def resolve_relative_path(base: Path, relative: str) -> Optional[Path]:
         return None
 
 
+def select_landmarks_relative_path(entry: dict) -> str:
+    metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else None
+    summary = metadata.get("validationSummary") if metadata else None
+    if isinstance(summary, dict):
+        path_candidate = summary.get("landmarksPath")
+        if isinstance(path_candidate, str):
+            normalized = path_candidate.replace("\\", "/").lstrip("/")
+            if normalized:
+                return normalized
+
+    files = entry.get("storage", {}).get("files")
+    if isinstance(files, list):
+        for file in files:
+            if not isinstance(file, str):
+                continue
+            normalized = file.replace("\\", "/").lstrip("/")
+            if not normalized:
+                continue
+            base_name = normalized.split("/")[-1]
+            if base_name == "landmarks.json":
+                return normalized
+
+    return "landmarks.json"
+
+
 def load_json(path: Path) -> Optional[dict]:
     try:
         with path.open("r", encoding="utf-8") as handle:
@@ -879,7 +904,11 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             continue
 
         bundle_dir = ensure_inside(DATA_DIR, DATA_DIR / rel_dir)
-        landmarks_path = bundle_dir / "landmarks.json"
+        landmarks_relative = select_landmarks_relative_path(entry)
+        try:
+            landmarks_path = ensure_inside(bundle_dir, bundle_dir / Path(landmarks_relative))
+        except ValueError:
+            continue
         cache_path = bundle_dir / CACHE_FILENAME
 
         clip_path = _resolve_clip_path(entry, bundle_dir)
