@@ -273,7 +273,7 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     for (const bundle of bundles) {
       try {
         const uploadOptions = token ? { tokenOverride: token } : {};
-        const clipUri = typeof bundle.clipUri === 'string' && bundle.clipUri.trim().length > 0 ? bundle.clipUri : null;
+        const clipUri = bundle.clipUri?.trim() || null;
         if (!clipUri) {
           logger.warn('Bundle clip missing before upload; degraded payload will be sent', {
             bundleKey: bundle.key,
