@@ -5,8 +5,10 @@ import * as FileSystem from 'expo-file-system';
 import {
   saveTrainingSample,
   loadProfile,
+  loadTrainingSamples,
   Profile,
   TrainingFrame,
+  TrainingSample,
   createTrainingSample,
 } from '../storage';
 import { gestureModel } from '../model';
@@ -76,6 +78,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [stillPreviewUri, setStillPreviewUri] = useState<string | null>(null);
+  const [referenceStill, setReferenceStill] = useState<{ uri: string; capturedAt?: string } | null>(null);
   const [lastDetection, setLastDetection] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -95,6 +98,10 @@ export default function TrainingScreen({ navigation, route }: any) {
     canUseClipStorage(expoFs) ? null : 'clip_directory_unavailable',
   );
   const clipFallbackToastShownRef = useRef(false);
+  const stillPreviewUriRef = useRef<string | null>(null);
+  useEffect(() => {
+    stillPreviewUriRef.current = stillPreviewUri;
+  }, [stillPreviewUri]);
   const announceClipFallback = useCallback(() => {
     if (clipFallbackToastShownRef.current) {
       return;
@@ -226,6 +233,64 @@ export default function TrainingScreen({ navigation, route }: any) {
       });
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveLatestStill = (samples: TrainingSample[], label: string): { uri: string; capturedAt?: string } | null => {
+      const matching = samples.filter(
+        (sample) => sample.label === label && typeof sample.stillUri === 'string' && sample.stillUri.trim().length > 0,
+      );
+      if (matching.length === 0) {
+        return null;
+      }
+      const latest = matching.reduce((latest, current) => {
+        const latestTime = Date.parse(latest.capturedAt ?? latest.createdAt ?? '');
+        const currentTime = Date.parse(current.capturedAt ?? current.createdAt ?? '');
+        if (Number.isNaN(currentTime)) {
+          return latest;
+        }
+        if (Number.isNaN(latestTime)) {
+          return current;
+        }
+        return currentTime > latestTime ? current : latest;
+      });
+      return { uri: latest.stillUri.trim(), capturedAt: latest.capturedAt ?? latest.createdAt };
+    };
+
+    const hydrate = async () => {
+      if (!gestureId || !profile?.id) {
+        if (!cancelled) {
+          setReferenceStill(null);
+          setStillPreviewUri(null);
+        }
+        return;
+      }
+
+      try {
+        const samples = await loadTrainingSamples(profile.id);
+        if (cancelled) {
+          return;
+        }
+        const latest = resolveLatestStill(samples, gestureId);
+        setReferenceStill(latest);
+        if (latest?.uri) {
+          setStillPreviewUri(latest.uri);
+        }
+      } catch (loadError) {
+        logger.warn('Failed to load stored gesture still image', loadError);
+        if (!cancelled) {
+          setReferenceStill(null);
+        }
+      }
+    };
+
+    void hydrate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gestureId, profile?.id]);
+
   const detectionActive = now - lastDetection < 1000;
 
   const trainingLoopStage = useMemo<WorkflowRouteName>(() => {
@@ -329,6 +394,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     setFramesCaptured(0);
     setLastDetection(0);
     setStillPreviewUri(null);
+    setReferenceStill(null);
     setCameraReady(false);
     clipRequestIdRef.current = null;
     detectorRef.current?.cancelClipCapture();
@@ -482,6 +548,7 @@ export default function TrainingScreen({ navigation, route }: any) {
           stillUri = stillPath;
           stillFileRef.current = stillPath;
           setStillPreviewUri(stillPath);
+          setReferenceStill({ uri: stillPath, capturedAt });
         } catch (stillError) {
           logger.warn('Failed to persist training still image', stillError);
           stillUri = '';
@@ -681,6 +748,31 @@ export default function TrainingScreen({ navigation, route }: any) {
   const detectionStatusText = captureMessaging.detectionStatus;
   const captureAccessibilityLabel = captureMessaging.accessibilityLabel;
   const captureAccessibilityHint = captureMessaging.accessibilityHint;
+
+  const activeStillUri = !isRecording ? stillPreviewUri ?? referenceStill?.uri ?? null : null;
+  const summaryStillUri = stillPreviewUri ?? referenceStill?.uri ?? null;
+  const referenceCapturedAt = referenceStill?.capturedAt;
+  const referenceCapturedLabel = useMemo(() => {
+    if (!referenceCapturedAt) {
+      return null;
+    }
+    const date = new Date(referenceCapturedAt);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+    try {
+      return date.toLocaleString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (formatError) {
+      logger.warn('Failed to format still capture timestamp', formatError);
+      return null;
+    }
+  }, [referenceCapturedAt]);
 
   const progressTop = insets.top + SPACING.lg;
   const statusTop = progressTop + SPACING.xl;
@@ -947,6 +1039,12 @@ export default function TrainingScreen({ navigation, route }: any) {
       borderRadius: DEFAULT_RADIUS * 1.2,
       backgroundColor: 'rgba(255, 255, 255, 0.08)',
     },
+    stillPreviewMeta: {
+      color: overlayTextColor,
+      fontSize: largeText ? 13 : 11,
+      textAlign: 'center',
+      opacity: 0.75,
+    },
     stillPreviewCaption: {
       color: overlayTextColor,
       fontSize: largeText ? 14 : 12,
@@ -1155,6 +1253,55 @@ export default function TrainingScreen({ navigation, route }: any) {
       width: '100%',
       alignItems: 'center',
       gap: SPACING.md,
+    },
+    summaryStillCard: {
+      width: '100%',
+      maxWidth: 360,
+      borderRadius: DEFAULT_RADIUS * 1.5,
+      padding: SPACING.md,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      borderWidth: highContrast ? 2 : StyleSheet.hairlineWidth,
+      borderColor: highContrast ? COLORS.highContrastText : 'rgba(16, 36, 63, 0.16)',
+      gap: SPACING.sm,
+      alignItems: 'center',
+    },
+    summaryStillTitle: {
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontWeight: '700',
+      fontSize: largeText ? 18 : 16,
+      textAlign: 'center',
+    },
+    summaryStillImage: {
+      width: '100%',
+      aspectRatio: 4 / 3,
+      borderRadius: DEFAULT_RADIUS * 1.2,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(16, 36, 63, 0.08)',
+    },
+    summaryStillMeta: {
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+      fontSize: largeText ? 14 : 12,
+      textAlign: 'center',
+    },
+    summaryStillCaption: {
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontSize: largeText ? 15 : 13,
+      textAlign: 'center',
+    },
+    summaryStillPlaceholder: {
+      width: '100%',
+      maxWidth: 360,
+      borderRadius: DEFAULT_RADIUS * 1.5,
+      padding: SPACING.md,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : 'rgba(16, 36, 63, 0.08)',
+      borderWidth: highContrast ? 2 : StyleSheet.hairlineWidth,
+      borderColor: highContrast ? COLORS.highContrastText : 'rgba(16, 36, 63, 0.1)',
+      alignItems: 'center',
+      gap: SPACING.sm,
+    },
+    summaryStillPlaceholderText: {
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+      fontSize: largeText ? 16 : 14,
+      textAlign: 'center',
     },
     summaryText: {
       color: highContrast ? COLORS.highContrastText : COLORS.text,
@@ -1394,15 +1541,18 @@ export default function TrainingScreen({ navigation, route }: any) {
               Länge der letzten Aufnahme: {framesCaptured} Frames
             </Text>
           ) : null}
-          {!isRecording && stillPreviewUri ? (
+          {activeStillUri ? (
             <View style={styles.stillPreview}>
               <Image
-                source={{ uri: stillPreviewUri }}
+                source={{ uri: activeStillUri }}
                 style={styles.stillPreviewImage}
                 accessibilityLabel="Standbild der letzten Aufnahme"
               />
+              {referenceCapturedLabel ? (
+                <Text style={styles.stillPreviewMeta}>{`Zuletzt aktualisiert am ${referenceCapturedLabel}`}</Text>
+              ) : null}
               <Text style={styles.stillPreviewCaption}>
-                Dieses Standbild speichert Amys Handform und wird mit dem Trainingsvideo hochgeladen.
+                Dieses Standbild speichert Amys Handform und steht allen Betreuungspersonen im Trainingsbereich zur Verfügung.
               </Text>
             </View>
           ) : null}
@@ -1535,6 +1685,7 @@ export default function TrainingScreen({ navigation, route }: any) {
                           setFramesCaptured(0);
                           setLastDetection(0);
                           setError(null);
+                          setStillPreviewUri(null);
                         }}
                         accessibilityRole="button"
                         accessibilityLabel={`Geste ${gestureName} auswählen`}
@@ -1550,6 +1701,28 @@ export default function TrainingScreen({ navigation, route }: any) {
               </>
             ) : (
           <View style={styles.summaryContainer}>
+              {summaryStillUri ? (
+                <View style={styles.summaryStillCard}>
+                  <Text style={styles.summaryStillTitle}>Gespeichertes Gestenbild</Text>
+                  <Image
+                    source={{ uri: summaryStillUri }}
+                    style={styles.summaryStillImage}
+                    accessibilityLabel={`Gespeichertes Gestenbild für ${displayGestureName}`}
+                  />
+                  {referenceCapturedLabel ? (
+                    <Text style={styles.summaryStillMeta}>{`Zuletzt aktualisiert am ${referenceCapturedLabel}`}</Text>
+                  ) : null}
+                  <Text style={styles.summaryStillCaption}>
+                    Dieses Bild hilft allen Betreuungspersonen, die Handform für {displayGestureName} nachzuvollziehen.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.summaryStillPlaceholder}>
+                  <Text style={styles.summaryStillPlaceholderText}>
+                    Für diese Geste wurde noch kein Bild gespeichert. Nimm beim nächsten Training eine Aufnahme auf.
+                  </Text>
+                </View>
+              )}
               <Text style={[styles.summaryText, styles.summaryTextSpacing]}>
                 {`Alle ${TARGET_SAMPLES} Beispiele wurden aufgenommen. Du kannst die Sitzung jetzt abschließen.`}
               </Text>
