@@ -273,12 +273,20 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
     for (const bundle of bundles) {
       try {
         const uploadOptions = token ? { tokenOverride: token } : {};
+        const clipUri = bundle.clipUri?.trim() || null;
+        if (!clipUri) {
+          logger.warn('Bundle clip missing before upload; degraded payload will be sent', {
+            bundleKey: bundle.key,
+            sampleId: bundle.sampleId,
+            profileId: bundle.profileId,
+          });
+        }
         const uploadResult = await uploadTrainingBundle(
           {
             label: bundle.label,
             profileId: bundle.profileId,
             frames: bundle.frames,
-            clipUri: bundle.clipUri,
+            ...(clipUri ? { clipUri } : {}),
             ...(bundle.stillUri ? { stillUri: bundle.stillUri } : {}),
             capturedAt: bundle.capturedAt,
             source: 'app://mediapipe',
@@ -302,10 +310,12 @@ export async function syncTrainingData(opts?: SyncProgressOptions): Promise<Sync
           syncStatus: 'synced',
           bundleKey: null,
         });
-        try {
-          await FileSystem.deleteAsync(bundle.clipUri, { idempotent: true });
-        } catch (clipError) {
-          logger.warn('Failed to clean up clip after upload', clipError);
+        if (clipUri) {
+          try {
+            await FileSystem.deleteAsync(clipUri, { idempotent: true });
+          } catch (clipError) {
+            logger.warn('Failed to clean up clip after upload', clipError);
+          }
         }
         if (bundle.stillUri) {
           try {

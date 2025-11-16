@@ -398,7 +398,7 @@ describe('Storage', () => {
       expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
     });
 
-    it('marks samples without clip URIs as pending without enqueuing', async () => {
+    it('enqueues samples without clip URIs for degraded upload', async () => {
       const profileId = 'profile-no-clip';
       const sample = {
         id: 'sample-2',
@@ -409,16 +409,23 @@ describe('Storage', () => {
         source: 'HIP_2' as const,
         capturedAt: '2023-01-02T00:00:00.000Z',
         createdAt: '2023-01-02T00:00:00.000Z',
-        syncStatus: 'queued' as const,
+        syncStatus: 'pending' as const,
         bundleKey: undefined,
       };
 
       mockAsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify([sample]));
       mockAsyncStorage.setItem.mockResolvedValue();
+      mockEnqueue.mockResolvedValueOnce('bundle-key-2');
 
       await rehydratePendingTrainingSamples(profileId);
 
-      expect(mockEnqueue).not.toHaveBeenCalled();
+      expect(mockEnqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'sample-2',
+          clipUri: '',
+        }),
+        { scheduleSync: false },
+      );
       expect(mockAsyncStorage.setItem).toHaveBeenCalledTimes(1);
       const [storageKey, raw] = mockAsyncStorage.setItem.mock.calls[0];
       expect(storageKey).toBe(`gestureTrainingData_${profileId}`);
@@ -426,8 +433,8 @@ describe('Storage', () => {
       expect(stored).toHaveLength(1);
       expect(stored[0]).toMatchObject({
         id: 'sample-2',
-        syncStatus: 'pending',
-        bundleKey: null,
+        syncStatus: 'queued',
+        bundleKey: 'bundle-key-2',
       });
     });
   });

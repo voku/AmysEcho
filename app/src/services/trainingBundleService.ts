@@ -10,7 +10,7 @@ export interface TrainingBundlePayload {
   label: string;
   profileId: string;
   frames: TrainingFrame[];
-  clipUri: string;
+  clipUri?: string | null;
   stillUri?: string;
   capturedAt?: string;
   source?: string;
@@ -71,13 +71,17 @@ function buildStillFilename(stillUri: string): string {
   return `still.${extension}`;
 }
 
-function buildMetadata(payload: TrainingBundlePayload, clipFilename: string, stillFilename: string | null) {
+function buildMetadata(
+  payload: TrainingBundlePayload,
+  clipFilename: string | null,
+  stillFilename: string | null,
+) {
   return {
     profileId: payload.profileId,
     label: payload.label,
     capturedAt: payload.capturedAt ?? new Date().toISOString(),
     source: payload.source ?? 'app://mediapipe',
-    clipFilename,
+    ...(clipFilename ? { clipFilename } : {}),
     ...(stillFilename ? { stillFilename } : {}),
   };
 }
@@ -240,11 +244,6 @@ export async function uploadTrainingBundle(
       'Ungültige Trainingsdaten: Es wurden keine Frames aufgezeichnet. (Invalid training data: no frames recorded.)',
     );
   }
-  if (!payload.clipUri) {
-    throw new Error(
-      'Ungültige Trainingsdaten: Es wurde kein Videoclip gespeichert. (Invalid training data: missing clip.)',
-    );
-  }
   if (!payload.stillUri) {
     logger.warn('Training bundle still image missing', {
       label: payload.label,
@@ -285,7 +284,14 @@ export async function uploadTrainingBundle(
   //   "capturedAt": "2024-05-28T12:03:11Z",
   //   "source": "app://mediapipe"
   // }
-  const clipFilename = buildClipFilename(payload.clipUri);
+  const clipUri = payload.clipUri?.trim() || null;
+  if (!clipUri) {
+    logger.warn('Training bundle clip missing; proceeding without video', {
+      label: payload.label,
+      profileId: payload.profileId,
+    });
+  }
+  const clipFilename = clipUri ? buildClipFilename(clipUri) : null;
   const stillFilename = payload.stillUri ? buildStillFilename(payload.stillUri) : null;
   const metadata = buildMetadata(payload, clipFilename, stillFilename);
   const frames = buildFrameTimeline(payload.frames);
@@ -293,16 +299,19 @@ export async function uploadTrainingBundle(
   try {
     const metadataContent = JSON.stringify(metadata, null, 2);
     const landmarksContent = JSON.stringify({ frames }, null, 2);
-    const clipBase64 = await FileSystem.readAsStringAsync(payload.clipUri, {
-      encoding: (legacyFs.EncodingType?.Base64 ?? 'base64') as any,
-    });
-    const clipBinary = base64ToUint8Array(clipBase64);
 
     const entries: Record<string, any> = {
       'metadata.json': strToU8(metadataContent),
       'landmarks.json': strToU8(landmarksContent),
-      [clipFilename]: [clipBinary, { level: 0 }],
     };
+
+    if (clipUri && clipFilename) {
+      const clipBase64 = await FileSystem.readAsStringAsync(clipUri, {
+        encoding: (legacyFs.EncodingType?.Base64 ?? 'base64') as any,
+      });
+      const clipBinary = base64ToUint8Array(clipBase64);
+      entries[clipFilename] = [clipBinary, { level: 0 }];
+    }
 
     if (stillFilename && payload.stillUri) {
       try {
