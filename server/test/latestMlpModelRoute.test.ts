@@ -50,6 +50,7 @@ describe('GET /latest-mlp-model', () => {
   let originalDataDir: string | undefined;
   let originalToken: string | undefined;
   let modelPaths: typeof import('../src/constants/modelPaths.js');
+  let baselinePath: string;
   async function expectValidModelResponse(response: request.Response) {
     const body: Buffer = response.body as Buffer;
     expect(Buffer.isBuffer(body)).toBe(true);
@@ -100,14 +101,12 @@ describe('GET /latest-mlp-model', () => {
   }
 
   beforeAll(async () => {
-    await ensureBaselineModelFixture();
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-mlp-endpoint-'));
     originalDataDir = process.env.AMY_ECHO_DATA_DIR;
     originalToken = process.env.API_TOKEN;
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     process.env.API_TOKEN = 'mlp-endpoint-token';
     jest.resetModules();
-    await ensureBaselineModelFixture();
 
     const [
       { createLatestMlpModelHandler },
@@ -122,6 +121,8 @@ describe('GET /latest-mlp-model', () => {
     ]);
 
     modelPaths = modelPathsModule;
+    baselinePath = modelPaths.BASELINE_MLP_MODEL_PATH;
+    await ensureBaselineModelFixture(baselinePath);
 
     const logTraining = async () => {};
 
@@ -150,7 +151,7 @@ describe('GET /latest-mlp-model', () => {
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
-    await ensureBaselineModelFixture();
+    await ensureBaselineModelFixture(baselinePath);
   });
 
   afterAll(async () => {
