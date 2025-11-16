@@ -1,5 +1,5 @@
 import {
-  captureFrameForOpenAI,
+  captureFrameForTrainer,
   frameCaptureState,
   getLastCapturedFrame,
   setFrameCaptureEnabled,
@@ -154,7 +154,7 @@ export class FallbackClipRecorder {
         return;
       }
 
-      const dataUrl = captureFrameForOpenAI(this.video) ?? getLastCapturedFrame();
+      const dataUrl = captureFrameForTrainer(this.video) ?? getLastCapturedFrame();
       if (!dataUrl) {
         return;
       }

@@ -19,7 +19,7 @@ describe('gestureDetector bundle', () => {
     const bundle = await fs.readFile(path.resolve(__dirname, '../assets/gestureDetector.js'), 'utf8');
     // Check that frame capture functions are included in the bundle
     expect(bundle).toContain('initializeFrameCapture');
-    expect(bundle).toContain('captureFrameForOpenAI');
+    expect(bundle).toContain('captureFrameForTrainer');
     expect(bundle).toContain('setFrameCaptureEnabled');
     expect(bundle).toContain('getLastCapturedFrame');
   });

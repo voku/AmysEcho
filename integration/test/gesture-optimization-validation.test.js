@@ -126,24 +126,26 @@ describe('Gesture Recognition Optimization Validation', () => {
 
     it('should validate intelligent result merging', async () => {
       const testScenarios = [
-        { mediapipe: 0.8, openai: 0.95, expected: 'openai' }, // Clear OpenAI advantage
-        { mediapipe: 0.9, openai: 0.7, expected: 'mediapipe' },
-        { mediapipe: 0.6, openai: 0.65, expected: 'combined' },
-        { mediapipe: 0.3, openai: 0.8, expected: 'openai' },
+        { mediapipe: 0.8, mlp: 0.95, expected: 'mlp' }, // Clear personalized model advantage
+        { mediapipe: 0.9, mlp: 0.7, expected: 'mediapipe' },
+        { mediapipe: 0.6, mlp: 0.65, expected: 'combined' },
+        { mediapipe: 0.3, mlp: 0.8, expected: 'mlp' },
       ];
 
       testScenarios.forEach(scenario => {
         let result;
-        if (scenario.openai > scenario.mediapipe + 0.1) {
-          result = 'openai';
-        } else if (scenario.mediapipe > scenario.openai + 0.1) {
+        if (scenario.mlp > scenario.mediapipe + 0.1) {
+          result = 'mlp';
+        } else if (scenario.mediapipe > scenario.mlp + 0.1) {
           result = 'mediapipe';
         } else {
           result = 'combined';
         }
 
-        assert(result === scenario.expected,
-          `Merging logic failed: expected ${scenario.expected}, got ${result} for ${scenario.mediapipe} vs ${scenario.openai}`);
+        assert(
+          result === scenario.expected,
+          `Merging logic failed: expected ${scenario.expected}, got ${result} for ${scenario.mediapipe} vs ${scenario.mlp}`,
+        );
       });
 
       console.log('Intelligent result merging validated');
@@ -152,7 +154,7 @@ describe('Gesture Recognition Optimization Validation', () => {
     it('should validate processing strategy selection', async () => {
       const testCases = [
         { gesture: 'fist', confidence: 0.9, emergency: false, expected: 'mediapipe_only' },
-        { gesture: 'unknown', confidence: 0.3, emergency: false, expected: 'openai_priority' },
+        { gesture: 'unknown', confidence: 0.3, emergency: false, expected: 'mlp_priority' },
         { gesture: 'help', confidence: 0.5, emergency: true, expected: 'parallel' },
         { gesture: 'point', confidence: 0.6, emergency: false, expected: 'parallel' },
       ];
@@ -164,7 +166,7 @@ describe('Gesture Recognition Optimization Validation', () => {
         } else if (testCase.confidence > 0.8) {
           strategy = 'mediapipe_only';
         } else if (testCase.confidence < 0.4 || !testCase.gesture) {
-          strategy = 'openai_priority';
+          strategy = 'mlp_priority';
         } else {
           strategy = 'parallel';
         }

@@ -2090,7 +2090,7 @@
       lastCapturedFrame = null;
     }
   }
-  function captureFrameForOpenAI(video2) {
+  function captureFrameForTrainer(video2) {
     if (!frameCaptureEnabled) {
       return lastCapturedFrame;
     }
@@ -2290,7 +2290,7 @@
             }
             const captureInterval = frameCaptureState.frameCaptureInterval;
             if (frameStart - this.lastCaptureAttempt >= captureInterval) {
-              captureFrameForOpenAI(this.video);
+              captureFrameForTrainer(this.video);
               this.lastCaptureAttempt = frameStart;
             }
           }
@@ -4535,7 +4535,7 @@
           this.clearTimer();
           return;
         }
-        const dataUrl = captureFrameForOpenAI(this.video) ?? getLastCapturedFrame();
+        const dataUrl = captureFrameForTrainer(this.video) ?? getLastCapturedFrame();
         if (!dataUrl) {
           return;
         }
@@ -4911,7 +4911,7 @@
     }
     collectFrameForBatch(normalized) {
       try {
-        const frameDataUrl = captureFrameForOpenAI(this.video);
+        const frameDataUrl = captureFrameForTrainer(this.video);
         if (!frameDataUrl) {
           return;
         }

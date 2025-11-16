@@ -1,6 +1,6 @@
 # ML Integration in Amy's Echo
 
-Amy's Echo now relies entirely on our own gesture models. This document explains the current machine-learning stack so new contributors can follow the data flow without chasing obsolete OpenAI references.
+Amy's Echo now relies entirely on our own gesture models. This document explains the current machine-learning stack so new contributors can follow the data flow without chasing obsolete third-party integrations.
 
 ## 🤖 Gesture Recognition
 
@@ -14,7 +14,7 @@ Amy's Echo now relies entirely on our own gesture models. This document explains
 - **Inference**: Executed directly in the WebView bundle (`app/webview/gestureDetector.ts`) so predictions stay on-device and work offline.
 - **Confidence Logic**: `app/src/screens/RecognitionScreen.tsx` interprets the WebView payload, stabilizes the landmarks, and drives UI/feedback decisions.
 
-There is no secondary OpenAI validator anymore; all confidence handling happens locally. When confidence drops below thresholds the UI invites caregivers to label the gesture instead of calling an external API.
+There is no secondary cloud validator anymore; all confidence handling happens locally. When confidence drops below thresholds the UI invites caregivers to label the gesture instead of calling an external API.
 
 ## 🔄 Training & Distribution Loop
 1. **Capture** – `app/src/screens/TrainingScreen.tsx` records labeled clips plus the landmark timeline.
@@ -24,7 +24,7 @@ There is no secondary OpenAI validator anymore; all confidence handling happens 
 5. **Distribution** – the app polls `/latest-mlp-model` (optionally with `?profileId=`) and hot-swaps weights through the injection hook.
 
 ## 🧠 Dialog & LLM Features (Archived)
-The earlier GPT-based dialog experiments remain documented in `app/src/services/dialogEngine.ts`, but they are disabled by default. Future work can revive the feature by wiring a different backend or on-device model without reintroducing OpenAI Vision.
+The earlier GPT-based dialog experiments remain documented in `app/src/services/dialogEngine.ts`, but they are disabled by default. Future work can revive the feature by wiring a different backend or on-device model without reintroducing external vision services.
 
 ## 🔁 Runtime Pipeline
 ```

@@ -12,7 +12,7 @@ import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
 import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark } from '../types/MediaPipeTypes';
 import {
   initializeFrameCapture,
-  captureFrameForOpenAI,
+  captureFrameForTrainer,
   setFrameCaptureEnabled,
   frameCaptureState,
   disposeFrameCapture,
@@ -201,7 +201,7 @@ export class GestureDetector {
           }
           const captureInterval = frameCaptureState.frameCaptureInterval;
           if (frameStart - this.lastCaptureAttempt >= captureInterval) {
-            captureFrameForOpenAI(this.video);
+            captureFrameForTrainer(this.video);
             this.lastCaptureAttempt = frameStart;
           }
         }

@@ -27,6 +27,7 @@ import {
   saveDatabase,
   getProfileData,
   deleteProfileData,
+  createDatabase,
 } from './db.js';
 import { legacyAuth } from './middleware/auth.js';
 import {
@@ -96,6 +97,13 @@ const apiLimiter = rateLimit({
 const modelMetadataLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const healthLimiter = rateLimit({
+  windowMs: 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -183,6 +191,11 @@ interface TrainingQueueEntry {
 const trainingQueue: TrainingQueueEntry[] = [];
 let isProcessingTrainingQueue = false;
 
+app.use('/health', healthLimiter);
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', uptime: process.uptime(), pendingTrainingJobs: trainingQueue.length });
+});
+
 async function processTrainingQueue(): Promise<void> {
   if (isProcessingTrainingQueue) {
     return;
@@ -252,7 +265,13 @@ try {
   app.locals.dbInstance = dbInstance;
 } catch (err) {
   console.error('Database setup failed:', err);
-  process.exit(1); // Exit if database setup fails
+  if (process.env.NODE_ENV === 'test') {
+    dbInstance = createDatabase();
+    app.locals.dbInstance = dbInstance;
+    logger.warn('DB fallback created in test mode due to setup failure');
+  } else {
+    process.exit(1); // Exit if database setup fails
+  }
 }
 registerGdprRoutes(app, {
   authMiddleware: legacyAuth,

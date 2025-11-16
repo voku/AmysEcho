@@ -64,9 +64,9 @@ describe('Gesture Recognition System Integration Analysis', () => {
       const parallelProcessingEnabled = true;
       assert(parallelProcessingEnabled, 'Parallel processing should be enabled');
 
-      // Test OpenAI validation integration
-      const openaiIntegrationActive = true;
-      assert(openaiIntegrationActive, 'OpenAI validation should be integrated');
+      // Test personalization and server validation integration
+      const personalizationActive = true;
+      assert(personalizationActive, 'Personalized validation should be integrated');
     });
 
     it('should analyze gesture data flow efficiency', async () => {
@@ -102,10 +102,10 @@ describe('Gesture Recognition System Integration Analysis', () => {
   });
 
   describe('Server Integration Analysis', () => {
-    it('should validate OpenAI Vision service integration', async () => {
-      // Test OpenAI Vision API integration
-      const visionServiceAvailable = true; // In real test, check API availability
-      assert(visionServiceAvailable, 'OpenAI Vision service should be available');
+    it('should validate in-house vision service integration', async () => {
+      // Test our self-hosted vision analysis pipeline
+      const visionServiceAvailable = true; // In real test, check pipeline availability
+      assert(visionServiceAvailable, 'Vision service should be available');
 
       // Test vision analysis performance
       const visionProcessingTime = 2000; // ms (expected for vision processing)
@@ -156,7 +156,7 @@ describe('Gesture Recognition System Integration Analysis', () => {
         'camera_capture',
         'webview_processing',
         'mediapipe_analysis',
-        'openai_validation',
+        'mlp_validation',
         'react_native_processing',
         'server_upload',
         'model_training'
@@ -210,7 +210,7 @@ describe('Gesture Recognition System Integration Analysis', () => {
       const bottlenecks = [
         'webview_initialization',
         'mediapipe_model_loading',
-        'openai_api_latency',
+        'model_sync_latency',
         'data_serialization'
       ];
 
@@ -232,7 +232,7 @@ describe('Gesture Recognition System Integration Analysis', () => {
       const memoryMetrics = {
         webviewMemory: 50, // MB
         mediapipeMemory: 100, // MB
-        openaiCacheMemory: 25, // MB
+        mlpCacheMemory: 25, // MB
         totalMemoryUsage: 175, // MB
       };
 

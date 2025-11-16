@@ -262,42 +262,6 @@ jest.mock('react-native-safe-area-context', () => {
     useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   };
 });
-jest.mock('openai/shims/node', () => ({}), { virtual: true });
-let mockOpenAIModule: any;
-jest.mock('openai', () => {
-  const defaultResponse = { choices: [{ message: { content: '{}' } }] };
-  const createMock = jest.fn().mockResolvedValue(defaultResponse);
-  const configs: any[] = [];
-  mockOpenAIModule = {
-    __esModule: true,
-    default: class MockOpenAI {
-      constructor(config: any) {
-        configs.push(config);
-      }
-
-      chat = {
-        completions: {
-          create: createMock,
-        },
-      };
-    },
-    __createMock: createMock,
-    __getConfigs: () => configs,
-    __reset: () => {
-      configs.length = 0;
-      createMock.mockClear();
-      createMock.mockResolvedValue(defaultResponse);
-    },
-    __setResponse: (response: any) => {
-      createMock.mockResolvedValue(response);
-    },
-  };
-  return mockOpenAIModule;
-}, { virtual: true });
-
-afterEach(() => {
-  mockOpenAIModule?.__reset();
-});
 jest.mock('expo-file-system', () => ({
   bundleDirectory: 'bundle/',
   documentDirectory: 'file:///doc/',

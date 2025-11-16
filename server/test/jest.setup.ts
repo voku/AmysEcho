@@ -28,11 +28,13 @@ const originalError = console.error;
 if (process.env.TEST_LOGS_VERBOSE !== '1') {
   console.error = (...args: any[]) => {
     const msg = args[0];
-    if (typeof msg === 'string' && (
-      msg.includes('OpenAI Vision validation error') ||
-      msg.includes('Failed to parse vision response') ||
-      msg.includes('LLM suggestion error')
-    )) return;
+    if (
+      typeof msg === 'string' &&
+      (msg.includes('Vision validation error') ||
+        msg.includes('Failed to parse vision response') ||
+        msg.includes('LLM suggestion error'))
+    )
+      return;
     originalError(...args);
   };
 }

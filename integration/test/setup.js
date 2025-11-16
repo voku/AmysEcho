@@ -8,7 +8,6 @@ import { beforeAll, afterAll, afterEach } from '@jest/globals';
 process.env.NODE_ENV = 'test';
 process.env.EXPO_PUBLIC_API_URL = 'http://localhost:5000';
 process.env.EXPO_PUBLIC_API_TOKEN = 'test-token';
-process.env.OPENAI_API_KEY = 'test-openai-key';
 
 // Mock console methods to reduce noise during tests
 const originalConsoleError = console.error;
@@ -49,13 +48,6 @@ jest.mock('react-native', () => ({
     get: jest.fn(() => 2),
   },
 }), { virtual: true });
-
-// Provide a virtual OpenAI mock that supports both Chat Completions and Responses API
-jest.mock('openai', () => {
-  const responses = { create: jest.fn() };
-  const chat = { completions: { create: jest.fn() } };
-  return jest.fn().mockImplementation(() => ({ responses, chat }));
-}, { virtual: true });
 
 // Mock Expo modules
 jest.mock('expo-file-system', () => ({

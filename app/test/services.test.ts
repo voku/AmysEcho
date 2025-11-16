@@ -17,7 +17,7 @@ describe('Services integration smoke test', () => {
     await expect(playSystemSound('success')).resolves.toBeUndefined();
     await expect(playSystemSound('error')).resolves.toBeUndefined();
 
-    // Dialog suggestions are now handled entirely on the client via OpenAI;
-    // server-side dialog helpers were removed with the caregiver portal.
+    // Dialog suggestions are now handled entirely on-device and via our server;
+    // the caregiver portal dialog helpers were removed.
   });
 });
