@@ -43,6 +43,20 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   type TriggerResult = { jobId: string; status: string; pollUrl?: string };
   let triggerCalls: TriggerCall[];
   let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
+  async function getBucketEntries(bucket: string): Promise<string[] | null> {
+    if (!dataDir) {
+      return null;
+    }
+    const dir = path.join(dataDir, 'uploads', bucket);
+    try {
+      return await fs.readdir(dir);
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') {
+        return null;
+      }
+      throw error;
+    }
+  }
 
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-bundle-'));
@@ -94,7 +108,18 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     const zip = new AdmZip();
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
-    zip.addFile('bundle/landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [{ landmarks }],
+          },
+          null,
+          2,
+        ),
+      ),
+    );
     zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
     zip.addFile('bundle/still.jpg', Buffer.from('fake-image-data'));
 
@@ -151,6 +176,10 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       source: metadata.source,
       clipFilename: metadata.clipFilename,
       stillFilename: metadata.stillFilename,
+      validationSummary: {
+        frameCount: 1,
+        landmarksPath: 'bundle/landmarks.json',
+      },
     });
 
     const storedDir = path.join(dataDir, entry.storage.directory);
@@ -160,7 +189,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     const storedLandmarksRaw = await fs.readFile(path.join(storedDir, 'bundle', 'landmarks.json'), 'utf8');
     const storedLandmarks = JSON.parse(storedLandmarksRaw);
-    expect(storedLandmarks.landmarks[0]).toEqual(landmarks[0]);
+    expect(storedLandmarks.frames[0].landmarks[0]).toEqual(landmarks[0]);
 
     const bundleZipPath = path.join(dataDir, entry.storage.bundle);
     const bundleStat = await fs.stat(bundleZipPath);
@@ -178,7 +207,18 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const landmarks = await loadSampleLandmarks();
     const zip = new AdmZip();
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
-    zip.addFile('bundle/landmarks.json', Buffer.from(JSON.stringify({ landmarks }, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [{ landmarks }],
+          },
+          null,
+          2,
+        ),
+      ),
+    );
     zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
     zip.addFile('bundle/still.jpg', Buffer.from('fake-image-data'));
 
@@ -191,6 +231,61 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.body.status).toBe('queued');
     expect(response.body.trainingJob).toBeNull();
+  });
+
+  it('rejects bundles missing landmarks.json and removes partially extracted directory', async () => {
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify({ label: 'HILFE' }, null, 2)));
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', 'Bearer bundle-token')
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('landmarks.json missing or invalid');
+    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
+
+    const bucketEntries = await getBucketEntries('unassigned');
+    if (bucketEntries) {
+      expect(bucketEntries).toHaveLength(0);
+    }
+  });
+
+  it('rejects bundles whose landmarks.json has no frames and cleans up bundle directory', async () => {
+    const metadata = { label: 'HILFE', profileId: 'p-test-42' };
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [
+              { landmarks: [] },
+            ],
+          },
+          null,
+          2,
+        ),
+      ),
+    );
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', 'Bearer bundle-token')
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('landmarks.json missing or invalid');
+    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
+
+    const bucketEntries = await getBucketEntries(metadata.profileId!);
+    if (bucketEntries) {
+      expect(bucketEntries).toHaveLength(0);
+    }
   });
 
   it('rejects unauthenticated upload', async () => {
@@ -252,6 +347,19 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     };
     const zip = new AdmZip();
     zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+    const landmarks = await loadSampleLandmarks();
+    zip.addFile(
+      'landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [{ landmarks }],
+          },
+          null,
+          2,
+        ),
+      ),
+    );
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')

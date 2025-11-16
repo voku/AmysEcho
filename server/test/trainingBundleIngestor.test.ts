@@ -15,6 +15,26 @@ function resolveDataPath(relativePath: string): string {
   return path.join(DATA_DIR, relativePath);
 }
 
+type ExtraFile = { relativePath: string; data?: string | Buffer };
+
+type LandmarksPayload = { frames: Array<{ landmarks: number[][] }> };
+
+type BundleFixtureOptions = {
+  landmarksRelativePath?: string;
+  frames?: LandmarksPayload;
+  includeValidationSummary?: boolean;
+  extraFiles?: ExtraFile[];
+};
+
+function buildLandmarkFrame(seed: number): { landmarks: number[][] } {
+  return {
+    landmarks: Array.from({ length: 42 }, (_, idx) => {
+      const base = seed + idx * 0.01;
+      return [base, base + 0.01, base + 0.02];
+    }),
+  };
+}
+
 describe('ingestTrainingBundlesIntoDataset', () => {
   let tempDir: string;
 
@@ -94,17 +114,90 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(dataset.samples).toHaveLength(2);
   });
 
-  async function writeBundleFixture(bundleId: string): Promise<void> {
+  it('prefers validationSummary.landmarksPath when selecting landmarks data', async () => {
+    const frames: LandmarksPayload = {
+      frames: [buildLandmarkFrame(0.11), buildLandmarkFrame(0.21)],
+    };
+
+    await writeBundleFixture('bundle-prefers-summary', {
+      landmarksRelativePath: 'bundle/nested/path/landmarks.json',
+      frames,
+      extraFiles: [
+        {
+          relativePath: 'bundle/not-landmarks.json',
+          data: JSON.stringify({ frames: [buildLandmarkFrame(9.99)] }, null, 2),
+        },
+      ],
+    });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(2);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
+    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    expect(dataset.samples).toHaveLength(2);
+    expect(dataset.samples[0].landmarks[0][0]).toBeCloseTo(0.11, 6);
+    expect(dataset.samples[0].landmarks[0][1]).toBeCloseTo(0.12, 6);
+    expect(dataset.samples[0].landmarks[0][2]).toBeCloseTo(0.13, 6);
+  });
+
+  it('falls back to basename matching when validation summary is missing', async () => {
+    const frames: LandmarksPayload = {
+      frames: [buildLandmarkFrame(0.21)],
+    };
+
+    await writeBundleFixture('bundle-no-summary', {
+      landmarksRelativePath: 'bundle/custom/nested/landmarks.json',
+      frames,
+      includeValidationSummary: false,
+      extraFiles: [
+        {
+          relativePath: 'bundle/custom/not-landmarks.json',
+          data: JSON.stringify({ frames: [buildLandmarkFrame(5.55)] }, null, 2),
+        },
+      ],
+    });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(1);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
+    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    expect(dataset.samples).toHaveLength(1);
+    expect(dataset.samples[0].landmarks[0][0]).toBeCloseTo(0.21, 6);
+    expect(dataset.samples[0].landmarks[0][1]).toBeCloseTo(0.22, 6);
+    expect(dataset.samples[0].landmarks[0][2]).toBeCloseTo(0.23, 6);
+  });
+
+  async function writeBundleFixture(
+    bundleId: string,
+    options: BundleFixtureOptions = {},
+  ): Promise<void> {
     const bundleRoot = resolveDataPath(`training_uploads/unassigned/${bundleId}`);
     await fs.mkdir(path.join(bundleRoot, 'bundle'), { recursive: true });
 
-    const frames = {
+    const defaultFrames: LandmarksPayload = {
       frames: [
         { landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.01, idx * 0.02, idx * 0.03]) },
         { landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.05, idx * 0.06, idx * 0.07]) },
       ],
     };
-    await fs.writeFile(path.join(bundleRoot, 'bundle', 'landmarks.json'), JSON.stringify(frames, null, 2));
+    const frames = options.frames ?? defaultFrames;
+    const normalizedLandmarksRelative = (options.landmarksRelativePath ?? 'bundle/landmarks.json')
+      .replace(/\\/g, '/')
+      .replace(/^\/+/, '');
+    const landmarksPath = path.join(bundleRoot, normalizedLandmarksRelative);
+    await fs.mkdir(path.dirname(landmarksPath), { recursive: true });
+    await fs.writeFile(landmarksPath, JSON.stringify(frames, null, 2));
+
+    for (const extra of options.extraFiles ?? []) {
+      const normalizedExtra = extra.relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+      const extraPath = path.join(bundleRoot, normalizedExtra);
+      await fs.mkdir(path.dirname(extraPath), { recursive: true });
+      await fs.writeFile(extraPath, extra.data ?? 'extra');
+    }
 
     const manifest = {
       entries: [
@@ -117,7 +210,15 @@ describe('ingestTrainingBundlesIntoDataset', () => {
           storage: {
             directory: `training_uploads/unassigned/${bundleId}`,
             bundle: `training_uploads/unassigned/${bundleId}/bundle.zip`,
-            files: ['bundle/landmarks.json', 'bundle/metadata.json', 'bundle/clip.webm', 'bundle/still.jpg'],
+            files: [
+              normalizedLandmarksRelative,
+              'bundle/metadata.json',
+              'bundle/clip.webm',
+              'bundle/still.jpg',
+              ...((options.extraFiles ?? []).map((extra) =>
+                extra.relativePath.replace(/\\/g, '/').replace(/^\/+/, ''),
+              )),
+            ],
             clip: 'bundle/clip.webm',
             still: 'bundle/still.jpg',
           },
@@ -128,6 +229,14 @@ describe('ingestTrainingBundlesIntoDataset', () => {
             source: 'app://mediapipe',
             clipFilename: 'clip.webm',
             stillFilename: 'still.jpg',
+            ...(options.includeValidationSummary === false
+              ? {}
+              : {
+                  validationSummary: {
+                    frameCount: Array.isArray(frames.frames) ? frames.frames.length : 0,
+                    landmarksPath: normalizedLandmarksRelative,
+                  },
+                }),
           },
           receivedAt: '2024-05-28T12:03:12Z',
         },

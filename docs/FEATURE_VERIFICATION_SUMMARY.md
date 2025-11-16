@@ -44,8 +44,9 @@ The task requested implementation of:
 **Actual Implementation**:
 - ZIP bundle creation (metadata + landmarks + video)
 - Multipart upload to server
-- Background sync with Wi-Fi + charging checks
+- Background sync triggers immediately when Wi-Fi is reachable (charging optional so we don't wait for a plugged-in state)
 - Upload queue management with retry logic
+- Server rejects bundles missing/empty `landmarks.json`, cleans up the extraction directory, and records a validation summary in `manifestEntry.metadata`
 - **Code Location**: `app/src/services/trainingBundleService.ts`
 - **Server Endpoint**: `POST /api/v1/dgs/sample-bundles`
 - **Test Coverage**: Integration tests verify end-to-end upload
@@ -58,6 +59,7 @@ The task requested implementation of:
 - MediaPipe landmark extraction from videos
 - Landmark caching for efficiency
 - Global + per-profile model generation
+- Manifest ingestion honors `metadata.validationSummary.landmarksPath`, so each child's verified landmarks feed only their own model
 - Early stopping with patience
 - Structured training reports (JSON)
 - **Code Location**: `server/src/amyserver_tools/train_mlp.py`
@@ -70,6 +72,7 @@ The task requested implementation of:
 **Actual Implementation**:
 - HTTP download with ETag caching
 - Personalized models per profile
+- The app sends both `profileId` and `X-Profile-Id`, ensuring `/latest-mlp-model` returns the personalized weights (and cleanly falls back to the global bundle if unavailable)
 - Fallback to global model
 - Offline support with bundled model
 - Zero-downtime model updates
@@ -94,9 +97,9 @@ The complete workflow is implemented and tested end-to-end:
 2. BUNDLING   → ZIP created (metadata.json + landmarks.json + clip.mp4)
               → Queued for upload
 
-3. UPLOAD     → Background sync (Wi-Fi + charging)
+3. UPLOAD     → Background sync (Wi-Fi reachable; charging optional)
               → POST to /api/v1/dgs/sample-bundles
-              → Server receives and stores bundle
+              → Server validates `landmarks.json`, stores bundle, and records validation summary
 
 4. TRAINING   → Server runs train_mlp.py
               → Extracts landmarks from videos (if needed)
