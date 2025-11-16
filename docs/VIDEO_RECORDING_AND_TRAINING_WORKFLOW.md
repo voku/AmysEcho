@@ -131,7 +131,7 @@ export function getClipCaptureErrorMessage(error: unknown): string
 **Profilzuordnung auf mehreren Geräten**:
 - Jeder Profil-Datensatz lebt in der verschlüsselten WatermelonDB (`app/db/models.ts`). Beim Aufzeichnen liest `createTrainingSample` (`app/src/storage.ts`) die aktuell aktive Profil-ID und schreibt sie direkt in das Sample.
 - `enqueueTrainingBundle` (`app/src/services/trainingBundleQueue.ts`) speichert exakt diese `profileId` sowohl im AsyncStorage-Payload als auch im Schlüssel (`trainingBundles:<profileId>:...`). Dadurch bleibt die Zuordnung erhalten, selbst wenn Amy später zu einem anderen Profil wechselt.
-- Während `trainingSync` (`app/src/services/trainingSync.ts`) hochlädt, verwendet es nur die im Bundle gespeicherte `profileId`. Deshalb werden Samples immer dem ursprünglichen Kind zugeordnet – auch wenn mehrere Geräte mit demselben Wasser­melon-Datenbestand betrieben werden oder ein anderes Gerät den Upload übernimmt.
+- Während `trainingSync` (`app/src/services/trainingSync.ts`) hochlädt, verwendet es nur die im Bundle gespeicherte `profileId`. Deshalb werden Samples immer dem ursprünglichen Kind zugeordnet – auch wenn mehrere Geräte mit demselben WatermelonDB-Datenbestand betrieben werden oder ein anderes Gerät den Upload übernimmt.
 - Beim Einrichten eines zusätzlichen Geräts wird derselbe Profil-Dump (bzw. das Watermelon-Backup) importiert, sodass alle Installationen dieselbe `profileId` verwenden und die per-Profil-Modelle konsistent bleiben.
 
 ---
