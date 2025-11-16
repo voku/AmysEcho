@@ -130,16 +130,15 @@ npm run build:webview --prefix app
 
 **Comprehensive Test Suite**:
 ```bash
-cd integration
-node test-runner.js ci
+npm test --prefix integration
 ```
 
-**Test Categories**:
-- **Performance Tests**: Latency, FPS, memory usage validation
-- **Security Tests**: File integrity, path traversal protection
-- **Accessibility Tests**: WCAG compliance, screen reader support
-- **Integration Tests**: API endpoints, data flow validation
-- **E2E Tests**: Complete pipeline from video to recognition
+**What the suite covers**:
+- Boots the production Express server via `npm run build --prefix server`.
+- Exercises `/train-model`, `/latest-mlp-model`, `/model-version`, and the
+  training bundle upload endpoint end-to-end.
+- Waits for the Python trainer to finish and verifies a real `.npz` model can
+  be downloaded and decoded.
 
 **Environment Variables**:
 ```bash
@@ -157,15 +156,13 @@ NODE_ENV: test
   with:
     name: test-results-${{ matrix.node-version }}-${{ matrix.python-version }}
     path: |
-      integration/test-report.json
-      integration/coverage/
+      integration/test-output.log
     retention-days: 30
 ```
 
 **Collected Artifacts**:
-- **Test Reports**: JSON format with detailed results
-- **Coverage Reports**: Code coverage metrics
-- **Performance Metrics**: Latency and resource usage data
+- **Integration Logs**: `integration/test-output.log` captures the node/test
+  output, including model training progress and endpoint responses.
 
 ## Security & Compliance
 
@@ -191,13 +188,10 @@ NODE_ENV: test
 ### Accessibility Validation
 
 **Dedicated Accessibility Testing**:
-```yaml
-- name: Run accessibility tests
-  run: |
-    cd integration
-    npm test -- --grep "accessibility"
-  continue-on-error: true
-```
+The integration layer no longer keeps synthetic accessibility specs. Rely on
+the React Native app tests (`npm test --prefix app`) and the manual QA
+checklist in `docs/DeviceTesting.md` to verify contrast modes, focus order,
+and the "DGS-Video anzeigen" toggle.
 
 ## Deployment Pipeline
 
@@ -239,16 +233,11 @@ npm run build --prefix server
 
 **Automated Performance Monitoring**:
 ```bash
-# Check for performance regressions
-node -e "
-  const report = require('./integration/test-report.json');
-  const perfTests = Object.values(report.results.suites).filter(s =>
-    s.name && s.name.includes('performance')
-  );
-  if (perfTests.length > 0) {
-    console.log('Performance tests found:', perfTests.length);
-  }
-"
+# Capture the integration log
+npm test --prefix integration | tee integration/test-output.log
+
+# Detect slow training cycles inside the log
+rg -n "training job" integration/test-output.log
 ```
 
 ### Notification System
@@ -274,22 +263,17 @@ node -e "
 # Install dependencies
 npm ci --prefix integration
 
-# Run all DGS tests
-npm test --prefix integration -- --grep "dgs"
-
-# Run specific test categories
-npm test --prefix integration -- dgs_performance
-npm test --prefix integration -- dgs_security
-npm test --prefix integration -- dgs_accessibility
+# Run the real server-backed tests
+npm test --prefix integration
 ```
 
 **Debug Mode**:
 ```bash
 # Verbose test output
-DEBUG=dgs:* npm test --prefix integration -- dgs_integration
+DEBUG=dgs:* npm test --prefix integration
 
-# Single test execution
-npm test --prefix integration -- --grep "specific test name"
+# Focus on a subset of test names if needed
+npm test --prefix integration -- --test-name-pattern "mlp"
 ```
 
 ### CI Simulation
@@ -301,8 +285,7 @@ export CI=true
 export NODE_ENV=test
 
 # Run CI test suite
-cd integration
-node test-runner.js ci
+npm test --prefix integration
 ```
 
 ## Performance Optimization
@@ -328,7 +311,7 @@ timeout-minutes: 10
 
 # Individual step timeouts
 - name: Run DGS integration tests
-  run: npm test --prefix integration -- --timeout 300000
+  run: npm test --prefix integration -- --test-timeout=300000
 ```
 
 ## Troubleshooting CI Failures
@@ -338,10 +321,10 @@ timeout-minutes: 10
 #### Test Timeouts
 ```bash
 # Check for slow tests
-npm test --prefix integration -- --verbose --timeout 60000
+npm test --prefix integration -- --test-timeout=60000 --test-name-pattern "train"
 
 # Profile test execution
-time npm test --prefix integration -- dgs_performance
+time npm test --prefix integration
 ```
 
 #### Dependency Conflicts
@@ -371,10 +354,10 @@ file server/data/dgs_model.npz
 **CI Logs Analysis**:
 ```bash
 # View detailed test output
-cat integration/test-report.json | jq '.results'
+tail -n 200 integration/test-output.log
 
 # Check performance metrics
-cat integration/test-report.json | jq '.performance'
+rg "training job" -n integration/test-output.log
 ```
 
 **Artifact Download**:

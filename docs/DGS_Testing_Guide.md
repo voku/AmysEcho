@@ -1,381 +1,102 @@
 # DGS Integration Testing Guide
 
-This guide documents the comprehensive test suite for the German Sign Language integration in Amy's Echo, covering performance, security, accessibility, and integration testing.
+The German Sign Language (DGS) stack is verified through the same test suites we
+use during day-to-day development. This document highlights the pieces that
+exercise the real capture → training → distribution loop.
 
-**Project Status:** All major features for the DGS integration have been implemented. The focus is now on optimization, bug fixing, and production readiness. This document reflects the current state of the project and the established testing pipeline.
+## Automated Coverage Snapshot
 
-## Test Suite Overview
+### Integration (integration/test/api.test.js)
 
-The DGS integration includes a multi-layered testing approach with 7 specialized test suites:
+This Node test boots the production server build, provisions a throwaway
+training dataset, and makes real HTTP requests against the Express app. It
+verifies:
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Performance    │    │   Security      │    │ Accessibility  │
-│   Testing       │    │   Testing       │    │   Testing      │
-│                 │    │                 │    │                │
-│ • Latency <10ms │    │ • File integrity│    │ • WCAG AA/AAA  │
-│ • FPS >50       │    │ • Path traversal│    │ • Screen reader│
-│ • Memory <50MB  │    │ • Input validation│  │ • Keyboard nav │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Integration    │    │   E2E Testing   │    │ Video Processing│
-│   Testing       │    │                 │    │   Testing       │
-│                 │    │ • Full pipeline │    │                │
-│ • Data flow     │    │ • Model updates │    │ • Landmark ext │
-│ • API endpoints │    │ • Fallbacks     │    │ • Training data │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+- **Training endpoints** – `POST /train-model` rejects malformed payloads and
+  accepts valid landmark arrays.
+- **Training jobs** – `/train-status/:id` reaches the `completed` state before
+  the timeout expires and returns the progress payload expected by the app.
+- **Model distribution** – `GET /model-version` and
+  `GET /latest-mlp-model?profileId=` return the binary `.npz` contents and the
+  accompanying metadata so the WebView cache stays consistent.
+- **Bundle ingestion** – `POST /api/v1/dgs/sample-bundles` accepts the same zip
+  structure that the React Native app uploads and automatically schedules a new
+  training job.
 
-## Performance Testing
+Because the test hits the compiled server, it also exercises the Python trainer
+(`server/src/amyserver_tools/train_mlp.py`), the filesystem layout under
+`server/data`, and the AsyncStorage caches in `app/src/services/dgsModelClient.ts`.
 
-### Inference Latency Validation
+### Server Unit & Integration Tests
 
-**File**: `integration/test/dgs_performance.spec.ts`
+A few TypeScript suites keep the ingestion and distribution pieces honest even
+before the end-to-end test runs:
 
-**Purpose**: Ensures real-time gesture recognition performance requirements are met.
+- `server/test/trainingBundles.test.ts` and
+  `server/test/trainingBundleIngestor.test.ts` validate manifest creation,
+  cleanup logic, and multipart parsing.
+- `server/test/latestMlpModelRoute.test.ts` plus
+  `server/test/model-version.test.ts` ensure headers, profile-based fallbacks,
+  and caching semantics match what the app expects.
+- `server/test/test_train_endpoint.py` covers the Python job runner and mirrors
+  the exact CLI arguments the integration test uses.
 
-**Test Cases**:
-- **Latency Test**: Validates average inference time < 10ms per frame
-- **FPS Test**: Ensures > 50 frames per second processing capability
-- **Memory Test**: Confirms memory usage < 50MB during operation
-- **Robustness Test**: Validates consistent performance across input scales
+### App Tests
 
-**Requirements**:
-```typescript
-// Performance thresholds
-const REQUIREMENTS = {
-  maxLatency: 0.01,    // 10ms per frame
-  minFPS: 50,          // 50+ FPS
-  maxMemoryMB: 50,     // 50MB memory limit
-  maxConfidenceStd: 0.5 // Confidence stability
-};
-```
+The React Native suite focuses on the caregiver UI that surfaces DGS-specific
+features:
 
-**Execution**:
+- `app/test/components/GestureMeaningDisplay.test.tsx` verifies the "DGS-Video
+  verfügbar" banner, gesture descriptions, and localized copy.
+- `app/test/services/trainingSync.test.ts` ensures the bundle upload logic
+  writes the same metadata shape that the server ingests.
+- `app/test/MediaPipeGestureDetector.test.tsx` validates the on-device fallback
+  when the WebView cannot deliver a new model immediately.
+
+## Running Tests Locally
+
 ```bash
-npm test --prefix integration -- dgs_performance
+# Install dependencies once
+npm ci --prefix app
+npm ci --prefix server
+npm ci --prefix integration
+
+# App + server unit tests
+npm test --prefix app
+npm test --prefix server
+
+# Full DGS integration loop (starts the real server build)
+npm test --prefix integration
 ```
 
-### Memory Efficiency Testing
+The integration command uses Node's built-in test runner via `tsx` and takes a
+few minutes because it compiles the server and executes the Python trainer.
 
-**Test Implementation**:
-```python
-# Memory usage measurement
-initial_memory = process.memory_info().rss / 1024 / 1024
-# Load model and perform inference
-model_loaded_memory = process.memory_info().rss / 1024 / 1024
-memory_delta = model_loaded_memory - initial_memory
-assert memory_delta < 50, f"Memory usage: {memory_delta}MB"
-```
+## Debugging Integration Runs
 
-## Security Testing
+Capture the full log when investigating flakes:
 
-### File Integrity Validation
-
-**File**: `integration/test/dgs_security.spec.ts`
-
-**Purpose**: Ensures model files are secure and haven't been tampered with.
-
-**Test Cases**:
-- **File Size Validation**: Checks model file size is within reasonable bounds
-- **Permission Security**: Validates file permissions prevent unauthorized access
-- **Path Traversal Protection**: Prevents directory traversal attacks
-- **Input Sanitization**: Validates all inputs are properly sanitized
-
-**Security Checks**:
-```typescript
-// File integrity validation
-assert(stats.size > 1000, 'Model file too small');
-assert(stats.size < 100 * 1024 * 1024, 'Model file too large');
-assert((mode & 0o022) === 0, 'Insecure file permissions');
-```
-
-### Authorization Testing
-
-**Test Cases**:
-- **Profile-Based Access**: Validates per-user model authorization
-- **Token Validation**: Ensures proper authentication for model downloads
-- **Header Verification**: Checks X-Profile-Id header requirements
-
-## Accessibility Testing
-
-### WCAG Compliance Validation
-
-**File**: `integration/test/dgs_accessibility.spec.ts`
-
-**Purpose**: Ensures the DGS integration meets accessibility standards for users with disabilities.
-
-**Test Cases**:
-- **Keyboard Navigation**: Tests keyboard-only gesture triggering
-- **High Contrast Support**: Ensures visibility in high contrast modes
-- **Focus Management**: Validates proper focus indicators
-- **Screen Reader Support**: *Note: Out of scope for Alpha release*
-
-**Accessibility Requirements**:
-```typescript
-const ACCESSIBILITY_CHECKS = {
-  keyboardNavigation: true,
-  highContrast: true,
-  focusManagement: true,
-  ariaLabels: true,
-  screenReader: false // Alpha release excludes screen reader verification
-};
-```
-
-### Cognitive Accessibility
-
-**Specialized Tests for 22q11 Syndrome**:
-- **Simplified Feedback**: Validates clear, encouraging error messages
-- **Visual Consistency**: Ensures consistent gesture visualization
-- **Audio Cues**: Tests optional audio feedback for gesture detection
-- **Reduced Cognitive Load**: Validates minimal UI complexity
-
-## Integration Testing
-
-### Data Flow Validation
-
-**File**: `integration/test/dgs_integration.spec.ts`
-
-**Purpose**: Tests the complete data pipeline from video processing to model serving.
-
-**Test Cases**:
-- **Video Processing**: Validates landmark extraction from DGS videos
-- **Training Data**: Ensures proper data formatting and normalization
-- **Model Training**: Tests MLP training pipeline
-- **Model Serving**: Validates API endpoints and caching
-- **WebView Integration**: Tests model loading and inference
-
-**Integration Flow**:
-```typescript
-// Complete pipeline test
-const testPipeline = async () => {
-  // 1. Process training videos
-  await processDGSVideos(inputPath, outputPath);
-
-  // 2. Train model
-  await trainMLPModel(trainingData, modelConfig);
-
-  // 3. Serve model via API
-  await serveModel(modelPath, apiConfig);
-
-  // 4. Load in WebView
-  await loadModelInWebView(modelUrl);
-
-  // 5. Perform inference
-  const result = await performInference(testLandmarks);
-  assert(result.confidence > 0.8, 'Low confidence detection');
-};
-```
-
-### API Endpoint Testing
-
-**Test Coverage**:
-- **GET /latest-mlp-model**: Model download with range requests
-- **GET /model-metadata**: Metadata retrieval and validation
-- **POST /prepare-dgs-model**: Model preparation workflow
-- **GET /train-status**: Training progress monitoring
-
-## End-to-End Testing
-
-### Full Pipeline Validation
-
-**File**: `integration/test/dgs_e2e.spec.ts`
-
-**Purpose**: Tests the complete user journey from gesture to recognition.
-
-**Test Scenarios**:
-- **Model Download**: Background model fetching and caching
-- **WebView Loading**: Model injection and initialization
-- **Real-time Recognition**: Live gesture detection and classification
-- **Fallback Activation**: Automatic fallback when primary systems fail
-- **Error Recovery**: Graceful handling of network issues
-
-**E2E Test Flow**:
-```typescript
-const e2eTest = async () => {
-  // Setup test environment
-  await setupTestServer();
-  await setupTestWebView();
-
-  // Test complete recognition pipeline
-  const gestureResult = await performFullRecognition(testVideo);
-
-  // Validate results
-  assert(gestureResult.detected, 'Gesture not detected');
-  assert(gestureResult.confidence > 0.7, 'Low confidence');
-  assert(gestureResult.latency < 100, 'High latency');
-};
-```
-
-### Video Processing Testing
-
-**File**: `integration/test/dgs_video_processing.spec.ts`
-
-**Purpose**: Validates video-to-landmark processing pipeline.
-
-**Test Cases**:
-- **Video Loading**: Supports multiple video formats
-- **Landmark Extraction**: Accurate 21-point hand landmark detection
-- **Data Normalization**: Proper coordinate normalization
-- **Batch Processing**: Efficient processing of video datasets
-- **Error Handling**: Graceful handling of corrupted videos
-
-## CI/CD Integration
-
-### GitHub Actions Workflow
-
-**File**: `.github/workflows/dgs-integration.yml`
-
-**Configuration**:
-```yaml
-name: DGS Integration Tests
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [18, 20]
-        python: ['3.10']
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node }}
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: Run DGS Tests
-        run: npm test --prefix integration -- --grep "dgs"
-```
-
-### Test Execution
-
-**Local Testing**:
 ```bash
-# Run all DGS tests
-npm test --prefix integration -- --grep "dgs"
-
-# Run specific test suite
-npm test --prefix integration -- dgs_performance
-npm test --prefix integration -- dgs_security
-npm test --prefix integration -- dgs_accessibility
-
-# Run with coverage
-npm test --prefix integration -- --coverage --grep "dgs"
+npm test --prefix integration | tee integration/test-output.log
 ```
 
-**Performance Baselines**:
-```json
-{
-  "performance": {
-    "latency": "< 10ms",
-    "fps": "> 50",
-    "memory": "< 50MB",
-    "accuracy": "> 90%"
-  },
-  "security": {
-    "fileIntegrity": "validated",
-    "pathTraversal": "protected",
-    "authorization": "enforced"
-  },
-  "accessibility": {
-    "wcagLevel": "AA",
-    "keyboardNavigation": "enabled",
-    "screenReader": "out_of_scope"
-  }
-}
-```
+Useful log markers:
 
-## Test Maintenance
+- `Received DGS sample` – upload succeeded and the bundle hit disk.
+- `Training job completed` – the Python script produced weights.
+- `Serving personalized model` – `/latest-mlp-model` returned profile-specific
+  bytes and the AsyncStorage cache updated.
 
-### Adding New Test Cases
+## Manual QA & Accessibility
 
-**Template for New Tests**:
-```typescript
-import { test, describe } from 'node:test';
-import assert from 'node:assert';
+Automated coverage keeps the pipeline stable, but Amy-first UX checks still
+happen manually:
 
-describe('New DGS Test Suite', () => {
-  test('should validate new functionality', async () => {
-    // Test implementation
-    const result = await testFunction();
-    assert(result.success, 'Test failed');
-  });
-});
-```
+- Follow `docs/DeviceTesting.md` to confirm the "DGS-Video anzeigen" toggle,
+  audio prompts, and offline flows behave on a physical device.
+- Verify the caregiver admin tools per `docs/REAL_WORLD_VALIDATION_GUIDE.md`
+  whenever a new model ships.
 
-### Test Data Management
-
-**Test Assets**:
-- Sample DGS video files for processing tests
-- Pre-trained model files for performance validation
-- Mock landmark data for unit testing
-- Test configuration files for different environments
-
-### Continuous Monitoring
-
-**Performance Regression Detection**:
-```typescript
-// Automated performance monitoring
-const monitorPerformance = async () => {
-  const metrics = await runPerformanceTests();
-
-  if (metrics.latency > THRESHOLD_LATENCY) {
-    console.error('Performance regression detected');
-    process.exit(1);
-  }
-};
-```
-
-## Troubleshooting Test Failures
-
-### Common Issues
-
-#### Model Not Available
-```bash
-# Generate test model
-python scripts/prepare_default_model.py
-
-# Or skip model-dependent tests
-npm test --prefix integration -- --grep "dgs" --skip-model-tests
-```
-
-#### Performance Test Failures
-```bash
-# Check system resources
-top  # Monitor CPU/memory
-python -c "import psutil; print(psutil.cpu_percent())"
-
-# Run isolated performance test
-npm test --prefix integration -- dgs_performance --verbose
-```
-
-#### Integration Test Timeouts
-```bash
-# Increase timeout for slow tests
-npm test --prefix integration -- --timeout 60000
-
-# Check server logs
-tail -f server/logs/dgs-integration.log
-```
-
-### Debug Mode Testing
-
-**Verbose Test Output**:
-```bash
-# Run with detailed logging
-DEBUG=dgs:* npm test --prefix integration -- dgs_integration
-
-# Check WebView console
-adb logcat | grep "WebView"
-```
-
-This comprehensive test suite ensures the DGS integration maintains high performance, security, and accessibility standards while providing reliable gesture recognition for Amy's communication needs.
+Keep this guide updated whenever a new automated suite is introduced so the team
+knows exactly which behaviors are enforced by code and which ones still require
+manual QA.
