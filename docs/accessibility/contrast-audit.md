@@ -14,7 +14,6 @@ This audit documents the contrast defects identified while addressing recent car
 | Visual feedback toast – error | `#FCFEFE` on `#DC5B57` | 3.70:1 | `#000000` on `#DC5B57` | 5.68:1 |
 | Secondary accent buttons (Recording, Training, Learning CTA states) | `#FCFEFE` on `#FF8A5B` | 2.30:1 | `#14363A` on `#FF8A5B` | 5.58:1 |
 | GestureMeaningSelector active button | `#FCFEFE` on `#FF8A5B` | 2.30:1 | `#14363A` on `#FF8A5B` | 5.58:1 |
-| OpenAI feedback dismiss button (high contrast) | `#FFFFFF` on `#F2E7DC` | 1.22:1 | `#0F5257` on `#F2E7DC` | 7.29:1 |
 | Progress tracker completion message | `#46C49D` on `#FFFFFF` | 2.18:1 | `#0F5257` on `#FFFFFF` | 8.77:1 |
 | Teaching screen “Weiter üben” secondary action | `#14363A` on `#05363A` | 1.01:1 | `#FCFEFE` on `#05363A` | 13.01:1 |
 

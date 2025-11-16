@@ -21,7 +21,6 @@ module.exports = {
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     'webview/**/*.{ts,tsx}',
-    '!src/services/parallelGestureProcessor.ts',
     '!src/**/*.d.ts',
     '!webview/**/*.d.ts',
   ],

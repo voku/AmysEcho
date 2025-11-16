@@ -15,7 +15,7 @@ Key interactions to test:
 
 ## 2. Writing the Tests
 
-We will use React Native Testing Library to write our tests. We will also need to mock any external dependencies, such as the `OpenAI` API or the device's file system.
+We will use React Native Testing Library to write our tests. Mock external dependencies (camera permissions, network uploads, etc.) so the suites remain deterministic.
 
 ### Implementation Steps
 

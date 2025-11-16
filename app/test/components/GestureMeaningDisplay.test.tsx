@@ -22,49 +22,6 @@ describe('GestureMeaningDisplay', () => {
     jest.restoreAllMocks();
   });
 
-  it('prioritises OpenAI metadata when selecting die kombinierte Darstellung', () => {
-    const createGesture = (id: string, emoji: string): GestureModelEntry => ({
-      id,
-      label: `${emoji} ${id}`,
-      emoji,
-    });
-
-    const getGestureByIdSpy = jest
-      .spyOn(optimizedGestureService, 'getGestureById')
-      .mockImplementation((gestureId: string) => {
-        switch (gestureId) {
-          case 'openai-gesture':
-            return createGesture('openai-gesture', '✨');
-          case 'help':
-            return createGesture('help', '🆘');
-          default:
-            return null;
-        }
-      });
-
-    const { getByText } = renderWithAccessibility(
-      <GestureMeaningDisplay
-        gestureId="help+help"
-        confidence={0.82}
-        openaiValidationResult={{
-          gesture: 'openai-gesture',
-          confidence: 0.9,
-          feedback: 'Sehr klar ausgeführt',
-          quality_score: 8,
-          validation_source: 'openai',
-          contextual_meaning: 'Zeigefinger zeigt nach unten – DGS-Bedeutung: Urinieren.',
-          reference_sources: ['https://kestner.app/sign/urinieren'],
-        }}
-      />,
-    );
-
-    expect(getByText('✨')).toBeTruthy();
-    expect(getGestureByIdSpy).toHaveBeenCalledWith('openai-gesture');
-    expect(getByText('Feedback: Sehr klar ausgeführt')).toBeTruthy();
-    expect(getByText('Kontext: Zeigefinger zeigt nach unten – DGS-Bedeutung: Urinieren.')).toBeTruthy();
-    expect(getByText('Quelle: https://kestner.app/sign/urinieren')).toBeTruthy();
-  });
-
   it('shows single-hand metadata when available', () => {
     const gestureMeta: GestureModelEntry = {
       id: 'hello',

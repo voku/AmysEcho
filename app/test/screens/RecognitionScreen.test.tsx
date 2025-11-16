@@ -79,22 +79,6 @@ jest.mock('../../src/hooks/useRecognitionCallbacks', () => ({
   }),
 }));
 
-jest.mock('../../src/hooks/useOpenAIValidation', () => ({
-  useOpenAIValidation: () => ({
-    openaiValidationResult: null,
-    setOpenaiValidationResult: jest.fn(),
-    showOpenaiFeedback: false,
-    setShowOpenaiFeedback: jest.fn(),
-    handleOpenAIValidation: jest.fn(),
-  }),
-}));
-
-jest.mock('../../src/hooks/useParallelProcessing', () => ({
-  useParallelProcessing: () => ({
-    handleParallelProcessing: jest.fn(),
-  }),
-}));
-
 jest.mock('../../src/hooks/useRecognitionState', () => {
   const React = require('react');
   const actual = jest.requireActual('../../src/hooks/useRecognitionState');

@@ -38,8 +38,6 @@ jest.mock('../src/components/GestureWebView', () => {
   };
 });
 
-jest.mock('../src/components/OpenAIGestureFeedback', () => 'OpenAIGestureFeedback');
-
 jest.mock('../src/services/dgsModelClient', () => ({
   getCachedMlpModel: jest.fn(() => Promise.resolve(null)),
   fetchMlpModel: jest.fn(() => Promise.resolve(null)),
@@ -58,23 +56,6 @@ jest.mock('../src/services/contextAwareRecognitionService', () => ({
 
 jest.mock('../src/hooks/useModelInjection', () => ({
   useModelInjection: (...args: any[]) => mockUseModelInjection(...args),
-}));
-
-jest.mock('../src/hooks/useOpenAIValidation', () => ({
-  useOpenAIValidation: () => ({
-    openaiValidationResult: null,
-    setOpenaiValidationResult: jest.fn(),
-    showOpenaiFeedback: false,
-    setShowOpenaiFeedback: jest.fn(),
-    handleOpenAIValidation: jest.fn(),
-  }),
-}));
-
-const mockHandleParallelProcessing = jest.fn();
-jest.mock('../src/hooks/useParallelProcessing', () => ({
-  useParallelProcessing: () => ({
-    handleParallelProcessing: mockHandleParallelProcessing,
-  }),
 }));
 
 jest.mock('../src/utils/logger', () => ({
@@ -706,7 +687,7 @@ describe('MediaPipeGestureDetector', () => {
     expect(onModelUpdateStatus).toHaveBeenLastCalledWith('complete');
   });
 
-  it('forwards frame capture payloads for OpenAI fallback handling', () => {
+  it('forwards frame capture payloads for downstream handling', () => {
     const onGestureDetected = jest.fn();
     const onError = jest.fn();
 

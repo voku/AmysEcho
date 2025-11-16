@@ -16,7 +16,6 @@ import ActionButton from '../components/ActionButton';
 import CameraFrame from '../components/CameraFrame';
 import { logger } from '../utils/logger';
 import { loadProfile } from '../storage';
-import type { GestureImageCapture } from '../services/openaiGestureValidationService';
 import type { FrameCapturePayload } from '../types/frames';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
@@ -31,15 +30,12 @@ import type { TabNavigationProp } from '../navigation/types';
 import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../navigation/types';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
-import { useOpenAIValidation } from '../hooks/useOpenAIValidation';
-import { useParallelProcessing } from '../hooks/useParallelProcessing';
 import {
   cloneLandmarks,
   adjustHandednessForMirror,
   createHandLandmarkStabilizer,
   type StabilizedHands,
 } from '../utils/landmarkUtils';
-import OpenAIGestureFeedback from '../components/OpenAIGestureFeedback';
 import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
@@ -55,8 +51,6 @@ import { OneEuroFilter } from '../services/OneEuroFilter';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { childFriendlyStyles } from '../styles/touchTargets';
 
-const DEFAULT_FRAME_WIDTH = 640;
-const DEFAULT_FRAME_HEIGHT = 480;
 const HAND_PREVIEW_STABILIZER_TTL_MS = 1800;
 type RecognitionStatusCategory = 'idle' | 'listening' | 'recognized' | 'updating' | 'error';
 
@@ -183,50 +177,6 @@ const selectConfidence = (
   return 0;
 };
 
-const toGestureImageCapture = (
-  frameCapture: FrameCapturePayload,
-  timestamp: number,
-): GestureImageCapture | null => {
-  if (!frameCapture) {
-    return null;
-  }
-
-  const partial =
-    typeof frameCapture === 'string'
-      ? { [frameCapture.startsWith('data:image/') ? 'uri' : 'base64']: frameCapture }
-      : frameCapture;
-
-  const { width, height } = partial as { width?: number; height?: number };
-  let { base64, uri } = partial as { base64?: string; uri?: string };
-
-  if (!base64 && typeof uri === 'string' && uri.startsWith('data:image/')) {
-    base64 = uri.split(',')[1] ?? '';
-  }
-
-  if (!base64) {
-    return null;
-  }
-
-  let mimeType = 'image/jpeg';
-  if (typeof uri === 'string' && uri.startsWith('data:image/')) {
-    const mimeEnd = uri.indexOf(';', 'data:'.length);
-    if (mimeEnd > 0) {
-      mimeType = uri.slice('data:'.length, mimeEnd);
-    }
-  }
-
-  if (!uri || !uri.startsWith('data:image/')) {
-    uri = `data:${mimeType};base64,${base64}`;
-  }
-
-  return {
-    uri,
-    base64,
-    width: typeof width === 'number' && width > 0 ? width : DEFAULT_FRAME_WIDTH,
-    height: typeof height === 'number' && height > 0 ? height : DEFAULT_FRAME_HEIGHT,
-    timestamp,
-  };
-};
 
 export default function RecognitionScreen({
   navigation,
@@ -260,7 +210,6 @@ export default function RecognitionScreen({
   const { showToast } = useMessage();
   const { getSuccessMessage } = useThemeMessages();
   const insets = useSafeAreaInsets();
-  const openAIToastReasonRef = useRef<string | null>(null);
 
   const overlaySpacingStyle = useMemo(
     () => ({
@@ -313,9 +262,7 @@ export default function RecognitionScreen({
   const handStabilizerRef = useRef(
     createHandLandmarkStabilizer({ ttlMs: HAND_PREVIEW_STABILIZER_TTL_MS, maxHands: 2 }),
   );
-  const latestFrameRef = useRef<GestureImageCapture | null>(null);
   const activeGestureRef = useRef<string | null>(null);
-  const [openAIServiceNotice, setOpenAIServiceNotice] = useState<{ reason: string; message: string } | null>(null);
 
   useEffect(() => {
     loadProfile().then(setProfile);
@@ -395,32 +342,6 @@ export default function RecognitionScreen({
 
   const pulseLoopRef = useRef<ReturnType<typeof Animated.loop> | null>(null);
 
-  const captureImage = useCallback(async () => {
-    const latest = latestFrameRef.current;
-    return latest ? { ...latest } : null;
-  }, []);
-
-  const handleOpenAIServiceError = useCallback(
-    (errorCode?: string) => {
-      if (!errorCode || !errorCode.startsWith('openai_unavailable')) {
-        return;
-      }
-      const [, rawReason] = errorCode.split(':');
-      const reason = rawReason && rawReason.length > 0 ? rawReason : 'unknown';
-      const message = reason === 'missing_api_key'
-        ? 'OpenAI Vision ist deaktiviert. Bitte hinterlege den OpenAI API-Schlüssel im Admin-Bereich.'
-        : 'OpenAI Vision antwortet gerade nicht. Wir nutzen vorübergehend die lokale Erkennung.';
-
-      setOpenAIServiceNotice({ reason, message });
-
-      if (openAIToastReasonRef.current !== reason) {
-        showToast({ message, tone: 'warning', durationMs: 6000 });
-        openAIToastReasonRef.current = reason;
-      }
-    },
-    [showToast],
-  );
-
   const startFeedbackAnimation = useCallback(() => {
     fadeAnim.setValue(0.6);
     Animated.timing(fadeAnim, {
@@ -475,11 +396,9 @@ export default function RecognitionScreen({
       handedness: string[],
     ) => {
       const stabilized = updateHandPreview(landmarks, handedness);
-      let processedGesture = gesture;
-      let processedConfidence = confidence;
       return baseHandleGestureDetected(
-        processedGesture,
-        processedConfidence,
+        gesture,
+        confidence,
         stabilized.landmarks,
         stabilized.handedness,
         'local',
@@ -488,66 +407,22 @@ export default function RecognitionScreen({
     [baseHandleGestureDetected, updateHandPreview],
   );
 
-  const {
-    openaiValidationResult,
-    setOpenaiValidationResult,
-    showOpenaiFeedback,
-    setShowOpenaiFeedback,
-    handleOpenAIValidation,
-  } = useOpenAIValidation(handleGestureDetected, captureImage);
-
-  const { handleParallelProcessing } = useParallelProcessing(
-    handleGestureDetected,
-    undefined,
-    setOpenaiValidationResult,
-    setShowOpenaiFeedback,
-    handleOpenAIValidation,
-    handleOpenAIServiceError,
-  );
-
   const processGesture = useCallback(
     (
       gesture: string | null,
       confidence: number,
       landmarks: number[][][],
       handedness: string[],
-      frameCapture?: FrameCapturePayload | null,
+      _frameCapture?: FrameCapturePayload | null,
     ) => {
-      const timestamp = Date.now();
-      if (typeof frameCapture === 'string' && frameCapture.startsWith('data:image')) {
-        const normalizedCapture = toGestureImageCapture(frameCapture, timestamp);
-        latestFrameRef.current = normalizedCapture;
-        void handleParallelProcessing(
-          gesture,
-          confidence,
-          landmarks,
-          handedness,
-          normalizedCapture ?? frameCapture ?? null,
-        );
-      } else {
-        void handleParallelProcessing(
-          gesture,
-          confidence,
-          landmarks,
-          handedness,
-          frameCapture ?? null,
-        );
-      }
+      void handleGestureDetected(gesture, confidence, landmarks, handedness);
     },
-    [handleParallelProcessing],
+    [handleGestureDetected],
   );
 
   const toggleFacingMode = useCallback(() => {
     setFacingMode((prev) => getNextCameraFacingMode(prev));
   }, [setFacingMode]);
-
-  const handleAcknowledgeOpenAISuggestion = useCallback(
-    (suggestion?: string) => {
-      logger.info(suggestion ? 'OpenAI suggestion angewendet' : 'OpenAI-Vorschlag bestätigt', { suggestion });
-      setShowOpenaiFeedback(false);
-    },
-    [setShowOpenaiFeedback],
-  );
 
   useEffect(() => {
     const loadGestureSizeTolerance = async () => {
@@ -852,17 +727,6 @@ export default function RecognitionScreen({
       ]}
     >
       <View style={styles.topSection}>
-        {openAIServiceNotice ? (
-          <View
-            style={[
-              styles.serviceHint,
-              isHandsetLayout && styles.handsetServiceHint,
-            ]}
-          >
-            <Text style={styles.serviceHintTitle}>OpenAI Vision pausiert</Text>
-            <Text style={styles.serviceHintText}>{openAIServiceNotice.message}</Text>
-          </View>
-        ) : null}
         <View
           style={[
             styles.statusCard,
@@ -1005,7 +869,6 @@ export default function RecognitionScreen({
             size="large"
             gestureDefinition={gestureMeaningDisplayProps.gestureDefinition}
             gestureMeta={lastRecognizedGesture}
-            openaiValidationResult={openaiValidationResult}
             sequenceGestures={gestureMeaningDisplayProps.sequenceGestures}
             tone="camera"
           />
@@ -1229,14 +1092,6 @@ export default function RecognitionScreen({
         {showCelebration && <Celebration key={celebrationKey} />}
       </LinearGradient>
 
-      {openaiValidationResult && (
-        <OpenAIGestureFeedback
-          isVisible={showOpenaiFeedback}
-          validationResult={openaiValidationResult}
-          onDismiss={() => setShowOpenaiFeedback(false)}
-          onApplySuggestion={handleAcknowledgeOpenAISuggestion}
-        />
-      )}
     </>
   );
 }
@@ -1309,30 +1164,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'stretch',
     gap: spacing.lg,
-  },
-  serviceHint: {
-    width: '100%',
-    borderRadius: 20,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: Colors.warningBackground,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.warning,
-    gap: spacing.xs,
-  },
-  handsetServiceHint: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-  },
-  serviceHintTitle: {
-    fontSize: typography.sizes.body,
-    fontWeight: typography.weights.semibold as any,
-    color: Colors.warning,
-  },
-  serviceHintText: {
-    fontSize: typography.sizes.caption,
-    lineHeight: typography.lineHeights.relaxed,
-    color: Colors.neutral,
   },
   statusCard: {
     width: '100%',

@@ -27,9 +27,10 @@ This document summarizes the repository in key areas with concrete file referenc
 - `app/src/services/trainingSync.ts` uploads samples and polls `/train-status` for progress
 - Server maintains personalized MLP bundles in `server/src/server.ts`, persisting data under `server/data/models/`
 
-## 4. Validation & OpenAI Integration
-- Vision-based gesture validation flows through `app/src/services/openaiGestureValidationService.ts`
-- Server endpoint `/api/gesture/validate-vision` proxies the OpenAI Vision call defined in `server/src/server.ts`
+## 4. Validation & Model Integration
+- The MediaPipe WebView emits landmarks and the app feeds them directly to the on-device MLP (see `app/src/screens/RecognitionScreen.tsx`).
+- Model downloads, caching, and hot reloading are handled by `app/src/services/dgsModelClient.ts` in concert with `useModelInjection`.
+- The server only exposes `/latest-mlp-model` and training endpoints; the former `/api/gesture/validate-vision` route has been retired now that we rely solely on our own classifier.
 
 ## 5. Adaptive Learning & Corrections
 - Corrections stored via `app/db/models.ts` and synced in `app/src/services/syncService.ts`

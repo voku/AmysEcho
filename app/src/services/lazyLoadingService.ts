@@ -70,8 +70,6 @@ export class LazyLoadingService {
           return (await import('../components/GestureMeaningDisplay')).default;
         case 'DgsVideoPlayer':
           return (await import('../components/DgsVideoPlayer')).default;
-        case 'OpenAIGestureFeedback':
-          return (await import('../components/OpenAIGestureFeedback')).default;
         default:
           throw new Error(`Unknown component: ${componentName}`);
       }

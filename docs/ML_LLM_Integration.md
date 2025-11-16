@@ -1,178 +1,45 @@
-# ML & LLM Integration in Amy's Echo
+# ML Integration in Amy's Echo
 
-This document details the comprehensive machine learning and large language model integration in Amy's Echo for gesture recognition and intelligent feedback.
+Amy's Echo now relies entirely on our own gesture models. This document explains the current machine-learning stack so new contributors can follow the data flow without chasing obsolete OpenAI references.
 
-> Hinweis: Die Dialogfunktionen wurden aus dem aktiven System entfernt. Die entsprechenden Abschnitte dienen nur noch als Referenz für mögliche zukünftige Erweiterungen.
+## 🤖 Gesture Recognition
 
-## 🤖 Machine Learning for Gesture Recognition
+### MediaPipe Hand Landmarks
+- **Location**: `app/src/components/MediaPipeGestureDetector.tsx`
+- **Role**: Runs inside a WebView to stream camera frames, extract 21×2 hand landmarks, and emit metadata to the React Native side.
+- **Performance Target**: ≤30 ms per frame on mid-range Android hardware.
 
-### Primary ML Engine: MediaPipe
-- **Technology**: Google's MediaPipe Hand Tracking
-- **Purpose**: Real-time hand landmark detection and gesture recognition
-- **Performance**: <30ms processing time for landmark extraction
-- **Accuracy**: High-confidence recognition for clear gestures
-- **Implementation**: `app/src/components/MediaPipeGestureDetector.tsx`
+### Amy's MLP Classifier
+- **Weights**: Downloaded through `app/src/services/dgsModelClient.ts` and injected with `useModelInjection`.
+- **Inference**: Executed directly in the WebView bundle (`app/webview/gestureDetector.ts`) so predictions stay on-device and work offline.
+- **Confidence Logic**: `app/src/screens/RecognitionScreen.tsx` interprets the WebView payload, stabilizes the landmarks, and drives UI/feedback decisions.
 
-### Secondary ML Engine: OpenAI Vision API
-- **Technology**: GPT-4 Vision with fine-tuned gesture analysis
-- **Purpose**: Intelligent fallback validation for uncertain gestures
-- **Trigger Conditions**:
-  - MediaPipe confidence < 0.6
-  - Emergency gestures (always validated)
-  - Complex gestures requiring AI analysis
-  - New/unknown gesture patterns
-- **Implementation**: `server/src/services/openaiVisionService.ts`
+There is no secondary OpenAI validator anymore; all confidence handling happens locally. When confidence drops below thresholds the UI invites caregivers to label the gesture instead of calling an external API.
 
-### Intelligent Fallback System
-- **Rule-Based Backup**: Local algorithm validation when ML fails
-- **Confidence Fusion**: Combines MediaPipe + OpenAI results
-- **Emergency Priority**: <50ms guaranteed response for critical gestures
-- **Implementation**: `app/src/services/openaiGestureValidationService.ts`
+## 🔄 Training & Distribution Loop
+1. **Capture** – `app/src/screens/TrainingScreen.tsx` records labeled clips plus the landmark timeline.
+2. **Bundle Upload** – `app/src/services/trainingBundleService.ts` zips `{metadata.json, landmarks.json, clip.mp4}` and sends it to `/api/v1/dgs/sample-bundles`.
+3. **Server Ingest** – `server/src/routes/trainingBundleRoute.ts` validates uploads, expands them under `server/data/uploads/`, and registers entries in `data/datasets/training_manifest.json`.
+4. **Training Jobs** – `server/src/server.ts` and `server/src/amyserver_tools/train_mlp.py` retrain the global + per-profile MLP weights, writing artifacts into `data/models/`.
+5. **Distribution** – the app polls `/latest-mlp-model` (optionally with `?profileId=`) and hot-swaps weights through the injection hook.
 
-## 🧠 Large Language Model for Feedback
+## 🧠 Dialog & LLM Features (Archived)
+The earlier GPT-based dialog experiments remain documented in `app/src/services/dialogEngine.ts`, but they are disabled by default. Future work can revive the feature by wiring a different backend or on-device model without reintroducing OpenAI Vision.
 
-### OpenAI GPT Integration
-- **Models Used**: GPT-4o-mini for efficiency, GPT-4 Vision for image analysis
-- **Primary Functions**:
-  - Gesture quality assessment and feedback
-  - Personalized improvement suggestions
-  - Conversational dialog generation
-
-### Feedback Intelligence Features
-- **Contextual Analysis**: Considers time of day, user history, and environment
-- **Personalization**: Learns user preferences and communication patterns
-- **Multilingual Support**: German localization for all AI-generated content
-
-### Dialog Engine (archiviert)
-- **Technology**: OpenAI GPT with conversation memory
-- **Purpose**: Generate contextual conversation suggestions
-- **Status**: Aus dem aktuellen Produkt entfernt; würde eine neue Server-API und Client-Integration erfordern.
-
-## 🔄 ML/LLM Pipeline Architecture
-
+## 🔁 Runtime Pipeline
 ```
-Camera Input → MediaPipe Detection → Confidence Check
-                    ↓ (Low Confidence)
-            OpenAI Vision Validation
-                    ↓
-         Result Fusion & Feedback
-                    ↓
-        LLM-Generated Suggestions
-                    ↓
-         Personalized Response
+Camera → MediaPipe (landmarks) → MLP inference → RecognitionScreen state → Feedback & training hooks
 ```
 
-### Processing Flow
-1. **Real-time Detection**: MediaPipe processes camera feed at 10 FPS
-2. **Confidence Assessment**: System evaluates recognition certainty
-3. **Intelligent Fallback**: OpenAI Vision validates uncertain results
-4. **Result Fusion**: Combines ML results with optimal confidence
-5. **LLM Enhancement**: GPT models generate contextual feedback
-6. **Personalization**: System adapts based on user history and patterns
+## 📊 Key Metrics
+- **Landmark extraction**: <30 ms
+- **MLP inference**: <20 ms (WebView JavaScript)
+- **End-to-end loop**: <500 ms from frame to spoken feedback
+- **Training cadence**: whenever caregivers upload bundles or trigger `/train-model`
 
-## 📊 Performance Metrics
+## 📝 Developer Notes
+- No API keys are required for gesture recognition. Ensure `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_API_TOKEN` point at your server when testing uploads.
+- Server tests expect `python3` plus NumPy/MediaPipe dependencies for `train_mlp.py`. Use `npm test --prefix server` to compile TS before running Pytest.
+- When editing the WebView classifier (`app/webview/gestureDetector.ts`) run `npm run build:webview --prefix app` so `app/assets/gestureDetector.js` stays in sync.
 
-### ML Engine Performance
-- **MediaPipe**: <30ms landmark extraction, 95%+ accuracy for clear gestures
-- **OpenAI Vision**: <2s validation time, 85%+ accuracy improvement for uncertain cases
-- **Combined System**: 98%+ overall recognition accuracy with fallbacks
-
-### LLM Performance
-- **Response Time**: <500ms for cached responses, <2s for new queries
-- **Cache Hit Rate**: 70%+ for common gesture feedback
-- **Token Efficiency**: Optimized prompts for cost-effective AI usage
-
-## 🔧 Technical Implementation
-
-### ML Model Integration
-```typescript
-// MediaPipe + OpenAI Vision combined validation
-const result = await validateGestureWithFallback(
-  mediapipeResult,
-  imageCapture,
-  context
-);
-```
-
-### LLM Feedback Generation
-```typescript
-// OpenAI Vision for detailed gesture analysis
-const analysis = await validateGestureWithVision({
-  imageBase64,
-  expectedGesture,
-  context: { environment, previousGestures }
-});
-```
-
-### Intelligent Caching
-- **ML Results**: 2-second cache for identical gesture validations
-- **LLM Responses**: 30-second cache for similar feedback requests
-- **Rate Limiting**: Protects API costs while maintaining responsiveness
-
-## 🎯 Key Benefits
-
-### For Amy (End User)
-- **Higher Accuracy**: ML fallback catches uncertain gestures
-- **Better Feedback**: LLM provides personalized, encouraging suggestions
-- **Learning Acceleration**: Intelligent suggestions speed up gesture mastery
-
-### For Caregivers
-- **Detailed Insights**: LLM provides comprehensive gesture analysis
-- **Progress Tracking**: ML tracks improvement patterns over time
-- **Communication Support**: AI suggests conversation continuations
-- **Emergency Reliability**: Guaranteed recognition for critical gestures
-
-### For Developers
-- **Modular Architecture**: Clean separation of ML and LLM components
-- **Fallback Resilience**: System works even when AI services are unavailable
-- **Performance Optimization**: Intelligent caching and rate limiting
-- **Cost Efficiency**: Optimized API usage with smart caching
-
-## 🔮 Future Enhancements
-
-### Advanced ML Features
-- **Custom Model Training**: Fine-tune models on Amy's specific gesture patterns
-- **Real-time Model Updates**: Continuous learning from user corrections
-- **Multi-modal Integration**: Combine gesture, facial expression, and voice analysis
-
-### Enhanced LLM Capabilities
-- **Conversational Memory**: Long-term context retention across sessions
-- **Personalized Learning**: AI tutor that adapts to Amy's learning style
-- **Multilingual Expansion**: Support for additional languages beyond German
-
-## 📈 Monitoring & Analytics
-
-### ML Performance Tracking
-- Recognition accuracy by gesture type
-- Fallback trigger frequency
-- Processing time metrics
-- Model confidence distributions
-
-### LLM Usage Analytics
-- API call frequency and costs
-- Response quality ratings
-- User satisfaction metrics
-- Cache hit rates and performance
-
-This comprehensive ML/LLM integration ensures Amy's Echo provides the most advanced, reliable, and personalized gesture recognition system available, combining the speed of traditional ML with the intelligence of modern AI.</content>
-</xai:function_call">The system already has comprehensive ML and LLM integration! I've updated the documentation to clearly highlight these capabilities. Here's what's currently implemented:
-
-## 🤖 ML for Gesture Recognition
-- **MediaPipe**: Real-time hand landmark detection and primary gesture recognition
-- **OpenAI Vision API**: Intelligent fallback validation for uncertain gestures
-- **Rule-based system**: Reliable backup when ML services are unavailable
-
-## 🧠 LLM for Feedback & Communication
-- **OpenAI GPT-4 Vision**: Analyzes gesture images and provides detailed feedback
-- **Dialog Engine**: Generates contextual conversation suggestions
-
-## 🔄 Intelligent Pipeline
-The system uses a sophisticated fallback system:
-1. MediaPipe processes gestures in real-time (<30ms)
-2. If confidence is low (<0.6), OpenAI Vision validates the gesture
-3. LLM generates personalized feedback and suggestions
-4. Results are fused for optimal accuracy
-
-I've created a new documentation file `docs/ML_LLM_Integration.md` that details the complete ML/LLM architecture, and updated the main README to highlight these AI capabilities. The system is already production-ready with ML-powered recognition and LLM-enhanced feedback! 
-
-Would you like me to show you specific examples of how the ML/LLM integration works in the codebase, or help enhance any particular aspect of the AI systems? 
+This lean architecture keeps the gesture loop fully within our control: MediaPipe handles perception, the MLP captures Amy's vocabulary, and the server distributes updated weights to every device.

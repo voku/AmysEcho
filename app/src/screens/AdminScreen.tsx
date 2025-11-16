@@ -9,13 +9,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import {
-  loadOpenAIApiKey,
-  saveOpenAIApiKey,
-  loadBackendApiToken,
-  saveBackendApiToken,
-  loadActiveProfileId,
-} from '../storage';
+import { loadBackendApiToken, saveBackendApiToken, loadActiveProfileId } from '../storage';
 import { Paths } from 'expo-file-system';
 import { makeDirectoryAsync, moveAsync, writeAsStringAsync, readAsStringAsync } from 'expo-file-system/legacy';
 import { database } from '../../db';
@@ -181,7 +175,6 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
   const [label, setLabel] = useState('');
   const [id, setId] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
-  const [apiKey, setApiKey] = useState('');
   const [backendToken, setBackendToken] = useState('');
   const [audioUri, setAudioUri] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -193,9 +186,6 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
       .query()
       .observe()
       .subscribe(setSymbols);
-    loadOpenAIApiKey().then((k) => {
-      if (k) setApiKey(k);
-    });
     loadBackendApiToken().then((t) => {
       if (t) setBackendToken(t);
     });
@@ -272,10 +262,6 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
       }
     });
     setModalVisible(false);
-  };
-
-  const handleSaveApiKey = async () => {
-    await saveOpenAIApiKey(apiKey);
   };
 
   const handleSaveBackendToken = async () => {
@@ -653,34 +639,6 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
         >
           API-Zugänge
         </Text>
-        <View style={styles.inputGroup}>
-          <Text
-            style={[
-              styles.inputLabel,
-              largeText && styles.inputLabelLarge,
-              highContrast && styles.inputLabelHC,
-            ]}
-          >
-            OpenAI API-Schlüssel
-          </Text>
-          <TextInput
-            style={[styles.input, highContrast && styles.inputHC]}
-            placeholder="sk-live-…"
-            placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textMuted}
-            value={apiKey}
-            onChangeText={setApiKey}
-            accessibilityLabel="OpenAI API-Schlüssel"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-        {renderSettingsOption(
-          'save-openai',
-          'API-Schlüssel speichern',
-          handleSaveApiKey,
-          'OpenAI API-Schlüssel speichern',
-          'Speichert den hinterlegten Schlüssel lokal',
-        )}
         <View style={styles.inputGroup}>
           <Text
             style={[

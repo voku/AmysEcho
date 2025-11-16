@@ -5,9 +5,10 @@
  * meaning of a gesture, regardless of whether it came from a
  * single-hand or coordinated multi-hand detection.
  *
- * The component prefers metadata coming from OpenAI validation
- * and recognition results, falling back to predefined gesture
- * combinations when necessary so Amy always sees one clear idea.
+ * The component prefers metadata coming directly from the
+ * on-device recogniser and recorded gesture definitions,
+ * falling back to predefined gesture combinations so Amy
+ * always sees one clear idea.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -25,7 +26,6 @@ import {
   type GestureMeaningDefinition,
 } from '../constants/gestureMeanings';
 import type { GestureModelEntry } from '../model';
-import type { OpenAIValidationResult } from '../hooks/useOpenAIValidation';
 import { optimizedGestureService } from '../services/optimizedGestureService';
 
 const CONFIDENCE_LABEL = 'Sicherheit';
@@ -66,7 +66,6 @@ interface GestureMeaningDisplayProps {
   size?: 'small' | 'medium' | 'large';
   gestureDefinition?: GestureMeaningDefinition | null;
   gestureMeta?: GestureModelEntry | null;
-  openaiValidationResult?: OpenAIValidationResult | null;
   sequenceGestures?: string[] | null;
   tone?: 'overlay' | 'camera';
   detailsStartCollapsed?: boolean;
@@ -79,7 +78,6 @@ export default function GestureMeaningDisplay({
   size = 'medium',
   gestureDefinition,
   gestureMeta,
-  openaiValidationResult,
   sequenceGestures,
   tone = 'overlay',
   detailsStartCollapsed = false,
@@ -181,13 +179,6 @@ export default function GestureMeaningDisplay({
     normalizedId,
     sequenceDefinition,
   ]);
-  const openAiGestureMeta = useMemo(() => {
-    if (!openaiValidationResult?.gesture) {
-      return null;
-    }
-    return optimizedGestureService.getGestureById(openaiValidationResult.gesture);
-  }, [openaiValidationResult?.gesture]);
-
   const resolvedGestureMeta = useMemo(() => {
     if (gestureMeta) {
       return gestureMeta;
@@ -233,10 +224,6 @@ export default function GestureMeaningDisplay({
   }, [sequenceDefinition]);
 
   const combinedEmoji = useMemo(() => {
-    if (openAiGestureMeta?.emoji) {
-      return openAiGestureMeta.emoji;
-    }
-
     if (resolvedGestureMeta?.emoji) {
       return resolvedGestureMeta.emoji;
     }
@@ -264,20 +251,12 @@ export default function GestureMeaningDisplay({
     activeDefinition?.emoji,
     isCombination,
     leftMeta?.emoji,
-    openAiGestureMeta?.emoji,
     resolvedGestureMeta?.emoji,
     rightMeta?.emoji,
     sequenceDefinition?.emoji,
   ]);
 
-  const openAiLabel = openAiGestureMeta?.label || openaiValidationResult?.gesture || null;
-  const openAiFeedback = openaiValidationResult?.feedback;
-
   const displayName = useMemo(() => {
-    if (openAiLabel) {
-      return openAiLabel;
-    }
-
     if (resolvedGestureMeta?.label) {
       return resolvedGestureMeta.label;
     }
@@ -300,7 +279,6 @@ export default function GestureMeaningDisplay({
     coordinatedDefinition?.name,
     isCombination,
     normalizedId,
-    openAiLabel,
     parsedCombination,
     resolvedGestureMeta?.label,
   ]);
@@ -368,22 +346,6 @@ export default function GestureMeaningDisplay({
       lines.push('DGS-Video verfügbar');
     }
 
-    if (openAiLabel && openAiLabel !== displayName) {
-      lines.push(`Bestätigung: ${openAiLabel}`);
-    }
-
-    if (openAiFeedback) {
-      lines.push(`Feedback: ${openAiFeedback}`);
-    }
-
-    if (openaiValidationResult?.contextual_meaning) {
-      lines.push(`Kontext: ${openaiValidationResult.contextual_meaning}`);
-    }
-
-    if (Array.isArray(openaiValidationResult?.reference_sources) && openaiValidationResult.reference_sources.length > 0) {
-      lines.push(`Quelle: ${openaiValidationResult.reference_sources[0]}`);
-    }
-
     return lines;
   }, [
     activeDefinition?.description,
@@ -391,10 +353,6 @@ export default function GestureMeaningDisplay({
     combinationLines,
     displayName,
     isSequence,
-    openAiFeedback,
-    openAiLabel,
-    openaiValidationResult?.contextual_meaning,
-    openaiValidationResult?.reference_sources,
     resolvedGestureMeta?.dgsVideoUri,
     sequenceStepLabels,
     showDetails,
