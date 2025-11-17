@@ -11,7 +11,6 @@ import {
   gestureCombinationService,
   correctionService,
   gestureMeaningService,
-  dialogEngine,
 } from '../services';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { automaticRecoveryService } from '../services/automaticRecoveryService';
@@ -42,7 +41,6 @@ import { logInteractionEvent } from '../services/analytics';
 
 const PREDICTION_ERROR_TEXT = 'Das hat nicht geklappt. Lass es uns nochmal versuchen!';
 const RECOVERING_CAMERA_TEXT = 'Ups! Ich starte die Kamera neu…';
-const SUGGESTION_LANGUAGE = 'de';
 
 type Navigation = TabNavigationProp<typeof APP_TAB_ROUTES.Recognition>;
 
@@ -128,8 +126,6 @@ export const useRecognitionCallbacks = ({
     setGestureConfidence,
     setLastRecognizedGesture,
     setRecognitionPath,
-    setSuggestions,
-    setDialogContext,
     setShowVisualRipple,
     setShowScreenFlash,
     setScreenFlashPattern,
@@ -147,9 +143,7 @@ export const useRecognitionCallbacks = ({
     successSound,
     contextInsights,
     gestureConfidence,
-    dialogContext,
     lastRecognizedGesture,
-    profile,
     setLastSuccessfulConfidence,
   } = state;
 
@@ -480,25 +474,6 @@ export const useRecognitionCallbacks = ({
         recognitionSource,
       );
 
-      const suggestionLanguage = SUGGESTION_LANGUAGE;
-      const suggestionAge = profile?.age ?? 4;
-
-      try {
-        const suggestions = await dialogEngine.getSuggestions({
-          input: label,
-          context: dialogContext,
-          language: suggestionLanguage,
-          age: suggestionAge,
-        });
-        setSuggestions(suggestions);
-        setDialogContext((ctx) => {
-          const next = [...ctx, label];
-          return next.slice(-5);
-        });
-      } catch (error) {
-        logger.warn('Failed to get LLM suggestions:', error);
-      }
-
       void logInteractionEvent({
         gestureDefinitionId: gestureMeta?.id ?? gesture,
         gestureName: label,
@@ -518,11 +493,7 @@ export const useRecognitionCallbacks = ({
       setPendingGesture,
       setShowVisualRipple,
       setDetectedGestureMeaning,
-      setSuggestions,
-      setDialogContext,
-      dialogContext,
       showSuccessfulGestureUi,
-      profile,
       setError,
     ],
   );

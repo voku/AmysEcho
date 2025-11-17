@@ -196,7 +196,7 @@ DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gest
 
 ### Configuring the backend API token
 
-The dialog endpoint and training APIs require a bearer token. Choose **one** of the following options for local development:
+The training endpoints require a bearer token. Choose **one** of the following options for local development:
 
 1. **Environment variable (recommended for development/CI)**
    ```bash

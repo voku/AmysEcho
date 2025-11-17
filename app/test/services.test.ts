@@ -5,7 +5,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 describe('Services integration smoke test', () => {
-  it('executes audio, video, and dialog flows without throwing', async () => {
+  it('executes audio and video flows without throwing', async () => {
     const audioFile = path.join(tmpdir(), 'dummy.mp3');
     const videoFile = path.join(tmpdir(), 'dummy.mp4');
     await fs.writeFile(audioFile, '');
@@ -17,7 +17,6 @@ describe('Services integration smoke test', () => {
     await expect(playSystemSound('success')).resolves.toBeUndefined();
     await expect(playSystemSound('error')).resolves.toBeUndefined();
 
-    // Dialog suggestions are now handled entirely on-device and via our server;
-    // the caregiver portal dialog helpers were removed.
+    // Dialog suggestions are fully removed; only the gesture training loop remains.
   });
 });

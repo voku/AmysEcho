@@ -51,7 +51,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/services/backupService.ts`
 *   `app/src/services/correctionService.ts`
 *   `app/src/services/dgsTrainingService.ts`
-*   `app/src/services/dialogEngine.ts`
 *   `app/src/services/engagementTracker.ts`
 *   `app/src/services/feedbackService.ts`
 *   `app/src/services/gdprService.ts`

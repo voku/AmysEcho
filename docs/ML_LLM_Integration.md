@@ -23,8 +23,8 @@ There is no secondary cloud validator anymore; all confidence handling happens l
 4. **Training Jobs** – `server/src/server.ts` and `server/src/amyserver_tools/train_mlp.py` retrain the global + per-profile MLP weights, writing artifacts into `data/models/`.
 5. **Distribution** – the app polls `/latest-mlp-model` (optionally with `?profileId=`) and hot-swaps weights through the injection hook.
 
-## 🧠 Dialog & LLM Features (Archived)
-The earlier GPT-based dialog experiments remain documented in `app/src/services/dialogEngine.ts`, but they are disabled by default. Future work can revive the feature by wiring a different backend or on-device model without reintroducing external vision services.
+## 🧠 Dialog & LLM Features (Removed)
+The experimental GPT dialog layer was fully removed to concentrate on the hand-gesture training loop. No dialog-specific code remains in the app or server, and reintroducing the concept would require a fresh architecture review.
 
 ## 🔁 Runtime Pipeline
 ```
