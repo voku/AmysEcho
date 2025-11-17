@@ -85,4 +85,40 @@ describe('custom gestures route', () => {
     expect(response.body.gestures).toHaveLength(1);
     expect(response.body.gestures[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen' });
   });
+
+  it('accepts ASCII-slugified German gesture IDs', async () => {
+    // Test German umlauts converted to ASCII
+    const response1 = await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'aerger_zeigen', label: 'Ärger zeigen', emoji: '😠' })
+      .expect(201);
+
+    expect(response1.body).toMatchObject({ id: 'aerger_zeigen', label: 'Ärger zeigen', emoji: '😠' });
+
+    // Test ß converted to ss
+    const response2 = await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'fuss_wackeln', label: 'Fuß wackeln', emoji: '🦶' })
+      .expect(201);
+
+    expect(response2.body).toMatchObject({ id: 'fuss_wackeln', label: 'Fuß wackeln', emoji: '🦶' });
+
+    // Verify both are stored
+    const raw = await fs.readFile(gesturesPath, 'utf8');
+    const stored = JSON.parse(raw);
+    expect(stored.gestures).toHaveLength(2);
+  });
+
+  it('rejects non-ASCII gesture IDs with Unicode characters', async () => {
+    // This should fail because the ID contains ä (not slugified)
+    const response = await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'ärger_zeigen', label: 'Ärger zeigen', emoji: '😠' })
+      .expect(400);
+
+    expect(response.body.error).toBe('invalid gesture payload');
+  });
 });
