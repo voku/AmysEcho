@@ -278,10 +278,3 @@ export class ExternalApiClient {
     return this.request<T>('DELETE', endpoint, options);
   }
 }
-
-// OpenAI Vision API client
-export const openaiClient = new ExternalApiClient('https://api.openai.com/v1', {
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 60000, // OpenAI can be slow
-  retries: 1 // Don't retry OpenAI requests as they cost money
-});

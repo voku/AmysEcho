@@ -208,51 +208,44 @@ Multi-layer fallback ensures continuous operation:
 
 ## Testing & Validation
 
-### Performance Testing
+### Performance & Stability Testing
 
-The integration includes comprehensive performance validation:
+`integration/test/api.test.js` boots the production server build, uploads a
+training bundle, waits for the Python trainer to emit weights, and finally
+downloads the resulting model. Run the full suite with:
 
 ```bash
-# Run DGS performance tests
-npm test --prefix integration -- dgs_performance
-
-# Expected results:
-# - Latency: <10ms per frame
-# - FPS: >50 in optimal conditions
-# - Memory: <50MB during operation
-# - Accuracy: >90% on test set
+npm test --prefix integration
 ```
+
+The test ensures training jobs complete within the configured timeout, the
+resulting `.npz` file is readable, and cached responses stay in sync with the
+files on disk. Review `integration/test-output.log` after a run to inspect
+assertions, HTTP payloads, and timing data captured by the suite.
 
 ### Integration Testing
 
-End-to-end pipeline validation:
+The same suite also exercises the APIs that power the caregiver app:
 
-```bash
-# Run full DGS integration test suite
-npm test --prefix integration -- dgs_integration
+- `POST /train-model` rejects malformed payloads with `400` and accepts valid
+  samples with `{ jobId, status }` JSON bodies.
+- `GET /model-version` and `GET /latest-mlp-model` respond with concrete
+  metadata (`200 { version, checksum }`) and binary payloads (NPZ bytes plus
+  `Content-Length`, `ETag`, `Content-Disposition`).
+- `POST /api/v1/dgs/sample-bundles` stores uploads (`201` with bundle id) and
+  auto-triggers training.
 
-# Tests cover:
-# - Model download and validation
-# - WebView model injection
-# - Real-time gesture recognition
-# - Fallback mechanism activation
-# - Error recovery scenarios
-```
+All of these checks run via `npm test --prefix integration`, so no extra test
+names or runner flags are required.
 
 ### Security Testing
 
-Security validation ensures safe model handling:
-
-```bash
-# Run DGS security tests
-npm test --prefix integration -- dgs_security
-
-# Validates:
-# - File integrity verification
-# - Path traversal protection
-# - Input sanitization
-# - Authentication enforcement
-```
+While the suite focuses on real behavior instead of mocks, it still validates
+that invalid payloads, missing headers, and unexpected states return proper
+error codes: malformed JSON returns `400`, missing `Authorization` headers hit
+`401`, forbidden profile ids hit `403`, and missing models respond with `404`.
+Keeping everything inside `integration/test/api.test.js` means we only maintain
+logic that actually interacts with the live server build.
 
 ## Deployment & CI/CD
 
@@ -292,7 +285,7 @@ jobs:
           pip install -r server/requirements.txt
 
       - name: Run DGS tests
-        run: npm test --prefix integration -- --grep "dgs"
+        run: npm test --prefix integration
 ```
 
 ### Production Deployment
@@ -304,13 +297,20 @@ Deploy the DGS integration to production:
 python scripts/prepare_default_model.py
 
 # 2. Run integration tests
-npm test --prefix integration -- dgs_e2e
+npm test --prefix integration
 
-# 3. Deploy server with new model
+# 3. Configure environment + database
+export GESTURE_AUTH_TOKEN=... # caregiver API token
+export AMY_ECHO_DATA_DIR=/var/lib/amysecho
+mkdir -p "$AMY_ECHO_DATA_DIR"
+[ -f "$AMY_ECHO_DATA_DIR/db.json" ] || printf '{}' > "$AMY_ECHO_DATA_DIR/db.json"
 npm run build --prefix server
-npm start --prefix server
 
-# 4. Update app with new model support
+# 4. Deploy server with new model
+npm start --prefix server
+curl http://localhost:5000/health
+
+# 5. Update app with new model support
 npm run build:webview --prefix app
 ```
 

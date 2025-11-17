@@ -10,9 +10,6 @@ export const FALLBACK_CONFIDENCE_THRESHOLD = 0.3;
 export const ANALYTICS_ENDPOINT = `${API_URL}/analytics`;
 export const ANALYTICS_TELEMETRY_ENDPOINT = `${API_URL}/telemetry`;
 export const CAMERA_WEBVIEW_BASE_URL = 'https://camera.local';
-export const DEFAULT_OPENAI_FEEDBACK_MESSAGE = 'Geste verarbeitet';
-export const DEFAULT_OPENAI_QUALITY_SCORE = 7.0;
-
 export const ENABLE_REMOTE_CLASSIFICATION =
   process.env['EXPO_PUBLIC_ENABLE_REMOTE_CLASSIFICATION'] !== 'false';
 export const REMOTE_RETRY_MS = Number(

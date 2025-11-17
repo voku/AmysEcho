@@ -5,13 +5,11 @@ export interface ServerConfig {
   port: number;
   apiToken: string;
   nodeEnv: string;
-  dialogLimit: number;
   apiLimit: number;
   mlpScript: string;
   backupSecret: string;
   trainScript: string;
   dbPath: string;
-  openaiApiKey?: string;
   cloudApiUrl: string;
   offlineModelPath: string;
   gestureTaskUrl: string;
@@ -41,13 +39,11 @@ export const config: ServerConfig = {
   port: getEnvVarAsNumber('PORT', 5000),
   apiToken: getEnvVar('API_TOKEN', 'demo-token'),
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
-  dialogLimit: getEnvVarAsNumber('DIALOG_LIMIT', 60),
   apiLimit: getEnvVarAsNumber('API_LIMIT', 120),
   mlpScript: getEnvVar('MLP_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
   backupSecret: getEnvVar('BACKUP_SECRET', 'default-secret-password'),
   trainScript: getEnvVar('TRAIN_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
   dbPath: getEnvVar('DB_PATH', path.join(SERVER_DIR, 'db.json')),
-  openaiApiKey: process.env.OPENAI_API_KEY,
   cloudApiUrl: getEnvVar('CLOUD_API_URL', 'http://localhost:4000/classify'),
   offlineModelPath: getEnvVar('OFFLINE_MODEL_PATH', path.join(SRC_DIR, 'offlineModel.json')),
   gestureTaskUrl: getEnvVar('GESTURE_TASK_URL', 'https://api.github.com/repos/sst/dgs/contents/tasks'),

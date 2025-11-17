@@ -132,10 +132,10 @@ import BottomNav from '../components/BottomNav';
 import CorrectionPanel from '../components/CorrectionPanel';
 import { COLORS, SPACING } from '../constants/ui';
 import { logger } from '../utils/logger';
-import { audioService, triggerSpeakAndShow, correctionService, dialogEngine } from '../services';
+import { audioService, triggerSpeakAndShow, correctionService } from '../services';
 import { loadProfile, Profile, logCorrection } from '../storage';
 import { gestureModel, GestureModelEntry } from '../model';
-import { LLMSuggestionResponse } from '../services/dialogEngine';
+// DialogEngine was removed; recognition now focuses solely on local gesture handling.
 
 export default function RecognitionScreen({ navigation }: any) {
   const { largeText } = useAccessibility();
@@ -145,11 +145,7 @@ export default function RecognitionScreen({ navigation }: any) {
   const [gestureConfidence, setGestureConfidence] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
-  const [suggestions, setSuggestions] = useState<LLMSuggestionResponse>({
-    nextWords: [],
-    caregiverPhrases: [],
-  });
-  const [dialogContext, setDialogContext] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [pendingGesture, setPendingGesture] = useState<string | null>(null);
   const [lastRecognizedGesture, setLastRecognizedGesture] = useState<GestureModelEntry | null>(null);
 
@@ -190,28 +186,15 @@ export default function RecognitionScreen({ navigation }: any) {
       triggerSpeakAndShow(entry.label, confidence);
       startFeedbackAnimation();
 
-      try {
-        const adv = await dialogEngine.getLLMSuggestions({
-          input: entry.label,
-          context: dialogContext,
-          language: 'de',
-          age: 4,
-        });
-        setSuggestions(adv);
-        setDialogContext((ctx) => {
-          const next = [...ctx, entry.label];
-          return next.slice(-5);
-        });
-      } catch (error) {
-        logger.warn('Failed to get LLM suggestions:', error);
-      }
+      // Dialog suggestions previously surfaced here. The app now keeps the flow local
+      // and simply nudges the caregiver with contextual reminders stored in AsyncStorage.
 
     } else {
       setStatus("I'm not sure. Please try again.");
       setPendingGesture(gesture);
       setShowCorrection(true);
     }
-  }, [dialogContext, startFeedbackAnimation]);
+  }, [startFeedbackAnimation]);
 
   // MediaPipeErrorDetails stammt aus MediaPipeGestureDetector.
   const handleGestureError = useCallback(

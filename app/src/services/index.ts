@@ -1,6 +1,5 @@
 export * from './audioService';
 export { playSymbolAudio } from './audioService';
-export * from './dialogEngine';
 export * from './analytics';
 export * from './usageTracker';
 export * from './engagementTracker';

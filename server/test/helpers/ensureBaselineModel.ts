@@ -21,8 +21,8 @@ async function resolveBaselinePath(): Promise<string> {
   return BASELINE_MLP_MODEL_PATH;
 }
 
-export async function ensureBaselineModelFixture(): Promise<void> {
-  const baselinePath = await resolveBaselinePath();
+export async function ensureBaselineModelFixture(explicitPath?: string): Promise<void> {
+  const baselinePath = explicitPath ?? (await resolveBaselinePath());
   if (await fileExists(baselinePath)) {
     return;
   }

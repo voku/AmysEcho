@@ -4,12 +4,12 @@ const mockFrameCaptureState = {
   lastCapturedFrame: null as string | null,
 };
 
-const mockCaptureFrameForOpenAI = jest.fn<string | null, [HTMLVideoElement]>();
+const mockCaptureFrameForTrainer = jest.fn<string | null, [HTMLVideoElement]>();
 const mockSetFrameCaptureEnabled = jest.fn<void, [boolean, number | undefined]>();
 
 jest.mock('../utils/FrameCaptureManager', () => ({
   __esModule: true,
-  captureFrameForOpenAI: (video: HTMLVideoElement) => mockCaptureFrameForOpenAI(video),
+  captureFrameForTrainer: (video: HTMLVideoElement) => mockCaptureFrameForTrainer(video),
   getLastCapturedFrame: () => mockFrameCaptureState.lastCapturedFrame,
   setFrameCaptureEnabled: (enabled: boolean, interval?: number) => {
     mockFrameCaptureState.enabled = enabled;
@@ -41,7 +41,7 @@ describe('FallbackClipRecorder', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    mockCaptureFrameForOpenAI.mockReset();
+    mockCaptureFrameForTrainer.mockReset();
     mockSetFrameCaptureEnabled.mockClear();
     mockFrameCaptureState.enabled = false;
     mockFrameCaptureState.interval = 220;
@@ -57,7 +57,7 @@ describe('FallbackClipRecorder', () => {
   });
 
   it('encodes captured JPEG frames into an MJPEG AVI clip', async () => {
-    mockCaptureFrameForOpenAI.mockImplementation(() => {
+    mockCaptureFrameForTrainer.mockImplementation(() => {
       mockFrameCaptureState.lastCapturedFrame = SAMPLE_FRAME;
       return SAMPLE_FRAME;
     });
@@ -73,7 +73,7 @@ describe('FallbackClipRecorder', () => {
     expect(result.durationMs).toBeGreaterThan(0);
     expect(new Date(result.capturedAt).toString()).not.toBe('Invalid Date');
 
-    expect(mockCaptureFrameForOpenAI).toHaveBeenCalled();
+    expect(mockCaptureFrameForTrainer).toHaveBeenCalled();
     expect(mockSetFrameCaptureEnabled).toHaveBeenNthCalledWith(1, true, 100);
     expect(mockSetFrameCaptureEnabled).toHaveBeenLastCalledWith(false, 220);
 
@@ -83,7 +83,7 @@ describe('FallbackClipRecorder', () => {
   });
 
   it('restores previous capture settings even when no frames are recorded', async () => {
-    mockCaptureFrameForOpenAI.mockReturnValue(null);
+    mockCaptureFrameForTrainer.mockReturnValue(null);
 
     const recorder = new FallbackClipRecorder(video, { frameIntervalMs: 90 });
     recorder.start();

@@ -48,9 +48,6 @@ jest.mock('../../src/services', () => ({
   gestureMeaningService: {
     processGestureMeaning: jest.fn().mockResolvedValue(null),
   },
-  dialogEngine: {
-    getSuggestions: jest.fn().mockResolvedValue([]),
-  },
 }));
 
 jest.mock('../../src/services/gestureHistoryService', () => ({
@@ -162,16 +159,6 @@ describe('useRecognitionCallbacks', () => {
   const setGestureConfidence = jest.fn();
   const setLastRecognizedGesture = jest.fn();
   const setRecognitionPath = jest.fn();
-  const setSuggestions = jest.fn();
-  let dialogContextState: string[] = [];
-  const setDialogContext = jest.fn((updater: unknown) => {
-    if (typeof updater === 'function') {
-      dialogContextState = (updater as (value: string[]) => string[])(dialogContextState);
-    } else {
-      dialogContextState = updater as string[];
-    }
-    return dialogContextState;
-  });
   const setShowVisualRipple = jest.fn();
   const setShowScreenFlash = jest.fn();
   const setScreenFlashPattern = jest.fn();
@@ -187,8 +174,6 @@ describe('useRecognitionCallbacks', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    dialogContextState = [];
-
     (services.personalizedConfidenceService.getPersonalizedThreshold as jest.Mock).mockImplementation(() => ({
       threshold: 0.2,
       reason: 'mock',
@@ -218,8 +203,6 @@ describe('useRecognitionCallbacks', () => {
       setGestureConfidence,
       setLastRecognizedGesture,
       setRecognitionPath,
-      setSuggestions,
-      setDialogContext,
       setShowVisualRipple,
       setShowScreenFlash,
       setScreenFlashPattern,
@@ -236,7 +219,6 @@ describe('useRecognitionCallbacks', () => {
       contextInsights: {},
       gestureConfidence: 0,
       lastSuccessfulConfidence: 0,
-      dialogContext: dialogContextState,
       lastRecognizedGesture: null,
       profile: { age: 5 },
     } as unknown as RecognitionState;

@@ -9,7 +9,9 @@ Before diving into specific issues, run this checklist.
 
 ```bash
 # 1. Check system status
-npm test --prefix integration -- dgs_integration
+npm test --prefix integration
+# (optional quick filter)
+npm test --prefix integration -- --grep "health"
 
 # 2. Verify model file exists
 ls -la server/data/dgs_model.npz
@@ -405,7 +407,7 @@ const PERFORMANCE_THRESHOLDS = {
 3. **Handle Test Timeouts**:
 ```bash
 # Increase test timeouts for slow environments
-npm test --prefix integration -- --timeout 120000
+npm test --prefix integration -- --test-timeout=120000
 ```
 
 ### CI/CD Pipeline Issues
@@ -580,7 +582,7 @@ Collect comprehensive logs for support:
 # Create debug archive
 tar -czf debug_logs.tar.gz \
   server/logs/*.log \
-  integration/test-report.json \
+  integration/test-output.log \
   app/logs/ \
   /tmp/dgs_debug.log
 ```

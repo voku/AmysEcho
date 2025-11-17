@@ -45,7 +45,7 @@ This guide helps caregivers get Amy's Echo running and begin supporting a child'
 3. Once the model download finishes, Amy immediately benefits from the updated gestures.
 
 ## 6. Updating Access Tokens
-1. In the **Admin Panel**, enter the OpenAI API key and backend token if required.
+1. In the **Admin Panel**, enter the backend token (`API_TOKEN`) if required for server access.
 2. Tap **Save** for each field. Tokens are stored securely on the device.
 
 ## 7. Need Help?

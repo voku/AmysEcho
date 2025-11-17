@@ -18,7 +18,7 @@ This guide provides a comprehensive framework for validating the enhanced gestur
 - [ ] Lighting optimized for gesture visibility
 - [ ] Background minimized to reduce distractions
 - [ ] Device battery charged (>20%)
-- [ ] Network connection stable (for OpenAI fallback)
+- [ ] Network connection stable (only required for uploading training bundles)
 
 ### 3. Amy Preparation
 - [ ] Explain the testing process in simple terms

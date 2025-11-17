@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { database } from '../db';
 import { Profile as DBProfile } from '../db/models';
-import { secureConfigManager } from './services/secureConfig';
 import { enqueueTrainingBundle } from './services/trainingBundleQueue';
 import { logger } from './utils/logger';
 
@@ -372,14 +371,6 @@ export async function clearProfileData(profileId: string): Promise<void> {
   const logKey = `interactionLogs_${profileId}`;
 
   await AsyncStorage.multiRemove([trainingKey, logKey]);
-}
-
-export async function saveOpenAIApiKey(key: string): Promise<void> {
-  await secureConfigManager.setAPIKey(key);
-}
-
-export async function loadOpenAIApiKey(): Promise<string | null> {
-  return secureConfigManager.getAPIKey();
 }
 
 const BACKEND_TOKEN_KEY = 'backendApiToken';

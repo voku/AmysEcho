@@ -51,7 +51,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/services/backupService.ts`
 *   `app/src/services/correctionService.ts`
 *   `app/src/services/dgsTrainingService.ts`
-*   `app/src/services/dialogEngine.ts`
 *   `app/src/services/engagementTracker.ts`
 *   `app/src/services/feedbackService.ts`
 *   `app/src/services/gdprService.ts`
@@ -59,7 +58,6 @@ While a direct 1:1 mapping isn't always indicative of complete coverage (e.g., a
 *   `app/src/services/healthScore.ts`
 *   `app/src/services/hipEvents.ts`
 *   `app/src/services/OneEuroFilter.ts`
-*   `app/src/services/secureConfig.ts`
 *   `app/src/services/TrainingDataValidator.ts`
 *   `app/src/services/usageTracker.ts`
 *   `app/src/styles/touchTargets.ts`

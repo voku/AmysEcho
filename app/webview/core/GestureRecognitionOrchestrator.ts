@@ -24,7 +24,7 @@ import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
 import { MediaPipeGestureResult, TwoHandGesture } from '../types/MediaPipeTypes';
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
 import { messageBatcher, FRAME_LATENCY_SAMPLE_INTERVAL } from '../utils/MessageBatcher';
-import { captureFrameForOpenAI, getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
+import { captureFrameForTrainer, getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
 import { FallbackClipRecorder, FallbackClipResult } from '../utils/FallbackClipRecorder';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
@@ -333,7 +333,7 @@ export class GestureRecognitionOrchestrator {
 
   private collectFrameForBatch(normalized: NormalizedMediaPipeResult): void {
     try {
-      const frameDataUrl = captureFrameForOpenAI(this.video);
+      const frameDataUrl = captureFrameForTrainer(this.video);
       if (!frameDataUrl) {
         return;
       }

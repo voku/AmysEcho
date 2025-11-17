@@ -10,8 +10,6 @@ import {
   logCorrection,
   saveTrainingSample,
   loadTrainingSampleCount,
-  saveOpenAIApiKey,
-  loadOpenAIApiKey,
   saveBackendApiToken,
   loadBackendApiToken,
   saveCustomModelUri,
@@ -35,12 +33,6 @@ jest.mock('../db', () => ({
   database: {
     get: jest.fn(),
     write: jest.fn(),
-  },
-}));
-jest.mock('../src/services/secureConfig', () => ({
-  secureConfigManager: {
-    setAPIKey: jest.fn(),
-    getAPIKey: jest.fn(),
   },
 }));
 jest.mock('../src/services/trainingBundleQueue', () => ({
@@ -465,17 +457,6 @@ describe('Storage', () => {
       const count = await loadTrainingSampleCount('gesture-1');
 
       expect(count).toBe(0);
-    });
-  });
-
-  // API Key functions
-  describe('API Key functions', () => {
-    it('saves OpenAI API key without error', async () => {
-      await expect(saveOpenAIApiKey('test-key')).resolves.toBeUndefined();
-    });
-
-    it('loads OpenAI API key without error', async () => {
-      await expect(loadOpenAIApiKey()).resolves.toBeUndefined();
     });
   });
 

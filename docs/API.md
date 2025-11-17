@@ -119,5 +119,5 @@ Return metadata for the requested model including file size and SHA-256 checksum
 
 ### Validation
 
-#### POST /api/gesture/validate-vision
-Forward a captured frame to OpenAI Vision for secondary validation. The endpoint accepts optional context and tuning parameters. Responses contain the model's evaluation of the gesture and any suggested alternatives.
+#### Validation endpoints
+The previous `/api/gesture/validate-vision` route has been retired. Validation now happens entirely on-device inside the MediaPipe WebView and does not require a network call.

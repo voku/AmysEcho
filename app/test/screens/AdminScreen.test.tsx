@@ -24,8 +24,6 @@ jest.mock('../../db', () => ({
 }));
 
 jest.mock('../../src/storage', () => ({
-  loadOpenAIApiKey: jest.fn().mockResolvedValue(''),
-  saveOpenAIApiKey: jest.fn(),
   loadBackendApiToken: jest.fn().mockResolvedValue(''),
   saveBackendApiToken: jest.fn(),
   loadActiveProfileId: jest.fn().mockResolvedValue('profile-1'),
@@ -97,7 +95,6 @@ describe('AdminScreen', () => {
       }
     });
     const storage = require('../../src/storage');
-    (storage.loadOpenAIApiKey as jest.Mock).mockResolvedValue('');
     (storage.loadBackendApiToken as jest.Mock).mockResolvedValue('');
     (storage.loadActiveProfileId as jest.Mock).mockResolvedValue('profile-1');
   });

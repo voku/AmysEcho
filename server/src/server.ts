@@ -100,6 +100,13 @@ const modelMetadataLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const healthLimiter = rateLimit({
+  windowMs: 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 async function collectLabelCounts(): Promise<{
   globalCounts: Record<string, number>;
   profileCounts: Map<string, Record<string, number>>;
@@ -183,6 +190,11 @@ interface TrainingQueueEntry {
 const trainingQueue: TrainingQueueEntry[] = [];
 let isProcessingTrainingQueue = false;
 
+app.use('/health', healthLimiter);
+app.get('/health', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', uptime: process.uptime(), pendingTrainingJobs: trainingQueue.length });
+});
+
 async function processTrainingQueue(): Promise<void> {
   if (isProcessingTrainingQueue) {
     return;
@@ -247,22 +259,25 @@ const genId = () =>
 
 // Initialize database before starting server
 let dbInstance: Database;
-try {
-  dbInstance = await setupDatabase(DB_FILE_PATH);
-  app.locals.dbInstance = dbInstance;
-} catch (err) {
-  console.error('Database setup failed:', err);
-  process.exit(1); // Exit if database setup fails
-}
-registerGdprRoutes(app, {
-  authMiddleware: legacyAuth,
-  db: dbInstance,
-  dbFilePath: DB_FILE_PATH,
-  getProfileData,
-  deleteProfileData,
-  withFileLock,
-  logError: (message, meta) => logger.error(message, meta),
-});
+export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
+  .then((db) => {
+    dbInstance = db;
+    app.locals.dbInstance = db;
+    registerGdprRoutes(app, {
+      authMiddleware: legacyAuth,
+      db,
+      dbFilePath: DB_FILE_PATH,
+      getProfileData,
+      deleteProfileData,
+      withFileLock,
+      logError: (message, meta) => logger.error(message, meta),
+    });
+    return db;
+  })
+  .catch((err) => {
+    console.error('Database setup failed:', err);
+    throw err;
+  });
 
 function startTrainingJob(
   samples: TrainingSample[],
@@ -510,65 +525,6 @@ app.post('/api/v1/dgs/samples', legacyAuth, async (req: Request, res: Response) 
   }
 });
 
-// OpenAI Vision gesture validation endpoint
-app.post('/api/gesture/validate-vision', legacyAuth, async (req: Request, res: Response) => {
-  try {
-    const Body = z.object({
-      imageBase64: z.string().min(1),
-      expectedGesture: z.string().optional(),
-      mediapipeConfidence: z.number().optional(),
-      context: z.object({
-        user_id: z.string().optional(),
-        session_id: z.string().optional(),
-        previous_gestures: z.array(z.string()).optional(),
-        environment: z.enum(['home', 'school', 'therapy']).optional(),
-      }).optional(),
-      options: z.object({
-        detailed_feedback: z.boolean().optional(),
-        include_alternatives: z.boolean().optional(),
-        confidence_threshold: z.number().optional(),
-      }).optional(),
-    });
-
-    const parsed = Body.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        error: 'Invalid request format',
-        details: parsed.error.flatten()
-      });
-    }
-
-    const { imageBase64, expectedGesture, context, options } = parsed.data;
-
-    // Import the OpenAI vision service
-    const { validateGestureWithVision } = await import('./services/openaiVisionService.js');
-
-    // Validate the gesture using OpenAI Vision
-    const result = await validateGestureWithVision({
-      imageBase64,
-      expectedGesture,
-      context,
-      options,
-    });
-
-    if (result?.service_status?.available === false) {
-      console.warn('OpenAI Vision unavailable, returning fallback result', {
-        reason: result.service_status.reason,
-        detail: result.service_status.detail,
-      });
-    }
-
-    res.json(result);
-
-  } catch (error) {
-    console.error('OpenAI validation endpoint error:', error);
-    res.status(500).json({
-      error: 'Gesture validation failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
 // Crash report ingestion
 app.post('/api/crash-reports', legacyAuth, async (req: Request, res: Response) => {
   try {
@@ -812,16 +768,20 @@ app.get(
 app.use(errorHandler);
 
 const port = config.port;
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(port);
-  (async () => {
-    try {
+const shouldAutoListen =
+  !process.env.JEST_WORKER_ID &&
+  process.env.AMY_ECHO_SKIP_LISTEN !== '1' &&
+  process.env.AMY_ECHO_SKIP_LISTEN !== 'true';
+if (shouldAutoListen) {
+  databaseReady
+    .then(async () => {
       await ensureDataDir();
+      app.listen(port);
       logger.info('Server started successfully', { port });
-    } catch (error) {
+    })
+    .catch((error) => {
       const msg = (error as Error)?.message ?? String(error);
       logger.error('Server startup failed', { error: msg });
       process.exit(1);
-    }
-  })();
+    });
 }

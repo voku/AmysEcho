@@ -1,6 +1,5 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
 import type { GestureModelEntry } from '../model';
-import type { LLMSuggestionResponse } from '../services/dialogEngine';
 import type { RecognitionPath } from '../utils/recognitionState';
 import type { DetectedGestureMeaning } from '../services/gestureMeaningService';
 import type { SequenceGestureMeaningDefinition } from '../constants/gestureMeanings';
@@ -44,13 +43,10 @@ export interface RecognitionGestureState {
   setLastRecognizedGesture: Dispatch<SetStateAction<GestureModelEntry | null>>;
   recognitionPath: RecognitionPath;
   setRecognitionPath: Dispatch<SetStateAction<RecognitionPath>>;
-  setSuggestions: Dispatch<SetStateAction<LLMSuggestionResponse>>;
   gestureSuggestions: Array<{ id: string; label: string }>;
   setGestureSuggestions: Dispatch<
     SetStateAction<Array<{ id: string; label: string }>>
   >;
-  dialogContext: string[];
-  setDialogContext: Dispatch<SetStateAction<string[]>>;
   gestureSizeTolerance: number;
   setGestureSizeTolerance: Dispatch<SetStateAction<number>>;
   contextInsights: any;
@@ -112,12 +108,7 @@ export const useRecognitionState = (): RecognitionState => {
   const [lastSuccessfulConfidence, setLastSuccessfulConfidence] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showCorrection, setShowCorrection] = useState(false);
-  const [, setSuggestions] = useState<LLMSuggestionResponse>({
-    nextWords: [],
-    caregiverPhrases: [],
-  });
   const [gestureSuggestions, setGestureSuggestions] = useState<Array<{ id: string; label: string }>>([]);
-  const [dialogContext, setDialogContext] = useState<string[]>([]);
   const [pendingGesture, setPendingGesture] = useState<string | null>(null);
   const [lastRecognizedGesture, setLastRecognizedGesture] =
     useState<GestureModelEntry | null>(null);
@@ -169,11 +160,6 @@ export const useRecognitionState = (): RecognitionState => {
     setError,
     showCorrection,
     setShowCorrection,
-    setSuggestions,
-    gestureSuggestions,
-    setGestureSuggestions,
-    dialogContext,
-    setDialogContext,
     pendingGesture,
     setPendingGesture,
     lastRecognizedGesture,
@@ -186,6 +172,8 @@ export const useRecognitionState = (): RecognitionState => {
     setWebviewRetries,
     recognitionPath,
     setRecognitionPath,
+    gestureSuggestions,
+    setGestureSuggestions,
     showDgsVideo,
     setShowDgsVideo,
     showCelebration,

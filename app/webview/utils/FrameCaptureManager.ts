@@ -53,7 +53,7 @@ export function setFrameCaptureEnabled(enabled: boolean, intervalMs?: number): v
   }
 }
 
-export function captureFrameForOpenAI(video: HTMLVideoElement): string | null {
+export function captureFrameForTrainer(video: HTMLVideoElement): string | null {
   if (!frameCaptureEnabled) {
     return lastCapturedFrame;
   }

@@ -76,7 +76,7 @@
 5. **Privacy-Preserving Analytics:** Implement privacy-preserving analytics techniques (e.g., differential privacy) to collect usage data without compromising Amy's personal information.
 6. **Anonymization of Training Data:** Ensure all training data is properly anonymized before being used for model retraining or shared with third parties.
 7. **Consent Management Framework:** Develop a robust consent management framework to ensure explicit user consent for data collection and usage, especially for sensitive biometric data.
-8. **Secure API Key Management:** Implement best practices for managing API keys (e.g., OpenAI API key), such as using secure vaults or environment variables, and preventing hardcoding.
+8. **Secure Token Management:** Ensure backend tokens (e.g., `API_TOKEN` for model downloads) live in secret managers or CI environment variables instead of source control.
 9. **Tamper Detection for Local Models:** Implement mechanisms to detect if local ML models have been tampered with, ensuring the integrity of the recognition system.
 10. **Compliance with Data Protection Regulations:** Ensure full compliance with relevant data protection regulations (e.g., GDPR, HIPAA) regarding the handling of sensitive personal and health information.
 

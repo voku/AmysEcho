@@ -44,8 +44,8 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 |---------------|-------------------------------|----------------------------------------|
 | App Framework | React Native (CLI)            | Cross-platform + native module access  |
 | Language      | TypeScript (strict mode)      | Predictable, type-safe code            |
-| ML Engine     | MediaPipe + OpenAI Vision     | Real-time gesture recognition & AI validation |
-| LLM Engine    | OpenAI GPT-4 Vision           | Intelligent feedback & conversation    |
+| ML Engine     | MediaPipe + Amy's Echo MLP    | Real-time gesture recognition & personalization |
+| LLM Engine    | On-device caregiver prompt engine | Contextual caregiver prompts and reassurance |
 | Camera        | `react-native-webview`        | In-app camera feed & landmark detection |
 | Backend API   | Node/Express server           | Sample upload, training, model serving |
 | UI/UX         | RN Animated API + Skia (opt.) | Gentle, trust-based feedback           |
@@ -60,13 +60,13 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 Amy's Echo features a comprehensive gesture recognition system optimized for 22q11 syndrome accessibility:
 
 ### Core Features
-- **ML-Powered Recognition**: MediaPipe hand tracking + OpenAI Vision AI analysis
-- **LLM-Enhanced Feedback**: OpenAI GPT models provide intelligent gesture feedback
+- **ML-Powered Recognition**: MediaPipe hand tracking feeding our own MLP classifier
+- **Caregiver Feedback Engine**: Lightweight local templates keep praise and prompts instant
 - **Emergency Priority**: <50ms response for critical gestures
 - **Adaptive Thresholds**: Personalized confidence levels (0.12-0.32 range)
 - **German Localization**: All feedback in Amy's native language
 - **Performance Monitoring**: Real-time latency and accuracy tracking
-- **Intelligent Fallback**: OpenAI Vision validates uncertain gestures
+- **Intelligent Fallback**: Local heuristics and personalized models validate uncertain gestures
 
 ### Supported Gestures
 - 👊 **Faust** (Fist) - Basic closed hand
@@ -194,22 +194,22 @@ The React Native code lives in `app/`. Install dependencies with `npm install` i
 
 DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available. The `DgsVideoPlayer` component loops these videos automatically so Amy can watch each sign repeatedly.
 
-### Configuring the OpenAI API key
+### Configuring the backend API token
 
-The LLM-powered suggestions require an OpenAI API key before either the mobile app or server can request validation. Choose **one** of the following options for local development:
+The training endpoints require a bearer token. Choose **one** of the following options for local development:
 
 1. **Environment variable (recommended for development/CI)**
    ```bash
-   export OPENAI_API_KEY="sk-your-key"
+   export EXPO_PUBLIC_API_TOKEN="demo-token"
    npm start --prefix server
    ```
-   Any process launched with this variable (Expo dev server, Jest, integration tests, etc.) will automatically reuse it.
+   Expo, Jest, and the Node server all reuse the token exposed through this variable.
 
-2. **Repository `.openai-key` file** – Create a text file named `.openai-key` in the repository root that contains only the key. The server loader reads this file automatically when the environment variable is absent. Make sure the file is ignored by git (already handled in `.gitignore`).
+2. **`.env.local` file** – Create `app/.env.local` with `EXPO_PUBLIC_API_TOKEN=demo-token`. The Expo CLI loads it automatically during `npm run ios`/`android`.
 
-3. **In-app secure storage** – Launch the Admin screen in the app and paste the key once. It is encrypted via `SecureStore` and will be used for subsequent OpenAI validation calls on that device.
+3. **Admin screen input** – Launch the Admin screen in the mobile app and paste the token once. It is written to `SecureStore` so the device can stay offline between sessions.
 
-For production or shared environments, inject the key through the deployment platform's secret manager instead of committing it to source control. Never check the API key into the repository or logs.
+Never commit real tokens to the repository or logs. Production deployments should fetch the secret from the hosting platform's secret manager.
 
 ### Building the custom dev client
 
