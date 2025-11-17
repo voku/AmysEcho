@@ -2,6 +2,16 @@
 
 This guide helps caregivers get Amy's Echo running and begin supporting a child's communication in minutes.
 
+## 0. Verify Your Setup (Optional but Recommended)
+
+Before installing, you can verify that your system is ready:
+
+```bash
+./scripts/verify-gesture-system.sh
+```
+
+This checks dependencies and runs all tests to ensure everything works. Skip this if you want to jump straight to installation.
+
 ## 1. Install the App
 1. Install dependencies:
    ```bash
