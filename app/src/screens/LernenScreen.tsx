@@ -60,10 +60,7 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
       rootNav.navigate(ROOT_STACK_ROUTES.Teaching);
       return;
     }
-    navigation.navigate(LERNEN_STACK_ROUTES.Recording, {
-      gestureId: undefined,
-      gestureLabel: undefined,
-    });
+    navigation.navigate(LERNEN_STACK_ROUTES.Recording, {});
   }, [navigation]);
 
   const renderItem = ({ item }: { item: GestureListItem }) => (
