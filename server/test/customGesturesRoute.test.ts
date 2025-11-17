@@ -121,4 +121,97 @@ describe('custom gestures route', () => {
 
     expect(response.body.error).toBe('invalid gesture payload');
   });
+
+  it('stores gestures with profileId for per-kid isolation', async () => {
+    // Add gesture for profile A
+    await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'mein_zeichen', label: 'Mein Zeichen', profileId: 'profile-a', emoji: '👋' })
+      .expect(201);
+
+    // Add gesture for profile B
+    await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'dein_zeichen', label: 'Dein Zeichen', profileId: 'profile-b', emoji: '🤚' })
+      .expect(201);
+
+    // Verify both are stored
+    const raw = await fs.readFile(gesturesPath, 'utf8');
+    const stored = JSON.parse(raw);
+    expect(stored.gestures).toHaveLength(2);
+    expect(stored.gestures[0]).toMatchObject({ id: 'mein_zeichen', profileId: 'profile-a' });
+    expect(stored.gestures[1]).toMatchObject({ id: 'dein_zeichen', profileId: 'profile-b' });
+  });
+
+  it('filters gestures by profileId when listing', async () => {
+    // Add gestures for different profiles
+    await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'gesture_a', label: 'Gesture A', profileId: 'profile-a' })
+      .expect(201);
+
+    await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'gesture_b', label: 'Gesture B', profileId: 'profile-b' })
+      .expect(201);
+
+    await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'gesture_shared', label: 'Shared Gesture' })
+      .expect(201);
+
+    // Get all gestures
+    const allResponse = await request(app)
+      .get('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .expect(200);
+
+    expect(allResponse.body.gestures).toHaveLength(3);
+
+    // Get gestures for profile A
+    const profileAResponse = await request(app)
+      .get('/api/v1/dgs/gestures?profileId=profile-a')
+      .set('Authorization', 'Bearer secret-token')
+      .expect(200);
+
+    expect(profileAResponse.body.gestures).toHaveLength(1);
+    expect(profileAResponse.body.gestures[0]).toMatchObject({ id: 'gesture_a', profileId: 'profile-a' });
+
+    // Get gestures for profile B
+    const profileBResponse = await request(app)
+      .get('/api/v1/dgs/gestures?profileId=profile-b')
+      .set('Authorization', 'Bearer secret-token')
+      .expect(200);
+
+    expect(profileBResponse.body.gestures).toHaveLength(1);
+    expect(profileBResponse.body.gestures[0]).toMatchObject({ id: 'gesture_b', profileId: 'profile-b' });
+  });
+
+  it('allows same gesture ID for different profiles', async () => {
+    // Profile A creates "help" gesture
+    await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'help', label: 'Help from A', profileId: 'profile-a' })
+      .expect(201);
+
+    // Profile B creates "help" gesture (same ID, different profile)
+    await request(app)
+      .post('/api/v1/dgs/gestures')
+      .set('Authorization', 'Bearer secret-token')
+      .send({ id: 'help', label: 'Help from B', profileId: 'profile-b' })
+      .expect(201);
+
+    // Both should be stored
+    const raw = await fs.readFile(gesturesPath, 'utf8');
+    const stored = JSON.parse(raw);
+    expect(stored.gestures).toHaveLength(2);
+    expect(stored.gestures[0]).toMatchObject({ id: 'help', label: 'Help from A', profileId: 'profile-a' });
+    expect(stored.gestures[1]).toMatchObject({ id: 'help', label: 'Help from B', profileId: 'profile-b' });
+  });
 });

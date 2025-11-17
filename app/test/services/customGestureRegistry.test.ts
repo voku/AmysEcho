@@ -79,4 +79,43 @@ describe('registerCustomGesture', () => {
       registerCustomGesture({ id: 'hilfe', label: 'Hilfe' }, { fetchImpl: fetchMock, apiBaseUrl: API_URL }),
     ).rejects.toThrow('Registrierung der Geste fehlgeschlagen');
   });
+
+  it('includes profileId in request when provided', async () => {
+    mockedLoadBackendApiToken.mockResolvedValue('secret');
+    const responseBody = {
+      id: 'mein_zeichen',
+      label: 'Mein Zeichen',
+      profileId: 'child-123',
+      emoji: '👋',
+      createdAt: '2024-05-28T10:00:00Z',
+      updatedAt: '2024-05-28T10:00:00Z',
+    };
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => responseBody,
+    });
+
+    const result = await registerCustomGesture(
+      { id: 'mein_zeichen', label: 'Mein Zeichen', profileId: 'child-123', emoji: '👋' },
+      { fetchImpl: fetchMock, apiBaseUrl: 'https://example.test' },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith('https://example.test/api/v1/dgs/gestures', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: 'Bearer secret',
+      },
+      body: JSON.stringify({ id: 'mein_zeichen', label: 'Mein Zeichen', profileId: 'child-123', emoji: '👋' }),
+    });
+    expect(result).toEqual({ 
+      status: 'registered', 
+      gesture: {
+        ...responseBody,
+        emoji: '👋',
+      }
+    });
+  });
 });
