@@ -52,8 +52,9 @@ async function readStore(): Promise<GestureStore> {
     if (result.success) {
       return result.data;
     }
-  } catch (error: any) {
-    if (error?.code !== 'ENOENT') {
+  } catch (error: unknown) {
+    const isEnoent = typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 'ENOENT';
+    if (!isEnoent) {
       throw error;
     }
   }
