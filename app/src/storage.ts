@@ -429,6 +429,7 @@ export interface CustomGesture {
   id: string;
   label: string;
   emoji?: string;
+  profileId?: string; // Associate gesture with specific profile/kid
 }
 
 export async function saveCustomGesture(gesture: CustomGesture): Promise<void> {
@@ -440,7 +441,14 @@ export async function saveCustomGesture(gesture: CustomGesture): Promise<void> {
   }
 }
 
-export async function loadCustomGestures(): Promise<CustomGesture[]> {
+export async function loadCustomGestures(profileId?: string): Promise<CustomGesture[]> {
   const raw = await AsyncStorage.getItem(CUSTOM_GESTURES_KEY);
-  return raw ? JSON.parse(raw) : [];
+  const allGestures: CustomGesture[] = raw ? JSON.parse(raw) : [];
+  
+  // If profileId is provided, filter to only return gestures for that profile
+  if (profileId) {
+    return allGestures.filter(g => g.profileId === profileId);
+  }
+  
+  return allGestures;
 }

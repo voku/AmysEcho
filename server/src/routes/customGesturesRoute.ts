@@ -16,6 +16,7 @@ const GestureRequestSchema = z.object({
     .max(64)
     .regex(/^[a-z0-9][a-z0-9_-]+$/i, 'id must contain only letters, numbers, _ or -'),
   label: z.string().min(2).max(120),
+  profileId: z.string().optional(), // Associate gesture with specific profile/kid
   emoji: z
     .union([z.string(), z.null()])
     .optional()
@@ -33,6 +34,7 @@ const GestureStoreSchema = z.object({
     z.object({
       id: z.string(),
       label: z.string(),
+      profileId: z.string().optional(),
       emoji: z.string().nullable().optional(),
       createdAt: z.string(),
       updatedAt: z.string(),
@@ -75,10 +77,18 @@ function normalizeLabel(label: string): string {
 }
 
 export function registerCustomGesturesRoute(app: Express): void {
-  app.get('/api/v1/dgs/gestures', legacyAuth, async (_req: Request, res: Response) => {
+  app.get('/api/v1/dgs/gestures', legacyAuth, async (req: Request, res: Response) => {
     try {
       const store = await readStore();
-      return res.json({ gestures: store.gestures });
+      const { profileId } = req.query;
+      
+      // Filter by profileId if provided
+      let gestures = store.gestures;
+      if (typeof profileId === 'string' && profileId.trim().length > 0) {
+        gestures = store.gestures.filter(g => g.profileId === profileId);
+      }
+      
+      return res.json({ gestures });
     } catch (error) {
       console.error('Failed to load custom gestures', error);
       return res.status(500).json({ error: 'Failed to load custom gestures' });
@@ -91,7 +101,7 @@ export function registerCustomGesturesRoute(app: Express): void {
       return res.status(400).json({ error: 'invalid gesture payload', details: parsed.error.flatten() });
     }
 
-    const { id, label, emoji } = parsed.data;
+    const { id, label, profileId, emoji } = parsed.data;
     const normalizedId = normalizeGestureId(id);
     const normalizedLabel = normalizeLabel(label);
     const normalizedEmoji = typeof emoji === 'string' && emoji.trim().length > 0 ? emoji.trim() : null;
@@ -99,7 +109,11 @@ export function registerCustomGesturesRoute(app: Express): void {
     try {
       const result = await withFileLock(CUSTOM_GESTURES_PATH, async () => {
         const store = await readStore();
-        const existing = store.gestures.find((g) => g.id === normalizedId);
+        // Find existing gesture with same id AND profileId (if provided)
+        const existing = store.gestures.find((g) => 
+          g.id === normalizedId && 
+          (profileId ? g.profileId === profileId : !g.profileId)
+        );
         const now = new Date().toISOString();
         if (existing) {
           existing.label = normalizedLabel;
@@ -111,6 +125,7 @@ export function registerCustomGesturesRoute(app: Express): void {
         const newGesture = {
           id: normalizedId,
           label: normalizedLabel,
+          profileId,
           emoji: normalizedEmoji,
           createdAt: now,
           updatedAt: now,

@@ -454,14 +454,21 @@ export default function TeachingScreen({ navigation }: any) {
     Alert.alert('Erfolg', `Die neue Geste "${gestureLabel}" wurde mit ${SAMPLES_NEEDED} Beispielen trainiert.`);
     sessionId.current = null;
     const id = normalizeGestureLabel(gestureLabel);
+    const gestureData: { id: string; label: string; profileId?: string } = {
+      id,
+      label: gestureLabel,
+    };
+    if (profile?.id) {
+      gestureData.profileId = profile.id;
+    }
     try {
-      await saveCustomGesture({ id, label: gestureLabel });
+      await saveCustomGesture(gestureData);
       addGesture({ id, label: gestureLabel });
     } catch (e) {
       logger.warn('Failed to store custom gesture', e);
     }
     try {
-      const registration = await registerCustomGesture({ id, label: gestureLabel });
+      const registration = await registerCustomGesture(gestureData);
       if (registration.status === 'registered') {
         showToast({
           message: `„${gestureLabel}“ wurde auf dem Server gespeichert.`,

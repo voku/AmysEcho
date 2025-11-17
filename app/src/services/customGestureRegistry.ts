@@ -5,6 +5,7 @@ import { logger } from '../utils/logger';
 export interface CustomGestureRegistration {
   id: string;
   label: string;
+  profileId?: string;
   emoji?: string | null;
 }
 
@@ -17,6 +18,7 @@ export interface RegisterCustomGestureOptions {
 export interface RegisteredCustomGesture {
   id: string;
   label: string;
+  profileId?: string;
   emoji?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -68,6 +70,7 @@ export async function registerCustomGesture(
     body: JSON.stringify({
       id: gesture.id,
       label: gesture.label,
+      profileId: gesture.profileId,
       emoji: gesture.emoji ?? null,
     }),
   });
@@ -88,6 +91,7 @@ export async function registerCustomGesture(
   const registeredGesture: RegisteredCustomGesture = {
     id: responseBody.id,
     label: responseBody.label,
+    profileId: typeof responseBody.profileId === 'string' ? responseBody.profileId : undefined,
     emoji: typeof responseBody.emoji === 'string' ? responseBody.emoji : null,
     createdAt: typeof responseBody.createdAt === 'string' ? responseBody.createdAt : undefined,
     updatedAt: typeof responseBody.updatedAt === 'string' ? responseBody.updatedAt : undefined,
