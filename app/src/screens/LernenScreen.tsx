@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StackScreenProps } from '@react-navigation/stack';
+import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { gestureModel } from '../model';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';

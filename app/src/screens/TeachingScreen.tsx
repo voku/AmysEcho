@@ -33,6 +33,7 @@ import {
 } from '../utils/clipPersistence';
 import { syncTrainingData } from '../services';
 import { registerCustomGesture } from '../services/customGestureRegistry';
+import { normalizeGestureLabel } from '../utils/stringUtils';
 
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { createButtonStyles } from '../styles/buttonStyles';
@@ -52,9 +53,6 @@ const expoFs = FileSystem as ExpoFileSystemCompat;
 const CLIP_RECORDING_ERROR_TEXT = DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
 
 const PREVIEW_SIZE = 240;
-
-const normalizeGestureLabel = (label: string): string =>
-  label.trim().toLowerCase().replace(/\s+/g, '_');
 
 const formatGestureId = (gestureId: string): string =>
   gestureId
