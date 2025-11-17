@@ -4,6 +4,16 @@ This document outlines the process for building and testing the Amy's Echo appli
 
 If you're developing on Windows via WSL2, see [Android development with WSL2](AndroidWSL2.md) for connecting a physical device.
 
+## Quick Verification
+
+To verify your setup is working correctly, run the automated verification script from the repository root:
+
+```bash
+./scripts/verify-gesture-system.sh
+```
+
+This script checks dependencies, runs all tests (app, server, and integration), and validates the training pipeline. It's the fastest way to confirm everything is working.
+
 ## Building the App
 
 The application is built using Expo. To build the Android app, run the following command from the `app` directory:
