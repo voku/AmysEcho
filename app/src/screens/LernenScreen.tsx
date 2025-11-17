@@ -54,8 +54,8 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
   );
 
   const handleAddCustomGesture = useCallback(() => {
-    const parentNav: any = navigation.getParent?.();
-    const rootNav: any = parentNav?.getParent?.() ?? parentNav ?? navigation;
+    const parentNav: NavigationProp<ParamListBase> | undefined = navigation.getParent?.();
+    const rootNav: NavigationProp<ParamListBase> = parentNav?.getParent?.() ?? parentNav ?? navigation;
     if (typeof rootNav?.navigate === 'function') {
       rootNav.navigate(ROOT_STACK_ROUTES.Teaching);
       return;
