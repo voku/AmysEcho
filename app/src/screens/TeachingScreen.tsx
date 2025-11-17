@@ -32,6 +32,7 @@ import {
   type ExpoFileSystemCompat,
 } from '../utils/clipPersistence';
 import { syncTrainingData } from '../services';
+import { registerCustomGesture } from '../services/customGestureRegistry';
 
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { createButtonStyles } from '../styles/buttonStyles';
@@ -460,6 +461,26 @@ export default function TeachingScreen({ navigation }: any) {
       addGesture({ id, label: gestureLabel });
     } catch (e) {
       logger.warn('Failed to store custom gesture', e);
+    }
+    try {
+      const registration = await registerCustomGesture({ id, label: gestureLabel });
+      if (registration.status === 'registered') {
+        showToast({
+          message: `„${gestureLabel}“ wurde auf dem Server gespeichert.`,
+          tone: 'success',
+        });
+      } else {
+        showToast({
+          message: 'Server-Token fehlt, Geste wird lokal gespeichert.',
+          tone: 'warning',
+        });
+      }
+    } catch (registrationError) {
+      logger.warn('Failed to register custom gesture on server', registrationError);
+      showToast({
+        message: 'Server konnte die neue Geste noch nicht speichern.',
+        tone: 'warning',
+      });
     }
     setGestureLabel('');
     setSampleCount(0);
