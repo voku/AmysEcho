@@ -768,7 +768,11 @@ app.get(
 app.use(errorHandler);
 
 const port = config.port;
-if (process.env.NODE_ENV !== 'test') {
+const shouldAutoListen =
+  !process.env.JEST_WORKER_ID &&
+  process.env.AMY_ECHO_SKIP_LISTEN !== '1' &&
+  process.env.AMY_ECHO_SKIP_LISTEN !== 'true';
+if (shouldAutoListen) {
   databaseReady
     .then(async () => {
       await ensureDataDir();
