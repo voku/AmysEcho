@@ -14,17 +14,22 @@ All app UI text and error messages are written in German to match Amy's language
 
 ## 📚 Documentation
 
-### 🚀 Quick Start
-- **[Quick Start: Gesture Recognition](docs/QUICK_START_GESTURE_RECOGNITION.md)** ← Start here!
-- **[Core Gesture Recognition System](docs/CORE_GESTURE_RECOGNITION.md)** - Complete technical guide
+### 🚀 Start Here
+- **[Getting Started](docs/GETTING_STARTED.md)** ← **New users start here!** (10 minutes to first gesture)
+- **[Quick Start: Gesture Recognition](docs/QUICK_START_GESTURE_RECOGNITION.md)** - Setup and usage guide
+- **[Verification Script](scripts/verify-gesture-system.sh)** - One-command system check
 
-### Guides
+### 📖 Technical Reference
+- **[Core Gesture Recognition System](docs/CORE_GESTURE_RECOGNITION.md)** - Complete technical documentation
+- **[Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)** - What was built and how it works
+
+### 📋 Guides
 - [Build & test instructions](docs/BUILD_AND_TEST.md)
 - [Caregiver guide](docs/CaregiverGuide.md)
 - [Android in WSL2 guide](docs/AndroidWSL2.md)
 - [Real-world validation guide](docs/REAL_WORLD_VALIDATION_GUIDE.md)
 
-### Reference
+### 🗂️ Reference
 - [Codebase overview](docs/CodebaseOverview.md)
 - [User stories](docs/UserStories.md)
 - [Project roadmap](docs/TODO.md)
