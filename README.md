@@ -14,15 +14,21 @@ All app UI text and error messages are written in German to match Amy's language
 
 ## 📚 Documentation
 
+### 🚀 Quick Start
+- **[Quick Start: Gesture Recognition](docs/QUICK_START_GESTURE_RECOGNITION.md)** ← Start here!
+- **[Core Gesture Recognition System](docs/CORE_GESTURE_RECOGNITION.md)** - Complete technical guide
+
+### Guides
+- [Build & test instructions](docs/BUILD_AND_TEST.md)
+- [Caregiver guide](docs/CaregiverGuide.md)
+- [Android in WSL2 guide](docs/AndroidWSL2.md)
+- [Real-world validation guide](docs/REAL_WORLD_VALIDATION_GUIDE.md)
+
+### Reference
 - [Codebase overview](docs/CodebaseOverview.md)
 - [User stories](docs/UserStories.md)
-- [Caregiver guide](docs/CaregiverGuide.md)
-- [Build & test instructions](docs/BUILD_AND_TEST.md)
-- [Android in WSL2 guide](docs/AndroidWSL2.md)
-- [Gesture recognition best practices](docs/GESTURE_RECOGNITION_BEST_PRACTICES.md)
-- [Real-world validation guide](docs/REAL_WORLD_VALIDATION_GUIDE.md)
 - [Project roadmap](docs/TODO.md)
-- [Project milestones](docs/ProjectMilestones.md) – Stabilization, Accuracy, UX improvements
+- [Project milestones](docs/ProjectMilestones.md)
 
 ---
 
@@ -90,43 +96,46 @@ Amy's Echo features a comprehensive gesture recognition system optimized for 22q
 
 ## 🚀 Quick Start
 
+**New to the project?** See [Quick Start: Gesture Recognition](docs/QUICK_START_GESTURE_RECOGNITION.md) for a step-by-step guide.
+
+**Want to verify everything works?** Run our comprehensive verification script:
 ```bash
+./scripts/verify-gesture-system.sh
+```
+
+### Development Setup
+
+```bash
+# Install dependencies
 npm ci --prefix app
 npm ci --prefix server
 pip install -r server/requirements.txt
-npm ci --prefix integration
 
+# Verify setup
 npm run type-check --prefix app
-npm test --prefix app
-npm run type-check --prefix server
-npm test --prefix server
-npm test --prefix integration
+npm test --prefix app            # 910 tests
+npm test --prefix server         # 96 tests
 
-npm run build --prefix server
+# Start server
+cd server
+npm run build
+npm start                        # Runs on http://localhost:5000
+
+# Run app (separate terminal)
+cd app
+export EXPO_PUBLIC_API_URL=http://10.0.2.2:5000  # Android emulator
+export EXPO_PUBLIC_API_TOKEN=demo-token
+npm run android
 ```
 
-Commands use `--prefix` and should be run from the repository root.
+### The Workflow
 
-Run notes
+1. **Record**: Open app → Training screen → Record gestures (3-5 seconds each)
+2. **Upload**: App automatically uploads bundles when WiFi is available
+3. **Train**: Server trains personalized MLP model
+4. **Recognize**: Use gestures in real-time with improved accuracy
 
-- Server:
-   - MediaPipe assets load via CDN; no manual model download is required.
-   - Build + start: npm run build --prefix server && ./scripts/server-start.sh
-- App:
-   - Android emulator:
-   - `EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 scripts/dev-run.sh --android`
-   - or `scripts/adb-reverse.sh 5000 && scripts/dev-run.sh --android`
-- Uses demo-token by default for auth.
-
-How to use it
-
-- Start server (required for training + model serving):
-   - npm run build --prefix server && ./scripts/server-start.sh
-- Run app:
-   - Android emulator: EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 scripts/dev-run.sh --android
-   - Or scripts/adb-reverse.sh 5000 && scripts/dev-run.sh --android
-- Workflow:
-   - Use Training screen to record a few samples for key DGS gestures (per child).
+See [Core Gesture Recognition System](docs/CORE_GESTURE_RECOGNITION.md) for technical details.
    - Use Recognition screen; when it’s wrong, correct it; the app uploads the sample for that child.
   - Recognition runs locally; as training samples accumulate, personalized MLP weights improve confidence.
 
