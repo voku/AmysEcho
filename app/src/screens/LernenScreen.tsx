@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: typography.sizes.title,
-    fontWeight: typography.weights.bold as any,
+    fontWeight: typography.weights.bold,
     color: Colors.neutral,
   },
   heroSubtitle: {
