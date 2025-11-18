@@ -82,8 +82,9 @@ export function registerCustomGesturesRoute(app: Express): void {
       const store = await readStore();
       const { profileId } = req.query;
       
-      // Filter by profileId if provided
-      let gestures = store.gestures;
+      // Only return gestures for the specified profile to ensure data isolation
+      // If no profileId is provided, return empty array to prevent cross-profile data leakage
+      let gestures: typeof store.gestures = [];
       if (typeof profileId === 'string' && profileId.trim().length > 0) {
         gestures = store.gestures.filter(g => g.profileId === profileId);
       }
