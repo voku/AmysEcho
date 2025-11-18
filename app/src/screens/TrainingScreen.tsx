@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image, Animated } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
 import {
@@ -98,6 +98,8 @@ export default function TrainingScreen({ navigation, route }: any) {
     canUseClipStorage(expoFs) ? null : 'clip_directory_unavailable',
   );
   const clipFallbackToastShownRef = useRef(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current; // Animation for recording pulse (inspired by Gemini click-dummy)
+
   const announceClipFallback = useCallback(() => {
     if (clipFallbackToastShownRef.current) {
       return;
@@ -307,6 +309,30 @@ export default function TrainingScreen({ navigation, route }: any) {
     }
     return APP_TAB_ROUTES.Recognition;
   }, [count, error, framesCaptured, gestureId, isRecording]);
+
+  // Pulsing animation for recording indicator (inspired by Gemini click-dummy)
+  useEffect(() => {
+    if (isRecording) {
+      const animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 0.3,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+      return () => animation.stop();
+    } 
+    pulseAnim.setValue(1);
+    return undefined;
+  }, [isRecording, pulseAnim]);
 
   // Local frame processor removed; remote fallback below now drives landmark updates.
 
@@ -1518,7 +1544,7 @@ export default function TrainingScreen({ navigation, route }: any) {
 
         {isRecording && (
           <View style={styles.recordingIndicator}>
-            <View style={styles.recordingDot} />
+            <Animated.View style={[styles.recordingDot, { opacity: pulseAnim }]} />
             <Text style={styles.recordingText}>{`Aufnahme läuft … ${framesCaptured}`}</Text>
           </View>
         )}

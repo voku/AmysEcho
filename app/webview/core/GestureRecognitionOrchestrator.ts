@@ -53,6 +53,7 @@ interface GestureMessagePayload {
 
 const FRAME_BATCH_INTERVAL_MS = 250;
 const FRAME_BUFFER_LIMIT = 24;
+const FRAME_CAPTURE_THROTTLE = 5; // Capture every 5th frame to optimize memory usage (inspired by Gemini click-dummy)
 const DEFAULT_LANDMARK_INTERVAL_MS = 120;
 const MIN_LANDMARK_INTERVAL_MS = 80;
 const MAX_LANDMARK_INTERVAL_MS = 320;
@@ -122,6 +123,7 @@ export class GestureRecognitionOrchestrator {
   private frameBuffer: FrameBatchEntry[] = [];
   private frameBatchTimer: number | null = null;
   private clipCaptureState: ClipCaptureState | null = null;
+  private frameCaptureCounter = 0; // Counter for frame throttling
 
   private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
 
@@ -333,6 +335,13 @@ export class GestureRecognitionOrchestrator {
 
   private collectFrameForBatch(normalized: NormalizedMediaPipeResult): void {
     try {
+      // Increment counter and throttle frame capture to every Nth frame
+      // This reduces memory usage during training (inspired by Gemini click-dummy)
+      this.frameCaptureCounter += 1;
+      if (this.frameCaptureCounter % FRAME_CAPTURE_THROTTLE !== 0) {
+        return; // Skip this frame
+      }
+
       const frameDataUrl = captureFrameForTrainer(this.video);
       if (!frameDataUrl) {
         return;
