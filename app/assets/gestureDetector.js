@@ -4736,6 +4736,7 @@
   var MLP_CONFIDENCE_THRESHOLD = typeof window.__mlpThreshold === "number" ? window.__mlpThreshold : 0.05;
   var FRAME_BATCH_INTERVAL_MS = 250;
   var FRAME_BUFFER_LIMIT = 24;
+  var FRAME_CAPTURE_THROTTLE = 5;
   var DEFAULT_LANDMARK_INTERVAL_MS = 120;
   var MIN_LANDMARK_INTERVAL_MS = 80;
   var MAX_LANDMARK_INTERVAL_MS = 320;
@@ -4755,6 +4756,7 @@
       this.frameBuffer = [];
       this.frameBatchTimer = null;
       this.clipCaptureState = null;
+      this.frameCaptureCounter = 0;
       this.performanceOptimizer = new PerformanceOptimizer();
       this.memoryOptimizer = MemoryOptimizer.getInstance();
       this.processingPipeline = new ProcessingPipeline();
@@ -4911,6 +4913,10 @@
     }
     collectFrameForBatch(normalized) {
       try {
+        this.frameCaptureCounter += 1;
+        if (this.frameCaptureCounter % FRAME_CAPTURE_THROTTLE !== 0) {
+          return;
+        }
         const frameDataUrl = captureFrameForTrainer(this.video);
         if (!frameDataUrl) {
           return;
