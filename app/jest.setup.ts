@@ -192,6 +192,7 @@ jest.mock('react-native', () => {
       sequence: createAnimationFactory(),
       parallel: createAnimationFactory(),
       stagger: createAnimationFactory(),
+      loop: (_animation: any) => createAnimation(),
     },
     Easing: { ease: {} },
     Alert: { alert: jest.fn() },
