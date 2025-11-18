@@ -79,6 +79,9 @@ export const gestureModel = {
   ] as GestureModelEntry[]
 };
 
+// Store default gestures at module load time for resetting on profile switch
+const defaultGestures = [...gestureModel.gestures];
+
 function logMissingBaselineGestures(): void {
   const missingBaselineGestures = DEFAULT_BASELINE_LABELS.filter(
     (id) => !gestureModel.gestures.some((gesture) => gesture.id === id),
@@ -127,11 +130,14 @@ export function addGesture(entry: GestureModelEntry): void {
   }
 }
 
-import { loadCustomGestures } from './storage';
+import { loadCustomGestures, loadActiveProfileId } from './storage';
 
 export async function initGestureModel(): Promise<void> {
+  // Reset to default gestures before loading custom gestures for the active profile
+  gestureModel.gestures = [...defaultGestures];
   try {
-    const custom = await loadCustomGestures();
+    const activeProfileId = await loadActiveProfileId();
+    const custom = await loadCustomGestures(activeProfileId ?? undefined);
     custom.forEach((g) => addGesture(g));
   } catch (e) {
     console.warn('Custom gesture load failed:', e);

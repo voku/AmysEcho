@@ -2,13 +2,14 @@ import React, { useCallback } from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StackScreenProps } from '@react-navigation/stack';
+import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { gestureModel } from '../model';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import Colors from '../constants/colors';
 import ActionButton from '../components/ActionButton';
 import type { LernenStackParamList } from '../navigation/types';
-import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../navigation/types';
+import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import WorkflowStageHeader from '../components/WorkflowStageHeader';
 
@@ -53,6 +54,16 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
     [navigation],
   );
 
+  const handleAddCustomGesture = useCallback(() => {
+    const parentNav: NavigationProp<ParamListBase> | undefined = navigation.getParent?.();
+    const rootNav: NavigationProp<ParamListBase> = parentNav?.getParent?.() ?? parentNav ?? navigation;
+    if (typeof rootNav?.navigate === 'function') {
+      rootNav.navigate(ROOT_STACK_ROUTES.Teaching);
+      return;
+    }
+    navigation.navigate(LERNEN_STACK_ROUTES.Recording, {});
+  }, [navigation]);
+
   const renderItem = ({ item }: { item: GestureListItem }) => (
     <View style={[styles.card, isCompactLayout && styles.cardCompact]}>
       <View style={[styles.cardInfo, isCompactLayout && styles.cardInfoCompact]}>
@@ -80,11 +91,28 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View style={[styles.heroCard, isCompactLayout && styles.heroCardCompact]}>
+            <View style={styles.heroText}>
+              <Text style={styles.heroEyebrow}>Training</Text>
+              <Text style={styles.heroTitle}>Neue Geste hinzufügen</Text>
+              <Text style={styles.heroSubtitle}>
+                Nimm eine individuelle Geste als Video auf und trainiere sie direkt mit deinem Kind.
+              </Text>
+            </View>
+            <ActionButton
+              label="Gestentraining starten"
+              accessibilityLabel="Neues Gestentraining beginnen"
+              onPress={handleAddCustomGesture}
+              style={[styles.heroAction, isCompactLayout && styles.heroActionCompact]}
+            />
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📝</Text>
             <Text style={styles.emptyText}>
-              Noch keine Gesten vorhanden. Lege zuerst im Pflegebereich neue Zeichen an.
+              Noch keine Gesten vorhanden. Tippe oben auf „Neue Geste hinzufügen“, um sofort loszulegen.
             </Text>
           </View>
         }
@@ -109,6 +137,54 @@ const styles = StyleSheet.create({
   },
   supportLinks: {
     marginTop: spacing.xl,
+  },
+  heroCard: {
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing['2xl'],
+    borderRadius: 28,
+    backgroundColor: Colors.overlaySurface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xl,
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
+  },
+  heroCardCompact: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.lg,
+  },
+  heroText: {
+    flex: 1,
+    marginRight: spacing.xl,
+    gap: spacing.sm,
+  },
+  heroEyebrow: {
+    fontSize: typography.sizes.caption,
+    textTransform: 'uppercase',
+    color: Colors.textMuted,
+    letterSpacing: 1,
+  },
+  heroTitle: {
+    fontSize: typography.sizes.title,
+    fontWeight: typography.weights.bold,
+    color: Colors.neutral,
+  },
+  heroSubtitle: {
+    fontSize: typography.sizes.body,
+    color: Colors.overlayText,
+  },
+  heroAction: {
+    minWidth: 200,
+  },
+  heroActionCompact: {
+    alignSelf: 'stretch',
+    width: '100%',
   },
   card: {
     paddingVertical: spacing.lg,

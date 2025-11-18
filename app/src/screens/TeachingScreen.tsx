@@ -32,6 +32,8 @@ import {
   type ExpoFileSystemCompat,
 } from '../utils/clipPersistence';
 import { syncTrainingData } from '../services';
+import { registerCustomGesture } from '../services/customGestureRegistry';
+import { normalizeGestureLabel } from '../utils/stringUtils';
 
 import { childFriendlyStyles } from '../styles/touchTargets';
 import { createButtonStyles } from '../styles/buttonStyles';
@@ -51,9 +53,6 @@ const expoFs = FileSystem as ExpoFileSystemCompat;
 const CLIP_RECORDING_ERROR_TEXT = DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE;
 
 const PREVIEW_SIZE = 240;
-
-const normalizeGestureLabel = (label: string): string =>
-  label.trim().toLowerCase().replace(/\s+/g, '_');
 
 const formatGestureId = (gestureId: string): string =>
   gestureId
@@ -455,11 +454,38 @@ export default function TeachingScreen({ navigation }: any) {
     Alert.alert('Erfolg', `Die neue Geste "${gestureLabel}" wurde mit ${SAMPLES_NEEDED} Beispielen trainiert.`);
     sessionId.current = null;
     const id = normalizeGestureLabel(gestureLabel);
+    const gestureData: { id: string; label: string; profileId?: string } = {
+      id,
+      label: gestureLabel,
+    };
+    if (profile?.id) {
+      gestureData.profileId = profile.id;
+    }
     try {
-      await saveCustomGesture({ id, label: gestureLabel });
+      await saveCustomGesture(gestureData);
       addGesture({ id, label: gestureLabel });
     } catch (e) {
       logger.warn('Failed to store custom gesture', e);
+    }
+    try {
+      const registration = await registerCustomGesture(gestureData);
+      if (registration.status === 'registered') {
+        showToast({
+          message: `„${gestureLabel}“ wurde auf dem Server gespeichert.`,
+          tone: 'success',
+        });
+      } else {
+        showToast({
+          message: 'Server-Token fehlt, Geste wird lokal gespeichert.',
+          tone: 'warning',
+        });
+      }
+    } catch (registrationError) {
+      logger.warn('Failed to register custom gesture on server', registrationError);
+      showToast({
+        message: 'Server konnte die neue Geste noch nicht speichern.',
+        tone: 'warning',
+      });
     }
     setGestureLabel('');
     setSampleCount(0);

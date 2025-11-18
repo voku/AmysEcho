@@ -429,18 +429,37 @@ export interface CustomGesture {
   id: string;
   label: string;
   emoji?: string;
+  profileId?: string; // Associate gesture with specific profile/kid
 }
 
 export async function saveCustomGesture(gesture: CustomGesture): Promise<void> {
   const raw = await AsyncStorage.getItem(CUSTOM_GESTURES_KEY);
   const gestures: CustomGesture[] = raw ? JSON.parse(raw) : [];
-  if (!gestures.find((g) => g.id === gesture.id)) {
+  // Check both id and profileId to uniquely identify a gesture
+  const existingIndex = gestures.findIndex(
+    (g) => g.id === gesture.id && g.profileId === gesture.profileId
+  );
+  
+  if (existingIndex !== -1) {
+    // Update existing gesture (e.g., when label or emoji changes during re-teaching)
+    gestures[existingIndex] = gesture;
+  } else {
+    // Add new gesture
     gestures.push(gesture);
-    await AsyncStorage.setItem(CUSTOM_GESTURES_KEY, JSON.stringify(gestures));
   }
+  
+  await AsyncStorage.setItem(CUSTOM_GESTURES_KEY, JSON.stringify(gestures));
 }
 
-export async function loadCustomGestures(): Promise<CustomGesture[]> {
+export async function loadCustomGestures(profileId?: string): Promise<CustomGesture[]> {
   const raw = await AsyncStorage.getItem(CUSTOM_GESTURES_KEY);
-  return raw ? JSON.parse(raw) : [];
+  const allGestures: CustomGesture[] = raw ? JSON.parse(raw) : [];
+  
+  // Only return gestures for the specified profile to ensure data isolation
+  // If no profileId is provided, return empty array to prevent cross-profile data leakage
+  if (!profileId) {
+    return [];
+  }
+  
+  return allGestures.filter(g => g.profileId === profileId);
 }

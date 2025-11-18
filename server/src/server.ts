@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
+import { registerCustomGesturesRoute } from './routes/customGesturesRoute.js';
 import { registerGdprRoutes } from './routes/gdprRoutes.js';
 import { createLatestMlpModelHandler } from './routes/latestMlpModelRoute.js';
 import { z } from 'zod';
@@ -475,6 +476,8 @@ registerTrainingBundleRoute(app, genId, {
     }
   },
 });
+
+registerCustomGesturesRoute(app);
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', legacyAuth, async (req: Request, res: Response) => {

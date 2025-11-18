@@ -547,7 +547,7 @@ describe('Storage', () => {
       mockAsyncStorage.getItem.mockResolvedValue(null);
       mockAsyncStorage.setItem.mockResolvedValue();
 
-      const gesture = { id: '1', label: 'Test', emoji: '✋' };
+      const gesture = { id: '1', label: 'Test', emoji: '✋', profileId: 'profile-1' };
       await saveCustomGesture(gesture);
 
       expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
@@ -556,30 +556,49 @@ describe('Storage', () => {
       );
     });
 
-    it('does not save duplicate custom gesture', async () => {
-      const existing = [{ id: '1', label: 'Existing' }];
+    it('updates existing custom gesture with new metadata', async () => {
+      const existing = [{ id: '1', label: 'Existing', profileId: 'profile-1' }];
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(existing));
 
-      const gesture = { id: '1', label: 'Test', emoji: '✋' };
+      const gesture = { id: '1', label: 'Updated Label', emoji: '✋', profileId: 'profile-1' };
       await saveCustomGesture(gesture);
 
-      expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+        'customGestures',
+        JSON.stringify([gesture])
+      );
     });
 
-    it('loads custom gestures', async () => {
+    it('loads custom gestures for specific profile', async () => {
       const gestures = [
-        { id: '1', label: 'Test 1', emoji: '✋' },
-        { id: '2', label: 'Test 2', emoji: '👋' },
+        { id: '1', label: 'Test 1', emoji: '✋', profileId: 'profile-1' },
+        { id: '2', label: 'Test 2', emoji: '👋', profileId: 'profile-1' },
+        { id: '3', label: 'Test 3', emoji: '🤚', profileId: 'profile-2' },
       ];
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(gestures));
 
-      const result = await loadCustomGestures();
+      const result = await loadCustomGestures('profile-1');
 
-      expect(result).toEqual(gestures);
+      expect(result).toEqual([
+        { id: '1', label: 'Test 1', emoji: '✋', profileId: 'profile-1' },
+        { id: '2', label: 'Test 2', emoji: '👋', profileId: 'profile-1' },
+      ]);
     });
 
     it('returns empty array when no custom gestures exist', async () => {
       mockAsyncStorage.getItem.mockResolvedValue(null);
+
+      const result = await loadCustomGestures('profile-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array when no profileId is provided (prevents cross-profile data leakage)', async () => {
+      const gestures = [
+        { id: '1', label: 'Test 1', emoji: '✋', profileId: 'profile-1' },
+        { id: '2', label: 'Test 2', emoji: '👋', profileId: 'profile-2' },
+      ];
+      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(gestures));
 
       const result = await loadCustomGestures();
 
