@@ -436,13 +436,19 @@ export async function saveCustomGesture(gesture: CustomGesture): Promise<void> {
   const raw = await AsyncStorage.getItem(CUSTOM_GESTURES_KEY);
   const gestures: CustomGesture[] = raw ? JSON.parse(raw) : [];
   // Check both id and profileId to uniquely identify a gesture
-  const existing = gestures.find(
+  const existingIndex = gestures.findIndex(
     (g) => g.id === gesture.id && g.profileId === gesture.profileId
   );
-  if (!existing) {
+  
+  if (existingIndex !== -1) {
+    // Update existing gesture (e.g., when label or emoji changes during re-teaching)
+    gestures[existingIndex] = gesture;
+  } else {
+    // Add new gesture
     gestures.push(gesture);
-    await AsyncStorage.setItem(CUSTOM_GESTURES_KEY, JSON.stringify(gestures));
   }
+  
+  await AsyncStorage.setItem(CUSTOM_GESTURES_KEY, JSON.stringify(gestures));
 }
 
 export async function loadCustomGestures(profileId?: string): Promise<CustomGesture[]> {
