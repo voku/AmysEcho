@@ -556,14 +556,17 @@ describe('Storage', () => {
       );
     });
 
-    it('does not save duplicate custom gesture', async () => {
+    it('updates existing custom gesture with new metadata', async () => {
       const existing = [{ id: '1', label: 'Existing' }];
       mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify(existing));
 
-      const gesture = { id: '1', label: 'Test', emoji: '✋' };
+      const gesture = { id: '1', label: 'Updated Label', emoji: '✋' };
       await saveCustomGesture(gesture);
 
-      expect(mockAsyncStorage.setItem).not.toHaveBeenCalled();
+      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+        'customGestures',
+        JSON.stringify([gesture])
+      );
     });
 
     it('loads custom gestures', async () => {
