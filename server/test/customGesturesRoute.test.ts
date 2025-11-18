@@ -69,21 +69,21 @@ describe('custom gestures route', () => {
     expect(stored.gestures[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe jetzt', emoji: null });
   });
 
-  it('lists stored gestures via GET', async () => {
+  it('lists stored gestures via GET with profileId filter', async () => {
     await request(app)
       .post('/api/v1/dgs/gestures')
       .set('Authorization', 'Bearer secret-token')
-      .send({ id: 'hilfe', label: 'Hilfe zeigen' })
+      .send({ id: 'hilfe', label: 'Hilfe zeigen', profileId: 'profile-test' })
       .expect(201);
 
     const response = await request(app)
-      .get('/api/v1/dgs/gestures')
+      .get('/api/v1/dgs/gestures?profileId=profile-test')
       .set('Authorization', 'Bearer secret-token')
       .expect(200);
 
     expect(Array.isArray(response.body.gestures)).toBe(true);
     expect(response.body.gestures).toHaveLength(1);
-    expect(response.body.gestures[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen' });
+    expect(response.body.gestures[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', profileId: 'profile-test' });
   });
 
   it('accepts ASCII-slugified German gesture IDs', async () => {
@@ -165,13 +165,13 @@ describe('custom gestures route', () => {
       .send({ id: 'gesture_shared', label: 'Shared Gesture' })
       .expect(201);
 
-    // Get all gestures
+    // Get all gestures without profileId - should return empty array for data isolation
     const allResponse = await request(app)
       .get('/api/v1/dgs/gestures')
       .set('Authorization', 'Bearer secret-token')
       .expect(200);
 
-    expect(allResponse.body.gestures).toHaveLength(3);
+    expect(allResponse.body.gestures).toHaveLength(0);
 
     // Get gestures for profile A
     const profileAResponse = await request(app)

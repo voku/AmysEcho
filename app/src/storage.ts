@@ -455,10 +455,11 @@ export async function loadCustomGestures(profileId?: string): Promise<CustomGest
   const raw = await AsyncStorage.getItem(CUSTOM_GESTURES_KEY);
   const allGestures: CustomGesture[] = raw ? JSON.parse(raw) : [];
   
-  // If profileId is provided, filter to only return gestures for that profile
-  if (profileId) {
-    return allGestures.filter(g => g.profileId === profileId);
+  // Only return gestures for the specified profile to ensure data isolation
+  // If no profileId is provided, return empty array to prevent cross-profile data leakage
+  if (!profileId) {
+    return [];
   }
   
-  return allGestures;
+  return allGestures.filter(g => g.profileId === profileId);
 }
