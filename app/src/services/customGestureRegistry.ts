@@ -75,9 +75,19 @@ export async function registerCustomGesture(
     }),
   });
 
-  const responseBody = await response
-    .json()
-    .catch(() => ({ error: `Status ${response.status}` }));
+  let responseBody: any;
+  try {
+    // Try JSON parsing first (most common case)
+    responseBody = await response.json();
+  } catch {
+    // If JSON parsing fails, try to get text for better error messages
+    try {
+      const responseText = await response.text();
+      responseBody = { error: responseText || `Status ${response.status}` };
+    } catch {
+      responseBody = { error: `Status ${response.status}` };
+    }
+  }
 
   if (!response.ok) {
     const reason = typeof responseBody?.error === 'string' ? responseBody.error : `Status ${response.status}`;

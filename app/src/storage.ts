@@ -435,7 +435,11 @@ export interface CustomGesture {
 export async function saveCustomGesture(gesture: CustomGesture): Promise<void> {
   const raw = await AsyncStorage.getItem(CUSTOM_GESTURES_KEY);
   const gestures: CustomGesture[] = raw ? JSON.parse(raw) : [];
-  if (!gestures.find((g) => g.id === gesture.id)) {
+  // Check both id and profileId to uniquely identify a gesture
+  const existing = gestures.find(
+    (g) => g.id === gesture.id && g.profileId === gesture.profileId
+  );
+  if (!existing) {
     gestures.push(gesture);
     await AsyncStorage.setItem(CUSTOM_GESTURES_KEY, JSON.stringify(gestures));
   }
