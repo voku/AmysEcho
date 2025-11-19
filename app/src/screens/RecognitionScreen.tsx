@@ -706,7 +706,7 @@ export default function RecognitionScreen({
       const parentNav = navigation.getParent?.();
       const rootNav = parentNav?.getParent?.() ?? parentNav ?? navigation;
       if (typeof rootNav?.navigate === 'function') {
-        rootNav.navigate(ROOT_STACK_ROUTES.Training, {
+        (rootNav.navigate as any)(ROOT_STACK_ROUTES.Training, {
           gestureLabel: gestureId,
         });
       }

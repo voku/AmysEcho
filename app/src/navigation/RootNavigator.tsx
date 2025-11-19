@@ -9,7 +9,6 @@ import {
   AppTabsParamList,
   LernenStackParamList,
   LERNEN_STACK_ROUTES,
-  ROOT_STACK_ROUTES,
   RootStackParamList,
 } from './types';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -101,8 +100,6 @@ const AppTabs = ({
     </Tab.Navigator>
   );
 };
-
-const noopScreen = () => null;
 
 const RootNavigator = () => (
   <Suspense fallback={<LoadingIndicator />}>

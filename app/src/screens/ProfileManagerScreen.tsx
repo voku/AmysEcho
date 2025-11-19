@@ -21,7 +21,6 @@ import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
 import {
   APP_TAB_ROUTES,
-  LERNEN_STACK_ROUTES,
   ROOT_STACK_ROUTES,
   type RootStackParamList,
 } from '../navigation/types';
