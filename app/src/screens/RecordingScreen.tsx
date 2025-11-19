@@ -85,7 +85,7 @@ export default function RecordingScreen({ navigation, route }: any) {
   const TARGET_SAMPLES = isPractice ? (typeof targetSamples === 'number' ? targetSamples : 5) : 5;
   const [gestureId, setGestureId] = useState<string | null>(initialGesture);
   const [newGestureName, setNewGestureName] = useState<string>('');
-  const [isAddingNewGesture, setIsAddingNewGesture] = useState<boolean>(!initialGesture);
+  const [isAddingNewGesture] = useState<boolean>(!initialGesture);
   const [count, setCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
@@ -425,7 +425,6 @@ export default function RecordingScreen({ navigation, route }: any) {
     }
     const normalizedId = normalizeGestureLabel(newGestureName.trim());
     setGestureId(normalizedId);
-    setIsAddingNewGesture(false);
     setError(null);
     void hapticFeedback.light();
   }, [newGestureName]);

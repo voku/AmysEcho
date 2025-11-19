@@ -65,6 +65,7 @@ jest.mock('../../src/utils/hapticUtils', () => ({
 
 jest.mock('../../src/model', () => ({
   gestureModel: { gestures: [{ id: 'hello', label: 'Hallo' }] },
+  addGesture: jest.fn(),
 }));
 
 jest.mock('../../src/storage', () => {
@@ -75,8 +76,26 @@ jest.mock('../../src/storage', () => {
     loadProfile: jest.fn(async () => null),
     loadActiveProfileId: jest.fn(async () => null),
     onActiveProfileChange: jest.fn(),
+    saveCustomGesture: jest.fn(async (gesture: any) => gesture),
   };
 });
+
+jest.mock('../../src/utils/stringUtils', () => ({
+  normalizeGestureLabel: (label: string) => label.toLowerCase().replace(/\s+/g, '_'),
+}));
+
+jest.mock('../../src/services/customGestureRegistry', () => ({
+  registerCustomGesture: jest.fn(async () => ({ status: 'registered' })),
+}));
+
+jest.mock('../../src/services', () => ({
+  audioService: {
+    playEncouragement: jest.fn(),
+    playCelebrationFeedback: jest.fn(),
+    speak: jest.fn(),
+  },
+  syncTrainingData: jest.fn(async () => {}),
+}));
 
 jest.mock('../../src/utils/logger', () => ({
   logger: { warn: jest.fn(), error: jest.fn(), info: jest.fn(), debug: jest.fn() },
