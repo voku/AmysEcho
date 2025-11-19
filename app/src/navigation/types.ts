@@ -5,7 +5,6 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 
 export type LernenStackParamList = {
   LernenHome: { gestureId?: string; gestureLabel?: string } | undefined;
-  Recording: { gestureId?: string; gestureLabel?: string } | undefined;
 };
 
 export type AppTabsParamList = {
@@ -20,10 +19,8 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Tutorial: undefined;
   ProfileSelect: undefined;
-  Recording: { gestureId?: string; gestureLabel?: string } | undefined;
-  Training: { gestureLabel?: string; isPractice?: boolean } | undefined;
+  Training: { gestureLabel?: string; isPractice?: boolean; targetSamples?: number } | undefined;
   Teach: undefined;
-  Teaching: { gestureId?: string } | undefined;
   Parent: undefined;
   ProfileManager: { profileId?: string } | undefined;
   ParentalGate: { target: keyof RootStackParamList };
@@ -49,7 +46,6 @@ export const APP_TAB_ROUTES = {
 
 export const LERNEN_STACK_ROUTES = {
   LernenHome: 'LernenHome',
-  Recording: 'Recording',
 } as const satisfies Record<keyof LernenStackParamList, keyof LernenStackParamList>;
 
 export const ROOT_STACK_ROUTES = {
@@ -58,10 +54,8 @@ export const ROOT_STACK_ROUTES = {
   Onboarding: 'Onboarding',
   Tutorial: 'Tutorial',
   ProfileSelect: 'ProfileSelect',
-  Recording: 'Recording',
   Training: 'Training',
   Teach: 'Teach',
-  Teaching: 'Teaching',
   Parent: 'Parent',
   ProfileManager: 'ProfileManager',
   ParentalGate: 'ParentalGate',
