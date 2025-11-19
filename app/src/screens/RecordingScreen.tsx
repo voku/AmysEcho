@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, TextInput, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import Svg, { Circle } from 'react-native-svg';
 import {
@@ -9,8 +9,9 @@ import {
   Profile,
   TrainingFrame,
   createTrainingSample,
+  saveCustomGesture,
 } from '../storage';
-import { gestureModel } from '../model';
+import { gestureModel, addGesture } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { audioService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
@@ -42,6 +43,9 @@ import {
   getCameraToggleActionText,
   getNextCameraFacingMode,
 } from '../constants/cameraToggle';
+import { normalizeGestureLabel } from '../utils/stringUtils';
+import { registerCustomGesture } from '../services/customGestureRegistry';
+import { syncTrainingData } from '../services';
 
 const MIN_PREVIEW_SIZE = 200;
 const MAX_PREVIEW_SIZE = 420;
@@ -80,6 +84,8 @@ export default function RecordingScreen({ navigation, route }: any) {
   const initialGesture = (gestureLabel as string | undefined) ?? (passedGestureId as string | undefined) ?? null;
   const TARGET_SAMPLES = isPractice ? (typeof targetSamples === 'number' ? targetSamples : 5) : 5;
   const [gestureId, setGestureId] = useState<string | null>(initialGesture);
+  const [newGestureName, setNewGestureName] = useState<string>('');
+  const [isAddingNewGesture, setIsAddingNewGesture] = useState<boolean>(!initialGesture);
   const [count, setCount] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
@@ -219,6 +225,8 @@ export default function RecordingScreen({ navigation, route }: any) {
     ? isPractice
       ? `Übe ${displayGestureName} in deinem Tempo und achte auf ruhige Bewegungen.`
       : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy ${displayGestureName} sicher erkennt.`
+    : isAddingNewGesture
+    ? 'Gib einen Namen für die neue Geste ein und beginne mit der Aufnahme.'
     : 'Wähle eine Geste aus, um mit der Aufnahme zu beginnen.';
   const profileReady = Boolean(profile?.id);
   const primaryCtaLabel = useMemo(() => {
@@ -409,6 +417,77 @@ export default function RecordingScreen({ navigation, route }: any) {
     recordedFrames,
     showToast,
   ]);
+
+  const handleStartNewGesture = useCallback(() => {
+    if (!newGestureName.trim()) {
+      setError('Bitte gib einen Namen für die Geste ein.');
+      return;
+    }
+    const normalizedId = normalizeGestureLabel(newGestureName.trim());
+    setGestureId(normalizedId);
+    setIsAddingNewGesture(false);
+    setError(null);
+    void hapticFeedback.light();
+  }, [newGestureName]);
+
+  const handleSaveCustomGesture = useCallback(async () => {
+    if (!newGestureName.trim() || !gestureId || !profile) {
+      return;
+    }
+
+    const gestureData: { id: string; label: string; profileId?: string } = {
+      id: gestureId,
+      label: newGestureName.trim(),
+    };
+    if (profile.id) {
+      gestureData.profileId = profile.id;
+    }
+
+    try {
+      await saveCustomGesture(gestureData);
+      addGesture({ id: gestureId, label: newGestureName.trim() });
+      audioService.speak(`Super! Ich habe "${newGestureName}" gelernt.`);
+    } catch (e) {
+      logger.warn('Failed to store custom gesture', e);
+    }
+
+    try {
+      const registration = await registerCustomGesture(gestureData);
+      if (registration.status === 'registered') {
+        showToast({
+          message: `„${newGestureName}" wurde auf dem Server gespeichert.`,
+          tone: 'success',
+        });
+      } else {
+        showToast({
+          message: 'Server-Token fehlt, Geste wird lokal gespeichert.',
+          tone: 'warning',
+        });
+      }
+    } catch (registrationError) {
+      logger.warn('Failed to register custom gesture on server', registrationError);
+      showToast({
+        message: 'Server konnte die neue Geste noch nicht speichern.',
+        tone: 'warning',
+      });
+    }
+
+    // Sync training data
+    try {
+      await syncTrainingData({ onProgress: () => {} });
+      Alert.alert('Training', 'Modellaktualisierung abgeschlossen.');
+    } catch (e) {
+      logger.warn('Failed to sync training data', e);
+      Alert.alert('Training', 'Modellaktualisierung möglicherweise fehlgeschlagen. Es wird später erneut versucht.');
+    }
+  }, [newGestureName, gestureId, profile, showToast]);
+
+  // Call handleSaveCustomGesture when count reaches TARGET_SAMPLES for new gestures
+  useEffect(() => {
+    if (count >= TARGET_SAMPLES && isAddingNewGesture && newGestureName.trim()) {
+      void handleSaveCustomGesture();
+    }
+  }, [count, TARGET_SAMPLES, isAddingNewGesture, newGestureName, handleSaveCustomGesture]);
 
   const handleFinish = () => {
     navigation.goBack();
@@ -633,6 +712,22 @@ export default function RecordingScreen({ navigation, route }: any) {
       fontSize: largeText ? 16 : 14,
       textAlign: 'center',
     },
+    newGestureInput: {
+      width: '100%',
+      padding: SPACING.md,
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontSize: largeText ? 18 : 16,
+      textAlign: 'center',
+    },
+    newGestureInputContainer: {
+      width: '100%',
+      gap: SPACING.sm,
+      alignItems: 'stretch',
+    },
   });
 
   return (
@@ -650,17 +745,54 @@ export default function RecordingScreen({ navigation, route }: any) {
                   ? `Übung ${gestureId}`
                   : 'Übungsmodus'
                 : gestureId
-                  ? `Training für ${gestureId}`
+                  ? `Training für ${newGestureName || gestureId}`
+                  : isAddingNewGesture
+                  ? 'Neue Geste hinzufügen'
                   : 'Trainingsmodus'}
             </Text>
             <Text style={styles.subtitle}>{subtitleText}</Text>
             {count < TARGET_SAMPLES ? (
               <>
-                {gestureId ? (
+                {isAddingNewGesture && !gestureId ? (
+                  <View style={styles.newGestureInputContainer}>
+                    <TextInput
+                      style={styles.newGestureInput}
+                      placeholder="Name der neuen Geste"
+                      value={newGestureName}
+                      onChangeText={setNewGestureName}
+                      accessibilityLabel="Name der neuen Geste"
+                      placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textSecondary}
+                      autoFocus
+                    />
+                    <Pressable
+                      style={({ pressed }) => [
+                        childFriendlyStyles.minTouchTarget,
+                        styles.button,
+                        highContrast && styles.buttonHC,
+                        !newGestureName.trim() && styles.buttonDisabled,
+                        pressed && newGestureName.trim() && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                      ]}
+                      onPress={handleStartNewGesture}
+                      disabled={!newGestureName.trim()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Geste erstellen und Training starten"
+                    >
+                      <Text
+                        style={[
+                          styles.buttonText,
+                          largeText && styles.buttonTextLarge,
+                          highContrast && styles.buttonTextHC,
+                        ]}
+                      >
+                        Geste erstellen
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : gestureId ? (
                   <View style={styles.selectedGestureCard}>
                     <Text style={styles.selectedGestureEmoji}>{selectedGestureEmoji}</Text>
                     <View style={styles.selectedGestureText}>
-                      <Text style={styles.selectedGestureName}>{displayGestureName}</Text>
+                      <Text style={styles.selectedGestureName}>{newGestureName || displayGestureName}</Text>
                       <Text style={styles.selectedGestureInfo}>
                         Wir sammeln {TARGET_SAMPLES} Beispiele, damit Amy diese Bewegung sicher erkennt.
                       </Text>
