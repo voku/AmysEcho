@@ -1519,9 +1519,9 @@ const styles = StyleSheet.create({
   handsetBottomContent: {
     paddingTop: spacing.md,
     gap: spacing.md,
+    maxHeight: undefined,
   },
   handsetBottomContentCollapsed: {
-    height: 0,
     maxHeight: 0,
     opacity: 0,
     overflow: 'hidden',
