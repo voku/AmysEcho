@@ -197,12 +197,7 @@ describe('RecognitionScreen Amy-first overlay', () => {
 
   const renderRecognitionScreen = async (navigateMock: jest.Mock = jest.fn()) => {
     let component!: renderer.ReactTestRenderer;
-    const navigation = {
-      navigate: navigateMock,
-      getParent: () => ({
-        getParent: () => ({ navigate: navigateMock }),
-      }),
-    };
+    const navigation = { navigate: navigateMock };
 
     await act(async () => {
       component = renderer.create(<RecognitionScreen navigation={navigation} />);

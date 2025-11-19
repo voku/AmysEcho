@@ -9,7 +9,6 @@ import Colors from '../constants/colors';
 import ActionButton from '../components/ActionButton';
 import type { LernenStackParamList } from '../navigation/types';
 import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
-import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import WorkflowStageHeader from '../components/WorkflowStageHeader';
 
@@ -46,23 +45,15 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
 
   const handleTrain = useCallback(
     (gestureId: string, label: string) => {
-      const parentNav: NavigationProp<ParamListBase> | undefined = navigation.getParent?.();
-      const rootNav: NavigationProp<ParamListBase> = parentNav?.getParent?.() ?? parentNav ?? navigation;
-      if (typeof rootNav?.navigate === 'function') {
-        rootNav.navigate(ROOT_STACK_ROUTES.Training, {
-          gestureLabel: label || gestureId,
-        });
-      }
+      (navigation as any).navigate(ROOT_STACK_ROUTES.Training, {
+        gestureLabel: label || gestureId,
+      });
     },
     [navigation],
   );
 
   const handleAddCustomGesture = useCallback(() => {
-    const parentNav: NavigationProp<ParamListBase> | undefined = navigation.getParent?.();
-    const rootNav: NavigationProp<ParamListBase> = parentNav?.getParent?.() ?? parentNav ?? navigation;
-    if (typeof rootNav?.navigate === 'function') {
-      rootNav.navigate(ROOT_STACK_ROUTES.Training, {});
-    }
+    (navigation as any).navigate(ROOT_STACK_ROUTES.Training, {});
   }, [navigation]);
 
   const renderItem = ({ item }: { item: GestureListItem }) => (

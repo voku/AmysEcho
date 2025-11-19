@@ -703,13 +703,9 @@ export default function RecognitionScreen({
     const gestureId = gestureMeaningDisplayProps?.gestureId;
     logger.info('Open learn flow', { gestureId });
     if (gestureId) {
-      const parentNav = navigation.getParent?.();
-      const rootNav = parentNav?.getParent?.() ?? parentNav ?? navigation;
-      if (typeof rootNav?.navigate === 'function') {
-        (rootNav.navigate as any)(ROOT_STACK_ROUTES.Training, {
-          gestureLabel: gestureId,
-        });
-      }
+      navigation.navigate(ROOT_STACK_ROUTES.Training, {
+        gestureLabel: gestureId,
+      });
     } else {
       navigation.navigate(APP_TAB_ROUTES.Lernen, {
         screen: LERNEN_STACK_ROUTES.LernenHome,

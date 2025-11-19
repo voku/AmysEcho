@@ -70,12 +70,7 @@ jest.mock('../../src/services/gestureHistoryService', () => {
 });
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({
-    navigate: mockNavigate,
-    getParent: () => ({
-      getParent: () => ({ navigate: mockNavigate }),
-    }),
-  }),
+  useNavigation: () => ({ navigate: mockNavigate }),
   useFocusEffect: (_callback: any) => {},
 }));
 
