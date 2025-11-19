@@ -246,6 +246,18 @@ export default function TrainingScreen({ navigation, route }: any) {
     return () => clearInterval(id);
   }, []);
 
+  // Initialize sequence progress when teaching mode or selected gesture meaning changes
+  useEffect(() => {
+    if (teachingMode === 'library' && selectedGestureMeaning?.composition === 'sequence') {
+      setSequenceProgress({
+        completed: [],
+        remaining: [...selectedGestureMeaning.gestures],
+      });
+    } else {
+      setSequenceProgress(null);
+    }
+  }, [teachingMode, selectedGestureMeaning]);
+
   useEffect(() => {
     const maybeProfile = loadProfile();
     if (!maybeProfile || typeof (maybeProfile as Promise<Profile | null>).then !== 'function') {
@@ -424,6 +436,94 @@ export default function TrainingScreen({ navigation, route }: any) {
       setFramesCaptured((count) => count + framesToAppend.length);
     },
     [facingMode],
+  );
+
+  // Handle gesture detection for quality indicators and gesture meaning validation
+  const handleGestureDetected = useCallback(
+    async (
+      gesture: string | null,
+      confidence: number,
+      lms: number[][][],
+      handedness: string[],
+    ) => {
+      const mirrored = facingMode === 'user';
+      const safeLandmarks = cloneLandmarks(lms);
+      const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
+
+      if (gesture && confidence > 0.3 && isPractice) {
+        setShowVisualFeedback(true);
+        setTimeout(() => setShowVisualFeedback(false), 1000);
+
+        setCurrentGestureQuality({
+          confidence,
+          stability: Math.min(1, safeLandmarks.length / 2),
+          clarity: confidence > 0.7 ? 1 : confidence > 0.5 ? 0.7 : 0.4,
+        });
+
+        if (teachingMode === 'library' && selectedGestureMeaning) {
+          if (selectedGestureMeaning.composition === 'coordinated' && safeLandmarks.length >= 2) {
+            const parsed = parseCoordinatedGestureString(gesture);
+            if (parsed) {
+              const result = await gestureMeaningService.processGestureMeaning(
+                parsed.left,
+                parsed.right,
+                confidence,
+                confidence,
+                adjustedHandedness,
+                safeLandmarks,
+              );
+
+              if (result && result.gesture.id === selectedGestureMeaning.id) {
+                const validationMessage =
+                  result.confidence > 0.8
+                    ? `Fantastisch! ${selectedGestureMeaning.name} sitzt perfekt.`
+                    : result.confidence > 0.6
+                    ? `Sehr gut! Noch ein kleines Stück, dann passt es.`
+                    : `Guter Anfang! Koordiniere beide Hände noch einmal.`;
+
+                setValidationFeedback({
+                  isValid: result.confidence > 0.6,
+                  message: validationMessage,
+                  suggestions: result.accessibilityHints.slice(0, 2),
+                });
+
+                setTimeout(() => setValidationFeedback(null), 3000);
+              }
+            }
+          } else if (selectedGestureMeaning.composition === 'sequence' && sequenceProgress) {
+            const remaining = sequenceProgress.remaining;
+            if (remaining.length > 0 && gesture === remaining[0]) {
+              const nextCompleted = [...sequenceProgress.completed, gesture];
+              const nextRemaining = remaining.slice(1);
+              setSequenceProgress({ completed: nextCompleted, remaining: nextRemaining });
+
+              if (nextRemaining.length === 0) {
+                setValidationFeedback({
+                  isValid: true,
+                  message: `Perfekt! Du hast ${selectedGestureMeaning.name} vollständig ausgeführt.`,
+                  suggestions: [],
+                });
+                setTimeout(() => setValidationFeedback(null), 3000);
+              } else {
+                const nextGesture = gestureModel.gestures.find((g) => g.id === nextRemaining[0]);
+                const nextLabel = nextGesture?.label ?? nextRemaining[0];
+                setValidationFeedback({
+                  isValid: true,
+                  message: `Gut! Weiter geht's.`,
+                  suggestions: [`Als nächstes ${nextLabel} üben.`],
+                });
+                setTimeout(() => setValidationFeedback(null), 2000);
+              }
+            }
+          }
+        }
+      }
+
+      if (isRecordingRef.current) {
+        setLastDetection(Date.now());
+      }
+    },
+    [facingMode, isPractice, teachingMode, selectedGestureMeaning, sequenceProgress],
   );
 
   const toggleFacingMode = useCallback(() => {
@@ -1503,6 +1603,43 @@ export default function TrainingScreen({ navigation, route }: any) {
       alignItems: 'stretch',
       marginBottom: SPACING.md,
     },
+    qualityContainer: {
+      backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.9)',
+      borderRadius: DEFAULT_RADIUS,
+      padding: SPACING.sm,
+      marginVertical: SPACING.sm,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      minWidth: 250,
+    },
+    qualityLabel: {
+      fontSize: largeText ? 16 : 14,
+      fontWeight: 'bold',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      marginBottom: SPACING.xs,
+      textAlign: 'center',
+    },
+    qualityBars: {
+      gap: SPACING.xs,
+    },
+    qualityBar: {
+      gap: 4,
+    },
+    qualityBarLabel: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+    },
+    qualityBarBackground: {
+      height: 20,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.border,
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    qualityBarFill: {
+      height: '100%',
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primary,
+      borderRadius: 4,
+    },
   });
 
   // Camera permission handled by WebView context.
@@ -1520,11 +1657,7 @@ export default function TrainingScreen({ navigation, route }: any) {
             onLandmarks={() => {
               setLastDetection(Date.now());
             }}
-            onGestureDetected={() => {
-              if (isRecordingRef.current) {
-                setLastDetection(Date.now());
-              }
-            }}
+            onGestureDetected={handleGestureDetected}
             onError={(message, details?: MediaPipeErrorDetails) => {
               if (message === 'clip_error') {
                 const reason = details?.reason ?? 'unknown';
@@ -1815,6 +1948,69 @@ export default function TrainingScreen({ navigation, route }: any) {
                 : 'Trainingsmodus'}
             </Text>
             <Text style={styles.subtitle}>{subtitleText}</Text>
+            
+            {/* Visual feedback indicator */}
+            {showVisualFeedback && <VisualFeedback />}
+            
+            {/* Quality indicators for practice mode */}
+            {isPractice && currentGestureQuality && (
+              <View style={styles.qualityContainer}>
+                <Text style={styles.qualityLabel}>Qualität:</Text>
+                <View style={styles.qualityBars}>
+                  <View style={styles.qualityBar}>
+                    <Text style={styles.qualityBarLabel}>Sicherheit</Text>
+                    <View style={styles.qualityBarBackground}>
+                      <View
+                        style={[
+                          styles.qualityBarFill,
+                          { width: `${currentGestureQuality.confidence * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.qualityBar}>
+                    <Text style={styles.qualityBarLabel}>Stabilität</Text>
+                    <View style={styles.qualityBarBackground}>
+                      <View
+                        style={[
+                          styles.qualityBarFill,
+                          { width: `${currentGestureQuality.stability * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.qualityBar}>
+                    <Text style={styles.qualityBarLabel}>Klarheit</Text>
+                    <View style={styles.qualityBarBackground}>
+                      <View
+                        style={[
+                          styles.qualityBarFill,
+                          { width: `${currentGestureQuality.clarity * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+            
+            {/* Validation feedback */}
+            {validationFeedback && (
+              <GestureValidationFeedback
+                isValid={validationFeedback.isValid}
+                message={validationFeedback.message}
+                suggestions={validationFeedback.suggestions}
+              />
+            )}
+            
+            {/* Sequence progress tracker */}
+            {sequenceProgress && selectedGestureMeaning && (
+              <ProgressTracker
+                total={selectedGestureMeaning.gestures.length}
+                completed={sequenceProgress.completed.length}
+              />
+            )}
+            
             {!gestureId ? (
               <>
                 {isAddingNewGesture ? (
@@ -1955,6 +2151,16 @@ export default function TrainingScreen({ navigation, route }: any) {
         </View>
       </ScreenBackground>
       {profile && <BottomNav active="training" profileId={profile.id} />}
+      {showMeaningSelector && (
+        <GestureMeaningSelector
+          onSelect={(meaning) => {
+            setSelectedGestureMeaning(meaning);
+            setShowMeaningSelector(false);
+            setTeachingMode('library');
+          }}
+          onClose={() => setShowMeaningSelector(false)}
+        />
+      )}
     </View>
   );
 }
