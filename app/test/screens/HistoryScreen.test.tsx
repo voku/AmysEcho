@@ -70,7 +70,12 @@ jest.mock('../../src/services/gestureHistoryService', () => {
 });
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
+  useNavigation: () => ({
+    navigate: mockNavigate,
+    getParent: () => ({
+      getParent: () => ({ navigate: mockNavigate }),
+    }),
+  }),
   useFocusEffect: (_callback: any) => {},
 }));
 
@@ -81,7 +86,7 @@ const mockGetRecentHistory = gestureHistoryService.getRecentHistory as jest.Mock
 const mockReady = gestureHistoryService.ready as jest.Mock;
 
 import HistoryScreen from '../../src/screens/HistoryScreen';
-import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../../src/navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../../src/navigation/types';
 
 const baseEntry = {
   id: 'hallo',
@@ -169,12 +174,8 @@ describe('HistoryScreen', () => {
       quickLearnCta.props.onPress();
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith(APP_TAB_ROUTES.Lernen, {
-      screen: LERNEN_STACK_ROUTES.Recording,
-      params: {
-        gestureId: baseEntry.id,
-        gestureLabel: baseEntry.label,
-      },
+    expect(mockNavigate).toHaveBeenCalledWith(ROOT_STACK_ROUTES.Training, {
+      gestureLabel: baseEntry.label,
     });
   });
 

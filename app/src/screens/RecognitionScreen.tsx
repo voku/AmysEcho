@@ -27,7 +27,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeMessages } from '../utils/themeMessages';
 import GestureMeaningDisplay from '../components/GestureMeaningDisplay';
 import type { TabNavigationProp } from '../navigation/types';
-import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../navigation/types';
+import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import { useRecognitionState } from '../hooks/useRecognitionState';
 import { useRecognitionCallbacks } from '../hooks/useRecognitionCallbacks';
 import {
@@ -702,12 +702,19 @@ export default function RecognitionScreen({
   const handleLearnPress = useCallback(() => {
     const gestureId = gestureMeaningDisplayProps?.gestureId;
     logger.info('Open learn flow', { gestureId });
-    navigation.navigate(APP_TAB_ROUTES.Lernen, {
-      screen: gestureId
-        ? LERNEN_STACK_ROUTES.Recording
-        : LERNEN_STACK_ROUTES.LernenHome,
-      params: gestureId ? { gestureId } : undefined,
-    });
+    if (gestureId) {
+      const parentNav = navigation.getParent?.();
+      const rootNav = parentNav?.getParent?.() ?? parentNav ?? navigation;
+      if (typeof rootNav?.navigate === 'function') {
+        rootNav.navigate(ROOT_STACK_ROUTES.Training, {
+          gestureLabel: gestureId,
+        });
+      }
+    } else {
+      navigation.navigate(APP_TAB_ROUTES.Lernen, {
+        screen: LERNEN_STACK_ROUTES.LernenHome,
+      });
+    }
   }, [gestureMeaningDisplayProps, navigation]);
 
   const handleAlternativesPress = useCallback(() => {

@@ -662,13 +662,14 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, [newGestureName]);
 
   const handleSaveCustomGesture = useCallback(async () => {
-    if (!newGestureName.trim() || !gestureId || !profile) {
+    const trimmedName = newGestureName.trim();
+    if (!trimmedName || !gestureId || !profile) {
       return;
     }
 
     const gestureData: { id: string; label: string; profileId?: string } = {
       id: gestureId,
-      label: newGestureName.trim(),
+      label: trimmedName,
     };
     if (profile.id) {
       gestureData.profileId = profile.id;
@@ -676,8 +677,8 @@ export default function TrainingScreen({ navigation, route }: any) {
 
     try {
       await saveCustomGesture(gestureData);
-      addGesture({ id: gestureId, label: newGestureName.trim() });
-      audioService.speak(`Super! Ich habe "${newGestureName}" gelernt.`);
+      addGesture({ id: gestureId, label: trimmedName });
+      audioService.speak(`Super! Ich habe „${trimmedName}" gelernt.`);
     } catch (e) {
       logger.warn('Failed to store custom gesture', e);
     }
@@ -686,7 +687,7 @@ export default function TrainingScreen({ navigation, route }: any) {
       const registration = await registerCustomGesture(gestureData);
       if (registration.status === 'registered') {
         showToast({
-          message: `„${newGestureName}" wurde auf dem Server gespeichert.`,
+          message: `„${trimmedName}" wurde auf dem Server gespeichert.`,
           tone: 'success',
         });
       } else {

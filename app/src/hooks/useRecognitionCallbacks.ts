@@ -725,7 +725,7 @@ export const useRecognitionCallbacks = ({
 
   const handleAcceptPractice = useCallback(() => {
     setShowPracticeSuggestion(false);
-    navigation.navigate(ROOT_STACK_ROUTES.Training);
+    navigation.navigate(ROOT_STACK_ROUTES.Training, { isPractice: true });
   }, [navigation, setShowPracticeSuggestion]);
 
   const handleDeclinePractice = useCallback(() => {
@@ -740,7 +740,10 @@ export const useRecognitionCallbacks = ({
     (recommendation: { gesture?: string; type?: string }) => {
       setShowAdaptiveLearning(false);
       if (recommendation?.gesture) {
-        navigation.navigate(ROOT_STACK_ROUTES.Training, { gestureLabel: recommendation.gesture });
+        navigation.navigate(ROOT_STACK_ROUTES.Training, {
+          gestureLabel: recommendation.gesture,
+          isPractice: true,
+        });
       }
     },
     [navigation, setShowAdaptiveLearning],

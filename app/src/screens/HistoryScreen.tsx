@@ -8,7 +8,7 @@ import Colors from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import type { TabNavigationProp } from '../navigation/types';
-import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../navigation/types';
+import { APP_TAB_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import WorkflowStageHeader from '../components/WorkflowStageHeader';
 import ActionButton from '../components/ActionButton';
@@ -126,13 +126,13 @@ const HistoryScreen: React.FC = () => {
 
   const handleQuickLearn = useCallback(
     (entry: GestureHistoryEntry) => {
-      navigation.navigate(APP_TAB_ROUTES.Lernen, {
-        screen: LERNEN_STACK_ROUTES.Recording,
-        params: {
-          gestureId: entry.id,
-          gestureLabel: entry.label,
-        },
-      });
+      const parentNav = navigation.getParent?.();
+      const rootNav = parentNav?.getParent?.() ?? parentNav ?? navigation;
+      if (typeof rootNav?.navigate === 'function') {
+        rootNav.navigate(ROOT_STACK_ROUTES.Training, {
+          gestureLabel: entry.label || entry.id,
+        });
+      }
     },
     [navigation],
   );
