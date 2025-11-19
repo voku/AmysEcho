@@ -62,7 +62,7 @@ export default function TeachScreen({ navigation }: { navigation: Navigation }) 
           ]}
           onPress={() => {
             void childHaptic();
-            navigation.navigate(ROOT_STACK_ROUTES.Teaching);
+            navigation.navigate(ROOT_STACK_ROUTES.Training);
           }}
           testID="btn-add-sign"
           accessibilityRole="button"

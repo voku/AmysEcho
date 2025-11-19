@@ -718,14 +718,14 @@ export const useRecognitionCallbacks = ({
       await correctionService.logCorrection(choiceId).catch((error) =>
         logger.warn('Failed to log correction', error),
       );
-      navigation.navigate(ROOT_STACK_ROUTES.Teaching, { gestureId: choiceId });
+      navigation.navigate(ROOT_STACK_ROUTES.Training, { gestureLabel: choiceId });
     },
     [gestureConfidence, navigation, refs, setShowCorrection, setStatus],
   );
 
   const handleAcceptPractice = useCallback(() => {
     setShowPracticeSuggestion(false);
-    navigation.navigate(ROOT_STACK_ROUTES.Teaching);
+    navigation.navigate(ROOT_STACK_ROUTES.Training);
   }, [navigation, setShowPracticeSuggestion]);
 
   const handleDeclinePractice = useCallback(() => {
@@ -740,7 +740,7 @@ export const useRecognitionCallbacks = ({
     (recommendation: { gesture?: string; type?: string }) => {
       setShowAdaptiveLearning(false);
       if (recommendation?.gesture) {
-        navigation.navigate(ROOT_STACK_ROUTES.Teaching, { gestureId: recommendation.gesture });
+        navigation.navigate(ROOT_STACK_ROUTES.Training, { gestureLabel: recommendation.gesture });
       }
     },
     [navigation, setShowAdaptiveLearning],

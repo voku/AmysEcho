@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, Image, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image, Animated, TextInput, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
 import {
@@ -10,8 +10,9 @@ import {
   TrainingFrame,
   TrainingSample,
   createTrainingSample,
+  saveCustomGesture,
 } from '../storage';
-import { gestureModel } from '../model';
+import { gestureModel, addGesture } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { audioService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
@@ -35,6 +36,9 @@ import {
 } from '../components/MediaPipeGestureDetector';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
+import { normalizeGestureLabel } from '../utils/stringUtils';
+import { registerCustomGesture } from '../services/customGestureRegistry';
+import { syncTrainingData } from '../services';
 
 import { createButtonStyles } from '../styles/buttonStyles';
 import { hapticFeedback } from '../utils/hapticUtils';
@@ -71,6 +75,8 @@ export default function TrainingScreen({ navigation, route }: any) {
   const TARGET_SAMPLES = isPractice ? (typeof targetSamples === 'number' ? targetSamples : 5) : 5;
   // No camera ref needed; WebView handles its own camera
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
+  const [newGestureName, setNewGestureName] = useState<string>('');
+  const [isAddingNewGesture] = useState<boolean>(!gestureLabel);
   const [count, setCount] = useState(0);
   const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'processing'>('idle');
   const isRecording = recordingState === 'recording';
@@ -644,6 +650,76 @@ export default function TrainingScreen({ navigation, route }: any) {
     showToast,
   ]);
 
+  const handleStartNewGesture = useCallback(() => {
+    if (!newGestureName.trim()) {
+      setError('Bitte gib einen Namen für die Geste ein.');
+      return;
+    }
+    const normalizedId = normalizeGestureLabel(newGestureName.trim());
+    setGestureId(normalizedId);
+    setError(null);
+    void hapticFeedback.light();
+  }, [newGestureName]);
+
+  const handleSaveCustomGesture = useCallback(async () => {
+    if (!newGestureName.trim() || !gestureId || !profile) {
+      return;
+    }
+
+    const gestureData: { id: string; label: string; profileId?: string } = {
+      id: gestureId,
+      label: newGestureName.trim(),
+    };
+    if (profile.id) {
+      gestureData.profileId = profile.id;
+    }
+
+    try {
+      await saveCustomGesture(gestureData);
+      addGesture({ id: gestureId, label: newGestureName.trim() });
+      audioService.speak(`Super! Ich habe "${newGestureName}" gelernt.`);
+    } catch (e) {
+      logger.warn('Failed to store custom gesture', e);
+    }
+
+    try {
+      const registration = await registerCustomGesture(gestureData);
+      if (registration.status === 'registered') {
+        showToast({
+          message: `„${newGestureName}" wurde auf dem Server gespeichert.`,
+          tone: 'success',
+        });
+      } else {
+        showToast({
+          message: 'Server-Token fehlt, Geste wird lokal gespeichert.',
+          tone: 'warning',
+        });
+      }
+    } catch (registrationError) {
+      logger.warn('Failed to register custom gesture on server', registrationError);
+      showToast({
+        message: 'Server konnte die neue Geste noch nicht speichern.',
+        tone: 'warning',
+      });
+    }
+
+    // Sync training data
+    try {
+      await syncTrainingData({ onProgress: () => {} });
+      Alert.alert('Training', 'Modellaktualisierung abgeschlossen.');
+    } catch (e) {
+      logger.warn('Failed to sync training data', e);
+      Alert.alert('Training', 'Modellaktualisierung möglicherweise fehlgeschlagen. Es wird später erneut versucht.');
+    }
+  }, [newGestureName, gestureId, profile, showToast]);
+
+  // Call handleSaveCustomGesture when count reaches TARGET_SAMPLES for new gestures
+  useEffect(() => {
+    if (count >= TARGET_SAMPLES && isAddingNewGesture && newGestureName.trim()) {
+      void handleSaveCustomGesture();
+    }
+  }, [count, TARGET_SAMPLES, isAddingNewGesture, newGestureName, handleSaveCustomGesture]);
+
   const handleFinish = () => {
     setShowInstructions(false);
     navigation.goBack();
@@ -690,6 +766,8 @@ export default function TrainingScreen({ navigation, route }: any) {
     ? isPractice
       ? `Übe ${displayGestureName} in deinem Tempo und beobachte die Fortschrittsanzeige.`
       : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy ${displayGestureName} sicher erkennt.`
+    : isAddingNewGesture
+    ? 'Gib einen Namen für die neue Geste ein und beginne mit der Aufnahme.'
     : 'Wähle eine Geste, um das Training zu starten.';
   const trainingSteps = useMemo(
     () => [
@@ -1384,6 +1462,23 @@ export default function TrainingScreen({ navigation, route }: any) {
     secondaryButtonTextHC: {
       color: COLORS.highContrastBackground,
     },
+    newGestureInput: {
+      width: '100%',
+      padding: SPACING.md,
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontSize: largeText ? 18 : 16,
+      textAlign: 'center',
+    },
+    newGestureInputContainer: {
+      width: '100%',
+      gap: SPACING.sm,
+      alignItems: 'stretch',
+      marginBottom: SPACING.md,
+    },
   });
 
   // Camera permission handled by WebView context.
@@ -1690,12 +1785,50 @@ export default function TrainingScreen({ navigation, route }: any) {
                 ? `Übung ${gestureId}`
                 : 'Übungsmodus'
               : gestureId
-                ? `Training für ${gestureId}`
+                ? `Training für ${newGestureName || gestureId}`
+                : isAddingNewGesture
+                ? 'Neue Geste hinzufügen'
                 : 'Trainingsmodus'}
             </Text>
             <Text style={styles.subtitle}>{subtitleText}</Text>
             {!gestureId ? (
               <>
+                {isAddingNewGesture ? (
+                  <View style={styles.newGestureInputContainer}>
+                    <TextInput
+                      style={styles.newGestureInput}
+                      placeholder="Name der neuen Geste"
+                      value={newGestureName}
+                      onChangeText={setNewGestureName}
+                      accessibilityLabel="Name der neuen Geste"
+                      placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textSecondary}
+                      autoFocus
+                    />
+                    <Pressable
+                      style={({ pressed }) => [
+                        childFriendlyStyles.minTouchTarget,
+                        styles.button,
+                        highContrast && styles.buttonHC,
+                        !newGestureName.trim() && styles.buttonDisabled,
+                        pressed && newGestureName.trim() && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                      ]}
+                      onPress={handleStartNewGesture}
+                      disabled={!newGestureName.trim()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Geste erstellen und Training starten"
+                    >
+                      <Text
+                        style={[
+                          styles.buttonText,
+                          largeText && styles.buttonTextLarge,
+                          highContrast && styles.buttonTextHC,
+                        ]}
+                      >
+                        Geste erstellen
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
                 <View style={styles.trainingInfoCard}>
                   <Text style={styles.trainingInfoTitle}>So trainierst du neue Gesten</Text>
                   {trainingSteps.map((step, index) => (
