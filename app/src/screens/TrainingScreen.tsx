@@ -39,6 +39,12 @@ import { logHIPEvent } from '../services/hipEvents';
 import { normalizeGestureLabel } from '../utils/stringUtils';
 import { registerCustomGesture } from '../services/customGestureRegistry';
 import { syncTrainingData } from '../services';
+import GestureMeaningSelector from '../components/GestureMeaningSelector';
+import { GestureMeaningDefinition, parseCoordinatedGestureString } from '../constants/gestureMeanings';
+import { gestureMeaningService } from '../services/gestureMeaningService';
+import VisualFeedback from '../components/VisualFeedback';
+import ProgressTracker from '../components/ProgressTracker';
+import GestureValidationFeedback from '../components/GestureValidationFeedback';
 
 import { createButtonStyles } from '../styles/buttonStyles';
 import { hapticFeedback } from '../utils/hapticUtils';
@@ -118,6 +124,23 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, [showToast]);
   const insets = useSafeAreaInsets();
   const [showInstructions, setShowInstructions] = useState(false);
+  
+  // Quality indicators and gesture meaning features (from TeachingScreen)
+  const [currentGestureQuality, setCurrentGestureQuality] = useState<{
+    confidence: number;
+    stability: number;
+    clarity: number;
+  } | null>(null);
+  const [teachingMode, setTeachingMode] = useState<'custom' | 'library'>('custom');
+  const [showMeaningSelector, setShowMeaningSelector] = useState(false);
+  const [selectedGestureMeaning, setSelectedGestureMeaning] = useState<GestureMeaningDefinition | null>(null);
+  const [sequenceProgress, setSequenceProgress] = useState<{ completed: string[]; remaining: string[] } | null>(null);
+  const [showVisualFeedback, setShowVisualFeedback] = useState(false);
+  const [validationFeedback, setValidationFeedback] = useState<{
+    isValid: boolean;
+    message: string;
+    suggestions: string[];
+  } | null>(null);
 
   useEffect(() => {
     if (clipCaptureMode === 'fallback') {
