@@ -25,7 +25,6 @@ import { COLORS, SPACING, DEFAULT_RADIUS } from '../constants/ui';
 import { useMessage } from '../context/MessageContext';
 import { logger } from '../utils/logger';
 import {
-  ClipCaptureError,
   DEFAULT_CLIP_CAPTURE_ERROR_MESSAGE,
   getClipCaptureErrorMessage,
   persistClipToDirectory,
@@ -378,14 +377,20 @@ export default function TeachingScreen({ navigation }: any) {
     let clipStarted = false;
     let clipStopped = false;
     let clipUri: string | null = null;
+    let clipFailed = false;
 
     try {
+      // Try to start clip capture, but continue with landmarks-only if it fails
       try {
         await detector.startClipCapture();
         clipStarted = true;
       } catch (error) {
-        logger.warn('Failed to start teaching clip capture', error);
-        throw new ClipCaptureError();
+        logger.warn('Failed to start teaching clip capture, continuing with landmarks only', error);
+        clipFailed = true;
+        showToast({
+          message: 'Videoaufnahme nicht verfügbar. Amy speichert trotzdem deine Handbewegungen.',
+          tone: 'info',
+        });
       }
 
       const frames = await captureSamples(() => ({
@@ -393,24 +398,28 @@ export default function TeachingScreen({ navigation }: any) {
         handedness: handednessRef.current,
       }));
 
-      try {
-        const clipResult = await detector.stopClipCapture();
-        clipStopped = true;
-        clipUri = await persistClip(clipResult);
-      } catch (error) {
-        logger.warn('Failed to finalize teaching clip capture', error);
-        throw new ClipCaptureError();
+      // Try to stop and persist clip if it was started
+      if (clipStarted && !clipFailed) {
+        try {
+          const clipResult = await detector.stopClipCapture();
+          clipStopped = true;
+          clipUri = await persistClip(clipResult);
+        } catch (error) {
+          logger.warn('Failed to finalize teaching clip capture, continuing with landmarks only', error);
+          clipFailed = true;
+          showToast({
+            message: 'Videoaufnahme fehlgeschlagen. Amy speichert die Handbewegungen.',
+            tone: 'info',
+          });
+        }
       }
 
-      if (!clipUri) {
-        throw new ClipCaptureError();
-      }
-
+      // Save the training sample with or without clip
       const sample = createTrainingSample({
         profileId: profile.id,
         label: gestureLabel,
         frames,
-        clipUri,
+        clipUri: clipUri ?? '', // Empty string if clip capture failed
       });
       await saveTrainingSample(sample);
 
@@ -429,9 +438,7 @@ export default function TeachingScreen({ navigation }: any) {
         clipUri = null;
       }
 
-      if (e instanceof ClipCaptureError) {
-        setError(getClipCaptureErrorMessage(e));
-      } else if (e instanceof Error && e.message) {
+      if (e instanceof Error && e.message) {
         setError(e.message);
       } else {
         setError('Aufnahme fehlgeschlagen');
