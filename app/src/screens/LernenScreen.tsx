@@ -1,16 +1,26 @@
 import React, { useCallback } from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { StackScreenProps } from '@react-navigation/stack';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { StackNavigationProp, StackScreenProps } from '@react-navigation/stack';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { gestureModel } from '../model';
 import { spacing } from '../constants/spacing';
 import typography from '../constants/typography';
 import Colors from '../constants/colors';
 import ActionButton from '../components/ActionButton';
-import type { LernenStackParamList } from '../navigation/types';
+import type { LernenStackParamList, AppTabsParamList, RootStackParamList } from '../navigation/types';
 import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES, ROOT_STACK_ROUTES } from '../navigation/types';
 import WorkflowSupportLinks from '../components/WorkflowSupportLinks';
 import WorkflowStageHeader from '../components/WorkflowStageHeader';
+
+type LernenScreenNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<LernenStackParamList, typeof LERNEN_STACK_ROUTES.LernenHome>,
+  CompositeNavigationProp<
+    BottomTabNavigationProp<AppTabsParamList>,
+    StackNavigationProp<RootStackParamList>
+  >
+>;
 
 type LernenScreenProps = StackScreenProps<
   LernenStackParamList,
@@ -45,7 +55,7 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
 
   const handleTrain = useCallback(
     (gestureId: string, label: string) => {
-      (navigation as any).navigate(ROOT_STACK_ROUTES.Training, {
+      (navigation as LernenScreenNavigationProp).navigate(ROOT_STACK_ROUTES.Training, {
         gestureLabel: label || gestureId,
       });
     },
@@ -53,7 +63,7 @@ const LernenScreen: React.FC<LernenScreenProps> = ({ navigation }) => {
   );
 
   const handleAddCustomGesture = useCallback(() => {
-    (navigation as any).navigate(ROOT_STACK_ROUTES.Training, {});
+    (navigation as LernenScreenNavigationProp).navigate(ROOT_STACK_ROUTES.Training, {});
   }, [navigation]);
 
   const renderItem = ({ item }: { item: GestureListItem }) => (

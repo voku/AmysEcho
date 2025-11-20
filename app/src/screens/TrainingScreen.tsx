@@ -82,7 +82,7 @@ export default function TrainingScreen({ navigation, route }: any) {
   // No camera ref needed; WebView handles its own camera
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
   const [newGestureName, setNewGestureName] = useState<string>('');
-  const [isAddingNewGesture] = useState<boolean>(!gestureLabel);
+  const isAddingNewGesture = !gestureLabel;
   const [count, setCount] = useState(0);
   const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'processing'>('idle');
   const isRecording = recordingState === 'recording';
