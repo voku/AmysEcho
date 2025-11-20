@@ -135,7 +135,11 @@ export default function TrainingScreen({ navigation, route }: any) {
   const [showMeaningSelector, setShowMeaningSelector] = useState(false);
   const [selectedGestureMeaning, setSelectedGestureMeaning] = useState<GestureMeaningDefinition | null>(null);
   const [sequenceProgress, setSequenceProgress] = useState<{ completed: string[]; remaining: string[] } | null>(null);
-  const [showVisualFeedback, setShowVisualFeedback] = useState(false);
+  const [visualFeedback, setVisualFeedback] = useState<{
+    isActive: boolean;
+    type: 'success' | 'warning' | 'error' | 'info';
+    message: string;
+  }>({ isActive: false, type: 'info', message: '' });
   const [validationFeedback, setValidationFeedback] = useState<{
     isValid: boolean;
     message: string;
@@ -451,8 +455,12 @@ export default function TrainingScreen({ navigation, route }: any) {
       const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
 
       if (gesture && confidence > 0.3 && isPractice) {
-        setShowVisualFeedback(true);
-        setTimeout(() => setShowVisualFeedback(false), 1000);
+        setVisualFeedback({
+          isActive: true,
+          type: 'success',
+          message: 'Geste erkannt!',
+        });
+        setTimeout(() => setVisualFeedback({ isActive: false, type: 'info', message: '' }), 1000);
 
         setCurrentGestureQuality({
           confidence,
@@ -1950,7 +1958,11 @@ export default function TrainingScreen({ navigation, route }: any) {
             <Text style={styles.subtitle}>{subtitleText}</Text>
             
             {/* Visual feedback indicator */}
-            {showVisualFeedback && <VisualFeedback />}
+            <VisualFeedback 
+              isActive={visualFeedback.isActive}
+              type={visualFeedback.type}
+              message={visualFeedback.message}
+            />
             
             {/* Quality indicators for practice mode */}
             {isPractice && currentGestureQuality && (
@@ -2004,10 +2016,11 @@ export default function TrainingScreen({ navigation, route }: any) {
             )}
             
             {/* Sequence progress tracker */}
-            {sequenceProgress && selectedGestureMeaning && (
+            {sequenceProgress && selectedGestureMeaning && selectedGestureMeaning.composition === 'sequence' && (
               <ProgressTracker
+                current={sequenceProgress.completed.length}
                 total={selectedGestureMeaning.gestures.length}
-                completed={sequenceProgress.completed.length}
+                label="Sequenzfortschritt"
               />
             )}
             
@@ -2153,12 +2166,12 @@ export default function TrainingScreen({ navigation, route }: any) {
       {profile && <BottomNav active="training" profileId={profile.id} />}
       {showMeaningSelector && (
         <GestureMeaningSelector
-          onSelect={(meaning) => {
+          onMeaningSelected={(meaning: GestureMeaningDefinition) => {
             setSelectedGestureMeaning(meaning);
             setShowMeaningSelector(false);
             setTeachingMode('library');
           }}
-          onClose={() => setShowMeaningSelector(false)}
+          onCancel={() => setShowMeaningSelector(false)}
         />
       )}
     </View>

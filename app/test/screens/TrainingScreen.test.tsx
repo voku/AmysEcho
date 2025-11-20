@@ -33,6 +33,10 @@ jest.mock('../../src/services/TrainingDataValidator', () => ({
 
 jest.mock('../../src/components/BottomNav', () => () => null);
 jest.mock('../../src/components/DgsVideoPlayer', () => () => null);
+jest.mock('../../src/components/VisualFeedback', () => () => null);
+jest.mock('../../src/components/ProgressTracker', () => () => null);
+jest.mock('../../src/components/GestureMeaningSelector', () => () => null);
+jest.mock('../../src/components/GestureValidationFeedback', () => () => null);
 
 jest.mock('../../src/services', () => ({
   audioService: {
