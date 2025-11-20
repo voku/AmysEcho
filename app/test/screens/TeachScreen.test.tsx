@@ -55,7 +55,7 @@ describe('TeachScreen', () => {
     jest.clearAllMocks();
   });
 
-  it('add sign button navigates to Teaching screen', () => {
+  it('add sign button navigates to Training screen', () => {
     const navigate = jest.fn();
     let component!: renderer.ReactTestRenderer;
     act(() => {
@@ -64,7 +64,7 @@ describe('TeachScreen', () => {
     act(() => {
       component.root.findByProps({ testID: 'btn-add-sign' }).props.onPress();
     });
-    expect(navigate).toHaveBeenCalledWith('Teaching');
+    expect(navigate).toHaveBeenCalledWith('Training');
   });
 
   it('button exposes accessibility label', () => {

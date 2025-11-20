@@ -22,7 +22,6 @@ import { fetchMlpModel } from '../services/dgsModelClient';
 import { APP_TAB_ROUTES, ROOT_STACK_ROUTES, type RootStackParamList } from '../navigation/types';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
-import { usePerformance } from '../context/PerformanceContext';
 import ScreenBackground from '../components/ScreenBackground';
 import { useAccessibility } from '../components/AccessibilityContext';
 import PrimaryButton from '../components/PrimaryButton';
@@ -99,9 +98,6 @@ const styles = StyleSheet.create({
   rowActionTextLarge: { fontSize: 16 },
   rowActionTextHC: { color: COLORS.highContrastText },
   footer: { paddingTop: SPACING.lg },
-  performanceLabel: { fontWeight: '600', color: COLORS.text, marginBottom: SPACING.xs, fontSize: 14 },
-  performanceLabelLarge: { fontSize: 16 },
-  performanceLabelHC: { color: COLORS.highContrastText },
   emptyState: { textAlign: 'center', color: COLORS.textSecondary, marginVertical: SPACING.lg, fontSize: 16 },
   emptyStateLarge: { fontSize: 18 },
   emptyStateHC: { color: COLORS.highContrastText },
@@ -168,7 +164,6 @@ const styles = StyleSheet.create({
 
 export default function AdminScreen({ navigation }: { navigation: Navigation }) {
   const { audioService, backupService, gdprService } = useServices();
-  const { isLowPerformanceMode, toggleLowPerformanceMode } = usePerformance();
   const { highContrast, largeText } = useAccessibility();
   const [symbols, setSymbols] = useState<DBSymbol[]>([]);
   const [editing, setEditing] = useState<DBSymbol | null>(null);
@@ -696,25 +691,6 @@ export default function AdminScreen({ navigation }: { navigation: Navigation }) 
         </Text>
         {navigationButtons.map(({ title, onPress, accessibilityLabel, subtitle, tone }) =>
           renderSettingsOption(title, title, onPress, accessibilityLabel, subtitle, tone ?? 'default'),
-        )}
-      </View>
-
-      <View style={styles.section}>
-        <Text
-          style={[
-            styles.performanceLabel,
-            largeText && styles.performanceLabelLarge,
-            highContrast && styles.performanceLabelHC,
-          ]}
-        >
-          Niedriger Leistungsmodus: {isLowPerformanceMode ? 'An' : 'Aus'}
-        </Text>
-        {renderSettingsOption(
-          'toggle-performance',
-          'Niedrigen Leistungsmodus umschalten',
-          toggleLowPerformanceMode,
-          'Niedrigen Leistungsmodus umschalten',
-          'Optimiert die App für ältere oder langsamere Geräte',
         )}
       </View>
     </View>

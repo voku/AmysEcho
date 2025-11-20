@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, Image, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image, Animated, TextInput, Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 // Camera preview replaced by MediaPipe WebView detector
 import {
@@ -10,8 +10,9 @@ import {
   TrainingFrame,
   TrainingSample,
   createTrainingSample,
+  saveCustomGesture,
 } from '../storage';
-import { gestureModel } from '../model';
+import { gestureModel, addGesture } from '../model';
 import { useAccessibility } from '../components/AccessibilityContext';
 import { audioService } from '../services';
 import { validateLandmarkSequence } from '../services/TrainingDataValidator';
@@ -35,6 +36,15 @@ import {
 } from '../components/MediaPipeGestureDetector';
 import { cloneLandmarks, adjustHandednessForMirror } from '../utils/landmarkUtils';
 import { logHIPEvent } from '../services/hipEvents';
+import { normalizeGestureLabel } from '../utils/stringUtils';
+import { registerCustomGesture } from '../services/customGestureRegistry';
+import { syncTrainingData } from '../services';
+import GestureMeaningSelector from '../components/GestureMeaningSelector';
+import { GestureMeaningDefinition, parseCoordinatedGestureString } from '../constants/gestureMeanings';
+import { gestureMeaningService } from '../services/gestureMeaningService';
+import VisualFeedback from '../components/VisualFeedback';
+import ProgressTracker from '../components/ProgressTracker';
+import GestureValidationFeedback from '../components/GestureValidationFeedback';
 
 import { createButtonStyles } from '../styles/buttonStyles';
 import { hapticFeedback } from '../utils/hapticUtils';
@@ -71,6 +81,8 @@ export default function TrainingScreen({ navigation, route }: any) {
   const TARGET_SAMPLES = isPractice ? (typeof targetSamples === 'number' ? targetSamples : 5) : 5;
   // No camera ref needed; WebView handles its own camera
   const [gestureId, setGestureId] = useState<string | null>(gestureLabel || null);
+  const [newGestureName, setNewGestureName] = useState<string>('');
+  const isAddingNewGesture = !gestureLabel;
   const [count, setCount] = useState(0);
   const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'processing'>('idle');
   const isRecording = recordingState === 'recording';
@@ -112,6 +124,27 @@ export default function TrainingScreen({ navigation, route }: any) {
   }, [showToast]);
   const insets = useSafeAreaInsets();
   const [showInstructions, setShowInstructions] = useState(false);
+  
+  // Quality indicators and gesture meaning features (from TeachingScreen)
+  const [currentGestureQuality, setCurrentGestureQuality] = useState<{
+    confidence: number;
+    stability: number;
+    clarity: number;
+  } | null>(null);
+  const [teachingMode, setTeachingMode] = useState<'custom' | 'library'>('custom');
+  const [showMeaningSelector, setShowMeaningSelector] = useState(false);
+  const [selectedGestureMeaning, setSelectedGestureMeaning] = useState<GestureMeaningDefinition | null>(null);
+  const [sequenceProgress, setSequenceProgress] = useState<{ completed: string[]; remaining: string[] } | null>(null);
+  const [visualFeedback, setVisualFeedback] = useState<{
+    isActive: boolean;
+    type: 'success' | 'warning' | 'error' | 'info';
+    message: string;
+  }>({ isActive: false, type: 'info', message: '' });
+  const [validationFeedback, setValidationFeedback] = useState<{
+    isValid: boolean;
+    message: string;
+    suggestions: string[];
+  } | null>(null);
 
   useEffect(() => {
     if (clipCaptureMode === 'fallback') {
@@ -216,6 +249,18 @@ export default function TrainingScreen({ navigation, route }: any) {
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
   }, []);
+
+  // Initialize sequence progress when teaching mode or selected gesture meaning changes
+  useEffect(() => {
+    if (teachingMode === 'library' && selectedGestureMeaning?.composition === 'sequence') {
+      setSequenceProgress({
+        completed: [],
+        remaining: [...selectedGestureMeaning.gestures],
+      });
+    } else {
+      setSequenceProgress(null);
+    }
+  }, [teachingMode, selectedGestureMeaning]);
 
   useEffect(() => {
     const maybeProfile = loadProfile();
@@ -395,6 +440,98 @@ export default function TrainingScreen({ navigation, route }: any) {
       setFramesCaptured((count) => count + framesToAppend.length);
     },
     [facingMode],
+  );
+
+  // Handle gesture detection for quality indicators and gesture meaning validation
+  const handleGestureDetected = useCallback(
+    async (
+      gesture: string | null,
+      confidence: number,
+      lms: number[][][],
+      handedness: string[],
+    ) => {
+      const mirrored = facingMode === 'user';
+      const safeLandmarks = cloneLandmarks(lms);
+      const adjustedHandedness = adjustHandednessForMirror(handedness ?? [], mirrored);
+
+      if (gesture && confidence > 0.3 && isPractice) {
+        setVisualFeedback({
+          isActive: true,
+          type: 'success',
+          message: 'Geste erkannt!',
+        });
+        setTimeout(() => setVisualFeedback({ isActive: false, type: 'info', message: '' }), 1000);
+
+        setCurrentGestureQuality({
+          confidence,
+          stability: Math.min(1, safeLandmarks.length / 2),
+          clarity: confidence > 0.7 ? 1 : confidence > 0.5 ? 0.7 : 0.4,
+        });
+
+        if (teachingMode === 'library' && selectedGestureMeaning) {
+          if (selectedGestureMeaning.composition === 'coordinated' && safeLandmarks.length >= 2) {
+            const parsed = parseCoordinatedGestureString(gesture);
+            if (parsed) {
+              const result = await gestureMeaningService.processGestureMeaning(
+                parsed.left,
+                parsed.right,
+                confidence,
+                confidence,
+                adjustedHandedness,
+                safeLandmarks,
+              );
+
+              if (result && result.gesture.id === selectedGestureMeaning.id) {
+                const validationMessage =
+                  result.confidence > 0.8
+                    ? `Fantastisch! ${selectedGestureMeaning.name} sitzt perfekt.`
+                    : result.confidence > 0.6
+                    ? `Sehr gut! Noch ein kleines Stück, dann passt es.`
+                    : `Guter Anfang! Koordiniere beide Hände noch einmal.`;
+
+                setValidationFeedback({
+                  isValid: result.confidence > 0.6,
+                  message: validationMessage,
+                  suggestions: result.accessibilityHints.slice(0, 2),
+                });
+
+                setTimeout(() => setValidationFeedback(null), 3000);
+              }
+            }
+          } else if (selectedGestureMeaning.composition === 'sequence' && sequenceProgress) {
+            const remaining = sequenceProgress.remaining;
+            if (remaining.length > 0 && gesture === remaining[0]) {
+              const nextCompleted = [...sequenceProgress.completed, gesture];
+              const nextRemaining = remaining.slice(1);
+              setSequenceProgress({ completed: nextCompleted, remaining: nextRemaining });
+
+              if (nextRemaining.length === 0) {
+                setValidationFeedback({
+                  isValid: true,
+                  message: `Perfekt! Du hast ${selectedGestureMeaning.name} vollständig ausgeführt.`,
+                  suggestions: [],
+                });
+                setTimeout(() => setValidationFeedback(null), 3000);
+              } else {
+                const nextGesture = gestureModel.gestures.find((g) => g.id === nextRemaining[0]);
+                const nextLabel = nextGesture?.label ?? nextRemaining[0];
+                setValidationFeedback({
+                  isValid: true,
+                  message: `Gut! Weiter geht's.`,
+                  suggestions: [`Als nächstes ${nextLabel} üben.`],
+                });
+                setTimeout(() => setValidationFeedback(null), 2000);
+              }
+            }
+          }
+        }
+      }
+
+      if (isRecordingRef.current) {
+        setLastDetection(Date.now());
+      }
+    },
+    [facingMode, isPractice, teachingMode, selectedGestureMeaning, sequenceProgress],
   );
 
   const toggleFacingMode = useCallback(() => {
@@ -644,6 +781,77 @@ export default function TrainingScreen({ navigation, route }: any) {
     showToast,
   ]);
 
+  const handleStartNewGesture = useCallback(() => {
+    if (!newGestureName.trim()) {
+      setError('Bitte gib einen Namen für die Geste ein.');
+      return;
+    }
+    const normalizedId = normalizeGestureLabel(newGestureName.trim());
+    setGestureId(normalizedId);
+    setError(null);
+    void hapticFeedback.light();
+  }, [newGestureName]);
+
+  const handleSaveCustomGesture = useCallback(async () => {
+    const trimmedName = newGestureName.trim();
+    if (!trimmedName || !gestureId || !profile) {
+      return;
+    }
+
+    const gestureData: { id: string; label: string; profileId?: string } = {
+      id: gestureId,
+      label: trimmedName,
+    };
+    if (profile.id) {
+      gestureData.profileId = profile.id;
+    }
+
+    try {
+      await saveCustomGesture(gestureData);
+      addGesture({ id: gestureId, label: trimmedName });
+      audioService.speak(`Super! Ich habe „${trimmedName}“ gelernt.`);
+    } catch (e) {
+      logger.warn('Failed to store custom gesture', e);
+    }
+
+    try {
+      const registration = await registerCustomGesture(gestureData);
+      if (registration.status === 'registered') {
+        showToast({
+          message: `„${trimmedName}“ wurde auf dem Server gespeichert.`,
+          tone: 'success',
+        });
+      } else {
+        showToast({
+          message: 'Server-Token fehlt, Geste wird lokal gespeichert.',
+          tone: 'warning',
+        });
+      }
+    } catch (registrationError) {
+      logger.warn('Failed to register custom gesture on server', registrationError);
+      showToast({
+        message: 'Server konnte die neue Geste noch nicht speichern.',
+        tone: 'warning',
+      });
+    }
+
+    // Sync training data
+    try {
+      await syncTrainingData({ onProgress: () => {} });
+      Alert.alert('Training', 'Modellaktualisierung abgeschlossen.');
+    } catch (e) {
+      logger.warn('Failed to sync training data', e);
+      Alert.alert('Training', 'Modellaktualisierung möglicherweise fehlgeschlagen. Es wird später erneut versucht.');
+    }
+  }, [newGestureName, gestureId, profile, showToast]);
+
+  // Call handleSaveCustomGesture when count reaches TARGET_SAMPLES for new gestures
+  useEffect(() => {
+    if (count >= TARGET_SAMPLES && isAddingNewGesture && newGestureName.trim()) {
+      void handleSaveCustomGesture();
+    }
+  }, [count, TARGET_SAMPLES, isAddingNewGesture, newGestureName, handleSaveCustomGesture]);
+
   const handleFinish = () => {
     setShowInstructions(false);
     navigation.goBack();
@@ -690,6 +898,8 @@ export default function TrainingScreen({ navigation, route }: any) {
     ? isPractice
       ? `Übe ${displayGestureName} in deinem Tempo und beobachte die Fortschrittsanzeige.`
       : `Nimm ${TARGET_SAMPLES} klare Beispiele auf, damit Amy ${displayGestureName} sicher erkennt.`
+    : isAddingNewGesture
+    ? 'Gib einen Namen für die neue Geste ein und beginne mit der Aufnahme.'
     : 'Wähle eine Geste, um das Training zu starten.';
   const trainingSteps = useMemo(
     () => [
@@ -1384,6 +1594,60 @@ export default function TrainingScreen({ navigation, route }: any) {
     secondaryButtonTextHC: {
       color: COLORS.highContrastBackground,
     },
+    newGestureInput: {
+      width: '100%',
+      padding: SPACING.md,
+      borderRadius: DEFAULT_RADIUS,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.surface,
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      fontSize: largeText ? 18 : 16,
+      textAlign: 'center',
+    },
+    newGestureInputContainer: {
+      width: '100%',
+      gap: SPACING.sm,
+      alignItems: 'stretch',
+      marginBottom: SPACING.md,
+    },
+    qualityContainer: {
+      backgroundColor: highContrast ? COLORS.surface : 'rgba(255, 255, 255, 0.9)',
+      borderRadius: DEFAULT_RADIUS,
+      padding: SPACING.sm,
+      marginVertical: SPACING.sm,
+      borderWidth: highContrast ? 2 : 1,
+      borderColor: highContrast ? COLORS.highContrastText : COLORS.border,
+      minWidth: 250,
+    },
+    qualityLabel: {
+      fontSize: largeText ? 16 : 14,
+      fontWeight: 'bold',
+      color: highContrast ? COLORS.highContrastText : COLORS.text,
+      marginBottom: SPACING.xs,
+      textAlign: 'center',
+    },
+    qualityBars: {
+      gap: SPACING.xs,
+    },
+    qualityBar: {
+      gap: 4,
+    },
+    qualityBarLabel: {
+      fontSize: largeText ? 14 : 12,
+      color: highContrast ? COLORS.highContrastText : COLORS.textSecondary,
+    },
+    qualityBarBackground: {
+      height: 20,
+      backgroundColor: highContrast ? COLORS.highContrastBackground : COLORS.border,
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    qualityBarFill: {
+      height: '100%',
+      backgroundColor: highContrast ? COLORS.highContrastText : COLORS.primary,
+      borderRadius: 4,
+    },
   });
 
   // Camera permission handled by WebView context.
@@ -1401,11 +1665,7 @@ export default function TrainingScreen({ navigation, route }: any) {
             onLandmarks={() => {
               setLastDetection(Date.now());
             }}
-            onGestureDetected={() => {
-              if (isRecordingRef.current) {
-                setLastDetection(Date.now());
-              }
-            }}
+            onGestureDetected={handleGestureDetected}
             onError={(message, details?: MediaPipeErrorDetails) => {
               if (message === 'clip_error') {
                 const reason = details?.reason ?? 'unknown';
@@ -1690,12 +1950,118 @@ export default function TrainingScreen({ navigation, route }: any) {
                 ? `Übung ${gestureId}`
                 : 'Übungsmodus'
               : gestureId
-                ? `Training für ${gestureId}`
+                ? `Training für ${newGestureName || gestureId}`
+                : isAddingNewGesture
+                ? 'Neue Geste hinzufügen'
                 : 'Trainingsmodus'}
             </Text>
             <Text style={styles.subtitle}>{subtitleText}</Text>
+            
+            {/* Visual feedback indicator */}
+            <VisualFeedback 
+              isActive={visualFeedback.isActive}
+              type={visualFeedback.type}
+              message={visualFeedback.message}
+            />
+            
+            {/* Quality indicators for practice mode */}
+            {isPractice && currentGestureQuality && (
+              <View style={styles.qualityContainer}>
+                <Text style={styles.qualityLabel}>Qualität:</Text>
+                <View style={styles.qualityBars}>
+                  <View style={styles.qualityBar}>
+                    <Text style={styles.qualityBarLabel}>Sicherheit</Text>
+                    <View style={styles.qualityBarBackground}>
+                      <View
+                        style={[
+                          styles.qualityBarFill,
+                          { width: `${currentGestureQuality.confidence * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.qualityBar}>
+                    <Text style={styles.qualityBarLabel}>Stabilität</Text>
+                    <View style={styles.qualityBarBackground}>
+                      <View
+                        style={[
+                          styles.qualityBarFill,
+                          { width: `${currentGestureQuality.stability * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.qualityBar}>
+                    <Text style={styles.qualityBarLabel}>Klarheit</Text>
+                    <View style={styles.qualityBarBackground}>
+                      <View
+                        style={[
+                          styles.qualityBarFill,
+                          { width: `${currentGestureQuality.clarity * 100}%` },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+            
+            {/* Validation feedback */}
+            {validationFeedback && (
+              <GestureValidationFeedback
+                isValid={validationFeedback.isValid}
+                message={validationFeedback.message}
+                suggestions={validationFeedback.suggestions}
+              />
+            )}
+            
+            {/* Sequence progress tracker */}
+            {sequenceProgress && selectedGestureMeaning && selectedGestureMeaning.composition === 'sequence' && (
+              <ProgressTracker
+                current={sequenceProgress.completed.length}
+                total={selectedGestureMeaning.gestures.length}
+                label="Sequenzfortschritt"
+              />
+            )}
+            
             {!gestureId ? (
               <>
+                {isAddingNewGesture ? (
+                  <View style={styles.newGestureInputContainer}>
+                    <TextInput
+                      style={styles.newGestureInput}
+                      placeholder="Name der neuen Geste"
+                      value={newGestureName}
+                      onChangeText={setNewGestureName}
+                      accessibilityLabel="Name der neuen Geste"
+                      placeholderTextColor={highContrast ? COLORS.highContrastText : COLORS.textSecondary}
+                      autoFocus
+                    />
+                    <Pressable
+                      style={({ pressed }) => [
+                        childFriendlyStyles.minTouchTarget,
+                        styles.button,
+                        highContrast && styles.buttonHC,
+                        !newGestureName.trim() && styles.buttonDisabled,
+                        pressed && newGestureName.trim() && (highContrast ? styles.buttonPressedHC : styles.buttonPressed),
+                      ]}
+                      onPress={handleStartNewGesture}
+                      disabled={!newGestureName.trim()}
+                      accessibilityRole="button"
+                      accessibilityLabel="Geste erstellen und Training starten"
+                    >
+                      <Text
+                        style={[
+                          styles.buttonText,
+                          largeText && styles.buttonTextLarge,
+                          highContrast && styles.buttonTextHC,
+                        ]}
+                      >
+                        Geste erstellen
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
                 <View style={styles.trainingInfoCard}>
                   <Text style={styles.trainingInfoTitle}>So trainierst du neue Gesten</Text>
                   {trainingSteps.map((step, index) => (
@@ -1798,6 +2164,16 @@ export default function TrainingScreen({ navigation, route }: any) {
         </View>
       </ScreenBackground>
       {profile && <BottomNav active="training" profileId={profile.id} />}
+      {showMeaningSelector && (
+        <GestureMeaningSelector
+          onMeaningSelected={(meaning: GestureMeaningDefinition) => {
+            setSelectedGestureMeaning(meaning);
+            setShowMeaningSelector(false);
+            setTeachingMode('library');
+          }}
+          onCancel={() => setShowMeaningSelector(false)}
+        />
+      )}
     </View>
   );
 }

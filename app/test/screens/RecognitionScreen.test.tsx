@@ -1,6 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
-import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES } from '../../src/navigation/types';
+import { APP_TAB_ROUTES, LERNEN_STACK_ROUTES, ROOT_STACK_ROUTES } from '../../src/navigation/types';
 
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
@@ -354,9 +354,8 @@ describe('RecognitionScreen Amy-first overlay', () => {
       learnButton?.props.onPress();
     });
 
-    expect(navigateMock).toHaveBeenCalledWith(APP_TAB_ROUTES.Lernen, {
-      screen: LERNEN_STACK_ROUTES.Recording,
-      params: { gestureId: 'hallo' },
+    expect(navigateMock).toHaveBeenCalledWith(ROOT_STACK_ROUTES.Training, {
+      gestureLabel: 'hallo',
     });
   });
 

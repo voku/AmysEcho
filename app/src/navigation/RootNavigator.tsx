@@ -9,7 +9,6 @@ import {
   AppTabsParamList,
   LernenStackParamList,
   LERNEN_STACK_ROUTES,
-  ROOT_STACK_ROUTES,
   RootStackParamList,
 } from './types';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -26,14 +25,12 @@ const lazyScreen = (
 const RecognitionScreen = lazyScreen(() => import('../screens/RecognitionScreen'));
 const HistoryScreen = lazyScreen(() => import('../screens/HistoryScreen'));
 const LernenScreen = lazyScreen(() => import('../screens/LernenScreen'));
-const RecordingScreen = lazyScreen(() => import('../screens/RecordingScreen'));
 const HeroScreen = lazyScreen(() => import('../screens/HeroScreen'));
 const OnboardingScreen = lazyScreen(() => import('../screens/OnboardingScreen'));
 const TutorialScreen = lazyScreen(() => import('../screens/GestureTutorialScreen'));
 const ProfileSelectScreen = lazyScreen(() => import('../screens/ProfileSelectScreen'));
 const TrainingScreen = lazyScreen(() => import('../screens/TrainingScreen'));
 const TeachScreen = lazyScreen(() => import('../screens/TeachScreen'));
-const TeachingScreen = lazyScreen(() => import('../screens/TeachingScreen'));
 const ParentScreen = lazyScreen(() => import('../screens/ParentScreen'));
 const ProfileManagerScreen = lazyScreen(() => import('../screens/ProfileManagerScreen'));
 const ParentalGateScreen = lazyScreen(() => import('../screens/ParentalGateScreen'));
@@ -67,7 +64,6 @@ const LernenWorkflowStack = () => (
     }}
   >
     <LernenStack.Screen name={LERNEN_STACK_ROUTES.LernenHome} component={LernenScreen} />
-    <LernenStack.Screen name={LERNEN_STACK_ROUTES.Recording} component={RecordingScreen} />
   </LernenStack.Navigator>
 );
 
@@ -105,8 +101,6 @@ const AppTabs = ({
   );
 };
 
-const noopScreen = () => null;
-
 const RootNavigator = () => (
   <Suspense fallback={<LoadingIndicator />}>
     <Stack.Navigator
@@ -120,24 +114,8 @@ const RootNavigator = () => (
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Tutorial" component={TutorialScreen} />
       <Stack.Screen name="ProfileSelect" component={ProfileSelectScreen} />
-      <Stack.Screen
-        name={ROOT_STACK_ROUTES.Recording}
-        component={noopScreen}
-        listeners={({ navigation, route }) => ({
-          focus: () => {
-            navigation.replace(ROOT_STACK_ROUTES.App, {
-              screen: APP_TAB_ROUTES.Lernen,
-              params: {
-                screen: LERNEN_STACK_ROUTES.Recording,
-                params: route.params,
-              },
-            });
-          },
-        })}
-      />
       <Stack.Screen name="Training" component={TrainingScreen} />
       <Stack.Screen name="Teach" component={TeachScreen} />
-      <Stack.Screen name="Teaching" component={TeachingScreen} />
       <Stack.Screen name="Parent" component={ParentScreen} />
       <Stack.Screen name="ProfileManager" component={ProfileManagerScreen} />
       <Stack.Screen name="ParentalGate" component={ParentalGateScreen} />

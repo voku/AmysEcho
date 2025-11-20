@@ -33,18 +33,31 @@ jest.mock('../../src/services/TrainingDataValidator', () => ({
 
 jest.mock('../../src/components/BottomNav', () => () => null);
 jest.mock('../../src/components/DgsVideoPlayer', () => () => null);
+jest.mock('../../src/components/VisualFeedback', () => () => null);
+jest.mock('../../src/components/ProgressTracker', () => () => null);
+jest.mock('../../src/components/GestureMeaningSelector', () => () => null);
+jest.mock('../../src/components/GestureValidationFeedback', () => () => null);
 
 jest.mock('../../src/services', () => ({
   audioService: {
     playEncouragement: jest.fn(),
     playCelebrationFeedback: jest.fn(),
+    speak: jest.fn(),
   },
+  syncTrainingData: jest.fn(async () => {}),
 }));
 
 jest.mock('../../src/services/hipEvents', () => ({
   logHIPEvent: jest.fn(),
 }));
 
+jest.mock('../../src/services/customGestureRegistry', () => ({
+  registerCustomGesture: jest.fn(async () => ({ status: 'registered' })),
+}));
+
+jest.mock('../../src/utils/stringUtils', () => ({
+  normalizeGestureLabel: jest.fn((label: string) => label.toLowerCase().replace(/\s+/g, '_')),
+}));
 
 jest.mock('../../src/utils/clipPersistence', () => {
   const actual = jest.requireActual('../../src/utils/clipPersistence');
@@ -64,6 +77,17 @@ jest.mock('expo-file-system', () => ({
   getInfoAsync: jest.fn(async () => ({ exists: true, isDirectory: true })),
   makeDirectoryAsync: jest.fn(async () => {}),
   EncodingType: { Base64: 'base64' },
+  Paths: {
+    document: { uri: 'file://documents/' },
+    cache: { uri: 'file://cache/' },
+  },
+}));
+
+jest.mock('expo-file-system/legacy', () => ({
+  Paths: {
+    document: { uri: 'file://documents/' },
+    cache: { uri: 'file://cache/' },
+  },
 }));
 
 jest.mock('../../src/styles/touchTargets', () => ({
@@ -76,6 +100,7 @@ jest.mock('../../src/utils/hapticUtils', () => ({
 
 jest.mock('../../src/model', () => ({
   gestureModel: { gestures: [{ id: 'hello', label: 'Hallo' }] },
+  addGesture: jest.fn(),
 }));
 
 jest.mock('../../src/storage', () => {
@@ -86,6 +111,7 @@ jest.mock('../../src/storage', () => {
     loadProfile: jest.fn(async () => null),
     loadActiveProfileId: jest.fn(async () => null),
     onActiveProfileChange: jest.fn(),
+    saveCustomGesture: jest.fn(async () => {}),
   };
 });
 

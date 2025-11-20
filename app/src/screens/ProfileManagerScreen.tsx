@@ -21,7 +21,6 @@ import { gestureHistoryService } from '../services/gestureHistoryService';
 import ScreenBackground from '../components/ScreenBackground';
 import {
   APP_TAB_ROUTES,
-  LERNEN_STACK_ROUTES,
   ROOT_STACK_ROUTES,
   type RootStackParamList,
 } from '../navigation/types';
@@ -730,17 +729,10 @@ export default function ProfileManagerScreen({
               gestureHistory={gestureHistory}
               onClose={() => setShowGestureHistory(false)}
               onGestureSelect={(gesture) => {
-                // Could navigate to practice this specific gesture
+                // Navigate to practice this specific gesture
                 setShowGestureHistory(false);
-                navigation.navigate(ROOT_STACK_ROUTES.App, {
-                  screen: APP_TAB_ROUTES.Lernen,
-                  params: {
-                    screen: LERNEN_STACK_ROUTES.Recording,
-                    params: {
-                      gestureId: gesture.id,
-                      gestureLabel: gesture.label,
-                    },
-                  },
+                navigation.navigate(ROOT_STACK_ROUTES.Training, {
+                  gestureLabel: gesture.label || gesture.id,
                 });
               }}
             />
