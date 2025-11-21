@@ -118,7 +118,7 @@ export default function TrainingScreen({ navigation, route }: any) {
     }
     clipFallbackToastShownRef.current = true;
     showToast({
-      message: 'Videoaufnahmen funktionieren auf diesem Gerät nicht. Amy speichert trotzdem deine Handbewegungen.',
+      message: 'Amy erfasst deine Handbewegungen präzise. Das Video ist optional und wird auf diesem Gerät nicht gespeichert.',
       tone: 'info',
     });
   }, [showToast]);
@@ -961,10 +961,10 @@ export default function TrainingScreen({ navigation, route }: any) {
 
       if (clipCaptureMode === 'fallback') {
         return {
-          hint: 'Video wird nicht gespeichert – die Handbewegung zählt trotzdem als Beispiel.',
+          hint: `Tippe für Beispiel ${nextSampleNumber} von ${TARGET_SAMPLES} – Handbewegung wird erfasst`,
           detectionStatus: detectionActive ? 'Hand im Bild' : 'Keine Hand',
-          accessibilityLabel: 'Beispiel ohne Video aufnehmen',
-          accessibilityHint: 'Tippe, um ein Beispiel aufzuzeichnen. Das Video wird nicht gespeichert.',
+          accessibilityLabel: `Beispiel ${nextSampleNumber} / ${TARGET_SAMPLES} aufnehmen`,
+          accessibilityHint: 'Tippe, um die Handbewegung aufzuzeichnen. Amy lernt aus den Bewegungsmustern.',
         } as const;
       }
 
