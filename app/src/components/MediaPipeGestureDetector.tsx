@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { Camera } from 'expo-camera';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import type { WebViewMessageEvent } from 'react-native-webview/lib/WebViewTypes';
 import type { WebViewPermissionRequestEvent } from '../webviewTypes';
@@ -117,6 +118,8 @@ const TAP_TO_START_TEXT = 'Tippe, um die Kamera zu starten';
 const TAP_TO_START_ACCESSIBILITY_LABEL = 'Kamera starten';
 const TAP_TO_START_ACCESSIBILITY_HINT =
   'Doppeltippen, um die Kamera zu aktivieren und die Berechtigung erneut zu öffnen.';
+const CAMERA_PERMISSION_PROMPT_TEXT =
+  'Bitte erlaube den Kamerazugriff, damit wir loslegen können.';
 const RECOGNIZER_INIT_FAILED_TEXT = "Ich bin gleich bereit. Versuch's nochmal!";
 const PREDICTION_ERROR_TEXT = "Das hat nicht geklappt. Lass es uns nochmal versuchen!";
 const CAMERA_ERROR_TEXT = 'Die Kamera braucht einen Moment. Lass uns weitermachen!';
@@ -152,6 +155,10 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
   const [webviewError, setWebviewError] = useState<string | null>(null);
   const [cameraPromptMessage, setCameraPromptMessage] = useState<string>(TAP_TO_START_TEXT);
   const [isCameraPromptVisible, setIsCameraPromptVisible] = useState<boolean>(true);
+  const nativePermissionStateRef = useRef<'unknown' | 'granted' | 'denied' | 'error'>(
+    'unknown',
+  );
+  const pendingNativePermissionRef = useRef<Promise<boolean> | null>(null);
 
   const {
     injectModel,
@@ -526,6 +533,49 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     [],
   );
 
+  const ensureNativePermissions = useCallback(async (): Promise<boolean> => {
+    if (nativePermissionStateRef.current === 'granted') {
+      return true;
+    }
+
+    if (pendingNativePermissionRef.current) {
+      return pendingNativePermissionRef.current;
+    }
+
+    const request = (async () => {
+      try {
+        const cameraStatus = await Camera.getCameraPermissionsAsync();
+        const hasCameraPermission = cameraStatus.granted
+          ? true
+          : (await Camera.requestCameraPermissionsAsync()).granted;
+
+        let hasMicrophonePermission = true;
+        if (shouldRequestClipAudio) {
+          const micStatus = await Camera.getMicrophonePermissionsAsync();
+          hasMicrophonePermission = micStatus.granted
+            ? true
+            : (await Camera.requestMicrophonePermissionsAsync()).granted;
+        }
+
+        const granted = hasCameraPermission && hasMicrophonePermission;
+        nativePermissionStateRef.current = granted ? 'granted' : 'denied';
+        return granted;
+      } catch (error) {
+        nativePermissionStateRef.current = 'error';
+        logger.warn('Native permission request failed', error);
+        return false;
+      }
+    })();
+
+    pendingNativePermissionRef.current = request;
+
+    try {
+      return await request;
+    } finally {
+      pendingNativePermissionRef.current = null;
+    }
+  }, [shouldRequestClipAudio]);
+
   const scheduleCameraStartAttempt = useCallback(
     (reason: string, resetAttempts = false) => {
       const state = cameraStartRetryRef.current;
@@ -541,8 +591,16 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
 
       clearCameraStartRetryTimeout();
 
-      const runAttempt = () => {
+      const runAttempt = async () => {
         state.timeout = null;
+        const hasPermissions = await ensureNativePermissions();
+
+        if (!hasPermissions) {
+          setCameraPromptMessage(CAMERA_PERMISSION_PROMPT_TEXT);
+          setIsCameraPromptVisible(true);
+          return;
+        }
+
         const injected = injectCameraStartRequest(reason);
         state.attempts = attemptNumber + 1;
 
@@ -552,12 +610,14 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
       };
 
       if (delay === 0) {
-        runAttempt();
+        void runAttempt();
       } else {
-        state.timeout = setTimeout(runAttempt, delay);
+        state.timeout = setTimeout(() => {
+          void runAttempt();
+        }, delay);
       }
     },
-    [clearCameraStartRetryTimeout, injectCameraStartRequest],
+    [clearCameraStartRetryTimeout, ensureNativePermissions, injectCameraStartRequest],
   );
 
   const handleTapToStartPress = useCallback(() => {
