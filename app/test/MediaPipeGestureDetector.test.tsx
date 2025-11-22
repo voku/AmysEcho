@@ -2,6 +2,7 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { Camera } from 'expo-camera';
+import { Platform } from 'react-native';
 import { MediaPipeGestureDetector } from '../src/components/MediaPipeGestureDetector';
 import { CAMERA_WEBVIEW_BASE_URL } from '../src/constants';
 import { logger } from '../src/utils/logger';
@@ -307,6 +308,54 @@ describe('MediaPipeGestureDetector', () => {
     expect(webview.props.injectJavaScript as jest.Mock).not.toHaveBeenCalled();
 
     jest.restoreAllMocks();
+  });
+
+  it('starts the camera when the microphone permission is denied on Android', async () => {
+    const onGestureDetected = jest.fn();
+    const onError = jest.fn();
+
+    const originalOS = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { value: 'android' });
+
+    jest.spyOn(Camera, 'getCameraPermissionsAsync').mockResolvedValue({ granted: true });
+    jest.spyOn(Camera, 'getMicrophonePermissionsAsync').mockResolvedValue({ granted: false });
+    const requestMicSpy = jest
+      .spyOn(Camera, 'requestMicrophonePermissionsAsync')
+      .mockResolvedValue({ granted: false });
+
+    try {
+      await act(async () => {
+        component = renderer.create(
+          <MediaPipeGestureDetector onGestureDetected={onGestureDetected} onError={onError} />,
+        );
+      });
+
+      const webview = component!.root.findByType('mock-webview');
+
+      await act(async () => {
+        webview.props.onMessage({
+          nativeEvent: { data: JSON.stringify({ type: 'telemetry', event: 'dom_ready' }) },
+        });
+        jest.runOnlyPendingTimers();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(requestMicSpy).toHaveBeenCalled();
+      expect((webview.props.injectJavaScript as jest.Mock).mock.calls.length).toBeGreaterThan(0);
+
+      const permissionPrompt = component!.root
+        .findAllByType('Text')
+        .find(
+          (node) =>
+            node.props.children === 'Bitte erlaube den Kamerazugriff, damit wir loslegen können.',
+        );
+
+      expect(permissionPrompt).toBeUndefined();
+    } finally {
+      Object.defineProperty(Platform, 'OS', { value: originalOS });
+      jest.restoreAllMocks();
+    }
   });
 
   it('applies gesture size tolerance to the WebView and updates when the prop changes', () => {

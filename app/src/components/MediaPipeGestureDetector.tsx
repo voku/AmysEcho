@@ -159,6 +159,7 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
     'unknown',
   );
   const pendingNativePermissionRef = useRef<Promise<boolean> | null>(null);
+  const microphonePermissionGrantedRef = useRef<boolean>(true);
 
   const {
     injectModel,
@@ -555,9 +556,15 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
           hasMicrophonePermission = micStatus.granted
             ? true
             : (await Camera.requestMicrophonePermissionsAsync()).granted;
+
+          if (!hasMicrophonePermission) {
+            logger.warn('Microphone permission denied; proceeding without clip audio');
+          }
         }
 
-        const granted = hasCameraPermission && hasMicrophonePermission;
+        microphonePermissionGrantedRef.current = hasMicrophonePermission;
+
+        const granted = hasCameraPermission;
         nativePermissionStateRef.current = granted ? 'granted' : 'denied';
         return granted;
       } catch (error) {
@@ -686,7 +693,9 @@ export const MediaPipeGestureDetector = forwardRef<MediaPipeGestureDetectorHandl
 
       const allowVideo = requestedResources.includes('VIDEO_CAPTURE');
       const allowAudio =
-        shouldRequestClipAudio && requestedResources.includes('AUDIO_CAPTURE');
+        shouldRequestClipAudio &&
+        microphonePermissionGrantedRef.current &&
+        requestedResources.includes('AUDIO_CAPTURE');
 
       if (!allowVideo && !allowAudio) {
         logger.warn('WebView permission denied: unsupported resources requested', {
