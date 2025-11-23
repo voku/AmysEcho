@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useMemo, useState } from 'react';
 import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploader';
 import { frameHasAnyLandmarks } from '../training/handUtils';
-import type { TrainingFrame } from '../training/types';
+import type { TrainingFrame, TrainingBundlePayload } from '../training/types';
+import { TrainingRecorder } from './TrainingRecorder';
 
 type LandmarkTuple = [number, number] | [number, number, number];
 
@@ -262,5 +263,92 @@ export function TrainingUpload() {
         </div>
       )}
     </section>
+  );
+}
+
+// Wrapper component with mode switching
+export function TrainingUploadWithRecording() {
+  const [mode, setMode] = useState<'record' | 'upload'>('record');
+  const [profileId, setProfileId] = useState('web-demo');
+  const [label, setLabel] = useState('HILFE');
+  const { upload, lastResult, error } = useTrainingUploader();
+  const [message, setMessage] = useState<string>('');
+
+  const handleRecordingComplete = useCallback(
+    async (payload: TrainingBundlePayload) => {
+      setMessage('Aufnahme wird hochgeladen…');
+      try {
+        await upload(payload);
+        setMessage('Upload abgeschlossen. Vielen Dank für die neue Geste!');
+      } catch (uploadError) {
+        const reason = uploadError instanceof Error ? uploadError.message : String(uploadError);
+        setMessage(`Upload fehlgeschlagen: ${reason}`);
+      }
+    },
+    [upload],
+  );
+
+  return (
+    <>
+      <div className="mode-switcher" style={{ marginBottom: '1rem' }}>
+        <button className={mode === 'record' ? 'active' : ''} onClick={() => setMode('record')}>
+          Geste aufnehmen
+        </button>
+        <button className={mode === 'upload' ? 'active' : ''} onClick={() => setMode('upload')}>
+          Datei hochladen
+        </button>
+      </div>
+
+      {mode === 'record' && (
+        <>
+          <TrainingRecorder profileId={profileId} label={label} onRecordingComplete={handleRecordingComplete} />
+
+          <div className="card" style={{ marginTop: '1rem' }}>
+            <div className="form-group">
+              <label htmlFor="record-profile">Profil-ID</label>
+              <input id="record-profile" value={profileId} onChange={(event) => setProfileId(event.target.value)} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="record-label">Gestenlabel</label>
+              <input id="record-label" value={label} onChange={(event) => setLabel(event.target.value)} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {mode === 'upload' && <TrainingUpload />}
+
+      {message && mode === 'record' && (
+        <div className="notice info" style={{ marginTop: '1rem' }}>
+          {message}
+        </div>
+      )}
+
+      {error && mode === 'record' && (
+        <div className="notice error" style={{ marginTop: '1rem' }}>
+          {error}
+        </div>
+      )}
+
+      {lastResult && mode === 'record' && (
+        <div className="result-card" style={{ marginTop: '1rem' }}>
+          <div>
+            <p className="eyebrow">Server-Antwort</p>
+            <p className="value">Bundle-ID: {lastResult.id}</p>
+            <p className="muted">Status: {lastResult.status}</p>
+          </div>
+          {lastResult.trainingJob && (
+            <div>
+              <p className="eyebrow">Trainingsjob</p>
+              <p className="value">Job-ID: {lastResult.trainingJob.jobId}</p>
+              <p className="muted">
+                {lastResult.trainingJob.status}
+                {lastResult.trainingJob.pollUrl ? ` · ${lastResult.trainingJob.pollUrl}` : ''}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 }

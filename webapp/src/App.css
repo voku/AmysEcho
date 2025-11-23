@@ -352,6 +352,65 @@ button.ghost {
   font-size: 0.9rem;
 }
 
+.mode-switcher {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f1f5f9;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.mode-switcher button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.mode-switcher button.active {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+.recording-indicator {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(220, 38, 38, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.still-preview {
+  margin-top: 1rem;
+}
+
 @media (max-width: 900px) {
   .detector-shell {
     grid-template-columns: 1fr;
