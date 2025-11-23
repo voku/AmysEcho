@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useMemo, useState } from 'react';
-import { useTrainingUploader } from '../hooks/useTrainingUploader';
+import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploader';
 import { frameHasAnyLandmarks } from '../training/handUtils';
 import type { TrainingFrame } from '../training/types';
 
@@ -39,6 +39,22 @@ export function TrainingUpload() {
   const [stillFile, setStillFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string>('');
   const { upload, state, lastResult, error } = useTrainingUploader();
+
+  const statusText: Record<UploadState, string> = {
+    idle: 'Bereit',
+    preparing: 'Paket wird erstellt…',
+    uploading: 'Upload läuft…',
+    success: 'Upload erfolgreich',
+    error: 'Fehler beim Upload',
+  };
+
+  const statusAppearance: Record<UploadState, 'idle' | 'running' | 'error'> = {
+    idle: 'idle',
+    preparing: 'running',
+    uploading: 'running',
+    success: 'running',
+    error: 'error',
+  };
 
   const frameSummary = useMemo(() => {
     if (frames.length === 0) return 'Keine verwertbaren Frames geladen.';
@@ -104,16 +120,8 @@ export function TrainingUpload() {
             Ideal für Test-Bundles oder QA im Browser.
           </p>
         </div>
-        <div className="status-chip" data-state={state === 'error' ? 'error' : 'running'}>
-          {state === 'success'
-            ? 'Upload erfolgreich'
-            : state === 'error'
-            ? 'Fehler beim Upload'
-            : state === 'uploading'
-            ? 'Upload läuft…'
-            : state === 'preparing'
-            ? 'Paket wird erstellt…'
-            : 'Bereit'}
+        <div className="status-chip" data-state={statusAppearance[state]}>
+          {statusText[state]}
         </div>
       </div>
 

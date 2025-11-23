@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Simplified and modular gesture detector
  * Uses the GestureRecognitionOrchestrator for clean separation of concerns

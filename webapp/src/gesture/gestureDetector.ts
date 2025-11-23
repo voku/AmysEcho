@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Entry point for the gesture detector bundle.
  * Builds on the modular implementation in gestureDetector.new.ts.

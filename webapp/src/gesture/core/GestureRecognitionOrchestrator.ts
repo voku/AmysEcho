@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Main orchestrator for gesture recognition system
  * Coordinates all gesture detection components and manages the processing pipeline
@@ -175,7 +174,7 @@ export class GestureRecognitionOrchestrator {
     this.processingPipeline.addStep(new PartialGestureAnalysisStep(this.partialDetector));
     this.processingPipeline.addStep(new EmergencyGestureCheckStep(this.emergencySystem));
     this.processingPipeline.addStep(new FallbackProcessingStep(this.fallbackDetector, this.errorRecoveryManager));
-    this.processingPipeline.addStep(new ResultProcessingStep(this.errorRecoveryManager));
+    this.processingPipeline.addStep(new ResultProcessingStep());
 
     // Configure pipeline optimization
     this.processingPipeline.configureOptimization({
@@ -838,7 +837,10 @@ export class GestureRecognitionOrchestrator {
 
     const defaultAttempt = this.tryCreateMediaRecorder(stream, undefined);
     if (defaultAttempt.ok) {
-      return { recorder: defaultAttempt.recorder, mimeType: defaultAttempt.recorder.mimeType || undefined };
+      const mimeType = defaultAttempt.recorder.mimeType || undefined;
+      return mimeType
+        ? { recorder: defaultAttempt.recorder, mimeType }
+        : { recorder: defaultAttempt.recorder };
     }
 
     attemptSummaries.push({ candidate: 'default', error: this.serializeError(defaultAttempt.error) });
@@ -1051,7 +1053,7 @@ export class GestureRecognitionOrchestrator {
         }) ??
         [];
 
-      const gestureLabel = processingResult.gesture ?? undefined;
+      const gestureLabel = processingResult.gesture ?? null;
 
       const payload: GestureMessagePayload = {
         type: 'gesture',
@@ -1060,7 +1062,7 @@ export class GestureRecognitionOrchestrator {
         landmarks: processingResult.landmarks,
         handednesses: handednessLabels,
         timestamp: processingResult.timestamp ?? Date.now(),
-        isFallback: processingResult.isFallback,
+        isFallback: processingResult.isFallback ?? false,
         systemHealth: this.errorRecoveryManager.getHealthStatus(),
         processingTime: processingResult.processingTime,
         stepsExecuted: processingResult.stepsExecuted,
@@ -1530,8 +1532,6 @@ class FallbackProcessingStep implements ProcessingStep {
 class ResultProcessingStep implements ProcessingStep {
   name = 'result_processing';
   isExpensive = false;
-
-  constructor(private errorRecoveryManager: ErrorRecoveryManager) {}
 
   async execute(context: ProcessingContext): Promise<any> {
     // Final result processing and validation

@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { uploadTrainingBundle } from '../training/trainingBundle';
 import type { TrainingBundlePayload, UploadTrainingBundleResponse } from '../training/types';
 
-type UploadState = 'idle' | 'preparing' | 'uploading' | 'success' | 'error';
+export type UploadState = 'idle' | 'preparing' | 'uploading' | 'success' | 'error';
 
 export function useTrainingUploader() {
   const [state, setState] = useState<UploadState>('idle');

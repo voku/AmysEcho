@@ -1,4 +1,3 @@
-// @ts-nocheck
 export function installMlp() {
   type Tensor = { data: Float32Array; shape: number[] };
   type Landmark = readonly [number, number, number];

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Optimized Gesture Processing Module
  *
@@ -12,13 +11,6 @@
 export class PartialGestureDetector {
   private gestureHistory: Map<string, Array<{ confidence: number; timestamp: number }>> = new Map();
   private readonly MAX_HISTORY = 5;
-  private readonly COMPLETION_THRESHOLDS = {
-    fist: 0.7,
-    point: 0.8,
-    thumbs_up: 0.75,
-    open_palm: 0.6,
-    peace: 0.7,
-  };
   private recognitionThreshold = 0.6;
 
   /**
@@ -36,7 +28,7 @@ export class PartialGestureDetector {
 
     const hand = landmarks[0];
     const completion = this.calculateCompletion(hand, gestureId);
-    const confidence = this.calculatePartialConfidence(hand, gestureId, completion);
+    const confidence = this.calculatePartialConfidence(hand, completion);
 
     // Update history efficiently
     this.updateGestureHistory(gestureId, confidence);
@@ -64,24 +56,44 @@ export class PartialGestureDetector {
 
   private calculateFistCompletion(hand: number[][]): number {
     let curledFingers = 0;
-    const fingerTips = [8, 12, 16, 20];
-    const fingerJoints = [6, 10, 14, 18];
+    const fingerTips: [number, number, number, number] = [8, 12, 16, 20];
+    const fingerJoints: [number, number, number, number] = [6, 10, 14, 18];
 
-    for (let i = 0; i < fingerTips.length; i++) {
-      if (hand[fingerTips[i]][1] > hand[fingerJoints[i]][1]) {
+    fingerTips.forEach((tipIndex, index) => {
+      const jointIndex = fingerJoints[index];
+      if (jointIndex === undefined) return;
+
+      const tip = hand[tipIndex];
+      const joint = hand[jointIndex];
+      if (!tip || !joint) return;
+
+      if ((tip[1] ?? 0) > (joint[1] ?? 0)) {
         curledFingers++;
       }
-    }
+    });
 
     return Math.min(curledFingers / 4, 1.0);
   }
 
   private calculatePointCompletion(hand: number[][]): number {
-    const indexExtended = hand[8][1] < hand[6][1];
+    const indexTip = hand[8];
+    const indexJoint = hand[6];
+    const middleTip = hand[12];
+    const middleJoint = hand[10];
+    const ringTip = hand[16];
+    const ringJoint = hand[14];
+    const pinkyTip = hand[20];
+    const pinkyJoint = hand[18];
+
+    if (!indexTip || !indexJoint || !middleTip || !middleJoint || !ringTip || !ringJoint || !pinkyTip || !pinkyJoint) {
+      return 0;
+    }
+
+    const indexExtended = (indexTip[1] ?? 0) < (indexJoint[1] ?? 0);
     const otherFingersCurled =
-      hand[12][1] > hand[10][1] && // Middle
-      hand[16][1] > hand[14][1] && // Ring
-      hand[20][1] > hand[18][1];   // Pinky
+      (middleTip[1] ?? 0) > (middleJoint[1] ?? 0) &&
+      (ringTip[1] ?? 0) > (ringJoint[1] ?? 0) &&
+      (pinkyTip[1] ?? 0) > (pinkyJoint[1] ?? 0);
 
     if (indexExtended && otherFingersCurled) return 1.0;
     if (indexExtended) return 0.7;
@@ -89,26 +101,38 @@ export class PartialGestureDetector {
   }
 
   private calculateThumbsUpCompletion(hand: number[][]): number {
-    const thumbExtended = hand[4][1] < hand[3][1];
+    const thumbTip = hand[4];
+    const thumbJoint = hand[3];
+
+    if (!thumbTip || !thumbJoint) return 0;
+
+    const thumbExtended = (thumbTip[1] ?? 0) < (thumbJoint[1] ?? 0);
     if (thumbExtended) return 1.0;
     return 0.0;
   }
 
   private calculateOpenPalmCompletion(hand: number[][]): number {
     let extendedFingers = 0;
-    const fingerTips = [8, 12, 16, 20];
-    const fingerJoints = [6, 10, 14, 18];
+    const fingerTips: [number, number, number, number] = [8, 12, 16, 20];
+    const fingerJoints: [number, number, number, number] = [6, 10, 14, 18];
 
-    for (let i = 0; i < fingerTips.length; i++) {
-      if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+    fingerTips.forEach((tipIndex, index) => {
+      const jointIndex = fingerJoints[index];
+      if (jointIndex === undefined) return;
+
+      const tip = hand[tipIndex];
+      const joint = hand[jointIndex];
+      if (!tip || !joint) return;
+
+      if ((tip[1] ?? 0) < (joint[1] ?? 0)) {
         extendedFingers++;
       }
-    }
+    });
 
     return Math.min(extendedFingers / 4, 1.0);
   }
 
-  private calculatePartialConfidence(hand: number[][], gestureId: string, completion: number): number {
+  private calculatePartialConfidence(hand: number[][], completion: number): number {
     if (completion <= 0) {
       return 0;
     }
@@ -128,9 +152,11 @@ export class PartialGestureDetector {
 
     const wrist = hand[0];
     const middleTip = hand[12];
+    if (!wrist || !middleTip) return 0;
+
     const distance = Math.sqrt(
-      Math.pow(middleTip[0] - wrist[0], 2) +
-      Math.pow(middleTip[1] - wrist[1], 2)
+      Math.pow((middleTip[0] ?? 0) - (wrist[0] ?? 0), 2) +
+      Math.pow((middleTip[1] ?? 0) - (wrist[1] ?? 0), 2)
     );
 
     // Normalize distance (rough hand size indicator)
@@ -228,6 +254,9 @@ export class TremorCompensator {
     }
 
     const previousEntry = this.movementHistory[this.movementHistory.length - 2];
+    if (!previousEntry) {
+      return normalizedLandmarks;
+    }
 
     const smoothedHands = normalizedLandmarks.map((hand, index) => {
       const previousHand = previousEntry.landmarks[index];
@@ -263,10 +292,13 @@ export class TremorCompensator {
         continue;
       }
 
+      const [currentX = 0, currentY = 0, currentZ = 0] = currentPoint;
+      const [previousX = 0, previousY = 0, previousZ = 0] = previousPoint;
+
       const smoothedPoint = [
-        previousPoint[0] * this.SMOOTHING_FACTOR + currentPoint[0] * (1 - this.SMOOTHING_FACTOR),
-        previousPoint[1] * this.SMOOTHING_FACTOR + currentPoint[1] * (1 - this.SMOOTHING_FACTOR),
-        (previousPoint[2] ?? 0) * this.SMOOTHING_FACTOR + (currentPoint[2] ?? 0) * (1 - this.SMOOTHING_FACTOR),
+        previousX * this.SMOOTHING_FACTOR + currentX * (1 - this.SMOOTHING_FACTOR),
+        previousY * this.SMOOTHING_FACTOR + currentY * (1 - this.SMOOTHING_FACTOR),
+        previousZ * this.SMOOTHING_FACTOR + currentZ * (1 - this.SMOOTHING_FACTOR),
       ];
 
       smoothed.push(smoothedPoint);
@@ -274,7 +306,7 @@ export class TremorCompensator {
 
     if (current.length > length) {
       for (let i = length; i < current.length; i++) {
-        smoothed.push(current[i]);
+        smoothed.push(current[i] ?? [0, 0, 0]);
       }
     }
 
@@ -434,23 +466,27 @@ export class GestureSizeNormalizer {
     const wrist = hand[0];
     const middleTip = hand[12];
 
+    if (!wrist || !middleTip) return 1;
+
     return Math.sqrt(
-      Math.pow(middleTip[0] - wrist[0], 2) +
-      Math.pow(middleTip[1] - wrist[1], 2) +
-      Math.pow(middleTip[2] - wrist[2], 2)
+      Math.pow((middleTip[0] ?? 0) - (wrist[0] ?? 0), 2) +
+      Math.pow((middleTip[1] ?? 0) - (wrist[1] ?? 0), 2) +
+      Math.pow((middleTip[2] ?? 0) - (wrist[2] ?? 0), 2)
     );
   }
 
   private applySizeNormalization(hand: number[][], sizeRatio: number): number[][] {
     const wrist = hand[0];
+    if (!wrist) return hand;
     const normalized: number[][] = [];
 
     for (const point of hand) {
+      if (!point) continue;
       // Normalize relative to wrist position
       const normalizedPoint = [
-        wrist[0] + (point[0] - wrist[0]) / sizeRatio,
-        wrist[1] + (point[1] - wrist[1]) / sizeRatio,
-        wrist[2] + (point[2] - wrist[2]) / sizeRatio,
+        (wrist[0] ?? 0) + ((point[0] ?? 0) - (wrist[0] ?? 0)) / sizeRatio,
+        (wrist[1] ?? 0) + ((point[1] ?? 0) - (wrist[1] ?? 0)) / sizeRatio,
+        (wrist[2] ?? 0) + ((point[2] ?? 0) - (wrist[2] ?? 0)) / sizeRatio,
       ];
       normalized.push(normalizedPoint);
     }
