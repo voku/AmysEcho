@@ -1,14 +1,14 @@
-// @ts-nocheck
+import { vi } from 'vitest';
 import { OptimizedGestureCombinationManager } from '../utils/OptimizedGestureCombinationManager';
 
 describe('OptimizedGestureCombinationManager', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2025-01-01T12:00:00Z'));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-01T12:00:00Z'));
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('detects sequences based on internal duration even if they completed earlier', () => {
@@ -17,11 +17,11 @@ describe('OptimizedGestureCombinationManager', () => {
     const baseTime = Date.now();
     manager.recordGesture('thumbs_up', 0.85);
 
-    jest.setSystemTime(baseTime + 500);
+    vi.setSystemTime(baseTime + 500);
     manager.recordGesture('open_palm', 0.9);
 
     // Advance the clock beyond the sequence timeWindow (2s) without recording new gestures.
-    jest.setSystemTime(baseTime + 5000);
+    vi.setSystemTime(baseTime + 5000);
 
     const result = manager.checkForCombinations();
 

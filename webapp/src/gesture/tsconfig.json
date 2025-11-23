@@ -5,10 +5,10 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "bundler",
     "types": [
       "node",
-      "jest"
+      "vitest/globals"
     ],
     "resolveJsonModule": true,
     "outDir": "../assets",

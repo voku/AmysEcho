@@ -106,12 +106,12 @@ export function installMlp() {
       const newData = new Float32Array(size);
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
-          const value = data[i * cols + j] ?? 0;
-          newData[j * rows + i] = value;
+          const fromIndex = j * rows + i; // column-major read
+          const toIndex = i * cols + j; // row-major write
+          newData[toIndex] = (data as Float32Array)[fromIndex] ?? 0;
         }
       }
       data = newData;
-      shape = [cols, rows];
     }
     return { data, shape };
   }

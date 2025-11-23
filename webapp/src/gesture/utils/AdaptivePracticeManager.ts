@@ -391,9 +391,8 @@ export class AdaptivePracticeManager {
       }
     }
 
-    const minutesUntilOptimal = nextOptimalHour > currentHour ?
-      (nextOptimalHour - currentHour) * 60 :
-      ((24 - currentHour) + nextOptimalHour) * 60;
+    const hourDiff = (nextOptimalHour - currentHour + 24) % 24;
+    const minutesUntilOptimal = hourDiff * 60;
 
     return {
       minutesUntilOptimal,

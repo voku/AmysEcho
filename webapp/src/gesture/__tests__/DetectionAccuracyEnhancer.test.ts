@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { vi } from 'vitest';
 /**
  * Unit tests for DetectionAccuracyEnhancer
  * Tests conflict resolution and enhanced rule-based detection
@@ -94,15 +94,15 @@ describe('DetectionAccuracyEnhancer', () => {
   describe('enhanced rule-based detection', () => {
     // Mock dependencies
     const mockTremorCompensator = {
-      smoothLandmarks: jest.fn((landmarks) => landmarks)
+      smoothLandmarks: vi.fn((landmarks) => landmarks)
     };
 
     const mockSizeNormalizer = {
-      normalizeHandSize: jest.fn((landmarks) => landmarks)
+      normalizeHandSize: vi.fn((landmarks) => landmarks)
     };
 
     const mockPartialDetector = {
-      analyzePartialCompletion: jest.fn()
+      analyzePartialCompletion: vi.fn()
     };
 
     beforeEach(() => {

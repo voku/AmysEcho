@@ -1,20 +1,20 @@
-// @ts-nocheck
+import { vi } from 'vitest';
 /**
  * Unit tests for the GestureRecognitionOrchestrator
  * Tests the modular gesture recognition system
  */
 
-const mockCameraStart = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-const mockCameraStop = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-const mockCameraUpdate = jest.fn();
-const mockCameraDimensionsChanged = jest.fn().mockReturnValue(false);
-const mockCameraReady = jest.fn().mockReturnValue(false);
+const mockCameraStart = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+const mockCameraStop = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+const mockCameraUpdate = vi.fn();
+const mockCameraDimensionsChanged = vi.fn().mockReturnValue(false);
+const mockCameraReady = vi.fn().mockReturnValue(false);
 
-const mockDisposeResources = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+const mockDisposeResources = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
-const mockRecognizeForVideo = jest.fn();
-const mockCloseRecognizer = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-const mockCreateFromOptions = jest
+const mockRecognizeForVideo = vi.fn();
+const mockCloseRecognizer = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+const mockCreateFromOptions = vi
   .fn<(
     vision: unknown,
     options: Record<string, unknown>
@@ -22,21 +22,21 @@ const mockCreateFromOptions = jest
   .mockResolvedValue({ recognizeForVideo: mockRecognizeForVideo, close: mockCloseRecognizer });
 
 const mockFilesetResolver = {
-  forVisionTasks: jest.fn<() => Promise<unknown>>().mockResolvedValue({}),
+  forVisionTasks: vi.fn<() => Promise<unknown>>().mockResolvedValue({}),
 };
 
-const mockLoadTasksVision = jest.fn(async () => ({
+const mockLoadTasksVision = vi.fn(async () => ({
   FilesetResolver: mockFilesetResolver,
   GestureRecognizer: { createFromOptions: mockCreateFromOptions },
   wasmBase: 'mock-wasm-base',
 }));
 
-jest.mock('../core/MediaPipeLoader', () => ({
+vi.mock('../core/MediaPipeLoader', () => ({
   __esModule: true,
   loadTasksVision: (...args: any[]) => mockLoadTasksVision(...args),
 }));
 
-jest.mock('../core/CameraManager', () => {
+vi.mock('../core/CameraManager', () => {
   class MockCameraManager {
     startCamera = mockCameraStart;
     stopCamera = mockCameraStop;
@@ -51,22 +51,22 @@ jest.mock('../core/CameraManager', () => {
   };
 });
 
-jest.mock('../core/OverlayRenderer', () => ({
+vi.mock('../core/OverlayRenderer', () => ({
   __esModule: true,
-  OverlayRenderer: jest.fn().mockImplementation(() => ({
-    resizeOverlay: jest.fn(),
-    clear: jest.fn(),
-    drawHandLandmarks: jest.fn(),
+  OverlayRenderer: vi.fn().mockImplementation(() => ({
+    resizeOverlay: vi.fn(),
+    clear: vi.fn(),
+    drawHandLandmarks: vi.fn(),
   })),
 }));
 
-jest.mock('../utils/ResourceManager', () => {
+vi.mock('../utils/ResourceManager', () => {
   class MockResourceManager {
-    registerCleanup = jest.fn();
-    registerEventListener = jest.fn();
-    registerMediaStream = jest.fn();
-    registerTimeout = jest.fn();
-    registerObserver = jest.fn();
+    registerCleanup = vi.fn();
+    registerEventListener = vi.fn();
+    registerMediaStream = vi.fn();
+    registerTimeout = vi.fn();
+    registerObserver = vi.fn();
     dispose = mockDisposeResources;
   }
 
@@ -76,23 +76,23 @@ jest.mock('../utils/ResourceManager', () => {
   };
 });
 
-jest.mock('../utils/HealthMonitor', () => ({
+vi.mock('../utils/HealthMonitor', () => ({
   __esModule: true,
-  HealthMonitor: jest.fn().mockImplementation(() => ({
-    recordFrame: jest.fn(),
-    recordError: jest.fn(),
-    needsRecovery: jest.fn().mockReturnValue(false),
+  HealthMonitor: vi.fn().mockImplementation(() => ({
+    recordFrame: vi.fn(),
+    recordError: vi.fn(),
+    needsRecovery: vi.fn().mockReturnValue(false),
   })),
 }));
 
-const mockFallbackRecorderStart = jest.fn();
-const mockFallbackRecorderStop = jest.fn();
-const mockFallbackRecorderCancel = jest.fn();
-const mockFallbackGetMimeType = jest.fn(() => 'video/avi');
+const mockFallbackRecorderStart = vi.fn();
+const mockFallbackRecorderStop = vi.fn();
+const mockFallbackRecorderCancel = vi.fn();
+const mockFallbackGetMimeType = vi.fn(() => 'video/avi');
 
-jest.mock('../utils/FallbackClipRecorder', () => ({
+vi.mock('../utils/FallbackClipRecorder', () => ({
   __esModule: true,
-  FallbackClipRecorder: jest.fn().mockImplementation(() => ({
+  FallbackClipRecorder: vi.fn().mockImplementation(() => ({
     start: mockFallbackRecorderStart,
     stop: mockFallbackRecorderStop,
     cancel: mockFallbackRecorderCancel,
@@ -130,25 +130,25 @@ function createHandLandmarks(): Array<{ x: number; y: number; z: number }> {
 
 describe('GestureRecognitionOrchestrator', () => {
   let orchestrator: GestureRecognitionOrchestrator;
-  let queueSpy: jest.SpyInstance;
-  let forceFlushSpy: jest.SpyInstance;
-  let startMonitoringSpy: jest.SpyInstance;
-  let captureSpy: jest.SpyInstance;
-  let toggleCaptureSpy: jest.SpyInstance;
+  let queueSpy: vi.SpyInstance;
+  let forceFlushSpy: vi.SpyInstance;
+  let startMonitoringSpy: vi.SpyInstance;
+  let captureSpy: vi.SpyInstance;
+  let toggleCaptureSpy: vi.SpyInstance;
   let errorRecoveryManager: ErrorRecoveryManager;
 
   beforeAll(() => {
-    window.ReactNativeWebView = { postMessage: jest.fn() };
+    window.ReactNativeWebView = { postMessage: vi.fn() };
     originalMediaRecorder = (window as any).MediaRecorder;
     class MockMediaRecorder {
-      static isTypeSupported = jest.fn(() => true);
+      static isTypeSupported = vi.fn(() => true);
       state: MediaRecorderState = 'inactive';
       mimeType: string;
       ondataavailable: ((event: BlobEvent) => void) | null = null;
       onerror: ((event: Event) => void) | null = null;
       onstop: (() => void) | null = null;
       onstart: ((event: Event) => void) | null = null;
-      requestData = jest.fn(() => {
+      requestData = vi.fn(() => {
         if (this.ondataavailable) {
           const blob = new Blob(['mock'], { type: this.mimeType });
           this.ondataavailable({ data: blob } as BlobEvent);
@@ -157,11 +157,11 @@ describe('GestureRecognitionOrchestrator', () => {
       constructor(_stream: MediaStream, options?: MediaRecorderOptions) {
         this.mimeType = options?.mimeType ?? 'video/webm';
       }
-      start = jest.fn(() => {
+      start = vi.fn(() => {
         this.state = 'recording';
         this.onstart?.(new Event('start'));
       });
-      stop = jest.fn(() => {
+      stop = vi.fn(() => {
         this.state = 'inactive';
         this.onstop?.();
       });
@@ -171,13 +171,13 @@ describe('GestureRecognitionOrchestrator', () => {
   });
 
   beforeEach(() => {
-    queueSpy = jest.spyOn(messageBatcher, 'queueMessage');
-    forceFlushSpy = jest.spyOn(messageBatcher, 'forceFlush');
-    startMonitoringSpy = jest
+    queueSpy = vi.spyOn(messageBatcher, 'queueMessage');
+    forceFlushSpy = vi.spyOn(messageBatcher, 'forceFlush');
+    startMonitoringSpy = vi
       .spyOn(MemoryOptimizer.prototype as any, 'startMemoryMonitoring')
       .mockImplementation(() => {});
-    captureSpy = jest.spyOn(FrameCaptureManager, 'getLastCapturedFrame').mockReturnValue(null);
-    toggleCaptureSpy = jest.spyOn(FrameCaptureManager, 'setFrameCaptureEnabled');
+    captureSpy = vi.spyOn(FrameCaptureManager, 'getLastCapturedFrame').mockReturnValue(null);
+    toggleCaptureSpy = vi.spyOn(FrameCaptureManager, 'setFrameCaptureEnabled');
 
     (MemoryOptimizer as unknown as { instance?: MemoryOptimizer }).instance = undefined;
 
@@ -220,7 +220,7 @@ describe('GestureRecognitionOrchestrator', () => {
     captureSpy.mockRestore();
     toggleCaptureSpy.mockRestore();
     (MemoryOptimizer as unknown as { instance?: MemoryOptimizer }).instance = undefined;
-    (window.ReactNativeWebView!.postMessage as jest.Mock).mockReset();
+    (window.ReactNativeWebView!.postMessage as vi.Mock).mockReset();
   });
 
   afterAll(() => {
@@ -307,7 +307,7 @@ describe('GestureRecognitionOrchestrator', () => {
     });
 
     it('skips processing when performance optimizer declines the frame', async () => {
-      const shouldProcessSpy = jest
+      const shouldProcessSpy = vi
         .spyOn(PerformanceOptimizer.prototype, 'shouldProcessFrame')
         .mockReturnValue(false);
       const mockResults = createMockGestureResults();
@@ -319,7 +319,7 @@ describe('GestureRecognitionOrchestrator', () => {
     });
 
     it('logs and continues when the processing pipeline throws', async () => {
-      const executeSpy = jest
+      const executeSpy = vi
         .spyOn((orchestrator as any).processingPipeline, 'executePipeline')
         .mockRejectedValueOnce(new Error('Processing failed'));
       const mockResults = createMockGestureResults();
@@ -352,13 +352,13 @@ describe('GestureRecognitionOrchestrator', () => {
     });
 
     it('streams landmarks with higher temporal resolution when processing is fast', async () => {
-      const shouldProcessSpy = jest
+      const shouldProcessSpy = vi
         .spyOn(PerformanceOptimizer.prototype, 'shouldProcessFrame')
         .mockReturnValue(true);
       const mockResults = createMockGestureResults({ gestures: [[]] as any });
       queueSpy.mockClear();
 
-      const nowSpy = jest.spyOn(Date, 'now');
+      const nowSpy = vi.spyOn(Date, 'now');
       let current = 1000;
       nowSpy.mockImplementation(() => current);
 
@@ -381,16 +381,16 @@ describe('GestureRecognitionOrchestrator', () => {
     let stubDetector: any;
 
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       (window as any).MediaRecorder = undefined;
       const stream = { id: 'mock-stream' } as unknown as MediaStream;
       stubDetector = {
-        initialize: jest.fn().mockResolvedValue(undefined),
-        start: jest.fn().mockResolvedValue(undefined),
-        stop: jest.fn().mockResolvedValue(undefined),
-        cleanup: jest.fn().mockResolvedValue(undefined),
-        setResultCallback: jest.fn(),
-        getCameraStream: jest.fn(() => stream),
+        initialize: vi.fn().mockResolvedValue(undefined),
+        start: vi.fn().mockResolvedValue(undefined),
+        stop: vi.fn().mockResolvedValue(undefined),
+        cleanup: vi.fn().mockResolvedValue(undefined),
+        setResultCallback: vi.fn(),
+        getCameraStream: vi.fn(() => stream),
       };
       fallbackOrchestrator = new GestureRecognitionOrchestrator(mockVideo, mockOverlay, {
         createGestureDetector: () => stubDetector,
@@ -408,8 +408,8 @@ describe('GestureRecognitionOrchestrator', () => {
     });
 
     afterEach(() => {
-      jest.runOnlyPendingTimers();
-      jest.useRealTimers();
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
       (window as any).MediaRecorder = mockMediaRecorderClass as any;
     });
 
@@ -420,7 +420,7 @@ describe('GestureRecognitionOrchestrator', () => {
 
       fallbackOrchestrator.startClipCapture('not-ready-clip');
 
-      const clipErrorCall = (window.ReactNativeWebView!.postMessage as jest.Mock).mock.calls.find(([arg]) => {
+      const clipErrorCall = (window.ReactNativeWebView!.postMessage as vi.Mock).mock.calls.find(([arg]) => {
         if (typeof arg !== 'string') return false;
         try {
           const p = JSON.parse(arg);
@@ -445,7 +445,7 @@ describe('GestureRecognitionOrchestrator', () => {
       const state = {
         mode: 'fallback' as const,
         id: 'fallback-clip',
-        recorder: { cancel: jest.fn(), getMimeType: () => 'video/avi' },
+        recorder: { cancel: vi.fn(), getMimeType: () => 'video/avi' },
         startedAt: Date.now(),
         timeoutHandle: null,
         aborted: false,
@@ -460,7 +460,7 @@ describe('GestureRecognitionOrchestrator', () => {
         capturedAt: new Date(0).toISOString(),
       });
 
-      const clipReadyCall = (window.ReactNativeWebView!.postMessage as jest.Mock).mock.calls.find(([arg]) =>
+      const clipReadyCall = (window.ReactNativeWebView!.postMessage as vi.Mock).mock.calls.find(([arg]) =>
         typeof arg === 'string' && arg.includes('"clip_ready"'),
       );
       expect(clipReadyCall).toBeDefined();
@@ -477,7 +477,7 @@ describe('GestureRecognitionOrchestrator', () => {
 
   describe('clip delivery failures', () => {
     it('emits clip_capture_failed when posting clip_ready throws', async () => {
-      const postMessageMock = window.ReactNativeWebView!.postMessage as jest.Mock;
+      const postMessageMock = window.ReactNativeWebView!.postMessage as vi.Mock;
       const capturedMessages: Array<Record<string, unknown>> = [];
       postMessageMock
         .mockImplementationOnce(() => {
@@ -547,7 +547,7 @@ describe('GestureRecognitionOrchestrator', () => {
 
   describe('cleanup', () => {
     it('flushes pending messages, disables capture and performs memory cleanup', async () => {
-      const cleanupSpy = jest.spyOn((orchestrator as any).memoryOptimizer, 'performCleanup');
+      const cleanupSpy = vi.spyOn((orchestrator as any).memoryOptimizer, 'performCleanup');
 
       await orchestrator.initialize();
       await orchestrator.start();

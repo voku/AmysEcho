@@ -153,7 +153,7 @@ export class GestureUndoManager {
     }
 
     // Create undo session
-    const sessionId = `undo_${now}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `undo_${now}_${GestureUndoManager.generateSecureRandomString()}`;
     const session: UndoSession = {
       undoGesture,
       targetGesture,
@@ -211,6 +211,19 @@ export class GestureUndoManager {
 
     this.activeUndoSession = null;
     return true;
+  }
+
+  private static generateSecureRandomString(lengthBytes = 12): string {
+    const cryptoObj =
+      typeof globalThis !== 'undefined' && 'crypto' in globalThis
+        ? (globalThis as unknown as { crypto?: Crypto }).crypto
+        : undefined;
+    if (cryptoObj?.getRandomValues) {
+      const array = new Uint8Array(lengthBytes);
+      cryptoObj.getRandomValues(array);
+      return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    return Math.random().toString(16).slice(2, 2 + lengthBytes * 2);
   }
 
   /**

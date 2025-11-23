@@ -451,6 +451,7 @@ export class GestureRecognitionOrchestrator {
     const { recorder, mimeType } = recorderResult;
 
     const state: ClipCaptureState = {
+      mode: 'media_recorder',
       id: requestId,
       recorder,
       chunks: [],
@@ -1218,6 +1219,10 @@ export class GestureDetectionStep implements ProcessingStep {
     const normalized = context.normalizedResults ?? mapMediaPipeResult(rawResults);
     const handednesses = normalized.handednesses;
     const rawHandednesses = rawResults?.handednesses ?? [];
+    const handednessesForMlp =
+      rawHandednesses.length > 0
+        ? rawHandednesses
+        : handednesses.map(hand => [{ categoryName: hand as 'Left' | 'Right' }]);
 
     const perHand = this.extractPerHandDetections(normalized);
     console.log('Per hand detections:', perHand);
@@ -1260,10 +1265,10 @@ export class GestureDetectionStep implements ProcessingStep {
         // back to the normalized labels only if MediaPipe omitted handedness
         // information entirely.
         console.log('MLP input landmarks:', context.landmarks);
-        console.log('MLP input handednesses:', rawHandednesses.length > 0 ? rawHandednesses : handednesses);
+        console.log('MLP input handednesses:', handednessesForMlp);
         const mlpResult = window.__mlpPredict(
           context.rawLandmarks ?? context.landmarks ?? [],
-          rawHandednesses.length > 0 ? rawHandednesses : handednesses
+          handednessesForMlp
         );
         console.log('MLP prediction result:', JSON.stringify(mlpResult)); // Debug logging
         if (mlpResult && typeof mlpResult.score === 'number') {

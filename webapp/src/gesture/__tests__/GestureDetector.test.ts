@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { vi } from 'vitest';
 /**
  * Unit tests for GestureDetector class
  * Tests gesture detection orchestration and error handling
@@ -12,23 +12,23 @@ import { ResourceManager } from '../utils/ResourceManager';
 import { HealthMonitor } from '../utils/HealthMonitor';
 
 // Mock dependencies
-jest.mock('../core/MediaPipeLoader');
-jest.mock('../core/CameraManager');
-jest.mock('../core/OverlayRenderer');
-jest.mock('../utils/ResourceManager');
-jest.mock('../utils/HealthMonitor');
-jest.mock('../config/GestureConfig');
+vi.mock('../core/MediaPipeLoader');
+vi.mock('../core/CameraManager');
+vi.mock('../core/OverlayRenderer');
+vi.mock('../utils/ResourceManager');
+vi.mock('../utils/HealthMonitor');
+vi.mock('../config/GestureConfig');
 
 describe('GestureDetector', () => {
   let mockVideo: HTMLVideoElement;
   let mockOverlay: HTMLCanvasElement;
   let mockGestureRecognizer: any;
   let mockComponents: MediaPipeComponents;
-  let mockLoadTasksVision: jest.Mock;
-  let mockCameraManager: jest.Mocked<CameraManager>;
-  let mockOverlayRenderer: jest.Mocked<OverlayRenderer>;
-  let mockResourceManager: jest.Mocked<ResourceManager>;
-  let mockHealthMonitor: jest.Mocked<HealthMonitor>;
+  let mockLoadTasksVision: vi.Mock;
+  let mockCameraManager: vi.Mocked<CameraManager>;
+  let mockOverlayRenderer: vi.Mocked<OverlayRenderer>;
+  let mockResourceManager: vi.Mocked<ResourceManager>;
+  let mockHealthMonitor: vi.Mocked<HealthMonitor>;
 
   beforeEach(() => {
     // Create mock DOM elements
@@ -37,60 +37,60 @@ describe('GestureDetector', () => {
 
     // Mock MediaPipe components
     mockGestureRecognizer = {
-      recognizeForVideo: jest.fn(),
-      close: jest.fn(),
+      recognizeForVideo: vi.fn(),
+      close: vi.fn(),
     };
 
     mockComponents = {
       FilesetResolver: {
-        forVisionTasks: jest.fn().mockResolvedValue({}),
+        forVisionTasks: vi.fn().mockResolvedValue({}),
       },
       GestureRecognizer: {
-        createFromOptions: jest.fn().mockResolvedValue(mockGestureRecognizer),
+        createFromOptions: vi.fn().mockResolvedValue(mockGestureRecognizer),
       },
       wasmBase: 'mock-wasm-base',
     } as any;
 
     // Mock other dependencies
     mockCameraManager = {
-      startCamera: jest.fn().mockResolvedValue(undefined),
-      stopCamera: jest.fn().mockResolvedValue(undefined),
+      startCamera: vi.fn().mockResolvedValue(undefined),
+      stopCamera: vi.fn().mockResolvedValue(undefined),
     } as any;
 
     mockOverlayRenderer = {
-      render: jest.fn(),
-      clear: jest.fn(),
+      render: vi.fn(),
+      clear: vi.fn(),
     } as any;
 
     mockResourceManager = {
-      registerEventListener: jest.fn(),
-      dispose: jest.fn(),
+      registerEventListener: vi.fn(),
+      dispose: vi.fn(),
     } as any;
 
     mockHealthMonitor = {
-      recordFrame: jest.fn(),
-      getHealth: jest.fn().mockReturnValue({ status: 'healthy' }),
+      recordFrame: vi.fn(),
+      getHealth: vi.fn().mockReturnValue({ status: 'healthy' }),
     } as any;
 
     // Setup mocks
-    const mockLoadConfig = jest.fn().mockReturnValue({
+    const mockLoadConfig = vi.fn().mockReturnValue({
       performance: { telemetrySampleRate: 1000 },
       thresholds: { mlpConfidence: 0.8 },
     });
 
-    mockLoadTasksVision = jest.fn().mockResolvedValue(mockComponents);
+    mockLoadTasksVision = vi.fn().mockResolvedValue(mockComponents);
     GestureDetector.setLoadTasksVisionImplementation(mockLoadTasksVision);
     require('../config/GestureConfig').loadConfig = mockLoadConfig;
 
-    (CameraManager as jest.MockedClass<typeof CameraManager>).mockImplementation(() => mockCameraManager);
-    (OverlayRenderer as jest.MockedClass<typeof OverlayRenderer>).mockImplementation(() => mockOverlayRenderer);
-    (ResourceManager as jest.MockedClass<typeof ResourceManager>).mockImplementation(() => mockResourceManager);
-    (HealthMonitor as jest.MockedClass<typeof HealthMonitor>).mockImplementation(() => mockHealthMonitor);
+    (CameraManager as vi.MockedClass<typeof CameraManager>).mockImplementation(() => mockCameraManager);
+    (OverlayRenderer as vi.MockedClass<typeof OverlayRenderer>).mockImplementation(() => mockOverlayRenderer);
+    (ResourceManager as vi.MockedClass<typeof ResourceManager>).mockImplementation(() => mockResourceManager);
+    (HealthMonitor as vi.MockedClass<typeof HealthMonitor>).mockImplementation(() => mockHealthMonitor);
   });
 
   afterEach(() => {
     GestureDetector.setLoadTasksVisionImplementation(null);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('initialization', () => {
@@ -164,7 +164,7 @@ describe('GestureDetector', () => {
   describe('result callback', () => {
     it('should call result callback when set', () => {
       const detector = new GestureDetector(mockVideo, mockOverlay);
-      const mockCallback = jest.fn();
+      const mockCallback = vi.fn();
 
       detector.setResultCallback(mockCallback);
 
@@ -193,25 +193,25 @@ describe('GestureDetector', () => {
     beforeEach(() => {
       // Mock the error recovery components
       mockErrorRecoveryManager = {
-        getErrorInfo: jest.fn(),
-        recordFailure: jest.fn(),
-        activateFallbackMode: jest.fn(),
-        activateEmergencyMode: jest.fn(),
-        isInFallbackMode: jest.fn(),
-        isInEmergencyMode: jest.fn(),
-        canAttemptRecovery: jest.fn(),
-        recordSuccessfulRecovery: jest.fn(),
-        getHealthStatus: jest.fn(),
-        isCircuitBreakerOpen: jest.fn()
+        getErrorInfo: vi.fn(),
+        recordFailure: vi.fn(),
+        activateFallbackMode: vi.fn(),
+        activateEmergencyMode: vi.fn(),
+        isInFallbackMode: vi.fn(),
+        isInEmergencyMode: vi.fn(),
+        canAttemptRecovery: vi.fn(),
+        recordSuccessfulRecovery: vi.fn(),
+        getHealthStatus: vi.fn(),
+        isCircuitBreakerOpen: vi.fn()
       };
 
       mockFallbackDetector = {
-        detectGesture: jest.fn()
+        detectGesture: vi.fn()
       };
 
       mockEmergencySystem = {
-        processEmergencyGesture: jest.fn(),
-        shouldEnterEmergencyMode: jest.fn()
+        processEmergencyGesture: vi.fn(),
+        shouldEnterEmergencyMode: vi.fn()
       };
 
       // Replace the global instances with mocks for testing

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Personalized Threshold Manager - Amy First
  * Dynamically adjusts confidence thresholds based on Amy's individual gesture patterns

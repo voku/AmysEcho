@@ -25,8 +25,6 @@ export class FallbackGestureDetector {
       return { gesture: '', confidence: 0, isFallback: true };
     }
 
-    this.lastLandmarks = landmarks;
-
     // Basic gesture detection using simple heuristics
     const gesture = this.detectBasicGesture(landmarks[0]); // Use first hand
     const confidence = this.calculateRuleBasedConfidence(landmarks[0], gesture);
@@ -44,6 +42,8 @@ export class FallbackGestureDetector {
 
     // Smooth confidence over recent detections
     const smoothedConfidence = this.smoothConfidence();
+
+    this.lastLandmarks = landmarks;
 
     return {
       gesture,

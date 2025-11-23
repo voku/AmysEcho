@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Main Gesture Detector orchestrator
  * Coordinates all gesture detection components
@@ -28,7 +27,6 @@ export class GestureDetector {
   private overlayRenderer: OverlayRenderer;
   private healthMonitor: HealthMonitor;
   private video: HTMLVideoElement;
-  private overlay: HTMLCanvasElement;
   private gestureRecognizer: GestureRecognizerLike | null = null;
   private running = false;
   private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
@@ -36,7 +34,6 @@ export class GestureDetector {
 
   constructor(video: HTMLVideoElement, overlay: HTMLCanvasElement) {
     this.video = video;
-    this.overlay = overlay;
     this.config = loadConfig();
     this.resourceManager = new ResourceManager();
     this.cameraManager = new CameraManager(video, this.resourceManager);

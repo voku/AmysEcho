@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { vi } from 'vitest';
 import { GestureDetectionStep } from '../GestureRecognitionOrchestrator';
 import type { GestureDetectorConfig } from '../../config/GestureConfig';
 import type { MediaPipeGestureResult } from '../../types/MediaPipeTypes';
@@ -122,7 +122,7 @@ describe('GestureDetectionStep', () => {
       }),
     } as any;
 
-    (window as any).__mlpPredict = jest.fn().mockReturnValue({ label: 'Wave', score: 0.9 });
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({ label: 'Wave', score: 0.9 });
 
     const result = await step.execute(context);
 

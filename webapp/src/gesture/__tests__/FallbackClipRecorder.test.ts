@@ -1,14 +1,14 @@
-// @ts-nocheck
+import { vi } from 'vitest';
 const mockFrameCaptureState = {
   enabled: false,
   interval: 180,
   lastCapturedFrame: null as string | null,
 };
 
-const mockCaptureFrameForTrainer = jest.fn<string | null, [HTMLVideoElement]>();
-const mockSetFrameCaptureEnabled = jest.fn<void, [boolean, number | undefined]>();
+const mockCaptureFrameForTrainer = vi.fn<string | null, [HTMLVideoElement]>();
+const mockSetFrameCaptureEnabled = vi.fn<void, [boolean, number | undefined]>();
 
-jest.mock('../utils/FrameCaptureManager', () => ({
+vi.mock('../utils/FrameCaptureManager', () => ({
   __esModule: true,
   captureFrameForTrainer: (video: HTMLVideoElement) => mockCaptureFrameForTrainer(video),
   getLastCapturedFrame: () => mockFrameCaptureState.lastCapturedFrame,
@@ -41,7 +41,7 @@ describe('FallbackClipRecorder', () => {
   let video: HTMLVideoElement;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     mockCaptureFrameForTrainer.mockReset();
     mockSetFrameCaptureEnabled.mockClear();
     mockFrameCaptureState.enabled = false;
@@ -54,7 +54,7 @@ describe('FallbackClipRecorder', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('encodes captured JPEG frames into an MJPEG AVI clip', async () => {

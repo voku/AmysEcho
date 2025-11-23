@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Unit tests for gesture processing classes
  * Tests GestureSizeNormalizer, PartialGestureDetector, and TremorCompensator

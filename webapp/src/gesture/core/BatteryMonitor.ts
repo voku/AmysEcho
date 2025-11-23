@@ -11,6 +11,8 @@ export class BatteryMonitor {
   private lastBatteryCheck = 0;
   private readonly BATTERY_CHECK_INTERVAL = 30000; // Check every 30 seconds
   private readonly EMERGENCY_BATTERY_THRESHOLD = 0.05; // 5% battery triggers emergency mode
+  private emergencyBatteryThreshold = this.EMERGENCY_BATTERY_THRESHOLD;
+  private monitorHandle: ReturnType<typeof setInterval> | null = null;
 
   /**
    * Start battery monitoring for emergency mode activation
@@ -22,7 +24,7 @@ export class BatteryMonitor {
     this.checkBatteryLevel();
 
     // Set up periodic battery checks
-    setInterval(() => {
+    this.monitorHandle = window.setInterval(() => {
       this.checkBatteryLevel();
     }, this.BATTERY_CHECK_INTERVAL);
   }
@@ -59,7 +61,7 @@ export class BatteryMonitor {
    */
   private handleBatteryLevel(level: number): void {
     const wasEmergency = this.emergencyMode;
-    this.emergencyMode = level <= this.EMERGENCY_BATTERY_THRESHOLD;
+    this.emergencyMode = level <= this.emergencyBatteryThreshold;
 
     if (this.emergencyMode && !wasEmergency) {
       console.warn(`🔋 CRITICAL BATTERY: ${Math.round(level * 100)}% - Activating emergency mode`);
@@ -141,6 +143,10 @@ export class BatteryMonitor {
    * Stop battery monitoring
    */
   stopMonitoring(): void {
+    if (this.monitorHandle) {
+      clearInterval(this.monitorHandle);
+      this.monitorHandle = null;
+    }
     this.isMonitoring = false;
   }
 
@@ -150,6 +156,4 @@ export class BatteryMonitor {
   setEmergencyThreshold(threshold: number): void {
     this.emergencyBatteryThreshold = Math.max(0.01, Math.min(0.2, threshold));
   }
-
-  private emergencyBatteryThreshold = this.EMERGENCY_BATTERY_THRESHOLD;
 }

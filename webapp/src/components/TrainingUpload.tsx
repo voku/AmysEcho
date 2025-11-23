@@ -138,54 +138,54 @@ export function TrainingUpload() {
           <input id="captured" value={capturedAt} onChange={(event) => setCapturedAt(event.target.value)} />
           <p className="muted small">ISO-8601, wird sonst automatisch gesetzt.</p>
         </div>
+
+        <div className="training-grid">
+          <div className="panel">
+            <p className="eyebrow">Landmarks</p>
+            <p className="muted">
+              Erwartet ein JSON mit Array an Frames oder ein Objekt mit <code>{'{ frames: [] }'}</code>.
+            </p>
+            <div className="file-input">
+              <input
+                type="file"
+                accept="application/json"
+                onChange={(event) => handleFramesFile(event.target.files?.[0] ?? null)}
+              />
+              <p className="muted small">{framesFileName || 'Noch keine Datei gewählt'}</p>
+            </div>
+            <p className="value">{frameSummary}</p>
+          </div>
+
+          <div className="panel">
+            <p className="eyebrow">Video (optional)</p>
+            <div className="file-input">
+              <input type="file" accept="video/*" onChange={(event) => setClipFile(event.target.files?.[0] ?? null)} />
+              <p className="muted small">{clipFile?.name || 'Kein Clip ausgewählt'}</p>
+            </div>
+            <p className="eyebrow" style={{ marginTop: '1rem' }}>
+              Standbild (optional)
+            </p>
+            <div className="file-input">
+              <input type="file" accept="image/*" onChange={(event) => setStillFile(event.target.files?.[0] ?? null)} />
+              <p className="muted small">{stillFile?.name || 'Kein Standbild ausgewählt'}</p>
+            </div>
+          </div>
+
+          <div className="panel">
+            <p className="eyebrow">Status & Hinweise</p>
+            {message && <div className="notice info">{message}</div>}
+            {error && <div className="notice error">{error}</div>}
+            <ul className="muted small bullets">
+              <li>Kein Offline-Queueing – der Browser lädt direkt hoch.</li>
+              <li>Die ZIP-Struktur entspricht dem App-Bundle ({'metadata.json'}, {'landmarks.json'}, optional Dateien).</li>
+              <li>API-Endpunkt wird über <code>VITE_API_URL</code> konfiguriert.</li>
+            </ul>
+            <button className="primary" type="submit" disabled={frames.length === 0 || state === 'uploading'}>
+              Trainingspaket hochladen
+            </button>
+          </div>
+        </div>
       </form>
-
-      <div className="training-grid">
-        <div className="panel">
-          <p className="eyebrow">Landmarks</p>
-          <p className="muted">
-            Erwartet ein JSON mit Array an Frames oder ein Objekt mit <code>{'{ frames: [] }'}</code>.
-          </p>
-          <div className="file-input">
-            <input
-              type="file"
-              accept="application/json"
-              onChange={(event) => handleFramesFile(event.target.files?.[0] ?? null)}
-            />
-            <p className="muted small">{framesFileName || 'Noch keine Datei gewählt'}</p>
-          </div>
-          <p className="value">{frameSummary}</p>
-        </div>
-
-        <div className="panel">
-          <p className="eyebrow">Video (optional)</p>
-          <div className="file-input">
-            <input type="file" accept="video/*" onChange={(event) => setClipFile(event.target.files?.[0] ?? null)} />
-            <p className="muted small">{clipFile?.name || 'Kein Clip ausgewählt'}</p>
-          </div>
-          <p className="eyebrow" style={{ marginTop: '1rem' }}>
-            Standbild (optional)
-          </p>
-          <div className="file-input">
-            <input type="file" accept="image/*" onChange={(event) => setStillFile(event.target.files?.[0] ?? null)} />
-            <p className="muted small">{stillFile?.name || 'Kein Standbild ausgewählt'}</p>
-          </div>
-        </div>
-
-        <div className="panel">
-          <p className="eyebrow">Status & Hinweise</p>
-          {message && <div className="notice info">{message}</div>}
-          {error && <div className="notice error">{error}</div>}
-          <ul className="muted small bullets">
-            <li>Kein Offline-Queueing – der Browser lädt direkt hoch.</li>
-            <li>Die ZIP-Struktur entspricht dem App-Bundle ({'metadata.json'}, {'landmarks.json'}, optional Dateien).</li>
-            <li>API-Endpunkt wird über <code>VITE_API_URL</code> konfiguriert.</li>
-          </ul>
-          <button className="primary" type="submit" disabled={frames.length === 0 || state === 'uploading'}>
-            Trainingspaket hochladen
-          </button>
-        </div>
-      </div>
 
       {lastResult && (
         <div className="result-card">

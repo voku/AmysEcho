@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { vi } from 'vitest';
 /**
  * Unit tests for performance optimization utilities
  * Tests PerformanceOptimizer, MemoryOptimizer, and ProcessingPipeline
@@ -116,7 +116,7 @@ describe('MemoryOptimizer', () => {
 
   describe('cleanup callbacks', () => {
     it('should register and unregister cleanup callbacks', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       optimizer.registerCleanupCallback('test', callback);
       expect(optimizer.getMemoryStatus().registeredComponents).toBeGreaterThan(0);
 
@@ -125,7 +125,7 @@ describe('MemoryOptimizer', () => {
     });
 
     it('should execute cleanup callbacks', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       optimizer.registerCleanupCallback('test', callback);
 
       optimizer.performCleanup();
@@ -238,7 +238,7 @@ describe('ProcessingPipeline', () => {
     mockStep = {
       name: 'test_step',
       isExpensive: false,
-      execute: jest.fn().mockResolvedValue({
+      execute: vi.fn().mockResolvedValue({
         gesture: 'thumbs_up',
         confidence: 0.8,
         landmarks: [[[0.1, 0.1, 0.0]]]
@@ -268,7 +268,7 @@ describe('ProcessingPipeline', () => {
       const expensiveStep: ProcessingStep = {
         name: 'expensive_step',
         isExpensive: true,
-        execute: jest.fn().mockResolvedValue({
+        execute: vi.fn().mockResolvedValue({
           gesture: 'thumbs_up',
           confidence: 0.9,
           landmarks: [[[0.1, 0.1, 0.0]]]
@@ -306,7 +306,7 @@ describe('ProcessingPipeline', () => {
       const failingStep: ProcessingStep = {
         name: 'failing_step',
         isExpensive: false,
-        execute: jest.fn().mockRejectedValue(new Error('Step failed'))
+        execute: vi.fn().mockRejectedValue(new Error('Step failed'))
       };
 
       pipeline.addStep(failingStep);
