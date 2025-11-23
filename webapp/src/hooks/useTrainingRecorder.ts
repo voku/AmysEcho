@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import type { TrainingFrame } from '../training/types';
 
-export type RecordingState = 'idle' | 'recording' | 'processing';
+export type RecordingState = 'idle' | 'recording';
 
 interface FrameBatchPayload {
   frames?: string[];
@@ -133,12 +133,9 @@ export function useTrainingRecorder(): TrainingRecorderResult {
   }, []);
 
   const stopRecording = useCallback(() => {
-    setState('processing');
     isRecordingRef.current = false;
-    // Allow a brief moment for any final frames to be processed
-    setTimeout(() => {
-      setState('idle');
-    }, 100);
+    // Transition directly to idle - frame processing is synchronous via event listener
+    setState('idle');
   }, []);
 
   const resetRecording = useCallback(() => {

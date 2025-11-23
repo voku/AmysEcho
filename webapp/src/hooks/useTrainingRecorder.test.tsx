@@ -25,7 +25,7 @@ describe('useTrainingRecorder', () => {
       result.current.stopRecording();
     });
 
-    expect(result.current.state).toBe('processing');
+    expect(result.current.state).toBe('idle');
   });
 
   it('erfasst Frame-Batch-Nachrichten während der Aufnahme', async () => {

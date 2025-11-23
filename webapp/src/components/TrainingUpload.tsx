@@ -75,9 +75,14 @@ function parseFrames(raw: unknown): TrainingFrame[] {
   return collected.filter((frame) => frameHasAnyLandmarks(frame.landmarks));
 }
 
-export function TrainingUpload() {
-  const [profileId, setProfileId] = useState('web-demo');
-  const [label, setLabel] = useState('HILFE');
+export interface TrainingUploadProps {
+  profileId: string;
+  setProfileId: (id: string) => void;
+  label: string;
+  setLabel: (label: string) => void;
+}
+
+export function TrainingUpload({ profileId, setProfileId, label, setLabel }: TrainingUploadProps) {
   const [capturedAt, setCapturedAt] = useState(() => new Date().toISOString());
   const [frames, setFrames] = useState<TrainingFrame[]>([]);
   const [framesFileName, setFramesFileName] = useState<string>('');
@@ -316,7 +321,14 @@ export function TrainingUploadWithRecording() {
         </>
       )}
 
-      {mode === 'upload' && <TrainingUpload />}
+      {mode === 'upload' && (
+        <TrainingUpload 
+          profileId={profileId} 
+          setProfileId={setProfileId} 
+          label={label} 
+          setLabel={setLabel} 
+        />
+      )}
 
       {message && mode === 'record' && (
         <div className="notice info" style={{ marginTop: '1rem' }}>

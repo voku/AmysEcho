@@ -64,7 +64,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     stopRecording();
   }, [stopRecording]);
 
-  const handleSaveRecording = useCallback(() => {
+  const handleSaveRecording = useCallback(async () => {
     if (recordedData.frames.length === 0) {
       return;
     }
@@ -73,17 +73,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     let stillFile: File | null = null;
     if (recordedData.stillImage) {
       try {
-        const parts = recordedData.stillImage.split(',');
-        if (parts.length === 2 && parts[1]) {
-          const base64Data = parts[1];
-          const byteCharacters = atob(base64Data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          stillFile = new File([byteArray], 'still.jpg', { type: 'image/jpeg' });
-        }
+        const response = await fetch(recordedData.stillImage);
+        const blob = await response.blob();
+        stillFile = new File([blob], 'still.jpg', { type: blob.type || 'image/jpeg' });
       } catch (error) {
         console.warn('Failed to convert still image to File', error);
       }
