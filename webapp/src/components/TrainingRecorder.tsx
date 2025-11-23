@@ -27,7 +27,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     [],
   );
 
-  const { start: startCamera, status, error: cameraError } = useGestureDetector(videoRef, overlayRef);
+  const { start: startCamera, stop: stopCamera, status, error: cameraError } = useGestureDetector(videoRef, overlayRef);
 
   const { state, recordedData, startRecording, stopRecording, resetRecording, framesCaptured } = useTrainingRecorder();
 
@@ -35,6 +35,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   useEffect(() => {
     if (state !== 'recording') {
       recordingStartTimeRef.current = null;
+      setRecordingDuration(0);
       return;
     }
 
@@ -62,7 +63,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
   const handleStopRecording = useCallback(() => {
     stopRecording();
-  }, [stopRecording]);
+    stopCamera?.();
+  }, [stopRecording, stopCamera]);
 
   const handleSaveRecording = useCallback(async () => {
     if (recordedData.frames.length === 0) {
@@ -98,7 +100,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const handleDiscardRecording = useCallback(() => {
     resetRecording();
     setRecordingDuration(0);
-  }, [resetRecording]);
+    stopCamera?.();
+  }, [resetRecording, stopCamera]);
 
   const isRecording = state === 'recording';
   const hasRecording = state === 'idle' && recordedData.frames.length > 0;

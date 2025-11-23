@@ -10,7 +10,6 @@ function isFrameLike(value: unknown): value is { landmarks: unknown; handedness?
   return Boolean(
     value &&
       typeof value === 'object' &&
-      'landmarks' in (value as Record<string, unknown>) &&
       Object.prototype.hasOwnProperty.call(value, 'landmarks'),
   );
 }

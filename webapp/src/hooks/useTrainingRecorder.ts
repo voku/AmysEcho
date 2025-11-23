@@ -4,6 +4,10 @@ import type { TrainingFrame } from '../training/types';
 
 export type RecordingState = 'idle' | 'recording';
 
+/**
+ * Local definition matching FrameBatchPayload from app/src/types/frames.ts.
+ * Keep this in sync with the canonical definition to avoid payload shape drift.
+ */
 interface FrameBatchPayload {
   frames?: string[];
   landmarks: number[][][][];
