@@ -3,6 +3,27 @@ import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploa
 import { frameHasAnyLandmarks } from '../training/handUtils';
 import type { TrainingFrame } from '../training/types';
 
+function normalizeLandmarks(raw: unknown): number[][][] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((hand) => {
+      if (!Array.isArray(hand)) return [] as number[][];
+      const validPoints: number[][] = [];
+      hand.forEach((point) => {
+        if (!Array.isArray(point)) return;
+        const coords = point
+          .map((value) => (typeof value === 'number' ? value : Number(value)))
+          .filter((value) => Number.isFinite(value));
+        if (coords.length >= 2) {
+          validPoints.push(coords);
+        }
+      });
+      return validPoints;
+    })
+    .filter((hand) => hand.length > 0);
+}
+
 function parseFrames(raw: unknown): TrainingFrame[] {
   const frames = Array.isArray((raw as { frames?: unknown }).frames)
     ? (raw as { frames: unknown[] }).frames
@@ -14,15 +35,18 @@ function parseFrames(raw: unknown): TrainingFrame[] {
   frames.forEach((entry) => {
     if (entry && typeof entry === 'object' && 'landmarks' in (entry as Record<string, unknown>)) {
       const candidate = entry as { landmarks?: unknown; handedness?: unknown };
-      const landmarks = Array.isArray(candidate.landmarks) ? candidate.landmarks : [];
+      const landmarks = normalizeLandmarks(candidate.landmarks);
       const handedness = Array.isArray(candidate.handedness)
         ? candidate.handedness.filter((h) => typeof h === 'string')
         : [];
-      collected.push({ landmarks: landmarks as number[][][], handedness });
+      collected.push({ landmarks, handedness });
       return;
     }
     if (Array.isArray(entry)) {
-      collected.push({ landmarks: entry as number[][][] });
+      const landmarks = normalizeLandmarks(entry);
+      if (landmarks.length > 0) {
+        collected.push({ landmarks });
+      }
     }
   });
 
@@ -48,11 +72,11 @@ export function TrainingUpload() {
     error: 'Fehler beim Upload',
   };
 
-  const statusAppearance: Record<UploadState, 'idle' | 'running' | 'error'> = {
+  const statusAppearance: Record<UploadState, 'idle' | 'running' | 'success' | 'error'> = {
     idle: 'idle',
     preparing: 'running',
     uploading: 'running',
-    success: 'running',
+    success: 'success',
     error: 'error',
   };
 
@@ -80,6 +104,7 @@ export function TrainingUpload() {
     const nextFrames = parseFrames(parsed);
     setFrames(nextFrames);
     setFramesFileName(file.name);
+    setMessage('');
   }, []);
 
   const handleSubmit = useCallback(
