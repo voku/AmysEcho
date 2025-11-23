@@ -3,19 +3,40 @@ import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploa
 import { frameHasAnyLandmarks } from '../training/handUtils';
 import type { TrainingFrame } from '../training/types';
 
-function normalizeLandmarks(raw: unknown): number[][][] {
+type LandmarkTuple = [number, number] | [number, number, number];
+
+function isFrameLike(value: unknown): value is { landmarks: unknown; handedness?: unknown } {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      'landmarks' in (value as Record<string, unknown>) &&
+      Object.prototype.hasOwnProperty.call(value, 'landmarks'),
+  );
+}
+
+function toLandmarkTuple(candidate: unknown): LandmarkTuple | null {
+  if (!Array.isArray(candidate)) return null;
+  const coords = candidate
+    .map((value) => (typeof value === 'number' ? value : Number(value)))
+    .filter((value) => Number.isFinite(value));
+
+  if (coords.length === 2 || coords.length === 3) {
+    return coords as LandmarkTuple;
+  }
+
+  return null;
+}
+
+function normalizeLandmarks(raw: unknown): LandmarkTuple[][] {
   if (!Array.isArray(raw)) return [];
 
   return raw
     .map((hand) => {
-      if (!Array.isArray(hand)) return [] as number[][];
-      const validPoints: number[][] = [];
+      if (!Array.isArray(hand)) return [] as LandmarkTuple[];
+      const validPoints: LandmarkTuple[] = [];
       hand.forEach((point) => {
-        if (!Array.isArray(point)) return;
-        const coords = point
-          .map((value) => (typeof value === 'number' ? value : Number(value)))
-          .filter((value) => Number.isFinite(value));
-        if (coords.length >= 2) {
+        const coords = toLandmarkTuple(point);
+        if (coords) {
           validPoints.push(coords);
         }
       });
@@ -25,19 +46,19 @@ function normalizeLandmarks(raw: unknown): number[][][] {
 }
 
 function parseFrames(raw: unknown): TrainingFrame[] {
-  const frames = Array.isArray((raw as { frames?: unknown }).frames)
-    ? (raw as { frames: unknown[] }).frames
+  const frames = Array.isArray((raw as { frames?: unknown })?.frames)
+    ? ((raw as { frames: unknown[] }).frames ?? [])
     : Array.isArray(raw)
     ? (raw as unknown[])
     : [];
 
   const collected: TrainingFrame[] = [];
   frames.forEach((entry) => {
-    if (entry && typeof entry === 'object' && 'landmarks' in (entry as Record<string, unknown>)) {
-      const candidate = entry as { landmarks?: unknown; handedness?: unknown };
-      const landmarks = normalizeLandmarks(candidate.landmarks);
-      const handedness = Array.isArray(candidate.handedness)
-        ? candidate.handedness.filter((h) => typeof h === 'string')
+    if (isFrameLike(entry)) {
+      const landmarks = normalizeLandmarks(entry.landmarks);
+      if (landmarks.length === 0) return;
+      const handedness = Array.isArray(entry.handedness)
+        ? entry.handedness.filter((h) => typeof h === 'string')
         : [];
       collected.push({ landmarks, handedness });
       return;
@@ -86,6 +107,7 @@ export function TrainingUpload() {
   }, [frames]);
 
   const handleFramesFile = useCallback(async (file: File | null) => {
+    setMessage('');
     if (!file) {
       setFrames([]);
       setFramesFileName('');
