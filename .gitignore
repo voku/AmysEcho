@@ -35,3 +35,4 @@ server/coverage/
 
 .gemini/
 gha-creds-*.json
+webapp/README.md.bak

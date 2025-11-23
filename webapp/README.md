@@ -19,7 +19,11 @@ npm run test      # Vitest + jsdom
 - Ein Browser-Bridge (`window.ReactNativeWebView`) leitet alle Nachrichten als `CustomEvent` (`webapp:webview-message`) weiter; die UI zeigt letzte Gesten und Bridge-Payloads an.
 - Das Overlay kann ein- oder ausgeblendet werden; Statuschips zeigen „bereit“, „laufend“ oder Fehler an.
 - Die Seite **Grenzen & Alternativen** listet deaktivierte native Features und Web-Ersatzwege.
-- Die Seite **Training / Upload** baut ein ZIP-Paket wie die App (`metadata.json`, `landmarks.json`, optional Clip/Standbild) und lädt es direkt gegen `VITE_API_URL/api/v1/dgs/sample-bundles` hoch.
+- Die Seite **Training / Upload** bietet zwei Modi:
+  - **Geste aufnehmen**: Nimmt Gesten mit der Kamera in Echtzeit auf. Die Handbewegungen werden automatisch erkannt und als Frames mit Landmarks erfasst. Nach der Aufnahme wird ein Trainingspaket (`metadata.json`, `landmarks.json`, Standbild) erstellt und direkt hochgeladen.
+  - **Datei hochladen**: Lädt ein vorbereitetes ZIP-Paket wie die App (`metadata.json`, `landmarks.json`, optional Clip/Standbild) hoch - ideal für Test-Bundles oder QA im Browser.
+  
+  Beide Modi laden direkt gegen `VITE_API_URL/api/v1/dgs/sample-bundles` hoch.
 
 ## Kopierter Gesten-Code
 
@@ -38,3 +42,17 @@ npm run test      # Vitest + jsdom
 ## Tests
 
 Vitest-Tests prüfen den Gesten-Hook (Start/Stop sowie Event-Handling). Jsdom stellt dabei die DOM-Oberfläche und das WebView-Bridge-Event bereit.
+
+## Neue Features
+
+### Training-Recorder
+
+Die Webapp unterstützt jetzt die Aufnahme von Gesten in Echtzeit ähnlich wie die mobile App:
+
+- **Live-Kameraaufnahme**: Nutzt die Browser-Kamera um Handbewegungen aufzuzeichnen
+- **Automatische Landmark-Erkennung**: MediaPipe erfasst Handlandmarks während der Aufnahme
+- **Stillbild-Erfassung**: Nimmt automatisch ein Standbild der letzten erkannten Geste auf
+- **Direkter Upload**: Erstellt ZIP-Paket und lädt es unmittelbar nach der Aufnahme hoch
+- **Zwei Modi**: Wähle zwischen Live-Aufnahme oder Datei-Upload für maximale Flexibilität
+
+Diese Features ermöglichen es Amy, direkt im Browser neue Gesten zu trainieren ohne die native App zu benötigen.

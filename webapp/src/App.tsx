@@ -1,7 +1,7 @@
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
 import { FeatureAvailability } from './components/FeatureAvailability';
 import { GestureDemo } from './components/GestureDemo';
-import { TrainingUpload } from './components/TrainingUpload';
+import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import './App.css';
 
 function App() {
@@ -34,7 +34,7 @@ function App() {
           <Routes>
             <Route path="/" element={<GestureDemo />} />
             <Route path="/funktionen" element={<FeatureAvailability />} />
-            <Route path="/training" element={<TrainingUpload />} />
+            <Route path="/training" element={<TrainingUploadWithRecording />} />
           </Routes>
         </main>
 
