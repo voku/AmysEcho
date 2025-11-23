@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/App.tsx",
+    "src/main.tsx",
+    "src/components/**/*.tsx",
+    "src/hooks/**/*.ts",
+    "src/hooks/**/*.tsx",
+    "src/utils/**/*.ts",
+    "src/setupTests.ts",
+    "src/**/*.test.tsx"
+  ],
+  "exclude": [
+    "src/gesture/**"
+  ]
+}
