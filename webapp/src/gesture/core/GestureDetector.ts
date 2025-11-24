@@ -240,8 +240,7 @@ export class GestureDetector {
       return true;
     }
 
-    // Redraw periodically even without landmarks to clear stale overlays
-    // Use frame count or time-based approach
+    // Clear overlay when recognition is fast (indicates good performance conditions)
     return recognitionTime < FAST_RECOGNITION_THRESHOLD_MS;
   }
 
