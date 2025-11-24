@@ -1,12 +1,23 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useTrainingRecorder } from './useTrainingRecorder';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('useTrainingRecorder', () => {
+  let OriginalMediaRecorder: typeof MediaRecorder | undefined;
+  let OriginalMediaStream: typeof MediaStream | undefined;
+
   beforeEach(() => {
     // Clear any event listeners before each test
     window.dispatchEvent = window.dispatchEvent;
+    OriginalMediaRecorder = (window as any).MediaRecorder;
+    OriginalMediaStream = (window as any).MediaStream;
+    (window as any).MediaStream = class {} as any;
+  });
+
+  afterEach(() => {
+    (window as any).MediaRecorder = OriginalMediaRecorder;
+    (window as any).MediaStream = OriginalMediaStream;
   });
 
   it('startet und stoppt die Aufnahme', () => {
@@ -116,5 +127,58 @@ describe('useTrainingRecorder', () => {
 
     expect(result.current.framesCaptured).toBe(0);
     expect(result.current.recordedData.frames.length).toBe(0);
+  });
+
+  it('erstellt eine Clip-Datei über MediaRecorder', async () => {
+    const stream = new MediaStream();
+    const video = document.createElement('video') as HTMLVideoElement & { srcObject?: MediaStream };
+    video.srcObject = stream;
+
+    let mockInstance: any;
+    class MockMediaRecorder {
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      state: MediaRecorderState = 'inactive';
+      readonly mimeType = 'video/webm';
+      readonly stream: MediaStream;
+
+      constructor(recorderStream: MediaStream) {
+        this.stream = recorderStream;
+        mockInstance = this;
+      }
+
+      start() {
+        this.state = 'recording';
+        const chunk = new Blob([new Uint8Array(1024 * 1024 * 26)], { type: 'video/webm' });
+        this.ondataavailable?.({ data: chunk });
+      }
+
+      stop() {
+        this.state = 'inactive';
+        this.onstop?.();
+      }
+    }
+
+    (window as any).MediaRecorder = MockMediaRecorder as any;
+
+    const { result } = renderHook(() => useTrainingRecorder({ current: video }));
+
+    act(() => {
+      result.current.startRecording();
+    });
+
+    expect(mockInstance).toBeDefined();
+    expect(result.current.recordedData.clipSizeBytes).toBeGreaterThan(0);
+
+    act(() => {
+      result.current.stopRecording();
+    });
+
+    await waitFor(() => {
+      expect(result.current.recordedData.clipFile).not.toBeNull();
+    });
+
+    expect(result.current.recordedData.clipFile?.name).toBe('clip.webm');
+    expect(result.current.clipLimitExceeded).toBe(true);
   });
 });

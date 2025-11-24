@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import type { TrainingFrame } from '../training/types';
 
@@ -19,6 +19,10 @@ interface RecordedData {
   frames: TrainingFrame[];
   stillImage: string | null;
   frameCount: number;
+  clipFile: File | null;
+  clipSizeBytes: number;
+  clipDurationMs: number;
+  clipError: string | null;
 }
 
 export interface TrainingRecorderResult {
@@ -28,9 +32,37 @@ export interface TrainingRecorderResult {
   stopRecording: () => void;
   resetRecording: () => void;
   framesCaptured: number;
+  clipLimitExceeded: boolean;
 }
 
 const MAX_BUFFERED_FRAMES = 240;
+const MAX_CLIP_BYTES = 25 * 1024 * 1024; // 25 MB
+
+function pickMimeType(): string | undefined {
+  if (typeof window.MediaRecorder === 'undefined' || typeof window.MediaRecorder.isTypeSupported !== 'function') {
+    return undefined;
+  }
+
+  const candidates = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  return candidates.find((candidate) => window.MediaRecorder!.isTypeSupported(candidate)) ?? undefined;
+}
+
+function resolveRecordingStream(video?: HTMLVideoElement | null): MediaStream | null {
+  const srcObject = (video as HTMLVideoElement & { srcObject?: MediaStream })?.srcObject;
+  if (srcObject instanceof MediaStream) {
+    return srcObject;
+  }
+
+  if (typeof video?.captureStream === 'function') {
+    try {
+      return video.captureStream();
+    } catch (error) {
+      console.warn('captureStream failed', error);
+    }
+  }
+
+  return null;
+}
 
 function isFrameBatchMessage(payload: unknown): payload is FrameBatchPayload {
   return (
@@ -41,12 +73,21 @@ function isFrameBatchMessage(payload: unknown): payload is FrameBatchPayload {
   );
 }
 
-export function useTrainingRecorder(): TrainingRecorderResult {
+export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): TrainingRecorderResult {
   const [state, setState] = useState<RecordingState>('idle');
   const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
   const [stillImage, setStillImage] = useState<string | null>(null);
   const [framesCaptured, setFramesCaptured] = useState(0);
+  const [clipFile, setClipFile] = useState<File | null>(null);
+  const [clipSizeBytes, setClipSizeBytes] = useState(0);
+  const [clipDurationMs, setClipDurationMs] = useState(0);
+  const [clipError, setClipError] = useState<string | null>(null);
   const isRecordingRef = useRef(false);
+  const clipRecorderRef = useRef<MediaRecorder | null>(null);
+  const clipChunksRef = useRef<Blob[]>([]);
+  const clipStartRef = useRef<number | null>(null);
+
+  const clipLimitExceeded = useMemo(() => clipSizeBytes > MAX_CLIP_BYTES, [clipSizeBytes]);
 
   const handleFrameBatch = useCallback((payload: FrameBatchPayload) => {
     if (!isRecordingRef.current) {
@@ -134,10 +175,74 @@ export function useTrainingRecorder(): TrainingRecorderResult {
     setRecordedFrames([]);
     setStillImage(null);
     setFramesCaptured(0);
-  }, []);
+    setClipFile(null);
+    setClipSizeBytes(0);
+    setClipDurationMs(0);
+    setClipError(null);
+    clipChunksRef.current = [];
+    clipStartRef.current = Date.now();
+
+    const stream = resolveRecordingStream(videoRef?.current ?? null);
+    if (!stream || typeof window.MediaRecorder === 'undefined') {
+      setClipError('Videoaufnahme im Browser nicht verfügbar.');
+      return;
+    }
+
+    const mimeType = pickMimeType();
+    try {
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      clipRecorderRef.current = recorder;
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (!event.data || event.data.size === 0) {
+          return;
+        }
+        clipChunksRef.current.push(event.data);
+        setClipSizeBytes((prev) => prev + event.data.size);
+      };
+      recorder.onstop = () => {
+        if (clipStartRef.current) {
+          const durationMs = Date.now() - clipStartRef.current;
+          setClipDurationMs(durationMs);
+          clipStartRef.current = null;
+        }
+
+        const blob = new Blob(clipChunksRef.current, { type: recorder.mimeType || mimeType || 'video/webm' });
+        clipChunksRef.current = [];
+        clipRecorderRef.current = null;
+        if (blob.size === 0) {
+          setClipError('Leere Videoaufnahme erhalten.');
+          return;
+        }
+        const file = new File([blob], 'clip.webm', { type: blob.type });
+        setClipFile(file);
+      };
+      recorder.onerror = (event: Event) => {
+        const error = (event as { error?: unknown }).error;
+        const reason = error instanceof Error ? error.message : 'Recorder-Fehler';
+        setClipError(reason);
+      };
+
+      try {
+        recorder.start(1000);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        setClipError(`Recorder konnte nicht starten: ${reason}`);
+      }
+    } catch (recorderError) {
+      const reason = recorderError instanceof Error ? recorderError.message : String(recorderError);
+      setClipError(reason);
+    }
+  }, [videoRef]);
 
   const stopRecording = useCallback(() => {
     isRecordingRef.current = false;
+    if (clipRecorderRef.current && clipRecorderRef.current.state === 'recording') {
+      try {
+        clipRecorderRef.current.stop();
+      } catch (error) {
+        console.warn('Fehler beim Stoppen der Videoaufnahme', error);
+      }
+    }
     // Transition directly to idle - frame processing is synchronous via event listener
     setState('idle');
   }, []);
@@ -145,15 +250,30 @@ export function useTrainingRecorder(): TrainingRecorderResult {
   const resetRecording = useCallback(() => {
     setState('idle');
     isRecordingRef.current = false;
+    if (clipRecorderRef.current && clipRecorderRef.current.state === 'recording') {
+      try {
+        clipRecorderRef.current.stop();
+      } catch (error) {
+        console.warn('Fehler beim Zurücksetzen der Videoaufnahme', error);
+      }
+    }
     setRecordedFrames([]);
     setStillImage(null);
     setFramesCaptured(0);
+    setClipFile(null);
+    setClipSizeBytes(0);
+    setClipDurationMs(0);
+    setClipError(null);
   }, []);
 
   const recordedData: RecordedData = {
     frames: recordedFrames,
     stillImage,
     frameCount: framesCaptured,
+    clipFile,
+    clipSizeBytes,
+    clipDurationMs,
+    clipError,
   };
 
   return {
@@ -163,5 +283,6 @@ export function useTrainingRecorder(): TrainingRecorderResult {
     stopRecording,
     resetRecording,
     framesCaptured,
+    clipLimitExceeded,
   };
 }

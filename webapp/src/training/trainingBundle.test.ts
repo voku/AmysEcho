@@ -46,6 +46,17 @@ describe('createTrainingZip', () => {
     expect(landmarks.frames[0]?.landmarks?.length).toBe(42);
     expect(entries['clip.mp4']).toBeDefined();
   });
+
+  it('legt eine WebM-Datei als clip.webm in das ZIP', async () => {
+    const clip = new File([new Uint8Array([9, 8, 7])], 'clip.webm', { type: 'video/webm' });
+    const zip = await createTrainingZip({ ...basePayload, clipFile: clip });
+    const entries = unzipSync(zip);
+    const normalizedNames = Object.keys(entries).map((name) => name.replace(/\/$/, ''));
+    expect(normalizedNames).toContain('clip.webm');
+    const metadataBytes = entries['metadata.json'];
+    const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array()));
+    expect(metadata.clipFilename).toBe('clip.webm');
+  });
 });
 
 describe('normalizeTrainingJobStatus', () => {
