@@ -55,7 +55,7 @@ export function setFrameCaptureEnabled(enabled: boolean, intervalMs?: number): v
 
 export function captureFrameForTrainer(video: HTMLVideoElement): string | null {
   if (!frameCaptureEnabled) {
-    return lastCapturedFrame;
+    return null;
   }
 
   try {
