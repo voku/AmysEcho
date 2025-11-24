@@ -134,6 +134,10 @@ button.ghost {
   background: #f8fafc;
 }
 
+.notice.spaced {
+  margin-top: 0.5rem;
+}
+
 .notice.warning {
   border-color: #f59e0b;
   background: #fffbeb;

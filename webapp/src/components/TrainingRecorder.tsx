@@ -35,8 +35,16 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
   const { start: startCamera, stop: stopCamera, status, error: cameraError } = useGestureDetector(videoRef, overlayRef);
 
-  const { state, recordedData, startRecording, stopRecording, resetRecording, framesCaptured, clipLimitExceeded } =
-    useTrainingRecorder(videoRef);
+  const {
+    state,
+    recordedData,
+    startRecording,
+    stopRecording,
+    resetRecording,
+    framesCaptured,
+    clipLimitExceeded,
+    maxClipBytes,
+  } = useTrainingRecorder(videoRef);
 
   // Update recording duration
   useEffect(() => {
@@ -116,8 +124,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     ? `${recordedData.clipFile.name} (${formatBytes(recordedData.clipFile.size)})`
     : `${formatBytes(recordedData.clipSizeBytes)} aufgenommen`;
   const clipLimitNotice = clipLimitExceeded
-    ? 'Maximale Dateigröße überschritten (25 MB). Bitte kürzer aufnehmen.'
-    : 'Video wird zusammen mit den Landmarks gespeichert.';
+    ? `Maximale Dateigröße überschritten (${formatBytes(maxClipBytes)}). Bitte kürzer aufnehmen.`
+    : `Video wird zusammen mit den Landmarks gespeichert (Limit ${formatBytes(maxClipBytes)}).`;
 
   return (
     <section className="card">
@@ -170,7 +178,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
               )}
               {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
-              <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'}`} style={{ marginTop: '0.5rem' }}>
+              <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
                 {clipLimitNotice}
               </div>
             </div>

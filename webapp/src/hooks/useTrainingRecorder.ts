@@ -33,6 +33,7 @@ export interface TrainingRecorderResult {
   resetRecording: () => void;
   framesCaptured: number;
   clipLimitExceeded: boolean;
+  maxClipBytes: number;
 }
 
 const MAX_BUFFERED_FRAMES = 240;
@@ -44,7 +45,7 @@ function pickMimeType(): string | undefined {
   }
 
   const candidates = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
-  return candidates.find((candidate) => window.MediaRecorder!.isTypeSupported(candidate)) ?? undefined;
+  return candidates.find((candidate) => window.MediaRecorder.isTypeSupported(candidate));
 }
 
 function resolveRecordingStream(video?: HTMLVideoElement | null): MediaStream | null {
@@ -250,12 +251,18 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
   const resetRecording = useCallback(() => {
     setState('idle');
     isRecordingRef.current = false;
-    if (clipRecorderRef.current && clipRecorderRef.current.state === 'recording') {
-      try {
-        clipRecorderRef.current.stop();
-      } catch (error) {
-        console.warn('Fehler beim Zurücksetzen der Videoaufnahme', error);
+    if (clipRecorderRef.current) {
+      clipRecorderRef.current.ondataavailable = null;
+      clipRecorderRef.current.onstop = null;
+      clipRecorderRef.current.onerror = null;
+      if (clipRecorderRef.current.state === 'recording') {
+        try {
+          clipRecorderRef.current.stop();
+        } catch (error) {
+          console.warn('Fehler beim Zurücksetzen der Videoaufnahme', error);
+        }
       }
+      clipRecorderRef.current = null;
     }
     setRecordedFrames([]);
     setStillImage(null);
@@ -264,6 +271,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     setClipSizeBytes(0);
     setClipDurationMs(0);
     setClipError(null);
+    clipChunksRef.current = [];
+    clipStartRef.current = null;
   }, []);
 
   const recordedData: RecordedData = {
@@ -284,5 +293,6 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     resetRecording,
     framesCaptured,
     clipLimitExceeded,
+    maxClipBytes: MAX_CLIP_BYTES,
   };
 }

@@ -8,8 +8,6 @@ describe('useTrainingRecorder', () => {
   let OriginalMediaStream: typeof MediaStream | undefined;
 
   beforeEach(() => {
-    // Clear any event listeners before each test
-    window.dispatchEvent = window.dispatchEvent;
     OriginalMediaRecorder = (window as any).MediaRecorder;
     OriginalMediaStream = (window as any).MediaStream;
     (window as any).MediaStream = class {} as any;
@@ -180,5 +178,62 @@ describe('useTrainingRecorder', () => {
 
     expect(result.current.recordedData.clipFile?.name).toBe('clip.webm');
     expect(result.current.clipLimitExceeded).toBe(true);
+    expect(result.current.maxClipBytes).toBe(25 * 1024 * 1024);
+  });
+
+  it('verwirft Clip-Daten beim Zurücksetzen einer laufenden Aufnahme', async () => {
+    const stream = new MediaStream();
+    const video = document.createElement('video') as HTMLVideoElement & { srcObject?: MediaStream };
+    video.srcObject = stream;
+
+    let onStopCalled = false;
+    let onStopHandlerCalled = false;
+    class MockMediaRecorder {
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      state: MediaRecorderState = 'inactive';
+      readonly mimeType = 'video/webm';
+      readonly stream: MediaStream;
+
+      constructor(recorderStream: MediaStream) {
+        this.stream = recorderStream;
+      }
+
+      start() {
+        this.state = 'recording';
+        const chunk = new Blob([new Uint8Array(1024 * 1024 * 5)], { type: 'video/webm' });
+        this.ondataavailable?.({ data: chunk });
+      }
+
+      stop() {
+        this.state = 'inactive';
+        const handler = this.onstop;
+        if (handler) {
+          handler();
+          onStopHandlerCalled = true;
+        }
+        onStopCalled = true;
+      }
+    }
+
+    (window as any).MediaRecorder = MockMediaRecorder as any;
+
+    const { result } = renderHook(() => useTrainingRecorder({ current: video }));
+
+    act(() => {
+      result.current.startRecording();
+    });
+
+    expect(result.current.recordedData.clipSizeBytes).toBeGreaterThan(0);
+
+    act(() => {
+      result.current.resetRecording();
+    });
+
+    expect(onStopHandlerCalled).toBe(false);
+    expect(onStopCalled).toBe(true);
+    expect(result.current.recordedData.clipFile).toBeNull();
+    expect(result.current.recordedData.clipSizeBytes).toBe(0);
+    expect(result.current.recordedData.clipDurationMs).toBe(0);
   });
 });
