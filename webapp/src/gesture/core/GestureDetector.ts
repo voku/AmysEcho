@@ -18,6 +18,10 @@ import {
   disposeFrameCapture,
 } from '../utils/FrameCaptureManager';
 
+// Performance thresholds
+const SLOW_FRAME_THRESHOLD_MS = 50;
+const FAST_RECOGNITION_THRESHOLD_MS = 30;
+
 export class GestureDetector {
   private static loadTasksVisionImpl: () => Promise<MediaPipeComponents | undefined> = loadTasksVision;
 
@@ -208,7 +212,7 @@ export class GestureDetector {
         this.healthMonitor.recordFrame(frameStart);
 
         // Log performance warnings for slow frames
-        if (recognitionTime > 50) { // More than 50ms is slow
+        if (recognitionTime > SLOW_FRAME_THRESHOLD_MS) {
           console.warn(`Slow frame detected: ${recognitionTime.toFixed(2)}ms`);
         }
       }
@@ -238,7 +242,7 @@ export class GestureDetector {
 
     // Redraw periodically even without landmarks to clear stale overlays
     // Use frame count or time-based approach
-    return recognitionTime < 30; // Only redraw if recognition was fast
+    return recognitionTime < FAST_RECOGNITION_THRESHOLD_MS;
   }
 
   /**
