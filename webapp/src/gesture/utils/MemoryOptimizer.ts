@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Memory optimization utilities for gesture recognition
  * Manages history buffers and implements cleanup strategies
@@ -91,8 +90,9 @@ export class MemoryOptimizer {
     if (this.memoryPressureLevel >= 1) {
       const result: T[] = [];
       for (let i = 0; i < array.length; i++) {
-        if (operation(array[i])) {
-          result.push(array[i]);
+        const item = array[i];
+        if (item !== undefined && operation(item)) {
+          result.push(item);
         }
       }
       return result;
@@ -296,7 +296,10 @@ export class CircularBuffer<T> {
     // toArray() returns most recent first, so we need to reverse for chronological order
     const itemsToAdd = Math.min(currentItems.length, newMaxSize);
     for (let i = itemsToAdd - 1; i >= 0; i--) {
-      this.push(currentItems[i]);
+      const item = currentItems[i];
+      if (item !== undefined) {
+        this.push(item);
+      }
     }
   }
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Emergency gesture detection and priority processing system
  * Handles critical gestures that require immediate attention

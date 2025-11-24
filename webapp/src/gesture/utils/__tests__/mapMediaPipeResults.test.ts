@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { mapMediaPipeResult } from '../mapMediaPipeResults';
 import { MediaPipeGestureResult } from '../../types/MediaPipeTypes';
 

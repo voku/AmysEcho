@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Adaptive Practice Timing Manager - Amy First Phase 2
  * Ensures practice never interrupts active communication and learns optimal practice times

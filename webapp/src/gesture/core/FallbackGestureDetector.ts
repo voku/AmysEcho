@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Fallback gesture detection system
  * Provides basic gesture recognition when main systems fail
@@ -8,7 +7,6 @@ export class FallbackGestureDetector {
   private lastLandmarks: number[][][] | null = null;
   private gestureHistory: Array<{gesture: string; confidence: number; timestamp: number}> = [];
   private readonly HISTORY_SIZE = 5;
-  private ruleBasedConfidence = 0.0;
   private static readonly MIN_PALM_NORMALIZED_WIDTH = 0.15;
   private static readonly MIN_PALM_NORMALIZED_HEIGHT = 0.15;
 
@@ -25,9 +23,14 @@ export class FallbackGestureDetector {
       return { gesture: '', confidence: 0, isFallback: true };
     }
 
+    const firstHand = landmarks[0];
+    if (!firstHand) {
+      return { gesture: '', confidence: 0, isFallback: true };
+    }
+
     // Basic gesture detection using simple heuristics
-    const gesture = this.detectBasicGesture(landmarks[0]); // Use first hand
-    const confidence = this.calculateRuleBasedConfidence(landmarks[0], gesture);
+    const gesture = this.detectBasicGesture(firstHand); // Use first hand
+    const confidence = this.calculateRuleBasedConfidence(firstHand, gesture);
 
     // Store in history for smoothing
     this.gestureHistory.push({
@@ -62,16 +65,25 @@ export class FallbackGestureDetector {
     const thumbTip = hand[4];
     const thumbJoint = hand[3];
 
+    if (!thumbTip || !thumbJoint) return '';
+
     let extendedFingers = 0;
 
     // Count extended fingers
     for (let i = 0; i < fingerTips.length; i++) {
-      if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+      const tipIdx = fingerTips[i];
+      const jointIdx = fingerJoints[i];
+      if (tipIdx === undefined || jointIdx === undefined) continue;
+      const tip = hand[tipIdx];
+      const joint = hand[jointIdx];
+      if (!tip || !joint || tip[1] === undefined || joint[1] === undefined) continue;
+      if (tip[1] < joint[1]) {
         extendedFingers++;
       }
     }
 
     // Check thumb
+    if (thumbTip[1] === undefined || thumbJoint[1] === undefined) return '';
     const thumbExtended = thumbTip[1] < thumbJoint[1];
 
     // Basic gesture classification
@@ -127,7 +139,13 @@ export class FallbackGestureDetector {
     let curledFingers = 0;
 
     for (let i = 0; i < fingerTips.length; i++) {
-      if (hand[fingerTips[i]][1] > hand[fingerJoints[i]][1]) {
+      const tipIdx = fingerTips[i];
+      const jointIdx = fingerJoints[i];
+      if (tipIdx === undefined || jointIdx === undefined) continue;
+      const tip = hand[tipIdx];
+      const joint = hand[jointIdx];
+      if (!tip || !joint || tip[1] === undefined || joint[1] === undefined) continue;
+      if (tip[1] > joint[1]) {
         curledFingers++;
       }
     }
@@ -136,22 +154,51 @@ export class FallbackGestureDetector {
   }
 
   private checkPointClarity(hand: number[][]): boolean {
-    const indexExtended = hand[8][1] < hand[6][1];
+    const p8 = hand[8];
+    const p6 = hand[6];
+    const p12 = hand[12];
+    const p10 = hand[10];
+    const p16 = hand[16];
+    const p14 = hand[14];
+    const p20 = hand[20];
+    const p18 = hand[18];
+
+    if (!p8 || !p6 || !p12 || !p10 || !p16 || !p14 || !p20 || !p18) return false;
+    if (p8[1] === undefined || p6[1] === undefined || p12[1] === undefined || p10[1] === undefined ||
+        p16[1] === undefined || p14[1] === undefined || p20[1] === undefined || p18[1] === undefined) return false;
+
+    const indexExtended = p8[1] < p6[1];
     const otherFingersCurled =
-      hand[12][1] > hand[10][1] && // Middle
-      hand[16][1] > hand[14][1] && // Ring
-      hand[20][1] > hand[18][1];   // Pinky
+      p12[1] > p10[1] && // Middle
+      p16[1] > p14[1] && // Ring
+      p20[1] > p18[1];   // Pinky
 
     return indexExtended && otherFingersCurled;
   }
 
   private checkThumbsUpClarity(hand: number[][]): boolean {
-    const thumbExtended = hand[4][1] < hand[3][1];
+    const p4 = hand[4];
+    const p3 = hand[3];
+    const p8 = hand[8];
+    const p6 = hand[6];
+    const p12 = hand[12];
+    const p10 = hand[10];
+    const p16 = hand[16];
+    const p14 = hand[14];
+    const p20 = hand[20];
+    const p18 = hand[18];
+
+    if (!p4 || !p3 || !p8 || !p6 || !p12 || !p10 || !p16 || !p14 || !p20 || !p18) return false;
+    if (p4[1] === undefined || p3[1] === undefined || p8[1] === undefined || p6[1] === undefined ||
+        p12[1] === undefined || p10[1] === undefined || p16[1] === undefined || p14[1] === undefined ||
+        p20[1] === undefined || p18[1] === undefined) return false;
+
+    const thumbExtended = p4[1] < p3[1];
     const otherFingersCurled =
-      hand[8][1] > hand[6][1] &&   // Index
-      hand[12][1] > hand[10][1] && // Middle
-      hand[16][1] > hand[14][1] && // Ring
-      hand[20][1] > hand[18][1];   // Pinky
+      p8[1] > p6[1] &&   // Index
+      p12[1] > p10[1] && // Middle
+      p16[1] > p14[1] && // Ring
+      p20[1] > p18[1];   // Pinky
 
     return thumbExtended && otherFingersCurled;
   }
@@ -162,12 +209,22 @@ export class FallbackGestureDetector {
     let extendedFingers = 0;
 
     for (let i = 0; i < fingerTips.length; i++) {
-      if (hand[fingerTips[i]][1] < hand[fingerJoints[i]][1]) {
+      const tipIdx = fingerTips[i];
+      const jointIdx = fingerJoints[i];
+      if (tipIdx === undefined || jointIdx === undefined) continue;
+      const tip = hand[tipIdx];
+      const joint = hand[jointIdx];
+      if (!tip || !joint || tip[1] === undefined || joint[1] === undefined) continue;
+      if (tip[1] < joint[1]) {
         extendedFingers += 1;
       }
     }
 
-    const thumbExtended = hand[4][1] < hand[2][1];
+    const p4 = hand[4];
+    const p2 = hand[2];
+    if (!p4 || !p2 || p4[1] === undefined || p2[1] === undefined) return false;
+
+    const thumbExtended = p4[1] < p2[1];
     const palmWidth = Math.abs((hand[5]?.[0] ?? 0) - (hand[17]?.[0] ?? 0));
     const palmHeight = Math.abs((hand[0]?.[1] ?? 0) - (hand[9]?.[1] ?? 0));
 
@@ -184,9 +241,12 @@ export class FallbackGestureDetector {
     let points = 0;
 
     for (let i = 0; i < Math.min(prevHand.length, currHand.length); i++) {
-      if (prevHand[i] && currHand[i]) {
-        const dx = prevHand[i][0] - currHand[i][0];
-        const dy = prevHand[i][1] - currHand[i][1];
+      const prev = prevHand[i];
+      const curr = currHand[i];
+      if (prev && curr && prev[0] !== undefined && prev[1] !== undefined &&
+          curr[0] !== undefined && curr[1] !== undefined) {
+        const dx = prev[0] - curr[0];
+        const dy = prev[1] - curr[1];
         totalMovement += Math.sqrt(dx * dx + dy * dy);
         points++;
       }

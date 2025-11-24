@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Optimized tremor compensator with memory-efficient history management
  * and intelligent processing based on performance constraints
@@ -86,8 +85,14 @@ export class OptimizedTremorCompensator {
    * Calculate smoothed point with optimized history access
    */
   private calculateSmoothedPoint(handIdx: number, pointIdx: number, currentPoint: number[]): number[] {
-    let smoothedX = currentPoint[0];
-    let smoothedY = currentPoint[1];
+    const currentX = currentPoint[0];
+    const currentY = currentPoint[1];
+    if (currentX === undefined || currentY === undefined) {
+      return [0, 0, 0];
+    }
+    
+    let smoothedX = currentX;
+    let smoothedY = currentY;
     let smoothedZ = currentPoint[2] || 0;
     let totalWeight = 1;
 
@@ -99,10 +104,12 @@ export class OptimizedTremorCompensator {
 
       if (historyFrame && historyFrame[handIdx] && historyFrame[handIdx][pointIdx]) {
         const historyPoint = historyFrame[handIdx][pointIdx];
-        smoothedX += historyPoint[0] * weight;
-        smoothedY += historyPoint[1] * weight;
-        smoothedZ += (historyPoint[2] || 0) * weight;
-        totalWeight += weight;
+        if (historyPoint && historyPoint[0] !== undefined && historyPoint[1] !== undefined) {
+          smoothedX += historyPoint[0] * weight;
+          smoothedY += historyPoint[1] * weight;
+          smoothedZ += (historyPoint[2] || 0) * weight;
+          totalWeight += weight;
+        }
       }
     }
 
@@ -135,6 +142,8 @@ export class OptimizedTremorCompensator {
         const previousPoint = previousHand[pointIdx];
 
         if (!currentPoint || !previousPoint) continue;
+        if (currentPoint[0] === undefined || currentPoint[1] === undefined ||
+            previousPoint[0] === undefined || previousPoint[1] === undefined) continue;
 
         const distance = Math.sqrt(
           Math.pow(currentPoint[0] - previousPoint[0], 2) +
@@ -176,7 +185,10 @@ export class OptimizedTremorCompensator {
         if (!currentPoint || !previousPoint) continue;
 
         for (let coord = 0; coord < 2; coord++) { // Only check x,y for efficiency
-          if (Math.abs(currentPoint[coord] - previousPoint[coord]) > 0.005) { // 0.5% change threshold
+          const currCoord = currentPoint[coord];
+          const prevCoord = previousPoint[coord];
+          if (currCoord === undefined || prevCoord === undefined) continue;
+          if (Math.abs(currCoord - prevCoord) > 0.005) { // 0.5% change threshold
             return false;
           }
         }

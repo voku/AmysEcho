@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Gesture Undo Manager - Amy First
  * Provides simple gesture-based undo functionality

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced detection accuracy system
  * Improves conflict resolution between detection methods and enhances rule-based detection

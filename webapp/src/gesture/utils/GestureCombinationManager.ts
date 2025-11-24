@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Gesture Combination Manager - Amy First
  * Enables complex communication through gesture sequences

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Performance optimization utilities for gesture recognition
  * Implements intelligent frame skipping and processing optimization
@@ -118,7 +117,7 @@ export class PerformanceOptimizer {
     const signature = [];
     for (let i = 0; i < keyPoints; i++) {
       const point = hand[i];
-      if (point && point.length >= 2) {
+      if (point && point.length >= 2 && point[0] !== undefined && point[1] !== undefined) {
         // Round to reduce sensitivity to micro-changes
         signature.push(`${Math.round(point[0] * 100)},${Math.round(point[1] * 100)}`);
       }
@@ -145,13 +144,23 @@ export class PerformanceOptimizer {
 
     let totalChange = 0;
     for (let i = 0; i < currentParts.length; i++) {
-      const currentCoords = currentParts[i].split(',').map(Number);
-      const lastCoords = lastParts[i].split(',').map(Number);
+      const currentPart = currentParts[i];
+      const lastPart = lastParts[i];
+      if (!currentPart || !lastPart) continue;
+      
+      const currentCoords = currentPart.split(',').map(Number);
+      const lastCoords = lastPart.split(',').map(Number);
 
       if (currentCoords.length === 2 && lastCoords.length === 2) {
-        const dx = currentCoords[0] - lastCoords[0];
-        const dy = currentCoords[1] - lastCoords[1];
-        totalChange += Math.sqrt(dx * dx + dy * dy);
+        const cx = currentCoords[0];
+        const cy = currentCoords[1];
+        const lx = lastCoords[0];
+        const ly = lastCoords[1];
+        if (cx !== undefined && cy !== undefined && lx !== undefined && ly !== undefined) {
+          const dx = cx - lx;
+          const dy = cy - ly;
+          totalChange += Math.sqrt(dx * dx + dy * dy);
+        }
       }
     }
 

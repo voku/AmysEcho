@@ -1,4 +1,3 @@
-// @ts-nocheck
 export interface AttemptResult {
   success: boolean;
   gesture: string;

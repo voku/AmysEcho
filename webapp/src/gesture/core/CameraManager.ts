@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Camera management for gesture detection
  * Handles video stream initialization and cleanup

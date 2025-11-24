@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { WebViewMessagePayload } from '../types/MediaPipeTypes';
 
 export const BATCH_INTERVAL_MS = 35;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { MediaPipeGestureResult } from '../types/MediaPipeTypes';
 
 export interface NormalizedHandPrediction {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Optimized processing pipeline for gesture recognition
  * Manages processing steps efficiently and reduces redundant operations
@@ -163,7 +162,7 @@ export class ProcessingPipeline {
 
     const result: ProcessingResult = {
       ...aggregated,
-      gesture: detectedGesture ?? (aggregated.gesture as string | undefined),
+      gesture: detectedGesture ?? (aggregated.gesture as string | null) ?? null,
       confidence:
         detectedGesture !== undefined
           ? currentConfidence
@@ -190,7 +189,7 @@ export class ProcessingPipeline {
   /**
    * Determine if an expensive step should be skipped
    */
-  private shouldSkipExpensiveStep(step: ProcessingStep, context: ProcessingContext): boolean {
+  private shouldSkipExpensiveStep(_step: ProcessingStep, context: ProcessingContext): boolean {
     // Skip if we already have a high-confidence result
     if (this.lastProcessingResult && this.lastProcessingResult.confidence > 0.8) {
       return true;
@@ -232,7 +231,10 @@ export class ProcessingPipeline {
 
         // Check if any coordinate changed significantly
         for (let coord = 0; coord < Math.min(currentPoint.length, previousPoint.length); coord++) {
-          if (Math.abs(currentPoint[coord] - previousPoint[coord]) > 0.01) { // 1% change threshold
+          const currentCoord = currentPoint[coord];
+          const previousCoord = previousPoint[coord];
+          if (currentCoord === undefined || previousCoord === undefined) continue;
+          if (Math.abs(currentCoord - previousCoord) > 0.01) { // 1% change threshold
             return false;
           }
         }
@@ -247,7 +249,7 @@ export class ProcessingPipeline {
    */
   private createSkippedResult(context: ProcessingContext, startTime: number): ProcessingResult {
     return {
-      gesture: this.lastProcessingResult?.gesture,
+      gesture: this.lastProcessingResult?.gesture ?? null,
       confidence: this.lastProcessingResult?.confidence || 0,
       landmarks: context.landmarks,
       processingTime: this.sanitizeDuration(performance.now() - startTime),
