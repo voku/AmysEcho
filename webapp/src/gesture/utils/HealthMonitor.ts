@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Health monitoring system for gesture detection
  * Proactively monitors system health and triggers recovery actions
@@ -70,7 +69,11 @@ export class HealthMonitor {
     const recentFrames = this.frameTimes.slice(-10); // Last 10 frames
     if (recentFrames.length < 2) return 0;
 
-    const timeSpan = recentFrames[recentFrames.length - 1] - recentFrames[0];
+    const lastFrame = recentFrames[recentFrames.length - 1];
+    const firstFrame = recentFrames[0];
+    if (lastFrame === undefined || firstFrame === undefined) return 0;
+
+    const timeSpan = lastFrame - firstFrame;
     const frameCount = recentFrames.length - 1;
 
     return (frameCount / timeSpan) * 1000; // frames per second

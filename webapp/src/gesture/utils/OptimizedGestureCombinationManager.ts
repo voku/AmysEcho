@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Optimized gesture combination manager with memory-efficient sequence tracking
  * and intelligent cleanup based on performance constraints

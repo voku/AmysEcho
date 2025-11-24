@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { unzip, unzipSync } from 'fflate';
 
 export interface GestureWindowAugmentations {

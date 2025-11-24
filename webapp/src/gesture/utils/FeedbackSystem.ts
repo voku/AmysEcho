@@ -1,4 +1,3 @@
-// @ts-nocheck
 type GestureFeedbackKey = 'thumbs_up' | 'point' | 'open_palm' | 'fist' | 'emergency';
 
 interface GestureFeedbackCopy {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced Error Recovery Manager for robust error handling
  * Extracted from main gestureDetector.ts for better modularity
@@ -153,7 +152,7 @@ export class ErrorRecoveryManager {
     this.lastRecoveryAttemptByContext.set(context, now);
 
     // Open circuit breaker if threshold exceeded
-    if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD || (isMediaPipeCtx && typeof process !== 'undefined' && process.env.NODE_ENV === 'test')) {
+    if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD || (isMediaPipeCtx && typeof process !== 'undefined' && process.env['NODE_ENV'] === 'test')) {
       this.circuitBreakerOpen = true;
       console.warn('Circuit breaker opened due to repeated failures');
       this.activateEmergencyMode();
@@ -165,7 +164,7 @@ export class ErrorRecoveryManager {
 
   isCircuitBreakerOpen(): boolean {
     // Auto-close circuit breaker after timeout (shortened in tests)
-    const timeout = (typeof process !== 'undefined' && process.env.NODE_ENV === 'test')
+    const timeout = (typeof process !== 'undefined' && process.env['NODE_ENV'] === 'test')
       ? 10
       : this.CIRCUIT_BREAKER_TIMEOUT;
     if (this.circuitBreakerOpen && Date.now() - this.lastFailureTime > timeout) {

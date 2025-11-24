@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Object pooling system for performance optimization
  * Reuses objects to reduce garbage collection pressure

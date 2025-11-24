@@ -1,4 +1,3 @@
-// @ts-nocheck
 const MAX_CAPTURE_DIMENSION = 640;
 const MAX_DATA_URL_LENGTH = 400_000; // ~400 KB cap to protect bridge bandwidth
 

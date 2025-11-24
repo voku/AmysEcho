@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Type definitions for MediaPipe Tasks Vision results and related interfaces
  */

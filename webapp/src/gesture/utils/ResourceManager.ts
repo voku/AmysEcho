@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Resource management for cleanup and disposal
  * Handles cleanup of event listeners, media streams, timeouts, and observers

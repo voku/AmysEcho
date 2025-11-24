@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Hand stability analysis and guidance system
  * Helps users maintain steady hand positions for better gesture recognition
@@ -69,7 +68,7 @@ export class HandStabilityAssistant {
       isStable,
       stabilityScore: this.stabilityScore,
       feedback,
-      guidePosition
+      ...(guidePosition ? { guidePosition } : {})
     };
   }
 
@@ -82,6 +81,13 @@ export class HandStabilityAssistant {
     const indexBase = hand[5];
     const pinkyBase = hand[17];
 
+    if (!wrist || !indexBase || !pinkyBase ||
+        wrist[0] === undefined || wrist[1] === undefined || wrist[2] === undefined ||
+        indexBase[0] === undefined || indexBase[1] === undefined || indexBase[2] === undefined ||
+        pinkyBase[0] === undefined || pinkyBase[1] === undefined || pinkyBase[2] === undefined) {
+      return [[0, 0, 0]];
+    }
+
     const centerX = (wrist[0] + indexBase[0] + pinkyBase[0]) / 3;
     const centerY = (wrist[1] + indexBase[1] + pinkyBase[1]) / 3;
     const centerZ = (wrist[2] + indexBase[2] + pinkyBase[2]) / 3;
@@ -93,11 +99,15 @@ export class HandStabilityAssistant {
    * Calculate movement between two positions
    */
   private calculateMovement(pos1: number[][], pos2: number[][]): number {
-    if (!pos1[0] || !pos2[0]) return 0;
+    const p1 = pos1[0];
+    const p2 = pos2[0];
+    if (!p1 || !p2) return 0;
+    if (p1[0] === undefined || p1[1] === undefined || p1[2] === undefined ||
+        p2[0] === undefined || p2[1] === undefined || p2[2] === undefined) return 0;
 
-    const dx = pos1[0][0] - pos2[0][0];
-    const dy = pos1[0][1] - pos2[0][1];
-    const dz = pos1[0][2] - pos2[0][2];
+    const dx = p1[0] - p2[0];
+    const dy = p1[1] - p2[1];
+    const dz = p1[2] - p2[2];
 
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }

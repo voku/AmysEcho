@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Navigation Gesture Manager - Amy First
  * Recognizes simple gestures for navigation back to main screen

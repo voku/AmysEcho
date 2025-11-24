@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced Context-Aware Recognition System - Amy First Phase 2
  * Provides comprehensive context awareness for gesture recognition

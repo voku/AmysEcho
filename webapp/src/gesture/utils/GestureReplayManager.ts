@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Gesture Replay Manager - Amy First
  * Records and replays successful gestures in slow motion for learning

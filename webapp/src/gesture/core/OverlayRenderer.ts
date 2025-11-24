@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Visual overlay rendering for gesture detection
  * Handles canvas drawing and visual feedback
@@ -107,7 +106,8 @@ export class OverlayRenderer {
     for (const [a, b] of HAND_CONNECTIONS) {
       const pa = hand[a];
       const pb = hand[b];
-      if (!pa || !pb) continue;
+      if (!pa || !pb || pa[0] === undefined || pa[1] === undefined || 
+          pb[0] === undefined || pb[1] === undefined) continue;
 
       const x1 = pa[0] * this.overlayWidth;
       const y1 = pa[1] * this.overlayHeight;
@@ -135,7 +135,7 @@ export class OverlayRenderer {
     if (!this.ctx) return;
 
     for (const lm of hand) {
-      if (!lm || lm.length < 2) continue;
+      if (!lm || lm.length < 2 || lm[0] === undefined || lm[1] === undefined) continue;
 
       this.ctx.beginPath();
       this.ctx.arc(
@@ -150,7 +150,7 @@ export class OverlayRenderer {
   /**
    * Draw stability guide circle
    */
-  drawStabilityGuide(isStable: boolean, stabilityScore: number): void {
+  drawStabilityGuide(_isStable: boolean, stabilityScore: number): void {
     if (!this.ctx || !this.overlayWidth || !this.overlayHeight) return;
 
     this.ctx.save();

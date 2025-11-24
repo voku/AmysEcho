@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Visual Correction Manager - Amy First
  * Provides picture-based correction selection instead of text

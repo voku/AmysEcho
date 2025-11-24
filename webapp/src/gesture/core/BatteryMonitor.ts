@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Battery monitoring system for emergency mode activation
  * Tracks battery level and triggers emergency protocols when critical
@@ -12,7 +11,7 @@ export class BatteryMonitor {
   private readonly BATTERY_CHECK_INTERVAL = 30000; // Check every 30 seconds
   private readonly EMERGENCY_BATTERY_THRESHOLD = 0.05; // 5% battery triggers emergency mode
   private emergencyBatteryThreshold = this.EMERGENCY_BATTERY_THRESHOLD;
-  private monitorHandle: ReturnType<typeof setInterval> | null = null;
+  private monitorHandle: number | null = null;
 
   /**
    * Start battery monitoring for emergency mode activation

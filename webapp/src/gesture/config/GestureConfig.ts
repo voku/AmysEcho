@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Configuration for gesture detection system
  * Centralized settings for performance, thresholds, and behavior

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   captureFrameForTrainer,
   frameCaptureState,
@@ -318,6 +317,7 @@ class MjpegAviEncoder {
 
     for (let index = 0; index < frameCount; index++) {
       const frame = this.frames[index];
+      if (!frame) continue;
       const size = frame.length;
       writeFourCC('00db');
       writeUint32(size);
@@ -337,10 +337,13 @@ class MjpegAviEncoder {
     // The 'movi' LIST chunk has a 12-byte header ('LIST', size, 'movi') before the frame data.
     const idx1OffsetFromMoviListStart = 12;
     for (let index = 0; index < frameCount; index++) {
+      const frameOffset = this.frameOffsets[index];
+      const chunkSize = this.chunkSizes[index];
+      if (frameOffset === undefined || chunkSize === undefined) continue;
       writeFourCC('00db');
       writeUint32(AVI_KEYFRAME); // keyframe
-      writeUint32(this.frameOffsets[index] + idx1OffsetFromMoviListStart);
-      writeUint32(this.chunkSizes[index]);
+      writeUint32(frameOffset + idx1OffsetFromMoviListStart);
+      writeUint32(chunkSize);
     }
 
     return new Uint8Array(buffer);

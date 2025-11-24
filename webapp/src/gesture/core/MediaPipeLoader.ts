@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * MediaPipe Tasks Vision SDK loader
  * Handles dynamic loading and initialization of MediaPipe components
@@ -17,11 +16,16 @@ export interface MediaPipeComponents {
 function describeError(error: unknown): { message: string; name?: string; stack?: string } {
   if (error && typeof error === 'object') {
     const withProps = error as { message?: unknown; name?: unknown; stack?: unknown };
-    return {
+    const result: { message: string; name?: string; stack?: string } = {
       message: typeof withProps.message === 'string' ? withProps.message : String(error),
-      name: typeof withProps.name === 'string' ? withProps.name : undefined,
-      stack: typeof withProps.stack === 'string' ? withProps.stack : undefined,
     };
+    if (typeof withProps.name === 'string') {
+      result.name = withProps.name;
+    }
+    if (typeof withProps.stack === 'string') {
+      result.stack = withProps.stack;
+    }
+    return result;
   }
   return { message: String(error) };
 }
@@ -49,6 +53,7 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
       (async () => {
         try {
           const ac = controllers[i];
+          if (!ac) throw new Error('AbortController not found');
           const t = setTimeout(() => ac.abort(), 8000); // LOAD_TIMEOUT_MS
           const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', {
             method: 'GET',

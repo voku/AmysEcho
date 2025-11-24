@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced Haptic Feedback Manager - Amy First
  * Provides immediate feedback for every hand movement detection
