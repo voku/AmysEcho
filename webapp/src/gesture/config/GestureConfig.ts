@@ -219,7 +219,8 @@ export function getAdaptiveConfig(
     confidence?: number;
   }
 ): GestureDetectorConfig {
-  const adaptiveConfig = { ...baseConfig };
+  const adaptiveConfig: GestureDetectorConfig =
+    typeof structuredClone === 'function' ? structuredClone(baseConfig) : JSON.parse(JSON.stringify(baseConfig));
 
   if (!baseConfig.amyPreferences.timeBasedAdjustments && !baseConfig.amyPreferences.contextAwareness) {
     return adaptiveConfig;
@@ -340,6 +341,10 @@ export function validateConfig(config: GestureDetectorConfig): { valid: boolean;
 
   if (config.thresholds.fallbackConfidence < 0 || config.thresholds.fallbackConfidence > 1) {
     errors.push('Fallback confidence threshold must be between 0 and 1');
+  }
+
+  if (config.thresholds.emergencyConfidence < 0 || config.thresholds.emergencyConfidence > 1) {
+    errors.push('Emergency confidence threshold must be between 0 and 1');
   }
 
   // Validate performance settings

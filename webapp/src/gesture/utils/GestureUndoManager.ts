@@ -68,6 +68,7 @@ export class GestureUndoManager {
   ];
 
   private lastUndoTime: Record<string, number> = {};
+  private undoGestureCounts: Record<string, number> = {}; // Track actual undo counts
   private undoHoldStart: Record<string, number> = {};
   private activeUndoSession: UndoSession | null = null;
 
@@ -182,6 +183,10 @@ export class GestureUndoManager {
     const session = this.activeUndoSession;
     session.confirmed = true;
 
+    // Track undo count
+    const undoName = session.undoGesture.name;
+    this.undoGestureCounts[undoName] = (this.undoGestureCounts[undoName] || 0) + 1;
+
     // Mark the target gesture as undone
     const targetIndex = this.gestureHistory.findIndex(
       g => g.sessionId === session.targetGesture.sessionId
@@ -222,7 +227,9 @@ export class GestureUndoManager {
       cryptoObj.getRandomValues(array);
       return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
     }
-    return Math.random().toString(16).slice(2, 2 + lengthBytes * 2);
+    // Fallback: timestamp-based ID. This is NOT cryptographically secure and
+    // should only be used for non-security-sensitive identifiers.
+    return `fallback_${Date.now().toString(16)}`.slice(0, lengthBytes * 2);
   }
 
   /**
@@ -318,16 +325,12 @@ export class GestureUndoManager {
       time => now - time < 3600000 // Last hour
     );
 
-    const totalUndos = recentUndos.length;
+    // Calculate total undos from actual counts
+    const totalUndos = Object.values(this.undoGestureCounts).reduce((sum, count) => sum + count, 0);
     const undoRate = this.gestureHistory.length > 0 ? totalUndos / this.gestureHistory.length : 0;
 
-    // Count undo gesture usage
-    const undoUsage: Record<string, number> = {};
-    Object.keys(this.lastUndoTime).forEach(gestureName => {
-      undoUsage[gestureName] = (undoUsage[gestureName] || 0) + 1;
-    });
-
-    const mostUsedUndoGesture = Object.entries(undoUsage)
+    // Find most used undo gesture from actual counts
+    const mostUsedUndoGesture = Object.entries(this.undoGestureCounts)
       .sort(([,a], [,b]) => b - a)[0]?.[0] || 'none';
 
     // Calculate average time to undo (simplified)
@@ -378,6 +381,7 @@ export class GestureUndoManager {
   reset(): void {
     this.gestureHistory = [];
     this.lastUndoTime = {};
+    this.undoGestureCounts = {};
     this.undoHoldStart = {};
     this.activeUndoSession = null;
   }

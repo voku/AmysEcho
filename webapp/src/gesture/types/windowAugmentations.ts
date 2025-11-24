@@ -1,4 +1,5 @@
 import type { unzip, unzipSync } from 'fflate';
+import type { MLPPrediction } from './MediaPipeTypes';
 
 export interface GestureWindowAugmentations {
   ReactNativeWebView?: { postMessage?: (message: string) => void };
@@ -7,7 +8,7 @@ export interface GestureWindowAugmentations {
   __mlpPredict?: (
     landmarks: number[][][],
     handednesses: unknown,
-  ) => { label: string; score: number } | null;
+  ) => MLPPrediction | null;
   __tapToStart?: string;
   __recognizerInitFailed?: string;
   __predictionError?: string;
