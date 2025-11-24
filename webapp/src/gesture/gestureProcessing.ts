@@ -156,7 +156,8 @@ export class PartialGestureDetector {
 
     const distance = Math.sqrt(
       Math.pow((middleTip[0] ?? 0) - (wrist[0] ?? 0), 2) +
-      Math.pow((middleTip[1] ?? 0) - (wrist[1] ?? 0), 2)
+      Math.pow((middleTip[1] ?? 0) - (wrist[1] ?? 0), 2) +
+      Math.pow((middleTip[2] ?? 0) - (wrist[2] ?? 0), 2)
     );
 
     // Normalize distance (rough hand size indicator)
