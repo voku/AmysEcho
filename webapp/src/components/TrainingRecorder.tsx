@@ -15,6 +15,12 @@ function formatRecordingTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 MB';
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(1)} MB`;
+}
+
 export function TrainingRecorder({ profileId, label, onRecordingComplete }: TrainingRecorderProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
@@ -29,7 +35,16 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
   const { start: startCamera, stop: stopCamera, status, error: cameraError } = useGestureDetector(videoRef, overlayRef);
 
-  const { state, recordedData, startRecording, stopRecording, resetRecording, framesCaptured } = useTrainingRecorder();
+  const {
+    state,
+    recordedData,
+    startRecording,
+    stopRecording,
+    resetRecording,
+    framesCaptured,
+    clipLimitExceeded,
+    maxClipBytes,
+  } = useTrainingRecorder(videoRef);
 
   // Update recording duration
   useEffect(() => {
@@ -90,7 +105,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       capturedAt: new Date().toISOString(),
       source: 'web://mediapipe',
       stillFile,
-      clipFile: null, // Video recording not implemented in webapp
+      clipFile: recordedData.clipFile,
     };
 
     onRecordingComplete(payload);
@@ -105,6 +120,12 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
   const isRecording = state === 'recording';
   const hasRecording = state === 'idle' && recordedData.frames.length > 0;
+  const clipStatus = recordedData.clipFile
+    ? `${recordedData.clipFile.name} (${formatBytes(recordedData.clipFile.size)})`
+    : `${formatBytes(recordedData.clipSizeBytes)} aufgenommen`;
+  const clipLimitNotice = clipLimitExceeded
+    ? `Maximale Dateigröße überschritten (${formatBytes(maxClipBytes)}). Bitte kürzer aufnehmen.`
+    : `Video wird zusammen mit den Landmarks gespeichert (Limit ${formatBytes(maxClipBytes)}).`;
 
   return (
     <section className="card">
@@ -152,6 +173,14 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 Geste: <strong>{label}</strong>
               </p>
               <p className="value">{framesCaptured} Frames erfasst</p>
+              <p className="muted small">Clip: {clipStatus}</p>
+              {recordedData.clipDurationMs > 0 && (
+                <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
+              )}
+              {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
+              <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
+                {clipLimitNotice}
+              </div>
             </div>
             <div className="toggle">
               <input
@@ -185,7 +214,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
             {hasRecording && (
               <>
-                <button className="primary" onClick={handleSaveRecording}>
+                <button className="primary" onClick={handleSaveRecording} disabled={clipLimitExceeded}>
                   Aufnahme verwenden
                 </button>
                 <button className="ghost" onClick={handleDiscardRecording}>
