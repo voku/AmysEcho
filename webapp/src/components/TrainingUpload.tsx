@@ -1,11 +1,18 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploader';
 import { frameHasAnyLandmarks } from '../training/handUtils';
-import type { TrainingFrame, TrainingBundlePayload } from '../training/types';
+import type {
+  TrainingFrame,
+  TrainingBundlePayload,
+  TrainingJobInfo,
+  UploadTrainingBundleResponse,
+} from '../training/types';
 import { TrainingRecorder } from './TrainingRecorder';
 import { useAppState } from '../hooks/useAppState';
 
 type LandmarkTuple = [number, number] | [number, number, number];
+
+type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
 function isFrameLike(value: unknown): value is { landmarks: unknown; handedness?: unknown } {
   return Boolean(
@@ -81,28 +88,107 @@ export interface TrainingUploadProps {
   label: string;
   setLabel: (label: string) => void;
   suggestedLabel?: string;
+  uploader: TrainingUploaderHandle;
 }
 
-export function TrainingUpload({ profileId, setProfileId, label, setLabel, suggestedLabel }: TrainingUploadProps) {
+function TrainingStatusBlock({
+  uploader,
+  message,
+  onSyncQueued,
+  actionSlot,
+}: {
+  uploader: TrainingUploaderHandle;
+  message?: string;
+  onSyncQueued: () => Promise<void>;
+  actionSlot?: ReactNode;
+}) {
+  const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob } = uploader;
+  const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
+
+  return (
+    <div className="panel">
+      <p className="eyebrow">Status & Hinweise</p>
+      {message && <div className="notice info">{message}</div>}
+      {error && <div className="notice error">{error}</div>}
+      {syncError && <div className="notice warning">Letzte Synchronisation: {syncError}</div>}
+      {trainingJobError && <div className="notice warning">Trainingsjob: {trainingJobError}</div>}
+      {activeTrainingJob && (
+        <div className="notice info">
+          <p className="eyebrow">Trainingsjob</p>
+          <p className="muted small">
+            Job-ID {activeTrainingJob.jobId} · Status: {activeTrainingJob.status}
+            {activeTrainingJob.pollUrl ? ` · Polling: ${activeTrainingJob.pollUrl}` : ''}
+          </p>
+        </div>
+      )}
+      <div className="notice muted notice-flex">
+        <div>
+          <p className="eyebrow">Warteschlange</p>
+          <p className="muted small">
+            {queuedCount === 0
+              ? 'Keine offenen Pakete.'
+              : `${queuedCount} Paket(e) warten auf Upload${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="ghost push-end"
+          onClick={onSyncQueued}
+          disabled={queuedCount === 0 || syncing}
+        >
+          {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
+        </button>
+      </div>
+      <ul className="muted small bullets">
+        <li>Offline? Bundles werden automatisch gespeichert und später hochgeladen.</li>
+        <li>Die ZIP-Struktur entspricht dem App-Bundle ({'metadata.json'}, {'landmarks.json'}, optional Dateien).</li>
+        <li>API-Endpunkt wird über <code>VITE_API_URL</code> konfiguriert.</li>
+      </ul>
+      {actionSlot}
+    </div>
+  );
+}
+
+function TrainingResultCard({ result, trainingJob }: { result: UploadTrainingBundleResponse; trainingJob: TrainingJobInfo | null }) {
+  if (!result) return null;
+  const activeTrainingJob = trainingJob ?? result.trainingJob ?? null;
+
+  return (
+    <div className="result-card">
+      <div>
+        <p className="eyebrow">Server-Antwort</p>
+        <p className="value">Bundle-ID: {result.id}</p>
+        <p className="muted">Status: {result.status}</p>
+      </div>
+      {activeTrainingJob && (
+        <div>
+          <p className="eyebrow">Trainingsjob</p>
+          <p className="value">Job-ID: {activeTrainingJob.jobId}</p>
+          <p className="muted">
+            {activeTrainingJob.status}
+            {activeTrainingJob.pollUrl ? ` · ${activeTrainingJob.pollUrl}` : ''}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function TrainingUpload({
+  profileId,
+  setProfileId,
+  label,
+  setLabel,
+  suggestedLabel,
+  uploader,
+}: TrainingUploadProps) {
   const [capturedAt, setCapturedAt] = useState(() => new Date().toISOString());
   const [frames, setFrames] = useState<TrainingFrame[]>([]);
   const [framesFileName, setFramesFileName] = useState<string>('');
   const [clipFile, setClipFile] = useState<File | null>(null);
   const [stillFile, setStillFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string>('');
-  const {
-    upload,
-    state,
-    lastResult,
-    error,
-    queuedCount,
-    syncQueued,
-    syncing,
-    syncError,
-    lastQueuedKey,
-    trainingJob,
-    trainingJobError,
-  } = useTrainingUploader();
+  const { upload, state, lastResult, syncQueued, trainingJob } = uploader;
 
   const statusText: Record<UploadState, string> = {
     idle: 'Bereit',
@@ -126,8 +212,6 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
     if (frames.length === 0) return 'Keine verwertbaren Frames geladen.';
     return `${frames.length} Frames mit Landmarken geladen`;
   }, [frames]);
-
-  const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
 
   const handleFramesFile = useCallback(async (file: File | null) => {
     setMessage('');
@@ -277,70 +361,20 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
             </div>
           </div>
 
-          <div className="panel">
-            <p className="eyebrow">Status & Hinweise</p>
-            {message && <div className="notice info">{message}</div>}
-            {error && <div className="notice error">{error}</div>}
-            {syncError && <div className="notice warning">Letzte Synchronisation: {syncError}</div>}
-            {trainingJobError && <div className="notice warning">Trainingsjob: {trainingJobError}</div>}
-            {activeTrainingJob && (
-              <div className="notice info">
-                <p className="eyebrow">Trainingsjob</p>
-                <p className="muted small">
-                  Job-ID {activeTrainingJob.jobId} · Status: {activeTrainingJob.status}
-                  {activeTrainingJob.pollUrl ? ` · Polling: ${activeTrainingJob.pollUrl}` : ''}
-                </p>
-              </div>
-            )}
-            <div className="notice muted notice-flex">
-              <div>
-                <p className="eyebrow">Warteschlange</p>
-                <p className="muted small">
-                  {queuedCount === 0
-                    ? 'Keine offenen Pakete.'
-                    : `${queuedCount} Paket(e) warten auf Upload${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="ghost push-end"
-                onClick={handleSyncQueued}
-                disabled={queuedCount === 0 || syncing}
-              >
-                {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
+          <TrainingStatusBlock
+            uploader={uploader}
+            message={message}
+            onSyncQueued={handleSyncQueued}
+            actionSlot={
+              <button className="primary" type="submit" disabled={frames.length === 0 || state === 'uploading'}>
+                Trainingspaket hochladen
               </button>
-            </div>
-            <ul className="muted small bullets">
-              <li>Offline? Bundles werden automatisch gespeichert und später hochgeladen.</li>
-              <li>Die ZIP-Struktur entspricht dem App-Bundle ({'metadata.json'}, {'landmarks.json'}, optional Dateien).</li>
-              <li>API-Endpunkt wird über <code>VITE_API_URL</code> konfiguriert.</li>
-            </ul>
-            <button className="primary" type="submit" disabled={frames.length === 0 || state === 'uploading'}>
-              Trainingspaket hochladen
-            </button>
-          </div>
+            }
+          />
         </div>
       </form>
 
-      {lastResult && (
-        <div className="result-card">
-          <div>
-            <p className="eyebrow">Server-Antwort</p>
-            <p className="value">Bundle-ID: {lastResult.id}</p>
-            <p className="muted">Status: {lastResult.status}</p>
-          </div>
-          {activeTrainingJob && (
-            <div>
-              <p className="eyebrow">Trainingsjob</p>
-              <p className="value">Job-ID: {activeTrainingJob.jobId}</p>
-              <p className="muted">
-                {activeTrainingJob.status}
-                {activeTrainingJob.pollUrl ? ` · ${activeTrainingJob.pollUrl}` : ''}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      {lastResult && <TrainingResultCard result={lastResult} trainingJob={trainingJob} />}
     </section>
   );
 }
@@ -348,19 +382,8 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
 // Wrapper component with mode switching
 export function TrainingUploadWithRecording() {
   const [mode, setMode] = useState<'record' | 'upload'>('record');
-  const {
-    upload,
-    lastResult,
-    error,
-    queuedCount,
-    syncQueued,
-    syncing,
-    syncError,
-    state,
-    lastQueuedKey,
-    trainingJob,
-    trainingJobError,
-  } = useTrainingUploader();
+  const uploadState = useTrainingUploader();
+  const { upload, lastResult, state, trainingJob } = uploadState;
   const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =
     useAppState();
   const [label, setLabel] = useState(preferredGestureLabel);
@@ -379,8 +402,6 @@ export function TrainingUploadWithRecording() {
   );
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
-  const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
-
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
       setMessage('Aufnahme wird hochgeladen…');
@@ -402,7 +423,7 @@ export function TrainingUploadWithRecording() {
   const handleSyncQueued = useCallback(async () => {
     setMessage('Warteschlange wird synchronisiert…');
     try {
-      const uploaded = await syncQueued();
+      const uploaded = await uploadState.syncQueued();
       setMessage(
         uploaded > 0
           ? `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`
@@ -412,7 +433,7 @@ export function TrainingUploadWithRecording() {
       const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
       setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
     }
-  }, [syncQueued]);
+  }, [uploadState]);
 
   return (
     <>
@@ -467,58 +488,28 @@ export function TrainingUploadWithRecording() {
           label={label}
           setLabel={handleLabelUpdate}
           suggestedLabel={suggestedLabel}
+          uploader={uploadState}
         />
       )}
-
-      {message && mode === 'record' && <div className="notice info mt-md">{message}</div>}
-
-      {error && mode === 'record' && <div className="notice error mt-md">{error}</div>}
-
-      {trainingJobError && mode === 'record' && <div className="notice warning mt-md">{trainingJobError}</div>}
 
       {mode === 'record' && (
         <div className="card mt-md">
           <div className="card-header mb-sm">
             <div>
-              <p className="eyebrow">Warteschlange</p>
-              <p className="muted small">
-                {queuedCount === 0
-                  ? 'Keine offenen Pakete.'
-                  : `${queuedCount} Paket(e) warten · ${lastQueuedKey ?? 'kein Key'}`}
-              </p>
+              <p className="eyebrow">Status</p>
+              <p className="muted small">{state === 'uploading' ? 'Upload läuft…' : 'Bereit'}</p>
             </div>
-            <div className="status-chip" data-state={state === 'queued' ? 'running' : 'idle'}>
-              {syncing ? 'Synchronisiere…' : state === 'queued' ? 'Wartet' : 'Bereit'}
+            <div className="status-chip" data-state={state === 'error' ? 'error' : state === 'uploading' ? 'running' : 'idle'}>
+              {state === 'error' ? 'Fehler' : state === 'uploading' ? 'Lädt…' : 'Bereit'}
             </div>
           </div>
-          {syncError && <div className="notice warning">{syncError}</div>}
-          <button
-            className="ghost full-width"
-            onClick={handleSyncQueued}
-            disabled={queuedCount === 0 || syncing}
-          >
-            {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
-          </button>
+          <TrainingStatusBlock uploader={uploadState} message={message} onSyncQueued={handleSyncQueued} />
         </div>
       )}
 
       {lastResult && mode === 'record' && (
-        <div className="result-card mt-md">
-          <div>
-            <p className="eyebrow">Server-Antwort</p>
-            <p className="value">Bundle-ID: {lastResult.id}</p>
-            <p className="muted">Status: {lastResult.status}</p>
-          </div>
-          {activeTrainingJob && (
-            <div>
-              <p className="eyebrow">Trainingsjob</p>
-              <p className="value">Job-ID: {activeTrainingJob.jobId}</p>
-              <p className="muted">
-                {activeTrainingJob.status}
-                {activeTrainingJob.pollUrl ? ` · ${activeTrainingJob.pollUrl}` : ''}
-              </p>
-            </div>
-          )}
+        <div className="mt-md">
+          <TrainingResultCard result={lastResult} trainingJob={trainingJob} />
         </div>
       )}
     </>
