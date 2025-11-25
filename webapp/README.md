@@ -28,6 +28,7 @@ Die Trainings-Bundles werden dann an `VITE_API_URL/api/v1/dgs/sample-bundles` ho
 - Die Startseite **Gestenerkennung** rendert `useGestureDetector`, ruft den bekannten `GestureRecognitionOrchestrator` auf und protokolliert alle `postMessage`-Events der kopierten WebView-Logik.
 - Ein Browser-Bridge (`window.ReactNativeWebView`) leitet alle Nachrichten als `CustomEvent` (`webapp:webview-message`) weiter; die UI zeigt letzte Gesten und Bridge-Payloads an.
 - Das Overlay kann ein- oder ausgeblendet werden; Statuschips zeigen „bereit“, „laufend“ oder Fehler an.
+- Ein globaler Profil- und Label-Schalter synchronisiert Gestenerkennung und Training. Erkannte Gesten werden als Vorschlag gespeichert und können direkt als neues Trainingslabel übernommen werden.
 - Die Seite **Grenzen & Alternativen** listet deaktivierte native Features und Web-Ersatzwege.
 - Die Seite **Training / Upload** bietet zwei Modi:
   - **Geste aufnehmen**: Nimmt Gesten mit der Kamera in Echtzeit auf. Die Handbewegungen werden automatisch erkannt und als Frames mit Landmarks erfasst. Nach der Aufnahme wird ein Trainingspaket (`metadata.json`, `landmarks.json`, Standbild) erstellt und direkt hochgeladen.

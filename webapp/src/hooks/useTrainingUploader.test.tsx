@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useTrainingUploader } from './useTrainingUploader';
 import { listQueuedBundles } from '../training/trainingQueue';
 import type { TrainingBundlePayload } from '../training/types';
@@ -26,6 +26,7 @@ describe('useTrainingUploader', () => {
 
   afterEach(() => {
     Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
+    vi.restoreAllMocks();
   });
 
   it('liefert Ergebnis nach erfolgreichem Upload', async () => {

@@ -102,8 +102,8 @@ export function useTrainingUploader() {
             capturedAt: payload.capturedAt ?? new Date().toISOString(),
             source: payload.source ?? 'web://mediapipe',
             framesCount: payload.frames?.length ?? 0,
-            clipBytes: payload.clipFile?.size,
-            stillBytes: payload.stillFile?.size,
+            ...(typeof payload.clipFile?.size === 'number' ? { clipBytes: payload.clipFile.size } : {}),
+            ...(typeof payload.stillFile?.size === 'number' ? { stillBytes: payload.stillFile.size } : {}),
             zip,
           });
           if (persisted) {
@@ -134,8 +134,8 @@ export function useTrainingUploader() {
             capturedAt: payload.capturedAt ?? new Date().toISOString(),
             source: payload.source ?? 'web://mediapipe',
             framesCount: payload.frames?.length ?? 0,
-            clipBytes: payload.clipFile?.size,
-            stillBytes: payload.stillFile?.size,
+            ...(typeof payload.clipFile?.size === 'number' ? { clipBytes: payload.clipFile.size } : {}),
+            ...(typeof payload.stillFile?.size === 'number' ? { stillBytes: payload.stillFile.size } : {}),
             zip,
           });
           if (persisted) {

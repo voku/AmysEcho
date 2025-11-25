@@ -54,9 +54,10 @@ function resolveRecordingStream(video?: HTMLVideoElement | null): MediaStream | 
     return srcObject;
   }
 
-  if (typeof video?.captureStream === 'function') {
+  const streamCandidate = video as (HTMLVideoElement & { captureStream?: () => MediaStream }) | null | undefined;
+  if (typeof streamCandidate?.captureStream === 'function') {
     try {
-      return video.captureStream();
+      return streamCandidate.captureStream();
     } catch (error) {
       console.warn('captureStream failed', error);
     }

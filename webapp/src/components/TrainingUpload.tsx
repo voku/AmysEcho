@@ -1,8 +1,9 @@
-import { FormEvent, useCallback, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploader';
 import { frameHasAnyLandmarks } from '../training/handUtils';
 import type { TrainingFrame, TrainingBundlePayload } from '../training/types';
 import { TrainingRecorder } from './TrainingRecorder';
+import { useAppState } from '../hooks/useAppState';
 
 type LandmarkTuple = [number, number] | [number, number, number];
 
@@ -79,9 +80,10 @@ export interface TrainingUploadProps {
   setProfileId: (id: string) => void;
   label: string;
   setLabel: (label: string) => void;
+  suggestedLabel?: string;
 }
 
-export function TrainingUpload({ profileId, setProfileId, label, setLabel }: TrainingUploadProps) {
+export function TrainingUpload({ profileId, setProfileId, label, setLabel, suggestedLabel }: TrainingUploadProps) {
   const [capturedAt, setCapturedAt] = useState(() => new Date().toISOString());
   const [frames, setFrames] = useState<TrainingFrame[]>([]);
   const [framesFileName, setFramesFileName] = useState<string>('');
@@ -213,6 +215,15 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
         <div className="form-group">
           <label htmlFor="label">Gestenlabel</label>
           <input id="label" value={label} onChange={(event) => setLabel(event.target.value)} required />
+          {suggestedLabel && suggestedLabel !== label && (
+            <button
+              type="button"
+              className="ghost mt-sm"
+              onClick={() => setLabel(suggestedLabel)}
+            >
+              Letzte erkannte Geste übernehmen ({suggestedLabel})
+            </button>
+          )}
           <p className="muted small">Muss einem bekannten Gestenbegriff entsprechen (z. B. „HILFE“).</p>
         </div>
         <div className="form-group">
@@ -244,7 +255,7 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
               <input type="file" accept="video/*" onChange={(event) => setClipFile(event.target.files?.[0] ?? null)} />
               <p className="muted small">{clipFile?.name || 'Kein Clip ausgewählt'}</p>
             </div>
-            <p className="eyebrow" style={{ marginTop: '1rem' }}>
+            <p className="eyebrow mt-md">
               Standbild (optional)
             </p>
             <div className="file-input">
@@ -258,7 +269,7 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
             {message && <div className="notice info">{message}</div>}
             {error && <div className="notice error">{error}</div>}
             {syncError && <div className="notice warning">Letzte Synchronisation: {syncError}</div>}
-            <div className="notice muted" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="notice muted notice-flex">
               <div>
                 <p className="eyebrow">Warteschlange</p>
                 <p className="muted small">
@@ -269,10 +280,9 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
               </div>
               <button
                 type="button"
-                className="ghost"
+                className="ghost push-end"
                 onClick={handleSyncQueued}
                 disabled={queuedCount === 0 || syncing}
-                style={{ marginLeft: 'auto' }}
               >
                 {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
               </button>
@@ -315,11 +325,26 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
 // Wrapper component with mode switching
 export function TrainingUploadWithRecording() {
   const [mode, setMode] = useState<'record' | 'upload'>('record');
-  const [profileId, setProfileId] = useState('web-demo');
-  const [label, setLabel] = useState('HILFE');
   const { upload, lastResult, error, queuedCount, syncQueued, syncing, syncError, state, lastQueuedKey } =
     useTrainingUploader();
+  const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =
+    useAppState();
+  const [label, setLabel] = useState(preferredGestureLabel);
   const [message, setMessage] = useState<string>('');
+
+  useEffect(() => {
+    setLabel(preferredGestureLabel);
+  }, [preferredGestureLabel]);
+
+  const handleLabelUpdate = useCallback(
+    (value: string) => {
+      setLabel(value);
+      setPreferredGestureLabel(value);
+    },
+    [setPreferredGestureLabel],
+  );
+
+  const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
 
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
@@ -356,7 +381,7 @@ export function TrainingUploadWithRecording() {
 
   return (
     <>
-      <div className="mode-switcher" style={{ marginBottom: '1rem' }}>
+      <div className="mode-switcher mb-md">
         <button className={mode === 'record' ? 'active' : ''} onClick={() => setMode('record')}>
           Geste aufnehmen
         </button>
@@ -365,47 +390,58 @@ export function TrainingUploadWithRecording() {
         </button>
       </div>
 
+      {suggestedLabel && (
+        <div className="notice info mb-md">
+          Letzte erkannte Geste: <strong>{suggestedLabel}</strong>.{' '}
+          <button type="button" className="ghost" onClick={() => handleLabelUpdate(suggestedLabel)}>
+            Als Standardlabel übernehmen
+          </button>
+        </div>
+      )}
+
       {mode === 'record' && (
         <>
           <TrainingRecorder profileId={profileId} label={label} onRecordingComplete={handleRecordingComplete} />
 
-          <div className="card" style={{ marginTop: '1rem' }}>
+          <div className="card mt-md">
             <div className="form-group">
               <label htmlFor="record-profile">Profil-ID</label>
               <input id="record-profile" value={profileId} onChange={(event) => setProfileId(event.target.value)} />
             </div>
             <div className="form-group">
               <label htmlFor="record-label">Gestenlabel</label>
-              <input id="record-label" value={label} onChange={(event) => setLabel(event.target.value)} />
+              <input id="record-label" value={label} onChange={(event) => handleLabelUpdate(event.target.value)} />
+              {suggestedLabel && suggestedLabel !== label && (
+                <button
+                  type="button"
+                  className="ghost mt-xs"
+                  onClick={() => handleLabelUpdate(suggestedLabel)}
+                >
+                  Letzte erkannte Geste verwenden ({suggestedLabel})
+                </button>
+              )}
             </div>
           </div>
         </>
       )}
 
       {mode === 'upload' && (
-        <TrainingUpload 
-          profileId={profileId} 
-          setProfileId={setProfileId} 
-          label={label} 
-          setLabel={setLabel} 
+        <TrainingUpload
+          profileId={profileId}
+          setProfileId={setProfileId}
+          label={label}
+          setLabel={handleLabelUpdate}
+          suggestedLabel={suggestedLabel}
         />
       )}
 
-      {message && mode === 'record' && (
-        <div className="notice info" style={{ marginTop: '1rem' }}>
-          {message}
-        </div>
-      )}
+      {message && mode === 'record' && <div className="notice info mt-md">{message}</div>}
 
-      {error && mode === 'record' && (
-        <div className="notice error" style={{ marginTop: '1rem' }}>
-          {error}
-        </div>
-      )}
+      {error && mode === 'record' && <div className="notice error mt-md">{error}</div>}
 
       {mode === 'record' && (
-        <div className="card" style={{ marginTop: '1rem' }}>
-          <div className="card-header" style={{ marginBottom: '0.5rem' }}>
+        <div className="card mt-md">
+          <div className="card-header mb-sm">
             <div>
               <p className="eyebrow">Warteschlange</p>
               <p className="muted small">
@@ -420,10 +456,9 @@ export function TrainingUploadWithRecording() {
           </div>
           {syncError && <div className="notice warning">{syncError}</div>}
           <button
-            className="ghost"
+            className="ghost full-width"
             onClick={handleSyncQueued}
             disabled={queuedCount === 0 || syncing}
-            style={{ width: '100%' }}
           >
             {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
           </button>
@@ -431,7 +466,7 @@ export function TrainingUploadWithRecording() {
       )}
 
       {lastResult && mode === 'record' && (
-        <div className="result-card" style={{ marginTop: '1rem' }}>
+        <div className="result-card mt-md">
           <div>
             <p className="eyebrow">Server-Antwort</p>
             <p className="value">Bundle-ID: {lastResult.id}</p>
