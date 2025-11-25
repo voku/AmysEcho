@@ -53,16 +53,16 @@ export function ProfileBar() {
           {suggestedLabel && suggestedLabel !== preferredGestureLabel && (
             <button
               type="button"
-              className="ghost"
+              className="ghost mt-sm"
               onClick={() => setPreferredGestureLabel(suggestedLabel)}
-              style={{ marginTop: '0.5rem' }}
+              aria-label="Letzte erkannte Geste übernehmen"
             >
               Letzte erkannte Geste übernehmen ({suggestedLabel})
             </button>
           )}
         </div>
 
-        <div className="panel" style={{ gap: '0.35rem' }}>
+        <div className="panel panel-tight">
           <p className="eyebrow">Letzte Gesten</p>
           {recentGestures.length === 0 && <p className="muted">Noch keine Erkennung erfasst.</p>}
           {recentGestures.length > 0 && (
@@ -70,7 +70,7 @@ export function ProfileBar() {
               {recentGestures.map((gesture) => (
                 <li key={gesture}>
                   <span className="badge">{gesture}</span>
-                  <span className="muted" style={{ marginLeft: '0.35rem' }}>
+                  <span className="muted ml-xs">
                     zugewiesen an {profileId || '…'}
                   </span>
                 </li>

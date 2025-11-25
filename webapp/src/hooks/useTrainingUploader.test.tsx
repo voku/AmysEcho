@@ -26,6 +26,7 @@ describe('useTrainingUploader', () => {
 
   afterEach(() => {
     Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
+    vi.restoreAllMocks();
   });
 
   it('liefert Ergebnis nach erfolgreichem Upload', async () => {

@@ -10,11 +10,11 @@ export interface PersistedTrainingBundle {
   source: string;
   queuedAt: string;
   framesCount: number;
-  clipBytes?: number | undefined;
-  stillBytes?: number | undefined;
+  clipBytes?: number;
+  stillBytes?: number;
   zipBase64: string;
   status: PersistedBundleStatus;
-  lastError?: string | undefined;
+  lastError?: string;
   attempts: number;
 }
 
@@ -77,11 +77,11 @@ function parseBundle(key: string, raw: string | null): PersistedTrainingBundle |
       source: typeof parsed.source === 'string' ? parsed.source : 'web://mediapipe',
       queuedAt: typeof parsed.queuedAt === 'string' ? parsed.queuedAt : new Date().toISOString(),
       framesCount: typeof parsed.framesCount === 'number' ? parsed.framesCount : 0,
-      clipBytes: typeof parsed.clipBytes === 'number' ? parsed.clipBytes : undefined,
-      stillBytes: typeof parsed.stillBytes === 'number' ? parsed.stillBytes : undefined,
+      ...(typeof parsed.clipBytes === 'number' ? { clipBytes: parsed.clipBytes } : {}),
+      ...(typeof parsed.stillBytes === 'number' ? { stillBytes: parsed.stillBytes } : {}),
       zipBase64: parsed.zipBase64,
       status: parsed.status === 'failed' || parsed.status === 'uploading' ? parsed.status : 'pending',
-      lastError: typeof parsed.lastError === 'string' ? parsed.lastError : undefined,
+      ...(typeof parsed.lastError === 'string' ? { lastError: parsed.lastError } : {}),
       attempts: typeof parsed.attempts === 'number' ? parsed.attempts : 0,
     };
   } catch (error) {
@@ -106,8 +106,8 @@ export async function enqueuePersistedBundle(params: {
   capturedAt: string;
   source: string;
   framesCount: number;
-  clipBytes?: number | undefined;
-  stillBytes?: number | undefined;
+  clipBytes?: number;
+  stillBytes?: number;
   zip: Uint8Array;
 }): Promise<PersistedTrainingBundle | null> {
   const store = storage();
@@ -122,8 +122,8 @@ export async function enqueuePersistedBundle(params: {
     source: params.source,
     queuedAt: new Date().toISOString(),
     framesCount: params.framesCount,
-    clipBytes: params.clipBytes,
-    stillBytes: params.stillBytes,
+    ...(typeof params.clipBytes === 'number' ? { clipBytes: params.clipBytes } : {}),
+    ...(typeof params.stillBytes === 'number' ? { stillBytes: params.stillBytes } : {}),
     zipBase64: toBase64(params.zip),
     status: 'pending',
     attempts: 0,
@@ -177,6 +177,6 @@ export async function markBundleUploading(key: string): Promise<void> {
   if (!parsed) return;
   parsed.status = 'uploading';
   parsed.attempts += 1;
-  parsed.lastError = undefined;
+  delete parsed.lastError;
   writeBundle(parsed);
 }

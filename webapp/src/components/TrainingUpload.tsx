@@ -218,8 +218,7 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
           {suggestedLabel && suggestedLabel !== label && (
             <button
               type="button"
-              className="ghost"
-              style={{ marginTop: '0.4rem' }}
+              className="ghost mt-sm"
               onClick={() => setLabel(suggestedLabel)}
             >
               Letzte erkannte Geste übernehmen ({suggestedLabel})
@@ -256,7 +255,7 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
               <input type="file" accept="video/*" onChange={(event) => setClipFile(event.target.files?.[0] ?? null)} />
               <p className="muted small">{clipFile?.name || 'Kein Clip ausgewählt'}</p>
             </div>
-            <p className="eyebrow" style={{ marginTop: '1rem' }}>
+            <p className="eyebrow mt-md">
               Standbild (optional)
             </p>
             <div className="file-input">
@@ -270,7 +269,7 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
             {message && <div className="notice info">{message}</div>}
             {error && <div className="notice error">{error}</div>}
             {syncError && <div className="notice warning">Letzte Synchronisation: {syncError}</div>}
-            <div className="notice muted" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="notice muted notice-flex">
               <div>
                 <p className="eyebrow">Warteschlange</p>
                 <p className="muted small">
@@ -281,10 +280,9 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
               </div>
               <button
                 type="button"
-                className="ghost"
+                className="ghost push-end"
                 onClick={handleSyncQueued}
                 disabled={queuedCount === 0 || syncing}
-                style={{ marginLeft: 'auto' }}
               >
                 {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
               </button>
@@ -383,7 +381,7 @@ export function TrainingUploadWithRecording() {
 
   return (
     <>
-      <div className="mode-switcher" style={{ marginBottom: '1rem' }}>
+      <div className="mode-switcher mb-md">
         <button className={mode === 'record' ? 'active' : ''} onClick={() => setMode('record')}>
           Geste aufnehmen
         </button>
@@ -393,8 +391,11 @@ export function TrainingUploadWithRecording() {
       </div>
 
       {suggestedLabel && (
-        <div className="notice info" style={{ marginBottom: '1rem' }}>
-          Letzte erkannte Geste: <strong>{suggestedLabel}</strong>. Mit einem Klick wird sie als Standardlabel übernommen.
+        <div className="notice info mb-md">
+          Letzte erkannte Geste: <strong>{suggestedLabel}</strong>.{' '}
+          <button type="button" className="ghost" onClick={() => handleLabelUpdate(suggestedLabel)}>
+            Als Standardlabel übernehmen
+          </button>
         </div>
       )}
 
@@ -402,7 +403,7 @@ export function TrainingUploadWithRecording() {
         <>
           <TrainingRecorder profileId={profileId} label={label} onRecordingComplete={handleRecordingComplete} />
 
-          <div className="card" style={{ marginTop: '1rem' }}>
+          <div className="card mt-md">
             <div className="form-group">
               <label htmlFor="record-profile">Profil-ID</label>
               <input id="record-profile" value={profileId} onChange={(event) => setProfileId(event.target.value)} />
@@ -413,8 +414,7 @@ export function TrainingUploadWithRecording() {
               {suggestedLabel && suggestedLabel !== label && (
                 <button
                   type="button"
-                  className="ghost"
-                  style={{ marginTop: '0.35rem' }}
+                  className="ghost mt-xs"
                   onClick={() => handleLabelUpdate(suggestedLabel)}
                 >
                   Letzte erkannte Geste verwenden ({suggestedLabel})
@@ -435,21 +435,13 @@ export function TrainingUploadWithRecording() {
         />
       )}
 
-      {message && mode === 'record' && (
-        <div className="notice info" style={{ marginTop: '1rem' }}>
-          {message}
-        </div>
-      )}
+      {message && mode === 'record' && <div className="notice info mt-md">{message}</div>}
 
-      {error && mode === 'record' && (
-        <div className="notice error" style={{ marginTop: '1rem' }}>
-          {error}
-        </div>
-      )}
+      {error && mode === 'record' && <div className="notice error mt-md">{error}</div>}
 
       {mode === 'record' && (
-        <div className="card" style={{ marginTop: '1rem' }}>
-          <div className="card-header" style={{ marginBottom: '0.5rem' }}>
+        <div className="card mt-md">
+          <div className="card-header mb-sm">
             <div>
               <p className="eyebrow">Warteschlange</p>
               <p className="muted small">
@@ -464,10 +456,9 @@ export function TrainingUploadWithRecording() {
           </div>
           {syncError && <div className="notice warning">{syncError}</div>}
           <button
-            className="ghost"
+            className="ghost full-width"
             onClick={handleSyncQueued}
             disabled={queuedCount === 0 || syncing}
-            style={{ width: '100%' }}
           >
             {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
           </button>
@@ -475,7 +466,7 @@ export function TrainingUploadWithRecording() {
       )}
 
       {lastResult && mode === 'record' && (
-        <div className="result-card" style={{ marginTop: '1rem' }}>
+        <div className="result-card mt-md">
           <div>
             <p className="eyebrow">Server-Antwort</p>
             <p className="value">Bundle-ID: {lastResult.id}</p>

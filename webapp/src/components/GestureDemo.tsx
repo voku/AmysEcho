@@ -79,7 +79,7 @@ export function GestureDemo() {
       </div>
 
       <div className="notice spaced">
-        <p className="muted" style={{ margin: 0 }}>
+        <p className="muted no-margin">
           Aktives Profil: <strong>{profileId || '…'}</strong> · Standardlabel: <strong>{preferredGestureLabel}</strong>. Das
           Training übernimmt diese Werte automatisch.
         </p>

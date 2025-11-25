@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'webapp:app-state';
 
@@ -30,14 +30,14 @@ function readFromStorage(): StoredAppState {
     const parsed = JSON.parse(raw);
     return {
       profileId: typeof parsed?.profileId === 'string' && parsed.profileId.trim()
-        ? parsed.profileId
+        ? parsed.profileId.trim()
         : defaultState.profileId,
       preferredGestureLabel: typeof parsed?.preferredGestureLabel === 'string' && parsed.preferredGestureLabel.trim()
-        ? parsed.preferredGestureLabel
+        ? parsed.preferredGestureLabel.trim()
         : defaultState.preferredGestureLabel,
       lastRecognizedGesture:
         typeof parsed?.lastRecognizedGesture === 'string' && parsed.lastRecognizedGesture.trim()
-          ? parsed.lastRecognizedGesture
+          ? parsed.lastRecognizedGesture.trim()
           : null,
       recentGestures: Array.isArray(parsed?.recentGestures)
         ? (parsed.recentGestures as unknown[])
@@ -66,34 +66,43 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state]);
 
+  const setProfileId = useCallback((value: string) => {
+    setState((prev) => ({
+      ...prev,
+      profileId: value,
+    }));
+  }, []);
+
+  const setPreferredGestureLabel = useCallback((value: string) => {
+    setState((prev) => ({
+      ...prev,
+      preferredGestureLabel: value,
+    }));
+  }, []);
+
+  const recordGesture = useCallback((gesture: string) => {
+    setState((prev) => {
+      const normalized = gesture.trim();
+      if (!normalized) return prev;
+      const existing = prev.recentGestures.filter((entry) => entry !== normalized);
+      const updatedRecent = [normalized, ...existing].slice(0, 5);
+      return {
+        ...prev,
+        lastRecognizedGesture: normalized,
+        recentGestures: updatedRecent,
+        preferredGestureLabel: prev.preferredGestureLabel || normalized,
+      };
+    });
+  }, []);
+
   const value = useMemo<AppStateContextValue>(
     () => ({
       ...state,
-      setProfileId: (value: string) =>
-        setState((prev) => ({
-          ...prev,
-          profileId: value,
-        })),
-      setPreferredGestureLabel: (value: string) =>
-        setState((prev) => ({
-          ...prev,
-          preferredGestureLabel: value,
-        })),
-      recordGesture: (gesture: string) =>
-        setState((prev) => {
-          const normalized = gesture.trim();
-          if (!normalized) return prev;
-          const existing = prev.recentGestures.filter((entry) => entry !== normalized);
-          const updatedRecent = [normalized, ...existing].slice(0, 5);
-          return {
-            ...prev,
-            lastRecognizedGesture: normalized,
-            recentGestures: updatedRecent,
-            preferredGestureLabel: prev.preferredGestureLabel || normalized,
-          };
-        }),
+      setProfileId,
+      setPreferredGestureLabel,
+      recordGesture,
     }),
-    [state],
+    [state, setPreferredGestureLabel, setProfileId, recordGesture],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
