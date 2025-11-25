@@ -1,5 +1,6 @@
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import tsEslintPlugin from '@typescript-eslint/eslint-plugin';
+import tsEslintParser from '@typescript-eslint/parser';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 
@@ -9,7 +10,7 @@ export default [
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      parser: tseslint.parser,
+      parser: tsEslintParser,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -22,7 +23,7 @@ export default [
       },
     },
     plugins: {
-      '@typescript-eslint': tseslint.plugin,
+      '@typescript-eslint': tsEslintPlugin,
       react,
       'react-hooks': reactHooks,
     },
