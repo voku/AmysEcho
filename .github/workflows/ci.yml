@@ -17,6 +17,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             app/package-lock.json
+            webapp/package-lock.json
             server/package-lock.json
             integration/package-lock.json
       - uses: actions/setup-python@v5

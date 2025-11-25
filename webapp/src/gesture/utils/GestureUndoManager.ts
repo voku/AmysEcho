@@ -320,11 +320,6 @@ export class GestureUndoManager {
     mostUsedUndoGesture: string;
     averageTimeToUndo: number;
   } {
-    const now = Date.now();
-    const recentUndos = Object.values(this.lastUndoTime).filter(
-      time => now - time < 3600000 // Last hour
-    );
-
     // Calculate total undos from actual counts
     const totalUndos = Object.values(this.undoGestureCounts).reduce((sum, count) => sum + count, 0);
     const undoRate = this.gestureHistory.length > 0 ? totalUndos / this.gestureHistory.length : 0;

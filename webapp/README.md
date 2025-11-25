@@ -65,5 +65,6 @@ Die Webapp unterstützt jetzt die Aufnahme von Gesten in Echtzeit ähnlich wie d
 - **Stillbild-Erfassung**: Nimmt automatisch ein Standbild der letzten erkannten Geste auf
 - **Direkter Upload**: Erstellt ZIP-Paket und lädt es unmittelbar nach der Aufnahme hoch
 - **Zwei Modi**: Wähle zwischen Live-Aufnahme oder Datei-Upload für maximale Flexibilität
+- **Job-Status**: Erkennt Server-Antworten mit `trainingJob` und pollt den Status automatisch; Fehler werden im UI angezeigt.
 
 Diese Features ermöglichen es Amy, direkt im Browser neue Gesten zu trainieren ohne die native App zu benötigen.

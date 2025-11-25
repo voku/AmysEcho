@@ -41,6 +41,7 @@ install_node_modules() {
 }
 
 run_step "Install app dependencies" install_node_modules app
+run_step "Install webapp dependencies" install_node_modules webapp
 run_step "Install server dependencies" install_node_modules server
 run_step "Install integration dependencies" install_node_modules integration
 
@@ -63,6 +64,12 @@ run_step "Run Expo doctor" run_expo_doctor
 # Run type check and tests for the React Native app
 run_step "Type-check React Native app" npm run type-check --prefix app
 run_step "Test React Native app" npm test --prefix app
+
+# Run lint/type-check/tests for the browser webapp
+run_step "Lint webapp" npm run lint --prefix webapp
+run_step "Type-check webapp" npm run type-check --prefix webapp
+run_step "Test webapp" npm test --prefix webapp
+run_step "Build webapp" npm run build --prefix webapp
 
 # Install backend Python deps (if needed)
 PIP_FLAGS=""
