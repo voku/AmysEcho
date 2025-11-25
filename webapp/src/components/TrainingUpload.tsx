@@ -1,8 +1,9 @@
-import { FormEvent, useCallback, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploader';
 import { frameHasAnyLandmarks } from '../training/handUtils';
 import type { TrainingFrame, TrainingBundlePayload } from '../training/types';
 import { TrainingRecorder } from './TrainingRecorder';
+import { useAppState } from '../hooks/useAppState';
 
 type LandmarkTuple = [number, number] | [number, number, number];
 
@@ -79,9 +80,10 @@ export interface TrainingUploadProps {
   setProfileId: (id: string) => void;
   label: string;
   setLabel: (label: string) => void;
+  suggestedLabel?: string;
 }
 
-export function TrainingUpload({ profileId, setProfileId, label, setLabel }: TrainingUploadProps) {
+export function TrainingUpload({ profileId, setProfileId, label, setLabel, suggestedLabel }: TrainingUploadProps) {
   const [capturedAt, setCapturedAt] = useState(() => new Date().toISOString());
   const [frames, setFrames] = useState<TrainingFrame[]>([]);
   const [framesFileName, setFramesFileName] = useState<string>('');
@@ -213,6 +215,16 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
         <div className="form-group">
           <label htmlFor="label">Gestenlabel</label>
           <input id="label" value={label} onChange={(event) => setLabel(event.target.value)} required />
+          {suggestedLabel && suggestedLabel !== label && (
+            <button
+              type="button"
+              className="ghost"
+              style={{ marginTop: '0.4rem' }}
+              onClick={() => setLabel(suggestedLabel)}
+            >
+              Letzte erkannte Geste übernehmen ({suggestedLabel})
+            </button>
+          )}
           <p className="muted small">Muss einem bekannten Gestenbegriff entsprechen (z. B. „HILFE“).</p>
         </div>
         <div className="form-group">
@@ -315,11 +327,26 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
 // Wrapper component with mode switching
 export function TrainingUploadWithRecording() {
   const [mode, setMode] = useState<'record' | 'upload'>('record');
-  const [profileId, setProfileId] = useState('web-demo');
-  const [label, setLabel] = useState('HILFE');
   const { upload, lastResult, error, queuedCount, syncQueued, syncing, syncError, state, lastQueuedKey } =
     useTrainingUploader();
+  const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =
+    useAppState();
+  const [label, setLabel] = useState(preferredGestureLabel);
   const [message, setMessage] = useState<string>('');
+
+  useEffect(() => {
+    setLabel(preferredGestureLabel);
+  }, [preferredGestureLabel]);
+
+  const handleLabelUpdate = useCallback(
+    (value: string) => {
+      setLabel(value);
+      setPreferredGestureLabel(value);
+    },
+    [setPreferredGestureLabel],
+  );
+
+  const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
 
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
@@ -365,6 +392,12 @@ export function TrainingUploadWithRecording() {
         </button>
       </div>
 
+      {suggestedLabel && (
+        <div className="notice info" style={{ marginBottom: '1rem' }}>
+          Letzte erkannte Geste: <strong>{suggestedLabel}</strong>. Mit einem Klick wird sie als Standardlabel übernommen.
+        </div>
+      )}
+
       {mode === 'record' && (
         <>
           <TrainingRecorder profileId={profileId} label={label} onRecordingComplete={handleRecordingComplete} />
@@ -376,18 +409,29 @@ export function TrainingUploadWithRecording() {
             </div>
             <div className="form-group">
               <label htmlFor="record-label">Gestenlabel</label>
-              <input id="record-label" value={label} onChange={(event) => setLabel(event.target.value)} />
+              <input id="record-label" value={label} onChange={(event) => handleLabelUpdate(event.target.value)} />
+              {suggestedLabel && suggestedLabel !== label && (
+                <button
+                  type="button"
+                  className="ghost"
+                  style={{ marginTop: '0.35rem' }}
+                  onClick={() => handleLabelUpdate(suggestedLabel)}
+                >
+                  Letzte erkannte Geste verwenden ({suggestedLabel})
+                </button>
+              )}
             </div>
           </div>
         </>
       )}
 
       {mode === 'upload' && (
-        <TrainingUpload 
-          profileId={profileId} 
-          setProfileId={setProfileId} 
-          label={label} 
-          setLabel={setLabel} 
+        <TrainingUpload
+          profileId={profileId}
+          setProfileId={setProfileId}
+          label={label}
+          setLabel={handleLabelUpdate}
+          suggestedLabel={suggestedLabel}
         />
       )}
 

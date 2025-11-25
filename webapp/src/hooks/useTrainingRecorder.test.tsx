@@ -3,6 +3,8 @@ import { useTrainingRecorder } from './useTrainingRecorder';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
+type MockMediaRecorderState = 'inactive' | 'recording' | 'paused';
+
 describe('useTrainingRecorder', () => {
   let OriginalMediaRecorder: typeof MediaRecorder | undefined;
   let OriginalMediaStream: typeof MediaStream | undefined;
@@ -136,7 +138,7 @@ describe('useTrainingRecorder', () => {
     class MockMediaRecorder {
       ondataavailable: ((event: { data: Blob }) => void) | null = null;
       onstop: (() => void) | null = null;
-      state: MediaRecorderState = 'inactive';
+      state: MockMediaRecorderState = 'inactive';
       readonly mimeType = 'video/webm';
       readonly stream: MediaStream;
 
@@ -191,7 +193,7 @@ describe('useTrainingRecorder', () => {
     class MockMediaRecorder {
       ondataavailable: ((event: { data: Blob }) => void) | null = null;
       onstop: (() => void) | null = null;
-      state: MediaRecorderState = 'inactive';
+      state: MockMediaRecorderState = 'inactive';
       readonly mimeType = 'video/webm';
       readonly stream: MediaStream;
 

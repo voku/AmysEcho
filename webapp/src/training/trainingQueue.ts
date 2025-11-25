@@ -10,11 +10,11 @@ export interface PersistedTrainingBundle {
   source: string;
   queuedAt: string;
   framesCount: number;
-  clipBytes?: number;
-  stillBytes?: number;
+  clipBytes?: number | undefined;
+  stillBytes?: number | undefined;
   zipBase64: string;
   status: PersistedBundleStatus;
-  lastError?: string;
+  lastError?: string | undefined;
   attempts: number;
 }
 
@@ -106,8 +106,8 @@ export async function enqueuePersistedBundle(params: {
   capturedAt: string;
   source: string;
   framesCount: number;
-  clipBytes?: number;
-  stillBytes?: number;
+  clipBytes?: number | undefined;
+  stillBytes?: number | undefined;
   zip: Uint8Array;
 }): Promise<PersistedTrainingBundle | null> {
   const store = storage();

@@ -1,6 +1,7 @@
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
 import { FeatureAvailability } from './components/FeatureAvailability';
 import { GestureDemo } from './components/GestureDemo';
+import { ProfileBar } from './components/ProfileBar';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import './App.css';
 
@@ -31,6 +32,7 @@ function App() {
         </header>
 
         <main className="content">
+          <ProfileBar />
           <Routes>
             <Route path="/" element={<GestureDemo />} />
             <Route path="/funktionen" element={<FeatureAvailability />} />

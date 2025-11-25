@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
+import { useAppState } from '../hooks/useAppState';
 
 function formatStatus(status: string): string {
   switch (status) {
@@ -29,6 +30,13 @@ export function GestureDemo() {
     videoRef,
     overlayRef,
   );
+  const { profileId, preferredGestureLabel, recordGesture } = useAppState();
+
+  useEffect(() => {
+    if (lastGesture) {
+      recordGesture(lastGesture);
+    }
+  }, [lastGesture, recordGesture]);
 
   const handleStart = async () => {
     await start();
@@ -68,6 +76,13 @@ export function GestureDemo() {
         <button className="ghost" onClick={handleReset}>
           Neu aufsetzen
         </button>
+      </div>
+
+      <div className="notice spaced">
+        <p className="muted" style={{ margin: 0 }}>
+          Aktives Profil: <strong>{profileId || '…'}</strong> · Standardlabel: <strong>{preferredGestureLabel}</strong>. Das
+          Training übernimmt diese Werte automatisch.
+        </p>
       </div>
 
       {!cameraSupported && (
