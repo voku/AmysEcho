@@ -34,7 +34,8 @@ function readFromStorage(): StoredApiConfig {
     const parsed = JSON.parse(raw);
     return {
       apiBaseUrl: normalizeApiBase(parsed?.apiBaseUrl),
-      apiToken: typeof parsed?.apiToken === 'string' ? parsed.apiToken : '',
+      // Tokens werden nicht aus dem Storage geladen, um Klartext-Risiken zu vermeiden.
+      apiToken: '',
     } satisfies StoredApiConfig;
   } catch (error) {
     console.warn('Konnte API-Konfiguration nicht lesen', error);
@@ -50,11 +51,15 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      // Persist only the API base to avoid storing tokens im Klartext.
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ apiBaseUrl: config.apiBaseUrl, apiToken: '' }),
+      );
     } catch (error) {
       console.warn('Konnte API-Konfiguration nicht speichern', error);
     }
-  }, [config]);
+  }, [config.apiBaseUrl]);
 
   const setApiBaseUrl = useCallback((value: string) => {
     setConfig((prev) => ({ ...prev, apiBaseUrl: normalizeApiBase(value) }));
@@ -93,7 +98,7 @@ export function resolvePollUrl(baseUrl: string, pollUrl: string | undefined, job
     return pollUrl.trim();
   }
 
-  const trimmedBase = normalizeApiBase(baseUrl).replace(/\/$/, '');
+  const trimmedBase = normalizeApiBase(baseUrl);
   if (pollUrl && pollUrl.trim().length > 0) {
     return `${trimmedBase}/${pollUrl.trim().replace(/^\/+/, '')}`;
   }

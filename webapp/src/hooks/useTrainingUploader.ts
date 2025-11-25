@@ -23,7 +23,7 @@ export interface DefaultUploadOptions {
 
 export function useTrainingUploader(options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions } = {}) {
   const pollIntervalMs = options.pollIntervalMs ?? 2000;
-  const defaultOptions = options.defaultOptions ?? {};
+  const defaultOptions = useMemo(() => options.defaultOptions ?? {}, [options.defaultOptions]);
   const [state, setState] = useState<UploadState>('idle');
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +78,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
       syncingRef.current = false;
       return uploaded;
     },
-    [refreshQueue],
+    [refreshQueue, resolveOptions],
   );
 
   useEffect(() => {
@@ -171,7 +171,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
           ? {
               ...result.trainingJob,
               pollUrl: resolvePollUrl(
-                resolvedOptions.apiBase ?? resolvedOptions.endpoint ?? '',
+                resolvedOptions.apiBase ?? '',
                 result.trainingJob.pollUrl,
                 result.trainingJob.jobId,
               ),
@@ -216,7 +216,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
         throw err;
       }
     },
-    [refreshQueue],
+    [refreshQueue, resolveOptions],
   );
 
   useEffect(() => {
@@ -228,8 +228,12 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
     const poll = async () => {
       if (cancelled) return;
       try {
+        const headers: HeadersInit = { Accept: 'application/json' };
+        if (defaultOptions.token) {
+          headers.Authorization = `Bearer ${defaultOptions.token}`;
+        }
         const response = await fetch(trainingJob.pollUrl as string, {
-          headers: { Accept: 'application/json' },
+          headers,
         });
         if (!response.ok) {
           throw new Error(`Polling fehlgeschlagen (HTTP ${response.status}).`);
@@ -275,7 +279,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
         pollTimeoutRef.current = null;
       }
     };
-  }, [pollIntervalMs, trainingJob]);
+  }, [defaultOptions.token, pollIntervalMs, trainingJob]);
 
   return useMemo(
     () => ({
