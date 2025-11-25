@@ -136,11 +136,10 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   return zipSync(entries);
 }
 
-export async function uploadTrainingBundle(
-  payload: TrainingBundlePayload,
+export async function uploadTrainingZip(
+  zip: Uint8Array,
   options: { endpoint?: string; token?: string } = {},
 ): Promise<UploadTrainingBundleResponse> {
-  const zip = await createTrainingZip(payload);
   const endpoint =
     options.endpoint ?? `${import.meta.env['VITE_API_URL'] ?? 'http://localhost:3000'}/api/v1/dgs/sample-bundles`;
 
@@ -180,4 +179,12 @@ export async function uploadTrainingBundle(
     status: statusNormalized,
     ...(trainingJob ? { trainingJob } : {}),
   };
+}
+
+export async function uploadTrainingBundle(
+  payload: TrainingBundlePayload,
+  options: { endpoint?: string; token?: string } = {},
+): Promise<UploadTrainingBundleResponse> {
+  const zip = await createTrainingZip(payload);
+  return uploadTrainingZip(zip, options);
 }
