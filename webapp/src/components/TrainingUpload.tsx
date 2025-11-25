@@ -88,13 +88,15 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
   const [clipFile, setClipFile] = useState<File | null>(null);
   const [stillFile, setStillFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string>('');
-  const { upload, state, lastResult, error } = useTrainingUploader();
+  const { upload, state, lastResult, error, queuedCount, syncQueued, syncing, syncError, lastQueuedKey } =
+    useTrainingUploader();
 
   const statusText: Record<UploadState, string> = {
     idle: 'Bereit',
     preparing: 'Paket wird erstellt…',
     uploading: 'Upload läuft…',
     success: 'Upload erfolgreich',
+    queued: 'Warteschlange aktiv',
     error: 'Fehler beim Upload',
   };
 
@@ -103,6 +105,7 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
     preparing: 'running',
     uploading: 'running',
     success: 'success',
+    queued: 'running',
     error: 'error',
   };
 
@@ -134,6 +137,21 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
     setMessage('');
   }, []);
 
+  const handleSyncQueued = useCallback(async () => {
+    setMessage('Warteschlange wird synchronisiert…');
+    try {
+      const uploaded = await syncQueued();
+      setMessage(
+        uploaded > 0
+          ? `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`
+          : 'Keine Pakete in der Warteschlange gefunden.',
+      );
+    } catch (syncErr) {
+      const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
+      setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
+    }
+  }, [syncQueued]);
+
   const handleSubmit = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
@@ -143,7 +161,7 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
       }
       setMessage('Paket wird erstellt und hochgeladen…');
       try {
-        await upload({
+        const result = await upload({
           profileId,
           label,
           frames,
@@ -152,7 +170,11 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
           clipFile,
           stillFile,
         });
-        setMessage('Upload abgeschlossen. Vielen Dank für die neuen Trainingsdaten!');
+        if (result) {
+          setMessage('Upload abgeschlossen. Vielen Dank für die neuen Trainingsdaten!');
+        } else {
+          setMessage('Bundle gespeichert und wartet auf Synchronisation.');
+        }
       } catch (uploadError) {
         const reason = uploadError instanceof Error ? uploadError.message : String(uploadError);
         setMessage(`Upload fehlgeschlagen: ${reason}`);
@@ -235,8 +257,28 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
             <p className="eyebrow">Status & Hinweise</p>
             {message && <div className="notice info">{message}</div>}
             {error && <div className="notice error">{error}</div>}
+            {syncError && <div className="notice warning">Letzte Synchronisation: {syncError}</div>}
+            <div className="notice muted" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div>
+                <p className="eyebrow">Warteschlange</p>
+                <p className="muted small">
+                  {queuedCount === 0
+                    ? 'Keine offenen Pakete.'
+                    : `${queuedCount} Paket(e) warten auf Upload${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ghost"
+                onClick={handleSyncQueued}
+                disabled={queuedCount === 0 || syncing}
+                style={{ marginLeft: 'auto' }}
+              >
+                {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
+              </button>
+            </div>
             <ul className="muted small bullets">
-              <li>Kein Offline-Queueing – der Browser lädt direkt hoch.</li>
+              <li>Offline? Bundles werden automatisch gespeichert und später hochgeladen.</li>
               <li>Die ZIP-Struktur entspricht dem App-Bundle ({'metadata.json'}, {'landmarks.json'}, optional Dateien).</li>
               <li>API-Endpunkt wird über <code>VITE_API_URL</code> konfiguriert.</li>
             </ul>
@@ -275,15 +317,20 @@ export function TrainingUploadWithRecording() {
   const [mode, setMode] = useState<'record' | 'upload'>('record');
   const [profileId, setProfileId] = useState('web-demo');
   const [label, setLabel] = useState('HILFE');
-  const { upload, lastResult, error } = useTrainingUploader();
+  const { upload, lastResult, error, queuedCount, syncQueued, syncing, syncError, state, lastQueuedKey } =
+    useTrainingUploader();
   const [message, setMessage] = useState<string>('');
 
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
       setMessage('Aufnahme wird hochgeladen…');
       try {
-        await upload(payload);
-        setMessage('Upload abgeschlossen. Vielen Dank für die neue Geste!');
+        const result = await upload(payload);
+        setMessage(
+          result
+            ? 'Upload abgeschlossen. Vielen Dank für die neue Geste!'
+            : 'Bundle gespeichert, wird bei Verbindung synchronisiert.',
+        );
       } catch (uploadError) {
         const reason = uploadError instanceof Error ? uploadError.message : String(uploadError);
         setMessage(`Upload fehlgeschlagen: ${reason}`);
@@ -291,6 +338,21 @@ export function TrainingUploadWithRecording() {
     },
     [upload],
   );
+
+  const handleSyncQueued = useCallback(async () => {
+    setMessage('Warteschlange wird synchronisiert…');
+    try {
+      const uploaded = await syncQueued();
+      setMessage(
+        uploaded > 0
+          ? `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`
+          : 'Keine Pakete in der Warteschlange gefunden.',
+      );
+    } catch (syncErr) {
+      const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
+      setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
+    }
+  }, [syncQueued]);
 
   return (
     <>
@@ -338,6 +400,33 @@ export function TrainingUploadWithRecording() {
       {error && mode === 'record' && (
         <div className="notice error" style={{ marginTop: '1rem' }}>
           {error}
+        </div>
+      )}
+
+      {mode === 'record' && (
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div className="card-header" style={{ marginBottom: '0.5rem' }}>
+            <div>
+              <p className="eyebrow">Warteschlange</p>
+              <p className="muted small">
+                {queuedCount === 0
+                  ? 'Keine offenen Pakete.'
+                  : `${queuedCount} Paket(e) warten · ${lastQueuedKey ?? 'kein Key'}`}
+              </p>
+            </div>
+            <div className="status-chip" data-state={state === 'queued' ? 'running' : 'idle'}>
+              {syncing ? 'Synchronisiere…' : state === 'queued' ? 'Wartet' : 'Bereit'}
+            </div>
+          </div>
+          {syncError && <div className="notice warning">{syncError}</div>}
+          <button
+            className="ghost"
+            onClick={handleSyncQueued}
+            disabled={queuedCount === 0 || syncing}
+            style={{ width: '100%' }}
+          >
+            {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
+          </button>
         </div>
       )}
 
