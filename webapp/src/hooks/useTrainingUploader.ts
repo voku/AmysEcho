@@ -11,11 +11,19 @@ import {
 } from '../training/trainingQueue';
 import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleResponse } from '../training/types';
 import { normalizeTrainingJobStatus } from '../training/trainingBundle';
+import { resolvePollUrl } from './useApiConfig';
 
 export type UploadState = 'idle' | 'preparing' | 'uploading' | 'queued' | 'success' | 'error';
 
-export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
+export interface DefaultUploadOptions {
+  endpoint?: string;
+  token?: string;
+  apiBase?: string;
+}
+
+export function useTrainingUploader(options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions } = {}) {
   const pollIntervalMs = options.pollIntervalMs ?? 2000;
+  const defaultOptions = options.defaultOptions ?? {};
   const [state, setState] = useState<UploadState>('idle');
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +42,16 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
     return bundles;
   }, []);
 
+  const resolveOptions = useCallback(
+    (override?: { endpoint?: string; token?: string; apiBase?: string }) => ({
+      ...defaultOptions,
+      ...override,
+    }),
+    [defaultOptions],
+  );
+
   const syncQueued = useCallback(
-    async (options?: { endpoint?: string; token?: string }): Promise<number> => {
+    async (options?: { endpoint?: string; token?: string; apiBase?: string }): Promise<number> => {
       if (syncingRef.current) return 0;
       syncingRef.current = true;
       setSyncing(true);
@@ -47,7 +63,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
       for (const bundle of pending) {
         try {
           await markBundleUploading(bundle.key);
-          await uploadTrainingZip(decodeBundleData(bundle), options);
+          await uploadTrainingZip(decodeBundleData(bundle), resolveOptions(options));
           await removeQueuedBundle(bundle.key);
           uploaded += 1;
         } catch (err) {
@@ -108,7 +124,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
   }, [syncQueued]);
 
   const upload = useCallback(
-    async (payload: TrainingBundlePayload, options?: { endpoint?: string; token?: string }) => {
+    async (payload: TrainingBundlePayload, options?: { endpoint?: string; token?: string; apiBase?: string }) => {
       setState('preparing');
       setError(null);
       setLastResult(null);
@@ -149,9 +165,24 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
         }
 
         setState('uploading');
-        const result = await uploadTrainingZip(zip, options);
-        setTrainingJob(result.trainingJob ?? null);
-        setLastResult(result);
+        const resolvedOptions = resolveOptions(options);
+        const result = await uploadTrainingZip(zip, resolvedOptions);
+        const resolvedTrainingJob = result.trainingJob
+          ? {
+              ...result.trainingJob,
+              pollUrl: resolvePollUrl(
+                resolvedOptions.apiBase ?? resolvedOptions.endpoint ?? '',
+                result.trainingJob.pollUrl,
+                result.trainingJob.jobId,
+              ),
+            }
+          : null;
+        setTrainingJob(resolvedTrainingJob ?? null);
+        setLastResult(
+          resolvedTrainingJob
+            ? { ...result, trainingJob: resolvedTrainingJob }
+            : result,
+        );
         setState('success');
         await refreshQueue();
         return result;

@@ -33,7 +33,7 @@ describe('useTrainingUploader', () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ id: 'bundle-42', status: 'queued', trainingJob: { jobId: 'job-7', status: 'running' } }),
+      json: async () => ({ id: 'bundle-42', status: 'queued', trainingJob: { jobId: 'job-7', status: 'completed' } }),
     });
     (globalThis as any).fetch = fetchSpy;
 
@@ -45,6 +45,38 @@ describe('useTrainingUploader', () => {
     expect(result.current.lastResult?.id).toBe('bundle-42');
     expect(result.current.lastResult?.trainingJob?.jobId).toBe('job-7');
     expect(result.current.state).toBe('success');
+  });
+
+  it('verwendet Default-Optionen für Uploads und Polling', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 'bundle-12',
+          status: 'queued',
+          trainingJob: { jobId: 'job-12', status: 'running', pollUrl: '/jobs/12' },
+        }),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'completed' }) });
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() =>
+      useTrainingUploader({
+        defaultOptions: { endpoint: 'https://api.example.com/api/v1/dgs/sample-bundles', apiBase: 'https://api.example.com' },
+        pollIntervalMs: 5,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.upload(payload);
+    });
+
+    await waitFor(() => {
+      expect(fetchSpy.mock.calls[0]?.[0]).toBe('https://api.example.com/api/v1/dgs/sample-bundles');
+      expect(fetchSpy.mock.calls.some((call) => String(call?.[0]).includes('/jobs/12'))).toBe(true);
+    });
   });
 
   it('legt fehlgeschlagene Uploads in die Warteschlange', async () => {
