@@ -339,6 +339,21 @@ export function TrainingUploadWithRecording() {
     [upload],
   );
 
+  const handleSyncQueued = useCallback(async () => {
+    setMessage('Warteschlange wird synchronisiert…');
+    try {
+      const uploaded = await syncQueued();
+      setMessage(
+        uploaded > 0
+          ? `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`
+          : 'Keine Pakete in der Warteschlange gefunden.',
+      );
+    } catch (syncErr) {
+      const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
+      setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
+    }
+  }, [syncQueued]);
+
   return (
     <>
       <div className="mode-switcher" style={{ marginBottom: '1rem' }}>
