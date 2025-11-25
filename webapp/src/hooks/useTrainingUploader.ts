@@ -9,11 +9,13 @@ import {
   markBundleUploading,
   removeQueuedBundle,
 } from '../training/trainingQueue';
-import type { TrainingBundlePayload, UploadTrainingBundleResponse } from '../training/types';
+import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleResponse } from '../training/types';
+import { normalizeTrainingJobStatus } from '../training/trainingBundle';
 
 export type UploadState = 'idle' | 'preparing' | 'uploading' | 'queued' | 'success' | 'error';
 
-export function useTrainingUploader() {
+export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
+  const pollIntervalMs = options.pollIntervalMs ?? 2000;
   const [state, setState] = useState<UploadState>('idle');
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +23,9 @@ export function useTrainingUploader() {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastQueuedKey, setLastQueuedKey] = useState<string | null>(null);
+  const [trainingJob, setTrainingJob] = useState<TrainingJobInfo | null>(null);
+  const [trainingJobError, setTrainingJobError] = useState<string | null>(null);
+  const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
 
   const refreshQueue = useCallback(async () => {
@@ -90,6 +95,12 @@ export function useTrainingUploader() {
       setError(null);
       setLastResult(null);
       setLastQueuedKey(null);
+      setTrainingJob(null);
+      setTrainingJobError(null);
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
       let zip: Uint8Array | null = null;
 
       try {
@@ -121,6 +132,7 @@ export function useTrainingUploader() {
 
         setState('uploading');
         const result = await uploadTrainingZip(zip, options);
+        setTrainingJob(result.trainingJob ?? null);
         setLastResult(result);
         setState('success');
         await refreshQueue();
@@ -158,6 +170,64 @@ export function useTrainingUploader() {
     [refreshQueue],
   );
 
+  useEffect(() => {
+    if (!trainingJob?.pollUrl) return;
+    if (trainingJob.status === 'completed' || trainingJob.status === 'failed') return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const response = await fetch(trainingJob.pollUrl as string, {
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) {
+          throw new Error(`Polling fehlgeschlagen (HTTP ${response.status}).`);
+        }
+        const body = await response.json();
+        const nextStatus = normalizeTrainingJobStatus((body as { status?: string })?.status ?? '');
+        if (nextStatus) {
+          setTrainingJob((prev) =>
+            prev ? { ...prev, status: nextStatus, pollUrl: prev.pollUrl } : null,
+          );
+          setLastResult((prev) =>
+            prev && prev.trainingJob
+              ? {
+                  ...prev,
+                  trainingJob: {
+                    ...prev.trainingJob,
+                    status: nextStatus,
+                    pollUrl: prev.trainingJob.pollUrl,
+                  },
+                }
+              : prev,
+          );
+          setTrainingJobError(null);
+
+          if (nextStatus === 'completed' || nextStatus === 'failed') {
+            return;
+          }
+        }
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        setTrainingJobError(reason);
+      }
+
+      pollTimeoutRef.current = setTimeout(poll, pollIntervalMs);
+    };
+
+    poll();
+
+    return () => {
+      cancelled = true;
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
+    };
+  }, [pollIntervalMs, trainingJob]);
+
   return useMemo(
     () => ({
       upload,
@@ -169,7 +239,21 @@ export function useTrainingUploader() {
       syncing,
       syncError,
       lastQueuedKey,
+      trainingJob,
+      trainingJobError,
     }),
-    [error, lastQueuedKey, lastResult, queuedCount, state, syncError, syncQueued, syncing, upload],
+    [
+      error,
+      lastQueuedKey,
+      lastResult,
+      queuedCount,
+      state,
+      syncError,
+      syncQueued,
+      syncing,
+      trainingJob,
+      trainingJobError,
+      upload,
+    ],
   );
 }

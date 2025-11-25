@@ -90,8 +90,19 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
   const [clipFile, setClipFile] = useState<File | null>(null);
   const [stillFile, setStillFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string>('');
-  const { upload, state, lastResult, error, queuedCount, syncQueued, syncing, syncError, lastQueuedKey } =
-    useTrainingUploader();
+  const {
+    upload,
+    state,
+    lastResult,
+    error,
+    queuedCount,
+    syncQueued,
+    syncing,
+    syncError,
+    lastQueuedKey,
+    trainingJob,
+    trainingJobError,
+  } = useTrainingUploader();
 
   const statusText: Record<UploadState, string> = {
     idle: 'Bereit',
@@ -115,6 +126,8 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
     if (frames.length === 0) return 'Keine verwertbaren Frames geladen.';
     return `${frames.length} Frames mit Landmarken geladen`;
   }, [frames]);
+
+  const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
 
   const handleFramesFile = useCallback(async (file: File | null) => {
     setMessage('');
@@ -269,6 +282,16 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
             {message && <div className="notice info">{message}</div>}
             {error && <div className="notice error">{error}</div>}
             {syncError && <div className="notice warning">Letzte Synchronisation: {syncError}</div>}
+            {trainingJobError && <div className="notice warning">Trainingsjob: {trainingJobError}</div>}
+            {activeTrainingJob && (
+              <div className="notice info">
+                <p className="eyebrow">Trainingsjob</p>
+                <p className="muted small">
+                  Job-ID {activeTrainingJob.jobId} · Status: {activeTrainingJob.status}
+                  {activeTrainingJob.pollUrl ? ` · Polling: ${activeTrainingJob.pollUrl}` : ''}
+                </p>
+              </div>
+            )}
             <div className="notice muted notice-flex">
               <div>
                 <p className="eyebrow">Warteschlange</p>
@@ -306,13 +329,13 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
             <p className="value">Bundle-ID: {lastResult.id}</p>
             <p className="muted">Status: {lastResult.status}</p>
           </div>
-          {lastResult.trainingJob && (
+          {activeTrainingJob && (
             <div>
               <p className="eyebrow">Trainingsjob</p>
-              <p className="value">Job-ID: {lastResult.trainingJob.jobId}</p>
+              <p className="value">Job-ID: {activeTrainingJob.jobId}</p>
               <p className="muted">
-                {lastResult.trainingJob.status}
-                {lastResult.trainingJob.pollUrl ? ` · ${lastResult.trainingJob.pollUrl}` : ''}
+                {activeTrainingJob.status}
+                {activeTrainingJob.pollUrl ? ` · ${activeTrainingJob.pollUrl}` : ''}
               </p>
             </div>
           )}
@@ -325,8 +348,19 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel, sugge
 // Wrapper component with mode switching
 export function TrainingUploadWithRecording() {
   const [mode, setMode] = useState<'record' | 'upload'>('record');
-  const { upload, lastResult, error, queuedCount, syncQueued, syncing, syncError, state, lastQueuedKey } =
-    useTrainingUploader();
+  const {
+    upload,
+    lastResult,
+    error,
+    queuedCount,
+    syncQueued,
+    syncing,
+    syncError,
+    state,
+    lastQueuedKey,
+    trainingJob,
+    trainingJobError,
+  } = useTrainingUploader();
   const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =
     useAppState();
   const [label, setLabel] = useState(preferredGestureLabel);
@@ -345,6 +379,7 @@ export function TrainingUploadWithRecording() {
   );
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
+  const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
 
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
@@ -439,6 +474,8 @@ export function TrainingUploadWithRecording() {
 
       {error && mode === 'record' && <div className="notice error mt-md">{error}</div>}
 
+      {trainingJobError && mode === 'record' && <div className="notice warning mt-md">{trainingJobError}</div>}
+
       {mode === 'record' && (
         <div className="card mt-md">
           <div className="card-header mb-sm">
@@ -472,13 +509,13 @@ export function TrainingUploadWithRecording() {
             <p className="value">Bundle-ID: {lastResult.id}</p>
             <p className="muted">Status: {lastResult.status}</p>
           </div>
-          {lastResult.trainingJob && (
+          {activeTrainingJob && (
             <div>
               <p className="eyebrow">Trainingsjob</p>
-              <p className="value">Job-ID: {lastResult.trainingJob.jobId}</p>
+              <p className="value">Job-ID: {activeTrainingJob.jobId}</p>
               <p className="muted">
-                {lastResult.trainingJob.status}
-                {lastResult.trainingJob.pollUrl ? ` · ${lastResult.trainingJob.pollUrl}` : ''}
+                {activeTrainingJob.status}
+                {activeTrainingJob.pollUrl ? ` · ${activeTrainingJob.pollUrl}` : ''}
               </p>
             </div>
           )}

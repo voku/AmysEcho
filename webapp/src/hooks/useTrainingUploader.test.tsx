@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useTrainingUploader } from './useTrainingUploader';
 import { listQueuedBundles } from '../training/trainingQueue';
@@ -85,5 +85,56 @@ describe('useTrainingUploader', () => {
 
     const queuedAfterSync = await listQueuedBundles();
     expect(queuedAfterSync.length).toBe(0);
+  });
+
+  it('pollt den Trainingsjob bis zum Abschluss', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 'bundle-42',
+          status: 'queued',
+          trainingJob: { jobId: 'job-7', status: 'running', pollUrl: 'https://example.invalid/jobs/7' },
+        }),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'running' }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'completed' }) });
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() => useTrainingUploader({ pollIntervalMs: 10 }));
+    await act(async () => {
+      await result.current.upload(payload, { endpoint: 'https://example.invalid' });
+    });
+
+    expect(result.current.trainingJob?.status).toBeDefined();
+
+    await waitFor(() => expect(fetchSpy.mock.calls.length).toBeGreaterThanOrEqual(3));
+
+    await waitFor(() => expect(result.current.trainingJob?.status).toBe('completed'));
+  });
+
+  it('meldet Polling-Fehler des Trainingsjobs', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 'bundle-101',
+          status: 'queued',
+          trainingJob: { jobId: 'job-9', status: 'running', pollUrl: 'https://example.invalid/jobs/9' },
+        }),
+      })
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() => useTrainingUploader({ pollIntervalMs: 10 }));
+    await act(async () => {
+      await result.current.upload(payload, { endpoint: 'https://example.invalid' });
+    });
+
+    await waitFor(() => expect(result.current.trainingJobError).toMatch(/Polling/));
   });
 });
