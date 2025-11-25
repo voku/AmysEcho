@@ -24,6 +24,10 @@ describe('useTrainingUploader', () => {
     window.localStorage.clear();
   });
 
+  afterEach(() => {
+    Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
+  });
+
   it('liefert Ergebnis nach erfolgreichem Upload', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
@@ -42,17 +46,14 @@ describe('useTrainingUploader', () => {
     expect(result.current.state).toBe('success');
   });
 
-  it('meldet Fehler durch, wenn Upload scheitert', async () => {
+  it('legt fehlgeschlagene Uploads in die Warteschlange', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
     (globalThis as any).fetch = fetchSpy;
 
     const { result } = renderHook(() => useTrainingUploader());
     await act(async () => {
-      try {
-        await result.current.upload(payload, { endpoint: 'https://example.invalid' });
-      } catch (err) {
-        expect(err).toBeDefined();
-      }
+      const uploadResult = await result.current.upload(payload, { endpoint: 'https://example.invalid' });
+      expect(uploadResult).toBeNull();
     });
     const queued = await listQueuedBundles();
     expect(queued.length).toBe(1);

@@ -24,10 +24,12 @@ function toBase64(data: Uint8Array): string {
   if (buffer) {
     return buffer.from(data).toString('base64');
   }
+  const CHUNK_SIZE = 8192;
   let binary = '';
-  data.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
+  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+    const chunk = data.subarray(i, i + CHUNK_SIZE);
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
   return btoa(binary);
 }
 

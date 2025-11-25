@@ -161,7 +161,7 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
       }
       setMessage('Paket wird erstellt und hochgeladen…');
       try {
-        await upload({
+        const result = await upload({
           profileId,
           label,
           frames,
@@ -170,7 +170,11 @@ export function TrainingUpload({ profileId, setProfileId, label, setLabel }: Tra
           clipFile,
           stillFile,
         });
-        setMessage('Upload abgeschlossen. Vielen Dank für die neuen Trainingsdaten!');
+        if (result) {
+          setMessage('Upload abgeschlossen. Vielen Dank für die neuen Trainingsdaten!');
+        } else {
+          setMessage('Bundle gespeichert und wartet auf Synchronisation.');
+        }
       } catch (uploadError) {
         const reason = uploadError instanceof Error ? uploadError.message : String(uploadError);
         setMessage(`Upload fehlgeschlagen: ${reason}`);
@@ -402,7 +406,7 @@ export function TrainingUploadWithRecording() {
           {syncError && <div className="notice warning">{syncError}</div>}
           <button
             className="ghost"
-            onClick={() => syncQueued()}
+            onClick={handleSyncQueued}
             disabled={queuedCount === 0 || syncing}
             style={{ width: '100%' }}
           >

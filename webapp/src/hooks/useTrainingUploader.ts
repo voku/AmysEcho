@@ -50,9 +50,10 @@ export function useTrainingUploader() {
       setSyncing(true);
       setSyncError(null);
       const bundles = await refreshQueue();
+      const pending = bundles.filter((bundle) => bundle.status !== 'uploading');
       let uploaded = 0;
 
-      for (const bundle of bundles) {
+      for (const bundle of pending) {
         try {
           await markBundleUploading(bundle.key);
           await uploadTrainingZip(decodeBundleData(bundle), options);
@@ -95,7 +96,7 @@ export function useTrainingUploader() {
         zip = await createTrainingZip(payload);
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
         if (offline) {
-          await enqueuePersistedBundle({
+          const persisted = await enqueuePersistedBundle({
             profileId: payload.profileId,
             label: payload.label,
             capturedAt: payload.capturedAt ?? new Date().toISOString(),
@@ -105,10 +106,17 @@ export function useTrainingUploader() {
             stillBytes: payload.stillFile?.size,
             zip,
           });
-          await refreshQueue();
-          setState('queued');
-          setError('Offline – Bundle wurde zwischengespeichert.');
-          return null;
+          if (persisted) {
+            setLastQueuedKey(persisted.key);
+            await refreshQueue();
+            setState('queued');
+            setError('Offline – Bundle wurde zwischengespeichert.');
+            return null;
+          }
+          const storageError = 'Offline – Bundle konnte nicht zwischengespeichert werden (kein Speicher).';
+          setError(storageError);
+          setState('error');
+          throw new Error(storageError);
         }
 
         setState('uploading');
@@ -132,14 +140,18 @@ export function useTrainingUploader() {
           });
           if (persisted) {
             setLastQueuedKey(persisted.key);
+            await refreshQueue();
+            setState('queued');
+            setError(`Upload fehlgeschlagen, Bundle wurde gespeichert: ${message}`);
+            return null;
           }
-          await refreshQueue();
-          setState('queued');
-          setError(`Upload fehlgeschlagen, Bundle wurde gespeichert: ${message}`);
-        } else {
-          setError(message);
+          const storageError = `Upload fehlgeschlagen und Bundle konnte nicht gespeichert werden: ${message}`;
+          setError(storageError);
           setState('error');
+          throw new Error(storageError);
         }
+        setError(message);
+        setState('error');
         throw err;
       }
     },

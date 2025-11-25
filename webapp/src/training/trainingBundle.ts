@@ -143,8 +143,7 @@ export async function uploadTrainingZip(
   const endpoint =
     options.endpoint ?? `${import.meta.env['VITE_API_URL'] ?? 'http://localhost:3000'}/api/v1/dgs/sample-bundles`;
 
-  const zipBuffer = new Uint8Array(zip).buffer;
-  const body = new Blob([zipBuffer], { type: 'application/zip' });
+  const body = new Blob([zip], { type: 'application/zip' });
 
   const response = await fetch(endpoint, {
     method: 'POST',
