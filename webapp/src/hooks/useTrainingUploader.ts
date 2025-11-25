@@ -34,20 +34,6 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
     return bundles;
   }, []);
 
-  useEffect(() => {
-    refreshQueue();
-  }, [refreshQueue]);
-
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (!event.key || event.key.startsWith(BUNDLE_KEY_PREFIX)) {
-        refreshQueue();
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [refreshQueue]);
-
   const syncQueued = useCallback(
     async (options?: { endpoint?: string; token?: string }): Promise<number> => {
       if (syncingRef.current) return 0;
@@ -78,6 +64,38 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
     },
     [refreshQueue],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshAndSync = async () => {
+      await refreshQueue();
+      if (cancelled) return;
+
+      const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
+      if (!isOnline || syncingRef.current) return;
+
+      syncQueued().catch((err) => {
+        console.warn('Automatische Synchronisation fehlgeschlagen', err);
+      });
+    };
+
+    refreshAndSync();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshQueue, syncQueued]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key || event.key.startsWith(BUNDLE_KEY_PREFIX)) {
+        refreshQueue();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [refreshQueue]);
 
   useEffect(() => {
     const handleOnline = () => {
