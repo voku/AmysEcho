@@ -78,7 +78,7 @@ async function getPersistedCryptoKey(): Promise<CryptoKey> {
     if (!storedKey) {
       window.crypto.getRandomValues(rawBytes);
     }
-    const keyMaterial =
+    const keyMaterial: Uint8Array =
       rawBytes.byteOffset === 0 && rawBytes.byteLength === rawBytes.buffer.byteLength
         ? rawBytes
         : rawBytes.slice();
@@ -107,7 +107,7 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
     throw new Error('Kein Session-Crypto-Key vorhanden.');
   }
   const rawBytes = fromBase64(storedKey);
-  const keyMaterial =
+  const keyMaterial: Uint8Array =
     rawBytes.byteOffset === 0 && rawBytes.byteLength === rawBytes.buffer.byteLength
       ? rawBytes
       : rawBytes.slice();
@@ -223,9 +223,12 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
     let cancelled = false;
 
-    const persistSessionConfig = async () => {
+    const persistTokenConfig = async () => {
       try {
         if (config.persistToken) {
+          if (!config.apiToken && initialEncryptedToken.current) {
+            return;
+          }
           const encrypted = await encryptToken(config.apiToken);
           if (!cancelled) {
             window.localStorage.setItem(
@@ -247,7 +250,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    persistSessionConfig();
+    persistTokenConfig();
     return () => {
       cancelled = true;
     };
