@@ -108,6 +108,6 @@ describe('auth routes', () => {
       .post('/api/v1/auth/login')
       .send({ username: '   ', password: 'topsecret' })
       .expect(400);
-    expect(emptyUsername.body.error).toBe('Nutzername darf nicht leer sein.');
+    expect(emptyUsername.body.error).toBe('Nutzername und Passwort werden benötigt.');
   });
 });

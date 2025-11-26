@@ -277,10 +277,12 @@ export const loadDatabase = async (filePath: string): Promise<Database> => {
     if (!Array.isArray(base.users)) {
       base.users = [];
     }
-    base.users = base.users.map((user) => ({
-      ...user,
-      username: user.username.trim().toLowerCase(),
-    }));
+    base.users = base.users
+      .filter((user): user is StoredUser & { username: string } => !!user && typeof user.username === 'string')
+      .map((user) => ({
+        ...user,
+        username: user.username.trim().toLowerCase(),
+      }));
     return base;
   } catch (error) {
     console.error('Failed to load database, creating a new one.', error);

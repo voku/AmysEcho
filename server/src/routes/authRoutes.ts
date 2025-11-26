@@ -14,11 +14,11 @@ interface AuthRouteDeps {
 }
 
 const CredentialsSchema = z.object({
-  username: z.string().min(3).max(50),
+  username: z.string().trim().min(3).max(50),
   password: z.string().min(6).max(128),
 });
 
-const normalizeUsername = (username: string) => username.trim().toLowerCase();
+const normalizeUsername = (username: string) => username.toLowerCase();
 
 export const createAuthLimiter = () =>
   rateLimit({
@@ -42,10 +42,6 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
 
     const username = normalizeUsername(parsed.data.username);
     const password = parsed.data.password;
-
-    if (!username) {
-      return res.status(400).json({ error: 'Nutzername darf nicht leer sein.' });
-    }
 
     try {
       let createdUser = findUserByUsername(deps.db, username);
@@ -90,10 +86,6 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
 
     const username = normalizeUsername(parsed.data.username);
     const password = parsed.data.password;
-    if (!username) {
-      return res.status(400).json({ error: 'Nutzername darf nicht leer sein.' });
-    }
-
     try {
       const user = findUserByUsername(deps.db, username);
       const passwordHash = user?.passwordHash ?? AuthService.DUMMY_PASSWORD_HASH;
