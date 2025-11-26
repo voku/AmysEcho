@@ -9,6 +9,7 @@ import type {
 } from '../training/types';
 import { TrainingRecorder } from './TrainingRecorder';
 import { useAppState } from '../hooks/useAppState';
+import { useApiConfig } from '../hooks/useApiConfig';
 
 type LandmarkTuple = [number, number] | [number, number, number];
 
@@ -382,7 +383,10 @@ export function TrainingUpload({
 // Wrapper component with mode switching
 export function TrainingUploadWithRecording() {
   const [mode, setMode] = useState<'record' | 'upload'>('record');
-  const uploadState = useTrainingUploader();
+  const { apiBaseUrl, apiToken, uploadEndpoint } = useApiConfig();
+  const uploadState = useTrainingUploader({
+    defaultOptions: { endpoint: uploadEndpoint, token: apiToken, apiBase: apiBaseUrl },
+  });
   const { upload, lastResult, state, trainingJob } = uploadState;
   const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =
     useAppState();

@@ -15,13 +15,13 @@ npm run test      # Vitest + jsdom
 
 ### API-Konfiguration
 
-Der API-Endpunkt für das Training-Upload wird über die Umgebungsvariable `VITE_API_URL` konfiguriert. Erstelle eine `.env.local`-Datei im `webapp/`-Verzeichnis:
+Die App bringt einen Konfigurations-Block mit, in dem Basis-URL und optionales Bearer-Token festgelegt werden. Standard ist `VITE_API_URL` (Fallback `http://localhost:3000`).
 
 ```bash
 VITE_API_URL=https://dein-server.example.com
 ```
 
-Die Trainings-Bundles werden dann an `VITE_API_URL/api/v1/dgs/sample-bundles` hochgeladen.
+Im UI kannst du den Wert jederzeit überschreiben; Upload- und Polling-Endpunkte werden automatisch aktualisiert.
 
 ## Nutzung
 

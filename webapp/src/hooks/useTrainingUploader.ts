@@ -11,11 +11,19 @@ import {
 } from '../training/trainingQueue';
 import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleResponse } from '../training/types';
 import { normalizeTrainingJobStatus } from '../training/trainingBundle';
+import { resolvePollUrl } from './useApiConfig';
 
 export type UploadState = 'idle' | 'preparing' | 'uploading' | 'queued' | 'success' | 'error';
 
-export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
+export interface DefaultUploadOptions {
+  endpoint?: string;
+  token?: string;
+  apiBase?: string;
+}
+
+export function useTrainingUploader(options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions } = {}) {
   const pollIntervalMs = options.pollIntervalMs ?? 2000;
+  const defaultOptions = useMemo(() => options.defaultOptions ?? {}, [options.defaultOptions]);
   const [state, setState] = useState<UploadState>('idle');
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +42,16 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
     return bundles;
   }, []);
 
+  const resolveOptions = useCallback(
+    (override?: { endpoint?: string; token?: string; apiBase?: string }) => ({
+      ...defaultOptions,
+      ...override,
+    }),
+    [defaultOptions],
+  );
+
   const syncQueued = useCallback(
-    async (options?: { endpoint?: string; token?: string }): Promise<number> => {
+    async (options?: { endpoint?: string; token?: string; apiBase?: string }): Promise<number> => {
       if (syncingRef.current) return 0;
       syncingRef.current = true;
       setSyncing(true);
@@ -47,7 +63,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
       for (const bundle of pending) {
         try {
           await markBundleUploading(bundle.key);
-          await uploadTrainingZip(decodeBundleData(bundle), options);
+          await uploadTrainingZip(decodeBundleData(bundle), resolveOptions(options));
           await removeQueuedBundle(bundle.key);
           uploaded += 1;
         } catch (err) {
@@ -62,7 +78,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
       syncingRef.current = false;
       return uploaded;
     },
-    [refreshQueue],
+    [refreshQueue, resolveOptions],
   );
 
   useEffect(() => {
@@ -108,7 +124,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
   }, [syncQueued]);
 
   const upload = useCallback(
-    async (payload: TrainingBundlePayload, options?: { endpoint?: string; token?: string }) => {
+    async (payload: TrainingBundlePayload, options?: { endpoint?: string; token?: string; apiBase?: string }) => {
       setState('preparing');
       setError(null);
       setLastResult(null);
@@ -149,9 +165,25 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
         }
 
         setState('uploading');
-        const result = await uploadTrainingZip(zip, options);
-        setTrainingJob(result.trainingJob ?? null);
-        setLastResult(result);
+        const resolvedOptions = resolveOptions(options);
+        const result = await uploadTrainingZip(zip, resolvedOptions);
+        const resolvedPollUrl = resolvePollUrl(
+          resolvedOptions.apiBase ?? '',
+          result.trainingJob?.pollUrl,
+          result.trainingJob?.jobId ?? '',
+        );
+        const resolvedTrainingJob = result.trainingJob
+          ? {
+              ...result.trainingJob,
+              pollUrl: (resolvedPollUrl ?? result.trainingJob.pollUrl) as string,
+            }
+          : null;
+        setTrainingJob(resolvedTrainingJob ?? null);
+        setLastResult(
+          resolvedTrainingJob
+            ? { ...result, trainingJob: resolvedTrainingJob }
+            : result,
+        );
         setState('success');
         await refreshQueue();
         return result;
@@ -185,20 +217,26 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
         throw err;
       }
     },
-    [refreshQueue],
+    [refreshQueue, resolveOptions],
   );
 
   useEffect(() => {
     if (!trainingJob?.pollUrl) return;
     if (trainingJob.status === 'completed' || trainingJob.status === 'failed') return;
 
+    const pollUrl = trainingJob.pollUrl;
+
     let cancelled = false;
 
     const poll = async () => {
       if (cancelled) return;
       try {
-        const response = await fetch(trainingJob.pollUrl as string, {
-          headers: { Accept: 'application/json' },
+        const headers: HeadersInit = { Accept: 'application/json' };
+        if (defaultOptions.token) {
+          headers['Authorization'] = `Bearer ${defaultOptions.token}`;
+        }
+        const response = await fetch(pollUrl, {
+          headers,
         });
         if (!response.ok) {
           throw new Error(`Polling fehlgeschlagen (HTTP ${response.status}).`);
@@ -207,7 +245,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
         const nextStatus = normalizeTrainingJobStatus((body as { status?: string })?.status ?? '');
         if (nextStatus) {
           setTrainingJob((prev) =>
-            prev ? { ...prev, status: nextStatus, pollUrl: prev.pollUrl } : null,
+            prev ? { ...prev, status: nextStatus } : null,
           );
           setLastResult((prev) =>
             prev && prev.trainingJob
@@ -216,7 +254,6 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
                   trainingJob: {
                     ...prev.trainingJob,
                     status: nextStatus,
-                    pollUrl: prev.trainingJob.pollUrl,
                   },
                 }
               : prev,
@@ -244,7 +281,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number } = {}) {
         pollTimeoutRef.current = null;
       }
     };
-  }, [pollIntervalMs, trainingJob]);
+  }, [defaultOptions.token, pollIntervalMs, trainingJob]);
 
   return useMemo(
     () => ({

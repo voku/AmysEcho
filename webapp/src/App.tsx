@@ -3,6 +3,7 @@ import { FeatureAvailability } from './components/FeatureAvailability';
 import { GestureDemo } from './components/GestureDemo';
 import { ProfileBar } from './components/ProfileBar';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
+import { ApiConfigBar } from './components/ApiConfigBar';
 import './App.css';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
         </header>
 
         <main className="content">
+          <ApiConfigBar />
           <ProfileBar />
           <Routes>
             <Route path="/" element={<GestureDemo />} />
