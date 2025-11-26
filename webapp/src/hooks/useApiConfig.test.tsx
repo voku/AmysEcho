@@ -17,6 +17,7 @@ describe('useApiConfig', () => {
     expect(result.current.apiToken).toBe('');
     expect(result.current.persistToken).toBe(false);
     expect(result.current.uploadEndpoint).toBe('http://localhost:3000/api/v1/dgs/sample-bundles');
+    expect(result.current.modelEndpoint).toBe('http://localhost:3000/api/v1/dgs/latest-mlp-model');
   });
 
   it('normalizes API base URL by removing trailing slashes', () => {
@@ -28,6 +29,7 @@ describe('useApiConfig', () => {
 
     expect(result.current.apiBaseUrl).toBe('https://api.example.com');
     expect(result.current.uploadEndpoint).toBe('https://api.example.com/api/v1/dgs/sample-bundles');
+    expect(result.current.modelEndpoint).toBe('https://api.example.com/api/v1/dgs/latest-mlp-model');
   });
 
   it('persists API base URL and token only after opt-in', async () => {
