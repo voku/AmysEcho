@@ -9,6 +9,7 @@ import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
 import { registerCustomGesturesRoute } from './routes/customGesturesRoute.js';
 import { registerGdprRoutes } from './routes/gdprRoutes.js';
 import { createLatestMlpModelHandler } from './routes/latestMlpModelRoute.js';
+import { registerAuthRoutes } from './routes/authRoutes.js';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import {
@@ -273,6 +274,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
       withFileLock,
       logError: (message, meta) => logger.error(message, meta),
     });
+    registerAuthRoutes(app, { db, dbFilePath: DB_FILE_PATH, withFileLock });
     return db;
   })
   .catch((err) => {

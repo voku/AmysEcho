@@ -81,6 +81,16 @@ export interface LearningAnalytics {
   lastCalculated: number; // Added lastCalculated
 }
 
+export type UserRole = 'admin' | 'caregiver' | 'user';
+
+export interface StoredUser {
+  id: string;
+  username: string;
+  passwordHash: string;
+  role: UserRole;
+  createdAt: number;
+}
+
 
 export interface Correction {
   id: string;

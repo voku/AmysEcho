@@ -27,6 +27,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [showOverlay, setShowOverlay] = useState(true);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
+  const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
 
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
@@ -66,15 +67,19 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   }, [state]);
 
   const handleStartCamera = useCallback(async () => {
+    if (!metadataReady) return;
     await startCamera();
-  }, [startCamera]);
+  }, [metadataReady, startCamera]);
 
   const handleStartRecording = useCallback(() => {
+    if (!metadataReady) {
+      return;
+    }
     if (status !== 'running') {
       return;
     }
     startRecording();
-  }, [status, startRecording]);
+  }, [metadataReady, status, startRecording]);
 
   const handleStopRecording = useCallback(() => {
     stopRecording();
@@ -82,6 +87,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   }, [stopRecording, stopCamera]);
 
   const handleSaveRecording = useCallback(async () => {
+    if (!metadataReady) {
+      return;
+    }
     if (recordedData.frames.length === 0) {
       return;
     }
@@ -99,8 +107,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     }
 
     const payload: TrainingBundlePayload = {
-      profileId,
-      label,
+      profileId: profileId.trim(),
+      label: label.trim(),
       frames: recordedData.frames,
       capturedAt: new Date().toISOString(),
       source: 'web://mediapipe',
@@ -126,6 +134,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const clipLimitNotice = clipLimitExceeded
     ? `Maximale Dateigröße überschritten (${formatBytes(maxClipBytes)}). Bitte kürzer aufnehmen.`
     : `Video wird zusammen mit den Landmarks gespeichert (Limit ${formatBytes(maxClipBytes)}).`;
+  const metadataError = metadataReady
+    ? ''
+    : 'Profil-ID und Gestenlabel sind erforderlich, bevor du aufnimmst oder hochlädst.';
 
   return (
     <section className="card">
@@ -178,6 +189,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
               )}
               {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
+              {!metadataReady && <div className="notice error">{metadataError}</div>}
               <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
                 {clipLimitNotice}
               </div>
@@ -195,13 +207,13 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
           <div className="controls">
             {status !== 'running' && (
-              <button className="primary" onClick={handleStartCamera} disabled={!cameraSupported}>
+              <button className="primary" onClick={handleStartCamera} disabled={!cameraSupported || !metadataReady}>
                 Kamera starten
               </button>
             )}
 
             {status === 'running' && !isRecording && !hasRecording && (
-              <button className="primary" onClick={handleStartRecording}>
+              <button className="primary" onClick={handleStartRecording} disabled={!metadataReady}>
                 Aufnahme starten
               </button>
             )}
@@ -214,7 +226,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
             {hasRecording && (
               <>
-                <button className="primary" onClick={handleSaveRecording} disabled={clipLimitExceeded}>
+                <button className="primary" onClick={handleSaveRecording} disabled={clipLimitExceeded || !metadataReady}>
                   Aufnahme verwenden
                 </button>
                 <button className="ghost" onClick={handleDiscardRecording}>

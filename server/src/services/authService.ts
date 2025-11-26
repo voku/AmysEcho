@@ -1,11 +1,12 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import config from '../config/index.js';
+import { StoredUser, UserRole } from '../types.js';
 
 export interface User {
   id: string;
   username: string;
-  role: 'admin' | 'caregiver' | 'user';
+  role: UserRole;
 }
 
 export interface AuthTokens {
@@ -81,5 +82,9 @@ export class AuthService {
     };
 
     return this.generateTokens(user);
+  }
+
+  static toUser(stored: StoredUser): User {
+    return { id: stored.id, username: stored.username, role: stored.role };
   }
 }

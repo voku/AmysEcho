@@ -1,22 +1,27 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'webapp:api-config';
+const SESSION_STORAGE_KEY = 'webapp:api-config:session';
 const FALLBACK_API_BASE = (import.meta.env['VITE_API_URL'] as string | undefined) ?? 'http://localhost:3000';
 
 type StoredApiConfig = {
   apiBaseUrl: string;
   apiToken: string;
+  persistToken: boolean;
 };
 
 type ApiConfigContextValue = StoredApiConfig & {
   setApiBaseUrl: (value: string) => void;
   setApiToken: (value: string) => void;
+  setPersistToken: (value: boolean) => void;
+  clearApiToken: () => void;
   uploadEndpoint: string;
 };
 
 const defaultConfig: StoredApiConfig = {
   apiBaseUrl: FALLBACK_API_BASE,
   apiToken: '',
+  persistToken: false,
 };
 
 function normalizeApiBase(raw: string | undefined): string {
@@ -30,12 +35,16 @@ function readFromStorage(): StoredApiConfig {
   if (typeof window === 'undefined') return defaultConfig;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultConfig;
-    const parsed = JSON.parse(raw);
+    const sessionRaw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const sessionParsed = sessionRaw ? JSON.parse(sessionRaw) : {};
+    const persistToken = Boolean(parsed?.persistToken);
+    const storedBase = persistToken ? sessionParsed?.apiBaseUrl ?? parsed?.apiBaseUrl : parsed?.apiBaseUrl;
     return {
-      apiBaseUrl: normalizeApiBase(parsed?.apiBaseUrl),
-      // Tokens werden nicht aus dem Storage geladen, um Klartext-Risiken zu vermeiden.
-      apiToken: '',
+      apiBaseUrl: normalizeApiBase(storedBase),
+      apiToken:
+        persistToken && typeof sessionParsed?.apiToken === 'string' ? sessionParsed.apiToken : defaultConfig.apiToken,
+      persistToken,
     } satisfies StoredApiConfig;
   } catch (error) {
     console.warn('Konnte API-Konfiguration nicht lesen', error);
@@ -51,15 +60,30 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      // Speichere nur die API-Basis, um das Speichern von Tokens in Klartext zu vermeiden.
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ apiBaseUrl: config.apiBaseUrl, apiToken: '' }),
+        JSON.stringify({ apiBaseUrl: config.apiBaseUrl, persistToken: config.persistToken }),
       );
     } catch (error) {
       console.warn('Konnte API-Konfiguration nicht speichern', error);
     }
-  }, [config.apiBaseUrl]);
+  }, [config.apiBaseUrl, config.persistToken]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (config.persistToken) {
+        window.sessionStorage.setItem(
+          SESSION_STORAGE_KEY,
+          JSON.stringify({ apiBaseUrl: config.apiBaseUrl, apiToken: config.apiToken }),
+        );
+      } else {
+        window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.warn('Konnte Session-API-Konfiguration nicht speichern', error);
+    }
+  }, [config.apiBaseUrl, config.apiToken, config.persistToken]);
 
   const setApiBaseUrl = useCallback((value: string) => {
     setConfig((prev) => ({ ...prev, apiBaseUrl: normalizeApiBase(value) }));
@@ -69,17 +93,42 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     setConfig((prev) => ({ ...prev, apiToken: value }));
   }, []);
 
+  const setPersistToken = useCallback((value: boolean) => {
+    setConfig((prev) => {
+      const next = { ...prev, persistToken: value };
+      if (!value) {
+        next.apiToken = '';
+      }
+      return next;
+    });
+  }, []);
+
+  const clearApiToken = useCallback(() => {
+    setConfig((prev) => ({ ...prev, apiToken: '' }));
+  }, []);
+
   const value = useMemo<ApiConfigContextValue>(() => {
     const normalizedBase = normalizeApiBase(config.apiBaseUrl);
     const uploadEndpoint = `${normalizedBase}/api/v1/dgs/sample-bundles`;
     return {
       apiBaseUrl: normalizedBase,
       apiToken: config.apiToken,
+      persistToken: config.persistToken,
       setApiBaseUrl,
       setApiToken,
+      setPersistToken,
+      clearApiToken,
       uploadEndpoint,
     };
-  }, [config.apiBaseUrl, config.apiToken, setApiBaseUrl, setApiToken]);
+  }, [
+    config.apiBaseUrl,
+    config.apiToken,
+    config.persistToken,
+    setApiBaseUrl,
+    setApiToken,
+    setPersistToken,
+    clearApiToken,
+  ]);
 
   return <ApiConfigContext.Provider value={value}>{children}</ApiConfigContext.Provider>;
 }

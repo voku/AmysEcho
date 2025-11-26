@@ -10,6 +10,7 @@ import {
   VocabularySetSymbol,
   Correction,
   NegativeSample,
+  StoredUser,
 } from './types.js';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -26,6 +27,7 @@ export interface Database {
   learningAnalytics: LearningAnalytics[];
   corrections: Correction[]; // Added comment to force re-evaluation
   negativeSamples: NegativeSample[];
+  users: StoredUser[];
 }
 
 export const createDatabase = (): Database => ({
@@ -40,6 +42,7 @@ export const createDatabase = (): Database => ({
   learningAnalytics: [],
   corrections: [],
   negativeSamples: [],
+  users: [],
 });
 
 export const addSymbol = (db: Database, symbol: SymbolRecord): void => {
@@ -94,11 +97,23 @@ export const addLearningAnalytics = (
 };
 
 export const addNegativeSample = (
-    db: Database,
-    sample: NegativeSample,
-    ): void => {
-    db.negativeSamples.push(sample);
-    };
+  db: Database,
+  sample: NegativeSample,
+): void => {
+  db.negativeSamples.push(sample);
+};
+
+export const addUser = (db: Database, user: StoredUser): void => {
+  db.users.push(user);
+};
+
+export const findUserByUsername = (
+  db: Database,
+  username: string,
+): StoredUser | undefined => {
+  const normalized = username.trim().toLowerCase();
+  return db.users.find((u) => u.username.toLowerCase() === normalized);
+};
 
 const updateById = <T extends { id: string }>(
   items: T[],
@@ -256,7 +271,13 @@ export const saveDatabase = async (
 export const loadDatabase = async (filePath: string): Promise<Database> => {
   try {
     const data = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(data) as Database;
+    const parsed = JSON.parse(data) as Partial<Database>;
+    const base = createDatabase();
+    Object.assign(base, parsed);
+    if (!Array.isArray(base.users)) {
+      base.users = [];
+    }
+    return base;
   } catch {
     return createDatabase();
   }

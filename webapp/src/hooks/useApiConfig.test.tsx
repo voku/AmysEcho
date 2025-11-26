@@ -5,6 +5,7 @@ import { ApiConfigProvider, useApiConfig, resolvePollUrl } from './useApiConfig'
 describe('useApiConfig', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   it('provides default values and computed upload endpoint', () => {
@@ -12,6 +13,7 @@ describe('useApiConfig', () => {
 
     expect(result.current.apiBaseUrl).toBe('http://localhost:3000');
     expect(result.current.apiToken).toBe('');
+    expect(result.current.persistToken).toBe(false);
     expect(result.current.uploadEndpoint).toBe('http://localhost:3000/api/v1/dgs/sample-bundles');
   });
 
@@ -26,7 +28,7 @@ describe('useApiConfig', () => {
     expect(result.current.uploadEndpoint).toBe('https://api.example.com/api/v1/dgs/sample-bundles');
   });
 
-  it('persists API base URL to localStorage but not tokens', () => {
+  it('persists API base URL and token only after opt-in', () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
     act(() => {
@@ -34,23 +36,62 @@ describe('useApiConfig', () => {
       result.current.setApiToken('secret-token-123');
     });
 
+    expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeNull();
+
+    act(() => {
+      result.current.setPersistToken(true);
+      result.current.setApiToken('secret-token-123');
+    });
+
     const stored = window.localStorage.getItem('webapp:api-config');
     expect(stored).toBeTruthy();
     const parsed = JSON.parse(stored!);
     expect(parsed.apiBaseUrl).toBe('https://api.example.com');
-    expect(parsed.apiToken).toBe(''); // Token should not be persisted
+    expect(parsed.persistToken).toBe(true);
+
+    const sessionStored = window.sessionStorage.getItem('webapp:api-config:session');
+    expect(sessionStored).toBeTruthy();
+    const sessionParsed = JSON.parse(sessionStored!);
+    expect(sessionParsed.apiBaseUrl).toBe('https://api.example.com');
+    expect(sessionParsed.apiToken).toBe('secret-token-123');
   });
 
-  it('loads API base URL from localStorage on initialization', () => {
+  it('loads API base URL and token from storage when persistence was enabled', () => {
     window.localStorage.setItem(
       'webapp:api-config',
-      JSON.stringify({ apiBaseUrl: 'https://stored.example.com', apiToken: '' }),
+      JSON.stringify({ apiBaseUrl: 'https://stored.example.com', persistToken: true }),
+    );
+    window.sessionStorage.setItem(
+      'webapp:api-config:session',
+      JSON.stringify({ apiBaseUrl: 'https://stored.example.com', apiToken: 'persisted-token' }),
     );
 
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
     expect(result.current.apiBaseUrl).toBe('https://stored.example.com');
-    expect(result.current.apiToken).toBe(''); // Token should never be loaded from storage
+    expect(result.current.apiToken).toBe('persisted-token');
+    expect(result.current.persistToken).toBe(true);
+  });
+
+  it('clears token storage when opting out', () => {
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    act(() => {
+      result.current.setApiBaseUrl('https://api.example.com');
+      result.current.setPersistToken(true);
+      result.current.setApiToken('secret-token-123');
+    });
+
+    expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeTruthy();
+
+    act(() => {
+      result.current.setPersistToken(false);
+    });
+
+    expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeNull();
+    expect(result.current.apiToken).toBe('');
+    const parsed = JSON.parse(window.localStorage.getItem('webapp:api-config')!);
+    expect(parsed.persistToken).toBe(false);
   });
 
   it('falls back to default when empty base URL is set', () => {
