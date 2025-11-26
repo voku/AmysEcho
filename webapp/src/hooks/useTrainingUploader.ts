@@ -175,9 +175,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
         const resolvedTrainingJob = result.trainingJob
           ? {
               ...result.trainingJob,
-              ...(resolvedPollUrl ?? result.trainingJob.pollUrl
-                ? { pollUrl: (resolvedPollUrl ?? result.trainingJob.pollUrl) as string }
-                : {}),
+              pollUrl: (resolvedPollUrl ?? result.trainingJob.pollUrl) as string,
             }
           : null;
         setTrainingJob(resolvedTrainingJob ?? null);

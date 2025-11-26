@@ -75,7 +75,7 @@ describe('useTrainingUploader', () => {
 
     await waitFor(() => {
       expect(fetchSpy.mock.calls[0]?.[0]).toBe('https://api.example.com/api/v1/dgs/sample-bundles');
-      expect(fetchSpy.mock.calls.some((call) => String(call?.[0]).includes('/jobs/12'))).toBe(true);
+      expect(fetchSpy.mock.calls[1]?.[0]).toBe('https://api.example.com/jobs/12');
     });
   });
 

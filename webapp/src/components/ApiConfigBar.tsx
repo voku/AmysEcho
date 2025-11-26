@@ -6,7 +6,8 @@ export function ApiConfigBar() {
 
   const obfuscatedToken = useMemo(() => {
     if (!apiToken) return '';
-    if (apiToken.length <= 8) return '••••••';
+    if (apiToken.length <= 4) return '••••';
+    if (apiToken.length <= 8) return `${apiToken.slice(0, 2)}••••`;
     return `${apiToken.slice(0, 3)}••••${apiToken.slice(-2)}`;
   }, [apiToken]);
 
@@ -70,7 +71,7 @@ export function ApiConfigBar() {
           <ul className="muted small bullets">
             <li>Fällt auf <code>VITE_API_URL</code> oder <code>http://localhost:3000</code> zurück.</li>
             <li>Änderungen wirken sofort auf Gestenerkennung &amp; Training.</li>
-            <li>Token wird nur im Browser gespeichert, nicht auf dem Server.</li>
+            <li>Token wird nur für die aktuelle Sitzung gespeichert und muss nach einem Neuladen erneut eingegeben werden.</li>
           </ul>
         </div>
       </div>
