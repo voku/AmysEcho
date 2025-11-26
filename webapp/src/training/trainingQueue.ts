@@ -56,28 +56,30 @@ let migrationPromise: Promise<void> | null = null;
 let opfsRootPromise: Promise<FileSystemDirectoryHandle | null> | null = null;
 
 function notifyBundleChange() {
-  subscribers.forEach((fn) => fn());
-  try {
-    if (!broadcastChannel && typeof BroadcastChannel !== 'undefined') {
-      broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL);
+  const hasBroadcast = typeof BroadcastChannel !== 'undefined';
+  const hasWindowEvent = typeof window !== 'undefined';
+
+  if (hasBroadcast) {
+    try {
+      if (!broadcastChannel) {
+        broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL);
+      }
+      broadcastChannel.postMessage({ type: 'changed' });
+    } catch (error) {
+      console.warn('BroadcastChannel konnte nicht initialisiert werden', error);
     }
-    broadcastChannel?.postMessage({ type: 'changed' });
-  } catch (error) {
-    console.warn('BroadcastChannel konnte nicht initialisiert werden', error);
   }
 
-  if (typeof window !== 'undefined') {
+  if (hasWindowEvent) {
     window.dispatchEvent(new Event(storageEventName));
+  }
+
+  if (!hasBroadcast && !hasWindowEvent) {
+    subscribers.forEach((fn) => fn());
   }
 }
 
 export function subscribeToBundleUpdates(callback: () => void): () => void {
-  subscribers.add(callback);
-
-  const detach = () => {
-    subscribers.delete(callback);
-  };
-
   if (typeof BroadcastChannel !== 'undefined') {
     const channel = new BroadcastChannel(BROADCAST_CHANNEL);
     const handler = () => callback();
@@ -85,7 +87,6 @@ export function subscribeToBundleUpdates(callback: () => void): () => void {
     return () => {
       channel.removeEventListener('message', handler);
       channel.close();
-      detach();
     };
   }
 
@@ -94,11 +95,14 @@ export function subscribeToBundleUpdates(callback: () => void): () => void {
     window.addEventListener(storageEventName, handler);
     return () => {
       window.removeEventListener(storageEventName, handler);
-      detach();
     };
   }
 
-  return detach;
+  subscribers.add(callback);
+
+  return () => {
+    subscribers.delete(callback);
+  };
 }
 
 function base64ToBytes(encoded: string): Uint8Array {
@@ -373,8 +377,7 @@ export async function enqueuePersistedBundle(params: BundleParams): Promise<Pers
   }
 
   notifyBundleChange();
-  const { opfsPath: _opfsPath, ...persisted } = record;
-  return persisted;
+  return record;
 }
 
 export async function listQueuedBundles(profileId?: string): Promise<PersistedTrainingBundle[]> {
@@ -388,12 +391,7 @@ export async function listQueuedBundles(profileId?: string): Promise<PersistedTr
     ? records.filter((record) => record.key.startsWith(`${BUNDLE_KEY_PREFIX}${profileId}:`))
     : records;
 
-  return filtered
-    .map((record) => {
-      const { opfsPath: _opfsPath, ...rest } = record;
-      return rest;
-    })
-    .sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
+  return filtered.sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
 }
 
 export async function readBundleData(key: string): Promise<Uint8Array | null> {
@@ -446,14 +444,12 @@ export async function markBundleFailed(key: string, error: string): Promise<void
 }
 
 export async function markBundleUploading(key: string): Promise<void> {
-  await updateBundle(key, (bundle) => {
-    const { lastError, ...rest } = bundle;
-    return {
-      ...rest,
-      status: 'uploading',
-      attempts: (bundle.attempts ?? 0) + 1,
-    };
-  });
+  await updateBundle(key, (bundle) => ({
+    ...bundle,
+    status: 'uploading',
+    lastError: undefined,
+    attempts: (bundle.attempts ?? 0) + 1,
+  }));
 }
 
 export async function clearBundleStoreForTests(): Promise<void> {
@@ -472,6 +468,12 @@ export async function clearBundleStoreForTests(): Promise<void> {
     });
   }
   const store = storage();
-  store?.clear();
+  if (store) {
+    for (const key of Object.keys(store)) {
+      if (key.startsWith(BUNDLE_KEY_PREFIX)) {
+        store.removeItem(key);
+      }
+    }
+  }
 }
 
