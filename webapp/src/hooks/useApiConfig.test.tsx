@@ -38,7 +38,7 @@ describe('useApiConfig', () => {
       result.current.setApiToken('secret-token-123');
     });
 
-    expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeNull();
+    expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
 
     await act(async () => {
       result.current.setPersistToken(true);
@@ -46,7 +46,7 @@ describe('useApiConfig', () => {
     });
 
     await waitFor(() => {
-      expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeTruthy();
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
     });
 
     const stored = window.localStorage.getItem('webapp:api-config');
@@ -55,13 +55,13 @@ describe('useApiConfig', () => {
     expect(parsed.apiBaseUrl).toBe('https://api.example.com');
     expect(parsed.persistToken).toBe(true);
 
-    const sessionStored = window.sessionStorage.getItem('webapp:api-config:session');
-    expect(sessionStored).toBeTruthy();
-    const sessionParsed = JSON.parse(sessionStored!);
-    expect(sessionParsed.apiBaseUrl).toBe('https://api.example.com');
-    expect(sessionParsed.apiToken).toBeTypeOf('string');
-    expect(sessionParsed.apiToken).not.toBe('secret-token-123');
-    expect(sessionParsed.iv).toBeTypeOf('string');
+    const persistedStored = window.localStorage.getItem('webapp:api-config:persisted-token');
+    expect(persistedStored).toBeTruthy();
+    const persistedParsed = JSON.parse(persistedStored!);
+    expect(persistedParsed.apiBaseUrl).toBe('https://api.example.com');
+    expect(persistedParsed.apiToken).toBeTypeOf('string');
+    expect(persistedParsed.apiToken).not.toBe('secret-token-123');
+    expect(persistedParsed.iv).toBeTypeOf('string');
   });
 
   it('loads API base URL and token from storage when persistence was enabled', async () => {
@@ -74,7 +74,7 @@ describe('useApiConfig', () => {
     });
 
     await waitFor(() => {
-      expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeTruthy();
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
     });
 
     unmount();
@@ -89,6 +89,33 @@ describe('useApiConfig', () => {
     });
   });
 
+  it('restores persisted token after a simulated page reload', async () => {
+    const { result, unmount } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await act(async () => {
+      result.current.setApiBaseUrl('https://stored.example.com');
+      result.current.setApiToken('persisted-token');
+      result.current.setPersistToken(true);
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
+      expect(window.localStorage.getItem('webapp:api-config:persisted-key')).toBeTruthy();
+    });
+
+    unmount();
+    window.sessionStorage.clear();
+
+    const { result: reloaded } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    expect(reloaded.current.apiBaseUrl).toBe('https://stored.example.com');
+    expect(reloaded.current.persistToken).toBe(true);
+
+    await waitFor(() => {
+      expect(reloaded.current.apiToken).toBe('persisted-token');
+    });
+  });
+
   it('clears token storage when opting out', async () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
@@ -99,14 +126,18 @@ describe('useApiConfig', () => {
     });
 
     await waitFor(() => {
-      expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeTruthy();
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
     });
 
     act(() => {
       result.current.setPersistToken(false);
     });
 
-    expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
+      expect(window.localStorage.getItem('webapp:api-config:persisted-key')).toBeNull();
+    });
+
     expect(result.current.apiToken).toBe('');
     const parsed = JSON.parse(window.localStorage.getItem('webapp:api-config')!);
     expect(parsed.persistToken).toBe(false);

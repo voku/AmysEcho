@@ -98,8 +98,8 @@ export function ApiConfigBar() {
           <p className="eyebrow">Backend</p>
           <h2>API-Ziel konfigurieren</h2>
           <p className="muted">
-            Nutzt dieselbe Upload-Route wie die App. Basis-URL bleibt dauerhaft gespeichert, das Token wird nach Login oder
-            Registrierung für diese Sitzung abgelegt (sessionStorage) und kann jederzeit gelöscht werden.
+            Nutzt dieselbe Upload-Route wie die App. Basis-URL bleibt dauerhaft gespeichert, Tokens werden nach Login oder
+            Registrierung verschlüsselt abgelegt und können sitzungsübergreifend genutzt oder jederzeit gelöscht werden.
           </p>
         </div>
         <div className="status-chip" data-state={apiBaseUrl ? 'idle' : 'error'}>
@@ -141,7 +141,7 @@ export function ApiConfigBar() {
               onChange={handlePersistToggle}
             />
             <label htmlFor="persist-token">
-              Token in dieser Sitzung merken (sessionStorage, kein langfristiger Klartext-Speicher)
+              Token verschlüsselt speichern und auch nach einem Neustart verwenden
             </label>
           </div>
           <button className="ghost mt-xs" type="button" onClick={clearApiToken}>
@@ -200,10 +200,9 @@ export function ApiConfigBar() {
             <li>Fällt auf <code>VITE_API_URL</code> oder <code>http://localhost:3000</code> zurück.</li>
             <li>Änderungen wirken sofort auf Gestenerkennung &amp; Training.</li>
             <li>
-              Token werden nur nach Login/Registrierung in der aktuellen Sitzung gesichert und können jederzeit gelöscht
-              werden.
+              Token werden nach Login/Registrierung verschlüsselt gespeichert und können jederzeit gelöscht werden.
             </li>
-            <li>Keine dauerhafte Speicherung sensibler Tokens im Browser-Speicher.</li>
+            <li>Verschlüsselter Browser-Speicher; lösche Tokens nach Bedarf.</li>
           </ul>
         </div>
       </div>
