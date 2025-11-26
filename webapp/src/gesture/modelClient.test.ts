@@ -27,7 +27,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     const result = await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/api/v1/dgs/latest-mlp-model',
+      endpoint: 'https://api.example.com/latest-mlp-model',
       token: 'abc',
       profileId: 'amy',
     });
@@ -53,7 +53,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     const result = await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/api/v1/dgs/latest-mlp-model',
+      endpoint: 'https://api.example.com/latest-mlp-model',
       profileId: 'amy',
     });
 
@@ -61,5 +61,65 @@ describe('fetchMlpModelWithFallback', () => {
     expect(result?.meta.source).toBe('profile');
     expect(result?.meta.profileId).toBe('amy');
     expect(result?.meta.version).toBe('p-2');
+  });
+
+  it('fällt auf übergebenes Profil zurück, wenn Header fehlen', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([9]), {
+        status: 200,
+        headers: {
+          'X-Model-Source': 'profile',
+        },
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const result = await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+      profileId: 'amy',
+    });
+
+    expect(result?.meta.source).toBe('profile');
+    expect(result?.meta.profileId).toBe('amy');
+    expect(result?.meta.version).toBeNull();
+  });
+
+  it('nutzt Fallback-Quelle, wenn Header ungültig sind', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([4]), {
+        status: 200,
+        headers: {
+          'X-Model-Version': 'g-1',
+          'X-Model-Source': 'unbekannt',
+        },
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const result = await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+    });
+
+    expect(result?.meta.source).toBe('global');
+    expect(result?.meta.version).toBe('g-1');
+  });
+
+  it('gibt null zurück, wenn sowohl Profil- als auch Globalmodell fehlen', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('nope', { status: 500 }))
+      .mockResolvedValueOnce(new Response('nope', { status: 404 }));
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const result = await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+      profileId: 'amy',
+    });
+
+    expect(result).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

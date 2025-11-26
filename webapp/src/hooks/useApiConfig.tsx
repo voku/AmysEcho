@@ -282,7 +282,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<ApiConfigContextValue>(() => {
     const normalizedBase = normalizeApiBase(config.apiBaseUrl);
     const uploadEndpoint = `${normalizedBase}/api/v1/dgs/sample-bundles`;
-    const modelEndpoint = `${normalizedBase}/api/v1/dgs/latest-mlp-model`;
+    const modelEndpoint = `${normalizedBase}/latest-mlp-model`;
     return {
       apiBaseUrl: normalizedBase,
       apiToken: config.apiToken,

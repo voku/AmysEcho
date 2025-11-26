@@ -11,11 +11,13 @@ export type MlpModelResponse = {
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 1) {
-    binary += String.fromCharCode(bytes[i] ?? 0);
+  const CHUNK_SIZE = 0x8000;
+  const chunks: string[] = [];
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    const slice = bytes.subarray(i, i + CHUNK_SIZE);
+    chunks.push(String.fromCharCode.apply(null, slice as unknown as number[]));
   }
-  return btoa(binary);
+  return btoa(chunks.join(''));
 }
 
 function parseMeta(resp: Response, fallbackSource: MlpModelMeta['source'], profileId?: string): MlpModelMeta {
@@ -38,7 +40,13 @@ async function fetchModel(
   token: string | undefined,
   profileId?: string,
 ): Promise<MlpModelResponse | null> {
-  const url = new URL(endpoint);
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch (error) {
+    console.warn('[MLP] Ungültige Endpoint-URL', { endpoint, error });
+    return null;
+  }
   if (profileId) {
     url.searchParams.set('profileId', profileId);
   }
@@ -55,8 +63,27 @@ async function fetchModel(
     headers['X-Profile-Id'] = profileId;
   }
 
-  const response = await fetch(url.toString(), { headers });
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), { headers });
+  } catch (error) {
+    console.warn('[MLP] Netzwerkfehler beim Laden des Modells', {
+      url: url.toString(),
+      profileId,
+      error,
+    });
+    return null;
+  }
+
   if (!response.ok) {
+    if (response.status !== 404 || !profileId) {
+      console.warn('[MLP] Modell konnte nicht geladen werden', {
+        url: url.toString(),
+        status: response.status,
+        statusText: response.statusText,
+        profileId,
+      });
+    }
     return null;
   }
 
