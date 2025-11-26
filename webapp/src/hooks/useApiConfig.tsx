@@ -51,7 +51,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      // Persist only the API base to avoid storing tokens im Klartext.
+      // Speichere nur die API-Basis, um das Speichern von Tokens in Klartext zu vermeiden.
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ apiBaseUrl: config.apiBaseUrl, apiToken: '' }),
@@ -94,13 +94,15 @@ export function useApiConfig(): ApiConfigContextValue {
 
 export function resolvePollUrl(baseUrl: string, pollUrl: string | undefined, jobId: string): string | undefined {
   if (!jobId) return undefined;
-  if (pollUrl && /^https?:\/\//i.test(pollUrl.trim())) {
-    return pollUrl.trim();
+  
+  const trimmedPollUrl = pollUrl?.trim();
+  if (trimmedPollUrl && /^https?:\/\//i.test(trimmedPollUrl)) {
+    return trimmedPollUrl;
   }
 
   const trimmedBase = normalizeApiBase(baseUrl);
-  if (pollUrl && pollUrl.trim().length > 0) {
-    return `${trimmedBase}/${pollUrl.trim().replace(/^\/+/, '')}`;
+  if (trimmedPollUrl) {
+    return `${trimmedBase}/${trimmedPollUrl.replace(/^\/+/, '')}`;
   }
 
   return `${trimmedBase}/api/training-status/${encodeURIComponent(jobId)}`;
