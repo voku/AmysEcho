@@ -447,9 +447,12 @@ export async function markBundleFailed(key: string, error: string): Promise<void
 
 export async function markBundleUploading(key: string): Promise<void> {
   await updateBundle(key, (bundle) => {
-    const next = { ...bundle, status: 'uploading', attempts: (bundle.attempts ?? 0) + 1 };
-    delete (next as Partial<StoredTrainingBundle>).lastError;
-    return next;
+    const { lastError, ...rest } = bundle;
+    return {
+      ...rest,
+      status: 'uploading',
+      attempts: (bundle.attempts ?? 0) + 1,
+    };
   });
 }
 
