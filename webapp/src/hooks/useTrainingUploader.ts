@@ -167,14 +167,17 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
         setState('uploading');
         const resolvedOptions = resolveOptions(options);
         const result = await uploadTrainingZip(zip, resolvedOptions);
+        const resolvedPollUrl = resolvePollUrl(
+          resolvedOptions.apiBase ?? '',
+          result.trainingJob?.pollUrl,
+          result.trainingJob?.jobId ?? '',
+        );
         const resolvedTrainingJob = result.trainingJob
           ? {
               ...result.trainingJob,
-              pollUrl: resolvePollUrl(
-                resolvedOptions.apiBase ?? '',
-                result.trainingJob.pollUrl,
-                result.trainingJob.jobId,
-              ),
+              ...(resolvedPollUrl ?? result.trainingJob.pollUrl
+                ? { pollUrl: (resolvedPollUrl ?? result.trainingJob.pollUrl) as string }
+                : {}),
             }
           : null;
         setTrainingJob(resolvedTrainingJob ?? null);
@@ -223,6 +226,8 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
     if (!trainingJob?.pollUrl) return;
     if (trainingJob.status === 'completed' || trainingJob.status === 'failed') return;
 
+    const pollUrl = trainingJob.pollUrl;
+
     let cancelled = false;
 
     const poll = async () => {
@@ -230,9 +235,9 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
       try {
         const headers: HeadersInit = { Accept: 'application/json' };
         if (defaultOptions.token) {
-          headers.Authorization = `Bearer ${defaultOptions.token}`;
+          headers['Authorization'] = `Bearer ${defaultOptions.token}`;
         }
-        const response = await fetch(trainingJob.pollUrl as string, {
+        const response = await fetch(pollUrl, {
           headers,
         });
         if (!response.ok) {
@@ -242,7 +247,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
         const nextStatus = normalizeTrainingJobStatus((body as { status?: string })?.status ?? '');
         if (nextStatus) {
           setTrainingJob((prev) =>
-            prev ? { ...prev, status: nextStatus, pollUrl: prev.pollUrl } : null,
+            prev ? { ...prev, status: nextStatus } : null,
           );
           setLastResult((prev) =>
             prev && prev.trainingJob
@@ -251,7 +256,6 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
                   trainingJob: {
                     ...prev.trainingJob,
                     status: nextStatus,
-                    pollUrl: prev.trainingJob.pollUrl,
                   },
                 }
               : prev,
