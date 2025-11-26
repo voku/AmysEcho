@@ -67,27 +67,18 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
     sessionCryptoKey = null;
   }
   if (!sessionCryptoKey) {
-    if (storedKey) {
-      const raw = fromBase64(storedKey);
-      const rawBuffer = raw.buffer.slice(0) as ArrayBuffer;
-      sessionCryptoKey = window.crypto.subtle.importKey(
-        'raw',
-        rawBuffer,
-        'AES-GCM',
-        false,
-        ['encrypt', 'decrypt'],
-      );
-    } else {
-      const raw = new Uint8Array(32);
-      window.crypto.getRandomValues(raw);
-      const rawBuffer = raw.buffer.slice(0) as ArrayBuffer;
-      sessionCryptoKey = window.crypto.subtle
-        .importKey('raw', rawBuffer, 'AES-GCM', false, ['encrypt', 'decrypt'])
-        .then((key) => {
-          window.sessionStorage.setItem(SESSION_CRYPTO_KEY, toBase64(raw));
-          return key;
-        });
+    const rawBytes = storedKey ? fromBase64(storedKey) : new Uint8Array(32);
+    if (!storedKey) {
+      window.crypto.getRandomValues(rawBytes);
     }
+    sessionCryptoKey = window.crypto.subtle
+      .importKey('raw', rawBytes, 'AES-GCM', false, ['encrypt', 'decrypt'])
+      .then((key) => {
+        if (!storedKey) {
+          window.sessionStorage.setItem(SESSION_CRYPTO_KEY, toBase64(rawBytes));
+        }
+        return key;
+      });
   }
   const key = sessionCryptoKey;
   if (!key) {

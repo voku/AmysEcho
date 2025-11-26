@@ -1,7 +1,12 @@
+import 'fake-indexeddb/auto';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useTrainingUploader } from './useTrainingUploader';
-import { BUNDLE_KEY_PREFIX, listQueuedBundles } from '../training/trainingQueue';
+import {
+  clearBundleStoreForTests,
+  enqueuePersistedBundle,
+  listQueuedBundles,
+} from '../training/trainingQueue';
 import type { TrainingBundlePayload } from '../training/types';
 
 const payload: TrainingBundlePayload = {
@@ -20,8 +25,8 @@ const payload: TrainingBundlePayload = {
 };
 
 describe('useTrainingUploader', () => {
-  beforeEach(() => {
-    window.localStorage.clear();
+  beforeEach(async () => {
+    await clearBundleStoreForTests();
   });
 
   afterEach(() => {
@@ -120,22 +125,14 @@ describe('useTrainingUploader', () => {
   });
 
   it('synchronisiert gespeicherte Bundles automatisch, wenn online', async () => {
-    const base64 = btoa('demo-zip');
-    window.localStorage.setItem(
-      `${BUNDLE_KEY_PREFIX}demo:auto`,
-      JSON.stringify({
-        key: `${BUNDLE_KEY_PREFIX}demo:auto`,
-        profileId: 'demo',
-        label: 'HILFE',
-        capturedAt: '2024-01-01T00:00:00.000Z',
-        source: 'web://mediapipe',
-        queuedAt: '2024-01-01T00:00:00.000Z',
-        framesCount: 1,
-        zipBase64: base64,
-        status: 'pending',
-        attempts: 0,
-      }),
-    );
+    await enqueuePersistedBundle({
+      profileId: 'demo',
+      label: 'HILFE',
+      capturedAt: '2024-01-01T00:00:00.000Z',
+      source: 'web://mediapipe',
+      framesCount: 1,
+      zip: new TextEncoder().encode('demo-zip'),
+    });
 
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,

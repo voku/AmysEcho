@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createTrainingZip, uploadTrainingZip } from '../training/trainingBundle';
 import {
-  BUNDLE_KEY_PREFIX,
-  decodeBundleData,
   enqueuePersistedBundle,
   listQueuedBundles,
   markBundleFailed,
   markBundleUploading,
   removeQueuedBundle,
+  readBundleData,
+  subscribeToBundleUpdates,
 } from '../training/trainingQueue';
 import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleResponse } from '../training/types';
 import { normalizeTrainingJobStatus } from '../training/trainingBundle';
@@ -37,9 +37,15 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
   const syncingRef = useRef(false);
 
   const refreshQueue = useCallback(async () => {
-    const bundles = await listQueuedBundles();
-    setQueuedCount(bundles.length);
-    return bundles;
+    try {
+      const bundles = await listQueuedBundles();
+      setQueuedCount(bundles.length);
+      return bundles;
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      setSyncError((prev) => prev ?? reason);
+      return [];
+    }
   }, []);
 
   const resolveOptions = useCallback(
@@ -63,7 +69,15 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
       for (const bundle of pending) {
         try {
           await markBundleUploading(bundle.key);
-          await uploadTrainingZip(decodeBundleData(bundle), resolveOptions(options));
+          const zipData = await readBundleData(bundle.key);
+          if (!zipData) {
+            const corrupted = 'Gespeichertes Bundle ist beschädigt oder nicht mehr verfügbar.';
+            await markBundleFailed(bundle.key, corrupted);
+            setSyncError(corrupted);
+            // eslint-disable-next-line no-continue
+            continue;
+          }
+          await uploadTrainingZip(zipData, resolveOptions(options));
           await removeQueuedBundle(bundle.key);
           uploaded += 1;
         } catch (err) {
@@ -103,15 +117,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
     };
   }, [refreshQueue, syncQueued]);
 
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (!event.key || event.key.startsWith(BUNDLE_KEY_PREFIX)) {
-        refreshQueue();
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [refreshQueue]);
+  useEffect(() => subscribeToBundleUpdates(refreshQueue), [refreshQueue]);
 
   useEffect(() => {
     const handleOnline = () => {

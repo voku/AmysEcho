@@ -1,4 +1,11 @@
 export const BUNDLE_KEY_PREFIX = 'trainingBundles:';
+const DB_NAME = 'training-bundles';
+const DB_VERSION = 1;
+const METADATA_STORE = 'bundles';
+const DATA_STORE = 'bundleData';
+const BROADCAST_CHANNEL = 'training-bundles-updates';
+
+type BundleStorage = 'idb' | 'opfs';
 
 export type PersistedBundleStatus = 'pending' | 'uploading' | 'failed';
 
@@ -12,28 +19,89 @@ export interface PersistedTrainingBundle {
   framesCount: number;
   clipBytes?: number;
   stillBytes?: number;
-  zipBase64: string;
+  zipBytes: number;
+  storage: BundleStorage;
   status: PersistedBundleStatus;
   lastError?: string;
   attempts: number;
 }
 
-function toBase64(data: Uint8Array): string {
-  const buffer = (globalThis as { Buffer?: { from: (value: Uint8Array, encoding?: string) => { toString: (enc: string) => string } } })
-    .Buffer;
-  if (buffer) {
-    return buffer.from(data).toString('base64');
+type StoredTrainingBundle = PersistedTrainingBundle & {
+  opfsPath?: string;
+};
+
+type BundleParams = {
+  profileId: string;
+  label: string;
+  capturedAt: string;
+  source: string;
+  framesCount: number;
+  clipBytes?: number;
+  stillBytes?: number;
+  zip: Uint8Array;
+};
+
+type LegacyBundle = {
+  key: string;
+  payload: PersistedTrainingBundle;
+  zip: Uint8Array;
+};
+
+const storageEventName = 'training-bundles-updated';
+
+const subscribers = new Set<() => void>();
+let broadcastChannel: BroadcastChannel | null = null;
+let dbPromise: Promise<IDBDatabase> | null = null;
+let migrationPromise: Promise<void> | null = null;
+let opfsRootPromise: Promise<FileSystemDirectoryHandle | null> | null = null;
+
+function notifyBundleChange() {
+  subscribers.forEach((fn) => fn());
+  try {
+    if (!broadcastChannel && typeof BroadcastChannel !== 'undefined') {
+      broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL);
+    }
+    broadcastChannel?.postMessage({ type: 'changed' });
+  } catch (error) {
+    console.warn('BroadcastChannel konnte nicht initialisiert werden', error);
   }
-  const CHUNK_SIZE = 8192;
-  let binary = '';
-  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-    const chunk = data.subarray(i, i + CHUNK_SIZE);
-    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(storageEventName));
   }
-  return btoa(binary);
 }
 
-function fromBase64(encoded: string): Uint8Array {
+export function subscribeToBundleUpdates(callback: () => void): () => void {
+  subscribers.add(callback);
+
+  const detach = () => {
+    subscribers.delete(callback);
+  };
+
+  if (typeof BroadcastChannel !== 'undefined') {
+    const channel = new BroadcastChannel(BROADCAST_CHANNEL);
+    const handler = () => callback();
+    channel.addEventListener('message', handler);
+    return () => {
+      channel.removeEventListener('message', handler);
+      channel.close();
+      detach();
+    };
+  }
+
+  if (typeof window !== 'undefined') {
+    const handler = () => callback();
+    window.addEventListener(storageEventName, handler);
+    return () => {
+      window.removeEventListener(storageEventName, handler);
+      detach();
+    };
+  }
+
+  return detach;
+}
+
+function base64ToBytes(encoded: string): Uint8Array {
   const buffer = (globalThis as { Buffer?: { from: (value: string, encoding: string) => Uint8Array } }).Buffer;
   if (buffer) {
     return new Uint8Array(buffer.from(encoded, 'base64'));
@@ -62,14 +130,15 @@ function buildBundleKey(profileId: string): string {
   return `${BUNDLE_KEY_PREFIX}${profileId}:${timestamp}:${random}`;
 }
 
-function parseBundle(key: string, raw: string | null): PersistedTrainingBundle | null {
+function parseLegacyBundle(key: string, raw: string | null): LegacyBundle | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<PersistedTrainingBundle> & { zipBase64?: string };
     if (!parsed || typeof parsed !== 'object') return null;
     if (typeof parsed.profileId !== 'string' || typeof parsed.label !== 'string') return null;
     if (typeof parsed.zipBase64 !== 'string') return null;
-    return {
+
+    const base: PersistedTrainingBundle = {
       key,
       profileId: parsed.profileId,
       label: parsed.label,
@@ -79,10 +148,17 @@ function parseBundle(key: string, raw: string | null): PersistedTrainingBundle |
       framesCount: typeof parsed.framesCount === 'number' ? parsed.framesCount : 0,
       ...(typeof parsed.clipBytes === 'number' ? { clipBytes: parsed.clipBytes } : {}),
       ...(typeof parsed.stillBytes === 'number' ? { stillBytes: parsed.stillBytes } : {}),
-      zipBase64: parsed.zipBase64,
+      zipBytes: parsed.zipBase64.length,
+      storage: 'idb',
       status: parsed.status === 'failed' || parsed.status === 'uploading' ? parsed.status : 'pending',
       ...(typeof parsed.lastError === 'string' ? { lastError: parsed.lastError } : {}),
       attempts: typeof parsed.attempts === 'number' ? parsed.attempts : 0,
+    };
+
+    return {
+      key,
+      payload: base,
+      zip: base64ToBytes(parsed.zipBase64),
     };
   } catch (error) {
     console.warn('Fehler beim Lesen eines gespeicherten Bundles', error);
@@ -90,31 +166,185 @@ function parseBundle(key: string, raw: string | null): PersistedTrainingBundle |
   }
 }
 
-function writeBundle(bundle: PersistedTrainingBundle): void {
-  const store = storage();
-  if (!store) return;
-  store.setItem(bundle.key, JSON.stringify(bundle));
+function getIndexedDb(): IDBFactory | null {
+  if (typeof indexedDB === 'undefined') return null;
+  return indexedDB;
 }
 
-export function decodeBundleData(bundle: Pick<PersistedTrainingBundle, 'zipBase64'>): Uint8Array {
-  return fromBase64(bundle.zipBase64);
+async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | null> {
+  if (!opfsRootPromise) {
+    opfsRootPromise = (async () => {
+      if (!('storage' in navigator) || typeof navigator.storage.getDirectory !== 'function') {
+        return null;
+      }
+      try {
+        const root = await navigator.storage.getDirectory();
+        return root.getDirectoryHandle(DB_NAME, { create: true });
+      } catch (error) {
+        console.warn('OPFS nicht verfügbar, weiche auf IndexedDB aus', error);
+        return null;
+      }
+    })();
+  }
+  return opfsRootPromise;
 }
 
-export async function enqueuePersistedBundle(params: {
-  profileId: string;
-  label: string;
-  capturedAt: string;
-  source: string;
-  framesCount: number;
-  clipBytes?: number;
-  stillBytes?: number;
-  zip: Uint8Array;
-}): Promise<PersistedTrainingBundle | null> {
-  const store = storage();
-  if (!store) return null;
+function bufferFrom(data: Uint8Array): ArrayBuffer {
+  if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength) {
+    return data.buffer.slice(0);
+  }
+  return data.slice().buffer;
+}
 
+function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB-Fehler'));
+  });
+}
+
+function txDone(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error ?? new Error('IndexedDB-Transaktion abgebrochen'));
+    tx.onerror = () => reject(tx.error ?? new Error('IndexedDB-Transaktion fehlgeschlagen'));
+  });
+}
+
+async function openDb(): Promise<IDBDatabase> {
+  const factory = getIndexedDb();
+  if (!factory) {
+    throw new Error('Offline-Speicher nicht verfügbar. Bitte einen aktuellen Browser verwenden.');
+  }
+
+  if (!dbPromise) {
+    dbPromise = new Promise((resolve, reject) => {
+      const request = factory.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(METADATA_STORE)) {
+          db.createObjectStore(METADATA_STORE, { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains(DATA_STORE)) {
+          db.createObjectStore(DATA_STORE);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error('IndexedDB konnte nicht geöffnet werden'));
+    });
+  }
+
+  return dbPromise;
+}
+
+async function persistBundle(
+  db: IDBDatabase,
+  record: StoredTrainingBundle,
+  zipData?: Uint8Array,
+): Promise<void> {
+  const tx = db.transaction([METADATA_STORE, DATA_STORE], 'readwrite');
+  const metadataStore = tx.objectStore(METADATA_STORE);
+  const dataStore = tx.objectStore(DATA_STORE);
+  metadataStore.put(record);
+  if (record.storage === 'idb' && zipData) {
+    dataStore.put(bufferFrom(zipData), record.key);
+  }
+  await txDone(tx);
+}
+
+async function migrateLegacyBundles(db: IDBDatabase): Promise<void> {
+  if (migrationPromise) {
+    await migrationPromise;
+    return;
+  }
+
+  migrationPromise = (async () => {
+    const store = storage();
+    if (!store) return;
+
+    const keys = Object.keys(store).filter((key) => key.startsWith(BUNDLE_KEY_PREFIX));
+    if (keys.length === 0) return;
+
+    for (const key of keys) {
+      const legacy = parseLegacyBundle(key, store.getItem(key));
+      if (!legacy) {
+        store.removeItem(key);
+        continue;
+      }
+
+      const opfsRoot = await getOpfsRoot();
+      const record: StoredTrainingBundle = {
+        ...legacy.payload,
+        storage: opfsRoot ? 'opfs' : 'idb',
+        zipBytes: legacy.zip.byteLength,
+        attempts: legacy.payload.attempts ?? 0,
+      };
+
+      if (opfsRoot) {
+        const file = await opfsRoot.getFileHandle(key, { create: true });
+        const writable = await file.createWritable();
+        await writable.write(legacy.zip);
+        await writable.close();
+        record.opfsPath = key;
+        await persistBundle(db, record);
+      } else {
+        await persistBundle(db, record, legacy.zip);
+      }
+
+      store.removeItem(key);
+    }
+  })();
+
+  await migrationPromise;
+}
+
+async function ensureStorage(): Promise<IDBDatabase> {
+  try {
+    const db = await openDb();
+    await migrateLegacyBundles(db);
+    return db;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Offline-Speicher konnte nicht initialisiert werden: ${reason}`);
+  }
+}
+
+async function loadBundleRecord(db: IDBDatabase, key: string): Promise<StoredTrainingBundle | null> {
+  const tx = db.transaction(METADATA_STORE, 'readonly');
+  const store = tx.objectStore(METADATA_STORE);
+  const record = (await requestToPromise(store.get(key))) as StoredTrainingBundle | undefined;
+  await txDone(tx);
+  return record ?? null;
+}
+
+async function readZipData(db: IDBDatabase, record: StoredTrainingBundle): Promise<Uint8Array | null> {
+  if (record.storage === 'opfs' && record.opfsPath) {
+    const opfsRoot = await getOpfsRoot();
+    if (!opfsRoot) return null;
+    try {
+      const file = await opfsRoot.getFileHandle(record.opfsPath);
+      const blob = await (await file.getFile()).arrayBuffer();
+      return new Uint8Array(blob);
+    } catch (error) {
+      console.warn('Konnte gespeichertes OPFS-Bundle nicht lesen', error);
+      return null;
+    }
+  }
+
+  const tx = db.transaction(DATA_STORE, 'readonly');
+  const dataStore = tx.objectStore(DATA_STORE);
+  const buffer = (await requestToPromise(dataStore.get(record.key))) as ArrayBuffer | undefined;
+  await txDone(tx);
+  if (!buffer) return null;
+  return new Uint8Array(buffer);
+}
+
+export async function enqueuePersistedBundle(params: BundleParams): Promise<PersistedTrainingBundle | null> {
+  const db = await ensureStorage();
+  const opfsRoot = await getOpfsRoot();
   const key = buildBundleKey(params.profileId);
-  const payload: PersistedTrainingBundle = {
+
+  const record: StoredTrainingBundle = {
     key,
     profileId: params.profileId,
     label: params.label,
@@ -124,59 +354,121 @@ export async function enqueuePersistedBundle(params: {
     framesCount: params.framesCount,
     ...(typeof params.clipBytes === 'number' ? { clipBytes: params.clipBytes } : {}),
     ...(typeof params.stillBytes === 'number' ? { stillBytes: params.stillBytes } : {}),
-    zipBase64: toBase64(params.zip),
+    zipBytes: params.zip.byteLength,
+    storage: opfsRoot ? 'opfs' : 'idb',
     status: 'pending',
     attempts: 0,
   };
 
-  writeBundle(payload);
-  return payload;
+  if (opfsRoot) {
+    const file = await opfsRoot.getFileHandle(key, { create: true });
+    const writable = await file.createWritable();
+    await writable.write(params.zip);
+    await writable.close();
+    record.opfsPath = key;
+    await persistBundle(db, record);
+  } else {
+    await persistBundle(db, record, params.zip);
+  }
+
+  notifyBundleChange();
+  const { opfsPath, ...persisted } = record;
+  return persisted;
 }
 
 export async function listQueuedBundles(profileId?: string): Promise<PersistedTrainingBundle[]> {
-  const store = storage();
-  if (!store) return [];
+  const db = await ensureStorage();
+  const tx = db.transaction(METADATA_STORE, 'readonly');
+  const store = tx.objectStore(METADATA_STORE);
+  const records = (await requestToPromise(store.getAll())) as StoredTrainingBundle[];
+  await txDone(tx);
 
-  const keys = Object.keys(store).filter((key) => key.startsWith(BUNDLE_KEY_PREFIX));
-  const filteredKeys = profileId ? keys.filter((key) => key.startsWith(`${BUNDLE_KEY_PREFIX}${profileId}:`)) : keys;
-  const bundles: PersistedTrainingBundle[] = [];
+  const filtered = profileId
+    ? records.filter((record) => record.key.startsWith(`${BUNDLE_KEY_PREFIX}${profileId}:`))
+    : records;
 
-  filteredKeys.forEach((key) => {
-    const parsed = parseBundle(key, store.getItem(key));
-    if (parsed) {
-      bundles.push(parsed);
-    } else {
-      store.removeItem(key);
-    }
-  });
+  return filtered
+    .map((record) => {
+      const { opfsPath, ...rest } = record;
+      return rest;
+    })
+    .sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
+}
 
-  return bundles.sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
+export async function readBundleData(key: string): Promise<Uint8Array | null> {
+  const db = await ensureStorage();
+  const record = await loadBundleRecord(db, key);
+  if (!record) return null;
+  return readZipData(db, record);
 }
 
 export async function removeQueuedBundle(key: string): Promise<void> {
-  const store = storage();
-  if (!store) return;
-  store.removeItem(key);
+  const db = await ensureStorage();
+  const tx = db.transaction([METADATA_STORE, DATA_STORE], 'readwrite');
+  const metadataStore = tx.objectStore(METADATA_STORE);
+  const dataStore = tx.objectStore(DATA_STORE);
+  metadataStore.delete(key);
+  dataStore.delete(key);
+  await txDone(tx);
+
+  const opfsRoot = await getOpfsRoot();
+  if (opfsRoot) {
+    try {
+      const file = await opfsRoot.getFileHandle(key);
+      await opfsRoot.removeEntry(file.name);
+    } catch (error) {
+      console.warn('Konnte OPFS-Bundle nicht löschen', error);
+    }
+  }
+
+  notifyBundleChange();
+}
+
+async function updateBundle(
+  key: string,
+  updater: (bundle: StoredTrainingBundle) => StoredTrainingBundle,
+): Promise<void> {
+  const db = await ensureStorage();
+  const current = await loadBundleRecord(db, key);
+  if (!current) return;
+  const updated = updater(current);
+  await persistBundle(db, updated);
+  notifyBundleChange();
 }
 
 export async function markBundleFailed(key: string, error: string): Promise<void> {
-  const store = storage();
-  if (!store) return;
-  const parsed = parseBundle(key, store.getItem(key));
-  if (!parsed) return;
-  parsed.status = 'failed';
-  parsed.lastError = error;
-  parsed.attempts += 1;
-  writeBundle(parsed);
+  await updateBundle(key, (bundle) => ({
+    ...bundle,
+    status: 'failed',
+    lastError: error,
+    attempts: (bundle.attempts ?? 0) + 1,
+  }));
 }
 
 export async function markBundleUploading(key: string): Promise<void> {
-  const store = storage();
-  if (!store) return;
-  const parsed = parseBundle(key, store.getItem(key));
-  if (!parsed) return;
-  parsed.status = 'uploading';
-  parsed.attempts += 1;
-  delete parsed.lastError;
-  writeBundle(parsed);
+  await updateBundle(key, (bundle) => {
+    const next = { ...bundle, status: 'uploading', attempts: (bundle.attempts ?? 0) + 1 };
+    delete (next as Partial<StoredTrainingBundle>).lastError;
+    return next;
+  });
 }
+
+export async function clearBundleStoreForTests(): Promise<void> {
+  if (dbPromise) {
+    const db = await dbPromise;
+    db.close();
+    dbPromise = null;
+  }
+  migrationPromise = null;
+  opfsRootPromise = null;
+  if (typeof indexedDB !== 'undefined') {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(DB_NAME);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error ?? new Error('Konnte Testdatenbank nicht löschen'));
+    });
+  }
+  const store = storage();
+  store?.clear();
+}
+
