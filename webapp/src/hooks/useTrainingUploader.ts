@@ -74,7 +74,6 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
             const corrupted = 'Gespeichertes Bundle ist beschädigt oder nicht mehr verfügbar.';
             await markBundleFailed(bundle.key, corrupted);
             setSyncError(corrupted);
-            // eslint-disable-next-line no-continue
             continue;
           }
           await uploadTrainingZip(zipData, resolveOptions(options));

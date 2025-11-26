@@ -138,6 +138,7 @@ function parseLegacyBundle(key: string, raw: string | null): LegacyBundle | null
     if (typeof parsed.profileId !== 'string' || typeof parsed.label !== 'string') return null;
     if (typeof parsed.zipBase64 !== 'string') return null;
 
+    const zip = base64ToBytes(parsed.zipBase64);
     const base: PersistedTrainingBundle = {
       key,
       profileId: parsed.profileId,
@@ -148,7 +149,7 @@ function parseLegacyBundle(key: string, raw: string | null): LegacyBundle | null
       framesCount: typeof parsed.framesCount === 'number' ? parsed.framesCount : 0,
       ...(typeof parsed.clipBytes === 'number' ? { clipBytes: parsed.clipBytes } : {}),
       ...(typeof parsed.stillBytes === 'number' ? { stillBytes: parsed.stillBytes } : {}),
-      zipBytes: parsed.zipBase64.length,
+      zipBytes: zip.byteLength,
       storage: 'idb',
       status: parsed.status === 'failed' || parsed.status === 'uploading' ? parsed.status : 'pending',
       ...(typeof parsed.lastError === 'string' ? { lastError: parsed.lastError } : {}),
@@ -158,7 +159,7 @@ function parseLegacyBundle(key: string, raw: string | null): LegacyBundle | null
     return {
       key,
       payload: base,
-      zip: base64ToBytes(parsed.zipBase64),
+      zip,
     };
   } catch (error) {
     console.warn('Fehler beim Lesen eines gespeicherten Bundles', error);
@@ -372,7 +373,7 @@ export async function enqueuePersistedBundle(params: BundleParams): Promise<Pers
   }
 
   notifyBundleChange();
-  const { opfsPath, ...persisted } = record;
+  const { opfsPath: _opfsPath, ...persisted } = record;
   return persisted;
 }
 
@@ -389,7 +390,7 @@ export async function listQueuedBundles(profileId?: string): Promise<PersistedTr
 
   return filtered
     .map((record) => {
-      const { opfsPath, ...rest } = record;
+      const { opfsPath: _opfsPath, ...rest } = record;
       return rest;
     })
     .sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
@@ -414,10 +415,9 @@ export async function removeQueuedBundle(key: string): Promise<void> {
   const opfsRoot = await getOpfsRoot();
   if (opfsRoot) {
     try {
-      const file = await opfsRoot.getFileHandle(key);
-      await opfsRoot.removeEntry(file.name);
+      await opfsRoot.removeEntry(key);
     } catch (error) {
-      console.warn('Konnte OPFS-Bundle nicht löschen', error);
+      // Datei existiert eventuell nicht im OPFS (z. B. nur in IndexedDB gespeichert)
     }
   }
 
