@@ -96,7 +96,9 @@ describe('TrainingUploadWithRecording', () => {
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
 
     expect(uploadMock).toHaveBeenCalledTimes(1);
-    const payload = uploadMock.mock.calls[0][0];
+    const payload = uploadMock.mock.calls[0]?.[0];
+    expect(payload).toBeDefined();
+    if (!payload) return;
     expect(payload.profileId).toBe('profil-1');
     expect(payload.label).toBe('NEUES-LABEL');
   });

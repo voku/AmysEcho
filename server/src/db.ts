@@ -112,7 +112,7 @@ export const findUserByUsername = (
   username: string,
 ): StoredUser | undefined => {
   const normalized = username.trim().toLowerCase();
-  return db.users.find((u) => u.username.toLowerCase() === normalized);
+  return db.users.find((u) => u.username === normalized);
 };
 
 const updateById = <T extends { id: string }>(
@@ -277,8 +277,13 @@ export const loadDatabase = async (filePath: string): Promise<Database> => {
     if (!Array.isArray(base.users)) {
       base.users = [];
     }
+    base.users = base.users.map((user) => ({
+      ...user,
+      username: user.username.trim().toLowerCase(),
+    }));
     return base;
-  } catch {
+  } catch (error) {
+    console.error('Failed to load database, creating a new one.', error);
     return createDatabase();
   }
 };

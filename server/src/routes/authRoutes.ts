@@ -18,7 +18,7 @@ const CredentialsSchema = z.object({
   password: z.string().min(6).max(128),
 });
 
-const normalizeUsername = (username: string) => username.trim();
+const normalizeUsername = (username: string) => username.trim().toLowerCase();
 
 export const createAuthLimiter = () =>
   rateLimit({
