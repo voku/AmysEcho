@@ -55,8 +55,7 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
       const passwordHash = await AuthService.hashPassword(password);
 
       await deps.withFileLock(deps.dbFilePath, async () => {
-        createdUser = findUserByUsername(deps.db, username);
-        if (createdUser) return;
+        if (findUserByUsername(deps.db, username)) return;
         const user = {
           id: randomUUID(),
           username,
@@ -70,7 +69,7 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
       });
 
       if (!createdUser) {
-        throw new Error('Registration failed due to concurrent write.');
+        return res.status(409).json({ error: 'Benutzername ist bereits vergeben.' });
       }
 
       const publicUser = AuthService.toUser(createdUser);
@@ -97,7 +96,7 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
 
     try {
       const user = findUserByUsername(deps.db, username);
-      const passwordHash = user?.passwordHash ?? (await AuthService.hashPassword('dummy-password'));
+      const passwordHash = user?.passwordHash ?? AuthService.DUMMY_PASSWORD_HASH;
       const valid = await AuthService.verifyPassword(password, passwordHash);
       if (!user || !valid) {
         return res.status(401).json({ error: 'Ungültige Zugangsdaten.' });

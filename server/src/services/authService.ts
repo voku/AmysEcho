@@ -18,6 +18,7 @@ export class AuthService {
   private static readonly JWT_SECRET = config.jwtSecret;
   private static readonly JWT_REFRESH_SECRET = config.jwtRefreshSecret;
   private static readonly SALT_ROUNDS = 12;
+  static readonly DUMMY_PASSWORD_HASH = bcrypt.hashSync('dummy-password', this.SALT_ROUNDS);
 
   static async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, this.SALT_ROUNDS);

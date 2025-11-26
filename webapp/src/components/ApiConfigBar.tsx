@@ -49,7 +49,7 @@ export function ApiConfigBar() {
   const handleAuthSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      if (!username.trim() || !password.trim()) {
+      if (!username.trim() || !password) {
         setAuthMessage('Bitte fülle Nutzername und Passwort aus.');
         return;
       }
@@ -61,7 +61,7 @@ export function ApiConfigBar() {
         const response = await fetch(target, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: username.trim(), password: password.trim() }),
+          body: JSON.stringify({ username: username.trim(), password }),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {

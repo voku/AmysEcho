@@ -34,7 +34,10 @@ describe('ApiConfigBar authentication helpers', () => {
     await waitFor(() => {
       const stored = window.sessionStorage.getItem('webapp:api-config:session');
       expect(stored).toBeTruthy();
-      expect(JSON.parse(stored!).apiToken).toBe('jwt-token');
+      const parsed = JSON.parse(stored!);
+      expect(typeof parsed.apiToken).toBe('string');
+      expect(parsed.apiToken).not.toBe('jwt-token');
+      expect(typeof parsed.iv).toBe('string');
     });
     expect(screen.getByText(/Token wurde gespeichert/i)).toBeInTheDocument();
   });

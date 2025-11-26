@@ -118,7 +118,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
     onRecordingComplete(payload);
     resetRecording();
-  }, [recordedData, profileId, label, onRecordingComplete, resetRecording]);
+  }, [metadataReady, recordedData, profileId, label, onRecordingComplete, resetRecording]);
 
   const handleDiscardRecording = useCallback(() => {
     resetRecording();

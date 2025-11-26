@@ -80,7 +80,11 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
         });
     }
   }
-  return sessionCryptoKey;
+  const key = sessionCryptoKey;
+  if (!key) {
+    throw new Error('CryptoKey konnte nicht erzeugt werden.');
+  }
+  return key;
 }
 
 async function encryptToken(value: string): Promise<EncryptedToken> {
