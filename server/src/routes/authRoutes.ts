@@ -1,5 +1,6 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { addUser, Database, findUserByUsername, saveDatabase } from '../db.js';
 import { AuthService } from '../services/authService.js';
@@ -19,8 +20,19 @@ const CredentialsSchema = z.object({
 
 const normalizeUsername = (username: string) => username.trim();
 
+export const createAuthLimiter = () =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Zu viele Anmeldeversuche. Bitte später erneut versuchen.' },
+  });
+
 export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
-  app.post('/api/v1/auth/register', async (req, res) => {
+  const authLimiter = createAuthLimiter();
+
+  app.post('/api/v1/auth/register', authLimiter, async (req, res) => {
     const parsed = CredentialsSchema.safeParse(req.body);
     if (!parsed.success) {
       return res
@@ -36,11 +48,11 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
     }
 
     try {
-      const passwordHash = await AuthService.hashPassword(password);
       let createdUser = findUserByUsername(deps.db, username);
       if (createdUser) {
         return res.status(409).json({ error: 'Benutzername ist bereits vergeben.' });
       }
+      const passwordHash = await AuthService.hashPassword(password);
 
       await deps.withFileLock(deps.dbFilePath, async () => {
         createdUser = findUserByUsername(deps.db, username);
@@ -71,7 +83,7 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
     }
   });
 
-  app.post('/api/v1/auth/login', async (req, res) => {
+  app.post('/api/v1/auth/login', authLimiter, async (req, res) => {
     const parsed = CredentialsSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'Nutzername und Passwort werden benötigt.' });
@@ -85,12 +97,9 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
 
     try {
       const user = findUserByUsername(deps.db, username);
-      if (!user) {
-        return res.status(401).json({ error: 'Ungültige Zugangsdaten.' });
-      }
-
-      const valid = await AuthService.verifyPassword(password, user.passwordHash);
-      if (!valid) {
+      const passwordHash = user?.passwordHash ?? (await AuthService.hashPassword('dummy-password'));
+      const valid = await AuthService.verifyPassword(password, passwordHash);
+      if (!user || !valid) {
         return res.status(401).json({ error: 'Ungültige Zugangsdaten.' });
       }
 

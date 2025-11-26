@@ -1,11 +1,13 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach } from 'vitest';
+import { webcrypto } from 'node:crypto';
 import { ApiConfigProvider, useApiConfig, resolvePollUrl } from './useApiConfig';
 
 describe('useApiConfig', () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
+    Object.defineProperty(window, 'crypto', { value: webcrypto, writable: true });
   });
 
   it('provides default values and computed upload endpoint', () => {
@@ -28,19 +30,23 @@ describe('useApiConfig', () => {
     expect(result.current.uploadEndpoint).toBe('https://api.example.com/api/v1/dgs/sample-bundles');
   });
 
-  it('persists API base URL and token only after opt-in', () => {
+  it('persists API base URL and token only after opt-in', async () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
-    act(() => {
+    await act(async () => {
       result.current.setApiBaseUrl('https://api.example.com');
       result.current.setApiToken('secret-token-123');
     });
 
     expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeNull();
 
-    act(() => {
+    await act(async () => {
       result.current.setPersistToken(true);
       result.current.setApiToken('secret-token-123');
+    });
+
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeTruthy();
     });
 
     const stored = window.localStorage.getItem('webapp:api-config');
@@ -53,36 +59,48 @@ describe('useApiConfig', () => {
     expect(sessionStored).toBeTruthy();
     const sessionParsed = JSON.parse(sessionStored!);
     expect(sessionParsed.apiBaseUrl).toBe('https://api.example.com');
-    expect(sessionParsed.apiToken).toBe('secret-token-123');
+    expect(sessionParsed.apiToken).toBeTypeOf('string');
+    expect(sessionParsed.apiToken).not.toBe('secret-token-123');
+    expect(sessionParsed.iv).toBeTypeOf('string');
   });
 
-  it('loads API base URL and token from storage when persistence was enabled', () => {
-    window.localStorage.setItem(
-      'webapp:api-config',
-      JSON.stringify({ apiBaseUrl: 'https://stored.example.com', persistToken: true }),
-    );
-    window.sessionStorage.setItem(
-      'webapp:api-config:session',
-      JSON.stringify({ apiBaseUrl: 'https://stored.example.com', apiToken: 'persisted-token' }),
-    );
+  it('loads API base URL and token from storage when persistence was enabled', async () => {
+    const { result, unmount } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
-    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+    await act(async () => {
+      result.current.setApiBaseUrl('https://stored.example.com');
+      result.current.setApiToken('persisted-token');
+      result.current.setPersistToken(true);
+    });
 
-    expect(result.current.apiBaseUrl).toBe('https://stored.example.com');
-    expect(result.current.apiToken).toBe('persisted-token');
-    expect(result.current.persistToken).toBe(true);
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeTruthy();
+    });
+
+    unmount();
+
+    const { result: second } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    expect(second.current.apiBaseUrl).toBe('https://stored.example.com');
+    expect(second.current.persistToken).toBe(true);
+
+    await waitFor(() => {
+      expect(second.current.apiToken).toBe('persisted-token');
+    });
   });
 
-  it('clears token storage when opting out', () => {
+  it('clears token storage when opting out', async () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
-    act(() => {
+    await act(async () => {
       result.current.setApiBaseUrl('https://api.example.com');
       result.current.setPersistToken(true);
       result.current.setApiToken('secret-token-123');
     });
 
-    expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeTruthy();
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeTruthy();
+    });
 
     act(() => {
       result.current.setPersistToken(false);

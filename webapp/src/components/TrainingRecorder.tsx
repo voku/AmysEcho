@@ -136,7 +136,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : `Video wird zusammen mit den Landmarks gespeichert (Limit ${formatBytes(maxClipBytes)}).`;
   const metadataError = metadataReady
     ? ''
-    : 'Profil-ID und Gestenlabel sind erforderlich, bevor du aufnimmst oder hochlädst.';
+    : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
 
   return (
     <section className="card">

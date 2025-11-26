@@ -32,6 +32,20 @@ describe('auth routes', () => {
     registerAuthRoutes(app, { db, dbFilePath, withFileLock });
   });
 
+  it('rejects duplicate registration attempts', async () => {
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({ username: 'amy', password: 'super-secure-password' })
+      .expect(201);
+
+    const response = await request(app)
+      .post('/api/v1/auth/register')
+      .send({ username: 'amy', password: 'another-password' })
+      .expect(409);
+
+    expect(response.body.error).toBe('Benutzername ist bereits vergeben.');
+  });
+
   it('registers a new user and persists the hashed password', async () => {
     const response = await request(app)
       .post('/api/v1/auth/register')
@@ -84,5 +98,16 @@ describe('auth routes', () => {
       .expect(401);
 
     expect(response.body.error).toBe('Ungültige Zugangsdaten.');
+  });
+
+  it('rejects malformed credential payloads', async () => {
+    const missingCredentials = await request(app).post('/api/v1/auth/register').send({}).expect(400);
+    expect(missingCredentials.body.error).toBe('Nutzername und Passwort werden benötigt.');
+
+    const emptyUsername = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ username: '   ', password: 'topsecret' })
+      .expect(400);
+    expect(emptyUsername.body.error).toBe('Nutzername darf nicht leer sein.');
   });
 });
