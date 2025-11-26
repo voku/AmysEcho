@@ -392,10 +392,20 @@ export function TrainingUploadWithRecording() {
     useAppState();
   const [label, setLabel] = useState(preferredGestureLabel);
   const [message, setMessage] = useState<string>('');
+  const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
+  const metadataError = metadataReady
+    ? ''
+    : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
 
   useEffect(() => {
     setLabel(preferredGestureLabel);
   }, [preferredGestureLabel]);
+
+  useEffect(() => {
+    if (metadataReady && message === metadataError) {
+      setMessage('');
+    }
+  }, [metadataError, metadataReady, message]);
 
   const handleLabelUpdate = useCallback(
     (value: string) => {
@@ -408,6 +418,10 @@ export function TrainingUploadWithRecording() {
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
+      if (!metadataReady) {
+        setMessage(metadataError);
+        return;
+      }
       setMessage('Aufnahme wird hochgeladen…');
       try {
         const result = await upload(payload);
@@ -421,7 +435,7 @@ export function TrainingUploadWithRecording() {
         setMessage(`Upload fehlgeschlagen: ${reason}`);
       }
     },
-    [upload],
+    [metadataError, metadataReady, upload],
   );
 
   const handleSyncQueued = useCallback(async () => {
@@ -481,6 +495,7 @@ export function TrainingUploadWithRecording() {
                 </button>
               )}
             </div>
+            {!metadataReady && <div className="notice error mt-sm">{metadataError}</div>}
           </div>
         </>
       )}

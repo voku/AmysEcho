@@ -1,11 +1,12 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import config from '../config/index.js';
+import { StoredUser, UserRole } from '../types.js';
 
 export interface User {
   id: string;
   username: string;
-  role: 'admin' | 'caregiver' | 'user';
+  role: UserRole;
 }
 
 export interface AuthTokens {
@@ -17,6 +18,7 @@ export class AuthService {
   private static readonly JWT_SECRET = config.jwtSecret;
   private static readonly JWT_REFRESH_SECRET = config.jwtRefreshSecret;
   private static readonly SALT_ROUNDS = 12;
+  static readonly DUMMY_PASSWORD_HASH = bcrypt.hashSync('dummy-password', this.SALT_ROUNDS);
 
   static async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, this.SALT_ROUNDS);
@@ -81,5 +83,9 @@ export class AuthService {
     };
 
     return this.generateTokens(user);
+  }
+
+  static toUser(stored: StoredUser): User {
+    return { id: stored.id, username: stored.username, role: stored.role };
   }
 }

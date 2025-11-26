@@ -294,6 +294,9 @@ npm run build --prefix server
 
 - Uses `PORT=5000` and `API_TOKEN=demo-token` by default.
 - Stores the latest MLP model at `server/data/models/global/amy_model.npz` once training completes.
+- Neue Zugänge können per `POST /api/v1/auth/register` erstellt und per `POST /api/v1/auth/login` angemeldet werden. Die
+  Endpunkte geben JWTs zurück und funktionieren parallel zum Legacy-Token. Passwort-Anforderungen: 6–128 Zeichen,
+  Nutzername: 3–50 Zeichen.
 
 2) Reverse port for USB device (Terminal B)
 
