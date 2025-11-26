@@ -71,8 +71,12 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
     if (!storedKey) {
       window.crypto.getRandomValues(rawBytes);
     }
+    const keyMaterial =
+      rawBytes.byteOffset === 0 && rawBytes.byteLength === rawBytes.buffer.byteLength
+        ? rawBytes
+        : rawBytes.slice();
     sessionCryptoKey = window.crypto.subtle
-      .importKey('raw', rawBytes, 'AES-GCM', false, ['encrypt', 'decrypt'])
+      .importKey('raw', keyMaterial, 'AES-GCM', false, ['encrypt', 'decrypt'])
       .then((key) => {
         if (!storedKey) {
           window.sessionStorage.setItem(SESSION_CRYPTO_KEY, toBase64(rawBytes));

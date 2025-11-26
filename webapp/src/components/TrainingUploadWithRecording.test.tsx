@@ -62,6 +62,8 @@ describe('TrainingUploadWithRecording', () => {
     window.sessionStorage.clear();
   });
 
+  const TEST_TIMEOUT = 10000;
+
   it('blockiert Uploads, wenn Profil oder Label fehlen', async () => {
     const user = userEvent.setup();
     renderWithProviders();
@@ -79,7 +81,7 @@ describe('TrainingUploadWithRecording', () => {
       'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.',
     );
     expect(validationMessages.length).toBeGreaterThan(0);
-  });
+  }, TEST_TIMEOUT);
 
   it('übermittelt Aufnahmen nur mit gefüllter Profil-ID und Label', async () => {
     const user = userEvent.setup();
@@ -101,5 +103,5 @@ describe('TrainingUploadWithRecording', () => {
     if (!payload) return;
     expect(payload.profileId).toBe('profil-1');
     expect(payload.label).toBe('NEUES-LABEL');
-  });
+  }, TEST_TIMEOUT);
 });

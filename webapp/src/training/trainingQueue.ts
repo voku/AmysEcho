@@ -177,7 +177,7 @@ async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | null> {
 }
 
 function bufferFrom(data: Uint8Array): ArrayBuffer {
-  return data.slice().buffer;
+  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
 }
 
 function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
@@ -261,7 +261,7 @@ async function migrateLegacyBundles(db: IDBDatabase): Promise<void> {
         ...legacy.payload,
         storage: opfsRoot ? 'opfs' : 'idb',
         zipBytes: legacy.zip.byteLength,
-        attempts: legacy.payload.attempts ?? 0,
+        attempts: legacy.payload.attempts,
       };
 
       if (opfsRoot) {
@@ -418,7 +418,7 @@ export async function markBundleFailed(key: string, error: string): Promise<void
     ...bundle,
     status: 'failed',
     lastError: error,
-    attempts: (bundle.attempts ?? 0) + 1,
+    attempts: bundle.attempts + 1,
   }));
 }
 
@@ -427,7 +427,7 @@ export async function markBundleUploading(key: string): Promise<void> {
     ...bundle,
     status: 'uploading',
     lastError: undefined,
-    attempts: (bundle.attempts ?? 0) + 1,
+    attempts: bundle.attempts + 1,
   }));
 }
 

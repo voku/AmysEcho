@@ -272,6 +272,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         setTrainingJobError(reason);
+        return;
       }
 
       pollTimeoutRef.current = setTimeout(poll, pollIntervalMs);
