@@ -47,8 +47,6 @@ type LegacyBundle = {
   zip: Uint8Array;
 };
 
-const storageEventName = 'training-bundles-updated';
-
 const subscribers = new Set<() => void>();
 let broadcastChannel: BroadcastChannel | null = null;
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -56,27 +54,19 @@ let migrationPromise: Promise<void> | null = null;
 let opfsRootPromise: Promise<FileSystemDirectoryHandle | null> | null = null;
 
 function notifyBundleChange() {
-  const hasBroadcast = typeof BroadcastChannel !== 'undefined';
-  const hasWindowEvent = typeof window !== 'undefined';
-
-  if (hasBroadcast) {
+  if (typeof BroadcastChannel !== 'undefined') {
     try {
       if (!broadcastChannel) {
         broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL);
       }
       broadcastChannel.postMessage({ type: 'changed' });
+      return;
     } catch (error) {
       console.warn('BroadcastChannel konnte nicht initialisiert werden', error);
     }
   }
 
-  if (hasWindowEvent) {
-    window.dispatchEvent(new Event(storageEventName));
-  }
-
-  if (!hasBroadcast && !hasWindowEvent) {
-    subscribers.forEach((fn) => fn());
-  }
+  subscribers.forEach((fn) => fn());
 }
 
 export function subscribeToBundleUpdates(callback: () => void): () => void {
@@ -87,14 +77,6 @@ export function subscribeToBundleUpdates(callback: () => void): () => void {
     return () => {
       channel.removeEventListener('message', handler);
       channel.close();
-    };
-  }
-
-  if (typeof window !== 'undefined') {
-    const handler = () => callback();
-    window.addEventListener(storageEventName, handler);
-    return () => {
-      window.removeEventListener(storageEventName, handler);
     };
   }
 
@@ -195,9 +177,6 @@ async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | null> {
 }
 
 function bufferFrom(data: Uint8Array): ArrayBuffer {
-  if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength) {
-    return data.buffer.slice(0);
-  }
   return data.slice().buffer;
 }
 
