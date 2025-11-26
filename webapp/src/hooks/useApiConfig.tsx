@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'webapp:api-config';
+const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
+const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
 const SESSION_CRYPTO_KEY = 'webapp:api-config:session:key';
 const FALLBACK_API_BASE = (import.meta.env['VITE_API_URL'] as string | undefined) ?? 'http://localhost:3000';
@@ -8,6 +10,11 @@ const FALLBACK_API_BASE = (import.meta.env['VITE_API_URL'] as string | undefined
 type EncryptedToken = {
   ciphertext: string;
   iv: string;
+};
+
+type StoredEncryptedToken = {
+  encrypted: EncryptedToken;
+  source: 'persisted' | 'session';
 };
 
 type StoredApiConfig = {
@@ -30,7 +37,7 @@ const defaultConfig: StoredApiConfig = {
   persistToken: false,
 };
 
-const initialEncryptedToken: { current: EncryptedToken | null } = { current: null };
+const initialEncryptedToken: { current: StoredEncryptedToken | null } = { current: null };
 
 function toBase64(data: ArrayBuffer | Uint8Array): string {
   if (typeof Buffer !== 'undefined') {
@@ -56,17 +63,17 @@ function fromBase64(value: string): Uint8Array {
   return bytes;
 }
 
-let sessionCryptoKey: Promise<CryptoKey> | null = null;
+let persistedCryptoKey: Promise<CryptoKey> | null = null;
 
-async function getSessionCryptoKey(): Promise<CryptoKey> {
+async function getPersistedCryptoKey(): Promise<CryptoKey> {
   if (typeof window === 'undefined') {
     throw new Error('CryptoKey kann ohne Browser nicht erzeugt werden.');
   }
-  const storedKey = window.sessionStorage.getItem(SESSION_CRYPTO_KEY);
+  const storedKey = window.localStorage.getItem(PERSISTED_CRYPTO_KEY);
   if (!storedKey) {
-    sessionCryptoKey = null;
+    persistedCryptoKey = null;
   }
-  if (!sessionCryptoKey) {
+  if (!persistedCryptoKey) {
     const rawBytes = storedKey ? fromBase64(storedKey) : new Uint8Array(32);
     if (!storedKey) {
       window.crypto.getRandomValues(rawBytes);
@@ -75,32 +82,48 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
       rawBytes.byteOffset === 0 && rawBytes.byteLength === rawBytes.buffer.byteLength
         ? rawBytes
         : rawBytes.slice();
-    sessionCryptoKey = window.crypto.subtle
+    persistedCryptoKey = window.crypto.subtle
       .importKey('raw', keyMaterial, 'AES-GCM', false, ['encrypt', 'decrypt'])
       .then((key) => {
         if (!storedKey) {
-          window.sessionStorage.setItem(SESSION_CRYPTO_KEY, toBase64(rawBytes));
+          window.localStorage.setItem(PERSISTED_CRYPTO_KEY, toBase64(rawBytes));
         }
         return key;
       });
   }
-  const key = sessionCryptoKey;
+  const key = persistedCryptoKey;
   if (!key) {
     throw new Error('CryptoKey konnte nicht erzeugt werden.');
   }
   return key;
 }
 
+async function getSessionCryptoKey(): Promise<CryptoKey> {
+  if (typeof window === 'undefined') {
+    throw new Error('CryptoKey kann ohne Browser nicht erzeugt werden.');
+  }
+  const storedKey = window.sessionStorage.getItem(SESSION_CRYPTO_KEY);
+  if (!storedKey) {
+    throw new Error('Kein Session-Crypto-Key vorhanden.');
+  }
+  const rawBytes = fromBase64(storedKey);
+  const keyMaterial =
+    rawBytes.byteOffset === 0 && rawBytes.byteLength === rawBytes.buffer.byteLength
+      ? rawBytes
+      : rawBytes.slice();
+  return window.crypto.subtle.importKey('raw', keyMaterial, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
 async function encryptToken(value: string): Promise<EncryptedToken> {
-  const key = await getSessionCryptoKey();
+  const key = await getPersistedCryptoKey();
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(value);
   const ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
   return { ciphertext: toBase64(ciphertext), iv: toBase64(iv) };
 }
 
-async function decryptToken(encrypted: EncryptedToken): Promise<string> {
-  const key = await getSessionCryptoKey();
+async function decryptToken(encrypted: EncryptedToken, source: StoredEncryptedToken['source']): Promise<string> {
+  const key = source === 'session' ? await getSessionCryptoKey() : await getPersistedCryptoKey();
   const ivBytes = Uint8Array.from(fromBase64(encrypted.iv));
   const ciphertext = Uint8Array.from(fromBase64(encrypted.ciphertext));
   const decrypted = await window.crypto.subtle.decrypt(
@@ -123,16 +146,23 @@ function readFromStorage(): StoredApiConfig {
   initialEncryptedToken.current = null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
+    const persistedRaw = window.localStorage.getItem(PERSISTED_TOKEN_KEY);
     const sessionRaw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
+    const persistedParsed = persistedRaw ? JSON.parse(persistedRaw) : {};
     const sessionParsed = sessionRaw ? JSON.parse(sessionRaw) : {};
     const persistToken = Boolean(parsed?.persistToken);
-    const storedBase = persistToken ? sessionParsed?.apiBaseUrl ?? parsed?.apiBaseUrl : parsed?.apiBaseUrl;
-    if (persistToken && sessionParsed?.apiToken && sessionParsed?.iv) {
-      initialEncryptedToken.current = {
-        ciphertext: sessionParsed.apiToken,
-        iv: sessionParsed.iv,
-      } satisfies EncryptedToken;
+    const storedBase = persistToken
+      ? persistedParsed?.apiBaseUrl ?? sessionParsed?.apiBaseUrl ?? parsed?.apiBaseUrl
+      : parsed?.apiBaseUrl;
+    const tokenSource =
+      persistedParsed.apiToken && persistedParsed.iv
+        ? { encrypted: { ciphertext: persistedParsed.apiToken, iv: persistedParsed.iv }, source: 'persisted' as const }
+        : sessionParsed.apiToken && sessionParsed.iv
+          ? { encrypted: { ciphertext: sessionParsed.apiToken, iv: sessionParsed.iv }, source: 'session' as const }
+          : null;
+    if (persistToken && tokenSource) {
+      initialEncryptedToken.current = tokenSource;
     }
     return {
       apiBaseUrl: normalizeApiBase(storedBase),
@@ -157,7 +187,10 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     const loadEncryptedToken = async () => {
       if (!config.persistToken || !initialEncryptedToken.current) return;
       try {
-        const decrypted = await decryptToken(initialEncryptedToken.current);
+        const decrypted = await decryptToken(
+          initialEncryptedToken.current.encrypted,
+          initialEncryptedToken.current.source,
+        );
         if (!cancelled) {
           setConfig((prev) => ({ ...prev, apiToken: decrypted }));
         }
@@ -193,22 +226,24 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     const persistSessionConfig = async () => {
       try {
         if (config.persistToken) {
-          // CodeQL: Token wird bewusst clientseitig in der Session gehalten (kein LocalStorage) für Dev/Caregiver-Workflows.
-          // Für Produktionsumgebungen stattdessen HttpOnly-Cookies oder serverseitige Sessions nutzen.
           const encrypted = await encryptToken(config.apiToken);
           if (!cancelled) {
-            window.sessionStorage.setItem(
-              SESSION_STORAGE_KEY,
+            window.localStorage.setItem(
+              PERSISTED_TOKEN_KEY,
               JSON.stringify({ apiBaseUrl: config.apiBaseUrl, apiToken: encrypted.ciphertext, iv: encrypted.iv }),
             );
+            window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
           }
         } else {
+          window.localStorage.removeItem(PERSISTED_TOKEN_KEY);
+          window.localStorage.removeItem(PERSISTED_CRYPTO_KEY);
           window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
           window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
-          sessionCryptoKey = null;
+          persistedCryptoKey = null;
         }
       } catch (error) {
-        console.warn('Konnte Session-API-Konfiguration nicht speichern', error);
+        console.warn('Konnte API-Token-Konfiguration nicht speichern', error);
       }
     };
 

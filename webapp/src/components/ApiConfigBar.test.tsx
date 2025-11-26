@@ -32,7 +32,7 @@ describe('ApiConfigBar authentication helpers', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await waitFor(() => {
-      const stored = window.sessionStorage.getItem('webapp:api-config:session');
+      const stored = window.localStorage.getItem('webapp:api-config:persisted-token');
       expect(stored).toBeTruthy();
       const parsed = JSON.parse(stored!);
       expect(typeof parsed.apiToken).toBe('string');
