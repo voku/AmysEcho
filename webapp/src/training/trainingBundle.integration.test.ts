@@ -1,0 +1,105 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { strFromU8, unzipSync } from 'fflate';
+import { createTrainingZip, uploadTrainingBundle } from './trainingBundle';
+import { REALISTIC_FRAMES } from './__fixtures__/realisticFrames';
+import type { TrainingFrame } from './types';
+
+type ManifestEntry = {
+  metadata: Record<string, any>;
+  landmarks: { frames: Array<{ handedness: string[]; landmarks: number[][] }> };
+  files: string[];
+};
+
+describe('uploadTrainingBundle integration', () => {
+  const manifestEntries: ManifestEntry[] = [];
+  const endpoint = 'https://stub.example/api/v1/dgs/sample-bundles';
+
+  beforeEach(() => {
+    manifestEntries.length = 0;
+  });
+
+  it('erstellt ein realistisches Bundle und überträgt es an das Stub-API', async () => {
+    const payload = {
+      profileId: 'profile-web',
+      label: 'HILFE',
+      capturedAt: '2024-06-02T10:00:00Z',
+      source: 'app://mediapipe',
+      frames: REALISTIC_FRAMES as TrainingFrame[],
+      clipFile: new File([Uint8Array.from([1, 2, 3, 4])], 'capture.mp4', { type: 'video/mp4' }),
+    };
+
+    const expectedZip = await createTrainingZip(payload);
+
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input) !== endpoint) {
+        throw new Error(`unexpected endpoint: ${input}`);
+      }
+      const body = init?.body;
+      if (!body) {
+        throw new Error('expected Blob body');
+      }
+      expect(Object.prototype.toString.call(body)).toBe('[object Blob]');
+      const blobSize = (body as Blob).size;
+      expect(blobSize).toBeGreaterThan(100);
+      expect(blobSize).toBe(expectedZip.byteLength);
+
+      const entries = unzipSync(expectedZip);
+      const metadataEntry = entries['metadata.json'] ?? entries['metadata.json/'];
+      const landmarksEntry = entries['landmarks.json'] ?? entries['landmarks.json/'];
+      const files = Object.keys(entries).map((name) => name.replace(/\/$/, ''));
+
+      manifestEntries.push({
+        metadata: JSON.parse(strFromU8(metadataEntry ?? new Uint8Array())) as Record<string, any>,
+        landmarks: JSON.parse(strFromU8(landmarksEntry ?? new Uint8Array())) as {
+          frames: Array<{ handedness: string[]; landmarks: number[][] }>;
+        },
+        files,
+      });
+
+      return new Response(
+        JSON.stringify({
+          id: 'bundle-stub-1',
+          status: 'queued',
+          trainingJob: { jobId: 'job-1', status: 'queued', pollUrl: '/train-status/job-1' },
+        }),
+        { status: 202, headers: { 'Content-Type': 'application/json' } },
+      );
+    });
+
+    (globalThis as any).fetch = fetchSpy;
+
+    const response = await uploadTrainingBundle(payload, { endpoint });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(response).toEqual({
+      id: 'bundle-stub-1',
+      status: 'queued',
+      trainingJob: { jobId: 'job-1', status: 'queued', pollUrl: '/train-status/job-1' },
+    });
+
+    expect(manifestEntries).toHaveLength(1);
+    const entry = manifestEntries[0];
+    expect(entry.metadata).toMatchObject({
+      profileId: payload.profileId,
+      label: payload.label,
+      capturedAt: payload.capturedAt,
+      source: payload.source,
+      clipFilename: 'clip.mp4',
+    });
+
+    expect(entry.files).toEqual(
+      expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.mp4']),
+    );
+
+    const [firstFrame, secondFrame] = entry.landmarks.frames;
+    expect(firstFrame.handedness).toEqual(['Left', 'Right']);
+    expect(firstFrame.landmarks).toHaveLength(42);
+    expect(firstFrame.landmarks[0]).toEqual(REALISTIC_FRAMES[0].landmarks[0][0]);
+    expect(firstFrame.landmarks[21]).toEqual(REALISTIC_FRAMES[0].landmarks[1][0]);
+
+    expect(secondFrame.handedness).toEqual(['Right']);
+    expect(secondFrame.landmarks).toHaveLength(42);
+    expect(secondFrame.landmarks[0]).toEqual([0, 0, 0]);
+    expect(secondFrame.landmarks[21]).toEqual(REALISTIC_FRAMES[1].landmarks[0][0]);
+  }, 10000);
+});
