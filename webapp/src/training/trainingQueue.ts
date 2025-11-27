@@ -177,7 +177,7 @@ async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | null> {
 }
 
 function bufferFrom(data: Uint8Array): ArrayBuffer {
-  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
 }
 
 function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
@@ -267,7 +267,7 @@ async function migrateLegacyBundles(db: IDBDatabase): Promise<void> {
       if (opfsRoot) {
         const file = await opfsRoot.getFileHandle(key, { create: true });
         const writable = await file.createWritable();
-        await writable.write(legacy.zip);
+        await writable.write(bufferFrom(legacy.zip));
         await writable.close();
         record.opfsPath = key;
         await persistBundle(db, record);
@@ -347,7 +347,7 @@ export async function enqueuePersistedBundle(params: BundleParams): Promise<Pers
   if (opfsRoot) {
     const file = await opfsRoot.getFileHandle(key, { create: true });
     const writable = await file.createWritable();
-    await writable.write(params.zip);
+    await writable.write(bufferFrom(params.zip));
     await writable.close();
     record.opfsPath = key;
     await persistBundle(db, record);
@@ -423,12 +423,15 @@ export async function markBundleFailed(key: string, error: string): Promise<void
 }
 
 export async function markBundleUploading(key: string): Promise<void> {
-  await updateBundle(key, (bundle) => ({
-    ...bundle,
-    status: 'uploading',
-    lastError: undefined,
-    attempts: bundle.attempts + 1,
-  }));
+  await updateBundle(key, (bundle) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { lastError: _, ...rest } = bundle;
+    return {
+      ...rest,
+      status: 'uploading' as const,
+      attempts: bundle.attempts + 1,
+    };
+  });
 }
 
 export async function clearBundleStoreForTests(): Promise<void> {

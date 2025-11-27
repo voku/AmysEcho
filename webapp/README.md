@@ -1,6 +1,6 @@
 # Webapp – Gesten-Bundle im Browser
 
-Diese `webapp/`-App spiegelt das WebView-Bundle aus der Expo-Anwendung. Sie bietet eine kleine Shell in React/Vite, um den Gesten-Detector im Browser zu starten, Meldungen zu inspizieren und Browser-spezifische Grenzen transparent zu machen. Die Oberfläche nutzt dieselbe Farbpalette und Card-Optik wie die Expo-App, damit Pflegekräfte in beiden Umgebungen ein vertrautes Erscheinungsbild vorfinden.
+Diese `webapp/`-App spiegelt das WebView-Bundle aus der Expo-Anwendung. Sie bietet eine kleine Shell in React/Vite, um den Gesten-Detector im Browser zu starten, Meldungen zu inspizieren und Browser-spezifische Grenzen transparent zu machen.
 
 ## Setup & Scripts
 

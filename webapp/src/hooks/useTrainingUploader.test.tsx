@@ -213,8 +213,9 @@ describe('useTrainingUploader', () => {
       zip: new TextEncoder().encode('demo-zip'),
     });
 
-    let resolveSecondFetch: ((value: { ok: true; status: number; json: () => Promise<{ id: string }> }) => void) | null = null;
-    const secondResponse = new Promise<{ ok: true; status: number; json: () => Promise<{ id: string }> }>((resolve) => {
+    type FetchResponse = { ok: true; status: number; json: () => Promise<{ id: string }> };
+    let resolveSecondFetch: ((value: FetchResponse) => void) | undefined;
+    const secondResponse = new Promise<FetchResponse>((resolve) => {
       resolveSecondFetch = resolve;
     });
 
