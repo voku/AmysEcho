@@ -54,6 +54,12 @@ Im UI kannst du den Wert jederzeit überschreiben; Upload- und Polling-Endpunkte
 
 Vitest-Tests prüfen den Gesten-Hook (Start/Stop sowie Event-Handling). Jsdom stellt dabei die DOM-Oberfläche und das WebView-Bridge-Event bereit.
 
+### Manifest-Erwartungen für Bundles
+
+- Uploads gegen `/api/v1/dgs/sample-bundles` erzeugen Einträge im Trainings-Manifest. Jeder Eintrag enthält mindestens `profileId`, `label`, `capturedAt`, `source` sowie die erwarteten Dateien `metadata.json`, `landmarks.json` und optional `clip.mp4`/`still.jpg`.
+- Die Landmark-Datei speichert pro Frame 42 Koordinaten (linke Hand zuerst, danach rechte), inklusive `handedness`-Hinweis.
+- Der Integrationstest `src/training/trainingBundle.integration.test.ts` baut ein realistisches ZIP aus Fixture-Frames, lädt es via `uploadTrainingBundle` hoch und prüft, dass das Stub-API die Manifest-Metadaten und Landmarken korrekt registriert.
+
 ## Neue Features
 
 ### Training-Recorder
