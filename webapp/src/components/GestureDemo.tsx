@@ -53,7 +53,7 @@ export function GestureDemo() {
   };
 
   return (
-    <section className="card detector-card">
+    <section className="card">
       <div className="card-header">
         <div>
           <p className="eyebrow">Gestenlabor</p>
