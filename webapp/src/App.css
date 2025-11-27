@@ -930,90 +930,6 @@ button.ghost:hover:not(:disabled) {
   padding-bottom: calc(var(--spacing-2xl) + 80px);
 }
 
-/* Breadcrumb navigation */
-.breadcrumb-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-overlay-surface-muted);
-  border-radius: 16px;
-  margin-bottom: var(--spacing-lg);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.breadcrumb-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  white-space: nowrap;
-}
-
-.breadcrumb-link {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: var(--font-size-caption);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: 8px;
-  transition: background 0.2s ease;
-}
-
-.breadcrumb-link:hover {
-  background: var(--color-surface-muted);
-  text-decoration: none;
-}
-
-.breadcrumb-separator {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-}
-
-.breadcrumb-current {
-  color: var(--color-text);
-  font-weight: 600;
-  font-size: var(--font-size-caption);
-}
-
-/* Quick action button for home */
-.home-button {
-  position: fixed;
-  bottom: calc(80px + var(--spacing-lg));
-  right: var(--spacing-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-xl);
-  background: var(--color-primary);
-  color: var(--color-inverse-text);
-  border: none;
-  border-radius: 24px;
-  font-weight: 600;
-  font-size: var(--font-size-body);
-  box-shadow: 0 12px 32px rgba(15, 82, 87, 0.35);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 999;
-}
-
-.home-button:hover {
-  background: var(--color-primary-bright);
-  transform: translateY(-2px);
-  box-shadow: 0 16px 40px rgba(15, 82, 87, 0.4);
-}
-
-.home-button:focus-visible {
-  outline: 2px solid var(--color-action-primary-bg);
-  outline-offset: 2px;
-}
-
-.home-button svg {
-  width: 20px;
-  height: 20px;
-}
-
 /* Hide header nav on mobile when bottom nav is visible */
 @media (max-width: 768px) {
   .app-header .nav {
@@ -1023,13 +939,6 @@ button.ghost:hover:not(:disabled) {
   .app-header {
     flex-direction: column;
     text-align: center;
-  }
-
-  .home-button {
-    bottom: calc(80px + var(--spacing-md));
-    right: var(--spacing-md);
-    padding: var(--spacing-sm) var(--spacing-lg);
-    font-size: var(--font-size-caption);
   }
 }
 
