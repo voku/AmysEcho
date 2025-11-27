@@ -21,8 +21,14 @@ export interface DefaultUploadOptions {
   apiBase?: string;
 }
 
-export function useTrainingUploader(options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions } = {}) {
+export function useTrainingUploader(
+  options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions; retryDelayMs?: number; maxRetryDelayMs?: number } = {},
+) {
   const pollIntervalMs = options.pollIntervalMs ?? 2000;
+  const retryConfig = useMemo(
+    () => ({ base: options.retryDelayMs ?? 2000, max: options.maxRetryDelayMs ?? 30000 }),
+    [options.maxRetryDelayMs, options.retryDelayMs],
+  );
   const defaultOptions = useMemo(() => options.defaultOptions ?? {}, [options.defaultOptions]);
   const [state, setState] = useState<UploadState>('idle');
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
@@ -35,11 +41,19 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
   const [trainingJobError, setTrainingJobError] = useState<string | null>(null);
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
+  const queuedCountRef = useRef(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryDelayRef = useRef(retryConfig.base);
+
+  useEffect(() => {
+    retryDelayRef.current = retryConfig.base;
+  }, [retryConfig.base]);
 
   const refreshQueue = useCallback(async () => {
     try {
       const bundles = await listQueuedBundles();
       setQueuedCount(bundles.length);
+      queuedCountRef.current = bundles.length;
       return bundles;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -65,6 +79,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
       const bundles = await refreshQueue();
       const pending = bundles.filter((bundle) => bundle.status !== 'uploading');
       let uploaded = 0;
+      let encounteredError = false;
 
       for (const bundle of pending) {
         try {
@@ -74,6 +89,7 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
             const corrupted = 'Gespeichertes Bundle ist beschädigt oder nicht mehr verfügbar.';
             await markBundleFailed(bundle.key, corrupted);
             setSyncError(corrupted);
+            encounteredError = true;
             continue;
           }
           await uploadTrainingZip(zipData, resolveOptions(options));
@@ -83,12 +99,40 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
           const reason = err instanceof Error ? err.message : String(err);
           await markBundleFailed(bundle.key, reason);
           setSyncError(reason);
+          encounteredError = true;
         }
       }
 
-      await refreshQueue();
+      const remaining = await refreshQueue();
+      if (!encounteredError) {
+        retryDelayRef.current = retryConfig.base;
+        setSyncError(null);
+      } else {
+        retryDelayRef.current = Math.min(retryDelayRef.current * 2, retryConfig.max);
+      }
       setSyncing(false);
       syncingRef.current = false;
+
+      if (remaining.length === 0) {
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = null;
+        }
+        retryDelayRef.current = retryConfig.base;
+      } else {
+        const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
+        if (isOnline && !syncingRef.current) {
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+          }
+          retryTimeoutRef.current = setTimeout(() => {
+            syncQueued(options).catch((err) => {
+              console.warn('Automatische Synchronisation fehlgeschlagen', err);
+            });
+          }, retryDelayRef.current);
+        }
+      }
+
       return uploaded;
     },
     [refreshQueue, resolveOptions],
@@ -113,6 +157,10 @@ export function useTrainingUploader(options: { pollIntervalMs?: number; defaultO
 
     return () => {
       cancelled = true;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     };
   }, [refreshQueue, syncQueued]);
 

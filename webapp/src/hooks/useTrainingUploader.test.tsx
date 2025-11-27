@@ -32,6 +32,7 @@ describe('useTrainingUploader', () => {
   afterEach(() => {
     Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('liefert Ergebnis nach erfolgreichem Upload', async () => {
@@ -42,7 +43,7 @@ describe('useTrainingUploader', () => {
     });
     (globalThis as any).fetch = fetchSpy;
 
-    const { result } = renderHook(() => useTrainingUploader());
+    const { result } = renderHook(() => useTrainingUploader({ retryDelayMs: 500, maxRetryDelayMs: 500 }));
     await act(async () => {
       await result.current.upload(payload, { endpoint: 'https://example.invalid' });
     });
@@ -201,4 +202,39 @@ describe('useTrainingUploader', () => {
 
     await waitFor(() => expect(result.current.trainingJobError).toMatch(/Polling/));
   });
+
+  it('versucht fehlgeschlagene Bundles im Hintergrund erneut zu synchronisieren', async () => {
+    await enqueuePersistedBundle({
+      profileId: 'demo',
+      label: 'HILFE',
+      capturedAt: '2024-01-01T00:00:00.000Z',
+      source: 'web://mediapipe',
+      framesCount: 1,
+      zip: new TextEncoder().encode('demo-zip'),
+    });
+
+    let resolveSecondFetch: ((value: { ok: true; status: number; json: () => Promise<{ id: string }> }) => void) | null = null;
+    const secondResponse = new Promise<{ ok: true; status: number; json: () => Promise<{ id: string }> }>((resolve) => {
+      resolveSecondFetch = resolve;
+    });
+
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) })
+      .mockImplementationOnce(() => secondResponse);
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() => useTrainingUploader({ retryDelayMs: 10, maxRetryDelayMs: 20 }));
+
+    await waitFor(() => expect(fetchSpy.mock.calls.length).toBeGreaterThan(0));
+
+    resolveSecondFetch?.({ ok: true, status: 200, json: async () => ({ id: 'bundle-retry' }) });
+
+    await waitFor(async () => {
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(result.current.syncError).toBeNull();
+      const remaining = await listQueuedBundles();
+      expect(remaining.length).toBe(0);
+    }, { timeout: 3000 });
+  }, 5000);
 });
