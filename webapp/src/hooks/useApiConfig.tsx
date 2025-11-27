@@ -79,12 +79,10 @@ async function getPersistedCryptoKey(): Promise<CryptoKey> {
     if (!storedKey) {
       window.crypto.getRandomValues(rawBytes);
     }
-    const keyMaterial: Uint8Array =
-      rawBytes.byteOffset === 0 && rawBytes.byteLength === rawBytes.buffer.byteLength
-        ? rawBytes
-        : rawBytes.slice();
+    // Create a proper Uint8Array with its own ArrayBuffer for importKey
+    const keyBytes = new Uint8Array(rawBytes);
     persistedCryptoKey = window.crypto.subtle
-      .importKey('raw', keyMaterial, 'AES-GCM', false, ['encrypt', 'decrypt'])
+      .importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt'])
       .then((key) => {
         if (!storedKey) {
           window.localStorage.setItem(PERSISTED_CRYPTO_KEY, toBase64(rawBytes));
@@ -108,11 +106,9 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
     throw new Error('Kein Session-Crypto-Key vorhanden.');
   }
   const rawBytes = fromBase64(storedKey);
-  const keyMaterial: Uint8Array =
-    rawBytes.byteOffset === 0 && rawBytes.byteLength === rawBytes.buffer.byteLength
-      ? rawBytes
-      : rawBytes.slice();
-  return window.crypto.subtle.importKey('raw', keyMaterial, 'AES-GCM', false, ['encrypt', 'decrypt']);
+  // Create a proper Uint8Array with its own ArrayBuffer for importKey
+  const keyBytes = new Uint8Array(rawBytes);
+  return window.crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
 async function encryptToken(value: string): Promise<EncryptedToken> {
