@@ -4,6 +4,7 @@ import { GestureDemo } from './components/GestureDemo';
 import { ProfileBar } from './components/ProfileBar';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { ApiConfigBar } from './components/ApiConfigBar';
+import { BottomNav } from './components/BottomNav';
 import './App.css';
 
 function App() {
@@ -46,6 +47,8 @@ function App() {
           Bekannte Unterschiede: kein SecureStore, keine nativen Haptics, Kamerazugriff nur mit Browser-Freigabe, Clip-Export
           über einfache Downloads.
         </footer>
+
+        <BottomNav />
       </div>
     </BrowserRouter>
   );
