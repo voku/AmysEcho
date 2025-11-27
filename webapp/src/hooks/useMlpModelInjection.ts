@@ -46,7 +46,7 @@ export function useMlpModelInjection(profileId: string) {
 
     const result = await fetchMlpModelWithFallback({
       endpoint: modelEndpoint,
-      token: apiToken || undefined,
+      ...(apiToken ? { token: apiToken } : {}),
       profileId,
     });
 
