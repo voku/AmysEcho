@@ -617,7 +617,7 @@ button.ghost:hover:not(:disabled) {
   border-radius: 20px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
-  box-shadow: 0 8px 20px var(--color-shadow-light);
+  box-shadow: 0 8px 20px var(--color-shadow-subtle);
 }
 
 .feature-list li.disabled {

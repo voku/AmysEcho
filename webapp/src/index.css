@@ -32,6 +32,7 @@
   
   /* Shadow colors – base color for consistent shadows */
   --color-shadow: rgba(13, 58, 61, 0.18);
+  --color-shadow-subtle: rgba(13, 58, 61, 0.06);
   --color-shadow-light: rgba(13, 58, 61, 0.08);
   --color-shadow-medium: rgba(13, 58, 61, 0.14);
   --color-shadow-strong: rgba(13, 58, 61, 0.26);
