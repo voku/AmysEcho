@@ -1,8 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { strFromU8, unzipSync } from 'fflate';
 import { createTrainingZip, uploadTrainingBundle } from './trainingBundle';
 import { REALISTIC_FRAMES } from './__fixtures__/realisticFrames';
-import type { TrainingFrame } from './types';
 
 type ManifestEntry = {
   metadata: Record<string, any>;
@@ -18,13 +17,17 @@ describe('uploadTrainingBundle integration', () => {
     manifestEntries.length = 0;
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('erstellt ein realistisches Bundle und überträgt es an das Stub-API', async () => {
     const payload = {
       profileId: 'profile-web',
       label: 'HILFE',
       capturedAt: '2024-06-02T10:00:00Z',
       source: 'app://mediapipe',
-      frames: REALISTIC_FRAMES as TrainingFrame[],
+      frames: REALISTIC_FRAMES,
       clipFile: new File([Uint8Array.from([1, 2, 3, 4])], 'capture.mp4', { type: 'video/mp4' }),
     };
 
@@ -93,7 +96,7 @@ describe('uploadTrainingBundle integration', () => {
       );
     });
 
-    (globalThis as any).fetch = fetchSpy;
+    vi.stubGlobal('fetch', fetchSpy);
 
     const response = await uploadTrainingBundle(payload, { endpoint });
 

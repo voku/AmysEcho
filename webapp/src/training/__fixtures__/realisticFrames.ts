@@ -4,9 +4,9 @@ function buildHand(start: number): number[][] {
   return Array.from({ length: 21 }, (_, idx) => {
     const base = start + idx * 0.001;
     return [
-      parseFloat(base.toFixed(4)),
-      parseFloat((base + 0.1).toFixed(4)),
-      parseFloat((base + 0.2).toFixed(4)),
+      Math.round(base * 10000) / 10000,
+      Math.round((base + 0.1) * 10000) / 10000,
+      Math.round((base + 0.2) * 10000) / 10000,
     ];
   });
 }
