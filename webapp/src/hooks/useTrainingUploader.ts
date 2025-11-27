@@ -135,7 +135,7 @@ export function useTrainingUploader(
 
       return uploaded;
     },
-    [refreshQueue, resolveOptions],
+    [refreshQueue, resolveOptions, retryConfig.base, retryConfig.max],
   );
 
   useEffect(() => {

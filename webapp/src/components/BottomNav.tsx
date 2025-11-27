@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
+import type { ReactNode } from 'react';
 
 interface NavItem {
   path: string;
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }
 
 function HandIcon() {
