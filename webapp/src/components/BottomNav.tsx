@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 
 interface NavItem {
   path: string;
@@ -82,28 +82,21 @@ const navItems: NavItem[] = [
 ];
 
 export function BottomNav() {
-  const location = useLocation();
-
   return (
     <nav className="bottom-nav" aria-label="Hauptnavigation">
-      {navItems.map((item) => {
-        const isActive =
-          item.path === '/'
-            ? location.pathname === '/'
-            : location.pathname.startsWith(item.path);
-
-        return (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={`bottom-nav-item ${isActive ? 'active' : ''}`}
-            aria-current={isActive ? 'page' : undefined}
-          >
-            <span className="bottom-nav-icon">{item.icon}</span>
-            <span className="bottom-nav-label">{item.label}</span>
-          </NavLink>
-        );
-      })}
+      {navItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.path === '/'}
+          className={({ isActive }) =>
+            `bottom-nav-item${isActive ? ' active' : ''}`
+          }
+        >
+          <span className="bottom-nav-icon">{item.icon}</span>
+          <span className="bottom-nav-label">{item.label}</span>
+        </NavLink>
+      ))}
     </nav>
   );
 }

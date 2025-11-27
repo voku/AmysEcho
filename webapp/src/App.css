@@ -1,7 +1,7 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: var(--spacing-2xl) var(--spacing-xl) calc(var(--spacing-2xl) + var(--spacing-xl));
+  padding: var(--spacing-2xl) var(--spacing-xl) calc(var(--spacing-2xl) + 80px);
   color: var(--color-text);
 }
 
@@ -84,7 +84,7 @@
   background: var(--color-overlay-badge-background);
   border-radius: 28px;
   padding: var(--spacing-xl) var(--spacing-2xl);
-  box-shadow: 0 20px 48px rgba(13, 58, 61, 0.14);
+  box-shadow: 0 20px 48px var(--color-shadow-medium);
   border: 1px solid var(--color-overlay-surface);
   display: flex;
   flex-direction: column;
@@ -293,12 +293,12 @@ button {
   color: var(--color-primary);
   font-weight: 600;
   font-size: var(--font-size-body);
-  box-shadow: 0 8px 20px rgba(13, 58, 61, 0.10);
+  box-shadow: 0 8px 20px var(--color-shadow-light);
 }
 
 button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(13, 58, 61, 0.14);
+  box-shadow: 0 10px 24px var(--color-shadow-medium);
 }
 
 button:focus-visible {
@@ -442,7 +442,7 @@ button.ghost:hover:not(:disabled) {
   border-radius: 24px;
   overflow: hidden;
   border: 1px solid var(--color-overlay-border);
-  box-shadow: 0 16px 36px rgba(13, 58, 61, 0.26);
+  box-shadow: 0 16px 36px var(--color-shadow-strong);
 }
 
 .detector-card .video-wrapper {
@@ -475,7 +475,7 @@ button.ghost:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
-  box-shadow: 0 12px 28px rgba(13, 58, 61, 0.08);
+  box-shadow: 0 12px 28px var(--color-shadow-light);
 }
 
 .detector-card .panel {
@@ -566,7 +566,7 @@ button.ghost:hover:not(:disabled) {
   border: 1px solid var(--color-overlay-badge-border);
   min-width: 150px;
   text-align: center;
-  box-shadow: 0 8px 20px rgba(13, 58, 61, 0.14);
+  box-shadow: 0 8px 20px var(--color-shadow-medium);
 }
 
 .status-chip[data-state='running'] {
@@ -617,7 +617,7 @@ button.ghost:hover:not(:disabled) {
   border-radius: 20px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
-  box-shadow: 0 8px 20px rgba(13, 58, 61, 0.06);
+  box-shadow: 0 8px 20px var(--color-shadow-subtle);
 }
 
 .feature-list li.disabled {
@@ -741,7 +741,7 @@ button.ghost:hover:not(:disabled) {
   border-radius: 20px;
   width: fit-content;
   border: 1px solid var(--color-border);
-  box-shadow: 0 8px 20px rgba(13, 58, 61, 0.08);
+  box-shadow: 0 8px 20px var(--color-shadow-light);
 }
 
 .mode-switcher button {
@@ -768,7 +768,7 @@ button.ghost:hover:not(:disabled) {
 
 .mode-switcher button.active {
   background: var(--color-surface);
-  box-shadow: 0 4px 12px rgba(13, 58, 61, 0.12);
+  box-shadow: 0 4px 12px var(--color-shadow-medium);
   color: var(--color-primary);
 }
 
@@ -866,7 +866,7 @@ button.ghost:hover:not(:disabled) {
   border-top: 1px solid var(--color-border);
   padding: var(--spacing-sm) var(--spacing-md);
   padding-bottom: max(var(--spacing-sm), env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -8px 32px rgba(13, 58, 61, 0.12);
+  box-shadow: 0 -8px 32px var(--color-shadow-medium);
   z-index: 1000;
 }
 
@@ -925,11 +925,6 @@ button.ghost:hover:not(:disabled) {
   text-align: center;
 }
 
-/* Add padding to root to account for bottom nav */
-#root {
-  padding-bottom: calc(var(--spacing-2xl) + 80px);
-}
-
 /* Hide header nav on mobile when bottom nav is visible */
 @media (max-width: 768px) {
   .app-header .nav {
@@ -942,14 +937,13 @@ button.ghost:hover:not(:disabled) {
   }
 }
 
-/* Show bottom nav only on smaller screens, but keep it available on all */
+/* Hide bottom nav on larger screens since header nav is visible */
 @media (min-width: 769px) {
   .bottom-nav {
-    max-width: 400px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 24px 24px 0 0;
-    border-left: 1px solid var(--color-border);
-    border-right: 1px solid var(--color-border);
+    display: none;
+  }
+
+  #root {
+    padding-bottom: var(--spacing-2xl);
   }
 }
