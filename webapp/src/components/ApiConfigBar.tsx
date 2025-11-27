@@ -8,6 +8,7 @@ export function ApiConfigBar() {
     setApiBaseUrl,
     setApiToken,
     uploadEndpoint,
+    modelEndpoint,
     persistToken,
     setPersistToken,
     clearApiToken,
@@ -118,6 +119,7 @@ export function ApiConfigBar() {
           />
           <p className="muted small">Wird für Uploads, Polling und Modell-Endpunkte verwendet.</p>
           <p className="muted small">Aktueller Upload-Pfad: {uploadEndpoint}</p>
+          <p className="muted small">MLP-Download: {modelEndpoint}</p>
         </div>
 
         <div className="form-group">

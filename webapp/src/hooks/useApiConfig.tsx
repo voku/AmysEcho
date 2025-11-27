@@ -29,6 +29,7 @@ type ApiConfigContextValue = StoredApiConfig & {
   setPersistToken: (value: boolean) => void;
   clearApiToken: () => void;
   uploadEndpoint: string;
+  modelEndpoint: string;
 };
 
 const defaultConfig: StoredApiConfig = {
@@ -281,6 +282,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<ApiConfigContextValue>(() => {
     const normalizedBase = normalizeApiBase(config.apiBaseUrl);
     const uploadEndpoint = `${normalizedBase}/api/v1/dgs/sample-bundles`;
+    const modelEndpoint = `${normalizedBase}/latest-mlp-model`;
     return {
       apiBaseUrl: normalizedBase,
       apiToken: config.apiToken,
@@ -290,6 +292,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
       setPersistToken,
       clearApiToken,
       uploadEndpoint,
+      modelEndpoint,
     };
   }, [
     config.apiBaseUrl,

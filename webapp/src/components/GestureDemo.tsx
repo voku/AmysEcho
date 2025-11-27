@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
 import { useAppState } from '../hooks/useAppState';
+import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 
 function formatStatus(status: string): string {
   switch (status) {
@@ -31,6 +32,7 @@ export function GestureDemo() {
     overlayRef,
   );
   const { profileId, preferredGestureLabel, recordGesture } = useAppState();
+  const { notice: modelNotice } = useMlpModelInjection(profileId);
 
   useEffect(() => {
     if (lastGesture) {
@@ -84,6 +86,8 @@ export function GestureDemo() {
           Training übernimmt diese Werte automatisch.
         </p>
       </div>
+
+      {modelNotice && <div className="notice info">{modelNotice}</div>}
 
       {!cameraSupported && (
         <div className="notice warning">
