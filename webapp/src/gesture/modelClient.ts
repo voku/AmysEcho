@@ -38,7 +38,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const chunks: string[] = [];
   for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
     const slice = bytes.subarray(i, i + CHUNK_SIZE);
-    chunks.push(String.fromCharCode.apply(null, Array.from(slice)));
+    chunks.push(String.fromCharCode.apply(null, slice as unknown as number[]));
   }
   return btoa(chunks.join(''));
 }
