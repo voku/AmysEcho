@@ -9,13 +9,36 @@ export type MlpModelResponse = {
   meta: MlpModelMeta;
 };
 
+// Event-based model update notifications (domain-driven pattern)
+type MlpModelListener = (meta: MlpModelMeta) => void;
+const mlpModelListeners = new Set<MlpModelListener>();
+
+/**
+ * Subscribe to model update events. Returns an unsubscribe function.
+ * This follows the domain-driven observer pattern used in the app.
+ */
+export function onMlpModelUpdated(listener: MlpModelListener): () => void {
+  mlpModelListeners.add(listener);
+  return () => mlpModelListeners.delete(listener);
+}
+
+function emitMlpModelUpdated(meta: MlpModelMeta): void {
+  mlpModelListeners.forEach((listener) => {
+    try {
+      listener(meta);
+    } catch {
+      // Ignore listener errors to prevent cascading failures
+    }
+  });
+}
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   const CHUNK_SIZE = 0x8000;
   const chunks: string[] = [];
   for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
     const slice = bytes.subarray(i, i + CHUNK_SIZE);
-    chunks.push(String.fromCharCode.apply(null, slice as unknown as number[]));
+    chunks.push(String.fromCharCode.apply(null, Array.from(slice)));
   }
   return btoa(chunks.join(''));
 }
@@ -113,6 +136,7 @@ export async function fetchMlpModelWithFallback({
         profileId: personalized.meta.profileId ?? trimmedProfile,
         version: personalized.meta.version ?? 'unbekannt',
       });
+      emitMlpModelUpdated(personalized.meta);
       return personalized;
     }
     console.warn('[MLP] Personalisierte Gewichte nicht verfügbar, wechsle auf globales Modell', {
@@ -125,6 +149,7 @@ export async function fetchMlpModelWithFallback({
     console.info('[MLP] Globales Modell geladen', {
       version: globalModel.meta.version ?? 'unbekannt',
     });
+    emitMlpModelUpdated(globalModel.meta);
     return globalModel;
   }
 

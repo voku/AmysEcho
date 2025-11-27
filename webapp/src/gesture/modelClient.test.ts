@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fetchMlpModelWithFallback } from './modelClient';
+import { fetchMlpModelWithFallback, onMlpModelUpdated } from './modelClient';
 
 function createResponse(body: Uint8Array, init: ResponseInit = {}) {
   return new Response(body, init);
@@ -121,5 +121,190 @@ describe('fetchMlpModelWithFallback', () => {
 
     expect(result).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('behandelt Netzwerkfehler und gibt null zurück', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const result = await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+    });
+
+    expect(result).toBeNull();
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[MLP] Netzwerkfehler beim Laden des Modells',
+      expect.objectContaining({ error: expect.any(Error) }),
+    );
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('behandelt ungültige URL und gibt null zurück', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = await fetchMlpModelWithFallback({
+      endpoint: 'not-a-valid-url',
+    });
+
+    expect(result).toBeNull();
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[MLP] Ungültige Endpoint-URL',
+      expect.objectContaining({ endpoint: 'not-a-valid-url' }),
+    );
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('sendet Authorization-Header mit Token', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([1]), {
+        status: 200,
+        headers: { 'X-Model-Source': 'global' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+      token: 'my-secret-token',
+    });
+
+    const [, options] = fetchMock.mock.calls[0] ?? [];
+    expect(options.headers.Authorization).toBe('Bearer my-secret-token');
+  });
+
+  it('sendet X-Profile-Id Header mit profileId', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([1]), {
+        status: 200,
+        headers: { 'X-Model-Source': 'profile' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+      profileId: 'amy',
+    });
+
+    const [, options] = fetchMock.mock.calls[0] ?? [];
+    expect(options.headers['X-Profile-Id']).toBe('amy');
+  });
+
+  it('trimmt Leerzeichen von profileId', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([1]), {
+        status: 200,
+        headers: { 'X-Model-Source': 'profile' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+      profileId: '  amy  ',
+    });
+
+    const [url] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toContain('profileId=amy');
+  });
+
+  it('behandelt leere profileId wie keine profileId', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([1]), {
+        status: 200,
+        headers: { 'X-Model-Source': 'global' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+      profileId: '   ',
+    });
+
+    // Only one call (no fallback from profile to global)
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url] = fetchMock.mock.calls[0] ?? [];
+    expect(url).not.toContain('profileId');
+  });
+
+  it('ruft Listener bei erfolgreichem Model-Laden auf', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([1]), {
+        status: 200,
+        headers: {
+          'X-Model-Source': 'profile',
+          'X-Model-Version': 'v1',
+          'X-Model-Profile': 'amy',
+        },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const listener = vi.fn();
+    const unsub = onMlpModelUpdated(listener);
+
+    await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+      profileId: 'amy',
+    });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith({
+      source: 'profile',
+      version: 'v1',
+      profileId: 'amy',
+    });
+
+    unsub();
+  });
+
+  it('erlaubt Abmelden von Listener', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([1]), {
+        status: 200,
+        headers: { 'X-Model-Source': 'global' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const listener = vi.fn();
+    const unsub = onMlpModelUpdated(listener);
+    unsub(); // Unsubscribe immediately
+
+    await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+    });
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('ignoriert Listener-Fehler', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse(new Uint8Array([1]), {
+        status: 200,
+        headers: { 'X-Model-Source': 'global' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const errorListener = vi.fn(() => {
+      throw new Error('Listener error');
+    });
+    const normalListener = vi.fn();
+
+    const unsub1 = onMlpModelUpdated(errorListener);
+    const unsub2 = onMlpModelUpdated(normalListener);
+
+    await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/latest-mlp-model',
+    });
+
+    // Normal listener should still be called even if error listener throws
+    expect(normalListener).toHaveBeenCalledTimes(1);
+
+    unsub1();
+    unsub2();
   });
 });

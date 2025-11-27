@@ -9,6 +9,11 @@ export default defineConfig({
     setupFiles: './src/setupTests.ts',
     css: true,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['src/gesture/**'],
+    // Include gesture tests (modelClient, installMlp) but exclude integration-style gesture tests
+    exclude: [
+      'src/gesture/__tests__/**',
+      'src/gesture/core/__tests__/**',
+      'src/gesture/utils/__tests__/**',
+    ],
   },
 });
