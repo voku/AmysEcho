@@ -39,18 +39,45 @@ describe('uploadTrainingBundle integration', () => {
         throw new Error('expected Blob body');
       }
       expect(Object.prototype.toString.call(body)).toBe('[object Blob]');
-      const blobSize = (body as Blob).size;
+      const blob = body as Blob;
+      const normalizedBlob =
+        typeof (blob as any).arrayBuffer === 'function' ? blob : new Blob([body as Blob], { type: 'application/zip' });
+      const blobSize = normalizedBlob.size;
       expect(blobSize).toBeGreaterThan(100);
       expect(blobSize).toBe(expectedZip.byteLength);
 
-      const entries = unzipSync(expectedZip);
+      const uploadedBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = () => reject(reader.error ?? new Error('Blob konnte nicht gelesen werden'));
+        reader.readAsArrayBuffer(normalizedBlob);
+      });
+      const uploadedBytes = new Uint8Array(uploadedBuffer);
+
+      let entries: Record<string, Uint8Array>;
+      try {
+        entries = unzipSync(uploadedBytes);
+      } catch (error) {
+        const signature = Array.from(uploadedBytes.slice(0, 4)).join(', ');
+        throw new Error(
+          `uploaded training bundle is not a valid ZIP (magic bytes: ${signature}): ${(error as Error).message}`,
+        );
+      }
       const metadataEntry = entries['metadata.json'] ?? entries['metadata.json/'];
       const landmarksEntry = entries['landmarks.json'] ?? entries['landmarks.json/'];
+
+      if (!metadataEntry) {
+        throw new Error('metadata.json not found in uploaded training bundle ZIP');
+      }
+      if (!landmarksEntry) {
+        throw new Error('landmarks.json not found in uploaded training bundle ZIP');
+      }
+
       const files = Object.keys(entries).map((name) => name.replace(/\/$/, ''));
 
       manifestEntries.push({
-        metadata: JSON.parse(strFromU8(metadataEntry ?? new Uint8Array())) as Record<string, any>,
-        landmarks: JSON.parse(strFromU8(landmarksEntry ?? new Uint8Array())) as {
+        metadata: JSON.parse(strFromU8(metadataEntry)) as Record<string, any>,
+        landmarks: JSON.parse(strFromU8(landmarksEntry)) as {
           frames: Array<{ handedness: string[]; landmarks: number[][] }>;
         },
         files,
