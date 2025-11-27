@@ -110,8 +110,7 @@ describe('installMlp', () => {
     expect(window.__beginMlpTransfer!()).toBe(true);
     window.__pushMlpChunk!(MINIMAL_MLP_ZIP_B64);
     // simulate missing loader
-    // @ts-ignore
-    delete window.__setMlpModelB64;
+    delete (window as any).__setMlpModelB64;
     await window.__commitMlpTransfer!();
     const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
     expect(events).toEqual(['mlp_transfer_failed', 'mlp_transfer_complete']);
