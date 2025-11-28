@@ -24,7 +24,6 @@ type ModelUpdateCallback = (meta: MlpModelMeta, modelB64: string) => void;
 type ModelErrorCallback = (error: Error) => void;
 
 const POLL_INTERVAL_MS = 60000; // Check for updates every minute
-const RETRY_DELAY_MS = 5000;
 const MAX_RETRIES = 3;
 
 class ZeroDowntimeModelService {

@@ -157,9 +157,10 @@ export function MessageProvider({ children }: { children: ReactNode }) {
   }, [toasts]);
 
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach((timeout) => clearTimeout(timeout));
-      timersRef.current.clear();
+      timers.forEach((timeout) => clearTimeout(timeout));
+      timers.clear();
     };
   }, []);
 

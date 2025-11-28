@@ -1,10 +1,9 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import {
   loadConfig,
   getAdaptiveConfig,
   updateAmyPreferences,
   validateConfig,
-  defaultConfig,
 } from './GestureConfig';
 
 // Mock window object for testing

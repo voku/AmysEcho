@@ -459,7 +459,7 @@ export function TrainingUploadWithRecording() {
         console.warn('Modell konnte nach Training nicht geladen werden', error);
       });
     }
-  }, [modelInjection.refreshModel, setMessage, uploadState.lastResult, uploadState.trainingJob]);
+  }, [modelInjection, setMessage, uploadState.lastResult, uploadState.trainingJob]);
 
   const handleLabelUpdate = useCallback(
     (value: string) => {
