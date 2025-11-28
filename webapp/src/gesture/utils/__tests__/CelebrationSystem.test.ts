@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { CelebrationSystem, type AttemptResult } from './CelebrationSystem';
+import { CelebrationSystem, type AttemptResult } from '../CelebrationSystem';
 
 describe('CelebrationSystem', () => {
   let system: CelebrationSystem;

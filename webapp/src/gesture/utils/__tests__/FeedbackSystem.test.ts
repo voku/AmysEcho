@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { FeedbackSystem, type FeedbackAttempt } from './FeedbackSystem';
+import { FeedbackSystem, type FeedbackAttempt } from '../FeedbackSystem';
 
 describe('FeedbackSystem', () => {
   let feedbackSystem: FeedbackSystem;

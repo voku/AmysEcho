@@ -1,14 +1,14 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 
 // Mock the MessageBatcher before importing the module
-vi.mock('../utils/MessageBatcher', () => ({
+vi.mock('../../utils/MessageBatcher', () => ({
   messageBatcher: {
     queueMessage: vi.fn(),
   },
 }));
 
-import { EmergencyGestureSystem } from './EmergencyGestureSystem';
-import { messageBatcher } from '../utils/MessageBatcher';
+import { EmergencyGestureSystem } from '../EmergencyGestureSystem';
+import { messageBatcher } from '../../utils/MessageBatcher';
 
 describe('EmergencyGestureSystem', () => {
   let system: EmergencyGestureSystem;
