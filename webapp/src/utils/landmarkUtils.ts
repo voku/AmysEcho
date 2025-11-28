@@ -44,6 +44,25 @@ export const normalizeHandednessLabels = (labels: string[]): string[] =>
     return normalized;
   });
 
+export const adjustHandednessForMirror = (
+  labels: Array<string | undefined | null>,
+  mirrored: boolean,
+): string[] =>
+  labels.map((label, index) => {
+    const normalized = normalizeHandednessLabel(label);
+
+    if (normalized.length === 0) {
+      return `Hand ${index + 1}`;
+    }
+
+    if (mirrored && (normalized === 'Left' || normalized === 'Right')) {
+      // Keep handedness aligned with the real-world hand even if the preview is mirrored.
+      return normalized;
+    }
+
+    return normalized;
+  });
+
 type StabilizerEntry = {
   id: string;
   handedness: string;
