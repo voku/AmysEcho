@@ -23,6 +23,7 @@ export function GestureDemo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [mirrorPreview, setMirrorPreview] = useState(false);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -142,12 +143,22 @@ export function GestureDemo() {
               />
               <label htmlFor="overlay-toggle">Overlay anzeigen</label>
             </div>
+            <div className="toggle">
+              <input
+                id="mirror-toggle"
+                type="checkbox"
+                checked={mirrorPreview}
+                onChange={(event) => setMirrorPreview(event.target.checked)}
+              />
+              <label htmlFor="mirror-toggle">Vorschau spiegeln</label>
+            </div>
           </div>
           <HandLandmarkPreview
             title="Live-Landmarks"
             landmarks={lastLandmarks}
             handedness={lastHandedness}
             confidence={lastConfidence}
+            mirror={mirrorPreview}
           />
           <div className="controls">
             <button className="ghost" onClick={handleSaveLandmarks} disabled={!hasLandmarks}>
