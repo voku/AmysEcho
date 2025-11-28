@@ -1,0 +1,385 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GestureMeaningDisplay rendert die Kamerakarten-Tonart mit warmer Kontrastpalette 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "#E5E0CF",
+      "borderColor": "rgba(0, 44, 44, 0.18)",
+      "borderRadius": 8,
+      "borderWidth": 1,
+      "paddingHorizontal": 12,
+      "paddingVertical": 8,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#1C4A4B",
+        "borderRadius": 24,
+        "height": 48,
+        "justifyContent": "center",
+        "marginBottom": 4,
+        "width": 48,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#E5E0CF",
+          "fontSize": 36,
+        }
+      }
+    >
+      🆘
+    </Text>
+  </View>
+  <Text
+    style={
+      {
+        "color": "rgba(0, 44, 44, 0.7)",
+        "fontSize": 12,
+        "marginBottom": 2,
+        "textAlign": "center",
+      }
+    }
+  >
+    Erkannte Geste
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#002C2C",
+        "fontSize": 18,
+        "fontWeight": "bold",
+        "textAlign": "center",
+      }
+    }
+  >
+    🆘 Hilfe
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#1C4A4B",
+        "fontSize": 14,
+        "marginTop": 4,
+        "textAlign": "center",
+      }
+    }
+  >
+    78
+    % 
+    Sicherheit
+  </Text>
+  <View
+    style={
+      {
+        "alignSelf": "stretch",
+        "backgroundColor": "#F4EDDB",
+        "borderColor": "rgba(0, 44, 44, 0.18)",
+        "borderRadius": 8,
+        "borderWidth": 1,
+        "marginTop": 8,
+        "paddingHorizontal": 12,
+        "paddingVertical": 8,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#002C2C",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          false,
+        ]
+      }
+    >
+      Deutliches Hilfesignal mit einer Hand.
+    </Text>
+    <Text
+      style={
+        [
+          {
+            "color": "#002C2C",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          {
+            "marginBottom": 0,
+          },
+        ]
+      }
+    >
+      Kategorie: COMMUNICATION
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`GestureMeaningDisplay rendert die Overlay-Stile im High-Contrast-Modus visuell konsistent 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "#000000",
+      "borderColor": "#FFFFFF",
+      "borderRadius": 8,
+      "borderWidth": 2,
+      "paddingHorizontal": 12,
+      "paddingVertical": 8,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 24,
+        "height": 48,
+        "justifyContent": "center",
+        "marginBottom": 4,
+        "width": 48,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#000000",
+          "fontSize": 36,
+        }
+      }
+    >
+      🆘
+    </Text>
+  </View>
+  <Text
+    style={
+      {
+        "color": "#FFFFFF",
+        "fontSize": 12,
+        "marginBottom": 2,
+        "textAlign": "center",
+      }
+    }
+  >
+    Erkannte Geste
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#FFFFFF",
+        "fontSize": 18,
+        "fontWeight": "bold",
+        "textAlign": "center",
+      }
+    }
+  >
+    🆘 Hilfe
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#FFFFFF",
+        "fontSize": 14,
+        "marginTop": 4,
+        "textAlign": "center",
+      }
+    }
+  >
+    78
+    % 
+    Sicherheit
+  </Text>
+  <View
+    style={
+      {
+        "alignSelf": "stretch",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#FFFFFF",
+        "borderRadius": 8,
+        "borderWidth": 1,
+        "marginTop": 8,
+        "paddingHorizontal": 12,
+        "paddingVertical": 8,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#FFFFFF",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          false,
+        ]
+      }
+    >
+      Deutliches Hilfesignal mit einer Hand.
+    </Text>
+    <Text
+      style={
+        [
+          {
+            "color": "#FFFFFF",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          {
+            "marginBottom": 0,
+          },
+        ]
+      }
+    >
+      Kategorie: COMMUNICATION
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`GestureMeaningDisplay rendert die Overlay-Stile im Standardmodus visuell konsistent 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "rgba(12, 56, 60, 0.85)",
+      "borderColor": "rgba(255, 255, 255, 0.28)",
+      "borderRadius": 8,
+      "borderWidth": 0,
+      "paddingHorizontal": 12,
+      "paddingVertical": 8,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 24,
+        "height": 48,
+        "justifyContent": "center",
+        "marginBottom": 4,
+        "width": 48,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#F2FAFA",
+          "fontSize": 36,
+        }
+      }
+    >
+      🆘
+    </Text>
+  </View>
+  <Text
+    style={
+      {
+        "color": "#C7DFE1",
+        "fontSize": 12,
+        "marginBottom": 2,
+        "textAlign": "center",
+      }
+    }
+  >
+    Erkannte Geste
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#F2FAFA",
+        "fontSize": 18,
+        "fontWeight": "bold",
+        "textAlign": "center",
+      }
+    }
+  >
+    🆘 Hilfe
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#C7DFE1",
+        "fontSize": 14,
+        "marginTop": 4,
+        "textAlign": "center",
+      }
+    }
+  >
+    78
+    % 
+    Sicherheit
+  </Text>
+  <View
+    style={
+      {
+        "alignSelf": "stretch",
+        "backgroundColor": "rgba(255, 255, 255, 0.22)",
+        "borderColor": "rgba(255, 255, 255, 0.28)",
+        "borderRadius": 8,
+        "borderWidth": 1,
+        "marginTop": 8,
+        "paddingHorizontal": 12,
+        "paddingVertical": 8,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#F2FAFA",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          false,
+        ]
+      }
+    >
+      Deutliches Hilfesignal mit einer Hand.
+    </Text>
+    <Text
+      style={
+        [
+          {
+            "color": "#F2FAFA",
+            "fontSize": 12,
+            "lineHeight": 18,
+            "marginBottom": 4,
+            "textAlign": "center",
+          },
+          {
+            "marginBottom": 0,
+          },
+        ]
+      }
+    >
+      Kategorie: COMMUNICATION
+    </Text>
+  </View>
+</View>
+`;

@@ -1,0 +1,65 @@
+import React from 'react';
+import renderer, { act } from 'react-test-renderer';
+
+jest.mock('../src/components/AccessibilityContext', () => ({
+  useAccessibility: () => ({ largeText: false, highContrast: false }),
+}));
+
+jest.mock('../src/services/feedbackService', () => ({
+  childHaptic: jest.fn(),
+}));
+
+import { SymbolButton } from '../src/components/SymbolButton';
+import { COLORS } from '../src/constants/ui';
+
+describe('SymbolButton', () => {
+  it('triggers haptic feedback on press', () => {
+    const symbol: any = { id: '1', name: 'Hello', emoji: '👋', color: '#ffaaaa' };
+    const onPress = jest.fn();
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <SymbolButton symbol={symbol} onPress={onPress} />,
+      );
+    });
+    const pressable = (component as renderer.ReactTestRenderer).root.findByType('Pressable');
+    const { childHaptic: mockHaptic } = require('../src/services/feedbackService');
+    act(() => {
+      pressable.props.onPress();
+    });
+    expect(mockHaptic).toHaveBeenCalled();
+    expect(onPress).toHaveBeenCalledWith(symbol);
+  });
+
+  it('applies pressed visual style', () => {
+    const symbol: any = { id: '1', name: 'Hello', emoji: '👋', color: '#ffaaaa' };
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <SymbolButton symbol={symbol} onPress={() => {}} />,
+      );
+    });
+    const pressable = (component as renderer.ReactTestRenderer).root.findByType('Pressable');
+    const styleFn = pressable.props.style as (args: { pressed: boolean }) => any;
+    const pressedStyle = styleFn({ pressed: true });
+    expect(pressedStyle).toEqual(
+      expect.arrayContaining([expect.objectContaining({ backgroundColor: COLORS.pressed })]),
+    );
+  });
+
+  it('uses symbol color for background', () => {
+    const symbol: any = { id: '1', name: 'Hello', emoji: '👋', color: '#ffaaaa' };
+    let component: renderer.ReactTestRenderer;
+    act(() => {
+      component = renderer.create(
+        <SymbolButton symbol={symbol} onPress={() => {}} />,
+      );
+    });
+    const pressable = (component as renderer.ReactTestRenderer).root.findByType('Pressable');
+    const styleFn = pressable.props.style as (args: { pressed: boolean }) => any;
+    const style = styleFn({ pressed: false });
+    expect(style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ backgroundColor: symbol.color, borderColor: symbol.color })]),
+    );
+  });
+});

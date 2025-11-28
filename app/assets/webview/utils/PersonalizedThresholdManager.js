@@ -1,0 +1,166 @@
+/**
+ * Personalized Threshold Manager - Amy First
+ * Dynamically adjusts confidence thresholds based on Amy's individual gesture patterns
+ */
+export class PersonalizedThresholdManager {
+    constructor() {
+        this.gesturePerformance = new Map();
+        this.PERFORMANCE_WINDOW = 50; // Track last 50 attempts per gesture
+        this.MIN_ATTEMPTS_FOR_PERSONALIZATION = 10;
+        this.MAX_THRESHOLD_ADJUSTMENT = 0.3; // Max 30% adjustment
+        this.LEARNING_RATE = 0.1; // How quickly thresholds adapt
+    }
+    /**
+     * Record a gesture attempt for personalization
+     */
+    recordAttempt(gesture, confidence, success) {
+        const existing = this.gesturePerformance.get(gesture) || {
+            gesture,
+            totalAttempts: 0,
+            successfulAttempts: 0,
+            averageConfidence: 0,
+            lastAttemptTime: Date.now(),
+            successRate: 0,
+            personalizedThreshold: 0.4 // Default MLP threshold
+        };
+        // Update statistics
+        existing.totalAttempts++;
+        if (success) {
+            existing.successfulAttempts++;
+        }
+        // Rolling average confidence
+        existing.averageConfidence = (existing.averageConfidence * (existing.totalAttempts - 1) + confidence) / existing.totalAttempts;
+        existing.successRate = existing.successfulAttempts / existing.totalAttempts;
+        existing.lastAttemptTime = Date.now();
+        // Calculate personalized threshold
+        existing.personalizedThreshold = this.calculatePersonalizedThreshold(existing);
+        this.gesturePerformance.set(gesture, existing);
+        // Limit history size
+        if (existing.totalAttempts > this.PERFORMANCE_WINDOW) {
+            this.trimHistory(gesture);
+        }
+    }
+    /**
+     * Get personalized threshold for a gesture
+     */
+    getPersonalizedThreshold(gesture, baseThreshold) {
+        const performance = this.gesturePerformance.get(gesture);
+        if (!performance || performance.totalAttempts < this.MIN_ATTEMPTS_FOR_PERSONALIZATION) {
+            return {
+                gesture,
+                originalThreshold: baseThreshold,
+                adjustedThreshold: baseThreshold,
+                reason: 'success_rate'
+            };
+        }
+        const adjustment = performance.personalizedThreshold - baseThreshold;
+        const clampedAdjustment = Math.max(-this.MAX_THRESHOLD_ADJUSTMENT, Math.min(this.MAX_THRESHOLD_ADJUSTMENT, adjustment));
+        return {
+            gesture,
+            originalThreshold: baseThreshold,
+            adjustedThreshold: baseThreshold + clampedAdjustment,
+            reason: this.getAdjustmentReason(performance)
+        };
+    }
+    /**
+     * Get all personalized thresholds
+     */
+    getAllPersonalizedThresholds(baseThreshold) {
+        const adjustments = [];
+        for (const [gesture, performance] of this.gesturePerformance) {
+            if (performance.totalAttempts >= this.MIN_ATTEMPTS_FOR_PERSONALIZATION) {
+                adjustments.push(this.getPersonalizedThreshold(gesture, baseThreshold));
+            }
+        }
+        return adjustments;
+    }
+    /**
+     * Get performance insights for Amy's dashboard
+     */
+    getPerformanceInsights() {
+        const performances = Array.from(this.gesturePerformance.values());
+        const totalGestures = performances.length;
+        const wellPerformingGestures = performances
+            .filter(p => p.successRate > 0.8 && p.totalAttempts >= this.MIN_ATTEMPTS_FOR_PERSONALIZATION)
+            .map(p => p.gesture);
+        const needsPracticeGestures = performances
+            .filter(p => p.successRate < 0.6 && p.totalAttempts >= this.MIN_ATTEMPTS_FOR_PERSONALIZATION)
+            .map(p => p.gesture);
+        const averageSuccessRate = performances.length > 0
+            ? performances.reduce((sum, p) => sum + p.successRate, 0) / performances.length
+            : 0;
+        return {
+            totalGestures,
+            wellPerformingGestures,
+            needsPracticeGestures,
+            averageSuccessRate
+        };
+    }
+    /**
+     * Reset performance data (for testing or fresh start)
+     */
+    reset() {
+        this.gesturePerformance.clear();
+    }
+    /**
+     * Export performance data for persistence
+     */
+    exportPerformanceData() {
+        const data = {};
+        for (const [gesture, performance] of this.gesturePerformance) {
+            data[gesture] = Object.assign({}, performance);
+        }
+        return data;
+    }
+    /**
+     * Import performance data from persistence
+     */
+    importPerformanceData(data) {
+        this.gesturePerformance.clear();
+        for (const [gesture, performance] of Object.entries(data)) {
+            this.gesturePerformance.set(gesture, Object.assign({}, performance));
+        }
+    }
+    calculatePersonalizedThreshold(performance) {
+        const { successRate, averageConfidence, totalAttempts } = performance;
+        // Base threshold starts at 0.4 (default MLP threshold)
+        let threshold = 0.4;
+        // Adjust based on success rate
+        if (successRate > 0.8) {
+            // High success rate - can be more strict
+            threshold += 0.05;
+        }
+        else if (successRate < 0.5) {
+            // Low success rate - be more lenient
+            threshold -= 0.1;
+        }
+        // Adjust based on average confidence
+        if (averageConfidence > 0.7) {
+            threshold += 0.03;
+        }
+        else if (averageConfidence < 0.4) {
+            threshold -= 0.05;
+        }
+        // Learning curve adjustment - be more lenient for newer gestures
+        if (totalAttempts < 20) {
+            threshold -= 0.05;
+        }
+        // Ensure threshold stays within reasonable bounds
+        return Math.max(0.2, Math.min(0.6, threshold));
+    }
+    getAdjustmentReason(performance) {
+        if (performance.successRate > 0.8) {
+            return 'success_rate';
+        }
+        else if (performance.totalAttempts < 20) {
+            return 'learning_curve';
+        }
+        else {
+            return 'recent_performance';
+        }
+    }
+    trimHistory(gesture) {
+        // For now, we keep all history but could implement sliding window
+        // This is a placeholder for future optimization
+    }
+}

@@ -1,0 +1,17 @@
+declare module 'expo-audio' {
+  export function setAudioModeAsync(mode: any): Promise<void>;
+  export function requestRecordingPermissionsAsync(): Promise<any>;
+  export function createAudioPlayer(options: any): any;
+  export class AudioRecorder {
+    constructor(options: any);
+    prepareToRecordAsync(options: any): Promise<void>;
+    record(): void;
+    stop(): Promise<void>;
+    uri: string | null;
+  }
+  export const RecordingPresets: any;
+}
+
+declare module 'expo-device' {
+  export function getThermalStateAsync(): Promise<number>;
+}

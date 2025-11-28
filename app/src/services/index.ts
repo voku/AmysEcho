@@ -1,0 +1,21 @@
+export * from './audioService';
+export { playSymbolAudio } from './audioService';
+export * from './analytics';
+export * from './usageTracker';
+export * from './engagementTracker';
+export * from './correctionService';
+export { default as gestureSuggester } from './gestureSuggester';
+
+export * from "./trainingSync";
+export * from "./modelUpdate";
+export * from './feedbackService';
+export * from './accessibilityService';
+export * from './backupService';
+export * from './dataProtection';
+export * from './gdprService';
+export * from './personalizedConfidenceService';
+export * from './gestureCombinationService';
+export * from './gestureMeaningService';
+export * from './adaptiveLearningService';
+export * from './activeLearningService';
+export * from './trainingBundleService';

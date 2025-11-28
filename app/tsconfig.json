@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "noEmit": true,
+    "target": "es2016",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "module": "ESNext",
+    "rootDir": ".",
+    "moduleResolution": "Bundler",
+    "customConditions": ["react-native"],
+    "baseUrl": ".",
+    "paths": {
+      "expo-file-system": ["node_modules/expo-file-system/build/index.d.ts"],
+      "expo-file-system/legacy": ["node_modules/expo-file-system/build/legacy/index.d.ts"]
+    },
+    "types": [
+      "node",
+      "jest"
+    ],
+    "resolveJsonModule": true,
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "allowArbitraryExtensions": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleSuffixes": [".native", ""],
+    "skipLibCheck": true,
+    "isolatedModules": true
+  },
+  "exclude": [
+    "test",
+    "../server",
+    "__mocks__",
+    "src/**/*.test.*"
+  ],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/declarations.d.ts",
+    "mock-types.d.ts"
+  ],
+  "extends": "expo/tsconfig.base"
+}
