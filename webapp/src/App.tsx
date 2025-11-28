@@ -1,8 +1,12 @@
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
+import { Dashboard } from './components/Dashboard';
 import { FeatureAvailability } from './components/FeatureAvailability';
 import { GestureDemo } from './components/GestureDemo';
 import { GestureHistory } from './components/GestureHistory';
+import { GestureTutorial } from './components/GestureTutorial';
 import { Help } from './components/Help';
+import { LearningHub } from './components/LearningHub';
+import { Onboarding } from './components/Onboarding';
 import { ProfileBar } from './components/ProfileBar';
 import { ProgressTracker } from './components/ProgressTracker';
 import { Settings } from './components/Settings';
@@ -27,6 +31,12 @@ function App() {
             <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
               Erkennung
             </NavLink>
+            <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Dashboard
+            </NavLink>
+            <NavLink to="/lernen" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Lernen
+            </NavLink>
             <NavLink to="/verlauf" className={({ isActive }) => (isActive ? 'active' : '')}>
               Verlauf
             </NavLink>
@@ -50,12 +60,16 @@ function App() {
           <ProfileBar />
           <Routes>
             <Route path="/" element={<GestureDemo />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/lernen" element={<LearningHub />} />
             <Route path="/verlauf" element={<GestureHistory />} />
             <Route path="/funktionen" element={<FeatureAvailability />} />
             <Route path="/training" element={<TrainingUploadWithRecording />} />
             <Route path="/fortschritt" element={<ProgressTracker />} />
             <Route path="/einstellungen" element={<Settings />} />
             <Route path="/hilfe" element={<Help />} />
+            <Route path="/tutorial" element={<GestureTutorial />} />
+            <Route path="/onboarding" element={<Onboarding />} />
           </Routes>
         </main>
 
