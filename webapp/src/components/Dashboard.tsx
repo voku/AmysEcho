@@ -22,7 +22,7 @@ interface ServerInsights {
  */
 export function Dashboard() {
   const { profileId, recentGestures } = useAppState();
-  const { apiUrl, authToken } = useApiConfig();
+  const { apiBaseUrl, apiToken } = useApiConfig();
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [serverInsights, setServerInsights] = useState<ServerInsights | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,11 +34,11 @@ export function Dashboard() {
     setSummary(localSummary);
 
     // Fetch server analytics if configured
-    if (apiUrl && authToken) {
-      fetchServerInsights(apiUrl, authToken);
+    if (apiBaseUrl && apiToken) {
+      fetchServerInsights(apiBaseUrl, apiToken);
     }
     setLoading(false);
-  }, [profileId, apiUrl, authToken]);
+  }, [profileId, apiBaseUrl, apiToken]);
 
   const loadLocalAnalytics = (profileId: string): AnalyticsSummary => {
     const progressKey = `webapp:progress:${profileId}`;
