@@ -1,4 +1,6 @@
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
+import { AboutAmysEcho } from './components/AboutAmysEcho';
+import { CommunicationInsights } from './components/CommunicationInsights';
 import { Dashboard } from './components/Dashboard';
 import { FeatureAvailability } from './components/FeatureAvailability';
 import { GestureDemo } from './components/GestureDemo';
@@ -21,10 +23,9 @@ function App() {
         <header className="app-header">
           <div>
             <p className="eyebrow">Amy&apos;s Echo</p>
-            <h1>Web-Preview der Gestenerkennung</h1>
+            <h1>Gestenerkennung für Amy</h1>
             <p className="muted">
-              Diese Web-App nutzt dasselbe Gesture-Detector-Bundle wie die Expo-Version, ersetzt aber native Funktionen durch
-              Browser-Pendants oder deaktivierte Pfade.
+              Amy zuerst – immer. Jede Geste ist eine Stimme. Jede Stimme zählt.
             </p>
           </div>
           <nav className="nav">
@@ -40,17 +41,17 @@ function App() {
             <NavLink to="/verlauf" className={({ isActive }) => (isActive ? 'active' : '')}>
               Verlauf
             </NavLink>
+            <NavLink to="/erkenntnisse" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Erkenntnisse
+            </NavLink>
             <NavLink to="/training" className={({ isActive }) => (isActive ? 'active' : '')}>
               Training
-            </NavLink>
-            <NavLink to="/fortschritt" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Fortschritt
             </NavLink>
             <NavLink to="/einstellungen" className={({ isActive }) => (isActive ? 'active' : '')}>
               Einstellungen
             </NavLink>
-            <NavLink to="/hilfe" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Hilfe
+            <NavLink to="/ueber" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Über Amy&apos;s Echo
             </NavLink>
           </nav>
         </header>
@@ -63,6 +64,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/lernen" element={<LearningHub />} />
             <Route path="/verlauf" element={<GestureHistory />} />
+            <Route path="/erkenntnisse" element={<CommunicationInsights />} />
             <Route path="/funktionen" element={<FeatureAvailability />} />
             <Route path="/training" element={<TrainingUploadWithRecording />} />
             <Route path="/fortschritt" element={<ProgressTracker />} />
@@ -70,12 +72,12 @@ function App() {
             <Route path="/hilfe" element={<Help />} />
             <Route path="/tutorial" element={<GestureTutorial />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/ueber" element={<AboutAmysEcho />} />
           </Routes>
         </main>
 
         <footer className="muted footer">
-          Bekannte Unterschiede: kein SecureStore, keine nativen Haptics, Kamerazugriff nur mit Browser-Freigabe, Clip-Export
-          über einfache Downloads.
+          ❤️ Für Amy – Jede Geste ist eine Stimme.
         </footer>
       </div>
     </BrowserRouter>

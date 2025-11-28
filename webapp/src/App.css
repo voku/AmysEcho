@@ -1393,3 +1393,347 @@ button.danger:hover {
 .learning-tips li {
   padding: 0.25rem 0;
 }
+
+/* About Amy's Echo styles */
+.about-amy {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.about-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.about-section h3 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+}
+
+.mission {
+  text-align: center;
+  background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+  border: 2px solid #fde68a;
+}
+
+.mission-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.mission-statement {
+  font-size: 1.5rem;
+  color: #92400e;
+  margin: 0.5rem 0;
+}
+
+.commitment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.commitment-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.commitment-emoji {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.commitment-item p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.amy-loop {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.loop-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  min-width: 140px;
+}
+
+.loop-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.loop-content strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.loop-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.loop-arrow {
+  font-size: 1.5rem;
+  color: #0ea5e9;
+}
+
+.awareness-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.awareness-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.awareness-check {
+  color: #10b981;
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.awareness-item p {
+  margin: 0;
+}
+
+.tech-stack {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.tech-item {
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.tech-item p {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.credits {
+  text-align: center;
+  background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+  border: 2px solid #f9a8d4;
+}
+
+.dedication {
+  font-size: 1.1rem;
+  color: #9d174d;
+  font-style: italic;
+}
+
+.heart-pulse {
+  font-size: 3rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Communication Insights styles */
+.insights-section {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.insights-section h3 {
+  margin: 0 0 1rem;
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 150px;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+}
+
+.bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  max-width: 60px;
+}
+
+.bar {
+  width: 100%;
+  background: linear-gradient(to top, #0ea5e9, #38bdf8);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  position: relative;
+}
+
+.bar-value {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.bar-label {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.performance-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.time-card {
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  flex: 1;
+  min-width: 150px;
+}
+
+.time-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.time-confidence {
+  color: #10b981;
+  font-size: 0.9rem;
+}
+
+.top-gestures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gesture-rank {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.rank-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0ea5e9;
+  width: 40px;
+}
+
+.rank-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.streaks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.streak-card {
+  padding: 1rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.streak-gesture {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.streak-current {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #d97706;
+}
+
+.key-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.insight-icon {
+  font-size: 1.25rem;
+}
+
+.insight-item p {
+  margin: 0;
+  flex: 1;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.empty-state .primary-button {
+  margin-top: 1.5rem;
+}
