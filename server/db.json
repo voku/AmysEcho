@@ -43,25 +43,25 @@
   ],
   "vocabularySetSymbols": [
     {
-      "id": "mi2tje79q75ijv1g2a",
+      "id": "miii10kje1abzqvj3rg",
       "vocabularySetId": "basic",
       "symbolId": "hello"
     },
     {
-      "id": "mi2tje79k2ubnw1rfp",
+      "id": "miii10kjkfqf308lcnl",
       "vocabularySetId": "basic",
       "symbolId": "drink"
     }
   ],
   "usageStats": [
     {
-      "id": "mi2tje79z1884tvp7ej",
+      "id": "miii10kjbpilo3jkj3g",
       "symbolId": "hello",
       "profileId": "default",
       "count": 0
     },
     {
-      "id": "mi2tje7946cgg4soqmk",
+      "id": "miii10kjzx6oqfnlnq",
       "symbolId": "drink",
       "profileId": "default",
       "count": 0
@@ -69,5 +69,6 @@
   ],
   "learningAnalytics": [],
   "corrections": [],
-  "negativeSamples": []
+  "negativeSamples": [],
+  "users": []
 }

@@ -18,13 +18,13 @@ PORT = "5056"
 
 
 def _load_default_labels() -> list[str]:
-    labels_path = SERVER_DIR.parent / "app" / "assets" / "config" / "defaultBaselineLabels.json"
+    labels_path = SERVER_DIR / "data" / "config" / "defaultBaselineLabels.json"
     try:
         with labels_path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
     except FileNotFoundError as error:
         raise FileNotFoundError(
-            "defaultBaselineLabels.json is missing; ensure app assets are installed."
+            "defaultBaselineLabels.json is missing; ensure server/data/config directory is set up."
         ) from error
     if not isinstance(payload, list):
         raise TypeError("defaultBaselineLabels.json must contain a list of strings")

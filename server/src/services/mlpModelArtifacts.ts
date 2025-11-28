@@ -30,7 +30,7 @@ const FALLBACK_BASELINE_LABELS = [
 ] as const;
 
 function loadDefaultBaselineLabels(): readonly string[] {
-  const defaultPath = path.join(SERVER_DIR, '..', 'app', 'assets', 'config', 'defaultBaselineLabels.json');
+  const defaultPath = path.join(SERVER_DIR, 'data', 'config', 'defaultBaselineLabels.json');
   try {
     const raw = fsSync.readFileSync(defaultPath, 'utf8');
     const parsed = JSON.parse(raw);
