@@ -42,16 +42,14 @@ This is not a demo or experiment. It’s a production-grade, full-stack project 
 
 | Layer         | Tech                          | Purpose                                |
 |---------------|-------------------------------|----------------------------------------|
-| App Framework | React Native (CLI)            | Cross-platform + native module access  |
+| Web Framework | React + Vite                  | Fast browser-based application         |
 | Language      | TypeScript (strict mode)      | Predictable, type-safe code            |
 | ML Engine     | MediaPipe + Amy's Echo MLP    | Real-time gesture recognition & personalization |
 | LLM Engine    | On-device caregiver prompt engine | Contextual caregiver prompts and reassurance |
-| Camera        | `react-native-webview`        | In-app camera feed & landmark detection |
+| Camera        | Browser MediaDevices API      | In-browser camera feed & landmark detection |
 | Backend API   | Node/Express server           | Sample upload, training, model serving |
-| UI/UX         | RN Animated API + Skia (opt.) | Gentle, trust-based feedback           |
-| Audio         | `expo-audio`, `expo-speech`   | Speech output + sound effects          |
-| Video         | `expo-video`                  | Video output                           |
-| Database      | WatermelonDB (SQLite)         | Encrypted local storage (sync-enabled) |
+| Audio         | Web Audio API, Speech Synthesis | Speech output + sound effects          |
+| Database      | IndexedDB (via OPFS)          | Local storage for offline support      |
 
 ---
 
@@ -91,13 +89,13 @@ Amy's Echo features a comprehensive gesture recognition system optimized for 22q
 ## 🚀 Quick Start
 
 ```bash
-npm ci --prefix app
+npm ci --prefix webapp
 npm ci --prefix server
 pip install -r server/requirements.txt
 npm ci --prefix integration
 
-npm run type-check --prefix app
-npm test --prefix app
+npm run type-check --prefix webapp
+npm test --prefix webapp
 npm run type-check --prefix server
 npm test --prefix server
 npm test --prefix integration
@@ -107,30 +105,27 @@ npm run build --prefix server
 
 Commands use `--prefix` and should be run from the repository root.
 
-Run notes
+### Run notes
 
-- Server:
+- **Server:**
    - MediaPipe assets load via CDN; no manual model download is required.
-   - Build + start: npm run build --prefix server && ./scripts/server-start.sh
-- App:
-   - Android emulator:
-   - `EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 scripts/dev-run.sh --android`
-   - or `scripts/adb-reverse.sh 5000 && scripts/dev-run.sh --android`
-- Uses demo-token by default for auth.
+   - Build + start: `npm run build --prefix server && ./scripts/server-start.sh`
+- **Webapp:**
+   - Development: `npm run dev --prefix webapp`
+   - Production build: `npm run build --prefix webapp`
+- Uses `demo-token` by default for auth.
 
-How to use it
+### How to use it
 
-- Start server (required for training + model serving):
-   - npm run build --prefix server && ./scripts/server-start.sh
-- Run app:
-   - Android emulator: EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 scripts/dev-run.sh --android
-   - Or scripts/adb-reverse.sh 5000 && scripts/dev-run.sh --android
-- Workflow:
-   - Use Training screen to record a few samples for key DGS gestures (per child).
-   - Use Recognition screen; when it’s wrong, correct it; the app uploads the sample for that child.
-  - Recognition runs locally; as training samples accumulate, personalized MLP weights improve confidence.
-
-Run `npm run ios --prefix app` or `npm run android --prefix app` to launch the mobile app.
+1. Start server (required for training + model serving):
+   - `npm run build --prefix server && ./scripts/server-start.sh`
+2. Run webapp:
+   - Development: `npm run dev --prefix webapp`
+   - Access at http://localhost:5173
+3. Workflow:
+   - Use Training page to record samples for key DGS gestures (per child).
+   - Use Recognition page; when it's wrong, correct it; the webapp uploads the sample for that child.
+   - Recognition runs locally in browser; as training samples accumulate, personalized MLP weights improve confidence.
 
 See [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) for full details.
 
@@ -186,104 +181,55 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 All major features for Phase 1, 2 and 3 have been implemented. The project is now in the optimization and production readiness phase. Development tasks are tracked in [`docs/TODO.md`](docs/TODO.md), which now serves as a living document for ongoing improvements and bug fixes.
 
-The repository now focuses on the core gesture recognition loop: recording high-quality samples, uploading them to the server, training personalized models, and serving those models back to the mobile client. Auxiliary caregiver portals, analytics dashboards, and dialog services have been removed so local development only requires the upload, training, and model-serving endpoints exposed by the Node server.
+The repository now focuses on the core gesture recognition loop: recording high-quality samples, uploading them to the server, training personalized models, and serving those models back to the browser client. Auxiliary caregiver portals, analytics dashboards, and dialog services have been removed so local development only requires the upload, training, and model-serving endpoints exposed by the Node server.
 
-## ▶️ Running the mobile app
+## ▶️ Running the Web Application
 
-The React Native code lives in `app/`. Install dependencies with `npm install` inside that folder, then run `npm run ios` or `npm run android` to start a simulator. These scripts use **Expo**'s `run` commands under the hood. This skeleton includes onboarding, recognition, correction and streamlined training screens dedicated to recording samples. Camera and ML integration now have an initial hybrid recognizer stub.
+The webapp code lives in `webapp/`. Install dependencies with `npm install` inside that folder, then run `npm run dev` to start the development server at http://localhost:5173.
 
-DGS demonstration videos can be placed under `app/assets/videos/dgs/`. Each gesture entry may specify a `videoUri` and optional `dgsVideoUri` pointing to these files. A toggle on the recognition screen lets you switch between the standard symbol video and the DGS version when available. The `DgsVideoPlayer` component loops these videos automatically so Amy can watch each sign repeatedly.
+### Configuring the backend API
 
-### Configuring the backend API token
-
-The training endpoints require a bearer token. Choose **one** of the following options for local development:
-
-1. **Environment variable (recommended for development/CI)**
-   ```bash
-   export EXPO_PUBLIC_API_TOKEN="demo-token"
-   npm start --prefix server
-   ```
-   Expo, Jest, and the Node server all reuse the token exposed through this variable.
-
-2. **`.env.local` file** – Create `app/.env.local` with `EXPO_PUBLIC_API_TOKEN=demo-token`. The Expo CLI loads it automatically during `npm run ios`/`android`.
-
-3. **Admin screen input** – Launch the Admin screen in the mobile app and paste the token once. It is written to `SecureStore` so the device can stay offline between sessions.
-
-Never commit real tokens to the repository or logs. Production deployments should fetch the secret from the hosting platform's secret manager.
-
-### Building the custom dev client
-
-If you want to run the app on a physical device with a custom dev client, execute `npx expo prebuild` and `npx expo run:android` inside `app/` once to generate the native Android and iOS projects. These directories are not tracked in git to avoid committing large binaries. After the prebuild step you can launch the app with `npm run ios` or `npm run android`.
-
-### Creating test builds (APK)
-
-Before running any EAS build make sure you're logged in and the project passes Expo checks:
+The training endpoints require authentication. Set the API URL and optionally a bearer token:
 
 ```bash
-npx expo whoami             # run `npx expo login` if this fails
-(cd app && npx expo install --check)
-(cd app && npx expo-doctor) # requires network access
+# Configure API endpoint (defaults to http://localhost:3000)
+VITE_API_URL=http://localhost:5000
+
+# Start the development server
+npm run dev --prefix webapp
 ```
 
-Set `CI=1` when building from a non-interactive terminal to disable progress spinners.
+The webapp provides an API configuration panel where you can adjust the base URL and token during runtime.
 
-#### Custom dev client
-
-To produce a debuggable APK for testers, trigger a development build via EAS:
+### Building for Production
 
 ```bash
-CI=1 npm run build:android-dev
+npm run build --prefix webapp
 ```
 
-The CLI prints a link to the artifact. You can also download the most recent build later:
+The production build is output to `webapp/dist/` and can be deployed to any static hosting service.
 
-```bash
-eas build:download --platform android --profile development --latest
-```
-
-This APK only contains the Expo dev client. After installing it on a device you must start the bundler with `npx expo start` to load the JavaScript bundle.
-
-#### Self-contained APK
-
-For an installable APK that bundles the app and runs without the bundler:
-
-```bash
-CI=1 npm run build:android-apk
-```
-
-The resulting artifact includes the compiled JavaScript and assets, making it suitable for offline testing and sideloading.
-
-### Creating production builds
-
-To generate store-ready binaries using EAS Build, run:
-
-```bash
-CI=1 npm run build:android
-CI=1 npm run build:ios
-```
-
-This uses `eas.json` and requires credentials configured with Expo. If you run the build in a CI or other non-interactive environment, set the `EXPO_TOKEN` environment variable with an Expo access token. Otherwise the command will fail when it prompts for login.
-
-### Build & Test Workflow (EAS)
+### Build & Test Workflow
 
 1. **Run the full test suite** before building:
 
    ```bash
-   npm run type-check --prefix app
-   npm test --prefix app
+   npm run type-check --prefix webapp
+   npm run lint --prefix webapp
+   npm test --prefix webapp
    pip install -r server/requirements.txt
-npm test --prefix server
-```
+   npm test --prefix server
+   ```
 
-   You can also execute `./scripts/full-check.sh` from the repo root to run all checks at once, including Expo dependency checks.
+   You can also execute `./scripts/full-check.sh` from the repo root to run all checks at once.
 
 For more detailed build and testing instructions, see [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
 
 ---
 
-## 🔗 Local Dev: App + Server (End‑to‑End)
+## 🔗 Local Dev: Webapp + Server (End‑to‑End)
 
-Start the backend server and connect the mobile app to it during development.
+Start the backend server and connect the webapp to it during development.
 
 1) Start the server (Terminal A)
 
@@ -292,57 +238,39 @@ npm run build --prefix server
 ./scripts/server-start.sh
 ```
 
+
 - Uses `PORT=5000` and `API_TOKEN=demo-token` by default.
 - Stores the latest MLP model at `server/data/models/global/amy_model.npz` once training completes.
 - Neue Zugänge können per `POST /api/v1/auth/register` erstellt und per `POST /api/v1/auth/login` angemeldet werden. Die
-  Endpunkte geben JWTs zurück und funktionieren parallel zum Legacy-Token. Passwort-Anforderungen: 6–128 Zeichen,
-  Nutzername: 3–50 Zeichen.
+  Endpunkte geben JWTs zurück und funktionieren parallel zum Legacy-Token. Passwort-Anforderungen: 6-128 Zeichen,
+  Nutzername: 3-50 Zeichen.
 
-2) Reverse port for USB device (Terminal B)
+2) Start the webapp (Terminal B)
 
-```
-./scripts/adb-reverse.sh 5000
-```
+\`\`\`
+VITE_API_URL=http://localhost:5000 npm run dev --prefix webapp
+\`\`\`
 
-- Allows the app on a USB‑connected device to reach `http://localhost:5000`.
-- Alternatively, skip reverse and set a LAN URL before starting Metro:
+- Opens the webapp at http://localhost:5173
+- Connects to the local server for gesture uploads and model downloads.
 
-```
-export EXPO_PUBLIC_API_URL=http://<HOST_LAN_IP>:5000
-export EXPO_PUBLIC_API_TOKEN=demo-token
-```
-
-3) Start Metro with Expo dev client (Terminal C)
-
-```
-./scripts/dev-run.sh --clear --host lan
-```
-
-- Defaults expose `EXPO_PUBLIC_API_URL=http://localhost:5000` and token for the app.
-
-4) Install/launch on Android (Terminal D)
-
-```
-cd app && expo run:android
-```
-
-5) Verify connectivity
+3) Verify connectivity
 
 - Server logs show requests to `/latest-mlp-model` and `/api/*`.
-- App logs should not show “Network request failed”.
+- Webapp console should not show network errors.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 This is a focused project with one user. That means:
 
-- ✅ Clean code, tested assumptions
-- ✅ No “move fast” hacks
-- ✅ Emotional context matters — build with care
+- Clean code, tested assumptions
+- No "move fast" hacks
+- Emotional context matters - build with care
 
-If you’re here to help: thank you.
-PRs are welcome, but **read the [spec](spec/AmysEcho.md)** and the contributor guides in `AGENTS.md`, `app/AGENTS.md`, and `server/AGENTS.md` first.
+If you're here to help: thank you.
+PRs are welcome, but **read the [spec](spec/AmysEcho.md)** and the contributor guides in `AGENTS.md` and `server/AGENTS.md` first.
 
 ---
 

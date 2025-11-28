@@ -5,14 +5,9 @@ server/**/__pycache__/
 # build stuff
 dist
 .expo
-app/android/
-app/ios/
 
 # keys
 .openai-key
-
-# db
-app/watermelon.db
 
 # ide
 .idea
@@ -29,9 +24,9 @@ server/data/models/*/amy_model.npz
 !server/data/models/global/amy_model.npz
 data/amy_model.npz
 # code coverage
-app/coverage/
 coverage/
 server/coverage/
+webapp/coverage/
 
 .gemini/
 gha-creds-*.json

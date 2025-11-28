@@ -1,1 +1,0 @@
-export const LOCAL_CONFIDENCE_THRESHOLD = 0.7;

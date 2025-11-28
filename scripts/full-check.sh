@@ -40,30 +40,9 @@ install_node_modules() {
   fi
 }
 
-run_step "Install app dependencies" install_node_modules app
 run_step "Install webapp dependencies" install_node_modules webapp
 run_step "Install server dependencies" install_node_modules server
 run_step "Install integration dependencies" install_node_modules integration
-
-# Verify Expo setup for the mobile app
-check_expo_install() {
-  if ! (cd app && npx expo install --check); then
-    echo "expo install check failed" >&2
-  fi
-}
-
-run_expo_doctor() {
-  if ! (cd app && npx expo-doctor); then
-    echo "expo doctor reported issues" >&2
-  fi
-}
-
-run_step "Verify Expo dependencies" check_expo_install
-run_step "Run Expo doctor" run_expo_doctor
-
-# Run type check and tests for the React Native app
-run_step "Type-check React Native app" npm run type-check --prefix app
-run_step "Test React Native app" npm test --prefix app
 
 # Run lint/type-check/tests for the browser webapp
 run_step "Lint webapp" npm run lint --prefix webapp
