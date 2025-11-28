@@ -38,7 +38,7 @@ describe('landmarkUtils', () => {
   });
 
   it('fills empty handedness labels with positional fallbacks', () => {
-    expect(adjustHandednessForMirror(['', undefined as unknown as string, '  '], true)).toEqual([
+    expect(adjustHandednessForMirror(['', undefined, '  '], true)).toEqual([
       'Hand 1',
       'Hand 2',
       'Hand 3',
