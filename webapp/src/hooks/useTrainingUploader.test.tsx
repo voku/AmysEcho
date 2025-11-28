@@ -238,4 +238,54 @@ describe('useTrainingUploader', () => {
       expect(remaining.length).toBe(0);
     }, { timeout: 3000 });
   }, 5000);
+
+  it('listet gespeicherte Bundles und erlaubt das Löschen', async () => {
+    const stored = await enqueuePersistedBundle({
+      profileId: 'demo',
+      label: 'HILFE',
+      capturedAt: '2024-01-01T00:00:00.000Z',
+      source: 'web://mediapipe',
+      framesCount: 1,
+      zip: new TextEncoder().encode('demo-zip'),
+    });
+
+    const { result } = renderHook(() => useTrainingUploader());
+
+    await waitFor(() => expect(result.current.queuedBundles.length).toBe(1));
+    expect(result.current.queuedBundles[0]).toMatchObject({ key: stored.key, profileId: 'demo' });
+
+    await act(async () => {
+      await result.current.removeBundle(stored.key);
+    });
+
+    await waitFor(() => expect(result.current.queuedBundles.length).toBe(0));
+  });
+
+  it('synchronisiert ein einzelnes gespeichertes Bundle erneut', async () => {
+    Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
+    const stored = await enqueuePersistedBundle({
+      profileId: 'demo',
+      label: 'HILFE',
+      capturedAt: '2024-01-01T00:00:00.000Z',
+      source: 'web://mediapipe',
+      framesCount: 1,
+      zip: new TextEncoder().encode('demo-zip'),
+    });
+
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'bundle-resend' }) });
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() => useTrainingUploader());
+
+    await waitFor(() => expect(result.current.queuedBundles.length).toBe(1));
+
+    await act(async () => {
+      Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
+      const synced = await result.current.syncBundle(stored.key, { endpoint: 'https://example.invalid' });
+      expect(synced).toBe(true);
+    });
+
+    await waitFor(() => expect(result.current.queuedBundles.length).toBe(0));
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
 });

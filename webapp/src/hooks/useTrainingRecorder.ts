@@ -34,6 +34,8 @@ export interface TrainingRecorderResult {
   framesCaptured: number;
   clipLimitExceeded: boolean;
   maxClipBytes: number;
+  previewLandmarks: number[][][];
+  previewHandedness: string[];
 }
 
 const MAX_BUFFERED_FRAMES = 240;
@@ -84,6 +86,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
   const [clipSizeBytes, setClipSizeBytes] = useState(0);
   const [clipDurationMs, setClipDurationMs] = useState(0);
   const [clipError, setClipError] = useState<string | null>(null);
+  const [previewLandmarks, setPreviewLandmarks] = useState<number[][][]>([]);
+  const [previewHandedness, setPreviewHandedness] = useState<string[]>([]);
   const isRecordingRef = useRef(false);
   const clipRecorderRef = useRef<MediaRecorder | null>(null);
   const clipChunksRef = useRef<Blob[]>([]);
@@ -134,6 +138,9 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
           landmarks: cloned as number[][][],
           handedness,
         });
+
+        setPreviewLandmarks(cloned as number[][][]);
+        setPreviewHandedness(handedness);
       });
     }
 
@@ -177,6 +184,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     setRecordedFrames([]);
     setStillImage(null);
     setFramesCaptured(0);
+    setPreviewLandmarks([]);
+    setPreviewHandedness([]);
     setClipFile(null);
     setClipSizeBytes(0);
     setClipDurationMs(0);
@@ -268,6 +277,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     setRecordedFrames([]);
     setStillImage(null);
     setFramesCaptured(0);
+    setPreviewLandmarks([]);
+    setPreviewHandedness([]);
     setClipFile(null);
     setClipSizeBytes(0);
     setClipDurationMs(0);
@@ -295,5 +306,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     framesCaptured,
     clipLimitExceeded,
     maxClipBytes: MAX_CLIP_BYTES,
+    previewLandmarks,
+    previewHandedness,
   };
 }

@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploader';
 import { frameHasAnyLandmarks } from '../training/handUtils';
 import type {
@@ -10,6 +10,8 @@ import type {
 import { TrainingRecorder } from './TrainingRecorder';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { TrainingQueueList } from './TrainingQueueList';
+import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 
 type LandmarkTuple = [number, number] | [number, number, number];
 
@@ -97,11 +99,15 @@ function TrainingStatusBlock({
   message,
   onSyncQueued,
   actionSlot,
+  onSyncBundle,
+  onRemoveBundle,
 }: {
   uploader: TrainingUploaderHandle;
   message?: string;
   onSyncQueued: () => Promise<void>;
   actionSlot?: ReactNode;
+  onSyncBundle?: (key: string) => Promise<void>;
+  onRemoveBundle?: (key: string) => Promise<void>;
 }) {
   const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob } = uploader;
   const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
@@ -145,6 +151,15 @@ function TrainingStatusBlock({
         <li>Die ZIP-Struktur entspricht dem App-Bundle ({'metadata.json'}, {'landmarks.json'}, optional Dateien).</li>
         <li>API-Endpunkt wird über <code>VITE_API_URL</code> konfiguriert.</li>
       </ul>
+      <div className="mt-sm">
+        <p className="eyebrow">Zwischengespeicherte Bundles</p>
+        <TrainingQueueList
+          bundles={uploader.queuedBundles}
+          onSyncBundle={onSyncBundle}
+          onRemoveBundle={onRemoveBundle}
+          syncing={syncing}
+        />
+      </div>
       {actionSlot}
     </div>
   );
@@ -251,6 +266,23 @@ export function TrainingUpload({
       setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
     }
   }, [syncQueued]);
+
+  const handleSyncBundle = useCallback(
+    async (key: string) => {
+      setMessage('Bundle wird hochgeladen…');
+      const synced = await uploader.syncBundle(key);
+      setMessage(synced ? 'Bundle synchronisiert.' : 'Bundle konnte nicht synchronisiert werden.');
+    },
+    [uploader],
+  );
+
+  const handleRemoveBundle = useCallback(
+    async (key: string) => {
+      await uploader.removeBundle(key);
+      setMessage('Bundle wurde gelöscht.');
+    },
+    [uploader],
+  );
 
   const handleSubmit = useCallback(
     async (event: FormEvent) => {
@@ -371,6 +403,8 @@ export function TrainingUpload({
                 Trainingspaket hochladen
               </button>
             }
+            onSyncBundle={handleSyncBundle}
+            onRemoveBundle={handleRemoveBundle}
           />
         </div>
       </form>
@@ -390,6 +424,8 @@ export function TrainingUploadWithRecording() {
   const { upload, lastResult, state, trainingJob } = uploadState;
   const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =
     useAppState();
+  const modelInjection = useMlpModelInjection(profileId);
+  const lastJobStatusRef = useRef<string | null>(null);
   const [label, setLabel] = useState(preferredGestureLabel);
   const [message, setMessage] = useState<string>('');
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
@@ -406,6 +442,24 @@ export function TrainingUploadWithRecording() {
       setMessage('');
     }
   }, [metadataError, metadataReady, message]);
+
+  useEffect(() => {
+    const status = uploadState.trainingJob?.status ?? uploadState.lastResult?.trainingJob?.status ?? null;
+    if (!status || status === lastJobStatusRef.current) {
+      return;
+    }
+    lastJobStatusRef.current = status;
+    if (status === 'completed') {
+      setMessage((prev) =>
+        prev && !prev.includes('Modell')
+          ? `${prev} Neues Modell wird geladen…`
+          : 'Trainingsjob abgeschlossen. Neues Modell wird geladen…',
+      );
+      modelInjection.refreshModel().catch((error) => {
+        console.warn('Modell konnte nach Training nicht geladen werden', error);
+      });
+    }
+  }, [modelInjection.refreshModel, setMessage, uploadState.lastResult, uploadState.trainingJob]);
 
   const handleLabelUpdate = useCallback(
     (value: string) => {
@@ -453,6 +507,23 @@ export function TrainingUploadWithRecording() {
     }
   }, [uploadState]);
 
+  const handleSyncBundle = useCallback(
+    async (key: string) => {
+      setMessage('Bundle wird hochgeladen…');
+      const synced = await uploadState.syncBundle(key);
+      setMessage(synced ? 'Bundle synchronisiert.' : 'Bundle konnte nicht synchronisiert werden.');
+    },
+    [uploadState],
+  );
+
+  const handleRemoveBundle = useCallback(
+    async (key: string) => {
+      await uploadState.removeBundle(key);
+      setMessage('Bundle wurde gelöscht.');
+    },
+    [uploadState],
+  );
+
   return (
     <>
       <div className="mode-switcher mb-md">
@@ -463,6 +534,8 @@ export function TrainingUploadWithRecording() {
           Datei hochladen
         </button>
       </div>
+
+      {modelInjection.notice && <div className="notice info mb-md">{modelInjection.notice}</div>}
 
       {suggestedLabel && (
         <div className="notice info mb-md">
@@ -522,7 +595,13 @@ export function TrainingUploadWithRecording() {
               {state === 'error' ? 'Fehler' : state === 'uploading' ? 'Lädt…' : 'Bereit'}
             </div>
           </div>
-          <TrainingStatusBlock uploader={uploadState} message={message} onSyncQueued={handleSyncQueued} />
+          <TrainingStatusBlock
+            uploader={uploadState}
+            message={message}
+            onSyncQueued={handleSyncQueued}
+            onSyncBundle={handleSyncBundle}
+            onRemoveBundle={handleRemoveBundle}
+          />
         </div>
       )}
 

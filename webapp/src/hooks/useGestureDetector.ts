@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GestureRecognitionOrchestrator } from '../gesture/core/GestureRecognitionOrchestrator';
 import { installReactNativeBridge, WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
+import {
+  createHandLandmarkStabilizer,
+  normalizeHandednessLabels,
+  type HandLandmarkStabilizer,
+} from '../utils/landmarkUtils';
 
 export type GestureMessage = {
   type: string;
@@ -25,6 +30,9 @@ export type GestureHookResult = {
   status: GestureStatus;
   error: string | null;
   lastGesture: string | null;
+  lastLandmarks: number[][][];
+  lastHandedness: string[];
+  lastConfidence: number | null;
   messageLog: GestureMessage[];
 };
 
@@ -71,9 +79,15 @@ export function useGestureDetector(
   const [status, setStatus] = useState<GestureStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [lastGesture, setLastGesture] = useState<string | null>(null);
+  const [lastLandmarks, setLastLandmarks] = useState<number[][][]>([]);
+  const [lastHandedness, setLastHandedness] = useState<string[]>([]);
+  const [lastConfidence, setLastConfidence] = useState<number | null>(null);
   const [messageLog, setMessageLog] = useState<GestureMessage[]>([]);
   const orchestratorRef = useRef<GestureRecognitionOrchestrator | null>(null);
   const bridgeCleanupRef = useRef<(() => void) | null>(null);
+  const handStabilizerRef = useRef<HandLandmarkStabilizer>(
+    createHandLandmarkStabilizer({ ttlMs: 250, maxHands: 2 }),
+  );
 
   const orchestratorFactory = useMemo(
     () =>
@@ -93,14 +107,43 @@ export function useGestureDetector(
       setMessageLog((prev) => [parsed, ...prev].slice(0, 10));
 
       if (parsed.payload && typeof parsed.payload === 'object') {
-        const payload = parsed.payload as { gesture?: string; type?: string; messages?: Array<{ gesture?: string }>; confidence?: number };
+        const payload = parsed.payload as {
+          gesture?: string;
+          type?: string;
+          messages?: Array<{ gesture?: string; landmarks?: unknown; handednesses?: string[]; handedness?: string[] }>;
+          confidence?: number;
+          landmarks?: unknown;
+          handednesses?: string[];
+          handedness?: string[];
+        };
         if (payload.gesture) {
           setLastGesture(payload.gesture);
+          setLastConfidence(typeof payload.confidence === 'number' ? payload.confidence : null);
         } else if (Array.isArray(payload.messages)) {
           const gestureMessage = payload.messages.find((msg) => typeof msg?.gesture === 'string');
           if (gestureMessage?.gesture) {
             setLastGesture(gestureMessage.gesture);
           }
+        }
+
+        const landmarksCandidate = Array.isArray(payload.landmarks)
+          ? (payload.landmarks as number[][][])
+          : payload.messages?.find((msg) => Array.isArray(msg?.landmarks))?.landmarks;
+        if (landmarksCandidate && Array.isArray(landmarksCandidate)) {
+          const handednessCandidate = Array.isArray(payload.handednesses)
+            ? payload.handednesses
+            : Array.isArray(payload.handedness)
+            ? payload.handedness
+            : payload.messages?.find((msg) => Array.isArray(msg?.handednesses) || Array.isArray(msg?.handedness))
+                ?.handednesses ?? payload.messages?.find((msg) => Array.isArray(msg?.handedness))?.handedness ?? [];
+
+          const stabilizer = handStabilizerRef.current;
+          const normalizedHandedness = normalizeHandednessLabels(
+            Array.isArray(handednessCandidate) ? (handednessCandidate as string[]) : [],
+          );
+          const stabilized = stabilizer.update(landmarksCandidate as number[][][], normalizedHandedness);
+          setLastLandmarks(stabilized.landmarks);
+          setLastHandedness(stabilized.handedness);
         }
       }
     };
@@ -164,7 +207,12 @@ export function useGestureDetector(
       }
     } finally {
       orchestratorRef.current = null;
+      handStabilizerRef.current.reset();
       setStatus('idle');
+      setLastGesture(null);
+      setLastLandmarks([]);
+      setLastHandedness([]);
+      setLastConfidence(null);
     }
   }, []);
 
@@ -174,5 +222,16 @@ export function useGestureDetector(
     };
   }, [cleanup]);
 
-  return { start, stop, cleanup, status, error, lastGesture, messageLog };
+  return {
+    start,
+    stop,
+    cleanup,
+    status,
+    error,
+    lastGesture,
+    lastLandmarks,
+    lastHandedness,
+    lastConfidence,
+    messageLog,
+  };
 }
