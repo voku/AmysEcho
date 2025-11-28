@@ -12,7 +12,7 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SERVER_DIR="$REPO_ROOT/server"
-APP_DIR="$REPO_ROOT/app"
+WEBAPP_DIR="$REPO_ROOT/webapp"
 INTEGRATION_DIR="$REPO_ROOT/integration"
 
 # Colors for output
@@ -57,13 +57,13 @@ echo ""
 
 # Step 2: Install dependencies
 echo "Step 2: Installing dependencies..."
-print_info "Installing app dependencies..."
-cd "$APP_DIR"
+print_info "Installing webapp dependencies..."
+cd "$WEBAPP_DIR"
 npm ci --silent > /dev/null 2>&1 || {
-    print_error "Failed to install app dependencies"
+    print_error "Failed to install webapp dependencies"
     exit 1
 }
-print_success "App dependencies installed"
+print_success "Webapp dependencies installed"
 
 print_info "Installing server dependencies..."
 cd "$SERVER_DIR"
@@ -92,13 +92,13 @@ echo ""
 
 # Step 3: Type checking
 echo "Step 3: Type checking..."
-print_info "Checking app types..."
-cd "$APP_DIR"
+print_info "Checking webapp types..."
+cd "$WEBAPP_DIR"
 npm run type-check > /dev/null 2>&1 || {
-    print_error "App type check failed"
+    print_error "Webapp type check failed"
     exit 1
 }
-print_success "App types valid"
+print_success "Webapp types valid"
 
 print_info "Checking server types..."
 cd "$SERVER_DIR"
@@ -112,15 +112,15 @@ echo ""
 
 # Step 4: Run tests
 echo "Step 4: Running tests..."
-print_info "Running app tests (this may take a minute)..."
-cd "$APP_DIR"
-npm test > /tmp/app-test.log 2>&1 || {
-    print_error "App tests failed. Check /tmp/app-test.log"
-    tail -20 /tmp/app-test.log
+print_info "Running webapp tests (this may take a minute)..."
+cd "$WEBAPP_DIR"
+npm test > /tmp/webapp-test.log 2>&1 || {
+    print_error "Webapp tests failed. Check /tmp/webapp-test.log"
+    tail -20 /tmp/webapp-test.log
     exit 1
 }
-APP_TESTS=$(grep -o "Tests:.*passed" /tmp/app-test.log | head -1)
-print_success "App tests: $APP_TESTS"
+WEBAPP_TESTS=$(grep -o "Tests:.*passed" /tmp/webapp-test.log | head -1 || grep -o "[0-9]* passed" /tmp/webapp-test.log | head -1)
+print_success "Webapp tests: $WEBAPP_TESTS"
 
 print_info "Running server tests..."
 cd "$SERVER_DIR"
@@ -216,7 +216,7 @@ echo "========================================="
 echo ""
 print_success "Dependencies: All installed"
 print_success "Type Checking: Passed"
-print_success "App Tests: $APP_TESTS"
+print_success "Webapp Tests: $WEBAPP_TESTS"
 print_success "Server Tests: Passed"
 print_success "Training Pipeline: Working"
 print_success "Model Generation: Working"
@@ -225,12 +225,12 @@ echo ""
 echo -e "${GREEN}All checks passed! The gesture recognition system is working.${NC}"
 echo ""
 echo "Next steps:"
-echo "  1. Start server: cd server && npm start"
-echo "  2. Run mobile app: cd app && npm run android"
-echo "  3. Record training samples in the app"
+echo "  1. Start server: npm run build --prefix server && npm start --prefix server"
+echo "  2. Run webapp: npm run dev --prefix webapp"
+echo "  3. Record training samples in the webapp"
 echo "  4. Watch models improve over time!"
 echo ""
 echo "For more information, see:"
-echo "  - docs/CORE_GESTURE_RECOGNITION.md"
-echo "  - docs/QUICK_START_GESTURE_RECOGNITION.md"
+echo "  - docs/CodebaseOverview.md"
+echo "  - docs/BUILD_AND_TEST.md"
 echo ""

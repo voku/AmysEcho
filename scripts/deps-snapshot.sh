@@ -6,9 +6,9 @@ mkdir -p "$OUT_DIR"
 
 echo "Generating dependency snapshots..."
 
-# App (React Native)
-if [ -f app/package.json ]; then
-  npm ls --prefix app --all --json --silent --legacy-peer-deps > "$OUT_DIR/app-deps.json" || true
+# Webapp (React + Vite)
+if [ -f webapp/package.json ]; then
+  npm ls --prefix webapp --all --json --silent --legacy-peer-deps > "$OUT_DIR/webapp-deps.json" || true
 fi
 
 # Server (Node)
@@ -21,5 +21,5 @@ if [ -f integration/package.json ]; then
   npm ls --prefix integration --all --json --silent --legacy-peer-deps > "$OUT_DIR/integration-deps.json" || true
 fi
 
-echo "Dependency snapshots written to $OUT_DIR" 
+echo "Dependency snapshots written to $OUT_DIR"
 
