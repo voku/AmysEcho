@@ -8,6 +8,7 @@ import {
   removeQueuedBundle,
   readBundleData,
   subscribeToBundleUpdates,
+  type PersistedTrainingBundle,
 } from '../training/trainingQueue';
 import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleResponse } from '../training/types';
 import { normalizeTrainingJobStatus } from '../training/trainingBundle';
@@ -34,6 +35,7 @@ export function useTrainingUploader(
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [queuedCount, setQueuedCount] = useState(0);
+  const [queuedBundles, setQueuedBundles] = useState<PersistedTrainingBundle[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastQueuedKey, setLastQueuedKey] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export function useTrainingUploader(
     try {
       const bundles = await listQueuedBundles();
       setQueuedCount(bundles.length);
+      setQueuedBundles(bundles);
       queuedCountRef.current = bundles.length;
       return bundles;
     } catch (err) {
@@ -136,6 +139,49 @@ export function useTrainingUploader(
       return uploaded;
     },
     [refreshQueue, resolveOptions, retryConfig.base, retryConfig.max],
+  );
+
+  const syncBundle = useCallback(
+    async (key: string, options?: { endpoint?: string; token?: string; apiBase?: string }) => {
+      setSyncError(null);
+      const bundles = await refreshQueue();
+      const target = bundles.find((bundle) => bundle.key === key);
+      if (!target) {
+        setSyncError('Bundle wurde nicht gefunden.');
+        return false;
+      }
+
+      try {
+        await markBundleUploading(key);
+        const zipData = await readBundleData(key);
+        if (!zipData) {
+          await markBundleFailed(key, 'Gespeichertes Bundle ist beschädigt.');
+          setSyncError('Gespeichertes Bundle ist beschädigt.');
+          await refreshQueue();
+          return false;
+        }
+
+        await uploadTrainingZip(zipData, resolveOptions(options));
+        await removeQueuedBundle(key);
+        await refreshQueue();
+        return true;
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        await markBundleFailed(key, reason);
+        setSyncError(reason);
+        await refreshQueue();
+        return false;
+      }
+    },
+    [refreshQueue, resolveOptions],
+  );
+
+  const removeBundle = useCallback(
+    async (key: string) => {
+      await removeQueuedBundle(key);
+      await refreshQueue();
+    },
+    [refreshQueue],
   );
 
   useEffect(() => {
@@ -344,24 +390,30 @@ export function useTrainingUploader(
       lastResult,
       error,
       queuedCount,
+      queuedBundles,
       syncQueued,
+      syncBundle,
       syncing,
       syncError,
       lastQueuedKey,
       trainingJob,
       trainingJobError,
+      removeBundle,
     }),
     [
       error,
       lastQueuedKey,
       lastResult,
       queuedCount,
+      queuedBundles,
       state,
       syncError,
       syncQueued,
+      syncBundle,
       syncing,
       trainingJob,
       trainingJobError,
+      removeBundle,
       upload,
     ],
   );

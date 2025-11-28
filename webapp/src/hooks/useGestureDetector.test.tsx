@@ -63,6 +63,69 @@ describe('useGestureDetector', () => {
     await waitFor(() => {
       expect(result.current.messageLog.length).toBeGreaterThan(0);
       expect(result.current.lastGesture).toBe('WINKEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.92);
+    });
+  });
+
+  it('übernimmt Landmark-Previews aus Bridge-Meldungen', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useGestureDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(window.ReactNativeWebView?.postMessage).toBeTypeOf('function');
+    });
+
+    act(() => {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'landmarks',
+          landmarks: [[[0.1, 0.2, 0], [0.2, 0.3, 0]]],
+          handednesses: ['left'],
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastLandmarks.length).toBeGreaterThan(0);
+      expect(result.current.lastHandedness[0]).toBe('Left');
+    });
+  });
+
+  it('stabilisiert fehlende Handedness-Einträge mit Platzhaltern', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useGestureDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(window.ReactNativeWebView?.postMessage).toBeTypeOf('function');
+    });
+
+    act(() => {
+      window.ReactNativeWebView?.postMessage?.(
+        JSON.stringify({
+          type: 'landmarks',
+          landmarks: [[[0.4, 0.5, 0], [0.5, 0.6, 0]]],
+          handednesses: [],
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastLandmarks.length).toBe(1);
+      expect(result.current.lastHandedness[0]).toBe('Hand 1');
     });
   });
 });

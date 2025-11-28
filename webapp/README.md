@@ -25,7 +25,7 @@ Im UI kannst du den Wert jederzeit überschreiben; Upload- und Polling-Endpunkte
 
 ## Nutzung
 
-- Die Startseite **Gestenerkennung** rendert `useGestureDetector`, ruft den bekannten `GestureRecognitionOrchestrator` auf und protokolliert alle `postMessage`-Events der kopierten WebView-Logik.
+- Die Startseite **Gestenerkennung** rendert `useGestureDetector`, ruft den bekannten `GestureRecognitionOrchestrator` auf und protokolliert alle `postMessage`-Events der kopierten WebView-Logik. Landmarks werden wie in der Expo-App stabilisiert, Handedness-Fallbacks ergänzt und können als JSON heruntergeladen werden.
 - Ein Browser-Bridge (`window.ReactNativeWebView`) leitet alle Nachrichten als `CustomEvent` (`webapp:webview-message`) weiter; die UI zeigt letzte Gesten und Bridge-Payloads an.
 - Das Overlay kann ein- oder ausgeblendet werden; Statuschips zeigen „bereit“, „laufend“ oder Fehler an.
 - Ein globaler Profil- und Label-Schalter synchronisiert Gestenerkennung und Training. Erkannte Gesten werden als Vorschlag gespeichert und können direkt als neues Trainingslabel übernommen werden.
@@ -33,8 +33,9 @@ Im UI kannst du den Wert jederzeit überschreiben; Upload- und Polling-Endpunkte
 - Die Seite **Training / Upload** bietet zwei Modi:
   - **Geste aufnehmen**: Nimmt Gesten mit der Kamera in Echtzeit auf. Die Handbewegungen werden automatisch erkannt und als Frames mit Landmarks erfasst. Nach der Aufnahme wird ein Trainingspaket (`metadata.json`, `landmarks.json`, Standbild) erstellt und direkt hochgeladen.
   - **Datei hochladen**: Lädt ein vorbereitetes ZIP-Paket wie die App (`metadata.json`, `landmarks.json`, optional Clip/Standbild) hoch - ideal für Test-Bundles oder QA im Browser.
-  
+
   Beide Modi laden direkt gegen `VITE_API_URL/api/v1/dgs/sample-bundles` hoch.
+  Die Weboberfläche zeigt außerdem alle zwischengespeicherten Bundles an (inkl. Status, Versuche und Größe). Du kannst jedes Paket sofort erneut hochladen oder löschen, falls es veraltet ist.
 
 ## Kopierter Gesten-Code
 
@@ -48,7 +49,8 @@ Im UI kannst du den Wert jederzeit überschreiben; Upload- und Polling-Endpunkte
 - **Kamera**: nur nach Browser-Freigabe nutzbar; ohne Permission laufen die Pipelines im Leerlauf.
 - **Medien/Downloads**: Clip-Exporte erfolgen lediglich als Browser-Downloads, keine nativen Mediatheken.
 - **Offline/Native APIs**: keine Integration von SecureStore, Haptics-Modulen oder Kamerahardware-spezifischen Optimierungen.
-- **Training**: kein Offline-Queueing wie in der Expo-App; der Browser lädt unmittelbar gegen den konfigurierten API-Endpunkt.
+- **Training**: Offline-Queueing erfolgt im Browser über IndexedDB. Bundles behalten Profil, Label, Landmarken, Standbild und
+  optionalen Clip und können einzeln neu angestoßen werden.
 
 ## Tests
 
@@ -72,5 +74,7 @@ Die Webapp unterstützt jetzt die Aufnahme von Gesten in Echtzeit ähnlich wie d
 - **Direkter Upload**: Erstellt ZIP-Paket und lädt es unmittelbar nach der Aufnahme hoch
 - **Zwei Modi**: Wähle zwischen Live-Aufnahme oder Datei-Upload für maximale Flexibilität
 - **Job-Status**: Erkennt Server-Antworten mit `trainingJob` und pollt den Status automatisch; Fehler werden im UI angezeigt.
+- **Queue-Transparenz**: Zeigt alle gespeicherten Bundles mit Profil, Label, Status und Größe an. Einzelpakete können erneut synchronisiert oder entfernt werden.
+- **Automatisches Modell-Refresh**: Sobald der Trainingsjob abgeschlossen ist, lädt die Webapp das passende MLP-Modell erneut und informiert dich im UI.
 
 Diese Features ermöglichen es Amy, direkt im Browser neue Gesten zu trainieren ohne die native App zu benötigen.

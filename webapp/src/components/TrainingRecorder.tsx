@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
+import { HandLandmarkPreview } from './HandLandmarkPreview';
 import type { TrainingBundlePayload } from '../training/types';
 
 export interface TrainingRecorderProps {
@@ -45,6 +46,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     framesCaptured,
     clipLimitExceeded,
     maxClipBytes,
+    previewLandmarks,
+    previewHandedness,
   } = useTrainingRecorder(videoRef);
 
   // Update recording duration
@@ -119,6 +122,21 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     onRecordingComplete(payload);
     resetRecording();
   }, [metadataReady, recordedData, profileId, label, onRecordingComplete, resetRecording]);
+
+  const handleSaveLandmarkJson = useCallback(() => {
+    if (recordedData.frames.length === 0) {
+      return;
+    }
+    const blob = new Blob([JSON.stringify({ frames: recordedData.frames }, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'training-landmarks.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [recordedData.frames]);
 
   const handleDiscardRecording = useCallback(() => {
     resetRecording();
@@ -232,9 +250,18 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 <button className="ghost" onClick={handleDiscardRecording}>
                   Verwerfen
                 </button>
+                <button className="ghost" onClick={handleSaveLandmarkJson}>
+                  Landmarks speichern
+                </button>
               </>
             )}
           </div>
+
+          <HandLandmarkPreview
+            title="Live-Landmark-Vorschau"
+            landmarks={previewLandmarks}
+            handedness={previewHandedness}
+          />
 
           {recordedData.stillImage && hasRecording && (
             <div className="still-preview">

@@ -7,6 +7,8 @@ import { AppStateProvider } from '../hooks/useAppState';
 
 const uploadMock = vi.fn();
 const syncQueuedMock = vi.fn();
+const syncBundleMock = vi.fn();
+const removeBundleMock = vi.fn();
 
 vi.mock('../hooks/useTrainingUploader', () => ({
   useTrainingUploader: () => ({
@@ -15,7 +17,10 @@ vi.mock('../hooks/useTrainingUploader', () => ({
     lastResult: null,
     error: null,
     queuedCount: 0,
+    queuedBundles: [],
     syncQueued: syncQueuedMock,
+    syncBundle: syncBundleMock,
+    removeBundle: removeBundleMock,
     syncing: false,
     syncError: null,
     lastQueuedKey: null,
@@ -57,7 +62,10 @@ describe('TrainingUploadWithRecording', () => {
   beforeEach(() => {
     uploadMock.mockReset();
     syncQueuedMock.mockReset();
+    syncBundleMock.mockReset();
+    removeBundleMock.mockReset();
     uploadMock.mockResolvedValue({});
+    syncBundleMock.mockResolvedValue(true);
     window.localStorage.clear();
     window.sessionStorage.clear();
   });

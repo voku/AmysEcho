@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
+import { HandLandmarkPreview } from './HandLandmarkPreview';
 import { useAppState } from '../hooks/useAppState';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 
@@ -27,10 +28,18 @@ export function GestureDemo() {
     [],
   );
 
-  const { start, stop, cleanup, status, error, lastGesture, messageLog } = useGestureDetector(
-    videoRef,
-    overlayRef,
-  );
+  const {
+    start,
+    stop,
+    cleanup,
+    status,
+    error,
+    lastGesture,
+    lastLandmarks,
+    lastHandedness,
+    lastConfidence,
+    messageLog,
+  } = useGestureDetector(videoRef, overlayRef);
   const { profileId, preferredGestureLabel, recordGesture } = useAppState();
   const { notice: modelNotice } = useMlpModelInjection(profileId);
 
@@ -51,6 +60,21 @@ export function GestureDemo() {
   const handleReset = async () => {
     await cleanup();
   };
+
+  const handleSaveLandmarks = () => {
+    if (!lastLandmarks.length) return;
+    const blob = new Blob([JSON.stringify({ landmarks: lastLandmarks, handedness: lastHandedness }, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'landmarks.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const hasLandmarks = lastLandmarks.some((hand) => Array.isArray(hand) && hand.length > 0);
 
   return (
     <section className="card">
@@ -118,6 +142,17 @@ export function GestureDemo() {
               />
               <label htmlFor="overlay-toggle">Overlay anzeigen</label>
             </div>
+          </div>
+          <HandLandmarkPreview
+            title="Live-Landmarks"
+            landmarks={lastLandmarks}
+            handedness={lastHandedness}
+            confidence={lastConfidence}
+          />
+          <div className="controls">
+            <button className="ghost" onClick={handleSaveLandmarks} disabled={!hasLandmarks}>
+              Landmarks speichern
+            </button>
           </div>
           <div className="log">
             <p className="eyebrow">Live-Meldungen</p>
