@@ -119,7 +119,13 @@ npm test > /tmp/webapp-test.log 2>&1 || {
     tail -20 /tmp/webapp-test.log
     exit 1
 }
-WEBAPP_TESTS=$(grep -o "Tests:.*passed" /tmp/webapp-test.log | head -1 || grep -o "[0-9]* passed" /tmp/webapp-test.log | head -1)
+WEBAPP_TESTS=$(grep -o "Tests:.*passed" /tmp/webapp-test.log | head -1)
+if [ -z "$WEBAPP_TESTS" ]; then
+    WEBAPP_TESTS=$(grep -o "[0-9]* passed" /tmp/webapp-test.log | head -1)
+fi
+if [ -z "$WEBAPP_TESTS" ]; then
+    WEBAPP_TESTS="completed (see log for details)"
+fi
 print_success "Webapp tests: $WEBAPP_TESTS"
 
 print_info "Running server tests..."

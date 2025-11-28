@@ -33,6 +33,10 @@ unset npm_config_https_proxy
 
 install_node_modules() {
   local pkg_dir="$1"
+  if [ ! -d "$pkg_dir" ]; then
+    echo "Error: Directory $pkg_dir does not exist" >&2
+    return 1
+  fi
   if [ "${CI:-}" = "true" ]; then
     npm ci --prefix "$pkg_dir" --legacy-peer-deps || npm install --prefix "$pkg_dir" --legacy-peer-deps
   else
