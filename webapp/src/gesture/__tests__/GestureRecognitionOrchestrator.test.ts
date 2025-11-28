@@ -51,14 +51,17 @@ vi.mock('../core/CameraManager', () => {
   };
 });
 
-vi.mock('../core/OverlayRenderer', () => ({
-  __esModule: true,
-  OverlayRenderer: vi.fn().mockImplementation(() => ({
-    resizeOverlay: vi.fn(),
-    clear: vi.fn(),
-    drawHandLandmarks: vi.fn(),
-  })),
-}));
+vi.mock('../core/OverlayRenderer', () => {
+  class MockOverlayRenderer {
+    resizeOverlay = vi.fn();
+    clear = vi.fn();
+    drawHandLandmarks = vi.fn();
+  }
+  return {
+    __esModule: true,
+    OverlayRenderer: MockOverlayRenderer,
+  };
+});
 
 vi.mock('../utils/ResourceManager', () => {
   class MockResourceManager {
@@ -76,29 +79,35 @@ vi.mock('../utils/ResourceManager', () => {
   };
 });
 
-vi.mock('../utils/HealthMonitor', () => ({
-  __esModule: true,
-  HealthMonitor: vi.fn().mockImplementation(() => ({
-    recordFrame: vi.fn(),
-    recordError: vi.fn(),
-    needsRecovery: vi.fn().mockReturnValue(false),
-  })),
-}));
+vi.mock('../utils/HealthMonitor', () => {
+  class MockHealthMonitor {
+    recordFrame = vi.fn();
+    recordError = vi.fn();
+    needsRecovery = vi.fn().mockReturnValue(false);
+  }
+  return {
+    __esModule: true,
+    HealthMonitor: MockHealthMonitor,
+  };
+});
 
 const mockFallbackRecorderStart = vi.fn();
 const mockFallbackRecorderStop = vi.fn();
 const mockFallbackRecorderCancel = vi.fn();
 const mockFallbackGetMimeType = vi.fn(() => 'video/avi');
 
-vi.mock('../utils/FallbackClipRecorder', () => ({
-  __esModule: true,
-  FallbackClipRecorder: vi.fn().mockImplementation(() => ({
-    start: mockFallbackRecorderStart,
-    stop: mockFallbackRecorderStop,
-    cancel: mockFallbackRecorderCancel,
-    getMimeType: mockFallbackGetMimeType,
-  })),
-}));
+vi.mock('../utils/FallbackClipRecorder', () => {
+  class MockFallbackClipRecorder {
+    start = mockFallbackRecorderStart;
+    stop = mockFallbackRecorderStop;
+    cancel = mockFallbackRecorderCancel;
+    getMimeType = mockFallbackGetMimeType;
+  }
+  return {
+    __esModule: true,
+    FallbackClipRecorder: MockFallbackClipRecorder,
+  };
+});
 
 import { GestureRecognitionOrchestrator } from '../core/GestureRecognitionOrchestrator';
 import { ErrorRecoveryManager } from '../utils/ErrorRecoveryManager';
@@ -403,8 +412,8 @@ describe('GestureRecognitionOrchestrator', () => {
         frameCount: 9,
         capturedAt: new Date(0).toISOString(),
       });
-      mockVideo.videoWidth = 640;
-      mockVideo.videoHeight = 480;
+      Object.defineProperty(mockVideo, 'videoWidth', { value: 640, configurable: true, writable: true });
+      Object.defineProperty(mockVideo, 'videoHeight', { value: 480, configurable: true, writable: true });
     });
 
     afterEach(() => {
@@ -415,8 +424,8 @@ describe('GestureRecognitionOrchestrator', () => {
 
     it('rejects clip capture when video element is not ready', async () => {
       await fallbackOrchestrator.initialize();
-      mockVideo.videoWidth = 0;
-      mockVideo.videoHeight = 0;
+      Object.defineProperty(mockVideo, 'videoWidth', { value: 0, configurable: true, writable: true });
+      Object.defineProperty(mockVideo, 'videoHeight', { value: 0, configurable: true, writable: true });
 
       fallbackOrchestrator.startClipCapture('not-ready-clip');
 
