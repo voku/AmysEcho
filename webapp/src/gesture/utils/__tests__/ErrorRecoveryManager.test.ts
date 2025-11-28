@@ -43,7 +43,7 @@ describe('ErrorRecoveryManager', () => {
     });
 
     it('identifies MediaPipe errors', () => {
-      const error = new Error('MediaPipe WASM failed to load');
+      const error = new Error('WebGL context failed to initialize');
       const info = manager.getErrorInfo(error, 'gesture detection');
       expect(info.code).toBe('MEDIAPIPE_ERROR');
       expect(info.recoverable).toBe(true);
