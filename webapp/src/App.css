@@ -572,3 +572,123 @@ button.ghost {
     flex-direction: column;
   }
 }
+
+/* History styles */
+.history-list {
+  margin-top: 1rem;
+}
+
+.gesture-history {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.history-item .badge {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.history-item .timestamp {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* Correction Panel styles */
+.correction-section {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  border-radius: 8px;
+}
+
+.correction-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.correction-trigger p {
+  margin: 0;
+}
+
+.correction-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #fef08a;
+}
+
+.panel-header h3 {
+  margin: 0.5rem 0;
+}
+
+.gesture-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.gesture-option {
+  padding: 0.75rem;
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.gesture-option:hover:not(:disabled) {
+  border-color: #0ea5e9;
+  background: #f0f9ff;
+}
+
+.gesture-option.selected {
+  border-color: #0ea5e9;
+  background: #0ea5e9;
+  color: white;
+}
+
+.gesture-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.current-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  background: #64748b;
+  color: white;
+  border-radius: 4px;
+}
+
+button.small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.notice.success {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}

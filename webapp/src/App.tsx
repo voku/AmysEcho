@@ -1,6 +1,7 @@
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
 import { FeatureAvailability } from './components/FeatureAvailability';
 import { GestureDemo } from './components/GestureDemo';
+import { GestureHistory } from './components/GestureHistory';
 import { ProfileBar } from './components/ProfileBar';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { ApiConfigBar } from './components/ApiConfigBar';
@@ -23,11 +24,14 @@ function App() {
             <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
               Gestenerkennung
             </NavLink>
-            <NavLink to="/funktionen" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Grenzen & Alternativen
+            <NavLink to="/verlauf" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Verlauf
             </NavLink>
             <NavLink to="/training" className={({ isActive }) => (isActive ? 'active' : '')}>
               Training / Upload
+            </NavLink>
+            <NavLink to="/funktionen" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Grenzen & Alternativen
             </NavLink>
           </nav>
         </header>
@@ -37,6 +41,7 @@ function App() {
           <ProfileBar />
           <Routes>
             <Route path="/" element={<GestureDemo />} />
+            <Route path="/verlauf" element={<GestureHistory />} />
             <Route path="/funktionen" element={<FeatureAvailability />} />
             <Route path="/training" element={<TrainingUploadWithRecording />} />
           </Routes>
