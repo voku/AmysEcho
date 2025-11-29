@@ -51,11 +51,10 @@ export function useMlpModelInjection(profileId: string) {
     });
 
     if (!result) {
-      // MLP model is optional - gesture recognition works without it
-      // Only set warning status, not error, to allow the app to continue
+      // MLP model is optional - gesture recognition works without it using MediaPipe standard
+      // Don't show error to users, just log it and continue
       setStatus('idle');
-      setNotice(null); // Don't show confusing error - MLP is optional enhancement
-      console.info('[MLP] Kein MLP-Modell verfügbar – Gestenerkennung nutzt MediaPipe-Standard');
+      console.info('[MLP] Kein personalisiertes Modell verfügbar – MediaPipe-Standard wird verwendet');
       return null;
     }
 

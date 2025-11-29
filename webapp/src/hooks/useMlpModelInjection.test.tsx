@@ -51,7 +51,7 @@ describe('useMlpModelInjection', () => {
     expect(result.current.lastMeta?.source).toBe('profile');
   });
 
-  it('fällt bei Fehler auf Fehlerstatus zurück', async () => {
+  it('bleibt im idle-Status wenn kein Modell verfügbar ist (MLP ist optional)', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('nope', { status: 500 }));
     vi.stubGlobal('fetch', fetchMock as any);
     (window as any).__setMlpModelB64 = vi.fn().mockResolvedValue(true);
@@ -59,10 +59,12 @@ describe('useMlpModelInjection', () => {
     const { result } = renderHook(() => useMlpModelInjection('amy'), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.status).toBe('error');
+      // MLP model is optional - status should be 'idle' not 'error' when unavailable
+      expect(result.current.status).toBe('idle');
     });
 
-    expect(result.current.notice).toContain('Modell konnte nicht geladen werden');
+    // No error notice should be shown since MLP is optional
+    expect(result.current.notice).toBeNull();
   });
 
   it('installiert Runtime, wenn __setMlpModelB64 fehlt', async () => {
