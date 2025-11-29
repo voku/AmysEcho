@@ -63,6 +63,7 @@
   --shadow-sm: 0 2px 8px var(--shadow-color);
   --shadow-md: 0 4px 16px var(--shadow-color);
   --shadow-lg: 0 10px 40px var(--shadow-color);
+  --shadow-top-lg: 0 -4px 20px var(--shadow-color);
 
   /* Spacing (from app/src/constants/spacing.ts) */
   --space-xs: 4px;
@@ -71,6 +72,9 @@
   --space-lg: 16px;
   --space-xl: 24px;
   --space-2xl: 32px;
+
+  /* Layout */
+  --bottom-nav-height: 80px;
 
   /* Typography (from app/src/constants/typography.ts) */
   --font-size-micro: 12px;
@@ -3095,7 +3099,7 @@ p {
   background: linear-gradient(to top, var(--color-primary) 0%, var(--color-primary-bright) 100%);
   border-top-left-radius: var(--radius-nav);
   border-top-right-radius: var(--radius-nav);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-top-lg);
   z-index: 1000;
 }
 
@@ -3189,7 +3193,7 @@ p {
    ========================================================================== */
 
 .main-content {
-  padding-bottom: 100px; /* Space for bottom nav */
+  padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl));
 }
 
 .loading-shell {

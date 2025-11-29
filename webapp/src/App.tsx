@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AboutAmysEcho } from './components/AboutAmysEcho';
 import { Admin } from './components/Admin';
 import { CaregiverReport } from './components/CaregiverReport';
@@ -270,20 +270,27 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
 // Bottom Navigation - Amy Loop Style
 // ========================================
 function BottomNav() {
-  const location = useLocation();
-  const isActive = (path: string) => location.pathname === path;
-
   return (
     <nav className="bottom-nav">
-      <NavLink to="/" className={`bottom-nav-item ${isActive('/') ? 'active' : ''}`} end>
+      <NavLink
+        to="/"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        end
+      >
         <span className="nav-icon">🖐️</span>
         <span className="nav-label">Kamera</span>
       </NavLink>
-      <NavLink to="/verlauf" className={`bottom-nav-item ${isActive('/verlauf') ? 'active' : ''}`}>
+      <NavLink
+        to="/verlauf"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+      >
         <span className="nav-icon">🗂️</span>
         <span className="nav-label">Verlauf</span>
       </NavLink>
-      <NavLink to="/lernen" className={`bottom-nav-item ${isActive('/lernen') ? 'active' : ''}`}>
+      <NavLink
+        to="/lernen"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+      >
         <span className="nav-icon">🧠</span>
         <span className="nav-label">Lernen</span>
       </NavLink>
