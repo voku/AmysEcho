@@ -51,8 +51,10 @@ export function useMlpModelInjection(profileId: string) {
     });
 
     if (!result) {
-      setStatus('error');
-      setNotice('Modell konnte nicht geladen werden. Bitte prüfe die API-URL.');
+      // MLP-Modell ist optional - Gestenerkennung funktioniert mit MediaPipe-Standard
+      // Kein Fehler anzeigen, nur protokollieren und weitermachen
+      setStatus('idle');
+      console.info('[MLP] Kein personalisiertes Modell verfügbar – MediaPipe-Standard wird verwendet');
       return null;
     }
 
