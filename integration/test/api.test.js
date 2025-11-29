@@ -189,7 +189,7 @@ test('POST /train-model processes samples and returns model', async () => {
   process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
   let fetchMlpModel = null;
   try {
-    ({ fetchMlpModel } = await import('../../app/src/services/dgsModelClient.ts'));
+    ({ fetchMlpModel } = await import('../../webapp/src/gesture/modelClient.ts'));
   } catch {}
   if (fetchMlpModel) {
     let b64 = null;
@@ -197,7 +197,7 @@ test('POST /train-model processes samples and returns model', async () => {
       b64 = await fetchMlpModel('p1');
     } catch {}
     if (!(typeof b64 === 'string' && b64.length > 0)) {
-      console.log('Skipping app MLP b64 length check - model not available');
+      console.log('Skipping webapp MLP b64 length check - model not available');
       return;
     }
     assert.ok(Buffer.from(b64, 'base64').length > 0);
@@ -266,17 +266,17 @@ test('GET /latest-mlp-model serves file and client caches it', async () => {
     process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
     let b64 = null;
     try {
-      const { fetchMlpModel, getCachedMlpModel } = await import('../../app/src/services/dgsModelClient.ts');
+      const { fetchMlpModel, getCachedMlpModel } = await import('../../webapp/src/gesture/modelClient.ts');
       b64 = await fetchMlpModel('p1').catch(() => null);
       if (!(typeof b64 === 'string' && b64.length > 0)) {
-        console.log('Skipping app MLP fetch check - model not available');
+        console.log('Skipping webapp MLP fetch check - model not available');
         return;
       }
       const cached = await getCachedMlpModel('p1');
       assert.strictEqual(cached, b64);
       assert.strictEqual(Buffer.from(b64, 'base64').toString('base64'), canonicalBase64);
     } catch (e) {
-      console.warn('Could not import from app, using fallback test logic. Error:', e);
+      console.warn('Could not import from webapp, using fallback test logic. Error:', e);
       assert.ok(canonicalBase64.length > 0);
     }
   } finally {

@@ -4,45 +4,38 @@ This document summarizes the repository in key areas with concrete file referenc
 
 **Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
 
-## 1. Mobile App Structure
-- React Native code lives in `app/`
-- Navigation and screens are in `app/src/screens/`
-- Services and hooks are in `app/src/services/` and `app/src/hooks/`
-- Global state management is handled by React Contexts in `app/src/context/`
-- Brand theming is centralised in `app/src/constants/colors.ts`, `typography.ts` and `themes.ts`; the default `amyEcho` theme powers die Kamera → Verlauf → Lernen-Schleife (die einzigen Tabs in der App: `Kamera`, `Verlauf`, `Lernen`).
-- Workflow metadata for the Kamera → Verlauf → Lernen-Schleife now lives in `app/src/constants/workflow.ts`, providing navigation labels, hints, and icon choices alongside the caregiver/support destinations consumed by `WorkflowSupportLinks` und den Textbausteinen für `WorkflowStageHeader`.
-- Die Kameraschleife selbst wird in `app/src/screens/RecognitionScreen.tsx` inzwischen als reduziertes Overlay dargestellt: Statuschip + Kamera-Rahmen + drei Handlungsbuttons („Stimmt“, „Lernen“, „Alternativen“). Im Erfolgsfall blendet ein `Selbstentdeckung`-Ribbon den narrativen Moment ein, während die detaillierte Timeline für erklärende Flächen wie Hero und Onboarding reserviert bleibt.
-- `app/src/screens/HistoryScreen.tsx` erweitert den Verlauf um eine "Selbstentdeckung gesichert"-Highlight-Karte, die den zuletzt sicher erkannten Moment feiert und direkte Aktionen zurück zur Kamera oder in den Lernmodus anbietet. Karten im Verlauf nutzen das gleiche Vokabular („Selbstentdeckung bestätigt“, „Noch unsicher“, „Bitte prüfen“) und erzählen zu jedem Eintrag eine kurze Folgehandlung.
+## 1. Web Application Structure
+- The webapp code lives in `webapp/`
+- React components are in `webapp/src/components/`
+- Hooks are in `webapp/src/hooks/`
+- Gesture recognition code is in `webapp/src/gesture/`
+- Training queue and upload logic is in `webapp/src/training/`
 
 ## 2. Gesture Recognition Pipeline
-- `app/src/components/MediaPipeGestureDetector.tsx` renders a WebView that extracts hand landmarks and classifies gestures on-device using MediaPipe Tasks JS loaded from a CDN.
-- `app/webview/gestureDetector.ts` compiles to `app/assets/gestureDetector.js`; a Jest test (`app/test/gestureDetectorBuild.test.ts`) keeps the bundle synced with its TypeScript source.
-- `app/src/screens/RecognitionScreen.tsx` hosts the detector, consumes cached MLP weights, and logs outcomes.
-- (removed) Centroid-based fallback classification has been retired in favor of MLP-only recognition.
-- The pipeline is enhanced with contextual awareness (`app/src/services/contextAwareRecognitionService.ts`) and predictive gestures (`app/src/services/gestureSuggester.ts`).
+- `webapp/src/gesture/` contains the gesture detection and classification code
+- MediaPipe hand tracking is loaded from CDN and runs in the browser
+- The MLP classifier uses cached weights fetched from the server
+- Gesture detection is orchestrated by `GestureRecognitionOrchestrator.ts`
+- Landmark stabilization and handedness normalization ensure consistent results
 
 ## 3. Training and Personalization
-- Sample collection UI in `app/src/screens/TrainingScreen.tsx`
-- Model downloads and refresh actions live in `app/src/screens/AdminScreen.tsx`
-- `app/src/services/trainingSync.ts` uploads samples and polls `/train-status` for progress
+- Sample collection UI in `webapp/src/components/TrainingUpload.tsx`
+- Training bundle queue in `webapp/src/training/trainingQueue.ts`
+- Upload logic in `webapp/src/training/uploadTrainingBundle.ts`
 - Server maintains personalized MLP bundles in `server/src/server.ts`, persisting data under `server/data/models/`
 
-## 4. Validation & Model Integration
-- The MediaPipe WebView emits landmarks and the app feeds them directly to the on-device MLP (see `app/src/screens/RecognitionScreen.tsx`).
-- Model downloads, caching, and hot reloading are handled by `app/src/services/dgsModelClient.ts` in concert with `useModelInjection`.
-- The server only exposes `/latest-mlp-model` and training endpoints; the former `/api/gesture/validate-vision` route has been retired now that we rely solely on our own classifier.
+## 4. Model Integration
+- Model downloads are handled by `webapp/src/gesture/modelClient.ts`
+- The `useMlpModelInjection` hook manages model loading and hot reloading
+- Personalized models are requested first, falling back to the global model
 
-## 5. Adaptive Learning & Corrections
-- Corrections stored via `app/db/models.ts` and synced in `app/src/services/syncService.ts`
-- Adaptive logic in `server/src/services/adaptiveLearningService.ts`
-- The app features automated content generation and smart practice sessions (integrated in `app/src/services/adaptiveLearningService.ts`).
+## 5. Server Architecture
+- Node/Express server in `server/src/`
+- Training endpoints: `/api/v1/dgs/sample-bundles` for uploads, `/train-model` for training
+- Model serving: `/latest-mlp-model` with optional `?profileId=` for personalized models
+- Python training scripts in `server/src/amyserver_tools/`
 
-## 6. Custom Audio Recording
-- Recording logic in `app/src/services/audioService.ts`
-- Audio files moved in `app/src/screens/AdminScreen.tsx`
-- Recordings persist in `app/src/constants/audioPaths.ts` for offline playback
-
-## 7. Performance Budget
+## 6. Performance Budget
 
 The performance budget for the gesture recognition pipeline is as follows:
 
@@ -50,11 +43,12 @@ The performance budget for the gesture recognition pipeline is as follows:
 - **Landmark Extraction:** < 30ms
 - **Gesture Classification (local):** < 20ms
 
-These are target values and should be validated on real devices.
+These are target values and should be validated in real browser environments.
 
-## 8. Data Privacy & Profile Management
+## 7. Data Privacy & Profile Management
 - `GET /api/profiles/:id/export` returns a profile's stored data as JSON
 - `DELETE /api/profiles/:id` removes a profile and associated usage/correction records to honor caregiver deletion requests
 
-## 9. Logging
-- Unified logging is handled by `app/src/utils/logger.ts`, providing consistent formatting and log-level control across the app. Direct `console.*` calls are avoided.
+## 8. Integration Tests
+- Integration tests in `integration/` verify the full training loop
+- Tests cover upload, training, and model distribution

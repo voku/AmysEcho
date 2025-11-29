@@ -3,52 +3,36 @@
 ## Open Follow-ups
 - [ ] Provide the production-ready baseline `data/amy_model.npz` bundle and copy it into `server/data/models/global/amy_model.npz` during deploys. The server now automatically generates a neutral zero-weight model when this file is absent. Development builds therefore continue to work, but production accuracy still depends on the real artifact. Coordinate with the MLP training pipeline owners to fetch the latest artifact and record its SHA256 checksum in this document once available so future contributors can verify integrity before placing it in the repository.
 
-We have MediaPipe capture working in the app and a Python MLP trainer on the server. The next sprint turns that flow into a repeatable loop so new caregiver recordings refresh the model (globally and per profile) without manual JSON hacks.
+We have MediaPipe capture working in the webapp and a Python MLP trainer on the server. The next sprint turns that flow into a repeatable loop so new caregiver recordings refresh the model (globally and per profile) without manual JSON hacks.
 
-## 1. Capture Rich Samples in the App (`app/`)
-- [x] Upgrade `app/src/components/MediaPipeGestureDetector.tsx`'s WebView bundle (`app/webview/gestureDetector.ts`) to stream a rolling buffer of JPEG frames alongside the existing landmark payload. Include a sample `postMessage` body in code comments:
-  ```json
-  {
-    "type": "FRAME_BATCH",
-    "landmarks": [...],
-    "frames": ["data:image/jpeg;base64,..."]
-  }
-  ```
-- [x] Extend `app/src/screens/TrainingScreen.tsx` to record both the landmark timeline and a short video clip while `isRecording` is true. Reuse `createTrainingSample` helpers so every saved item contains `{ profileId, label, landmarks, clipUri }`.
-- [x] Persist the richer sample shape in `saveTrainingSample` (`app/src/storage.ts`). Rewrite all callers (e.g. `app/src/services/trainingSync.ts`) to expect the new structure so there is no legacy shape left behind.
+## 1. Capture Rich Samples in the Webapp (`webapp/`)
+- [x] Upgrade the gesture detector (`webapp/src/gesture/`) to stream a rolling buffer of frames alongside the existing landmark payload.
+- [x] Extend the Training page to record both the landmark timeline and captured frames while recording is active.
+- [x] Persist the sample shape in the training queue (`webapp/src/training/trainingQueue.ts`). Use IndexedDB via OPFS for offline support.
 
-## 2. Package & Queue Upload Bundles (`app/src/services`)
-- [x] Replace `sendDgsSample` with `uploadTrainingBundle` that zips `{metadata.json, landmarks.json, clip.mp4}` using `expo-file-system`. Provide an inline example of the metadata file:
-  ```json
-  {
-    "profileId": "123",
-    "label": "HILFE",
-    "capturedAt": "2024-05-28T12:03:11Z",
-    "source": "app://mediapipe"
-  }
-  ```
-- [x] Store pending bundles per profile in AsyncStorage (keys `trainingBundles:<profileId>:[timestamp]`). Flush them through `app/src/services/trainingSync.ts` as soon as Wi-Fi is available (charging is no longer required so uploads don't get stuck while the phone is asleep) using the existing `scheduleSync` pattern.
-- [x] Add unit coverage in `app/test/services/trainingSync.test.ts` that mocks the queue and asserts the zip payload matches the example above.
+## 2. Package & Queue Upload Bundles (`webapp/src/training`)
+- [x] Create `uploadTrainingBundle` that builds a zip with `{metadata.json, landmarks.json, still.jpg}`.
+- [x] Store pending bundles in IndexedDB. Flush them through the training uploader hook as soon as connectivity is available.
+- [x] Add unit coverage that mocks the queue and asserts the zip payload structure.
 
 ## 3. Ingest Bundles on the Server (`server/`)
-- [x] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/`, reject bundles missing `landmarks.json` (or without frames) with HTTP 400 after cleaning up, and register successful uploads in `data/datasets/training_manifest.json` (including the validation summary stored in `manifestEntry.metadata`).
-- [x] (Archiviert) Das frühere Pflegeportal wurde entfernt; Bundles werden direkt über die Dateien unter `data/uploads/` geprüft.
+- [x] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/`, reject bundles missing `landmarks.json` with HTTP 400 after cleaning up, and register successful uploads in `data/datasets/training_manifest.json`.
 - [x] Write integration tests in `server/test/trainingBundles.test.ts` that POST a fixture zip and assert the manifest entry.
 
 ## 4. Retrain the Model with Bundle Data (`server/src/amyserver_tools`)
 - [x] Extend `train_mlp.py` to load from `training_manifest.json`, extracting landmarks either from `landmarks.json` or by running MediaPipe on the stored clip. Cache extracted landmarks back to `data/uploads/.../landmarks_cached.json`.
-- [x] Produce both global (`data/models/global/amy_model.npz`) and per-profile weights (`data/models/<profileId>/amy_model.npz`). Document the function that filters by `profileId` inside `train_mlp.py` with a docstring example.
-- [x] Emit a structured training report (JSON) that `/train-model` returns so the app can display "Dein Modell ist jetzt aktualisiert" once the job finishes.
+- [x] Produce both global (`data/models/global/amy_model.npz`) and per-profile weights (`data/models/<profileId>/amy_model.npz`).
+- [x] Emit a structured training report (JSON) that `/train-model` returns.
 
-## 5. Distribute Updated Models Back to the App
+## 5. Distribute Updated Models Back to the Webapp
 - [x] Expand `server/src/server.ts`'s `/latest-mlp-model` handler to accept `?profileId=` and serve personalized bundles when available; fall back to the global model otherwise.
-- [x] Update `app/src/services/dgsModelClient.ts` and the `useModelInjection` hook to request the personalized model first. Log which model version loads (for debugging) using `app/src/utils/logger.ts`.
-- [x] Notify caregivers inside `app/src/screens/RecognitionScreen.tsx` when a newer version is injected. Use German copy that thanks them for contributing new gestures.
+- [x] Update the webapp model client (`webapp/src/gesture/modelClient.ts`) to request the personalized model first.
+- [x] Notify users when a newer model version is loaded.
 
 ## 6. Verify & Document the Loop
 - [x] Add end-to-end tests: one in `integration/` that records a fake gesture, uploads it, triggers `/train-model`, downloads the new weights, and asserts the model file checksum changes.
-- [x] Document the flow in `docs/` with a sequence diagram (capture → bundle → moderation → training → distribution). Link directly to the implementation files listed above so new contributors have concrete starting points.
-- [x] Create a manual QA checklist covering "record gesture", "Bundle-Dateien vorhanden", "training job succeeds", "personalized model downloaded".
+- [x] Document the flow in `docs/` with a sequence diagram (capture → bundle → training → distribution).
+- [x] Create a manual QA checklist covering "record gesture", "bundle files present", "training job succeeds", "personalized model downloaded".
 
 ---
-**Immediate Task for the Coding Agent:** ✅ Spike `uploadTrainingBundle` end-to-end by zipping an existing landmark sample, POSTing it to a stubbed `/api/v1/dgs/sample-bundles`, and asserting the manifest entry is created.
+**Status:** Core training loop implemented. Focus is now on optimization and production readiness.

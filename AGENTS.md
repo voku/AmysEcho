@@ -2,7 +2,7 @@
 
 Amy's Echo is a multimodal communication platform for non-verbal children. This guide defines how to work in this repository. Favor real implementations over mocks and do not skip tests.
 
-For guidelines specific to the application or server, see the `AGENTS.md` files within the `app/` and `server/` directories. Paths in this document are relative to the repository root unless noted otherwise.
+For guidelines specific to the server, see the `AGENTS.md` file within the `server/` directory. Paths in this document are relative to the repository root unless noted otherwise.
 
 ### Additional Resources
 - **Development Workflow**: See `docs/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
@@ -72,7 +72,7 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
 1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
 2. **Explore codebase**: understand the current state and patterns.
 3. **Understand existing code**: look at similar files and tests to follow established patterns.
-   - App: `app/src/components/*`, hooks in `app/src/hooks/`, tests in `app/test/*`.
+   - Webapp: `webapp/src/components/*`, hooks in `webapp/src/hooks/`, tests alongside source files.
    - Server: services in `server/src/services/*`, tools in `server/src/tools/*`, tests in `server/test/*`.
 4. **Plan thoroughly** before implementing - explain your approach and get feedback if possible.
 5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
@@ -81,23 +81,20 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
 
 ## Testing Rules
 
-- The WebView gesture detector bundle (`app/assets/gestureDetector.js`) is generated from `app/webview/gestureDetector.ts`. If the source changes, run `npm run build:webview --prefix app` so `app/test/gestureDetectorBuild.test.ts` stays green.
 - Never skip or comment out existing tests. Update them when behavior changes.
 - Use mocks sparingly; only mock network or other system boundaries.
 - Write tests for new functionality before or alongside implementation.
 - Ensure all tests pass before considering work complete.
-- Review the generated Jest coverage report to spot untested paths.
+- Review the generated test coverage report to spot untested paths.
 
 ## Commands to Run from Repository Root
 
 ```bash
-npm ci --prefix app
-npm run type-check --prefix app
-npm test --prefix app   # produces coverage report
-(cd app && npx expo install --check)
-(cd app && npx expo export:embed --eager --platform android --dev false) >/tmp/expo-export.log && tail -n 20 /tmp/expo-export.log
-# Optional: `expo-doctor` can fail when offline; run when networked
-(cd app && npx --yes expo-doctor || echo "expo-doctor skipped/failed (non-blocking)")
+npm ci --prefix webapp
+npm run type-check --prefix webapp
+npm run lint --prefix webapp
+npm test --prefix webapp
+npm run build --prefix webapp
 npm ci --prefix server
 npm run type-check --prefix server
 pip install -r server/requirements.txt
@@ -110,10 +107,10 @@ npm test --prefix integration
 
 | Component                                | Path                   |
 | ---------------------------------------- | ---------------------- |
-| React Native app                         | `app/`                 |
-| App screens                              | `app/src/screens/`     |
-| App components                           | `app/src/components/`  |
-| App tests                                | `app/test/`            |
+| Web application                          | `webapp/`              |
+| Webapp components                        | `webapp/src/components/`|
+| Webapp hooks                             | `webapp/src/hooks/`    |
+| Webapp gesture code                      | `webapp/src/gesture/`  |
 | Server services                          | `server/src/services/` |
 | Server TypeScript tools                  | `server/src/tools/`    |
 | Server Python tools                      | `server/src/amyserver_tools/` |

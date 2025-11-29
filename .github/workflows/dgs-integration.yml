@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'app/webview/**'
+      - 'webapp/src/gesture/**'
       - 'server/src/**'
       - 'scripts/**'
       - 'integration/**'
@@ -12,7 +12,7 @@ on:
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'app/webview/**'
+      - 'webapp/src/gesture/**'
       - 'server/src/**'
       - 'scripts/**'
       - 'integration/**'
@@ -47,7 +47,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
         cache-dependency-path: |
-          app/package-lock.json
+          webapp/package-lock.json
           server/package-lock.json
           integration/package-lock.json
 
@@ -72,7 +72,7 @@ jobs:
 
     - name: Install Node.js dependencies
       run: |
-        npm ci --prefix app
+        npm ci --prefix webapp
         npm ci --prefix server
         npm ci --prefix integration
 
@@ -85,16 +85,13 @@ jobs:
 
     - name: Run type checking
       run: |
-        npm run type-check --prefix app
+        npm run type-check --prefix webapp
         npm run type-check --prefix server
 
     - name: Run linting
       run: |
-        npm run lint --prefix app || true
+        npm run lint --prefix webapp || true
         npm run lint --prefix server || true
-
-    - name: Build WebView bundle
-      run: npm run build:webview --prefix app
 
     - name: Run DGS integration tests
       run: |
@@ -141,7 +138,7 @@ jobs:
 
     - name: Run security audit
       run: |
-        npm audit --audit-level moderate --prefix app
+        npm audit --audit-level moderate --prefix webapp
         npm audit --audit-level moderate --prefix server
       continue-on-error: true
 
@@ -164,7 +161,7 @@ jobs:
         node-version: 18
         cache: 'npm'
         cache-dependency-path: |
-          app/package-lock.json
+          webapp/package-lock.json
           server/package-lock.json
           integration/package-lock.json
 
@@ -192,18 +189,18 @@ jobs:
         node-version: 18
         cache: 'npm'
         cache-dependency-path: |
-          app/package-lock.json
+          webapp/package-lock.json
           server/package-lock.json
           integration/package-lock.json
 
     - name: Install dependencies
       run: |
-        npm ci --prefix app
+        npm ci --prefix webapp
         npm ci --prefix server
 
     - name: Build for preview
       run: |
-        npm run build:webview --prefix app
+        npm run build --prefix webapp
         npm run build --prefix server
 
     - name: Deploy to preview environment

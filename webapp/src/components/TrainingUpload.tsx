@@ -155,9 +155,9 @@ function TrainingStatusBlock({
         <p className="eyebrow">Zwischengespeicherte Bundles</p>
         <TrainingQueueList
           bundles={uploader.queuedBundles}
-          onSyncBundle={onSyncBundle}
-          onRemoveBundle={onRemoveBundle}
           syncing={syncing}
+          {...(onSyncBundle !== undefined && { onSyncBundle })}
+          {...(onRemoveBundle !== undefined && { onRemoveBundle })}
         />
       </div>
       {actionSlot}
@@ -459,7 +459,7 @@ export function TrainingUploadWithRecording() {
         console.warn('Modell konnte nach Training nicht geladen werden', error);
       });
     }
-  }, [modelInjection.refreshModel, setMessage, uploadState.lastResult, uploadState.trainingJob]);
+  }, [modelInjection, setMessage, uploadState.lastResult, uploadState.trainingJob]);
 
   const handleLabelUpdate = useCallback(
     (value: string) => {

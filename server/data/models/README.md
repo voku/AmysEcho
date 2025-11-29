@@ -105,6 +105,6 @@ For production deployments:
 
 2. **Option B**: Generate on first run
    - Server auto-generates zero model when missing
-   - Uses labels from `app/assets/config/defaultBaselineLabels.json`
+   - Uses labels from `server/data/config/defaultBaselineLabels.json`
 
 The baseline model improves over time as users contribute training data globally.

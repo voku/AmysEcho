@@ -32,6 +32,7 @@ data/amy_model.npz
 app/coverage/
 coverage/
 server/coverage/
+webapp/coverage/
 
 .gemini/
 gha-creds-*.json

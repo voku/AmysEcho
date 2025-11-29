@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
 import { HandLandmarkPreview } from './HandLandmarkPreview';
+import { CorrectionPanel } from './CorrectionPanel';
 import { useAppState } from '../hooks/useAppState';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 
@@ -24,6 +25,7 @@ export function GestureDemo() {
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [mirrorPreview, setMirrorPreview] = useState(false);
+  const [showCorrection, setShowCorrection] = useState(false);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -73,6 +75,11 @@ export function GestureDemo() {
     link.download = 'landmarks.json';
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleCorrection = (originalGesture: string, correctedGesture: string) => {
+    console.log(`Korrektur: ${originalGesture} → ${correctedGesture}`);
+    setShowCorrection(false);
   };
 
   const hasLandmarks = lastLandmarks.some((hand) => Array.isArray(hand) && hand.length > 0);
@@ -160,6 +167,28 @@ export function GestureDemo() {
             confidence={lastConfidence}
             mirror={mirrorPreview}
           />
+
+          {/* Correction Panel */}
+          {lastGesture && (
+            <div className="correction-section">
+              <div className="correction-trigger">
+                <p className="muted">
+                  Erkannt: <strong>{lastGesture}</strong>
+                  {lastConfidence != null && ` (${Math.round(lastConfidence * 100)}%)`}
+                </p>
+                <button className="ghost small" onClick={() => setShowCorrection(!showCorrection)}>
+                  {showCorrection ? 'Korrektur ausblenden' : 'War das falsch? Korrigieren'}
+                </button>
+              </div>
+              {showCorrection && (
+                <CorrectionPanel 
+                  recognizedGesture={lastGesture} 
+                  onCorrection={handleCorrection}
+                />
+              )}
+            </div>
+          )}
+
           <div className="controls">
             <button className="ghost" onClick={handleSaveLandmarks} disabled={!hasLandmarks}>
               Landmarks speichern
