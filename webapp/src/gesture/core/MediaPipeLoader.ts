@@ -147,6 +147,17 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
     wasm: 'https://unpkg.com/@mediapipe/tasks-vision/wasm',
   });
 
+  // Local bundle fallback for offline/blocked scenarios
+  // The local bundle is loaded via dynamic import for better Vite compatibility
+  const localBundlePath = new URL('../vision_bundle.js', import.meta.url).href;
+  const localWasmBase = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm'; // WASM still needs CDN
+  candidates.push({
+    umd: localBundlePath,
+    esm: localBundlePath,
+    wasm: localWasmBase,
+    isLocal: true,
+  });
+
   let lastError: unknown = null;
   let attemptCount = 0;
 
