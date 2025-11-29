@@ -20,3 +20,17 @@ export type { ExportedProfileData } from './gdprService';
 export { announceGestureRecognition, announceAccessibilityMessage, createGestureAccessibilityLabel, prefersReducedMotion, prefersHighContrast } from './accessibilityService';
 
 export { logger } from './logger';
+
+export { adaptiveLearningService } from './adaptiveLearningService';
+export type { 
+  PerformanceMetrics, 
+  LearningPath, 
+  AdaptiveRecommendation, 
+  PracticeSession, 
+  LearningProgressSummary 
+} from './adaptiveLearningService';
+
+export { gestureMeaningService } from './gestureMeaningService';
+export { customGestureRegistry } from './customGestureRegistry';
+export { zeroDowntimeModelService } from './zeroDowntimeModelService';
+export { apiRetryManager } from './apiRetryManager';
