@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amy's Echo - Weiterleitung</title>
+  <script>
+    // GitHub Pages SPA redirect script
+    // Converts 404 requests to the main index.html with path preserved
+    const pathSegmentsToKeep = 1; // Keep /AmysEcho/ base path
+    const location = window.location;
+    const l = location;
+    
+    // Build the redirect URL preserving the path
+    const redirectUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash;
+    
+    location.replace(redirectUrl);
+  </script>
+</head>
+<body>
+  <noscript>
+    <h1>Amy's Echo</h1>
+    <p>Diese Seite benötigt JavaScript für die Navigation.</p>
+    <a href="/AmysEcho/">Zur Startseite</a>
+  </noscript>
+</body>
+</html>
