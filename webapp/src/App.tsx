@@ -1,4 +1,5 @@
-import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, NavLink, Route, Routes, Navigate } from 'react-router-dom';
 import { AboutAmysEcho } from './components/AboutAmysEcho';
 import { Admin } from './components/Admin';
 import { CaregiverReport } from './components/CaregiverReport';
@@ -24,7 +25,71 @@ import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { ApiConfigBar } from './components/ApiConfigBar';
 import './App.css';
 
+const ONBOARDING_KEY = 'webapp:onboarding-complete';
+
+function useOnboardingStatus() {
+  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem(ONBOARDING_KEY);
+      setIsOnboarded(stored === 'true');
+    }
+  }, []);
+
+  const completeOnboarding = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ONBOARDING_KEY, 'true');
+    }
+    setIsOnboarded(true);
+  };
+
+  return { isOnboarded, completeOnboarding };
+}
+
 function App() {
+  const { isOnboarded, completeOnboarding } = useOnboardingStatus();
+
+  // Warte auf Initialisierung
+  if (isOnboarded === null) {
+    return (
+      <div className="app-shell">
+        <div className="loading-screen">
+          <p>Lädt…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Zeige Onboarding, wenn noch nicht abgeschlossen
+  if (!isOnboarded) {
+    return (
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <div className="app-shell onboarding-mode">
+          <header className="app-header">
+            <div>
+              <p className="eyebrow">Amy&apos;s Echo</p>
+              <h1>Gestenerkennung für Amy</h1>
+              <p className="muted">
+                Amy zuerst – immer. Jede Geste ist eine Stimme. Jede Stimme zählt.
+              </p>
+            </div>
+          </header>
+
+          <main className="content onboarding-content">
+            <Routes>
+              <Route path="*" element={<Onboarding onComplete={completeOnboarding} />} />
+            </Routes>
+          </main>
+
+          <footer className="muted footer">
+            ❤️ Für Amy – Jede Geste ist eine Stimme.
+          </footer>
+        </div>
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <div className="app-shell">
@@ -85,7 +150,7 @@ function App() {
             <Route path="/einstellungen" element={<Settings />} />
             <Route path="/hilfe" element={<Help />} />
             <Route path="/tutorial" element={<GestureTutorial />} />
-            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/onboarding" element={<Navigate to="/" replace />} />
             <Route path="/ueber" element={<AboutAmysEcho />} />
             <Route path="/eltern" element={<ParentArea />} />
             <Route path="/elterntor" element={<ParentalGate />} />

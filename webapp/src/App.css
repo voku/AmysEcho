@@ -2783,3 +2783,32 @@ p {
 .teach-info li, .teach-tips li {
   margin-bottom: 0.5rem;
 }
+
+/* ==========================================================================
+   Onboarding Mode Styles
+   ========================================================================== */
+
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  font-size: var(--font-size-title-sm);
+  color: var(--color-text-muted);
+}
+
+.onboarding-mode .app-header {
+  text-align: center;
+}
+
+.onboarding-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.onboarding-mode .nav {
+  display: none;
+}
+
