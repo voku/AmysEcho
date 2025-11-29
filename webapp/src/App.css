@@ -528,7 +528,6 @@ p {
   background: var(--color-neutral);
   /* Mirror the video horizontally to act as a selfie view for user-facing camera */
   transform: scaleX(-1);
-  transform-origin: center;
 }
 
 .overlay {
