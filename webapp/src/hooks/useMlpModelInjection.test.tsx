@@ -59,11 +59,11 @@ describe('useMlpModelInjection', () => {
     const { result } = renderHook(() => useMlpModelInjection('amy'), { wrapper });
 
     await waitFor(() => {
-      // MLP model is optional - status should be 'idle' not 'error' when unavailable
+      // MLP-Modell ist optional - Status sollte 'idle' sein, nicht 'error' wenn nicht verfügbar
       expect(result.current.status).toBe('idle');
     });
 
-    // No error notice should be shown since MLP is optional
+    // Keine Fehlermeldung sollte angezeigt werden, da MLP optional ist
     expect(result.current.notice).toBeNull();
   });
 
