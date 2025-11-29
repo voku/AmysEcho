@@ -12,8 +12,6 @@ vi.mock('../hooks/useGestureDetector', () => ({
     status: 'idle',
     error: null,
     lastGesture: null,
-    lastLandmarks: [],
-    lastHandedness: [],
     lastConfidence: null,
     messageLog: [],
   }),
@@ -57,27 +55,6 @@ describe('GestureDemo', () => {
     expect(overlayToggle).toBeChecked();
   });
 
-  it('shows mirror toggle checkbox', () => {
-    renderWithProviders(<GestureDemo />);
-
-    const mirrorToggle = screen.getByLabelText('Vorschau spiegeln');
-    expect(mirrorToggle).toBeInTheDocument();
-    expect(mirrorToggle).not.toBeChecked();
-  });
-
-  it('toggles mirror preview when checkbox is clicked', () => {
-    renderWithProviders(<GestureDemo />);
-
-    const mirrorToggle = screen.getByLabelText('Vorschau spiegeln') as HTMLInputElement;
-    expect(mirrorToggle.checked).toBe(false);
-
-    fireEvent.click(mirrorToggle);
-    expect(mirrorToggle.checked).toBe(true);
-
-    fireEvent.click(mirrorToggle);
-    expect(mirrorToggle.checked).toBe(false);
-  });
-
   it('toggles overlay visibility when checkbox is clicked', () => {
     renderWithProviders(<GestureDemo />);
 
@@ -104,13 +81,6 @@ describe('GestureDemo', () => {
     renderWithProviders(<GestureDemo />);
 
     expect(screen.getByText('Noch keine Bridge-Nachrichten.')).toBeInTheDocument();
-  });
-
-  it('disables landmarks save button when no landmarks available', () => {
-    renderWithProviders(<GestureDemo />);
-
-    const saveButton = screen.getByText('Landmarks speichern');
-    expect(saveButton).toBeDisabled();
   });
 
   it('displays profile information', () => {
