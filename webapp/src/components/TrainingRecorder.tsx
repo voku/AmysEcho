@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
-import { HandLandmarkPreview } from './HandLandmarkPreview';
 import type { TrainingBundlePayload } from '../training/types';
 
 export interface TrainingRecorderProps {
@@ -28,6 +27,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [showOverlay, setShowOverlay] = useState(true);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
+  const hasAttemptedAutoStart = useRef(false);
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
 
   const cameraSupported = useMemo(
@@ -46,9 +46,17 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     framesCaptured,
     clipLimitExceeded,
     maxClipBytes,
-    previewLandmarks,
-    previewHandedness,
   } = useTrainingRecorder(videoRef);
+
+  // Auto-start camera when component mounts and metadata is ready
+  useEffect(() => {
+    if (cameraSupported && metadataReady && status === 'idle' && !hasAttemptedAutoStart.current) {
+      hasAttemptedAutoStart.current = true;
+      startCamera().catch(() => {
+        // Error is already handled by useGestureDetector hook
+      });
+    }
+  }, [cameraSupported, metadataReady, status, startCamera]);
 
   // Update recording duration
   useEffect(() => {
@@ -68,11 +76,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
     return () => clearInterval(interval);
   }, [state]);
-
-  const handleStartCamera = useCallback(async () => {
-    if (!metadataReady) return;
-    await startCamera();
-  }, [metadataReady, startCamera]);
 
   const handleStartRecording = useCallback(() => {
     if (!metadataReady) {
@@ -224,12 +227,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           </div>
 
           <div className="controls">
-            {status !== 'running' && (
-              <button className="primary" onClick={handleStartCamera} disabled={!cameraSupported || !metadataReady}>
-                Kamera starten
-              </button>
-            )}
-
             {status === 'running' && !isRecording && !hasRecording && (
               <button className="primary" onClick={handleStartRecording} disabled={!metadataReady}>
                 Aufnahme starten
@@ -256,12 +253,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               </>
             )}
           </div>
-
-          <HandLandmarkPreview
-            title="Live-Landmark-Vorschau"
-            landmarks={previewLandmarks}
-            handedness={previewHandedness}
-          />
 
           {recordedData.stillImage && hasRecording && (
             <div className="still-preview">

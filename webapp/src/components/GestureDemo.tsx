@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
-import { HandLandmarkPreview } from './HandLandmarkPreview';
 import { CorrectionPanel } from './CorrectionPanel';
 import { useAppState } from '../hooks/useAppState';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
@@ -24,7 +23,6 @@ export function GestureDemo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
-  const [mirrorPreview, setMirrorPreview] = useState(true);
   const [showCorrection, setShowCorrection] = useState(false);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
@@ -38,13 +36,22 @@ export function GestureDemo() {
     status,
     error,
     lastGesture,
-    lastLandmarks,
-    lastHandedness,
     lastConfidence,
     messageLog,
   } = useGestureDetector(videoRef, overlayRef);
   const { profileId, preferredGestureLabel, recordGesture } = useAppState();
   const { notice: modelNotice } = useMlpModelInjection(profileId);
+  const hasAttemptedAutoStart = useRef(false);
+
+  // Auto-start camera when component mounts and camera is supported
+  useEffect(() => {
+    if (cameraSupported && status === 'idle' && !hasAttemptedAutoStart.current) {
+      hasAttemptedAutoStart.current = true;
+      start().catch(() => {
+        // Error is already handled by useGestureDetector hook
+      });
+    }
+  }, [cameraSupported, status, start]);
 
   useEffect(() => {
     if (lastGesture) {
@@ -64,25 +71,10 @@ export function GestureDemo() {
     await cleanup();
   };
 
-  const handleSaveLandmarks = () => {
-    if (!lastLandmarks.length) return;
-    const blob = new Blob([JSON.stringify({ landmarks: lastLandmarks, handedness: lastHandedness }, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'landmarks.json';
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
   const handleCorrection = (originalGesture: string, correctedGesture: string) => {
     console.log(`Korrektur: ${originalGesture} → ${correctedGesture}`);
     setShowCorrection(false);
   };
-
-  const hasLandmarks = lastLandmarks.some((hand) => Array.isArray(hand) && hand.length > 0);
 
   return (
     <section className="card">
@@ -150,23 +142,7 @@ export function GestureDemo() {
               />
               <label htmlFor="overlay-toggle">Overlay anzeigen</label>
             </div>
-            <div className="toggle">
-              <input
-                id="mirror-toggle"
-                type="checkbox"
-                checked={mirrorPreview}
-                onChange={(event) => setMirrorPreview(event.target.checked)}
-              />
-              <label htmlFor="mirror-toggle">Vorschau spiegeln</label>
-            </div>
           </div>
-          <HandLandmarkPreview
-            title="Live-Landmarks"
-            landmarks={lastLandmarks}
-            handedness={lastHandedness}
-            confidence={lastConfidence}
-            mirror={mirrorPreview}
-          />
 
           {/* Correction Panel */}
           {lastGesture && (
@@ -189,11 +165,6 @@ export function GestureDemo() {
             </div>
           )}
 
-          <div className="controls">
-            <button className="ghost" onClick={handleSaveLandmarks} disabled={!hasLandmarks}>
-              Landmarks speichern
-            </button>
-          </div>
           <div className="log">
             <p className="eyebrow">Live-Meldungen</p>
             <ul>
