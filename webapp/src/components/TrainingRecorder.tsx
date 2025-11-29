@@ -51,9 +51,10 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   // Auto-start camera when component mounts and metadata is ready
   useEffect(() => {
     if (cameraSupported && metadataReady && status === 'idle' && !hasAttemptedAutoStart.current) {
-      hasAttemptedAutoStart.current = true;
-      startCamera().catch(() => {
-        // Error is already handled by useGestureDetector hook
+      startCamera().then((success) => {
+        if (success) {
+          hasAttemptedAutoStart.current = true;
+        }
       });
     }
   }, [cameraSupported, metadataReady, status, startCamera]);

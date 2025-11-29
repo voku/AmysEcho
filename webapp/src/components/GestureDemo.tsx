@@ -46,9 +46,10 @@ export function GestureDemo() {
   // Auto-start camera when component mounts and camera is supported
   useEffect(() => {
     if (cameraSupported && status === 'idle' && !hasAttemptedAutoStart.current) {
-      hasAttemptedAutoStart.current = true;
-      start().catch(() => {
-        // Error is already handled by useGestureDetector hook
+      start().then((success) => {
+        if (success) {
+          hasAttemptedAutoStart.current = true;
+        }
       });
     }
   }, [cameraSupported, status, start]);
