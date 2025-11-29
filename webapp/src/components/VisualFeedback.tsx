@@ -101,9 +101,11 @@ export const VisualFeedback: React.FC<VisualFeedbackProps> = ({
         }, duration);
         return () => clearTimeout(timer);
       }
+      return; // Explicit return for duration === 0
     } else {
       setIsAnimating(false);
       setTimeout(() => setIsVisible(false), 300);
+      return;
     }
   }, [active, duration, onHide]);
 
@@ -285,11 +287,11 @@ export const GestureRecognitionFeedback: React.FC<GestureRecognitionFeedbackProp
     <VisualFeedback
       type={type}
       active={isActive && gesture !== null}
-      message={gesture || undefined}
       confidence={confidence}
       animation="pulse"
       duration={2000}
-      onHide={onHide}
+      {...(gesture !== null && { message: gesture })}
+      {...(onHide !== undefined && { onHide })}
     />
   );
 };

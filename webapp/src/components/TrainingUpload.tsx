@@ -155,9 +155,9 @@ function TrainingStatusBlock({
         <p className="eyebrow">Zwischengespeicherte Bundles</p>
         <TrainingQueueList
           bundles={uploader.queuedBundles}
-          onSyncBundle={onSyncBundle}
-          onRemoveBundle={onRemoveBundle}
           syncing={syncing}
+          {...(onSyncBundle !== undefined && { onSyncBundle })}
+          {...(onRemoveBundle !== undefined && { onRemoveBundle })}
         />
       </div>
       {actionSlot}

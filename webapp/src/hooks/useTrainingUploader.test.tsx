@@ -248,6 +248,8 @@ describe('useTrainingUploader', () => {
       framesCount: 1,
       zip: new TextEncoder().encode('demo-zip'),
     });
+    expect(stored).not.toBeNull();
+    if (!stored) return;
 
     const { result } = renderHook(() => useTrainingUploader());
 
@@ -271,6 +273,8 @@ describe('useTrainingUploader', () => {
       framesCount: 1,
       zip: new TextEncoder().encode('demo-zip'),
     });
+    expect(stored).not.toBeNull();
+    if (!stored) return;
 
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'bundle-resend' }) });
     (globalThis as any).fetch = fetchSpy;

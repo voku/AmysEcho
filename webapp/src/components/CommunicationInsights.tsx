@@ -239,7 +239,7 @@ export function CommunicationInsights() {
           <div className="insight-item">
             <span className="insight-icon">📈</span>
             <p>
-              {insightData.peakPerformanceTimes.length > 0
+              {insightData.peakPerformanceTimes.length > 0 && insightData.peakPerformanceTimes[0]
                 ? `Du bist ${insightData.peakPerformanceTimes[0].timeOfDay.toLowerCase()}s am aktivsten.`
                 : 'Nutze die App regelmäßig, um Muster zu entdecken.'}
             </p>
@@ -247,7 +247,7 @@ export function CommunicationInsights() {
           <div className="insight-item">
             <span className="insight-icon">🎯</span>
             <p>
-              {insightData.topGestures.length > 0
+              {insightData.topGestures.length > 0 && insightData.topGestures[0]
                 ? `Deine Lieblingsgeste ist "${insightData.topGestures[0].gesture}".`
                 : 'Probiere verschiedene Gesten aus!'}
             </p>

@@ -210,9 +210,9 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     <StatusCapsule
       status={status}
       label={label}
-      details={details}
       pulse={isConnected}
-      onClick={onClick}
+      {...(details !== undefined && { details })}
+      {...(onClick !== undefined && { onClick })}
     />
   );
 };
@@ -244,9 +244,9 @@ export const FeatureStatus: React.FC<FeatureStatusProps> = ({
       status={status}
       label={featureName}
       icon={icon}
-      details={reason}
-      onClick={onClick}
       size="small"
+      {...(reason !== undefined && { details: reason })}
+      {...(onClick !== undefined && { onClick })}
     />
   );
 };

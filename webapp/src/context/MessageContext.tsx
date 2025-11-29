@@ -3,7 +3,7 @@
  * Provides toast notifications and debug logging.
  */
 
-import React, {
+import {
   createContext,
   useCallback,
   useContext,
@@ -45,6 +45,7 @@ interface MessageContextValue {
   logEntries: DebugLogEntry[];
   isDebugVisible: boolean;
   toggleDebug: () => void;
+  showConfirmDialog: (message: string) => Promise<boolean>;
 }
 
 const DEFAULT_DURATION_MS = 5000;
@@ -174,6 +175,13 @@ export function MessageProvider({ children }: { children: ReactNode }) {
     setDebugVisible((prev) => !prev);
   }, []);
 
+  const showConfirmDialog = useCallback((message: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const confirmed = window.confirm(message);
+      resolve(confirmed);
+    });
+  }, []);
+
   const contextValue = useMemo(
     () => ({
       toasts,
@@ -183,8 +191,9 @@ export function MessageProvider({ children }: { children: ReactNode }) {
       logEntries,
       isDebugVisible,
       toggleDebug,
+      showConfirmDialog,
     }),
-    [clearToasts, dismissToast, isDebugVisible, logEntries, showToast, toasts, toggleDebug],
+    [clearToasts, dismissToast, isDebugVisible, logEntries, showToast, toasts, toggleDebug, showConfirmDialog],
   );
 
   return (

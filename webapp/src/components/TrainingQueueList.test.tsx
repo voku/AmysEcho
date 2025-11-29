@@ -7,10 +7,14 @@ const createBundle = (overrides: Partial<PersistedTrainingBundle> = {}): Persist
   key: 'test-key-1',
   label: 'Hilfe',
   profileId: 'amy-demo',
-  capturedAt: Date.now(),
+  capturedAt: new Date().toISOString(),
   framesCount: 30,
-  status: 'stored',
+  status: 'pending',
   attempts: 0,
+  source: 'web://test',
+  queuedAt: new Date().toISOString(),
+  zipBytes: 0,
+  storage: 'idb',
   ...overrides,
 });
 
@@ -26,7 +30,7 @@ describe('TrainingQueueList', () => {
 
     expect(screen.getByText(/Hilfe · amy-demo/)).toBeInTheDocument();
     expect(screen.getByText(/Frames: 30/)).toBeInTheDocument();
-    expect(screen.getByText(/Status: stored/)).toBeInTheDocument();
+    expect(screen.getByText(/Status: pending/)).toBeInTheDocument();
   });
 
   it('shows upload and delete buttons when handlers provided', () => {
