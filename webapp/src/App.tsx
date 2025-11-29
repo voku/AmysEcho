@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter, NavLink, Route, Routes, Navigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AboutAmysEcho } from './components/AboutAmysEcho';
 import { Admin } from './components/Admin';
 import { CaregiverReport } from './components/CaregiverReport';
@@ -10,159 +10,424 @@ import { GestureDemo } from './components/GestureDemo';
 import { GestureHistory } from './components/GestureHistory';
 import { GestureTutorial } from './components/GestureTutorial';
 import { Help } from './components/Help';
-import { Hero } from './components/Hero';
 import { LearningHub } from './components/LearningHub';
-import { Onboarding } from './components/Onboarding';
 import { ParentArea } from './components/ParentArea';
 import { ParentalGate } from './components/ParentalGate';
-import { ProfileBar } from './components/ProfileBar';
 import { ProfileSelect } from './components/ProfileSelect';
 import { ProgressChart } from './components/ProgressChart';
 import { ProgressTracker } from './components/ProgressTracker';
 import { Settings } from './components/Settings';
 import { Teach } from './components/Teach';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
-import { ApiConfigBar } from './components/ApiConfigBar';
+import { useApiConfig } from './hooks/useApiConfig';
 import './App.css';
 
+// Storage-Schlüssel
+const AUTH_KEY = 'webapp:auth-complete';
 const ONBOARDING_KEY = 'webapp:onboarding-complete';
 
-function useOnboardingStatus() {
-  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
+// ========================================
+// Auth/Login Screen - Erster Schritt
+// ========================================
+function LoginScreen({ onComplete }: { onComplete: () => void }) {
+  const { apiBaseUrl, setApiToken, setPersistToken } = useApiConfig();
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || !password) {
+      setMessage('Bitte fülle Nutzername und Passwort aus.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage('Wird gesendet…');
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/auth/${authMode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Anmeldung fehlgeschlagen.');
+      }
+
+      const accessToken = payload?.tokens?.accessToken;
+      if (accessToken) {
+        setPersistToken(true);
+        setApiToken(accessToken);
+        setMessage('Erfolgreich! Weiter geht\'s…');
+        setTimeout(onComplete, 500);
+      } else {
+        setMessage('Antwort ohne Token erhalten.');
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Ein Fehler ist aufgetreten.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [apiBaseUrl, authMode, username, password, setApiToken, setPersistToken, onComplete]);
+
+  const handleSkip = useCallback(() => {
+    // Ermöglicht das Überspringen für Demo-Zwecke
+    onComplete();
+  }, [onComplete]);
+
+  return (
+    <div className="auth-screen">
+      <div className="auth-card">
+        <div className="auth-header">
+          <span className="auth-icon">🔐</span>
+          <h1>Willkommen bei Amy&apos;s Echo</h1>
+          <p className="muted">
+            Melde dich an oder erstelle ein neues Konto, um fortzufahren.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="auth-mode-toggle">
+            <button
+              type="button"
+              className={authMode === 'login' ? 'active' : ''}
+              onClick={() => { setAuthMode('login'); setMessage(''); }}
+            >
+              Anmelden
+            </button>
+            <button
+              type="button"
+              className={authMode === 'register' ? 'active' : ''}
+              onClick={() => { setAuthMode('register'); setMessage(''); }}
+            >
+              Registrieren
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="username">Nutzername</label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Dein Nutzername"
+              autoComplete={authMode === 'login' ? 'username' : 'new-username'}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Passwort</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+            />
+          </div>
+
+          {message && <p className="auth-message">{message}</p>}
+
+          <button type="submit" className="primary full-width" disabled={isSubmitting}>
+            {isSubmitting ? 'Wird gesendet…' : authMode === 'login' ? 'Anmelden' : 'Registrieren'}
+          </button>
+
+          <button type="button" className="ghost full-width" onClick={handleSkip}>
+            Ohne Anmeldung fortfahren (Demo)
+          </button>
+        </form>
+
+        <p className="auth-hint muted small">
+          Die Anmeldung verbindet dich mit dem Backend für Gestentraining und Synchronisation.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ========================================
+// Hero/Welcome Screen - Nach Login
+// ========================================
+function HeroScreen({ onStart }: { onStart: () => void }) {
+  const navigate = useNavigate();
+
+  const handleStartCamera = useCallback(() => {
+    onStart();
+    navigate('/');
+  }, [onStart, navigate]);
+
+  const handleStartLearning = useCallback(() => {
+    onStart();
+    navigate('/lernen');
+  }, [onStart, navigate]);
+
+  return (
+    <div className="hero-screen">
+      <header className="hero-header">
+        <span className="hero-pill">Amy&apos;s Echo hört zu</span>
+        <h1 className="hero-title">Willkommen bei Amy&apos;s Echo</h1>
+        <p className="hero-subtitle">
+          Die Gestenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
+          So bleibt das Gespräch mit Amy&apos;s Echo nie stehen.
+        </p>
+      </header>
+
+      {/* Amy Loop Visualization */}
+      <section className="amy-loop-section">
+        <h2 className="amy-loop-title">Der Amy-Loop</h2>
+        <div className="amy-loop-timeline">
+          <div className="loop-step-card">
+            <span className="step-icon">🖐️</span>
+            <strong>Kamera</strong>
+            <span className="step-desc">Geste zeigen</span>
+          </div>
+          <span className="loop-arrow">→</span>
+          <div className="loop-step-card">
+            <span className="step-icon">🗂️</span>
+            <strong>Verlauf</strong>
+            <span className="step-desc">Geste prüfen</span>
+          </div>
+          <span className="loop-arrow">→</span>
+          <div className="loop-step-card">
+            <span className="step-icon">🧠</span>
+            <strong>Lernen</strong>
+            <span className="step-desc">Modell stärken</span>
+          </div>
+          <span className="loop-return">↩️</span>
+        </div>
+      </section>
+
+      {/* CTA Buttons */}
+      <div className="hero-cta-row">
+        <button className="primary hero-cta" onClick={handleStartCamera}>
+          🖐️ Zur Gestenkamera
+        </button>
+        <button className="secondary hero-cta" onClick={handleStartLearning}>
+          🧠 Lernen entdecken
+        </button>
+      </div>
+
+      {/* Amy First Commitments */}
+      <section className="commitments-section">
+        <h2>Amy First Commitments</h2>
+        <div className="commitment-grid">
+          <div className="commitment-card">
+            <span className="commitment-icon">⚡</span>
+            <div className="commitment-content">
+              <strong>Zero Interruption</strong>
+              <p>Amys Kommunikation pausiert nie</p>
+            </div>
+          </div>
+          <div className="commitment-card">
+            <span className="commitment-icon">🎯</span>
+            <div className="commitment-content">
+              <strong>Zero Confusion</strong>
+              <p>Einfache, klare UI immer</p>
+            </div>
+          </div>
+          <div className="commitment-card">
+            <span className="commitment-icon">⏱️</span>
+            <div className="commitment-content">
+              <strong>Zero Delay</strong>
+              <p>Sofortiges Feedback für alles</p>
+            </div>
+          </div>
+          <div className="commitment-card">
+            <span className="commitment-icon">🛡️</span>
+            <div className="commitment-content">
+              <strong>Zero Failure</strong>
+              <p>Mehrere Fallback-Ebenen</p>
+            </div>
+          </div>
+          <div className="commitment-card">
+            <span className="commitment-icon">💚</span>
+            <div className="commitment-content">
+              <strong>Zero Judgment</strong>
+              <p>Versuche feiern, nicht nur Erfolge</p>
+            </div>
+          </div>
+          <div className="commitment-card">
+            <span className="commitment-icon">❤️</span>
+            <div className="commitment-content">
+              <strong>Zero Compromise</strong>
+              <p>Amys Bedürfnisse zuerst</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ========================================
+// Bottom Navigation - Amy Loop Style
+// ========================================
+function BottomNav() {
+  const location = useLocation();
+  const isActive = (path: string) => location.pathname === path;
+
+  return (
+    <nav className="bottom-nav">
+      <NavLink to="/" className={`bottom-nav-item ${isActive('/') ? 'active' : ''}`} end>
+        <span className="nav-icon">🖐️</span>
+        <span className="nav-label">Kamera</span>
+      </NavLink>
+      <NavLink to="/verlauf" className={`bottom-nav-item ${isActive('/verlauf') ? 'active' : ''}`}>
+        <span className="nav-icon">🗂️</span>
+        <span className="nav-label">Verlauf</span>
+      </NavLink>
+      <NavLink to="/lernen" className={`bottom-nav-item ${isActive('/lernen') ? 'active' : ''}`}>
+        <span className="nav-icon">🧠</span>
+        <span className="nav-label">Lernen</span>
+      </NavLink>
+    </nav>
+  );
+}
+
+// ========================================
+// Main App Content
+// ========================================
+function MainAppContent() {
+  return (
+    <>
+      <main className="content main-content">
+        <Routes>
+          <Route path="/" element={<GestureDemo />} />
+          <Route path="/verlauf" element={<GestureHistory />} />
+          <Route path="/lernen" element={<LearningHub />} />
+          <Route path="/training" element={<TrainingUploadWithRecording />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/erkenntnisse" element={<CommunicationInsights />} />
+          <Route path="/fortschritt" element={<ProgressTracker />} />
+          <Route path="/fortschritt-detail" element={<ProgressChart />} />
+          <Route path="/einstellungen" element={<Settings />} />
+          <Route path="/hilfe" element={<Help />} />
+          <Route path="/tutorial" element={<GestureTutorial />} />
+          <Route path="/ueber" element={<AboutAmysEcho />} />
+          <Route path="/eltern" element={<ParentArea />} />
+          <Route path="/elterntor" element={<ParentalGate />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/bericht" element={<CaregiverReport />} />
+          <Route path="/beibringen" element={<Teach />} />
+          <Route path="/auswahl" element={<ProfileSelect />} />
+          <Route path="/funktionen" element={<FeatureAvailability />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      <BottomNav />
+    </>
+  );
+}
+
+// ========================================
+// App Status Hook
+// ========================================
+function useAppStatus() {
+  const [status, setStatus] = useState<'loading' | 'auth' | 'hero' | 'app'>('loading');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const stored = window.localStorage.getItem(ONBOARDING_KEY);
-      setIsOnboarded(stored === 'true');
+      const isAuth = window.localStorage.getItem(AUTH_KEY) === 'true';
+      const isOnboarded = window.localStorage.getItem(ONBOARDING_KEY) === 'true';
+
+      if (!isAuth) {
+        setStatus('auth');
+      } else if (!isOnboarded) {
+        setStatus('hero');
+      } else {
+        setStatus('app');
+      }
     }
   }, []);
 
-  const completeOnboarding = () => {
+  const completeAuth = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(AUTH_KEY, 'true');
+    }
+    setStatus('hero');
+  }, []);
+
+  const completeOnboarding = useCallback(() => {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(ONBOARDING_KEY, 'true');
     }
-    setIsOnboarded(true);
-  };
+    setStatus('app');
+  }, []);
 
-  return { isOnboarded, completeOnboarding };
+  return { status, completeAuth, completeOnboarding };
 }
 
+// ========================================
+// Main App Component
+// ========================================
 function App() {
-  const { isOnboarded, completeOnboarding } = useOnboardingStatus();
+  const { status, completeAuth, completeOnboarding } = useAppStatus();
 
-  // Warte auf Initialisierung
-  if (isOnboarded === null) {
+  // Ladebildschirm
+  if (status === 'loading') {
     return (
-      <div className="app-shell">
+      <div className="app-shell loading-shell">
         <div className="loading-screen">
+          <span className="loading-icon">❤️</span>
           <p>Lädt…</p>
         </div>
       </div>
     );
   }
 
-  // Zeige Onboarding, wenn noch nicht abgeschlossen
-  if (!isOnboarded) {
-    return (
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <div className="app-shell onboarding-mode">
-          <header className="app-header">
-            <div>
-              <p className="eyebrow">Amy&apos;s Echo</p>
-              <h1>Gestenerkennung für Amy</h1>
-              <p className="muted">
-                Amy zuerst – immer. Jede Geste ist eine Stimme. Jede Stimme zählt.
-              </p>
-            </div>
-          </header>
-
-          <main className="content onboarding-content">
-            <Routes>
-              <Route path="*" element={<Onboarding onComplete={completeOnboarding} />} />
-            </Routes>
-          </main>
-
-          <footer className="muted footer">
-            ❤️ Für Amy – Jede Geste ist eine Stimme.
-          </footer>
-        </div>
-      </BrowserRouter>
-    );
-  }
-
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <div className="app-shell">
-        <header className="app-header">
-          <div>
-            <p className="eyebrow">Amy&apos;s Echo</p>
-            <h1>Gestenerkennung für Amy</h1>
-            <p className="muted">
-              Amy zuerst – immer. Jede Geste ist eine Stimme. Jede Stimme zählt.
-            </p>
+        {/* Header - immer sichtbar */}
+        <header className="app-header compact-header">
+          <div className="header-brand">
+            <span className="brand-icon">❤️</span>
+            <div>
+              <p className="eyebrow">Amy&apos;s Echo</p>
+              <h1>Gestenerkennung für Amy</h1>
+            </div>
           </div>
-          <nav className="nav">
-            <NavLink to="/" className={({ isActive }) => (isActive ? 'active' : '')} end>
-              Erkennung
-            </NavLink>
-            <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Dashboard
-            </NavLink>
-            <NavLink to="/lernen" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Lernen
-            </NavLink>
-            <NavLink to="/verlauf" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Verlauf
-            </NavLink>
-            <NavLink to="/erkenntnisse" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Erkenntnisse
-            </NavLink>
-            <NavLink to="/training" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Training
-            </NavLink>
-            <NavLink to="/einstellungen" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Einstellungen
-            </NavLink>
-            <NavLink to="/eltern" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Eltern
-            </NavLink>
-            <NavLink to="/ueber" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Über
-            </NavLink>
-          </nav>
+          {status === 'app' && (
+            <nav className="header-nav">
+              <NavLink to="/einstellungen">⚙️</NavLink>
+              <NavLink to="/hilfe">❓</NavLink>
+              <NavLink to="/eltern">👨‍👩‍👧</NavLink>
+            </nav>
+          )}
         </header>
 
-        <main className="content">
-          <ApiConfigBar />
-          <ProfileBar />
-          <Routes>
-            <Route path="/" element={<GestureDemo />} />
-            <Route path="/willkommen" element={<Hero />} />
-            <Route path="/auswahl" element={<ProfileSelect />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/lernen" element={<LearningHub />} />
-            <Route path="/verlauf" element={<GestureHistory />} />
-            <Route path="/erkenntnisse" element={<CommunicationInsights />} />
-            <Route path="/funktionen" element={<FeatureAvailability />} />
-            <Route path="/training" element={<TrainingUploadWithRecording />} />
-            <Route path="/fortschritt" element={<ProgressTracker />} />
-            <Route path="/fortschritt-detail" element={<ProgressChart />} />
-            <Route path="/einstellungen" element={<Settings />} />
-            <Route path="/hilfe" element={<Help />} />
-            <Route path="/tutorial" element={<GestureTutorial />} />
-            <Route path="/onboarding" element={<Navigate to="/" replace />} />
-            <Route path="/ueber" element={<AboutAmysEcho />} />
-            <Route path="/eltern" element={<ParentArea />} />
-            <Route path="/elterntor" element={<ParentalGate />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/bericht" element={<CaregiverReport />} />
-            <Route path="/beibringen" element={<Teach />} />
-          </Routes>
-        </main>
+        {/* Content basierend auf Status */}
+        {status === 'auth' && (
+          <main className="content auth-content">
+            <Routes>
+              <Route path="*" element={<LoginScreen onComplete={completeAuth} />} />
+            </Routes>
+          </main>
+        )}
 
-        <footer className="muted footer">
-          ❤️ Für Amy – Jede Geste ist eine Stimme.
-        </footer>
+        {status === 'hero' && (
+          <main className="content hero-content">
+            <Routes>
+              <Route path="*" element={<HeroScreen onStart={completeOnboarding} />} />
+            </Routes>
+          </main>
+        )}
+
+        {status === 'app' && <MainAppContent />}
+
+        {/* Footer - nur im Auth/Hero Modus */}
+        {(status === 'auth' || status === 'hero') && (
+          <footer className="muted footer">
+            ❤️ Für Amy – Jede Geste ist eine Stimme.
+          </footer>
+        )}
       </div>
     </BrowserRouter>
   );
