@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 
@@ -170,15 +171,15 @@ export function Dashboard() {
       <div className="dashboard-section">
         <h3>⚡ Schnellaktionen</h3>
         <div className="quick-actions">
-          <a href="/" className="action-button">
+          <Link to="/" className="action-button">
             🎯 Erkennung starten
-          </a>
-          <a href="/training" className="action-button">
+          </Link>
+          <Link to="/training" className="action-button">
             📚 Training starten
-          </a>
-          <a href="/fortschritt" className="action-button">
+          </Link>
+          <Link to="/fortschritt" className="action-button">
             📈 Fortschritt ansehen
-          </a>
+          </Link>
         </div>
       </div>
     </section>

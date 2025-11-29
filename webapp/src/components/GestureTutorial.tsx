@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 /**
  * GestureTutorial component - mirrors GestureTutorialScreen from the Expo app.
  * Teaches users how to use gestures effectively.
@@ -139,12 +141,12 @@ export function GestureTutorial() {
 
       {/* Call to action */}
       <div className="tutorial-cta">
-        <a href="/" className="primary-button">
+        <Link to="/" className="primary-button">
           🎯 Jetzt ausprobieren
-        </a>
-        <a href="/training" className="secondary-button">
+        </Link>
+        <Link to="/training" className="secondary-button">
           📚 Training starten
-        </a>
+        </Link>
       </div>
     </section>
   );

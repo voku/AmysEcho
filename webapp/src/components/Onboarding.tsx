@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 
 type OnboardingStep = 'welcome' | 'name' | 'accessibility' | 'consent' | 'vocabulary' | 'complete';
@@ -223,9 +224,9 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
         <p className="muted">
           Dein Profil ist eingerichtet. Du kannst jetzt mit der Gestenerkennung beginnen.
         </p>
-        <a href="/" className="primary-button">
+        <Link to="/" className="primary-button">
           Zur Gestenerkennung
-        </a>
+        </Link>
       </div>
     ),
   };

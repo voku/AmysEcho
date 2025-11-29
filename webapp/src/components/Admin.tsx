@@ -6,6 +6,7 @@
  */
 import React, { useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { useMessage } from '../context/MessageContext';
 
 interface Symbol {
   id: string;
@@ -16,6 +17,7 @@ interface Symbol {
 
 export const Admin: React.FC = () => {
   const { apiBaseUrl, apiToken } = useApiConfig();
+  const { showToast, showConfirmDialog } = useMessage();
   const [symbols, setSymbols] = useState<Symbol[]>([]);
   const [backendToken, setBackendToken] = useState(apiToken || '');
   const [modalVisible, setModalVisible] = useState(false);
@@ -40,7 +42,7 @@ export const Admin: React.FC = () => {
 
   const handleSaveToken = () => {
     localStorage.setItem('amysecho_api_token', backendToken);
-    alert('Token gespeichert');
+    showToast({ message: 'Token gespeichert', tone: 'success' });
   };
 
   const handleOpenAdd = () => {
@@ -74,8 +76,9 @@ export const Admin: React.FC = () => {
     setModalVisible(false);
   };
 
-  const handleDeleteSymbol = (symbol: Symbol) => {
-    if (confirm(`"${symbol.name}" wirklich entfernen?`)) {
+  const handleDeleteSymbol = async (symbol: Symbol) => {
+    const confirmed = await showConfirmDialog(`"${symbol.name}" wirklich entfernen?`);
+    if (confirmed) {
       const updatedSymbols = symbols.filter(s => s.id !== symbol.id);
       setSymbols(updatedSymbols);
       localStorage.setItem('amysecho_symbols', JSON.stringify(updatedSymbols));
@@ -103,9 +106,9 @@ export const Admin: React.FC = () => {
         const importedSymbols = JSON.parse(e.target?.result as string);
         setSymbols(importedSymbols);
         localStorage.setItem('amysecho_symbols', JSON.stringify(importedSymbols));
-        alert('Import abgeschlossen');
+        showToast({ message: 'Import abgeschlossen', tone: 'success' });
       } catch {
-        alert('Import fehlgeschlagen: Ungültiges JSON');
+        showToast({ message: 'Import fehlgeschlagen: Ungültiges JSON', tone: 'error' });
       }
     };
     reader.readAsText(file);
@@ -128,14 +131,15 @@ export const Admin: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleClearData = () => {
-    if (confirm('Alle Daten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+  const handleClearData = async () => {
+    const confirmed = await showConfirmDialog('Alle Daten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');
+    if (confirmed) {
       localStorage.removeItem('amysecho_symbols');
       localStorage.removeItem('amysecho_profiles');
       localStorage.removeItem('amysecho_gesture_history');
       localStorage.removeItem('amysecho_progress');
       setSymbols([]);
-      alert('Alle Daten gelöscht');
+      showToast({ message: 'Alle Daten gelöscht', tone: 'success' });
     }
   };
 
@@ -143,12 +147,12 @@ export const Admin: React.FC = () => {
     try {
       const response = await fetch(`${apiBaseUrl}/api/models/latest`);
       if (response.ok) {
-        alert('Modell aktualisiert');
+        showToast({ message: 'Modell aktualisiert', tone: 'success' });
       } else {
-        alert('Kein neues Modell verfügbar');
+        showToast({ message: 'Kein neues Modell verfügbar', tone: 'info' });
       }
     } catch {
-      alert('Modell-Download fehlgeschlagen');
+      showToast({ message: 'Modell-Download fehlgeschlagen', tone: 'error' });
     }
   };
 

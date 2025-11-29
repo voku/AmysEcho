@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface GestureItem {
   id: string;
@@ -28,10 +29,11 @@ const BASELINE_GESTURES: GestureItem[] = [
  */
 export function LearningHub() {
   const gestures = useMemo(() => BASELINE_GESTURES, []);
+  const navigate = useNavigate();
 
-  const handleTrainGesture = (gestureId: string, label: string) => {
+  const handleTrainGesture = (_gestureId: string, label: string) => {
     // Navigate to training with the selected gesture
-    window.location.href = `/training?gesture=${encodeURIComponent(label)}`;
+    navigate(`/training?gesture=${encodeURIComponent(label)}`);
   };
 
   return (
@@ -91,9 +93,9 @@ export function LearningHub() {
         <p className="muted">
           Du kannst auch eigene Gesten erstellen und trainieren.
         </p>
-        <a href="/training" className="add-gesture-button">
+        <Link to="/training" className="add-gesture-button">
           Neue Geste erstellen
-        </a>
+        </Link>
       </div>
 
       {/* Tips */}
