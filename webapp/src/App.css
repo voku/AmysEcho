@@ -31,11 +31,11 @@
 
   /* Overlay System */
   --color-overlay: rgba(12, 56, 60, 0.28);
-  --color-overlay-surface: rgba(255, 255, 255, 0.22);
-  --color-overlay-surface-muted: rgba(255, 255, 255, 0.12);
-  --color-overlay-border: rgba(255, 255, 255, 0.28);
-  --color-overlay-text: #F2FAFA;
-  --color-overlay-text-muted: #C7DFE1;
+  --color-overlay-surface: rgba(255, 255, 255, 0.92);
+  --color-overlay-surface-muted: rgba(255, 255, 255, 0.85);
+  --color-overlay-border: rgba(13, 58, 61, 0.15);
+  --color-overlay-text: #0D3A3D;
+  --color-overlay-text-muted: #366166;
 
   /* Action Colors */
   --color-action-primary-bg: #FDF1DD;
