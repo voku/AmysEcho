@@ -24,7 +24,7 @@ export function GestureDemo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
-  const [mirrorPreview, setMirrorPreview] = useState(false);
+  const [mirrorPreview, setMirrorPreview] = useState(true);
   const [showCorrection, setShowCorrection] = useState(false);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),

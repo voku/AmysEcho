@@ -62,20 +62,20 @@ describe('GestureDemo', () => {
 
     const mirrorToggle = screen.getByLabelText('Vorschau spiegeln');
     expect(mirrorToggle).toBeInTheDocument();
-    expect(mirrorToggle).not.toBeChecked();
+    expect(mirrorToggle).toBeChecked();
   });
 
   it('toggles mirror preview when checkbox is clicked', () => {
     renderWithProviders(<GestureDemo />);
 
     const mirrorToggle = screen.getByLabelText('Vorschau spiegeln') as HTMLInputElement;
-    expect(mirrorToggle.checked).toBe(false);
-
-    fireEvent.click(mirrorToggle);
     expect(mirrorToggle.checked).toBe(true);
 
     fireEvent.click(mirrorToggle);
     expect(mirrorToggle.checked).toBe(false);
+
+    fireEvent.click(mirrorToggle);
+    expect(mirrorToggle.checked).toBe(true);
   });
 
   it('toggles overlay visibility when checkbox is clicked', () => {
