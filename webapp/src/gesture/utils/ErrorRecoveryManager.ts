@@ -1,3 +1,5 @@
+import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
+
 /**
  * Enhanced Error Recovery Manager for robust error handling
  * Extracted from main gestureDetector.ts for better modularity
@@ -253,17 +255,9 @@ export class ErrorRecoveryManager {
   }
 
   private sendTelemetryEvent(event: string, data: any = {}): void {
-    try {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
-          type: 'telemetry',
-          event,
-          data
-        })
-      );
-    } catch (err) {
+    void sendTelemetryEvent(event, data).catch((err) => {
       console.warn(`Failed to send telemetry event ${event}:`, err);
-    }
+    });
   }
 
   reset(): void {

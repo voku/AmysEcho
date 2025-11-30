@@ -9,6 +9,8 @@ import { feedbackService } from '../services/feedbackService';
 import { gestureHistoryService } from '../services/gestureHistoryService';
 import { correctionService } from '../services/correctionService';
 import { gdprService } from '../services/gdprService';
+import { gestureDataProtector } from '../services/dataProtection';
+import { backupService } from '../services/backupService';
 
 export interface Services {
   audioService: typeof audioService;
@@ -16,6 +18,8 @@ export interface Services {
   gestureHistoryService: typeof gestureHistoryService;
   correctionService: typeof correctionService;
   gdprService: typeof gdprService;
+  gestureDataProtector: typeof gestureDataProtector;
+  backupService: typeof backupService;
 }
 
 const ServicesContext = createContext<Services | null>(null);
@@ -31,6 +35,8 @@ export function ServicesProvider({ children }: ServicesProviderProps) {
     gestureHistoryService,
     correctionService,
     gdprService,
+    gestureDataProtector,
+    backupService,
   }), []);
 
   return (

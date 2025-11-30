@@ -12,6 +12,7 @@ import {
 } from '../training/trainingQueue';
 import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleResponse } from '../training/types';
 import { normalizeTrainingJobStatus } from '../training/trainingBundle';
+import { triggerTrainingJob } from '../training/trainingJob';
 import { resolvePollUrl } from './useApiConfig';
 
 export type UploadState = 'idle' | 'preparing' | 'uploading' | 'queued' | 'success' | 'error';
@@ -73,16 +74,64 @@ export function useTrainingUploader(
     [defaultOptions],
   );
 
+  const applyTrainingJob = useCallback(
+    (job: TrainingJobInfo | null, apiBaseOverride?: string) => {
+      if (!job) return null;
+      const resolvedPollUrl = resolvePollUrl(apiBaseOverride ?? defaultOptions.apiBase ?? '', job.pollUrl, job.jobId);
+      const withPoll: TrainingJobInfo = {
+        ...job,
+        ...(resolvedPollUrl ? { pollUrl: resolvedPollUrl } : {}),
+      };
+      setTrainingJob(withPoll);
+      setTrainingJobError(null);
+      setLastResult((prev) =>
+        prev
+          ? {
+              ...prev,
+              ...(prev.trainingJob ? { trainingJob: withPoll } : {}),
+            }
+          : prev,
+      );
+      return withPoll;
+    },
+    [defaultOptions.apiBase],
+  );
+
+  const maybeTriggerTrainingJob = useCallback(
+    async (options?: { endpoint?: string; token?: string; apiBase?: string }) => {
+      const resolvedOptions = resolveOptions(options);
+      if (trainingJob && (trainingJob.status === 'running' || trainingJob.status === 'queued')) {
+        return null;
+      }
+
+      try {
+        const triggered = await triggerTrainingJob(resolvedOptions.apiBase ?? '', resolvedOptions.token);
+        if (triggered) {
+          return applyTrainingJob(triggered, resolvedOptions.apiBase);
+        }
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        setTrainingJobError(reason);
+        return null;
+      }
+
+      return null;
+    },
+    [applyTrainingJob, resolveOptions, trainingJob],
+  );
+
   const syncQueued = useCallback(
     async (options?: { endpoint?: string; token?: string; apiBase?: string }): Promise<number> => {
       if (syncingRef.current) return 0;
       syncingRef.current = true;
       setSyncing(true);
       setSyncError(null);
+      const resolvedOptions = resolveOptions(options);
       const bundles = await refreshQueue();
       const pending = bundles.filter((bundle) => bundle.status !== 'uploading');
       let uploaded = 0;
       let encounteredError = false;
+      let trainingJobFromUploads: TrainingJobInfo | null = null;
 
       for (const bundle of pending) {
         try {
@@ -95,7 +144,10 @@ export function useTrainingUploader(
             encounteredError = true;
             continue;
           }
-          await uploadTrainingZip(zipData, resolveOptions(options));
+          const uploadResponse = await uploadTrainingZip(zipData, resolvedOptions);
+          if (uploadResponse.trainingJob) {
+            trainingJobFromUploads = applyTrainingJob(uploadResponse.trainingJob, resolvedOptions.apiBase) ?? trainingJobFromUploads;
+          }
           await removeQueuedBundle(bundle.key);
           uploaded += 1;
         } catch (err) {
@@ -136,9 +188,20 @@ export function useTrainingUploader(
         }
       }
 
+      if (uploaded > 0 && !trainingJobFromUploads) {
+        await maybeTriggerTrainingJob(resolvedOptions);
+      }
+
       return uploaded;
     },
-    [refreshQueue, resolveOptions, retryConfig.base, retryConfig.max],
+    [
+      applyTrainingJob,
+      maybeTriggerTrainingJob,
+      refreshQueue,
+      resolveOptions,
+      retryConfig.base,
+      retryConfig.max,
+    ],
   );
 
   const syncBundle = useCallback(
@@ -152,6 +215,7 @@ export function useTrainingUploader(
       }
 
       try {
+        const resolvedOptions = resolveOptions(options);
         await markBundleUploading(key);
         const zipData = await readBundleData(key);
         if (!zipData) {
@@ -161,9 +225,15 @@ export function useTrainingUploader(
           return false;
         }
 
-        await uploadTrainingZip(zipData, resolveOptions(options));
+        const uploadResponse = await uploadTrainingZip(zipData, resolvedOptions);
+        if (uploadResponse.trainingJob) {
+          applyTrainingJob(uploadResponse.trainingJob, resolvedOptions.apiBase);
+        }
         await removeQueuedBundle(key);
         await refreshQueue();
+        if (!uploadResponse.trainingJob) {
+          await maybeTriggerTrainingJob(resolvedOptions);
+        }
         return true;
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
@@ -173,7 +243,7 @@ export function useTrainingUploader(
         return false;
       }
     },
-    [refreshQueue, resolveOptions],
+    [applyTrainingJob, maybeTriggerTrainingJob, refreshQueue, resolveOptions],
   );
 
   const removeBundle = useCallback(
@@ -266,25 +336,15 @@ export function useTrainingUploader(
         setState('uploading');
         const resolvedOptions = resolveOptions(options);
         const result = await uploadTrainingZip(zip, resolvedOptions);
-        const resolvedPollUrl = resolvePollUrl(
-          resolvedOptions.apiBase ?? '',
-          result.trainingJob?.pollUrl,
-          result.trainingJob?.jobId ?? '',
-        );
         const resolvedTrainingJob = result.trainingJob
-          ? {
-              ...result.trainingJob,
-              pollUrl: (resolvedPollUrl ?? result.trainingJob.pollUrl) as string,
-            }
+          ? applyTrainingJob(result.trainingJob, resolvedOptions.apiBase)
           : null;
-        setTrainingJob(resolvedTrainingJob ?? null);
-        setLastResult(
-          resolvedTrainingJob
-            ? { ...result, trainingJob: resolvedTrainingJob }
-            : result,
-        );
+        setLastResult(resolvedTrainingJob ? { ...result, trainingJob: resolvedTrainingJob } : result);
         setState('success');
         await refreshQueue();
+        if (!resolvedTrainingJob) {
+          await maybeTriggerTrainingJob(options);
+        }
         return result;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -316,7 +376,7 @@ export function useTrainingUploader(
         throw err;
       }
     },
-    [refreshQueue, resolveOptions],
+    [applyTrainingJob, maybeTriggerTrainingJob, refreshQueue, resolveOptions],
   );
 
   useEffect(() => {

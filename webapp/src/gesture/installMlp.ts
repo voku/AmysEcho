@@ -1,3 +1,5 @@
+import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
+
 export function installMlp() {
   type Tensor = { data: Float32Array; shape: number[] };
   type Landmark = readonly [number, number, number];
@@ -10,6 +12,11 @@ export function installMlp() {
     w2: Tensor;
     b2: Tensor;
     labels: string[];
+  };
+  const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
+    void sendTelemetryEvent(event, data ?? {}).catch((err) => {
+      console.warn(`Failed to send '${event}' telemetry event:`, err);
+    });
   };
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,labels }
   function parseNPY(buf: Uint8Array) {
@@ -278,17 +285,7 @@ export function installMlp() {
       return true;
     } catch (e: any) {
       console.warn('MLP load failed:', e?.message ?? e);
-      try {
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({
-            type: 'telemetry',
-            event: 'mlp_load_failed',
-            reason: e?.message ?? String(e),
-          })
-        );
-      } catch (err) {
-        console.warn("Failed to send 'mlp_load_failed' telemetry event:", err);
-      }
+      forwardTelemetry('mlp_load_failed', { reason: e?.message ?? String(e) });
       mlp = null;
       return false;
     }
@@ -436,13 +433,7 @@ export function installMlp() {
   window.__setMlpModelB64 = async (b64: string) => {
     const ok = await loadMlpFromB64(b64);
     if (ok) {
-      try {
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({ type: 'telemetry', event: 'mlp_loaded' })
-        );
-      } catch (e) {
-        console.warn("Failed to send 'mlp_loaded' telemetry event:", e);
-      }
+      forwardTelemetry('mlp_loaded');
     }
     return ok;
   };
@@ -468,51 +459,15 @@ export function installMlp() {
     try {
       if (active) {
         if (typeof window.__setMlpModelB64 !== 'function') {
-          try {
-            window.ReactNativeWebView?.postMessage?.(
-              JSON.stringify({
-                type: 'telemetry',
-                event: 'mlp_transfer_failed',
-                reason: 'setter_missing',
-              }),
-            );
-          } catch (e) {
-            console.warn(
-              "Failed to send 'mlp_transfer_failed' telemetry event:",
-              e,
-            );
-          }
+          forwardTelemetry('mlp_transfer_failed', { reason: 'setter_missing' });
           return;
         }
         const loadPromise = window.__setMlpModelB64(transferBuf);
         const ms = Math.round(performance.now() - start);
-        try {
-          window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({
-              type: 'telemetry',
-              event: 'mlp_transfer',
-              bytes,
-              ms,
-            }),
-          );
-        } catch (e) {
-          console.warn("Failed to send 'mlp_transfer' telemetry event:", e);
-        }
+        forwardTelemetry('mlp_transfer', { bytes, ms });
         await loadPromise;
       } else {
-        try {
-          window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({
-              type: 'telemetry',
-              event: 'mlp_transfer_skipped',
-            }),
-          );
-        } catch (e) {
-          console.warn(
-            "Failed to send 'mlp_transfer_skipped' telemetry event:",
-            e,
-          );
-        }
+        forwardTelemetry('mlp_transfer_skipped');
       }
     } catch (err) {
       console.warn('mlp_transfer failed:', err);
@@ -520,19 +475,7 @@ export function installMlp() {
       transferBuf = '';
       transferStart = 0;
       transferLock = false;
-      try {
-        window.ReactNativeWebView?.postMessage?.(
-          JSON.stringify({
-            type: 'telemetry',
-            event: 'mlp_transfer_complete',
-          }),
-        );
-      } catch (e) {
-        console.warn(
-          "Failed to send 'mlp_transfer_complete' telemetry event:",
-          e,
-        );
-      }
+      forwardTelemetry('mlp_transfer_complete');
     }
   };
 }

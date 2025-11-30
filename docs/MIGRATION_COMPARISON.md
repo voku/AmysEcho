@@ -62,7 +62,7 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 |-------------|-------------------|--------|
 | dgsModelClient.ts | gesture/modelClient.ts | ✅ Migrated |
 | trainingBundleService.ts | training/trainingQueue.ts | ✅ Migrated |
-| trainingSync.ts | hooks/useTrainingUploader.ts | ✅ Migrated |
+| trainingSync.ts | hooks/useTrainingUploader.ts | ✅ Migrated (Queue sync + Training-Trigger/Polling) |
 | feedbackService.ts | services/feedbackService.ts | ✅ Migrated |
 | audioService.ts | services/audioService.ts | ✅ Migrated |
 | activeLearningService.ts | services/activeLearningService.ts | ✅ Migrated |
@@ -76,11 +76,14 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 | gestureMeaningService.ts | services/gestureMeaningService.ts | ✅ Migrated |
 | customGestureRegistry.ts | services/customGestureRegistry.ts | ✅ Migrated |
 | gdprService.ts | services/gdprService.ts | ✅ Migrated |
+| dataProtection.ts | services/dataProtection.ts | ✅ Migrated (AES-GCM, 30-day retention) |
+| backupService.ts | services/backupService.ts | ✅ Migrated (Browser download & restore) |
+| telemetry/recorder.ts | telemetry/recorder.ts | ✅ Migrated (persistent local storage) |
 | adaptiveLearningService.ts | services/adaptiveLearningService.ts | ✅ Migrated |
 | accessibilityService.ts | services/accessibilityService.ts | ✅ Migrated |
 | zeroDowntimeModelService.ts | services/zeroDowntimeModelService.ts | ✅ Migrated |
 | correctionService.ts | services/correctionService.ts | ✅ Migrated |
-| Storage (SecureStore) | localStorage | ✅ Adapted |
+| Storage (SecureStore) | localStorage with AES-GCM key wrapping | ✅ Adapted |
 
 ## Hooks
 
@@ -164,5 +167,6 @@ The webapp now has **complete feature parity** with the Expo app for all core fu
 6. ✅ All 457 webapp tests pass
 7. ✅ All learning and optimization services migrated (active learning, context-aware recognition, personalized confidence, performance monitoring, gesture suggestions, health score, engagement tracking)
 8. ✅ Performance optimizations migrated (OneEuroFilter for tremor reduction, landmark normalization, detection accuracy enhancement)
+9. ✅ Privacy safeguards migrated (encrypted gesture retention with backup/export, persistent telemetry buffer)
 
 The `app/` directory is kept as reference for any edge cases during validation.

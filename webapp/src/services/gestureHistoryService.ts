@@ -4,6 +4,7 @@
  */
 
 import { logger } from './logger';
+import { gestureDataProtector } from './dataProtection';
 
 export interface GestureHistoryEntry {
   id: string;
@@ -43,6 +44,9 @@ class GestureHistoryService {
   private readonly ANALYTICS_RETENTION_DAYS = 30;
   private readonly STORAGE_KEY = 'amys_echo_gesture_history';
   private hydrationPromise: Promise<void>;
+  private readonly sessionId: string = typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : this.generateRandomSessionId();
 
   static getInstance(): GestureHistoryService {
     if (!GestureHistoryService.instance) {
@@ -53,6 +57,9 @@ class GestureHistoryService {
 
   private constructor() {
     this.hydrationPromise = this.loadHistory();
+    void gestureDataProtector.cleanupExpiredData().catch((error) => {
+      logger.warn('Bereinigung geschützter Gesten fehlgeschlagen:', error);
+    });
   }
 
   ready(): Promise<void> {
@@ -76,11 +83,32 @@ class GestureHistoryService {
 
     this.enforceRecentHistoryRetention();
 
+    void gestureDataProtector
+      .storeGesture({
+        gestureClass: entry.label,
+        confidence: entry.confidence,
+        timestamp: entry.timestamp,
+        sessionId: this.sessionId,
+      })
+      .catch((error) => logger.warn('Geschützte Geste konnte nicht gespeichert werden:', error));
+
     this.analyticsHistory.unshift(entry);
     this.analyticsHistory = this.sanitizeAnalyticsHistory(this.analyticsHistory);
 
     void this.saveHistory();
     logger.debug('Gesture added to history:', entry.label);
+  }
+
+  private generateRandomSessionId(): string {
+    if (typeof crypto.getRandomValues !== 'function') {
+      throw new Error('Konnte keine sichere Sitzungs-ID generieren');
+    }
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant
+    const toHex = (value: number) => value.toString(16).padStart(2, '0');
+    const hex = Array.from(bytes, toHex).join('');
+    return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`;
   }
 
   /**
