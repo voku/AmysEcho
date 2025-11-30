@@ -63,8 +63,23 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 | dgsModelClient.ts | gesture/modelClient.ts | ✅ Migrated |
 | trainingBundleService.ts | training/trainingQueue.ts | ✅ Migrated |
 | trainingSync.ts | hooks/useTrainingUploader.ts | ✅ Migrated |
-| feedbackService.ts | (browser-based feedback) | ✅ Adapted |
-| audioService.ts | (browser Web Audio API) | ✅ Adapted |
+| feedbackService.ts | services/feedbackService.ts | ✅ Migrated |
+| audioService.ts | services/audioService.ts | ✅ Migrated |
+| activeLearningService.ts | services/activeLearningService.ts | ✅ Migrated |
+| contextAwareRecognitionService.ts | services/contextAwareRecognitionService.ts | ✅ Migrated |
+| personalizedConfidenceService.ts | services/personalizedConfidenceService.ts | ✅ Migrated |
+| performanceMonitor.ts | services/performanceMonitor.ts | ✅ Migrated |
+| gestureSuggester.ts | services/gestureSuggester.ts | ✅ Migrated |
+| healthScore.ts | services/healthScore.ts | ✅ Migrated |
+| engagementTracker.ts | services/engagementTracker.ts | ✅ Migrated |
+| gestureHistoryService.ts | services/gestureHistoryService.ts | ✅ Migrated |
+| gestureMeaningService.ts | services/gestureMeaningService.ts | ✅ Migrated |
+| customGestureRegistry.ts | services/customGestureRegistry.ts | ✅ Migrated |
+| gdprService.ts | services/gdprService.ts | ✅ Migrated |
+| adaptiveLearningService.ts | services/adaptiveLearningService.ts | ✅ Migrated |
+| accessibilityService.ts | services/accessibilityService.ts | ✅ Migrated |
+| zeroDowntimeModelService.ts | services/zeroDowntimeModelService.ts | ✅ Migrated |
+| correctionService.ts | services/correctionService.ts | ✅ Migrated |
 | Storage (SecureStore) | localStorage | ✅ Adapted |
 
 ## Hooks
@@ -91,6 +106,13 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 | History Tracking | ✅ | ✅ | Local storage persistence |
 | Corrections | ✅ | ✅ | Correct misrecognitions |
 | Progress Tracking | ✅ | ✅ | Mastery levels and stats |
+| Active Learning | ✅ | ✅ | Identifies weak areas and prompts practice |
+| Context-Aware Recognition | ✅ | ✅ | Time-of-day patterns, sequences |
+| Personalized Confidence | ✅ | ✅ | Dynamic threshold adjustment |
+| Performance Monitoring | ✅ | ✅ | Latency and accuracy tracking |
+| Gesture Suggestions | ✅ | ✅ | Suggests likely intended gestures |
+| Health Score | ✅ | ✅ | Gesture health and practice suggestions |
+| Engagement Tracking | ✅ | ✅ | Session statistics |
 
 ### User Experience
 
@@ -117,7 +139,7 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 ## Test Coverage
 
 - **App Tests**: 150+ test files in app/test/
-- **Webapp Tests**: 37 test files, 392 tests passing
+- **Webapp Tests**: 40 test files, 425 tests passing
 - **Integration Tests**: 6 tests passing
 
 ## Conclusion
@@ -129,6 +151,7 @@ The webapp now has **complete feature parity** with the Expo app for all core fu
 3. ✅ Training, upload, and sync functionality works
 4. ✅ User experience features (onboarding, tutorial, help) are complete
 5. ✅ Parent/admin areas are accessible
-6. ✅ All 392 webapp tests pass
+6. ✅ All 425 webapp tests pass
+7. ✅ All learning and optimization services migrated (active learning, context-aware recognition, personalized confidence, performance monitoring, gesture suggestions, health score, engagement tracking)
 
 The `app/` directory is kept as reference for any edge cases during validation.
