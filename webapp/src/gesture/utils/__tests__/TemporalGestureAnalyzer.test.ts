@@ -8,6 +8,9 @@ import {
   TemporalGestureAnalyzer,
 } from '../TemporalGestureAnalyzer';
 
+// Test constants for movement thresholds
+const MINIMAL_MOVEMENT_OFFSET = 0.00001; // Almost no movement
+
 describe('TemporalGestureAnalyzer', () => {
   let analyzer: TemporalGestureAnalyzer;
 
@@ -111,7 +114,7 @@ describe('TemporalGestureAnalyzer', () => {
 
     it('should recommend minimal processing for static hand', () => {
       const landmarks1 = createTestLandmarks(0.5, 0.5);
-      const landmarks2 = createTestLandmarks(0.50001, 0.50001); // Almost no movement
+      const landmarks2 = createTestLandmarks(0.5 + MINIMAL_MOVEMENT_OFFSET, 0.5 + MINIMAL_MOVEMENT_OFFSET);
 
       analyzer.addFrame(landmarks1, 0);
       analyzer.addFrame(landmarks2, 33);
@@ -126,7 +129,7 @@ describe('TemporalGestureAnalyzer', () => {
 
     it('should indicate hand is not moving when static', () => {
       const landmarks1 = createTestLandmarks(0.5, 0.5);
-      const landmarks2 = createTestLandmarks(0.5001, 0.5001);
+      const landmarks2 = createTestLandmarks(0.5 + MINIMAL_MOVEMENT_OFFSET, 0.5 + MINIMAL_MOVEMENT_OFFSET);
 
       analyzer.addFrame(landmarks1, 0);
       analyzer.addFrame(landmarks2, 33);

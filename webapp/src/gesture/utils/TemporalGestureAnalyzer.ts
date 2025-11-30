@@ -58,6 +58,9 @@ const PINKY_TIP = 20;
 const FINGERTIPS = [THUMB_TIP, INDEX_TIP, MIDDLE_TIP, RING_TIP, PINKY_TIP];
 const PALM_CENTER_INDICES = [0, 5, 9, 13, 17]; // Wrist + MCP joints
 
+// Minimum dimensions required for coordinate data (x, y)
+const MIN_COORDINATE_DIMENSIONS = 2;
+
 export class TemporalGestureAnalyzer {
   private frameBuffer: CircularBuffer<TemporalGestureFrame>;
   private confidenceHistory: CircularBuffer<{ gesture: string; confidence: number }>;
@@ -152,7 +155,7 @@ export class TemporalGestureAnalyzer {
       const curr = landmarks[i];
       const prev = previousLandmarks[i];
 
-      if (!curr || !prev || curr.length < 2 || prev.length < 2) continue;
+      if (!curr || !prev || curr.length < MIN_COORDINATE_DIMENSIONS || prev.length < MIN_COORDINATE_DIMENSIONS) continue;
 
       const dx = (curr[0] ?? 0) - (prev[0] ?? 0);
       const dy = (curr[1] ?? 0) - (prev[1] ?? 0);
