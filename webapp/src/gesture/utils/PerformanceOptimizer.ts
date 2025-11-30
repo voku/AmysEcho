@@ -199,6 +199,9 @@ export class PerformanceOptimizer {
 
   /**
    * Get current performance metrics
+   *
+   * @deprecated Use getDiagnostics() instead, which provides a superset of this information
+   * including velocity score, processing intensity, budget utilization, and optimal status.
    */
   getPerformanceMetrics(): {
     frameCount: number;
@@ -207,12 +210,13 @@ export class PerformanceOptimizer {
     skipFrameCount: number;
     targetFrameRate: number;
   } {
+    const diagnostics = this.getDiagnostics();
     return {
-      frameCount: this.frameCount,
-      averageProcessingTime: this.getAverageProcessingTime(),
-      adaptiveFrameSkipping: this.adaptiveFrameSkipping,
-      skipFrameCount: this.skipFrameCount,
-      targetFrameRate: this.targetFrameRate
+      frameCount: diagnostics.frameCount,
+      averageProcessingTime: diagnostics.averageProcessingTime,
+      adaptiveFrameSkipping: diagnostics.adaptiveFrameSkipping,
+      skipFrameCount: diagnostics.skipFrameCount,
+      targetFrameRate: diagnostics.targetFrameRate
     };
   }
 

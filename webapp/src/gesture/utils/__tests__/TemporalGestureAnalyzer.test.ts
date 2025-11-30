@@ -198,7 +198,20 @@ describe('TemporalGestureAnalyzer', () => {
       // detectDynamicGesture should run without error
       const result = analyzer.detectDynamicGesture();
       // Result may or may not match depending on thresholds
-      expect(result === null || typeof result === 'object').toBe(true);
+      // Explicitly check for null OR a valid GestureSequenceResult object
+      if (result === null) {
+        expect(result).toBeNull();
+      } else {
+        // Verify it's a properly structured GestureSequenceResult object
+        expect(result).toHaveProperty('gesture');
+        expect(result).toHaveProperty('confidence');
+        expect(result).toHaveProperty('isSequential');
+        expect(result).toHaveProperty('sequenceProgress');
+        expect(result).toHaveProperty('temporalConfidence');
+        expect(typeof result.gesture).toBe('string');
+        expect(typeof result.confidence).toBe('number');
+        expect(Number.isFinite(result.confidence)).toBe(true);
+      }
     });
 
     it('should handle velocity profiles where maxVelocity equals minVelocity (division by zero protection)', () => {
