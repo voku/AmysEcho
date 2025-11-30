@@ -4,7 +4,7 @@
  * Central registry that describes the meanings Amy sees after a
  * gesture has been recognised. It unifies single-hand, coordinated,
  * and sequential gesture meanings so the UI can always explain the
- * combined Idee statt einzelne Hände zu trennen.
+ * combined meaning instead of separating individual hands.
  */
 
 export type GestureMeaningCategory = 'communication' | 'emotional' | 'playful';

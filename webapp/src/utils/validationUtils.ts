@@ -143,10 +143,11 @@ export const commonValidationRules = {
     name: `${fieldName}_base64`,
     validate: (value) => {
       if (typeof value !== 'string') return false;
+      if (value.length % 4 !== 0) return false;
       const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
       return base64Regex.test(value);
     },
-    message: `${fieldName} must be valid base64`,
+    message: `${fieldName} muss gültiges Base64 sein`,
     severity: 'error'
   }),
 
@@ -186,7 +187,7 @@ export const commonValidationRules = {
         )
       );
     },
-    message: `${fieldName} must be valid landmark data (array of frames with hand landmarks)`,
+    message: `${fieldName} muss gültige Landmarken-Daten enthalten (Array von Frames mit Hand-Landmarken)`,
     severity: 'error'
   })
 };
@@ -201,15 +202,33 @@ export function validateGestureData(data: {
   timestamp?: number;
 }): ValidationResult {
   const rules: ValidationRule<typeof data>[] = [
-    commonValidationRules.gesture('gesture') as ValidationRule<typeof data>,
-    commonValidationRules.confidence('confidence') as ValidationRule<typeof data>,
+    {
+      name: 'gesture_valid',
+      validate: (value) => value.gesture === undefined || commonValidationRules.gesture('gesture').validate(value.gesture),
+      message: 'gesture muss einen gültigen Gestennamen enthalten',
+      severity: 'error'
+    },
+    {
+      name: 'confidence_valid',
+      validate: (value) =>
+        value.confidence === undefined || commonValidationRules.confidence('confidence').validate(value.confidence),
+      message: 'confidence muss eine Zahl zwischen 0 und 1 sein',
+      severity: 'error'
+    },
     {
       name: 'landmarks_valid',
-      validate: (value) => !value.landmarks || commonValidationRules.landmarkData('landmarks').validate(value.landmarks),
-      message: 'Landmarks must be valid if provided',
+      validate: (value) =>
+        value.landmarks === undefined || commonValidationRules.landmarkData('landmarks').validate(value.landmarks),
+      message: 'Landmarks müssen gültig sein, wenn sie angegeben werden',
       severity: 'warning'
     },
-    commonValidationRules.number('timestamp', 0) as ValidationRule<typeof data>
+    {
+      name: 'timestamp_valid',
+      validate: (value) =>
+        value.timestamp === undefined || commonValidationRules.number('timestamp', 0).validate(value.timestamp),
+      message: 'timestamp muss eine Zahl >= 0 sein',
+      severity: 'error'
+    }
   ];
 
   return validateWithRules(data, rules, 'gesture_data');
@@ -274,14 +293,39 @@ export function validateTrainingSample(sample: {
   frameMetadata?: unknown;
 }): ValidationResult {
   const rules: ValidationRule<typeof sample>[] = [
-    commonValidationRules.required('gestureId') as ValidationRule<typeof sample>,
-    commonValidationRules.gesture('gestureId') as ValidationRule<typeof sample>,
-    commonValidationRules.required('landmarkData') as ValidationRule<typeof sample>,
-    commonValidationRules.landmarkData('landmarkData') as ValidationRule<typeof sample>,
+    {
+      name: 'gestureId_required',
+      validate: (value) => value.gestureId !== undefined && value.gestureId !== '',
+      message: 'gestureId ist erforderlich',
+      severity: 'error'
+    },
+    {
+      name: 'gestureId_valid',
+      validate: (value) =>
+        value.gestureId === undefined || commonValidationRules.gesture('gestureId').validate(value.gestureId),
+      message: 'gestureId muss ein gültiger Gestenname sein',
+      severity: 'error'
+    },
+    {
+      name: 'landmarkData_required',
+      validate: (value) => value.landmarkData !== undefined && value.landmarkData !== null,
+      message: 'landmarkData ist erforderlich',
+      severity: 'error'
+    },
+    {
+      name: 'landmarkData_valid',
+      validate: (value) =>
+        value.landmarkData === undefined ||
+        (value.landmarkData !== null && commonValidationRules.landmarkData('landmarkData').validate(value.landmarkData)),
+      message: 'landmarkData muss gültige Landmarken-Daten enthalten',
+      severity: 'error'
+    },
     {
       name: 'frameMetadata_valid',
-      validate: (value) => !value.frameMetadata || commonValidationRules.object('frameMetadata').validate(value.frameMetadata as object),
-      message: 'Frame metadata must be a valid object if provided',
+      validate: (value) =>
+        value.frameMetadata === undefined ||
+        commonValidationRules.object('frameMetadata').validate(value.frameMetadata as object),
+      message: 'Frame-Metadaten müssen ein gültiges Objekt sein, falls angegeben',
       severity: 'warning'
     }
   ];
@@ -298,14 +342,35 @@ export function validateProfile(profile: {
   settings?: unknown;
 }): ValidationResult {
   const rules: ValidationRule<typeof profile>[] = [
-    commonValidationRules.required('id') as ValidationRule<typeof profile>,
-    commonValidationRules.string('id', 1, 50) as ValidationRule<typeof profile>,
-    commonValidationRules.required('name') as ValidationRule<typeof profile>,
-    commonValidationRules.string('name', 1, 100) as ValidationRule<typeof profile>,
+    {
+      name: 'id_required',
+      validate: (value) => value.id !== undefined && value.id !== '',
+      message: 'id ist erforderlich',
+      severity: 'error'
+    },
+    {
+      name: 'id_valid',
+      validate: (value) => value.id === undefined || commonValidationRules.string('id', 1, 50).validate(value.id),
+      message: 'id muss eine Zeichenkette mit 1 bis 50 Zeichen sein',
+      severity: 'error'
+    },
+    {
+      name: 'name_required',
+      validate: (value) => value.name !== undefined && value.name !== '',
+      message: 'name ist erforderlich',
+      severity: 'error'
+    },
+    {
+      name: 'name_valid',
+      validate: (value) => value.name === undefined || commonValidationRules.string('name', 1, 100).validate(value.name),
+      message: 'name muss eine Zeichenkette mit 1 bis 100 Zeichen sein',
+      severity: 'error'
+    },
     {
       name: 'settings_valid',
-      validate: (value) => !value.settings || commonValidationRules.object('settings').validate(value.settings as object),
-      message: 'Settings must be a valid object if provided',
+      validate: (value) =>
+        value.settings === undefined || commonValidationRules.object('settings').validate(value.settings as object),
+      message: 'settings müssen ein gültiges Objekt sein, falls angegeben',
       severity: 'warning'
     }
   ];
