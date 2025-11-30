@@ -18,6 +18,7 @@ import {
   disposeFrameCapture,
 } from '../utils/FrameCaptureManager';
 import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
+import { gestureDebugLog } from '../utils/DebugLogger';
 
 // Performance thresholds
 const SLOW_FRAME_THRESHOLD_MS = 50;
@@ -170,13 +171,13 @@ export class GestureDetector {
         const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
         const recognitionTime = performance.now() - recognitionStart;
 
-        console.log('MediaPipe recognition results:', {
+        gestureDebugLog('recognizer', 'MediaPipe recognition results', () => ({
           hasResults: !!results,
-          gestures: results?.gestures?.length || 0,
-          landmarks: results?.landmarks?.length || 0,
-          handednesses: results?.handednesses?.length || 0,
-          recognitionTime: Math.round(recognitionTime)
-        });
+          gestures: results?.gestures?.length ?? 0,
+          landmarks: results?.landmarks?.length ?? 0,
+          handednesses: results?.handednesses?.length ?? 0,
+          recognitionTime: Math.round(recognitionTime),
+        }));
 
         // Call result callback if set
         if (this.resultCallback && results) {

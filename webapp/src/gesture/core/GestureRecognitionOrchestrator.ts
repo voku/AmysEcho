@@ -27,6 +27,7 @@ import { messageBatcher, FRAME_LATENCY_SAMPLE_INTERVAL } from '../utils/MessageB
 import { captureFrameForTrainer, getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
 import { FallbackClipRecorder, FallbackClipResult } from '../utils/FallbackClipRecorder';
 import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
+import { gestureDebugLog } from '../utils/DebugLogger';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
@@ -283,15 +284,20 @@ export class GestureRecognitionOrchestrator {
         (processingResult.confidence ?? 0) > 0.3 || // Lower threshold for fallback gestures
         Boolean(processingResult.fallback?.gesture);
 
-      console.log('Gesture result check:', JSON.stringify({
+      gestureDebugLog('results', 'Gesture result check', () => ({
         hasGestureResult,
         gesture: processingResult.gesture,
         confidence: processingResult.confidence,
-        hasFallback: Boolean(processingResult.fallback?.gesture)
+        hasFallback: Boolean(processingResult.fallback?.gesture),
       }));
 
       if (hasGestureResult) {
-        console.log('Sending gesture result:', JSON.stringify(processingResult));
+        gestureDebugLog('results', 'Sending gesture result', () => ({
+          gesture: processingResult.gesture,
+          confidence: processingResult.confidence,
+          isFallback: processingResult.isFallback,
+          stepsExecuted: processingResult.stepsExecuted,
+        }), { sampleIntervalMs: 3000 });
         this.sendGestureResult(processingResult, results);
       } else if (hasLandmarks) {
         // Send landmark data so the app can log uncertain frames and build training datasets
@@ -1017,7 +1023,11 @@ export class GestureRecognitionOrchestrator {
     const metrics = this.performanceOptimizer.getPerformanceMetrics();
     const memoryStatus = this.memoryOptimizer.getMemoryStatus();
     const shouldSkip = metrics.averageProcessingTime > 50 || memoryStatus.pressureLevel > 1;
-    console.log('shouldSkipExpensiveSteps:', shouldSkip, 'avgTime:', metrics.averageProcessingTime, 'memoryPressure:', memoryStatus.pressureLevel);
+    gestureDebugLog('pipeline', 'Expensive step decision', () => ({
+      shouldSkip,
+      avgProcessingTime: metrics.averageProcessingTime,
+      memoryPressure: memoryStatus.pressureLevel,
+    }), { sampleIntervalMs: 2500 });
     return shouldSkip;
   }
 
