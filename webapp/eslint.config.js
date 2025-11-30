@@ -31,7 +31,7 @@ export default [
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-react': 'off',
       'react-hooks/exhaustive-deps': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {

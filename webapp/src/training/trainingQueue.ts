@@ -424,7 +424,6 @@ export async function markBundleFailed(key: string, error: string): Promise<void
 
 export async function markBundleUploading(key: string): Promise<void> {
   await updateBundle(key, (bundle) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { lastError: _, ...rest } = bundle;
     return {
       ...rest,
