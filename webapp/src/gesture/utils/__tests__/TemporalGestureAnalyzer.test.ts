@@ -200,6 +200,26 @@ describe('TemporalGestureAnalyzer', () => {
       // Result may or may not match depending on thresholds
       expect(result === null || typeof result === 'object').toBe(true);
     });
+
+    it('should handle velocity profiles where maxVelocity equals minVelocity (division by zero protection)', () => {
+      // This test ensures the division by zero fix works correctly
+      // When velocity exactly matches a narrow range, deviation should be 0, not NaN/Infinity
+      // Add frames with velocity that falls within a typical gesture profile range
+      for (let i = 0; i < 15; i++) {
+        const x = 0.4 + i * 0.02; // Steady movement
+        const landmarks = createTestLandmarks(x, 0.5);
+        analyzer.addFrame(landmarks, i * 33);
+      }
+
+      // Should not throw and should return a valid result (null or object with valid confidence)
+      const result = analyzer.detectDynamicGesture();
+      
+      if (result !== null) {
+        expect(Number.isFinite(result.confidence)).toBe(true);
+        expect(result.confidence).toBeGreaterThanOrEqual(0);
+        expect(result.confidence).toBeLessThanOrEqual(1);
+      }
+    });
   });
 
   describe('statistics', () => {

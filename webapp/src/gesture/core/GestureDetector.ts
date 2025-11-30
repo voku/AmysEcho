@@ -20,6 +20,7 @@ import {
 import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
+import { TemporalGestureAnalyzer } from '../utils/TemporalGestureAnalyzer';
 
 // Performance thresholds
 const SLOW_FRAME_THRESHOLD_MS = 50;
@@ -34,6 +35,7 @@ export class GestureDetector {
   private overlayRenderer: OverlayRenderer;
   private healthMonitor: HealthMonitor;
   private performanceOptimizer: PerformanceOptimizer;
+  private temporalAnalyzer: TemporalGestureAnalyzer;
   private video: HTMLVideoElement;
   private gestureRecognizer: GestureRecognizerLike | null = null;
   private running = false;
@@ -49,6 +51,7 @@ export class GestureDetector {
     this.overlayRenderer = new OverlayRenderer(overlay);
     this.healthMonitor = new HealthMonitor();
     this.performanceOptimizer = new PerformanceOptimizer();
+    this.temporalAnalyzer = new TemporalGestureAnalyzer();
 
     if (this.config.performance?.targetFrameRate) {
       this.performanceOptimizer.setTargetFrameRate(this.config.performance.targetFrameRate);
@@ -205,6 +208,16 @@ export class GestureDetector {
             )
           : [];
 
+        // Update temporal analysis for velocity-based optimizations
+        if (normalizedLandmarks.length > 0 && normalizedLandmarks[0]) {
+          const velocityFeatures = this.temporalAnalyzer.addFrame(
+            normalizedLandmarks[0],
+            frameStart,
+          );
+          // Update performance optimizer with velocity for adaptive processing
+          this.performanceOptimizer.updateVelocityScore(velocityFeatures.averageVelocity);
+        }
+
         this.updateOverlay(normalizedLandmarks, recognitionTime, frameStart);
 
         if (normalizedLandmarks.length > 0) {
@@ -285,6 +298,7 @@ export class GestureDetector {
 
     await this.cameraManager.stopCamera();
     await this.resourceManager.dispose();
+    this.temporalAnalyzer.dispose();
     setFrameCaptureEnabled(false);
     disposeFrameCapture();
   }

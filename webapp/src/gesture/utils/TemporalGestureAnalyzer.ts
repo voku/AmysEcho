@@ -49,14 +49,14 @@ export interface GestureSequenceResult {
 }
 
 // Landmark indices for MediaPipe hand model
-const _WRIST = 0;
+const WRIST = 0;
 const THUMB_TIP = 4;
 const INDEX_TIP = 8;
 const MIDDLE_TIP = 12;
 const RING_TIP = 16;
 const PINKY_TIP = 20;
 const FINGERTIPS = [THUMB_TIP, INDEX_TIP, MIDDLE_TIP, RING_TIP, PINKY_TIP];
-const PALM_CENTER_INDICES = [0, 5, 9, 13, 17]; // Wrist + MCP joints
+const PALM_CENTER_INDICES = [WRIST, 5, 9, 13, 17]; // Wrist + MCP joints
 
 // Minimum dimensions required for coordinate data (x, y)
 const MIN_COORDINATE_DIMENSIONS = 2;
@@ -111,8 +111,8 @@ export class TemporalGestureAnalyzer {
       landmarks,
       timestamp,
       velocityFeatures,
-      gesture,
-      confidence,
+      ...(gesture !== undefined && { gesture }),
+      ...(confidence !== undefined && { confidence }),
     };
 
     this.frameBuffer.push(frame);
@@ -336,7 +336,8 @@ export class TemporalGestureAnalyzer {
         matchingFrames++;
         // Compute how well velocity matches expected range
         const midpoint = (profile.minVelocity + profile.maxVelocity) / 2;
-        const deviation = Math.abs(velocity - midpoint) / (profile.maxVelocity - profile.minVelocity);
+        const range = profile.maxVelocity - profile.minVelocity;
+        const deviation = range > 0 ? Math.abs(velocity - midpoint) / range : 0;
         totalVelocityMatch += 1 - deviation;
       }
 
