@@ -214,4 +214,39 @@ export class PerformanceOptimizer {
   setLandmarkChangeThreshold(threshold: number): void {
     this.landmarkChangeThreshold = Math.max(0.001, Math.min(0.1, threshold));
   }
+
+  /**
+   * Reset the landmark signature when no hands are detected
+   * This ensures the next detected hand triggers a fresh overlay redraw
+   */
+  resetLandmarkSignature(): void {
+    this.lastLandmarksSignature = '';
+  }
+
+  /**
+   * Get the last recorded processing time for diagnostics
+   */
+  getLastProcessingTime(): number {
+    return this.lastProcessingTime;
+  }
+
+  /**
+   * Check if current performance is within optimal thresholds
+   * Returns true if average processing time is below target frame time
+   */
+  isPerformanceOptimal(): boolean {
+    const targetFrameTime = 1000 / this.targetFrameRate;
+    const avgProcessingTime = this.processingTimes.length > 0
+      ? this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length
+      : 0;
+    return avgProcessingTime < targetFrameTime;
+  }
+
+  /**
+   * Check if the landmark signature has been set (hands were previously detected)
+   * Useful for determining if this is the first detection after a gap
+   */
+  hasLandmarkSignature(): boolean {
+    return this.lastLandmarksSignature !== '';
+  }
 }
