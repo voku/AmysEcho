@@ -155,6 +155,215 @@ describe('PerformanceOptimizer', () => {
       expect(optimizer.hasLandmarkSignature()).toBe(false);
     });
   });
+
+  describe('velocity-adaptive processing', () => {
+    const VELOCITY_LOW_THRESHOLD = 0.005;
+    const VELOCITY_HIGH_THRESHOLD = 0.02;
+
+    it('should enable/disable velocity-adaptive mode', () => {
+      expect(optimizer.isVelocityAdaptiveModeEnabled()).toBe(true); // Default enabled
+
+      optimizer.setVelocityAdaptiveMode(false);
+      expect(optimizer.isVelocityAdaptiveModeEnabled()).toBe(false);
+
+      optimizer.setVelocityAdaptiveMode(true);
+      expect(optimizer.isVelocityAdaptiveModeEnabled()).toBe(true);
+    });
+
+    it('should return full intensity when velocity-adaptive mode is disabled', () => {
+      optimizer.setVelocityAdaptiveMode(false);
+      optimizer.updateVelocityScore(0.001); // Very low velocity
+
+      expect(optimizer.getProcessingIntensity()).toBe(1.0);
+    });
+
+    it('should return minimal intensity (0.3) for static hand (velocity below low threshold)', () => {
+      optimizer.setVelocityAdaptiveMode(true);
+      optimizer.updateVelocityScore(0.001); // Below VELOCITY_LOW_THRESHOLD (0.005)
+
+      expect(optimizer.getProcessingIntensity()).toBe(0.3);
+    });
+
+    it('should return moderate intensity (0.6) for slow movement (velocity between thresholds)', () => {
+      optimizer.setVelocityAdaptiveMode(true);
+      optimizer.updateVelocityScore(0.01); // Between 0.005 and 0.02
+
+      expect(optimizer.getProcessingIntensity()).toBe(0.6);
+    });
+
+    it('should return full intensity (1.0) for active movement (velocity above high threshold)', () => {
+      optimizer.setVelocityAdaptiveMode(true);
+      optimizer.updateVelocityScore(0.03); // Above VELOCITY_HIGH_THRESHOLD (0.02)
+
+      expect(optimizer.getProcessingIntensity()).toBe(1.0);
+    });
+
+    it('should handle threshold boundary - exactly at low threshold', () => {
+      optimizer.setVelocityAdaptiveMode(true);
+      optimizer.updateVelocityScore(VELOCITY_LOW_THRESHOLD);
+
+      // At exactly the low threshold, should be moderate (not minimal)
+      expect(optimizer.getProcessingIntensity()).toBe(0.6);
+    });
+
+    it('should handle threshold boundary - exactly at high threshold', () => {
+      optimizer.setVelocityAdaptiveMode(true);
+      optimizer.updateVelocityScore(VELOCITY_HIGH_THRESHOLD);
+
+      // At exactly the high threshold, should be full intensity
+      expect(optimizer.getProcessingIntensity()).toBe(1.0);
+    });
+
+    it('should handle zero velocity', () => {
+      optimizer.setVelocityAdaptiveMode(true);
+      optimizer.updateVelocityScore(0);
+
+      expect(optimizer.getProcessingIntensity()).toBe(0.3);
+    });
+  });
+
+  describe('shouldSkipExpensiveProcessing', () => {
+    it('should skip expensive processing when hand is static and has landmark signature', () => {
+      // First set a landmark signature
+      const landmarks = [[[0.1, 0.1, 0.0], [0.2, 0.2, 0.0]]];
+      optimizer.shouldRedrawOverlay(landmarks, 20);
+      expect(optimizer.hasLandmarkSignature()).toBe(true);
+
+      // Set low velocity (static hand)
+      optimizer.updateVelocityScore(0.001);
+
+      expect(optimizer.shouldSkipExpensiveProcessing()).toBe(true);
+    });
+
+    it('should not skip expensive processing when no landmark signature exists', () => {
+      // No landmark signature set
+      expect(optimizer.hasLandmarkSignature()).toBe(false);
+
+      // Even with low velocity, should not skip if no signature
+      optimizer.updateVelocityScore(0.001);
+
+      expect(optimizer.shouldSkipExpensiveProcessing()).toBe(false);
+    });
+
+    it('should not skip expensive processing when hand is moving', () => {
+      // Set landmark signature
+      const landmarks = [[[0.1, 0.1, 0.0], [0.2, 0.2, 0.0]]];
+      optimizer.shouldRedrawOverlay(landmarks, 20);
+
+      // Set high velocity (moving hand)
+      optimizer.updateVelocityScore(0.03);
+
+      expect(optimizer.shouldSkipExpensiveProcessing()).toBe(false);
+    });
+
+    it('should skip expensive processing when budget utilization is over 1.2', () => {
+      // Record slow processing times to increase budget utilization
+      optimizer.setTargetFrameRate(30); // ~33.3ms per frame
+      for (let i = 0; i < 10; i++) {
+        optimizer.recordProcessingTime(50); // Exceeds target
+      }
+
+      // Update velocity to trigger budget calculation
+      optimizer.updateVelocityScore(0.03);
+
+      // Budget utilization should be > 1.2
+      expect(optimizer.getBudgetUtilization()).toBeGreaterThan(1.2);
+      expect(optimizer.shouldSkipExpensiveProcessing()).toBe(true);
+    });
+  });
+
+  describe('budget management', () => {
+    it('should return initial budget of ~33ms for 30fps target', () => {
+      optimizer.setTargetFrameRate(30);
+      // Initial budget before any velocity updates
+      expect(optimizer.getProcessingBudgetMs()).toBeCloseTo(33.33, 0);
+    });
+
+    it('should reduce processing budget for static hands', () => {
+      optimizer.setTargetFrameRate(30);
+      const fullBudget = 1000 / 30; // ~33.3ms
+
+      // Update with low velocity (static hand)
+      optimizer.updateVelocityScore(0.001);
+
+      // Budget should be halved for static hands
+      expect(optimizer.getProcessingBudgetMs()).toBeCloseTo(fullBudget * 0.5, 1);
+    });
+
+    it('should use full processing budget for moving hands', () => {
+      optimizer.setTargetFrameRate(30);
+      const fullBudget = 1000 / 30; // ~33.3ms
+
+      // Update with high velocity (moving hand)
+      optimizer.updateVelocityScore(0.03);
+
+      expect(optimizer.getProcessingBudgetMs()).toBeCloseTo(fullBudget, 1);
+    });
+
+    it('should calculate budget utilization based on average processing time', () => {
+      optimizer.setTargetFrameRate(30); // ~33.3ms per frame
+
+      // Record processing times that are about half of target
+      optimizer.recordProcessingTime(16);
+      optimizer.recordProcessingTime(17);
+      optimizer.recordProcessingTime(16);
+      optimizer.updateVelocityScore(0.01); // Trigger budget calculation
+
+      // Budget utilization should be about 0.5 (16.5ms / 33.3ms)
+      expect(optimizer.getBudgetUtilization()).toBeCloseTo(0.5, 1);
+    });
+
+    it('should report budget utilization > 1.0 when over budget', () => {
+      optimizer.setTargetFrameRate(30); // ~33.3ms per frame
+
+      // Record processing times that exceed target
+      for (let i = 0; i < 5; i++) {
+        optimizer.recordProcessingTime(50);
+      }
+      optimizer.updateVelocityScore(0.01); // Trigger budget calculation
+
+      // Budget utilization should be > 1.0
+      expect(optimizer.getBudgetUtilization()).toBeGreaterThan(1.0);
+    });
+  });
+
+  describe('getDiagnostics', () => {
+    it('should return comprehensive performance diagnostics', () => {
+      // Set up some state
+      optimizer.setTargetFrameRate(30);
+      optimizer.recordProcessingTime(20);
+      optimizer.recordProcessingTime(25);
+      optimizer.updateVelocityScore(0.015);
+
+      const diagnostics = optimizer.getDiagnostics();
+
+      expect(diagnostics).toHaveProperty('frameCount');
+      expect(diagnostics).toHaveProperty('averageProcessingTime');
+      expect(diagnostics).toHaveProperty('lastProcessingTime');
+      expect(diagnostics).toHaveProperty('targetFrameRate');
+      expect(diagnostics).toHaveProperty('adaptiveFrameSkipping');
+      expect(diagnostics).toHaveProperty('skipFrameCount');
+      expect(diagnostics).toHaveProperty('velocityScore');
+      expect(diagnostics).toHaveProperty('processingIntensity');
+      expect(diagnostics).toHaveProperty('budgetUtilization');
+      expect(diagnostics).toHaveProperty('isOptimal');
+    });
+
+    it('should reflect velocity score in diagnostics', () => {
+      optimizer.updateVelocityScore(0.025);
+
+      const diagnostics = optimizer.getDiagnostics();
+      expect(diagnostics.velocityScore).toBe(0.025);
+    });
+
+    it('should reflect processing intensity in diagnostics', () => {
+      optimizer.setVelocityAdaptiveMode(true);
+      optimizer.updateVelocityScore(0.001); // Static hand
+
+      const diagnostics = optimizer.getDiagnostics();
+      expect(diagnostics.processingIntensity).toBe(0.3);
+    });
+  });
 });
 
 describe('MemoryOptimizer', () => {
