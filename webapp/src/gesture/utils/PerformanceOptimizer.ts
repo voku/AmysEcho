@@ -37,6 +37,11 @@ export class PerformanceOptimizer {
   private readonly VELOCITY_LOW_THRESHOLD = 0.005;
   private readonly VELOCITY_HIGH_THRESHOLD = 0.02;
 
+  // Processing intensity levels (scientific: adaptive processing based on hand movement)
+  private readonly PROCESSING_INTENSITY_MINIMAL = 0.3; // For static hand - minimal CPU/GPU usage
+  private readonly PROCESSING_INTENSITY_MODERATE = 0.6; // For slow movement - balanced processing
+  private readonly PROCESSING_INTENSITY_FULL = 1.0; // For active movement - full processing
+
   // Processing budget management (scientific: GPU/CPU load balancing)
   private processingBudgetMs = 33; // ~30fps target
   private budgetUtilization = 0;
@@ -270,14 +275,14 @@ export class PerformanceOptimizer {
    * Scientific: Skip expensive processing when hand is static
    */
   getProcessingIntensity(): number {
-    if (!this.velocityAdaptiveMode) return 1.0;
+    if (!this.velocityAdaptiveMode) return this.PROCESSING_INTENSITY_FULL;
 
     if (this.lastVelocityScore < this.VELOCITY_LOW_THRESHOLD) {
-      return 0.3; // Minimal processing for static hand
+      return this.PROCESSING_INTENSITY_MINIMAL;
     } else if (this.lastVelocityScore < this.VELOCITY_HIGH_THRESHOLD) {
-      return 0.6; // Moderate processing for slow movement
+      return this.PROCESSING_INTENSITY_MODERATE;
     } else {
-      return 1.0; // Full processing for active movement
+      return this.PROCESSING_INTENSITY_FULL;
     }
   }
 
