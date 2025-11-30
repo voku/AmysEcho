@@ -12,7 +12,7 @@ import {
 } from '../training/trainingQueue';
 import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleResponse } from '../training/types';
 import { normalizeTrainingJobStatus } from '../training/trainingBundle';
-import { extractTrainingJob, triggerTrainingJob } from '../training/trainingJob';
+import { triggerTrainingJob } from '../training/trainingJob';
 import { resolvePollUrl } from './useApiConfig';
 
 export type UploadState = 'idle' | 'preparing' | 'uploading' | 'queued' | 'success' | 'error';
@@ -336,16 +336,8 @@ export function useTrainingUploader(
         setState('uploading');
         const resolvedOptions = resolveOptions(options);
         const result = await uploadTrainingZip(zip, resolvedOptions);
-        const resolvedPollUrl = resolvePollUrl(
-          resolvedOptions.apiBase ?? '',
-          result.trainingJob?.pollUrl,
-          result.trainingJob?.jobId ?? '',
-        );
         const resolvedTrainingJob = result.trainingJob
-          ? applyTrainingJob({
-              ...result.trainingJob,
-              ...(resolvedPollUrl ? { pollUrl: resolvedPollUrl } : {}),
-            }, resolvedOptions.apiBase)
+          ? applyTrainingJob(result.trainingJob, resolvedOptions.apiBase)
           : null;
         setLastResult(resolvedTrainingJob ? { ...result, trainingJob: resolvedTrainingJob } : result);
         setState('success');

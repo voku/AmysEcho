@@ -61,7 +61,7 @@ class GestureDataProtector {
     };
   }
 
-  private async encrypt(data: unknown): Promise<string> {
+  private async encrypt(data: AnonymizedGestureData): Promise<string> {
     const key = await this.getKey();
     return encryptJson(data, key);
   }
@@ -81,7 +81,7 @@ class GestureDataProtector {
           records = parsed.filter((r) => typeof r?.expires === 'number' && typeof r?.data === 'string');
         }
       } catch (error) {
-        console.warn('Gespeicherte geschützte Gesten konnten nicht geparst werden, verwende frische Liste.', error);
+        console.warn('Failed to parse stored protected gestures, using fresh list.', error);
       }
     }
     records.push({ data, expires: Date.now() + days * 24 * 60 * 60 * 1000 });
@@ -103,7 +103,7 @@ class GestureDataProtector {
       const parsed = JSON.parse(raw);
       records = Array.isArray(parsed) ? parsed : [];
     } catch (error) {
-      console.warn('Gespeicherte geschützte Gesten konnten nicht bereinigt werden.', error);
+      console.warn('Failed to cleanup stored protected gestures.', error);
       return 0;
     }
 

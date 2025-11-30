@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { telemetry, TelemetryRecorder } from './recorder';
+import { TelemetryRecorder } from './recorder';
 
 describe('TelemetryRecorder', () => {
   beforeEach(() => {

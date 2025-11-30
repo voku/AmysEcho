@@ -1,3 +1,5 @@
+import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
+
 /**
  * Enhanced Error Recovery Manager for robust error handling
  * Extracted from main gestureDetector.ts for better modularity
@@ -289,4 +291,3 @@ export class ErrorRecoveryManager {
     };
   }
 }
-import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';

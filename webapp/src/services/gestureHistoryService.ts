@@ -46,7 +46,7 @@ class GestureHistoryService {
   private hydrationPromise: Promise<void>;
   private readonly sessionId: string = typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
-    : `session-${Date.now()}-${Math.random()}`;
+    : this.generateRandomSessionId();
 
   static getInstance(): GestureHistoryService {
     if (!GestureHistoryService.instance) {
@@ -97,6 +97,18 @@ class GestureHistoryService {
 
     void this.saveHistory();
     logger.debug('Gesture added to history:', entry.label);
+  }
+
+  private generateRandomSessionId(): string {
+    if (typeof crypto.getRandomValues !== 'function') {
+      throw new Error('Konnte keine sichere Sitzungs-ID generieren');
+    }
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant
+    const toHex = (value: number) => value.toString(16).padStart(2, '0');
+    const hex = Array.from(bytes, toHex).join('');
+    return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`;
   }
 
   /**

@@ -21,6 +21,7 @@ async function getOrCreateKey(): Promise<string> {
 
 function createDownload(payload: string, fileName: string, mime = 'application/octet-stream'): BackupArtifact {
   const blob = new Blob([payload], { type: mime });
+  // Polyfill for test environments (e.g., jsdom) where Blob.text might be missing
   if (typeof (blob as any).text !== 'function') {
     (blob as any).text = async () => payload;
   }
@@ -44,7 +45,7 @@ export const backupService = {
       throw new Error('Sicherung nicht möglich, Daten beschädigt');
     }
 
-    if (!Array.isArray(parsed) && typeof parsed !== 'object') {
+    if (!Array.isArray(parsed)) {
       logger.error('Ungültige Datenstruktur für Sicherung');
       throw new Error('Sicherung nicht möglich, Daten beschädigt');
     }
@@ -80,7 +81,7 @@ export const backupService = {
       return false;
     }
 
-    if (!Array.isArray(parsed) && typeof parsed !== 'object') {
+    if (!Array.isArray(parsed)) {
       logger.error('Sicherungsdatei enthält ungültige Datenstruktur');
       return false;
     }
