@@ -364,6 +364,63 @@ describe('PerformanceOptimizer', () => {
       expect(diagnostics.processingIntensity).toBe(0.3);
     });
   });
+
+  describe('reset', () => {
+    it('should reset velocity-related state for clean baseline', () => {
+      // Set up some state
+      optimizer.setTargetFrameRate(30);
+      optimizer.recordProcessingTime(25);
+      optimizer.recordProcessingTime(30);
+      optimizer.updateVelocityScore(0.015);
+      
+      // Set a landmark signature
+      const landmarks = [[[0.1, 0.1, 0.0], [0.2, 0.2, 0.0]]];
+      optimizer.shouldRedrawOverlay(landmarks, 20);
+      
+      // Process some frames
+      for (let i = 0; i < 10; i++) {
+        optimizer.shouldProcessFrame();
+      }
+
+      // Verify state is set
+      const beforeDiagnostics = optimizer.getDiagnostics();
+      expect(beforeDiagnostics.frameCount).toBeGreaterThan(0);
+      expect(beforeDiagnostics.velocityScore).toBe(0.015);
+      expect(beforeDiagnostics.lastProcessingTime).toBe(30);
+
+      // Reset
+      optimizer.reset();
+
+      // Verify all state is reset
+      const afterDiagnostics = optimizer.getDiagnostics();
+      expect(afterDiagnostics.frameCount).toBe(0);
+      expect(afterDiagnostics.velocityScore).toBe(0);
+      expect(afterDiagnostics.lastProcessingTime).toBe(0);
+      expect(afterDiagnostics.averageProcessingTime).toBe(0);
+      expect(afterDiagnostics.budgetUtilization).toBe(0);
+      expect(afterDiagnostics.adaptiveFrameSkipping).toBe(false);
+      expect(afterDiagnostics.skipFrameCount).toBe(0);
+      expect(optimizer.hasLandmarkSignature()).toBe(false);
+      // Processing budget should be reset to target frame time
+      expect(optimizer.getProcessingBudgetMs()).toBeCloseTo(1000 / 30, 0);
+    });
+
+    it('should not return stale velocity metrics after reset', () => {
+      // Set up velocity state
+      optimizer.setTargetFrameRate(30);
+      optimizer.updateVelocityScore(0.03); // High velocity
+      
+      // Verify intensity is based on high velocity
+      expect(optimizer.getProcessingIntensity()).toBe(1.0);
+      
+      // Reset
+      optimizer.reset();
+      
+      // After reset, velocity should be 0, so intensity should be minimal
+      expect(optimizer.getDiagnostics().velocityScore).toBe(0);
+      expect(optimizer.getProcessingIntensity()).toBe(0.3); // Minimal for static (0 velocity)
+    });
+  });
 });
 
 describe('MemoryOptimizer', () => {
