@@ -101,7 +101,7 @@ async function actuallyStartServer(attempt = 1) {
     }
     try {
       const res = await fetch(`http://localhost:${TEST_PORT}/model-version`, {
-        headers: { Authorization: `Bearer ${TEST_TOKEN}` },
+        headers: serverHeaders(),
       });
       if (res.ok) return;
     } catch {

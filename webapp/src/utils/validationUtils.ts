@@ -143,7 +143,6 @@ export const commonValidationRules = {
     name: `${fieldName}_base64`,
     validate: (value) => {
       if (typeof value !== 'string') return false;
-      if (value.length === 0) return true;
       if (value.length % 4 !== 0) return false;
       const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
       return base64Regex.test(value);
@@ -316,15 +315,16 @@ export function validateTrainingSample(sample: {
     {
       name: 'landmarkData_valid',
       validate: (value) =>
-        value.landmarkData === undefined
-          ? true
-          : value.landmarkData !== null && commonValidationRules.landmarkData('landmarkData').validate(value.landmarkData),
+        value.landmarkData === undefined ||
+        (value.landmarkData !== null && commonValidationRules.landmarkData('landmarkData').validate(value.landmarkData)),
       message: 'landmarkData muss gültige Landmarken-Daten enthalten',
       severity: 'error'
     },
     {
       name: 'frameMetadata_valid',
-      validate: (value) => !value.frameMetadata || commonValidationRules.object('frameMetadata').validate(value.frameMetadata as object),
+      validate: (value) =>
+        value.frameMetadata === undefined ||
+        commonValidationRules.object('frameMetadata').validate(value.frameMetadata as object),
       message: 'Frame-Metadaten müssen ein gültiges Objekt sein, falls angegeben',
       severity: 'warning'
     }
@@ -368,7 +368,8 @@ export function validateProfile(profile: {
     },
     {
       name: 'settings_valid',
-      validate: (value) => !value.settings || commonValidationRules.object('settings').validate(value.settings as object),
+      validate: (value) =>
+        value.settings === undefined || commonValidationRules.object('settings').validate(value.settings as object),
       message: 'settings müssen ein gültiges Objekt sein, falls angegeben',
       severity: 'warning'
     }
