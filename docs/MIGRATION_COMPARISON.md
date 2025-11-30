@@ -114,6 +114,17 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 | Health Score | ✅ | ✅ | Gesture health and practice suggestions |
 | Engagement Tracking | ✅ | ✅ | Session statistics |
 
+### Performance Optimizations
+
+| Feature | App | Webapp | Notes |
+|---------|-----|--------|-------|
+| One Euro Filter | ✅ | ✅ | Adaptive noise reduction for landmarks |
+| Landmark Normalization | ✅ | ✅ | Wrist-origin translation and scaling |
+| Tremor Compensation | ✅ | ✅ | Optimized history-based smoothing |
+| Memory Optimization | ✅ | ✅ | Circular buffers, cleanup callbacks |
+| Frame Skip Logic | ✅ | ✅ | Adaptive frame processing |
+| Detection Accuracy | ✅ | ✅ | Multi-method conflict resolution |
+
 ### User Experience
 
 | Feature | App | Webapp | Notes |
@@ -139,7 +150,7 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 ## Test Coverage
 
 - **App Tests**: 150+ test files in app/test/
-- **Webapp Tests**: 40 test files, 425 tests passing
+- **Webapp Tests**: 42 test files, 457 tests passing
 - **Integration Tests**: 6 tests passing
 
 ## Conclusion
@@ -151,7 +162,8 @@ The webapp now has **complete feature parity** with the Expo app for all core fu
 3. ✅ Training, upload, and sync functionality works
 4. ✅ User experience features (onboarding, tutorial, help) are complete
 5. ✅ Parent/admin areas are accessible
-6. ✅ All 425 webapp tests pass
+6. ✅ All 457 webapp tests pass
 7. ✅ All learning and optimization services migrated (active learning, context-aware recognition, personalized confidence, performance monitoring, gesture suggestions, health score, engagement tracking)
+8. ✅ Performance optimizations migrated (OneEuroFilter for tremor reduction, landmark normalization, detection accuracy enhancement)
 
 The `app/` directory is kept as reference for any edge cases during validation.
