@@ -327,8 +327,8 @@ export class GestureRecognitionOrchestrator {
 
       this.frameSampleCounter += 1;
       if (this.frameSampleCounter >= FRAME_LATENCY_SAMPLE_INTERVAL) {
-        const metrics = this.performanceOptimizer.getPerformanceMetrics();
-        if (metrics.averageProcessingTime > 30) {
+        const diagnostics = this.performanceOptimizer.getDiagnostics();
+        if (diagnostics.averageProcessingTime > 30) {
           messageBatcher.forceFlush();
         }
         this.frameSampleCounter = 0;
@@ -1020,12 +1020,12 @@ export class GestureRecognitionOrchestrator {
    * Determine if expensive processing steps should be skipped
    */
   private shouldSkipExpensiveSteps(): boolean {
-    const metrics = this.performanceOptimizer.getPerformanceMetrics();
+    const diagnostics = this.performanceOptimizer.getDiagnostics();
     const memoryStatus = this.memoryOptimizer.getMemoryStatus();
-    const shouldSkip = metrics.averageProcessingTime > 50 || memoryStatus.pressureLevel > 1;
+    const shouldSkip = diagnostics.averageProcessingTime > 50 || memoryStatus.pressureLevel > 1;
     gestureDebugLog('pipeline', 'Expensive step decision', () => ({
       shouldSkip,
-      avgProcessingTime: metrics.averageProcessingTime,
+      avgProcessingTime: diagnostics.averageProcessingTime,
       memoryPressure: memoryStatus.pressureLevel,
     }), { sampleIntervalMs: 2500 });
     return shouldSkip;
@@ -1110,11 +1110,11 @@ export class GestureRecognitionOrchestrator {
   }
 
   private updateLandmarkInterval(): void {
-    const metrics = this.performanceOptimizer.getPerformanceMetrics();
-    const average = Number.isFinite(metrics.averageProcessingTime)
-      ? metrics.averageProcessingTime
+    const diagnostics = this.performanceOptimizer.getDiagnostics();
+    const average = Number.isFinite(diagnostics.averageProcessingTime)
+      ? diagnostics.averageProcessingTime
       : 0;
-    const adaptivePadding = metrics.adaptiveFrameSkipping ? ADAPTIVE_PADDING_MS : BASE_PADDING_MS;
+    const adaptivePadding = diagnostics.adaptiveFrameSkipping ? ADAPTIVE_PADDING_MS : BASE_PADDING_MS;
     const computed = average > 0 ? average * PROCESSING_TIME_MULTIPLIER + adaptivePadding : DEFAULT_LANDMARK_INTERVAL_MS;
     const clamped = Math.max(MIN_LANDMARK_INTERVAL_MS, Math.min(MAX_LANDMARK_INTERVAL_MS, computed));
     this.landmarkSendIntervalMs = Math.round(clamped);
@@ -1126,14 +1126,14 @@ export class GestureRecognitionOrchestrator {
   getStatus(): {
     initialized: boolean;
     running: boolean;
-    performance: any;
-    memory: any;
-    health: any;
+    performance: ReturnType<PerformanceOptimizer['getDiagnostics']>;
+    memory: ReturnType<MemoryOptimizer['getMemoryStatus']>;
+    health: ReturnType<ErrorRecoveryManager['getHealthStatus']>;
   } {
     return {
       initialized: this.isInitialized,
       running: this.isRunning,
-      performance: this.performanceOptimizer.getPerformanceMetrics(),
+      performance: this.performanceOptimizer.getDiagnostics(),
       memory: this.memoryOptimizer.getMemoryStatus(),
       health: this.errorRecoveryManager.getHealthStatus()
     };

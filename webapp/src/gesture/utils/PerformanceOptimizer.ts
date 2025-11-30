@@ -198,25 +198,6 @@ export class PerformanceOptimizer {
   }
 
   /**
-   * Get current performance metrics
-   */
-  getPerformanceMetrics(): {
-    frameCount: number;
-    averageProcessingTime: number;
-    adaptiveFrameSkipping: boolean;
-    skipFrameCount: number;
-    targetFrameRate: number;
-  } {
-    return {
-      frameCount: this.frameCount,
-      averageProcessingTime: this.getAverageProcessingTime(),
-      adaptiveFrameSkipping: this.adaptiveFrameSkipping,
-      skipFrameCount: this.skipFrameCount,
-      targetFrameRate: this.targetFrameRate
-    };
-  }
-
-  /**
    * Reset performance tracking
    */
   reset(): void {

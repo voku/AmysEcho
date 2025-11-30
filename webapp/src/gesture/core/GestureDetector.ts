@@ -209,13 +209,20 @@ export class GestureDetector {
           : [];
 
         // Update temporal analysis for velocity-based optimizations
-        if (normalizedLandmarks.length > 0 && normalizedLandmarks[0]) {
-          const velocityFeatures = this.temporalAnalyzer.addFrame(
-            normalizedLandmarks[0],
-            frameStart,
-          );
-          // Update performance optimizer with velocity for adaptive processing
-          this.performanceOptimizer.updateVelocityScore(velocityFeatures.averageVelocity);
+        // Process all detected hands and use the maximum velocity for adaptive processing
+        if (normalizedLandmarks.length > 0) {
+          let maxVelocity = 0;
+          for (const handLandmarks of normalizedLandmarks) {
+            if (handLandmarks) {
+              const velocityFeatures = this.temporalAnalyzer.addFrame(
+                handLandmarks,
+                frameStart,
+              );
+              maxVelocity = Math.max(maxVelocity, velocityFeatures.averageVelocity);
+            }
+          }
+          // Update performance optimizer with maximum velocity for adaptive processing
+          this.performanceOptimizer.updateVelocityScore(maxVelocity);
         }
 
         this.updateOverlay(normalizedLandmarks, recognitionTime, frameStart);

@@ -418,24 +418,6 @@ export class TemporalGestureAnalyzer {
   }
 
   /**
-   * Get recommended processing intensity based on movement
-   * Returns a value from 0 to 1 indicating how much processing is needed
-   */
-  getProcessingIntensity(): number {
-    if (!this.lastVelocityFeatures) return 1;
-
-    const velocity = this.lastVelocityFeatures.averageVelocity;
-
-    if (velocity < this.STATIC_THRESHOLD) {
-      return 0.3; // Minimal processing for static hand
-    } else if (velocity < this.VELOCITY_THRESHOLD) {
-      return 0.6; // Moderate processing for slow movement
-    } else {
-      return 1.0; // Full processing for active movement
-    }
-  }
-
-  /**
    * Get the last computed velocity features
    */
   getLastVelocityFeatures(): VelocityFeatures | null {
@@ -463,13 +445,11 @@ export class TemporalGestureAnalyzer {
     bufferSize: number;
     averageVelocity: number;
     isMoving: boolean;
-    processingIntensity: number;
   } {
     return {
       bufferSize: this.frameBuffer.getSize(),
       averageVelocity: this.lastVelocityFeatures?.averageVelocity ?? 0,
       isMoving: this.isHandMoving(),
-      processingIntensity: this.getProcessingIntensity(),
     };
   }
 

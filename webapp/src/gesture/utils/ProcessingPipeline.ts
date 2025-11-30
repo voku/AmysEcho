@@ -201,8 +201,8 @@ export class ProcessingPipeline {
     }
 
     // Skip based on performance constraints
-    const metrics = this.performanceOptimizer.getPerformanceMetrics();
-    if (metrics.averageProcessingTime > 50) { // If processing is slow
+    const diagnostics = this.performanceOptimizer.getDiagnostics();
+    if (diagnostics.averageProcessingTime > 50) { // If processing is slow
       return Math.random() < 0.5; // 50% chance to skip expensive steps
     }
 
@@ -272,12 +272,12 @@ export class ProcessingPipeline {
    * Get pipeline performance metrics
    */
   getPerformanceMetrics(): {
-    pipelineMetrics: any;
-    stepMetrics: any;
-    memoryMetrics: any;
+    pipelineMetrics: ReturnType<PerformanceOptimizer['getDiagnostics']>;
+    stepMetrics: Record<string, unknown>;
+    memoryMetrics: ReturnType<MemoryOptimizer['getMemoryStatus']>;
   } {
     return {
-      pipelineMetrics: this.performanceOptimizer.getPerformanceMetrics(),
+      pipelineMetrics: this.performanceOptimizer.getDiagnostics(),
       stepMetrics: {}, // Could be enhanced to track per-step metrics
       memoryMetrics: this.memoryOptimizer.getMemoryStatus()
     };
