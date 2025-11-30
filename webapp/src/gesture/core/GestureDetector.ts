@@ -19,10 +19,12 @@ import {
 } from '../utils/FrameCaptureManager';
 import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
+import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
+import { TemporalGestureAnalyzer } from '../utils/TemporalGestureAnalyzer';
 
 // Performance thresholds
 const SLOW_FRAME_THRESHOLD_MS = 50;
-const FAST_RECOGNITION_THRESHOLD_MS = 30;
+const OVERLAY_CLEAR_INTERVAL_MS = 300;
 
 export class GestureDetector {
   private static loadTasksVisionImpl: () => Promise<MediaPipeComponents | undefined> = loadTasksVision;
@@ -32,11 +34,14 @@ export class GestureDetector {
   private cameraManager: CameraManager;
   private overlayRenderer: OverlayRenderer;
   private healthMonitor: HealthMonitor;
+  private performanceOptimizer: PerformanceOptimizer;
+  private temporalAnalyzer: TemporalGestureAnalyzer;
   private video: HTMLVideoElement;
   private gestureRecognizer: GestureRecognizerLike | null = null;
   private running = false;
   private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
   private lastCaptureAttempt = 0;
+  private lastOverlayClearTime = 0;
 
   constructor(video: HTMLVideoElement, overlay: HTMLCanvasElement) {
     this.video = video;
@@ -45,6 +50,18 @@ export class GestureDetector {
     this.cameraManager = new CameraManager(video, this.resourceManager);
     this.overlayRenderer = new OverlayRenderer(overlay);
     this.healthMonitor = new HealthMonitor();
+    this.performanceOptimizer = new PerformanceOptimizer();
+    this.temporalAnalyzer = new TemporalGestureAnalyzer();
+
+    if (this.config.performance?.targetFrameRate) {
+      this.performanceOptimizer.setTargetFrameRate(this.config.performance.targetFrameRate);
+    }
+
+    if (this.config.processing?.landmarkChangeThreshold) {
+      this.performanceOptimizer.setLandmarkChangeThreshold(
+        this.config.processing.landmarkChangeThreshold,
+      );
+    }
   }
 
   /**
@@ -170,6 +187,7 @@ export class GestureDetector {
         const recognitionStart = performance.now();
         const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
         const recognitionTime = performance.now() - recognitionStart;
+        this.performanceOptimizer.recordProcessingTime(recognitionTime);
 
         gestureDebugLog('recognizer', 'MediaPipe recognition results', () => ({
           hasResults: !!results,
@@ -184,16 +202,32 @@ export class GestureDetector {
           this.resultCallback(results, frameStart);
         }
 
-        if (results?.landmarks) {
-          const normalizedLandmarks: number[][][] = results.landmarks.map((hand: HandLandmark[]) =>
-            hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]),
-          );
-          // Optimize overlay updates - only redraw when necessary
-          const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
-          if (shouldRedraw) {
-            this.overlayRenderer.clear();
-            this.overlayRenderer.drawHandLandmarks(normalizedLandmarks, this.config.camera.mirrorOverlay);
+        const normalizedLandmarks: number[][][] = results?.landmarks
+          ? results.landmarks.map((hand: HandLandmark[]) =>
+              hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]),
+            )
+          : [];
+
+        // Update temporal analysis for velocity-based optimizations
+        // Process all detected hands and use the maximum velocity for adaptive processing
+        if (normalizedLandmarks.length > 0) {
+          let maxVelocity = 0;
+          for (const handLandmarks of normalizedLandmarks) {
+            if (handLandmarks) {
+              const velocityFeatures = this.temporalAnalyzer.addFrame(
+                handLandmarks,
+                frameStart,
+              );
+              maxVelocity = Math.max(maxVelocity, velocityFeatures.averageVelocity);
+            }
           }
+          // Update performance optimizer with maximum velocity for adaptive processing
+          this.performanceOptimizer.updateVelocityScore(maxVelocity);
+        }
+
+        this.updateOverlay(normalizedLandmarks, recognitionTime, frameStart);
+
+        if (normalizedLandmarks.length > 0) {
           const captureInterval = frameCaptureState.frameCaptureInterval;
           if (frameStart - this.lastCaptureAttempt >= captureInterval) {
             captureFrameForTrainer(this.video);
@@ -225,16 +259,38 @@ export class GestureDetector {
   }
 
   /**
-   * Determine if overlay should be redrawn to optimize performance
+   * Update overlay rendering based on landmark changes and performance optimization
    */
-  private shouldRedrawOverlay(results: MediaPipeGestureResult, recognitionTime: number): boolean {
-    // Always redraw if we have landmarks
-    if (results?.landmarks && results.landmarks.length > 0) {
-      return true;
+  private updateOverlay(
+    normalizedLandmarks: number[][][],
+    recognitionTime: number,
+    frameStart: number,
+  ): void {
+    if (normalizedLandmarks.length > 0) {
+      const shouldRedraw = this.performanceOptimizer.shouldRedrawOverlay(
+        normalizedLandmarks,
+        recognitionTime,
+      );
+
+      if (shouldRedraw) {
+        this.overlayRenderer.clear();
+        this.overlayRenderer.drawHandLandmarks(
+          normalizedLandmarks,
+          this.config.camera.mirrorOverlay,
+        );
+        this.lastOverlayClearTime = frameStart;
+      }
+
+      return;
     }
 
-    // Clear overlay when recognition is fast (indicates good performance conditions)
-    return recognitionTime < FAST_RECOGNITION_THRESHOLD_MS;
+    // Reset landmark signature when no hands are detected
+    this.performanceOptimizer.resetLandmarkSignature();
+
+    if (frameStart - this.lastOverlayClearTime >= OVERLAY_CLEAR_INTERVAL_MS) {
+      this.overlayRenderer.clear();
+      this.lastOverlayClearTime = frameStart;
+    }
   }
 
   /**
@@ -249,6 +305,7 @@ export class GestureDetector {
 
     await this.cameraManager.stopCamera();
     await this.resourceManager.dispose();
+    this.temporalAnalyzer.dispose();
     setFrameCaptureEnabled(false);
     disposeFrameCapture();
   }

@@ -1,6 +1,17 @@
 /**
  * Performance optimization utilities for gesture recognition
  * Implements intelligent frame skipping and processing optimization
+ *
+ * Scientific optimizations based on:
+ * - "On-device Real-time Hand Gesture Recognition" (arXiv:2111.00038)
+ * - "Improving Real-Time Hand Gesture Recognition with Semantic Segmentation" (MDPI Sensors)
+ * - "Dynamic Hand Gesture Recognition Using MediaPipe and Transformer" (MDPI)
+ *
+ * Key strategies:
+ * - Adaptive frame skipping based on processing load
+ * - Velocity-based processing intensity adjustment
+ * - Landmark change detection with configurable thresholds
+ * - GPU/CPU load balancing through frame rate adaptation
  */
 
 export class PerformanceOptimizer {
@@ -19,6 +30,25 @@ export class PerformanceOptimizer {
   // Landmark change tracking for overlay optimization
   private lastLandmarksSignature = '';
   private landmarkChangeThreshold = 0.01; // Minimum change to trigger redraw
+
+  // Scientific optimization: Velocity-based adaptive processing
+  private lastVelocityScore = 0;
+  private velocityAdaptiveMode = true;
+  private readonly VELOCITY_LOW_THRESHOLD = 0.005;
+  private readonly VELOCITY_HIGH_THRESHOLD = 0.02;
+
+  // Processing intensity levels (scientific: adaptive processing based on hand movement)
+  private readonly PROCESSING_INTENSITY_MINIMAL = 0.3; // For static hand - minimal CPU/GPU usage
+  private readonly PROCESSING_INTENSITY_MODERATE = 0.6; // For slow movement - balanced processing
+  private readonly PROCESSING_INTENSITY_FULL = 1.0; // For active movement - full processing
+
+  // Budget management thresholds
+  private readonly BUDGET_UTILIZATION_THRESHOLD = 1.2; // Over-budget threshold for skipping expensive processing
+  private readonly STATIC_HAND_BUDGET_MULTIPLIER = 0.5; // Reduce budget to 50% for static hands
+
+  // Processing budget management (scientific: GPU/CPU load balancing)
+  private processingBudgetMs = 33; // ~30fps target
+  private budgetUtilization = 0;
 
   /**
    * Determine if current frame should be processed
@@ -60,8 +90,17 @@ export class PerformanceOptimizer {
     }
 
     // Enable adaptive frame skipping if consistently slow
-    const avgProcessingTime = this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length;
+    const avgProcessingTime = this.getAverageProcessingTime();
     this.adaptiveFrameSkipping = avgProcessingTime > this.PROCESSING_TIME_THRESHOLD;
+  }
+
+  /**
+   * Calculate average processing time from recorded history
+   */
+  private getAverageProcessingTime(): number {
+    return this.processingTimes.length > 0
+      ? this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length
+      : 0;
   }
 
   /**
@@ -168,29 +207,6 @@ export class PerformanceOptimizer {
   }
 
   /**
-   * Get current performance metrics
-   */
-  getPerformanceMetrics(): {
-    frameCount: number;
-    averageProcessingTime: number;
-    adaptiveFrameSkipping: boolean;
-    skipFrameCount: number;
-    targetFrameRate: number;
-  } {
-    const avgProcessingTime = this.processingTimes.length > 0
-      ? this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length
-      : 0;
-
-    return {
-      frameCount: this.frameCount,
-      averageProcessingTime: avgProcessingTime,
-      adaptiveFrameSkipping: this.adaptiveFrameSkipping,
-      skipFrameCount: this.skipFrameCount,
-      targetFrameRate: this.targetFrameRate
-    };
-  }
-
-  /**
    * Reset performance tracking
    */
   reset(): void {
@@ -198,7 +214,11 @@ export class PerformanceOptimizer {
     this.processingTimes = [];
     this.skipFrameCount = 0;
     this.adaptiveFrameSkipping = false;
-    this.lastLandmarksSignature = '';
+    this.resetLandmarkSignature();
+    this.lastProcessingTime = 0;
+    this.lastVelocityScore = 0;
+    this.budgetUtilization = 0;
+    this.processingBudgetMs = 1000 / this.targetFrameRate;
   }
 
   /**
@@ -213,5 +233,158 @@ export class PerformanceOptimizer {
    */
   setLandmarkChangeThreshold(threshold: number): void {
     this.landmarkChangeThreshold = Math.max(0.001, Math.min(0.1, threshold));
+  }
+
+  /**
+   * Reset the landmark signature when no hands are detected
+   * This ensures the next detected hand triggers a fresh overlay redraw
+   */
+  resetLandmarkSignature(): void {
+    this.lastLandmarksSignature = '';
+  }
+
+  /**
+   * Get the last recorded processing time for diagnostics
+   */
+  getLastProcessingTime(): number {
+    return this.lastProcessingTime;
+  }
+
+  /**
+   * Check if current performance is within optimal thresholds
+   * Returns true if average processing time is below target frame time
+   */
+  isPerformanceOptimal(): boolean {
+    const targetFrameTime = 1000 / this.targetFrameRate;
+    return this.getAverageProcessingTime() < targetFrameTime;
+  }
+
+  /**
+   * Check if the landmark signature has been set (hands were previously detected)
+   * Useful for determining if this is the first detection after a gap
+   */
+  hasLandmarkSignature(): boolean {
+    return this.lastLandmarksSignature !== '';
+  }
+
+  /**
+   * Update velocity score for adaptive processing
+   * Scientific optimization: Adjust processing intensity based on movement velocity
+   * Based on: "Dynamic Hand Gesture Recognition Using Effective Feature Extraction"
+   */
+  updateVelocityScore(velocity: number): void {
+    this.lastVelocityScore = velocity;
+    this.updateProcessingBudget();
+  }
+
+  /**
+   * Get recommended processing intensity based on velocity
+   * Returns a multiplier (0.3 to 1.0) for processing load
+   * Scientific: Skip expensive processing when hand is static
+   */
+  getProcessingIntensity(): number {
+    if (!this.velocityAdaptiveMode) return this.PROCESSING_INTENSITY_FULL;
+
+    if (this.lastVelocityScore < this.VELOCITY_LOW_THRESHOLD) {
+      return this.PROCESSING_INTENSITY_MINIMAL;
+    } else if (this.lastVelocityScore < this.VELOCITY_HIGH_THRESHOLD) {
+      return this.PROCESSING_INTENSITY_MODERATE;
+    } else {
+      return this.PROCESSING_INTENSITY_FULL;
+    }
+  }
+
+  /**
+   * Check if expensive processing steps should be skipped
+   * Scientific: Only run gesture classification when hands are detected and moving
+   */
+  shouldSkipExpensiveProcessing(): boolean {
+    // Skip if hand is static and we already have a result
+    if (this.lastVelocityScore < this.VELOCITY_LOW_THRESHOLD && this.hasLandmarkSignature()) {
+      return true;
+    }
+
+    // Skip if we're over budget
+    if (this.budgetUtilization > this.BUDGET_UTILIZATION_THRESHOLD) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Update processing budget based on current performance
+   * Scientific: GPU/CPU load balancing through frame rate adaptation
+   */
+  private updateProcessingBudget(): void {
+    const avgProcessingTime = this.getAverageProcessingTime();
+    const targetFrameTime = 1000 / this.targetFrameRate;
+
+    this.budgetUtilization = avgProcessingTime / targetFrameTime;
+
+    // Adjust budget based on velocity - static hands need less processing
+    if (this.lastVelocityScore < this.VELOCITY_LOW_THRESHOLD) {
+      this.processingBudgetMs = targetFrameTime * this.STATIC_HAND_BUDGET_MULTIPLIER;
+    } else {
+      this.processingBudgetMs = targetFrameTime;
+    }
+  }
+
+  /**
+   * Get current budget utilization (0.0 = idle, 1.0 = at budget, >1.0 = over budget)
+   */
+  getBudgetUtilization(): number {
+    return this.budgetUtilization;
+  }
+
+  /**
+   * Get current processing budget in milliseconds
+   */
+  getProcessingBudgetMs(): number {
+    return this.processingBudgetMs;
+  }
+
+  /**
+   * Enable or disable velocity-adaptive processing mode
+   */
+  setVelocityAdaptiveMode(enabled: boolean): void {
+    this.velocityAdaptiveMode = enabled;
+  }
+
+  /**
+   * Check if velocity-adaptive mode is enabled
+   */
+  isVelocityAdaptiveModeEnabled(): boolean {
+    return this.velocityAdaptiveMode;
+  }
+
+  /**
+   * Get comprehensive performance diagnostics
+   * Useful for debugging and optimization tuning
+   */
+  getDiagnostics(): {
+    frameCount: number;
+    averageProcessingTime: number;
+    lastProcessingTime: number;
+    targetFrameRate: number;
+    adaptiveFrameSkipping: boolean;
+    skipFrameCount: number;
+    velocityScore: number;
+    processingIntensity: number;
+    budgetUtilization: number;
+    isOptimal: boolean;
+  } {
+    return {
+      frameCount: this.frameCount,
+      averageProcessingTime: this.getAverageProcessingTime(),
+      lastProcessingTime: this.lastProcessingTime,
+      targetFrameRate: this.targetFrameRate,
+      adaptiveFrameSkipping: this.adaptiveFrameSkipping,
+      skipFrameCount: this.skipFrameCount,
+      velocityScore: this.lastVelocityScore,
+      processingIntensity: this.getProcessingIntensity(),
+      budgetUtilization: this.budgetUtilization,
+      isOptimal: this.isPerformanceOptimal(),
+    };
   }
 }
