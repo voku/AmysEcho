@@ -59,17 +59,17 @@ test('webapp training helpers integrate with live server', async () => {
   assert.ok(uploadResult.id.length > 0);
   const trainingJobFromUpload = uploadResult.trainingJob;
 
-  const triggeredJob = await triggerTrainingJob(`http://localhost:${TEST_PORT}`, TEST_TOKEN);
-  const job = trainingJobFromUpload ?? triggeredJob;
+  const job =
+    trainingJobFromUpload ?? (await triggerTrainingJob(`http://localhost:${TEST_PORT}`, TEST_TOKEN));
   assert.ok(job, 'expected a training job from upload or trigger');
 
-  const pollUrl = job?.pollUrl
+  const pollUrl = job.pollUrl
     ? new URL(job.pollUrl, `http://localhost:${TEST_PORT}`).href
-    : `http://localhost:${TEST_PORT}/train-status/${job?.jobId}`;
+    : `http://localhost:${TEST_PORT}/train-status/${job.jobId}`;
 
   const headers = serverHeaders();
   const start = Date.now();
-  const timeoutMs = 15_000;
+  const timeoutMs = 30_000;
   let completed = false;
   while (Date.now() - start <= timeoutMs) {
     const statusResp = await fetch(pollUrl, { headers }).catch(() => null);

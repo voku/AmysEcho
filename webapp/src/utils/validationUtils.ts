@@ -145,10 +145,10 @@ export const commonValidationRules = {
       if (typeof value !== 'string') return false;
       if (value.length === 0) return true;
       if (value.length % 4 !== 0) return false;
-      const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
+      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
       return base64Regex.test(value);
     },
-    message: `${fieldName} must be valid base64`,
+    message: `${fieldName} muss gültiges Base64 sein`,
     severity: 'error'
   }),
 
@@ -205,7 +205,7 @@ export function validateGestureData(data: {
   const rules: ValidationRule<typeof data>[] = [
     {
       name: 'gesture_valid',
-      validate: (value) => !value.gesture || commonValidationRules.gesture('gesture').validate(value.gesture),
+      validate: (value) => value.gesture === undefined || commonValidationRules.gesture('gesture').validate(value.gesture),
       message: 'gesture muss einen gültigen Gestennamen enthalten',
       severity: 'error'
     },
@@ -218,7 +218,8 @@ export function validateGestureData(data: {
     },
     {
       name: 'landmarks_valid',
-      validate: (value) => !value.landmarks || commonValidationRules.landmarkData('landmarks').validate(value.landmarks),
+      validate: (value) =>
+        value.landmarks === undefined || commonValidationRules.landmarkData('landmarks').validate(value.landmarks),
       message: 'Landmarks müssen gültig sein, wenn sie angegeben werden',
       severity: 'warning'
     },
@@ -301,20 +302,23 @@ export function validateTrainingSample(sample: {
     },
     {
       name: 'gestureId_valid',
-      validate: (value) => !value.gestureId || commonValidationRules.gesture('gestureId').validate(value.gestureId),
+      validate: (value) =>
+        value.gestureId === undefined || commonValidationRules.gesture('gestureId').validate(value.gestureId),
       message: 'gestureId muss ein gültiger Gestenname sein',
       severity: 'error'
     },
     {
       name: 'landmarkData_required',
-      validate: (value) => value.landmarkData !== undefined,
+      validate: (value) => value.landmarkData !== undefined && value.landmarkData !== null,
       message: 'landmarkData ist erforderlich',
       severity: 'error'
     },
     {
       name: 'landmarkData_valid',
       validate: (value) =>
-        !value.landmarkData || commonValidationRules.landmarkData('landmarkData').validate(value.landmarkData),
+        value.landmarkData === undefined
+          ? true
+          : value.landmarkData !== null && commonValidationRules.landmarkData('landmarkData').validate(value.landmarkData),
       message: 'landmarkData muss gültige Landmarken-Daten enthalten',
       severity: 'error'
     },
@@ -346,7 +350,7 @@ export function validateProfile(profile: {
     },
     {
       name: 'id_valid',
-      validate: (value) => !value.id || commonValidationRules.string('id', 1, 50).validate(value.id),
+      validate: (value) => value.id === undefined || commonValidationRules.string('id', 1, 50).validate(value.id),
       message: 'id muss eine Zeichenkette mit 1 bis 50 Zeichen sein',
       severity: 'error'
     },
@@ -358,14 +362,14 @@ export function validateProfile(profile: {
     },
     {
       name: 'name_valid',
-      validate: (value) => !value.name || commonValidationRules.string('name', 1, 100).validate(value.name),
+      validate: (value) => value.name === undefined || commonValidationRules.string('name', 1, 100).validate(value.name),
       message: 'name muss eine Zeichenkette mit 1 bis 100 Zeichen sein',
       severity: 'error'
     },
     {
       name: 'settings_valid',
       validate: (value) => !value.settings || commonValidationRules.object('settings').validate(value.settings as object),
-      message: 'Settings müssen ein gültiges Objekt sein, falls angegeben',
+      message: 'settings müssen ein gültiges Objekt sein, falls angegeben',
       severity: 'warning'
     }
   ];

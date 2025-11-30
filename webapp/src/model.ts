@@ -98,7 +98,7 @@ export function getActiveVocabularySet(): VocabularySet {
     return fallbackSet;
   }
 
-  throw new Error('No active vocabulary sets configured');
+  throw new Error('Keine aktiven Vokabelsets konfiguriert');
 }
 
 export function getGesturesForVocabularySet(setId: string): GestureModelEntry[] {
@@ -109,9 +109,12 @@ export function getGesturesForVocabularySet(setId: string): GestureModelEntry[] 
 }
 
 export function addGesture(entry: GestureModelEntry): void {
-  if (!gestureModel.gestures.find((g) => g.id === entry.id)) {
-    gestureModel.gestures.push(entry);
+  const existingIndex = gestureModel.gestures.findIndex((g) => g.id === entry.id);
+  if (existingIndex >= 0) {
+    gestureModel.gestures[existingIndex] = entry;
+    return;
   }
+  gestureModel.gestures.push(entry);
 }
 
 export function getGestureById(id: string): GestureModelEntry | undefined {

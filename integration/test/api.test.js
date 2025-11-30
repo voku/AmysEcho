@@ -222,6 +222,7 @@ test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model',
   const headers = serverHeaders();
   const statusUrl = new URL(pollUrl, `http://localhost:${TEST_PORT}`).href;
   const start = Date.now();
+  // Allow extra time in slower CI environments to avoid flaky training completions
   const timeoutMs = 25000;
   let completed = false;
   while (Date.now() - start <= timeoutMs) {

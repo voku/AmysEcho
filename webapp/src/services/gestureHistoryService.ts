@@ -101,7 +101,8 @@ class GestureHistoryService {
 
   private generateRandomSessionId(): string {
     if (typeof crypto.getRandomValues !== 'function') {
-      throw new Error('Unable to generate secure session ID');
+      logger.warn('Konnte keine sichere Sitzungs-ID generieren, verwende Fallback.');
+      return `fallback-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
     }
     const bytes = crypto.getRandomValues(new Uint8Array(16));
     bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
