@@ -32,12 +32,17 @@ export async function sendTelemetryEvent(event: string, payload: TelemetryPayloa
   }
 
   try {
-    await telemetry.add(event, {
-      latencyMs: typeof latencyMs === 'number' ? latencyMs : undefined,
-      source,
-      timestamp,
-      details,
-    });
+    const options: Parameters<typeof telemetry.add>[1] = { details };
+    if (typeof latencyMs === 'number') {
+      options.latencyMs = latencyMs;
+    }
+    if (source !== undefined) {
+      options.source = source;
+    }
+    if (timestamp !== undefined) {
+      options.timestamp = timestamp;
+    }
+    await telemetry.add(event, options);
   } catch (err) {
     console.warn(`Failed to send '${event}' telemetry event:`, err);
   }

@@ -45,7 +45,8 @@ export function base64ToBytes(value: string): Uint8Array {
 
 async function importAesKey(base64Key: string): Promise<CryptoKey> {
   const keyBytes = base64ToBytes(base64Key);
-  return crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  // Cast to BufferSource to satisfy TypeScript while maintaining runtime compatibility
+  return crypto.subtle.importKey('raw', keyBytes as unknown as BufferSource, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
 export async function sha256Base64(input: string): Promise<string> {
@@ -69,7 +70,8 @@ export async function decryptJson<T>(cipherText: string, base64Key: string): Pro
   const key = await importAesKey(base64Key);
   const iv = base64ToBytes(ivBase64);
   const payloadBytes = base64ToBytes(payloadBase64);
-  const plainBuffer = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, payloadBytes);
+  // Cast to BufferSource to satisfy TypeScript while maintaining runtime compatibility
+  const plainBuffer = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as unknown as BufferSource }, key, payloadBytes as unknown as BufferSource);
   const text = new TextDecoder().decode(plainBuffer);
   return JSON.parse(text) as T;
 }
