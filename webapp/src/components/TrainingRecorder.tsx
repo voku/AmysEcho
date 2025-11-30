@@ -166,11 +166,11 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const metadataError = metadataReady
     ? ''
     : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
-  const uploadDisabled = clipLimitExceeded || !metadataReady || !hasLiveFrames;
+  const uploadDisabled = clipLimitExceeded || !metadataReady || recordedData.frames.length === 0;
   const uploadDisabledReason = !metadataReady
     ? 'Upload gesperrt, bis Profil-ID und Gestenlabel ausgefüllt sind.'
-    : !hasLiveFrames
-    ? 'Upload gesperrt, bis Live-Frames eintreffen.'
+    : recordedData.frames.length === 0
+    ? 'Upload gesperrt, da keine aufgenommenen Frames vorhanden sind.'
     : clipLimitExceeded
     ? 'Upload gesperrt, weil die maximale Dateigröße überschritten wurde.'
     : '';
@@ -239,12 +239,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
                 {clipLimitNotice}
               </div>
-              {detectorRunning && !hasLiveFrames && (
-                <div className="notice warning spaced">
-                  <strong>Keine Live-Frames.</strong> Die Kamera liefert noch keine Erkennungsergebnisse, daher bleiben Framezähler
-                  und Standbilder leer. Bitte starte die Kamera oder richte sie aus.
-                </div>
-              )}
             </div>
             <div className="toggle">
               <input
