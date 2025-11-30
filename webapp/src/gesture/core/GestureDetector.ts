@@ -239,7 +239,7 @@ export class GestureDetector {
   }
 
   /**
-   * Determine if overlay should be redrawn to optimize performance
+   * Update overlay rendering based on landmark changes and performance optimization
    */
   private updateOverlay(
     normalizedLandmarks: number[][][],
