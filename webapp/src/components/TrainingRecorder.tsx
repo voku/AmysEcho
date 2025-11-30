@@ -27,7 +27,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [showOverlay, setShowOverlay] = useState(true);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
-  const hasAttemptedAutoStart = useRef(false);
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
 
   const cameraSupported = useMemo(
@@ -35,7 +34,10 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     [],
   );
 
-  const { start: startCamera, stop: stopCamera, status, error: cameraError } = useGestureDetector(videoRef, overlayRef);
+  const { start: startCamera, status, error: cameraError, lastLandmarks } = useGestureDetector(
+    videoRef,
+    overlayRef,
+  );
 
   const {
     state,
@@ -48,15 +50,16 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     maxClipBytes,
   } = useTrainingRecorder(videoRef);
 
-  // Auto-start camera when component mounts and metadata is ready
+  // Auto-start camera when metadata is ready and detector is not running
   useEffect(() => {
-    if (cameraSupported && metadataReady && status === 'idle' && !hasAttemptedAutoStart.current) {
-      startCamera().then((success) => {
-        if (success) {
-          hasAttemptedAutoStart.current = true;
-        }
-      });
+    if (!cameraSupported || !metadataReady) {
+      return;
     }
+    if (status === 'running' || status === 'initializing') {
+      return;
+    }
+
+    startCamera();
   }, [cameraSupported, metadataReady, status, startCamera]);
 
   // Update recording duration
@@ -90,8 +93,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
   const handleStopRecording = useCallback(() => {
     stopRecording();
-    stopCamera?.();
-  }, [stopRecording, stopCamera]);
+  }, [stopRecording]);
 
   const handleSaveRecording = useCallback(async () => {
     if (!metadataReady) {
@@ -145,8 +147,15 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const handleDiscardRecording = useCallback(() => {
     resetRecording();
     setRecordingDuration(0);
-    stopCamera?.();
-  }, [resetRecording, stopCamera]);
+  }, [resetRecording]);
+
+  const detectorRunning = status === 'running';
+  const hasLiveFrames = detectorRunning && lastLandmarks.length > 0;
+  const detectorInactiveNotice = !detectorRunning
+    ? 'Die Kameraerkennung ist angehalten. Starte sie erneut, damit Frames und Standbilder gesammelt werden.'
+    : !hasLiveFrames
+    ? 'Es kommen noch keine Live-Frames an. Positioniere dich vor der Kamera oder warte einen Moment.'
+    : '';
 
   const isRecording = state === 'recording';
   const hasRecording = state === 'idle' && recordedData.frames.length > 0;
@@ -159,6 +168,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const metadataError = metadataReady
     ? ''
     : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
+  const uploadDisabled = clipLimitExceeded || !metadataReady || !hasLiveFrames;
+  const showDetectorStart = !isRecording && (status === 'stopped' || status === 'error');
+  const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : 'Kamera starten';
 
   return (
     <section className="card">
@@ -182,6 +194,12 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       )}
 
       {cameraError && <div className="notice error">{cameraError}</div>}
+
+      {detectorInactiveNotice && (
+        <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
+          <strong>Detektor pausiert.</strong> {detectorInactiveNotice}
+        </div>
+      )}
 
       <div className="detector-shell">
         <div className="video-wrapper">
@@ -208,17 +226,23 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               <p className="value">{framesCaptured} Frames erfasst</p>
               <p className="muted small">Clip: {clipStatus}</p>
               {recordedData.clipDurationMs > 0 && (
-                <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
-              )}
-              {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
-              {!metadataReady && <div className="notice error">{metadataError}</div>}
-              <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
-                {clipLimitNotice}
-              </div>
+              <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
+            )}
+            {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
+            {!metadataReady && <div className="notice error">{metadataError}</div>}
+            <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
+              {clipLimitNotice}
             </div>
-            <div className="toggle">
-              <input
-                id="overlay-toggle"
+            {!hasLiveFrames && (
+              <div className="notice warning spaced">
+                <strong>Keine Live-Frames.</strong> Die Kamera liefert noch keine Erkennungsergebnisse, daher bleiben Framezähler
+                und Standbilder leer. Bitte starte die Kamera oder richte sie aus.
+              </div>
+            )}
+          </div>
+          <div className="toggle">
+            <input
+              id="overlay-toggle"
                 type="checkbox"
                 checked={showOverlay}
                 onChange={(event) => setShowOverlay(event.target.checked)}
@@ -228,6 +252,11 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           </div>
 
           <div className="controls">
+            {showDetectorStart && (
+              <button className="secondary" onClick={() => startCamera()}>
+                {detectorStartLabel}
+              </button>
+            )}
             {status === 'running' && !isRecording && !hasRecording && (
               <button className="primary" onClick={handleStartRecording} disabled={!metadataReady}>
                 Aufnahme starten
@@ -242,7 +271,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
             {hasRecording && (
               <>
-                <button className="primary" onClick={handleSaveRecording} disabled={clipLimitExceeded || !metadataReady}>
+                <button className="primary" onClick={handleSaveRecording} disabled={uploadDisabled}>
                   Aufnahme verwenden
                 </button>
                 <button className="ghost" onClick={handleDiscardRecording}>
@@ -251,6 +280,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 <button className="ghost" onClick={handleSaveLandmarkJson}>
                   Landmarks speichern
                 </button>
+                {uploadDisabled && !hasLiveFrames && (
+                  <p className="muted small">Upload gesperrt, bis Live-Frames eintreffen.</p>
+                )}
               </>
             )}
           </div>
