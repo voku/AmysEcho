@@ -50,16 +50,14 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     maxClipBytes,
   } = useTrainingRecorder(videoRef);
 
-  // Auto-start camera when metadata is ready and detector is not running
+  // Auto-start camera when metadata is ready and detector is idle/stopped
   useEffect(() => {
     if (!cameraSupported || !metadataReady) {
       return;
     }
-    if (status === 'running' || status === 'initializing') {
-      return;
+    if (status === 'idle' || status === 'stopped') {
+      startCamera();
     }
-
-    startCamera();
   }, [cameraSupported, metadataReady, status, startCamera]);
 
   // Update recording duration
@@ -169,6 +167,13 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     ? ''
     : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
   const uploadDisabled = clipLimitExceeded || !metadataReady || !hasLiveFrames;
+  const uploadDisabledReason = !metadataReady
+    ? 'Upload gesperrt, bis Profil-ID und Gestenlabel ausgefüllt sind.'
+    : !hasLiveFrames
+    ? 'Upload gesperrt, bis Live-Frames eintreffen.'
+    : clipLimitExceeded
+    ? 'Upload gesperrt, weil die maximale Dateigröße überschritten wurde.'
+    : '';
   const showDetectorStart = !isRecording && (status === 'stopped' || status === 'error');
   const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : 'Kamera starten';
 
@@ -197,7 +202,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
       {detectorInactiveNotice && (
         <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
-          <strong>Detektor pausiert.</strong> {detectorInactiveNotice}
+          <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
+          {detectorInactiveNotice}
         </div>
       )}
 
@@ -226,23 +232,23 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               <p className="value">{framesCaptured} Frames erfasst</p>
               <p className="muted small">Clip: {clipStatus}</p>
               {recordedData.clipDurationMs > 0 && (
-              <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
-            )}
-            {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
-            {!metadataReady && <div className="notice error">{metadataError}</div>}
-            <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
-              {clipLimitNotice}
-            </div>
-            {!hasLiveFrames && (
-              <div className="notice warning spaced">
-                <strong>Keine Live-Frames.</strong> Die Kamera liefert noch keine Erkennungsergebnisse, daher bleiben Framezähler
-                und Standbilder leer. Bitte starte die Kamera oder richte sie aus.
+                <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
+              )}
+              {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
+              {!metadataReady && <div className="notice error">{metadataError}</div>}
+              <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
+                {clipLimitNotice}
               </div>
-            )}
-          </div>
-          <div className="toggle">
-            <input
-              id="overlay-toggle"
+              {detectorRunning && !hasLiveFrames && (
+                <div className="notice warning spaced">
+                  <strong>Keine Live-Frames.</strong> Die Kamera liefert noch keine Erkennungsergebnisse, daher bleiben Framezähler
+                  und Standbilder leer. Bitte starte die Kamera oder richte sie aus.
+                </div>
+              )}
+            </div>
+            <div className="toggle">
+              <input
+                id="overlay-toggle"
                 type="checkbox"
                 checked={showOverlay}
                 onChange={(event) => setShowOverlay(event.target.checked)}
@@ -253,7 +259,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
           <div className="controls">
             {showDetectorStart && (
-              <button className="secondary" onClick={() => startCamera()}>
+              <button className="secondary" onClick={startCamera}>
                 {detectorStartLabel}
               </button>
             )}
@@ -280,9 +286,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 <button className="ghost" onClick={handleSaveLandmarkJson}>
                   Landmarks speichern
                 </button>
-                {uploadDisabled && !hasLiveFrames && (
-                  <p className="muted small">Upload gesperrt, bis Live-Frames eintreffen.</p>
-                )}
+                {uploadDisabledReason && <p className="muted small">{uploadDisabledReason}</p>}
               </>
             )}
           </div>
