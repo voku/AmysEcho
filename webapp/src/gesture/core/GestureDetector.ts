@@ -264,8 +264,8 @@ export class GestureDetector {
       return;
     }
 
-    // Reset signature when no hands are detected and periodically clear stale overlays
-    this.performanceOptimizer.shouldRedrawOverlay([], recognitionTime);
+    // Reset landmark signature when no hands are detected
+    this.performanceOptimizer.resetLandmarkSignature();
 
     if (frameStart - this.lastOverlayClearTime >= OVERLAY_CLEAR_INTERVAL_MS) {
       this.overlayRenderer.clear();
