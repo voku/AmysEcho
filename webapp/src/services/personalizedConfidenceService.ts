@@ -1,17 +1,14 @@
 /**
  * Personalized Confidence Threshold Service - Amy First
  *
- * Passt Vertrauensschwellen dynamisch an basierend auf Amys individuellen Mustern,
- * Tageszeitpräferenzen und Lernfortschritt. Dies stellt optimale Erkennungsgenauigkeit
- * sicher, während es sich an Amys einzigartigen Gestenstil anpasst.
+ * Passt Vertrauensschwellen dynamisch an basierend auf Amys individuellen Mustern
+ * und Lernfortschritt. Dies stellt optimale Erkennungsgenauigkeit sicher,
+ * während es sich an Amys einzigartigen Gestenstil anpasst.
  */
-
-import { contextAwareRecognitionService } from './contextAwareRecognitionService';
 
 export interface ConfidenceProfile {
   gestureId: string;
   baseThreshold: number;
-  timeOfDayAdjustments: Record<'morning' | 'afternoon' | 'evening' | 'night', number>;
   learningProgress: number; // 0-1, wie gut Amy diese Geste gelernt hat
   successRate: number; // Rollende Erfolgsrate für diese Geste
   lastUpdated: number;
@@ -47,12 +44,8 @@ class PersonalizedConfidenceService {
   /**
    * Personalisierte Vertrauensschwelle für eine Geste abrufen
    */
-  getPersonalizedThreshold(gestureId: string, baseConfidence: number): PersonalizedThreshold {
+  getPersonalizedThreshold(gestureId: string, _baseConfidence: number): PersonalizedThreshold {
     const profile = this.profiles.get(gestureId);
-    const timeOfDay = this.getTimeOfDay();
-    const contextAdjustment =
-      contextAwareRecognitionService.getContextAdjustment(gestureId, baseConfidence) ??
-      { confidenceMultiplier: 1.0, reason: 'Keine Kontextanpassung' };
 
     let threshold = 0.5; // Standardschwelle
     const adjustments: string[] = [];
@@ -62,14 +55,6 @@ class PersonalizedConfidenceService {
       // Mit personalisierter Basisschwelle beginnen
       threshold = profile.baseThreshold;
       adjustments.push(`Personalisierte Basis: ${threshold.toFixed(2)}`);
-
-      // Tageszeitanpassung anwenden
-      const timeAdjustment = profile.timeOfDayAdjustments[timeOfDay];
-      if (typeof timeAdjustment === 'number' && timeAdjustment !== 0) {
-        threshold += timeAdjustment;
-        threshold = Math.max(0.2, Math.min(0.8, threshold));
-        adjustments.push(`${timeOfDay} Anpassung: ${(timeAdjustment > 0 ? '+' : '')}${timeAdjustment.toFixed(2)}`);
-      }
 
       // Lernfortschrittsanpassung anwenden
       if (profile.learningProgress > 0.7) {
@@ -98,12 +83,6 @@ class PersonalizedConfidenceService {
       confidence = 'medium';
     }
 
-    // Kontextanpassung vom kontextbewussten Service anwenden
-    if (contextAdjustment.confidenceMultiplier !== 1.0) {
-      threshold *= contextAdjustment.confidenceMultiplier;
-      adjustments.push(`Kontext: ×${contextAdjustment.confidenceMultiplier.toFixed(2)} (${contextAdjustment.reason})`);
-    }
-
     // Sicherstellen, dass Schwelle in vernünftigen Grenzen bleibt
     threshold = Math.max(0.2, Math.min(0.9, threshold));
 
@@ -120,15 +99,6 @@ class PersonalizedConfidenceService {
    */
   recordGestureAttempt(gestureId: string, confidence: number, wasSuccessful: boolean): void {
     const profile = this.profiles.get(gestureId) || this.createDefaultProfile(gestureId);
-    const timeOfDay = this.getTimeOfDay();
-
-    const normalizedAdjustments: ConfidenceProfile['timeOfDayAdjustments'] = {
-      morning: profile.timeOfDayAdjustments?.morning ?? 0,
-      afternoon: profile.timeOfDayAdjustments?.afternoon ?? 0,
-      evening: profile.timeOfDayAdjustments?.evening ?? 0,
-      night: profile.timeOfDayAdjustments?.night ?? 0,
-    };
-    profile.timeOfDayAdjustments = normalizedAdjustments;
 
     if (!Number.isFinite(profile.attemptCount)) {
       console.warn(`Korrupte attemptCount für Geste ${gestureId} zurückgesetzt. Aktueller Wert:`, profile.attemptCount);
@@ -159,15 +129,6 @@ class PersonalizedConfidenceService {
       }
     }
 
-    // Tageszeitpräferenzen bei jedem Versuch aktualisieren
-    if (wasSuccessful) {
-      profile.timeOfDayAdjustments[timeOfDay] -= this.ADAPTATION_RATE * 0.05;
-      profile.timeOfDayAdjustments[timeOfDay] = Math.max(-0.2, profile.timeOfDayAdjustments[timeOfDay]);
-    } else if (confidence > profile.baseThreshold - 0.1) {
-      profile.timeOfDayAdjustments[timeOfDay] += this.ADAPTATION_RATE * 0.03;
-      profile.timeOfDayAdjustments[timeOfDay] = Math.min(0.2, profile.timeOfDayAdjustments[timeOfDay]);
-    }
-
     profile.lastUpdated = Date.now();
     this.profiles.set(gestureId, profile);
 
@@ -183,16 +144,9 @@ class PersonalizedConfidenceService {
   getThresholdStats(): {
     totalProfiles: number;
     averageThreshold: number;
-    timeOfDayPreferences: Record<string, number>;
     learningProgress: { mastered: number; learning: number; struggling: number };
   } {
     const profiles = Array.from(this.profiles.values());
-    const timeOfDayPreferences: Record<'morning' | 'afternoon' | 'evening' | 'night', number> = {
-      morning: 0,
-      afternoon: 0,
-      evening: 0,
-      night: 0
-    };
 
     let mastered = 0;
     let learning = 0;
@@ -202,18 +156,6 @@ class PersonalizedConfidenceService {
       if (profile.learningProgress > 0.7) mastered++;
       else if (profile.learningProgress > 0.3) learning++;
       else struggling++;
-
-      Object.entries(profile.timeOfDayAdjustments).forEach(([time, adjustment]) => {
-        const key = time as 'morning' | 'afternoon' | 'evening' | 'night';
-        if (key in timeOfDayPreferences) {
-          timeOfDayPreferences[key] += adjustment;
-        }
-      });
-    });
-
-    // Tageszeitpräferenzen mitteln
-    (Object.keys(timeOfDayPreferences) as Array<'morning' | 'afternoon' | 'evening' | 'night'>).forEach(time => {
-      timeOfDayPreferences[time] /= Math.max(1, profiles.length);
     });
 
     return {
@@ -221,7 +163,6 @@ class PersonalizedConfidenceService {
       averageThreshold: profiles.length > 0
         ? profiles.reduce((sum, p) => sum + p.baseThreshold, 0) / profiles.length
         : 0.5,
-      timeOfDayPreferences,
       learningProgress: { mastered, learning, struggling }
     };
   }
@@ -238,24 +179,10 @@ class PersonalizedConfidenceService {
     }
   }
 
-  private getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
-    const hour = new Date().getHours();
-    if (hour >= 6 && hour < 12) return 'morning';
-    if (hour >= 12 && hour < 17) return 'afternoon';
-    if (hour >= 17 && hour < 21) return 'evening';
-    return 'night';
-  }
-
   private createDefaultProfile(gestureId: string): ConfidenceProfile {
     return {
       gestureId,
       baseThreshold: 0.5,
-      timeOfDayAdjustments: {
-        morning: 0,
-        afternoon: 0,
-        evening: 0,
-        night: 0
-      },
       learningProgress: 0.5,
       successRate: 0.5,
       lastUpdated: Date.now(),
@@ -287,12 +214,6 @@ class PersonalizedConfidenceService {
             {
               gestureId,
               baseThreshold: value.baseThreshold ?? 0.5,
-              timeOfDayAdjustments: {
-                morning: value.timeOfDayAdjustments?.morning ?? 0,
-                afternoon: value.timeOfDayAdjustments?.afternoon ?? 0,
-                evening: value.timeOfDayAdjustments?.evening ?? 0,
-                night: value.timeOfDayAdjustments?.night ?? 0,
-              },
               learningProgress: value.learningProgress ?? 0.5,
               successRate: value.successRate ?? 0.5,
               lastUpdated: value.lastUpdated ?? Date.now(),

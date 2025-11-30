@@ -66,8 +66,8 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 | feedbackService.ts | services/feedbackService.ts | ✅ Migrated |
 | audioService.ts | services/audioService.ts | ✅ Migrated |
 | activeLearningService.ts | services/activeLearningService.ts | ✅ Migrated |
-| contextAwareRecognitionService.ts | services/contextAwareRecognitionService.ts | ✅ Migrated |
-| personalizedConfidenceService.ts | services/personalizedConfidenceService.ts | ✅ Migrated |
+| contextAwareRecognitionService.ts | N/A | ❌ Not needed (Amy's performance doesn't correlate with time-of-day) |
+| personalizedConfidenceService.ts | services/personalizedConfidenceService.ts | ✅ Migrated (simplified, no time-of-day) |
 | performanceMonitor.ts | services/performanceMonitor.ts | ✅ Migrated |
 | gestureSuggester.ts | services/gestureSuggester.ts | ✅ Migrated |
 | healthScore.ts | services/healthScore.ts | ✅ Migrated |
@@ -107,8 +107,7 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 | Corrections | ✅ | ✅ | Correct misrecognitions |
 | Progress Tracking | ✅ | ✅ | Mastery levels and stats |
 | Active Learning | ✅ | ✅ | Identifies weak areas and prompts practice |
-| Context-Aware Recognition | ✅ | ✅ | Time-of-day patterns, sequences |
-| Personalized Confidence | ✅ | ✅ | Dynamic threshold adjustment |
+| Personalized Confidence | ✅ | ✅ | Dynamic threshold adjustment based on learning progress |
 | Performance Monitoring | ✅ | ✅ | Latency and accuracy tracking |
 | Gesture Suggestions | ✅ | ✅ | Suggests likely intended gestures |
 | Health Score | ✅ | ✅ | Gesture health and practice suggestions |

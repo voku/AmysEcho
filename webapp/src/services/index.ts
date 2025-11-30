@@ -44,15 +44,6 @@ export type {
   PracticeSuggestion 
 } from './activeLearningService';
 
-// Context-Aware Recognition Service
-export { contextAwareRecognitionService } from './contextAwareRecognitionService';
-export type { 
-  Location as ContextLocation,
-  GestureContext, 
-  RecognitionPattern, 
-  ContextAdjustment 
-} from './contextAwareRecognitionService';
-
 // Personalized Confidence Service
 export { personalizedConfidenceService } from './personalizedConfidenceService';
 export type { 
