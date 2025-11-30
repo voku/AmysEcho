@@ -27,7 +27,7 @@ export function gestureDebugLog(
   }
 
   const now = performance.now();
-  const key = category || message;
+  const key = `${category}:${message}`;
   const sampleInterval = options.sampleIntervalMs ?? DEFAULT_SAMPLE_INTERVAL_MS;
   const lastLogged = lastLogTimes.get(key) ?? 0;
 
