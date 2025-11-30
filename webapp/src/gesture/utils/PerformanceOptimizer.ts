@@ -42,6 +42,10 @@ export class PerformanceOptimizer {
   private readonly PROCESSING_INTENSITY_MODERATE = 0.6; // For slow movement - balanced processing
   private readonly PROCESSING_INTENSITY_FULL = 1.0; // For active movement - full processing
 
+  // Budget management thresholds
+  private readonly BUDGET_UTILIZATION_THRESHOLD = 1.2; // Over-budget threshold for skipping expensive processing
+  private readonly STATIC_HAND_BUDGET_MULTIPLIER = 0.5; // Reduce budget to 50% for static hands
+
   // Processing budget management (scientific: GPU/CPU load balancing)
   private processingBudgetMs = 33; // ~30fps target
   private budgetUtilization = 0;
@@ -211,6 +215,10 @@ export class PerformanceOptimizer {
     this.skipFrameCount = 0;
     this.adaptiveFrameSkipping = false;
     this.resetLandmarkSignature();
+    this.lastProcessingTime = 0;
+    this.lastVelocityScore = 0;
+    this.budgetUtilization = 0;
+    this.processingBudgetMs = 1000 / this.targetFrameRate;
   }
 
   /**
@@ -297,7 +305,7 @@ export class PerformanceOptimizer {
     }
 
     // Skip if we're over budget
-    if (this.budgetUtilization > 1.2) {
+    if (this.budgetUtilization > this.BUDGET_UTILIZATION_THRESHOLD) {
       return true;
     }
 
@@ -316,7 +324,7 @@ export class PerformanceOptimizer {
 
     // Adjust budget based on velocity - static hands need less processing
     if (this.lastVelocityScore < this.VELOCITY_LOW_THRESHOLD) {
-      this.processingBudgetMs = targetFrameTime * 0.5; // Use only half the budget
+      this.processingBudgetMs = targetFrameTime * this.STATIC_HAND_BUDGET_MULTIPLIER;
     } else {
       this.processingBudgetMs = targetFrameTime;
     }
