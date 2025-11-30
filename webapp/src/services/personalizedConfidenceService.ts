@@ -51,7 +51,7 @@ class PersonalizedConfidenceService {
     const profile = this.profiles.get(gestureId);
     const timeOfDay = this.getTimeOfDay();
     const contextAdjustment =
-      contextAwareRecognitionService.getContextAdjustment(gestureId, baseConfidence) ||
+      contextAwareRecognitionService.getContextAdjustment(gestureId, baseConfidence) ??
       { confidenceMultiplier: 1.0, reason: 'Keine Kontextanpassung' };
 
     let threshold = 0.5; // Standardschwelle
@@ -268,13 +268,12 @@ class PersonalizedConfidenceService {
       return '';
     }
 
-    if (adjustments.length === 1) {
-      return adjustments[0] ?? '';
+    const [primary = '', ...rest] = adjustments;
+    if (rest.length === 0) {
+      return primary;
     }
 
-    const primary = adjustments[0] ?? '';
-    const count = adjustments.length - 1;
-    return `${primary} (+${count} Anpassungen)`;
+    return `${primary} (+${rest.length} Anpassungen)`;
   }
 
   private loadProfiles(): void {

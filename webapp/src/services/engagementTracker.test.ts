@@ -1,7 +1,7 @@
 /**
  * Tests for Engagement Tracker Service
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { 
   startSession, 
   endSession, 

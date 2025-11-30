@@ -458,10 +458,9 @@ class ContextAwareRecognitionService {
     const gestureGroups = new Map<string, number[]>();
 
     for (const gesture of this.recentGestures.slice(-this.CONFIDENCE_HISTORY_SIZE)) {
-      if (!gestureGroups.has(gesture.gesture)) {
-        gestureGroups.set(gesture.gesture, []);
-      }
-      gestureGroups.get(gesture.gesture)!.push(gesture.confidence);
+      const existing = gestureGroups.get(gesture.gesture) ?? [];
+      existing.push(gesture.confidence);
+      gestureGroups.set(gesture.gesture, existing);
     }
 
     for (const [gesture, confidences] of gestureGroups) {

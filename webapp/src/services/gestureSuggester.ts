@@ -150,7 +150,7 @@ class GestureSuggester {
    */
   private getSimilarityBasedSuggestions(
     landmarks: number[][][],
-    _handedness: string[]
+    handedness: string[]
   ): GestureSuggestion[] {
     const suggestions: GestureSuggestion[] = [];
 
@@ -159,6 +159,10 @@ class GestureSuggester {
       return suggestions;
     }
     const handShape = this.analyzeHandShape(primaryHand);
+    
+    // Händigkeit kann für spezifische Gesten relevant sein
+    const isDominantHand = handedness[0]?.toLowerCase() === 'right';
+    const confidenceBoost = isDominantHand ? 0.1 : 0; // Dominante Hand oft genauer
 
     // Gesten die ähnliche Handformen haben könnten
     const shapeMatches: Record<string, string[]> = {
@@ -175,7 +179,7 @@ class GestureSuggester {
         suggestions.push({
           id: meaning.gestureId,
           label: meaning.label,
-          confidence: 0.5,
+          confidence: 0.5 + confidenceBoost,
           reason: 'similarity'
         });
       }

@@ -312,10 +312,19 @@ class PerformanceMonitor {
   }
 
   private getMemoryUsage(): number {
-    // In Browser, prüfen ob performance.memory verfügbar ist
-    if (typeof performance !== 'undefined' && 'memory' in performance) {
-      const memory = (performance as unknown as { memory: { usedJSHeapSize: number } }).memory;
-      return memory.usedJSHeapSize / (1024 * 1024); // In MB
+    // In Browser, prüfen ob performance.memory verfügbar ist (Chrome-spezifische API)
+    try {
+      if (typeof performance !== 'undefined') {
+        // Chrome/Chromium-basierte Browser bieten performance.memory an
+        const perfWithMemory = performance as Performance & { 
+          memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } 
+        };
+        if (perfWithMemory.memory && typeof perfWithMemory.memory.usedJSHeapSize === 'number') {
+          return perfWithMemory.memory.usedJSHeapSize / (1024 * 1024); // In MB
+        }
+      }
+    } catch {
+      // API nicht verfügbar, Platzhalter verwenden
     }
     return 50; // Platzhalter in MB
   }
