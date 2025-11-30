@@ -98,7 +98,7 @@ export function getActiveVocabularySet(): VocabularySet {
     return fallbackSet;
   }
 
-  throw new Error('Keine aktiven Vokabelsets konfiguriert');
+  throw new Error('No active vocabulary sets configured');
 }
 
 export function getGesturesForVocabularySet(setId: string): GestureModelEntry[] {
@@ -127,20 +127,32 @@ export function getAllCategories(): string[] {
   return Array.from(categories) as string[];
 }
 
+function isValidGestureModelEntry(entry: unknown): entry is GestureModelEntry {
+  if (!entry || typeof entry !== 'object') return false;
+  const candidate = entry as Partial<GestureModelEntry>;
+  return typeof candidate.id === 'string' && typeof candidate.label === 'string';
+}
+
 /**
  * Initialize the gesture model with custom gestures from localStorage
  * Web-compatible version that uses localStorage instead of AsyncStorage
  */
-export async function initGestureModel(): Promise<void> {
+export function initGestureModel(): void {
   // Reset to default gestures before loading custom gestures
   gestureModel.gestures = [...defaultGestures];
-  
+
   try {
     // Load custom gestures from localStorage
     const customGesturesRaw = localStorage.getItem('customGestures');
     if (customGesturesRaw) {
-      const customGestures = JSON.parse(customGesturesRaw) as GestureModelEntry[];
-      customGestures.forEach((g) => addGesture(g));
+      const parsed = JSON.parse(customGesturesRaw);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((g) => {
+          if (isValidGestureModelEntry(g)) {
+            addGesture(g);
+          }
+        });
+      }
     }
   } catch (e) {
     console.warn('Custom gesture load failed:', e);
@@ -151,9 +163,14 @@ export async function initGestureModel(): Promise<void> {
  * Save a custom gesture to localStorage
  */
 export function saveCustomGesture(gesture: GestureModelEntry): void {
+  if (!isValidGestureModelEntry(gesture)) {
+    console.warn('Failed to save custom gesture: invalid gesture entry');
+    return;
+  }
   try {
     const customGesturesRaw = localStorage.getItem('customGestures');
-    const customGestures = customGesturesRaw ? JSON.parse(customGesturesRaw) as GestureModelEntry[] : [];
+    const parsed = customGesturesRaw ? JSON.parse(customGesturesRaw) : [];
+    const customGestures = Array.isArray(parsed) ? parsed.filter(isValidGestureModelEntry) : [];
     
     // Update or add
     const existingIndex = customGestures.findIndex((g) => g.id === gesture.id);
@@ -162,7 +179,7 @@ export function saveCustomGesture(gesture: GestureModelEntry): void {
     } else {
       customGestures.push(gesture);
     }
-    
+
     localStorage.setItem('customGestures', JSON.stringify(customGestures));
     addGesture(gesture);
   } catch (e) {

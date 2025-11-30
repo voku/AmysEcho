@@ -33,7 +33,7 @@ export const backupService = {
   async backupProtectedGestures(): Promise<BackupArtifact | null> {
     const data = localStorage.getItem(PROTECTED_GESTURES_KEY);
     if (!data) {
-      logger.info('Keine geschützten Gesten zum Sichern gefunden.');
+      logger.info('No protected gestures found to backup.');
       return null;
     }
 
@@ -41,26 +41,26 @@ export const backupService = {
     try {
       parsed = JSON.parse(data);
     } catch (error) {
-      logger.error('Ungültige JSON-Daten, Sicherung nicht möglich', error);
-      throw new Error('Sicherung nicht möglich, Daten beschädigt');
+      logger.error('Invalid JSON data, backup not possible', error);
+      throw new Error('Sicherung nicht möglich, Daten beschädigt.');
     }
 
     if (!Array.isArray(parsed)) {
-      logger.error('Ungültige Datenstruktur für Sicherung');
-      throw new Error('Sicherung nicht möglich, Daten beschädigt');
+      logger.error('Invalid data structure for backup');
+      throw new Error('Sicherung nicht möglich, Daten beschädigt.');
     }
 
     const key = await getOrCreateKey();
     const cipher = await encryptJson(data, key);
     localStorage.setItem(BACKUP_STORAGE_KEY, cipher);
-    logger.info('Sicherung der geschützten Gesten erstellt.');
+    logger.info('Backup of protected gestures created.');
     return createDownload(cipher, 'protectedGesturesBackup.dat');
   },
 
   async restoreProtectedGestures(): Promise<boolean> {
     const cipher = localStorage.getItem(BACKUP_STORAGE_KEY);
     if (!cipher) {
-      logger.warn('Keine Sicherungsdatei gefunden.');
+      logger.warn('No backup file found.');
       return false;
     }
 
@@ -69,7 +69,7 @@ export const backupService = {
     try {
       plain = await decryptJson<string>(cipher, key);
     } catch (error) {
-      logger.error('Entschlüsselung der Sicherung fehlgeschlagen', error);
+      logger.error('Failed to decrypt backup', error);
       return false;
     }
 
@@ -77,12 +77,12 @@ export const backupService = {
     try {
       parsed = JSON.parse(plain);
     } catch (error) {
-      logger.error('Sicherungsdatei enthält ungültiges JSON', error);
+      logger.error('Backup file contains invalid JSON', error);
       return false;
     }
 
     if (!Array.isArray(parsed)) {
-      logger.error('Sicherungsdatei enthält ungültige Datenstruktur');
+      logger.error('Backup file contains invalid data structure');
       return false;
     }
 
@@ -90,7 +90,7 @@ export const backupService = {
       localStorage.setItem(PROTECTED_GESTURES_KEY, plain);
       return true;
     } catch (error) {
-      logger.error('Wiederherstellung konnte nicht gespeichert werden', error);
+      logger.error('Failed to save restored data', error);
       return false;
     }
   },
@@ -98,7 +98,7 @@ export const backupService = {
   async exportProtectedGestures(): Promise<BackupArtifact | null> {
     const raw = localStorage.getItem(PROTECTED_GESTURES_KEY);
     if (!raw) {
-      logger.info('Keine geschützten Gesten zum Exportieren gefunden.');
+      logger.info('No protected gestures found to export.');
       return null;
     }
 
@@ -106,13 +106,13 @@ export const backupService = {
     try {
       records = JSON.parse(raw);
     } catch (error) {
-      logger.error('Ungültige JSON-Daten, Export nicht möglich', error);
-      throw new Error('Export nicht möglich, Daten beschädigt');
+      logger.error('Invalid JSON data, export not possible', error);
+      throw new Error('Export nicht möglich, Daten beschädigt.');
     }
 
     if (!Array.isArray(records)) {
-      logger.error('Ungültige Datenstruktur für Export');
-      throw new Error('Export nicht möglich, Daten beschädigt');
+      logger.error('Invalid data structure for export');
+      throw new Error('Export nicht möglich, Daten beschädigt.');
     }
 
     const decryptPromises = (records as any[]).map((r) =>
@@ -125,12 +125,12 @@ export const backupService = {
       if (res.status === 'fulfilled' && res.value) {
         decrypted.push(res.value);
       } else if (res.status === 'rejected') {
-        logger.error('Gesten konnten nicht entschlüsselt werden', res.reason);
+        logger.error('Failed to decrypt gesture', res.reason);
       }
     });
 
     const payload = JSON.stringify(decrypted, null, 2);
-    logger.info('Export der geschützten Gesten erstellt.');
+    logger.info('Export of protected gestures created.');
     return createDownload(payload, 'protectedGesturesExport.json', 'application/json');
   },
 };

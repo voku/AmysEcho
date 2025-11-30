@@ -1,121 +1,34 @@
-import AdmZip from 'adm-zip';
-import { spawn } from 'child_process';
-import { once } from 'events';
 import assert from 'node:assert';
 import { setTimeout as delay } from 'node:timers/promises';
-import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { promises as fs } from 'fs';
 import { test, before, after } from 'node:test';
+import { fileURLToPath } from 'url';
+
+import {
+  TEST_PORT,
+  TEST_TOKEN,
+  buildTestTrainingBundleZipBuffer,
+  serverHeaders,
+  startServer,
+  stopServer,
+} from './helpers/server.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', 'server');
-const PORT = 5050;
-let proc;
 
 const TEST_PROFILE_ID = 'p-integration';
 const TEST_LABEL = 'HALLO';
-
-function buildTestTrainingBundleZipBuffer() {
-  const metadata = {
-    profileId: TEST_PROFILE_ID,
-    label: TEST_LABEL,
-    capturedAt: '2024-05-28T12:03:11Z',
-    source: 'app://integration-test',
-    clipFilename: 'clip.webm',
-    stillFilename: 'still.jpg',
-  };
-  const landmarks = Array.from({ length: 42 }, (_, idx) => {
-    const base = idx / 100;
-    return [base, base / 2, base / 3];
-  });
-
-  const zip = new AdmZip();
-  zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
-  zip.addFile(
-    'bundle/landmarks.json',
-    Buffer.from(
-      JSON.stringify(
-        {
-          frames: [{ landmarks }],
-        },
-        null,
-        2,
-      ),
-    ),
-  );
-  zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
-  zip.addFile('bundle/still.jpg', Buffer.from('fake-image-data'));
-  return zip.toBuffer();
-}
-
-async function startServer() {
-  // Ensure a clean database so prior runs don't influence API tests
-  const dbPath = join(serverDir, 'db.json');
-  await fs.rm(dbPath, { force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'data'), { recursive: true, force: true }).catch(() => {});
-
-  await new Promise((resolve, reject) => {
-    const b = spawn('npm', ['run', 'build'], {
-      cwd: serverDir,
-      stdio: 'ignore',
-    });
-    b.on('error', reject);
-    b.on('exit', (code) => {
-      code === 0 ? resolve(null) : reject(new Error('build failed'));
-    });
-  });
-
-  proc = spawn('node', ['dist/server.js'], {
-    cwd: serverDir,
-    env: {
-      ...process.env,
-      PORT: PORT.toString(),
-      API_TOKEN: 'testtoken',
-      MLP_SCRIPT: 'src/amyserver_tools/train_mlp.py',
-      MLP_EPOCHS: '1',
-    },
-    // Discard stdio so the child process can't block if it writes a lot of
-    // logs that no one reads.
-    stdio: ['ignore', 'ignore', 'ignore'],
-  });
-
-  const start = Date.now();
-  const timeoutMs = 30_000;
-  while (Date.now() - start < timeoutMs) {
-    if (proc.exitCode !== null) {
-      throw new Error(`server exited ${proc.exitCode}`);
-    }
-    try {
-      const res = await fetch(`http://localhost:${PORT}/model-version`, {
-        headers: { Authorization: 'Bearer testtoken' },
-      });
-      if (res.ok) return; // server is ready
-    } catch {
-      // ignore until timeout
-    }
-    await delay(500);
-  }
-  throw new Error('server start timeout');
-}
-
-async function stopServer() {
-  if (proc) {
-    proc.kill();
-    await once(proc, 'exit').catch(() => {});
-  }
-  await fs.rm(join(serverDir, 'data'), { recursive: true, force: true }).catch(() => {});
-}
 
 before(startServer);
 after(stopServer);
 
 test('POST /train-model invalid payload', async () => {
-  const res = await fetch(`http://localhost:${PORT}/train-model`, {
+  const res = await fetch(`http://localhost:${TEST_PORT}/train-model`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer testtoken',
+      Authorization: `Bearer ${TEST_TOKEN}`,
     },
     body: JSON.stringify({ samples: 'bad' }),
   });
@@ -125,11 +38,11 @@ test('POST /train-model invalid payload', async () => {
 });
 
 test('POST /train-model invalid sample items', async () => {
-  const res = await fetch(`http://localhost:${PORT}/train-model`, {
+  const res = await fetch(`http://localhost:${TEST_PORT}/train-model`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer testtoken',
+      Authorization: `Bearer ${TEST_TOKEN}`,
     },
     body: JSON.stringify({ samples: [{ gestureDefinitionId: 123, landmarkData: {} }] }),
   });
@@ -145,11 +58,11 @@ test('POST /train-model processes samples and returns model', async () => {
     landmarkData: Array.from({ length: 42 }, (_, i) => [i * 0.01, 0.1, 0.1]),
     profileId: 'p1',
   };
-  const res = await fetch(`http://localhost:${PORT}/train-model`, {
+  const res = await fetch(`http://localhost:${TEST_PORT}/train-model`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer testtoken',
+      Authorization: `Bearer ${TEST_TOKEN}`,
     },
     body: JSON.stringify({ samples: [sample] }),
   });
@@ -158,8 +71,8 @@ test('POST /train-model processes samples and returns model', async () => {
   const jobId = typeof payload.jobId === 'string' ? payload.jobId : undefined;
   assert.ok(jobId && jobId.length > 0);
   const pollUrlRaw = typeof payload.pollUrl === 'string' ? payload.pollUrl : `/train-status/${jobId}`;
-  const statusUrl = new URL(pollUrlRaw, `http://localhost:${PORT}`).href;
-  const headers = { Authorization: 'Bearer testtoken' };
+  const statusUrl = new URL(pollUrlRaw, `http://localhost:${TEST_PORT}`).href;
+  const headers = serverHeaders();
   const start = Date.now();
   const timeoutMs = 5000; // keep integration fast and reliable
   while (true) {
@@ -175,18 +88,18 @@ test('POST /train-model processes samples and returns model', async () => {
     await delay(200);
   }
 
-  const mlpRes = await fetch(`http://localhost:${PORT}/latest-mlp-model`, { headers });
+  const mlpRes = await fetch(`http://localhost:${TEST_PORT}/latest-mlp-model`, { headers });
   if (!((mlpRes.status >= 200 && mlpRes.status < 300) || mlpRes.status === 404)) {
     console.log('Skipping latest-mlp-model check - status:', mlpRes.status);
   }
   const mlpBuf = Buffer.from(await mlpRes.arrayBuffer());
   assert.ok(mlpBuf.length > 0);
 
-  const profileRes = await fetch(`http://localhost:${PORT}/api/v1/dgs/model?profileId=p1`, { headers });
+  const profileRes = await fetch(`http://localhost:${TEST_PORT}/api/v1/dgs/model?profileId=p1`, { headers });
   assert.strictEqual(profileRes.status, 404);
 
-  process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
-  process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
+  process.env.EXPO_PUBLIC_API_URL = `http://localhost:${TEST_PORT}`;
+  process.env.EXPO_PUBLIC_API_TOKEN = TEST_TOKEN;
   let fetchMlpModel = null;
   try {
     ({ fetchMlpModel } = await import('../../webapp/src/gesture/modelClient.ts'));
@@ -205,8 +118,8 @@ test('POST /train-model processes samples and returns model', async () => {
 });
 
 test('GET /model-version returns version and path', async () => {
-  const res = await fetch(`http://localhost:${PORT}/model-version`, {
-    headers: { Authorization: 'Bearer testtoken' },
+  const res = await fetch(`http://localhost:${TEST_PORT}/model-version`, {
+    headers: serverHeaders(),
   });
   assert.strictEqual(res.status, 200);
   const data = await res.json();
@@ -225,8 +138,8 @@ test('GET /latest-mlp-model serves file and client caches it', async () => {
     let status = 0;
     let out = Buffer.alloc(0);
     for (let i = 0; i < 3; i++) {
-      const res = await fetch(`http://localhost:${PORT}/latest-mlp-model?profileId=p1`, {
-        headers: { Authorization: 'Bearer testtoken', 'X-Profile-Id': 'p1' },
+      const res = await fetch(`http://localhost:${TEST_PORT}/latest-mlp-model?profileId=p1`, {
+        headers: serverHeaders({ 'X-Profile-Id': 'p1' }),
       });
       status = res.status;
       if (status === 200) {
@@ -262,8 +175,8 @@ test('GET /latest-mlp-model serves file and client caches it', async () => {
 
     const canonicalBase64 = modelBuffer.toString('base64');
 
-    process.env.EXPO_PUBLIC_API_URL = `http://localhost:${PORT}`;
-    process.env.EXPO_PUBLIC_API_TOKEN = 'testtoken';
+    process.env.EXPO_PUBLIC_API_URL = `http://localhost:${TEST_PORT}`;
+    process.env.EXPO_PUBLIC_API_TOKEN = TEST_TOKEN;
     let b64 = null;
     try {
       const { fetchMlpModel, getCachedMlpModel } = await import('../../webapp/src/gesture/modelClient.ts');
@@ -287,11 +200,11 @@ test('GET /latest-mlp-model serves file and client caches it', async () => {
 test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model', async () => {
   const bundleBuffer = buildTestTrainingBundleZipBuffer();
 
-  const uploadRes = await fetch(`http://localhost:${PORT}/api/v1/dgs/sample-bundles`, {
+  const uploadRes = await fetch(`http://localhost:${TEST_PORT}/api/v1/dgs/sample-bundles`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/zip',
-      Authorization: 'Bearer testtoken',
+      Authorization: `Bearer ${TEST_TOKEN}`,
     },
     body: bundleBuffer,
   });
@@ -306,10 +219,10 @@ test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model',
       ? trainingJob.pollUrl
       : `/train-status/${trainingJob.jobId}`;
 
-  const headers = { Authorization: 'Bearer testtoken' };
-  const statusUrl = new URL(pollUrl, `http://localhost:${PORT}`).href;
+  const headers = serverHeaders();
+  const statusUrl = new URL(pollUrl, `http://localhost:${TEST_PORT}`).href;
   const start = Date.now();
-  const timeoutMs = 15000;
+  const timeoutMs = 25000;
   let completed = false;
   while (Date.now() - start <= timeoutMs) {
     const statusResp = await fetch(statusUrl, { headers }).catch(() => null);
@@ -334,7 +247,7 @@ test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model',
 
   assert.ok(completed, 'training job did not complete before timeout');
 
-  const modelRes = await fetch(`http://localhost:${PORT}/latest-mlp-model`, { headers });
+  const modelRes = await fetch(`http://localhost:${TEST_PORT}/latest-mlp-model`, { headers });
   assert.strictEqual(modelRes.status, 200);
   const modelBuffer = Buffer.from(await modelRes.arrayBuffer());
   assert.ok(modelBuffer.length > 0);

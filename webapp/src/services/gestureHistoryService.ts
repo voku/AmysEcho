@@ -58,7 +58,7 @@ class GestureHistoryService {
   private constructor() {
     this.hydrationPromise = this.loadHistory();
     void gestureDataProtector.cleanupExpiredData().catch((error) => {
-      logger.warn('Bereinigung geschützter Gesten fehlgeschlagen:', error);
+      logger.warn('Failed to cleanup expired protected gestures:', error);
     });
   }
 
@@ -90,7 +90,7 @@ class GestureHistoryService {
         timestamp: entry.timestamp,
         sessionId: this.sessionId,
       })
-      .catch((error) => logger.warn('Geschützte Geste konnte nicht gespeichert werden:', error));
+      .catch((error) => logger.warn('Failed to store protected gesture:', error));
 
     this.analyticsHistory.unshift(entry);
     this.analyticsHistory = this.sanitizeAnalyticsHistory(this.analyticsHistory);
@@ -101,7 +101,7 @@ class GestureHistoryService {
 
   private generateRandomSessionId(): string {
     if (typeof crypto.getRandomValues !== 'function') {
-      throw new Error('Konnte keine sichere Sitzungs-ID generieren');
+      throw new Error('Unable to generate secure session ID');
     }
     const bytes = crypto.getRandomValues(new Uint8Array(16));
     bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4

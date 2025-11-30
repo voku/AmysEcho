@@ -35,9 +35,6 @@ export const COLORS = {
 
 export const SPACING = {
   ...spacing,
-  md: spacing.md,
-  lg: spacing.lg,
-  xl: spacing.xl,
   xxl: spacing['2xl'],
 } as const;
 
