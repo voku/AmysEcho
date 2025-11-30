@@ -60,8 +60,17 @@ export class PerformanceOptimizer {
     }
 
     // Enable adaptive frame skipping if consistently slow
-    const avgProcessingTime = this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length;
+    const avgProcessingTime = this.getAverageProcessingTime();
     this.adaptiveFrameSkipping = avgProcessingTime > this.PROCESSING_TIME_THRESHOLD;
+  }
+
+  /**
+   * Calculate average processing time from recorded history
+   */
+  private getAverageProcessingTime(): number {
+    return this.processingTimes.length > 0
+      ? this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length
+      : 0;
   }
 
   /**
@@ -177,13 +186,9 @@ export class PerformanceOptimizer {
     skipFrameCount: number;
     targetFrameRate: number;
   } {
-    const avgProcessingTime = this.processingTimes.length > 0
-      ? this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length
-      : 0;
-
     return {
       frameCount: this.frameCount,
-      averageProcessingTime: avgProcessingTime,
+      averageProcessingTime: this.getAverageProcessingTime(),
       adaptiveFrameSkipping: this.adaptiveFrameSkipping,
       skipFrameCount: this.skipFrameCount,
       targetFrameRate: this.targetFrameRate
@@ -198,7 +203,7 @@ export class PerformanceOptimizer {
     this.processingTimes = [];
     this.skipFrameCount = 0;
     this.adaptiveFrameSkipping = false;
-    this.lastLandmarksSignature = '';
+    this.resetLandmarkSignature();
   }
 
   /**
@@ -236,10 +241,7 @@ export class PerformanceOptimizer {
    */
   isPerformanceOptimal(): boolean {
     const targetFrameTime = 1000 / this.targetFrameRate;
-    const avgProcessingTime = this.processingTimes.length > 0
-      ? this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length
-      : 0;
-    return avgProcessingTime < targetFrameTime;
+    return this.getAverageProcessingTime() < targetFrameTime;
   }
 
   /**
