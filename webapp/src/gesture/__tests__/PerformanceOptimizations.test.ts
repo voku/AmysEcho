@@ -73,6 +73,22 @@ describe('PerformanceOptimizer', () => {
 
       expect(optimizer.shouldRedrawOverlay(landmarks, 10)).toBe(true); // Fast processing
     });
+
+    it('should reset landmark signature and trigger redraw on next detection', () => {
+      const landmarks1 = [[[0.1, 0.1, 0.0], [0.2, 0.2, 0.0]]];
+      const landmarks2 = [[[0.1001, 0.1001, 0.0], [0.2001, 0.2001, 0.0]]]; // Minimal change
+
+      // Set baseline
+      optimizer.shouldRedrawOverlay(landmarks1, 20);
+      // Normally would skip redraw for minimal change
+      expect(optimizer.shouldRedrawOverlay(landmarks2, 20)).toBe(false);
+
+      // Reset the signature (simulates no hands detected)
+      optimizer.resetLandmarkSignature();
+
+      // Now even minimal change should trigger redraw since signature was reset
+      expect(optimizer.shouldRedrawOverlay(landmarks2, 20)).toBe(true);
+    });
   });
 
   describe('configuration', () => {
@@ -95,6 +111,48 @@ describe('PerformanceOptimizer', () => {
       optimizer.setLandmarkChangeThreshold(0.0005); // Too low
       optimizer.setLandmarkChangeThreshold(0.2); // Too high
       // Should clamp values internally
+    });
+  });
+
+  describe('diagnostics', () => {
+    it('should return the last recorded processing time', () => {
+      expect(optimizer.getLastProcessingTime()).toBe(0);
+
+      optimizer.recordProcessingTime(25);
+      expect(optimizer.getLastProcessingTime()).toBe(25);
+
+      optimizer.recordProcessingTime(30);
+      expect(optimizer.getLastProcessingTime()).toBe(30);
+    });
+
+    it('should correctly determine if performance is optimal', () => {
+      optimizer.setTargetFrameRate(30); // 33.3ms per frame
+
+      // No processing times recorded - should be optimal
+      expect(optimizer.isPerformanceOptimal()).toBe(true);
+
+      // Fast processing times
+      optimizer.recordProcessingTime(10);
+      optimizer.recordProcessingTime(15);
+      expect(optimizer.isPerformanceOptimal()).toBe(true);
+
+      // Slow processing times that exceed target
+      optimizer.recordProcessingTime(50);
+      optimizer.recordProcessingTime(60);
+      optimizer.recordProcessingTime(70);
+      expect(optimizer.isPerformanceOptimal()).toBe(false);
+    });
+
+    it('should track landmark signature state', () => {
+      expect(optimizer.hasLandmarkSignature()).toBe(false);
+
+      const landmarks = [[[0.1, 0.1, 0.0], [0.2, 0.2, 0.0]]];
+      optimizer.shouldRedrawOverlay(landmarks, 20);
+
+      expect(optimizer.hasLandmarkSignature()).toBe(true);
+
+      optimizer.resetLandmarkSignature();
+      expect(optimizer.hasLandmarkSignature()).toBe(false);
     });
   });
 });
