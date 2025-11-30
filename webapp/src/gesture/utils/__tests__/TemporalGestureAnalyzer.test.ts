@@ -102,25 +102,26 @@ describe('TemporalGestureAnalyzer', () => {
   });
 
   describe('adaptive processing', () => {
-    it('should recommend full processing for fast movement', () => {
+    it('should detect fast movement correctly', () => {
       const landmarks1 = createTestLandmarks(0.3, 0.5);
       const landmarks2 = createTestLandmarks(0.7, 0.5); // Large movement
 
       analyzer.addFrame(landmarks1, 0);
-      analyzer.addFrame(landmarks2, 33);
+      const features = analyzer.addFrame(landmarks2, 33);
 
-      expect(analyzer.getProcessingIntensity()).toBe(1.0);
+      expect(features.isMoving).toBe(true);
+      expect(features.averageVelocity).toBeGreaterThan(0);
     });
 
-    it('should recommend minimal processing for static hand', () => {
+    it('should detect static hand correctly', () => {
       const landmarks1 = createTestLandmarks(0.5, 0.5);
       const landmarks2 = createTestLandmarks(0.5 + MINIMAL_MOVEMENT_OFFSET, 0.5 + MINIMAL_MOVEMENT_OFFSET);
 
       analyzer.addFrame(landmarks1, 0);
-      analyzer.addFrame(landmarks2, 33);
+      const features = analyzer.addFrame(landmarks2, 33);
 
-      // Should recommend reduced processing (0.3 or 0.6) for static/slow hand
-      expect(analyzer.getProcessingIntensity()).toBeLessThan(1.0);
+      // Static hand should have low velocity
+      expect(features.isMoving).toBe(false);
     });
 
     it('should not recommend skipping on first frame', () => {
@@ -246,7 +247,6 @@ describe('TemporalGestureAnalyzer', () => {
       expect(stats.bufferSize).toBe(2);
       expect(typeof stats.averageVelocity).toBe('number');
       expect(typeof stats.isMoving).toBe('boolean');
-      expect(typeof stats.processingIntensity).toBe('number');
     });
   });
 });

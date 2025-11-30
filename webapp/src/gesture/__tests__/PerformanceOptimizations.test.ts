@@ -45,9 +45,9 @@ describe('PerformanceOptimizer', () => {
       optimizer.recordProcessingTime(30);
       optimizer.recordProcessingTime(35);
 
-      const metrics = optimizer.getPerformanceMetrics();
-      expect(metrics.averageProcessingTime).toBeGreaterThan(25);
-      expect(metrics.averageProcessingTime).toBeLessThan(35);
+      const diagnostics = optimizer.getDiagnostics();
+      expect(diagnostics.averageProcessingTime).toBeGreaterThan(25);
+      expect(diagnostics.averageProcessingTime).toBeLessThan(35);
     });
   });
 
@@ -94,14 +94,14 @@ describe('PerformanceOptimizer', () => {
   describe('configuration', () => {
     it('should set target frame rate within valid range', () => {
       optimizer.setTargetFrameRate(60);
-      const metrics = optimizer.getPerformanceMetrics();
-      expect(metrics.targetFrameRate).toBe(60);
+      const diagnostics = optimizer.getDiagnostics();
+      expect(diagnostics.targetFrameRate).toBe(60);
 
       optimizer.setTargetFrameRate(10); // Too low
-      expect(optimizer.getPerformanceMetrics().targetFrameRate).toBe(15);
+      expect(optimizer.getDiagnostics().targetFrameRate).toBe(15);
 
       optimizer.setTargetFrameRate(100); // Too high
-      expect(optimizer.getPerformanceMetrics().targetFrameRate).toBe(60);
+      expect(optimizer.getDiagnostics().targetFrameRate).toBe(60);
     });
 
     it('should set landmark change threshold within valid range', () => {

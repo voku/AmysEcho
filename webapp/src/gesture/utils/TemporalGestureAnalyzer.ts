@@ -418,32 +418,6 @@ export class TemporalGestureAnalyzer {
   }
 
   /**
-   * Get recommended processing intensity based on movement
-   * Returns a value from 0 to 1 indicating how much processing is needed
-   *
-   * @deprecated Use PerformanceOptimizer.getProcessingIntensity() instead.
-   * This method is maintained for backwards compatibility and delegates to
-   * a simple velocity-based calculation. For production use, prefer
-   * PerformanceOptimizer which offers more comprehensive processing intensity
-   * management including velocity-adaptive mode and budget-aware optimization.
-   */
-  getProcessingIntensity(): number {
-    if (!this.lastVelocityFeatures) return 1;
-
-    const velocity = this.lastVelocityFeatures.averageVelocity;
-
-    // Simple velocity-based intensity for backwards compatibility
-    // PerformanceOptimizer uses VELOCITY_LOW_THRESHOLD (0.005) and VELOCITY_HIGH_THRESHOLD (0.02)
-    if (velocity < this.STATIC_THRESHOLD) {
-      return 0.3; // Minimal processing for static hand
-    } else if (velocity < this.VELOCITY_THRESHOLD) {
-      return 0.6; // Moderate processing for slow movement
-    } else {
-      return 1.0; // Full processing for active movement
-    }
-  }
-
-  /**
    * Get the last computed velocity features
    */
   getLastVelocityFeatures(): VelocityFeatures | null {
@@ -471,13 +445,11 @@ export class TemporalGestureAnalyzer {
     bufferSize: number;
     averageVelocity: number;
     isMoving: boolean;
-    processingIntensity: number;
   } {
     return {
       bufferSize: this.frameBuffer.getSize(),
       averageVelocity: this.lastVelocityFeatures?.averageVelocity ?? 0,
       isMoving: this.isHandMoving(),
-      processingIntensity: this.getProcessingIntensity(),
     };
   }
 
