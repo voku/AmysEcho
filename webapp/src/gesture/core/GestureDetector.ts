@@ -17,6 +17,7 @@ import {
   frameCaptureState,
   disposeFrameCapture,
 } from '../utils/FrameCaptureManager';
+import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 
 // Performance thresholds
 const SLOW_FRAME_THRESHOLD_MS = 50;
@@ -128,18 +129,9 @@ export class GestureDetector {
       console.error('Failed to start camera:', error);
 
       // Send camera error telemetry
-      try {
-        (window as any).ReactNativeWebView?.postMessage?.(
-          JSON.stringify({
-            type: 'telemetry',
-            event: 'camera_start_failed',
-            error: error instanceof Error ? error.message : String(error),
-            timestamp: Date.now(),
-          }),
-        );
-      } catch (telemetryErr) {
-        console.warn('Failed to send camera error telemetry:', telemetryErr);
-      }
+      void sendTelemetryEvent('camera_start_failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
 
       // Continue with gesture detector initialization even if camera fails
       // This allows the system to work with pre-recorded video or fallback modes

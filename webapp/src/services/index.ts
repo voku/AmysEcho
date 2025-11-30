@@ -13,6 +13,8 @@ export { gestureHistoryService } from './gestureHistoryService';
 export type { GestureHistoryEntry, GestureUsageSummary, GestureHistoryStats } from './gestureHistoryService';
 
 export { correctionService } from './correctionService';
+export { gestureDataProtector } from './dataProtection';
+export { backupService } from './backupService';
 
 export { gdprService } from './gdprService';
 export type { ExportedProfileData } from './gdprService';

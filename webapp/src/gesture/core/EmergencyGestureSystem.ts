@@ -4,6 +4,7 @@
  */
 
 import { messageBatcher } from '../utils/MessageBatcher';
+import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 
 export class EmergencyGestureSystem {
   private readonly EMERGENCY_GESTURES = new Set([
@@ -142,6 +143,7 @@ export class EmergencyGestureSystem {
         },
         { flushImmediately: true }
       );
+      void sendTelemetryEvent('emergency_gesture_detected', basePayload);
     } catch (err) {
       console.error('Failed to enqueue emergency telemetry:', err);
     }

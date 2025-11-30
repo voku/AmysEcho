@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { useMessage } from '../context/MessageContext';
+import { backupService } from '../services/backupService';
 
 interface Symbol {
   id: string;
@@ -131,6 +132,57 @@ export const Admin: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const triggerDownload = (artifact: { url: string; fileName: string }, message: string) => {
+    const anchor = document.createElement('a');
+    anchor.href = artifact.url;
+    anchor.download = artifact.fileName;
+    anchor.click();
+    URL.revokeObjectURL(artifact.url);
+    showToast({ message, tone: 'success' });
+  };
+
+  const handleBackupProtectedGestures = async () => {
+    try {
+      const artifact = await backupService.backupProtectedGestures();
+      if (!artifact) {
+        showToast({ message: 'Keine geschützten Gesten gefunden', tone: 'info' });
+        return;
+      }
+      triggerDownload(artifact, 'Sicherung erstellt');
+    } catch (error) {
+      showToast({ message: 'Sicherung fehlgeschlagen', tone: 'error' });
+      console.warn('Backup der geschützten Gesten fehlgeschlagen', error);
+    }
+  };
+
+  const handleRestoreProtectedGestures = async () => {
+    try {
+      const ok = await backupService.restoreProtectedGestures();
+      if (ok) {
+        showToast({ message: 'Sicherung wiederhergestellt', tone: 'success' });
+      } else {
+        showToast({ message: 'Keine Sicherung gefunden', tone: 'info' });
+      }
+    } catch (error) {
+      showToast({ message: 'Wiederherstellung fehlgeschlagen', tone: 'error' });
+      console.warn('Wiederherstellung der geschützten Gesten fehlgeschlagen', error);
+    }
+  };
+
+  const handleExportProtectedGestures = async () => {
+    try {
+      const artifact = await backupService.exportProtectedGestures();
+      if (!artifact) {
+        showToast({ message: 'Keine Daten zum Exportieren', tone: 'info' });
+        return;
+      }
+      triggerDownload(artifact, 'Export erstellt');
+    } catch (error) {
+      showToast({ message: 'Export fehlgeschlagen', tone: 'error' });
+      console.warn('Export der geschützten Gesten fehlgeschlagen', error);
+    }
+  };
+
   const handleClearData = async () => {
     const confirmed = await showConfirmDialog('Alle Daten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');
     if (confirmed) {
@@ -236,6 +288,27 @@ export const Admin: React.FC = () => {
             <input type="file" accept=".json" onChange={handleImportSymbols} hidden />
           </label>
           <p className="muted">Lädt ein zuvor gespeichertes Symbol-Set wieder ein</p>
+        </div>
+
+        <div className="action-group">
+          <button className="secondary-button" onClick={handleBackupProtectedGestures}>
+            Geschützte Gesten sichern
+          </button>
+          <p className="muted">Erstellt eine verschlüsselte Sicherung mit Browser-Schlüssel</p>
+        </div>
+
+        <div className="action-group">
+          <button className="secondary-button" onClick={handleExportProtectedGestures}>
+            Geschützte Gesten exportieren
+          </button>
+          <p className="muted">Exportiert anonymisierte Gesten zur Prüfung oder Migration</p>
+        </div>
+
+        <div className="action-group">
+          <button className="secondary-button" onClick={handleRestoreProtectedGestures}>
+            Sicherung wiederherstellen
+          </button>
+          <p className="muted">Stellt die letzte Sicherung geschützter Gesten wieder her</p>
         </div>
 
         <div className="action-group">

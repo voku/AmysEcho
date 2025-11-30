@@ -85,6 +85,44 @@ describe('useTrainingUploader', () => {
     });
   });
 
+  it('triggert einen Trainingsjob, wenn der Upload keine Job-Info liefert', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'bundle-200', status: 'queued' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ job: { id: 'job-200', status: 'running', pollUrl: '/jobs/200' } }),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'completed' }) });
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() =>
+      useTrainingUploader({
+        defaultOptions: {
+          endpoint: 'https://api.example.com/api/v1/dgs/sample-bundles',
+          apiBase: 'https://api.example.com',
+          token: 'secret',
+        },
+        pollIntervalMs: 5,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.upload(payload);
+    });
+
+    await waitFor(() => {
+      expect(fetchSpy.mock.calls[1]?.[0]).toBe('https://api.example.com/train-model');
+    });
+
+    await waitFor(() => expect(result.current.trainingJob?.jobId).toBe('job-200'));
+    await waitFor(() => {
+      const pollCall = fetchSpy.mock.calls.find((call) => String(call[0]).includes('/jobs/200'));
+      expect(pollCall?.[0]).toBe('https://api.example.com/jobs/200');
+    });
+  });
+
   it('legt fehlgeschlagene Uploads in die Warteschlange', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
     (globalThis as any).fetch = fetchSpy;

@@ -26,6 +26,7 @@ import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMedia
 import { messageBatcher, FRAME_LATENCY_SAMPLE_INTERVAL } from '../utils/MessageBatcher';
 import { captureFrameForTrainer, getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
 import { FallbackClipRecorder, FallbackClipResult } from '../utils/FallbackClipRecorder';
+import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
@@ -799,19 +800,9 @@ export class GestureRecognitionOrchestrator {
   }
 
   private sendClipTelemetry(event: string, requestId: string, data: Record<string, unknown> | undefined): void {
-    try {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
-          type: 'telemetry',
-          event,
-          requestId,
-          data,
-          timestamp: Date.now(),
-        }),
-      );
-    } catch (error) {
+    void sendTelemetryEvent(event, { requestId, data, timestamp: Date.now() }).catch((error) => {
       console.warn('Failed to send clip telemetry:', error);
-    }
+    });
   }
 
   private createMediaRecorder(

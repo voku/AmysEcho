@@ -4,6 +4,7 @@
  */
 
 import { logger } from './logger';
+import { gestureDataProtector } from './dataProtection';
 
 export interface GestureHistoryEntry {
   id: string;
@@ -43,6 +44,9 @@ class GestureHistoryService {
   private readonly ANALYTICS_RETENTION_DAYS = 30;
   private readonly STORAGE_KEY = 'amys_echo_gesture_history';
   private hydrationPromise: Promise<void>;
+  private readonly sessionId: string = typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `session-${Date.now()}-${Math.random()}`;
 
   static getInstance(): GestureHistoryService {
     if (!GestureHistoryService.instance) {
@@ -53,6 +57,9 @@ class GestureHistoryService {
 
   private constructor() {
     this.hydrationPromise = this.loadHistory();
+    void gestureDataProtector.cleanupExpiredData().catch((error) => {
+      logger.warn('Bereinigung geschützter Gesten fehlgeschlagen:', error);
+    });
   }
 
   ready(): Promise<void> {
@@ -75,6 +82,15 @@ class GestureHistoryService {
     }
 
     this.enforceRecentHistoryRetention();
+
+    void gestureDataProtector
+      .storeGesture({
+        gestureClass: entry.label,
+        confidence: entry.confidence,
+        timestamp: entry.timestamp,
+        sessionId: this.sessionId,
+      })
+      .catch((error) => logger.warn('Geschützte Geste konnte nicht gespeichert werden:', error));
 
     this.analyticsHistory.unshift(entry);
     this.analyticsHistory = this.sanitizeAnalyticsHistory(this.analyticsHistory);

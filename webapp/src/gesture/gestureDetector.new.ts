@@ -1,9 +1,17 @@
+import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
+
 /**
  * Simplified and modular gesture detector
  * Uses the GestureRecognitionOrchestrator for clean separation of concerns
  */
 
 // Forward script errors to React Native for easier debugging
+const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
+  void sendTelemetryEvent(event, data ?? {}).catch((err) => {
+    console.warn(`Failed to send '${event}' telemetry event:`, err);
+  });
+};
+
 const onError = (e: ErrorEvent) => {
   try {
     // Send a generic child-friendly error message instead of technical details
@@ -30,34 +38,12 @@ window.addEventListener('error', onError);
 // Forward console.log to React Native for debugging
 const originalConsoleLog = console.log;
 console.log = (...args: any[]) => {
-  try {
-    window.ReactNativeWebView?.postMessage?.(
-      JSON.stringify({
-        type: 'telemetry',
-        event: 'console_log',
-        message: args.join(' '),
-        timestamp: Date.now(),
-      }),
-    );
-  } catch (err) {
-    console.debug('Failed to forward console.log message to React Native:', err);
-  }
+  forwardTelemetry('console_log', { message: args.join(' ') });
   originalConsoleLog(...args);
 };
 
 const sendTelemetry = (event: string, payload: Record<string, unknown> = {}) => {
-  try {
-    window.ReactNativeWebView?.postMessage?.(
-      JSON.stringify({
-        type: 'telemetry',
-        event,
-        timestamp: Date.now(),
-        ...payload,
-      }),
-    );
-  } catch (err) {
-    console.warn(`Failed to send '${event}' telemetry event:`, err);
-  }
+  forwardTelemetry(event, payload);
 };
 
 const onUnhandledRejection = (e: PromiseRejectionEvent) => {
@@ -211,9 +197,7 @@ window.fflate = { unzip, unzipSync };
 installMlp();
 
 try {
-  window.ReactNativeWebView?.postMessage?.(
-    JSON.stringify({ type: 'telemetry', event: 'mlp_ready' })
-  );
+  forwardTelemetry('mlp_ready');
 } catch (err) {
   console.warn("Failed to signal 'mlp_ready' event:", err);
 }
@@ -334,9 +318,7 @@ function initDom() {
       });
   }
 
-  window.ReactNativeWebView?.postMessage?.(
-    JSON.stringify({ type: 'telemetry', event: 'dom_ready' }),
-  );
+  forwardTelemetry('dom_ready');
 }
 
 // Initialize when DOM is ready
@@ -397,9 +379,7 @@ async function cleanup() {
 
   document.body.classList.remove('gesture-detector');
 
-  window.ReactNativeWebView?.postMessage?.(
-    JSON.stringify({ type: 'telemetry', event: 'cleanup_done' }),
-  );
+  forwardTelemetry('cleanup_done');
 }
 
 // Expose cleanup function

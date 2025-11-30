@@ -4,6 +4,7 @@
  */
 
 import { ResourceManager } from '../utils/ResourceManager';
+import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 
 export class CameraManager {
   private video: HTMLVideoElement;
@@ -77,17 +78,9 @@ export class CameraManager {
 
       // Send telemetry
       const tracks = stream.getVideoTracks();
-      try {
-        (window as any).ReactNativeWebView?.postMessage?.(
-          JSON.stringify({
-            type: 'telemetry',
-            event: 'camera_started',
-            tracks: tracks.map((t) => t.label),
-          }),
-        );
-      } catch (err) {
-        console.warn("Failed to send 'camera_started' telemetry event:", err);
-      }
+      void sendTelemetryEvent('camera_started', {
+        tracks: tracks.map((t) => t.label),
+      });
     } catch (error) {
       // Provide specific error handling for camera access issues
       const errorMessage = error instanceof Error ? error.message : String(error);
