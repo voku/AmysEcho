@@ -3,6 +3,8 @@ export interface SymbolRecord {
   name: string;
   emoji: string;
   color: string;
+  category?: string;
+  imageUrl?: string;
   audioUri: string;
   /** Optional path to a German Sign Language (DGS) demonstration video */
   dgsVideoUri?: string;

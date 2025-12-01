@@ -13,3 +13,6 @@ export { AccessibilityProvider, useAccessibility } from './AccessibilityContext'
 
 export { ServicesProvider, useServices } from './ServicesContext';
 export type { Services } from './ServicesContext';
+
+export { SymbolStoreProvider, useSymbolStore } from './SymbolStore';
+export type { SymbolDefinition } from './SymbolStore';

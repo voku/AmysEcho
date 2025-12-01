@@ -4,15 +4,18 @@ import App from './App.tsx';
 import { AppStateProvider } from './hooks/useAppState';
 import { ApiConfigProvider } from './hooks/useApiConfig';
 import { MessageProvider } from './context/MessageContext';
+import { SymbolStoreProvider } from './context/SymbolStore';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <MessageProvider>
       <ApiConfigProvider>
-        <AppStateProvider>
-          <App />
-        </AppStateProvider>
+        <SymbolStoreProvider>
+          <AppStateProvider>
+            <App />
+          </AppStateProvider>
+        </SymbolStoreProvider>
       </ApiConfigProvider>
     </MessageProvider>
   </React.StrictMode>,

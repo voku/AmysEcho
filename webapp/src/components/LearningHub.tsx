@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSymbolStore } from '../context/SymbolStore';
 
 interface GestureItem {
   id: string;
   label: string;
   emoji: string;
   description: string;
+  imageUrl?: string | null;
 }
 
 const BASELINE_GESTURES: GestureItem[] = [
@@ -28,12 +30,23 @@ const BASELINE_GESTURES: GestureItem[] = [
  * Shows available gestures and allows users to start training for each.
  */
 export function LearningHub() {
-  const gestures = useMemo(() => BASELINE_GESTURES, []);
+  const { symbols, refresh, syncError, loading } = useSymbolStore();
+  const gestures = useMemo(() => {
+    if (symbols.length > 0) {
+      return symbols.map((symbol) => ({
+        id: symbol.id,
+        label: symbol.name,
+        emoji: symbol.imageUrl ? '🖼️' : '🧩',
+        description: symbol.category,
+        imageUrl: symbol.imageUrl,
+      }));
+    }
+    return BASELINE_GESTURES;
+  }, [symbols]);
   const navigate = useNavigate();
 
-  const handleTrainGesture = (_gestureId: string, label: string) => {
-    // Navigate to training with the selected gesture
-    navigate(`/training?gesture=${encodeURIComponent(label)}`);
+  const handleTrainGesture = (gestureId: string, label: string) => {
+    navigate(`/training?symbolId=${encodeURIComponent(gestureId)}&gesture=${encodeURIComponent(label)}`);
   };
 
   return (
@@ -65,15 +78,27 @@ export function LearningHub() {
         </div>
       </div>
 
+      <div className="action-row mb-sm">
+        <button className="secondary-button" onClick={refresh} disabled={loading}>
+          Jetzt synchronisieren
+        </button>
+        {loading && <span className="muted small">Aktualisiere…</span>}
+      </div>
+      {syncError && <div className="notice warning">Symbole konnten nicht geladen werden: {syncError}</div>}
+
       {/* Gesture list */}
       <div className="gesture-learning-list">
         {gestures.map((gesture) => (
           <div key={gesture.id} className="gesture-learning-card">
             <div className="gesture-info">
-              <span className="gesture-emoji-large">{gesture.emoji}</span>
+              {gesture.imageUrl ? (
+                <img src={gesture.imageUrl} alt={gesture.label} className="gesture-image-large" />
+              ) : (
+                <span className="gesture-emoji-large">{gesture.emoji}</span>
+              )}
               <div className="gesture-details">
                 <h3>{gesture.label}</h3>
-                <p className="muted small">{gesture.description}</p>
+                <p className="muted small">{gesture.description || 'Benutzerdefinierte Kategorie'}</p>
                 <p className="muted small">Empfohlen: 5 Beispiele · ca. 1 Minute</p>
               </div>
             </div>
