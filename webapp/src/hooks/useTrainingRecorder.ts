@@ -36,6 +36,7 @@ export interface TrainingRecorderResult {
   maxClipBytes: number;
   previewLandmarks: number[][][];
   previewHandedness: string[];
+  lastFrameReceivedAt: number | null;
 }
 
 const MAX_BUFFERED_FRAMES = 240;
@@ -88,6 +89,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
   const [clipError, setClipError] = useState<string | null>(null);
   const [previewLandmarks, setPreviewLandmarks] = useState<number[][][]>([]);
   const [previewHandedness, setPreviewHandedness] = useState<string[]>([]);
+  const [lastFrameReceivedAt, setLastFrameReceivedAt] = useState<number | null>(null);
   const isRecordingRef = useRef(false);
   const clipRecorderRef = useRef<MediaRecorder | null>(null);
   const clipChunksRef = useRef<Blob[]>([]);
@@ -153,6 +155,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
       return combined.length > MAX_BUFFERED_FRAMES ? combined.slice(-MAX_BUFFERED_FRAMES) : combined;
     });
     setFramesCaptured((count) => count + framesToAppend.length);
+    setLastFrameReceivedAt(Date.now());
   }, []);
 
   useEffect(() => {
@@ -164,8 +167,21 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
 
       try {
         const parsed = JSON.parse(detail);
-        if (parsed?.type === 'FRAME_BATCH' && isFrameBatchMessage(parsed)) {
-          handleFrameBatch(parsed);
+        const tryProcessPayload = (candidate: unknown) => {
+          if (candidate && typeof candidate === 'object') {
+            const payload = candidate as FrameBatchPayload & { type?: string };
+            if (payload.type === 'FRAME_BATCH' && isFrameBatchMessage(payload)) {
+              handleFrameBatch(payload);
+            }
+          }
+        };
+
+        if (parsed?.type === 'gesture_batch' && Array.isArray(parsed?.messages)) {
+          parsed.messages.forEach((message: unknown) => {
+            tryProcessPayload(message);
+          });
+        } else {
+          tryProcessPayload(parsed);
         }
       } catch (error) {
         // Ignore parse errors
@@ -186,6 +202,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     setFramesCaptured(0);
     setPreviewLandmarks([]);
     setPreviewHandedness([]);
+    setLastFrameReceivedAt(null);
     setClipFile(null);
     setClipSizeBytes(0);
     setClipDurationMs(0);
@@ -279,6 +296,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     setFramesCaptured(0);
     setPreviewLandmarks([]);
     setPreviewHandedness([]);
+    setLastFrameReceivedAt(null);
     setClipFile(null);
     setClipSizeBytes(0);
     setClipDurationMs(0);
@@ -308,5 +326,6 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     maxClipBytes: MAX_CLIP_BYTES,
     previewLandmarks,
     previewHandedness,
+    lastFrameReceivedAt,
   };
 }

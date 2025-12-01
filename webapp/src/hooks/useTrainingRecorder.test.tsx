@@ -73,6 +73,43 @@ describe('useTrainingRecorder', () => {
     expect(result.current.recordedData.stillImage).toBe('data:image/jpeg;base64,test');
   });
 
+  it('wertet FRAME_BATCH-Meldungen aus gesture_batch aus', async () => {
+    const { result } = renderHook(() => useTrainingRecorder());
+
+    act(() => {
+      result.current.startRecording();
+    });
+
+    const gestureBatchMessage = {
+      type: 'gesture_batch',
+      messages: [
+        {
+          type: 'FRAME_BATCH',
+          landmarks: [
+            [
+              [
+                [0, 0, 0],
+                [1, 1, 1],
+              ],
+            ],
+          ],
+          handednesses: [['Right']],
+          frames: ['data:image/jpeg;base64,from-batch'],
+        },
+      ],
+    };
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(WEBVIEW_MESSAGE_EVENT, { detail: JSON.stringify(gestureBatchMessage) }));
+    });
+
+    await waitFor(() => {
+      expect(result.current.framesCaptured).toBeGreaterThan(0);
+    });
+
+    expect(result.current.lastFrameReceivedAt).not.toBeNull();
+  });
+
   it('setzt die Aufnahme zurück', () => {
     const { result } = renderHook(() => useTrainingRecorder());
 
