@@ -37,15 +37,24 @@ export type GestureHookResult = {
   messageLog: GestureMessage[];
 };
 
+const UNKNOWN_TYPE = 'unbekannt';
+
 function parseIncomingMessage(raw: string): GestureMessage {
   try {
     const parsed = JSON.parse(raw);
-    const type = typeof parsed?.type === 'string' ? parsed.type : 'unbekannt';
+    const type = typeof parsed?.type === 'string' ? parsed.type : UNKNOWN_TYPE;
     const gestureCandidate = parsed?.gesture ?? parsed?.messages?.[0]?.gesture;
     const summaryParts = [] as string[];
 
+    // Check if this is a "no hands detected" scenario
+    const hasLandmarks = parsed?.landmarks?.length > 0 || 
+                         parsed?.messages?.some((m: { landmarks?: unknown[] }) => (m?.landmarks?.length ?? 0) > 0);
+
     if (gestureCandidate) {
       summaryParts.push(`Geste: ${String(gestureCandidate)}`);
+    } else if (!hasLandmarks && type !== UNKNOWN_TYPE) {
+      // No gesture and no landmarks = no hands detected
+      summaryParts.push('Keine Hand erkannt');
     }
 
     if (parsed?.confidence !== undefined) {
@@ -65,7 +74,7 @@ function parseIncomingMessage(raw: string): GestureMessage {
     };
   } catch (error) {
     return {
-      type: 'unbekannt',
+      type: UNKNOWN_TYPE,
       summary: 'Konnte Meldung nicht lesen',
       payload: raw,
       receivedAt: Date.now(),
