@@ -1,4 +1,5 @@
 import type { WebViewMessagePayload } from '../types/MediaPipeTypes';
+import { postWebviewMessage } from '../../utils/reactNativeBridge';
 
 export const BATCH_INTERVAL_MS = 35;
 export const MAX_BATCH_SIZE = 6;
@@ -64,11 +65,7 @@ export class MessageBatcher {
     };
 
     try {
-      if (window.ReactNativeWebView?.postMessage) {
-        window.ReactNativeWebView.postMessage(JSON.stringify(batchPayload));
-      } else {
-        console.warn('MessageBatcher: ReactNativeWebView not available, logging batch', batchPayload);
-      }
+      postWebviewMessage(batchPayload);
       this.lastSentAt = batchPayload.lastSentAt;
     } catch (error) {
       console.error('MessageBatcher failed to flush batch:', error);

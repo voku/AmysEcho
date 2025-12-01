@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import type { GestureRecognitionOrchestrator } from '../gesture/core/GestureRecognitionOrchestrator';
 import { useGestureDetector } from './useGestureDetector';
 
@@ -50,13 +51,11 @@ describe('useGestureDetector', () => {
       }),
     );
 
-    await waitFor(() => {
-      expect(window.ReactNativeWebView?.postMessage).toBeTypeOf('function');
-    });
-
     act(() => {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({ type: 'gesture', gesture: 'WINKEN', confidence: 0.92 }),
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({ type: 'gesture', gesture: 'WINKEN', confidence: 0.92 }),
+        }),
       );
     });
 
@@ -78,16 +77,14 @@ describe('useGestureDetector', () => {
       }),
     );
 
-    await waitFor(() => {
-      expect(window.ReactNativeWebView?.postMessage).toBeTypeOf('function');
-    });
-
     act(() => {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
-          type: 'landmarks',
-          landmarks: [[[0.1, 0.2, 0], [0.2, 0.3, 0]]],
-          handednesses: ['left'],
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'landmarks',
+            landmarks: [[[0.1, 0.2, 0], [0.2, 0.3, 0]]],
+            handednesses: ['left'],
+          }),
         }),
       );
     });
@@ -109,16 +106,14 @@ describe('useGestureDetector', () => {
       }),
     );
 
-    await waitFor(() => {
-      expect(window.ReactNativeWebView?.postMessage).toBeTypeOf('function');
-    });
-
     act(() => {
-      window.ReactNativeWebView?.postMessage?.(
-        JSON.stringify({
-          type: 'landmarks',
-          landmarks: [[[0.4, 0.5, 0], [0.5, 0.6, 0]]],
-          handednesses: [],
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'landmarks',
+            landmarks: [[[0.4, 0.5, 0], [0.5, 0.6, 0]]],
+            handednesses: [],
+          }),
         }),
       );
     });

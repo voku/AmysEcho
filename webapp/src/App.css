@@ -317,11 +317,26 @@ body {
 .notice-flex { display: flex; gap: var(--space-sm); align-items: center; }
 .push-end { margin-left: auto; }
 .full-width { width: 100%; }
+.status-stack {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.status-stack[data-stable="true"] {
+  min-height: 10rem;
+}
 
 .controls {
   display: flex;
   gap: var(--space-md);
   flex-wrap: wrap;
+}
+
+.action-row {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 /* ==========================================================================
@@ -868,6 +883,15 @@ p {
 @media (max-width: 900px) {
   .detector-shell {
     grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .detector-shell .panel {
+    margin-top: var(--space-sm);
+  }
+
+  .panel .controls {
+    gap: var(--space-sm);
   }
 
   .profile-grid {
@@ -1654,6 +1678,14 @@ p {
 
 .gesture-details h3 {
   margin: 0 0 0.25rem;
+}
+
+.gesture-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .train-button {

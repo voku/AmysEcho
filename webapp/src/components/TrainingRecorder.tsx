@@ -226,8 +226,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : clipLimitExceeded
     ? 'Upload gesperrt, weil die maximale Dateigröße überschritten wurde.'
     : '';
-  const showDetectorStart = !isRecording && (status === 'stopped' || status === 'error');
-  const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : 'Kamera starten';
+  const showDetectorStart = !isRecording && status !== 'running';
+  const detectorStartDisabled = status === 'initializing';
+  const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : status === 'initializing' ? 'Startet…' : 'Kamera starten';
   const displayedLabel = label.trim() || 'Keine Gestenauswahl vorhanden';
   const detectorStatusLabel =
     status === 'running'
@@ -244,6 +245,11 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     ? 'Aufnahme bereit'
     : 'Keine Aufnahme aktiv';
   const recordingStatusTone = isRecording ? 'running' : hasRecording ? 'success' : 'idle';
+  const framesLine = framesCaptured > 0
+    ? `${framesCaptured} Frames erfasst`
+    : detectorRunning
+    ? 'Noch keine verwertbaren Frames empfangen'
+    : 'Kamera noch nicht gestartet';
 
   return (
     <section className="card">
@@ -268,32 +274,34 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           Aufnahme: {recordingStatusLabel}
         </div>
       </div>
-      {!detectorRunning && (
-        <p className="muted small">
-          Detektor ist nicht gestartet – Frames werden erst gezählt, wenn die Kamera läuft.
-        </p>
-      )}
+      <div className="status-stack" data-stable="true">
+        {!detectorRunning && (
+          <p className="muted small no-margin">
+            Detektor ist nicht gestartet – Frames werden erst gezählt, wenn die Kamera läuft.
+          </p>
+        )}
 
-      {!cameraSupported && (
-        <div className="notice warning">
-          <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
-        </div>
-      )}
+        {!cameraSupported && (
+          <div className="notice warning">
+            <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
+          </div>
+        )}
 
-      {cameraError && <div className="notice error">{cameraError}</div>}
+        {cameraError && <div className="notice error">{cameraError}</div>}
 
-      {detectorInactiveNotice && (
-        <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
-          <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
-          {detectorInactiveNotice}
-        </div>
-      )}
+        {detectorInactiveNotice && (
+          <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
+            <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
+            {detectorInactiveNotice}
+          </div>
+        )}
 
-      {detectorStartFeedback && (
-        <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
-          {detectorStartFeedback}
-        </div>
-      )}
+        {detectorStartFeedback && (
+          <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
+            {detectorStartFeedback}
+          </div>
+        )}
+      </div>
 
       <div className="detector-shell">
         <div className="video-wrapper">
@@ -317,7 +325,10 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               <p className="muted">
                 Geste: <strong>{displayedLabel}</strong>
               </p>
-              <p className="value">{framesCaptured} Frames erfasst</p>
+              <p className="value">{framesLine}</p>
+              {framesCaptured === 0 && detectorRunning && (
+                <p className="muted small">Platziere deine Hände klar im Bild, damit die Landmarken gezählt werden.</p>
+              )}
               <p className="muted small">Clip: {clipStatus}</p>
               {recordedData.clipDurationMs > 0 && (
                 <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
@@ -356,7 +367,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
           <div className="controls">
             {showDetectorStart && (
-              <button className="secondary" onClick={startCamera}>
+              <button className="secondary" onClick={startCamera} disabled={detectorStartDisabled}>
                 {detectorStartLabel}
               </button>
             )}
@@ -388,26 +399,27 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                   Landmarks speichern
                 </button>
                 {uploadDisabledReason && <p className="muted small">{uploadDisabledReason}</p>}
-                <div className="form-group mt-sm">
-                  <label htmlFor="manual-still">Eigenes Referenzbild (optional)</label>
-                  <div className="file-input">
-                    <input
-                      id="manual-still"
-                      type="file"
-                      accept="image/*"
-                      onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
-                    />
-                    <p className="muted small">
-                      {manualStillFile?.name || 'Nutze ein zusätzliches Bild, falls der Auto-Screenshot nicht passt.'}
-                    </p>
-                  </div>
-                  <p className="muted small">Ohne Auswahl wird automatisch das letzte Videoframe genutzt.</p>
-                </div>
               </>
             )}
           </div>
 
-          {(recordedData.stillImage || manualStillPreviewUrl) && hasRecording && (
+          <div className="form-group mt-sm">
+            <label htmlFor="manual-still">Eigenes Referenzbild (optional)</label>
+            <div className="file-input">
+              <input
+                id="manual-still"
+                type="file"
+                accept="image/*"
+                onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
+              />
+              <p className="muted small">
+                {manualStillFile?.name || 'Nutze ein zusätzliches Bild, falls der Auto-Screenshot nicht passt.'}
+              </p>
+            </div>
+            <p className="muted small">Kann schon vor der Aufnahme gewählt werden. Ohne Auswahl wird automatisch das letzte Videoframe genutzt.</p>
+          </div>
+
+          {(recordedData.stillImage || manualStillPreviewUrl) && (
             <div className="still-preview">
               <p className="eyebrow">Vorschau</p>
               <img
