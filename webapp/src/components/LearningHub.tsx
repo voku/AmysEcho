@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
+import { useMessage } from '../context/MessageContext';
 
 interface GestureItem {
   id: string;
@@ -31,6 +32,7 @@ const BASELINE_GESTURES: GestureItem[] = [
  */
 export function LearningHub() {
   const { symbols, refresh, syncError, loading, saveSymbol } = useSymbolStore();
+  const { showToast } = useMessage();
   const [modalOpen, setModalOpen] = useState(false);
   const [savingSymbol, setSavingSymbol] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -106,7 +108,7 @@ export function LearningHub() {
     reader.onerror = () => {
       setFormData((prev) => ({ ...prev, imageDataUrl: '', imageUrl: prev.imageUrl }));
       setImagePreview(null);
-      alert('Fehler beim Lesen der Bilddatei. Bitte versuche es mit einer anderen Datei.');
+      showToast({ message: 'Fehler beim Lesen der Bilddatei. Bitte versuche es mit einer anderen Datei.', tone: 'error' });
     };
     reader.readAsDataURL(file);
   };
@@ -128,7 +130,7 @@ export function LearningHub() {
       setModalOpen(false);
     } catch (error) {
       console.error('Failed to save symbol:', error);
-      alert('Symbol konnte nicht gespeichert werden. Bitte versuche es erneut.');
+      showToast({ message: 'Symbol konnte nicht gespeichert werden. Bitte versuche es erneut.', tone: 'error' });
     } finally {
       setSavingSymbol(false);
     }
