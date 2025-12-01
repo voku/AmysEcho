@@ -162,18 +162,21 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     setManualStillFile(file);
   }, []);
 
-  const manualStillPreviewUrl = useMemo(
-    () => (manualStillFile ? URL.createObjectURL(manualStillFile) : null),
-    [manualStillFile],
-  );
+  const [manualStillPreviewUrl, setManualStillPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!manualStillFile) {
+      setManualStillPreviewUrl(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(manualStillFile);
+    setManualStillPreviewUrl(url);
+
     return () => {
-      if (manualStillPreviewUrl) {
-        URL.revokeObjectURL(manualStillPreviewUrl);
-      }
+      URL.revokeObjectURL(url);
     };
-  }, [manualStillPreviewUrl]);
+  }, [manualStillFile]);
 
   const detectorRunning = status === 'running';
   const hasLiveFrames = detectorRunning && lastLandmarks.length > 0;

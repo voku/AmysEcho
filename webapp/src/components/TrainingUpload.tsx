@@ -475,12 +475,15 @@ export function TrainingUploadWithRecording() {
   useEffect(() => {
     const gestureParam = searchParams.get('gesture');
     const normalized = gestureParam?.trim() ?? '';
-    if (!normalized || gestureFromLearning === normalized) {
+    if (!normalized) {
+      setGestureFromLearning(null);
       return;
     }
-    setGestureFromLearning(normalized);
-    handleLabelUpdate(normalized);
-  }, [gestureFromLearning, handleLabelUpdate, searchParams]);
+    if (label !== normalized) {
+      setGestureFromLearning(normalized);
+      handleLabelUpdate(normalized);
+    }
+  }, [handleLabelUpdate, label, searchParams]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(

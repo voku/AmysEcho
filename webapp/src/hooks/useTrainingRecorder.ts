@@ -177,7 +177,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
         };
 
         if (parsed?.type === 'gesture_batch' && Array.isArray(parsed?.messages)) {
-          parsed.messages.forEach((message) => {
+          parsed.messages.forEach((message: unknown) => {
             tryProcessPayload(message);
           });
         } else {
@@ -202,6 +202,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     setFramesCaptured(0);
     setPreviewLandmarks([]);
     setPreviewHandedness([]);
+    setLastFrameReceivedAt(null);
     setClipFile(null);
     setClipSizeBytes(0);
     setClipDurationMs(0);
@@ -295,6 +296,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
     setFramesCaptured(0);
     setPreviewLandmarks([]);
     setPreviewHandedness([]);
+    setLastFrameReceivedAt(null);
     setClipFile(null);
     setClipSizeBytes(0);
     setClipDurationMs(0);
