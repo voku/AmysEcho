@@ -437,11 +437,13 @@ export function TrainingUploadWithRecording() {
     : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
   const [searchParams] = useSearchParams();
   const [gestureFromLearning, setGestureFromLearning] = useState<string | null>(null);
+  const gestureParam = searchParams.get('gesture');
   const symbolIdParam = searchParams.get('symbolId');
   const selectedSymbol = useMemo(
     () => symbols.find((symbol) => symbol.id === symbolIdParam) ?? null,
     [symbolIdParam, symbols],
   );
+  const hasGestureSelection = Boolean((gestureParam ?? '').trim() || (symbolIdParam ?? '').trim());
 
   useEffect(() => {
     setLabel(preferredGestureLabel);
@@ -480,7 +482,6 @@ export function TrainingUploadWithRecording() {
   );
 
   useEffect(() => {
-    const gestureParam = searchParams.get('gesture');
     const normalized = gestureParam?.trim() ?? '';
     if (selectedSymbol) {
       if (label !== selectedSymbol.name) {
@@ -497,7 +498,7 @@ export function TrainingUploadWithRecording() {
       setGestureFromLearning(normalized);
       handleLabelUpdate(normalized);
     }
-  }, [handleLabelUpdate, label, searchParams, selectedSymbol]);
+  }, [gestureParam, handleLabelUpdate, label, selectedSymbol]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(
@@ -585,6 +586,12 @@ export function TrainingUploadWithRecording() {
               <img src={selectedSymbol.imageUrl} alt={selectedSymbol.name} className="symbol-thumb" />
             </div>
           )}
+        </div>
+      )}
+
+      {!selectedSymbol && !gestureFromLearning && !hasGestureSelection && (
+        <div className="notice info mb-md">
+          Keine Geste per Link ausgewählt. Bitte trage ein Gestenlabel ein oder wähle ein Symbol aus.
         </div>
       )}
 
