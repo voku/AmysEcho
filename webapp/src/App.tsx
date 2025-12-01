@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate, Link } from 'react-router-dom';
 import { AboutAmysEcho } from './components/AboutAmysEcho';
 import { Admin } from './components/Admin';
 import { CaregiverReport } from './components/CaregiverReport';
@@ -20,6 +20,7 @@ import { Settings } from './components/Settings';
 import { Teach } from './components/Teach';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { useApiConfig } from './hooks/useApiConfig';
+import { useSymbolStore } from './context/SymbolStore';
 import './App.css';
 
 // Storage-Schlüssel
@@ -299,11 +300,109 @@ function BottomNav() {
 }
 
 // ========================================
+// Workflow Reminder - keeps main actions visible
+// ========================================
+function WorkflowGuide() {
+  const { apiBaseUrl, apiToken } = useApiConfig();
+  const { symbols, loading, syncError, lastSyncedAt } = useSymbolStore();
+  const { profileId, lastRecognizedGesture } = useAppState();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const pendingCount = symbols.filter((symbol) => symbol.pending).length;
+
+  const syncStatus = syncError
+    ? `Sync-Fehler: ${syncError}`
+    : loading
+    ? 'Synchronisiere Symbole…'
+    : pendingCount > 0
+    ? `${pendingCount} Symbol(e) warten auf Upload`
+    : lastSyncedAt
+    ? `Synchronisiert um ${new Date(lastSyncedAt).toLocaleTimeString()}`
+    : 'Noch kein Sync durchgeführt';
+
+  const connectionLabel = apiBaseUrl
+    ? apiToken
+      ? 'Backend verbunden'
+      : 'Demo-Modus aktiv'
+    : 'Kein Backend gewählt';
+
+  const lastGestureLabel = lastRecognizedGesture || 'Noch nichts erkannt';
+
+  return (
+    <section className="card workflow-card" aria-label="Hauptablauf und Status">
+      <div className="workflow-bar">
+        <div className="workflow-title-row">
+          <p className="eyebrow">Hauptablauf</p>
+          <div className="workflow-summary" aria-live="polite">
+            <span>{connectionLabel}</span>
+            <span>•</span>
+            <span>{syncStatus}</span>
+            <span>•</span>
+            <span>Profil {profileId}</span>
+          </div>
+        </div>
+        <div className="workflow-quick">
+          <Link to="/" className="workflow-mini primary">
+            🖐️ Kamera
+          </Link>
+          <Link to="/lernen" className="workflow-mini">
+            🧠 Lernen
+          </Link>
+          <button
+            type="button"
+            className="workflow-toggle"
+            onClick={() => setDetailsOpen((prev) => !prev)}
+            aria-expanded={detailsOpen}
+          >
+            {detailsOpen ? 'Details ausblenden' : 'Details anzeigen'}
+          </button>
+        </div>
+      </div>
+
+      {detailsOpen && (
+        <>
+          <div className="workflow-chips" role="status" aria-live="polite">
+            <div className="chip neutral">
+              <span className="chip-label">Verbindung</span>
+              <strong>{connectionLabel}</strong>
+            </div>
+            <div className={`chip ${syncError ? 'danger' : pendingCount > 0 ? 'warning' : 'success'}`}>
+              <span className="chip-label">Symbole</span>
+              <strong>{syncStatus}</strong>
+            </div>
+            <div className="chip neutral">
+              <span className="chip-label">Letzte Geste</span>
+              <strong>{lastGestureLabel}</strong>
+            </div>
+          </div>
+
+          <div className="workflow-actions">
+            <Link to="/verlauf" className="workflow-action">
+              🗂️ Verlauf prüfen
+            </Link>
+            <Link to="/training" className="workflow-action ghost">
+              🎥 Trainingsdaten hochladen
+            </Link>
+            <Link to="/" className="workflow-action primary">
+              🖐️ Erkennung öffnen
+            </Link>
+            <Link to="/lernen" className="workflow-action">
+              🧠 Lernen & Symbole
+            </Link>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+// ========================================
 // Main App Content
 // ========================================
 function MainAppContent() {
   return (
     <>
+      <WorkflowGuide />
       <main className="content main-content">
         <Routes>
           <Route path="/" element={<GestureDemo />} />

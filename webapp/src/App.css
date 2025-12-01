@@ -226,6 +226,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  color: var(--color-overlay-text);
 }
 
 .card-header {
@@ -523,11 +524,14 @@ p {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: var(--space-lg);
+  align-items: start;
 }
 
 .video-wrapper {
   position: relative;
   min-height: 320px;
+  max-height: 560px;
+  aspect-ratio: 4 / 3;
   background: var(--color-neutral);
   border-radius: var(--radius-xl);
   overflow: hidden;
@@ -566,6 +570,7 @@ p {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  color: var(--color-overlay-text);
 }
 
 .panel-row {
@@ -612,6 +617,12 @@ p {
   font-weight: 700;
   text-transform: uppercase;
   font-size: var(--font-size-micro);
+}
+
+.badge.stacked {
+  margin-left: var(--space-sm);
+  background: var(--color-overlay-surface-muted);
+  color: var(--color-overlay-text);
 }
 
 .badge.high {
@@ -1124,6 +1135,7 @@ p {
   background: var(--color-overlay-surface);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-overlay-border);
+  color: var(--color-overlay-text);
 }
 
 .settings-section h3 {
@@ -1355,6 +1367,154 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-md);
+}
+
+
+.workflow-card {
+  gap: var(--space-md);
+}
+
+.workflow-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.workflow-title-row {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.workflow-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
+  color: var(--color-overlay-text-muted);
+  font-size: var(--font-size-body-sm);
+}
+
+.workflow-quick {
+  display: inline-flex;
+  gap: var(--space-xs);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.workflow-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-overlay-border);
+  background: var(--color-overlay-surface-muted);
+  color: var(--color-overlay-text);
+  text-decoration: none;
+  font-weight: 600;
+  min-height: calc(var(--touch-min) - var(--space-sm));
+}
+
+.workflow-mini.primary {
+  background: var(--color-action-secondary-bg);
+  color: var(--color-action-secondary-text);
+  border-color: var(--color-action-primary-bg);
+}
+
+.workflow-toggle {
+  background: none;
+  border: none;
+  color: var(--color-action-primary-bg);
+  font-weight: 600;
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+}
+
+.workflow-toggle:hover,
+.workflow-toggle:focus-visible {
+  background: var(--color-overlay-surface-muted);
+  outline: none;
+}
+
+.workflow-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+
+.chip {
+  background: var(--color-overlay-surface-muted);
+  border: 1px solid var(--color-overlay-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 180px;
+  color: var(--color-overlay-text);
+}
+
+.chip-label {
+  text-transform: uppercase;
+  font-size: var(--font-size-micro);
+  letter-spacing: 0.08em;
+  color: var(--color-overlay-text-muted);
+}
+
+.chip.success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.chip.warning {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.chip.danger {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.workflow-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-sm);
+}
+
+.workflow-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--color-overlay-surface-muted);
+  color: var(--color-overlay-text);
+  text-decoration: none;
+  border: 1px solid var(--color-overlay-border);
+  font-weight: 600;
+  min-height: var(--touch-min);
+  transition: all 0.2s ease;
+}
+
+.workflow-action.primary {
+  background: var(--color-action-secondary-bg);
+  color: var(--color-action-secondary-text);
+  border-color: var(--color-action-primary-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.workflow-action.ghost {
+  background: transparent;
+}
+
+.workflow-action:hover {
+  transform: translateY(-1px);
+  background: var(--color-overlay-surface);
 }
 
 .action-button {
@@ -1797,6 +1957,7 @@ p {
   background: white;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  color: var(--color-overlay-text);
 }
 
 .commitment-emoji {
@@ -1828,6 +1989,7 @@ p {
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   min-width: 140px;
+  color: var(--color-overlay-text);
 }
 
 .loop-icon {
@@ -2104,6 +2266,7 @@ p {
   padding: 1.5rem;
   background: #f8fafc;
   border-radius: 12px;
+  color: var(--color-overlay-text);
 }
 
 .admin-section h3 {
@@ -2143,6 +2306,7 @@ p {
   border-radius: 8px;
   margin-bottom: 0.5rem;
   border: 1px solid #e2e8f0;
+  color: var(--color-overlay-text);
 }
 
 .symbol-name {
@@ -2226,6 +2390,7 @@ p {
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  color: var(--color-overlay-text);
 }
 
 .modal-actions {
@@ -2862,6 +3027,17 @@ p {
   max-width: 420px;
   width: 100%;
   box-shadow: var(--shadow-lg);
+  color: var(--color-overlay-text);
+}
+
+.ghost.danger {
+  color: var(--color-error);
+  border-color: #fecdd3;
+  background: transparent;
+}
+
+.ghost.danger:hover {
+  background: #fff1f2;
 }
 
 .auth-header {

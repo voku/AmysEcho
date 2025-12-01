@@ -121,6 +121,21 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       return;
     }
 
+    if (!manualStillFile) {
+      const confirmUseAutoFrame = window.confirm(
+        recordedData.stillImage
+          ? 'Kein Referenzbild ausgewählt. Möchtest du das zuletzt aufgenommene Frame verwenden? Für beste Ergebnisse lade lieber ein Bild hoch, das die Geste klar zeigt.'
+          : 'Kein Referenzbild ausgewählt. Bitte lade ein Bild hoch, das die Geste klar zeigt, bevor du die Aufnahme verwendest.',
+      );
+
+      if (!confirmUseAutoFrame) {
+        setDetectorStartFeedback('Bitte wähle ein Referenzbild aus, bevor du die Aufnahme verwendest.');
+        return;
+      }
+    }
+
+    setDetectorStartFeedback('');
+
     // Convert still image to File if available
     let stillFile: File | null = null;
     if (recordedData.stillImage) {
@@ -150,7 +165,16 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     onRecordingComplete(payload);
     resetRecording();
     setManualStillFile(null);
-  }, [metadataReady, recordedData, profileId, label, onRecordingComplete, resetRecording, manualStillFile]);
+  }, [
+    metadataReady,
+    recordedData,
+    profileId,
+    label,
+    onRecordingComplete,
+    resetRecording,
+    manualStillFile,
+    setDetectorStartFeedback,
+  ]);
 
   const handleSaveLandmarkJson = useCallback(() => {
     if (recordedData.frames.length === 0) {
@@ -176,6 +200,54 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const handleManualStillChange = useCallback((file: File | null) => {
     setManualStillFile(file);
   }, []);
+
+  const handleCaptureManualStill = useCallback(async () => {
+    if (!cameraSupported) {
+      setDetectorStartFeedback('Kamera wird nicht unterstützt. Bitte wähle stattdessen ein Bild aus.');
+      return;
+    }
+
+    if (status !== 'running') {
+      setDetectorStartFeedback('Kamera wird gestartet…');
+      const started = await startCamera();
+      if (!started) {
+        setDetectorStartFeedback(
+          cameraError ?? 'Kamera konnte nicht gestartet werden. Bitte erlaube den Zugriff und versuche es erneut.',
+        );
+        return;
+      }
+      setDetectorStartFeedback('Kamera bereit. Aufnahme des Fotos läuft…');
+    }
+
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      setDetectorStartFeedback('Kamera noch nicht bereit. Bitte warte einen Moment.');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      setDetectorStartFeedback('Bild konnte nicht aufgenommen werden. Bitte versuche es erneut.');
+      return;
+    }
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+
+    if (!blob) {
+      setDetectorStartFeedback('Bild konnte nicht aufgenommen werden. Bitte versuche es erneut.');
+      return;
+    }
+
+    const capturedFile = new File([blob], 'referenzbild.jpg', { type: blob.type || 'image/jpeg' });
+    setManualStillFile(capturedFile);
+    setDetectorStartFeedback('Foto als Referenzbild übernommen.');
+  }, [cameraError, cameraSupported, setDetectorStartFeedback, startCamera, status]);
 
   const [manualStillPreviewUrl, setManualStillPreviewUrl] = useState<string | null>(null);
 
@@ -405,18 +477,30 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
           <div className="form-group mt-sm">
             <label htmlFor="manual-still">Eigenes Referenzbild (optional)</label>
-            <div className="file-input">
-              <input
-                id="manual-still"
-                type="file"
-                accept="image/*"
-                onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
-              />
-              <p className="muted small">
-                {manualStillFile?.name || 'Nutze ein zusätzliches Bild, falls der Auto-Screenshot nicht passt.'}
-              </p>
+            <div className="file-input" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+              <div style={{ flex: '1 1 auto' }}>
+                <input
+                  id="manual-still"
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
+                />
+                <p className="muted small">
+                  {manualStillFile?.name || 'Nutze ein zusätzliches Bild, falls der Auto-Screenshot nicht passt.'}
+                </p>
+              </div>
+              <button
+                className="secondary"
+                type="button"
+                onClick={handleCaptureManualStill}
+                disabled={!cameraSupported}
+              >
+                Foto mit Kamera
+              </button>
             </div>
-            <p className="muted small">Kann schon vor der Aufnahme gewählt werden. Ohne Auswahl wird automatisch das letzte Videoframe genutzt.</p>
+            <p className="muted small">
+              Du kannst ein Foto aufnehmen oder eine Datei wählen – auch schon vor der Aufnahme. Falls nichts ausgewählt ist, wirst du beim Abschluss gefragt, ob du statt eines eigenen Bildes das letzte Videoframe nutzen möchtest.
+            </p>
           </div>
 
           {(recordedData.stillImage || manualStillPreviewUrl) && (
@@ -424,7 +508,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               <p className="eyebrow">Vorschau</p>
               <img
                 src={manualStillPreviewUrl ?? recordedData.stillImage ?? undefined}
-                alt="Aufgenommene Geste"
+                alt={manualStillPreviewUrl ? 'Hochgeladenes Referenzbild' : 'Aufgenommene Geste'}
                 style={{ maxWidth: '100%', borderRadius: '8px' }}
               />
             </div>
