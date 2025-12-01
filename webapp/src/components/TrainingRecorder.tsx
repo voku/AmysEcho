@@ -27,6 +27,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [showOverlay, setShowOverlay] = useState(true);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
+  const [manualStillFile, setManualStillFile] = useState<File | null>(null);
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
 
   const cameraSupported = useMemo(
@@ -48,6 +49,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     framesCaptured,
     clipLimitExceeded,
     maxClipBytes,
+    previewLandmarks,
+    previewHandedness,
+    lastFrameReceivedAt,
   } = useTrainingRecorder(videoRef);
 
   // Auto-start camera when metadata is ready and detector is idle/stopped
@@ -86,6 +90,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     if (status !== 'running') {
       return;
     }
+    setManualStillFile(null);
     startRecording();
   }, [metadataReady, status, startRecording]);
 
@@ -113,6 +118,10 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       }
     }
 
+    if (manualStillFile) {
+      stillFile = manualStillFile;
+    }
+
     const payload: TrainingBundlePayload = {
       profileId: profileId.trim(),
       label: label.trim(),
@@ -125,7 +134,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
     onRecordingComplete(payload);
     resetRecording();
-  }, [metadataReady, recordedData, profileId, label, onRecordingComplete, resetRecording]);
+    setManualStillFile(null);
+  }, [metadataReady, recordedData, profileId, label, onRecordingComplete, resetRecording, manualStillFile]);
 
   const handleSaveLandmarkJson = useCallback(() => {
     if (recordedData.frames.length === 0) {
@@ -145,10 +155,37 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const handleDiscardRecording = useCallback(() => {
     resetRecording();
     setRecordingDuration(0);
+    setManualStillFile(null);
   }, [resetRecording]);
+
+  const handleManualStillChange = useCallback((file: File | null) => {
+    setManualStillFile(file);
+  }, []);
+
+  const manualStillPreviewUrl = useMemo(
+    () => (manualStillFile ? URL.createObjectURL(manualStillFile) : null),
+    [manualStillFile],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (manualStillPreviewUrl) {
+        URL.revokeObjectURL(manualStillPreviewUrl);
+      }
+    };
+  }, [manualStillPreviewUrl]);
 
   const detectorRunning = status === 'running';
   const hasLiveFrames = detectorRunning && lastLandmarks.length > 0;
+  const latestHandCount = useMemo(
+    () => previewLandmarks.filter((hand) => Array.isArray(hand) && hand.length > 0).length,
+    [previewLandmarks],
+  );
+  const latestPointCount = useMemo(
+    () =>
+      previewLandmarks.reduce((total, hand) => (Array.isArray(hand) ? total + hand.length : total), 0),
+    [previewLandmarks],
+  );
   const detectorInactiveNotice = !detectorRunning
     ? 'Die Kameraerkennung ist angehalten. Starte sie erneut, damit Frames und Standbilder gesammelt werden.'
     : !hasLiveFrames
@@ -236,6 +273,21 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               )}
               {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
               {!metadataReady && <div className="notice error">{metadataError}</div>}
+              <div className="notice info spaced">
+                <strong>Landmark-Stream</strong>{' '}
+                {latestHandCount > 0
+                  ? `${latestHandCount} Hand${latestHandCount > 1 ? 'e' : ''} · ${latestPointCount} Punkte`
+                  : 'Noch keine Landmarken empfangen'}
+                {lastFrameReceivedAt && (
+                  <>
+                    {' '}
+                    · Letzter Batch um {new Date(lastFrameReceivedAt).toLocaleTimeString()}
+                  </>
+                )}
+                {previewHandedness.length > 0 && (
+                  <p className="muted small">Handedness: {previewHandedness.join(', ')}</p>
+                )}
+              </div>
               <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
                 {clipLimitNotice}
               </div>
@@ -281,14 +333,33 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                   Landmarks speichern
                 </button>
                 {uploadDisabledReason && <p className="muted small">{uploadDisabledReason}</p>}
+                <div className="form-group mt-sm">
+                  <label htmlFor="manual-still">Eigenes Referenzbild (optional)</label>
+                  <div className="file-input">
+                    <input
+                      id="manual-still"
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
+                    />
+                    <p className="muted small">
+                      {manualStillFile?.name || 'Nutze ein zusätzliches Bild, falls der Auto-Screenshot nicht passt.'}
+                    </p>
+                  </div>
+                  <p className="muted small">Ohne Auswahl wird automatisch das letzte Videoframe genutzt.</p>
+                </div>
               </>
             )}
           </div>
 
-          {recordedData.stillImage && hasRecording && (
+          {(recordedData.stillImage || manualStillPreviewUrl) && hasRecording && (
             <div className="still-preview">
               <p className="eyebrow">Vorschau</p>
-              <img src={recordedData.stillImage} alt="Aufgenommene Geste" style={{ maxWidth: '100%', borderRadius: '8px' }} />
+              <img
+                src={manualStillPreviewUrl ?? recordedData.stillImage ?? undefined}
+                alt="Aufgenommene Geste"
+                style={{ maxWidth: '100%', borderRadius: '8px' }}
+              />
             </div>
           )}
         </div>

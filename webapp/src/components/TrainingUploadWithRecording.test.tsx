@@ -4,6 +4,7 @@ import { describe, beforeEach, it, expect, vi } from 'vitest';
 import { TrainingUploadWithRecording } from './TrainingUpload';
 import { ApiConfigProvider } from '../hooks/useApiConfig';
 import { AppStateProvider } from '../hooks/useAppState';
+import { MemoryRouter } from 'react-router-dom';
 
 const uploadMock = vi.fn();
 const syncQueuedMock = vi.fn();
@@ -50,11 +51,13 @@ vi.mock('./TrainingRecorder', () => ({
 
 function renderWithProviders() {
   return render(
-    <ApiConfigProvider>
-      <AppStateProvider>
-        <TrainingUploadWithRecording />
-      </AppStateProvider>
-    </ApiConfigProvider>,
+    <MemoryRouter>
+      <ApiConfigProvider>
+        <AppStateProvider>
+          <TrainingUploadWithRecording />
+        </AppStateProvider>
+      </ApiConfigProvider>
+    </MemoryRouter>,
   );
 }
 

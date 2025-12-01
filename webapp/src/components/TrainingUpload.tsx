@@ -1,4 +1,5 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploader';
 import { frameHasAnyLandmarks } from '../training/handUtils';
 import type {
@@ -432,6 +433,8 @@ export function TrainingUploadWithRecording() {
   const metadataError = metadataReady
     ? ''
     : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
+  const [searchParams] = useSearchParams();
+  const [gestureFromLearning, setGestureFromLearning] = useState<string | null>(null);
 
   useEffect(() => {
     setLabel(preferredGestureLabel);
@@ -468,6 +471,16 @@ export function TrainingUploadWithRecording() {
     },
     [setPreferredGestureLabel],
   );
+
+  useEffect(() => {
+    const gestureParam = searchParams.get('gesture');
+    const normalized = gestureParam?.trim() ?? '';
+    if (!normalized || gestureFromLearning === normalized) {
+      return;
+    }
+    setGestureFromLearning(normalized);
+    handleLabelUpdate(normalized);
+  }, [gestureFromLearning, handleLabelUpdate, searchParams]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(
@@ -536,6 +549,12 @@ export function TrainingUploadWithRecording() {
       </div>
 
       {modelInjection.notice && <div className="notice info mb-md">{modelInjection.notice}</div>}
+
+      {gestureFromLearning && (
+        <div className="notice success mb-md">
+          Gestenlabel aus „Lernen“ übernommen: <strong>{gestureFromLearning}</strong>. Du kannst es bei Bedarf anpassen.
+        </div>
+      )}
 
       {suggestedLabel && (
         <div className="notice info mb-md">
