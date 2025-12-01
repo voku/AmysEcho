@@ -28,7 +28,11 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
   const [manualStillFile, setManualStillFile] = useState<File | null>(null);
+  const [detectorStartFeedback, setDetectorStartFeedback] = useState('');
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
+  const metadataError = metadataReady
+    ? ''
+    : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
 
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
@@ -83,16 +87,27 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     return () => clearInterval(interval);
   }, [state]);
 
-  const handleStartRecording = useCallback(() => {
+  const handleStartRecording = useCallback(async () => {
     if (!metadataReady) {
+      setDetectorStartFeedback(metadataError);
       return;
     }
+    setDetectorStartFeedback('');
     if (status !== 'running') {
-      return;
+      setDetectorStartFeedback('Detektor wird gestartet…');
+      const started = await startCamera();
+      if (!started) {
+        setDetectorStartFeedback(
+          cameraError ??
+            'Kamera konnte nicht gestartet werden. Bitte erlaube den Zugriff und versuche es erneut.',
+        );
+        return;
+      }
+      setDetectorStartFeedback('Detektor gestartet. Aufnahme bereit.');
     }
     setManualStillFile(null);
     startRecording();
-  }, [metadataReady, status, startRecording]);
+  }, [cameraError, metadataError, metadataReady, startCamera, startRecording, status]);
 
   const handleStopRecording = useCallback(() => {
     stopRecording();
@@ -203,9 +218,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const clipLimitNotice = clipLimitExceeded
     ? `Maximale Dateigröße überschritten (${formatBytes(maxClipBytes)}). Bitte kürzer aufnehmen.`
     : `Video wird zusammen mit den Landmarks gespeichert (Limit ${formatBytes(maxClipBytes)}).`;
-  const metadataError = metadataReady
-    ? ''
-    : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
   const uploadDisabled = clipLimitExceeded || !metadataReady || recordedData.frames.length === 0;
   const uploadDisabledReason = !metadataReady
     ? 'Upload gesperrt, bis Profil-ID und Gestenlabel ausgefüllt sind.'
@@ -216,6 +228,22 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : '';
   const showDetectorStart = !isRecording && (status === 'stopped' || status === 'error');
   const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : 'Kamera starten';
+  const displayedLabel = label.trim() || 'Keine Gestenauswahl vorhanden';
+  const detectorStatusLabel =
+    status === 'running'
+      ? 'Detektor gestartet'
+      : status === 'initializing'
+      ? 'Detektor startet…'
+      : status === 'error'
+      ? 'Detektorfehler'
+      : 'Detektor pausiert';
+  const detectorStatusTone = status === 'running' ? 'running' : status === 'error' ? 'error' : 'idle';
+  const recordingStatusLabel = isRecording
+    ? 'Aufnahme läuft'
+    : hasRecording
+    ? 'Aufnahme bereit'
+    : 'Keine Aufnahme aktiv';
+  const recordingStatusTone = isRecording ? 'running' : hasRecording ? 'success' : 'idle';
 
   return (
     <section className="card">
@@ -232,6 +260,20 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+        <div className="status-chip" data-state={detectorStatusTone}>
+          Detektor: {detectorStatusLabel}
+        </div>
+        <div className="status-chip" data-state={recordingStatusTone}>
+          Aufnahme: {recordingStatusLabel}
+        </div>
+      </div>
+      {!detectorRunning && (
+        <p className="muted small">
+          Detektor ist nicht gestartet – Frames werden erst gezählt, wenn die Kamera läuft.
+        </p>
+      )}
+
       {!cameraSupported && (
         <div className="notice warning">
           <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
@@ -244,6 +286,12 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
           <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
           {detectorInactiveNotice}
+        </div>
+      )}
+
+      {detectorStartFeedback && (
+        <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
+          {detectorStartFeedback}
         </div>
       )}
 
@@ -267,7 +315,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 Profil: <strong>{profileId}</strong>
               </p>
               <p className="muted">
-                Geste: <strong>{label}</strong>
+                Geste: <strong>{displayedLabel}</strong>
               </p>
               <p className="value">{framesCaptured} Frames erfasst</p>
               <p className="muted small">Clip: {clipStatus}</p>
@@ -312,8 +360,12 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 {detectorStartLabel}
               </button>
             )}
-            {status === 'running' && !isRecording && !hasRecording && (
-              <button className="primary" onClick={handleStartRecording} disabled={!metadataReady}>
+            {!isRecording && !hasRecording && (
+              <button
+                className="primary"
+                onClick={handleStartRecording}
+                disabled={!metadataReady || status === 'initializing'}
+              >
                 Aufnahme starten
               </button>
             )}
