@@ -1,0 +1,87 @@
+# Deployment Configuration Files
+
+This directory contains configuration files and scripts for deploying Amy's Echo server to production.
+
+## Contents
+
+### nginx/
+- `amysecho.conf` - nginx reverse proxy configuration for HTTPS termination and request routing
+
+### systemd/
+- `amysecho.service` - systemd service unit file for running the server as a system service
+
+### scripts/
+- `backup.sh` - Automated backup script for data and database
+- `monitor.sh` - Health check monitoring script with alerting
+
+## Quick Start
+
+For complete deployment instructions, see **[docs/SERVER_DEPLOYMENT.md](../docs/SERVER_DEPLOYMENT.md)**.
+
+### Using Docker (Recommended)
+
+```bash
+# From repository root
+docker-compose up -d
+```
+
+### Manual Deployment
+
+1. **Setup systemd service:**
+   ```bash
+   sudo cp deployment/systemd/amysecho.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable amysecho
+   sudo systemctl start amysecho
+   ```
+
+2. **Setup nginx reverse proxy:**
+   ```bash
+   sudo cp deployment/nginx/amysecho.conf /etc/nginx/sites-available/amysecho
+   # Edit the file to update your-domain.com
+   sudo ln -s /etc/nginx/sites-available/amysecho /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+3. **Setup automated backups:**
+   ```bash
+   sudo cp deployment/scripts/backup.sh /opt/amysecho/
+   sudo chmod +x /opt/amysecho/backup.sh
+   # Add to crontab: 0 2 * * * /opt/amysecho/backup.sh
+   ```
+
+4. **Setup health monitoring:**
+   ```bash
+   sudo cp deployment/scripts/monitor.sh /opt/amysecho/
+   sudo chmod +x /opt/amysecho/monitor.sh
+   # Add to crontab: */5 * * * * /opt/amysecho/monitor.sh
+   ```
+
+## Configuration Files
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and update:
+
+```bash
+cp .env.example .env
+# Edit .env with your production values
+```
+
+**Important:** Change all default secrets in production!
+
+### SSL Certificates
+
+Use Let's Encrypt for free SSL certificates:
+
+```bash
+sudo apt install certbot
+sudo certbot certonly --standalone -d your-domain.com
+```
+
+Update nginx configuration with the certificate paths.
+
+## Support
+
+For issues or questions, see the [Troubleshooting section](../docs/SERVER_DEPLOYMENT.md#troubleshooting) in the deployment guide.

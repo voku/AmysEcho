@@ -1,0 +1,41 @@
+# Amy's Echo systemd Service Configuration
+#
+# Installation:
+# 1. Copy this file to /etc/systemd/system/amysecho.service
+# 2. Update paths if your installation is not in /opt/amysecho
+# 3. Create environment file at /opt/amysecho/app/server/.env
+# 4. Reload systemd: sudo systemctl daemon-reload
+# 5. Enable service: sudo systemctl enable amysecho
+# 6. Start service: sudo systemctl start amysecho
+
+[Unit]
+Description=Amy's Echo Server - Gesture Recognition Backend
+After=network.target
+Documentation=https://github.com/voku/AmysEcho
+
+[Service]
+Type=simple
+User=amysecho
+Group=amysecho
+WorkingDirectory=/opt/amysecho/app/server
+EnvironmentFile=/opt/amysecho/app/server/.env
+ExecStart=/usr/bin/node /opt/amysecho/app/server/dist/server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=amysecho
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/amysecho/app/server/data /opt/amysecho/app/server/db.json
+
+# Resource limits
+LimitNOFILE=65536
+MemoryLimit=2G
+
+[Install]
+WantedBy=multi-user.target

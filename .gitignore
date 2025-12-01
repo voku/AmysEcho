@@ -8,8 +8,10 @@ dist
 app/android/
 app/ios/
 
-# keys
+# keys and environment files
 .openai-key
+.env
+!.env.example
 
 # db
 app/watermelon.db
