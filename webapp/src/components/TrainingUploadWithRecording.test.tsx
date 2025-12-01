@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, beforeEach, it, expect, vi } from 'vitest';
+import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
 import { TrainingUploadWithRecording } from './TrainingUpload';
 import { ApiConfigProvider } from '../hooks/useApiConfig';
 import { AppStateProvider } from '../hooks/useAppState';

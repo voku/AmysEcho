@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 
@@ -78,6 +78,19 @@ export function LearningHub() {
     setSavingSymbol(false);
   };
 
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (modalOpen && e.key === 'Escape') {
+      handleCloseModal();
+    }
+  }, [modalOpen]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   const handleImageFile = (file: File | null) => {
     if (!file) {
       setFormData((prev) => ({ ...prev, imageDataUrl: '', imageUrl: prev.imageUrl }));
@@ -90,6 +103,11 @@ export function LearningHub() {
       setFormData((prev) => ({ ...prev, imageDataUrl: result, imageUrl: '' }));
       setImagePreview(result);
     };
+    reader.onerror = () => {
+      setFormData((prev) => ({ ...prev, imageDataUrl: '', imageUrl: prev.imageUrl }));
+      setImagePreview(null);
+      alert('Fehler beim Lesen der Bilddatei. Bitte versuche es mit einer anderen Datei.');
+    };
     reader.readAsDataURL(file);
   };
 
@@ -99,15 +117,21 @@ export function LearningHub() {
     }
     setSavingSymbol(true);
     const id = formData.id.trim() || `symbol_${Date.now()}`;
-    await saveSymbol({
-      id,
-      name: formData.name.trim(),
-      category: formData.category.trim() || 'custom',
-      imageUrl: formData.imageDataUrl ? undefined : formData.imageUrl || null,
-      imageDataUrl: formData.imageDataUrl || undefined,
-    });
-    setSavingSymbol(false);
-    setModalOpen(false);
+    try {
+      await saveSymbol({
+        id,
+        name: formData.name.trim(),
+        category: formData.category.trim() || 'custom',
+        imageUrl: formData.imageDataUrl ? null : formData.imageUrl || null,
+        imageDataUrl: formData.imageDataUrl || null,
+      });
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Failed to save symbol:', error);
+      alert('Symbol konnte nicht gespeichert werden. Bitte versuche es erneut.');
+    } finally {
+      setSavingSymbol(false);
+    }
   };
 
   const handleTrainGesture = (gestureId: string, label: string) => {
@@ -184,7 +208,7 @@ export function LearningHub() {
                   id: gesture.id,
                   name: gesture.label,
                   category: gesture.description,
-                  imageUrl: gesture.imageUrl,
+                  imageUrl: gesture.imageUrl ?? null,
                 })}>
                   Anpassen
                 </button>
@@ -222,14 +246,23 @@ export function LearningHub() {
       </div>
 
       {modalOpen && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="symbol-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseModal();
+          }}
+        >
           <div className="modal-content">
-            <h3>Symbol für das Lernen speichern</h3>
+            <h3 id="symbol-modal-title">Symbol für das Lernen speichern</h3>
             <p className="muted">Sobald du speicherst, steht das Symbol auf der Lern- und Trainingsseite bereit.</p>
 
             <div className="form-group">
-              <label>Symbol-ID</label>
+              <label htmlFor="symbol-id">Symbol-ID</label>
               <input
+                id="symbol-id"
                 type="text"
                 value={formData.id}
                 onChange={(e) => setFormData({ ...formData, id: e.target.value })}
@@ -239,8 +272,9 @@ export function LearningHub() {
             </div>
 
             <div className="form-group">
-              <label>Bezeichnung</label>
+              <label htmlFor="symbol-name">Bezeichnung</label>
               <input
+                id="symbol-name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -249,8 +283,9 @@ export function LearningHub() {
             </div>
 
             <div className="form-group">
-              <label>Kategorie</label>
+              <label htmlFor="symbol-category">Kategorie</label>
               <input
+                id="symbol-category"
                 type="text"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -259,8 +294,9 @@ export function LearningHub() {
             </div>
 
             <div className="form-group">
-              <label>Bild-URL</label>
+              <label htmlFor="symbol-image-url">Bild-URL</label>
               <input
+                id="symbol-image-url"
                 type="url"
                 value={formData.imageUrl}
                 onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value, imageDataUrl: '' })}
@@ -270,8 +306,13 @@ export function LearningHub() {
             </div>
 
             <div className="form-group">
-              <label>Bild hochladen</label>
-              <input type="file" accept="image/*" onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)} />
+              <label htmlFor="symbol-image-upload">Bild hochladen</label>
+              <input
+                id="symbol-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
+              />
               <p className="muted small">Datei wird als Data-URL gespeichert und mit dem Server synchronisiert.</p>
             </div>
 
