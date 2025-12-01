@@ -1,6 +1,21 @@
+# Deployment Guide
+
+This document describes how to deploy Amy's Echo.
+
+## Components
+
+Amy's Echo consists of two main components:
+
+1. **Webapp** (Browser-based UI) - Deployed to static hosting (GitHub Pages, Netlify, etc.)
+2. **Server** (Node.js/Python backend) - Deployed to your own infrastructure
+
+📘 **For server deployment**, see **[SERVER_DEPLOYMENT.md](SERVER_DEPLOYMENT.md)** for comprehensive step-by-step instructions including Docker, systemd, nginx, SSL, and monitoring setup.
+
+---
+
 # Webapp Deployment Guide
 
-This document describes how to deploy Amy's Echo webapp to GitHub Pages or other hosting platforms.
+This section describes how to deploy Amy's Echo webapp to GitHub Pages or other hosting platforms.
 
 ## GitHub Pages Deployment
 
