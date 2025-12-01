@@ -5,11 +5,14 @@ import { TrainingUploadWithRecording } from './TrainingUpload';
 import { ApiConfigProvider } from '../hooks/useApiConfig';
 import { AppStateProvider } from '../hooks/useAppState';
 import { MemoryRouter } from 'react-router-dom';
+import { SymbolStoreProvider } from '../context/SymbolStore';
+import { MessageProvider } from '../context/MessageContext';
 
 const uploadMock = vi.fn();
 const syncQueuedMock = vi.fn();
 const syncBundleMock = vi.fn();
 const removeBundleMock = vi.fn();
+const fetchMock = vi.fn();
 
 vi.mock('../hooks/useTrainingUploader', () => ({
   useTrainingUploader: () => ({
@@ -52,17 +55,29 @@ vi.mock('./TrainingRecorder', () => ({
 function renderWithProviders() {
   return render(
     <MemoryRouter>
-      <ApiConfigProvider>
-        <AppStateProvider>
-          <TrainingUploadWithRecording />
-        </AppStateProvider>
-      </ApiConfigProvider>
+      <MessageProvider>
+        <ApiConfigProvider>
+          <SymbolStoreProvider>
+            <AppStateProvider>
+              <TrainingUploadWithRecording />
+            </AppStateProvider>
+          </SymbolStoreProvider>
+        </ApiConfigProvider>
+      </MessageProvider>
     </MemoryRouter>,
   );
 }
 
 describe('TrainingUploadWithRecording', () => {
   beforeEach(() => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ symbols: [] }),
+      arrayBuffer: async () => new ArrayBuffer(0),
+      headers: new Headers(),
+    } as any);
+    vi.stubGlobal('fetch', fetchMock);
     uploadMock.mockReset();
     syncQueuedMock.mockReset();
     syncBundleMock.mockReset();
@@ -71,6 +86,10 @@ describe('TrainingUploadWithRecording', () => {
     syncBundleMock.mockResolvedValue(true);
     window.localStorage.clear();
     window.sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   const TEST_TIMEOUT = 10000;

@@ -13,6 +13,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { TrainingQueueList } from './TrainingQueueList';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
+import { useSymbolStore } from '../context/SymbolStore';
 
 type LandmarkTuple = [number, number] | [number, number, number];
 
@@ -426,6 +427,7 @@ export function TrainingUploadWithRecording() {
   const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =
     useAppState();
   const modelInjection = useMlpModelInjection(profileId);
+  const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
   const lastJobStatusRef = useRef<string | null>(null);
   const [label, setLabel] = useState(preferredGestureLabel);
   const [message, setMessage] = useState<string>('');
@@ -435,6 +437,11 @@ export function TrainingUploadWithRecording() {
     : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
   const [searchParams] = useSearchParams();
   const [gestureFromLearning, setGestureFromLearning] = useState<string | null>(null);
+  const symbolIdParam = searchParams.get('symbolId');
+  const selectedSymbol = useMemo(
+    () => symbols.find((symbol) => symbol.id === symbolIdParam) ?? null,
+    [symbolIdParam, symbols],
+  );
 
   useEffect(() => {
     setLabel(preferredGestureLabel);
@@ -475,6 +482,13 @@ export function TrainingUploadWithRecording() {
   useEffect(() => {
     const gestureParam = searchParams.get('gesture');
     const normalized = gestureParam?.trim() ?? '';
+    if (selectedSymbol) {
+      if (label !== selectedSymbol.name) {
+        setGestureFromLearning(selectedSymbol.name);
+        handleLabelUpdate(selectedSymbol.name);
+      }
+      return;
+    }
     if (!normalized) {
       setGestureFromLearning(null);
       return;
@@ -483,7 +497,7 @@ export function TrainingUploadWithRecording() {
       setGestureFromLearning(normalized);
       handleLabelUpdate(normalized);
     }
-  }, [handleLabelUpdate, label, searchParams]);
+  }, [handleLabelUpdate, label, searchParams, selectedSymbol]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(
@@ -542,6 +556,38 @@ export function TrainingUploadWithRecording() {
 
   return (
     <>
+      {symbolSyncError && (
+        <div className="notice warning mb-md">
+          Symbolliste konnte nicht synchronisiert werden: {symbolSyncError}{' '}
+          <button className="ghost" onClick={refreshSymbols} disabled={symbolsLoading}>
+            Jetzt synchronisieren
+          </button>
+          <p className="muted small mt-xs">Gesten-Uploads und Trainings-Sync laufen trotzdem weiter.</p>
+        </div>
+      )}
+
+      {!symbolSyncError && symbols.length === 0 && (
+        <div className="notice info mb-md">
+          Symbole werden aus dem Server geladen.{' '}
+          <button className="ghost" onClick={refreshSymbols} disabled={symbolsLoading}>
+            Manuell synchronisieren
+          </button>
+          <p className="muted small mt-xs">Wichtiger: Gestendaten werden unabhängig hiervon synchronisiert.</p>
+        </div>
+      )}
+
+      {selectedSymbol && (
+        <div className="notice success mb-md">
+          Symbol aus „Lernen“ übernommen: <strong>{selectedSymbol.name}</strong>{' '}
+          <span className="muted small">({selectedSymbol.category})</span>
+          {selectedSymbol.imageUrl && (
+            <div className="mt-xs">
+              <img src={selectedSymbol.imageUrl} alt={selectedSymbol.name} className="symbol-thumb" />
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mode-switcher mb-md">
         <button className={mode === 'record' ? 'active' : ''} onClick={() => setMode('record')}>
           Geste aufnehmen

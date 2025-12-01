@@ -4,42 +4,32 @@
  * 
  * For Amy: Technical maintenance to ensure reliable gesture recognition
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { useMessage } from '../context/MessageContext';
+import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { backupService } from '../services/backupService';
-
-interface Symbol {
-  id: string;
-  name: string;
-  category: string;
-  audioUri?: string;
-}
 
 export const Admin: React.FC = () => {
   const { apiBaseUrl, apiToken } = useApiConfig();
   const { showToast, showConfirmDialog } = useMessage();
-  const [symbols, setSymbols] = useState<Symbol[]>([]);
+  const { symbols, saveSymbol, removeSymbol, refresh, syncError, loading, lastSyncedAt } = useSymbolStore();
   const [backendToken, setBackendToken] = useState(apiToken || '');
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingSymbol, setEditingSymbol] = useState<Symbol | null>(null);
+  const [editingSymbol, setEditingSymbol] = useState<SymbolDefinition | null>(null);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
-    category: ''
+    category: '',
+    imageUrl: '',
+    imageDataUrl: '',
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // Load symbols from localStorage
-  React.useEffect(() => {
-    const savedSymbols = localStorage.getItem('amysecho_symbols');
-    if (savedSymbols) {
-      try {
-        setSymbols(JSON.parse(savedSymbols));
-      } catch {
-        // Ignore parse errors
-      }
-    }
-  }, []);
+  const sortedSymbols = useMemo(
+    () => [...symbols].sort((a, b) => a.name.localeCompare(b.name)),
+    [symbols],
+  );
 
   const handleSaveToken = () => {
     localStorage.setItem('amysecho_api_token', backendToken);
@@ -48,41 +38,61 @@ export const Admin: React.FC = () => {
 
   const handleOpenAdd = () => {
     setEditingSymbol(null);
-    setFormData({ id: '', name: '', category: '' });
+    setFormData({ id: '', name: '', category: '', imageUrl: '', imageDataUrl: '' });
+    setImagePreview(null);
     setModalVisible(true);
   };
 
-  const handleOpenEdit = (symbol: Symbol) => {
+  const handleOpenEdit = (symbol: SymbolDefinition) => {
     setEditingSymbol(symbol);
-    setFormData({ id: symbol.id, name: symbol.name, category: symbol.category });
+    setFormData({
+      id: symbol.id,
+      name: symbol.name,
+      category: symbol.category,
+      imageUrl: symbol.imageUrl ?? '',
+      imageDataUrl: '',
+    });
+    setImagePreview(symbol.imageUrl ?? null);
     setModalVisible(true);
   };
 
-  const handleSaveSymbol = () => {
-    const newSymbol: Symbol = {
-      id: formData.id || `symbol_${Date.now()}`,
-      name: formData.name,
-      category: formData.category || 'custom'
-    };
-
-    let updatedSymbols: Symbol[];
-    if (editingSymbol) {
-      updatedSymbols = symbols.map(s => s.id === editingSymbol.id ? newSymbol : s);
-    } else {
-      updatedSymbols = [...symbols, newSymbol];
+  const handleImageFile = (file: File | null) => {
+    if (!file) {
+      setFormData((prev) => ({ ...prev, imageDataUrl: '', imageUrl: prev.imageUrl }));
+      setImagePreview(null);
+      return;
     }
-    
-    setSymbols(updatedSymbols);
-    localStorage.setItem('amysecho_symbols', JSON.stringify(updatedSymbols));
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      setFormData((prev) => ({ ...prev, imageDataUrl: result, imageUrl: '' }));
+      setImagePreview(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveSymbol = async () => {
+    const id = formData.id || `symbol_${Date.now()}`;
+    if (!formData.name.trim()) {
+      showToast({ message: 'Bitte gib einen Namen ein.', tone: 'warning' });
+      return;
+    }
+
+    await saveSymbol({
+      id,
+      name: formData.name,
+      category: formData.category || 'custom',
+      imageUrl: formData.imageDataUrl ? undefined : formData.imageUrl || null,
+      imageDataUrl: formData.imageDataUrl || undefined,
+    });
     setModalVisible(false);
   };
 
-  const handleDeleteSymbol = async (symbol: Symbol) => {
+  const handleDeleteSymbol = async (symbol: SymbolDefinition) => {
     const confirmed = await showConfirmDialog(`"${symbol.name}" wirklich entfernen?`);
     if (confirmed) {
-      const updatedSymbols = symbols.filter(s => s.id !== symbol.id);
-      setSymbols(updatedSymbols);
-      localStorage.setItem('amysecho_symbols', JSON.stringify(updatedSymbols));
+      await removeSymbol(symbol.id);
+      showToast({ message: 'Symbol gelöscht', tone: 'success' });
     }
   };
 
@@ -104,9 +114,10 @@ export const Admin: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedSymbols = JSON.parse(e.target?.result as string);
-        setSymbols(importedSymbols);
-        localStorage.setItem('amysecho_symbols', JSON.stringify(importedSymbols));
+        const importedSymbols = JSON.parse(e.target?.result as string) as SymbolDefinition[];
+        importedSymbols.forEach((symbol) => {
+          void saveSymbol({ ...symbol, imageDataUrl: symbol.imageUrl?.startsWith('data:') ? symbol.imageUrl : undefined });
+        });
         showToast({ message: 'Import abgeschlossen', tone: 'success' });
       } catch {
         showToast({ message: 'Import fehlgeschlagen: Ungültiges JSON', tone: 'error' });
@@ -190,7 +201,7 @@ export const Admin: React.FC = () => {
       localStorage.removeItem('amysecho_profiles');
       localStorage.removeItem('amysecho_gesture_history');
       localStorage.removeItem('amysecho_progress');
-      setSymbols([]);
+      await Promise.all(symbols.map((symbol) => removeSymbol(symbol.id)));
       showToast({ message: 'Alle Daten gelöscht', tone: 'success' });
     }
   };
@@ -236,18 +247,33 @@ export const Admin: React.FC = () => {
       {/* Symbols Section */}
       <section className="admin-section">
         <h3>Symbolsammlung</h3>
+        <p className="muted small">
+          Zentrale Sammlung für Lernen & Training. Server-Sync bevorzugt, lokale Speicherung als Rückfall.
+        </p>
+        <div className="action-group">
+          <button className="secondary-button" onClick={refresh} disabled={loading}>
+            Jetzt synchronisieren
+          </button>
+          {lastSyncedAt && (
+            <p className="muted small">Letzte Aktualisierung: {new Date(lastSyncedAt).toLocaleString()}</p>
+          )}
+        </div>
+        {syncError && <div className="notice warning">Server-Sync fehlgeschlagen: {syncError}</div>}
         <button className="primary-button" onClick={handleOpenAdd}>
           Symbol hinzufügen
         </button>
-        
+
         {symbols.length === 0 ? (
           <p className="empty-state">Noch keine Symbole</p>
         ) : (
           <ul className="symbol-list">
-            {symbols.map(symbol => (
+            {sortedSymbols.map(symbol => (
               <li key={symbol.id} className="symbol-row">
                 <span className="symbol-name">{symbol.name}</span>
                 <span className="symbol-category">({symbol.category})</span>
+                {symbol.imageUrl && (
+                  <img src={symbol.imageUrl} alt={symbol.name} className="symbol-thumb" />
+                )}
                 <div className="symbol-actions">
                   <button className="secondary-button small" onClick={() => handleOpenEdit(symbol)}>
                     Bearbeiten
@@ -364,6 +390,30 @@ export const Admin: React.FC = () => {
                 placeholder="z. B. custom, basic, emotion"
               />
             </div>
+
+            <div className="form-group">
+              <label>Bild-URL</label>
+              <input
+                type="url"
+                value={formData.imageUrl}
+                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value, imageDataUrl: '' })}
+                placeholder="https://.../symbol.png"
+              />
+              <p className="muted small">Alternativ unten ein Bild hochladen.</p>
+            </div>
+
+            <div className="form-group">
+              <label>Bild hochladen</label>
+              <input type="file" accept="image/*" onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)} />
+              <p className="muted small">Datei wird als Data-URL gespeichert und mit dem Server synchronisiert.</p>
+            </div>
+
+            {imagePreview && (
+              <div className="preview-row">
+                <p className="muted small">Vorschau</p>
+                <img src={imagePreview} alt={formData.name || 'Symbol'} className="symbol-thumb" />
+              </div>
+            )}
 
             <div className="modal-actions">
               <button className="primary-button" onClick={handleSaveSymbol}>
