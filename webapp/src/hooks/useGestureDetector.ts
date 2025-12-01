@@ -46,7 +46,7 @@ function parseIncomingMessage(raw: string): GestureMessage {
 
     // Check if this is a "no hands detected" scenario
     const hasLandmarks = parsed?.landmarks?.length > 0 || 
-                         parsed?.messages?.some((m: { landmarks?: unknown[] }) => m?.landmarks?.length > 0);
+                         parsed?.messages?.some((m: { landmarks?: unknown[] }) => (m?.landmarks?.length ?? 0) > 0);
 
     if (gestureCandidate) {
       summaryParts.push(`Geste: ${String(gestureCandidate)}`);
