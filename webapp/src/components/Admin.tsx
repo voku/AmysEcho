@@ -116,7 +116,12 @@ export const Admin: React.FC = () => {
       try {
         const importedSymbols = JSON.parse(e.target?.result as string) as SymbolDefinition[];
         importedSymbols.forEach((symbol) => {
-          void saveSymbol({ ...symbol, imageDataUrl: symbol.imageUrl?.startsWith('data:') ? symbol.imageUrl : null });
+          const isDataUrl = symbol.imageUrl?.startsWith('data:') ?? false;
+          void saveSymbol({
+            ...symbol,
+            imageUrl: isDataUrl ? null : symbol.imageUrl ?? null,
+            imageDataUrl: isDataUrl ? symbol.imageUrl : null,
+          });
         });
         showToast({ message: 'Import abgeschlossen', tone: 'success' });
       } catch {

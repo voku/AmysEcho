@@ -57,10 +57,17 @@ describe('useGestureDetector', () => {
           detail: JSON.stringify({ type: 'gesture', gesture: 'WINKEN', confidence: 0.92 }),
         }),
       );
+
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({ type: 'gesture', gesture: 'WINKEN', confidence: 0.92 }),
+        }),
+      );
     });
 
     await waitFor(() => {
-      expect(result.current.messageLog.length).toBeGreaterThan(0);
+      expect(result.current.messageLog.length).toBe(1);
+      expect(result.current.messageLog[0].count).toBe(2);
       expect(result.current.lastGesture).toBe('WINKEN');
       expect(result.current.lastConfidence).toBeCloseTo(0.92);
     });

@@ -176,7 +176,14 @@ export function GestureDemo() {
                     <span className="badge">{item.type}</span>
                     <span className="timestamp">{new Date(item.receivedAt).toLocaleTimeString()}</span>
                   </div>
-                  <p>{item.summary}</p>
+                  <p>
+                    {item.summary}
+                    {item.count > 1 && (
+                      <span className="badge stacked" aria-label={`${item.count} ähnliche Meldungen zusammengefasst`}>
+                        ×{item.count}
+                      </span>
+                    )}
+                  </p>
                 </li>
               ))}
             </ul>

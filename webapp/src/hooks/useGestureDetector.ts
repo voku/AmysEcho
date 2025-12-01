@@ -12,6 +12,7 @@ export type GestureMessage = {
   summary: string;
   payload: unknown;
   receivedAt: number;
+  count: number;
 };
 
 export type GestureHookOptions = {
@@ -60,6 +61,7 @@ function parseIncomingMessage(raw: string): GestureMessage {
       summary: summaryParts.join(' · ') || 'Ereignis empfangen',
       payload: parsed,
       receivedAt: Date.now(),
+      count: 1,
     };
   } catch (error) {
     return {
@@ -67,6 +69,7 @@ function parseIncomingMessage(raw: string): GestureMessage {
       summary: 'Konnte Meldung nicht lesen',
       payload: raw,
       receivedAt: Date.now(),
+      count: 1,
     };
   }
 }
@@ -101,7 +104,20 @@ export function useGestureDetector(
       const detail = (event as CustomEvent<string>).detail;
       if (!detail) return;
       const parsed = parseIncomingMessage(detail);
-      setMessageLog((prev) => [parsed, ...prev].slice(0, 10));
+      setMessageLog((prev) => {
+        const previousFirst = prev[0];
+        if (previousFirst && previousFirst.summary === parsed.summary && previousFirst.type === parsed.type) {
+          const updated = {
+            ...previousFirst,
+            payload: parsed.payload,
+            receivedAt: parsed.receivedAt,
+            count: previousFirst.count + 1,
+          };
+          return [updated, ...prev.slice(1, 10)];
+        }
+
+        return [parsed, ...prev].slice(0, 10);
+      });
 
       if (parsed.payload && typeof parsed.payload === 'object') {
         const payload = parsed.payload as {

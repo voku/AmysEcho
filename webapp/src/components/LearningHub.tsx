@@ -99,6 +99,18 @@ export function LearningHub() {
       setImagePreview(null);
       return;
     }
+    let errorMessage = '';
+    if (file.size > 8 * 1024 * 1024) {
+      errorMessage = 'Bild ist zu groß (maximal 8 MB). Bitte wähle eine kleinere Datei.';
+    } else if (!file.type.startsWith('image/')) {
+      errorMessage = 'Ungültiger Dateityp. Bitte lade eine Bilddatei hoch.';
+    }
+    if (errorMessage) {
+      showToast({ message: errorMessage, tone: 'error' });
+      setFormData((prev) => ({ ...prev, imageDataUrl: '', imageUrl: prev.imageUrl }));
+      setImagePreview(null);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
@@ -118,7 +130,11 @@ export function LearningHub() {
       return;
     }
     setSavingSymbol(true);
-    const id = formData.id.trim() || `symbol_${Date.now()}`;
+    const id =
+      formData.id.trim() ||
+      (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? `symbol_${crypto.randomUUID()}`
+        : `symbol_${Date.now()}`);
     try {
       await saveSymbol({
         id,
@@ -267,7 +283,9 @@ export function LearningHub() {
                 id="symbol-id"
                 type="text"
                 value={formData.id}
-                onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, id: e.target.value }))
+                }
                 placeholder="z. B. trinken-wasser"
               />
               <p className="muted small">Wird auch für die Server-Synchronisierung genutzt.</p>
@@ -279,7 +297,9 @@ export function LearningHub() {
                 id="symbol-name"
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
                 placeholder="Titel für das Symbol"
               />
             </div>
@@ -290,7 +310,9 @@ export function LearningHub() {
                 id="symbol-category"
                 type="text"
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, category: e.target.value }))
+                }
                 placeholder="z. B. custom, basic, emotion"
               />
             </div>
@@ -301,7 +323,13 @@ export function LearningHub() {
                 id="symbol-image-url"
                 type="url"
                 value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value, imageDataUrl: '' })}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    imageUrl: e.target.value,
+                    imageDataUrl: '',
+                  }))
+                }
                 placeholder="https://.../symbol.png"
               />
               <p className="muted small">Alternativ unten ein Bild hochladen.</p>
