@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GestureRecognitionOrchestrator } from '../gesture/core/GestureRecognitionOrchestrator';
-import { installReactNativeBridge, WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
+import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import {
   createHandLandmarkStabilizer,
   normalizeHandednessLabels,
@@ -84,7 +84,6 @@ export function useGestureDetector(
   const [lastConfidence, setLastConfidence] = useState<number | null>(null);
   const [messageLog, setMessageLog] = useState<GestureMessage[]>([]);
   const orchestratorRef = useRef<GestureRecognitionOrchestrator | null>(null);
-  const bridgeCleanupRef = useRef<(() => void) | null>(null);
   const handStabilizerRef = useRef<HandLandmarkStabilizer>(
     createHandLandmarkStabilizer({ ttlMs: 250, maxHands: 2 }),
   );
@@ -98,8 +97,6 @@ export function useGestureDetector(
   );
 
   useEffect(() => {
-    bridgeCleanupRef.current = installReactNativeBridge();
-
     const handleBridgeMessage = (event: Event) => {
       const detail = (event as CustomEvent<string>).detail;
       if (!detail) return;
@@ -151,7 +148,6 @@ export function useGestureDetector(
     window.addEventListener(WEBVIEW_MESSAGE_EVENT, handleBridgeMessage as EventListener);
     return () => {
       window.removeEventListener(WEBVIEW_MESSAGE_EVENT, handleBridgeMessage as EventListener);
-      bridgeCleanupRef.current?.();
     };
   }, []);
 
