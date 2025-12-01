@@ -1,4 +1,5 @@
 import type { WebViewMessagePayload } from '../types/MediaPipeTypes';
+import { WEBVIEW_MESSAGE_EVENT } from '../../utils/reactNativeBridge';
 
 export const BATCH_INTERVAL_MS = 35;
 export const MAX_BATCH_SIZE = 6;
@@ -67,7 +68,11 @@ export class MessageBatcher {
       if (window.ReactNativeWebView?.postMessage) {
         window.ReactNativeWebView.postMessage(JSON.stringify(batchPayload));
       } else {
-        console.warn('MessageBatcher: ReactNativeWebView not available, logging batch', batchPayload);
+        // Ensure web clients (ohne React Native Bridge) trotzdem Frame-Batches erhalten
+        window.dispatchEvent(
+          new CustomEvent(WEBVIEW_MESSAGE_EVENT, { detail: JSON.stringify(batchPayload) }),
+        );
+        console.warn('MessageBatcher: ReactNativeWebView not available, dispatched event directly');
       }
       this.lastSentAt = batchPayload.lastSentAt;
     } catch (error) {

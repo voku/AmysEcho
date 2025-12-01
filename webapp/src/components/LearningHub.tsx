@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSymbolStore } from '../context/SymbolStore';
+import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 
 interface GestureItem {
   id: string;
@@ -30,7 +30,17 @@ const BASELINE_GESTURES: GestureItem[] = [
  * Shows available gestures and allows users to start training for each.
  */
 export function LearningHub() {
-  const { symbols, refresh, syncError, loading } = useSymbolStore();
+  const { symbols, refresh, syncError, loading, saveSymbol } = useSymbolStore();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [savingSymbol, setSavingSymbol] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    id: '',
+    name: '',
+    category: '',
+    imageUrl: '',
+    imageDataUrl: '',
+  });
   const gestures = useMemo(() => {
     if (symbols.length > 0) {
       return symbols.map((symbol) => ({
@@ -44,6 +54,61 @@ export function LearningHub() {
     return BASELINE_GESTURES;
   }, [symbols]);
   const navigate = useNavigate();
+
+  const handleOpenModal = () => {
+    setFormData({ id: '', name: '', category: 'custom', imageUrl: '', imageDataUrl: '' });
+    setImagePreview(null);
+    setModalOpen(true);
+  };
+
+  const handleEditSymbol = (symbol: SymbolDefinition) => {
+    setFormData({
+      id: symbol.id,
+      name: symbol.name,
+      category: symbol.category,
+      imageUrl: symbol.imageUrl ?? '',
+      imageDataUrl: '',
+    });
+    setImagePreview(symbol.imageUrl ?? null);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSavingSymbol(false);
+  };
+
+  const handleImageFile = (file: File | null) => {
+    if (!file) {
+      setFormData((prev) => ({ ...prev, imageDataUrl: '', imageUrl: prev.imageUrl }));
+      setImagePreview(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      setFormData((prev) => ({ ...prev, imageDataUrl: result, imageUrl: '' }));
+      setImagePreview(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveSymbol = async () => {
+    if (!formData.name.trim()) {
+      return;
+    }
+    setSavingSymbol(true);
+    const id = formData.id.trim() || `symbol_${Date.now()}`;
+    await saveSymbol({
+      id,
+      name: formData.name.trim(),
+      category: formData.category.trim() || 'custom',
+      imageUrl: formData.imageDataUrl ? undefined : formData.imageUrl || null,
+      imageDataUrl: formData.imageDataUrl || undefined,
+    });
+    setSavingSymbol(false);
+    setModalOpen(false);
+  };
 
   const handleTrainGesture = (gestureId: string, label: string) => {
     navigate(`/training?symbolId=${encodeURIComponent(gestureId)}&gesture=${encodeURIComponent(label)}`);
@@ -85,6 +150,11 @@ export function LearningHub() {
         {loading && <span className="muted small">Aktualisiere…</span>}
       </div>
       {syncError && <div className="notice warning">Symbole konnten nicht geladen werden: {syncError}</div>}
+      {!syncError && symbols.length === 0 && (
+        <div className="notice info">
+          Wir laden die Symbolsammlung vom Server. Du kannst trotzdem schon eigene Gesten hinzufügen und sofort trainieren.
+        </div>
+      )}
 
       {/* Gesture list */}
       <div className="gesture-learning-list">
@@ -102,12 +172,24 @@ export function LearningHub() {
                 <p className="muted small">Empfohlen: 5 Beispiele · ca. 1 Minute</p>
               </div>
             </div>
-            <button
-              className="train-button"
-              onClick={() => handleTrainGesture(gesture.id, gesture.label)}
-            >
-              Trainieren
-            </button>
+            <div className="gesture-actions">
+              <button
+                className="train-button"
+                onClick={() => handleTrainGesture(gesture.id, gesture.label)}
+              >
+                Trainieren
+              </button>
+              {symbols.length > 0 && (
+                <button className="secondary-button" onClick={() => handleEditSymbol({
+                  id: gesture.id,
+                  name: gesture.label,
+                  category: gesture.description,
+                  imageUrl: gesture.imageUrl,
+                })}>
+                  Anpassen
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -116,11 +198,16 @@ export function LearningHub() {
       <div className="custom-gesture-section">
         <h3>➕ Eigene Geste hinzufügen</h3>
         <p className="muted">
-          Du kannst auch eigene Gesten erstellen und trainieren.
+          Du kannst auch eigene Gesten erstellen und trainieren. Bild, ID und Kategorie werden direkt mit dem Server synchronisiert.
         </p>
-        <Link to="/training" className="add-gesture-button">
-          Neue Geste erstellen
-        </Link>
+        <div className="action-row">
+          <button className="primary-button" onClick={handleOpenModal}>
+            Neues Symbol speichern
+          </button>
+          <Link to="/training" className="add-gesture-button">
+            Sofort Training starten
+          </Link>
+        </div>
       </div>
 
       {/* Tips */}
@@ -133,6 +220,79 @@ export function LearningHub() {
           <li>Lade regelmäßig neue Beispiele hoch</li>
         </ul>
       </div>
+
+      {modalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Symbol für das Lernen speichern</h3>
+            <p className="muted">Sobald du speicherst, steht das Symbol auf der Lern- und Trainingsseite bereit.</p>
+
+            <div className="form-group">
+              <label>Symbol-ID</label>
+              <input
+                type="text"
+                value={formData.id}
+                onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                placeholder="z. B. trinken-wasser"
+              />
+              <p className="muted small">Wird auch für die Server-Synchronisierung genutzt.</p>
+            </div>
+
+            <div className="form-group">
+              <label>Bezeichnung</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Titel für das Symbol"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Kategorie</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="z. B. custom, basic, emotion"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Bild-URL</label>
+              <input
+                type="url"
+                value={formData.imageUrl}
+                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value, imageDataUrl: '' })}
+                placeholder="https://.../symbol.png"
+              />
+              <p className="muted small">Alternativ unten ein Bild hochladen.</p>
+            </div>
+
+            <div className="form-group">
+              <label>Bild hochladen</label>
+              <input type="file" accept="image/*" onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)} />
+              <p className="muted small">Datei wird als Data-URL gespeichert und mit dem Server synchronisiert.</p>
+            </div>
+
+            {imagePreview && (
+              <div className="preview-row">
+                <p className="muted small">Vorschau</p>
+                <img src={imagePreview} alt={formData.name || 'Symbol'} className="symbol-thumb" />
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button className="primary-button" onClick={handleSaveSymbol} disabled={savingSymbol || !formData.name.trim()}>
+                {savingSymbol ? 'Speichert…' : 'Speichern'}
+              </button>
+              <button className="secondary-button" onClick={handleCloseModal}>
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
