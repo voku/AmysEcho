@@ -153,7 +153,10 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     }
 
     const mergedSymbols = mergePendingSymbols(updatedSymbols, remainingPending);
-    setState({ symbols: mergedSymbols, pending: remainingPending, cachedAt: Date.now() });
+    setState((prev) => {
+      void prev;
+      return { symbols: mergedSymbols, pending: remainingPending, cachedAt: Date.now() };
+    });
     writeCache(mergedSymbols, remainingPending);
 
     if (syncedCount > 0) {
@@ -230,7 +233,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           id: input.id,
           name: input.name,
           category: input.category,
-          imageUrl: input.imageDataUrl ?? input.imageUrl ?? null,
+          imageUrl: input.imageDataUrl ? null : input.imageUrl ?? null,
           imageDataUrl: input.imageDataUrl ?? null,
         };
         setState((prev) => {

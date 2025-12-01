@@ -20,6 +20,7 @@ import { Settings } from './components/Settings';
 import { Teach } from './components/Teach';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { useApiConfig } from './hooks/useApiConfig';
+import { useAppState } from './hooks/useAppState';
 import { useSymbolStore } from './context/SymbolStore';
 import './App.css';
 

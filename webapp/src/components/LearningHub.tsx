@@ -99,14 +99,14 @@ export function LearningHub() {
       setImagePreview(null);
       return;
     }
+    let errorMessage = '';
     if (file.size > 8 * 1024 * 1024) {
-      showToast({ message: 'Bild ist zu groß (maximal 8 MB). Bitte wähle eine kleinere Datei.', tone: 'error' });
-      setFormData((prev) => ({ ...prev, imageDataUrl: '', imageUrl: prev.imageUrl }));
-      setImagePreview(null);
-      return;
+      errorMessage = 'Bild ist zu groß (maximal 8 MB). Bitte wähle eine kleinere Datei.';
+    } else if (!file.type.startsWith('image/')) {
+      errorMessage = 'Ungültiger Dateityp. Bitte lade eine Bilddatei hoch.';
     }
-    if (!file.type.startsWith('image/')) {
-      showToast({ message: 'Ungültiger Dateityp. Bitte lade eine Bilddatei hoch.', tone: 'error' });
+    if (errorMessage) {
+      showToast({ message: errorMessage, tone: 'error' });
       setFormData((prev) => ({ ...prev, imageDataUrl: '', imageUrl: prev.imageUrl }));
       setImagePreview(null);
       return;

@@ -37,6 +37,16 @@
   --color-overlay-text: #0D3A3D;
   --color-overlay-text-muted: #366166;
 
+  /* State Surfaces */
+  --color-chip-success-bg: #f0fdf4;
+  --color-chip-success-border: #bbf7d0;
+  --color-chip-warning-bg: #fffbeb;
+  --color-chip-warning-border: #fcd34d;
+  --color-chip-danger-bg: #fff1f2;
+  --color-chip-danger-border: #fecdd3;
+  --color-ghost-danger-border: #fecdd3;
+  --color-ghost-danger-hover: #fff1f2;
+
   /* Action Colors */
   --color-action-primary-bg: #FDF1DD;
   --color-action-primary-pressed: #F1E0C2;
@@ -783,6 +793,17 @@ p {
   color: var(--color-overlay-text);
 }
 
+.file-input-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.file-input-main {
+  flex: 1 1 auto;
+}
+
 .result-card {
   margin-top: var(--space-lg);
   padding: var(--space-lg);
@@ -885,6 +906,11 @@ p {
 
 .still-preview {
   margin-top: var(--space-lg);
+}
+
+.still-preview img {
+  max-width: 100%;
+  border-radius: var(--radius-lg);
 }
 
 /* ==========================================================================
@@ -1384,16 +1410,16 @@ p {
 
 .workflow-title-row {
   display: grid;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
 }
 
 .workflow-summary {
   display: flex;
   align-items: center;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
   flex-wrap: wrap;
   color: var(--color-overlay-text-muted);
-  font-size: var(--font-size-body-sm);
+  font-size: var(--font-size-caption);
 }
 
 .workflow-quick {
@@ -1406,7 +1432,7 @@ p {
 .workflow-mini {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-overlay-border);
@@ -1466,18 +1492,18 @@ p {
 }
 
 .chip.success {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
+  border-color: var(--color-chip-success-border);
+  background: var(--color-chip-success-bg);
 }
 
 .chip.warning {
-  border-color: #fcd34d;
-  background: #fffbeb;
+  border-color: var(--color-chip-warning-border);
+  background: var(--color-chip-warning-bg);
 }
 
 .chip.danger {
-  border-color: #fecdd3;
-  background: #fff1f2;
+  border-color: var(--color-chip-danger-border);
+  background: var(--color-chip-danger-bg);
 }
 
 .workflow-actions {
@@ -3032,12 +3058,12 @@ p {
 
 .ghost.danger {
   color: var(--color-error);
-  border-color: #fecdd3;
+  border-color: var(--color-ghost-danger-border);
   background: transparent;
 }
 
 .ghost.danger:hover {
-  background: #fff1f2;
+  background: var(--color-ghost-danger-hover);
 }
 
 .auth-header {

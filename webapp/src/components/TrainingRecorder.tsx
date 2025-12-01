@@ -477,8 +477,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
           <div className="form-group mt-sm">
             <label htmlFor="manual-still">Eigenes Referenzbild (optional)</label>
-            <div className="file-input" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-              <div style={{ flex: '1 1 auto' }}>
+            <div className="file-input file-input-row">
+              <div className="file-input-main">
                 <input
                   id="manual-still"
                   type="file"
@@ -509,7 +509,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               <img
                 src={manualStillPreviewUrl ?? recordedData.stillImage ?? undefined}
                 alt={manualStillPreviewUrl ? 'Hochgeladenes Referenzbild' : 'Aufgenommene Geste'}
-                style={{ maxWidth: '100%', borderRadius: '8px' }}
               />
             </div>
           )}
