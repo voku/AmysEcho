@@ -82,8 +82,8 @@ export const Admin: React.FC = () => {
       id,
       name: formData.name,
       category: formData.category || 'custom',
-      imageUrl: formData.imageDataUrl ? undefined : formData.imageUrl || null,
-      imageDataUrl: formData.imageDataUrl || undefined,
+      imageUrl: formData.imageDataUrl ? null : formData.imageUrl || null,
+      imageDataUrl: formData.imageDataUrl || null,
     });
     setModalVisible(false);
   };
@@ -116,7 +116,7 @@ export const Admin: React.FC = () => {
       try {
         const importedSymbols = JSON.parse(e.target?.result as string) as SymbolDefinition[];
         importedSymbols.forEach((symbol) => {
-          void saveSymbol({ ...symbol, imageDataUrl: symbol.imageUrl?.startsWith('data:') ? symbol.imageUrl : undefined });
+          void saveSymbol({ ...symbol, imageDataUrl: symbol.imageUrl?.startsWith('data:') ? symbol.imageUrl : null });
         });
         showToast({ message: 'Import abgeschlossen', tone: 'success' });
       } catch {

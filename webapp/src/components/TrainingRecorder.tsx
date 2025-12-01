@@ -227,7 +227,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     ? 'Upload gesperrt, weil die maximale Dateigröße überschritten wurde.'
     : '';
   const showDetectorStart = !isRecording && status !== 'running';
-  const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : 'Kamera starten';
+  const detectorStartDisabled = status === 'initializing';
+  const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : status === 'initializing' ? 'Startet…' : 'Kamera starten';
   const displayedLabel = label.trim() || 'Keine Gestenauswahl vorhanden';
   const detectorStatusLabel =
     status === 'running'
@@ -366,7 +367,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
           <div className="controls">
             {showDetectorStart && (
-              <button className="secondary" onClick={startCamera}>
+              <button className="secondary" onClick={startCamera} disabled={detectorStartDisabled}>
                 {detectorStartLabel}
               </button>
             )}

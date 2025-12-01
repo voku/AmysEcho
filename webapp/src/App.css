@@ -332,6 +332,13 @@ body {
   flex-wrap: wrap;
 }
 
+.action-row {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 /* ==========================================================================
    Buttons (matching app button styles)
    ========================================================================== */
