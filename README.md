@@ -88,6 +88,8 @@ Amy's Echo features a comprehensive gesture recognition system optimized for 22q
 
 ## 🚀 Quick Start
 
+### Development Setup
+
 ```bash
 npm ci --prefix webapp
 npm ci --prefix server
@@ -104,6 +106,19 @@ npm run build --prefix server
 ```
 
 Commands use `--prefix` and should be run from the repository root.
+
+### Server Deployment
+
+For deploying the server to production:
+
+- **Quick Start**: See [QUICKSTART_SERVER.md](QUICKSTART_SERVER.md) for a 5-minute Docker deployment
+- **Complete Guide**: See [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md) for comprehensive deployment options including Docker, systemd, nginx, SSL, monitoring, and backups
+
+### Webapp Deployment
+
+For deploying the webapp:
+
+- See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for GitHub Pages and static hosting deployment
 
 ### Run notes
 
