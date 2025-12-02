@@ -28,7 +28,7 @@ describe('ApiConfigBar authentication helpers', () => {
 
     fireEvent.change(screen.getByLabelText('Nutzername'), { target: { value: 'amy' } });
     fireEvent.change(screen.getByLabelText(/^Passwort/), { target: { value: 'sehrgeheim' } });
-    fireEvent.click(screen.getByRole('button', { name: /login & token holen/i }));
+    fireEvent.click(screen.getByRole('button', { name: /anmelden/i }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await waitFor(() => {
@@ -53,7 +53,7 @@ describe('ApiConfigBar authentication helpers', () => {
 
     fireEvent.change(screen.getByLabelText('Nutzername'), { target: { value: 'amy' } });
     fireEvent.change(screen.getByLabelText(/^Passwort/), { target: { value: 'falsch' } });
-    fireEvent.click(screen.getByRole('button', { name: /login & token holen/i }));
+    fireEvent.click(screen.getByRole('button', { name: /anmelden/i }));
 
     await screen.findByText('Ungültige Zugangsdaten.');
   });
