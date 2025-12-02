@@ -120,7 +120,7 @@ export const Admin: React.FC = () => {
           void saveSymbol({
             ...symbol,
             imageUrl: isDataUrl ? null : symbol.imageUrl ?? null,
-            imageDataUrl: isDataUrl ? symbol.imageUrl : null,
+            imageDataUrl: isDataUrl ? (symbol.imageUrl ?? null) : null,
           });
         });
         showToast({ message: 'Import abgeschlossen', tone: 'success' });

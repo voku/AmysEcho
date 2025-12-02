@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { SymbolStoreProvider, useSymbolStore } from './SymbolStore';
 import type { ReactNode } from 'react';
 
@@ -36,7 +36,7 @@ describe('SymbolStore offline handling', () => {
   });
 
   it('keeps offline symbols pending and merges them after sync', async () => {
-    const fetchMock = global.fetch as unknown as vi.Mock;
+    const fetchMock = global.fetch as unknown as Mock;
     const makeSymbolsResponse = (symbols: unknown[] = []) =>
       new Response(JSON.stringify({ symbols }), {
         status: 200,
@@ -97,7 +97,7 @@ describe('SymbolStore offline handling', () => {
   });
 
   it('does not cache symbols rejected by the server', async () => {
-    const fetchMock = global.fetch as unknown as vi.Mock;
+    const fetchMock = global.fetch as unknown as Mock;
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ message: 'Ungültige Daten' }), {
         status: 400,
