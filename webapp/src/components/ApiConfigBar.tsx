@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
 
 export function ApiConfigBar() {
@@ -7,8 +7,6 @@ export function ApiConfigBar() {
     apiToken,
     setApiBaseUrl,
     setApiToken,
-    uploadEndpoint,
-    modelEndpoint,
     persistToken,
     setPersistToken,
     clearApiToken,
@@ -18,13 +16,6 @@ export function ApiConfigBar() {
   const [password, setPassword] = useState('');
   const [authMessage, setAuthMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const obfuscatedToken = useMemo(() => {
-    if (!apiToken) return '';
-    if (apiToken.length <= 4) return '••••';
-    if (apiToken.length <= 8) return `${apiToken.slice(0, 2)}••••`;
-    return `${apiToken.slice(0, 3)}••••${apiToken.slice(-2)}`;
-  }, [apiToken]);
 
   const handleBaseChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -96,12 +87,7 @@ export function ApiConfigBar() {
     <section className="card profile-card">
       <div className="card-header">
         <div>
-          <p className="eyebrow">Backend</p>
-          <h2>API-Ziel konfigurieren</h2>
-          <p className="muted">
-            Nutzt dieselbe Upload-Route wie die App. Basis-URL bleibt dauerhaft gespeichert, Tokens werden nach Login oder
-            Registrierung verschlüsselt abgelegt und können sitzungsübergreifend genutzt oder jederzeit gelöscht werden.
-          </p>
+          <h2>API-Konfiguration</h2>
         </div>
         <div className="status-chip" data-state={apiBaseUrl ? 'idle' : 'error'}>
           {apiBaseUrl ? 'Verbunden' : 'URL fehlt'}
@@ -117,9 +103,6 @@ export function ApiConfigBar() {
             onChange={handleBaseChange}
             placeholder="https://dein-server.example.com"
           />
-          <p className="muted small">Wird für Uploads, Polling und Modell-Endpunkte verwendet.</p>
-          <p className="muted small">Aktueller Upload-Pfad: {uploadEndpoint}</p>
-          <p className="muted small">MLP-Download: {modelEndpoint}</p>
         </div>
 
         <div className="form-group">
@@ -131,10 +114,6 @@ export function ApiConfigBar() {
             placeholder="Bearer-Token aus dem Backend"
             type="password"
           />
-          <p className="muted small">
-            Wird als Authorization-Header gesetzt. Token können pro Browsersitzung in einem separaten Speicher abgelegt
-            werden ({persistToken ? 'aktiv' : 'inaktiv'}). {obfuscatedToken && `(Aktuell: ${obfuscatedToken})`}
-          </p>
           <div className="toggle mt-xs">
             <input
               id="persist-token"
@@ -143,7 +122,7 @@ export function ApiConfigBar() {
               onChange={handlePersistToggle}
             />
             <label htmlFor="persist-token">
-              Token verschlüsselt speichern und auch nach einem Neustart verwenden
+              Token speichern
             </label>
           </div>
           <button className="ghost mt-xs" type="button" onClick={clearApiToken}>
@@ -152,7 +131,6 @@ export function ApiConfigBar() {
         </div>
 
         <form className="panel panel-tight" onSubmit={handleAuthSubmit}>
-          <p className="eyebrow">Registrierung / Login</p>
           <div className="toggle mb-xs">
             <input
               id="auth-mode"
@@ -186,27 +164,11 @@ export function ApiConfigBar() {
             placeholder="••••••••"
             autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
           />
-          <p className="muted small">
-            Erst Registrierung, dann Login? Nicht nötig: Beide Wege geben direkt ein Sitzungs-Token zurück, das in den Upload-
-            Routen genutzt wird.
-          </p>
           <button className="primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Wird gesendet…' : authMode === 'login' ? 'Login & Token holen' : 'Registrieren & Token holen'}
+            {isSubmitting ? 'Wird gesendet…' : authMode === 'login' ? 'Anmelden' : 'Registrieren'}
           </button>
           {authMessage && <p className="muted small mt-xs">{authMessage}</p>}
         </form>
-
-        <div className="panel panel-tight">
-          <p className="eyebrow">Hinweise</p>
-          <ul className="muted small bullets">
-            <li>Fällt auf <code>VITE_API_URL</code> oder <code>http://localhost:3000</code> zurück.</li>
-            <li>Änderungen wirken sofort auf Gestenerkennung &amp; Training.</li>
-            <li>
-              Token werden nach Login/Registrierung verschlüsselt gespeichert und können jederzeit gelöscht werden.
-            </li>
-            <li>Verschlüsselter Browser-Speicher; lösche Tokens nach Bedarf.</li>
-          </ul>
-        </div>
       </div>
     </section>
   );
