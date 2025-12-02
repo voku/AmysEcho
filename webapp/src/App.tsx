@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate, Link } from 'react-router-dom';
+import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AboutAmysEcho } from './components/AboutAmysEcho';
 import { Admin } from './components/Admin';
 import { CaregiverReport } from './components/CaregiverReport';
@@ -20,8 +20,6 @@ import { Settings } from './components/Settings';
 import { Teach } from './components/Teach';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { useApiConfig } from './hooks/useApiConfig';
-import { useAppState } from './hooks/useAppState';
-import { useSymbolStore } from './context/SymbolStore';
 import './App.css';
 
 // Storage-Schlüssel
@@ -142,13 +140,8 @@ function LoginScreen({ onComplete }: { onComplete: () => void }) {
           </button>
 
           <button type="button" className="ghost full-width" onClick={handleSkip}>
-            Ohne Anmeldung fortfahren (Demo)
           </button>
         </form>
-
-        <p className="auth-hint muted small">
-          Die Anmeldung verbindet dich mit dem Backend für Gestentraining und Synchronisation.
-        </p>
       </div>
     </div>
   );
@@ -175,36 +168,9 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
       <header className="hero-header">
         <span className="hero-pill">Amy&apos;s Echo hört zu</span>
         <h1 className="hero-title">Willkommen bei Amy&apos;s Echo</h1>
-        <p className="hero-subtitle">
-          Die Gestenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
-          So bleibt das Gespräch mit Amy&apos;s Echo nie stehen.
-        </p>
       </header>
 
-      {/* Amy Loop Visualization */}
-      <section className="amy-loop-section">
-        <h2 className="amy-loop-title">Der Amy-Loop</h2>
-        <div className="amy-loop-timeline">
-          <div className="loop-step-card">
-            <span className="step-icon">🖐️</span>
-            <strong>Kamera</strong>
-            <span className="step-desc">Geste zeigen</span>
-          </div>
-          <span className="loop-arrow">→</span>
-          <div className="loop-step-card">
-            <span className="step-icon">🗂️</span>
-            <strong>Verlauf</strong>
-            <span className="step-desc">Geste prüfen</span>
-          </div>
-          <span className="loop-arrow">→</span>
-          <div className="loop-step-card">
-            <span className="step-icon">🧠</span>
-            <strong>Lernen</strong>
-            <span className="step-desc">Modell stärken</span>
-          </div>
-          <span className="loop-return">↩️</span>
-        </div>
-      </section>
+
 
       {/* CTA Buttons */}
       <div className="hero-cta-row">
@@ -216,54 +182,7 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
         </button>
       </div>
 
-      {/* Amy First Commitments */}
-      <section className="commitments-section">
-        <h2>Amy First Commitments</h2>
-        <div className="commitment-grid">
-          <div className="commitment-card">
-            <span className="commitment-icon">⚡</span>
-            <div className="commitment-content">
-              <strong>Zero Interruption</strong>
-              <p>Amys Kommunikation pausiert nie</p>
-            </div>
-          </div>
-          <div className="commitment-card">
-            <span className="commitment-icon">🎯</span>
-            <div className="commitment-content">
-              <strong>Zero Confusion</strong>
-              <p>Einfache, klare UI immer</p>
-            </div>
-          </div>
-          <div className="commitment-card">
-            <span className="commitment-icon">⏱️</span>
-            <div className="commitment-content">
-              <strong>Zero Delay</strong>
-              <p>Sofortiges Feedback für alles</p>
-            </div>
-          </div>
-          <div className="commitment-card">
-            <span className="commitment-icon">🛡️</span>
-            <div className="commitment-content">
-              <strong>Zero Failure</strong>
-              <p>Mehrere Fallback-Ebenen</p>
-            </div>
-          </div>
-          <div className="commitment-card">
-            <span className="commitment-icon">💚</span>
-            <div className="commitment-content">
-              <strong>Zero Judgment</strong>
-              <p>Versuche feiern, nicht nur Erfolge</p>
-            </div>
-          </div>
-          <div className="commitment-card">
-            <span className="commitment-icon">❤️</span>
-            <div className="commitment-content">
-              <strong>Zero Compromise</strong>
-              <p>Amys Bedürfnisse zuerst</p>
-            </div>
-          </div>
-        </div>
-      </section>
+
     </div>
   );
 }
@@ -300,102 +219,7 @@ function BottomNav() {
   );
 }
 
-// ========================================
-// Workflow Reminder - keeps main actions visible
-// ========================================
-function WorkflowGuide() {
-  const { apiBaseUrl, apiToken } = useApiConfig();
-  const { symbols, loading, syncError, lastSyncedAt } = useSymbolStore();
-  const { profileId, lastRecognizedGesture } = useAppState();
-  const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const pendingCount = symbols.filter((symbol) => symbol.pending).length;
-
-  const syncStatus = syncError
-    ? `Sync-Fehler: ${syncError}`
-    : loading
-    ? 'Synchronisiere Symbole…'
-    : pendingCount > 0
-    ? `${pendingCount} Symbol(e) warten auf Upload`
-    : lastSyncedAt
-    ? `Synchronisiert um ${new Date(lastSyncedAt).toLocaleTimeString()}`
-    : 'Noch kein Sync durchgeführt';
-
-  const connectionLabel = apiBaseUrl
-    ? apiToken
-      ? 'Backend verbunden'
-      : 'Demo-Modus aktiv'
-    : 'Kein Backend gewählt';
-
-  const lastGestureLabel = lastRecognizedGesture || 'Noch nichts erkannt';
-
-  return (
-    <section className="card workflow-card" aria-label="Hauptablauf und Status">
-      <div className="workflow-bar">
-        <div className="workflow-title-row">
-          <p className="eyebrow">Hauptablauf</p>
-          <div className="workflow-summary" aria-live="polite">
-            <span>{connectionLabel}</span>
-            <span>•</span>
-            <span>{syncStatus}</span>
-            <span>•</span>
-            <span>Profil {profileId}</span>
-          </div>
-        </div>
-        <div className="workflow-quick">
-          <Link to="/" className="workflow-mini primary">
-            🖐️ Kamera
-          </Link>
-          <Link to="/lernen" className="workflow-mini">
-            🧠 Lernen
-          </Link>
-          <button
-            type="button"
-            className="workflow-toggle"
-            onClick={() => setDetailsOpen((prev) => !prev)}
-            aria-expanded={detailsOpen}
-          >
-            {detailsOpen ? 'Details ausblenden' : 'Details anzeigen'}
-          </button>
-        </div>
-      </div>
-
-      {detailsOpen && (
-        <>
-          <div className="workflow-chips" role="status" aria-live="polite">
-            <div className="chip neutral">
-              <span className="chip-label">Verbindung</span>
-              <strong>{connectionLabel}</strong>
-            </div>
-            <div className={`chip ${syncError ? 'danger' : pendingCount > 0 ? 'warning' : 'success'}`}>
-              <span className="chip-label">Symbole</span>
-              <strong>{syncStatus}</strong>
-            </div>
-            <div className="chip neutral">
-              <span className="chip-label">Letzte Geste</span>
-              <strong>{lastGestureLabel}</strong>
-            </div>
-          </div>
-
-          <div className="workflow-actions">
-            <Link to="/verlauf" className="workflow-action">
-              🗂️ Verlauf prüfen
-            </Link>
-            <Link to="/training" className="workflow-action ghost">
-              🎥 Trainingsdaten hochladen
-            </Link>
-            <Link to="/" className="workflow-action primary">
-              🖐️ Erkennung öffnen
-            </Link>
-            <Link to="/lernen" className="workflow-action">
-              🧠 Lernen & Symbole
-            </Link>
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
 
 // ========================================
 // Main App Content
@@ -403,7 +227,6 @@ function WorkflowGuide() {
 function MainAppContent() {
   return (
     <>
-      <WorkflowGuide />
       <main className="content main-content">
         <Routes>
           <Route path="/" element={<GestureDemo />} />
@@ -528,13 +351,6 @@ function App() {
         )}
 
         {status === 'app' && <MainAppContent />}
-
-        {/* Footer - nur im Auth/Hero Modus */}
-        {(status === 'auth' || status === 'hero') && (
-          <footer className="muted footer">
-            ❤️ Für Amy – Jede Geste ist eine Stimme.
-          </footer>
-        )}
       </div>
     </BrowserRouter>
   );
