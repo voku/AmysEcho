@@ -140,6 +140,7 @@ function LoginScreen({ onComplete }: { onComplete: () => void }) {
           </button>
 
           <button type="button" className="ghost full-width" onClick={handleSkip}>
+            Ohne Anmeldung fortfahren (Demo)
           </button>
         </form>
       </div>
