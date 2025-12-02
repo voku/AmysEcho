@@ -445,15 +445,23 @@ export function TrainingUploadWithRecording() {
   );
   const hasGestureSelection = Boolean((gestureParam ?? '').trim() || (symbolIdParam ?? '').trim());
 
+  const prevMetadataReadyRef = useRef(metadataReady);
+  const messageRef = useRef(message);
+  messageRef.current = message;
+
   useEffect(() => {
     setLabel(preferredGestureLabel);
   }, [preferredGestureLabel]);
 
   useEffect(() => {
-    if (metadataReady && message === metadataError) {
-      setMessage('');
+    // Only clear error message when metadata becomes ready
+    if (metadataReady && !prevMetadataReadyRef.current) {
+      if (messageRef.current === metadataError) {
+        setMessage('');
+      }
     }
-  }, [metadataError, metadataReady, message]);
+    prevMetadataReadyRef.current = metadataReady;
+  }, [metadataReady, metadataError]);
 
   useEffect(() => {
     const status = uploadState.trainingJob?.status ?? uploadState.lastResult?.trainingJob?.status ?? null;
