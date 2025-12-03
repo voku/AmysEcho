@@ -444,14 +444,17 @@ export function TrainingUploadWithRecording() {
     [symbolIdParam, symbols],
   );
   const hasGestureSelection = Boolean((gestureParam ?? '').trim() || (symbolIdParam ?? '').trim());
+  const prevMetadataReadyRef = useRef(metadataReady);
 
   // Removed useEffect that syncs preferredGestureLabel -> label to prevent circular dependency
   // label is initialized from preferredGestureLabel on mount via useState initializer
 
   useEffect(() => {
-    if (metadataReady && message === metadataError) {
+    // Only clear message when transitioning from not-ready to ready
+    if (metadataReady && !prevMetadataReadyRef.current && message === metadataError) {
       setMessage('');
     }
+    prevMetadataReadyRef.current = metadataReady;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- message and metadataError excluded to prevent infinite loop
   }, [metadataReady]);
 
