@@ -481,25 +481,20 @@ export function TrainingUploadWithRecording() {
   );
 
   useEffect(() => {
+    // Sync URL params/symbols to label - only on mount or when URL changes
     const normalized = gestureParam?.trim() ?? '';
-    const currentLabel = preferredGestureLabel;
-    if (selectedSymbol) {
-      if (currentLabel !== selectedSymbol.name) {
-        setGestureFromLearning(selectedSymbol.name);
-        handleLabelUpdate(selectedSymbol.name);
-      }
-      return;
-    }
-    if (!normalized) {
-      setGestureFromLearning(null);
-      return;
-    }
-    if (currentLabel !== normalized) {
+    const symbol = symbols.find((s) => s.id === symbolIdParam) ?? null;
+    if (symbol && preferredGestureLabel !== symbol.name) {
+      setGestureFromLearning(symbol.name);
+      setPreferredGestureLabel(symbol.name);
+    } else if (!symbol && normalized && preferredGestureLabel !== normalized) {
       setGestureFromLearning(normalized);
-      handleLabelUpdate(normalized);
+      setPreferredGestureLabel(normalized);
+    } else if (!symbol && !normalized) {
+      setGestureFromLearning((prev) => (prev === null ? prev : null));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- preferredGestureLabel excluded to prevent infinite loop
-  }, [gestureParam, handleLabelUpdate, selectedSymbol]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredGestureLabel or symbols change
+  }, [gestureParam, symbolIdParam]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(
