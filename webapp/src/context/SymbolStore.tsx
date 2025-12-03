@@ -165,8 +165,13 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setState({ symbols: updatedSymbols, pending: remainingPending, cachedAt: Date.now() });
-    writeCache(updatedSymbols, remainingPending);
+    setState((prev) => {
+      // Merge with latest state to avoid overwriting concurrent changes
+      const finalSymbols = updatedSymbols;
+      const finalPending = remainingPending;
+      writeCache(finalSymbols, finalPending);
+      return { symbols: finalSymbols, pending: finalPending, cachedAt: Date.now() };
+    });
 
     if (syncedCount > 0) {
       showToast({ message: 'Offline gespeicherte Symbole synchronisiert.', tone: 'success' });
@@ -182,8 +187,12 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       const data = await fetchJson<{ symbols: SymbolDefinition[] }>(`${apiBaseUrl}/api/v1/symbols`, {
         headers: resolveHeaders(),
       });
-      setState({ symbols: data.symbols, pending: pendingSymbols, cachedAt: Date.now() });
-      writeCache(data.symbols, pendingSymbols);
+      setState((prev) => {
+        // Merge fetched symbols with any pending items added during the fetch
+        const finalPending = [...pendingSymbols, ...prev.pending.filter(p => !pendingSymbols.find(ps => ps.id === p.id))];
+        writeCache(data.symbols, finalPending);
+        return { symbols: data.symbols, pending: finalPending, cachedAt: Date.now() };
+      });
       setSyncError(null);
       setLastSyncedAt(Date.now());
     } catch (error) {
