@@ -452,6 +452,7 @@ export function TrainingUploadWithRecording() {
     if (metadataReady && message === metadataError) {
       setMessage('');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- message and metadataError excluded to prevent infinite loop
   }, [metadataReady]);
 
   useEffect(() => {
@@ -497,6 +498,7 @@ export function TrainingUploadWithRecording() {
       setGestureFromLearning(normalized);
       handleLabelUpdate(normalized);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- label excluded to prevent infinite loop with handleLabelUpdate
   }, [gestureParam, handleLabelUpdate, selectedSymbol]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
