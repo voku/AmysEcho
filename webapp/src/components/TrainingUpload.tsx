@@ -448,6 +448,7 @@ export function TrainingUploadWithRecording() {
   const prevMetadataReadyRef = useRef(metadataReady);
   const messageRef = useRef(message);
   messageRef.current = message;
+  const prevLabelRef = useRef(label);
 
   useEffect(() => {
     setLabel(preferredGestureLabel);
@@ -479,7 +480,7 @@ export function TrainingUploadWithRecording() {
         console.warn('Modell konnte nach Training nicht geladen werden', error);
       });
     }
-  }, [modelInjection, setMessage, uploadState.lastResult, uploadState.trainingJob]);
+  }, [modelInjection, uploadState.lastResult, uploadState.trainingJob]);
 
   const handleLabelUpdate = useCallback(
     (value: string) => {
@@ -492,9 +493,10 @@ export function TrainingUploadWithRecording() {
   useEffect(() => {
     const normalized = gestureParam?.trim() ?? '';
     if (selectedSymbol) {
-      if (label !== selectedSymbol.name) {
+      if (label !== selectedSymbol.name && prevLabelRef.current !== selectedSymbol.name) {
         setGestureFromLearning(selectedSymbol.name);
         handleLabelUpdate(selectedSymbol.name);
+        prevLabelRef.current = selectedSymbol.name;
       }
       return;
     }
@@ -502,9 +504,10 @@ export function TrainingUploadWithRecording() {
       setGestureFromLearning(null);
       return;
     }
-    if (label !== normalized) {
+    if (label !== normalized && prevLabelRef.current !== normalized) {
       setGestureFromLearning(normalized);
       handleLabelUpdate(normalized);
+      prevLabelRef.current = normalized;
     }
   }, [gestureParam, handleLabelUpdate, label, selectedSymbol]);
 
