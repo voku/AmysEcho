@@ -445,26 +445,13 @@ export function TrainingUploadWithRecording() {
   );
   const hasGestureSelection = Boolean((gestureParam ?? '').trim() || (symbolIdParam ?? '').trim());
 
-  const prevMetadataReadyRef = useRef(metadataReady);
-  const messageRef = useRef(message);
-  messageRef.current = message;
-  const prevLabelRef = useRef(label);
-  prevLabelRef.current = label;
-  const metadataErrorRef = useRef(metadataError);
-  metadataErrorRef.current = metadataError;
-
-  // Removed the useEffect that syncs preferredGestureLabel -> label
-  // This was creating a circular dependency with handleLabelUpdate
-  // Now label is only updated via user input or URL params, not from preferredGestureLabel
+  // Removed useEffect that syncs preferredGestureLabel -> label to prevent circular dependency
+  // label is initialized from preferredGestureLabel on mount via useState initializer
 
   useEffect(() => {
-    // Only clear error message when metadata becomes ready
-    if (metadataReady && !prevMetadataReadyRef.current) {
-      if (messageRef.current === metadataErrorRef.current) {
-        setMessage('');
-      }
+    if (metadataReady && message === metadataError) {
+      setMessage('');
     }
-    prevMetadataReadyRef.current = metadataReady;
   }, [metadataReady]);
 
   useEffect(() => {
@@ -495,9 +482,8 @@ export function TrainingUploadWithRecording() {
 
   useEffect(() => {
     const normalized = gestureParam?.trim() ?? '';
-    const currentLabel = prevLabelRef.current;
     if (selectedSymbol) {
-      if (currentLabel !== selectedSymbol.name) {
+      if (label !== selectedSymbol.name) {
         setGestureFromLearning(selectedSymbol.name);
         handleLabelUpdate(selectedSymbol.name);
       }
@@ -507,7 +493,7 @@ export function TrainingUploadWithRecording() {
       setGestureFromLearning(null);
       return;
     }
-    if (currentLabel !== normalized) {
+    if (label !== normalized) {
       setGestureFromLearning(normalized);
       handleLabelUpdate(normalized);
     }
