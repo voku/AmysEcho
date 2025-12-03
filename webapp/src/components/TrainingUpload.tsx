@@ -449,6 +449,8 @@ export function TrainingUploadWithRecording() {
   const messageRef = useRef(message);
   messageRef.current = message;
   const prevLabelRef = useRef(label);
+  const metadataErrorRef = useRef(metadataError);
+  metadataErrorRef.current = metadataError;
 
   useEffect(() => {
     setLabel(preferredGestureLabel);
@@ -457,12 +459,12 @@ export function TrainingUploadWithRecording() {
   useEffect(() => {
     // Only clear error message when metadata becomes ready
     if (metadataReady && !prevMetadataReadyRef.current) {
-      if (messageRef.current === metadataError) {
+      if (messageRef.current === metadataErrorRef.current) {
         setMessage('');
       }
     }
     prevMetadataReadyRef.current = metadataReady;
-  }, [metadataReady, metadataError]);
+  }, [metadataReady]);
 
   useEffect(() => {
     const status = uploadState.trainingJob?.status ?? uploadState.lastResult?.trainingJob?.status ?? null;
