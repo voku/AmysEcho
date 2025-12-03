@@ -429,9 +429,9 @@ export function TrainingUploadWithRecording() {
   const modelInjection = useMlpModelInjection(profileId);
   const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
   const lastJobStatusRef = useRef<string | null>(null);
-  const [label, setLabel] = useState(preferredGestureLabel);
+  // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
-  const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
+  const metadataReady = profileId.trim().length > 0 && preferredGestureLabel.trim().length > 0;
   const metadataError = metadataReady
     ? ''
     : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
@@ -445,9 +445,6 @@ export function TrainingUploadWithRecording() {
   );
   const hasGestureSelection = Boolean((gestureParam ?? '').trim() || (symbolIdParam ?? '').trim());
   const prevMetadataReadyRef = useRef(metadataReady);
-
-  // Removed useEffect that syncs preferredGestureLabel -> label to prevent circular dependency
-  // label is initialized from preferredGestureLabel on mount via useState initializer
 
   useEffect(() => {
     // Only clear message when transitioning from not-ready to ready
@@ -478,7 +475,6 @@ export function TrainingUploadWithRecording() {
 
   const handleLabelUpdate = useCallback(
     (value: string) => {
-      setLabel(value);
       setPreferredGestureLabel(value);
     },
     [setPreferredGestureLabel],
@@ -486,8 +482,9 @@ export function TrainingUploadWithRecording() {
 
   useEffect(() => {
     const normalized = gestureParam?.trim() ?? '';
+    const currentLabel = preferredGestureLabel;
     if (selectedSymbol) {
-      if (label !== selectedSymbol.name) {
+      if (currentLabel !== selectedSymbol.name) {
         setGestureFromLearning(selectedSymbol.name);
         handleLabelUpdate(selectedSymbol.name);
       }
@@ -497,11 +494,11 @@ export function TrainingUploadWithRecording() {
       setGestureFromLearning(null);
       return;
     }
-    if (label !== normalized) {
+    if (currentLabel !== normalized) {
       setGestureFromLearning(normalized);
       handleLabelUpdate(normalized);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- label excluded to prevent infinite loop with handleLabelUpdate
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- preferredGestureLabel excluded to prevent infinite loop
   }, [gestureParam, handleLabelUpdate, selectedSymbol]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
@@ -627,7 +624,7 @@ export function TrainingUploadWithRecording() {
 
       {mode === 'record' && (
         <>
-          <TrainingRecorder profileId={profileId} label={label} onRecordingComplete={handleRecordingComplete} />
+          <TrainingRecorder profileId={profileId} label={preferredGestureLabel} onRecordingComplete={handleRecordingComplete} />
 
           <div className="card mt-md">
             <div className="form-group">
@@ -636,8 +633,8 @@ export function TrainingUploadWithRecording() {
             </div>
             <div className="form-group">
               <label htmlFor="record-label">Gestenlabel</label>
-              <input id="record-label" value={label} onChange={(event) => handleLabelUpdate(event.target.value)} />
-              {suggestedLabel && suggestedLabel !== label && (
+              <input id="record-label" value={preferredGestureLabel} onChange={(event) => handleLabelUpdate(event.target.value)} />
+              {suggestedLabel && suggestedLabel !== preferredGestureLabel && (
                 <button
                   type="button"
                   className="ghost mt-xs"
@@ -656,7 +653,7 @@ export function TrainingUploadWithRecording() {
         <TrainingUpload
           profileId={profileId}
           setProfileId={setProfileId}
-          label={label}
+          label={preferredGestureLabel}
           setLabel={handleLabelUpdate}
           suggestedLabel={suggestedLabel}
           uploader={uploadState}
