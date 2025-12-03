@@ -453,9 +453,9 @@ export function TrainingUploadWithRecording() {
   const metadataErrorRef = useRef(metadataError);
   metadataErrorRef.current = metadataError;
 
-  useEffect(() => {
-    setLabel(preferredGestureLabel);
-  }, [preferredGestureLabel]);
+  // Removed the useEffect that syncs preferredGestureLabel -> label
+  // This was creating a circular dependency with handleLabelUpdate
+  // Now label is only updated via user input or URL params, not from preferredGestureLabel
 
   useEffect(() => {
     // Only clear error message when metadata becomes ready
