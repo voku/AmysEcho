@@ -449,6 +449,7 @@ export function TrainingUploadWithRecording() {
   const messageRef = useRef(message);
   messageRef.current = message;
   const prevLabelRef = useRef(label);
+  prevLabelRef.current = label;
   const metadataErrorRef = useRef(metadataError);
   metadataErrorRef.current = metadataError;
 
@@ -494,11 +495,11 @@ export function TrainingUploadWithRecording() {
 
   useEffect(() => {
     const normalized = gestureParam?.trim() ?? '';
+    const currentLabel = prevLabelRef.current;
     if (selectedSymbol) {
-      if (label !== selectedSymbol.name && prevLabelRef.current !== selectedSymbol.name) {
+      if (currentLabel !== selectedSymbol.name) {
         setGestureFromLearning(selectedSymbol.name);
         handleLabelUpdate(selectedSymbol.name);
-        prevLabelRef.current = selectedSymbol.name;
       }
       return;
     }
@@ -506,12 +507,11 @@ export function TrainingUploadWithRecording() {
       setGestureFromLearning(null);
       return;
     }
-    if (label !== normalized && prevLabelRef.current !== normalized) {
+    if (currentLabel !== normalized) {
       setGestureFromLearning(normalized);
       handleLabelUpdate(normalized);
-      prevLabelRef.current = normalized;
     }
-  }, [gestureParam, handleLabelUpdate, label, selectedSymbol]);
+  }, [gestureParam, handleLabelUpdate, selectedSymbol]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(
