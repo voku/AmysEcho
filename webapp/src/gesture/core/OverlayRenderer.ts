@@ -11,6 +11,10 @@ export class OverlayRenderer {
   private overlayWidth = 0;
   private overlayHeight = 0;
   private overlayDpr = 1;
+  private drawWidth = 0;
+  private drawHeight = 0;
+  private drawOffsetX = 0;
+  private drawOffsetY = 0;
 
   constructor(overlay: HTMLCanvasElement) {
     this.overlay = overlay;
@@ -28,7 +32,7 @@ export class OverlayRenderer {
   /**
    * Resize overlay to match video dimensions
    */
-  resizeOverlay(videoRect: DOMRect): void {
+  resizeOverlay(videoRect: DOMRect, videoDimensions?: { width: number; height: number }): void {
     const w = (videoRect.width || 0) | 0;
     const h = (videoRect.height || 0) | 0;
     const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -45,6 +49,22 @@ export class OverlayRenderer {
       this.overlayWidth = w;
       this.overlayHeight = h;
       this.overlayDpr = dpr;
+    }
+
+    const intrinsicWidth = videoDimensions?.width ?? w;
+    const intrinsicHeight = videoDimensions?.height ?? h;
+
+    if (intrinsicWidth > 0 && intrinsicHeight > 0 && w > 0 && h > 0) {
+      const scale = Math.max(w / intrinsicWidth, h / intrinsicHeight);
+      this.drawWidth = intrinsicWidth * scale;
+      this.drawHeight = intrinsicHeight * scale;
+      this.drawOffsetX = (w - this.drawWidth) / 2;
+      this.drawOffsetY = (h - this.drawHeight) / 2;
+    } else {
+      this.drawWidth = w;
+      this.drawHeight = h;
+      this.drawOffsetX = 0;
+      this.drawOffsetY = 0;
     }
   }
 
@@ -109,10 +129,10 @@ export class OverlayRenderer {
       if (!pa || !pb || pa[0] === undefined || pa[1] === undefined || 
           pb[0] === undefined || pb[1] === undefined) continue;
 
-      const x1 = pa[0] * this.overlayWidth;
-      const y1 = pa[1] * this.overlayHeight;
-      const x2 = pb[0] * this.overlayWidth;
-      const y2 = pb[1] * this.overlayHeight;
+      const x1 = this.drawOffsetX + pa[0] * this.drawWidth;
+      const y1 = this.drawOffsetY + pa[1] * this.drawHeight;
+      const x2 = this.drawOffsetX + pb[0] * this.drawWidth;
+      const y2 = this.drawOffsetY + pb[1] * this.drawHeight;
 
       if (!hasMoves) {
         this.ctx.moveTo(x1, y1);
@@ -139,8 +159,8 @@ export class OverlayRenderer {
 
       this.ctx.beginPath();
       this.ctx.arc(
-        lm[0] * this.overlayWidth,
-        lm[1] * this.overlayHeight,
+        this.drawOffsetX + lm[0] * this.drawWidth,
+        this.drawOffsetY + lm[1] * this.drawHeight,
         4, 0, Math.PI * 2
       );
       this.ctx.fill();

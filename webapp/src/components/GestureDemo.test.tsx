@@ -68,7 +68,7 @@ describe('GestureDemo', () => {
   it('shows initial status as ready (Bereit)', () => {
     renderWithProviders(<GestureDemo />);
 
-    expect(screen.getByText('Bereit')).toBeInTheDocument();
+    expect(screen.getByText(/Live-Status:\s*Bereit/)).toBeInTheDocument();
   });
 
   it('shows "noch keine erkannt" when no gesture detected', () => {

@@ -88,9 +88,6 @@ export function GestureDemo() {
             Browser protokolliert.
           </p>
         </div>
-        <div className="status-chip" data-state={status}>
-          {formatStatus(status)}
-        </div>
       </div>
 
       <div className="detector-shell">
@@ -98,7 +95,7 @@ export function GestureDemo() {
           <div className="video-wrapper">
             <video ref={videoRef} className="video" playsInline muted autoPlay />
             {showOverlay && <canvas ref={overlayRef} className="overlay" />}
-            <div className="video-veil" aria-hidden />
+            <div className="video-veil" aria-hidden="true" />
 
             <div className="video-hud">
               <div className="hud-row">
