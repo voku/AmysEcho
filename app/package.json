@@ -70,7 +70,7 @@
     "lint-staged": "15.0.0",
     "react-test-renderer": "19.1.0",
     "typescript": "5.9.2",
-    "typescript-eslint": "8.42.0"
+    "typescript-eslint": "8.48.1"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
