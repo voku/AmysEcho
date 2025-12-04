@@ -60,7 +60,10 @@ export function buildTestTrainingBundleZipBuffer({
 async function cleanServerArtifacts() {
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'data'), { recursive: true, force: true }).catch(() => {});
+  // Only delete generated model files, not tracked baseline files
+  await fs.rm(join(serverDir, 'data', 'models', 'p1'), { recursive: true, force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data', 'models', 'p-integration'), { recursive: true, force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data', 'datasets'), { recursive: true, force: true }).catch(() => {});
 }
 
 async function actuallyStartServer(attempt = 1) {
