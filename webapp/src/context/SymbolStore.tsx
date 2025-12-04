@@ -165,7 +165,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setState((prev) => {
+    setState((_prev) => {
       // Merge with latest state to avoid overwriting concurrent changes
       const finalSymbols = updatedSymbols;
       const finalPending = remainingPending;
