@@ -30,6 +30,11 @@ logs/
 server/data/models/*/amy_model.npz
 !server/data/models/global/amy_model.npz
 data/amy_model.npz
+# Ignore test-generated data files
+server/data/uploads/
+server/data/dgs_samples.json
+server/data/datasets/training_manifest.json
+server/db.json
 # code coverage
 app/coverage/
 coverage/
