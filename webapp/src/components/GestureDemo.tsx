@@ -94,7 +94,11 @@ export function GestureDemo() {
         <div className="video-column">
           <div className="video-wrapper">
             <video ref={videoRef} className="video" playsInline muted autoPlay />
-            {showOverlay && <canvas ref={overlayRef} className="overlay" />}
+            <canvas
+              ref={overlayRef}
+              className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
+              aria-hidden={!showOverlay}
+            />
             <div className="video-veil" aria-hidden="true" />
 
             <div className="video-hud">
