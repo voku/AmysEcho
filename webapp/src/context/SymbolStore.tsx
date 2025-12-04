@@ -165,10 +165,15 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setState((_prev) => {
+    setState((prev) => {
       // Merge with latest state to avoid overwriting concurrent changes
+      // Use updated symbols from flush, but preserve any new pending items added during flush
       const finalSymbols = updatedSymbols;
-      const finalPending = remainingPending;
+      // Keep items that failed to sync (remainingPending) plus new items added during flush
+      // Exclude items from original pending that were successfully synced
+      const flushedIds = new Set(currentPending.map(p => p.id));
+      const newPendingDuringFlush = prev.pending.filter(p => !flushedIds.has(p.id));
+      const finalPending = [...remainingPending, ...newPendingDuringFlush];
       writeCache(finalSymbols, finalPending);
       return { symbols: finalSymbols, pending: finalPending, cachedAt: Date.now() };
     });

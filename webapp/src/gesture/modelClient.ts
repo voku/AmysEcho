@@ -161,17 +161,21 @@ export async function fetchMlpModelWithFallback({
  * Fetches MLP model using environment variables for configuration.
  */
 export async function fetchMlpModel(profileId?: string): Promise<string | null> {
-  const endpoint = process.env.EXPO_PUBLIC_API_URL
-    ? `${process.env.EXPO_PUBLIC_API_URL}/latest-mlp-model`
+  const endpoint = process.env['EXPO_PUBLIC_API_URL']
+    ? `${process.env['EXPO_PUBLIC_API_URL']}/latest-mlp-model`
     : '';
-  const token = process.env.EXPO_PUBLIC_API_TOKEN;
+  const token = process.env['EXPO_PUBLIC_API_TOKEN'] || undefined;
 
   if (!endpoint) {
     console.warn('[MLP] No API URL configured');
     return null;
   }
 
-  const result = await fetchMlpModelWithFallback({ endpoint, token, profileId });
+  const result = await fetchMlpModelWithFallback({ 
+    endpoint, 
+    ...(token ? { token } : {}),
+    ...(profileId ? { profileId } : {})
+  });
   return result?.b64 ?? null;
 }
 
