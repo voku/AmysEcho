@@ -6,7 +6,7 @@
 import { logger } from './logger';
 
 const getApiUrl = (): string => {
-  return localStorage.getItem('apiUrl') ?? 'http://localhost:3000';
+  return localStorage.getItem('apiUrl') ?? 'http://localhost:5000';
 };
 
 const getApiToken = (): string | null => {

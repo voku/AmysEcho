@@ -342,6 +342,11 @@ export class GestureRecognitionOrchestrator {
 
   private collectFrameForBatch(normalized: NormalizedMediaPipeResult): void {
     try {
+      const hasHandLandmarks = normalized.landmarks.some((hand) => hand.length > 0);
+      if (!hasHandLandmarks) {
+        return; // Skip batching when no hands are visible
+      }
+
       // Increment counter and throttle frame capture to every Nth frame
       // This reduces memory usage during training (inspired by Gemini click-dummy)
       this.frameCaptureCounter += 1;

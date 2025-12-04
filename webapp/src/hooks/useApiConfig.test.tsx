@@ -13,11 +13,11 @@ describe('useApiConfig', () => {
   it('provides default values and computed upload endpoint', () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
-    expect(result.current.apiBaseUrl).toBe('http://localhost:3000');
+    expect(result.current.apiBaseUrl).toBe('http://localhost:5000');
     expect(result.current.apiToken).toBe('');
     expect(result.current.persistToken).toBe(false);
-    expect(result.current.uploadEndpoint).toBe('http://localhost:3000/api/v1/dgs/sample-bundles');
-    expect(result.current.modelEndpoint).toBe('http://localhost:3000/latest-mlp-model');
+    expect(result.current.uploadEndpoint).toBe('http://localhost:5000/api/v1/dgs/sample-bundles');
+    expect(result.current.modelEndpoint).toBe('http://localhost:5000/latest-mlp-model');
   });
 
   it('normalizes API base URL by removing trailing slashes', () => {
@@ -152,7 +152,7 @@ describe('useApiConfig', () => {
       result.current.setApiBaseUrl('');
     });
 
-    expect(result.current.apiBaseUrl).toBe('http://localhost:3000');
+    expect(result.current.apiBaseUrl).toBe('http://localhost:5000');
   });
 
   it('throws error when used without provider', () => {

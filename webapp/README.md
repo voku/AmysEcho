@@ -15,7 +15,7 @@ npm run test      # Vitest + jsdom
 
 ### API-Konfiguration
 
-Die App bringt einen Konfigurations-Block mit, in dem Basis-URL und optionales Bearer-Token festgelegt werden. Standard ist `VITE_API_URL` (Fallback `http://localhost:3000`).
+Die App bringt einen Konfigurations-Block mit, in dem Basis-URL und optionales Bearer-Token festgelegt werden. Standard ist `VITE_API_URL` (Fallback `http://localhost:5000`).
 
 ```bash
 VITE_API_URL=https://dein-server.example.com

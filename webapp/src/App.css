@@ -532,21 +532,28 @@ p {
 
 .detector-shell {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
   gap: var(--space-lg);
-  align-items: start;
+  align-items: stretch;
+}
+
+.video-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 
 .video-wrapper {
   position: relative;
   width: 100%;
-  min-height: 320px;
-  max-height: 640px;
-  aspect-ratio: 4 / 3;
-  background: var(--color-neutral);
+  min-height: clamp(520px, 82vh, 1040px);
+  max-height: none;
+  aspect-ratio: 9 / 16;
+  background: radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.08), rgba(12, 56, 60, 0.18)), var(--color-neutral);
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 2px solid var(--color-overlay-border);
+  box-shadow: 0 22px 60px rgba(7, 18, 45, 0.32);
 }
 
 .video {
@@ -554,10 +561,11 @@ p {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   background: var(--color-neutral);
   /* Mirror the video horizontally to act as a selfie view for user-facing camera */
   transform: scaleX(-1);
+  z-index: 1;
 }
 
 .overlay {
@@ -566,6 +574,85 @@ p {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 2;
+}
+
+.video-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 32, 35, 0.65) 0%, rgba(8, 32, 35, 0.25) 40%, rgba(8, 32, 35, 0.75) 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.video-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-xl);
+  gap: var(--space-lg);
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.hud-row.meta {
+  align-items: flex-start;
+}
+
+.hud-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.hud-meta {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.ghost-inline {
+  background: rgba(255, 255, 255, 0.06);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--color-inverse-text);
+}
+
+.notice-grid {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.control-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(140deg, rgba(12, 29, 34, 0.85), rgba(12, 29, 34, 0.65));
+  border: 1px solid var(--color-overlay-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 16px 32px rgba(7, 18, 45, 0.22);
+  color: var(--color-overlay-text);
+  position: relative;
+}
+
+.control-stack .controls {
+  justify-content: space-between;
+}
+
+.notice.compact {
+  padding: var(--space-sm) var(--space-md);
+  margin: 0;
 }
 
 /* ==========================================================================
@@ -922,6 +1009,11 @@ p {
   .detector-shell {
     grid-template-columns: 1fr;
     gap: var(--space-md);
+  }
+
+  .video-wrapper {
+    min-height: clamp(520px, 92vh, 1100px);
+    aspect-ratio: 9 / 16;
   }
 
   .detector-shell .panel {

@@ -78,7 +78,7 @@ export function GestureDemo() {
   };
 
   return (
-    <section className="card">
+    <section className="card gesture-demo">
       <div className="card-header">
         <div>
           <p className="eyebrow">Gestenlabor</p>
@@ -93,55 +93,68 @@ export function GestureDemo() {
         </div>
       </div>
 
-      <div className="controls">
-        <button className="primary" onClick={handleStart} disabled={!cameraSupported || status === 'running'}>
-          Kamera starten
-        </button>
-        <button onClick={handleStop} disabled={status !== 'running'}>
-          Aufnahme pausieren
-        </button>
-        <button className="ghost" onClick={handleReset}>
-          Neu aufsetzen
-        </button>
-      </div>
-
-      <div className="notice spaced">
-        <p className="muted no-margin">
-          Aktives Profil: <strong>{profileId || '…'}</strong> · Standardlabel: <strong>{preferredGestureLabel}</strong>. Das
-          Training übernimmt diese Werte automatisch.
-        </p>
-      </div>
-
-      {modelNotice && <div className="notice info">{modelNotice}</div>}
-
-      {!cameraSupported && (
-        <div className="notice warning">
-          <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam. Die Gestenlogik
-          bleibt aktiv, sendet aber keine Frames.
-        </div>
-      )}
-
-      {error && <div className="notice error">{error}</div>}
-
       <div className="detector-shell">
-        <div className="video-wrapper">
-          <video ref={videoRef} className="video" playsInline muted autoPlay />
-          {showOverlay && <canvas ref={overlayRef} className="overlay" />}
+        <div className="video-column">
+          <div className="video-wrapper">
+            <video ref={videoRef} className="video" playsInline muted autoPlay />
+            {showOverlay && <canvas ref={overlayRef} className="overlay" />}
+            <div className="video-veil" aria-hidden />
+
+            <div className="video-hud">
+              <div className="hud-row">
+                <div className="status-chip" data-state={status}>
+                  Live-Status: {formatStatus(status)}
+                </div>
+                <div className="hud-actions">
+                  <button className="primary" onClick={handleStart} disabled={!cameraSupported || status === 'running'}>
+                    Kamera starten
+                  </button>
+                  <button onClick={handleStop} disabled={status !== 'running'}>
+                    Aufnahme pausieren
+                  </button>
+                  <button className="ghost" onClick={handleReset}>
+                    Neu aufsetzen
+                  </button>
+                </div>
+              </div>
+
+              <div className="hud-row meta">
+                <div className="hud-meta">
+                  <p className="muted no-margin">
+                    Aktives Profil: <strong>{profileId || '…'}</strong> · Standardlabel: <strong>{preferredGestureLabel}</strong>.
+                  </p>
+                  {modelNotice && <span className="pill info">{modelNotice}</span>}
+                </div>
+                <div className="toggle ghost-inline">
+                  <input
+                    id="overlay-toggle"
+                    type="checkbox"
+                    checked={showOverlay}
+                    onChange={(event) => setShowOverlay(event.target.checked)}
+                  />
+                  <label htmlFor="overlay-toggle">Overlay anzeigen</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="notice-grid" aria-live="polite">
+            {!cameraSupported && (
+              <div className="notice warning compact">
+                <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam. Die Gestenlogik
+                bleibt aktiv, sendet aber keine Frames.
+              </div>
+            )}
+
+            {error && <div className="notice error compact">{error}</div>}
+          </div>
         </div>
+
         <div className="panel">
           <div className="panel-row">
             <div>
               <p className="eyebrow">Letzte Geste</p>
               <p className="value">{lastGesture ?? 'noch keine erkannt'}</p>
-            </div>
-            <div className="toggle">
-              <input
-                id="overlay-toggle"
-                type="checkbox"
-                checked={showOverlay}
-                onChange={(event) => setShowOverlay(event.target.checked)}
-              />
-              <label htmlFor="overlay-toggle">Overlay anzeigen</label>
             </div>
           </div>
 
