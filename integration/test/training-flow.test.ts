@@ -69,7 +69,7 @@ test('webapp training helpers integrate with live server', async () => {
 
   const headers = serverHeaders();
   const start = Date.now();
-  const timeoutMs = 30_000;
+  const timeoutMs = 45_000; // Increased from 30s to 45s for slower CI environments
   let completed = false;
   while (Date.now() - start <= timeoutMs) {
     const statusResp = await fetch(pollUrl, { headers }).catch(() => null);

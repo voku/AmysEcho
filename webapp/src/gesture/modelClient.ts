@@ -155,3 +155,35 @@ export async function fetchMlpModelWithFallback({
 
   return null;
 }
+
+/**
+ * Convenience function for integration tests and simple usage.
+ * Fetches MLP model using environment variables for configuration.
+ */
+export async function fetchMlpModel(profileId?: string): Promise<string | null> {
+  const endpoint = process.env['EXPO_PUBLIC_API_URL']
+    ? `${process.env['EXPO_PUBLIC_API_URL']}/latest-mlp-model`
+    : '';
+  const token = process.env['EXPO_PUBLIC_API_TOKEN'] || undefined;
+
+  if (!endpoint) {
+    console.warn('[MLP] No API URL configured');
+    return null;
+  }
+
+  const result = await fetchMlpModelWithFallback({ 
+    endpoint, 
+    ...(token ? { token } : {}),
+    ...(profileId ? { profileId } : {})
+  });
+  return result?.b64 ?? null;
+}
+
+/**
+ * Get cached MLP model (stub for integration tests).
+ * In production, this would return cached model data.
+ */
+export async function getCachedMlpModel(profileId?: string): Promise<string | null> {
+  // For integration tests, just fetch fresh
+  return fetchMlpModel(profileId);
+}

@@ -17,12 +17,7 @@ export function ProfileBar() {
     <section className="card profile-card">
       <div className="card-header">
         <div>
-          <p className="eyebrow">Profil & Routing</p>
-          <h2>Aktives Profil verwalten</h2>
-          <p className="muted">
-            Profil-ID und Standard-Label werden im Browser gespeichert. So können Gestenerkennung und Training dieselbe
-            Identität nutzen – genau wie in der Expo-App.
-          </p>
+          <h2>Aktives Profil</h2>
         </div>
         <div className="status-chip" data-state="idle">
           {lastRecognizedGesture ? 'Profil gebunden' : 'Profil bereit'}
@@ -38,7 +33,6 @@ export function ProfileBar() {
             onChange={(event) => setProfileId(event.target.value)}
             placeholder="z. B. amy-browser"
           />
-          <p className="muted small">Wird für Uploads und Protokolle verwendet.</p>
         </div>
 
         <div className="form-group">
@@ -49,7 +43,6 @@ export function ProfileBar() {
             onChange={(event) => setPreferredGestureLabel(event.target.value)}
             placeholder="z. B. HILFE"
           />
-          <p className="muted small">Vorbelegung für neue Bundles und Aufnahmen.</p>
           {suggestedLabel && suggestedLabel !== preferredGestureLabel && (
             <button
               type="button"
@@ -70,9 +63,6 @@ export function ProfileBar() {
               {recentGestures.map((gesture) => (
                 <li key={gesture}>
                   <span className="badge">{gesture}</span>
-                  <span className="muted ml-xs">
-                    zugewiesen an {profileId || '…'}
-                  </span>
                 </li>
               ))}
             </ul>

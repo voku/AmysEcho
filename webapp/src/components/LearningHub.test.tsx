@@ -240,7 +240,8 @@ describe('LearningHub', () => {
         readAsDataURL() {
           this.result = 'data:image/png;base64,TEST';
           if (this.onload) {
-            this.onload(new ProgressEvent('load'));
+            const event = new ProgressEvent('load') as ProgressEvent<FileReader>;
+            this.onload.call(this as unknown as FileReader, event);
           }
         }
       });

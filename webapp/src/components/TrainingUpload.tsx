@@ -429,9 +429,9 @@ export function TrainingUploadWithRecording() {
   const modelInjection = useMlpModelInjection(profileId);
   const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
   const lastJobStatusRef = useRef<string | null>(null);
-  const [label, setLabel] = useState(preferredGestureLabel);
+  // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
-  const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
+  const metadataReady = profileId.trim().length > 0 && preferredGestureLabel.trim().length > 0;
   const metadataError = metadataReady
     ? ''
     : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
@@ -444,16 +444,16 @@ export function TrainingUploadWithRecording() {
     [symbolIdParam, symbols],
   );
   const hasGestureSelection = Boolean((gestureParam ?? '').trim() || (symbolIdParam ?? '').trim());
+  const prevMetadataReadyRef = useRef(metadataReady);
 
   useEffect(() => {
-    setLabel(preferredGestureLabel);
-  }, [preferredGestureLabel]);
-
-  useEffect(() => {
-    if (metadataReady && message === metadataError) {
+    // Only clear message when transitioning from not-ready to ready
+    if (metadataReady && !prevMetadataReadyRef.current && message === metadataError) {
       setMessage('');
     }
-  }, [metadataError, metadataReady, message]);
+    prevMetadataReadyRef.current = metadataReady;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- message and metadataError excluded to prevent infinite loop
+  }, [metadataReady]);
 
   useEffect(() => {
     const status = uploadState.trainingJob?.status ?? uploadState.lastResult?.trainingJob?.status ?? null;
@@ -471,34 +471,30 @@ export function TrainingUploadWithRecording() {
         console.warn('Modell konnte nach Training nicht geladen werden', error);
       });
     }
-  }, [modelInjection, setMessage, uploadState.lastResult, uploadState.trainingJob]);
+  }, [modelInjection, uploadState.lastResult, uploadState.trainingJob]);
 
   const handleLabelUpdate = useCallback(
     (value: string) => {
-      setLabel(value);
       setPreferredGestureLabel(value);
     },
     [setPreferredGestureLabel],
   );
 
   useEffect(() => {
+    // Sync URL params/symbols to label - only on mount or when URL changes
     const normalized = gestureParam?.trim() ?? '';
-    if (selectedSymbol) {
-      if (label !== selectedSymbol.name) {
-        setGestureFromLearning(selectedSymbol.name);
-        handleLabelUpdate(selectedSymbol.name);
-      }
-      return;
-    }
-    if (!normalized) {
-      setGestureFromLearning(null);
-      return;
-    }
-    if (label !== normalized) {
+    const symbol = symbols.find((s) => s.id === symbolIdParam) ?? null;
+    if (symbol && preferredGestureLabel !== symbol.name) {
+      setGestureFromLearning(symbol.name);
+      setPreferredGestureLabel(symbol.name);
+    } else if (!symbol && normalized && preferredGestureLabel !== normalized) {
       setGestureFromLearning(normalized);
-      handleLabelUpdate(normalized);
+      setPreferredGestureLabel(normalized);
+    } else if (!symbol && !normalized) {
+      setGestureFromLearning((prev) => (prev === null ? prev : null));
     }
-  }, [gestureParam, handleLabelUpdate, label, selectedSymbol]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredGestureLabel or symbols change
+  }, [gestureParam, symbolIdParam]);
 
   const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(
@@ -623,7 +619,7 @@ export function TrainingUploadWithRecording() {
 
       {mode === 'record' && (
         <>
-          <TrainingRecorder profileId={profileId} label={label} onRecordingComplete={handleRecordingComplete} />
+          <TrainingRecorder profileId={profileId} label={preferredGestureLabel} onRecordingComplete={handleRecordingComplete} />
 
           <div className="card mt-md">
             <div className="form-group">
@@ -632,8 +628,8 @@ export function TrainingUploadWithRecording() {
             </div>
             <div className="form-group">
               <label htmlFor="record-label">Gestenlabel</label>
-              <input id="record-label" value={label} onChange={(event) => handleLabelUpdate(event.target.value)} />
-              {suggestedLabel && suggestedLabel !== label && (
+              <input id="record-label" value={preferredGestureLabel} onChange={(event) => handleLabelUpdate(event.target.value)} />
+              {suggestedLabel && suggestedLabel !== preferredGestureLabel && (
                 <button
                   type="button"
                   className="ghost mt-xs"
@@ -652,7 +648,7 @@ export function TrainingUploadWithRecording() {
         <TrainingUpload
           profileId={profileId}
           setProfileId={setProfileId}
-          label={label}
+          label={preferredGestureLabel}
           setLabel={handleLabelUpdate}
           suggestedLabel={suggestedLabel}
           uploader={uploadState}

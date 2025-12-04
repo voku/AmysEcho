@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -103,6 +104,15 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  
+  // Use ref to track current state for async operations
+  const stateRef = useRef({ symbols, pending });
+  useEffect(() => {
+    stateRef.current = { symbols, pending };
+  }, [symbols, pending]);
+
+  // Memoize merged symbols to prevent infinite re-renders in components that depend on this array
+  const mergedSymbols = useMemo(() => mergePendingSymbols(symbols, pending), [symbols, pending]);
 
   const resolveHeaders = useCallback((): HeadersInit => {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -113,15 +123,18 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   }, [apiToken]);
 
   const flushPending = useCallback(async () => {
-    if (pending.length === 0) {
-      return { symbols, pending };
+    const currentPending = stateRef.current.pending;
+    const currentSymbols = stateRef.current.symbols;
+    
+    if (currentPending.length === 0) {
+      return { symbols: currentSymbols, pending: currentPending };
     }
 
     const remainingPending: SymbolDefinition[] = [];
     let syncedCount = 0;
-    let updatedSymbols = symbols;
+    let updatedSymbols = currentSymbols;
 
-    for (const pendingSymbol of pending) {
+    for (const pendingSymbol of currentPending) {
       try {
         const payload = {
           id: pendingSymbol.id,
@@ -152,19 +165,25 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const mergedSymbols = mergePendingSymbols(updatedSymbols, remainingPending);
     setState((prev) => {
-      void prev;
-      return { symbols: mergedSymbols, pending: remainingPending, cachedAt: Date.now() };
+      // Merge with latest state to avoid overwriting concurrent changes
+      // Use updated symbols from flush, but preserve any new pending items added during flush
+      const finalSymbols = updatedSymbols;
+      // Keep items that failed to sync (remainingPending) plus new items added during flush
+      // Exclude items from original pending that were successfully synced
+      const flushedIds = new Set(currentPending.map(p => p.id));
+      const newPendingDuringFlush = prev.pending.filter(p => !flushedIds.has(p.id));
+      const finalPending = [...remainingPending, ...newPendingDuringFlush];
+      writeCache(finalSymbols, finalPending);
+      return { symbols: finalSymbols, pending: finalPending, cachedAt: Date.now() };
     });
-    writeCache(mergedSymbols, remainingPending);
 
     if (syncedCount > 0) {
       showToast({ message: 'Offline gespeicherte Symbole synchronisiert.', tone: 'success' });
     }
 
-    return { symbols: mergedSymbols, pending: remainingPending };
-  }, [apiBaseUrl, pending, resolveHeaders, showToast, symbols]);
+    return { symbols: updatedSymbols, pending: remainingPending };
+  }, [apiBaseUrl, resolveHeaders, showToast]);
 
   const fetchSymbols = useCallback(async (options?: { silent?: boolean }) => {
     setLoading(true);
@@ -173,9 +192,12 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       const data = await fetchJson<{ symbols: SymbolDefinition[] }>(`${apiBaseUrl}/api/v1/symbols`, {
         headers: resolveHeaders(),
       });
-      const mergedSymbols = mergePendingSymbols(data.symbols, pendingSymbols);
-      setState({ symbols: mergedSymbols, pending: pendingSymbols, cachedAt: Date.now() });
-      writeCache(mergedSymbols, pendingSymbols);
+      setState((prev) => {
+        // Merge fetched symbols with any pending items added during the fetch
+        const finalPending = [...pendingSymbols, ...prev.pending.filter(p => !pendingSymbols.find(ps => ps.id === p.id))];
+        writeCache(data.symbols, finalPending);
+        return { symbols: data.symbols, pending: finalPending, cachedAt: Date.now() };
+      });
       setSyncError(null);
       setLastSyncedAt(Date.now());
     } catch (error) {
@@ -211,9 +233,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           const nextSymbols = prev.symbols.some((s) => s.id === saved.id)
             ? prev.symbols.map((s) => (s.id === saved.id ? saved : s))
             : [...prev.symbols, saved];
-          const mergedSymbols = mergePendingSymbols(nextSymbols, nextPending);
-          writeCache(mergedSymbols, nextPending);
-          return { symbols: mergedSymbols, pending: nextPending, cachedAt: Date.now() };
+          writeCache(nextSymbols, nextPending);
+          return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(null);
         setLastSyncedAt(Date.now());
@@ -243,9 +264,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           const nextSymbols = prev.symbols.some((s) => s.id === fallback.id)
             ? prev.symbols.map((s) => (s.id === fallback.id ? fallback : s))
             : [...prev.symbols, fallback];
-          const mergedSymbols = mergePendingSymbols(nextSymbols, nextPending);
-          writeCache(mergedSymbols, nextPending);
-          return { symbols: mergedSymbols, pending: nextPending, cachedAt: Date.now() };
+          writeCache(nextSymbols, nextPending);
+          return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(reason);
         return fallback;
@@ -264,9 +284,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         setState((prev) => {
           const nextSymbols = prev.symbols.filter((symbol) => symbol.id !== id);
           const nextPending = prev.pending.filter((symbol) => symbol.id !== id);
-          const mergedSymbols = mergePendingSymbols(nextSymbols, nextPending);
-          writeCache(mergedSymbols, nextPending);
-          return { symbols: mergedSymbols, pending: nextPending, cachedAt: Date.now() };
+          writeCache(nextSymbols, nextPending);
+          return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(null);
         setLastSyncedAt(Date.now());
@@ -275,9 +294,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         setState((prev) => {
           const nextSymbols = prev.symbols.filter((symbol) => symbol.id !== id);
           const nextPending = prev.pending.filter((symbol) => symbol.id !== id);
-          const mergedSymbols = mergePendingSymbols(nextSymbols, nextPending);
-          writeCache(mergedSymbols, nextPending);
-          return { symbols: mergedSymbols, pending: nextPending, cachedAt: Date.now() };
+          writeCache(nextSymbols, nextPending);
+          return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(reason);
         showToast({ message: `Symbol nur lokal gelöscht: ${reason}`, tone: 'warning' });
@@ -287,8 +305,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<SymbolStoreValue>(
-    () => ({ symbols, loading, syncError, lastSyncedAt, refresh, saveSymbol, removeSymbol }),
-    [lastSyncedAt, loading, refresh, removeSymbol, saveSymbol, symbols, syncError],
+    () => ({ symbols: mergedSymbols, loading, syncError, lastSyncedAt, refresh, saveSymbol, removeSymbol }),
+    [lastSyncedAt, loading, mergedSymbols, refresh, removeSymbol, saveSymbol, syncError],
   );
 
   return <SymbolStoreContext.Provider value={value}>{children}</SymbolStoreContext.Provider>;

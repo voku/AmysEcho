@@ -20,7 +20,7 @@ describe('ProfileBar', () => {
   it('renders profile configuration section', () => {
     renderWithProviders(<ProfileBar />);
 
-    expect(screen.getByText('Aktives Profil verwalten')).toBeInTheDocument();
+    expect(screen.getByText('Aktives Profil')).toBeInTheDocument();
     expect(screen.getByLabelText('Profil-ID')).toBeInTheDocument();
     expect(screen.getByLabelText('Standard-Gestenlabel')).toBeInTheDocument();
   });
