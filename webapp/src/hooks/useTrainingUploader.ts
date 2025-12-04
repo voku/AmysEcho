@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createTrainingZip, uploadTrainingZip } from '../training/trainingBundle';
+import { createTrainingZip, uploadTrainingZip, type TrainingUploadOptions } from '../training/trainingBundle';
 import {
   enqueuePersistedBundle,
   listQueuedBundles,
@@ -17,11 +17,9 @@ import { resolvePollUrl } from './useApiConfig';
 
 export type UploadState = 'idle' | 'preparing' | 'uploading' | 'queued' | 'success' | 'error';
 
-export interface DefaultUploadOptions {
-  endpoint?: string;
-  token?: string;
-  apiBase?: string;
-}
+type UploadOptions = TrainingUploadOptions & { apiBase?: string };
+
+export type DefaultUploadOptions = Partial<UploadOptions>;
 
 export function useTrainingUploader(
   options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions; retryDelayMs?: number; maxRetryDelayMs?: number } = {},
@@ -31,7 +29,7 @@ export function useTrainingUploader(
     () => ({ base: options.retryDelayMs ?? 2000, max: options.maxRetryDelayMs ?? 30000 }),
     [options.maxRetryDelayMs, options.retryDelayMs],
   );
-  const defaultOptions = useMemo(() => options.defaultOptions ?? {}, [options.defaultOptions]);
+  const defaultOptions = useMemo<DefaultUploadOptions>(() => options.defaultOptions ?? {}, [options.defaultOptions]);
   const [state, setState] = useState<UploadState>('idle');
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +50,7 @@ export function useTrainingUploader(
     retryDelayRef.current = retryConfig.base;
   }, [retryConfig.base]);
 
+
   const refreshQueue = useCallback(async () => {
     try {
       const bundles = await listQueuedBundles();
@@ -66,11 +65,18 @@ export function useTrainingUploader(
     }
   }, []);
 
+  useEffect(() => {
+    void refreshQueue();
+  }, [refreshQueue]);
+
   const resolveOptions = useCallback(
-    (override?: { endpoint?: string; token?: string; apiBase?: string }) => ({
-      ...defaultOptions,
-      ...override,
-    }),
+    (override?: DefaultUploadOptions): UploadOptions => {
+      const merged = { ...defaultOptions, ...override };
+      if (!merged.endpoint) {
+        throw new Error('API-Endpunkt fehlt für Trainings-Uploads.');
+      }
+      return merged as UploadOptions;
+    },
     [defaultOptions],
   );
 
@@ -98,7 +104,7 @@ export function useTrainingUploader(
   );
 
   const maybeTriggerTrainingJob = useCallback(
-    async (options?: { endpoint?: string; token?: string; apiBase?: string }) => {
+    async (options?: DefaultUploadOptions) => {
       const resolvedOptions = resolveOptions(options);
       if (trainingJob && (trainingJob.status === 'running' || trainingJob.status === 'queued')) {
         return null;
@@ -121,12 +127,21 @@ export function useTrainingUploader(
   );
 
   const syncQueued = useCallback(
-    async (options?: { endpoint?: string; token?: string; apiBase?: string }): Promise<number> => {
+    async (options?: DefaultUploadOptions): Promise<number> => {
       if (syncingRef.current) return 0;
       syncingRef.current = true;
       setSyncing(true);
       setSyncError(null);
-      const resolvedOptions = resolveOptions(options);
+      let resolvedOptions: UploadOptions;
+      try {
+        resolvedOptions = resolveOptions(options);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        setSyncError(reason);
+        setSyncing(false);
+        syncingRef.current = false;
+        return 0;
+      }
       const bundles = await refreshQueue();
       const pending = bundles.filter((bundle) => bundle.status !== 'uploading');
       let uploaded = 0;
@@ -144,9 +159,10 @@ export function useTrainingUploader(
             encounteredError = true;
             continue;
           }
-          const uploadResponse = await uploadTrainingZip(zipData, resolvedOptions);
+          const { apiBase, ...uploadOptions } = resolvedOptions;
+          const uploadResponse = await uploadTrainingZip(zipData, uploadOptions);
           if (uploadResponse.trainingJob) {
-            trainingJobFromUploads = applyTrainingJob(uploadResponse.trainingJob, resolvedOptions.apiBase) ?? trainingJobFromUploads;
+            trainingJobFromUploads = applyTrainingJob(uploadResponse.trainingJob, apiBase) ?? trainingJobFromUploads;
           }
           await removeQueuedBundle(bundle.key);
           uploaded += 1;
@@ -204,8 +220,19 @@ export function useTrainingUploader(
     ],
   );
 
+  useEffect(() => {
+    const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
+    if (!isOnline || queuedCount === 0) {
+      return;
+    }
+
+    syncQueued().catch((err) => {
+      console.warn('Synchronisation aus Warteschlange fehlgeschlagen', err);
+    });
+  }, [queuedCount, syncQueued]);
+
   const syncBundle = useCallback(
-    async (key: string, options?: { endpoint?: string; token?: string; apiBase?: string }) => {
+    async (key: string, options?: DefaultUploadOptions) => {
       setSyncError(null);
       const bundles = await refreshQueue();
       const target = bundles.find((bundle) => bundle.key === key);
@@ -225,9 +252,10 @@ export function useTrainingUploader(
           return false;
         }
 
-        const uploadResponse = await uploadTrainingZip(zipData, resolvedOptions);
+        const { apiBase, ...uploadOptions } = resolvedOptions;
+        const uploadResponse = await uploadTrainingZip(zipData, uploadOptions);
         if (uploadResponse.trainingJob) {
-          applyTrainingJob(uploadResponse.trainingJob, resolvedOptions.apiBase);
+          applyTrainingJob(uploadResponse.trainingJob, apiBase);
         }
         await removeQueuedBundle(key);
         await refreshQueue();
@@ -293,7 +321,7 @@ export function useTrainingUploader(
   }, [syncQueued]);
 
   const upload = useCallback(
-    async (payload: TrainingBundlePayload, options?: { endpoint?: string; token?: string; apiBase?: string }) => {
+    async (payload: TrainingBundlePayload, options?: DefaultUploadOptions) => {
       setState('preparing');
       setError(null);
       setLastResult(null);
@@ -335,9 +363,10 @@ export function useTrainingUploader(
 
         setState('uploading');
         const resolvedOptions = resolveOptions(options);
-        const result = await uploadTrainingZip(zip, resolvedOptions);
+        const { apiBase, ...uploadOptions } = resolvedOptions;
+        const result = await uploadTrainingZip(zip, uploadOptions);
         const resolvedTrainingJob = result.trainingJob
-          ? applyTrainingJob(result.trainingJob, resolvedOptions.apiBase)
+          ? applyTrainingJob(result.trainingJob, apiBase)
           : null;
         setLastResult(resolvedTrainingJob ? { ...result, trainingJob: resolvedTrainingJob } : result);
         setState('success');

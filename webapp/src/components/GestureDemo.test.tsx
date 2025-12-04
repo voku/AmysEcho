@@ -43,7 +43,7 @@ describe('GestureDemo', () => {
     renderWithProviders(<GestureDemo />);
 
     expect(screen.getByText('Kamera starten')).toBeInTheDocument();
-    expect(screen.getByText('Aufnahme pausieren')).toBeInTheDocument();
+    expect(screen.getByText('Aufnahme stoppen')).toBeInTheDocument();
     expect(screen.getByText('Neu aufsetzen')).toBeInTheDocument();
   });
 

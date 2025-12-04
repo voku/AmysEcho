@@ -107,11 +107,15 @@ export function GestureDemo() {
                   Live-Status: {formatStatus(status)}
                 </div>
                 <div className="hud-actions">
-                  <button className="primary" onClick={handleStart} disabled={!cameraSupported || status === 'running'}>
+                  <button
+                    className="primary"
+                    onClick={handleStart}
+                    disabled={!cameraSupported || status === 'running' || status === 'initializing'}
+                  >
                     Kamera starten
                   </button>
                   <button onClick={handleStop} disabled={status !== 'running'}>
-                    Aufnahme pausieren
+                    Aufnahme stoppen
                   </button>
                   <button className="ghost" onClick={handleReset}>
                     Neu aufsetzen

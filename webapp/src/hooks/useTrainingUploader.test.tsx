@@ -127,7 +127,9 @@ describe('useTrainingUploader', () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
     (globalThis as any).fetch = fetchSpy;
 
-    const { result } = renderHook(() => useTrainingUploader());
+    const { result } = renderHook(() =>
+      useTrainingUploader({ defaultOptions: { endpoint: 'https://example.invalid' } }),
+    );
     await act(async () => {
       const uploadResult = await result.current.upload(payload, { endpoint: 'https://example.invalid' });
       expect(uploadResult).toBeNull();
@@ -140,7 +142,9 @@ describe('useTrainingUploader', () => {
 
   it('legt Bundles offline ab und synchronisiert sie manuell', async () => {
     Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
-    const { result } = renderHook(() => useTrainingUploader());
+    const { result } = renderHook(() =>
+      useTrainingUploader({ defaultOptions: { endpoint: 'https://example.invalid' } }),
+    );
 
     await act(async () => {
       await result.current.upload(payload, { endpoint: 'https://offline.invalid' });
@@ -180,7 +184,9 @@ describe('useTrainingUploader', () => {
     });
     (globalThis as any).fetch = fetchSpy;
 
-    const { result } = renderHook(() => useTrainingUploader());
+    const { result } = renderHook(() =>
+      useTrainingUploader({ defaultOptions: { endpoint: 'https://example.invalid' } }),
+    );
 
     await waitFor(async () => {
       expect(fetchSpy).toHaveBeenCalled();
@@ -263,7 +269,13 @@ describe('useTrainingUploader', () => {
       .mockImplementationOnce(() => secondResponse);
     (globalThis as any).fetch = fetchSpy;
 
-    const { result } = renderHook(() => useTrainingUploader({ retryDelayMs: 10, maxRetryDelayMs: 20 }));
+    const { result } = renderHook(() =>
+      useTrainingUploader({
+        retryDelayMs: 10,
+        maxRetryDelayMs: 20,
+        defaultOptions: { endpoint: 'https://example.invalid' },
+      }),
+    );
 
     await waitFor(() => expect(fetchSpy.mock.calls.length).toBeGreaterThan(0));
 
