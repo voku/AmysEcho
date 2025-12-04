@@ -1,4 +1,4 @@
-FROM node:20-bullseye
+FROM node:24-bullseye
 
 # Install Python and system dependencies
 RUN apt-get update && apt-get install -y \
