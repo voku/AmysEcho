@@ -148,4 +148,26 @@ describe('TrainingRecorder', () => {
     expect(screen.getByRole('button', { name: 'Foto aufnehmen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Abbrechen' })).toBeInTheDocument();
   });
+
+  it('zeigt Kamera-Wechsel-Button im HUD an', () => {
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    const switchButton = screen.getByRole('button', { name: /Rückkamera|Frontkamera/ });
+    expect(switchButton).toBeInTheDocument();
+  });
+
+  it('wechselt zwischen Front- und Rückkamera', async () => {
+    const user = userEvent.setup();
+    gestureState.status = 'running';
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    const switchButton = screen.getByRole('button', { name: /🔄 Rückkamera/ });
+    expect(switchButton).toBeInTheDocument();
+
+    await user.click(switchButton);
+
+    // After clicking, the button text should change
+    const switchButtonAfter = screen.getByRole('button', { name: /🔄 Frontkamera/ });
+    expect(switchButtonAfter).toBeInTheDocument();
+  });
 });

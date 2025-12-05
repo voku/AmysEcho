@@ -31,6 +31,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [needsStillConfirmation, setNeedsStillConfirmation] = useState(false);
   const [detectorStartFeedback, setDetectorStartFeedback] = useState('');
   const [photoMode, setPhotoMode] = useState<'idle' | 'previewing' | 'captured'>('idle');
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>(
+    ((window as any).__facingMode as 'user' | 'environment') || 'user'
+  );
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
     ? ''
@@ -300,6 +303,32 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     setDetectorStartFeedback('');
   }, []);
 
+  const handleSwitchCamera = useCallback(async () => {
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    (window as any).__facingMode = newFacingMode;
+    setFacingMode(newFacingMode);
+    
+    // Restart camera with new facing mode if it's currently running
+    if (status === 'running') {
+      setDetectorStartFeedback('Kamera wird gewechselt…');
+      const started = await startCamera();
+      if (started) {
+        setDetectorStartFeedback(
+          newFacingMode === 'user' 
+            ? 'Frontkamera aktiviert' 
+            : 'Rückkamera aktiviert'
+        );
+      } else {
+        setDetectorStartFeedback(
+          cameraError ?? 'Kamera konnte nicht gewechselt werden. Bitte versuche es erneut.'
+        );
+        // Revert facing mode if switch failed
+        (window as any).__facingMode = facingMode;
+        setFacingMode(facingMode);
+      }
+    }
+  }, [cameraError, facingMode, startCamera, status]);
+
   const [manualStillPreviewUrl, setManualStillPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -507,14 +536,24 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                   </p>
                   <p className="muted small no-margin">{framesLine}</p>
                 </div>
-                <div className="toggle ghost-inline">
-                  <input
-                    id="overlay-toggle"
-                    type="checkbox"
-                    checked={showOverlay}
-                    onChange={(event) => setShowOverlay(event.target.checked)}
-                  />
-                  <label htmlFor="overlay-toggle">Overlay anzeigen</label>
+                <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+                  <button
+                    className="ghost-inline"
+                    onClick={handleSwitchCamera}
+                    disabled={!cameraSupported}
+                    title={facingMode === 'user' ? 'Zur Rückkamera wechseln' : 'Zur Frontkamera wechseln'}
+                  >
+                    {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
+                  </button>
+                  <div className="toggle ghost-inline">
+                    <input
+                      id="overlay-toggle"
+                      type="checkbox"
+                      checked={showOverlay}
+                      onChange={(event) => setShowOverlay(event.target.checked)}
+                    />
+                    <label htmlFor="overlay-toggle">Overlay anzeigen</label>
+                  </div>
                 </div>
               </div>
             </div>
