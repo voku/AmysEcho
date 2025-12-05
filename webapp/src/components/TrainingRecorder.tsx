@@ -28,6 +28,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
   const [manualStillFile, setManualStillFile] = useState<File | null>(null);
+  const [needsStillConfirmation, setNeedsStillConfirmation] = useState(false);
   const [detectorStartFeedback, setDetectorStartFeedback] = useState('');
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
@@ -113,68 +114,85 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     stopRecording();
   }, [stopRecording]);
 
-  const handleSaveRecording = useCallback(async () => {
-    if (!metadataReady) {
-      return;
-    }
-    if (recordedData.frames.length === 0) {
-      return;
-    }
-
-    if (!manualStillFile) {
-      const confirmUseAutoFrame = window.confirm(
-        recordedData.stillImage
-          ? 'Kein Referenzbild ausgewählt. Möchtest du das zuletzt aufgenommene Frame verwenden? Für beste Ergebnisse lade lieber ein Bild hoch, das die Geste klar zeigt.'
-          : 'Kein Referenzbild ausgewählt. Bitte lade ein Bild hoch, das die Geste klar zeigt, bevor du die Aufnahme verwendest.',
-      );
-
-      if (!confirmUseAutoFrame) {
-        setDetectorStartFeedback('Bitte wähle ein Referenzbild aus, bevor du die Aufnahme verwendest.');
+  const finalizeSaveRecording = useCallback(
+    async (allowAutoStill: boolean) => {
+      if (!metadataReady) {
         return;
       }
-    }
-
-    setDetectorStartFeedback('');
-
-    // Convert still image to File if available
-    let stillFile: File | null = null;
-    if (recordedData.stillImage) {
-      try {
-        const response = await fetch(recordedData.stillImage);
-        const blob = await response.blob();
-        stillFile = new File([blob], 'still.jpg', { type: blob.type || 'image/jpeg' });
-      } catch (error) {
-        console.warn('Failed to convert still image to File', error);
+      if (recordedData.frames.length === 0) {
+        return;
       }
+
+      setNeedsStillConfirmation(false);
+      setDetectorStartFeedback('');
+
+      // Convert still image to File if available
+      let stillFile: File | null = null;
+      if (manualStillFile) {
+        stillFile = manualStillFile;
+      } else if (allowAutoStill && recordedData.stillImage) {
+        try {
+          const response = await fetch(recordedData.stillImage);
+          const blob = await response.blob();
+          stillFile = new File([blob], 'still.jpg', { type: blob.type || 'image/jpeg' });
+        } catch (error) {
+          console.warn('Failed to convert still image to File', error);
+        }
+      }
+
+      const payload: TrainingBundlePayload = {
+        profileId: profileId.trim(),
+        label: label.trim(),
+        frames: recordedData.frames,
+        capturedAt: new Date().toISOString(),
+        source: 'web://mediapipe',
+        stillFile,
+        clipFile: recordedData.clipFile,
+      };
+
+      onRecordingComplete(payload);
+      resetRecording();
+      setManualStillFile(null);
+    },
+    [
+      metadataReady,
+      recordedData,
+      profileId,
+      label,
+      onRecordingComplete,
+      resetRecording,
+      manualStillFile,
+    ],
+  );
+
+  const handleSaveRecording = useCallback(() => {
+    if (!metadataReady || recordedData.frames.length === 0) {
+      return;
     }
 
-    if (manualStillFile) {
-      stillFile = manualStillFile;
+    if (!manualStillFile && recordedData.stillImage) {
+      setNeedsStillConfirmation(true);
+      setDetectorStartFeedback('Bestätige, ob du das letzte Videoframe als Referenz nutzen möchtest.');
+      return;
     }
 
-    const payload: TrainingBundlePayload = {
-      profileId: profileId.trim(),
-      label: label.trim(),
-      frames: recordedData.frames,
-      capturedAt: new Date().toISOString(),
-      source: 'web://mediapipe',
-      stillFile,
-      clipFile: recordedData.clipFile,
-    };
+    if (!manualStillFile && !recordedData.stillImage) {
+      setNeedsStillConfirmation(false);
+      setDetectorStartFeedback('Bitte wähle ein Referenzbild aus, bevor du die Aufnahme verwendest.');
+      return;
+    }
 
-    onRecordingComplete(payload);
-    resetRecording();
-    setManualStillFile(null);
-  }, [
-    metadataReady,
-    recordedData,
-    profileId,
-    label,
-    onRecordingComplete,
-    resetRecording,
-    manualStillFile,
-    setDetectorStartFeedback,
-  ]);
+    void finalizeSaveRecording(true);
+  }, [finalizeSaveRecording, manualStillFile, metadataReady, recordedData]);
+
+  const handleConfirmAutoStill = useCallback(() => {
+    void finalizeSaveRecording(true);
+  }, [finalizeSaveRecording]);
+
+  const handleCancelAutoStill = useCallback(() => {
+    setNeedsStillConfirmation(false);
+    setDetectorStartFeedback('');
+  }, []);
 
   const handleSaveLandmarkJson = useCallback(() => {
     if (recordedData.frames.length === 0) {
@@ -195,6 +213,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     resetRecording();
     setRecordingDuration(0);
     setManualStillFile(null);
+    setNeedsStillConfirmation(false);
   }, [resetRecording]);
 
   const handleManualStillChange = useCallback((file: File | null) => {
@@ -316,7 +335,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : hasRecording
     ? 'Aufnahme bereit'
     : 'Keine Aufnahme aktiv';
-  const recordingStatusTone = isRecording ? 'running' : hasRecording ? 'success' : 'idle';
   const framesLine = framesCaptured > 0
     ? `${framesCaptured} Frames erfasst`
     : detectorRunning
@@ -342,13 +360,18 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
             <canvas
               ref={overlayRef}
               className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
+              data-testid="overlay-canvas"
               aria-hidden={!showOverlay}
             />
             <div className="video-veil" aria-hidden="true" />
 
             <div className="video-hud">
               <div className="hud-row">
-                <div className="status-chip" data-state={detectorStatusTone === 'idle' ? recordingStatusTone : detectorStatusTone}>
+                <div
+                  className="status-chip"
+                  data-testid="status-chip"
+                  data-state={isRecording ? 'running' : hasRecording ? 'success' : detectorStatusTone}
+                >
                   {isRecording
                     ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})`
                     : hasRecording
@@ -439,6 +462,22 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
             {detectorStartFeedback && (
               <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>{detectorStartFeedback}</div>
+            )}
+
+            {needsStillConfirmation && (
+              <div className="notice info compact">
+                <p className="no-margin">
+                  Kein Referenzbild ausgewählt. Möchtest du das letzte Videoframe als Referenz nutzen?
+                </p>
+                <div className="hud-actions">
+                  <button className="primary" type="button" onClick={handleConfirmAutoStill}>
+                    Ja, Frame verwenden
+                  </button>
+                  <button className="ghost" type="button" onClick={handleCancelAutoStill}>
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
