@@ -550,6 +550,21 @@ def softmax(x):
     return e_x / np.sum(e_x, axis=1, keepdims=True)
 
 
+def _forward(
+    X: np.ndarray,
+    w1: np.ndarray,
+    b1: np.ndarray,
+    w2: np.ndarray,
+    b2: np.ndarray,
+) -> np.ndarray:
+    """Single forward pass through the MLP returning class probabilities."""
+
+    z1 = np.dot(X, w1) + b1
+    a1 = relu(z1)
+    z2 = np.dot(a1, w2) + b2
+    return softmax(z2)
+
+
 def train_mlp(
     X,
     y,
@@ -709,10 +724,7 @@ def train_mlp(
 
         validation_loss = None
         if validation_X is not None and validation_y is not None and validation_X.size:
-            z1_val = np.dot(validation_X, w1) + b1
-            a1_val = relu(z1_val)
-            z2_val = np.dot(a1_val, w2) + b2
-            val_probs = softmax(z2_val)
+            val_probs = _forward(validation_X, w1, b1, w2, b2)
             v = np.clip(
                 val_probs[np.arange(validation_y.shape[0]), validation_y],
                 LOSS_EPSILON,
@@ -1068,13 +1080,13 @@ def dataset_to_arrays(
         if normalized is None:
             continue
 
-        normalized_array = np.array(normalized, dtype=np.float32)
+        normalized_array = normalized.astype(np.float32, copy=False)
         X_list.append(normalized_array)
         y_list.append(label_to_idx[sample.label])
 
         for _ in range(augmentations):
             augmented = augment_landmarks(normalized_array, rng=rng)
-            X_list.append(np.array(augmented, dtype=np.float32))
+            X_list.append(augmented)
             y_list.append(label_to_idx[sample.label])
 
     if not X_list:
@@ -1187,9 +1199,7 @@ def _compute_accuracy(
         return 0.0
 
     w1, b1, w2, b2 = weights
-    z1 = relu(np.dot(X, w1) + b1)
-    z2 = np.dot(z1, w2) + b2
-    probs = softmax(z2)
+    probs = _forward(X, w1, b1, w2, b2)
     preds = np.argmax(probs, axis=1)
     return float(np.mean(preds == y)) if len(y) else 0.0
 
