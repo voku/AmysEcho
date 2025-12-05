@@ -12,7 +12,10 @@ describe('useTrainingRecorder', () => {
   beforeEach(() => {
     OriginalMediaRecorder = (window as any).MediaRecorder;
     OriginalMediaStream = (window as any).MediaStream;
-    (window as any).MediaStream = class {} as any;
+
+    if (!OriginalMediaStream) {
+      (window as any).MediaStream = class {} as any;
+    }
   });
 
   afterEach(() => {
