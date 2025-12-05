@@ -215,11 +215,18 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     setManualStillFile(null);
     setNeedsStillConfirmation(false);
     setDetectorStartFeedback('');
-  }, [resetRecording, setDetectorStartFeedback]);
+  }, [resetRecording]);
 
-  const handleManualStillChange = useCallback((file: File | null) => {
-    setManualStillFile(file);
-  }, []);
+  const handleManualStillChange = useCallback(
+    (file: File | null) => {
+      setManualStillFile(file);
+      if (file) {
+        setNeedsStillConfirmation(false);
+        setDetectorStartFeedback('');
+      }
+    },
+    [setDetectorStartFeedback, setNeedsStillConfirmation],
+  );
 
   const handleCaptureManualStill = useCallback(async () => {
     if (!cameraSupported) {
@@ -266,8 +273,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
     const capturedFile = new File([blob], 'referenzbild.jpg', { type: blob.type || 'image/jpeg' });
     setManualStillFile(capturedFile);
+    setNeedsStillConfirmation(false);
     setDetectorStartFeedback('Foto als Referenzbild übernommen.');
-  }, [cameraError, cameraSupported, setDetectorStartFeedback, startCamera, status]);
+  }, [cameraError, cameraSupported, setDetectorStartFeedback, setNeedsStillConfirmation, startCamera, status]);
 
   const [manualStillPreviewUrl, setManualStillPreviewUrl] = useState<string | null>(null);
 
@@ -507,7 +515,12 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                   </>
                 )}
                 {previewHandedness.length > 0 && (
-                  <p className="muted small">Händigkeit: {previewHandedness.join(', ')}</p>
+                  <p className="muted small">
+                    Händigkeit:{' '}
+                    {previewHandedness
+                      .map((value) => (value === 'Left' ? 'links' : value === 'Right' ? 'rechts' : value))
+                      .join(', ')}
+                  </p>
                 )}
               </div>
               <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>

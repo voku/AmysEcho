@@ -4,19 +4,40 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TrainingRecorder } from './TrainingRecorder';
 import type { GestureStatus } from '../hooks/useGestureDetector';
 
-const gestureState: { status: GestureStatus } = { status: 'idle' };
-
 const startMock = vi.fn();
-const trainingState = {
-  state: 'idle' as const,
+
+type TrainingState = {
+  state: 'idle' | 'recording';
   recordedData: {
-    frames: [] as unknown[],
-    stillImage: null as string | null,
+    frames: unknown[];
+    stillImage: string | null;
+    frameCount: number;
+    clipFile: File | null;
+    clipSizeBytes: number;
+    clipDurationMs: number;
+    clipError: string | null;
+  };
+  startRecording: ReturnType<typeof vi.fn>;
+  stopRecording: ReturnType<typeof vi.fn>;
+  resetRecording: ReturnType<typeof vi.fn>;
+  framesCaptured: number;
+  clipLimitExceeded: boolean;
+  maxClipBytes: number;
+  previewLandmarks: unknown[];
+  previewHandedness: string[];
+  lastFrameReceivedAt: number | null;
+};
+
+const createTrainingState = (): TrainingState => ({
+  state: 'idle',
+  recordedData: {
+    frames: [],
+    stillImage: null,
     frameCount: 0,
-    clipFile: null as File | null,
+    clipFile: null,
     clipSizeBytes: 0,
     clipDurationMs: 0,
-    clipError: null as string | null,
+    clipError: null,
   },
   startRecording: vi.fn(),
   stopRecording: vi.fn(),
@@ -24,10 +45,13 @@ const trainingState = {
   framesCaptured: 0,
   clipLimitExceeded: false,
   maxClipBytes: 1024 * 1024,
-  previewLandmarks: [] as unknown[],
-  previewHandedness: [] as string[],
-  lastFrameReceivedAt: null as number | null,
-};
+  previewLandmarks: [],
+  previewHandedness: [],
+  lastFrameReceivedAt: null,
+});
+
+let gestureState: { status: GestureStatus } = { status: 'idle' };
+let trainingState: TrainingState = createTrainingState();
 
 vi.mock('../hooks/useGestureDetector', () => ({
   useGestureDetector: () => ({
@@ -52,28 +76,9 @@ vi.mock('../hooks/useTrainingRecorder', () => ({
 
 describe('TrainingRecorder', () => {
   beforeEach(() => {
-    gestureState.status = 'idle';
+    gestureState = { status: 'idle' };
     startMock.mockReset().mockResolvedValue(true);
-    Object.assign(trainingState, {
-      state: 'idle' as const,
-      recordedData: {
-        frames: [],
-        stillImage: null,
-        frameCount: 0,
-        clipFile: null,
-        clipSizeBytes: 0,
-        clipDurationMs: 0,
-        clipError: null,
-      },
-      framesCaptured: 0,
-      clipLimitExceeded: false,
-      previewLandmarks: [],
-      previewHandedness: [],
-      lastFrameReceivedAt: null,
-    });
-    trainingState.startRecording.mockReset();
-    trainingState.stopRecording.mockReset();
-    trainingState.resetRecording.mockReset();
+    trainingState = createTrainingState();
   });
 
   it('hält das Overlay montiert und blendet es nur via CSS aus', async () => {
