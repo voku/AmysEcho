@@ -225,7 +225,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         setDetectorStartFeedback('');
       }
     },
-    [setDetectorStartFeedback, setNeedsStillConfirmation],
+    [],
   );
 
   const handleCaptureManualStill = useCallback(async () => {
@@ -275,7 +275,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     setManualStillFile(capturedFile);
     setNeedsStillConfirmation(false);
     setDetectorStartFeedback('Foto als Referenzbild übernommen.');
-  }, [cameraError, cameraSupported, setDetectorStartFeedback, setNeedsStillConfirmation, startCamera, status]);
+  }, [cameraError, cameraSupported, startCamera, status]);
 
   const [manualStillPreviewUrl, setManualStillPreviewUrl] = useState<string | null>(null);
 
