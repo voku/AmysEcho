@@ -69,9 +69,7 @@ vi.mock('../hooks/useGestureDetector', () => ({
 }));
 
 vi.mock('../hooks/useTrainingRecorder', () => ({
-  useTrainingRecorder: () => ({
-    ...trainingState,
-  }),
+  useTrainingRecorder: () => trainingState,
 }));
 
 describe('TrainingRecorder', () => {
