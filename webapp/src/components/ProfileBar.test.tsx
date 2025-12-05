@@ -6,7 +6,7 @@ import { AppStateProvider } from '../hooks/useAppState';
 
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppStateProvider>{ui}</AppStateProvider>
     </BrowserRouter>
   );

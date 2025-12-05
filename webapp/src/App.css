@@ -25,6 +25,7 @@
   --color-warning: #E3B13C;
   --color-warning-bg: #FCF4DF;
   --color-error: #DC5B57;
+  --color-error-text: #991b1b;
   --color-info: #2F8EA2;
   --color-outline: #9CC9C9;
   --color-outline-muted: #CBE1E1;
@@ -525,6 +526,8 @@ p {
 .notice.error {
   border-color: var(--color-error);
   background: rgba(220, 91, 87, 0.15);
+  color: var(--color-error-text);
+  font-weight: 500;
 }
 
 .notice.success {
