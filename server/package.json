@@ -49,6 +49,6 @@
     "download-gesture-task": "ts-node src/tools/getGestureTask.ts"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.13.0"
   }
 }

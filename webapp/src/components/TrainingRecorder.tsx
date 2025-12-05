@@ -28,6 +28,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
   const [manualStillFile, setManualStillFile] = useState<File | null>(null);
+  const [needsStillConfirmation, setNeedsStillConfirmation] = useState(false);
   const [detectorStartFeedback, setDetectorStartFeedback] = useState('');
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
@@ -113,68 +114,85 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     stopRecording();
   }, [stopRecording]);
 
-  const handleSaveRecording = useCallback(async () => {
-    if (!metadataReady) {
-      return;
-    }
-    if (recordedData.frames.length === 0) {
-      return;
-    }
-
-    if (!manualStillFile) {
-      const confirmUseAutoFrame = window.confirm(
-        recordedData.stillImage
-          ? 'Kein Referenzbild ausgewählt. Möchtest du das zuletzt aufgenommene Frame verwenden? Für beste Ergebnisse lade lieber ein Bild hoch, das die Geste klar zeigt.'
-          : 'Kein Referenzbild ausgewählt. Bitte lade ein Bild hoch, das die Geste klar zeigt, bevor du die Aufnahme verwendest.',
-      );
-
-      if (!confirmUseAutoFrame) {
-        setDetectorStartFeedback('Bitte wähle ein Referenzbild aus, bevor du die Aufnahme verwendest.');
+  const finalizeSaveRecording = useCallback(
+    async () => {
+      if (!metadataReady) {
         return;
       }
-    }
-
-    setDetectorStartFeedback('');
-
-    // Convert still image to File if available
-    let stillFile: File | null = null;
-    if (recordedData.stillImage) {
-      try {
-        const response = await fetch(recordedData.stillImage);
-        const blob = await response.blob();
-        stillFile = new File([blob], 'still.jpg', { type: blob.type || 'image/jpeg' });
-      } catch (error) {
-        console.warn('Failed to convert still image to File', error);
+      if (recordedData.frames.length === 0) {
+        return;
       }
+
+      setNeedsStillConfirmation(false);
+      setDetectorStartFeedback('');
+
+      // Convert still image to File if available
+      let stillFile: File | null = null;
+      if (manualStillFile) {
+        stillFile = manualStillFile;
+      } else if (recordedData.stillImage) {
+        try {
+          const response = await fetch(recordedData.stillImage);
+          const blob = await response.blob();
+          stillFile = new File([blob], 'still.jpg', { type: blob.type || 'image/jpeg' });
+        } catch (error) {
+          console.warn('Failed to convert still image to File', error);
+        }
+      }
+
+      const payload: TrainingBundlePayload = {
+        profileId: profileId.trim(),
+        label: label.trim(),
+        frames: recordedData.frames,
+        capturedAt: new Date().toISOString(),
+        source: 'web://mediapipe',
+        stillFile,
+        clipFile: recordedData.clipFile,
+      };
+
+      onRecordingComplete(payload);
+      resetRecording();
+      setManualStillFile(null);
+    },
+    [
+      metadataReady,
+      recordedData,
+      profileId,
+      label,
+      onRecordingComplete,
+      resetRecording,
+      manualStillFile,
+    ],
+  );
+
+  const handleSaveRecording = useCallback(() => {
+    if (!metadataReady || recordedData.frames.length === 0 || clipLimitExceeded) {
+      return;
     }
 
-    if (manualStillFile) {
-      stillFile = manualStillFile;
+    if (!manualStillFile && recordedData.stillImage) {
+      setNeedsStillConfirmation(true);
+      setDetectorStartFeedback('Bestätige, ob du das letzte Videoframe als Referenz nutzen möchtest.');
+      return;
     }
 
-    const payload: TrainingBundlePayload = {
-      profileId: profileId.trim(),
-      label: label.trim(),
-      frames: recordedData.frames,
-      capturedAt: new Date().toISOString(),
-      source: 'web://mediapipe',
-      stillFile,
-      clipFile: recordedData.clipFile,
-    };
+    if (!manualStillFile && !recordedData.stillImage) {
+      setNeedsStillConfirmation(false);
+      setDetectorStartFeedback('Bitte wähle ein Referenzbild aus, bevor du die Aufnahme verwendest.');
+      return;
+    }
 
-    onRecordingComplete(payload);
-    resetRecording();
-    setManualStillFile(null);
-  }, [
-    metadataReady,
-    recordedData,
-    profileId,
-    label,
-    onRecordingComplete,
-    resetRecording,
-    manualStillFile,
-    setDetectorStartFeedback,
-  ]);
+    void finalizeSaveRecording();
+  }, [clipLimitExceeded, finalizeSaveRecording, manualStillFile, metadataReady, recordedData]);
+
+  const handleConfirmAutoStill = useCallback(() => {
+    void finalizeSaveRecording();
+  }, [finalizeSaveRecording]);
+
+  const handleCancelAutoStill = useCallback(() => {
+    setNeedsStillConfirmation(false);
+    setDetectorStartFeedback('');
+  }, []);
 
   const handleSaveLandmarkJson = useCallback(() => {
     if (recordedData.frames.length === 0) {
@@ -195,11 +213,20 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     resetRecording();
     setRecordingDuration(0);
     setManualStillFile(null);
+    setNeedsStillConfirmation(false);
+    setDetectorStartFeedback('');
   }, [resetRecording]);
 
-  const handleManualStillChange = useCallback((file: File | null) => {
-    setManualStillFile(file);
-  }, []);
+  const handleManualStillChange = useCallback(
+    (file: File | null) => {
+      setManualStillFile(file);
+      if (file) {
+        setNeedsStillConfirmation(false);
+        setDetectorStartFeedback('');
+      }
+    },
+    [],
+  );
 
   const handleCaptureManualStill = useCallback(async () => {
     if (!cameraSupported) {
@@ -246,8 +273,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
     const capturedFile = new File([blob], 'referenzbild.jpg', { type: blob.type || 'image/jpeg' });
     setManualStillFile(capturedFile);
+    setNeedsStillConfirmation(false);
     setDetectorStartFeedback('Foto als Referenzbild übernommen.');
-  }, [cameraError, cameraSupported, setDetectorStartFeedback, startCamera, status]);
+  }, [cameraError, cameraSupported, startCamera, status]);
 
   const [manualStillPreviewUrl, setManualStillPreviewUrl] = useState<string | null>(null);
 
@@ -316,7 +344,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : hasRecording
     ? 'Aufnahme bereit'
     : 'Keine Aufnahme aktiv';
-  const recordingStatusTone = isRecording ? 'running' : hasRecording ? 'success' : 'idle';
   const framesLine = framesCaptured > 0
     ? `${framesCaptured} Frames erfasst`
     : detectorRunning
@@ -333,74 +360,143 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
             Nimm deine Geste mit der Kamera auf. Die Handbewegungen werden automatisch erkannt und gespeichert.
           </p>
         </div>
-        <div className="status-chip" data-state={isRecording ? 'running' : hasRecording ? 'success' : 'idle'}>
-          {isRecording ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})` : hasRecording ? 'Aufnahme bereit' : 'Bereit'}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-        <div className="status-chip" data-state={detectorStatusTone}>
-          Detektor: {detectorStatusLabel}
-        </div>
-        <div className="status-chip" data-state={recordingStatusTone}>
-          Aufnahme: {recordingStatusLabel}
-        </div>
-      </div>
-      <div className="status-stack" data-stable="true">
-        {!detectorRunning && (
-          <p className="muted small no-margin">
-            Detektor ist nicht gestartet – Frames werden erst gezählt, wenn die Kamera läuft.
-          </p>
-        )}
-
-        {!cameraSupported && (
-          <div className="notice warning">
-            <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
-          </div>
-        )}
-
-        {cameraError && <div className="notice error">{cameraError}</div>}
-
-        {detectorInactiveNotice && (
-          <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
-            <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
-            {detectorInactiveNotice}
-          </div>
-        )}
-
-        {detectorStartFeedback && (
-          <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
-            {detectorStartFeedback}
-          </div>
-        )}
       </div>
 
       <div className="detector-shell">
-        <div className="video-wrapper">
-          <video ref={videoRef} className="video" playsInline muted autoPlay />
-          {showOverlay && <canvas ref={overlayRef} className="overlay" />}
-          {isRecording && (
-            <div className="recording-indicator">
-              <span className="recording-dot"></span>
-              <span>Aufnahme läuft</span>
+        <div className="video-column">
+          <div className="video-wrapper">
+            <video ref={videoRef} className="video" playsInline muted autoPlay />
+            <canvas
+              ref={overlayRef}
+              className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
+              data-testid="overlay-canvas"
+              aria-hidden={!showOverlay}
+            />
+            <div className="video-veil" aria-hidden="true" />
+
+            <div className="video-hud">
+              <div className="hud-row">
+                <div
+                  className="status-chip"
+                  data-testid="status-chip"
+                  data-state={isRecording ? 'running' : hasRecording ? 'success' : detectorStatusTone}
+                >
+                  {isRecording
+                    ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})`
+                    : hasRecording
+                    ? 'Aufnahme bereit'
+                    : detectorStatusLabel}
+                </div>
+                <div className="hud-actions">
+                  {showDetectorStart && (
+                    <button
+                      className="primary"
+                      onClick={startCamera}
+                      disabled={!cameraSupported || detectorStartDisabled}
+                    >
+                      {detectorStartLabel}
+                    </button>
+                  )}
+                  {!isRecording && !hasRecording && (
+                    <button
+                      className="primary"
+                      onClick={handleStartRecording}
+                      disabled={!metadataReady || status === 'initializing'}
+                    >
+                      Aufnahme starten
+                    </button>
+                  )}
+                  {isRecording && (
+                    <button className="primary" onClick={handleStopRecording}>
+                      Aufnahme stoppen
+                    </button>
+                  )}
+                  {hasRecording && (
+                    <>
+                      <button className="primary" onClick={handleSaveRecording} disabled={uploadDisabled}>
+                        Aufnahme verwenden
+                      </button>
+                      <button className="ghost" onClick={handleDiscardRecording}>
+                        Verwerfen
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="hud-row meta">
+                <div className="hud-meta">
+                  <p className="muted no-margin">
+                    Profil: <strong>{profileId || '–'}</strong>
+                  </p>
+                  <p className="muted no-margin">
+                    Geste: <strong>{displayedLabel}</strong>
+                  </p>
+                  <p className="muted small no-margin">{framesLine}</p>
+                </div>
+                <div className="toggle ghost-inline">
+                  <input
+                    id="overlay-toggle"
+                    type="checkbox"
+                    checked={showOverlay}
+                    onChange={(event) => setShowOverlay(event.target.checked)}
+                  />
+                  <label htmlFor="overlay-toggle">Overlay anzeigen</label>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+
+          <div className="notice-grid" aria-live="polite" role="status">
+            {!detectorRunning && (
+              <p className="muted small no-margin">
+                Detektor ist nicht gestartet – Frames werden erst gezählt, wenn die Kamera läuft.
+              </p>
+            )}
+
+            {!cameraSupported && (
+              <div className="notice warning compact">
+                <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
+              </div>
+            )}
+
+            {cameraError && <div className="notice error compact">{cameraError}</div>}
+
+            {detectorInactiveNotice && (
+              <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>
+                <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
+                {detectorInactiveNotice}
+              </div>
+            )}
+
+            {detectorStartFeedback && (
+              <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>{detectorStartFeedback}</div>
+            )}
+
+            {needsStillConfirmation && (
+              <div className="notice info compact">
+                <p className="no-margin">
+                  Kein Referenzbild ausgewählt. Möchtest du das letzte Videoframe als Referenz nutzen?
+                </p>
+                <div className="hud-actions">
+                  <button className="primary" type="button" onClick={handleConfirmAutoStill}>
+                    Ja, Frame verwenden
+                  </button>
+                  <button className="ghost" type="button" onClick={handleCancelAutoStill}>
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="panel">
           <div className="panel-row">
             <div>
               <p className="eyebrow">Aufnahmedetails</p>
-              <p className="muted">
-                Profil: <strong>{profileId}</strong>
-              </p>
-              <p className="muted">
-                Geste: <strong>{displayedLabel}</strong>
-              </p>
-              <p className="value">{framesLine}</p>
-              {framesCaptured === 0 && detectorRunning && (
-                <p className="muted small">Platziere deine Hände klar im Bild, damit die Landmarken gezählt werden.</p>
-              )}
+              <p className="muted small">Detektor: {detectorStatusLabel}</p>
+              <p className="muted small">Aufnahmestatus: {recordingStatusLabel}</p>
               <p className="muted small">Clip: {clipStatus}</p>
               {recordedData.clipDurationMs > 0 && (
                 <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
@@ -419,54 +515,23 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                   </>
                 )}
                 {previewHandedness.length > 0 && (
-                  <p className="muted small">Handedness: {previewHandedness.join(', ')}</p>
+                  <p className="muted small">
+                    Händigkeit:{' '}
+                    {previewHandedness
+                      .map((value) => (value === 'Left' ? 'links' : value === 'Right' ? 'rechts' : value))
+                      .join(', ')}
+                  </p>
                 )}
               </div>
               <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
                 {clipLimitNotice}
               </div>
             </div>
-            <div className="toggle">
-              <input
-                id="overlay-toggle"
-                type="checkbox"
-                checked={showOverlay}
-                onChange={(event) => setShowOverlay(event.target.checked)}
-              />
-              <label htmlFor="overlay-toggle">Overlay anzeigen</label>
-            </div>
           </div>
 
           <div className="controls">
-            {showDetectorStart && (
-              <button className="secondary" onClick={startCamera} disabled={detectorStartDisabled}>
-                {detectorStartLabel}
-              </button>
-            )}
-            {!isRecording && !hasRecording && (
-              <button
-                className="primary"
-                onClick={handleStartRecording}
-                disabled={!metadataReady || status === 'initializing'}
-              >
-                Aufnahme starten
-              </button>
-            )}
-
-            {isRecording && (
-              <button className="primary" onClick={handleStopRecording}>
-                Aufnahme beenden
-              </button>
-            )}
-
             {hasRecording && (
               <>
-                <button className="primary" onClick={handleSaveRecording} disabled={uploadDisabled}>
-                  Aufnahme verwenden
-                </button>
-                <button className="ghost" onClick={handleDiscardRecording}>
-                  Verwerfen
-                </button>
                 <button className="ghost" onClick={handleSaveLandmarkJson}>
                   Landmarks speichern
                 </button>
