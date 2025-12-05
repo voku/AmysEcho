@@ -525,6 +525,8 @@ p {
 .notice.error {
   border-color: var(--color-error);
   background: rgba(220, 91, 87, 0.15);
+  color: #991b1b;
+  font-weight: 500;
 }
 
 .notice.success {
