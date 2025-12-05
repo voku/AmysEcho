@@ -43,7 +43,7 @@ describe('GestureDemo', () => {
     renderWithProviders(<GestureDemo />);
 
     expect(screen.getByText('Kamera starten')).toBeInTheDocument();
-    expect(screen.getByText('Aufnahme pausieren')).toBeInTheDocument();
+    expect(screen.getByText('Aufnahme stoppen')).toBeInTheDocument();
     expect(screen.getByText('Neu aufsetzen')).toBeInTheDocument();
   });
 
@@ -68,7 +68,7 @@ describe('GestureDemo', () => {
   it('shows initial status as ready (Bereit)', () => {
     renderWithProviders(<GestureDemo />);
 
-    expect(screen.getByText('Bereit')).toBeInTheDocument();
+    expect(screen.getByText(/Live-Status:\s*Bereit/)).toBeInTheDocument();
   });
 
   it('shows "noch keine erkannt" when no gesture detected', () => {

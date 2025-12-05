@@ -85,4 +85,10 @@ describe('uploadTrainingBundle', () => {
     expect(requestInit?.headers).toMatchObject({ 'Content-Type': 'application/zip' });
     expect(requestInit?.body).toBeInstanceOf(Blob);
   });
+
+  it('wirft einen Fehler, wenn kein Upload-Endpunkt konfiguriert ist', async () => {
+    await expect(uploadTrainingBundle(basePayload, { endpoint: '' })).rejects.toThrow(
+      'API-Endpunkt fehlt für Trainings-Uploads.',
+    );
+  });
 });

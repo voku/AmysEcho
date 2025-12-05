@@ -136,12 +136,13 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   return zipSync(entries);
 }
 
-export async function uploadTrainingZip(
-  zip: Uint8Array,
-  options: { endpoint?: string; token?: string } = {},
-): Promise<UploadTrainingBundleResponse> {
-  const endpoint =
-    options.endpoint ?? `${import.meta.env['VITE_API_URL'] ?? 'http://localhost:3000'}/api/v1/dgs/sample-bundles`;
+export type TrainingUploadOptions = { endpoint: string; token?: string };
+
+export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUploadOptions): Promise<UploadTrainingBundleResponse> {
+  const endpoint = options.endpoint?.trim();
+  if (!endpoint) {
+    throw new Error('API-Endpunkt fehlt für Trainings-Uploads.');
+  }
 
   const zipView = new Uint8Array(zip);
   const body = new Blob([zipView], { type: 'application/zip' });
@@ -183,7 +184,7 @@ export async function uploadTrainingZip(
 
 export async function uploadTrainingBundle(
   payload: TrainingBundlePayload,
-  options: { endpoint?: string; token?: string } = {},
+  options: TrainingUploadOptions,
 ): Promise<UploadTrainingBundleResponse> {
   const zip = await createTrainingZip(payload);
   return uploadTrainingZip(zip, options);

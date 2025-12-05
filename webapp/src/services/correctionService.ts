@@ -4,26 +4,20 @@
  */
 
 import { logger } from './logger';
-
-const getApiUrl = (): string => {
-  return localStorage.getItem('apiUrl') ?? 'http://localhost:3000';
-};
-
-const getApiToken = (): string | null => {
-  return sessionStorage.getItem('apiToken');
-};
+import type { ApiClientConfig } from './apiClient';
+import { buildAuthHeaders } from './apiClient';
 
 export const correctionService = {
-  async logCorrection(gesture: string): Promise<void> {
-    const apiUrl = getApiUrl();
-    const token = getApiToken();
-    
+  async logCorrection(gesture: string, config: ApiClientConfig): Promise<void> {
+    const apiUrl = config.apiBaseUrl;
+    const token = config.apiToken;
+
     try {
       await fetch(`${apiUrl}/api/corrections`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...buildAuthHeaders(token),
         },
         body: JSON.stringify({ gesture }),
       });
@@ -33,16 +27,16 @@ export const correctionService = {
     }
   },
 
-  async logNegativeSample(gesture: string): Promise<void> {
-    const apiUrl = getApiUrl();
-    const token = getApiToken();
-    
+  async logNegativeSample(gesture: string, config: ApiClientConfig): Promise<void> {
+    const apiUrl = config.apiBaseUrl;
+    const token = config.apiToken;
+
     try {
       await fetch(`${apiUrl}/api/negative-samples`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...buildAuthHeaders(token),
         },
         body: JSON.stringify({ gesture }),
       });

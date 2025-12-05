@@ -315,6 +315,24 @@ describe('GestureRecognitionOrchestrator', () => {
       expect(gestureCall?.[1]).toEqual({ flushImmediately: false });
     });
 
+    it('überspringt Frame-Batching wenn keine Hand erkannt wird', () => {
+      queueSpy.mockClear();
+      const captureFrameSpy = vi
+        .spyOn(FrameCaptureManager, 'captureFrameForTrainer')
+        .mockReturnValue('frame-data-url');
+
+      (orchestrator as any).collectFrameForBatch({ landmarks: [[], []], handednesses: [] });
+
+      expect(captureFrameSpy).not.toHaveBeenCalled();
+      expect((orchestrator as any).frameBuffer).toHaveLength(0);
+      expect(queueSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'FRAME_BATCH' }),
+        expect.anything(),
+      );
+
+      captureFrameSpy.mockRestore();
+    });
+
     it('skips processing when performance optimizer declines the frame', async () => {
       const shouldProcessSpy = vi
         .spyOn(PerformanceOptimizer.prototype, 'shouldProcessFrame')
