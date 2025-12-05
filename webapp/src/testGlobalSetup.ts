@@ -37,4 +37,19 @@ export default async function globalSetup() {
   } catch (error) {
     (globalThis as any).File = NodeFile;
   }
+
+  const ensureToStringTag = (ctor: { prototype?: any } | undefined, tag: string) => {
+    if (!ctor?.prototype) return;
+    const descriptor = Object.getOwnPropertyDescriptor(ctor.prototype, Symbol.toStringTag);
+    if (!descriptor || descriptor.value !== tag) {
+      try {
+        Object.defineProperty(ctor.prototype, Symbol.toStringTag, { value: tag, configurable: true });
+      } catch (error) {
+        // Ignore if the environment prevents redefining the tag; fallback relies on the constructor swap above.
+      }
+    }
+  };
+
+  ensureToStringTag((globalThis as any).Blob, 'Blob');
+  ensureToStringTag((globalThis as any).File, 'File');
 }
