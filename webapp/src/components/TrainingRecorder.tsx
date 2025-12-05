@@ -115,7 +115,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   }, [stopRecording]);
 
   const finalizeSaveRecording = useCallback(
-    async (allowAutoStill: boolean) => {
+    async () => {
       if (!metadataReady) {
         return;
       }
@@ -130,7 +130,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       let stillFile: File | null = null;
       if (manualStillFile) {
         stillFile = manualStillFile;
-      } else if (allowAutoStill && recordedData.stillImage) {
+      } else if (recordedData.stillImage) {
         try {
           const response = await fetch(recordedData.stillImage);
           const blob = await response.blob();
@@ -166,7 +166,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   );
 
   const handleSaveRecording = useCallback(() => {
-    if (!metadataReady || recordedData.frames.length === 0) {
+    if (!metadataReady || recordedData.frames.length === 0 || clipLimitExceeded) {
       return;
     }
 
@@ -182,11 +182,11 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       return;
     }
 
-    void finalizeSaveRecording(true);
-  }, [finalizeSaveRecording, manualStillFile, metadataReady, recordedData]);
+    void finalizeSaveRecording();
+  }, [clipLimitExceeded, finalizeSaveRecording, manualStillFile, metadataReady, recordedData]);
 
   const handleConfirmAutoStill = useCallback(() => {
-    void finalizeSaveRecording(true);
+    void finalizeSaveRecording();
   }, [finalizeSaveRecording]);
 
   const handleCancelAutoStill = useCallback(() => {
@@ -214,7 +214,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     setRecordingDuration(0);
     setManualStillFile(null);
     setNeedsStillConfirmation(false);
-  }, [resetRecording]);
+    setDetectorStartFeedback('');
+  }, [resetRecording, setDetectorStartFeedback]);
 
   const handleManualStillChange = useCallback((file: File | null) => {
     setManualStillFile(file);
@@ -506,7 +507,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                   </>
                 )}
                 {previewHandedness.length > 0 && (
-                  <p className="muted small">Handedness: {previewHandedness.join(', ')}</p>
+                  <p className="muted small">Händigkeit: {previewHandedness.join(', ')}</p>
                 )}
               </div>
               <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
