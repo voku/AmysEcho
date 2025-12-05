@@ -1,8 +1,36 @@
 import { Blob as NodeBlob, File as NodeFile } from 'node:buffer';
 
+const isValidBlob = (ctor: typeof Blob | undefined): ctor is typeof Blob => {
+  if (!ctor) return false;
+  try {
+    const blob = new ctor();
+    return Object.prototype.toString.call(blob) === '[object Blob]';
+  } catch (error) {
+    return false;
+  }
+};
+
+const isValidFile = (ctor: typeof File | undefined): ctor is typeof File => {
+  if (!ctor) return false;
+  try {
+    const file = new ctor([], 'stub');
+    return Object.prototype.toString.call(file) === '[object File]';
+  } catch (error) {
+    return false;
+  }
+};
+
 export default async function globalSetup() {
-  (globalThis as any).Blob = NodeBlob;
-  (globalThis as any).File = NodeFile;
+  const originalBlob = globalThis.Blob as typeof Blob | undefined;
+  const originalFile = globalThis.File as typeof File | undefined;
+
+  const activeBlob = isValidBlob(originalBlob) ? originalBlob : (isValidBlob(NodeBlob as any) ? (NodeBlob as any) : NodeBlob);
+  (globalThis as any).Blob = activeBlob;
+
+  const activeFile = isValidFile(originalFile)
+    ? originalFile
+    : (isValidFile(NodeFile as any) ? (NodeFile as any) : NodeFile);
+  (globalThis as any).File = activeFile;
 
   if (typeof ArrayBuffer !== 'undefined' && !Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'resizable')) {
     Object.defineProperty(ArrayBuffer.prototype, 'resizable', {
@@ -18,24 +46,6 @@ export default async function globalSetup() {
       enumerable: false,
       configurable: true,
     });
-  }
-
-  try {
-    const blob = new Blob();
-    if (Object.prototype.toString.call(blob) !== '[object Blob]') {
-      (globalThis as any).Blob = NodeBlob;
-    }
-  } catch (error) {
-    (globalThis as any).Blob = NodeBlob;
-  }
-
-  try {
-    const file = new File([], 'stub');
-    if (Object.prototype.toString.call(file) !== '[object File]') {
-      (globalThis as any).File = NodeFile;
-    }
-  } catch (error) {
-    (globalThis as any).File = NodeFile;
   }
 
   const ensureToStringTag = (ctor: { prototype?: any } | undefined, tag: string) => {
