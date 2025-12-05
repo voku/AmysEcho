@@ -5,6 +5,15 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 type MockMediaRecorderState = 'inactive' | 'recording' | 'paused';
 
+const attachStream = (video: HTMLVideoElement, stream: MediaStream) => {
+  Object.defineProperty(video, 'srcObject', {
+    value: stream,
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+};
+
 describe('useTrainingRecorder', () => {
   let OriginalMediaRecorder: typeof MediaRecorder | undefined;
   let OriginalMediaStream: typeof MediaStream | undefined;
@@ -14,7 +23,7 @@ describe('useTrainingRecorder', () => {
     OriginalMediaStream = (window as any).MediaStream;
 
     if (!OriginalMediaStream) {
-      (window as any).MediaStream = class {} as any;
+      (window as any).MediaStream = class extends EventTarget {} as any;
     }
   });
 
@@ -172,7 +181,7 @@ describe('useTrainingRecorder', () => {
   it('erstellt eine Clip-Datei über MediaRecorder', async () => {
     const stream = new MediaStream();
     const video = document.createElement('video') as HTMLVideoElement & { srcObject?: MediaStream };
-    video.srcObject = stream;
+    attachStream(video, stream);
 
     let mockInstance: any;
     class MockMediaRecorder {
@@ -226,7 +235,7 @@ describe('useTrainingRecorder', () => {
   it('verwirft Clip-Daten beim Zurücksetzen einer laufenden Aufnahme', async () => {
     const stream = new MediaStream();
     const video = document.createElement('video') as HTMLVideoElement & { srcObject?: MediaStream };
-    video.srcObject = stream;
+    attachStream(video, stream);
 
     let onStopCalled = false;
     let onStopHandlerCalled = false;

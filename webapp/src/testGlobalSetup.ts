@@ -1,6 +1,9 @@
 import { Blob as NodeBlob, File as NodeFile } from 'node:buffer';
 
 export default async function globalSetup() {
+  (globalThis as any).Blob = NodeBlob;
+  (globalThis as any).File = NodeFile;
+
   if (typeof ArrayBuffer !== 'undefined' && !Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'resizable')) {
     Object.defineProperty(ArrayBuffer.prototype, 'resizable', {
       get: () => false,
