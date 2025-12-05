@@ -281,6 +281,10 @@ describe('useTrainingUploader', () => {
 
     resolveSecondFetch?.({ ok: true, status: 200, json: async () => ({ id: 'bundle-retry' }) });
 
+    await act(async () => {
+      await result.current.syncQueued();
+    });
+
     await waitFor(async () => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
       expect(result.current.syncError).toBeNull();

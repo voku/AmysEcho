@@ -229,7 +229,10 @@ export function useTrainingUploader(
     syncQueued().catch((err) => {
       console.warn('Synchronisation aus Warteschlange fehlgeschlagen', err);
     });
-  }, [queuedCount, syncQueued]);
+    // syncQueued is intentionally omitted to avoid re-running when the callback is recreated
+    // due to training status updates. This effect should only react to queue length changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedCount]);
 
   const syncBundle = useCallback(
     async (key: string, options?: DefaultUploadOptions) => {
