@@ -271,6 +271,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Reset transformation matrix
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
 
