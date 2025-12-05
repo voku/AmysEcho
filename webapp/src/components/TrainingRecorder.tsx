@@ -333,74 +333,122 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
             Nimm deine Geste mit der Kamera auf. Die Handbewegungen werden automatisch erkannt und gespeichert.
           </p>
         </div>
-        <div className="status-chip" data-state={isRecording ? 'running' : hasRecording ? 'success' : 'idle'}>
-          {isRecording ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})` : hasRecording ? 'Aufnahme bereit' : 'Bereit'}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-        <div className="status-chip" data-state={detectorStatusTone}>
-          Detektor: {detectorStatusLabel}
-        </div>
-        <div className="status-chip" data-state={recordingStatusTone}>
-          Aufnahme: {recordingStatusLabel}
-        </div>
-      </div>
-      <div className="status-stack" data-stable="true">
-        {!detectorRunning && (
-          <p className="muted small no-margin">
-            Detektor ist nicht gestartet – Frames werden erst gezählt, wenn die Kamera läuft.
-          </p>
-        )}
-
-        {!cameraSupported && (
-          <div className="notice warning">
-            <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
-          </div>
-        )}
-
-        {cameraError && <div className="notice error">{cameraError}</div>}
-
-        {detectorInactiveNotice && (
-          <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
-            <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
-            {detectorInactiveNotice}
-          </div>
-        )}
-
-        {detectorStartFeedback && (
-          <div className={`notice ${detectorRunning ? 'info' : 'warning'}`}>
-            {detectorStartFeedback}
-          </div>
-        )}
       </div>
 
       <div className="detector-shell">
-        <div className="video-wrapper">
-          <video ref={videoRef} className="video" playsInline muted autoPlay />
-          {showOverlay && <canvas ref={overlayRef} className="overlay" />}
-          {isRecording && (
-            <div className="recording-indicator">
-              <span className="recording-dot"></span>
-              <span>Aufnahme läuft</span>
+        <div className="video-column">
+          <div className="video-wrapper">
+            <video ref={videoRef} className="video" playsInline muted autoPlay />
+            <canvas
+              ref={overlayRef}
+              className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
+              aria-hidden={!showOverlay}
+            />
+            <div className="video-veil" aria-hidden="true" />
+
+            <div className="video-hud">
+              <div className="hud-row">
+                <div className="status-chip" data-state={detectorStatusTone === 'idle' ? recordingStatusTone : detectorStatusTone}>
+                  {isRecording
+                    ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})`
+                    : hasRecording
+                    ? 'Aufnahme bereit'
+                    : detectorStatusLabel}
+                </div>
+                <div className="hud-actions">
+                  {showDetectorStart && (
+                    <button
+                      className="primary"
+                      onClick={startCamera}
+                      disabled={!cameraSupported || detectorStartDisabled}
+                    >
+                      {detectorStartLabel}
+                    </button>
+                  )}
+                  {!isRecording && !hasRecording && (
+                    <button
+                      className="primary"
+                      onClick={handleStartRecording}
+                      disabled={!metadataReady || status === 'initializing'}
+                    >
+                      Aufnahme starten
+                    </button>
+                  )}
+                  {isRecording && (
+                    <button className="primary" onClick={handleStopRecording}>
+                      Aufnahme stoppen
+                    </button>
+                  )}
+                  {hasRecording && (
+                    <>
+                      <button className="primary" onClick={handleSaveRecording} disabled={uploadDisabled}>
+                        Aufnahme verwenden
+                      </button>
+                      <button className="ghost" onClick={handleDiscardRecording}>
+                        Verwerfen
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="hud-row meta">
+                <div className="hud-meta">
+                  <p className="muted no-margin">
+                    Profil: <strong>{profileId || '–'}</strong>
+                  </p>
+                  <p className="muted no-margin">
+                    Geste: <strong>{displayedLabel}</strong>
+                  </p>
+                  <p className="muted small no-margin">{framesLine}</p>
+                </div>
+                <div className="toggle ghost-inline">
+                  <input
+                    id="overlay-toggle"
+                    type="checkbox"
+                    checked={showOverlay}
+                    onChange={(event) => setShowOverlay(event.target.checked)}
+                  />
+                  <label htmlFor="overlay-toggle">Overlay anzeigen</label>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+
+          <div className="notice-grid" aria-live="polite" role="status">
+            {!detectorRunning && (
+              <p className="muted small no-margin">
+                Detektor ist nicht gestartet – Frames werden erst gezählt, wenn die Kamera läuft.
+              </p>
+            )}
+
+            {!cameraSupported && (
+              <div className="notice warning compact">
+                <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
+              </div>
+            )}
+
+            {cameraError && <div className="notice error compact">{cameraError}</div>}
+
+            {detectorInactiveNotice && (
+              <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>
+                <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
+                {detectorInactiveNotice}
+              </div>
+            )}
+
+            {detectorStartFeedback && (
+              <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>{detectorStartFeedback}</div>
+            )}
+          </div>
         </div>
 
         <div className="panel">
           <div className="panel-row">
             <div>
               <p className="eyebrow">Aufnahmedetails</p>
-              <p className="muted">
-                Profil: <strong>{profileId}</strong>
-              </p>
-              <p className="muted">
-                Geste: <strong>{displayedLabel}</strong>
-              </p>
-              <p className="value">{framesLine}</p>
-              {framesCaptured === 0 && detectorRunning && (
-                <p className="muted small">Platziere deine Hände klar im Bild, damit die Landmarken gezählt werden.</p>
-              )}
+              <p className="muted small">Detektor: {detectorStatusLabel}</p>
+              <p className="muted small">Aufnahmestatus: {recordingStatusLabel}</p>
               <p className="muted small">Clip: {clipStatus}</p>
               {recordedData.clipDurationMs > 0 && (
                 <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
@@ -426,47 +474,11 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 {clipLimitNotice}
               </div>
             </div>
-            <div className="toggle">
-              <input
-                id="overlay-toggle"
-                type="checkbox"
-                checked={showOverlay}
-                onChange={(event) => setShowOverlay(event.target.checked)}
-              />
-              <label htmlFor="overlay-toggle">Overlay anzeigen</label>
-            </div>
           </div>
 
           <div className="controls">
-            {showDetectorStart && (
-              <button className="secondary" onClick={startCamera} disabled={detectorStartDisabled}>
-                {detectorStartLabel}
-              </button>
-            )}
-            {!isRecording && !hasRecording && (
-              <button
-                className="primary"
-                onClick={handleStartRecording}
-                disabled={!metadataReady || status === 'initializing'}
-              >
-                Aufnahme starten
-              </button>
-            )}
-
-            {isRecording && (
-              <button className="primary" onClick={handleStopRecording}>
-                Aufnahme beenden
-              </button>
-            )}
-
             {hasRecording && (
               <>
-                <button className="primary" onClick={handleSaveRecording} disabled={uploadDisabled}>
-                  Aufnahme verwenden
-                </button>
-                <button className="ghost" onClick={handleDiscardRecording}>
-                  Verwerfen
-                </button>
                 <button className="ghost" onClick={handleSaveLandmarkJson}>
                   Landmarks speichern
                 </button>
