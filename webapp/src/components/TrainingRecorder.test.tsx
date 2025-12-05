@@ -77,6 +77,17 @@ describe('TrainingRecorder', () => {
     gestureState = { status: 'idle' };
     startMock.mockReset().mockResolvedValue(true);
     trainingState = createTrainingState();
+    
+    // Mock camera support
+    Object.defineProperty(navigator, 'mediaDevices', {
+      writable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [],
+          getVideoTracks: () => [],
+        }),
+      },
+    });
   });
 
   it('hält das Overlay montiert und blendet es nur via CSS aus', async () => {
@@ -123,5 +134,18 @@ describe('TrainingRecorder', () => {
     expect(
       screen.getByText('Kein Referenzbild ausgewählt. Möchtest du das letzte Videoframe als Referenz nutzen?'),
     ).toBeInTheDocument();
+  });
+
+  it('zeigt Fotovorschau-Modus im HUD an', async () => {
+    const user = userEvent.setup();
+    gestureState.status = 'idle';
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    const photoButton = screen.getByRole('button', { name: 'Foto mit Kamera' });
+    await user.click(photoButton);
+
+    expect(screen.getByText('Fotovorschau aktiv')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Foto aufnehmen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Abbrechen' })).toBeInTheDocument();
   });
 });

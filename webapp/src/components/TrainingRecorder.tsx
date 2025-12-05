@@ -30,6 +30,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const [manualStillFile, setManualStillFile] = useState<File | null>(null);
   const [needsStillConfirmation, setNeedsStillConfirmation] = useState(false);
   const [detectorStartFeedback, setDetectorStartFeedback] = useState('');
+  const [photoMode, setPhotoMode] = useState<'idle' | 'previewing' | 'captured'>('idle');
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
     ? ''
@@ -228,7 +229,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     [],
   );
 
-  const handleCaptureManualStill = useCallback(async () => {
+  const handleStartPhotoPreview = useCallback(async () => {
     if (!cameraSupported) {
       setDetectorStartFeedback('Kamera wird nicht unterstützt. Bitte wähle stattdessen ein Bild aus.');
       return;
@@ -243,9 +244,13 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         );
         return;
       }
-      setDetectorStartFeedback('Kamera bereit. Aufnahme des Fotos läuft…');
     }
 
+    setPhotoMode('previewing');
+    setDetectorStartFeedback('Vorschau aktiv. Positioniere dich und klicke "Foto aufnehmen".');
+  }, [cameraError, cameraSupported, startCamera, status]);
+
+  const handleCapturePhoto = useCallback(async () => {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
       setDetectorStartFeedback('Kamera noch nicht bereit. Bitte warte einen Moment.');
@@ -262,6 +267,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       return;
     }
 
+    // Flip horizontally to match the video preview (which is flipped with CSS)
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
@@ -273,9 +281,21 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
     const capturedFile = new File([blob], 'referenzbild.jpg', { type: blob.type || 'image/jpeg' });
     setManualStillFile(capturedFile);
+    setPhotoMode('captured');
     setNeedsStillConfirmation(false);
+    setDetectorStartFeedback('Foto aufgenommen. Bestätige oder nimm ein neues auf.');
+  }, []);
+
+  const handleConfirmPhoto = useCallback(() => {
+    setPhotoMode('idle');
     setDetectorStartFeedback('Foto als Referenzbild übernommen.');
-  }, [cameraError, cameraSupported, startCamera, status]);
+  }, []);
+
+  const handleCancelPhoto = useCallback(() => {
+    setPhotoMode('idle');
+    setManualStillFile(null);
+    setDetectorStartFeedback('');
+  }, []);
 
   const [manualStillPreviewUrl, setManualStillPreviewUrl] = useState<string | null>(null);
 
@@ -379,44 +399,94 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 <div
                   className="status-chip"
                   data-testid="status-chip"
-                  data-state={isRecording ? 'running' : hasRecording ? 'success' : detectorStatusTone}
+                  data-state={
+                    photoMode === 'previewing'
+                      ? 'running'
+                      : photoMode === 'captured'
+                      ? 'success'
+                      : isRecording
+                      ? 'running'
+                      : hasRecording
+                      ? 'success'
+                      : detectorStatusTone
+                  }
                 >
-                  {isRecording
+                  {photoMode === 'previewing'
+                    ? 'Fotovorschau aktiv'
+                    : photoMode === 'captured'
+                    ? 'Foto aufgenommen'
+                    : isRecording
                     ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})`
                     : hasRecording
                     ? 'Aufnahme bereit'
                     : detectorStatusLabel}
                 </div>
                 <div className="hud-actions">
-                  {showDetectorStart && (
-                    <button
-                      className="primary"
-                      onClick={startCamera}
-                      disabled={!cameraSupported || detectorStartDisabled}
-                    >
-                      {detectorStartLabel}
-                    </button>
-                  )}
-                  {!isRecording && !hasRecording && (
-                    <button
-                      className="primary"
-                      onClick={handleStartRecording}
-                      disabled={!metadataReady || status === 'initializing'}
-                    >
-                      Aufnahme starten
-                    </button>
-                  )}
-                  {isRecording && (
-                    <button className="primary" onClick={handleStopRecording}>
-                      Aufnahme stoppen
-                    </button>
-                  )}
-                  {hasRecording && (
+                  {photoMode === 'idle' && (
                     <>
-                      <button className="primary" onClick={handleSaveRecording} disabled={uploadDisabled}>
-                        Aufnahme verwenden
+                      {showDetectorStart && (
+                        <button
+                          className="primary"
+                          onClick={startCamera}
+                          disabled={!cameraSupported || detectorStartDisabled}
+                        >
+                          {detectorStartLabel}
+                        </button>
+                      )}
+                      {!isRecording && !hasRecording && (
+                        <>
+                          <button
+                            className="primary"
+                            onClick={handleStartRecording}
+                            disabled={!metadataReady || status === 'initializing'}
+                          >
+                            Aufnahme starten
+                          </button>
+                          <button
+                            className="secondary"
+                            onClick={handleStartPhotoPreview}
+                            disabled={!cameraSupported || !metadataReady}
+                          >
+                            Foto mit Kamera
+                          </button>
+                        </>
+                      )}
+                      {isRecording && (
+                        <button className="primary" onClick={handleStopRecording}>
+                          Aufnahme stoppen
+                        </button>
+                      )}
+                      {hasRecording && (
+                        <>
+                          <button className="primary" onClick={handleSaveRecording} disabled={uploadDisabled}>
+                            Aufnahme verwenden
+                          </button>
+                          <button className="ghost" onClick={handleDiscardRecording}>
+                            Verwerfen
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                  {photoMode === 'previewing' && (
+                    <>
+                      <button className="primary" onClick={handleCapturePhoto}>
+                        Foto aufnehmen
                       </button>
-                      <button className="ghost" onClick={handleDiscardRecording}>
+                      <button className="ghost" onClick={handleCancelPhoto}>
+                        Abbrechen
+                      </button>
+                    </>
+                  )}
+                  {photoMode === 'captured' && (
+                    <>
+                      <button className="primary" onClick={handleConfirmPhoto}>
+                        Foto verwenden
+                      </button>
+                      <button className="secondary" onClick={handleCapturePhoto}>
+                        Erneut aufnehmen
+                      </button>
+                      <button className="ghost" onClick={handleCancelPhoto}>
                         Verwerfen
                       </button>
                     </>
@@ -541,30 +611,20 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           </div>
 
           <div className="form-group mt-sm">
-            <label htmlFor="manual-still">Eigenes Referenzbild (optional)</label>
-            <div className="file-input file-input-row">
-              <div className="file-input-main">
-                <input
-                  id="manual-still"
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
-                />
-                <p className="muted small">
-                  {manualStillFile?.name || 'Nutze ein zusätzliches Bild, falls der Auto-Screenshot nicht passt.'}
-                </p>
-              </div>
-              <button
-                className="secondary"
-                type="button"
-                onClick={handleCaptureManualStill}
-                disabled={!cameraSupported}
-              >
-                Foto mit Kamera
-              </button>
+            <label htmlFor="manual-still">Eigenes Referenzbild hochladen (optional)</label>
+            <div className="file-input">
+              <input
+                id="manual-still"
+                type="file"
+                accept="image/*"
+                onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
+              />
+              <p className="muted small">
+                {manualStillFile?.name || 'Wähle ein Bild aus deinen Dateien aus.'}
+              </p>
             </div>
             <p className="muted small">
-              Du kannst ein Foto aufnehmen oder eine Datei wählen – auch schon vor der Aufnahme. Falls nichts ausgewählt ist, wirst du beim Abschluss gefragt, ob du statt eines eigenen Bildes das letzte Videoframe nutzen möchtest.
+              Nutze "Foto mit Kamera" im Videobereich oder lade eine Datei hoch. Falls nichts ausgewählt ist, wirst du beim Abschluss gefragt, ob du das letzte Videoframe nutzen möchtest.
             </p>
           </div>
 
