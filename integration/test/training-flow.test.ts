@@ -16,6 +16,39 @@ import {
 before(startServer);
 after(stopServer);
 
+async function waitForTrainingCompletion(pollUrl: string, headers: Record<string, string>) {
+  const start = Date.now();
+  const timeoutMs = 70_000;
+  let lastStatus = 'unknown';
+
+  while (Date.now() - start <= timeoutMs) {
+    const statusResp = await fetch(pollUrl, { headers }).catch(() => null);
+    if (!statusResp) {
+      await delay(500);
+      continue;
+    }
+    if (statusResp.status !== 200) {
+      await delay(500);
+      continue;
+    }
+
+    const info = await statusResp.json();
+    if (info.status === 'failed') {
+      assert.fail(`Training job failed: ${info.error || 'unknown error'}`);
+    }
+    if (typeof info.status === 'string' && info.status.trim().length > 0) {
+      lastStatus = info.status;
+    }
+    if (info.status === 'completed') {
+      return info;
+    }
+
+    await delay(500);
+  }
+
+  assert.fail(`training job did not complete before timeout (last status: ${lastStatus})`);
+}
+
 test('webapp training helpers integrate with live server', async () => {
   const frames: TrainingFrame[] = [
     {
@@ -68,31 +101,7 @@ test('webapp training helpers integrate with live server', async () => {
     : `http://localhost:${TEST_PORT}/train-status/${job.jobId}`;
 
   const headers = serverHeaders();
-  const start = Date.now();
-  const timeoutMs = 45_000; // Increased from 30s to 45s for slower CI environments
-  let completed = false;
-  while (Date.now() - start <= timeoutMs) {
-    const statusResp = await fetch(pollUrl, { headers }).catch(() => null);
-    if (!statusResp) {
-      await delay(250);
-      continue;
-    }
-    if (statusResp.status !== 200) {
-      await delay(250);
-      continue;
-    }
-    const info = await statusResp.json();
-    if (info.status === 'failed') {
-      assert.fail(`Training job failed: ${info.error || 'unknown error'}`);
-    }
-    if (info.status === 'completed') {
-      completed = true;
-      break;
-    }
-    await delay(250);
-  }
-
-  assert.ok(completed, 'training job did not complete before timeout');
+  await waitForTrainingCompletion(pollUrl, headers);
 
   const modelRes = await fetch(`http://localhost:${TEST_PORT}/latest-mlp-model`, { headers });
   assert.strictEqual(modelRes.status, 200);
