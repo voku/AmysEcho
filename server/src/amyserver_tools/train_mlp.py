@@ -79,6 +79,9 @@ EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
 MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
 DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.0"))))
+VALIDATION_FRACTION = float(os.environ.get("MLP_VALIDATION_FRACTION", "0.15"))
+AUGMENTATIONS_PER_SAMPLE = max(0, int(os.environ.get("MLP_AUGMENTATIONS_PER_SAMPLE", "0")))
+CLASS_WEIGHT_SMOOTHING = max(0.0, float(os.environ.get("MLP_CLASS_WEIGHT_SMOOTHING", "0.0")))
 _ENV_PATIENCE = os.environ.get("MLP_EARLY_STOPPING_PATIENCE")
 EARLY_STOPPING_PATIENCE: Optional[int] = None
 if _ENV_PATIENCE:
@@ -147,6 +150,9 @@ class TrainingConfig:
     epochs: int = EPOCHS
     learning_rate: float = LEARNING_RATE
     dropout_rate: float = DROPOUT_RATE
+    validation_fraction: float = VALIDATION_FRACTION
+    augmentations_per_sample: int = AUGMENTATIONS_PER_SAMPLE
+    class_weight_smoothing: float = CLASS_WEIGHT_SMOOTHING
     early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE
     early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
     return_best_and_final: bool = False
@@ -544,6 +550,21 @@ def softmax(x):
     return e_x / np.sum(e_x, axis=1, keepdims=True)
 
 
+def _forward(
+    X: np.ndarray,
+    w1: np.ndarray,
+    b1: np.ndarray,
+    w2: np.ndarray,
+    b2: np.ndarray,
+) -> np.ndarray:
+    """Single forward pass through the MLP returning class probabilities."""
+
+    z1 = np.dot(X, w1) + b1
+    a1 = relu(z1)
+    z2 = np.dot(a1, w2) + b2
+    return softmax(z2)
+
+
 def train_mlp(
     X,
     y,
@@ -556,6 +577,9 @@ def train_mlp(
     dropout_rate: Optional[float] = _UNSET,
     early_stopping_patience: Optional[int] = _UNSET,
     early_stopping_min_delta: Optional[float] = _UNSET,
+    sample_weights: Optional[np.ndarray] = None,
+    validation_data: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+    validation_sample_weights: Optional[np.ndarray] = None,
     rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
     return_best_and_final: Optional[bool] = _UNSET,
 ) -> Union[WeightTuple, TrainingSnapshots]:
@@ -588,6 +612,33 @@ def train_mlp(
     input_size = X.shape[1]
 
     random_source = np.random if rng is None else rng
+
+    num_samples = X.shape[0]
+
+    train_weights = None
+    train_weight_sum = float(num_samples)
+    if sample_weights is not None:
+        candidate = np.asarray(sample_weights, dtype=np.float32)
+        if candidate.shape[0] == num_samples and candidate.size > 0:
+            weight_sum = float(np.sum(candidate))
+            if weight_sum > 0:
+                train_weights = candidate
+                train_weight_sum = weight_sum
+
+    validation_X: Optional[np.ndarray] = None
+    validation_y: Optional[np.ndarray] = None
+    validation_weights = None
+    validation_weight_sum: Optional[float] = None
+    if validation_data is not None:
+        validation_X, validation_y = validation_data
+        if validation_X.size and validation_y.size:
+            if validation_sample_weights is not None:
+                candidate_val = np.asarray(validation_sample_weights, dtype=np.float32)
+                if candidate_val.shape[0] == validation_y.shape[0]:
+                    val_sum = float(np.sum(candidate_val))
+                    if val_sum > 0:
+                        validation_weights = candidate_val
+                        validation_weight_sum = val_sum
 
     def _sample_from_rng(rs, shape, *, distribution: str) -> np.ndarray:
         """Generate samples from ``rs`` while handling common RNG APIs."""
@@ -666,7 +717,26 @@ def train_mlp(
         # Guard against log(0) or log(1) from floating-point underflow/overflow at extreme learning rates.
         p = np.clip(probs[np.arange(num_samples), y], LOSS_EPSILON, 1.0 - LOSS_EPSILON)
         log_probs = -np.log(p)
-        loss = np.sum(log_probs) / num_samples
+        if train_weights is not None:
+            loss = float(np.sum(log_probs * train_weights) / train_weight_sum)
+        else:
+            loss = float(np.sum(log_probs) / num_samples)
+
+        validation_loss = None
+        if validation_X is not None and validation_y is not None and validation_X.size:
+            val_probs = _forward(validation_X, w1, b1, w2, b2)
+            v = np.clip(
+                val_probs[np.arange(validation_y.shape[0]), validation_y],
+                LOSS_EPSILON,
+                1.0 - LOSS_EPSILON,
+            )
+            val_logs = -np.log(v)
+            if validation_weights is not None and validation_weight_sum:
+                validation_loss = float(np.sum(val_logs * validation_weights) / validation_weight_sum)
+            else:
+                validation_loss = float(np.sum(val_logs) / validation_y.shape[0])
+
+        monitor_loss = validation_loss if validation_loss is not None else loss
         if epoch % max(1, epochs // 10) == 0:
             _emit_event(
                 {
@@ -674,13 +744,14 @@ def train_mlp(
                     "epoch": epoch + 1,
                     "total": epochs,
                     "loss": f"{loss:.4f}",
+                    **({"validationLoss": f"{validation_loss:.4f}"} if validation_loss is not None else {}),
                 }
             )
 
         stop_after_epoch = False
 
-        if loss < best_loss - min_delta:
-            best_loss = loss
+        if monitor_loss < best_loss - min_delta:
+            best_loss = monitor_loss
             best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
             best_epoch = current_epoch
             epochs_without_improvement = 0
@@ -704,7 +775,10 @@ def train_mlp(
 
         dz2 = probs
         dz2[np.arange(num_samples), y] -= 1
-        dz2 /= num_samples
+        if train_weights is not None:
+            dz2 *= (train_weights / train_weight_sum)[:, None]
+        else:
+            dz2 /= num_samples
 
         dw2 = np.dot(a1.T, dz2)
         db2 = np.sum(dz2, axis=0)
@@ -988,19 +1062,32 @@ def build_samples_from_legacy_dataset(dataset_path: Path) -> List[Sample]:
     return samples
 
 
-def dataset_to_arrays(samples: List[Sample]) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+def dataset_to_arrays(
+    samples: List[Sample],
+    *,
+    augmentations_per_sample: int = 0,
+    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
+) -> Tuple[np.ndarray, np.ndarray, List[str]]:
     label_set = sorted({sample.label for sample in samples})
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
 
     X_list: List[np.ndarray] = []
     y_list: List[int] = []
 
+    augmentations = max(0, int(augmentations_per_sample))
     for sample in samples:
         normalized = _normalize(sample.landmarks)
         if normalized is None:
             continue
-        X_list.append(np.array(normalized, dtype=np.float32))
+
+        normalized_array = normalized.astype(np.float32, copy=False)
+        X_list.append(normalized_array)
         y_list.append(label_to_idx[sample.label])
+
+        for _ in range(augmentations):
+            augmented = augment_landmarks(normalized_array, rng=rng)
+            X_list.append(augmented)
+            y_list.append(label_to_idx[sample.label])
 
     if not X_list:
         return np.zeros((0, 126), dtype=np.float32), np.zeros((0,), dtype=np.int64), label_set
@@ -1008,6 +1095,28 @@ def dataset_to_arrays(samples: List[Sample]) -> Tuple[np.ndarray, np.ndarray, Li
     X = np.vstack(X_list)
     y = np.array(y_list, dtype=np.int64)
     return X, y, label_set
+
+
+def compute_sample_weights(y: np.ndarray, *, smoothing: float = 0.0) -> np.ndarray:
+    """Return per-sample weights using inverse frequency with optional smoothing."""
+
+    if y.size == 0:
+        return np.zeros((0,), dtype=np.float32)
+
+    if smoothing < 0:
+        raise ValueError(f"smoothing must be non-negative, got {smoothing}")
+
+    labels = np.asarray(y, dtype=np.int64)
+    class_counts = np.bincount(labels)
+    adjusted = class_counts + float(smoothing)
+    inv_freq = np.where(adjusted > 0, 1.0 / adjusted, 0.0)
+
+    weights = inv_freq[labels].astype(np.float32)
+    weight_sum = float(np.sum(weights))
+    if weight_sum > 0:
+        weights *= float(len(weights)) / weight_sum
+
+    return weights
 
 
 def plan_train_validation_split(
@@ -1083,8 +1192,27 @@ def save_model(path: Path, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np
         pass
 
 
-def train_models(samples: List[Sample]) -> Tuple[Dict[str, dict], dict]:
+def _compute_accuracy(
+    X: np.ndarray, y: np.ndarray, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+) -> float:
+    if X.size == 0 or y.size == 0:
+        return 0.0
+
+    w1, b1, w2, b2 = weights
+    probs = _forward(X, w1, b1, w2, b2)
+    preds = np.argmax(probs, axis=1)
+    return float(np.mean(preds == y)) if len(y) else 0.0
+
+
+def train_models(
+    samples: List[Sample],
+    *,
+    config: Optional[TrainingConfig] = None,
+    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
+) -> Tuple[Dict[str, dict], dict]:
     """Train global and per-profile models. Returns (profiles_report, global_report)."""
+
+    resolved_config = config or TrainingConfig()
 
     global_report = {"samples": 0, "accuracy": 0.0, "labels": {}}
     profiles_report: Dict[str, dict] = {}
@@ -1092,22 +1220,55 @@ def train_models(samples: List[Sample]) -> Tuple[Dict[str, dict], dict]:
     if not samples:
         return profiles_report, global_report
 
-    X, y, labels = dataset_to_arrays(samples)
+    X, y, labels = dataset_to_arrays(
+        samples,
+        augmentations_per_sample=resolved_config.augmentations_per_sample,
+        rng=rng,
+    )
     if X.shape[0] == 0:
         return profiles_report, global_report
 
-    w1, b1, w2, b2 = train_mlp(X, y, len(labels))
+    train_indices, validation_indices = plan_train_validation_split(
+        X, validation_fraction=resolved_config.validation_fraction, rng=rng
+    )
 
-    z1 = relu(np.dot(X, w1) + b1)
-    z2 = np.dot(z1, w2) + b2
-    probs = softmax(z2)
-    preds = np.argmax(probs, axis=1)
-    acc = float(np.mean(preds == y)) if len(y) else 0.0
+    X_train, y_train = X[train_indices], y[train_indices]
+    X_val, y_val = X[validation_indices], y[validation_indices]
 
-    save_model(GLOBAL_MODEL_PATH, (w1, b1, w2, b2), labels)
+    train_weights = (
+        compute_sample_weights(y_train, smoothing=resolved_config.class_weight_smoothing)
+        if y_train.size
+        else None
+    )
+    val_weights = (
+        compute_sample_weights(y_val, smoothing=resolved_config.class_weight_smoothing)
+        if y_val.size
+        else None
+    )
+
+    trainer_config = replace(resolved_config, return_best_and_final=True)
+    snapshot = train_mlp(
+        X_train,
+        y_train,
+        len(labels),
+        config=trainer_config,
+        sample_weights=train_weights,
+        validation_data=(X_val, y_val) if X_val.size else None,
+        validation_sample_weights=val_weights,
+        rng=rng,
+    )
+
+    best_weights = snapshot.best_weights if isinstance(snapshot, TrainingSnapshots) else snapshot
+
+    train_acc = _compute_accuracy(X_train, y_train, best_weights)
+    val_acc = _compute_accuracy(X_val, y_val, best_weights)
+
+    save_model(GLOBAL_MODEL_PATH, best_weights, labels)
     global_report = {
         "samples": int(X.shape[0]),
-        "accuracy": acc,
+        "accuracy": train_acc,
+        "validationSamples": int(X_val.shape[0]),
+        "validationAccuracy": val_acc,
         "labels": {label: int(sum(1 for sample in samples if sample.label == label)) for label in labels},
         "modelPath": os.path.relpath(GLOBAL_MODEL_PATH, DATA_DIR),
     }
@@ -1117,20 +1278,55 @@ def train_models(samples: List[Sample]) -> Tuple[Dict[str, dict], dict]:
         subset = filter_samples_by_profile(samples, pid)
         if not subset:
             continue
-        Xp, yp, labels_p = dataset_to_arrays(subset)
+        Xp, yp, labels_p = dataset_to_arrays(
+            subset,
+            augmentations_per_sample=resolved_config.augmentations_per_sample,
+            rng=rng,
+        )
         if Xp.shape[0] == 0:
             continue
-        wp1, bp1, wp2, bp2 = train_mlp(Xp, yp, len(labels_p))
-        z1p = relu(np.dot(Xp, wp1) + bp1)
-        z2p = np.dot(z1p, wp2) + bp2
-        pro_p = softmax(z2p)
-        preds_p = np.argmax(pro_p, axis=1)
-        acc_p = float(np.mean(preds_p == yp)) if len(yp) else 0.0
+
+        train_idx_p, val_idx_p = plan_train_validation_split(
+            Xp, validation_fraction=resolved_config.validation_fraction, rng=rng
+        )
+
+        Xp_train, yp_train = Xp[train_idx_p], yp[train_idx_p]
+        Xp_val, yp_val = Xp[val_idx_p], yp[val_idx_p]
+
+        train_weights_p = (
+            compute_sample_weights(
+                yp_train, smoothing=resolved_config.class_weight_smoothing
+            )
+            if yp_train.size
+            else None
+        )
+        val_weights_p = (
+            compute_sample_weights(yp_val, smoothing=resolved_config.class_weight_smoothing)
+            if yp_val.size
+            else None
+        )
+
+        snapshot_p = train_mlp(
+            Xp_train,
+            yp_train,
+            len(labels_p),
+            config=trainer_config,
+            sample_weights=train_weights_p,
+            validation_data=(Xp_val, yp_val) if Xp_val.size else None,
+            validation_sample_weights=val_weights_p,
+            rng=rng,
+        )
+
+        weights_p = snapshot_p.best_weights if isinstance(snapshot_p, TrainingSnapshots) else snapshot_p
+        acc_p = _compute_accuracy(Xp_train, yp_train, weights_p)
+        val_acc_p = _compute_accuracy(Xp_val, yp_val, weights_p)
         profile_path = MODELS_DIR / pid / "amy_model.npz"
-        save_model(profile_path, (wp1, bp1, wp2, bp2), labels_p)
+        save_model(profile_path, weights_p, labels_p)
         profiles_report[pid] = {
             "samples": int(Xp.shape[0]),
             "accuracy": acc_p,
+            "validationSamples": int(Xp_val.shape[0]),
+            "validationAccuracy": val_acc_p,
             "labels": {label: int(sum(1 for sample in subset if sample.label == label)) for label in labels_p},
             "modelPath": os.path.relpath(profile_path, DATA_DIR),
         }
