@@ -8,7 +8,7 @@ Scope: All files under `webapp/`.
 
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite 5
-- **Testing**: Vitest + Testing Library + jsdom
+- **Testing**: Vitest + Testing Library + happy-dom
 - **Routing**: React Router DOM v6
 - **Linting**: ESLint with TypeScript and React plugins
 - **State Management**: React hooks and Context API
