@@ -22,8 +22,9 @@
           const query = redirectSegments.slice(1);
           const search = query.length > 0 ? `?${query.join('&')}` : '';
 
-          const basePath = l.pathname.endsWith('/') ? l.pathname.slice(0, -1) : l.pathname;
-          const newUrl = `${basePath}/${redirectPath}${search}${l.hash}`;
+          const url = new URL(redirectPath, l.href);
+          url.search = search;
+          const newUrl = url.pathname + url.search + l.hash;
 
           window.history.replaceState(null, null, newUrl);
         }
