@@ -54,7 +54,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   useEffect(() => {
     (window as any).__facingMode = facingMode;
     (window as any).__mirrorOverlay = isMirroredPreview;
-  }, [facingMode]);
+  }, [facingMode, isMirroredPreview]);
 
   const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks } = useGestureDetector(
     videoRef,

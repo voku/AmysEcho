@@ -42,7 +42,7 @@ export function GestureDemo() {
   useEffect(() => {
     (window as any).__facingMode = facingMode;
     (window as any).__mirrorOverlay = isMirroredPreview;
-  }, [facingMode]);
+  }, [facingMode, isMirroredPreview]);
 
   const {
     start,
