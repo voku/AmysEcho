@@ -146,7 +146,7 @@ export function Button({ label, onClick }: ButtonProps) {
 ### Testing
 - Write tests alongside source files (same directory)
 - Use Vitest + Testing Library for component tests
-- Use `happy-dom` or `jsdom` for DOM testing
+- Use `happy-dom` for DOM testing (as configured in `vite.config.ts`)
 - Mock only external boundaries (API calls, browser APIs)
 - Never mock internal application code
 
