@@ -54,7 +54,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   useEffect(() => {
     (window as any).__facingMode = facingMode;
     (window as any).__mirrorOverlay = isMirroredPreview;
-  }, [facingMode, isMirroredPreview]);
+  }, [facingMode]);
 
   const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks } = useGestureDetector(
     videoRef,
@@ -282,9 +282,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       return;
     }
 
-    const shouldMirrorPhoto = isMirroredPreview;
-
-    if (shouldMirrorPhoto) {
+    if (isMirroredPreview) {
       // Flip horizontally to match the mirrored selfie preview
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
@@ -329,9 +327,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       // localStorage might be disabled
     }
     
-    // Update window global for CameraManager compatibility
-    (window as any).__facingMode = newFacingMode;
-    (window as any).__mirrorOverlay = newFacingMode === 'user';
+    // Update component state, which will trigger an effect to update window globals
     setFacingMode(newFacingMode);
     
     // Stop and restart camera with new facing mode if it's currently running

@@ -42,7 +42,7 @@ export function GestureDemo() {
   useEffect(() => {
     (window as any).__facingMode = facingMode;
     (window as any).__mirrorOverlay = isMirroredPreview;
-  }, [facingMode, isMirroredPreview]);
+  }, [facingMode]);
 
   const {
     start,
@@ -102,9 +102,7 @@ export function GestureDemo() {
       // localStorage might be disabled
     }
     
-    // Update window global for CameraManager compatibility
-    (window as any).__facingMode = newFacingMode;
-    (window as any).__mirrorOverlay = newFacingMode === 'user';
+    // Update component state, which will trigger an effect to update window globals
     setFacingMode(newFacingMode);
     
     // Stop and restart camera with new facing mode if it's currently running
