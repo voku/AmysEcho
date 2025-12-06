@@ -572,9 +572,12 @@ p {
   height: 100%;
   object-fit: cover;
   background: var(--color-neutral);
+  z-index: var(--z-video);
+}
+
+.video.mirrored {
   /* Mirror the video horizontally to act as a selfie view for user-facing camera */
   transform: scaleX(-1);
-  z-index: var(--z-video);
 }
 
 .overlay {

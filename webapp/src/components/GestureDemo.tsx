@@ -32,11 +32,17 @@ export function GestureDemo() {
       return 'user';
     }
   });
+  const isMirroredPreview = facingMode === 'user';
   const [cameraSwitchFeedback, setCameraSwitchFeedback] = useState('');
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
   );
+
+  useEffect(() => {
+    (window as any).__facingMode = facingMode;
+    (window as any).__mirrorOverlay = isMirroredPreview;
+  }, [facingMode, isMirroredPreview]);
 
   const {
     start,
@@ -96,8 +102,7 @@ export function GestureDemo() {
       // localStorage might be disabled
     }
     
-    // Update window global for CameraManager compatibility
-    (window as any).__facingMode = newFacingMode;
+    // Update component state, which will trigger an effect to update window globals
     setFacingMode(newFacingMode);
     
     // Stop and restart camera with new facing mode if it's currently running
@@ -150,7 +155,13 @@ export function GestureDemo() {
       <div className="detector-shell">
         <div className="video-column">
           <div className="video-wrapper">
-            <video ref={videoRef} className="video" playsInline muted autoPlay />
+            <video
+              ref={videoRef}
+              className={`video${isMirroredPreview ? ' mirrored' : ''}`}
+              playsInline
+              muted
+              autoPlay
+            />
             <canvas
               ref={overlayRef}
               className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
