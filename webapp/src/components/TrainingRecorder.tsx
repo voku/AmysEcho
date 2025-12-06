@@ -40,6 +40,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       return 'user';
     }
   });
+  const isMirroredPreview = facingMode === 'user';
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
     ? ''
@@ -49,6 +50,11 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
   );
+
+  useEffect(() => {
+    (window as any).__facingMode = facingMode;
+    (window as any).__mirrorOverlay = isMirroredPreview;
+  }, [facingMode, isMirroredPreview]);
 
   const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks } = useGestureDetector(
     videoRef,
@@ -276,11 +282,15 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       return;
     }
 
-    // Flip horizontally to match the video preview (which is flipped with CSS)
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
+    const shouldMirrorPhoto = isMirroredPreview;
+
+    if (shouldMirrorPhoto) {
+      // Flip horizontally to match the mirrored selfie preview
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     // Reset transformation matrix
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
@@ -296,7 +306,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     setPhotoMode('captured');
     setNeedsStillConfirmation(false);
     setDetectorStartFeedback('Foto aufgenommen. Bestätige oder nimm ein neues auf.');
-  }, []);
+  }, [isMirroredPreview]);
 
   const handleConfirmPhoto = useCallback(() => {
     setPhotoMode('idle');
@@ -321,6 +331,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     
     // Update window global for CameraManager compatibility
     (window as any).__facingMode = newFacingMode;
+    (window as any).__mirrorOverlay = newFacingMode === 'user';
     setFacingMode(newFacingMode);
     
     // Stop and restart camera with new facing mode if it's currently running
@@ -445,7 +456,13 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       <div className="detector-shell">
         <div className="video-column">
           <div className="video-wrapper">
-            <video ref={videoRef} className="video" playsInline muted autoPlay />
+            <video
+              ref={videoRef}
+              className={`video${isMirroredPreview ? ' mirrored' : ''}`}
+              playsInline
+              muted
+              autoPlay
+            />
             <canvas
               ref={overlayRef}
               className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
