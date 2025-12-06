@@ -642,6 +642,12 @@ p {
   color: var(--color-inverse-text);
 }
 
+.hud-controls {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
 .notice-grid {
   display: grid;
   gap: var(--space-sm);
