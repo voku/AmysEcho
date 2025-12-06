@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
 import { CorrectionPanel } from './CorrectionPanel';
 import { useAppState } from '../hooks/useAppState';
@@ -24,6 +24,15 @@ export function GestureDemo() {
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [showCorrection, setShowCorrection] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>(() => {
+    try {
+      const persisted = window.localStorage.getItem('cameraFacingMode');
+      return persisted === 'user' || persisted === 'environment' ? persisted : 'user';
+    } catch (e) {
+      return 'user';
+    }
+  });
+  const [cameraSwitchFeedback, setCameraSwitchFeedback] = useState('');
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -76,6 +85,54 @@ export function GestureDemo() {
     console.log(`Korrektur: ${originalGesture} → ${correctedGesture}`);
     setShowCorrection(false);
   };
+
+  const handleSwitchCamera = useCallback(async () => {
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    
+    // Persist to localStorage
+    try {
+      window.localStorage.setItem('cameraFacingMode', newFacingMode);
+    } catch (e) {
+      // localStorage might be disabled
+    }
+    
+    // Update window global for CameraManager compatibility
+    (window as any).__facingMode = newFacingMode;
+    setFacingMode(newFacingMode);
+    
+    // Stop and restart camera with new facing mode if it's currently running
+    if (status === 'running') {
+      setCameraSwitchFeedback('Kamera wird gewechselt…');
+      
+      // Stop the current camera first
+      await stop();
+      
+      // Wait a bit for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Start with new facing mode
+      const started = await start();
+      if (started) {
+        setCameraSwitchFeedback(
+          newFacingMode === 'user' 
+            ? 'Frontkamera aktiviert' 
+            : 'Rückkamera aktiviert'
+        );
+        // Clear feedback after 3 seconds
+        setTimeout(() => setCameraSwitchFeedback(''), 3000);
+      } else {
+        setCameraSwitchFeedback('Kamera konnte nicht gewechselt werden. Bitte versuche es erneut.');
+        // Revert facing mode if switch failed
+        try {
+          window.localStorage.setItem('cameraFacingMode', facingMode);
+        } catch (e) {
+          // localStorage might be disabled
+        }
+        (window as any).__facingMode = facingMode;
+        setFacingMode(facingMode);
+      }
+    }
+  }, [facingMode, start, stop, status]);
 
   return (
     <section className="card gesture-demo">
@@ -130,20 +187,34 @@ export function GestureDemo() {
                   </p>
                   {modelNotice && <span className="pill info">{modelNotice}</span>}
                 </div>
-                <div className="toggle ghost-inline">
-                  <input
-                    id="overlay-toggle"
-                    type="checkbox"
-                    checked={showOverlay}
-                    onChange={(event) => setShowOverlay(event.target.checked)}
-                  />
-                  <label htmlFor="overlay-toggle">Overlay anzeigen</label>
+                <div className="hud-controls">
+                  <button
+                    className="ghost-inline"
+                    onClick={handleSwitchCamera}
+                    disabled={!cameraSupported}
+                    title={facingMode === 'user' ? 'Zur Rückkamera wechseln' : 'Zur Frontkamera wechseln'}
+                  >
+                    {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
+                  </button>
+                  <div className="toggle ghost-inline">
+                    <input
+                      id="overlay-toggle"
+                      type="checkbox"
+                      checked={showOverlay}
+                      onChange={(event) => setShowOverlay(event.target.checked)}
+                    />
+                    <label htmlFor="overlay-toggle">Overlay anzeigen</label>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="notice-grid" aria-live="polite">
+            {cameraSwitchFeedback && (
+              <div className="notice info compact">{cameraSwitchFeedback}</div>
+            )}
+
             {!cameraSupported && (
               <div className="notice warning compact">
                 <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam. Die Gestenlogik
