@@ -45,8 +45,8 @@ export const config: ServerConfig = {
   cloudApiUrl: getEnvVar('CLOUD_API_URL', 'http://localhost:4000/classify'),
   offlineModelPath: getEnvVar('OFFLINE_MODEL_PATH', path.join(SRC_DIR, 'offlineModel.json')),
   gestureTaskUrl: getEnvVar('GESTURE_TASK_URL', 'https://api.github.com/repos/sst/dgs/contents/tasks'),
-  jwtSecret: getEnvVar('JWT_SECRET', 'your-super-secret-jwt-key-change-in-production'),
-  jwtRefreshSecret: getEnvVar('JWT_REFRESH_SECRET', 'your-super-secret-refresh-key-change-in-production'),
+  jwtSecret: getEnvVar('JWT_SECRET'),
+  jwtRefreshSecret: getEnvVar('JWT_REFRESH_SECRET'),
 };
 
 export default config;

@@ -15,7 +15,6 @@ SERVER_DIR = Path(__file__).resolve().parents[1]
 BASELINE_PATH = SERVER_DIR / "data" / "amy_model.npz"
 DEFAULT_INPUT_SIZE = 126
 DEFAULT_HIDDEN_SIZE = 256
-ACCESS_TOKEN = ""
 
 
 def ensure_baseline_model() -> None:
@@ -71,8 +70,7 @@ def start_server():
     env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
     env.setdefault("PORT", PORT)
     env.setdefault("HOST", HOST)
-    global ACCESS_TOKEN
-    ACCESS_TOKEN = create_access_token(env["JWT_SECRET"])
+    access_token = create_access_token(env["JWT_SECRET"])
     subprocess.run(
         ["npm", "run", "build"],
         cwd=SERVER_DIR,
@@ -95,7 +93,7 @@ def start_server():
         try:
             req = urllib.request.Request(
                 f"{BASE_URL}/model-version",
-                headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
+                headers={"Authorization": f"Bearer {access_token}"},
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.getcode() == 200:
@@ -109,7 +107,7 @@ def start_server():
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time")
             time.sleep(0.5)
-    return proc
+    return proc, access_token
 
 
 def stop_server(proc):
@@ -122,18 +120,16 @@ def stop_server(proc):
 
 @pytest.fixture
 def running_server():
-    proc = start_server()
+    proc, access_token = start_server()
     try:
-        yield
+        yield access_token
     finally:
         stop_server(proc)
 
 
 @pytest.fixture
-def auth_header():
-    if not ACCESS_TOKEN:
-        raise RuntimeError("access token not initialized")
-    return {"Authorization": f"Bearer {ACCESS_TOKEN}"}
+def auth_header(running_server):
+    return {"Authorization": f"Bearer {running_server}"}
 
 
 @pytest.fixture

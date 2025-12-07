@@ -24,6 +24,9 @@ jest.mock('../src/services/logger.js', () => {
   };
 });
 
+process.env.JWT_SECRET ??= 'test-jwt-secret';
+process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret';
+
 const originalError = console.error;
 if (process.env.TEST_LOGS_VERBOSE !== '1') {
   console.error = (...args: any[]) => {

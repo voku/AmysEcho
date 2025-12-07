@@ -26,14 +26,20 @@ This guide explains how to deploy both the mobile app and the backend server.
    npm run build --prefix server
    ```
 2. MediaPipe runtime and model are loaded by the mobile app from public CDNs; no server download step is required.
-3. Start the server (ensure `JWT_SECRET`/`JWT_REFRESH_SECRET` are set in your environment or `.env` file):
+3. Start the server (set `JWT_SECRET`/`JWT_REFRESH_SECRET` in your environment or `.env` file—startup fails if they are missing):
    ```bash
    node server/dist/server.js
    ```
-4. Reverse proxy or containerize the service as needed for your environment.
+4. Create a caregiver account on first boot (if needed):
+   ```bash
+   curl -X POST http://<server-host>:5000/api/v1/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{"username":"your-user","password":"your-password"}'
+   ```
+5. Reverse proxy or containerize the service as needed for your environment.
 
 ## Updating Models
-- Trigger a new training run when fresh samples are available. Obtain an access token via `/api/v1/auth/login` first:
+- Trigger a new training run when fresh samples are available. Obtain an access token via `/api/v1/auth/login` first and pass it as a Bearer token to `/train-model`:
   ```bash
   ACCESS_TOKEN=$(curl -s -X POST http://<server-host>:5000/api/v1/auth/login \
     -H "Content-Type: application/json" \
