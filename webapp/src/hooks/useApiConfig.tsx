@@ -9,7 +9,7 @@ const DEFAULT_PROD_API_BASE = 'https://amysecho.moelleken.org';
 const DEFAULT_NON_PROD_API_BASE = 'http://localhost:5000';
 
 export function resolveFallbackApiBase(
-  env: Pick<ImportMetaEnv, 'MODE' | 'VITE_API_URL'> = import.meta.env,
+  env: Pick<ImportMetaEnv, 'MODE'> & { VITE_API_URL?: string } = import.meta.env,
 ): string {
   const envBase = env['VITE_API_URL'] as string | undefined;
   if (envBase) return envBase;

@@ -57,6 +57,7 @@ jobs:
         working-directory: webapp
         env:
           VITE_BASE_PATH: /AmysEcho/
+          VITE_API_URL: https://amysecho.moelleken.org
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
