@@ -89,7 +89,7 @@ export function ApiConfigBar() {
         <div>
           <h2>API-Konfiguration</h2>
           <p className="muted small" role="status">
-            Aktuelle Backend-URL: {apiBaseUrl || 'keine URL hinterlegt'}
+            Aktuelle Backend-URL: {apiBaseUrl}
           </p>
         </div>
         <div className="status-chip" data-state={apiBaseUrl ? 'idle' : 'error'}>
