@@ -535,6 +535,163 @@ server {
 }
 ```
 
+#### Using nginx via ISPConfig
+
+If your virtual server is managed through ISPConfig, you can keep ISPConfig in place and still reuse the standard nginx reverse proxy shown above. The goal is to forward HTTPS traffic from the ISPConfig-managed vhost to the Amy's Echo Node.js service on `127.0.0.1:5000` while preserving Let's Encrypt handling.
+
+1. **Create or reuse your site in ISPConfig** and enable Let's Encrypt for the domain. ISPConfig will manage certificate renewal automatically; the `ssl_certificate` paths in its generated vhost already point to the right files.
+2. **Open the "Apache/Nginx Directives" (or custom nginx directives) field** for the site and replace the location section with a reverse proxy to the Node.js service:
+
+   ```nginx
+   location / {
+       proxy_pass http://127.0.0.1:5000;
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       client_max_body_size 100m;
+   }
+   ```
+
+3. **Keep the existing `/.well-known/acme-challenge` block** that ISPConfig generates so certificate renewals continue to work. Do not proxy those requests.
+4. **Reload nginx** from ISPConfig or via SSH after saving the directives:
+
+   ```bash
+   sudo systemctl reload nginx
+   ```
+
+5. **Health check:** verify both the direct service and the proxied endpoint:
+
+   ```bash
+   curl http://127.0.0.1:5000/health
+   curl https://your-domain/health
+   ```
+
+If you prefer to bypass ISPConfig entirely, you can disable its vhost for the domain and drop in the standalone nginx config above under `/etc/nginx/sites-available/amysecho`.
+
+### Step-by-step ISPConfig-managed setup (no Docker)
+
+The commands below match the directory layout shown in the provided context (`/var/www/amysecho.moelleken.org/home/voku_amysecho`). Replace user/group names if your ISPConfig instance uses different IDs.
+
+1. **Install prerequisites (Node.js 20, Python, build tools):**
+   ```bash
+   sudo apt update
+   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+   sudo apt install -y nodejs python3 python3-pip python3-venv git build-essential
+   node -v   # verify v20+
+   python3 --version
+   ```
+
+2. **Clone the repository into your ISPConfig user home:**
+   ```bash
+   cd /var/www/amysecho.moelleken.org/home/voku_amysecho
+   git clone https://github.com/voku/AmysEcho.git
+   cd AmysEcho/server
+   ```
+
+3. **Install server dependencies and build (use a venv to avoid PEP 668 errors):**
+   ```bash
+   # Install full deps so TypeScript (tsc) is available for the build
+   npm ci
+
+   # Create and enter a local virtual environment for Python deps
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   deactivate
+
+   npm run build
+   # (Optional) trim dev dependencies after the build if you want a leaner runtime
+   npm ci --omit=dev
+   mkdir -p data/models/global data/uploads
+   ```
+
+4. **Create the environment file (`server/.env`):**
+   ```bash
+   cat > .env <<'EOF'
+   NODE_ENV=production
+   PORT=5000
+   API_TOKEN=replace-with-strong-api-token
+   JWT_SECRET=replace-with-long-secret
+   JWT_REFRESH_SECRET=replace-with-long-refresh-secret
+   BACKUP_SECRET=replace-with-backup-secret
+   API_LIMIT=120
+   EOF
+   chmod 600 .env
+   chown web7:client1 .env
+   ```
+
+5. **Create a systemd service to run as the ISPConfig web user (e.g., `web7`):**
+   ```bash
+   sudo tee /etc/systemd/system/amysecho.service > /dev/null <<'EOF'
+   [Unit]
+   Description=Amy's Echo Server
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=web7
+   Group=client1
+   WorkingDirectory=/var/www/amysecho.moelleken.org/home/voku_amysecho/AmysEcho/server
+   EnvironmentFile=/var/www/amysecho.moelleken.org/home/voku_amysecho/AmysEcho/server/.env
+   ExecStart=/usr/bin/node /var/www/amysecho.moelleken.org/home/voku_amysecho/AmysEcho/server/dist/server.js
+   Restart=always
+   RestartSec=10
+   StandardOutput=journal
+   StandardError=journal
+   SyslogIdentifier=amysecho
+   NoNewPrivileges=true
+   PrivateTmp=true
+   ProtectSystem=strict
+   ProtectHome=true
+   ReadWritePaths=/var/www/amysecho.moelleken.org/home/voku_amysecho/AmysEcho/server/data /var/www/amysecho.moelleken.org/home/voku_amysecho/AmysEcho/server/db.json
+
+   [Install]
+   WantedBy=multi-user.target
+   EOF
+
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now amysecho
+   sudo systemctl status amysecho
+   ```
+
+6. **Update the ISPConfig nginx vhost to proxy to the Node.js service:** add these locations inside the existing server block (after the ACME section, keep the `/.well-known/acme-challenge` block untouched):
+   ```nginx
+   location /health {
+       proxy_pass http://127.0.0.1:5000/health;
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+   }
+
+   location / {
+       proxy_pass http://127.0.0.1:5000;
+       proxy_http_version 1.1;
+       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Connection "upgrade";
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       client_max_body_size 100m;
+   }
+   ```
+   Reload nginx via ISPConfig or:
+   ```bash
+   sudo systemctl reload nginx
+   ```
+
+7. **Verify service and proxy:**
+   ```bash
+   curl http://127.0.0.1:5000/health        # direct service
+   curl https://amysecho.moelleken.org/health # through nginx/ISPConfig
+   sudo journalctl -u amysecho -f            # tail service logs
+   ```
+
+With these steps, your ISPConfig-managed server runs the Amy's Echo Node.js service under systemd while nginx proxies HTTPS traffic to it.
+
 #### Step 3: Enable and Test Configuration
 
 ```bash
