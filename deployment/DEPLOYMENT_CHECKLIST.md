@@ -23,7 +23,6 @@ Use this checklist to ensure a complete and secure server deployment.
 - [ ] Repository cloned to server
 - [ ] `.env` file created from `.env.example`
 - [ ] All secrets changed from defaults:
-  - [ ] `API_TOKEN` (32+ character random string)
   - [ ] `JWT_SECRET` (32+ character random string)
   - [ ] `JWT_REFRESH_SECRET` (32+ character random string)
   - [ ] `BACKUP_SECRET` (32+ character random string)

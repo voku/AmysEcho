@@ -5,10 +5,9 @@ cd "$(dirname "$0")/../server"
 
 # Defaults
 export PORT="${PORT:-5000}"
-export API_TOKEN="${API_TOKEN:-demo-token}"
 
 echo "=== Amy's Echo Server ==="
-echo "PORT=$PORT  API_TOKEN set (${#API_TOKEN} chars)"
+echo "PORT=$PORT"
 # Warn if no trained model present
 if [ ! -f data/models/global/amy_model.npz ]; then
   echo "Warning: server/data/models/global/amy_model.npz missing; /latest-mlp-model will 404 until a model is trained or placed at that path"

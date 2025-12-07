@@ -26,7 +26,6 @@ cd AmysEcho
 cp .env.example .env
 
 # Generate secure secrets
-echo "API_TOKEN=$(openssl rand -hex 32)" >> .env
 echo "JWT_SECRET=$(openssl rand -hex 32)" >> .env
 echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)" >> .env
 echo "BACKUP_SECRET=$(openssl rand -hex 32)" >> .env
@@ -73,6 +72,30 @@ The server is now running at `http://localhost:5000`. You can:
    ```
 
 2. Access the webapp at `http://localhost:5173`
+
+### Option A2: Authenticate against the backend
+
+Use these REST calls to create users and manage sessions while developing locally:
+
+```bash
+# Register a caregiver (stores the user in db.json)
+curl -X POST http://localhost:5000/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"amy","password":"super-secure-password"}'
+
+# Log in an existing user and get access/refresh tokens
+curl -X POST http://localhost:5000/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"amy","password":"super-secure-password"}'
+
+# Refresh tokens (use the refreshToken from the login response)
+curl -X POST http://localhost:5000/api/v1/auth/refresh \
+  -H 'Content-Type: application/json' \
+  -d '{"refreshToken":"<refresh_token_here>"}'
+
+# Call protected routes with the issued access token
+curl -H 'Authorization: Bearer <access_token>' http://localhost:5000/api/v1/symbols
+```
 
 ### Option B: Setup HTTPS with nginx
 
@@ -206,7 +229,6 @@ If you prefer not to use Docker, see the complete manual deployment instructions
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `5000` | Server port |
-| `API_TOKEN` | `demo-token` | Legacy API token (change in production!) |
 | `JWT_SECRET` | (insecure) | JWT signing secret (change in production!) |
 | `JWT_REFRESH_SECRET` | (insecure) | Refresh token secret (change in production!) |
 | `NODE_ENV` | `development` | Environment mode |

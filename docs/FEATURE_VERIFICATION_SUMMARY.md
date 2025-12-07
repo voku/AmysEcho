@@ -248,14 +248,12 @@ Comprehensive documentation has been created:
 ```bash
 # Environment variables
 EXPO_PUBLIC_API_URL=http://localhost:5000
-EXPO_PUBLIC_API_TOKEN=demo-token
 ```
 
 ### Server Configuration
 ```bash
 # Environment variables
 PORT=5000
-API_TOKEN=demo-token
 MLP_DATA_DIR=./data
 
 # Training parameters

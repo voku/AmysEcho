@@ -1,5 +1,9 @@
 import os
 import socket
+import base64
+import hashlib
+import hmac
+import json
 import subprocess
 import time
 import urllib.request
@@ -13,6 +17,7 @@ SERVER_DIR = Path(__file__).resolve().parents[1]
 BASELINE_PATH = SERVER_DIR / "data" / "amy_model.npz"
 DEFAULT_INPUT_SIZE = 126
 DEFAULT_HIDDEN_SIZE = 256
+ACCESS_TOKEN = ""
 
 
 def ensure_baseline_model() -> None:
@@ -42,6 +47,26 @@ def _get_free_port() -> int:
         return s.getsockname()[1]
 
 
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def create_access_token(secret: str, *, user_id: str = "test-user") -> str:
+    header = {"alg": "HS256", "typ": "JWT"}
+    now = int(time.time())
+    payload = {
+        "userId": user_id,
+        "username": user_id,
+        "role": "caregiver",
+        "iat": now,
+        "exp": now + 15 * 60,
+    }
+    signing_input = f"{_b64url(json.dumps(header, separators=(',', ':')).encode())}."
+    signing_input += _b64url(json.dumps(payload, separators=(',', ':')).encode())
+    signature = hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest()
+    return f"{signing_input}.{_b64url(signature)}"
+
+
 PORT = os.environ.get("PORT") or str(_get_free_port())
 HOST = "127.0.0.1"
 BASE_URL = f"http://{HOST}:{PORT}"
@@ -51,9 +76,12 @@ def start_server():
     ensure_baseline_model()
 
     env = os.environ.copy()
-    env.setdefault("API_TOKEN", "testtoken")
+    env.setdefault("JWT_SECRET", "test-jwt-secret")
+    env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
     env.setdefault("PORT", PORT)
     env.setdefault("HOST", HOST)
+    global ACCESS_TOKEN
+    ACCESS_TOKEN = create_access_token(env["JWT_SECRET"])
     subprocess.run(
         ["npm", "run", "build"],
         cwd=SERVER_DIR,
@@ -76,14 +104,12 @@ def start_server():
         try:
             req = urllib.request.Request(
                 f"{BASE_URL}/model-version",
-                headers={"Authorization": f"Bearer {env.get('API_TOKEN', 'testtoken')}"},
+                headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.getcode() == 200:
                     break
         except urllib.error.HTTPError as err:
-            if err.code == 401:
-                raise RuntimeError("server rejected API token during startup readiness check") from err
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time") from err
             time.sleep(0.5)
@@ -110,6 +136,13 @@ def running_server():
         yield
     finally:
         stop_server(proc)
+
+
+@pytest.fixture
+def auth_header():
+    if not ACCESS_TOKEN:
+        raise RuntimeError("access token not initialized")
+    return {"Authorization": f"Bearer {ACCESS_TOKEN}"}
 
 
 @pytest.fixture

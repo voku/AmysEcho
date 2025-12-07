@@ -100,6 +100,43 @@ describe('auth routes', () => {
     expect(response.body.error).toBe('Ungültige Zugangsdaten.');
   });
 
+  it('refreshes tokens for a valid refresh token', async () => {
+    const registration = await request(app)
+      .post('/api/v1/auth/register')
+      .send({ username: 'amy', password: 'super-secure-password' })
+      .expect(201);
+
+    const refreshResponse = await request(app)
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: registration.body.tokens.refreshToken })
+      .expect(200);
+
+    expect(refreshResponse.body.tokens?.accessToken).toBeDefined();
+    expect(refreshResponse.body.user).toEqual(registration.body.user);
+  });
+
+  it('rejects refresh when the user no longer exists', async () => {
+    const registration = await request(app)
+      .post('/api/v1/auth/register')
+      .send({ username: 'amy', password: 'super-secure-password' })
+      .expect(201);
+
+    db.users = [];
+
+    const response = await request(app)
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: registration.body.tokens.refreshToken })
+      .expect(401);
+
+    expect(response.body.error).toBe('Sitzung abgelaufen. Bitte neu anmelden.');
+  });
+
+  it('rejects malformed refresh payloads', async () => {
+    const response = await request(app).post('/api/v1/auth/refresh').send({}).expect(400);
+
+    expect(response.body.error).toBe('Aktualisierungs-Token wird benötigt.');
+  });
+
   it('rejects malformed credential payloads', async () => {
     const missingCredentials = await request(app).post('/api/v1/auth/register').send({}).expect(400);
     expect(missingCredentials.body.error).toBe('Nutzername und Passwort werden benötigt.');

@@ -70,19 +70,20 @@ export class AuthService {
     }
   }
 
-  static refreshAccessToken(refreshToken: string): AuthTokens | null {
+  static refreshTokens(
+    refreshToken: string,
+    getUserById: (id: string) => StoredUser | undefined,
+  ): { user: User; tokens: AuthTokens } | null {
     const payload = this.verifyRefreshToken(refreshToken);
     if (!payload) return null;
 
-    // In a real app, you'd fetch the user from DB here
-    // For now, we'll create a basic user object
-    const user: User = {
-      id: payload.userId,
-      username: 'user', // This should come from DB
-      role: 'caregiver', // This should come from DB
-    };
+    const storedUser = getUserById(payload.userId);
+    if (!storedUser) return null;
 
-    return this.generateTokens(user);
+    const user = this.toUser(storedUser);
+    const tokens = this.generateTokens(user);
+
+    return { user, tokens };
   }
 
   static toUser(stored: StoredUser): User {

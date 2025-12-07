@@ -14,11 +14,11 @@ def get_global_mlp_model_path(data_dir: Path) -> Path:
     return data_dir / "models" / "global" / "amy_model.npz"
 
 
-def fetch_latest_mlp_model(base_url, profile_id=None, extra_headers=None):
+def fetch_latest_mlp_model(base_url, profile_id=None, extra_headers=None, auth_header=None):
     url = f"{base_url}/latest-mlp-model"
     if profile_id:
         url += f"?profileId={profile_id}"
-    headers = {"Authorization": "Bearer testtoken"}
+    headers = auth_header.copy() if auth_header else {}
     if extra_headers:
         headers.update(extra_headers)
     req = urllib.request.Request(url, headers=headers)
@@ -88,25 +88,25 @@ def global_model_file():
 
 def test_latest_mlp_model_requires_authorization(model_file, running_server, base_url):
     status = fetch_latest_mlp_model(base_url, profile_id="p1")
-    assert status == 403
+    assert status == 401
 
-def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_server, base_url):
-    status = fetch_latest_mlp_model(base_url)
+def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_server, base_url, auth_header):
+    status = fetch_latest_mlp_model(base_url, auth_header=auth_header)
     assert status == 200
     seeded_path = get_global_mlp_model_path(missing_data_dir)
     assert seeded_path.exists()
     assert seeded_path.stat().st_size > 0
 
-def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_server, base_url):
+def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_server, base_url, auth_header):
     status = fetch_latest_mlp_model(
-        base_url, profile_id="p1", extra_headers={"x-profile-id": "p1"}
+        base_url, profile_id="p1", extra_headers={"x-profile-id": "p1"}, auth_header=auth_header
     )
     assert status == 200
 
 
-def test_latest_mlp_model_sets_headers(model_file, running_server, base_url):
+def test_latest_mlp_model_sets_headers(model_file, running_server, base_url, auth_header):
     url = f"{base_url}/latest-mlp-model?profileId=p1"
-    headers = {"Authorization": "Bearer testtoken", "x-profile-id": "p1"}
+    headers = {**auth_header, "x-profile-id": "p1"}
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=5) as resp:
         assert resp.getcode() == 200
@@ -122,9 +122,9 @@ def test_latest_mlp_model_sets_headers(model_file, running_server, base_url):
         assert "CDN-Cache-Control" not in resp.headers
 
 
-def test_latest_mlp_model_public_caching(global_model_file, running_server, base_url):
+def test_latest_mlp_model_public_caching(global_model_file, running_server, base_url, auth_header):
     url = f"{base_url}/latest-mlp-model"
-    headers = {"Authorization": "Bearer testtoken"}
+    headers = auth_header
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=5) as resp:
         assert resp.getcode() == 200

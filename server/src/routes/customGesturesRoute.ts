@@ -2,7 +2,7 @@ import type { Express, Request, Response } from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import { legacyAuth } from '../middleware/auth.js';
+import { auth } from '../middleware/auth.js';
 import { ensureDataDir, TRAINING_DATASETS_DIR } from '../constants/modelPaths.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
@@ -77,7 +77,7 @@ function normalizeLabel(label: string): string {
 }
 
 export function registerCustomGesturesRoute(app: Express): void {
-  app.get('/api/v1/dgs/gestures', legacyAuth, async (req: Request, res: Response) => {
+  app.get('/api/v1/dgs/gestures', auth, async (req: Request, res: Response) => {
     try {
       const store = await readStore();
       const { profileId } = req.query;
@@ -96,7 +96,7 @@ export function registerCustomGesturesRoute(app: Express): void {
     }
   });
 
-  app.post('/api/v1/dgs/gestures', legacyAuth, async (req: Request, res: Response) => {
+  app.post('/api/v1/dgs/gestures', auth, async (req: Request, res: Response) => {
     const parsed = GestureRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'invalid gesture payload', details: parsed.error.flatten() });

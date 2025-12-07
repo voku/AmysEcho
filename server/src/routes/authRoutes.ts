@@ -2,7 +2,7 @@ import express from 'express';
 import { randomUUID } from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { addUser, Database, findUserByUsername, saveDatabase } from '../db.js';
+import { addUser, Database, findUserById, findUserByUsername, saveDatabase } from '../db.js';
 import { AuthService } from '../services/authService.js';
 import logger from '../services/logger.js';
 import { withFileLock } from '../utils/fileLock.js';
@@ -19,6 +19,10 @@ const CredentialsSchema = z.object({
 });
 
 const normalizeUsername = (username: string) => username.toLowerCase();
+
+const RefreshSchema = z.object({
+  refreshToken: z.string().min(1),
+});
 
 export const createAuthLimiter = () =>
   rateLimit({
@@ -102,5 +106,23 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
       logger.error('Login failed', { error: error?.message });
       return res.status(500).json({ error: 'Anmeldung fehlgeschlagen.' });
     }
+  });
+
+  app.post('/api/v1/auth/refresh', async (req, res) => {
+    const parsed = RefreshSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Aktualisierungs-Token wird benötigt.' });
+    }
+
+    const refreshed = AuthService.refreshTokens(parsed.data.refreshToken, (userId) =>
+      findUserById(deps.db, userId),
+    );
+
+    if (!refreshed) {
+      return res.status(401).json({ error: 'Sitzung abgelaufen. Bitte neu anmelden.' });
+    }
+
+    logger.info('Tokens refreshed', { userId: refreshed.user.id, username: refreshed.user.username });
+    return res.json(refreshed);
   });
 }

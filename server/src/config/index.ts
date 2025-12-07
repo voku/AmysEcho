@@ -3,7 +3,6 @@ import { SERVER_DIR, SRC_DIR } from '../constants/modelPaths.js';
 
 export interface ServerConfig {
   port: number;
-  apiToken: string;
   nodeEnv: string;
   apiLimit: number;
   mlpScript: string;
@@ -37,7 +36,6 @@ function getEnvVarAsNumber(name: string, defaultValue: number): number {
 
 export const config: ServerConfig = {
   port: getEnvVarAsNumber('PORT', 5000),
-  apiToken: getEnvVar('API_TOKEN', 'demo-token'),
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
   apiLimit: getEnvVarAsNumber('API_LIMIT', 120),
   mlpScript: getEnvVar('MLP_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),

@@ -3,39 +3,47 @@ import os from 'os';
 import path from 'path';
 import express, { type Express } from 'express';
 import request from 'supertest';
+import { AuthService } from '../src/services/authService.js';
 
 describe('custom gestures route', () => {
   let app: Express;
   let dataDir: string;
   let gesturesPath: string;
+  let accessToken: string;
 
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-gestures-'));
     process.env.AMY_ECHO_DATA_DIR = dataDir;
-    process.env.API_TOKEN = 'secret-token';
+    jest.resetModules();
+    accessToken = AuthService.generateTokens({
+      id: 'tester',
+      username: 'tester',
+      role: 'caregiver',
+    }).accessToken;
     app = express();
     app.use(express.json());
     const mod = await import('../src/routes/customGesturesRoute.js');
     const registerCustomGesturesRoute = mod.registerCustomGesturesRoute;
+    const { TRAINING_DATASETS_DIR } = await import('../src/constants/modelPaths.js');
     registerCustomGesturesRoute(app);
-    gesturesPath = path.join(dataDir, 'datasets', 'custom_gestures.json');
+    gesturesPath = path.join(TRAINING_DATASETS_DIR, 'custom_gestures.json');
   });
 
   afterAll(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     delete process.env.AMY_ECHO_DATA_DIR;
-    delete process.env.API_TOKEN;
   });
 
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true }).catch(() => {});
     await fs.mkdir(dataDir, { recursive: true });
+    await fs.rm(path.dirname(gesturesPath), { recursive: true, force: true }).catch(() => {});
   });
 
   it('stores a new custom gesture and persists metadata', async () => {
     const response = await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' })
       .expect(201);
 
@@ -51,13 +59,13 @@ describe('custom gestures route', () => {
   it('updates an existing gesture instead of duplicating entries', async () => {
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' })
       .expect(201);
 
     const response = await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'hilfe', label: 'Hilfe jetzt', emoji: null })
       .expect(200);
 
@@ -72,13 +80,13 @@ describe('custom gestures route', () => {
   it('lists stored gestures via GET with profileId filter', async () => {
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'hilfe', label: 'Hilfe zeigen', profileId: 'profile-test' })
       .expect(201);
 
     const response = await request(app)
       .get('/api/v1/dgs/gestures?profileId=profile-test')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(Array.isArray(response.body.gestures)).toBe(true);
@@ -90,7 +98,7 @@ describe('custom gestures route', () => {
     // Test German umlauts converted to ASCII
     const response1 = await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'aerger_zeigen', label: 'Ärger zeigen', emoji: '😠' })
       .expect(201);
 
@@ -99,7 +107,7 @@ describe('custom gestures route', () => {
     // Test ß converted to ss
     const response2 = await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'fuss_wackeln', label: 'Fuß wackeln', emoji: '🦶' })
       .expect(201);
 
@@ -115,7 +123,7 @@ describe('custom gestures route', () => {
     // This should fail because the ID contains ä (not slugified)
     const response = await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'ärger_zeigen', label: 'Ärger zeigen', emoji: '😠' })
       .expect(400);
 
@@ -126,14 +134,14 @@ describe('custom gestures route', () => {
     // Add gesture for profile A
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'mein_zeichen', label: 'Mein Zeichen', profileId: 'profile-a', emoji: '👋' })
       .expect(201);
 
     // Add gesture for profile B
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'dein_zeichen', label: 'Dein Zeichen', profileId: 'profile-b', emoji: '🤚' })
       .expect(201);
 
@@ -149,26 +157,26 @@ describe('custom gestures route', () => {
     // Add gestures for different profiles
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'gesture_a', label: 'Gesture A', profileId: 'profile-a' })
       .expect(201);
 
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'gesture_b', label: 'Gesture B', profileId: 'profile-b' })
       .expect(201);
 
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'gesture_shared', label: 'Shared Gesture' })
       .expect(201);
 
     // Get all gestures without profileId - should return empty array for data isolation
     const allResponse = await request(app)
       .get('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(allResponse.body.gestures).toHaveLength(0);
@@ -176,7 +184,7 @@ describe('custom gestures route', () => {
     // Get gestures for profile A
     const profileAResponse = await request(app)
       .get('/api/v1/dgs/gestures?profileId=profile-a')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(profileAResponse.body.gestures).toHaveLength(1);
@@ -185,7 +193,7 @@ describe('custom gestures route', () => {
     // Get gestures for profile B
     const profileBResponse = await request(app)
       .get('/api/v1/dgs/gestures?profileId=profile-b')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(profileBResponse.body.gestures).toHaveLength(1);
@@ -196,14 +204,14 @@ describe('custom gestures route', () => {
     // Profile A creates "help" gesture
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'help', label: 'Help from A', profileId: 'profile-a' })
       .expect(201);
 
     // Profile B creates "help" gesture (same ID, different profile)
     await request(app)
       .post('/api/v1/dgs/gestures')
-      .set('Authorization', 'Bearer secret-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'help', label: 'Help from B', profileId: 'profile-b' })
       .expect(201);
 

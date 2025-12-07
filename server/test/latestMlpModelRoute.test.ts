@@ -48,7 +48,6 @@ describe('GET /latest-mlp-model', () => {
   let dataDir: string;
   let app: Express;
   let originalDataDir: string | undefined;
-  let originalToken: string | undefined;
   let modelPaths: typeof import('../src/constants/modelPaths.js');
   let baselinePath: string;
   async function expectValidModelResponse(response: request.Response) {
@@ -103,9 +102,7 @@ describe('GET /latest-mlp-model', () => {
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-mlp-endpoint-'));
     originalDataDir = process.env.AMY_ECHO_DATA_DIR;
-    originalToken = process.env.API_TOKEN;
     process.env.AMY_ECHO_DATA_DIR = dataDir;
-    process.env.API_TOKEN = 'mlp-endpoint-token';
     jest.resetModules();
 
     const [
@@ -160,11 +157,6 @@ describe('GET /latest-mlp-model', () => {
       process.env.AMY_ECHO_DATA_DIR = originalDataDir;
     } else {
       delete process.env.AMY_ECHO_DATA_DIR;
-    }
-    if (originalToken) {
-      process.env.API_TOKEN = originalToken;
-    } else {
-      delete process.env.API_TOKEN;
     }
   });
 

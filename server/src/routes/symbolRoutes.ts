@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
-import { legacyAuth } from '../middleware/auth.js';
+import { auth } from '../middleware/auth.js';
 import type { Database } from '../db.js';
 import { saveDatabase } from '../db.js';
 import { DB_FILE_PATH } from '../constants/dbPaths.js';
@@ -68,7 +68,7 @@ export function registerSymbolRoutes(app: Express, db: Database): void {
     res.status(result.created ? 201 : 200).json(toClientSymbol(result.symbol));
   };
 
-  app.post('/api/v1/symbols', legacyAuth, async (req: Request, res: Response) => {
+  app.post('/api/v1/symbols', auth, async (req: Request, res: Response) => {
     const normalized = normalizeSymbolPayload(req.body);
     if (!normalized.success) {
       res.status(400).json({ error: 'Ungültige Symbol-Daten', details: normalized.error });
@@ -96,7 +96,7 @@ export function registerSymbolRoutes(app: Express, db: Database): void {
     }, res);
   });
 
-  app.put('/api/v1/symbols/:id', legacyAuth, async (req: Request, res: Response) => {
+  app.put('/api/v1/symbols/:id', auth, async (req: Request, res: Response) => {
     const normalized = normalizeSymbolPayload({ ...req.body, id: req.params.id });
     if (!normalized.success) {
       res.status(400).json({ error: 'Ungültige Symbol-Daten', details: normalized.error });
@@ -117,7 +117,7 @@ export function registerSymbolRoutes(app: Express, db: Database): void {
     }, res);
   });
 
-  app.delete('/api/v1/symbols/:id', legacyAuth, async (req: Request, res: Response) => {
+  app.delete('/api/v1/symbols/:id', auth, async (req: Request, res: Response) => {
     const targetId = req.params.id;
     const existing = db.symbols.find((s) => s.id === targetId);
     if (!existing) {

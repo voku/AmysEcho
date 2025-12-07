@@ -1,6 +1,5 @@
 import express from 'express';
 import { AuthService, User } from '../services/authService.js';
-import config from '../config/index.js';
 
 declare global {
   namespace Express {
@@ -41,22 +40,4 @@ export function optionalAuth(req: express.Request, res: express.Response, next: 
 
   next();
 }
-
-// Legacy auth for backwards compatibility (can be removed later)
-export function legacyAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const header = req.headers.authorization;
-  if (header === `Bearer ${config.apiToken}`) {
-    // Create a legacy user for backwards compatibility
-    req.user = {
-      id: 'legacy-user',
-      username: 'legacy',
-      role: 'caregiver',
-    };
-    return next();
-  }
-
-  // If not legacy token, try JWT
-  return auth(req, res, next);
-}
-
 export default auth;

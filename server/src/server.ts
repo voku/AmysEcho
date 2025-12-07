@@ -31,7 +31,7 @@ import {
   getProfileData,
   deleteProfileData,
 } from './db.js';
-import { legacyAuth } from './middleware/auth.js';
+import { auth } from './middleware/auth.js';
 import {
   seedBaselineModel,
   writeMinimalMlpModel,
@@ -267,7 +267,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
     dbInstance = db;
     app.locals.dbInstance = db;
     registerGdprRoutes(app, {
-      authMiddleware: legacyAuth,
+      authMiddleware: auth,
       db,
       dbFilePath: DB_FILE_PATH,
       getProfileData,
@@ -463,8 +463,8 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
   logTraining,
   isProfileAuthorized,
 });
-app.get('/latest-mlp-model', legacyAuth, modelMetadataLimiter, latestMlpModelHandler);
-app.get('/api/v1/dgs/mlp-model', legacyAuth, modelMetadataLimiter, latestMlpModelHandler);
+app.get('/latest-mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
+app.get('/api/v1/dgs/mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
 
 registerTrainingBundleRoute(app, genId, {
   triggerTrainingJob: ({ bundleId }) => {
@@ -484,7 +484,7 @@ registerTrainingBundleRoute(app, genId, {
 registerCustomGesturesRoute(app);
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
-app.post('/api/v1/dgs/samples', legacyAuth, async (req: Request, res: Response) => {
+app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
   try {
     const Body = z.object({
       label: z.string().min(1),
@@ -533,7 +533,7 @@ app.post('/api/v1/dgs/samples', legacyAuth, async (req: Request, res: Response) 
 });
 
 // Crash report ingestion
-app.post('/api/crash-reports', legacyAuth, async (req: Request, res: Response) => {
+app.post('/api/crash-reports', auth, async (req: Request, res: Response) => {
   try {
     const payload = Array.isArray(req.body) ? req.body : [req.body];
     const valid: CrashReport[] = [];
@@ -586,7 +586,7 @@ const LandmarkTupleSchema = z
     },
   );
 
-app.post('/api/corrections', legacyAuth, async (req: Request, res: Response) => {
+app.post('/api/corrections', auth, async (req: Request, res: Response) => {
   const parsed = GesturePayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
@@ -613,7 +613,7 @@ app.post('/api/corrections', legacyAuth, async (req: Request, res: Response) => 
   }
 });
 
-app.post('/api/negative-samples', legacyAuth, async (req: Request, res: Response) => {
+app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
   const parsed = GesturePayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
@@ -637,7 +637,7 @@ app.post('/api/negative-samples', legacyAuth, async (req: Request, res: Response
   }
 });
 
-app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
+app.post('/train-model', auth, async (req: Request, res: Response) => {
   const SampleSchema = z.object({
     gestureDefinitionId: z.string().min(1),
     profileId: z.string().optional(),
@@ -685,7 +685,7 @@ app.post('/train-model', legacyAuth, async (req: Request, res: Response) => {
 });
 
 // Query training job status (explicit id)
-app.get('/train-status/:id', legacyAuth, (req: Request, res: Response) => {
+app.get('/train-status/:id', auth, (req: Request, res: Response) => {
   const id = req.params.id;
   const job = trainingJobs.get(id);
   if (!job) {
@@ -695,18 +695,18 @@ app.get('/train-status/:id', legacyAuth, (req: Request, res: Response) => {
 });
 
 // Gracefully handle accidental empty-id requests
-app.get('/train-status', legacyAuth, (_req: Request, res: Response) => {
+app.get('/train-status', auth, (_req: Request, res: Response) => {
   res.json({ status: 'unknown' });
 });
 
 // Query video training job status
-app.get('/api/training-status/:id', legacyAuth, (req: Request, res: Response) => {
+app.get('/api/training-status/:id', auth, (req: Request, res: Response) => {
   const id = req.params.id;
   const result = buildTrainingStatusResponse(trainingJobs, id);
   res.status(result.status).json(result.body);
 });
 
-app.get('/model-version', legacyAuth, async (_req: Request, res: Response) => {
+app.get('/model-version', auth, async (_req: Request, res: Response) => {
   try {
     const pkg = await readServerPackageJson();
     const { version } = pkg;
@@ -750,7 +750,7 @@ async function resolveModelFile(
 // Model metadata: version, size, sha256
 app.get(
   '/model-metadata',
-  legacyAuth,
+  auth,
   modelMetadataLimiter,
   async (req: Request, res: Response) => {
   const profileId =
