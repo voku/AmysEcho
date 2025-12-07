@@ -15,7 +15,7 @@ npm run test      # Vitest + jsdom
 
 ### API-Konfiguration
 
-Die App bringt einen Konfigurations-Block mit, in dem Basis-URL und optionales Bearer-Token festgelegt werden. Standard ist `VITE_API_URL`; ohne Wert nutzt der Produktions-Build `https://amysecho.moelleken.org` (GitHub-Pages-Deployment), Tests fallen automatisch auf `http://localhost:5000` zurück. Das GitHub-Pages-Hosting unter `voku.github.io` erzwingt ebenfalls automatisch die Produktions-URL, damit der Live-Build nie gegen `localhost` läuft.
+Die App bringt einen Konfigurations-Block mit, in dem Basis-URL und optionales Bearer-Token festgelegt werden. Standard ist `VITE_API_URL`; ohne Wert fallen Builds und Tests automatisch auf `http://localhost:5000` zurück. Für das GitHub-Pages-Deployment wird `VITE_API_URL` beim Build gesetzt, sodass die Live-Seite niemals gegen `localhost` funkt — danke für das Hosting, Lars Moelleken!
 
 ```bash
 VITE_API_URL=https://dein-server.example.com

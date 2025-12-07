@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { ApiConfigProvider, useApiConfig, resolveFallbackApiBase, resolvePollUrl } from './useApiConfig';
 
@@ -10,6 +10,7 @@ describe('useApiConfig', () => {
     window.localStorage.clear();
     window.sessionStorage.clear();
     Object.defineProperty(window, 'crypto', { value: webcrypto, writable: true });
+    vi.unstubAllEnvs();
   });
 
   it('provides default values and computed upload endpoint', () => {
@@ -22,32 +23,36 @@ describe('useApiConfig', () => {
     expect(result.current.modelEndpoint).toBe(`${DEFAULT_API_BASE}/latest-mlp-model`);
   });
 
-  it('uses production fallback API base when no environment override is provided', () => {
+  it('uses environment override as fallback API base', () => {
+    vi.stubEnv('VITE_API_URL', 'https://api.example.com/');
+
+    const fallbackBase = resolveFallbackApiBase({
+      MODE: 'production',
+      VITE_API_URL: import.meta.env.VITE_API_URL,
+    } as any);
+
+    expect(fallbackBase).toBe('https://api.example.com');
+  });
+
+  it('keeps non-production default when no environment override is provided', () => {
     const fallbackBase = resolveFallbackApiBase({ MODE: 'production', VITE_API_URL: undefined } as any);
 
-    expect(fallbackBase).toBe('https://amysecho.moelleken.org');
-  });
-
-  it('forces production API base on voku.github.io even without production mode', () => {
-    const originalHref = window.location.href;
-    window.location.href = 'https://voku.github.io/AmysEcho/';
-
-    const fallbackBase = resolveFallbackApiBase({ MODE: 'development', VITE_API_URL: undefined } as any);
-
-    expect(fallbackBase).toBe('https://amysecho.moelleken.org');
-
-    window.location.href = originalHref;
-  });
-
-  it('keeps non-production fallback on other GitHub Pages hosts', () => {
-    const originalHref = window.location.href;
-    window.location.href = 'https://someone-else.github.io/AmysEcho/';
-
-    const fallbackBase = resolveFallbackApiBase({ MODE: 'development', VITE_API_URL: undefined } as any);
-
     expect(fallbackBase).toBe(DEFAULT_API_BASE);
+  });
 
-    window.location.href = originalHref;
+  it('overwrites persisted localhost base when environment demands production backend', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://amysecho.moelleken.org');
+
+    window.localStorage.setItem(
+      'webapp:api-config',
+      JSON.stringify({ apiBaseUrl: DEFAULT_API_BASE, persistToken: false }),
+    );
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await waitFor(() => {
+      expect(result.current.apiBaseUrl).toBe('https://amysecho.moelleken.org');
+    });
   });
 
   it('normalizes API base URL by removing trailing slashes', () => {
