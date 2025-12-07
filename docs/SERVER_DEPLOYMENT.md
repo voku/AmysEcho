@@ -505,8 +505,29 @@ server {
     # Client body size (for video uploads)
     client_max_body_size 100M;
 
-    # Proxy to Node.js server
+    # Health check endpoint (no auth required)
+    location /health {
+        proxy_pass http://localhost:5000/health;
+        access_log off;
+    }
+
+    # CORS headers for the public webapp + reverse proxy to Node.js
+    # Adjust the allowed origin list to match your deployment (example: https://voku.github.io)
+    set $amysecho_cors_origin "";
+    if ($http_origin = "https://voku.github.io") {
+        set $amysecho_cors_origin $http_origin;
+    }
+
     location / {
+        add_header 'Access-Control-Allow-Origin' $amysecho_cors_origin always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
+        add_header 'Access-Control-Max-Age' 86400 always;
+
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+
         proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -521,12 +542,6 @@ server {
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
-    }
-
-    # Health check endpoint (no auth required)
-    location /health {
-        proxy_pass http://localhost:5000/health;
-        access_log off;
     }
 
     # Logging
@@ -550,6 +565,16 @@ If your virtual server is managed through ISPConfig, you can keep ISPConfig in p
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto $scheme;
        client_max_body_size 100m;
+
+       # CORS for browser clients (update the origin for your deployment)
+       add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
+       add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+       add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
+       add_header 'Access-Control-Max-Age' 86400 always;
+
+       if ($request_method = OPTIONS) {
+           return 204;
+       }
    }
    ```
 
