@@ -41,6 +41,7 @@ describe('useApiConfig', () => {
   });
 
   it('overwrites persisted localhost base when environment demands production backend', async () => {
+    vi.stubEnv('MODE', 'production');
     vi.stubEnv('VITE_API_URL', 'https://amysecho.moelleken.org');
 
     window.localStorage.setItem(

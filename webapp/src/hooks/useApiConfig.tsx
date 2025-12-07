@@ -10,6 +10,7 @@ const DEFAULT_NON_PROD_API_BASE = 'http://localhost:5000';
 export function resolveFallbackApiBase(
   env: Pick<ImportMetaEnv, 'MODE'> & { VITE_API_URL?: string } = import.meta.env,
 ): string {
+  if (env.MODE === 'test') return DEFAULT_NON_PROD_API_BASE;
   const envBase = env['VITE_API_URL'] as string | undefined;
   if (envBase?.trim()) return envBase.trim().replace(/\/$/, '');
   return DEFAULT_NON_PROD_API_BASE;
