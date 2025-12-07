@@ -27,6 +27,8 @@ The webapp is automatically deployed to GitHub Pages when:
 
 **Live URL:** https://voku.github.io/AmysEcho/
 
+**Default API for the live app:** https://amysecho.moelleken.org (override with `VITE_API_URL` for other servers).
+
 ### Setup Requirements
 
 1. **Enable GitHub Pages** in repository settings:
@@ -111,10 +113,12 @@ The webapp connects to the backend server for:
 - Training data upload
 - Profile sync
 
-Configure the API endpoint in the webapp's settings or via environment variable:
+Configure the API endpoint in the webapp's settings or via environment variable. The GitHub Pages deployment defaults to `https://amysecho.moelleken.org`.
 ```
 VITE_API_URL=https://your-server.com
 ```
+
+For local development, set `VITE_API_URL=http://localhost:5000` to target a locally running backend.
 
 ## Browser Requirements
 

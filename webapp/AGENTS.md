@@ -178,7 +178,7 @@ test('renders button with label', () => {
 - Node.js >= 18.13.0
 
 ### Environment Variables
-- `VITE_API_URL`: API server URL (default: `http://localhost:5000`)
+- `VITE_API_URL`: API server URL (Production-Fallback: `https://amysecho.moelleken.org` für das GitHub-Pages-Deployment; Tests fallen auf `http://localhost:5000` zurück)
 - Additional variables can be defined in `.env` files (prefixed with `VITE_`)
 
 ### Browser Compatibility

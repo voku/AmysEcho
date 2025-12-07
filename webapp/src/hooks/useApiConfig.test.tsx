@@ -4,6 +4,8 @@ import { webcrypto } from 'node:crypto';
 import { ApiConfigProvider, useApiConfig, resolvePollUrl } from './useApiConfig';
 
 describe('useApiConfig', () => {
+  const DEFAULT_API_BASE = 'http://localhost:5000';
+
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
@@ -13,11 +15,11 @@ describe('useApiConfig', () => {
   it('provides default values and computed upload endpoint', () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
-    expect(result.current.apiBaseUrl).toBe('http://localhost:5000');
+    expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
     expect(result.current.apiToken).toBe('');
     expect(result.current.persistToken).toBe(false);
-    expect(result.current.uploadEndpoint).toBe('http://localhost:5000/api/v1/dgs/sample-bundles');
-    expect(result.current.modelEndpoint).toBe('http://localhost:5000/latest-mlp-model');
+    expect(result.current.uploadEndpoint).toBe(`${DEFAULT_API_BASE}/api/v1/dgs/sample-bundles`);
+    expect(result.current.modelEndpoint).toBe(`${DEFAULT_API_BASE}/latest-mlp-model`);
   });
 
   it('normalizes API base URL by removing trailing slashes', () => {
@@ -152,7 +154,7 @@ describe('useApiConfig', () => {
       result.current.setApiBaseUrl('');
     });
 
-    expect(result.current.apiBaseUrl).toBe('http://localhost:5000');
+    expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
   });
 
   it('throws error when used without provider', () => {
