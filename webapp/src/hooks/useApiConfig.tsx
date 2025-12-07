@@ -5,8 +5,7 @@ const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
 const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
 const SESSION_CRYPTO_KEY = 'webapp:api-config:session:key';
-const FALLBACK_API_BASE =
-  (import.meta.env['VITE_API_URL'] as string | undefined) ?? 'https://amysecho.moelleken.org';
+const FALLBACK_API_BASE = (import.meta.env['VITE_API_URL'] as string | undefined) ?? 'http://localhost:5000';
 
 type EncryptedToken = {
   ciphertext: string;
