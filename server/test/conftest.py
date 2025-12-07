@@ -1,9 +1,6 @@
 import os
 import socket
-import base64
-import hashlib
-import hmac
-import json
+from datetime import datetime, timedelta, timezone
 import subprocess
 import time
 import urllib.request
@@ -12,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import jwt
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 BASELINE_PATH = SERVER_DIR / "data" / "amy_model.npz"
@@ -47,24 +45,17 @@ def _get_free_port() -> int:
         return s.getsockname()[1]
 
 
-def _b64url(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
-
-
 def create_access_token(secret: str, *, user_id: str = "test-user") -> str:
-    header = {"alg": "HS256", "typ": "JWT"}
-    now = int(time.time())
+    now = datetime.now(timezone.utc)
     payload = {
         "userId": user_id,
         "username": user_id,
         "role": "caregiver",
         "iat": now,
-        "exp": now + 15 * 60,
+        "exp": now + timedelta(minutes=15),
     }
-    signing_input = f"{_b64url(json.dumps(header, separators=(',', ':')).encode())}."
-    signing_input += _b64url(json.dumps(payload, separators=(',', ':')).encode())
-    signature = hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest()
-    return f"{signing_input}.{_b64url(signature)}"
+    token = jwt.encode(payload, secret, algorithm="HS256")
+    return token.decode("utf-8") if isinstance(token, bytes) else token
 
 
 PORT = os.environ.get("PORT") or str(_get_free_port())
