@@ -28,6 +28,28 @@ describe('useApiConfig', () => {
     expect(fallbackBase).toBe('https://amysecho.moelleken.org');
   });
 
+  it('forces production API base on voku.github.io even without production mode', () => {
+    const originalHref = window.location.href;
+    window.location.href = 'https://voku.github.io/AmysEcho/';
+
+    const fallbackBase = resolveFallbackApiBase({ MODE: 'development', VITE_API_URL: undefined } as any);
+
+    expect(fallbackBase).toBe('https://amysecho.moelleken.org');
+
+    window.location.href = originalHref;
+  });
+
+  it('keeps non-production fallback on other GitHub Pages hosts', () => {
+    const originalHref = window.location.href;
+    window.location.href = 'https://someone-else.github.io/AmysEcho/';
+
+    const fallbackBase = resolveFallbackApiBase({ MODE: 'development', VITE_API_URL: undefined } as any);
+
+    expect(fallbackBase).toBe(DEFAULT_API_BASE);
+
+    window.location.href = originalHref;
+  });
+
   it('normalizes API base URL by removing trailing slashes', () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 

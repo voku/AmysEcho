@@ -13,6 +13,12 @@ export function resolveFallbackApiBase(
 ): string {
   const envBase = env['VITE_API_URL'] as string | undefined;
   if (envBase) return envBase;
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname === 'voku.github.io' || hostname === 'amysecho.moelleken.org') {
+      return DEFAULT_PROD_API_BASE;
+    }
+  }
   return env.MODE === 'production' ? DEFAULT_PROD_API_BASE : DEFAULT_NON_PROD_API_BASE;
 }
 
