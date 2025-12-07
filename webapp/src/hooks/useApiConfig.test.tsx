@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
-import { ApiConfigProvider, useApiConfig, resolvePollUrl } from './useApiConfig';
+import { ApiConfigProvider, useApiConfig, resolveFallbackApiBase, resolvePollUrl } from './useApiConfig';
 
 describe('useApiConfig', () => {
   beforeEach(() => {
@@ -18,6 +18,12 @@ describe('useApiConfig', () => {
     expect(result.current.persistToken).toBe(false);
     expect(result.current.uploadEndpoint).toBe('http://localhost:5000/api/v1/dgs/sample-bundles');
     expect(result.current.modelEndpoint).toBe('http://localhost:5000/latest-mlp-model');
+  });
+
+  it('uses production fallback API base when no environment override is provided', () => {
+    const fallbackBase = resolveFallbackApiBase({ MODE: 'production', VITE_API_URL: undefined } as any);
+
+    expect(fallbackBase).toBe('https://amysecho.moelleken.org');
   });
 
   it('normalizes API base URL by removing trailing slashes', () => {
