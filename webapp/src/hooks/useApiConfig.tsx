@@ -5,9 +5,16 @@ const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
 const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
 const SESSION_CRYPTO_KEY = 'webapp:api-config:session:key';
-const FALLBACK_API_BASE =
-  (import.meta.env['VITE_API_URL'] as string | undefined) ??
-  (import.meta.env['MODE'] === 'test' ? 'http://localhost:5000' : 'https://amysecho.moelleken.org');
+const DEFAULT_PROD_API_BASE = 'https://amysecho.moelleken.org';
+const DEFAULT_NON_PROD_API_BASE = 'http://localhost:5000';
+
+export function resolveFallbackApiBase(
+  env: Pick<ImportMetaEnv, 'MODE'> & { VITE_API_URL?: string } = import.meta.env,
+): string {
+  const envBase = env['VITE_API_URL'] as string | undefined;
+  if (envBase) return envBase;
+  return env.MODE === 'production' ? DEFAULT_PROD_API_BASE : DEFAULT_NON_PROD_API_BASE;
+}
 
 type EncryptedToken = {
   ciphertext: string;
@@ -34,11 +41,13 @@ type ApiConfigContextValue = StoredApiConfig & {
   modelEndpoint: string;
 };
 
-const defaultConfig: StoredApiConfig = {
-  apiBaseUrl: FALLBACK_API_BASE,
-  apiToken: '',
-  persistToken: false,
-};
+function createDefaultConfig(): StoredApiConfig {
+  return {
+    apiBaseUrl: resolveFallbackApiBase(),
+    apiToken: '',
+    persistToken: false,
+  } satisfies StoredApiConfig;
+}
 
 const initialEncryptedToken: { current: StoredEncryptedToken | null } = { current: null };
 
@@ -134,14 +143,14 @@ async function decryptToken(encrypted: EncryptedToken, source: StoredEncryptedTo
 }
 
 function normalizeApiBase(raw: string | undefined): string {
-  if (!raw) return FALLBACK_API_BASE;
+  if (!raw) return resolveFallbackApiBase();
   const trimmed = raw.trim();
-  if (!trimmed) return FALLBACK_API_BASE;
+  if (!trimmed) return resolveFallbackApiBase();
   return trimmed.replace(/\/$/, '');
 }
 
 function readFromStorage(): StoredApiConfig {
-  if (typeof window === 'undefined') return defaultConfig;
+  if (typeof window === 'undefined') return createDefaultConfig();
   initialEncryptedToken.current = null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -165,12 +174,12 @@ function readFromStorage(): StoredApiConfig {
     }
     return {
       apiBaseUrl: normalizeApiBase(storedBase),
-      apiToken: defaultConfig.apiToken,
+      apiToken: '',
       persistToken,
     } satisfies StoredApiConfig;
   } catch (error) {
     console.warn('Konnte API-Konfiguration nicht lesen', error);
-    return defaultConfig;
+    return createDefaultConfig();
   }
 }
 
