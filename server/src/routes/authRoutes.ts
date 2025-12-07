@@ -33,8 +33,18 @@ export const createAuthLimiter = () =>
     message: { error: 'Zu viele Anmeldeversuche. Bitte später erneut versuchen.' },
   });
 
+export const createRefreshLimiter = () =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Zu viele Aktualisierungsversuche. Bitte später erneut versuchen.' },
+  });
+
 export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
   const authLimiter = createAuthLimiter();
+  const refreshLimiter = createRefreshLimiter();
 
   app.post('/api/v1/auth/register', authLimiter, async (req, res) => {
     const parsed = CredentialsSchema.safeParse(req.body);
@@ -108,7 +118,7 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
     }
   });
 
-  app.post('/api/v1/auth/refresh', async (req, res) => {
+  app.post('/api/v1/auth/refresh', refreshLimiter, async (req, res) => {
     const parsed = RefreshSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'Aktualisierungs-Token wird benötigt.' });
