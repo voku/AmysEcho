@@ -251,6 +251,8 @@ def test_train_endpoint_without_baseline_file():
         elif not baseline_was_present and BASELINE_MODEL_PATH.exists():
             BASELINE_MODEL_PATH.unlink()
         shutil.rmtree(tmp_backup_root, ignore_errors=True)
+
+
 def test_train_requests_are_serialized():
     proc, access_token = start_server()
     try:

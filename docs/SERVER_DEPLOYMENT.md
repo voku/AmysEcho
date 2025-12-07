@@ -399,8 +399,8 @@ sudo ufw enable
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `PORT` | No | `5000` | Server port |
-| `JWT_SECRET` | No | (insecure default) | JWT signing secret - CHANGE IN PRODUCTION |
-| `JWT_REFRESH_SECRET` | No | (insecure default) | JWT refresh token secret - CHANGE IN PRODUCTION |
+| `JWT_SECRET` | Yes | None | JWT signing secret (**required**) |
+| `JWT_REFRESH_SECRET` | Yes | None | JWT refresh token secret (**required**) |
 | `BACKUP_SECRET` | No | `default-secret-password` | Backup encryption secret |
 | `NODE_ENV` | No | `development` | Environment (`production` recommended) |
 | `API_LIMIT` | No | `120` | Rate limit (requests per minute) |
@@ -607,10 +607,10 @@ The commands below match the directory layout shown in the provided context (`/v
    ```bash
    cat > .env <<'EOF'
    NODE_ENV=production
-    PORT=5000
-    JWT_SECRET=replace-with-long-secret
-    JWT_REFRESH_SECRET=replace-with-long-refresh-secret
-    BACKUP_SECRET=replace-with-backup-secret
+   PORT=5000
+   JWT_SECRET=replace-with-long-secret
+   JWT_REFRESH_SECRET=replace-with-long-refresh-secret
+   BACKUP_SECRET=replace-with-backup-secret
    API_LIMIT=120
    EOF
    chmod 600 .env

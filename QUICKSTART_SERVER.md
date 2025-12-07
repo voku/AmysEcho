@@ -229,8 +229,8 @@ If you prefer not to use Docker, see the complete manual deployment instructions
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PORT` | `5000` | Server port |
-| `JWT_SECRET` | (insecure) | JWT signing secret (change in production!) |
-| `JWT_REFRESH_SECRET` | (insecure) | Refresh token secret (change in production!) |
+| `JWT_SECRET` | **(required, no default)** | JWT signing secret (**must be set**) |
+| `JWT_REFRESH_SECRET` | **(required, no default)** | Refresh token secret (**must be set**) |
 | `NODE_ENV` | `development` | Environment mode |
 | `API_LIMIT` | `120` | Rate limit (requests/minute) |
 

@@ -137,6 +137,15 @@ describe('auth routes', () => {
     expect(response.body.error).toBe('Aktualisierungs-Token wird benötigt.');
   });
 
+  it('rejects invalid JWT refresh tokens', async () => {
+    const response = await request(app)
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: 'not.a.valid.jwt.token' })
+      .expect(401);
+
+    expect(response.body.error).toBe('Sitzung abgelaufen. Bitte neu anmelden.');
+  });
+
   it('rejects malformed credential payloads', async () => {
     const missingCredentials = await request(app).post('/api/v1/auth/register').send({}).expect(400);
     expect(missingCredentials.body.error).toBe('Nutzername und Passwort werden benötigt.');
