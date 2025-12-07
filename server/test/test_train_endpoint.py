@@ -24,7 +24,7 @@ def _load_default_labels() -> list[str]:
     try:
         with labels_path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
-    except FileNotFoundError as error:
+    except FileNotFoundError:
         labels_path.parent.mkdir(parents=True, exist_ok=True)
         labels_path.write_text(json.dumps(DEFAULT_LABEL_FALLBACK), encoding="utf-8")
         payload = list(DEFAULT_LABEL_FALLBACK)
