@@ -187,8 +187,8 @@ describe('LearningHub', () => {
       expect(screen.getByLabelText('Symbol-ID')).toBeInTheDocument();
       expect(screen.getByLabelText('Bezeichnung')).toBeInTheDocument();
       expect(screen.getByLabelText('Kategorie')).toBeInTheDocument();
-      expect(screen.getByLabelText('Bild-URL')).toBeInTheDocument();
-      expect(screen.getByLabelText('Bild hochladen')).toBeInTheDocument();
+      expect(screen.getByLabelText('Bild-URL (optional)')).toBeInTheDocument();
+      expect(screen.getByLabelText('Bild hochladen (optional)')).toBeInTheDocument();
     });
   });
 
@@ -230,6 +230,25 @@ describe('LearningHub', () => {
 
       expect(screen.getByText('Speichert…')).toBeInTheDocument();
     });
+
+    it('allows saving without providing an image', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<LearningHub />);
+
+      await user.click(screen.getByText('Neues Symbol speichern'));
+
+      const nameInput = screen.getByLabelText('Bezeichnung');
+      await user.type(nameInput, 'Ohne Bild');
+
+      const saveButton = screen.getByRole('button', { name: 'Speichern' });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockSaveSymbol).toHaveBeenCalledWith(
+          expect.objectContaining({ imageUrl: null, imageDataUrl: null, name: 'Ohne Bild' }),
+        );
+      });
+    });
   });
 
   describe('image validation', () => {
@@ -258,7 +277,7 @@ describe('LearningHub', () => {
 
       await user.click(screen.getByText('Neues Symbol speichern'));
 
-      const fileInput = screen.getByLabelText('Bild hochladen');
+      const fileInput = screen.getByLabelText('Bild hochladen (optional)');
       const largeFile = new File([new Uint8Array(9 * 1024 * 1024)], 'large.png', {
         type: 'image/png',
       });
@@ -277,7 +296,7 @@ describe('LearningHub', () => {
 
       await user.click(screen.getByText('Neues Symbol speichern'));
 
-      const fileInput = screen.getByLabelText('Bild hochladen');
+      const fileInput = screen.getByLabelText('Bild hochladen (optional)');
       const validFile = new File([new Uint8Array(10)], 'small.png', { type: 'image/png' });
 
       await user.upload(fileInput, validFile);

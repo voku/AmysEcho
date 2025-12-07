@@ -57,4 +57,12 @@ describe('ApiConfigBar authentication helpers', () => {
 
     await screen.findByText('Ungültige Zugangsdaten.');
   });
+
+  it('shows the current backend URL in the config header', () => {
+    renderWithProvider();
+
+    expect(screen.getByText(/Aktuelle Backend-URL:/)).toHaveTextContent(
+      'Aktuelle Backend-URL: http://localhost:5000',
+    );
+  });
 });
