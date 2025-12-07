@@ -88,6 +88,9 @@ export function ApiConfigBar() {
       <div className="card-header">
         <div>
           <h2>API-Konfiguration</h2>
+          <p className="muted small" role="status">
+            Aktuelle Backend-URL: {apiBaseUrl || 'keine URL hinterlegt'}
+          </p>
         </div>
         <div className="status-chip" data-state={apiBaseUrl ? 'idle' : 'error'}>
           {apiBaseUrl ? 'Verbunden' : 'URL fehlt'}

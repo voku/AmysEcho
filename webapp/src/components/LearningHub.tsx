@@ -318,7 +318,7 @@ export function LearningHub() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="symbol-image-url">Bild-URL</label>
+              <label htmlFor="symbol-image-url">Bild-URL (optional)</label>
               <input
                 id="symbol-image-url"
                 type="url"
@@ -332,18 +332,18 @@ export function LearningHub() {
                 }
                 placeholder="https://.../symbol.png"
               />
-              <p className="muted small">Alternativ unten ein Bild hochladen.</p>
+              <p className="muted small">Du kannst das Symbol auch ohne Bild speichern.</p>
             </div>
 
             <div className="form-group">
-              <label htmlFor="symbol-image-upload">Bild hochladen</label>
+              <label htmlFor="symbol-image-upload">Bild hochladen (optional)</label>
               <input
                 id="symbol-image-upload"
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
               />
-              <p className="muted small">Datei wird als Data-URL gespeichert und mit dem Server synchronisiert.</p>
+              <p className="muted small">Wir verwenden ein Platzhalter-Icon, falls kein Bild hinterlegt ist.</p>
             </div>
 
             {imagePreview && (
