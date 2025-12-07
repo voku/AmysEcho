@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { TrainingRecorder } from './TrainingRecorder';
 import type { GestureStatus } from '../hooks/useGestureDetector';
 
@@ -77,7 +78,7 @@ describe('TrainingRecorder', () => {
     gestureState = { status: 'idle' };
     startMock.mockReset().mockResolvedValue(true);
     trainingState = createTrainingState();
-    
+
     // Mock camera support
     Object.defineProperty(navigator, 'mediaDevices', {
       writable: true,
@@ -88,6 +89,10 @@ describe('TrainingRecorder', () => {
         }),
       },
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('hält das Overlay montiert und blendet es nur via CSS aus', async () => {
@@ -169,5 +174,25 @@ describe('TrainingRecorder', () => {
     // After clicking, the button text should change
     const switchButtonAfter = screen.getByRole('button', { name: /🔄 Frontkamera/ });
     expect(switchButtonAfter).toBeInTheDocument();
+  });
+
+  it('behält das manuell gewählte Foto beim Start der Aufnahme bei', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:manual-still');
+
+    render(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={vi.fn()} />);
+
+    const fileInput = screen.getByLabelText('Eigenes Referenzbild hochladen (optional)');
+    const manualFile = new File(['inhalt'], 'referenz.jpg', { type: 'image/jpeg' });
+
+    await user.upload(fileInput, manualFile);
+
+    expect(await screen.findByAltText('Hochgeladenes Referenzbild')).toBeInTheDocument();
+
+    const startButton = screen.getByRole('button', { name: 'Aufnahme starten' });
+    await user.click(startButton);
+
+    expect(trainingState.startRecording).toHaveBeenCalled();
+    expect(screen.getByAltText('Hochgeladenes Referenzbild')).toBeInTheDocument();
   });
 });

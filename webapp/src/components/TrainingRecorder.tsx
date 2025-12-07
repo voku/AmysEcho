@@ -122,7 +122,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       }
       setDetectorStartFeedback('Detektor gestartet. Aufnahme bereit.');
     }
-    setManualStillFile(null);
     startRecording();
   }, [cameraError, metadataError, metadataReady, startCamera, startRecording, status]);
 
