@@ -28,7 +28,7 @@ describe('useApiConfig', () => {
 
     const fallbackBase = resolveFallbackApiBase({
       MODE: 'production',
-      VITE_API_URL: import.meta.env.VITE_API_URL,
+      VITE_API_URL: import.meta.env['VITE_API_URL'],
     } as any);
 
     expect(fallbackBase).toBe('https://api.example.com');
