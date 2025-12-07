@@ -5,21 +5,14 @@ const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
 const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
 const SESSION_CRYPTO_KEY = 'webapp:api-config:session:key';
-const DEFAULT_PROD_API_BASE = 'https://amysecho.moelleken.org';
 const DEFAULT_NON_PROD_API_BASE = 'http://localhost:5000';
 
 export function resolveFallbackApiBase(
   env: Pick<ImportMetaEnv, 'MODE'> & { VITE_API_URL?: string } = import.meta.env,
 ): string {
   const envBase = env['VITE_API_URL'] as string | undefined;
-  if (envBase) return envBase;
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname.toLowerCase();
-    if (hostname === 'voku.github.io' || hostname === 'amysecho.moelleken.org') {
-      return DEFAULT_PROD_API_BASE;
-    }
-  }
-  return env.MODE === 'production' ? DEFAULT_PROD_API_BASE : DEFAULT_NON_PROD_API_BASE;
+  if (envBase?.trim()) return envBase.trim().replace(/\/$/, '');
+  return DEFAULT_NON_PROD_API_BASE;
 }
 
 type EncryptedToken = {
@@ -158,6 +151,7 @@ function normalizeApiBase(raw: string | undefined): string {
 function readFromStorage(): StoredApiConfig {
   if (typeof window === 'undefined') return createDefaultConfig();
   initialEncryptedToken.current = null;
+  const fallbackBase = resolveFallbackApiBase();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     const persistedRaw = window.localStorage.getItem(PERSISTED_TOKEN_KEY);
@@ -169,6 +163,11 @@ function readFromStorage(): StoredApiConfig {
     const storedBase = persistToken
       ? persistedParsed?.apiBaseUrl ?? sessionParsed?.apiBaseUrl ?? parsed?.apiBaseUrl
       : parsed?.apiBaseUrl;
+    const normalizedStoredBase = normalizeApiBase(storedBase);
+    const apiBaseUrl =
+      normalizedStoredBase === DEFAULT_NON_PROD_API_BASE && fallbackBase !== DEFAULT_NON_PROD_API_BASE
+        ? fallbackBase
+        : normalizedStoredBase;
     const tokenSource =
       persistedParsed.apiToken && persistedParsed.iv
         ? { encrypted: { ciphertext: persistedParsed.apiToken, iv: persistedParsed.iv }, source: 'persisted' as const }
@@ -179,7 +178,7 @@ function readFromStorage(): StoredApiConfig {
       initialEncryptedToken.current = tokenSource;
     }
     return {
-      apiBaseUrl: normalizeApiBase(storedBase),
+      apiBaseUrl: apiBaseUrl ?? fallbackBase,
       apiToken: '',
       persistToken,
     } satisfies StoredApiConfig;
