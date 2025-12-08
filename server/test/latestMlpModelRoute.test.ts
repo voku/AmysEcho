@@ -4,7 +4,8 @@ import path from 'path';
 import AdmZip from 'adm-zip';
 import express from 'express';
 import request from 'supertest';
-import type { Express, Request, Response, NextFunction } from 'express';
+import type { Express } from 'express';
+import { AuthService } from '../src/services/authService.js';
 
 import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel.js';
 
@@ -50,6 +51,7 @@ describe('GET /latest-mlp-model', () => {
   let originalDataDir: string | undefined;
   let modelPaths: typeof import('../src/constants/modelPaths.js');
   let baselinePath: string;
+  let accessToken: string;
   async function expectValidModelResponse(response: request.Response) {
     const body: Buffer = response.body as Buffer;
     expect(Buffer.isBuffer(body)).toBe(true);
@@ -105,16 +107,24 @@ describe('GET /latest-mlp-model', () => {
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     jest.resetModules();
 
+    accessToken = AuthService.generateTokens({
+      id: 'mlp-tester',
+      username: 'mlp-tester',
+      role: 'caregiver',
+    }).accessToken;
+
     const [
       { createLatestMlpModelHandler },
       modelPathsModule,
       artifacts,
       authUtils,
+      { auth: authMiddleware },
     ] = await Promise.all([
       import('../src/routes/latestMlpModelRoute.js'),
       import('../src/constants/modelPaths.js'),
       import('../src/services/mlpModelArtifacts.js'),
       import('../src/utils/profileAuthorization.js'),
+      import('../src/middleware/auth.js'),
     ]);
 
     modelPaths = modelPathsModule;
@@ -124,13 +134,6 @@ describe('GET /latest-mlp-model', () => {
     const logTraining = async () => {};
 
     app = express();
-    const legacyAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
-      const token = req.get('Authorization');
-      if (token !== 'Bearer mlp-endpoint-token') {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-      next();
-    };
 
     const handler = createLatestMlpModelHandler({
       getMlpModelPath: modelPaths.getMlpModelPath,
@@ -141,8 +144,8 @@ describe('GET /latest-mlp-model', () => {
       isProfileAuthorized: authUtils.isProfileAuthorized,
     });
 
-    app.get('/latest-mlp-model', legacyAuthMiddleware, handler);
-    app.get('/api/v1/dgs/mlp-model', legacyAuthMiddleware, handler);
+    app.get('/latest-mlp-model', authMiddleware, handler);
+    app.get('/api/v1/dgs/mlp-model', authMiddleware, handler);
   });
 
   beforeEach(async () => {
@@ -163,7 +166,7 @@ describe('GET /latest-mlp-model', () => {
   it('seeds a baseline model when none exists and returns a valid NPZ bundle', async () => {
     const response = await request(app)
       .get('/latest-mlp-model')
-      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .buffer(true)
       .parse(binaryParser)
       .expect(200);
@@ -177,7 +180,7 @@ describe('GET /latest-mlp-model', () => {
 
     const firstResponse = await request(app)
       .get('/latest-mlp-model')
-      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .buffer(true)
       .parse(binaryParser)
       .expect(200);
@@ -187,7 +190,7 @@ describe('GET /latest-mlp-model', () => {
 
     const secondResponse = await request(app)
       .get('/latest-mlp-model')
-      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('If-None-Match', etag as string)
       .expect(304);
 
@@ -203,7 +206,7 @@ describe('GET /latest-mlp-model', () => {
     try {
       const response = await request(app)
         .get('/latest-mlp-model')
-        .set('Authorization', 'Bearer mlp-endpoint-token')
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Model not found' });
@@ -216,7 +219,7 @@ describe('GET /latest-mlp-model', () => {
   it('serves the same NPZ payload from the legacy /api/v1/dgs/mlp-model endpoint', async () => {
     const response = await request(app)
       .get('/api/v1/dgs/mlp-model')
-      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .buffer(true)
       .parse(binaryParser)
       .expect(200);
@@ -229,7 +232,7 @@ describe('GET /latest-mlp-model', () => {
     try {
       const response = await request(app)
         .get('/api/v1/dgs/mlp-model')
-        .set('Authorization', 'Bearer mlp-endpoint-token')
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(404);
 
       expect(response.body).toEqual({ error: 'Model not found' });
@@ -246,12 +249,12 @@ describe('GET /latest-mlp-model', () => {
 
     await request(app)
       .get('/latest-mlp-model?profileId=p1')
-      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(403);
 
     await request(app)
       .get('/latest-mlp-model?profileId=p1')
-      .set('Authorization', 'Bearer mlp-endpoint-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('X-Profile-Id', 'p1')
       .buffer(true)
       .parse(binaryParser)
