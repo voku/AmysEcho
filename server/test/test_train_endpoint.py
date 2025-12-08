@@ -19,12 +19,17 @@ SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
 
 
+def _make_auth_headers(access_token: str) -> dict[str, str]:
+    """Helper to create Authorization headers with Bearer token."""
+    return {"Authorization": f"Bearer {access_token}"}
+
+
 def _load_default_labels() -> list[str]:
     labels_path = SERVER_DIR / "data" / "config" / "defaultBaselineLabels.json"
     try:
         with labels_path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
-    except FileNotFoundError as error:
+    except FileNotFoundError:
         labels_path.parent.mkdir(parents=True, exist_ok=True)
         labels_path.write_text(json.dumps(DEFAULT_LABEL_FALLBACK), encoding="utf-8")
         payload = list(DEFAULT_LABEL_FALLBACK)
@@ -122,7 +127,7 @@ def stop_server(proc):
 
 def wait_for_training_completion(job_id: str, access_token: str, *, timeout: float = 180.0):
     status_url = f"http://localhost:{PORT}/train-status/{job_id}"
-    headers = {"Authorization": f"Bearer {access_token}"}
+    headers = _make_auth_headers(access_token)
     start = time.time()
     while True:
         req = urllib.request.Request(status_url, headers=headers)
@@ -151,8 +156,8 @@ def test_train_endpoint():
         ]
         data = json.dumps({"samples": samples}).encode("utf-8")
         headers = {
+            **_make_auth_headers(access_token),
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {access_token}",
         }
         req = urllib.request.Request(url, data=data, headers=headers)
         with urllib.request.urlopen(req, timeout=10) as resp:
@@ -182,7 +187,7 @@ def test_train_endpoint():
         # ensure MLP model downloadable
         mlp_req = urllib.request.Request(
             f"http://localhost:{PORT}/latest-mlp-model",
-            headers={"Authorization": f"Bearer {access_token}"},
+            headers=_make_auth_headers(access_token),
         )
         with urllib.request.urlopen(mlp_req, timeout=10) as mlp_resp:
             assert mlp_resp.getcode() == 200
@@ -192,7 +197,7 @@ def test_train_endpoint():
         mlp_prof_req = urllib.request.Request(
             f"http://localhost:{PORT}/latest-mlp-model?profileId=p1",
             headers={
-                "Authorization": f"Bearer {access_token}",
+                **_make_auth_headers(access_token),
                 "x-profile-id": "p1",
             },
         )
@@ -223,8 +228,8 @@ def test_train_endpoint_without_baseline_file():
         url = f"http://localhost:{PORT}/train-model"
         payload = json.dumps({"samples": [], "trigger": "bundles"}).encode("utf-8")
         headers = {
+            **_make_auth_headers(access_token),
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {access_token}",
         }
         req = urllib.request.Request(url, data=payload, headers=headers)
         with urllib.request.urlopen(req, timeout=10) as resp:
@@ -267,8 +272,8 @@ def test_train_requests_are_serialized():
         ]
         payload = json.dumps({"samples": samples}).encode("utf-8")
         headers = {
+            **_make_auth_headers(access_token),
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {access_token}",
         }
 
         first_req = urllib.request.Request(url, data=payload, headers=headers)
@@ -303,8 +308,8 @@ def test_train_model_rejects_out_of_range_landmarks():
     try:
         url = f"http://localhost:{PORT}/train-model"
         headers = {
+            **_make_auth_headers(access_token),
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {access_token}",
         }
 
         invalid_landmark_cases = [

@@ -124,15 +124,20 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
       return res.status(400).json({ error: 'Aktualisierungs-Token wird benötigt.' });
     }
 
-    const refreshed = AuthService.refreshTokens(parsed.data.refreshToken, (userId) =>
-      findUserById(deps.db, userId),
-    );
+    try {
+      const refreshed = AuthService.refreshTokens(parsed.data.refreshToken, (userId) =>
+        findUserById(deps.db, userId),
+      );
 
-    if (!refreshed) {
-      return res.status(401).json({ error: 'Sitzung abgelaufen. Bitte neu anmelden.' });
+      if (!refreshed) {
+        return res.status(401).json({ error: 'Sitzung abgelaufen. Bitte neu anmelden.' });
+      }
+
+      logger.info('Tokens refreshed', { userId: refreshed.user.id, username: refreshed.user.username });
+      return res.json(refreshed);
+    } catch (error: any) {
+      logger.error('Token refresh failed', { error: error?.message });
+      return res.status(500).json({ error: 'Token-Aktualisierung fehlgeschlagen.' });
     }
-
-    logger.info('Tokens refreshed', { userId: refreshed.user.id, username: refreshed.user.username });
-    return res.json(refreshed);
   });
 }
