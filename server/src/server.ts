@@ -276,7 +276,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
       logError: (message, meta) => logger.error(message, meta),
     });
     registerAuthRoutes(app, { db, dbFilePath: DB_FILE_PATH, withFileLock });
-    registerSymbolRoutes(app, db);
+    registerSymbolRoutes(app, db, apiLimiter);
     return db;
   })
   .catch((err) => {
@@ -637,7 +637,7 @@ app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
   }
 });
 
-app.post('/train-model', auth, async (req: Request, res: Response) => {
+app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) => {
   const SampleSchema = z.object({
     gestureDefinitionId: z.string().min(1),
     profileId: z.string().optional(),
@@ -685,7 +685,7 @@ app.post('/train-model', auth, async (req: Request, res: Response) => {
 });
 
 // Query training job status (explicit id)
-app.get('/train-status/:id', auth, (req: Request, res: Response) => {
+app.get('/train-status/:id', auth, healthLimiter, (req: Request, res: Response) => {
   const id = req.params.id;
   const job = trainingJobs.get(id);
   if (!job) {
@@ -695,7 +695,7 @@ app.get('/train-status/:id', auth, (req: Request, res: Response) => {
 });
 
 // Gracefully handle accidental empty-id requests
-app.get('/train-status', auth, (_req: Request, res: Response) => {
+app.get('/train-status', auth, healthLimiter, (_req: Request, res: Response) => {
   res.json({ status: 'unknown' });
 });
 
@@ -706,7 +706,7 @@ app.get('/api/training-status/:id', auth, (req: Request, res: Response) => {
   res.status(result.status).json(result.body);
 });
 
-app.get('/model-version', auth, async (_req: Request, res: Response) => {
+app.get('/model-version', auth, modelMetadataLimiter, async (_req: Request, res: Response) => {
   try {
     const pkg = await readServerPackageJson();
     const { version } = pkg;
