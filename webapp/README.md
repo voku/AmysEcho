@@ -15,7 +15,7 @@ npm run test      # Vitest + jsdom
 
 ### API-Konfiguration
 
-Die App bringt einen Konfigurations-Block mit, in dem Basis-URL und optionales Bearer-Token festgelegt werden. Standard ist `VITE_API_URL`; ohne Wert fallen Builds und Tests automatisch auf `http://localhost:5000` zurück. Für das GitHub-Pages-Deployment wird `VITE_API_URL` beim Build gesetzt, sodass die Live-Seite niemals gegen `localhost` funkt — danke für das Hosting, Lars Moelleken!
+Die App bringt einen Konfigurations-Block mit, in dem Basis-URL und optionales Bearer-Token festgelegt werden. Standard ist `VITE_API_URL`; ohne Wert fallen Builds und Tests automatisch auf `http://localhost:5000` zurück. Produktions-Builds ohne Override greifen stattdessen auf den Ursprung der laufenden Seite zurück, solange es sich nicht um eine Dev-URL (z. B. `localhost:5173`) oder einen ungültigen `file:`/`null`-Origin handelt. Für das GitHub-Pages-Deployment wird `VITE_API_URL` beim Build gesetzt, sodass die Live-Seite niemals gegen `localhost` funkt — danke für das Hosting, Lars Moelleken!
 
 ```bash
 VITE_API_URL=https://dein-server.example.com
