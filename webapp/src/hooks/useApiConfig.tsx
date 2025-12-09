@@ -96,6 +96,7 @@ function fromBase64(value: string): Uint8Array {
 }
 
 let persistedCryptoKey: Promise<CryptoKey> | null = null;
+let sessionCryptoKey: Promise<CryptoKey> | null = null;
 
 async function getPersistedCryptoKey(): Promise<CryptoKey> {
   if (typeof window === 'undefined') {
@@ -106,18 +107,15 @@ async function getPersistedCryptoKey(): Promise<CryptoKey> {
     persistedCryptoKey = null;
   }
   const createKey = () => {
-    const rawBytes = storedKey ? fromBase64(storedKey) : new Uint8Array(32);
-    if (!storedKey) {
+    const currentStoredKey = window.localStorage.getItem(PERSISTED_CRYPTO_KEY);
+    const rawBytes = currentStoredKey ? fromBase64(currentStoredKey) : new Uint8Array(32);
+    if (!currentStoredKey) {
       window.crypto.getRandomValues(rawBytes);
+      window.localStorage.setItem(PERSISTED_CRYPTO_KEY, toBase64(rawBytes));
     }
     // Create a proper Uint8Array with its own ArrayBuffer for importKey
     const keyBytes = new Uint8Array(rawBytes);
-    return window.crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']).then((key) => {
-      if (!storedKey) {
-        window.localStorage.setItem(PERSISTED_CRYPTO_KEY, toBase64(rawBytes));
-      }
-      return key;
-    });
+    return window.crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
   };
 
   const resolveKey = async (): Promise<CryptoKey> => {
@@ -146,9 +144,13 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
     throw new Error('CryptoKey kann ohne Browser nicht erzeugt werden.');
   }
   const storedKey = window.sessionStorage.getItem(SESSION_CRYPTO_KEY);
+  if (!storedKey) {
+    sessionCryptoKey = null;
+  }
   const createKey = () => {
-    const rawBytes = storedKey ? fromBase64(storedKey) : new Uint8Array(32);
-    if (!storedKey) {
+    const currentStoredKey = window.sessionStorage.getItem(SESSION_CRYPTO_KEY);
+    const rawBytes = currentStoredKey ? fromBase64(currentStoredKey) : new Uint8Array(32);
+    if (!currentStoredKey) {
       window.crypto.getRandomValues(rawBytes);
       window.sessionStorage.setItem(SESSION_CRYPTO_KEY, toBase64(rawBytes));
     }
@@ -156,25 +158,22 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
     return window.crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
   };
 
+  if (!sessionCryptoKey) {
+    sessionCryptoKey = createKey();
+  }
+
   try {
-    return await createKey();
+    return await sessionCryptoKey;
   } catch (error) {
     console.warn('Ungültiger Sitzungsschlüssel, erstelle neu', error);
     window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
-    return createKey();
+    sessionCryptoKey = createKey();
+    return sessionCryptoKey;
   }
 }
 
-async function encryptToken(value: string): Promise<EncryptedToken> {
-  const key = await getPersistedCryptoKey();
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  const encoded = new TextEncoder().encode(value);
-  const ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
-  return { ciphertext: toBase64(ciphertext), iv: toBase64(iv) };
-}
-
-async function encryptSessionToken(value: string): Promise<EncryptedToken> {
-  const key = await getSessionCryptoKey();
+async function encryptToken(value: string, source: StoredEncryptedToken['source']): Promise<EncryptedToken> {
+  const key = source === 'session' ? await getSessionCryptoKey() : await getPersistedCryptoKey();
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(value);
   const ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
@@ -303,7 +302,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
           if (!config.apiToken && initialEncryptedToken.current) {
             return;
           }
-          const encrypted = await encryptToken(config.apiToken);
+          const encrypted = await encryptToken(config.apiToken, 'persisted');
           if (!cancelled) {
             window.localStorage.setItem(
               PERSISTED_TOKEN_KEY,
@@ -317,7 +316,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
           window.localStorage.removeItem(PERSISTED_CRYPTO_KEY);
           persistedCryptoKey = null;
           if (config.apiToken) {
-            const encrypted = await encryptSessionToken(config.apiToken);
+            const encrypted = await encryptToken(config.apiToken, 'session');
             if (!cancelled) {
               window.sessionStorage.setItem(
                 SESSION_STORAGE_KEY,
