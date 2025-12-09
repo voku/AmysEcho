@@ -268,6 +268,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
         if (initialEncryptedToken.current?.source === 'session') {
           window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
           window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+          sessionCryptoKey = null;
         }
       } finally {
         initialEncryptedToken.current = null;
