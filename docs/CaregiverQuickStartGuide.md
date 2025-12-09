@@ -22,7 +22,7 @@ This checks dependencies and runs all tests to ensure everything works. Skip thi
 2. Start the backend server so uploads and training are available:
    ```bash
    npm run build --prefix server
-   API_TOKEN=<secret> npm start --prefix server
+   npm start --prefix server
    ```
 3. Start the app:
    ```bash
@@ -54,9 +54,9 @@ This checks dependencies and runs all tests to ensure everything works. Skip thi
 2. The app shows when the server has queued or completed the training job.
 3. Once the model download finishes, Amy immediately benefits from the updated gestures.
 
-## 6. Updating Access Tokens
-1. In the **Admin Panel**, enter the backend token (`API_TOKEN`) if required for server access.
-2. Tap **Save** for each field. Tokens are stored securely on the device.
+## 6. Anmeldung und Tokens
+1. Melde dich im Web- oder Mobil-Client über den Login-Screen mit deinem Nutzerkonto an.
+2. Die App speichert das erhaltene Zugangstoken automatisch und nutzt es für Serveranfragen.
 
 ## 7. Need Help?
 If you run into problems during setup or usage, consult the [Troubleshooting Guide](Troubleshooting.md) for common fixes.

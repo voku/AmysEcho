@@ -57,9 +57,9 @@ Running `npm test --prefix server` automatically builds the server before invoki
 To exercise the full training and recognition flow, start both the Node server and the webapp from the repository root:
 
 ```bash
-# build and launch the backend on port 5000 with the demo token
+# build and launch the backend on port 5000
 npm run build --prefix server
-API_TOKEN=demo-token npm start --prefix server
+npm start --prefix server
 
 # in another terminal, start the webapp
 VITE_API_URL=http://localhost:5000 npm run dev --prefix webapp

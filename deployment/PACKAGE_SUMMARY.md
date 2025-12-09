@@ -131,7 +131,7 @@ Follow the complete guide in [docs/SERVER_DEPLOYMENT.md](../docs/SERVER_DEPLOYME
 
 Before going live, ensure you've:
 
-- ✅ Changed all default secrets (API_TOKEN, JWT_SECRET, etc.)
+- ✅ Changed all default secrets (JWT_SECRET, JWT_REFRESH_SECRET, BACKUP_SECRET)
 - ✅ Configured HTTPS with valid SSL certificate
 - ✅ Set up firewall (allow only 22, 80, 443)
 - ✅ Restricted file permissions (600 for .env, db.json)

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthService } from '../src/services/authService';
+import { AuthService } from '../src/services/authService.js';
 
 describe('Auth Middleware', () => {
   let mockReq: Partial<Request>;
@@ -96,4 +96,5 @@ describe('Auth Middleware', () => {
     expect(mockReq.user?.username).toBe('testuser');
     expect(mockReq.user?.role).toBe('caregiver');
   });
+
 });

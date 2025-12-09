@@ -13,8 +13,33 @@ from typing import Any
 import numpy as np
 import pytest
 
+from conftest import create_access_token
+
 SERVER_DIR = Path(__file__).resolve().parents[1]
 PORT = "5056"
+
+
+def _make_auth_headers(access_token: str) -> dict[str, str]:
+    """Helper to create Authorization headers with Bearer token."""
+    return {"Authorization": f"Bearer {access_token}"}
+
+
+# The JSON asset is the single source of truth for baseline gestures.
+# Keep loaders in App and Server in sync if the structure changes.
+DEFAULT_LABEL_FALLBACK = [
+    "alle",
+    "blau",
+    "essen",
+    "fertig",
+    "gelb",
+    "gruen",
+    "nochmal",
+    "rot",
+    "satt",
+    "schwester",
+    "spielen",
+    "trinken",
+]
 
 
 def _load_default_labels() -> list[str]:
@@ -22,17 +47,15 @@ def _load_default_labels() -> list[str]:
     try:
         with labels_path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
-    except FileNotFoundError as error:
-        raise FileNotFoundError(
-            "defaultBaselineLabels.json is missing; ensure server/data/config directory is set up."
-        ) from error
+    except FileNotFoundError:
+        labels_path.parent.mkdir(parents=True, exist_ok=True)
+        labels_path.write_text(json.dumps(DEFAULT_LABEL_FALLBACK), encoding="utf-8")
+        payload = list(DEFAULT_LABEL_FALLBACK)
     if not isinstance(payload, list):
         raise TypeError("defaultBaselineLabels.json must contain a list of strings")
     return [str(label) for label in payload]
 
 
-# The JSON asset is the single source of truth for baseline gestures.
-# Keep loaders in App and Server in sync if the structure changes.
 DEFAULT_BASELINE_LABELS = _load_default_labels()
 BASELINE_MODEL_PATH = (SERVER_DIR / "data" / "amy_model.npz").resolve()
 
@@ -45,7 +68,8 @@ def _parse_timestamp(value: Any) -> datetime:
 
 def start_server():
     env = os.environ.copy()
-    env.setdefault("API_TOKEN", "testtoken")
+    env.setdefault("JWT_SECRET", "test-jwt-secret")
+    env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
     env.setdefault("PORT", PORT)
     # Run the real training script but keep epochs low for test speed
     env.setdefault("MLP_SCRIPT", "src/amyserver_tools/train_mlp.py")
@@ -53,6 +77,12 @@ def start_server():
     data_dir = SERVER_DIR / "data"
     if data_dir.exists():
         shutil.rmtree(data_dir)
+    config_dir = data_dir / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "defaultBaselineLabels.json").write_text(
+        json.dumps(DEFAULT_BASELINE_LABELS),
+        encoding="utf-8",
+    )
     subprocess.run(
         ["npm", "run", "build"],
         cwd=SERVER_DIR,
@@ -67,8 +97,9 @@ def start_server():
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    access_token = create_access_token(env["JWT_SECRET"], user_id="train-tester")
     # wait for server up
-    headers = {"Authorization": "Bearer testtoken"}
+    headers = _make_auth_headers(access_token)
     req = urllib.request.Request(
         f"http://localhost:{PORT}/model-version", headers=headers
     )
@@ -84,7 +115,7 @@ def start_server():
             if time.time() - start > 30:
                 raise RuntimeError("server did not start") from err
             time.sleep(0.5)
-    return proc
+    return proc, access_token
 
 
 def stop_server(proc):
@@ -95,9 +126,9 @@ def stop_server(proc):
         proc.kill()
 
 
-def wait_for_training_completion(job_id: str, *, timeout: float = 180.0):
+def wait_for_training_completion(job_id: str, access_token: str, *, timeout: float = 180.0):
     status_url = f"http://localhost:{PORT}/train-status/{job_id}"
-    headers = {"Authorization": "Bearer testtoken"}
+    headers = _make_auth_headers(access_token)
     start = time.time()
     while True:
         req = urllib.request.Request(status_url, headers=headers)
@@ -112,7 +143,7 @@ def wait_for_training_completion(job_id: str, *, timeout: float = 180.0):
 
 
 def test_train_endpoint():
-    proc = start_server()
+    proc, access_token = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
         # vary landmark coordinates slightly so normalization succeeds
@@ -126,8 +157,8 @@ def test_train_endpoint():
         ]
         data = json.dumps({"samples": samples}).encode("utf-8")
         headers = {
+            **_make_auth_headers(access_token),
             "Content-Type": "application/json",
-            "Authorization": "Bearer testtoken",
         }
         req = urllib.request.Request(url, data=data, headers=headers)
         with urllib.request.urlopen(req, timeout=10) as resp:
@@ -137,7 +168,7 @@ def test_train_endpoint():
             assert resp_data["status"] in ("running", "queued")
             assert resp_data.get("pollUrl") == f"/train-status/{job_id}"
 
-        final_info = wait_for_training_completion(job_id)
+        final_info = wait_for_training_completion(job_id, access_token)
         assert final_info.get("status") == "completed"
         assert "metrics" in final_info
         assert "accuracy" in final_info["metrics"]
@@ -157,7 +188,7 @@ def test_train_endpoint():
         # ensure MLP model downloadable
         mlp_req = urllib.request.Request(
             f"http://localhost:{PORT}/latest-mlp-model",
-            headers={"Authorization": "Bearer testtoken"},
+            headers=_make_auth_headers(access_token),
         )
         with urllib.request.urlopen(mlp_req, timeout=10) as mlp_resp:
             assert mlp_resp.getcode() == 200
@@ -167,7 +198,7 @@ def test_train_endpoint():
         mlp_prof_req = urllib.request.Request(
             f"http://localhost:{PORT}/latest-mlp-model?profileId=p1",
             headers={
-                "Authorization": "Bearer testtoken",
+                **_make_auth_headers(access_token),
                 "x-profile-id": "p1",
             },
         )
@@ -194,12 +225,12 @@ def test_train_endpoint_without_baseline_file():
     # child process, so we isolate by backing up and restoring the file.
     proc = None
     try:
-        proc = start_server()
+        proc, access_token = start_server()
         url = f"http://localhost:{PORT}/train-model"
         payload = json.dumps({"samples": [], "trigger": "bundles"}).encode("utf-8")
         headers = {
+            **_make_auth_headers(access_token),
             "Content-Type": "application/json",
-            "Authorization": "Bearer testtoken",
         }
         req = urllib.request.Request(url, data=payload, headers=headers)
         with urllib.request.urlopen(req, timeout=10) as resp:
@@ -208,7 +239,7 @@ def test_train_endpoint_without_baseline_file():
             job_id = resp_data["jobId"]
             assert resp_data["status"] in ("running", "queued")
 
-        final_info = wait_for_training_completion(job_id)
+        final_info = wait_for_training_completion(job_id, access_token)
         assert final_info.get("status") == "completed"
         global_model = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
         assert global_model.exists()
@@ -229,7 +260,7 @@ def test_train_endpoint_without_baseline_file():
 
 
 def test_train_requests_are_serialized():
-    proc = start_server()
+    proc, access_token = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
         landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
@@ -242,8 +273,8 @@ def test_train_requests_are_serialized():
         ]
         payload = json.dumps({"samples": samples}).encode("utf-8")
         headers = {
+            **_make_auth_headers(access_token),
             "Content-Type": "application/json",
-            "Authorization": "Bearer testtoken",
         }
 
         first_req = urllib.request.Request(url, data=payload, headers=headers)
@@ -260,8 +291,8 @@ def test_train_requests_are_serialized():
         assert first_data["status"] in ("running", "queued")
         assert second_data["status"] == "queued"
 
-        final_first = wait_for_training_completion(job1)
-        final_second = wait_for_training_completion(job2)
+        final_first = wait_for_training_completion(job1, access_token)
+        final_second = wait_for_training_completion(job2, access_token)
 
         assert final_first.get("status") == "completed"
         assert final_second.get("status") == "completed"
@@ -274,12 +305,12 @@ def test_train_requests_are_serialized():
 
 
 def test_train_model_rejects_out_of_range_landmarks():
-    proc = start_server()
+    proc, access_token = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
         headers = {
+            **_make_auth_headers(access_token),
             "Content-Type": "application/json",
-            "Authorization": "Bearer testtoken",
         }
 
         invalid_landmark_cases = [

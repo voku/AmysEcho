@@ -5,12 +5,18 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';
 import { setTimeout as delay } from 'node:timers/promises';
+import jwt from 'jsonwebtoken';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', '..', 'server');
 
 export const TEST_PORT = 5050;
-export const TEST_TOKEN = 'testtoken';
+export const JWT_SECRET = 'integration-jwt-secret';
+export const TEST_TOKEN = jwt.sign(
+  { userId: 'integration-user', username: 'integration', role: 'caregiver' },
+  JWT_SECRET,
+  { expiresIn: '1h' },
+);
 
 let proc;
 let startPromise = null;
@@ -85,7 +91,8 @@ async function actuallyStartServer(attempt = 1) {
     env: {
       ...process.env,
       PORT: TEST_PORT.toString(),
-      API_TOKEN: TEST_TOKEN,
+      JWT_SECRET,
+      JWT_REFRESH_SECRET: 'integration-refresh-secret',
       MLP_SCRIPT: 'src/amyserver_tools/train_mlp.py',
       MLP_EPOCHS: '1',
     },

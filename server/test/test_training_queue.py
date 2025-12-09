@@ -4,16 +4,21 @@ import time
 import json
 import urllib.request
 import urllib.error
+from conftest import create_access_token
 
 SERVER_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 PORT = "5055"
 DB_PATH = os.path.join(SERVER_DIR, 'db.json')
+ACCESS_TOKEN = ""
 
 
 def start_server():
     env = os.environ.copy()
-    env.setdefault("API_TOKEN", "testtoken")
+    env.setdefault("JWT_SECRET", "test-jwt-secret")
+    env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
     env.setdefault("PORT", PORT)
+    global ACCESS_TOKEN
+    ACCESS_TOKEN = create_access_token(env["JWT_SECRET"], user_id="queue-tester")
 
     subprocess.run(
         ["npm", "run", "build"],
@@ -32,7 +37,7 @@ def start_server():
         stderr=subprocess.DEVNULL,
     )
     start = time.time()
-    headers = {"Authorization": "Bearer testtoken"}
+    headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
     req = urllib.request.Request(
         f"http://localhost:{PORT}/model-version", headers=headers
     )
@@ -63,7 +68,7 @@ def post_correction(payload):
     body = json.dumps(payload).encode('utf-8')
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer testtoken',
+        'Authorization': f'Bearer {ACCESS_TOKEN}',
     }
     req = urllib.request.Request(url, data=body, headers=headers)
     with urllib.request.urlopen(req, timeout=5) as resp:

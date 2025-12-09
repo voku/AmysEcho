@@ -15,7 +15,7 @@ import {
   DATA_DIR,
   PROFILE_ID_PATTERN,
 } from '../constants/modelPaths.js';
-import { legacyAuth } from '../middleware/auth.js';
+import { auth } from '../middleware/auth.js';
 import { withFileLock } from '../utils/fileLock.js';
 
 interface TrainingJobTriggerContext {
@@ -295,7 +295,7 @@ export function registerTrainingBundleRoute(
   genId: () => string,
   deps: TrainingBundleRouteDeps = {},
 ): void {
-  app.post('/api/v1/dgs/sample-bundles', legacyAuth, trainingBundleUpload, async (req: Request, res: Response) => {
+  app.post('/api/v1/dgs/sample-bundles', auth, trainingBundleUpload, async (req: Request, res: Response) => {
     try {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
         return res.status(400).json({ error: 'ZIP payload required' });

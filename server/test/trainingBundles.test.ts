@@ -6,6 +6,7 @@ import request from 'supertest';
 import express from 'express';
 import type { Express } from 'express';
 import type { registerTrainingBundleRoute as RegisterTrainingBundleRoute } from '../src/routes/trainingBundleRoute.js';
+import { AuthService } from '../src/services/authService.js';
 
 const repoRoot = path.basename(process.cwd()) === 'server'
   ? path.resolve(process.cwd(), '..')
@@ -43,6 +44,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   type TriggerResult = { jobId: string; status: string; pollUrl?: string };
   let triggerCalls: TriggerCall[];
   let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
+  let accessToken: string;
   async function getBucketEntries(bucket: string): Promise<string[] | null> {
     if (!dataDir) {
       return null;
@@ -61,9 +63,15 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-bundle-'));
     process.env.AMY_ECHO_DATA_DIR = dataDir;
-    process.env.API_TOKEN = 'bundle-token';
+    jest.resetModules();
+    accessToken = AuthService.generateTokens({
+      id: 'bundle-tester',
+      username: 'bundle',
+      role: 'caregiver',
+    }).accessToken;
     const mod = await import('../src/routes/trainingBundleRoute.js');
     const registerRoute: RegisterTrainingBundleRoute = mod.registerTrainingBundleRoute;
+    const { TRAINING_MANIFEST_PATH } = await import('../src/constants/modelPaths.js');
     app = express();
     let counter = 0;
     triggerCalls = [];
@@ -78,12 +86,13 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         return { jobId, status: 'queued', pollUrl: `/train-status/${jobId}` };
       },
     });
-    manifestPath = path.join(dataDir, 'datasets', 'training_manifest.json');
+    manifestPath = TRAINING_MANIFEST_PATH;
   });
 
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
+    await fs.rm(path.dirname(manifestPath), { recursive: true, force: true });
     triggerCalls.length = 0;
     triggerOverride = null;
   });
@@ -91,7 +100,6 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   afterAll(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     delete process.env.AMY_ECHO_DATA_DIR;
-    delete process.env.API_TOKEN;
   });
 
   it('stores manifest entry for zipped training bundle and strips unknown metadata fields', async () => {
@@ -125,7 +133,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
-      .set('Authorization', 'Bearer bundle-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer())
       .expect(202);
@@ -224,7 +232,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
-      .set('Authorization', 'Bearer bundle-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer())
       .expect(202);
@@ -239,7 +247,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
-      .set('Authorization', 'Bearer bundle-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer());
 
@@ -274,7 +282,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
-      .set('Authorization', 'Bearer bundle-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer());
 
@@ -310,7 +318,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     if (entries[1]) entries[1].entryName = '../clip.mp4';
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
-      .set('Authorization', 'Bearer bundle-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer());
 
@@ -328,7 +336,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
-      .set('Authorization', 'Bearer bundle-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer());
 
@@ -363,7 +371,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
-      .set('Authorization', 'Bearer bundle-token')
+      .set('Authorization', `Bearer ${accessToken}`)
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer());
 

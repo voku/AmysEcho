@@ -115,6 +115,9 @@ export const findUserByUsername = (
   return db.users.find((u) => u.username === normalized);
 };
 
+export const findUserById = (db: Database, id: string): StoredUser | undefined =>
+  db.users.find((user) => user.id === id);
+
 const updateById = <T extends { id: string }>(
   items: T[],
   record: T,

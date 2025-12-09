@@ -38,7 +38,7 @@ Camera → MediaPipe (landmarks) → MLP inference → RecognitionScreen state �
 - **Training cadence**: whenever caregivers upload bundles or trigger `/train-model`
 
 ## 📝 Developer Notes
-- No API keys are required for gesture recognition. Ensure `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_API_TOKEN` point at your server when testing uploads.
+- No API keys are required for gesture recognition. Ensure `EXPO_PUBLIC_API_URL` points at your server when testing uploads.
 - Server tests expect `python3` plus NumPy/MediaPipe dependencies for `train_mlp.py`. Use `npm test --prefix server` to compile TS before running Pytest.
 - When editing the WebView classifier (`app/webview/gestureDetector.ts`) run `npm run build:webview --prefix app` so `app/assets/gestureDetector.js` stays in sync.
 

@@ -3,3 +3,4 @@ pytest
 mediapipe==0.10.21
 opencv-python
 pillow
+PyJWT~=2.9

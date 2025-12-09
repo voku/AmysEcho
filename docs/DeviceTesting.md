@@ -24,7 +24,6 @@ If your Android device is USB‑connected, reverse the server port so the app ca
 Alternatively, set an explicit LAN API URL before starting Metro:
 ```
 export EXPO_PUBLIC_API_URL=http://<HOST_LAN_IP>:5000
-export EXPO_PUBLIC_API_TOKEN=demo-token
 ```
 
 ### Install/Launch on Android

@@ -1,6 +1,6 @@
-import type { Express, Request, Response } from 'express';
+import type { Express, Request, Response, RequestHandler } from 'express';
 import { z } from 'zod';
-import { legacyAuth } from '../middleware/auth.js';
+import { auth } from '../middleware/auth.js';
 import type { Database } from '../db.js';
 import { saveDatabase } from '../db.js';
 import { DB_FILE_PATH } from '../constants/dbPaths.js';
@@ -49,7 +49,7 @@ function toClientSymbol(symbol: SymbolRecord) {
   };
 }
 
-export function registerSymbolRoutes(app: Express, db: Database): void {
+export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: RequestHandler): void {
   app.get('/api/v1/symbols', async (_req: Request, res: Response) => {
     const symbols = db.symbols.map(toClientSymbol);
     res.json({ symbols });
@@ -68,7 +68,9 @@ export function registerSymbolRoutes(app: Express, db: Database): void {
     res.status(result.created ? 201 : 200).json(toClientSymbol(result.symbol));
   };
 
-  app.post('/api/v1/symbols', legacyAuth, async (req: Request, res: Response) => {
+  const middlewares = rateLimiter ? [auth, rateLimiter] : [auth];
+
+  app.post('/api/v1/symbols', ...middlewares, async (req: Request, res: Response) => {
     const normalized = normalizeSymbolPayload(req.body);
     if (!normalized.success) {
       res.status(400).json({ error: 'Ungültige Symbol-Daten', details: normalized.error });
@@ -96,7 +98,7 @@ export function registerSymbolRoutes(app: Express, db: Database): void {
     }, res);
   });
 
-  app.put('/api/v1/symbols/:id', legacyAuth, async (req: Request, res: Response) => {
+  app.put('/api/v1/symbols/:id', ...middlewares, async (req: Request, res: Response) => {
     const normalized = normalizeSymbolPayload({ ...req.body, id: req.params.id });
     if (!normalized.success) {
       res.status(400).json({ error: 'Ungültige Symbol-Daten', details: normalized.error });
@@ -117,7 +119,7 @@ export function registerSymbolRoutes(app: Express, db: Database): void {
     }, res);
   });
 
-  app.delete('/api/v1/symbols/:id', legacyAuth, async (req: Request, res: Response) => {
+  app.delete('/api/v1/symbols/:id', ...middlewares, async (req: Request, res: Response) => {
     const targetId = req.params.id;
     const existing = db.symbols.find((s) => s.id === targetId);
     if (!existing) {

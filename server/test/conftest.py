@@ -1,5 +1,7 @@
 import os
 import socket
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 import subprocess
 import time
 import urllib.request
@@ -8,11 +10,19 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import jwt
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 BASELINE_PATH = SERVER_DIR / "data" / "amy_model.npz"
 DEFAULT_INPUT_SIZE = 126
 DEFAULT_HIDDEN_SIZE = 256
+
+
+@dataclass
+class ServerContext:
+    process: subprocess.Popen
+    access_token: str
+    base_url: str
 
 
 def ensure_baseline_model() -> None:
@@ -42,18 +52,35 @@ def _get_free_port() -> int:
         return s.getsockname()[1]
 
 
+def create_access_token(secret: str, *, user_id: str = "test-user") -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "userId": user_id,
+        "username": user_id,
+        "role": "caregiver",
+        "iat": now,
+        "exp": now + timedelta(minutes=15),
+    }
+    token = jwt.encode(payload, secret, algorithm="HS256")
+    return token.decode("utf-8") if isinstance(token, bytes) else token
+
+
 PORT = os.environ.get("PORT") or str(_get_free_port())
 HOST = "127.0.0.1"
-BASE_URL = f"http://{HOST}:{PORT}"
 
 
-def start_server():
+def start_server() -> ServerContext:
     ensure_baseline_model()
 
     env = os.environ.copy()
-    env.setdefault("API_TOKEN", "testtoken")
+    env.setdefault("JWT_SECRET", "test-jwt-secret")
+    env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
     env.setdefault("PORT", PORT)
     env.setdefault("HOST", HOST)
+    host = env.get("HOST", HOST)
+    port = env.get("PORT", PORT)
+    base_url = f"http://{host}:{port}"
+    access_token = create_access_token(env["JWT_SECRET"])
     subprocess.run(
         ["npm", "run", "build"],
         cwd=SERVER_DIR,
@@ -75,15 +102,13 @@ def start_server():
             raise RuntimeError("server failed to start")
         try:
             req = urllib.request.Request(
-                f"{BASE_URL}/model-version",
-                headers={"Authorization": f"Bearer {env.get('API_TOKEN', 'testtoken')}"},
+                f"{base_url}/model-version",
+                headers={"Authorization": f"Bearer {access_token}"},
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.getcode() == 200:
                     break
         except urllib.error.HTTPError as err:
-            if err.code == 401:
-                raise RuntimeError("server rejected API token during startup readiness check") from err
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time") from err
             time.sleep(0.5)
@@ -92,10 +117,10 @@ def start_server():
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time")
             time.sleep(0.5)
-    return proc
+    return ServerContext(process=proc, access_token=access_token, base_url=base_url)
 
 
-def stop_server(proc):
+def stop_server(proc: subprocess.Popen):
     proc.terminate()
     try:
         proc.wait(timeout=5)
@@ -105,13 +130,18 @@ def stop_server(proc):
 
 @pytest.fixture
 def running_server():
-    proc = start_server()
+    context = start_server()
     try:
-        yield
+        yield context
     finally:
-        stop_server(proc)
+        stop_server(context.process)
 
 
 @pytest.fixture
-def base_url():
-    return BASE_URL
+def auth_header(running_server):
+    return {"Authorization": f"Bearer {running_server.access_token}"}
+
+
+@pytest.fixture
+def base_url(running_server):
+    return running_server.base_url

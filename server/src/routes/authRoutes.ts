@@ -2,7 +2,7 @@ import express from 'express';
 import { randomUUID } from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { addUser, Database, findUserByUsername, saveDatabase } from '../db.js';
+import { addUser, Database, findUserById, findUserByUsername, saveDatabase } from '../db.js';
 import { AuthService } from '../services/authService.js';
 import logger from '../services/logger.js';
 import { withFileLock } from '../utils/fileLock.js';
@@ -20,6 +20,10 @@ const CredentialsSchema = z.object({
 
 const normalizeUsername = (username: string) => username.toLowerCase();
 
+const RefreshSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
 export const createAuthLimiter = () =>
   rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -29,8 +33,18 @@ export const createAuthLimiter = () =>
     message: { error: 'Zu viele Anmeldeversuche. Bitte später erneut versuchen.' },
   });
 
+export const createRefreshLimiter = () =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Zu viele Aktualisierungsversuche. Bitte später erneut versuchen.' },
+  });
+
 export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
   const authLimiter = createAuthLimiter();
+  const refreshLimiter = createRefreshLimiter();
 
   app.post('/api/v1/auth/register', authLimiter, async (req, res) => {
     const parsed = CredentialsSchema.safeParse(req.body);
@@ -101,6 +115,29 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
     } catch (error: any) {
       logger.error('Login failed', { error: error?.message });
       return res.status(500).json({ error: 'Anmeldung fehlgeschlagen.' });
+    }
+  });
+
+  app.post('/api/v1/auth/refresh', refreshLimiter, async (req, res) => {
+    const parsed = RefreshSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Aktualisierungs-Token wird benötigt.' });
+    }
+
+    try {
+      const refreshed = AuthService.refreshTokens(parsed.data.refreshToken, (userId) =>
+        findUserById(deps.db, userId),
+      );
+
+      if (!refreshed) {
+        return res.status(401).json({ error: 'Sitzung abgelaufen. Bitte neu anmelden.' });
+      }
+
+      logger.info('Tokens refreshed', { userId: refreshed.user.id, username: refreshed.user.username });
+      return res.json(refreshed);
+    } catch (error: any) {
+      logger.error('Token refresh failed', { error: error?.message });
+      return res.status(500).json({ error: 'Token-Aktualisierung fehlgeschlagen.' });
     }
   });
 }

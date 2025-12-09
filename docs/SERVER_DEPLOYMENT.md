@@ -136,7 +136,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5000
-      - API_TOKEN=${API_TOKEN:-demo-token}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - BACKUP_SECRET=${BACKUP_SECRET}
@@ -161,7 +160,6 @@ Create `.env` file in the repository root:
 
 ```bash
 # SECURITY: Change these in production!
-API_TOKEN=your-secure-api-token-here
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 JWT_REFRESH_SECRET=your-super-secret-refresh-key-min-32-chars
 BACKUP_SECRET=your-backup-encryption-secret
@@ -251,7 +249,6 @@ Create `/opt/amysecho/app/server/.env`:
 ```bash
 NODE_ENV=production
 PORT=5000
-API_TOKEN=your-secure-api-token-here
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 JWT_REFRESH_SECRET=your-super-secret-refresh-key-min-32-chars
 BACKUP_SECRET=your-backup-encryption-secret
@@ -362,7 +359,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 openssl rand -hex 32
 ```
 
-Use these values for `API_TOKEN`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, and `BACKUP_SECRET`.
+Use these values for `JWT_SECRET`, `JWT_REFRESH_SECRET`, and `BACKUP_SECRET`.
 
 #### 2. Restrict File Permissions
 
@@ -402,9 +399,8 @@ sudo ufw enable
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `PORT` | No | `5000` | Server port |
-| `API_TOKEN` | No | `demo-token` | Legacy API authentication token |
-| `JWT_SECRET` | No | (insecure default) | JWT signing secret - CHANGE IN PRODUCTION |
-| `JWT_REFRESH_SECRET` | No | (insecure default) | JWT refresh token secret - CHANGE IN PRODUCTION |
+| `JWT_SECRET` | Yes | None | JWT signing secret (**required**) |
+| `JWT_REFRESH_SECRET` | Yes | None | JWT refresh token secret (**required**) |
 | `BACKUP_SECRET` | No | `default-secret-password` | Backup encryption secret |
 | `NODE_ENV` | No | `development` | Environment (`production` recommended) |
 | `API_LIMIT` | No | `120` | Rate limit (requests per minute) |
@@ -637,7 +633,6 @@ The commands below match the directory layout shown in the provided context (`/v
    cat > .env <<'EOF'
    NODE_ENV=production
    PORT=5000
-   API_TOKEN=replace-with-strong-api-token
    JWT_SECRET=replace-with-long-secret
    JWT_REFRESH_SECRET=replace-with-long-refresh-secret
    BACKUP_SECRET=replace-with-backup-secret

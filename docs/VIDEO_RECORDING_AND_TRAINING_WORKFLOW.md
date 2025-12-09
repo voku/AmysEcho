@@ -401,13 +401,11 @@ export async function installMlp(
 ### App Environment Variables
 ```bash
 EXPO_PUBLIC_API_URL=http://localhost:5000  # Server URL
-EXPO_PUBLIC_API_TOKEN=demo-token           # Auth token
 ```
 
 ### Server Environment Variables
 ```bash
 PORT=5000                           # Server port
-API_TOKEN=demo-token                # Auth token
 MLP_DATA_DIR=./data                # Data directory
 MLP_HIDDEN_SIZE=128                # MLP hidden layer size
 MLP_LEARNING_RATE=0.01             # Learning rate

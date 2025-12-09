@@ -11,6 +11,7 @@
     "tsx": "^4.20.5"
   },
   "dependencies": {
-    "fflate": "^0.8.2"
+    "fflate": "^0.8.2",
+    "jsonwebtoken": "^9.0.2"
   }
 }
