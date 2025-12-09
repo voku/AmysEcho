@@ -24,20 +24,6 @@ def _make_auth_headers(access_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {access_token}"}
 
 
-def _load_default_labels() -> list[str]:
-    labels_path = SERVER_DIR / "data" / "config" / "defaultBaselineLabels.json"
-    try:
-        with labels_path.open("r", encoding="utf-8") as handle:
-            payload = json.load(handle)
-    except FileNotFoundError:
-        labels_path.parent.mkdir(parents=True, exist_ok=True)
-        labels_path.write_text(json.dumps(DEFAULT_LABEL_FALLBACK), encoding="utf-8")
-        payload = list(DEFAULT_LABEL_FALLBACK)
-    if not isinstance(payload, list):
-        raise TypeError("defaultBaselineLabels.json must contain a list of strings")
-    return [str(label) for label in payload]
-
-
 # The JSON asset is the single source of truth for baseline gestures.
 # Keep loaders in App and Server in sync if the structure changes.
 DEFAULT_LABEL_FALLBACK = [
@@ -54,6 +40,21 @@ DEFAULT_LABEL_FALLBACK = [
     "spielen",
     "trinken",
 ]
+
+
+def _load_default_labels() -> list[str]:
+    labels_path = SERVER_DIR / "data" / "config" / "defaultBaselineLabels.json"
+    try:
+        with labels_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError:
+        labels_path.parent.mkdir(parents=True, exist_ok=True)
+        labels_path.write_text(json.dumps(DEFAULT_LABEL_FALLBACK), encoding="utf-8")
+        payload = list(DEFAULT_LABEL_FALLBACK)
+    if not isinstance(payload, list):
+        raise TypeError("defaultBaselineLabels.json must contain a list of strings")
+    return [str(label) for label in payload]
+
 
 DEFAULT_BASELINE_LABELS = _load_default_labels()
 BASELINE_MODEL_PATH = (SERVER_DIR / "data" / "amy_model.npz").resolve()
@@ -98,7 +99,7 @@ def start_server():
     )
     access_token = create_access_token(env["JWT_SECRET"], user_id="train-tester")
     # wait for server up
-    headers = {"Authorization": f"Bearer {access_token}"}
+    headers = _make_auth_headers(access_token)
     req = urllib.request.Request(
         f"http://localhost:{PORT}/model-version", headers=headers
     )
