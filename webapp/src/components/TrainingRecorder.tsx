@@ -44,7 +44,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
     ? ''
-    : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
+    : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest oder hochlädst.';
 
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
@@ -406,7 +406,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : `Video wird zusammen mit den Landmarks gespeichert (Limit ${formatBytes(maxClipBytes)}).`;
   const uploadDisabled = clipLimitExceeded || !metadataReady || recordedData.frames.length === 0;
   const uploadDisabledReason = !metadataReady
-    ? 'Upload gesperrt, bis Profil-ID und Gestenlabel ausgefüllt sind.'
+    ? 'Upload gesperrt, bis Profil-ID und Gebärden-Name ausgefüllt sind.'
     : recordedData.frames.length === 0
     ? 'Upload gesperrt, da keine aufgenommenen Frames vorhanden sind.'
     : clipLimitExceeded
@@ -415,7 +415,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const showDetectorStart = !isRecording && status !== 'running';
   const detectorStartDisabled = status === 'initializing';
   const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : status === 'initializing' ? 'Startet…' : 'Kamera starten';
-  const displayedLabel = label.trim() || 'Keine Gestenauswahl vorhanden';
+  const displayedLabel = label.trim() || 'Keine Gebärdenauswahl vorhanden';
   const detectorStatusLabel =
     status === 'running'
       ? 'Detektor gestartet'
@@ -441,7 +441,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       <div className="card-header">
         <div>
           <p className="eyebrow">Aufnahme</p>
-          <h2>Geste aufzeichnen</h2>
+          <h2>Gebärde aufzeichnen</h2>
           <p className="muted">
             Nimm deine Geste mit der Kamera auf. Die Handbewegungen werden automatisch erkannt und gespeichert.
           </p>

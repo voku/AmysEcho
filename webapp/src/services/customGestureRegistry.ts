@@ -1,19 +1,20 @@
 /**
- * Custom Gesture Registry
- * Manages user-defined custom gestures for personalized recognition
+ * Custom Sign Language Sign Registry
+ * Manages user-defined custom Deutsche Gebärdensprache (DGS) signs for personalized recognition.
+ * Each sign requires training data before it can be recognized by the MLP classifier.
  */
 
 export interface CustomGesture {
   id: string;
   profileId: string;
   name: string;
-  label: string;
+  label: string; // The DGS sign name/label for recognition
   description?: string;
   emoji?: string;
   category: string;
   status: 'draft' | 'training' | 'active' | 'disabled';
   minConfidenceThreshold: number;
-  trainingSamplesCount: number;
+  trainingSamplesCount: number; // Number of training samples collected for this DGS sign
   createdAt: string;
   updatedAt: string;
   lastRecognizedAt?: string;
@@ -21,6 +22,15 @@ export interface CustomGesture {
 
 const STORAGE_KEY = 'customGestures';
 
+/**
+ * Manages custom DGS (Deutsche Gebärdensprache) signs.
+ * 
+ * Signs go through phases:
+ * 1. draft - Just registered, needs training samples
+ * 2. training - Has some samples (3+), collecting more
+ * 3. active - Has enough samples (10+), ready for recognition
+ * 4. disabled - Temporarily deactivated
+ */
 class CustomGestureRegistry {
   private gestures: Map<string, CustomGesture> = new Map();
   private listeners: Set<() => void> = new Set();
@@ -62,6 +72,10 @@ class CustomGestureRegistry {
     return () => this.listeners.delete(callback);
   }
 
+  /**
+   * Register a new custom DGS sign.
+   * The sign starts in 'draft' status and requires training samples before it can be recognized.
+   */
   register(params: {
     profileId: string;
     name: string;
@@ -127,6 +141,12 @@ class CustomGestureRegistry {
     return updated;
   }
 
+  /**
+   * Increment training sample count for a DGS sign.
+   * Automatically transitions sign status based on sample count:
+   * - 3+ samples: draft → training
+   * - 10+ samples: training → active (ready for recognition)
+   */
   incrementTrainingSamples(id: string): void {
     const gesture = this.gestures.get(id);
     if (gesture) {

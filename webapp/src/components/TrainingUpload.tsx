@@ -322,7 +322,7 @@ export function TrainingUpload({
       <div className="card-header">
         <div>
           <p className="eyebrow">Training</p>
-          <h2>Gestenpaket hochladen</h2>
+          <h2>Gebärdenpaket hochladen</h2>
           <p className="muted">
             Lädt ein ZIP-Paket nach dem App-Vorbild hoch ({'metadata.json'}, {'landmarks.json'}, optional Video/Standbild).
             Ideal für Test-Bundles oder QA im Browser.
@@ -345,7 +345,7 @@ export function TrainingUpload({
           <p className="muted small">Verknüpft das Bundle mit einem Profil (z. B. aus dem Server-Dataset).</p>
         </div>
         <div className="form-group">
-          <label htmlFor="label">Gestenlabel</label>
+          <label htmlFor="label">Gebärden-Name</label>
           <input id="label" value={label} onChange={(event) => setLabel(event.target.value)} required />
           {suggestedLabel && suggestedLabel !== label && (
             <button
@@ -353,7 +353,7 @@ export function TrainingUpload({
               className="ghost mt-sm"
               onClick={() => setLabel(suggestedLabel)}
             >
-              Letzte erkannte Geste übernehmen ({suggestedLabel})
+              Letzte erkannte Gebärde übernehmen ({suggestedLabel})
             </button>
           )}
           <p className="muted small">Muss einem bekannten Gestenbegriff entsprechen (z. B. „HILFE“).</p>
@@ -434,7 +434,7 @@ export function TrainingUploadWithRecording() {
   const metadataReady = profileId.trim().length > 0 && preferredGestureLabel.trim().length > 0;
   const metadataError = metadataReady
     ? ''
-    : 'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.';
+    : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest oder hochlädst.';
   const [searchParams] = useSearchParams();
   const [gestureFromLearning, setGestureFromLearning] = useState<string | null>(null);
   const gestureParam = searchParams.get('gesture');
@@ -508,7 +508,7 @@ export function TrainingUploadWithRecording() {
         const result = await upload(payload);
         setMessage(
           result
-            ? 'Upload abgeschlossen. Vielen Dank für die neue Geste!'
+            ? 'Upload abgeschlossen. Vielen Dank für die neue Gebärde!'
             : 'Bundle gespeichert, wird bei Verbindung synchronisiert.',
         );
       } catch (uploadError) {
@@ -555,27 +555,27 @@ export function TrainingUploadWithRecording() {
     <>
       {symbolSyncError && (
         <div className="notice warning mb-md">
-          Symbolliste konnte nicht synchronisiert werden: {symbolSyncError}{' '}
+          Gebärdenliste konnte nicht synchronisiert werden: {symbolSyncError}{' '}
           <button className="ghost" onClick={refreshSymbols} disabled={symbolsLoading}>
             Jetzt synchronisieren
           </button>
-          <p className="muted small mt-xs">Gesten-Uploads und Trainings-Sync laufen trotzdem weiter.</p>
+          <p className="muted small mt-xs">Gebärden-Uploads und Trainings-Sync laufen trotzdem weiter.</p>
         </div>
       )}
 
       {!symbolSyncError && symbols.length === 0 && (
         <div className="notice info mb-md">
-          Symbole werden aus dem Server geladen.{' '}
+          Gebärden werden aus dem Server geladen.{' '}
           <button className="ghost" onClick={refreshSymbols} disabled={symbolsLoading}>
             Manuell synchronisieren
           </button>
-          <p className="muted small mt-xs">Wichtiger: Gestendaten werden unabhängig hiervon synchronisiert.</p>
+          <p className="muted small mt-xs">Wichtiger: Gebärdendaten werden unabhängig hiervon synchronisiert.</p>
         </div>
       )}
 
       {selectedSymbol && (
         <div className="notice success mb-md">
-          Symbol aus „Lernen“ übernommen: <strong>{selectedSymbol.name}</strong>{' '}
+          Geste aus „Lernen“ übernommen: <strong>{selectedSymbol.name}</strong>{' '}
           <span className="muted small">({selectedSymbol.category})</span>
           {selectedSymbol.imageUrl && (
             <div className="mt-xs">
@@ -587,13 +587,13 @@ export function TrainingUploadWithRecording() {
 
       {!selectedSymbol && !gestureFromLearning && !hasGestureSelection && (
         <div className="notice info mb-md">
-          Keine Geste per Link ausgewählt. Bitte trage ein Gestenlabel ein oder wähle ein Symbol aus.
+          Keine Gebärde per Link ausgewählt. Bitte trage ein Gebärden-Name ein oder wähle eine Gebärde aus.
         </div>
       )}
 
       <div className="mode-switcher mb-md">
         <button className={mode === 'record' ? 'active' : ''} onClick={() => setMode('record')}>
-          Geste aufnehmen
+          Gebärde aufnehmen
         </button>
         <button className={mode === 'upload' ? 'active' : ''} onClick={() => setMode('upload')}>
           Datei hochladen
@@ -604,13 +604,13 @@ export function TrainingUploadWithRecording() {
 
       {gestureFromLearning && (
         <div className="notice success mb-md">
-          Gestenlabel aus „Lernen“ übernommen: <strong>{gestureFromLearning}</strong>. Du kannst es bei Bedarf anpassen.
+          Gebärden-Name aus „Lernen“ übernommen: <strong>{gestureFromLearning}</strong>. Du kannst es bei Bedarf anpassen.
         </div>
       )}
 
       {suggestedLabel && (
         <div className="notice info mb-md">
-          Letzte erkannte Geste: <strong>{suggestedLabel}</strong>.{' '}
+          Letzte erkannte Gebärde: <strong>{suggestedLabel}</strong>.{' '}
           <button type="button" className="ghost" onClick={() => handleLabelUpdate(suggestedLabel)}>
             Als Standardlabel übernehmen
           </button>
@@ -627,7 +627,7 @@ export function TrainingUploadWithRecording() {
               <input id="record-profile" value={profileId} onChange={(event) => setProfileId(event.target.value)} />
             </div>
             <div className="form-group">
-              <label htmlFor="record-label">Gestenlabel</label>
+              <label htmlFor="record-label">Gebärden-Name</label>
               <input id="record-label" value={preferredGestureLabel} onChange={(event) => handleLabelUpdate(event.target.value)} />
               {suggestedLabel && suggestedLabel !== preferredGestureLabel && (
                 <button
@@ -635,7 +635,7 @@ export function TrainingUploadWithRecording() {
                   className="ghost mt-xs"
                   onClick={() => handleLabelUpdate(suggestedLabel)}
                 >
-                  Letzte erkannte Geste verwenden ({suggestedLabel})
+                  Letzte erkannte Gebärde verwenden ({suggestedLabel})
                 </button>
               )}
             </div>

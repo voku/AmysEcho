@@ -1,8 +1,20 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 
 /**
- * Simplified and modular gesture detector
- * Uses the GestureRecognitionOrchestrator for clean separation of concerns
+ * Deutsche Gebärdensprache (DGS) Sign Language Detector
+ * 
+ * This module provides real-time sign language recognition using:
+ * - MediaPipe for hand pose landmark extraction
+ * - MLP classifier for DGS sign recognition
+ * - GestureRecognitionOrchestrator for orchestrating the recognition pipeline
+ * 
+ * The detector captures hand landmarks from the camera, runs inference through
+ * a trained MLP model (global + per-user), and emits recognition events to the webapp.
+ * 
+ * Architecture:
+ * 1. Camera → MediaPipe → Hand landmarks
+ * 2. Landmarks → MLP model → Sign classification
+ * 3. Classification → RecognitionScreen → UI/Speech output
  */
 
 // Forward script errors to React Native for easier debugging

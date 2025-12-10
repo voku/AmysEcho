@@ -1,6 +1,12 @@
 /**
- * Gesture History Service for Web
- * Tracks gesture recognition history and provides analytics.
+ * Sign Language Recognition History Service for Web
+ * Tracks Deutsche Gebärdensprache (DGS) sign recognition history and provides analytics.
+ * 
+ * Features:
+ * - Maintains recent recognition history for quick access
+ * - Provides analytics on sign usage patterns
+ * - Tracks communication streaks for gamification
+ * - Anonymizes and protects sensitive data
  */
 
 import { logger } from './logger';
@@ -8,33 +14,37 @@ import { gestureDataProtector } from './dataProtection';
 
 export interface GestureHistoryEntry {
   id: string;
-  label: string;
+  label: string; // DGS sign label that was recognized
   emoji: string;
   timestamp: number;
-  confidence: number;
-  landmarks?: number[][][];
+  confidence: number; // MLP classifier confidence (0-1)
+  landmarks?: number[][][]; // MediaPipe hand landmarks (optionally stored)
   category?: string;
-  audioResponse?: string;
+  audioResponse?: string; // What was spoken by Amy's Echo
 }
 
 export interface GestureUsageSummary {
   id: string;
-  label: string;
-  count: number;
+  label: string; // DGS sign label
+  count: number; // Number of times this sign was recognized
 }
 
 export interface GestureHistoryStats {
-  totalGestures: number;
-  successRate: number;
+  totalGestures: number; // Total DGS signs recognized
+  successRate: number; // Percentage above confidence threshold
   mostUsedGesture: GestureUsageSummary | null;
   recentActivity: {
     today: number;
     thisWeek: number;
     thisMonth: number;
   };
-  communicationStreak: number;
+  communicationStreak: number; // Days with at least one recognized sign
 }
 
+/**
+ * Singleton service for tracking DGS sign recognition history.
+ * Used for analytics, user progress tracking, and improving personalization.
+ */
 class GestureHistoryService {
   private static instance: GestureHistoryService;
   private history: GestureHistoryEntry[] = [];
@@ -67,7 +77,8 @@ class GestureHistoryService {
   }
 
   /**
-   * Add a gesture to history
+   * Add a recognized DGS sign to history.
+   * Automatically manages storage limits and analytics tracking.
    */
   addGesture(gesture: Omit<GestureHistoryEntry, 'timestamp'>): void {
     const entry: GestureHistoryEntry = {

@@ -146,7 +146,7 @@ export function LearningHub() {
       setModalOpen(false);
     } catch (error) {
       console.error('Failed to save symbol:', error);
-      showToast({ message: 'Symbol konnte nicht gespeichert werden. Bitte versuche es erneut.', tone: 'error' });
+      showToast({ message: 'Gebärde konnte nicht gespeichert werden. Bitte versuche es erneut.', tone: 'error' });
     } finally {
       setSavingSymbol(false);
     }
@@ -161,9 +161,9 @@ export function LearningHub() {
       <div className="card-header">
         <div>
           <p className="eyebrow">Lernen</p>
-          <h2>Gesten trainieren</h2>
+          <h2>Gebärden trainieren</h2>
           <p className="muted">
-            Wähle eine Geste aus, um Trainingsbeispiele aufzunehmen. 
+            Wähle eine Gebärde aus, um Trainingsbeispiele aufzunehmen. 
             Je mehr Beispiele, desto besser die Erkennung.
           </p>
         </div>
@@ -173,7 +173,7 @@ export function LearningHub() {
       <div className="learning-stats">
         <div className="stat-item">
           <span className="stat-number">{gestures.length}</span>
-          <span className="stat-label">Verfügbare Gesten</span>
+          <span className="stat-label">Verfügbare Gebärden</span>
         </div>
         <div className="stat-item">
           <span className="stat-number">~5</span>
@@ -181,7 +181,7 @@ export function LearningHub() {
         </div>
         <div className="stat-item">
           <span className="stat-number">~1 Min</span>
-          <span className="stat-label">Pro Geste</span>
+          <span className="stat-label">Pro Gebärde</span>
         </div>
       </div>
 
@@ -191,10 +191,10 @@ export function LearningHub() {
         </button>
         {loading && <span className="muted small">Aktualisiere…</span>}
       </div>
-      {syncError && <div className="notice warning">Symbole konnten nicht geladen werden: {syncError}</div>}
+      {syncError && <div className="notice warning">Gebärden konnten nicht geladen werden: {syncError}</div>}
       {!syncError && symbols.length === 0 && (
         <div className="notice info">
-          Wir laden die Symbolsammlung vom Server. Du kannst trotzdem schon eigene Gesten hinzufügen und sofort trainieren.
+          Wir laden die Gebärdensammlung vom Server. Du kannst trotzdem schon eigene Gebärden hinzufügen und sofort trainieren.
         </div>
       )}
 
@@ -238,13 +238,13 @@ export function LearningHub() {
 
       {/* Add custom gesture */}
       <div className="custom-gesture-section">
-        <h3>➕ Eigene Geste hinzufügen</h3>
+        <h3>➕ Eigene Gebärde hinzufügen</h3>
         <p className="muted">
-          Du kannst auch eigene Gesten erstellen und trainieren. Bild, ID und Kategorie werden direkt mit dem Server synchronisiert.
+          Du kannst auch eigene Gebärden erstellen und trainieren. Bild, ID und Kategorie werden direkt mit dem Server synchronisiert.
         </p>
         <div className="action-row">
           <button className="primary-button" onClick={handleOpenModal}>
-            Neues Symbol speichern
+            Neue Gebärde speichern
           </button>
           <Link to="/training" className="add-gesture-button">
             Sofort Training starten
@@ -274,11 +274,11 @@ export function LearningHub() {
           }}
         >
           <div className="modal-content">
-            <h3 id="symbol-modal-title">Symbol für das Lernen speichern</h3>
-            <p className="muted">Sobald du speicherst, steht das Symbol auf der Lern- und Trainingsseite bereit.</p>
+            <h3 id="symbol-modal-title">Gebärde für das Lernen speichern</h3>
+            <p className="muted">Sobald du speicherst, steht die Gebärde auf der Lern- und Trainingsseite bereit.</p>
 
             <div className="form-group">
-              <label htmlFor="symbol-id">Symbol-ID</label>
+              <label htmlFor="symbol-id">Gebärden-ID</label>
               <input
                 id="symbol-id"
                 type="text"
@@ -300,7 +300,7 @@ export function LearningHub() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
-                placeholder="Titel für das Symbol"
+                placeholder="Titel für die Gebärde"
               />
             </div>
 
@@ -332,7 +332,7 @@ export function LearningHub() {
                 }
                 placeholder="https://.../symbol.png"
               />
-              <p className="muted small">Du kannst das Symbol auch ohne Bild speichern.</p>
+              <p className="muted small">Du kannst die Gebärde auch ohne Bild speichern.</p>
             </div>
 
             <div className="form-group">
@@ -349,7 +349,7 @@ export function LearningHub() {
             {imagePreview && (
               <div className="preview-row">
                 <p className="muted small">Vorschau</p>
-                <img src={imagePreview} alt={formData.name || 'Symbol'} className="symbol-thumb" />
+                <img src={imagePreview} alt={formData.name || 'Gebärde'} className="symbol-thumb" />
               </div>
             )}
 
