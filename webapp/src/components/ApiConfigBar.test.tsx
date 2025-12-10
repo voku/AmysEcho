@@ -20,7 +20,10 @@ describe('ApiConfigBar authentication helpers', () => {
   it('logs in and stores the returned token for the session', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ tokens: { accessToken: 'jwt-token' }, user: { username: 'amy' } }),
+      json: async () => ({ 
+        tokens: { accessToken: 'jwt-token', refreshToken: 'refresh-token' }, 
+        user: { username: 'amy' } 
+      }),
     });
     vi.stubGlobal('fetch', fetchMock);
 
