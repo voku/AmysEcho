@@ -116,11 +116,13 @@ describe('SymbolStore offline handling', () => {
     const { result } = renderHook(() => useSymbolStore(), { wrapper });
 
     await expect(
-      result.current.saveSymbol({
-        id: 'invalid',
-        name: 'Invalid',
-        category: 'custom',
-        imageUrl: null,
+      act(async () => {
+        await result.current.saveSymbol({
+          id: 'invalid',
+          name: 'Invalid',
+          category: 'custom',
+          imageUrl: null,
+        });
       }),
     ).rejects.toThrowError();
 
