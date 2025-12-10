@@ -44,6 +44,8 @@ class HttpError extends Error {
 const SymbolStoreContext = createContext<SymbolStoreValue | undefined>(undefined);
 
 type CachedSymbols = { symbols: SymbolDefinition[]; pending: SymbolDefinition[]; cachedAt: number };
+const BASE_RETRY_DELAY_MS = 2000;
+const MAX_RETRY_DELAY_MS = 30000;
 
 function readCache(): CachedSymbols {
   if (typeof window === 'undefined') return { symbols: [], pending: [], cachedAt: 0 };
@@ -104,6 +106,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const retryStateRef = useRef({ retryCount: 0, nextAllowed: 0 });
+  const syncTimerRef = useRef<number | null>(null);
   
   // Use ref to track current state for async operations
   const stateRef = useRef({ symbols, pending });
@@ -234,6 +238,21 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   }, [apiBaseUrl, apiToken, resolveHeaders, showToast, withAuthRetry]);
 
   const fetchSymbols = useCallback(async (options?: { silent?: boolean }) => {
+    const now = Date.now();
+    const delayRemaining = retryStateRef.current.nextAllowed - now;
+    if (options?.silent && delayRemaining > 0 && stateRef.current.pending.length > 0) {
+      if (typeof window !== 'undefined') {
+        if (syncTimerRef.current) {
+          window.clearTimeout(syncTimerRef.current);
+        }
+        syncTimerRef.current = window.setTimeout(() => {
+          syncTimerRef.current = null;
+          void fetchSymbols(options);
+        }, delayRemaining);
+      }
+      return;
+    }
+
     setLoading(true);
     try {
       const { pending: pendingSymbols } = await flushPending();
@@ -250,6 +269,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         writeCache(data.symbols, finalPending);
         return { symbols: data.symbols, pending: finalPending, cachedAt: Date.now() };
       });
+      retryStateRef.current = { retryCount: 0, nextAllowed: 0 };
       setSyncError(null);
       setLastSyncedAt(Date.now());
     } catch (error) {
@@ -260,6 +280,22 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           ? error.message
           : 'Unbekannter Fehler beim Laden der Gesten';
       setSyncError(reason);
+
+      if (!isAuthError) {
+        const nextRetryCount = Math.min(retryStateRef.current.retryCount + 1, 6);
+        const delay = Math.min(MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS * 2 ** (nextRetryCount - 1));
+        retryStateRef.current = { retryCount: nextRetryCount, nextAllowed: Date.now() + delay };
+        if (typeof window !== 'undefined' && stateRef.current.pending.length > 0) {
+          if (syncTimerRef.current) {
+            window.clearTimeout(syncTimerRef.current);
+          }
+          syncTimerRef.current = window.setTimeout(() => {
+            syncTimerRef.current = null;
+            void fetchSymbols({ silent: true });
+          }, delay);
+        }
+      }
+
       if (!options?.silent && !isAuthError) {
         showToast({ message: `Gebärden-Liste konnte nicht geladen werden: ${reason}`, tone: 'warning' });
       }
@@ -272,8 +308,26 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (symbols.length === 0 || pendingCount > 0) {
-      void fetchSymbols({ silent: true });
+      const delay = Math.max(0, retryStateRef.current.nextAllowed - Date.now());
+      if (typeof window === 'undefined' || delay === 0) {
+        void fetchSymbols({ silent: true });
+      } else {
+        if (syncTimerRef.current) {
+          window.clearTimeout(syncTimerRef.current);
+        }
+        syncTimerRef.current = window.setTimeout(() => {
+          syncTimerRef.current = null;
+          void fetchSymbols({ silent: true });
+        }, delay);
+      }
     }
+
+    return () => {
+      if (syncTimerRef.current) {
+        window.clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
   }, [fetchSymbols, pendingCount, symbols.length]);
 
   const saveSymbol = useCallback(

@@ -364,6 +364,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- accessToken and refreshToken are the only relevant parts
   }, [config.apiBaseUrl, config.persistToken, config.tokens.accessToken, config.tokens.refreshToken]);
 
   const setApiBaseUrl = useCallback((value: string) => {

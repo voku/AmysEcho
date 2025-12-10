@@ -87,7 +87,7 @@ export function ApiConfigBar() {
         setIsSubmitting(false);
       }
     },
-    [apiBaseUrl, authMode, password, setApiToken, setPersistToken, username],
+    [apiBaseUrl, authMode, password, refreshToken, setPersistToken, setTokens, username],
   );
 
   return (

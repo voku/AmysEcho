@@ -184,14 +184,14 @@ describe('SymbolStore offline handling', () => {
     });
 
     expect(refreshAccessTokenMock).toHaveBeenCalled();
-      expect(fetchMock).toHaveBeenNthCalledWith(
-        3,
-        'http://localhost/api/v1/symbols',
-        expect.objectContaining({
-          headers: expect.objectContaining({ Authorization: 'Bearer refreshed-token' }),
-        }),
-      );
-    });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      'http://localhost/api/v1/symbols',
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer refreshed-token' }),
+      }),
+    );
+  });
 
   it('surfaces authentication expiry when refresh fails', async () => {
     const fetchMock = global.fetch as unknown as Mock;
