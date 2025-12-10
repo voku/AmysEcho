@@ -261,7 +261,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           fetchJson<{ symbols: SymbolDefinition[] }>(`${apiBaseUrl}/api/v1/symbols`, {
             headers: resolveHeaders(tokenOverride),
           }),
-        { silent: options?.silent },
+        options?.silent !== undefined ? { silent: options.silent } : undefined,
       );
       setState((prev) => {
         // Merge fetched symbols with any pending items added during the fetch
