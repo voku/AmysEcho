@@ -130,6 +130,12 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       return { symbols: currentSymbols, pending: currentPending };
     }
 
+    // Check if we have an API token
+    if (!apiToken || apiToken.trim().length === 0) {
+      // Don't try to flush if there's no token - items remain pending
+      return { symbols: currentSymbols, pending: currentPending };
+    }
+
     const remainingPending: SymbolDefinition[] = [];
     let syncedCount = 0;
     let updatedSymbols = currentSymbols;
@@ -154,11 +160,22 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           : [...updatedSymbols, saved];
       } catch (error) {
         if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
-          showToast({
-            message: `Gebärde "${pendingSymbol.name}" konnte nicht synchronisiert werden: ${error.message}`,
-            tone: 'error',
-          });
-          updatedSymbols = updatedSymbols.filter((symbol) => symbol.id !== pendingSymbol.id);
+          // For authentication errors, keep items pending instead of removing them
+          if (error.status === 401) {
+            showToast({
+              message: `Anmeldung abgelaufen. Offline Gebärden werden nach erneuter Anmeldung synchronisiert.`,
+              tone: 'warning',
+            });
+            // Keep all remaining items as pending when auth fails
+            remainingPending.push(pendingSymbol);
+            break; // Stop trying to sync if auth failed
+          } else {
+            showToast({
+              message: `Gebärde "${pendingSymbol.name}" konnte nicht synchronisiert werden: ${error.message}`,
+              tone: 'error',
+            });
+            updatedSymbols = updatedSymbols.filter((symbol) => symbol.id !== pendingSymbol.id);
+          }
         } else {
           remainingPending.push(pendingSymbol);
         }
@@ -183,7 +200,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     }
 
     return { symbols: updatedSymbols, pending: remainingPending };
-  }, [apiBaseUrl, resolveHeaders, showToast]);
+  }, [apiBaseUrl, apiToken, resolveHeaders, showToast]);
 
   const fetchSymbols = useCallback(async (options?: { silent?: boolean }) => {
     setLoading(true);
@@ -221,6 +238,33 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
 
   const saveSymbol = useCallback(
     async (input: SymbolDefinition & { imageDataUrl?: string | null }) => {
+      // Check if we have an API token before attempting to save
+      if (!apiToken || apiToken.trim().length === 0) {
+        showToast({
+          message: 'Keine Anmeldung. Bitte in den Einstellungen API-Token konfigurieren.',
+          tone: 'warning',
+        });
+        // Save locally as pending
+        const fallback: SymbolDefinition = {
+          id: input.id,
+          name: input.name,
+          category: input.category,
+          imageUrl: input.imageDataUrl ? null : input.imageUrl ?? null,
+          imageDataUrl: input.imageDataUrl ?? null,
+        };
+        setState((prev) => {
+          const nextPending = prev.pending.some((symbol) => symbol.id === fallback.id)
+            ? prev.pending.map((symbol) => (symbol.id === fallback.id ? fallback : symbol))
+            : [...prev.pending, fallback];
+          const nextSymbols = prev.symbols.some((s) => s.id === fallback.id)
+            ? prev.symbols.map((s) => (s.id === fallback.id ? fallback : s))
+            : [...prev.symbols, fallback];
+          writeCache(nextSymbols, nextPending);
+          return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
+        });
+        return fallback;
+      }
+
       const payload = { ...input, imageDataUrl: input.imageDataUrl ?? undefined };
       try {
         const saved = await fetchJson<SymbolDefinition>(`${apiBaseUrl}/api/v1/symbols`, {
@@ -243,7 +287,11 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
           const reason = error.message || 'Ungültige Eingabe';
-          showToast({ message: `Gebärde abgelehnt: ${reason}`, tone: 'error' });
+          // Provide more helpful message for authentication errors
+          const userMessage = error.status === 401
+            ? 'Anmeldung abgelaufen. Bitte in den Einstellungen API-Token neu eingeben.'
+            : `Gebärde abgelehnt: ${reason}`;
+          showToast({ message: userMessage, tone: 'error' });
           setSyncError(reason);
           throw error;
         }
@@ -271,7 +319,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         return fallback;
       }
     },
-    [apiBaseUrl, resolveHeaders, showToast],
+    [apiBaseUrl, apiToken, resolveHeaders, showToast],
   );
 
   const removeSymbol = useCallback(
