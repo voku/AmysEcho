@@ -70,7 +70,7 @@ describe('LearningHub', () => {
     it('renders the learning hub section', () => {
       renderWithProviders(<LearningHub />);
 
-      expect(screen.getByText('Gesten trainieren')).toBeInTheDocument();
+      expect(screen.getByText('Gebärden trainieren')).toBeInTheDocument();
       expect(screen.getByText('Lernen')).toBeInTheDocument();
     });
 
@@ -90,25 +90,25 @@ describe('LearningHub', () => {
   });
 
   describe('modal open/close behavior', () => {
-    it('opens modal when "Neue Geste speichern" is clicked', async () => {
+    it('opens modal when "Neue Gebärde speichern" is clicked', async () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
-      expect(screen.getByText('Geste für das Lernen speichern')).toBeInTheDocument();
+      expect(screen.getByText('Gebärde für das Lernen speichern')).toBeInTheDocument();
     });
 
     it('closes modal when "Abbrechen" is clicked', async () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
-      expect(screen.getByText('Geste für das Lernen speichern')).toBeInTheDocument();
+      await user.click(screen.getByText('Neue Gebärde speichern'));
+      expect(screen.getByText('Gebärde für das Lernen speichern')).toBeInTheDocument();
 
       await user.click(screen.getByText('Abbrechen'));
       await waitFor(() => {
-        expect(screen.queryByText('Geste für das Lernen speichern')).not.toBeInTheDocument();
+        expect(screen.queryByText('Gebärde für das Lernen speichern')).not.toBeInTheDocument();
       });
     });
 
@@ -116,14 +116,14 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
-      expect(screen.getByText('Geste für das Lernen speichern')).toBeInTheDocument();
+      await user.click(screen.getByText('Neue Gebärde speichern'));
+      expect(screen.getByText('Gebärde für das Lernen speichern')).toBeInTheDocument();
 
       const overlay = screen.getByRole('dialog');
       fireEvent.click(overlay, { target: overlay });
 
       await waitFor(() => {
-        expect(screen.queryByText('Geste für das Lernen speichern')).not.toBeInTheDocument();
+        expect(screen.queryByText('Gebärde für das Lernen speichern')).not.toBeInTheDocument();
       });
     });
 
@@ -131,12 +131,12 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
-      expect(screen.getByText('Geste für das Lernen speichern')).toBeInTheDocument();
+      await user.click(screen.getByText('Neue Gebärde speichern'));
+      expect(screen.getByText('Gebärde für das Lernen speichern')).toBeInTheDocument();
 
       await user.keyboard('{Escape}');
       await waitFor(() => {
-        expect(screen.queryByText('Geste für das Lernen speichern')).not.toBeInTheDocument();
+        expect(screen.queryByText('Gebärde für das Lernen speichern')).not.toBeInTheDocument();
       });
     });
   });
@@ -146,7 +146,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const saveButton = screen.getByRole('button', { name: 'Speichern' });
       expect(saveButton).toBeDisabled();
@@ -156,7 +156,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
       await user.type(nameInput, 'Meine Geste');
@@ -171,7 +171,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const modal = screen.getByRole('dialog');
       expect(modal).toHaveAttribute('aria-modal', 'true');
@@ -182,9 +182,9 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
-      expect(screen.getByLabelText('Gesten-ID')).toBeInTheDocument();
+      expect(screen.getByLabelText('Gebärden-ID')).toBeInTheDocument();
       expect(screen.getByLabelText('Bezeichnung')).toBeInTheDocument();
       expect(screen.getByLabelText('Kategorie')).toBeInTheDocument();
       expect(screen.getByLabelText('Bild-URL (optional)')).toBeInTheDocument();
@@ -197,7 +197,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
       await user.type(nameInput, 'Test Geste');
@@ -220,7 +220,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
       await user.type(nameInput, 'Test Geste');
@@ -235,7 +235,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
       await user.type(nameInput, 'Ohne Bild');
@@ -275,7 +275,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const fileInput = screen.getByLabelText('Bild hochladen (optional)');
       const largeFile = new File([new Uint8Array(9 * 1024 * 1024)], 'large.png', {
@@ -287,14 +287,14 @@ describe('LearningHub', () => {
       expect(showToastMock).toHaveBeenCalledWith(
         expect.objectContaining({ tone: 'error', message: expect.stringContaining('8 MB') }),
       );
-      expect(screen.queryByAltText('Geste')).not.toBeInTheDocument();
+      expect(screen.queryByAltText('Gebärde')).not.toBeInTheDocument();
     });
 
     it('accepts valid image uploads and shows a preview', async () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Geste speichern'));
+      await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const fileInput = screen.getByLabelText('Bild hochladen (optional)');
       const validFile = new File([new Uint8Array(10)], 'small.png', { type: 'image/png' });
@@ -302,7 +302,7 @@ describe('LearningHub', () => {
       await user.upload(fileInput, validFile);
 
       expect(showToastMock).not.toHaveBeenCalled();
-      expect(await screen.findByAltText('Geste')).toBeInTheDocument();
+      expect(await screen.findByAltText('Gebärde')).toBeInTheDocument();
     });
   });
 });

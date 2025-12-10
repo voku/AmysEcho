@@ -99,7 +99,7 @@ describe('TrainingUploadWithRecording', () => {
     renderWithProviders();
 
     const profileInput = screen.getByLabelText('Profil-ID');
-    const labelInput = screen.getByLabelText('Gestenlabel');
+    const labelInput = screen.getByLabelText('Gebärden-Name');
 
     await user.clear(profileInput);
     await user.clear(labelInput);
@@ -108,7 +108,7 @@ describe('TrainingUploadWithRecording', () => {
 
     expect(uploadMock).not.toHaveBeenCalled();
     const validationMessages = screen.getAllByText(
-      'Bitte trage Profil-ID und Gestenlabel ein, bevor du eine Aufnahme startest oder hochlädst.',
+      'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest oder hochlädst.',
     );
     expect(validationMessages.length).toBeGreaterThan(0);
   }, TEST_TIMEOUT);
@@ -118,7 +118,7 @@ describe('TrainingUploadWithRecording', () => {
     renderWithProviders();
 
     const profileInput = screen.getByLabelText('Profil-ID');
-    const labelInput = screen.getByLabelText('Gestenlabel');
+    const labelInput = screen.getByLabelText('Gebärden-Name');
 
     await user.clear(profileInput);
     await user.clear(labelInput);
