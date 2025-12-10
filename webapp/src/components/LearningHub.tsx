@@ -146,7 +146,7 @@ export function LearningHub() {
       setModalOpen(false);
     } catch (error) {
       console.error('Failed to save symbol:', error);
-      showToast({ message: 'Symbol konnte nicht gespeichert werden. Bitte versuche es erneut.', tone: 'error' });
+      showToast({ message: 'Geste konnte nicht gespeichert werden. Bitte versuche es erneut.', tone: 'error' });
     } finally {
       setSavingSymbol(false);
     }
@@ -191,10 +191,10 @@ export function LearningHub() {
         </button>
         {loading && <span className="muted small">Aktualisiere…</span>}
       </div>
-      {syncError && <div className="notice warning">Symbole konnten nicht geladen werden: {syncError}</div>}
+      {syncError && <div className="notice warning">Gesten konnten nicht geladen werden: {syncError}</div>}
       {!syncError && symbols.length === 0 && (
         <div className="notice info">
-          Wir laden die Symbolsammlung vom Server. Du kannst trotzdem schon eigene Gesten hinzufügen und sofort trainieren.
+          Wir laden die Gestensammlung vom Server. Du kannst trotzdem schon eigene Gesten hinzufügen und sofort trainieren.
         </div>
       )}
 
@@ -244,7 +244,7 @@ export function LearningHub() {
         </p>
         <div className="action-row">
           <button className="primary-button" onClick={handleOpenModal}>
-            Neues Symbol speichern
+            Neue Geste speichern
           </button>
           <Link to="/training" className="add-gesture-button">
             Sofort Training starten
@@ -274,11 +274,11 @@ export function LearningHub() {
           }}
         >
           <div className="modal-content">
-            <h3 id="symbol-modal-title">Symbol für das Lernen speichern</h3>
-            <p className="muted">Sobald du speicherst, steht das Symbol auf der Lern- und Trainingsseite bereit.</p>
+            <h3 id="symbol-modal-title">Geste für das Lernen speichern</h3>
+            <p className="muted">Sobald du speicherst, steht die Geste auf der Lern- und Trainingsseite bereit.</p>
 
             <div className="form-group">
-              <label htmlFor="symbol-id">Symbol-ID</label>
+              <label htmlFor="symbol-id">Gesten-ID</label>
               <input
                 id="symbol-id"
                 type="text"
@@ -300,7 +300,7 @@ export function LearningHub() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
-                placeholder="Titel für das Symbol"
+                placeholder="Titel für die Geste"
               />
             </div>
 
@@ -332,7 +332,7 @@ export function LearningHub() {
                 }
                 placeholder="https://.../symbol.png"
               />
-              <p className="muted small">Du kannst das Symbol auch ohne Bild speichern.</p>
+              <p className="muted small">Du kannst die Geste auch ohne Bild speichern.</p>
             </div>
 
             <div className="form-group">
@@ -349,7 +349,7 @@ export function LearningHub() {
             {imagePreview && (
               <div className="preview-row">
                 <p className="muted small">Vorschau</p>
-                <img src={imagePreview} alt={formData.name || 'Symbol'} className="symbol-thumb" />
+                <img src={imagePreview} alt={formData.name || 'Geste'} className="symbol-thumb" />
               </div>
             )}
 

@@ -155,7 +155,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
           showToast({
-            message: `Symbol "${pendingSymbol.name}" konnte nicht synchronisiert werden: ${error.message}`,
+            message: `Geste "${pendingSymbol.name}" konnte nicht synchronisiert werden: ${error.message}`,
             tone: 'error',
           });
           updatedSymbols = updatedSymbols.filter((symbol) => symbol.id !== pendingSymbol.id);
@@ -179,7 +179,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     });
 
     if (syncedCount > 0) {
-      showToast({ message: 'Offline gespeicherte Symbole synchronisiert.', tone: 'success' });
+      showToast({ message: 'Offline gespeicherte Gesten synchronisiert.', tone: 'success' });
     }
 
     return { symbols: updatedSymbols, pending: remainingPending };
@@ -201,10 +201,10 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       setSyncError(null);
       setLastSyncedAt(Date.now());
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'Unbekannter Fehler beim Laden der Symbole';
+      const reason = error instanceof Error ? error.message : 'Unbekannter Fehler beim Laden der Gesten';
       setSyncError(reason);
       if (!options?.silent) {
-        showToast({ message: `Symbol-Liste konnte nicht geladen werden: ${reason}`, tone: 'warning' });
+        showToast({ message: `Gesten-Liste konnte nicht geladen werden: ${reason}`, tone: 'warning' });
       }
     } finally {
       setLoading(false);
@@ -238,12 +238,12 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         });
         setSyncError(null);
         setLastSyncedAt(Date.now());
-        showToast({ message: 'Symbol gespeichert', tone: 'success' });
+        showToast({ message: 'Geste gespeichert', tone: 'success' });
         return saved;
       } catch (error) {
         if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
           const reason = error.message || 'Ungültige Eingabe';
-          showToast({ message: `Symbol abgelehnt: ${reason}`, tone: 'error' });
+          showToast({ message: `Geste abgelehnt: ${reason}`, tone: 'error' });
           setSyncError(reason);
           throw error;
         }
@@ -298,7 +298,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(reason);
-        showToast({ message: `Symbol nur lokal gelöscht: ${reason}`, tone: 'warning' });
+        showToast({ message: `Geste nur lokal gelöscht: ${reason}`, tone: 'warning' });
       }
     },
     [apiBaseUrl, resolveHeaders, showToast],

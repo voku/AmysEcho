@@ -555,7 +555,7 @@ export function TrainingUploadWithRecording() {
     <>
       {symbolSyncError && (
         <div className="notice warning mb-md">
-          Symbolliste konnte nicht synchronisiert werden: {symbolSyncError}{' '}
+          Gestenliste konnte nicht synchronisiert werden: {symbolSyncError}{' '}
           <button className="ghost" onClick={refreshSymbols} disabled={symbolsLoading}>
             Jetzt synchronisieren
           </button>
@@ -565,7 +565,7 @@ export function TrainingUploadWithRecording() {
 
       {!symbolSyncError && symbols.length === 0 && (
         <div className="notice info mb-md">
-          Symbole werden aus dem Server geladen.{' '}
+          Gesten werden aus dem Server geladen.{' '}
           <button className="ghost" onClick={refreshSymbols} disabled={symbolsLoading}>
             Manuell synchronisieren
           </button>
@@ -575,7 +575,7 @@ export function TrainingUploadWithRecording() {
 
       {selectedSymbol && (
         <div className="notice success mb-md">
-          Symbol aus „Lernen“ übernommen: <strong>{selectedSymbol.name}</strong>{' '}
+          Geste aus „Lernen“ übernommen: <strong>{selectedSymbol.name}</strong>{' '}
           <span className="muted small">({selectedSymbol.category})</span>
           {selectedSymbol.imageUrl && (
             <div className="mt-xs">
@@ -587,7 +587,7 @@ export function TrainingUploadWithRecording() {
 
       {!selectedSymbol && !gestureFromLearning && !hasGestureSelection && (
         <div className="notice info mb-md">
-          Keine Geste per Link ausgewählt. Bitte trage ein Gestenlabel ein oder wähle ein Symbol aus.
+          Keine Geste per Link ausgewählt. Bitte trage ein Gestenlabel ein oder wähle eine Geste aus.
         </div>
       )}
 
