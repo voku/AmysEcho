@@ -35,9 +35,35 @@ describe('useApiConfig', () => {
   });
 
   it('keeps non-production default when no environment override is provided', () => {
-    const fallbackBase = resolveFallbackApiBase({ MODE: 'production', VITE_API_URL: undefined } as any);
+    const fallbackBase = resolveFallbackApiBase(
+      { MODE: 'production', VITE_API_URL: undefined } as any,
+      { location: { origin: 'http://localhost:5173' } } as any,
+    );
 
     expect(fallbackBase).toBe(DEFAULT_API_BASE);
+  });
+
+  it('ignores invalid runtime origin values', () => {
+    const fileOriginBase = resolveFallbackApiBase(
+      { MODE: 'production', VITE_API_URL: undefined } as any,
+      { location: { origin: 'file://' } } as any,
+    );
+    const nullOriginBase = resolveFallbackApiBase(
+      { MODE: 'production', VITE_API_URL: undefined } as any,
+      { location: { origin: 'null' } } as any,
+    );
+
+    expect(fileOriginBase).toBe(DEFAULT_API_BASE);
+    expect(nullOriginBase).toBe(DEFAULT_API_BASE);
+  });
+
+  it('uses runtime origin when running in production without override', () => {
+    const fallbackBase = resolveFallbackApiBase(
+      { MODE: 'production', VITE_API_URL: undefined } as any,
+      { location: { origin: 'https://amysecho.example.com' } } as any,
+    );
+
+    expect(fallbackBase).toBe('https://amysecho.example.com');
   });
 
   it('overwrites persisted localhost base when environment demands production backend', async () => {
@@ -102,6 +128,36 @@ describe('useApiConfig', () => {
     expect(persistedParsed.iv).toBeTypeOf('string');
   });
 
+  it('encrypts session-scoped tokens without enabling persistence', async () => {
+    const { result, unmount } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await act(async () => {
+      result.current.setApiBaseUrl('https://session.example.com');
+      result.current.setApiToken('session-token');
+    });
+
+    await waitFor(() => {
+      const sessionStored = window.sessionStorage.getItem('webapp:api-config:session');
+      expect(sessionStored).toBeTruthy();
+      const parsed = JSON.parse(sessionStored!);
+      expect(parsed.apiBaseUrl).toBe('https://session.example.com');
+      expect(parsed.apiToken).toBeTypeOf('string');
+      expect(parsed.apiToken).not.toBe('session-token');
+      expect(parsed.iv).toBeTypeOf('string');
+      expect(window.sessionStorage.getItem('webapp:api-config:session:key')).toBeTruthy();
+    });
+
+    unmount();
+
+    const { result: reloaded } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    expect(reloaded.current.persistToken).toBe(false);
+    expect(reloaded.current.apiBaseUrl).toBe('https://session.example.com');
+    await waitFor(() => {
+      expect(reloaded.current.apiToken).toBe('session-token');
+    });
+  });
+
   it('loads API base URL and token from storage when persistence was enabled', async () => {
     const { result, unmount } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
@@ -151,6 +207,47 @@ describe('useApiConfig', () => {
 
     await waitFor(() => {
       expect(reloaded.current.apiToken).toBe('persisted-token');
+    });
+  });
+
+  it('regenerates persisted crypto key when stored key is invalid', async () => {
+    window.localStorage.setItem('webapp:api-config:persisted-key', 'invalid-key');
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await act(async () => {
+      result.current.setApiBaseUrl('https://regen.example.com');
+      result.current.setPersistToken(true);
+      result.current.setApiToken('persisted-token');
+    });
+
+    await waitFor(() => {
+      const storedKey = window.localStorage.getItem('webapp:api-config:persisted-key');
+      expect(storedKey).toBeTruthy();
+      expect(storedKey).not.toBe('invalid-key');
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
+    });
+  });
+
+  it('clears corrupted persisted tokens so the hook can recover', async () => {
+    const cryptoKeyBytes = new Uint8Array(32);
+    webcrypto.getRandomValues(cryptoKeyBytes);
+    window.localStorage.setItem('webapp:api-config', JSON.stringify({ apiBaseUrl: 'https://broken.example.com', persistToken: true }));
+    window.localStorage.setItem('webapp:api-config:persisted-key', Buffer.from(cryptoKeyBytes).toString('base64'));
+    window.localStorage.setItem(
+      'webapp:api-config:persisted-token',
+      JSON.stringify({ apiBaseUrl: 'https://broken.example.com', apiToken: '!!invalid!!', iv: '!!invalid!!' }),
+    );
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    expect(result.current.apiBaseUrl).toBe('https://broken.example.com');
+    expect(result.current.persistToken).toBe(true);
+
+    await waitFor(() => {
+      expect(result.current.apiToken).toBe('');
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
+      expect(window.localStorage.getItem('webapp:api-config:persisted-key')).toBeNull();
     });
   });
 
