@@ -140,7 +140,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     let syncedCount = 0;
     let updatedSymbols = currentSymbols;
 
-    for (const pendingSymbol of currentPending) {
+    for (let i = 0; i < currentPending.length; i++) {
+      const pendingSymbol = currentPending[i];
       try {
         const payload = {
           id: pendingSymbol.id,
@@ -166,8 +167,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
               message: `Anmeldung abgelaufen. Offline Gebärden werden nach erneuter Anmeldung synchronisiert.`,
               tone: 'warning',
             });
-            // Keep all remaining items as pending when auth fails
-            remainingPending.push(pendingSymbol);
+            // Keep current item and all remaining unprocessed items as pending when auth fails
+            remainingPending.push(...currentPending.slice(i));
             break; // Stop trying to sync if auth failed
           } else {
             showToast({
