@@ -1,21 +1,27 @@
 /**
- * Gesture Meaning Service
- * Maps gestures to symbols and meanings for Amy's communication
+ * Sign Language Meaning Service
+ * Maps Deutsche Gebärdensprache (DGS) signs to symbols and meanings for Amy's communication.
+ * 
+ * Each DGS sign has:
+ * - Visual representation (emoji)
+ * - Spoken output (audioText)
+ * - Categorization for organization
+ * - Priority for display ordering
  */
 
 export interface GestureMeaning {
-  gestureId: string;
-  label: string;
-  emoji: string;
+  gestureId: string; // Unique ID for this DGS sign
+  label: string; // German label for the sign
+  emoji: string; // Visual symbol representation
   category: string;
   color: string;
-  audioText?: string;
-  priority: number;
+  audioText?: string; // What Amy's Echo speaks when this sign is recognized
+  priority: number; // 1 = highest priority (essential needs)
 }
 
 export interface GestureSymbolMapping {
-  gestureLabel: string;
-  symbolId: string;
+  gestureLabel: string; // The DGS sign label
+  symbolId: string; // Associated symbol/icon ID
   meaning: GestureMeaning;
   confidence: number;
   lastUsed?: string;
@@ -24,7 +30,8 @@ export interface GestureSymbolMapping {
 const STORAGE_KEY = 'gestureMeanings';
 const MAPPINGS_KEY = 'gestureSymbolMappings';
 
-// Default gesture meanings (German for Amy)
+// Default DGS sign meanings (German for Amy)
+// These represent common Deutsche Gebärdensprache vocabulary for basic communication
 const DEFAULT_MEANINGS: GestureMeaning[] = [
   { gestureId: 'essen', label: 'Essen', emoji: '🍽️', category: 'grundbedürfnisse', color: '#FF6B6B', audioText: 'Ich möchte essen', priority: 1 },
   { gestureId: 'trinken', label: 'Trinken', emoji: '🥤', category: 'grundbedürfnisse', color: '#4ECDC4', audioText: 'Ich möchte trinken', priority: 1 },
@@ -43,6 +50,10 @@ const DEFAULT_MEANINGS: GestureMeaning[] = [
   { gestureId: 'wasser', label: 'Wasser', emoji: '💧', category: 'grundbedürfnisse', color: '#1E90FF', audioText: 'Ich möchte Wasser', priority: 1 },
 ];
 
+/**
+ * Manages DGS sign meanings and their mappings to visual symbols.
+ * Provides bidirectional lookup between signs and their semantic meanings.
+ */
 class GestureMeaningService {
   private meanings: Map<string, GestureMeaning> = new Map();
   private mappings: Map<string, GestureSymbolMapping> = new Map();

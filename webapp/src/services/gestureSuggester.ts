@@ -1,7 +1,13 @@
 /**
- * Gesture Suggester Service - Amy First
+ * Sign Language Suggester Service - Amy First
  *
- * Schlägt wahrscheinlich beabsichtigte Gesten basierend auf verschiedenen Faktoren vor
+ * Suggests probable Deutsche Gebärdensprache (DGS) signs based on various factors:
+ * - Similar hand shapes (landmark analysis)
+ * - Recent recognition history
+ * - Context (time of day, common patterns)
+ * - Common sign confusions
+ * 
+ * Helps Amy communicate better when sign recognition confidence is low.
  */
 
 import { gestureMeaningService } from './gestureMeaningService';
@@ -9,19 +15,22 @@ import { logger } from './logger';
 
 export interface GestureSuggestion {
   id: string;
-  label: string;
+  label: string; // DGS sign label
   confidence: number;
   reason: 'similarity' | 'history' | 'context' | 'common_confusion';
 }
 
 export interface GestureContext {
-  recentGestures: string[];
+  recentGestures: string[]; // Recently recognized DGS sign labels
   timeOfDay: number;
   confidence: number;
-  landmarks?: number[][][];
+  landmarks?: number[][][]; // Hand pose landmarks from MediaPipe
   handedness?: string[];
 }
 
+/**
+ * Provides intelligent DGS sign suggestions when recognition fails or confidence is low.
+ */
 class GestureSuggester {
   private gestureHistory: string[] = [];
   private readonly MAX_HISTORY = 10;
@@ -51,7 +60,12 @@ class GestureSuggester {
   }
 
   /**
-   * Vorschläge für einen fehlgeschlagenen Gestenversuch erhalten
+   * Get DGS sign suggestions for a failed or low-confidence recognition attempt.
+   * 
+   * @param failedGesture - The attempted sign label (if known)
+   * @param context - Recognition context including landmarks and history
+   * @param maxSuggestions - Maximum number of suggestions to return
+   * @returns Array of suggested DGS signs with confidence scores
    */
   getSuggestions(
     failedGesture: string | null,
