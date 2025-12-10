@@ -142,6 +142,8 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
 
     for (let i = 0; i < currentPending.length; i++) {
       const pendingSymbol = currentPending[i];
+      if (!pendingSymbol) continue; // Skip if undefined (should not happen, but satisfies TypeScript)
+      
       try {
         const payload = {
           id: pendingSymbol.id,
