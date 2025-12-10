@@ -5,8 +5,10 @@ export function ApiConfigBar() {
   const {
     apiBaseUrl,
     apiToken,
+    refreshToken,
     setApiBaseUrl,
     setApiToken,
+    setTokens,
     persistToken,
     setPersistToken,
     clearApiToken,
@@ -62,14 +64,19 @@ export function ApiConfigBar() {
         }
 
         const accessToken: string | undefined = payload?.tokens?.accessToken;
-        if (accessToken) {
+        const nextRefreshToken: string | undefined = payload?.tokens?.refreshToken;
+        if (accessToken && nextRefreshToken) {
           setPersistToken(true);
-          setApiToken(accessToken);
+          setTokens({ accessToken, refreshToken: nextRefreshToken });
           setAuthMessage(
             authMode === 'login'
               ? 'Anmeldung erfolgreich. Token wurde gespeichert.'
               : 'Registrierung abgeschlossen. Token wurde gespeichert.',
           );
+        } else if (accessToken) {
+          setPersistToken(true);
+          setTokens({ accessToken, refreshToken: refreshToken || '' });
+          setAuthMessage('Antwort ohne vollständige Token erhalten. Zugriffstoken gespeichert.');
         } else {
           setAuthMessage('Antwort ohne Token erhalten.');
         }
@@ -80,7 +87,7 @@ export function ApiConfigBar() {
         setIsSubmitting(false);
       }
     },
-    [apiBaseUrl, authMode, password, setApiToken, setPersistToken, username],
+    [apiBaseUrl, authMode, password, refreshToken, setPersistToken, setTokens, username],
   );
 
   return (

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'webapp:api-config';
 const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
@@ -46,17 +46,28 @@ type StoredEncryptedToken = {
   source: 'persisted' | 'session';
 };
 
+type AuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
+
 type StoredApiConfig = {
   apiBaseUrl: string;
-  apiToken: string;
+  tokens: AuthTokens;
   persistToken: boolean;
 };
 
-type ApiConfigContextValue = StoredApiConfig & {
+type ApiConfigContextValue = {
+  apiBaseUrl: string;
+  apiToken: string;
+  refreshToken: string;
+  persistToken: boolean;
   setApiBaseUrl: (value: string) => void;
   setApiToken: (value: string) => void;
+  setTokens: (tokens: AuthTokens) => void;
   setPersistToken: (value: boolean) => void;
   clearApiToken: () => void;
+  refreshAccessToken: () => Promise<string | null>;
   uploadEndpoint: string;
   modelEndpoint: string;
 };
@@ -64,7 +75,7 @@ type ApiConfigContextValue = StoredApiConfig & {
 function createDefaultConfig(): StoredApiConfig {
   return {
     apiBaseUrl: resolveFallbackApiBase(),
-    apiToken: '',
+    tokens: { accessToken: '', refreshToken: '' },
     persistToken: false,
   } satisfies StoredApiConfig;
 }
@@ -230,7 +241,7 @@ function readFromStorage(): StoredApiConfig {
     }
     return {
       apiBaseUrl: apiBaseUrl ?? fallbackBase,
-      apiToken: '',
+      tokens: { accessToken: '', refreshToken: '' },
       persistToken,
     } satisfies StoredApiConfig;
   } catch (error) {
@@ -243,6 +254,7 @@ const ApiConfigContext = createContext<ApiConfigContextValue | null>(null);
 
 export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<StoredApiConfig>(() => readFromStorage());
+  const refreshInFlight = useRef<Promise<string | null> | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -255,8 +267,22 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
           initialEncryptedToken.current.encrypted,
           initialEncryptedToken.current.source,
         );
+        const parsedTokens = (() => {
+          try {
+            const parsed = JSON.parse(decrypted) as Partial<AuthTokens>;
+            if (parsed && typeof parsed === 'object' && typeof parsed.accessToken === 'string') {
+              return {
+                accessToken: parsed.accessToken,
+                refreshToken: typeof parsed.refreshToken === 'string' ? parsed.refreshToken : '',
+              } satisfies AuthTokens;
+            }
+          } catch (error) {
+            // Fall through to legacy handling
+          }
+          return { accessToken: decrypted, refreshToken: '' } satisfies AuthTokens;
+        })();
         if (!cancelled) {
-          setConfig((prev) => ({ ...prev, apiToken: decrypted }));
+          setConfig((prev) => ({ ...prev, tokens: parsedTokens }));
         }
       } catch (error) {
         console.warn('Konnte verschlüsselten Token nicht laden', error);
@@ -300,10 +326,10 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     const persistTokenConfig = async () => {
       try {
         if (config.persistToken) {
-          if (!config.apiToken && initialEncryptedToken.current) {
+          if (!config.tokens.accessToken && initialEncryptedToken.current) {
             return;
           }
-          const encrypted = await encryptToken(config.apiToken, 'persisted');
+          const encrypted = await encryptToken(JSON.stringify(config.tokens), 'persisted');
           if (!cancelled) {
             window.localStorage.setItem(
               PERSISTED_TOKEN_KEY,
@@ -316,8 +342,8 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
           window.localStorage.removeItem(PERSISTED_TOKEN_KEY);
           window.localStorage.removeItem(PERSISTED_CRYPTO_KEY);
           persistedCryptoKey = null;
-          if (config.apiToken) {
-            const encrypted = await encryptToken(config.apiToken, 'session');
+          if (config.tokens.accessToken || config.tokens.refreshToken) {
+            const encrypted = await encryptToken(JSON.stringify(config.tokens), 'session');
             if (!cancelled) {
               window.sessionStorage.setItem(
                 SESSION_STORAGE_KEY,
@@ -338,29 +364,78 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [config.apiBaseUrl, config.apiToken, config.persistToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- accessToken and refreshToken are the only relevant parts
+  }, [config.apiBaseUrl, config.persistToken, config.tokens.accessToken, config.tokens.refreshToken]);
 
   const setApiBaseUrl = useCallback((value: string) => {
     setConfig((prev) => ({ ...prev, apiBaseUrl: normalizeApiBase(value) }));
   }, []);
 
   const setApiToken = useCallback((value: string) => {
-    setConfig((prev) => ({ ...prev, apiToken: value }));
+    setConfig((prev) => ({ ...prev, tokens: { ...prev.tokens, accessToken: value } }));
+  }, []);
+
+  const setTokens = useCallback((tokens: AuthTokens) => {
+    setConfig((prev) => ({ ...prev, tokens }));
   }, []);
 
   const setPersistToken = useCallback((value: boolean) => {
     setConfig((prev) => {
       const next = { ...prev, persistToken: value };
       if (!value) {
-        next.apiToken = '';
+        next.tokens = { accessToken: '', refreshToken: '' };
       }
       return next;
     });
   }, []);
 
   const clearApiToken = useCallback(() => {
-    setConfig((prev) => ({ ...prev, apiToken: '' }));
+    setConfig((prev) => ({ ...prev, tokens: { accessToken: '', refreshToken: '' } }));
   }, []);
+
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    const currentRefreshToken = config.tokens.refreshToken;
+    if (!currentRefreshToken) return null;
+    if (typeof window === 'undefined') return null;
+    if (refreshInFlight.current) return refreshInFlight.current;
+
+    const refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${normalizeApiBase(config.apiBaseUrl)}/api/v1/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: currentRefreshToken }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error || response.statusText);
+        }
+
+        const nextAccessToken: string | undefined = payload?.tokens?.accessToken;
+        const nextRefreshToken: string = payload?.tokens?.refreshToken ?? currentRefreshToken;
+
+        if (!nextAccessToken) {
+          throw new Error('Token-Antwort unvollständig.');
+        }
+
+        setConfig((prev) => ({
+          ...prev,
+          tokens: { accessToken: nextAccessToken, refreshToken: nextRefreshToken },
+        }));
+
+        return nextAccessToken;
+      } catch (error) {
+        console.warn('Token-Refresh fehlgeschlagen', error);
+        setConfig((prev) => ({ ...prev, tokens: { accessToken: '', refreshToken: '' } }));
+        return null;
+      } finally {
+        refreshInFlight.current = null;
+      }
+    })();
+
+    refreshInFlight.current = refreshPromise;
+    return refreshPromise;
+  }, [config.apiBaseUrl, config.tokens.refreshToken]);
 
   const value = useMemo<ApiConfigContextValue>(() => {
     const normalizedBase = normalizeApiBase(config.apiBaseUrl);
@@ -368,23 +443,29 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     const modelEndpoint = `${normalizedBase}/latest-mlp-model`;
     return {
       apiBaseUrl: normalizedBase,
-      apiToken: config.apiToken,
+      apiToken: config.tokens.accessToken,
+      refreshToken: config.tokens.refreshToken,
       persistToken: config.persistToken,
       setApiBaseUrl,
       setApiToken,
+      setTokens,
       setPersistToken,
       clearApiToken,
+      refreshAccessToken,
       uploadEndpoint,
       modelEndpoint,
     };
   }, [
     config.apiBaseUrl,
-    config.apiToken,
+    config.tokens.accessToken,
+    config.tokens.refreshToken,
     config.persistToken,
     setApiBaseUrl,
     setApiToken,
+    setTokens,
     setPersistToken,
     clearApiToken,
+    refreshAccessToken,
   ]);
 
   return <ApiConfigContext.Provider value={value}>{children}</ApiConfigContext.Provider>;

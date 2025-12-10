@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { ApiConfigProvider, useApiConfig, resolveFallbackApiBase, resolvePollUrl } from './useApiConfig';
 
@@ -11,6 +11,10 @@ describe('useApiConfig', () => {
     window.sessionStorage.clear();
     Object.defineProperty(window, 'crypto', { value: webcrypto, writable: true });
     vi.unstubAllEnvs();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('provides default values and computed upload endpoint', () => {
@@ -208,6 +212,53 @@ describe('useApiConfig', () => {
     await waitFor(() => {
       expect(reloaded.current.apiToken).toBe('persisted-token');
     });
+  });
+
+  it('stores refresh tokens and refreshes access tokens when needed', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ tokens: { accessToken: 'next-access', refreshToken: 'next-refresh' } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result, unmount } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await act(async () => {
+      result.current.setTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+      result.current.setPersistToken(true);
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
+    });
+
+    unmount();
+
+    const { result: reloaded } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await waitFor(() => {
+      expect(reloaded.current.apiToken).toBe('access-1');
+      expect(reloaded.current.refreshToken).toBe('refresh-1');
+    });
+
+    await act(async () => {
+      const refreshed = await reloaded.current.refreshAccessToken();
+      expect(refreshed).toBe('next-access');
+    });
+
+    await waitFor(() => {
+      expect(reloaded.current.apiToken).toBe('next-access');
+      expect(reloaded.current.refreshToken).toBe('next-refresh');
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:5000/api/v1/auth/refresh',
+      expect.objectContaining({ method: 'POST' }),
+    );
   });
 
   it('regenerates persisted crypto key when stored key is invalid', async () => {
