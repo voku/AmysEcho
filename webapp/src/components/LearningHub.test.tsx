@@ -287,7 +287,7 @@ describe('LearningHub', () => {
       expect(showToastMock).toHaveBeenCalledWith(
         expect.objectContaining({ tone: 'error', message: expect.stringContaining('8 MB') }),
       );
-      expect(screen.queryByAltText('Symbol')).not.toBeInTheDocument();
+      expect(screen.queryByAltText('Geste')).not.toBeInTheDocument();
     });
 
     it('accepts valid image uploads and shows a preview', async () => {
@@ -302,7 +302,7 @@ describe('LearningHub', () => {
       await user.upload(fileInput, validFile);
 
       expect(showToastMock).not.toHaveBeenCalled();
-      expect(await screen.findByAltText('Symbol')).toBeInTheDocument();
+      expect(await screen.findByAltText('Geste')).toBeInTheDocument();
     });
   });
 });
