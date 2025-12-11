@@ -411,14 +411,29 @@ async function runTrainingWorkflow(
     });
     let stdout = '';
     let stderr = '';
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      proc.kill('SIGKILL');
+      reject(new Error(`train_mlp timed out after ${config.trainingTimeoutMs}ms`));
+    }, config.trainingTimeoutMs);
     proc.stdout?.on('data', (chunk: Buffer) => {
       stdout += chunk.toString();
     });
     proc.stderr?.on('data', (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-    proc.on('error', reject);
+    proc.on('error', (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
     proc.on('close', (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       if (code === 0) {
         resolve({ stdout, stderr });
       } else {
