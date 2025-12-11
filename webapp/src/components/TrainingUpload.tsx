@@ -19,6 +19,19 @@ type LandmarkTuple = [number, number] | [number, number, number];
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
+const formatSyncQueuedMessage = (uploaded: number, remaining: number): string => {
+  if (uploaded > 0 && remaining > 0) {
+    return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen, ${remaining} verbleibend). Bitte prüfe die Verbindung oder versuche es später erneut.`;
+  }
+  if (uploaded > 0) {
+    return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`;
+  }
+  if (remaining > 0) {
+    return `${remaining} Paket(e) warten noch auf Upload. Bitte prüfe die Verbindung oder versuche es später erneut.`;
+  }
+  return 'Keine Pakete in der Warteschlange gefunden.';
+};
+
 function isFrameLike(value: unknown): value is { landmarks: unknown; handedness?: unknown } {
   return Boolean(
     value &&
@@ -258,13 +271,7 @@ export function TrainingUpload({
     setMessage('Warteschlange wird synchronisiert…');
     try {
       const { uploaded, remaining } = await syncQueued();
-      setMessage(
-        uploaded > 0
-          ? `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`
-          : remaining > 0
-          ? `${remaining} Paket(e) warten noch auf Upload. Bitte prüfe die Verbindung oder versuche es später erneut.`
-          : 'Keine Pakete in der Warteschlange gefunden.',
-      );
+      setMessage(formatSyncQueuedMessage(uploaded, remaining));
     } catch (syncErr) {
       const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
       setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
@@ -530,13 +537,7 @@ export function TrainingUploadWithRecording() {
     setMessage('Warteschlange wird synchronisiert…');
     try {
       const { uploaded, remaining } = await uploadState.syncQueued();
-      setMessage(
-        uploaded > 0
-          ? `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`
-          : remaining > 0
-          ? `${remaining} Paket(e) warten noch auf Upload. Bitte prüfe die Verbindung oder versuche es später erneut.`
-          : 'Keine Pakete in der Warteschlange gefunden.',
-      );
+      setMessage(formatSyncQueuedMessage(uploaded, remaining));
     } catch (syncErr) {
       const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
       setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);

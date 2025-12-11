@@ -22,6 +22,7 @@ type UploadOptions = TrainingUploadOptions & { apiBase?: string; refreshAccessTo
 type AuthRetryOptions = { token?: string; refreshAccessToken?: () => Promise<string | null> };
 
 export type DefaultUploadOptions = Partial<UploadOptions>;
+export type SyncQueuedResult = { uploaded: number; remaining: number };
 
 export function useTrainingUploader(
   options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions; retryDelayMs?: number; maxRetryDelayMs?: number } = {},
@@ -175,7 +176,7 @@ export function useTrainingUploader(
   );
 
   const syncQueued = useCallback(
-    async (options?: DefaultUploadOptions): Promise<{ uploaded: number; remaining: number }> => {
+    async (options?: DefaultUploadOptions): Promise<SyncQueuedResult> => {
       if (syncingRef.current) return { uploaded: 0, remaining: queuedCountRef.current };
       syncingRef.current = true;
       setSyncing(true);
