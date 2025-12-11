@@ -94,12 +94,12 @@ test('POST /train-model processes samples and returns model', async () => {
   }
 
   const mlpRes = await fetch(`${baseUrl}/latest-mlp-model`, { headers });
-  const mlpStatusOk = (mlpRes.status >= 200 && mlpRes.status < 300) || mlpRes.status === 404;
-  if (!mlpStatusOk) {
-    console.log('Skipping latest-mlp-model check - status:', mlpRes.status);
-  } else {
+  if (mlpRes.ok) {
     const mlpBuf = Buffer.from(await mlpRes.arrayBuffer());
-    assert.ok(mlpBuf.length > 0);
+    assert.ok(mlpBuf.length > 0, 'Model buffer should not be empty on success.');
+  } else if (mlpRes.status !== 404) {
+    // Log unexpected errors, but tolerate 404 since a baseline model may be missing in some test environments.
+    console.log('Skipping latest-mlp-model check - unexpected status:', mlpRes.status);
   }
 
   const profileRes = await fetch(`${baseUrl}/api/v1/dgs/model?profileId=p1`, { headers });

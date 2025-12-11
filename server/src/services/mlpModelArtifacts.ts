@@ -193,10 +193,7 @@ export async function writeMinimalMlpModel(
   const hasCounts = Object.values(gestureCounts).some((count) => (Number(count) || 0) > 0);
 
   if (!hasCounts) {
-    const baselineExists = await fs
-      .stat(BASELINE_MLP_MODEL_PATH)
-      .then(() => true)
-      .catch(() => false);
+    const baselineExists = await ensureBaselinePresent();
     if (baselineExists) {
       const seeded = await seedBaselineModel(filePath, {
         success: (dest) => `seeded MLP from baseline into ${dest}`,

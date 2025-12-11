@@ -1129,7 +1129,7 @@ def dataset_to_arrays(
 
 def validate_samples(samples: List[Sample]) -> None:
     if not samples:
-        LOGGER.warning("Keine Trainingsdaten gefunden – Training wird übersprungen.")
+        LOGGER.warning("Keine Trainingsdaten gefunden - Training wird übersprungen.")
         return
 
     label_counts: Dict[str, int] = {}
@@ -1400,7 +1400,7 @@ def persist_training_metadata(payload: Dict[str, object]) -> None:
     tmp_path = metadata_path.with_suffix(".tmp")
     with tmp_path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2, ensure_ascii=False)
-    tmp_path.rename(metadata_path)
+    os.replace(tmp_path, metadata_path)
 
 
 # --- Entry point ------------------------------------------------------------
@@ -1466,8 +1466,8 @@ def main() -> int:
     except ValueError as err:
         print(f"Training abgebrochen: {err}", file=sys.stderr)
         return 1
-    except Exception as err:  # pragma: no cover - defensive fallback
-        LOGGER.exception("Unhandled training error: %s", err)
+    except Exception:  # pragma: no cover - defensive fallback
+        LOGGER.exception("Unhandled training error")
         return 1
 
 
