@@ -207,8 +207,9 @@ describe('useTrainingUploader', () => {
     (globalThis as any).fetch = fetchSpy;
 
     await act(async () => {
-      const uploaded = await result.current.syncQueued({ endpoint: 'https://example.invalid' });
+      const { uploaded, remaining } = await result.current.syncQueued({ endpoint: 'https://example.invalid' });
       expect(uploaded).toBe(1);
+      expect(remaining).toBe(0);
     });
 
     const queuedAfterSync = await listQueuedBundles();
@@ -365,12 +366,13 @@ describe('useTrainingUploader', () => {
     await waitFor(() => expect(result.current.queuedBundles.length).toBe(1));
     expect(result.current.queuedBundles[0]?.status).toBe('failed');
 
-    let uploaded = -1;
+    let resultSync!: { uploaded: number; remaining: number };
     await act(async () => {
-      uploaded = await result.current.syncQueued();
+      resultSync = await result.current.syncQueued();
     });
 
-    expect(uploaded).toBe(0);
+    expect(resultSync.uploaded).toBe(0);
+    expect(resultSync.remaining).toBe(1);
     expect(fetchSpy).not.toHaveBeenCalled();
     const queuedAfter = await listQueuedBundles();
     expect(queuedAfter.length).toBe(1);
