@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { useMlpModelInjection } from './useMlpModelInjection';
 
-const refreshAccessTokenMock = vi.fn<[], Promise<string | null>>();
+const refreshAccessTokenMock = vi.fn<() => Promise<string | null>>();
 let apiTokenMock = 'token-123';
 
 vi.mock('./useApiConfig', () => ({
@@ -34,16 +34,18 @@ describe('useMlpModelInjection', () => {
   });
 
   it('lädt personalisiertes Modell und meldet neue Version', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(new Uint8Array([9, 9, 9]), {
-        status: 200,
-        headers: {
-          'X-Model-Version': 'p-3',
-          'X-Model-Source': 'profile',
-          'X-Model-Profile': 'amy',
-        },
-      }),
-    );
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        new Response(new Uint8Array([9, 9, 9]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-3',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+          },
+        }),
+      );
 
     vi.stubGlobal('fetch', fetchMock as any);
 
@@ -59,7 +61,9 @@ describe('useMlpModelInjection', () => {
   });
 
   it('bleibt im idle-Status wenn kein Modell verfügbar ist (MLP ist optional)', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response('nope', { status: 500 }));
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(new Response('nope', { status: 500 }));
     vi.stubGlobal('fetch', fetchMock as any);
     (window as any).__setMlpModelB64 = vi.fn().mockResolvedValue(true);
 
@@ -73,16 +77,18 @@ describe('useMlpModelInjection', () => {
   });
 
   it('installiert Runtime, wenn __setMlpModelB64 fehlt', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(new Uint8Array([1, 1, 1]), {
-        status: 200,
-        headers: {
-          'X-Model-Version': 'p-4',
-          'X-Model-Source': 'profile',
-          'X-Model-Profile': 'amy',
-        },
-      }),
-    );
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        new Response(new Uint8Array([1, 1, 1]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-4',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+          },
+        }),
+      );
 
     vi.stubGlobal('fetch', fetchMock as any);
     delete (window as any).__setMlpModelB64;
@@ -98,16 +104,18 @@ describe('useMlpModelInjection', () => {
   });
 
   it('meldet Fehlermeldung, wenn Injektion fehlschlägt', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(new Uint8Array([2, 2, 2]), {
-        status: 200,
-        headers: {
-          'X-Model-Version': 'p-5',
-          'X-Model-Source': 'profile',
-          'X-Model-Profile': 'amy',
-        },
-      }),
-    );
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        new Response(new Uint8Array([2, 2, 2]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-5',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+          },
+        }),
+      );
 
     vi.stubGlobal('fetch', fetchMock as any);
     (window as any).__setMlpModelB64 = vi.fn().mockResolvedValue(false);
@@ -139,7 +147,10 @@ describe('useMlpModelInjection', () => {
       },
     });
 
-    const fetchMock = vi.fn().mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValueOnce(firstResponse)
+      .mockResolvedValueOnce(secondResponse);
     vi.stubGlobal('fetch', fetchMock as any);
 
     const { result } = renderHook(() => useMlpModelInjection('amy'));
@@ -175,7 +186,10 @@ describe('useMlpModelInjection', () => {
       },
     });
 
-    const fetchMock = vi.fn().mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValueOnce(firstResponse)
+      .mockResolvedValueOnce(secondResponse);
     vi.stubGlobal('fetch', fetchMock as any);
 
     const { result } = renderHook(() => useMlpModelInjection('amy'));
@@ -197,7 +211,8 @@ describe('useMlpModelInjection', () => {
     refreshAccessTokenMock.mockResolvedValue('fresh-token');
     let firstCall = true;
 
-    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.includes('/latest-mlp-model')) {
         if (firstCall) {
@@ -224,7 +239,8 @@ describe('useMlpModelInjection', () => {
         );
       }
       return Promise.reject(new Error('unexpected url'));
-    });
+      },
+    );
 
     vi.stubGlobal('fetch', fetchMock as any);
 
@@ -246,16 +262,18 @@ describe('useMlpModelInjection', () => {
     apiTokenMock = 'expired-token';
     refreshAccessTokenMock.mockResolvedValue(null);
 
-    const fetchMock = vi.fn((input: RequestInfo | URL) => {
-      const url = typeof input === 'string' ? input : input.toString();
-      if (url.includes('/latest-mlp-model')) {
-        return Promise.resolve(new Response('unauthorized', { status: 401 }));
-      }
-      if (url.includes('/api/v1/auth/refresh')) {
-        return Promise.resolve(new Response('invalid refresh', { status: 400 }));
-      }
-      return Promise.reject(new Error('unexpected url'));
-    });
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        if (url.includes('/latest-mlp-model')) {
+          return Promise.resolve(new Response('unauthorized', { status: 401 }));
+        }
+        if (url.includes('/api/v1/auth/refresh')) {
+          return Promise.resolve(new Response('invalid refresh', { status: 400 }));
+        }
+        return Promise.reject(new Error('unexpected url'));
+      },
+    );
 
     vi.stubGlobal('fetch', fetchMock as any);
 

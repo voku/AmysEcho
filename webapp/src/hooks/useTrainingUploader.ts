@@ -19,7 +19,7 @@ import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 export type UploadState = 'idle' | 'preparing' | 'uploading' | 'queued' | 'success' | 'error';
 
 type UploadOptions = TrainingUploadOptions & { apiBase?: string; refreshAccessToken?: () => Promise<string | null> };
-type AuthRetryOptions = Pick<UploadOptions, 'token' | 'refreshAccessToken'>;
+type AuthRetryOptions = { token?: string; refreshAccessToken?: () => Promise<string | null> };
 
 export type DefaultUploadOptions = Partial<UploadOptions>;
 
@@ -32,10 +32,18 @@ export function useTrainingUploader(
     [options.maxRetryDelayMs, options.retryDelayMs],
   );
   const defaultOptions = useMemo<DefaultUploadOptions>(() => options.defaultOptions ?? {}, [options.defaultOptions]);
-  const pollAuthOptions = useMemo<AuthRetryOptions>(
-    () => ({ token: defaultOptions.token, refreshAccessToken: defaultOptions.refreshAccessToken }),
-    [defaultOptions.refreshAccessToken, defaultOptions.token],
-  );
+  const buildAuthOptions = useCallback((options: Partial<UploadOptions>): AuthRetryOptions => {
+    const auth: AuthRetryOptions = {};
+    if (options.token) {
+      auth.token = options.token;
+    }
+    if (options.refreshAccessToken) {
+      auth.refreshAccessToken = options.refreshAccessToken;
+    }
+    return auth;
+  }, []);
+
+  const pollAuthOptions = useMemo<AuthRetryOptions>(() => buildAuthOptions(defaultOptions), [buildAuthOptions, defaultOptions]);
   const [state, setState] = useState<UploadState>('idle');
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +158,7 @@ export function useTrainingUploader(
         const triggered = await withAuthRetry(
           (tokenOverride) =>
             triggerTrainingJob(resolvedOptions.apiBase ?? '', tokenOverride ?? resolvedOptions.token),
-          resolvedOptions,
+          buildAuthOptions(resolvedOptions),
         );
         if (triggered) {
           return applyTrainingJob(triggered, resolvedOptions.apiBase);
@@ -163,7 +171,7 @@ export function useTrainingUploader(
 
       return null;
     },
-    [applyTrainingJob, resolveOptions, trainingJob, withAuthRetry],
+    [applyTrainingJob, buildAuthOptions, resolveOptions, trainingJob, withAuthRetry],
   );
 
   const syncQueued = useCallback(
@@ -206,7 +214,7 @@ export function useTrainingUploader(
                 ...uploadOptions,
                 ...(tokenOverride ? { token: tokenOverride } : {}),
               }),
-            resolvedOptions,
+            buildAuthOptions(resolvedOptions),
           );
           if (uploadResponse.trainingJob) {
             trainingJobFromUploads = applyTrainingJob(uploadResponse.trainingJob, apiBase) ?? trainingJobFromUploads;
@@ -311,7 +319,7 @@ export function useTrainingUploader(
               ...uploadOptions,
               ...(tokenOverride ? { token: tokenOverride } : {}),
             }),
-          resolvedOptions,
+          buildAuthOptions(resolvedOptions),
         );
         if (uploadResponse.trainingJob) {
           applyTrainingJob(uploadResponse.trainingJob, apiBase);
@@ -330,7 +338,7 @@ export function useTrainingUploader(
         return false;
       }
     },
-    [applyTrainingJob, maybeTriggerTrainingJob, refreshQueue, resolveOptions, withAuthRetry],
+    [applyTrainingJob, buildAuthOptions, maybeTriggerTrainingJob, refreshQueue, resolveOptions, withAuthRetry],
   );
 
   const removeBundle = useCallback(
@@ -394,7 +402,8 @@ export function useTrainingUploader(
       let zip: Uint8Array | null = null;
 
       try {
-        zip = await createTrainingZip(payload);
+        const createdZip = await createTrainingZip(payload);
+        zip = createdZip;
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
         if (offline) {
           const persisted = await enqueuePersistedBundle({
@@ -405,7 +414,7 @@ export function useTrainingUploader(
             framesCount: payload.frames?.length ?? 0,
             ...(typeof payload.clipFile?.size === 'number' ? { clipBytes: payload.clipFile.size } : {}),
             ...(typeof payload.stillFile?.size === 'number' ? { stillBytes: payload.stillFile.size } : {}),
-            zip,
+            zip: createdZip,
           });
           if (persisted) {
             setLastQueuedKey(persisted.key);
@@ -425,11 +434,11 @@ export function useTrainingUploader(
         const { apiBase, ...uploadOptions } = resolvedOptions;
         const result = await withAuthRetry(
           (tokenOverride) =>
-            uploadTrainingZip(zip, {
+            uploadTrainingZip(createdZip, {
               ...uploadOptions,
               ...(tokenOverride ? { token: tokenOverride } : {}),
             }),
-          resolvedOptions,
+          buildAuthOptions(resolvedOptions),
         );
         const resolvedTrainingJob = result.trainingJob
           ? applyTrainingJob(result.trainingJob, apiBase)
@@ -476,7 +485,7 @@ export function useTrainingUploader(
         throw err;
       }
     },
-    [applyTrainingJob, maybeTriggerTrainingJob, refreshQueue, resolveOptions, withAuthRetry],
+    [applyTrainingJob, buildAuthOptions, maybeTriggerTrainingJob, refreshQueue, resolveOptions, withAuthRetry],
   );
 
   useEffect(() => {
