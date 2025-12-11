@@ -71,10 +71,10 @@ const REQUIRE_BASELINE_ARTIFACT = ['1', 'true', 'yes'].includes(
 const EXPECTED_BASELINE_SHA = (process.env.MLP_BASELINE_SHA256 ?? '').toLowerCase();
 
 async function assertBaselineIntegrity(): Promise<void> {
-  const buffer = await fs.readFile(BASELINE_MLP_MODEL_PATH);
   if (!EXPECTED_BASELINE_SHA) {
     return;
   }
+  const buffer = await fs.readFile(BASELINE_MLP_MODEL_PATH);
   const sha = createHash('sha256').update(buffer).digest('hex');
   if (sha.toLowerCase() !== EXPECTED_BASELINE_SHA) {
     throw new Error(

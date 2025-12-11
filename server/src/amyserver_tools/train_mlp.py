@@ -48,7 +48,7 @@ def _require_hand_landmark_dependencies(context: str) -> None:
         return
     message = (
         "mediapipe/opencv required for landmark extraction but unavailable. "
-        "Install 'mediapipe' und 'opencv-python' before processing "
+        "Install 'mediapipe' and 'opencv-python' before processing "
         f"{context}."
     )
     if DEPENDENCIES_REQUIRED:
