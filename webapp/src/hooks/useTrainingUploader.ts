@@ -14,10 +14,12 @@ import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleRespon
 import { normalizeTrainingJobStatus } from '../training/trainingBundle';
 import { triggerTrainingJob } from '../training/trainingJob';
 import { resolvePollUrl } from './useApiConfig';
+import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 
 export type UploadState = 'idle' | 'preparing' | 'uploading' | 'queued' | 'success' | 'error';
 
-type UploadOptions = TrainingUploadOptions & { apiBase?: string };
+type UploadOptions = TrainingUploadOptions & { apiBase?: string; refreshAccessToken?: () => Promise<string | null> };
+type AuthRetryOptions = Pick<UploadOptions, 'token' | 'refreshAccessToken'>;
 
 export type DefaultUploadOptions = Partial<UploadOptions>;
 
@@ -30,6 +32,10 @@ export function useTrainingUploader(
     [options.maxRetryDelayMs, options.retryDelayMs],
   );
   const defaultOptions = useMemo<DefaultUploadOptions>(() => options.defaultOptions ?? {}, [options.defaultOptions]);
+  const pollAuthOptions = useMemo<AuthRetryOptions>(
+    () => ({ token: defaultOptions.token, refreshAccessToken: defaultOptions.refreshAccessToken }),
+    [defaultOptions.refreshAccessToken, defaultOptions.token],
+  );
   const [state, setState] = useState<UploadState>('idle');
   const [lastResult, setLastResult] = useState<UploadTrainingBundleResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +86,28 @@ export function useTrainingUploader(
     [defaultOptions],
   );
 
+  const withAuthRetry = useCallback(
+    async <T>(operation: (tokenOverride?: string) => Promise<T>, options: AuthRetryOptions): Promise<T> => {
+      try {
+        return await operation(options.token);
+      } catch (error) {
+        if (error instanceof HttpError && error.status === 401) {
+          try {
+            const refreshed = await options.refreshAccessToken?.();
+            if (refreshed) {
+              return await operation(refreshed);
+            }
+          } catch (refreshError) {
+            console.warn('Token-Refresh für Trainings-Upload fehlgeschlagen', refreshError);
+          }
+          throw new HttpError(401, SESSION_EXPIRED_MESSAGE);
+        }
+        throw error;
+      }
+    },
+    [],
+  );
+
   const applyTrainingJob = useCallback(
     (job: TrainingJobInfo | null, apiBaseOverride?: string) => {
       if (!job) return null;
@@ -111,7 +139,11 @@ export function useTrainingUploader(
       }
 
       try {
-        const triggered = await triggerTrainingJob(resolvedOptions.apiBase ?? '', resolvedOptions.token);
+        const triggered = await withAuthRetry(
+          (tokenOverride) =>
+            triggerTrainingJob(resolvedOptions.apiBase ?? '', tokenOverride ?? resolvedOptions.token),
+          resolvedOptions,
+        );
         if (triggered) {
           return applyTrainingJob(triggered, resolvedOptions.apiBase);
         }
@@ -123,7 +155,7 @@ export function useTrainingUploader(
 
       return null;
     },
-    [applyTrainingJob, resolveOptions, trainingJob],
+    [applyTrainingJob, resolveOptions, trainingJob, withAuthRetry],
   );
 
   const syncQueued = useCallback(
@@ -143,7 +175,13 @@ export function useTrainingUploader(
         return 0;
       }
       const bundles = await refreshQueue();
-      const pending = bundles.filter((bundle) => bundle.status !== 'uploading');
+      const pending = bundles.filter((bundle) => {
+        if (bundle.status === 'pending') return true;
+        if (bundle.status !== 'failed') return false;
+        const reason = bundle.lastError?.toLowerCase() ?? '';
+        const isAuthFailure = reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
+        return !isAuthFailure;
+      });
       let uploaded = 0;
       let encounteredError = false;
       let trainingJobFromUploads: TrainingJobInfo | null = null;
@@ -160,7 +198,14 @@ export function useTrainingUploader(
             continue;
           }
           const { apiBase, ...uploadOptions } = resolvedOptions;
-          const uploadResponse = await uploadTrainingZip(zipData, uploadOptions);
+          const uploadResponse = await withAuthRetry(
+            (tokenOverride) =>
+              uploadTrainingZip(zipData, {
+                ...uploadOptions,
+                ...(tokenOverride ? { token: tokenOverride } : {}),
+              }),
+            resolvedOptions,
+          );
           if (uploadResponse.trainingJob) {
             trainingJobFromUploads = applyTrainingJob(uploadResponse.trainingJob, apiBase) ?? trainingJobFromUploads;
           }
@@ -175,6 +220,13 @@ export function useTrainingUploader(
       }
 
       const remaining = await refreshQueue();
+      const hasPending = remaining.some((bundle) => {
+        if (bundle.status === 'pending') return true;
+        if (bundle.status !== 'failed') return false;
+        const reason = bundle.lastError?.toLowerCase() ?? '';
+        const isAuthFailure = reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
+        return !isAuthFailure;
+      });
       if (!encounteredError) {
         retryDelayRef.current = retryConfig.base;
         setSyncError(null);
@@ -184,7 +236,7 @@ export function useTrainingUploader(
       setSyncing(false);
       syncingRef.current = false;
 
-      if (remaining.length === 0) {
+      if (!hasPending) {
         if (retryTimeoutRef.current) {
           clearTimeout(retryTimeoutRef.current);
           retryTimeoutRef.current = null;
@@ -217,6 +269,7 @@ export function useTrainingUploader(
       resolveOptions,
       retryConfig.base,
       retryConfig.max,
+      withAuthRetry,
     ],
   );
 
@@ -256,7 +309,14 @@ export function useTrainingUploader(
         }
 
         const { apiBase, ...uploadOptions } = resolvedOptions;
-        const uploadResponse = await uploadTrainingZip(zipData, uploadOptions);
+        const uploadResponse = await withAuthRetry(
+          (tokenOverride) =>
+            uploadTrainingZip(zipData, {
+              ...uploadOptions,
+              ...(tokenOverride ? { token: tokenOverride } : {}),
+            }),
+          resolvedOptions,
+        );
         if (uploadResponse.trainingJob) {
           applyTrainingJob(uploadResponse.trainingJob, apiBase);
         }
@@ -274,7 +334,7 @@ export function useTrainingUploader(
         return false;
       }
     },
-    [applyTrainingJob, maybeTriggerTrainingJob, refreshQueue, resolveOptions],
+    [applyTrainingJob, maybeTriggerTrainingJob, refreshQueue, resolveOptions, withAuthRetry],
   );
 
   const removeBundle = useCallback(
@@ -367,7 +427,14 @@ export function useTrainingUploader(
         setState('uploading');
         const resolvedOptions = resolveOptions(options);
         const { apiBase, ...uploadOptions } = resolvedOptions;
-        const result = await uploadTrainingZip(zip, uploadOptions);
+        const result = await withAuthRetry(
+          (tokenOverride) =>
+            uploadTrainingZip(zip, {
+              ...uploadOptions,
+              ...(tokenOverride ? { token: tokenOverride } : {}),
+            }),
+          resolvedOptions,
+        );
         const resolvedTrainingJob = result.trainingJob
           ? applyTrainingJob(result.trainingJob, apiBase)
           : null;
@@ -380,6 +447,11 @@ export function useTrainingUploader(
         return result;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        if (err instanceof HttpError && err.status === 401) {
+          setError(message);
+          setState('error');
+          return null;
+        }
         if (zip) {
           const persisted = await enqueuePersistedBundle({
             profileId: payload.profileId,
@@ -408,7 +480,7 @@ export function useTrainingUploader(
         throw err;
       }
     },
-    [applyTrainingJob, maybeTriggerTrainingJob, refreshQueue, resolveOptions],
+    [applyTrainingJob, maybeTriggerTrainingJob, refreshQueue, resolveOptions, withAuthRetry],
   );
 
   useEffect(() => {
@@ -422,16 +494,26 @@ export function useTrainingUploader(
     const poll = async () => {
       if (cancelled) return;
       try {
-        const headers: HeadersInit = { Accept: 'application/json' };
-        if (defaultOptions.token) {
-          headers['Authorization'] = `Bearer ${defaultOptions.token}`;
-        }
-        const response = await fetch(pollUrl, {
-          headers,
-        });
-        if (!response.ok) {
-          throw new Error(`Polling fehlgeschlagen (HTTP ${response.status}).`);
-        }
+        const response = await withAuthRetry(
+          async (tokenOverride) => {
+            const headers: HeadersInit = { Accept: 'application/json' };
+            const authToken = tokenOverride ?? defaultOptions.token;
+            if (authToken) {
+              headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            const result = await fetch(pollUrl, {
+              headers,
+            });
+            if (result.status === 401) {
+              throw new HttpError(401, SESSION_EXPIRED_MESSAGE);
+            }
+            if (!result.ok) {
+              throw new Error(`Polling fehlgeschlagen (HTTP ${result.status}).`);
+            }
+            return result;
+          },
+          pollAuthOptions,
+        );
         const body = await response.json();
         const nextStatus = normalizeTrainingJobStatus((body as { status?: string })?.status ?? '');
         if (nextStatus) {
@@ -473,7 +555,7 @@ export function useTrainingUploader(
         pollTimeoutRef.current = null;
       }
     };
-  }, [defaultOptions.token, pollIntervalMs, trainingJob]);
+  }, [defaultOptions.token, pollAuthOptions, pollIntervalMs, trainingJob, withAuthRetry]);
 
   return useMemo(
     () => ({

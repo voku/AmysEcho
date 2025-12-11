@@ -1,5 +1,6 @@
 import type { TrainingJobInfo, TrainingJobStatus } from './types';
 import { normalizeTrainingJobStatus } from './trainingBundle';
+import { HttpError } from '../utils/http';
 
 const STATUS_ALIASES: Record<string, TrainingJobStatus> = {
   queued: 'queued',
@@ -102,7 +103,7 @@ export async function triggerTrainingJob(
   });
 
   if (!response.ok) {
-    throw new Error(`Training-Trigger fehlgeschlagen (HTTP ${response.status}).`);
+    throw new HttpError(response.status, `Training-Trigger fehlgeschlagen (HTTP ${response.status}).`);
   }
 
   let payload: unknown;

@@ -419,9 +419,14 @@ export function TrainingUpload({
 // Wrapper component with mode switching
 export function TrainingUploadWithRecording() {
   const [mode, setMode] = useState<'record' | 'upload'>('record');
-  const { apiBaseUrl, apiToken, uploadEndpoint } = useApiConfig();
+  const { apiBaseUrl, apiToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
   const uploadState = useTrainingUploader({
-    defaultOptions: { endpoint: uploadEndpoint, token: apiToken, apiBase: apiBaseUrl },
+    defaultOptions: {
+      endpoint: uploadEndpoint,
+      token: apiToken,
+      apiBase: apiBaseUrl,
+      refreshAccessToken,
+    },
   });
   const { upload, lastResult, state, trainingJob } = uploadState;
   const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =

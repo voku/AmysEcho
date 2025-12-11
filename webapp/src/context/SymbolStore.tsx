@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { useMessage } from './MessageContext';
 
 export interface SymbolDefinition {
@@ -31,15 +32,6 @@ interface SymbolStoreValue {
 }
 
 const CACHE_KEY = 'amysecho_symbols';
-
-class HttpError extends Error {
-  status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
 
 const SymbolStoreContext = createContext<SymbolStoreValue | undefined>(undefined);
 
@@ -140,14 +132,19 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         return await operation();
       } catch (error) {
         if (error instanceof HttpError && error.status === 401) {
-          const refreshed = await refreshAccessToken();
-          if (refreshed) {
-            return operation(refreshed);
+          try {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              return operation(refreshed);
+            }
+          } catch (refreshError) {
+            console.warn('Token refresh failed', refreshError);
           }
-          setSyncError('Sitzung abgelaufen. Bitte neu anmelden.');
+          setSyncError(SESSION_EXPIRED_MESSAGE);
           if (!options?.silent) {
-            showToast({ message: 'Sitzung abgelaufen. Bitte neu anmelden.', tone: 'error' });
+            showToast({ message: SESSION_EXPIRED_MESSAGE, tone: 'error' });
           }
+          throw new HttpError(401, SESSION_EXPIRED_MESSAGE);
         }
         throw error;
       }
@@ -234,6 +231,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       showToast({ message: 'Offline gespeicherte Gebärden synchronisiert.', tone: 'success' });
     }
 
+    // Return only the results of this flush iteration; items added during the flush remain tracked in state
     return { symbols: updatedSymbols, pending: remainingPending };
   }, [apiBaseUrl, apiToken, resolveHeaders, showToast, withAuthRetry]);
 
@@ -275,7 +273,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       const isAuthError = error instanceof HttpError && error.status === 401;
       const reason = isAuthError
-        ? 'Sitzung abgelaufen. Bitte neu anmelden.'
+        ? SESSION_EXPIRED_MESSAGE
         : error instanceof Error
           ? error.message
           : 'Unbekannter Fehler beim Laden der Gesten';
@@ -383,8 +381,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         return saved;
       } catch (error) {
         if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
-          const reason =
-            error.status === 401 ? 'Sitzung abgelaufen. Bitte neu anmelden.' : error.message || 'Ungültige Eingabe';
+          const reason = error.status === 401 ? SESSION_EXPIRED_MESSAGE : error.message || 'Ungültige Eingabe';
           if (error.status !== 401) {
             showToast({ message: `Gebärde abgelehnt: ${reason}`, tone: 'error' });
           }
@@ -412,6 +409,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(reason);
+        setLastSyncedAt(null);
         return fallback;
       }
     },
@@ -439,7 +437,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         const isAuthError = error instanceof HttpError && error.status === 401;
         const reason = isAuthError
-          ? 'Sitzung abgelaufen. Bitte neu anmelden.'
+          ? SESSION_EXPIRED_MESSAGE
           : error instanceof Error
             ? error.message
             : 'Unbekannter Fehler beim Löschen';

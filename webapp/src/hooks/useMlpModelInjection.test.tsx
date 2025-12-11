@@ -1,8 +1,17 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import React from 'react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { ApiConfigProvider } from './useApiConfig';
 import { useMlpModelInjection } from './useMlpModelInjection';
+
+const refreshAccessTokenMock = vi.fn<[], Promise<string | null>>();
+let apiTokenMock = 'token-123';
+
+vi.mock('./useApiConfig', () => ({
+  useApiConfig: () => ({
+    modelEndpoint: 'http://localhost:5000/latest-mlp-model',
+    apiToken: apiTokenMock,
+    refreshAccessToken: refreshAccessTokenMock,
+  }),
+}));
 
 const installMlpMock = vi.hoisted(() =>
   vi.fn(() => {
@@ -12,10 +21,6 @@ const installMlpMock = vi.hoisted(() =>
 
 vi.mock('../gesture/installMlp', () => ({ installMlp: installMlpMock }));
 
-function wrapper({ children }: { children: React.ReactNode }) {
-  return <ApiConfigProvider>{children}</ApiConfigProvider>;
-}
-
 describe('useMlpModelInjection', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -24,6 +29,8 @@ describe('useMlpModelInjection', () => {
     installMlpMock.mockImplementation(() => {
       (window as any).__setMlpModelB64 = vi.fn().mockResolvedValue(true);
     });
+    apiTokenMock = 'token-123';
+    refreshAccessTokenMock.mockReset();
   });
 
   it('lädt personalisiertes Modell und meldet neue Version', async () => {
@@ -40,7 +47,7 @@ describe('useMlpModelInjection', () => {
 
     vi.stubGlobal('fetch', fetchMock as any);
 
-    const { result } = renderHook(() => useMlpModelInjection('amy'), { wrapper });
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
 
     await waitFor(() => {
       expect(result.current.notice).toContain('Neues');
@@ -56,14 +63,12 @@ describe('useMlpModelInjection', () => {
     vi.stubGlobal('fetch', fetchMock as any);
     (window as any).__setMlpModelB64 = vi.fn().mockResolvedValue(true);
 
-    const { result } = renderHook(() => useMlpModelInjection('amy'), { wrapper });
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
 
     await waitFor(() => {
-      // MLP-Modell ist optional - Status sollte 'idle' sein, nicht 'error' wenn nicht verfügbar
       expect(result.current.status).toBe('idle');
     });
 
-    // Keine Fehlermeldung sollte angezeigt werden, da MLP optional ist
     expect(result.current.notice).toBeNull();
   });
 
@@ -82,7 +87,7 @@ describe('useMlpModelInjection', () => {
     vi.stubGlobal('fetch', fetchMock as any);
     delete (window as any).__setMlpModelB64;
 
-    const { result } = renderHook(() => useMlpModelInjection('amy'), { wrapper });
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
 
     await waitFor(() => {
       expect(result.current.status).toBe('ready');
@@ -107,7 +112,7 @@ describe('useMlpModelInjection', () => {
     vi.stubGlobal('fetch', fetchMock as any);
     (window as any).__setMlpModelB64 = vi.fn().mockResolvedValue(false);
 
-    const { result } = renderHook(() => useMlpModelInjection('amy'), { wrapper });
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
 
     await waitFor(() => {
       expect(result.current.status).toBe('error');
@@ -137,7 +142,7 @@ describe('useMlpModelInjection', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
     vi.stubGlobal('fetch', fetchMock as any);
 
-    const { result } = renderHook(() => useMlpModelInjection('amy'), { wrapper });
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
 
     await waitFor(() => {
       expect(result.current.status).toBe('ready');
@@ -173,7 +178,7 @@ describe('useMlpModelInjection', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
     vi.stubGlobal('fetch', fetchMock as any);
 
-    const { result } = renderHook(() => useMlpModelInjection('amy'), { wrapper });
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
 
     await waitFor(() => {
       expect(result.current.lastMeta?.version).toBe('p-7');
@@ -184,6 +189,81 @@ describe('useMlpModelInjection', () => {
     await waitFor(() => {
       expect(result.current.lastMeta?.version).toBe('p-8');
       expect(result.current.notice).toContain('p-8');
+    });
+  });
+
+  it('versucht Token-Refresh bei 401 und lädt Modell erneut', async () => {
+    apiTokenMock = 'expired-token';
+    refreshAccessTokenMock.mockResolvedValue('fresh-token');
+    let firstCall = true;
+
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/latest-mlp-model')) {
+        if (firstCall) {
+          firstCall = false;
+          return Promise.resolve(new Response('unauthorized', { status: 401 }));
+        }
+        return Promise.resolve(
+          new Response(new Uint8Array([7, 7, 7]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': 'p-9',
+              'X-Model-Source': 'profile',
+              'X-Model-Profile': 'amy',
+            },
+          }),
+        );
+      }
+      if (url.includes('/api/v1/auth/refresh')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ tokens: { accessToken: 'fresh-token', refreshToken: 'rt' } }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        );
+      }
+      return Promise.reject(new Error('unexpected url'));
+    });
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+      expect(result.current.lastMeta?.version).toBe('p-9');
+    });
+
+    const authHeaders = fetchMock.mock.calls
+      .map(([, init]) => (init?.headers as Record<string, string> | undefined)?.['Authorization'])
+      .filter(Boolean);
+    expect(authHeaders).toEqual(['Bearer expired-token', 'Bearer fresh-token']);
+    expect(refreshAccessTokenMock).toHaveBeenCalled();
+  });
+
+  it('meldet Sitzung abgelaufen, wenn Token-Refresh fehlschlägt', async () => {
+    apiTokenMock = 'expired-token';
+    refreshAccessTokenMock.mockResolvedValue(null);
+
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/latest-mlp-model')) {
+        return Promise.resolve(new Response('unauthorized', { status: 401 }));
+      }
+      if (url.includes('/api/v1/auth/refresh')) {
+        return Promise.resolve(new Response('invalid refresh', { status: 400 }));
+      }
+      return Promise.reject(new Error('unexpected url'));
+    });
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('error');
+      expect(result.current.notice).toContain('Sitzung abgelaufen');
     });
   });
 });

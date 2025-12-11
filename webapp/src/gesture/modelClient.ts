@@ -1,3 +1,5 @@
+import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
+
 export type MlpModelMeta = {
   version?: string | null;
   source: 'profile' | 'global';
@@ -99,6 +101,9 @@ async function fetchModel(
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new HttpError(401, SESSION_EXPIRED_MESSAGE);
+    }
     if (response.status !== 404 || !profileId) {
       console.warn('[MLP] Modell konnte nicht geladen werden', {
         url: url.toString(),
