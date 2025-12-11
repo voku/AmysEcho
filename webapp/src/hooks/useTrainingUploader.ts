@@ -273,6 +273,8 @@ export function useTrainingUploader(
       resolveOptions,
       retryConfig.base,
       retryConfig.max,
+      buildAuthOptions,
+      isBundleRetryable,
       withAuthRetry,
     ],
   );
