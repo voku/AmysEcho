@@ -6,8 +6,10 @@ import {
   clearBundleStoreForTests,
   enqueuePersistedBundle,
   listQueuedBundles,
+  markBundleFailed,
 } from '../training/trainingQueue';
 import type { TrainingBundlePayload } from '../training/types';
+import { SESSION_EXPIRED_MESSAGE } from '../utils/http';
 
 const payload: TrainingBundlePayload = {
   profileId: 'demo',
@@ -51,6 +53,52 @@ describe('useTrainingUploader', () => {
     expect(result.current.lastResult?.id).toBe('bundle-42');
     expect(result.current.lastResult?.trainingJob?.jobId).toBe('job-7');
     expect(result.current.state).toBe('success');
+  });
+
+  it('versucht Upload nach Token-Refresh erneut bei 401', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'bundle-401', status: 'queued' }) });
+    (globalThis as any).fetch = fetchSpy;
+    const refreshMock = vi.fn().mockResolvedValue('new-token');
+
+    const { result } = renderHook(() =>
+      useTrainingUploader({
+        defaultOptions: { endpoint: 'https://example.invalid', token: 'old-token', refreshAccessToken: refreshMock },
+      }),
+    );
+
+    await act(async () => {
+      await result.current.upload(payload);
+    });
+
+    expect(refreshMock).toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect((fetchSpy.mock.calls[1]?.[1] as RequestInit)?.headers).toMatchObject({ Authorization: 'Bearer new-token' });
+    expect(result.current.state).toBe('success');
+  });
+
+  it('meldet abgelaufene Sitzung, wenn Refresh fehlschlägt', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) });
+    (globalThis as any).fetch = fetchSpy;
+    const refreshMock = vi.fn().mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useTrainingUploader({
+        defaultOptions: { endpoint: 'https://example.invalid', token: 'expired-token', refreshAccessToken: refreshMock },
+      }),
+    );
+
+    await act(async () => {
+      const uploadResult = await result.current.upload(payload);
+      expect(uploadResult).toBeNull();
+    });
+
+    expect(result.current.error).toContain(SESSION_EXPIRED_MESSAGE);
+    expect(result.current.state).toBe('error');
+    const queued = await listQueuedBundles();
+    expect(queued.length).toBe(0);
   });
 
   it('verwendet Default-Optionen für Uploads und Polling', async () => {
@@ -292,6 +340,42 @@ describe('useTrainingUploader', () => {
       expect(remaining.length).toBe(0);
     }, { timeout: 3000 });
   }, 5000);
+
+  it('überspringt bereits als fehlgeschlagen markierte Bundles bei der automatischen Synchronisierung', async () => {
+    const stored = await enqueuePersistedBundle({
+      profileId: 'demo',
+      label: 'HILFE',
+      capturedAt: '2024-01-01T00:00:00.000Z',
+      source: 'web://mediapipe',
+      framesCount: 1,
+      zip: new TextEncoder().encode('demo-zip'),
+    });
+    expect(stored).not.toBeNull();
+    if (!stored) return;
+
+    await markBundleFailed(stored.key, SESSION_EXPIRED_MESSAGE);
+
+    const fetchSpy = vi.fn();
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() =>
+      useTrainingUploader({ defaultOptions: { endpoint: 'https://example.invalid' } }),
+    );
+
+    await waitFor(() => expect(result.current.queuedBundles.length).toBe(1));
+    expect(result.current.queuedBundles[0]?.status).toBe('failed');
+
+    let uploaded = -1;
+    await act(async () => {
+      uploaded = await result.current.syncQueued();
+    });
+
+    expect(uploaded).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const queuedAfter = await listQueuedBundles();
+    expect(queuedAfter.length).toBe(1);
+    expect(queuedAfter[0]?.status).toBe('failed');
+  });
 
   it('listet gespeicherte Bundles und erlaubt das Löschen', async () => {
     const stored = await enqueuePersistedBundle({

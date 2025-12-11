@@ -4,6 +4,7 @@
  */
 
 import { fetchMlpModelWithFallback, type MlpModelMeta } from '../gesture/modelClient';
+import { HttpError } from '../utils/http';
 
 export interface ModelVersion {
   version: string;
@@ -163,14 +164,19 @@ class ZeroDowntimeModelService {
         newVersion,
       };
     } catch (error) {
+      if (error instanceof HttpError && error.status === 401) {
+        const message = error.message;
+        return { success: false, error: message };
+      }
+
       const message = error instanceof Error ? error.message : 'Unbekannter Fehler';
-      
+
       this.retryCount += 1;
       if (this.retryCount >= MAX_RETRIES) {
         this.notifyError(new Error(`Update fehlgeschlagen nach ${MAX_RETRIES} Versuchen: ${message}`));
         this.retryCount = 0;
       }
-      
+
       return { success: false, error: message };
     }
   }

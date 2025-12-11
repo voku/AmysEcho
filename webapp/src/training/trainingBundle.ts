@@ -1,5 +1,6 @@
 import { zipSync } from 'fflate';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
+import { HttpError } from '../utils/http';
 import type {
   TrainingBundlePayload,
   TrainingFrame,
@@ -158,7 +159,7 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
   });
 
   if (!response.ok) {
-    throw new Error(`Upload fehlgeschlagen (HTTP ${response.status}).`);
+    throw new HttpError(response.status, `Upload fehlgeschlagen (HTTP ${response.status}).`);
   }
 
   let responseJson: unknown;

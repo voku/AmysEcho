@@ -260,8 +260,9 @@ function MainAppContent() {
 // ========================================
 // App Status Hook
 // ========================================
-function useAppStatus() {
+export function useAppStatus() {
   const [status, setStatus] = useState<'loading' | 'auth' | 'hero' | 'app'>('loading');
+  const { apiToken, refreshToken, persistToken } = useApiConfig();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -291,6 +292,18 @@ function useAppStatus() {
     }
     setStatus('app');
   }, []);
+
+  useEffect(() => {
+    if (status === 'loading' || !persistToken) return;
+
+    const noActiveTokens = !apiToken && !refreshToken;
+    if (noActiveTokens) {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(AUTH_KEY, 'false');
+      }
+      setStatus('auth');
+    }
+  }, [apiToken, persistToken, refreshToken, status]);
 
   return { status, completeAuth, completeOnboarding };
 }
