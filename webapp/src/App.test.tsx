@@ -43,7 +43,8 @@ describe('useAppStatus session handling', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('status').dataset.status).toBe('app');
+      const status = screen.getByTestId('status');
+      expect(status.dataset['status']).toBe('app');
     });
 
     act(() => {
@@ -51,7 +52,8 @@ describe('useAppStatus session handling', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('status').dataset.status).toBe('auth');
+      const status = screen.getByTestId('status');
+      expect(status.dataset['status']).toBe('auth');
     });
     expect(window.localStorage.getItem('webapp:auth-complete')).toBe('false');
   });

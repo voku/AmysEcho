@@ -86,6 +86,14 @@ export function useTrainingUploader(
     [defaultOptions],
   );
 
+  const isBundleRetryable = useCallback((bundle: PersistedTrainingBundle): boolean => {
+    if (bundle.status === 'pending') return true;
+    if (bundle.status !== 'failed') return false;
+    const reason = bundle.lastError?.toLowerCase() ?? '';
+    const isAuthFailure = reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
+    return !isAuthFailure;
+  }, []);
+
   const withAuthRetry = useCallback(
     async <T>(operation: (tokenOverride?: string) => Promise<T>, options: AuthRetryOptions): Promise<T> => {
       try {
@@ -175,13 +183,7 @@ export function useTrainingUploader(
         return 0;
       }
       const bundles = await refreshQueue();
-      const pending = bundles.filter((bundle) => {
-        if (bundle.status === 'pending') return true;
-        if (bundle.status !== 'failed') return false;
-        const reason = bundle.lastError?.toLowerCase() ?? '';
-        const isAuthFailure = reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
-        return !isAuthFailure;
-      });
+      const pending = bundles.filter(isBundleRetryable);
       let uploaded = 0;
       let encounteredError = false;
       let trainingJobFromUploads: TrainingJobInfo | null = null;
@@ -220,13 +222,7 @@ export function useTrainingUploader(
       }
 
       const remaining = await refreshQueue();
-      const hasPending = remaining.some((bundle) => {
-        if (bundle.status === 'pending') return true;
-        if (bundle.status !== 'failed') return false;
-        const reason = bundle.lastError?.toLowerCase() ?? '';
-        const isAuthFailure = reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
-        return !isAuthFailure;
-      });
+      const hasPending = remaining.some(isBundleRetryable);
       if (!encounteredError) {
         retryDelayRef.current = retryConfig.base;
         setSyncError(null);
