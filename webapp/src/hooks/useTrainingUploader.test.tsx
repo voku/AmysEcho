@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { useTrainingUploader, type SyncQueuedResult } from './useTrainingUploader';
+import { useTrainingUploader } from './useTrainingUploader';
 import {
   clearBundleStoreForTests,
   enqueuePersistedBundle,
@@ -366,13 +366,13 @@ describe('useTrainingUploader', () => {
     await waitFor(() => expect(result.current.queuedBundles.length).toBe(1));
     expect(result.current.queuedBundles[0]?.status).toBe('failed');
 
-    let resultSync: SyncQueuedResult | null = null;
+    let resultSync!: { uploaded: number; remaining: number };
     await act(async () => {
       resultSync = await result.current.syncQueued();
     });
 
-    expect(resultSync?.uploaded).toBe(0);
-    expect(resultSync?.remaining).toBe(1);
+    expect(resultSync.uploaded).toBe(0);
+    expect(resultSync.remaining).toBe(1);
     expect(fetchSpy).not.toHaveBeenCalled();
     const queuedAfter = await listQueuedBundles();
     expect(queuedAfter.length).toBe(1);
