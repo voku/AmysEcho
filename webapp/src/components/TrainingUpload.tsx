@@ -257,10 +257,12 @@ export function TrainingUpload({
   const handleSyncQueued = useCallback(async () => {
     setMessage('Warteschlange wird synchronisiert…');
     try {
-      const uploaded = await syncQueued();
+      const { uploaded, remaining } = await syncQueued();
       setMessage(
         uploaded > 0
           ? `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`
+          : remaining > 0
+          ? `${remaining} Paket(e) warten noch auf Upload. Bitte prüfe die Verbindung oder versuche es später erneut.`
           : 'Keine Pakete in der Warteschlange gefunden.',
       );
     } catch (syncErr) {
@@ -527,10 +529,12 @@ export function TrainingUploadWithRecording() {
   const handleSyncQueued = useCallback(async () => {
     setMessage('Warteschlange wird synchronisiert…');
     try {
-      const uploaded = await uploadState.syncQueued();
+      const { uploaded, remaining } = await uploadState.syncQueued();
       setMessage(
         uploaded > 0
           ? `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`
+          : remaining > 0
+          ? `${remaining} Paket(e) warten noch auf Upload. Bitte prüfe die Verbindung oder versuche es später erneut.`
           : 'Keine Pakete in der Warteschlange gefunden.',
       );
     } catch (syncErr) {
