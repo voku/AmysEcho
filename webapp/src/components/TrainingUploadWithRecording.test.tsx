@@ -108,7 +108,7 @@ describe('TrainingUploadWithRecording', () => {
 
     expect(uploadMock).not.toHaveBeenCalled();
     const validationMessages = screen.getAllByText(
-      'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest oder hochlädst.',
+      'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest.',
     );
     expect(validationMessages.length).toBeGreaterThan(0);
   }, TEST_TIMEOUT);

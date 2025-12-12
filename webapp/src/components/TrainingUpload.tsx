@@ -485,9 +485,8 @@ export function TrainingUpload({
   );
 }
 
-// Wrapper component with mode switching
+// Wrapper component with recording-first experience
 export function TrainingUploadWithRecording() {
-  const [mode, setMode] = useState<'record' | 'upload'>('record');
   const { apiBaseUrl, apiToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
   const uploadState = useTrainingUploader({
     defaultOptions: {
@@ -498,17 +497,17 @@ export function TrainingUploadWithRecording() {
     },
   });
   const { upload, lastResult, state, trainingJob } = uploadState;
-  const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId, lastRecognizedGesture, recentGestures } =
-    useAppState();
+  const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId } = useAppState();
   const modelInjection = useMlpModelInjection(profileId);
   const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
   const lastJobStatusRef = useRef<string | null>(null);
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
+  const [modelNotice, setModelNotice] = useState<string | null>(null);
   const metadataReady = profileId.trim().length > 0 && preferredGestureLabel.trim().length > 0;
   const metadataError = metadataReady
     ? ''
-    : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest oder hochlädst.';
+    : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest.';
   const [searchParams] = useSearchParams();
   const [gestureFromLearning, setGestureFromLearning] = useState<string | null>(null);
   const gestureParam = searchParams.get('gesture');
@@ -517,7 +516,6 @@ export function TrainingUploadWithRecording() {
     () => symbols.find((symbol) => symbol.id === symbolIdParam) ?? null,
     [symbolIdParam, symbols],
   );
-  const hasGestureSelection = Boolean((gestureParam ?? '').trim() || (symbolIdParam ?? '').trim());
   const prevMetadataReadyRef = useRef(metadataReady);
 
   useEffect(() => {
@@ -528,6 +526,13 @@ export function TrainingUploadWithRecording() {
     prevMetadataReadyRef.current = metadataReady;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- message and metadataError excluded to prevent infinite loop
   }, [metadataReady]);
+
+  useEffect(() => {
+    if (!modelInjection.notice) return undefined;
+    setModelNotice(modelInjection.notice);
+    const timer = window.setTimeout(() => setModelNotice(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [modelInjection.notice]);
 
   useEffect(() => {
     const status = uploadState.trainingJob?.status ?? uploadState.lastResult?.trainingJob?.status ?? null;
@@ -570,7 +575,6 @@ export function TrainingUploadWithRecording() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredGestureLabel or symbols change
   }, [gestureParam, symbolIdParam]);
 
-  const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
       if (!metadataReady) {
@@ -621,6 +625,13 @@ export function TrainingUploadWithRecording() {
     [uploadState],
   );
 
+  const headlineLabel = selectedSymbol?.name ?? gestureFromLearning ?? (preferredGestureLabel || 'Neue Gebärde');
+  const headlineSubtext = selectedSymbol
+    ? `Aus „Lernen“ übernommen (${selectedSymbol.category})`
+    : gestureFromLearning
+    ? 'Aus „Lernen“ übernommen'
+    : 'Nimm die Gebärde kurz auf und gib ihr einen Namen.';
+
   return (
     <>
       {symbolSyncError && (
@@ -635,118 +646,68 @@ export function TrainingUploadWithRecording() {
 
       {!symbolSyncError && symbols.length === 0 && (
         <div className="notice info mb-md">
-          Gebärden werden aus dem Server geladen.{' '}
+          Gebärden werden vom Server geladen.{' '}
           <button className="ghost" onClick={refreshSymbols} disabled={symbolsLoading}>
             Manuell synchronisieren
           </button>
-          <p className="muted small mt-xs">Wichtiger: Gebärdendaten werden unabhängig hiervon synchronisiert.</p>
+          <p className="muted small mt-xs">Gebärden-Uploads und Trainings-Sync laufen unabhängig davon weiter.</p>
         </div>
       )}
 
-      {selectedSymbol && (
-        <div className="notice success mb-md">
-          Geste aus „Lernen“ übernommen: <strong>{selectedSymbol.name}</strong>{' '}
-          <span className="muted small">({selectedSymbol.category})</span>
-          {selectedSymbol.imageUrl && (
-            <div className="mt-xs">
-              <img src={selectedSymbol.imageUrl} alt={selectedSymbol.name} className="symbol-thumb" />
-            </div>
-          )}
+      <div className="card training-header mb-md">
+        <div>
+          <p className="eyebrow">Aufnahme</p>
+          <h2 className="training-headline">Gebärde aufzeichnen: {headlineLabel}</h2>
+          <p className="muted small">{headlineSubtext}</p>
         </div>
-      )}
-
-      {!selectedSymbol && !gestureFromLearning && !hasGestureSelection && (
-        <div className="notice info mb-md">
-          Keine Gebärde per Link ausgewählt. Bitte trage ein Gebärden-Name ein oder wähle eine Gebärde aus.
-        </div>
-      )}
-
-      <div className="mode-switcher mb-md">
-        <button className={mode === 'record' ? 'active' : ''} onClick={() => setMode('record')}>
-          Gebärde aufnehmen
-        </button>
-        <button className={mode === 'upload' ? 'active' : ''} onClick={() => setMode('upload')}>
-          Datei hochladen
-        </button>
+        {selectedSymbol?.imageUrl && (
+          <img
+            src={selectedSymbol.imageUrl}
+            alt={selectedSymbol.name}
+            className="symbol-thumb headline-symbol-thumb"
+          />
+        )}
       </div>
 
-      {modelInjection.notice && <div className="notice info mb-md">{modelInjection.notice}</div>}
+      {modelNotice && <div className="notice success compact mb-md">{modelNotice}</div>}
 
-      {gestureFromLearning && (
-        <div className="notice success mb-md">
-          Gebärden-Name aus „Lernen“ übernommen: <strong>{gestureFromLearning}</strong>. Du kannst es bei Bedarf anpassen.
+      <TrainingRecorder profileId={profileId} label={preferredGestureLabel} onRecordingComplete={handleRecordingComplete} />
+
+      <div className="card mt-md">
+        <div className="form-group">
+          <label htmlFor="record-profile">Profil-ID</label>
+          <input id="record-profile" value={profileId} onChange={(event) => setProfileId(event.target.value)} />
         </div>
-      )}
-
-      {suggestedLabel && (
-        <div className="notice info mb-md">
-          Letzte erkannte Gebärde: <strong>{suggestedLabel}</strong>.{' '}
-          <button type="button" className="ghost" onClick={() => handleLabelUpdate(suggestedLabel)}>
-            Als Standardlabel übernehmen
-          </button>
+        <div className="form-group">
+          <label htmlFor="record-label">Gebärden-Name</label>
+          <input id="record-label" value={preferredGestureLabel} onChange={(event) => handleLabelUpdate(event.target.value)} />
+          {gestureFromLearning && (
+            <p className="muted small mt-xs">Du kannst den Namen aus „Lernen” übernehmen oder anpassen.</p>
+          )}
         </div>
-      )}
+        {!metadataReady && <div className="notice error mt-sm">{metadataError}</div>}
+      </div>
 
-      {mode === 'record' && (
-        <>
-          <TrainingRecorder profileId={profileId} label={preferredGestureLabel} onRecordingComplete={handleRecordingComplete} />
-
-          <div className="card mt-md">
-            <div className="form-group">
-              <label htmlFor="record-profile">Profil-ID</label>
-              <input id="record-profile" value={profileId} onChange={(event) => setProfileId(event.target.value)} />
-            </div>
-            <div className="form-group">
-              <label htmlFor="record-label">Gebärden-Name</label>
-              <input id="record-label" value={preferredGestureLabel} onChange={(event) => handleLabelUpdate(event.target.value)} />
-              {suggestedLabel && suggestedLabel !== preferredGestureLabel && (
-                <button
-                  type="button"
-                  className="ghost mt-xs"
-                  onClick={() => handleLabelUpdate(suggestedLabel)}
-                >
-                  Letzte erkannte Gebärde verwenden ({suggestedLabel})
-                </button>
-              )}
-            </div>
-            {!metadataReady && <div className="notice error mt-sm">{metadataError}</div>}
+      <div className="card mt-md">
+        <div className="card-header mb-sm">
+          <div>
+            <p className="eyebrow">Status</p>
+            <p className="muted small">{state === 'uploading' ? 'Upload läuft…' : 'Bereit'}</p>
           </div>
-        </>
-      )}
-
-      {mode === 'upload' && (
-        <TrainingUpload
-          profileId={profileId}
-          setProfileId={setProfileId}
-          label={preferredGestureLabel}
-          setLabel={handleLabelUpdate}
-          suggestedLabel={suggestedLabel}
+          <div className="status-chip" data-state={state === 'error' ? 'error' : state === 'uploading' ? 'running' : 'idle'}>
+            {state === 'error' ? 'Fehler' : state === 'uploading' ? 'Lädt…' : 'Bereit'}
+          </div>
+        </div>
+        <TrainingStatusBlock
           uploader={uploadState}
+          message={message}
+          onSyncQueued={handleSyncQueued}
+          onSyncBundle={handleSyncBundle}
+          onRemoveBundle={handleRemoveBundle}
         />
-      )}
+      </div>
 
-      {mode === 'record' && (
-        <div className="card mt-md">
-          <div className="card-header mb-sm">
-            <div>
-              <p className="eyebrow">Status</p>
-              <p className="muted small">{state === 'uploading' ? 'Upload läuft…' : 'Bereit'}</p>
-            </div>
-            <div className="status-chip" data-state={state === 'error' ? 'error' : state === 'uploading' ? 'running' : 'idle'}>
-              {state === 'error' ? 'Fehler' : state === 'uploading' ? 'Lädt…' : 'Bereit'}
-            </div>
-          </div>
-          <TrainingStatusBlock
-            uploader={uploadState}
-            message={message}
-            onSyncQueued={handleSyncQueued}
-            onSyncBundle={handleSyncBundle}
-            onRemoveBundle={handleRemoveBundle}
-          />
-        </div>
-      )}
-
-      {lastResult && mode === 'record' && (
+      {lastResult && (
         <div className="mt-md">
           <TrainingResultCard result={lastResult} trainingJob={trainingJob} />
         </div>
