@@ -81,7 +81,11 @@ function TrainingStatusBlock({
       {message && <div className="notice info">{message}</div>}
       {error && <div className="notice error">{error}</div>}
       {syncError && <div className="notice warning">Letzte Synchronisation: {syncError}</div>}
-      {trainingJobError && <div className="notice warning">Trainingsstatus konnte nicht geladen werden: {trainingJobError}</div>}
+      {trainingJobError && (
+        <div className="notice warning">
+          Trainingsstatus konnte nicht geladen werden. Bitte versuche es später erneut.
+        </div>
+      )}
       {activeTrainingJob && (
         <div className="notice info">
           <p className="eyebrow">Trainingsstatus</p>
@@ -118,7 +122,7 @@ function TrainingStatusBlock({
             return <p className="muted small">{parts.join(' · ')}</p>;
           })()}
           {activeTrainingJob.error && activeTrainingJob.status === 'failed' && (
-            <p className="muted small">Fehlerbeschreibung: {activeTrainingJob.error}</p>
+            <p className="muted small">Fehler beim Training. Bitte prüfe die Logs oder versuche es erneut.</p>
           )}
           <p className="muted small">Wir holen den Status automatisch vom Server. Job-ID: {activeTrainingJob.jobId}</p>
         </div>
