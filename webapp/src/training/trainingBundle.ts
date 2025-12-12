@@ -62,6 +62,8 @@ export function parseTrainingJob(raw: unknown): TrainingJobInfo | undefined {
   const metricsRaw = (raw as { metrics?: unknown }).metrics;
   const reportRaw = (raw as { report?: unknown }).report;
 
+  const parsedMetrics = metricsRaw && typeof metricsRaw === 'object' ? parseMetrics(metricsRaw) : undefined;
+
   return {
     jobId: jobId.trim(),
     status: status ?? 'queued',
@@ -71,7 +73,7 @@ export function parseTrainingJob(raw: unknown): TrainingJobInfo | undefined {
     ...(typeof errorRaw === 'string' && errorRaw.trim().length > 0 ? { error: errorRaw.trim() } : {}),
     ...(typeof startedAtRaw === 'number' && Number.isFinite(startedAtRaw) ? { startedAt: startedAtRaw } : {}),
     ...(typeof endedAtRaw === 'number' && Number.isFinite(endedAtRaw) ? { endedAt: endedAtRaw } : {}),
-    ...(metricsRaw && typeof metricsRaw === 'object' ? { metrics: parseMetrics(metricsRaw) } : {}),
+    ...(parsedMetrics !== undefined ? { metrics: parsedMetrics } : {}),
     ...(reportRaw && typeof reportRaw === 'object' ? { report: reportRaw as Record<string, unknown> } : {}),
   };
 }

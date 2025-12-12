@@ -1,9 +1,7 @@
-import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTrainingUploader, type UploadState } from '../hooks/useTrainingUploader';
-import { frameHasAnyLandmarks } from '../training/handUtils';
+import { useTrainingUploader } from '../hooks/useTrainingUploader';
 import type {
-  TrainingFrame,
   TrainingBundlePayload,
   TrainingJobInfo,
   UploadTrainingBundleResponse,
@@ -16,15 +14,6 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { useSymbolStore } from '../context/SymbolStore';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
-
-const trainingStatusLabel: Record<UploadState, string> = {
-  idle: 'Bereit',
-  preparing: 'Paket wird vorbereitet…',
-  uploading: 'Upload läuft…',
-  success: 'Upload erfolgreich',
-  queued: 'Warteschlange aktiv',
-  error: 'Fehler beim Upload',
-};
 
 const trainingJobLabel: Record<TrainingJobInfo['status'], string> = {
   queued: 'Wartet auf Start',
