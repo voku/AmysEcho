@@ -129,8 +129,25 @@ except ValueError:
     _parsed_min_delta = 0.0
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 
-MIN_SAMPLES_PER_LABEL = max(1, int(os.environ.get("MLP_MIN_SAMPLES_PER_LABEL", "1")))
-MIN_SAMPLES_PER_PROFILE = max(1, int(os.environ.get("MLP_MIN_SAMPLES_PER_PROFILE", "1")))
+_env_min_samples_label = os.environ.get("MLP_MIN_SAMPLES_PER_LABEL", "1")
+try:
+    MIN_SAMPLES_PER_LABEL = max(1, int(_env_min_samples_label))
+except (ValueError, TypeError):
+    LOGGER.warning(
+        "MLP_MIN_SAMPLES_PER_LABEL is not a valid integer: '%s'. Using 1.",
+        _env_min_samples_label,
+    )
+    MIN_SAMPLES_PER_LABEL = 1
+
+_env_min_samples_profile = os.environ.get("MLP_MIN_SAMPLES_PER_PROFILE", "1")
+try:
+    MIN_SAMPLES_PER_PROFILE = max(1, int(_env_min_samples_profile))
+except (ValueError, TypeError):
+    LOGGER.warning(
+        "MLP_MIN_SAMPLES_PER_PROFILE is not a valid integer: '%s'. Using 1.",
+        _env_min_samples_profile,
+    )
+    MIN_SAMPLES_PER_PROFILE = 1
 DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not in {
     "0",
     "false",

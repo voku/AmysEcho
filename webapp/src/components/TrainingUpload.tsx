@@ -108,15 +108,15 @@ function TrainingStatusBlock({
               Erste Genauigkeits-Schätzung: {Math.round(activeTrainingJob.metrics.accuracy * 100)}%
             </p>
           )}
-          {(formatDateTime(activeTrainingJob.startedAt) || formatDateTime(activeTrainingJob.endedAt)) && (
-            <p className="muted small">
-              {formatDateTime(activeTrainingJob.startedAt)
-                ? `Gestartet: ${formatDateTime(activeTrainingJob.startedAt)}`
-                : ''}
-              {formatDateTime(activeTrainingJob.startedAt) && formatDateTime(activeTrainingJob.endedAt) ? ' · ' : ''}
-              {formatDateTime(activeTrainingJob.endedAt) ? `Beendet: ${formatDateTime(activeTrainingJob.endedAt)}` : ''}
-            </p>
-          )}
+          {(() => {
+            const started = formatDateTime(activeTrainingJob.startedAt);
+            const ended = formatDateTime(activeTrainingJob.endedAt);
+            if (!started && !ended) return null;
+            const parts = [];
+            if (started) parts.push(`Gestartet: ${started}`);
+            if (ended) parts.push(`Beendet: ${ended}`);
+            return <p className="muted small">{parts.join(' · ')}</p>;
+          })()}
           {activeTrainingJob.error && activeTrainingJob.status === 'failed' && (
             <p className="muted small">Fehlerbeschreibung: {activeTrainingJob.error}</p>
           )}
