@@ -5,13 +5,7 @@ import { test, before, after } from 'node:test';
 import { createTrainingZip, uploadTrainingZip } from '../../webapp/src/training/trainingBundle.ts';
 import { triggerTrainingJob } from '../../webapp/src/training/trainingJob.ts';
 import type { TrainingFrame } from '../../webapp/src/training/types.ts';
-import {
-  TEST_PORT,
-  TEST_TOKEN,
-  serverHeaders,
-  startServer,
-  stopServer,
-} from './helpers/server.js';
+import { TEST_TOKEN, serverHeaders, serverBaseUrl, startServer, stopServer } from './helpers/server.js';
 
 before(startServer);
 after(stopServer);
@@ -50,6 +44,7 @@ async function waitForTrainingCompletion(pollUrl: string, headers: Record<string
 }
 
 test('webapp training helpers integrate with live server', async () => {
+  const baseUrl = serverBaseUrl();
   const frames: TrainingFrame[] = [
     {
       landmarks: [
@@ -85,25 +80,24 @@ test('webapp training helpers integrate with live server', async () => {
   assert.ok(zip.byteLength > 0, 'zip creation failed');
 
   const uploadResult = await uploadTrainingZip(zip, {
-    endpoint: `http://localhost:${TEST_PORT}/api/v1/dgs/sample-bundles`,
+    endpoint: `${baseUrl}/api/v1/dgs/sample-bundles`,
     token: TEST_TOKEN,
   });
 
   assert.ok(uploadResult.id.length > 0);
   const trainingJobFromUpload = uploadResult.trainingJob;
 
-  const job =
-    trainingJobFromUpload ?? (await triggerTrainingJob(`http://localhost:${TEST_PORT}`, TEST_TOKEN));
+  const job = trainingJobFromUpload ?? (await triggerTrainingJob(baseUrl, TEST_TOKEN));
   assert.ok(job, 'expected a training job from upload or trigger');
 
   const pollUrl = job.pollUrl
-    ? new URL(job.pollUrl, `http://localhost:${TEST_PORT}`).href
-    : `http://localhost:${TEST_PORT}/train-status/${job.jobId}`;
+    ? new URL(job.pollUrl, baseUrl).href
+    : `${baseUrl}/train-status/${job.jobId}`;
 
   const headers = serverHeaders();
   await waitForTrainingCompletion(pollUrl, headers);
 
-  const modelRes = await fetch(`http://localhost:${TEST_PORT}/latest-mlp-model`, { headers });
+  const modelRes = await fetch(`${baseUrl}/latest-mlp-model`, { headers });
   assert.strictEqual(modelRes.status, 200);
   const modelBuffer = Buffer.from(await modelRes.arrayBuffer());
   assert.ok(modelBuffer.length > 0);

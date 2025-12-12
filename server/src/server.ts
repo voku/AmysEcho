@@ -405,20 +405,36 @@ async function runTrainingWorkflow(
     DATA_DIR,
   ];
 
-  const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-    const proc = spawn('python3', scriptArgs, {
-      cwd: serverRoot,
-    });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout?.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString();
-    });
+    const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      const proc = spawn('python3', scriptArgs, {
+        cwd: serverRoot,
+      });
+      let stdout = '';
+      let stderr = '';
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        proc.kill('SIGKILL');
+        reject(new Error(`train_mlp timed out after ${config.trainingTimeoutMs}ms`));
+      }, config.trainingTimeoutMs);
+      timer.unref();
+      proc.stdout?.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
     proc.stderr?.on('data', (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-    proc.on('error', reject);
+    proc.on('error', (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
     proc.on('close', (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       if (code === 0) {
         resolve({ stdout, stderr });
       } else {

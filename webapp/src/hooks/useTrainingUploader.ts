@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createTrainingZip, uploadTrainingZip, type TrainingUploadOptions } from '../training/trainingBundle';
+import {
+  createTrainingZip,
+  normalizeTrainingJobStatus,
+  parseTrainingJob,
+  uploadTrainingZip,
+  type TrainingUploadOptions,
+} from '../training/trainingBundle';
 import {
   enqueuePersistedBundle,
   listQueuedBundles,
@@ -11,7 +17,6 @@ import {
   type PersistedTrainingBundle,
 } from '../training/trainingQueue';
 import type { TrainingBundlePayload, TrainingJobInfo, UploadTrainingBundleResponse } from '../training/types';
-import { normalizeTrainingJobStatus } from '../training/trainingBundle';
 import { triggerTrainingJob } from '../training/trainingJob';
 import { resolvePollUrl } from './useApiConfig';
 import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
@@ -133,13 +138,13 @@ export function useTrainingUploader(
         ...job,
         ...(resolvedPollUrl ? { pollUrl: resolvedPollUrl } : {}),
       };
-      setTrainingJob(withPoll);
-      setTrainingJobError(null);
+      setTrainingJob((prev) => (prev ? { ...prev, ...withPoll } : withPoll));
+      setTrainingJobError(job.error ?? null);
       setLastResult((prev) =>
         prev
           ? {
               ...prev,
-              ...(prev.trainingJob ? { trainingJob: withPoll } : {}),
+              ...(prev.trainingJob ? { trainingJob: { ...prev.trainingJob, ...withPoll } } : {}),
             }
           : prev,
       );
@@ -524,26 +529,36 @@ export function useTrainingUploader(
           pollAuthOptions,
         );
         const body = await response.json();
-        const nextStatus = normalizeTrainingJobStatus((body as { status?: string })?.status ?? '');
-        if (nextStatus) {
-          setTrainingJob((prev) =>
-            prev ? { ...prev, status: nextStatus } : null,
-          );
-          setLastResult((prev) =>
-            prev && prev.trainingJob
-              ? {
-                  ...prev,
-                  trainingJob: {
-                    ...prev.trainingJob,
-                    status: nextStatus,
-                  },
-                }
-              : prev,
-          );
-          setTrainingJobError(null);
-
-          if (nextStatus === 'completed' || nextStatus === 'failed') {
+        const parsedJob = parseTrainingJob(body);
+        if (parsedJob) {
+          const mergedJob = applyTrainingJob(parsedJob);
+          if (mergedJob?.status === 'failed' && mergedJob.error) {
+            setTrainingJobError(mergedJob.error);
+          } else {
+            setTrainingJobError(null);
+          }
+          if (mergedJob?.status === 'completed' || mergedJob?.status === 'failed') {
             return;
+          }
+        } else {
+          const statusOnly = normalizeTrainingJobStatus((body as { status?: string })?.status ?? '');
+          if (statusOnly) {
+            setTrainingJob((prev) => (prev ? { ...prev, status: statusOnly } : prev));
+            setLastResult((prev) =>
+              prev && prev.trainingJob
+                ? {
+                    ...prev,
+                    trainingJob: {
+                      ...prev.trainingJob,
+                      status: statusOnly,
+                    },
+                  }
+                : prev,
+            );
+            if (statusOnly === 'completed' || statusOnly === 'failed') {
+              setTrainingJobError(null);
+              return;
+            }
           }
         }
       } catch (err) {
@@ -564,7 +579,7 @@ export function useTrainingUploader(
         pollTimeoutRef.current = null;
       }
     };
-  }, [defaultOptions.token, pollAuthOptions, pollIntervalMs, trainingJob, withAuthRetry]);
+  }, [applyTrainingJob, defaultOptions.token, pollAuthOptions, pollIntervalMs, trainingJob, withAuthRetry]);
 
   return useMemo(
     () => ({

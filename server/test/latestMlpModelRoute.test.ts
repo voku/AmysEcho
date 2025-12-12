@@ -216,6 +216,17 @@ describe('GET /latest-mlp-model', () => {
     }
   });
 
+  it('returns 404 when the baseline artifact is absent in non-strict mode', async () => {
+    await fs.rm(modelPaths.BASELINE_MLP_MODEL_PATH, { force: true });
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404);
+
+    expect(response.body).toEqual({ error: 'Model not found' });
+  });
+
   it('serves the same NPZ payload from the legacy /api/v1/dgs/mlp-model endpoint', async () => {
     const response = await request(app)
       .get('/api/v1/dgs/mlp-model')

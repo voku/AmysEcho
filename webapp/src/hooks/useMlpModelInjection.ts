@@ -103,9 +103,7 @@ export function useMlpModelInjection(profileId: string) {
         version: result.meta.version ?? 'unbekannt',
       });
       if (isNewModel) {
-        setNotice(
-          `Neues ${result.meta.source === 'profile' ? 'profilgebundenes' : 'globales'} Modell geladen – danke für deine Gesten! (${result.meta.version ?? 'Version unbekannt'})`,
-        );
+        setNotice('Modell aktualisiert');
       }
       return result;
     }

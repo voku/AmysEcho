@@ -65,6 +65,47 @@ const SERVER_MODULE_DIR = SRC_DIR;
 // Ensure bundlers include the helper script by referencing it relative to the source tree.
 const ZERO_MODEL_SCRIPT_PATH = path.join(SERVER_MODULE_DIR, 'amyserver_tools', 'generate_zero_model.py');
 const CDN_CACHE_MAX_AGE_SECONDS = 3600; // 1 hour
+const REQUIRE_BASELINE_ARTIFACT = ['1', 'true', 'yes'].includes(
+  (process.env.MLP_REQUIRE_BASELINE ?? (process.env.NODE_ENV === 'production' ? '1' : '0')).toLowerCase(),
+);
+const EXPECTED_BASELINE_SHA = (process.env.MLP_BASELINE_SHA256 ?? '').toLowerCase();
+
+async function assertBaselineIntegrity(): Promise<void> {
+  if (!EXPECTED_BASELINE_SHA) {
+    return;
+  }
+  const buffer = await fs.readFile(BASELINE_MLP_MODEL_PATH);
+  const sha = createHash('sha256').update(buffer).digest('hex');
+  if (sha.toLowerCase() !== EXPECTED_BASELINE_SHA) {
+    throw new Error(
+      `Baseline-MLP SHA256 stimmt nicht: erwartet ${EXPECTED_BASELINE_SHA}, erhalten ${sha}`,
+    );
+  }
+}
+
+async function ensureBaselinePresent(): Promise<boolean> {
+  const exists = await fs
+    .stat(BASELINE_MLP_MODEL_PATH)
+    .then(() => true)
+    .catch((error: NodeJS.ErrnoException) => {
+      if (error?.code === 'ENOENT') {
+        return false;
+      }
+      throw error;
+    });
+
+  if (!exists && REQUIRE_BASELINE_ARTIFACT) {
+    throw new Error(
+      `Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}. Stelle das geprüfte Artefakt bereit oder setze MLP_REQUIRE_BASELINE=0 für Entwicklungszwecke.`,
+    );
+  }
+
+  if (exists) {
+    await assertBaselineIntegrity();
+  }
+
+  return exists;
+}
 
 export async function seedBaselineModel(
   filePath: string,
@@ -72,6 +113,16 @@ export async function seedBaselineModel(
   logTraining: (message: string) => Promise<void>,
 ): Promise<boolean> {
   try {
+    const baselineAvailable = await ensureBaselinePresent();
+    if (!baselineAvailable) {
+      await logTraining(
+        messages.failure(
+          filePath,
+          new Error(`Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}`),
+        ),
+      );
+      return false;
+    }
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.copyFile(BASELINE_MLP_MODEL_PATH, filePath);
     await fs.chmod(filePath, 0o640);
@@ -142,10 +193,7 @@ export async function writeMinimalMlpModel(
   const hasCounts = Object.values(gestureCounts).some((count) => (Number(count) || 0) > 0);
 
   if (!hasCounts) {
-    const baselineExists = await fs
-      .stat(BASELINE_MLP_MODEL_PATH)
-      .then(() => true)
-      .catch(() => false);
+    const baselineExists = await ensureBaselinePresent();
     if (baselineExists) {
       const seeded = await seedBaselineModel(filePath, {
         success: (dest) => `seeded MLP from baseline into ${dest}`,
@@ -157,6 +205,12 @@ export async function writeMinimalMlpModel(
         );
       }
       return;
+    }
+
+    if (REQUIRE_BASELINE_ARTIFACT) {
+      throw new Error(
+        `Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}. Stelle ein geprüftes Artefakt bereit, damit Trainingsjobs nicht mit neutralen Gewichten starten.`,
+      );
     }
 
     await logTraining(

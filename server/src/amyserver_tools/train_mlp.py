@@ -10,13 +10,14 @@ status back to the app.
 """
 
 import argparse
+import hashlib
 import json
 import logging
 import math
 import os
 import sys
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
@@ -36,6 +37,23 @@ try:  # Optional heavy dependencies – we degrade gracefully when absent
 except Exception:  # pragma: no cover - mediapipe not always available in CI
     cv2 = None
     mp = None
+
+
+class DependencyUnavailableError(RuntimeError):
+    """Raised when optional training dependencies are missing but required."""
+
+
+def _require_hand_landmark_dependencies(context: str) -> None:
+    if cv2 is not None and mp is not None:
+        return
+    message = (
+        "mediapipe/opencv required for landmark extraction but unavailable. "
+        "Install 'mediapipe' and 'opencv-python' before processing "
+        f"{context}."
+    )
+    if DEPENDENCIES_REQUIRED:
+        raise DependencyUnavailableError(message)
+    print(message, file=sys.stderr)
 
 # --- Config -----------------------------------------------------------------
 
@@ -110,6 +128,31 @@ except ValueError:
     )
     _parsed_min_delta = 0.0
 EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
+
+_env_min_samples_label = os.environ.get("MLP_MIN_SAMPLES_PER_LABEL", "1")
+try:
+    MIN_SAMPLES_PER_LABEL = max(1, int(_env_min_samples_label))
+except ValueError:
+    LOGGER.warning(
+        "MLP_MIN_SAMPLES_PER_LABEL is not a valid integer: '%s'. Using 1.",
+        _env_min_samples_label,
+    )
+    MIN_SAMPLES_PER_LABEL = 1
+
+_env_min_samples_profile = os.environ.get("MLP_MIN_SAMPLES_PER_PROFILE", "1")
+try:
+    MIN_SAMPLES_PER_PROFILE = max(1, int(_env_min_samples_profile))
+except ValueError:
+    LOGGER.warning(
+        "MLP_MIN_SAMPLES_PER_PROFILE is not a valid integer: '%s'. Using 1.",
+        _env_min_samples_profile,
+    )
+    MIN_SAMPLES_PER_PROFILE = 1
+DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not in {
+    "0",
+    "false",
+    "no",
+}
 
 LOSS_EPSILON = np.spacing(1.0)
 AUGMENTATION_EPSILON = 1e-8
@@ -236,6 +279,16 @@ def load_json(path: Path) -> Optional[dict]:
         return None
 
 
+def sha256_file(path: Path) -> Optional[str]:
+    try:
+        data = path.read_bytes()
+    except FileNotFoundError:
+        return None
+    digest = hashlib.sha256()
+    digest.update(data)
+    return digest.hexdigest()
+
+
 def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
     """Average landmarks across frames with optional weighting and return 42×3 list.
     
@@ -291,11 +344,8 @@ def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
 def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
     """Run MediaPipe Hands on a clip and return frame landmark dictionaries."""
 
+    _require_hand_landmark_dependencies(f"Videoclip {clip_path}")
     if cv2 is None or mp is None:
-        print(
-            f"mediapipe/opencv unavailable; skipping clip extraction for {clip_path}",
-            file=sys.stderr,
-        )
         return []
 
     frames: List[dict] = []
@@ -355,11 +405,8 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
 def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
     """Run MediaPipe Hands on a still image and return a landmark frame."""
 
+    _require_hand_landmark_dependencies(f"Standbild {still_path}")
     if cv2 is None or mp is None:
-        print(
-            f"mediapipe/opencv unavailable; skipping still extraction for {still_path}",
-            file=sys.stderr,
-        )
         return None
 
     image = cv2.imread(str(still_path))
@@ -1097,6 +1144,36 @@ def dataset_to_arrays(
     return X, y, label_set
 
 
+def validate_samples(samples: List[Sample]) -> None:
+    if not samples:
+        LOGGER.warning("Keine Trainingsdaten gefunden - Training wird übersprungen.")
+        return
+
+    label_counts: Dict[str, int] = {}
+    profile_counts: Dict[str, Dict[str, int]] = {}
+
+    for sample in samples:
+        label_counts[sample.label] = label_counts.get(sample.label, 0) + 1
+        if sample.profile_id:
+            profile_map = profile_counts.setdefault(sample.profile_id, {})
+            profile_map[sample.label] = profile_map.get(sample.label, 0) + 1
+
+    low_labels = [label for label, count in label_counts.items() if count < MIN_SAMPLES_PER_LABEL]
+    if low_labels and MIN_SAMPLES_PER_LABEL > 1:
+        raise ValueError(
+            "Zu wenige Beispiele pro Geste: "
+            + ", ".join(f"{label} ({label_counts[label]})" for label in sorted(low_labels))
+        )
+
+    for profile_id, counts in profile_counts.items():
+        short_labels = [label for label, count in counts.items() if count < MIN_SAMPLES_PER_PROFILE]
+        if short_labels and MIN_SAMPLES_PER_PROFILE > 1:
+            raise ValueError(
+                f"Profil {profile_id} hat zu wenige Beispiele: "
+                + ", ".join(f"{label} ({counts[label]})" for label in sorted(short_labels))
+            )
+
+
 def compute_sample_weights(y: np.ndarray, *, smoothing: float = 0.0) -> np.ndarray:
     """Return per-sample weights using inverse frequency with optional smoothing."""
 
@@ -1334,6 +1411,15 @@ def train_models(
     return profiles_report, global_report
 
 
+def persist_training_metadata(payload: Dict[str, object]) -> None:
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    metadata_path = MODELS_DIR / "training_metadata.json"
+    tmp_path = metadata_path.with_suffix(".tmp")
+    with tmp_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, ensure_ascii=False)
+    os.replace(tmp_path, metadata_path)
+
+
 # --- Entry point ------------------------------------------------------------
 
 
@@ -1343,26 +1429,63 @@ def main() -> int:
     parser.add_argument("--data-dir", type=str, default=str(DATA_DIR))
     args = parser.parse_args()
 
-    manifest_path = ensure_inside(Path(args.data_dir), Path(args.manifest))
+    try:
+        manifest_path = ensure_inside(Path(args.data_dir), Path(args.manifest))
+        start_ts = datetime.now(timezone.utc)
 
-    samples, stats = build_samples_from_manifest(manifest_path)
-    if not samples:
-        legacy_samples = build_samples_from_legacy_dataset(LEGACY_DATASET_PATH)
-        samples = legacy_samples
-        stats["legacy_samples"] = len(legacy_samples)
-    profiles_report, global_report = train_models(samples)
+        samples, stats = build_samples_from_manifest(manifest_path)
+        if not samples:
+            legacy_samples = build_samples_from_legacy_dataset(LEGACY_DATASET_PATH)
+            samples = legacy_samples
+            stats["legacy_samples"] = len(legacy_samples)
 
-    report = {
-        "generatedAt": datetime.utcnow().replace(tzinfo=None).isoformat() + "Z",
-        "manifestPath": os.path.relpath(manifest_path, Path(args.data_dir)),
-        "cache": stats,
-        "global": global_report,
-        "profiles": profiles_report,
-        "totalSamples": len(samples),
-    }
+        validate_samples(samples)
+        profiles_report, global_report = train_models(samples)
 
-    print(json.dumps(report))
-    return 0
+        finished_at = datetime.now(timezone.utc)
+        report = {
+            "generatedAt": finished_at.isoformat().replace("+00:00", "Z"),
+            "manifestPath": os.path.relpath(manifest_path, Path(args.data_dir)),
+            "cache": stats,
+            "global": global_report,
+            "profiles": profiles_report,
+            "totalSamples": len(samples),
+            "dependencies": {"mediapipe": mp is not None, "opencv": cv2 is not None},
+            "durationMs": int((finished_at - start_ts).total_seconds() * 1000),
+        }
+
+        metadata = {
+            "manifestSha256": sha256_file(manifest_path),
+            "hyperparameters": {
+                "hiddenSize": HIDDEN_SIZE,
+                "learningRate": LEARNING_RATE,
+                "epochs": EPOCHS,
+                "dropoutRate": DROPOUT_RATE,
+                "validationFraction": VALIDATION_FRACTION,
+                "augmentationsPerSample": AUGMENTATIONS_PER_SAMPLE,
+                "classWeightSmoothing": CLASS_WEIGHT_SMOOTHING,
+                "earlyStoppingPatience": EARLY_STOPPING_PATIENCE,
+                "earlyStoppingMinDelta": EARLY_STOPPING_MIN_DELTA,
+            },
+            "dependencies": {"mediapipe": mp is not None, "opencv": cv2 is not None},
+            "generatedAt": report["generatedAt"],
+            "samples": len(samples),
+            "profiles": list(profiles_report.keys()),
+            "durationMs": report["durationMs"],
+        }
+        persist_training_metadata(metadata)
+
+        print(json.dumps(report))
+        return 0
+    except DependencyUnavailableError as err:
+        print(str(err), file=sys.stderr)
+        return 2
+    except ValueError as err:
+        print(f"Training abgebrochen: {err}", file=sys.stderr)
+        return 1
+    except Exception:  # pragma: no cover - defensive fallback
+        LOGGER.exception("Unhandled training error")
+        return 1
 
 
 if __name__ == "__main__":

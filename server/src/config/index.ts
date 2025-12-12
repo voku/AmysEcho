@@ -6,6 +6,7 @@ export interface ServerConfig {
   nodeEnv: string;
   apiLimit: number;
   mlpScript: string;
+  trainingTimeoutMs: number;
   backupSecret: string;
   trainScript: string;
   dbPath: string;
@@ -39,6 +40,7 @@ export const config: ServerConfig = {
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
   apiLimit: getEnvVarAsNumber('API_LIMIT', 120),
   mlpScript: getEnvVar('MLP_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
+  trainingTimeoutMs: getEnvVarAsNumber('TRAINING_JOB_TIMEOUT_MS', 300_000),
   backupSecret: getEnvVar('BACKUP_SECRET', 'default-secret-password'),
   trainScript: getEnvVar('TRAIN_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
   dbPath: getEnvVar('DB_PATH', path.join(SERVER_DIR, 'db.json')),

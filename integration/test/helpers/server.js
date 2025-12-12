@@ -12,11 +12,24 @@ const serverDir = join(__dirname, '..', '..', '..', 'server');
 
 export const TEST_PORT = 5050;
 export const JWT_SECRET = 'integration-jwt-secret';
-export const TEST_TOKEN = jwt.sign(
+
+const LIVE_SERVER_URL = process.env.LIVE_SERVER_URL?.replace(/\/+$/, '');
+const LOCAL_TEST_TOKEN = jwt.sign(
   { userId: 'integration-user', username: 'integration', role: 'caregiver' },
   JWT_SECRET,
   { expiresIn: '1h' },
 );
+
+export const TEST_TOKEN = process.env.LIVE_SERVER_TOKEN ?? LOCAL_TEST_TOKEN;
+const BASE_URL = LIVE_SERVER_URL ?? `http://localhost:${TEST_PORT}`;
+
+export function isLiveServer() {
+  return Boolean(LIVE_SERVER_URL);
+}
+
+export function serverBaseUrl() {
+  return BASE_URL;
+}
 
 let proc;
 let startPromise = null;
@@ -64,12 +77,32 @@ export function buildTestTrainingBundleZipBuffer({
 }
 
 async function cleanServerArtifacts() {
+  if (isLiveServer()) {
+    return;
+  }
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
   // Only delete generated model files, not tracked baseline files
   await fs.rm(join(serverDir, 'data', 'models', 'p1'), { recursive: true, force: true }).catch(() => {});
   await fs.rm(join(serverDir, 'data', 'models', 'p-integration'), { recursive: true, force: true }).catch(() => {});
   await fs.rm(join(serverDir, 'data', 'datasets'), { recursive: true, force: true }).catch(() => {});
+}
+
+async function waitForServerReady(baseUrl, headers) {
+  const start = Date.now();
+  const timeoutMs = 30_000;
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await fetch(`${baseUrl}/model-version`, { headers });
+      if (res.ok || res.status === 401 || res.status === 403) {
+        return;
+      }
+    } catch {
+      // ignore until timeout
+    }
+    await delay(500);
+  }
+  throw new Error(`server start timeout for ${baseUrl}`);
 }
 
 async function actuallyStartServer(attempt = 1) {
@@ -95,6 +128,9 @@ async function actuallyStartServer(attempt = 1) {
       JWT_REFRESH_SECRET: 'integration-refresh-secret',
       MLP_SCRIPT: 'src/amyserver_tools/train_mlp.py',
       MLP_EPOCHS: '1',
+      MLP_MIN_SAMPLES_PER_LABEL: '1',
+      MLP_MIN_SAMPLES_PER_PROFILE: '1',
+      MLP_REQUIRE_MEDIAPIPE: '0',
     },
     stdio: ['ignore', 'ignore', 'ignore'],
   });
@@ -109,21 +145,26 @@ async function actuallyStartServer(attempt = 1) {
       }
       throw new Error(`server exited ${proc.exitCode}`);
     }
-    try {
-      const res = await fetch(`http://localhost:${TEST_PORT}/model-version`, {
-        headers: serverHeaders(),
-      });
-      if (res.ok) return;
-    } catch {
-      // ignore until timeout
+    await waitForServerReady(`http://localhost:${TEST_PORT}`, serverHeaders()).catch(() => {});
+    if (proc.exitCode === null) {
+      return;
     }
-    await delay(500);
   }
   throw new Error('server start timeout');
 }
 
 export async function startServer() {
   refCount += 1;
+  if (isLiveServer()) {
+    if (!startPromise) {
+      startPromise = waitForServerReady(serverBaseUrl(), serverHeaders()).catch((error) => {
+        startPromise = null;
+        refCount = 0;
+        throw error;
+      });
+    }
+    return startPromise;
+  }
   if (!startPromise) {
     startPromise = actuallyStartServer().catch((error) => {
       startPromise = null;
@@ -137,6 +178,11 @@ export async function startServer() {
 export async function stopServer() {
   refCount = Math.max(0, refCount - 1);
   if (refCount > 0) {
+    return;
+  }
+
+  if (isLiveServer()) {
+    startPromise = null;
     return;
   }
 
