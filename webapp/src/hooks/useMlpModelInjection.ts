@@ -103,7 +103,7 @@ export function useMlpModelInjection(profileId: string) {
         version: result.meta.version ?? 'unbekannt',
       });
       if (isNewModel) {
-        setNotice('Modell aktualisiert. Danke für deine Gesten!');
+        setNotice('Modell aktualisiert');
       }
       return result;
     }

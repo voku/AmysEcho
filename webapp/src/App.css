@@ -245,6 +245,9 @@ body {
   flex-direction: column;
   gap: var(--space-lg);
   color: var(--color-overlay-text);
+  max-width: 100%;
+  overflow-x: hidden;
+  word-wrap: break-word;
 }
 
 .card-header {
@@ -507,6 +510,9 @@ p {
   border: 1px solid var(--color-overlay-border);
   background: var(--color-overlay-surface-muted);
   color: var(--color-overlay-text);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .notice.spaced {
