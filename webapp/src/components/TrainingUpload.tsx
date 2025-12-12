@@ -19,6 +19,43 @@ type LandmarkTuple = [number, number] | [number, number, number];
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
+const trainingStatusLabel: Record<UploadState, string> = {
+  idle: 'Bereit',
+  preparing: 'Paket wird vorbereitet…',
+  uploading: 'Upload läuft…',
+  success: 'Upload erfolgreich',
+  queued: 'Warteschlange aktiv',
+  error: 'Fehler beim Upload',
+};
+
+const trainingJobLabel: Record<TrainingJobInfo['status'], string> = {
+  queued: 'Wartet auf Start',
+  running: 'Training läuft',
+  completed: 'Abgeschlossen',
+  failed: 'Fehlgeschlagen',
+};
+
+const formatPercent = (value?: number): string | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  const clamped = Math.min(100, Math.max(0, Math.round(value)));
+  return `${clamped}%`;
+};
+
+const formatDateTime = (timestamp?: number): string | null => {
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) return null;
+  try {
+    return new Date(timestamp).toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch (err) {
+    console.warn('Datum konnte nicht formatiert werden', err);
+    return null;
+  }
+};
+
 const formatSyncQueuedMessage = (uploaded: number, remaining: number): string => {
   if (uploaded > 0 && remaining > 0) {
     return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen, ${remaining} verbleibend). Bitte prüfe die Verbindung oder versuche es später erneut.`;
@@ -133,14 +170,46 @@ function TrainingStatusBlock({
       {message && <div className="notice info">{message}</div>}
       {error && <div className="notice error">{error}</div>}
       {syncError && <div className="notice warning">Letzte Synchronisation: {syncError}</div>}
-      {trainingJobError && <div className="notice warning">Trainingsjob: {trainingJobError}</div>}
+      {trainingJobError && <div className="notice warning">Trainingsstatus konnte nicht geladen werden: {trainingJobError}</div>}
       {activeTrainingJob && (
         <div className="notice info">
-          <p className="eyebrow">Trainingsjob</p>
+          <p className="eyebrow">Trainingsstatus</p>
+          <p className="value">{trainingJobLabel[activeTrainingJob.status]}</p>
           <p className="muted small">
-            Job-ID {activeTrainingJob.jobId} · Status: {activeTrainingJob.status}
-            {activeTrainingJob.pollUrl ? ` · Polling: ${activeTrainingJob.pollUrl}` : ''}
+            {activeTrainingJob.message
+              ? activeTrainingJob.message
+              : activeTrainingJob.status === 'queued'
+              ? 'Dein Paket wartet auf den nächsten freien Trainingsplatz.'
+              : activeTrainingJob.status === 'running'
+              ? 'Das Modell wird gerade mit deinen Beispielen aktualisiert.'
+              : activeTrainingJob.status === 'completed'
+              ? 'Training abgeschlossen. Das neue Modell wird bereitgestellt.'
+              : 'Training fehlgeschlagen. Bitte versuche es erneut.'}
           </p>
+          {formatPercent(activeTrainingJob.progress) && (
+            <p className="muted small">Fortschritt: {formatPercent(activeTrainingJob.progress)}</p>
+          )}
+          {typeof activeTrainingJob.metrics?.samples === 'number' && (
+            <p className="muted small">Verwendete Beispiele: {activeTrainingJob.metrics.samples}</p>
+          )}
+          {typeof activeTrainingJob.metrics?.accuracy === 'number' && (
+            <p className="muted small">
+              Erste Genauigkeits-Schätzung: {Math.round(activeTrainingJob.metrics.accuracy * 100)}%
+            </p>
+          )}
+          {(formatDateTime(activeTrainingJob.startedAt) || formatDateTime(activeTrainingJob.endedAt)) && (
+            <p className="muted small">
+              {formatDateTime(activeTrainingJob.startedAt)
+                ? `Gestartet: ${formatDateTime(activeTrainingJob.startedAt)}`
+                : ''}
+              {formatDateTime(activeTrainingJob.startedAt) && formatDateTime(activeTrainingJob.endedAt) ? ' · ' : ''}
+              {formatDateTime(activeTrainingJob.endedAt) ? `Beendet: ${formatDateTime(activeTrainingJob.endedAt)}` : ''}
+            </p>
+          )}
+          {activeTrainingJob.error && activeTrainingJob.status === 'failed' && (
+            <p className="muted small">Fehlerbeschreibung: {activeTrainingJob.error}</p>
+          )}
+          <p className="muted small">Wir holen den Status automatisch vom Server. Job-ID: {activeTrainingJob.jobId}</p>
         </div>
       )}
       <div className="notice muted notice-flex">
@@ -162,9 +231,9 @@ function TrainingStatusBlock({
         </button>
       </div>
       <ul className="muted small bullets">
-        <li>Offline? Bundles werden automatisch gespeichert und später hochgeladen.</li>
-        <li>Die ZIP-Struktur entspricht dem App-Bundle ({'metadata.json'}, {'landmarks.json'}, optional Dateien).</li>
-        <li>API-Endpunkt wird über <code>VITE_API_URL</code> konfiguriert.</li>
+        <li>Offline? Wir speichern die Aufnahmen und laden sie hoch, sobald eine Verbindung besteht.</li>
+        <li>Jedes Paket enthält die wichtigsten Trainingsdaten (Metadaten, Landmarken, optional Video/Bild).</li>
+        <li>Du musst nichts einstellen – die Server-Adresse wird automatisch aus den App-Einstellungen übernommen.</li>
       </ul>
       <div className="mt-sm">
         <p className="eyebrow">Zwischengespeicherte Bundles</p>
@@ -194,11 +263,9 @@ function TrainingResultCard({ result, trainingJob }: { result: UploadTrainingBun
       {activeTrainingJob && (
         <div>
           <p className="eyebrow">Trainingsjob</p>
-          <p className="value">Job-ID: {activeTrainingJob.jobId}</p>
-          <p className="muted">
-            {activeTrainingJob.status}
-            {activeTrainingJob.pollUrl ? ` · ${activeTrainingJob.pollUrl}` : ''}
-          </p>
+          <p className="value">{trainingJobLabel[activeTrainingJob.status]}</p>
+          <p className="muted small">Job-ID: {activeTrainingJob.jobId}</p>
+          {activeTrainingJob.message && <p className="muted small">{activeTrainingJob.message}</p>}
         </div>
       )}
     </div>
@@ -221,14 +288,7 @@ export function TrainingUpload({
   const [message, setMessage] = useState<string>('');
   const { upload, state, lastResult, syncQueued, trainingJob } = uploader;
 
-  const statusText: Record<UploadState, string> = {
-    idle: 'Bereit',
-    preparing: 'Paket wird erstellt…',
-    uploading: 'Upload läuft…',
-    success: 'Upload erfolgreich',
-    queued: 'Warteschlange aktiv',
-    error: 'Fehler beim Upload',
-  };
+  const statusText = trainingStatusLabel;
 
   const statusAppearance: Record<UploadState, 'idle' | 'running' | 'success' | 'error'> = {
     idle: 'idle',

@@ -20,10 +20,22 @@ export interface TrainingBundlePayload {
 
 export type TrainingJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
+export type TrainingJobMetrics = Record<string, unknown> & {
+  accuracy?: number;
+  samples?: number;
+};
+
 export interface TrainingJobInfo {
   jobId: string;
   status: TrainingJobStatus;
   pollUrl?: string;
+  progress?: number;
+  message?: string;
+  error?: string;
+  startedAt?: number;
+  endedAt?: number;
+  metrics?: TrainingJobMetrics;
+  report?: Record<string, unknown>;
 }
 
 export interface UploadTrainingBundleResponse {

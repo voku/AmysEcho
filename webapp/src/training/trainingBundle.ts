@@ -5,6 +5,7 @@ import type {
   TrainingBundlePayload,
   TrainingFrame,
   TrainingJobInfo,
+  TrainingJobMetrics,
   TrainingJobStatus,
   UploadTrainingBundleResponse,
 } from './types';
@@ -40,7 +41,12 @@ function buildMetadata(payload: TrainingBundlePayload, clipFilename: string | nu
   };
 }
 
-function parseTrainingJob(raw: unknown): TrainingJobInfo | undefined {
+function parseMetrics(raw: unknown): TrainingJobMetrics | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  return raw as TrainingJobMetrics;
+}
+
+export function parseTrainingJob(raw: unknown): TrainingJobInfo | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const jobId = (raw as { jobId?: unknown; id?: unknown }).jobId ?? (raw as { id?: unknown }).id;
   if (typeof jobId !== 'string' || jobId.trim().length === 0) return undefined;
@@ -48,11 +54,25 @@ function parseTrainingJob(raw: unknown): TrainingJobInfo | undefined {
   const statusRaw = (raw as { status?: unknown }).status;
   const status = normalizeTrainingJobStatus(typeof statusRaw === 'string' ? statusRaw : '');
   const pollUrlRaw = (raw as { pollUrl?: unknown }).pollUrl;
+  const progressRaw = (raw as { progress?: unknown }).progress;
+  const messageRaw = (raw as { message?: unknown }).message;
+  const errorRaw = (raw as { error?: unknown }).error;
+  const startedAtRaw = (raw as { startedAt?: unknown }).startedAt;
+  const endedAtRaw = (raw as { endedAt?: unknown }).endedAt;
+  const metricsRaw = (raw as { metrics?: unknown }).metrics;
+  const reportRaw = (raw as { report?: unknown }).report;
 
   return {
     jobId: jobId.trim(),
     status: status ?? 'queued',
     ...(typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? { pollUrl: pollUrlRaw.trim() } : {}),
+    ...(typeof progressRaw === 'number' && Number.isFinite(progressRaw) ? { progress: progressRaw } : {}),
+    ...(typeof messageRaw === 'string' && messageRaw.trim().length > 0 ? { message: messageRaw.trim() } : {}),
+    ...(typeof errorRaw === 'string' && errorRaw.trim().length > 0 ? { error: errorRaw.trim() } : {}),
+    ...(typeof startedAtRaw === 'number' && Number.isFinite(startedAtRaw) ? { startedAt: startedAtRaw } : {}),
+    ...(typeof endedAtRaw === 'number' && Number.isFinite(endedAtRaw) ? { endedAt: endedAtRaw } : {}),
+    ...(metricsRaw && typeof metricsRaw === 'object' ? { metrics: parseMetrics(metricsRaw) } : {}),
+    ...(reportRaw && typeof reportRaw === 'object' ? { report: reportRaw as Record<string, unknown> } : {}),
   };
 }
 
