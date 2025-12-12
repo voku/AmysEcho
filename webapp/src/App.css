@@ -130,12 +130,15 @@ body {
   line-height: 1.5;
   min-height: 100vh;
   overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 #root {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-xl) var(--space-lg) calc(var(--space-2xl) + 80px);
+  overflow-x: hidden;
 }
 
 /* ==========================================================================
@@ -540,6 +543,14 @@ p {
 .notice.success {
   border-color: var(--color-success);
   background: rgba(70, 196, 157, 0.15);
+}
+
+/* Prevent horizontal overflow in training status elements */
+.notice .muted.small,
+.notice p {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 /* ==========================================================================
@@ -982,6 +993,8 @@ p {
   font-size: clamp(1.25rem, 1.5vw + 1rem, 1.6rem);
   line-height: 1.3;
   word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .headline-symbol-thumb {
