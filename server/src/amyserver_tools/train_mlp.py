@@ -132,7 +132,7 @@ EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
 _env_min_samples_label = os.environ.get("MLP_MIN_SAMPLES_PER_LABEL", "1")
 try:
     MIN_SAMPLES_PER_LABEL = max(1, int(_env_min_samples_label))
-except (ValueError, TypeError):
+except ValueError:
     LOGGER.warning(
         "MLP_MIN_SAMPLES_PER_LABEL is not a valid integer: '%s'. Using 1.",
         _env_min_samples_label,
@@ -142,7 +142,7 @@ except (ValueError, TypeError):
 _env_min_samples_profile = os.environ.get("MLP_MIN_SAMPLES_PER_PROFILE", "1")
 try:
     MIN_SAMPLES_PER_PROFILE = max(1, int(_env_min_samples_profile))
-except (ValueError, TypeError):
+except ValueError:
     LOGGER.warning(
         "MLP_MIN_SAMPLES_PER_PROFILE is not a valid integer: '%s'. Using 1.",
         _env_min_samples_profile,
