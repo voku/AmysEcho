@@ -52,7 +52,7 @@ describe('useMlpModelInjection', () => {
     const { result } = renderHook(() => useMlpModelInjection('amy'));
 
     await waitFor(() => {
-      expect(result.current.notice).toContain('Neues');
+      expect(result.current.notice).toContain('aktualisiert');
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -157,7 +157,7 @@ describe('useMlpModelInjection', () => {
 
     await waitFor(() => {
       expect(result.current.status).toBe('ready');
-      expect(result.current.notice).toContain('Neues');
+      expect(result.current.notice).toContain('aktualisiert');
     });
 
     await result.current.refreshModel();
@@ -202,7 +202,7 @@ describe('useMlpModelInjection', () => {
 
     await waitFor(() => {
       expect(result.current.lastMeta?.version).toBe('p-8');
-      expect(result.current.notice).toContain('p-8');
+      expect(result.current.notice).toContain('aktualisiert');
     });
   });
 
