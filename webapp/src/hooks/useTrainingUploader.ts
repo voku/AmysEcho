@@ -579,7 +579,7 @@ export function useTrainingUploader(
         pollTimeoutRef.current = null;
       }
     };
-  }, [defaultOptions.token, pollAuthOptions, pollIntervalMs, trainingJob, withAuthRetry]);
+  }, [applyTrainingJob, defaultOptions.token, pollAuthOptions, pollIntervalMs, trainingJob, withAuthRetry]);
 
   return useMemo(
     () => ({
