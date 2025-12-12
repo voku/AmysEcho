@@ -546,6 +546,9 @@ p {
 }
 
 /* Prevent horizontal overflow in training status elements */
+/* Note: overflow-x: hidden on body/#root works in conjunction with word-break
+   to handle long IDs/keys (UUIDs, job IDs) that could overflow. We use word-break
+   to wrap these identifiers and overflow-x as a safety net for edge cases. */
 .notice .muted.small,
 .notice p {
   word-break: break-word;
