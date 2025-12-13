@@ -53,6 +53,11 @@ describe('frameHasAnyLandmarks', () => {
     expect(frameHasAnyLandmarks([[[1, 2, 3]], []] as any)).toBe(true);
   });
 
+  it('detects pose or face landmarks when hands are missing', () => {
+    expect(frameHasAnyLandmarks({ poseLandmarks: [[0, 0, 0]] } as any)).toBe(true);
+    expect(frameHasAnyLandmarks({ faceLandmarks: [[0.1, 0.2, 0.3]] } as any)).toBe(true);
+  });
+
   it('returns false for non-array inner values', () => {
     // @ts-expect-error
     expect(frameHasAnyLandmarks([null as any])).toBe(false);

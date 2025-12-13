@@ -208,6 +208,23 @@ export class GestureDetector {
             )
           : [];
 
+        const poseLandmarks: number[][] = results?.poseLandmarks?.[0]
+          ? results.poseLandmarks[0].map((landmark) => [
+              landmark.x ?? 0,
+              landmark.y ?? 0,
+              landmark.z ?? 0,
+              landmark.visibility ?? 0,
+            ])
+          : [];
+
+        const faceLandmarks: number[][] = results?.faceLandmarks?.[0]
+          ? results.faceLandmarks[0].map((landmark) => [
+              landmark.x ?? 0,
+              landmark.y ?? 0,
+              landmark.z ?? 0,
+            ])
+          : [];
+
         // Update temporal analysis for velocity-based optimizations
         // Process all detected hands and use the maximum velocity for adaptive processing
         if (normalizedLandmarks.length > 0) {
@@ -225,7 +242,13 @@ export class GestureDetector {
           this.performanceOptimizer.updateVelocityScore(maxVelocity);
         }
 
-        this.updateOverlay(normalizedLandmarks, recognitionTime, frameStart);
+        this.updateOverlay(
+          normalizedLandmarks,
+          recognitionTime,
+          frameStart,
+          poseLandmarks,
+          faceLandmarks,
+        );
 
         if (normalizedLandmarks.length > 0) {
           const captureInterval = frameCaptureState.frameCaptureInterval;
@@ -265,26 +288,42 @@ export class GestureDetector {
     normalizedLandmarks: number[][][],
     recognitionTime: number,
     frameStart: number,
+    poseLandmarks: number[][],
+    faceLandmarks: number[][],
   ): void {
-    if (normalizedLandmarks.length > 0) {
+    const overlayLandmarks: number[][][] = [
+      ...normalizedLandmarks,
+      ...(poseLandmarks.length ? [poseLandmarks] : []),
+      ...(faceLandmarks.length ? [faceLandmarks] : []),
+    ];
+
+    if (overlayLandmarks.length > 0) {
       const shouldRedraw = this.performanceOptimizer.shouldRedrawOverlay(
-        normalizedLandmarks,
+        overlayLandmarks,
         recognitionTime,
       );
 
       if (shouldRedraw) {
         this.overlayRenderer.clear();
-        this.overlayRenderer.drawHandLandmarks(
-          normalizedLandmarks,
-          this.config.camera.mirrorOverlay,
-        );
+        if (poseLandmarks.length) {
+          this.overlayRenderer.drawPoseLandmarks(poseLandmarks, this.config.camera.mirrorOverlay);
+        }
+        if (faceLandmarks.length) {
+          this.overlayRenderer.drawFaceLandmarks(faceLandmarks, this.config.camera.mirrorOverlay);
+        }
+        if (normalizedLandmarks.length) {
+          this.overlayRenderer.drawHandLandmarks(
+            normalizedLandmarks,
+            this.config.camera.mirrorOverlay,
+          );
+        }
         this.lastOverlayClearTime = frameStart;
       }
 
       return;
     }
 
-    // Reset landmark signature when no hands are detected
+    // Reset landmark signature when no landmarks are detected
     this.performanceOptimizer.resetLandmarkSignature();
 
     if (frameStart - this.lastOverlayClearTime >= OVERLAY_CLEAR_INTERVAL_MS) {

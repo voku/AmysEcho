@@ -1,4 +1,5 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
+import { prepareMultimodalForMLP } from './utils/landmarkNormalizer';
 
 export function installMlp() {
   type Tensor = { data: Float32Array; shape: number[] };
@@ -383,17 +384,59 @@ export function installMlp() {
     }
     return flat;
   }
-  function mlpPredict(all: Hand[], handednesses: Handedness) {
+  function mlpPredict(
+    all: Hand[],
+    handednesses: Handedness,
+    poseLandmarks?: number[][],
+    faceLandmarks?: number[][]
+  ) {
     try {
       if (!mlp) return null;
-      const x = normalizeLandmarks(all, handednesses);
-      if (!x) return null;
+      
+      // Check if model expects multimodal input (258 features vs 126 hand-only)
+      const [rows1, cols1Expected] = mlp.w1.shape;
+      const isMultimodal = cols1Expected === 258;
+      
+      let x: Float32Array;
+      if (isMultimodal && (poseLandmarks || faceLandmarks)) {
+        // Use multimodal normalization
+        // Convert Hand[] to number[][] format (42 points for left+right hands)
+        const leftHandIndex = handednesses?.findIndex(
+          (h) => h?.[0]?.categoryName === 'Left',
+        );
+        const rightHandIndex = handednesses?.findIndex(
+          (h) => h?.[0]?.categoryName === 'Right',
+        );
+        
+        const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
+        const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
+        
+        // Convert to number[][] format: [point0, point1, ...] where each point is [x,y,z]
+        const handsFlat: number[][] = [];
+        
+        // Add left hand (21 points)
+        for (let i = 0; i < 21; i++) {
+          const point = leftHand?.[i];
+          handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
+        }
+        
+        // Add right hand (21 points)
+        for (let i = 0; i < 21; i++) {
+          const point = rightHand?.[i];
+          handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
+        }
+        
+        x = prepareMultimodalForMLP(handsFlat, poseLandmarks, faceLandmarks);
+      } else {
+        // Use hand-only normalization
+        x = normalizeLandmarks(all, handednesses);
+        if (!x) return null;
+      }
+      
       // Skip prediction if input is all zeros (no hands detected)
       if (x.every(v => v === 0)) return null;
       const cols1 = x.length;
-      const [rows1Raw, cols1Expected] = mlp.w1.shape;
-      const rows1 = rows1Raw ?? 0;
-      if (cols1Expected === undefined || rows1 === 0) {
+      if (rows1 === undefined || cols1Expected === undefined || rows1 === 0) {
         throw new Error('Invalid w1 shape');
       }
       if (cols1Expected !== cols1) throw new Error('Input dimension mismatch');

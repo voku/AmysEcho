@@ -47,9 +47,31 @@ export function flattenHandsWithHandedness(hands: number[][][], handedness: Read
   return out;
 }
 
-export function frameHasAnyLandmarks(frame: number[][][]): boolean {
-  if (!Array.isArray(frame)) return false;
-  return frame.some((hand) => Array.isArray(hand) && hand.length > 0);
+// Function overloads for better type safety
+export function frameHasAnyLandmarks(frame: number[][][]): boolean;
+export function frameHasAnyLandmarks(frame: { landmarks?: number[][][]; poseLandmarks?: number[][]; faceLandmarks?: number[][] }): boolean;
+export function frameHasAnyLandmarks(
+  frame: number[][][] | { landmarks?: number[][][]; poseLandmarks?: number[][]; faceLandmarks?: number[][] },
+): boolean {
+  if (Array.isArray(frame)) {
+    return frame.some((hand) => Array.isArray(hand) && hand.length > 0);
+  }
+
+  if (frame && typeof frame === 'object') {
+    if (Array.isArray(frame.landmarks) && frame.landmarks.some((hand) => Array.isArray(hand) && hand.length > 0)) {
+      return true;
+    }
+
+    if (Array.isArray(frame.poseLandmarks) && frame.poseLandmarks.length > 0) {
+      return true;
+    }
+
+    if (Array.isArray(frame.faceLandmarks) && frame.faceLandmarks.length > 0) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 type Triplet = [number, number, number];
@@ -96,7 +118,7 @@ export function processFramesForUpload(
 ): { gestureDefinitionId: string; landmarkData: number[][]; profileId?: string }[] {
   const normalized = normalizeFramesInput(frames);
   return normalized
-    .filter((f) => frameHasAnyLandmarks('landmarks' in f ? (f as any).landmarks : (f as number[][][])))
+    .filter((f) => frameHasAnyLandmarks(f as any))
     .map((f) => {
       const isNewFrame = 'landmarks' in f;
       const landmarks = isNewFrame ? (f as any).landmarks : (f as number[][][]);

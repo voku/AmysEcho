@@ -11,6 +11,19 @@ export interface HandLandmark {
   z?: number;
 }
 
+export interface PoseLandmark {
+  x: number;
+  y: number;
+  z?: number;
+  visibility?: number;
+}
+
+export interface FaceLandmark {
+  x: number;
+  y: number;
+  z?: number;
+}
+
 // MediaPipe Gesture Category
 export interface GestureCategory {
   categoryName: string;
@@ -27,6 +40,8 @@ export interface MediaPipeGestureResult {
   gestures?: GestureCategory[][];
   landmarks?: HandLandmark[][];
   handednesses?: HandednessCategory[][];
+  poseLandmarks?: PoseLandmark[][];
+  faceLandmarks?: FaceLandmark[][];
 }
 
 // MLP Prediction Result
@@ -41,8 +56,18 @@ export interface GestureResult {
   confidence: number;
   landmarks?: number[][][];
   handednesses?: string[];
+  poseLandmarks?: number[][];
+  faceLandmarks?: number[][];
   emergency?: boolean;
   timestamp?: number;
+}
+
+export interface MultimodalFeatureSet {
+  lipPointing?: number;
+  headYaw?: number;
+  headPitch?: number;
+  browRaise?: number;
+  mouthOpen?: number;
 }
 
 // Two-hand gesture representation

@@ -41,10 +41,16 @@ type TrainingBundleManifestEntry = z.infer<typeof TrainingBundleManifestEntrySch
 
 interface LandmarksFrameEntry {
   landmarks?: unknown;
+  handLandmarks?: unknown;
+  poseLandmarks?: unknown;
+  faceLandmarks?: unknown;
+  handedness?: unknown;
+  features?: unknown;
 }
 
 interface LandmarksFile {
   frames?: LandmarksFrameEntry[];
+  metadata?: unknown;
 }
 
 interface DatasetSample {
@@ -55,10 +61,22 @@ interface DatasetSample {
   profileId?: string;
   sourceBundleId?: string;
   frameIndex?: number;
+  handLandmarks?: number[][][];
+  poseLandmarks?: number[][];
+  faceLandmarks?: number[][];
+  handedness?: string[];
+  features?: Record<string, number>;
+  captureMetadata?: CaptureMetadata;
 }
 
 interface DatasetFile {
   samples: DatasetSample[];
+}
+
+interface CaptureMetadata {
+  modalities?: { hands?: boolean; pose?: boolean; face?: boolean };
+  smoothing?: { method?: string; minCutOff?: number; beta?: number; dCutOff?: number };
+  features?: Record<string, unknown>;
 }
 
 function isDatasetSample(value: unknown): value is DatasetSample {
@@ -75,7 +93,13 @@ function isDatasetSample(value: unknown): value is DatasetSample {
 }
 
 const BUNDLE_SAMPLE_PREFIX = 'bundle:';
-const MAX_LANDMARK_POINTS = 42;
+const MAX_FLATTENED_LANDMARK_POINTS = 42;
+const MAX_HANDS = 2;
+const HAND_LANDMARKS_PER_HAND = 21;
+const MAX_POSE_POINTS = 33;
+// MediaPipe Face Mesh provides 468 landmarks. We capture and process all of them,
+// but only render a subset (8 key points) in OverlayRenderer for performance.
+const MAX_FACE_POINTS = 468;
 
 function normalizeRelativePath(relativePath: string): string | null {
   if (typeof relativePath !== 'string') {
@@ -139,6 +163,199 @@ function ensureInside(base: string, target: string): string {
   return targetResolved;
 }
 
+function normalizePointTriplet(point: unknown): [number, number, number] | null {
+  if (!Array.isArray(point)) {
+    return null;
+  }
+  const [x, y, z] = point as number[];
+  if (
+    typeof x === 'number' && Number.isFinite(x) &&
+    typeof y === 'number' && Number.isFinite(y) &&
+    typeof z === 'number' && Number.isFinite(z)
+  ) {
+    return [x, y, z];
+  }
+  return null;
+}
+
+function normalizePointArray(
+  raw: unknown,
+  options: { maxPoints?: number; padToLength?: number } = {},
+): number[][] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const maxPoints = options.maxPoints ?? Infinity;
+  const padToLength = options.padToLength ?? 0;
+  const points: number[][] = [];
+  for (const point of raw) {
+    const normalized = normalizePointTriplet(point);
+    if (normalized) {
+      points.push(normalized);
+      if (points.length === maxPoints) {
+        break;
+      }
+    }
+  }
+  while (points.length < padToLength) {
+    points.push([0, 0, 0]);
+  }
+  return points;
+}
+
+function normalizeHandedness(raw: unknown): string[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function normalizeFeatures(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+  const features: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      features[key] = value;
+    }
+  }
+  return features;
+}
+
+function normalizeHandLandmarks(raw: unknown): number[][][] {
+  const hands: number[][][] = [];
+  if (Array.isArray(raw)) {
+    for (const hand of raw.slice(0, MAX_HANDS)) {
+      hands.push(
+        normalizePointArray(hand, {
+          maxPoints: HAND_LANDMARKS_PER_HAND,
+          padToLength: HAND_LANDMARKS_PER_HAND,
+        }),
+      );
+    }
+  }
+  while (hands.length < MAX_HANDS) {
+    hands.push(Array.from({ length: HAND_LANDMARKS_PER_HAND }, () => [0, 0, 0]));
+  }
+  return hands;
+}
+
+function normalizePoseLandmarks(raw: unknown): number[][] {
+  return normalizePointArray(raw, { maxPoints: MAX_POSE_POINTS });
+}
+
+function normalizeFaceLandmarks(raw: unknown): number[][] {
+  return normalizePointArray(raw, { maxPoints: MAX_FACE_POINTS });
+}
+
+function deriveFlattenedHands(
+  handLandmarks: number[][][],
+  handedness: string[],
+): number[][] {
+  const leftIndex = handedness.findIndex((entry) => /left/i.test(entry));
+  const rightIndex = handedness.findIndex((entry) => /right/i.test(entry));
+  
+  let left, right;
+  if (leftIndex >= 0 && rightIndex >= 0) {
+    left = handLandmarks[leftIndex] ?? [];
+    right = handLandmarks[rightIndex] ?? [];
+  } else {
+    // Warn if handedness is missing or unrecognized - this may indicate data quality issues
+    logger.warn(
+      `[deriveFlattenedHands] Handedness information missing or unrecognized. Falling back to array indices. handedness=${JSON.stringify(handedness)}, handLandmarks.length=${handLandmarks.length}`,
+    );
+    left = handLandmarks[0] ?? [];
+    right = handLandmarks[1] ?? [];
+  }
+
+  const flattened: number[][] = [];
+  for (let i = 0; i < HAND_LANDMARKS_PER_HAND; i++) {
+    flattened.push([left[i]?.[0] ?? 0, left[i]?.[1] ?? 0, left[i]?.[2] ?? 0]);
+  }
+  for (let i = 0; i < HAND_LANDMARKS_PER_HAND; i++) {
+    flattened.push([right[i]?.[0] ?? 0, right[i]?.[1] ?? 0, right[i]?.[2] ?? 0]);
+  }
+  return flattened;
+}
+
+interface NormalizedFrameData {
+  landmarks: number[][];
+  handLandmarks: number[][][];
+  poseLandmarks: number[][];
+  faceLandmarks: number[][];
+  handedness: string[];
+  features: Record<string, number>;
+  captureMetadata?: CaptureMetadata;
+}
+
+function hasAnyNonZeroPoint(points: number[][]): boolean {
+  return points.some((point) => point.some((coord) => coord !== 0));
+}
+
+function hasAnyNonZeroHandLandmarks(hands: number[][][]): boolean {
+  return hands.some((hand) => hasAnyNonZeroPoint(hand));
+}
+
+function normalizeModalities(raw: unknown): CaptureMetadata['modalities'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const candidate = raw as Record<string, unknown>;
+  const hands = typeof candidate.hands === 'boolean' ? candidate.hands : undefined;
+  const pose = typeof candidate.pose === 'boolean' ? candidate.pose : undefined;
+  const face = typeof candidate.face === 'boolean' ? candidate.face : undefined;
+  if (hands === undefined && pose === undefined && face === undefined) {
+    return undefined;
+  }
+  return {
+    ...(hands !== undefined ? { hands } : {}),
+    ...(pose !== undefined ? { pose } : {}),
+    ...(face !== undefined ? { face } : {}),
+  };
+}
+
+function normalizeSmoothing(raw: unknown): CaptureMetadata['smoothing'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const candidate = raw as Record<string, unknown>;
+  const method = typeof candidate.method === 'string' && candidate.method.trim() ? candidate.method.trim() : undefined;
+  const minCutOff = typeof candidate.minCutOff === 'number' && Number.isFinite(candidate.minCutOff)
+    ? candidate.minCutOff
+    : undefined;
+  const beta = typeof candidate.beta === 'number' && Number.isFinite(candidate.beta) ? candidate.beta : undefined;
+  const dCutOff = typeof candidate.dCutOff === 'number' && Number.isFinite(candidate.dCutOff)
+    ? candidate.dCutOff
+    : undefined;
+  if (!method && minCutOff === undefined && beta === undefined && dCutOff === undefined) {
+    return undefined;
+  }
+  return {
+    ...(method ? { method } : {}),
+    ...(minCutOff !== undefined ? { minCutOff } : {}),
+    ...(beta !== undefined ? { beta } : {}),
+    ...(dCutOff !== undefined ? { dCutOff } : {}),
+  };
+}
+
+function normalizeCaptureMetadata(raw: unknown): CaptureMetadata | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const modalities = normalizeModalities((raw as Record<string, unknown>).modalities);
+  const smoothing = normalizeSmoothing((raw as Record<string, unknown>).smoothing);
+  const featuresRaw = (raw as Record<string, unknown>).features;
+  const features = featuresRaw && typeof featuresRaw === 'object' ? { ...featuresRaw } : undefined;
+
+  if (!modalities && !smoothing && !features) {
+    return undefined;
+  }
+
+  return {
+    ...(modalities ? { modalities } : {}),
+    ...(smoothing ? { smoothing } : {}),
+    ...(features ? { features } : {}),
+  };
+}
+
 async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
   try {
     const raw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
@@ -179,36 +396,15 @@ async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
   }
 }
 
-function normalizeLandmarks(raw: unknown): number[][] | null {
-  if (!Array.isArray(raw)) {
-    return null;
-  }
-  const coords: number[][] = [];
-  for (const point of raw) {
-    if (!Array.isArray(point)) continue;
-    const [x, y, z] = point as number[];
-    if (
-      typeof x === 'number' && Number.isFinite(x) &&
-      typeof y === 'number' && Number.isFinite(y) &&
-      typeof z === 'number' && Number.isFinite(z)
-    ) {
-      coords.push([x, y, z]);
-    }
-    if (coords.length === MAX_LANDMARK_POINTS) {
-      break;
-    }
-  }
-  if (coords.length === 0) {
-    return null;
-  }
-  const paddingNeeded = MAX_LANDMARK_POINTS - coords.length;
-  if (paddingNeeded > 0) {
-    coords.push(...Array.from({ length: paddingNeeded }, () => [0, 0, 0]));
-  }
-  return coords;
+function normalizeFlattenedLandmarks(raw: unknown): number[][] {
+  const points = normalizePointArray(raw, {
+    maxPoints: MAX_FLATTENED_LANDMARK_POINTS,
+    padToLength: MAX_FLATTENED_LANDMARK_POINTS,
+  });
+  return points;
 }
 
-async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<number[][][]> {
+async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<NormalizedFrameData[]> {
   if (!entry.storage || typeof entry.storage.directory !== 'string') {
     return [];
   }
@@ -226,12 +422,28 @@ async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<number
     if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.frames)) {
       return [];
     }
-    const frames: number[][][] = [];
+    const captureMetadata = normalizeCaptureMetadata((parsed as Record<string, unknown>).metadata);
+    const frames: NormalizedFrameData[] = [];
     parsed.frames.forEach((frame) => {
-      const normalized = normalizeLandmarks((frame ?? {}).landmarks);
-      if (normalized) {
-        frames.push(normalized);
+      const handedness = normalizeHandedness(frame?.handedness);
+      const handLandmarks = normalizeHandLandmarks(frame?.handLandmarks);
+      const poseLandmarks = normalizePoseLandmarks(frame?.poseLandmarks);
+      const faceLandmarks = normalizeFaceLandmarks(frame?.faceLandmarks);
+      const flattened = normalizeFlattenedLandmarks(frame?.landmarks);
+      const landmarks = flattened.length > 0 ? flattened : deriveFlattenedHands(handLandmarks, handedness);
+      if (landmarks.length === 0) {
+        return;
       }
+      const features = normalizeFeatures(frame?.features);
+      frames.push({
+        landmarks,
+        handLandmarks,
+        poseLandmarks,
+        faceLandmarks,
+        handedness,
+        features,
+        ...(captureMetadata ? { captureMetadata } : {}),
+      });
     });
     return frames;
   } catch (error: any) {
@@ -245,20 +457,39 @@ async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<number
 function buildDatasetSample(
   entry: TrainingBundleManifestEntry,
   frameIndex: number,
-  landmarks: number[][],
+  frameData: NormalizedFrameData,
 ): DatasetSample {
   const timestampSource = entry.capturedAt ?? entry.receivedAt;
   const parsedTimestamp = timestampSource ? Date.parse(timestampSource) : NaN;
   const ts = Number.isFinite(parsedTimestamp) ? parsedTimestamp : Date.now();
-  return {
+  const sample: DatasetSample = {
     id: `${BUNDLE_SAMPLE_PREFIX}${entry.id}:frame:${frameIndex}`,
     label: entry.label,
-    landmarks,
+    landmarks: frameData.landmarks,
     ts,
     ...(entry.profileId ? { profileId: entry.profileId } : {}),
     sourceBundleId: entry.id,
     frameIndex,
   };
+  if (hasAnyNonZeroHandLandmarks(frameData.handLandmarks)) {
+    sample.handLandmarks = frameData.handLandmarks;
+  }
+  if (hasAnyNonZeroPoint(frameData.poseLandmarks)) {
+    sample.poseLandmarks = frameData.poseLandmarks;
+  }
+  if (hasAnyNonZeroPoint(frameData.faceLandmarks)) {
+    sample.faceLandmarks = frameData.faceLandmarks;
+  }
+  if (frameData.handedness.length > 0) {
+    sample.handedness = frameData.handedness;
+  }
+  if (Object.keys(frameData.features).length > 0) {
+    sample.features = frameData.features;
+  }
+  if (frameData.captureMetadata) {
+    sample.captureMetadata = frameData.captureMetadata;
+  }
+  return sample;
 }
 
 export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: number }> {
@@ -328,15 +559,15 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: nu
           error,
           bundleId: entry.id,
         });
-        return [] as number[][][];
+        return [] as NormalizedFrameData[];
       });
       if (frames.length === 0) continue;
-      frames.forEach((landmarks, index) => {
+      frames.forEach((frameData, index) => {
         const key = `${entry.id}:${index}`;
         if (existingKeys.has(key)) {
           return;
         }
-        dataset.samples.push(buildDatasetSample(entry, index, landmarks));
+        dataset.samples.push(buildDatasetSample(entry, index, frameData));
         existingKeys.add(key);
         appended += 1;
       });

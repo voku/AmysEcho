@@ -1,6 +1,7 @@
 import { zipSync } from 'fflate';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
 import { HttpError } from '../utils/http';
+import type { MultimodalFeatureSet } from '../gesture/types/MediaPipeTypes';
 import type {
   TrainingBundlePayload,
   TrainingFrame,
@@ -10,9 +11,25 @@ import type {
   UploadTrainingBundleResponse,
 } from './types';
 
-export function buildFrameTimeline(frames: TrainingFrame[]): { handedness: string[]; landmarks: number[][] }[] {
+const DEFAULT_SMOOTHING = {
+  method: 'one_euro',
+  minCutOff: 1.2,
+  beta: 0.01,
+  dCutOff: 1.0,
+} as const;
+
+type TimelineFrame = {
+  handedness: string[];
+  landmarks: number[][];
+  handLandmarks: number[][][];
+  poseLandmarks: number[][];
+  faceLandmarks: number[][];
+  features?: MultimodalFeatureSet;
+};
+
+export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
   return frames
-    .filter((frame) => frameHasAnyLandmarks(frame.landmarks))
+    .filter((frame) => frameHasAnyLandmarks(frame))
     .map((frame) => {
       const handedness = Array.isArray(frame.handedness)
         ? frame.handedness.filter((entry) => typeof entry === 'string')
@@ -20,6 +37,18 @@ export function buildFrameTimeline(frames: TrainingFrame[]): { handedness: strin
       return {
         handedness: handedness.map((entry) => String(entry)),
         landmarks: flattenHandsWithHandedness(frame.landmarks, handedness),
+        handLandmarks: frame.landmarks.map((hand) =>
+          Array.isArray(hand)
+            ? hand.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
+            : [],
+        ),
+        poseLandmarks: Array.isArray(frame.poseLandmarks)
+          ? frame.poseLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
+          : [],
+        faceLandmarks: Array.isArray(frame.faceLandmarks)
+          ? frame.faceLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
+          : [],
+        ...(frame.features && Object.keys(frame.features).length > 0 ? { features: frame.features } : {}),
       };
     });
 }
@@ -44,6 +73,60 @@ function buildMetadata(payload: TrainingBundlePayload, clipFilename: string | nu
 function parseMetrics(raw: unknown): TrainingJobMetrics | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   return raw as TrainingJobMetrics;
+}
+
+function buildLandmarksMetadata(frames: TimelineFrame[], payload: TrainingBundlePayload) {
+  const totalFrames = frames.length;
+  let handsFrameCount = 0;
+  let poseFrameCount = 0;
+  let faceFrameCount = 0;
+
+  for (const frame of frames) {
+    if (frame.landmarks && frame.landmarks.some((hand) => hand.length > 0)) {
+      handsFrameCount++;
+    }
+    if (frame.poseLandmarks && frame.poseLandmarks.length > 0) {
+      poseFrameCount++;
+    }
+    if (frame.faceLandmarks && frame.faceLandmarks.length > 0) {
+      faceFrameCount++;
+    }
+  }
+
+  const modalities = {
+    hands: {
+      present: handsFrameCount > 0,
+      frameCount: handsFrameCount,
+      coverage: totalFrames > 0 ? handsFrameCount / totalFrames : 0,
+    },
+    pose: {
+      present: poseFrameCount > 0,
+      frameCount: poseFrameCount,
+      coverage: totalFrames > 0 ? poseFrameCount / totalFrames : 0,
+    },
+    face: {
+      present: faceFrameCount > 0,
+      frameCount: faceFrameCount,
+      coverage: totalFrames > 0 ? faceFrameCount / totalFrames : 0,
+    },
+  };
+
+  const smoothing = {
+    method: payload.smoothingConfig?.method ?? DEFAULT_SMOOTHING.method,
+    minCutOff: payload.smoothingConfig?.minCutOff ?? DEFAULT_SMOOTHING.minCutOff,
+    beta: payload.smoothingConfig?.beta ?? DEFAULT_SMOOTHING.beta,
+    dCutOff: payload.smoothingConfig?.dCutOff ?? DEFAULT_SMOOTHING.dCutOff,
+  };
+
+  const features = {
+    lipPointing: frames.some((frame) => typeof frame.features?.lipPointing === 'number'),
+  };
+
+  return {
+    modalities,
+    smoothing,
+    features,
+  };
 }
 
 export function parseTrainingJob(raw: unknown): TrainingJobInfo | undefined {
@@ -118,9 +201,10 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const stillFilename = payload.stillFile ? `still.${extractExtensionFromFile(payload.stillFile, 'jpg')}` : null;
   const metadata = buildMetadata(payload, clipFilename, stillFilename);
   const frames = buildFrameTimeline(payload.frames);
+  const landmarksMetadata = buildLandmarksMetadata(frames, payload);
 
   const metadataContent = JSON.stringify(metadata, null, 2);
-  const landmarksContent = JSON.stringify({ frames }, null, 2);
+  const landmarksContent = JSON.stringify({ frames, metadata: landmarksMetadata }, null, 2);
   const encoder = new TextEncoder();
   const metadataBytes = Uint8Array.from(encoder.encode(metadataContent));
   const landmarkBytes = Uint8Array.from(encoder.encode(landmarksContent));

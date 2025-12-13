@@ -5,6 +5,20 @@
 
 import { HAND_CONNECTIONS } from '../../constants/hand';
 
+const POSE_CONNECTIONS: Array<[number, number]> = [
+  [11, 13], [13, 15], [12, 14], [14, 16],
+  [11, 12], [23, 24], [11, 23], [12, 24],
+  [23, 25], [25, 27], [24, 26], [26, 28],
+];
+
+const FACE_MESH_LITE_POINTS = [
+  33, 133, // eyes
+  362, 263,
+  1, // nose tip
+  13, 14, // lips
+  61, 291, // mouth corners
+];
+
 export class OverlayRenderer {
   private overlay: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null;
@@ -109,6 +123,85 @@ export class OverlayRenderer {
 
       // Draw points in batches
       this.drawPoints(hand);
+    }
+
+    this.ctx.restore();
+  }
+
+  drawPoseLandmarks(poseLandmarks: number[][], mirrorOverlay: boolean): void {
+    if (!this.ctx || !this.overlayWidth || !this.overlayHeight || poseLandmarks.length === 0) return;
+
+    this.ctx.save();
+    this.ctx.scale(this.overlayDpr, this.overlayDpr);
+
+    if (mirrorOverlay) {
+      this.ctx.translate(this.overlayWidth, 0);
+      this.ctx.scale(-1, 1);
+    }
+
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeStyle = 'rgba(86, 166, 255, 0.9)';
+    this.ctx.fillStyle = 'rgba(86, 166, 255, 0.9)';
+
+    this.ctx.beginPath();
+    for (const [a, b] of POSE_CONNECTIONS) {
+      const pa = poseLandmarks[a];
+      const pb = poseLandmarks[b];
+      if (!pa || !pb || pa[0] === undefined || pa[1] === undefined || pb[0] === undefined || pb[1] === undefined) continue;
+
+      this.ctx.moveTo(
+        this.drawOffsetX + pa[0] * this.drawWidth,
+        this.drawOffsetY + pa[1] * this.drawHeight,
+      );
+      this.ctx.lineTo(
+        this.drawOffsetX + pb[0] * this.drawWidth,
+        this.drawOffsetY + pb[1] * this.drawHeight,
+      );
+    }
+    this.ctx.stroke();
+
+    for (const lm of poseLandmarks) {
+      if (!lm || lm[0] === undefined || lm[1] === undefined) continue;
+      this.ctx.beginPath();
+      this.ctx.arc(
+        this.drawOffsetX + lm[0] * this.drawWidth,
+        this.drawOffsetY + lm[1] * this.drawHeight,
+        3,
+        0,
+        Math.PI * 2,
+      );
+      this.ctx.fill();
+    }
+
+    this.ctx.restore();
+  }
+
+  drawFaceLandmarks(faceLandmarks: number[][], mirrorOverlay: boolean): void {
+    if (!this.ctx || !this.overlayWidth || !this.overlayHeight || faceLandmarks.length === 0) return;
+
+    this.ctx.save();
+    this.ctx.scale(this.overlayDpr, this.overlayDpr);
+
+    if (mirrorOverlay) {
+      this.ctx.translate(this.overlayWidth, 0);
+      this.ctx.scale(-1, 1);
+    }
+
+    this.ctx.fillStyle = 'rgba(255, 210, 86, 0.9)';
+
+    const indices = FACE_MESH_LITE_POINTS.filter((index) => index < faceLandmarks.length);
+    for (const idx of indices) {
+      const lm = faceLandmarks[idx];
+      if (!lm || lm[0] === undefined || lm[1] === undefined) continue;
+      this.ctx.beginPath();
+      this.ctx.arc(
+        this.drawOffsetX + lm[0] * this.drawWidth,
+        this.drawOffsetY + lm[1] * this.drawHeight,
+        3,
+        0,
+        Math.PI * 2,
+      );
+      this.ctx.fill();
     }
 
     this.ctx.restore();

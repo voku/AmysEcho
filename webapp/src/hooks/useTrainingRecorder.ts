@@ -12,6 +12,9 @@ interface FrameBatchPayload {
   frames?: string[];
   landmarks: number[][][][];
   handednesses?: string[][];
+  poseLandmarks?: number[][][];
+  faceLandmarks?: number[][][];
+  features?: Array<Record<string, unknown> | undefined>;
   timestamps?: number[];
 }
 
@@ -41,6 +44,30 @@ export interface TrainingRecorderResult {
 
 const MAX_BUFFERED_FRAMES = 240;
 const MAX_CLIP_BYTES = 25 * 1024 * 1024; // 25 MB
+
+// Known feature names from MultimodalFeatureSet - update when adding new features
+const KNOWN_FEATURE_NAMES = ['lipPointing', 'headYaw', 'headPitch', 'browRaise', 'mouthOpen'] as const;
+
+/**
+ * Extracts numeric feature values from a features candidate object.
+ * Filters out non-numeric properties to ensure only valid features are included.
+ */
+function extractNumericFeatures(featuresCandidate: Record<string, unknown> | undefined): TrainingFrame['features'] {
+  if (!featuresCandidate || typeof featuresCandidate !== 'object') {
+    return undefined;
+  }
+
+  const features: Record<string, number> = {};
+
+  for (const key of KNOWN_FEATURE_NAMES) {
+    const value = featuresCandidate[key];
+    if (typeof value === 'number') {
+      features[key] = value;
+    }
+  }
+
+  return Object.keys(features).length > 0 ? features : undefined;
+}
 
 function pickMimeType(): string | undefined {
   if (typeof window.MediaRecorder === 'undefined' || typeof window.MediaRecorder.isTypeSupported !== 'function') {
@@ -104,6 +131,9 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
 
     const framesToAppend: TrainingFrame[] = [];
     const handednessBatches = Array.isArray(payload.handednesses) ? payload.handednesses : [];
+    const poseLandmarkBatches = Array.isArray(payload.poseLandmarks) ? payload.poseLandmarks : [];
+    const faceLandmarkBatches = Array.isArray(payload.faceLandmarks) ? payload.faceLandmarks : [];
+    const featureBatches = Array.isArray(payload.features) ? payload.features : [];
     const frameImages = Array.isArray(payload.frames)
       ? payload.frames.filter((frame): frame is string => typeof frame === 'string')
       : [];
@@ -136,9 +166,27 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
           ? handednessBatches[index].filter((h): h is string => typeof h === 'string')
           : [];
 
+        const poseLandmarks = Array.isArray(poseLandmarkBatches[index])
+          ? poseLandmarkBatches[index].map((point) =>
+              Array.isArray(point) ? point.map((value) => (typeof value === 'number' ? value : 0)) : [],
+            )
+          : [];
+
+        const faceLandmarks = Array.isArray(faceLandmarkBatches[index])
+          ? faceLandmarkBatches[index].map((point) =>
+              Array.isArray(point) ? point.map((value) => (typeof value === 'number' ? value : 0)) : [],
+            )
+          : [];
+
+        const featuresCandidate = featureBatches[index];
+        const features = extractNumericFeatures(featuresCandidate as Record<string, unknown> | undefined);
+
         framesToAppend.push({
           landmarks: cloned as number[][][],
           handedness,
+          poseLandmarks,
+          faceLandmarks,
+          ...(features !== undefined ? { features } : {}),
         });
 
         setPreviewLandmarks(cloned as number[][][]);

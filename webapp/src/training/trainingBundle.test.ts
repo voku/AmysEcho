@@ -15,6 +15,15 @@ const basePayload: TrainingBundlePayload = {
         [],
       ],
       handedness: ['Left'],
+      poseLandmarks: [
+        [0.5, 0.6, 0.1, 0.9],
+        [0.4, 0.2, -0.1, 0.8],
+      ],
+      faceLandmarks: [
+        [0.25, 0.75, 0.05],
+        [0.26, 0.76, 0.04],
+      ],
+      features: { lipPointing: 0.12 },
     },
   ],
 };
@@ -40,10 +49,33 @@ describe('createTrainingZip', () => {
     const landmarksBytes = entries['landmarks.json'] ?? entries['landmarks.json/'];
     expect(landmarksBytes?.length ?? 0).toBeGreaterThan(0);
     const landmarks = JSON.parse(strFromU8(landmarksBytes ?? new Uint8Array())) as {
-      frames: Array<{ landmarks: number[][] }>;
+      frames: Array<{
+        landmarks: number[][];
+        handLandmarks: number[][][];
+        poseLandmarks: number[][];
+        faceLandmarks: number[][];
+        features?: Record<string, unknown>;
+      }>;
+      metadata: {
+        modalities: Record<string, boolean>;
+        smoothing: Record<string, number | string>;
+        features: Record<string, boolean>;
+      };
     };
     expect(Array.isArray(landmarks.frames)).toBe(true);
-    expect(landmarks.frames[0]?.landmarks?.length).toBe(42);
+    const firstFrame = landmarks.frames[0];
+    expect(firstFrame?.landmarks?.length).toBe(42);
+    expect(firstFrame?.handLandmarks?.[0]?.[0]).toEqual([0.1, 0.2, 0.3]);
+    expect(firstFrame?.poseLandmarks?.[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
+    expect(firstFrame?.faceLandmarks?.[0]).toEqual([0.25, 0.75, 0.05]);
+    expect(firstFrame?.features?.lipPointing).toBe(0.12);
+    expect(landmarks.metadata.modalities).toEqual({
+      hands: { present: true, frameCount: 1, coverage: 1 },
+      pose: { present: true, frameCount: 1, coverage: 1 },
+      face: { present: true, frameCount: 1, coverage: 1 },
+    });
+    expect(landmarks.metadata.smoothing).toMatchObject({ method: 'one_euro' });
+    expect(landmarks.metadata.features.lipPointing).toBe(true);
     expect(entries['clip.mp4']).toBeDefined();
   });
 

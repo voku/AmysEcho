@@ -17,7 +17,16 @@ function resolveDataPath(relativePath: string): string {
 
 type ExtraFile = { relativePath: string; data?: string | Buffer };
 
-type LandmarksPayload = { frames: Array<{ landmarks: number[][] }> };
+type LandmarkFrame = {
+  landmarks: number[][];
+  handLandmarks?: number[][][];
+  poseLandmarks?: number[][];
+  faceLandmarks?: number[][];
+  handedness?: Array<string | unknown>;
+  features?: Record<string, unknown>;
+};
+
+type LandmarksPayload = { frames: LandmarkFrame[]; metadata?: Record<string, unknown> };
 
 type BundleFixtureOptions = {
   landmarksRelativePath?: string;
@@ -26,7 +35,7 @@ type BundleFixtureOptions = {
   extraFiles?: ExtraFile[];
 };
 
-function buildLandmarkFrame(seed: number): { landmarks: number[][] } {
+function buildLandmarkFrame(seed: number): LandmarkFrame {
   return {
     landmarks: Array.from({ length: 42 }, (_, idx) => {
       const base = seed + idx * 0.01;
@@ -169,6 +178,92 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(dataset.samples[0].landmarks[0][0]).toBeCloseTo(0.21, 6);
     expect(dataset.samples[0].landmarks[0][1]).toBeCloseTo(0.22, 6);
     expect(dataset.samples[0].landmarks[0][2]).toBeCloseTo(0.23, 6);
+  });
+
+  it('persists multimodal landmarks, handedness, and numeric features', async () => {
+    const frames: LandmarksPayload = {
+      frames: [
+        {
+          landmarks: Array.from({ length: 10 }, (_, idx) => [idx * 0.1, idx * 0.2, idx * 0.3]),
+          handLandmarks: [
+            [
+              [0.1, 0.2, 0.3],
+              [0.4, 0.5, 0.6],
+            ],
+            [
+              [0.7, 0.8, 0.9],
+            ],
+          ],
+          poseLandmarks: [
+            [0.11, 0.22, 0.33],
+            ['x' as unknown as number, 0.44, 0.55],
+            [0.66, 0.77, 0.88],
+          ],
+          faceLandmarks: [
+            [0.9, 0.8, 0.7],
+            [Infinity as number, 0.6, 0.5],
+          ],
+          handedness: ['Right', 'Left', 123 as unknown as string],
+          features: { lipPointing: 0.12, browRaise: 'skip-me' as unknown as number },
+        },
+      ],
+    };
+
+    await writeBundleFixture('bundle-multimodal', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(1);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
+    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    expect(dataset.samples).toHaveLength(1);
+    const sample = dataset.samples[0];
+
+    expect(sample.landmarks).toHaveLength(42);
+    expect(sample.handLandmarks).toHaveLength(2);
+    expect(sample.handLandmarks[0]).toHaveLength(21);
+    expect(sample.handLandmarks[0][0]).toEqual([0.1, 0.2, 0.3]);
+    expect(sample.handLandmarks[1][0]).toEqual([0.7, 0.8, 0.9]);
+
+    expect(sample.poseLandmarks).toEqual([
+      [0.11, 0.22, 0.33],
+      [0.66, 0.77, 0.88],
+    ]);
+    expect(sample.faceLandmarks).toEqual([[0.9, 0.8, 0.7]]);
+    expect(sample.handedness).toEqual(['Right', 'Left']);
+    expect(sample.features).toEqual({ lipPointing: 0.12 });
+  });
+
+  it('propagates capture metadata such as modalities and smoothing', async () => {
+    const frames: LandmarksPayload = {
+      metadata: {
+        modalities: { hands: true, pose: true, face: false },
+        smoothing: { method: 'one_euro', minCutOff: 1.2, beta: 0.01 },
+        features: { lipPointing: true },
+      },
+      frames: [
+        {
+          landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.01, idx * 0.02, idx * 0.03]),
+        },
+      ],
+    };
+
+    await writeBundleFixture('bundle-metadata', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(1);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
+    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const sample = dataset.samples[0];
+
+    expect(sample.captureMetadata).toEqual({
+      modalities: { hands: true, pose: true, face: false },
+      smoothing: { method: 'one_euro', minCutOff: 1.2, beta: 0.01 },
+      features: { lipPointing: true },
+    });
   });
 
   async function writeBundleFixture(

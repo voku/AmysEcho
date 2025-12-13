@@ -179,7 +179,9 @@ class Sample:
 
     label: str
     profile_id: Optional[str]
-    landmarks: List[List[float]]  # 42 landmarks, each [x, y, z]
+    landmarks: List[List[float]]  # 42 hand landmarks (left+right), each [x, y, z]
+    pose_landmarks: Optional[List[List[float]]] = None  # 33 pose landmarks, each [x, y, z, visibility]
+    face_landmarks: Optional[List[List[float]]] = None  # 468 face landmarks, each [x, y, z]
 
 
 _UNSET = object()
@@ -289,29 +291,36 @@ def sha256_file(path: Path) -> Optional[str]:
     return digest.hexdigest()
 
 
-def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
-    """Average landmarks across frames with optional weighting and return 42×3 list.
+def flatten_landmarks_mean(frames: List[dict]) -> Optional[dict]:
+    """Average multimodal landmarks across frames with optional weighting.
     
     Frames can include an optional 'weight' field to indicate their relative importance.
     Still frames typically have higher weights since they represent the precise target
-    hand position for the gesture being trained.
+    position for the gesture being trained.
     
     Parameters
     ----------
     frames:
-        List of frame dictionaries, each containing 'landmarks' (required) and 
-        optionally 'weight' (default 1.0) fields.
+        List of frame dictionaries, each containing:
+        - 'landmarks' (required): hand landmarks
+        - 'poseLandmarks' (optional): pose landmarks
+        - 'faceLandmarks' (optional): face landmarks  
+        - 'weight' (optional, default 1.0): frame importance
     
     Returns
     -------
-    Optional[List[List[float]]]
-        Weighted average of landmarks as a 42×3 list, or None if no valid frames.
+    Optional[dict]
+        Dictionary with averaged landmarks for each modality, or None if no valid frames.
+        Keys: 'landmarks', 'poseLandmarks' (if present), 'faceLandmarks' (if present)
     """
 
-    collected: List[np.ndarray] = []
+    hand_collected: List[np.ndarray] = []
+    pose_collected: List[np.ndarray] = []
+    face_collected: List[np.ndarray] = []
     weights: List[float] = []
     
     for frame in frames:
+        # Hand landmarks (required)
         coords = frame.get("landmarks")
         if not coords:
             continue
@@ -319,30 +328,69 @@ def flatten_landmarks_mean(frames: List[dict]) -> Optional[List[List[float]]]:
         if arr.shape[0] < 42:
             padding = np.zeros((42 - arr.shape[0], 3), dtype=np.float32)
             arr = np.vstack([arr, padding])
-        collected.append(arr[:42])
+        hand_collected.append(arr[:42])
+        
+        # Pose landmarks (optional)
+        pose = frame.get("poseLandmarks")
+        if pose:
+            pose_arr = np.array(pose, dtype=np.float32).reshape(-1, 4)  # x, y, z, visibility
+            if pose_arr.shape[0] < 33:
+                padding = np.zeros((33 - pose_arr.shape[0], 4), dtype=np.float32)
+                pose_arr = np.vstack([pose_arr, padding])
+            pose_collected.append(pose_arr[:33])
+        
+        # Face landmarks (optional)
+        face = frame.get("faceLandmarks")
+        if face:
+            face_arr = np.array(face, dtype=np.float32).reshape(-1, 3)
+            if face_arr.shape[0] < 468:
+                padding = np.zeros((468 - face_arr.shape[0], 3), dtype=np.float32)
+                face_arr = np.vstack([face_arr, padding])
+            face_collected.append(face_arr[:468])
         
         # Extract weight for this frame (default to 1.0 for backward compatibility)
         frame_weight = frame.get("weight", 1.0)
         weights.append(float(frame_weight))
     
-    if not collected:
+    if not hand_collected:
         return None
     
-    stacked = np.stack(collected, axis=0)
     weights_array = np.array(weights, dtype=np.float32)
     total_weight = np.sum(weights_array)
     
+    result = {}
+    
+    # Average hand landmarks
+    stacked = np.stack(hand_collected, axis=0)
     if total_weight <= 0:
-        # Fallback to simple mean if weights are invalid
         averaged = stacked.mean(axis=0)
     else:
         averaged = np.average(stacked, axis=0, weights=weights_array)
+    result['landmarks'] = averaged.tolist()
     
-    return averaged.tolist()
+    # Average pose landmarks if present
+    if pose_collected and len(pose_collected) == len(hand_collected):
+        pose_stacked = np.stack(pose_collected, axis=0)
+        if total_weight <= 0:
+            pose_averaged = pose_stacked.mean(axis=0)
+        else:
+            pose_averaged = np.average(pose_stacked, axis=0, weights=weights_array)
+        result['poseLandmarks'] = pose_averaged.tolist()
+    
+    # Average face landmarks if present
+    if face_collected and len(face_collected) == len(hand_collected):
+        face_stacked = np.stack(face_collected, axis=0)
+        if total_weight <= 0:
+            face_averaged = face_stacked.mean(axis=0)
+        else:
+            face_averaged = np.average(face_stacked, axis=0, weights=weights_array)
+        result['faceLandmarks'] = face_averaged.tolist()
+    
+    return result
 
 
 def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
-    """Run MediaPipe Hands on a clip and return frame landmark dictionaries."""
+    """Run MediaPipe Holistic on a clip and return multimodal frame landmark dictionaries."""
 
     _require_hand_landmark_dependencies(f"Videoclip {clip_path}")
     if cv2 is None or mp is None:
@@ -354,12 +402,23 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
         print(f"warning: unable to open clip {clip_path}", file=sys.stderr)
         return frames
 
-    with mp.solutions.hands.Hands(
+    # Use Holistic for multimodal capture (hands + pose + face)
+    try:
+        holistic_solution = mp.solutions.holistic.Holistic(
+            static_image_mode=False,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.3,
+        )
+    except Exception:
+        # Fallback to hands-only if Holistic is not available
+        holistic_solution = None
+    
+    with (holistic_solution if holistic_solution else mp.solutions.hands.Hands(
         static_image_mode=False,
         max_num_hands=2,
         min_detection_confidence=0.5,
         min_tracking_confidence=0.3,
-    ) as hands:
+    )) as detector:
         index = 0
         while cap.isOpened():
             success, frame = cap.read()
@@ -370,30 +429,66 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
                 continue
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            result = hands.process(rgb)
+            result = detector.process(rgb)
 
             left = np.zeros((21, 3), dtype=np.float32)
             right = np.zeros((21, 3), dtype=np.float32)
+            pose_landmarks = []
+            face_landmarks = []
 
-            if result.multi_hand_landmarks:
-                for hand_idx, hand_landmarks in enumerate(result.multi_hand_landmarks):
-                    coords = np.array(
-                        [[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark],
+            # Extract hand landmarks
+            if holistic_solution:
+                # Holistic provides left_hand_landmarks and right_hand_landmarks
+                if result.left_hand_landmarks:
+                    left = np.array(
+                        [[lm.x, lm.y, lm.z] for lm in result.left_hand_landmarks.landmark],
                         dtype=np.float32,
                     )
-                    label = None
-                    if result.multi_handedness and len(result.multi_handedness) > hand_idx:
-                        label = result.multi_handedness[hand_idx].classification[0].label
-                    target = left if label and label.lower().startswith("left") else right
-                    target[:] = coords
-                    # if both hands are present but unlabeled, alternate
-                    if label is None and hand_idx == 0:
-                        left[:] = coords
-                    elif label is None:
-                        right[:] = coords
+                if result.right_hand_landmarks:
+                    right = np.array(
+                        [[lm.x, lm.y, lm.z] for lm in result.right_hand_landmarks.landmark],
+                        dtype=np.float32,
+                    )
+                
+                # Extract pose landmarks
+                if result.pose_landmarks:
+                    pose_landmarks = [
+                        [lm.x, lm.y, lm.z, lm.visibility] for lm in result.pose_landmarks.landmark
+                    ]
+                
+                # Extract face landmarks
+                if result.face_landmarks:
+                    face_landmarks = [
+                        [lm.x, lm.y, lm.z] for lm in result.face_landmarks.landmark
+                    ]
+            else:
+                # Hands-only fallback
+                if result.multi_hand_landmarks:
+                    for hand_idx, hand_landmarks in enumerate(result.multi_hand_landmarks):
+                        coords = np.array(
+                            [[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark],
+                            dtype=np.float32,
+                        )
+                        label = None
+                        if result.multi_handedness and len(result.multi_handedness) > hand_idx:
+                            label = result.multi_handedness[hand_idx].classification[0].label
+                        target = left if label and label.lower().startswith("left") else right
+                        target[:] = coords
+                        # if both hands are present but unlabeled, alternate
+                        if label is None and hand_idx == 0:
+                            left[:] = coords
+                        elif label is None:
+                            right[:] = coords
 
             combined = np.vstack([left, right])
-            frames.append({"landmarks": combined.tolist()})
+            frame_data = {"landmarks": combined.tolist()}
+            
+            if pose_landmarks:
+                frame_data["poseLandmarks"] = pose_landmarks
+            if face_landmarks:
+                frame_data["faceLandmarks"] = face_landmarks
+                
+            frames.append(frame_data)
             index += 1
             if len(frames) >= MAX_FRAMES_PER_CLIP:
                 break
@@ -403,7 +498,7 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
 
 
 def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
-    """Run MediaPipe Hands on a still image and return a landmark frame."""
+    """Run MediaPipe Holistic on a still image and return multimodal landmark frame."""
 
     _require_hand_landmark_dependencies(f"Standbild {still_path}")
     if cv2 is None or mp is None:
@@ -414,38 +509,82 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
         print(f"warning: unable to read still {still_path}", file=sys.stderr)
         return None
 
-    with mp.solutions.hands.Hands(
-        static_image_mode=True,
-        max_num_hands=2,
-        min_detection_confidence=0.5,
-    ) as hands:
-        rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        result = hands.process(rgb)
-
-    left = np.zeros((21, 3), dtype=np.float32)
-    right = np.zeros((21, 3), dtype=np.float32)
-
-    if result.multi_hand_landmarks:
-        for hand_idx, hand_landmarks in enumerate(result.multi_hand_landmarks):
-            coords = np.array(
-                [[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark],
+    rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Try Holistic first for multimodal capture
+    try:
+        with mp.solutions.holistic.Holistic(
+            static_image_mode=True,
+            min_detection_confidence=0.5,
+        ) as holistic:
+            result = holistic.process(rgb)
+            
+        left = np.zeros((21, 3), dtype=np.float32)
+        right = np.zeros((21, 3), dtype=np.float32)
+        pose_landmarks = []
+        face_landmarks = []
+        
+        if result.left_hand_landmarks:
+            left = np.array(
+                [[lm.x, lm.y, lm.z] for lm in result.left_hand_landmarks.landmark],
                 dtype=np.float32,
             )
-            label = None
-            if result.multi_handedness and len(result.multi_handedness) > hand_idx:
-                label = result.multi_handedness[hand_idx].classification[0].label
-            target = left if label and label.lower().startswith("left") else right
-            target[:] = coords
-            if label is None and hand_idx == 0:
-                left[:] = coords
-            elif label is None:
-                right[:] = coords
+        if result.right_hand_landmarks:
+            right = np.array(
+                [[lm.x, lm.y, lm.z] for lm in result.right_hand_landmarks.landmark],
+                dtype=np.float32,
+            )
+        
+        if result.pose_landmarks:
+            pose_landmarks = [
+                [lm.x, lm.y, lm.z, lm.visibility] for lm in result.pose_landmarks.landmark
+            ]
+        
+        if result.face_landmarks:
+            face_landmarks = [
+                [lm.x, lm.y, lm.z] for lm in result.face_landmarks.landmark
+            ]
+    except Exception:
+        # Fallback to hands-only
+        with mp.solutions.hands.Hands(
+            static_image_mode=True,
+            max_num_hands=2,
+            min_detection_confidence=0.5,
+        ) as hands:
+            result = hands.process(rgb)
+        
+        left = np.zeros((21, 3), dtype=np.float32)
+        right = np.zeros((21, 3), dtype=np.float32)
+        pose_landmarks = []
+        face_landmarks = []
+        
+        if result.multi_hand_landmarks:
+            for hand_idx, hand_landmarks in enumerate(result.multi_hand_landmarks):
+                coords = np.array(
+                    [[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark],
+                    dtype=np.float32,
+                )
+                label = None
+                if result.multi_handedness and len(result.multi_handedness) > hand_idx:
+                    label = result.multi_handedness[hand_idx].classification[0].label
+                target = left if label and label.lower().startswith("left") else right
+                target[:] = coords
+                if label is None and hand_idx == 0:
+                    left[:] = coords
+                elif label is None:
+                    right[:] = coords
 
     combined = np.vstack([left, right])
     if not np.any(combined):
         return None
 
-    return {"landmarks": combined.tolist()}
+    frame_data = {"landmarks": combined.tolist()}
+    if pose_landmarks:
+        frame_data["poseLandmarks"] = pose_landmarks
+    if face_landmarks:
+        frame_data["faceLandmarks"] = face_landmarks
+    
+    return frame_data
 
 
 def filter_samples_by_profile(samples: Iterable[Sample], profile_id: str) -> List[Sample]:
@@ -490,6 +629,77 @@ def _normalize(lm):
     right = _norm_hand(pts[21:]) if pts.shape[0] >= 42 else np.zeros_like(pts[:21])
 
     return np.concatenate([left, right]).flatten()
+
+
+def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
+    """Normalize multimodal sample (hands + optional pose/face) into a feature vector.
+    
+    The feature vector includes:
+    - Hand landmarks (126 values): normalized and flattened
+    - Pose landmarks (optional, 99 values): x,y,z for 33 points, normalized to torso center
+    - Face landmarks (optional, subset ~60 values): key facial points for NMMs
+    
+    Returns None if hand landmarks cannot be normalized.
+    """
+    # Normalize hand landmarks (required)
+    hand_features = _normalize(sample.landmarks)
+    if hand_features is None:
+        return None
+    
+    features = [hand_features]
+    
+    # Add pose landmarks if present
+    if sample.pose_landmarks:
+        pose_arr = np.array(sample.pose_landmarks, dtype=np.float32)
+        if pose_arr.shape[0] >= 33:
+            # Use only x,y,z (drop visibility for now)
+            pose_xyz = pose_arr[:33, :3]
+            # Normalize to torso center (average of shoulders and hips)
+            torso_indices = [11, 12, 23, 24]  # shoulders and hips
+            torso_center = pose_xyz[torso_indices].mean(axis=0)
+            pose_normalized = pose_xyz - torso_center
+            # Scale by shoulder width for scale invariance
+            shoulder_width = np.linalg.norm(pose_xyz[11] - pose_xyz[12])
+            if shoulder_width > 0:
+                pose_normalized /= shoulder_width
+            features.append(pose_normalized.flatten())
+        else:
+            # Pose landmarks missing or incomplete - add zeros
+            features.append(np.zeros(99, dtype=np.float32))
+    else:
+        # No pose data - add zeros to maintain consistent feature size
+        features.append(np.zeros(99, dtype=np.float32))
+    
+    # Add face landmarks if present (use subset for efficiency)
+    if sample.face_landmarks:
+        face_arr = np.array(sample.face_landmarks, dtype=np.float32)
+        if face_arr.shape[0] >= 468:
+            # Key facial points for NMMs (eyes, mouth, brows)
+            key_indices = [
+                33, 133, 362, 263,  # eyes (4)
+                1,  # nose tip (1)
+                13, 14,  # lips (2)
+                61, 291,  # mouth corners (2)
+                70, 300,  # brows (2)
+                # Add more key points as needed
+            ]
+            face_subset = face_arr[key_indices, :3]  # x,y,z only
+            # Normalize to nose tip
+            nose = face_arr[1, :3]
+            face_normalized = face_subset - nose
+            # Scale by eye distance
+            eye_dist = np.linalg.norm(face_arr[33, :3] - face_arr[263, :3])
+            if eye_dist > 0:
+                face_normalized /= eye_dist
+            features.append(face_normalized.flatten())
+        else:
+            # Face landmarks missing or incomplete
+            features.append(np.zeros(33, dtype=np.float32))  # 11 points * 3
+    else:
+        # No face data
+        features.append(np.zeros(33, dtype=np.float32))
+    
+    return np.concatenate(features)
 
 
 def augment_landmarks(
@@ -1081,7 +1291,13 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         if averaged is None:
             continue
 
-        data.append(Sample(label=label, profile_id=profile_id, landmarks=averaged))
+        data.append(Sample(
+            label=label,
+            profile_id=profile_id,
+            landmarks=averaged['landmarks'],
+            pose_landmarks=averaged.get('poseLandmarks'),
+            face_landmarks=averaged.get('faceLandmarks'),
+        ))
 
     stats = {
         "entries": len(entries),
@@ -1121,9 +1337,17 @@ def dataset_to_arrays(
     X_list: List[np.ndarray] = []
     y_list: List[int] = []
 
+    # Check if any samples have multimodal data
+    has_multimodal = any(s.pose_landmarks or s.face_landmarks for s in samples)
+    
     augmentations = max(0, int(augmentations_per_sample))
     for sample in samples:
-        normalized = _normalize(sample.landmarks)
+        # Use multimodal normalization if available, fall back to hand-only
+        if has_multimodal:
+            normalized = _normalize_multimodal(sample)
+        else:
+            normalized = _normalize(sample.landmarks)
+            
         if normalized is None:
             continue
 
@@ -1132,12 +1356,20 @@ def dataset_to_arrays(
         y_list.append(label_to_idx[sample.label])
 
         for _ in range(augmentations):
-            augmented = augment_landmarks(normalized_array, rng=rng)
-            X_list.append(augmented)
-            y_list.append(label_to_idx[sample.label])
+            # For multimodal, we only augment hand landmarks for now
+            if has_multimodal:
+                # Augmentation for multimodal needs separate handling
+                # For now, skip augmentation for multimodal to avoid complexity
+                continue
+            else:
+                augmented = augment_landmarks(normalized_array, rng=rng)
+                X_list.append(augmented)
+                y_list.append(label_to_idx[sample.label])
 
     if not X_list:
-        return np.zeros((0, 126), dtype=np.float32), np.zeros((0,), dtype=np.int64), label_set
+        # Feature size depends on whether we have multimodal data
+        feature_size = 258 if has_multimodal else 126  # 126 hand + 99 pose + 33 face
+        return np.zeros((0, feature_size), dtype=np.float32), np.zeros((0,), dtype=np.int64), label_set
 
     X = np.vstack(X_list)
     y = np.array(y_list, dtype=np.int64)

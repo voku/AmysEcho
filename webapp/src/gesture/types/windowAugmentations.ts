@@ -8,6 +8,8 @@ export interface GestureWindowAugmentations {
   __mlpPredict?: (
     landmarks: number[][][],
     handednesses: unknown,
+    poseLandmarks?: number[][],
+    faceLandmarks?: number[][],
   ) => MLPPrediction | null;
   __tapToStart?: string;
   __recognizerInitFailed?: string;

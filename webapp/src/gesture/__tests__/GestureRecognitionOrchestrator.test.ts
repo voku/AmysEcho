@@ -56,6 +56,8 @@ vi.mock('../core/OverlayRenderer', () => {
     resizeOverlay = vi.fn();
     clear = vi.fn();
     drawHandLandmarks = vi.fn();
+    drawPoseLandmarks = vi.fn();
+    drawFaceLandmarks = vi.fn();
   }
   return {
     __esModule: true,

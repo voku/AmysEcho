@@ -18,6 +18,8 @@ export interface ProcessingContext {
   rawLandmarks?: number[][][];
   handednesses?: string[];
   normalizedResults?: NormalizedMediaPipeResult;
+  poseLandmarks?: number[][];
+  faceLandmarks?: number[][];
 }
 
 export interface ProcessingResult {

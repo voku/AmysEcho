@@ -91,7 +91,7 @@ export function getClipCaptureErrorMessage(error: unknown): string
 - **Features**:
   - Creates ZIP bundles with:
     - `metadata.json` (profile, label, timestamps)
-    - `landmarks.json` (hand landmark data)
+    - `landmarks.json` (hand + optional pose/face landmarks including non-manual marker features)
     - `clip.mp4` (video recording, optional when the camera pipeline fails)
   - Uploads to `/api/v1/dgs/sample-bundles`
   - Queue management with AsyncStorage
@@ -122,7 +122,17 @@ export function getClipCaptureErrorMessage(error: unknown): string
     "source": "app://mediapipe",
     "clipFilename": "clip.mp4" // optional when degraded
   },
-  "landmarks.json": [ /* hand landmark arrays */ ],
+  "landmarks.json": {
+    "frames": [
+      {
+        "handLandmarks": [[/* left hand */], [/* right hand */]],
+        "landmarks": [/* flattened hands for backward-compat */],
+        "poseLandmarks": [/* optional body keypoints */],
+        "faceLandmarks": [/* optional face mesh keypoints */],
+        "features": { "lipPointing": 0.12 }
+      }
+    ]
+  },
   "clip.mp4": /* video binary */
 }
 ```

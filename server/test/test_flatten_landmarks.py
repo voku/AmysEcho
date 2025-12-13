@@ -20,9 +20,16 @@ def test_flatten_landmarks_mean_simple_average(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
+    assert "landmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert len(result["landmarks"]) == 42
+    # Verify each entry is a list of 3 floats
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
     # Average of 0.0 and 2.0 should be 1.0
-    assert result[0] == pytest.approx([1.0, 1.0, 1.0])
-    assert result[41] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["landmarks"][41] == pytest.approx([1.0, 1.0, 1.0])
 
 
 def test_flatten_landmarks_mean_weighted_average(monkeypatch, tmp_path):
@@ -41,8 +48,15 @@ def test_flatten_landmarks_mean_weighted_average(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
+    assert "landmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert len(result["landmarks"]) == 42
+    # Verify each entry is a list of 3 floats
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
     expected = 10.0 / 11.0
-    assert result[0] == pytest.approx([expected, expected, expected], abs=1e-6)
+    assert result["landmarks"][0] == pytest.approx([expected, expected, expected], abs=1e-6)
 
 
 def test_flatten_landmarks_mean_mixed_weights(monkeypatch, tmp_path):
@@ -61,8 +75,15 @@ def test_flatten_landmarks_mean_mixed_weights(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
+    assert "landmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert len(result["landmarks"]) == 42
+    # Verify each entry is a list of 3 floats
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
     expected = 5.0 / 6.0
-    assert result[0] == pytest.approx([expected, expected, expected], abs=1e-6)
+    assert result["landmarks"][0] == pytest.approx([expected, expected, expected], abs=1e-6)
 
 
 def test_flatten_landmarks_mean_single_frame_with_weight(monkeypatch, tmp_path):
@@ -77,7 +98,14 @@ def test_flatten_landmarks_mean_single_frame_with_weight(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
-    assert result[0] == pytest.approx([0.5, 0.6, 0.7])
+    assert "landmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert len(result["landmarks"]) == 42
+    # Verify each entry is a list of 3 floats
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
+    assert result["landmarks"][0] == pytest.approx([0.5, 0.6, 0.7])
 
 
 def test_flatten_landmarks_mean_empty_frames(monkeypatch, tmp_path):
@@ -104,6 +132,489 @@ def test_flatten_landmarks_mean_backward_compatibility(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
+    assert "landmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert len(result["landmarks"]) == 42
+    # Verify each entry is a list of 3 floats
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
     # Average of 0.1i, 0.2i, 0.3i should be 0.2i
-    assert result[1] == pytest.approx([0.2, 0.2, 0.2], abs=1e-6)
-    assert result[10] == pytest.approx([2.0, 2.0, 2.0], abs=1e-6)
+    assert result["landmarks"][1] == pytest.approx([0.2, 0.2, 0.2], abs=1e-6)
+    assert result["landmarks"][10] == pytest.approx([2.0, 2.0, 2.0], abs=1e-6)
+
+
+def test_flatten_landmarks_mean_multimodal_all_modalities(monkeypatch, tmp_path):
+    """Test averaging with pose and face landmarks (all modalities present)."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {
+            "landmarks": [[0.0, 0.0, 0.0] for _ in range(42)],
+            "poseLandmarks": [[0.0, 0.0, 0.0, 1.0] for _ in range(33)],
+            "faceLandmarks": [[0.0, 0.0, 0.0] for _ in range(468)],
+        },
+        {
+            "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
+            "poseLandmarks": [[1.0, 1.0, 1.0, 1.0] for _ in range(33)],
+            "faceLandmarks": [[1.0, 1.0, 1.0] for _ in range(468)],
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    assert "poseLandmarks" in result
+    assert "faceLandmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert isinstance(result["poseLandmarks"], list)
+    assert isinstance(result["faceLandmarks"], list)
+    assert len(result["landmarks"]) == 42
+    assert len(result["poseLandmarks"]) == 33
+    assert len(result["faceLandmarks"]) == 468
+    # Verify structure of each modality
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
+    for point in result["poseLandmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 4  # x, y, z, visibility
+    for point in result["faceLandmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
+    # Verify averages (0.0 and 1.0 average to 0.5)
+    assert result["landmarks"][0] == pytest.approx([0.5, 0.5, 0.5])
+    assert result["poseLandmarks"][0] == pytest.approx([0.5, 0.5, 0.5, 1.0])
+    assert result["faceLandmarks"][0] == pytest.approx([0.5, 0.5, 0.5])
+
+
+def test_flatten_landmarks_mean_multimodal_pose_only(monkeypatch, tmp_path):
+    """Test averaging with pose landmarks only (no face)."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {
+            "landmarks": [[0.0, 0.0, 0.0] for _ in range(42)],
+            "poseLandmarks": [[0.0, 0.0, 0.0, 1.0] for _ in range(33)],
+        },
+        {
+            "landmarks": [[2.0, 2.0, 2.0] for _ in range(42)],
+            "poseLandmarks": [[2.0, 2.0, 2.0, 1.0] for _ in range(33)],
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    assert "poseLandmarks" in result
+    assert "faceLandmarks" not in result  # Should not be present
+    assert isinstance(result["landmarks"], list)
+    assert isinstance(result["poseLandmarks"], list)
+    assert len(result["landmarks"]) == 42
+    assert len(result["poseLandmarks"]) == 33
+    # Verify structure
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
+    for point in result["poseLandmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 4
+    # Verify averages
+    assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["poseLandmarks"][0] == pytest.approx([1.0, 1.0, 1.0, 1.0])
+
+
+def test_flatten_landmarks_mean_multimodal_face_only(monkeypatch, tmp_path):
+    """Test averaging with face landmarks only (no pose)."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {
+            "landmarks": [[0.0, 0.0, 0.0] for _ in range(42)],
+            "faceLandmarks": [[0.0, 0.0, 0.0] for _ in range(468)],
+        },
+        {
+            "landmarks": [[3.0, 3.0, 3.0] for _ in range(42)],
+            "faceLandmarks": [[3.0, 3.0, 3.0] for _ in range(468)],
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    assert "poseLandmarks" not in result  # Should not be present
+    assert "faceLandmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert isinstance(result["faceLandmarks"], list)
+    assert len(result["landmarks"]) == 42
+    assert len(result["faceLandmarks"]) == 468
+    # Verify structure
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
+    for point in result["faceLandmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
+    # Verify averages
+    assert result["landmarks"][0] == pytest.approx([1.5, 1.5, 1.5])
+    assert result["faceLandmarks"][0] == pytest.approx([1.5, 1.5, 1.5])
+
+
+def test_flatten_landmarks_mean_multimodal_missing_modalities(monkeypatch, tmp_path):
+    """Test frames with missing/empty modalities in some frames."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    # First frame has all modalities, second frame only has hands
+    frames = [
+        {
+            "landmarks": [[0.0, 0.0, 0.0] for _ in range(42)],
+            "poseLandmarks": [[0.0, 0.0, 0.0, 1.0] for _ in range(33)],
+            "faceLandmarks": [[0.0, 0.0, 0.0] for _ in range(468)],
+        },
+        {
+            "landmarks": [[2.0, 2.0, 2.0] for _ in range(42)],
+            # Missing pose and face
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    # Pose/face should not be included because not all frames have them
+    assert "poseLandmarks" not in result
+    assert "faceLandmarks" not in result
+    assert isinstance(result["landmarks"], list)
+    assert len(result["landmarks"]) == 42
+    # Verify structure
+    for point in result["landmarks"]:
+        assert isinstance(point, list)
+        assert len(point) == 3
+    # Hand landmarks should still be averaged
+    assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+
+
+def test_flatten_landmarks_mean_multimodal_weighted(monkeypatch, tmp_path):
+    """Test weighted averaging across multimodal data."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    # Frame with weight 1.0 has value 0.0
+    # Frame with weight 9.0 has value 1.0
+    # Expected weighted average: (0.0 * 1.0 + 1.0 * 9.0) / 10.0 = 0.9
+    frames = [
+        {
+            "landmarks": [[0.0, 0.0, 0.0] for _ in range(42)],
+            "poseLandmarks": [[0.0, 0.0, 0.0, 1.0] for _ in range(33)],
+            "faceLandmarks": [[0.0, 0.0, 0.0] for _ in range(468)],
+            "weight": 1.0,
+        },
+        {
+            "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
+            "poseLandmarks": [[1.0, 1.0, 1.0, 1.0] for _ in range(33)],
+            "faceLandmarks": [[1.0, 1.0, 1.0] for _ in range(468)],
+            "weight": 9.0,
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    assert "poseLandmarks" in result
+    assert "faceLandmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert isinstance(result["poseLandmarks"], list)
+    assert isinstance(result["faceLandmarks"], list)
+    assert len(result["landmarks"]) == 42
+    assert len(result["poseLandmarks"]) == 33
+    assert len(result["faceLandmarks"]) == 468
+    # Verify weighted averages (0.9 for all modalities)
+    expected = 0.9
+    assert result["landmarks"][0] == pytest.approx([expected, expected, expected], abs=1e-6)
+    assert result["poseLandmarks"][0] == pytest.approx([expected, expected, expected, 1.0], abs=1e-6)
+    assert result["faceLandmarks"][0] == pytest.approx([expected, expected, expected], abs=1e-6)
+
+
+def test_flatten_landmarks_mean_multimodal_empty_modality_lists(monkeypatch, tmp_path):
+    """Test frames with empty lists for optional modalities."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {
+            "landmarks": [[0.0, 0.0, 0.0] for _ in range(42)],
+            "poseLandmarks": [],  # Empty list
+            "faceLandmarks": [],  # Empty list
+        },
+        {
+            "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
+            "poseLandmarks": [],  # Empty list
+            "faceLandmarks": [],  # Empty list
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    # Empty lists should be treated as missing
+    assert "poseLandmarks" not in result
+    assert "faceLandmarks" not in result
+    assert isinstance(result["landmarks"], list)
+    assert len(result["landmarks"]) == 42
+    # Verify hand landmarks are still averaged
+    assert result["landmarks"][0] == pytest.approx([0.5, 0.5, 0.5])
+
+
+def test_flatten_landmarks_mean_negative_weights(monkeypatch, tmp_path):
+    """Test that negative weights fall back to simple mean."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    # Negative weights should cause total_weight <= 0, falling back to simple mean
+    frames = [
+        {"landmarks": [[0.0, 0.0, 0.0] for _ in range(42)], "weight": -1.0},
+        {"landmarks": [[2.0, 2.0, 2.0] for _ in range(42)], "weight": -1.0},
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    # Should use simple mean when total_weight <= 0
+    assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+
+
+def test_flatten_landmarks_mean_zero_total_weight(monkeypatch, tmp_path):
+    """Test that zero total weight falls back to simple mean."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {"landmarks": [[0.0, 0.0, 0.0] for _ in range(42)], "weight": 0.0},
+        {"landmarks": [[4.0, 4.0, 4.0] for _ in range(42)], "weight": 0.0},
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    # Should use simple mean when total_weight = 0
+    assert result["landmarks"][0] == pytest.approx([2.0, 2.0, 2.0])
+
+
+def test_flatten_landmarks_mean_padding_fewer_hand_landmarks(monkeypatch, tmp_path):
+    """Test that frames with fewer than 42 hand landmarks are padded."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    # Frame with only 20 landmarks (should be padded to 42)
+    frames = [
+        {"landmarks": [[1.0, 1.0, 1.0] for _ in range(20)]},
+        {"landmarks": [[1.0, 1.0, 1.0] for _ in range(42)]},
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    assert len(result["landmarks"]) == 42
+    # First 20 should average to 1.0, remaining should average to 0.5 (1.0 + 0.0 padding)
+    assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["landmarks"][19] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["landmarks"][20] == pytest.approx([0.5, 0.5, 0.5])
+    assert result["landmarks"][41] == pytest.approx([0.5, 0.5, 0.5])
+
+
+def test_flatten_landmarks_mean_truncation_excess_landmarks(monkeypatch, tmp_path):
+    """Test that frames with more than expected landmarks are truncated."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    # Frame with 50 hand landmarks (should be truncated to 42)
+    frames = [
+        {"landmarks": [[1.0, 1.0, 1.0] for _ in range(50)]},
+        {"landmarks": [[1.0, 1.0, 1.0] for _ in range(42)]},
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    assert len(result["landmarks"]) == 42
+    # All should average to 1.0
+    assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["landmarks"][41] == pytest.approx([1.0, 1.0, 1.0])
+
+
+def test_flatten_landmarks_mean_multimodal_padding_pose(monkeypatch, tmp_path):
+    """Test that pose landmarks with fewer than 33 points are padded."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {
+            "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
+            # Only 10 pose landmarks with 4 dimensions each (x, y, z, visibility)
+            "poseLandmarks": [[1.0, 1.0, 1.0, 1.0] for _ in range(10)],
+        },
+        {
+            "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
+            "poseLandmarks": [[1.0, 1.0, 1.0, 1.0] for _ in range(33)],  # Full 33 pose landmarks
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "poseLandmarks" in result
+    assert len(result["poseLandmarks"]) == 33
+    # First 10 should average to 1.0, remaining should average to 0.5 (1.0 + 0.0 padding)
+    assert result["poseLandmarks"][0] == pytest.approx([1.0, 1.0, 1.0, 1.0])
+    assert result["poseLandmarks"][9] == pytest.approx([1.0, 1.0, 1.0, 1.0])
+    assert result["poseLandmarks"][10] == pytest.approx([0.5, 0.5, 0.5, 0.5])
+
+
+def test_flatten_landmarks_mean_multimodal_truncation_face(monkeypatch, tmp_path):
+    """Test that face landmarks with more than 468 points are truncated."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {
+            "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
+            # 500 face landmarks (exceeds expected 468)
+            "faceLandmarks": [[1.0, 1.0, 1.0] for _ in range(500)],
+        },
+        {
+            "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
+            "faceLandmarks": [[1.0, 1.0, 1.0] for _ in range(468)],  # Exact 468
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "faceLandmarks" in result
+    assert len(result["faceLandmarks"]) == 468
+    # All should average to 1.0 (excess ignored)
+    assert result["faceLandmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["faceLandmarks"][467] == pytest.approx([1.0, 1.0, 1.0])
+
+
+def test_flatten_landmarks_mean_frames_with_none_landmarks(monkeypatch, tmp_path):
+    """Test that frames with None landmarks are skipped properly."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {"landmarks": None},  # Should be skipped
+        {"landmarks": [[1.0, 1.0, 1.0] for _ in range(42)]},
+        {"landmarks": [[3.0, 3.0, 3.0] for _ in range(42)]},
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    # Should average only the two valid frames
+    assert result["landmarks"][0] == pytest.approx([2.0, 2.0, 2.0])
+
+
+def test_flatten_landmarks_mean_all_frames_invalid(monkeypatch, tmp_path):
+    """Test that all invalid frames returns None."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {"landmarks": None},
+        {"landmarks": []},
+        {},  # No landmarks key
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    # Should return None when no valid frames
+    assert result is None
+
+
+def test_flatten_landmarks_mean_multimodal_zero_weight(monkeypatch, tmp_path):
+    """Test zero weight with multimodal data falls back to simple mean."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {
+            "landmarks": [[0.0, 0.0, 0.0] for _ in range(42)],
+            "poseLandmarks": [[0.0, 0.0, 0.0, 1.0] for _ in range(33)],
+            "faceLandmarks": [[0.0, 0.0, 0.0] for _ in range(468)],
+            "weight": 0.0,
+        },
+        {
+            "landmarks": [[2.0, 2.0, 2.0] for _ in range(42)],
+            "poseLandmarks": [[2.0, 2.0, 2.0, 1.0] for _ in range(33)],
+            "faceLandmarks": [[2.0, 2.0, 2.0] for _ in range(468)],
+            "weight": 0.0,
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    # All modalities should use simple mean (average of 0.0 and 2.0 = 1.0)
+    assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["poseLandmarks"][0] == pytest.approx([1.0, 1.0, 1.0, 1.0])
+    assert result["faceLandmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+
+
+def test_flatten_landmarks_mean_large_number_of_frames(monkeypatch, tmp_path):
+    """Test averaging with a large number of frames (stress test)."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    # Create 100 frames with incrementing values
+    frames = [
+        {"landmarks": [[float(i), float(i), float(i)] for _ in range(42)]}
+        for i in range(100)
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    assert len(result["landmarks"]) == 42
+    # Average of 0..99 should be 49.5
+    assert result["landmarks"][0] == pytest.approx([49.5, 49.5, 49.5])
+
+
+def test_flatten_landmarks_mean_single_frame_multimodal(monkeypatch, tmp_path):
+    """Test single frame with all modalities returns that frame."""
+    monkeypatch.setenv("MLP_DATA_DIR", str(tmp_path))
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+    
+    frames = [
+        {
+            "landmarks": [[0.5, 0.6, 0.7] for _ in range(42)],
+            "poseLandmarks": [[0.1, 0.2, 0.3, 0.9] for _ in range(33)],
+            "faceLandmarks": [[0.8, 0.9, 1.0] for _ in range(468)],
+        },
+    ]
+    
+    result = module.flatten_landmarks_mean(frames)
+    
+    assert result is not None
+    assert "landmarks" in result
+    assert "poseLandmarks" in result
+    assert "faceLandmarks" in result
+    # Single frame should return exact values
+    assert result["landmarks"][0] == pytest.approx([0.5, 0.6, 0.7])
+    assert result["poseLandmarks"][0] == pytest.approx([0.1, 0.2, 0.3, 0.9])
+    assert result["faceLandmarks"][0] == pytest.approx([0.8, 0.9, 1.0])

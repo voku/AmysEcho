@@ -18,6 +18,12 @@ This will:
 6. Deploy the model to the app
 7. Rebuild the WebView bundle
 
+### Browser-captured DGS clips
+
+Record Amy's DGS attempts directly in the webapp training flow. The browser produces ZIP bundles containing `metadata.json`,
+`landmarks.json`, and optional `clip/still` media. Use these bundles as the primary data source for early-child vocabulary and
+idiosyncratic signing patterns instead of relying on large academic corpora.
+
 ## Adding More Training Videos
 
 ### Multiple Videos per Gesture
@@ -163,3 +169,9 @@ The system currently recognizes these gestures:
 - schwester (sister)
 - spielen (play)
 - trinken (drink)
+
+## Evaluation
+
+Focus evaluation on Amy-first data captured through the browser workflow. Keep small, targeted probe sets (e.g., lip pointing
+for "rot", occlusion tolerance) next to the training bundles and measure progress with lightweight scripts or notebooks that
+consume those manifests. Avoid pulling in large weather datasets that do not reflect the target users.
