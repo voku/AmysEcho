@@ -48,7 +48,7 @@ export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
         faceLandmarks: Array.isArray(frame.faceLandmarks)
           ? frame.faceLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
           : [],
-        ...(frame.features ? { features: frame.features } : {}),
+        ...(frame.features && Object.keys(frame.features).length > 0 ? { features: frame.features } : {}),
       };
     });
 }
@@ -76,10 +76,39 @@ function parseMetrics(raw: unknown): TrainingJobMetrics | undefined {
 }
 
 function buildLandmarksMetadata(frames: TimelineFrame[], payload: TrainingBundlePayload) {
+  const totalFrames = frames.length;
+  let handsFrameCount = 0;
+  let poseFrameCount = 0;
+  let faceFrameCount = 0;
+
+  for (const frame of frames) {
+    if (frame.landmarks && frame.landmarks.some((hand) => hand.length > 0)) {
+      handsFrameCount++;
+    }
+    if (frame.poseLandmarks && frame.poseLandmarks.length > 0) {
+      poseFrameCount++;
+    }
+    if (frame.faceLandmarks && frame.faceLandmarks.length > 0) {
+      faceFrameCount++;
+    }
+  }
+
   const modalities = {
-    hands: frames.some((frame) => frame.landmarks.some((hand) => hand.length > 0)),
-    pose: frames.some((frame) => frame.poseLandmarks.length > 0),
-    face: frames.some((frame) => frame.faceLandmarks.length > 0),
+    hands: {
+      present: handsFrameCount > 0,
+      frameCount: handsFrameCount,
+      coverage: totalFrames > 0 ? handsFrameCount / totalFrames : 0,
+    },
+    pose: {
+      present: poseFrameCount > 0,
+      frameCount: poseFrameCount,
+      coverage: totalFrames > 0 ? poseFrameCount / totalFrames : 0,
+    },
+    face: {
+      present: faceFrameCount > 0,
+      frameCount: faceFrameCount,
+      coverage: totalFrames > 0 ? faceFrameCount / totalFrames : 0,
+    },
   };
 
   const smoothing = {

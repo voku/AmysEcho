@@ -370,6 +370,9 @@ export class GestureRecognitionOrchestrator {
         return;
       }
 
+      // Note: Training batches intentionally use unsmoothed normalized landmarks to avoid
+      // introducing smoothing artifacts into the training data. Real-time recognition uses
+      // smoothed landmarks for stability, but training models should learn from raw data.
       const entry: FrameBatchEntry = {
         frame: frameDataUrl,
         landmarks: normalized.landmarks,
@@ -448,14 +451,24 @@ export class GestureRecognitionOrchestrator {
 
     const face = normalized.faceLandmarks;
     const hands = normalized.landmarks;
-    const lipLandmark = face?.[13];
-    const primaryHand = hands?.[0];
-    const indexTip = primaryHand?.[8];
+    
+    // Validate that landmarks exist and have expected minimum length
+    const lipLandmark = face && face.length > 13 ? face[13] : undefined;
+    const primaryHand = hands && hands.length > 0 ? hands[0] : undefined;
+    const indexTip = primaryHand && primaryHand.length > 8 ? primaryHand[8] : undefined;
 
-    if (lipLandmark && indexTip) {
-      const dx = (indexTip[0] ?? 0) - (lipLandmark[0] ?? 0);
-      const dy = (indexTip[1] ?? 0) - (lipLandmark[1] ?? 0);
-      const dz = (indexTip[2] ?? 0) - (lipLandmark[2] ?? 0);
+    // Only compute lipPointing if we have complete 3D coordinates for both landmarks
+    if (
+      lipLandmark &&
+      indexTip &&
+      lipLandmark.length >= 3 &&
+      indexTip.length >= 3 &&
+      lipLandmark[0] != null && lipLandmark[1] != null && lipLandmark[2] != null &&
+      indexTip[0] != null && indexTip[1] != null && indexTip[2] != null
+    ) {
+      const dx = indexTip[0] - lipLandmark[0];
+      const dy = indexTip[1] - lipLandmark[1];
+      const dz = indexTip[2] - lipLandmark[2];
       features.lipPointing = Math.hypot(dx, dy, dz);
     }
 

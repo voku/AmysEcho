@@ -47,6 +47,9 @@ export function flattenHandsWithHandedness(hands: number[][][], handedness: Read
   return out;
 }
 
+// Function overloads for better type safety
+export function frameHasAnyLandmarks(frame: number[][][]): boolean;
+export function frameHasAnyLandmarks(frame: { landmarks?: number[][][]; poseLandmarks?: number[][]; faceLandmarks?: number[][] }): boolean;
 export function frameHasAnyLandmarks(
   frame: number[][][] | { landmarks?: number[][][]; poseLandmarks?: number[][]; faceLandmarks?: number[][] },
 ): boolean {
