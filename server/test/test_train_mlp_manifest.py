@@ -176,8 +176,11 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
 
     captured = {}
 
-    def fake_flatten(frames: list[dict]):
+    def fake_flatten(frames: list[dict]) -> dict[str, list]:
+        """Mock flatten_landmarks_mean with proper return type."""
         captured["frames"] = frames
+        # Return dict with landmarks key matching production contract
+        # Could also include optional poseLandmarks/faceLandmarks if needed
         return {"landmarks": [[0.0, 0.0, 0.0] for _ in range(42)]}
 
     monkeypatch.setattr(module, "flatten_landmarks_mean", fake_flatten)
