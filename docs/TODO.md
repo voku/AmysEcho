@@ -11,14 +11,14 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Upgrade the sign language detector (`webapp/src/gesture/`) to stream a rolling buffer of frames alongside the existing landmark payload.
 - [x] Extend the Training page to record both the landmark timeline and captured frames while recording is active.
 - [x] Persist the sample shape in the training queue (`webapp/src/training/trainingQueue.ts`). Use IndexedDB via OPFS for offline support.
-- [ ] Harden multimodal capture for kids: verify pose/face/hand landmark availability across supported browsers/devices, and surface German guidance when a modality drops (e.g., “Bitte Gesicht im Bild behalten”).
+- [ ] Harden multimodal capture for kids: verify pose/face/hand landmark availability across supported browsers/devices, and surface guidance when a modality drops (e.g., "Please keep face in frame").
 - [ ] Add privacy-safe preview controls: allow caregivers to toggle raw video vs. skeleton-only while keeping overlay drawing for hands/pose/face visible.
 
 ## 2. Package & Queue Upload Bundles (`webapp/src/training`)
 - [x] Create `uploadTrainingBundle` that builds a zip with `{metadata.json, landmarks.json, still.jpg}`.
 - [x] Store pending bundles in IndexedDB. Flush them through the training uploader hook as soon as connectivity is available.
 - [x] Add unit coverage that mocks the queue and asserts the zip payload structure.
-- [ ] Ensure multimodal bundle fidelity: confirm `metadata.json` and `landmarks.json` keep pose/face features, handedness, smoothing params, and language tags, and add regression tests that fail if fields are dropped.
+- [ ] Ensure multimodal bundle fidelity: confirm `metadata.json` and `landmarks.json` keep pose/face features, handedness, smoothing params, and add regression tests that fail if fields are dropped.
 
 ## 3. Ingest Sign Language Training Bundles on the Server (`server/`)
 - [x] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/`, reject bundles missing `landmarks.json` with HTTP 400 after cleaning up, and register successful uploads in `data/datasets/training_manifest.json`.
@@ -37,7 +37,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Expand `server/src/server.ts`'s `/latest-mlp-model` handler to accept `?profileId=` and serve personalized bundles when available; fall back to the global model otherwise.
 - [x] Update the webapp model client (`webapp/src/gesture/modelClient.ts`) to request the personalized model first.
 - [x] Notify users when a newer model version is loaded.
-- [ ] Surface modality coverage and training version in model headers so caregivers know they are using the multimodal DGS model.
+- [ ] Surface modality coverage and training version in model headers so caregivers know they are using the multimodal DGS model without forcing additional language tags.
 
 ## 6. Verify & Document the Sign Language Training Loop
 - [x] Add end-to-end tests: one in `integration/` that records a fake sign, uploads it, triggers `/train-model`, downloads the new weights, and asserts the model file checksum changes.

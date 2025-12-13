@@ -21,6 +21,8 @@ def test_flatten_landmarks_mean_simple_average(monkeypatch, tmp_path):
 
     assert result is not None
     assert "landmarks" in result
+    assert isinstance(result["landmarks"], list)
+    assert len(result["landmarks"]) == 42
     # Average of 0.0 and 2.0 should be 1.0
     assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
     assert result["landmarks"][41] == pytest.approx([1.0, 1.0, 1.0])
