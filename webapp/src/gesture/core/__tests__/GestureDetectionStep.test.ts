@@ -129,7 +129,9 @@ describe('GestureDetectionStep', () => {
     expect(window.__mlpPredict).toHaveBeenCalled();
     expect(window.__mlpPredict).toHaveBeenCalledWith(
       landmarks,
-      context.rawResults?.handednesses
+      context.rawResults?.handednesses,
+      undefined, // poseLandmarks
+      undefined  // faceLandmarks
     );
     expect(result.gesture).toBe('wave');
     expect(result.metadata?.mlp).toEqual({ label: 'Wave', score: 0.9 });
