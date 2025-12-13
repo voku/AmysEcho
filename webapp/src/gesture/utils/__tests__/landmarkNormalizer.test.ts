@@ -233,7 +233,7 @@ describe('LandmarkNormalizer', () => {
     // Constants for multimodal feature dimensions
     const HAND_FEATURES = 126; // 2 hands × 21 points × 3 coords
     const POSE_FEATURES = 99;  // 33 points × 3 coords (visibility dropped)
-    const FACE_FEATURES = 33;  // 11 key points × 3 coords
+    const _FACE_FEATURES = 33;  // 11 key points × 3 coords
     const TOTAL_MULTIMODAL_FEATURES = 258; // hands + pose + face
     const HAND_SECTION_END = HAND_FEATURES; // 0-125
     const POSE_SECTION_START = HAND_FEATURES; // 126
