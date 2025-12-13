@@ -463,7 +463,8 @@ def test_flatten_landmarks_mean_multimodal_padding_pose(monkeypatch, tmp_path):
     frames = [
         {
             "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
-            "poseLandmarks": [[1.0, 1.0, 1.0, 1.0] for _ in range(10)],  # Only 10 pose landmarks
+            # Only 10 pose landmarks with 4 dimensions each (x, y, z, visibility)
+            "poseLandmarks": [[1.0, 1.0, 1.0, 1.0] for _ in range(10)],
         },
         {
             "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
@@ -490,7 +491,8 @@ def test_flatten_landmarks_mean_multimodal_truncation_face(monkeypatch, tmp_path
     frames = [
         {
             "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],
-            "faceLandmarks": [[1.0, 1.0, 1.0] for _ in range(500)],  # Extra face landmarks
+            # 500 face landmarks (exceeds expected 468)
+            "faceLandmarks": [[1.0, 1.0, 1.0] for _ in range(500)],
         },
         {
             "landmarks": [[1.0, 1.0, 1.0] for _ in range(42)],

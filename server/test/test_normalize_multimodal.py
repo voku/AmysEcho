@@ -225,7 +225,7 @@ def test_normalize_multimodal_face_normalized_to_nose(monkeypatch, tmp_path):
     hand_landmarks = [[0.1 * i, 0.1 * i, 0.1 * i] for i in range(42)]
     # Create face with nose at (0.5, 0.5, 0.5)
     face_landmarks = [[0.5, 0.5, 0.5] for _ in range(468)]
-    face_landmarks[1] = [0.5, 0.5, 0.5]  # Nose tip
+    face_landmarks[1] = [0.5, 0.5, 0.5]  # Nose tip (index 1)
     face_landmarks[33] = [0.0, 0.5, 0.5]  # Left eye
     face_landmarks[263] = [1.0, 0.5, 0.5]  # Right eye (eye distance = 1.0)
     
@@ -242,8 +242,9 @@ def test_normalize_multimodal_face_normalized_to_nose(monkeypatch, tmp_path):
     assert result is not None
     # Face section should be normalized (scaled by eye distance = 1.0)
     face_section = result[225:].reshape(11, 3)
-    # First point should be nose-relative (0, 0, 0) since it's the nose itself
-    assert np.allclose(face_section[1], [0.0, 0.0, 0.0], atol=0.01)
+    # Nose tip is at index 4 in key_indices list (5th element)
+    # After normalization to nose, it should be (0, 0, 0)
+    assert np.allclose(face_section[4], [0.0, 0.0, 0.0], atol=0.01)
 
 
 def test_normalize_multimodal_zero_shoulder_width(monkeypatch, tmp_path):
