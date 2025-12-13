@@ -45,6 +45,9 @@ export interface TrainingRecorderResult {
 const MAX_BUFFERED_FRAMES = 240;
 const MAX_CLIP_BYTES = 25 * 1024 * 1024; // 25 MB
 
+// Known feature names from MultimodalFeatureSet - update when adding new features
+const KNOWN_FEATURE_NAMES = ['lipPointing', 'headYaw', 'headPitch', 'browRaise', 'mouthOpen'] as const;
+
 /**
  * Extracts numeric feature values from a features candidate object.
  * Filters out non-numeric properties to ensure only valid features are included.
@@ -55,9 +58,8 @@ function extractNumericFeatures(featuresCandidate: Record<string, unknown> | und
   }
 
   const features: Record<string, number> = {};
-  const knownFeatures = ['lipPointing', 'headYaw', 'headPitch', 'browRaise', 'mouthOpen'];
 
-  for (const key of knownFeatures) {
+  for (const key of KNOWN_FEATURE_NAMES) {
     const value = featuresCandidate[key];
     if (typeof value === 'number') {
       features[key] = value;
