@@ -45,6 +45,30 @@ export interface TrainingRecorderResult {
 const MAX_BUFFERED_FRAMES = 240;
 const MAX_CLIP_BYTES = 25 * 1024 * 1024; // 25 MB
 
+// Known feature names from MultimodalFeatureSet - update when adding new features
+const KNOWN_FEATURE_NAMES = ['lipPointing', 'headYaw', 'headPitch', 'browRaise', 'mouthOpen'] as const;
+
+/**
+ * Extracts numeric feature values from a features candidate object.
+ * Filters out non-numeric properties to ensure only valid features are included.
+ */
+function extractNumericFeatures(featuresCandidate: Record<string, unknown> | undefined): TrainingFrame['features'] {
+  if (!featuresCandidate || typeof featuresCandidate !== 'object') {
+    return undefined;
+  }
+
+  const features: Record<string, number> = {};
+
+  for (const key of KNOWN_FEATURE_NAMES) {
+    const value = featuresCandidate[key];
+    if (typeof value === 'number') {
+      features[key] = value;
+    }
+  }
+
+  return Object.keys(features).length > 0 ? features : undefined;
+}
+
 function pickMimeType(): string | undefined {
   if (typeof window.MediaRecorder === 'undefined' || typeof window.MediaRecorder.isTypeSupported !== 'function') {
     return undefined;
@@ -155,33 +179,14 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
           : [];
 
         const featuresCandidate = featureBatches[index];
-        const features =
-          featuresCandidate && typeof featuresCandidate === 'object'
-            ? {
-                ...(typeof (featuresCandidate as Record<string, unknown>).lipPointing === 'number'
-                  ? { lipPointing: (featuresCandidate as Record<string, number>).lipPointing }
-                  : {}),
-                ...(typeof (featuresCandidate as Record<string, unknown>).headYaw === 'number'
-                  ? { headYaw: (featuresCandidate as Record<string, number>).headYaw }
-                  : {}),
-                ...(typeof (featuresCandidate as Record<string, unknown>).headPitch === 'number'
-                  ? { headPitch: (featuresCandidate as Record<string, number>).headPitch }
-                  : {}),
-                ...(typeof (featuresCandidate as Record<string, unknown>).browRaise === 'number'
-                  ? { browRaise: (featuresCandidate as Record<string, number>).browRaise }
-                  : {}),
-                ...(typeof (featuresCandidate as Record<string, unknown>).mouthOpen === 'number'
-                  ? { mouthOpen: (featuresCandidate as Record<string, number>).mouthOpen }
-                  : {}),
-              }
-            : undefined;
+        const features = extractNumericFeatures(featuresCandidate as Record<string, unknown> | undefined);
 
         framesToAppend.push({
           landmarks: cloned as number[][][],
           handedness,
           poseLandmarks,
           faceLandmarks,
-          features: features as TrainingFrame['features'],
+          ...(features !== undefined ? { features } : {}),
         });
 
         setPreviewLandmarks(cloned as number[][][]);

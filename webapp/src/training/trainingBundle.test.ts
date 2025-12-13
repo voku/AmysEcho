@@ -69,7 +69,11 @@ describe('createTrainingZip', () => {
     expect(firstFrame?.poseLandmarks?.[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
     expect(firstFrame?.faceLandmarks?.[0]).toEqual([0.25, 0.75, 0.05]);
     expect(firstFrame?.features?.lipPointing).toBe(0.12);
-    expect(landmarks.metadata.modalities).toEqual({ hands: true, pose: true, face: true });
+    expect(landmarks.metadata.modalities).toEqual({
+      hands: { present: true, frameCount: 1, coverage: 1 },
+      pose: { present: true, frameCount: 1, coverage: 1 },
+      face: { present: true, frameCount: 1, coverage: 1 },
+    });
     expect(landmarks.metadata.smoothing).toMatchObject({ method: 'one_euro' });
     expect(landmarks.metadata.features.lipPointing).toBe(true);
     expect(entries['clip.mp4']).toBeDefined();

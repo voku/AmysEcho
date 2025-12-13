@@ -91,7 +91,7 @@ export function getClipCaptureErrorMessage(error: unknown): string
 - **Features**:
   - Creates ZIP bundles with:
     - `metadata.json` (profile, label, timestamps)
-    - `landmarks.json` (hand + optionale Pose-/Gesichtslandmarken inkl. NMM-Features)
+    - `landmarks.json` (hand + optional pose/face landmarks incl. NMM features)
     - `clip.mp4` (video recording, optional when the camera pipeline fails)
   - Uploads to `/api/v1/dgs/sample-bundles`
   - Queue management with AsyncStorage

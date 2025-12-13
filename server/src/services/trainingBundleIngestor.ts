@@ -97,6 +97,8 @@ const MAX_FLATTENED_LANDMARK_POINTS = 42;
 const MAX_HANDS = 2;
 const HAND_LANDMARKS_PER_HAND = 21;
 const MAX_POSE_POINTS = 33;
+// MediaPipe Face Mesh provides 468 landmarks. We capture and process all of them,
+// but only render a subset (8 key points) in OverlayRenderer for performance.
 const MAX_FACE_POINTS = 468;
 
 function normalizeRelativePath(relativePath: string): string | null {
@@ -256,8 +258,19 @@ function deriveFlattenedHands(
 ): number[][] {
   const leftIndex = handedness.findIndex((entry) => /left/i.test(entry));
   const rightIndex = handedness.findIndex((entry) => /right/i.test(entry));
-  const left = leftIndex >= 0 ? handLandmarks[leftIndex] ?? [] : handLandmarks[0] ?? [];
-  const right = rightIndex >= 0 ? handLandmarks[rightIndex] ?? [] : handLandmarks[1] ?? [];
+  
+  let left, right;
+  if (leftIndex >= 0 && rightIndex >= 0) {
+    left = handLandmarks[leftIndex] ?? [];
+    right = handLandmarks[rightIndex] ?? [];
+  } else {
+    // Warn if handedness is missing or unrecognized - this may indicate data quality issues
+    logger.warn(
+      `[deriveFlattenedHands] Handedness information missing or unrecognized. Falling back to array indices. handedness=${JSON.stringify(handedness)}, handLandmarks.length=${handLandmarks.length}`,
+    );
+    left = handLandmarks[0] ?? [];
+    right = handLandmarks[1] ?? [];
+  }
 
   const flattened: number[][] = [];
   for (let i = 0; i < HAND_LANDMARKS_PER_HAND; i++) {

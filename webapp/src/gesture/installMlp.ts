@@ -383,17 +383,41 @@ export function installMlp() {
     }
     return flat;
   }
-  function mlpPredict(all: Hand[], handednesses: Handedness) {
+  function mlpPredict(
+    all: Hand[],
+    handednesses: Handedness,
+    poseLandmarks?: number[][],
+    faceLandmarks?: number[][]
+  ) {
     try {
       if (!mlp) return null;
-      const x = normalizeLandmarks(all, handednesses);
-      if (!x) return null;
+      
+      // Check if model expects multimodal input (258 features vs 126 hand-only)
+      const [rows1, cols1Expected] = mlp.w1.shape;
+      const isMultimodal = cols1Expected === 258;
+      
+      let x: Float32Array;
+      if (isMultimodal && (poseLandmarks || faceLandmarks)) {
+        // Use multimodal normalization
+        // For now, we'll use hand-only normalization and pad with zeros
+        // TODO: Implement full multimodal normalization in installMlp.ts
+        const handFeatures = normalizeLandmarks(all, handednesses);
+        if (!handFeatures) return null;
+        
+        // Pad with zeros for pose (99) and face (33) to reach 258 total
+        x = new Float32Array(258);
+        x.set(handFeatures, 0);
+        // Pose and face normalization would go here
+      } else {
+        // Use hand-only normalization
+        x = normalizeLandmarks(all, handednesses);
+        if (!x) return null;
+      }
+      
       // Skip prediction if input is all zeros (no hands detected)
       if (x.every(v => v === 0)) return null;
       const cols1 = x.length;
-      const [rows1Raw, cols1Expected] = mlp.w1.shape;
-      const rows1 = rows1Raw ?? 0;
-      if (cols1Expected === undefined || rows1 === 0) {
+      if (rows1 === undefined || cols1Expected === undefined || rows1 === 0) {
         throw new Error('Invalid w1 shape');
       }
       if (cols1Expected !== cols1) throw new Error('Input dimension mismatch');

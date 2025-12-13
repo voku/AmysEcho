@@ -135,7 +135,11 @@ describe('uploadTrainingBundle integration', () => {
     });
 
     expect(entry.landmarks.metadata).toMatchObject({
-      modalities: { hands: true, pose: false, face: false },
+      modalities: {
+        hands: { present: true, frameCount: 2, coverage: 1 },
+        pose: { present: false, frameCount: 0, coverage: 0 },
+        face: { present: false, frameCount: 0, coverage: 0 },
+      },
       smoothing: { method: 'one_euro' },
     });
 
