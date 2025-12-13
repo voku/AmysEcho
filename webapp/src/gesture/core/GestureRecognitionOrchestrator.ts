@@ -1323,9 +1323,13 @@ export class GestureDetectionStep implements ProcessingStep {
         // information entirely.
         console.log('MLP input landmarks:', context.landmarks);
         console.log('MLP input handednesses:', handednessesForMlp);
+        console.log('MLP pose landmarks:', context.poseLandmarks?.length);
+        console.log('MLP face landmarks:', context.faceLandmarks?.length);
         const mlpResult = window.__mlpPredict(
           context.rawLandmarks ?? context.landmarks ?? [],
-          handednessesForMlp
+          handednessesForMlp,
+          context.poseLandmarks,
+          context.faceLandmarks
         );
         console.log('MLP prediction result:', JSON.stringify(mlpResult)); // Debug logging
         if (mlpResult && typeof mlpResult.score === 'number') {
