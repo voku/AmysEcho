@@ -176,7 +176,7 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
 
     captured = {}
 
-    def fake_flatten(frames: list[dict]) -> dict[str, list]:
+    def fake_flatten(frames: list[dict]) -> dict[str, list[list[float]]]:
         """Mock flatten_landmarks_mean with proper return type."""
         captured["frames"] = frames
         # Return dict with landmarks key matching production contract
