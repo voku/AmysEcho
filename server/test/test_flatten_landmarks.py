@@ -20,9 +20,10 @@ def test_flatten_landmarks_mean_simple_average(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
+    assert "landmarks" in result
     # Average of 0.0 and 2.0 should be 1.0
-    assert result[0] == pytest.approx([1.0, 1.0, 1.0])
-    assert result[41] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["landmarks"][0] == pytest.approx([1.0, 1.0, 1.0])
+    assert result["landmarks"][41] == pytest.approx([1.0, 1.0, 1.0])
 
 
 def test_flatten_landmarks_mean_weighted_average(monkeypatch, tmp_path):
@@ -41,8 +42,9 @@ def test_flatten_landmarks_mean_weighted_average(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
+    assert "landmarks" in result
     expected = 10.0 / 11.0
-    assert result[0] == pytest.approx([expected, expected, expected], abs=1e-6)
+    assert result["landmarks"][0] == pytest.approx([expected, expected, expected], abs=1e-6)
 
 
 def test_flatten_landmarks_mean_mixed_weights(monkeypatch, tmp_path):
@@ -61,8 +63,9 @@ def test_flatten_landmarks_mean_mixed_weights(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
+    assert "landmarks" in result
     expected = 5.0 / 6.0
-    assert result[0] == pytest.approx([expected, expected, expected], abs=1e-6)
+    assert result["landmarks"][0] == pytest.approx([expected, expected, expected], abs=1e-6)
 
 
 def test_flatten_landmarks_mean_single_frame_with_weight(monkeypatch, tmp_path):
@@ -77,7 +80,8 @@ def test_flatten_landmarks_mean_single_frame_with_weight(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
-    assert result[0] == pytest.approx([0.5, 0.6, 0.7])
+    assert "landmarks" in result
+    assert result["landmarks"][0] == pytest.approx([0.5, 0.6, 0.7])
 
 
 def test_flatten_landmarks_mean_empty_frames(monkeypatch, tmp_path):
@@ -104,6 +108,7 @@ def test_flatten_landmarks_mean_backward_compatibility(monkeypatch, tmp_path):
     result = module.flatten_landmarks_mean(frames)
 
     assert result is not None
+    assert "landmarks" in result
     # Average of 0.1i, 0.2i, 0.3i should be 0.2i
-    assert result[1] == pytest.approx([0.2, 0.2, 0.2], abs=1e-6)
-    assert result[10] == pytest.approx([2.0, 2.0, 2.0], abs=1e-6)
+    assert result["landmarks"][1] == pytest.approx([0.2, 0.2, 0.2], abs=1e-6)
+    assert result["landmarks"][10] == pytest.approx([2.0, 2.0, 2.0], abs=1e-6)
