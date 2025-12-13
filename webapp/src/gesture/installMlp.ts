@@ -1,4 +1,5 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
+import { prepareMultimodalForMLP } from './utils/landmarkNormalizer';
 
 export function installMlp() {
   type Tensor = { data: Float32Array; shape: number[] };
@@ -399,15 +400,33 @@ export function installMlp() {
       let x: Float32Array;
       if (isMultimodal && (poseLandmarks || faceLandmarks)) {
         // Use multimodal normalization
-        // For now, we'll use hand-only normalization and pad with zeros
-        // TODO: Implement full multimodal normalization in installMlp.ts
-        const handFeatures = normalizeLandmarks(all, handednesses);
-        if (!handFeatures) return null;
+        // Convert Hand[] to number[][] format (42 points for left+right hands)
+        const leftHandIndex = handednesses?.findIndex(
+          (h) => h?.[0]?.categoryName === 'Left',
+        );
+        const rightHandIndex = handednesses?.findIndex(
+          (h) => h?.[0]?.categoryName === 'Right',
+        );
         
-        // Pad with zeros for pose (99) and face (33) to reach 258 total
-        x = new Float32Array(258);
-        x.set(handFeatures, 0);
-        // Pose and face normalization would go here
+        const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
+        const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
+        
+        // Convert to number[][] format: [point0, point1, ...] where each point is [x,y,z]
+        const handsFlat: number[][] = [];
+        
+        // Add left hand (21 points)
+        for (let i = 0; i < 21; i++) {
+          const point = leftHand?.[i];
+          handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
+        }
+        
+        // Add right hand (21 points)
+        for (let i = 0; i < 21; i++) {
+          const point = rightHand?.[i];
+          handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
+        }
+        
+        x = prepareMultimodalForMLP(handsFlat, poseLandmarks, faceLandmarks);
       } else {
         // Use hand-only normalization
         x = normalizeLandmarks(all, handednesses);
