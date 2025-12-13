@@ -7,6 +7,7 @@ import {
   normalizeLandmarksToFlat,
   convertToPoints,
   prepareLandmarksForMLP,
+  prepareMultimodalForMLP,
   calculateCentroid,
   calculateBoundingBox,
   distance,
@@ -225,6 +226,237 @@ describe('LandmarkNormalizer', () => {
 
       expect(result).toBeInstanceOf(Float32Array);
       expect(result.length).toBe(63);
+    });
+  });
+
+  describe('prepareMultimodalForMLP', () => {
+    // Helper to create realistic hand data (42 points = 2 hands × 21 landmarks)
+    function createHandData(): number[][] {
+      const hands: number[][] = [];
+      // Left hand (21 landmarks)
+      for (let i = 0; i < 21; i++) {
+        hands.push([0.3 + i * 0.01, 0.5 + i * 0.01, 0.1 + i * 0.001]);
+      }
+      // Right hand (21 landmarks)
+      for (let i = 0; i < 21; i++) {
+        hands.push([0.6 + i * 0.01, 0.5 + i * 0.01, 0.1 + i * 0.001]);
+      }
+      return hands;
+    }
+
+    // Helper to create realistic pose data (33 landmarks with x,y,z,visibility)
+    function createPoseData(): number[][] {
+      const pose: number[][] = [];
+      for (let i = 0; i < 33; i++) {
+        pose.push([
+          0.5 + i * 0.01,
+          0.5 + i * 0.01,
+          0.1 + i * 0.001,
+          0.9 // visibility
+        ]);
+      }
+      // Ensure shoulders exist at indices 11 and 12
+      pose[11] = [0.4, 0.3, 0.1, 0.95];
+      pose[12] = [0.6, 0.3, 0.1, 0.95];
+      // Ensure hips exist at indices 23 and 24
+      pose[23] = [0.4, 0.7, 0.15, 0.9];
+      pose[24] = [0.6, 0.7, 0.15, 0.9];
+      return pose;
+    }
+
+    // Helper to create realistic face data (468 landmarks)
+    function createFaceData(): number[][] {
+      const face: number[][] = [];
+      for (let i = 0; i < 468; i++) {
+        face.push([0.5 + i * 0.0001, 0.5 + i * 0.0001, 0.05 + i * 0.00001]);
+      }
+      // Ensure key landmarks exist
+      face[1] = [0.5, 0.5, 0.05]; // nose tip
+      face[33] = [0.45, 0.45, 0.05]; // left eye
+      face[263] = [0.55, 0.45, 0.05]; // right eye
+      face[13] = [0.5, 0.55, 0.05]; // upper lip
+      face[14] = [0.5, 0.58, 0.05]; // lower lip
+      return face;
+    }
+
+    it('erzeugt 258-dimensionale Ausgabe für hands-only', () => {
+      const hands = createHandData();
+      const result = prepareMultimodalForMLP(hands);
+
+      expect(result).toBeInstanceOf(Float32Array);
+      expect(result.length).toBe(258);
+    });
+
+    it('erzeugt 258-dimensionale Ausgabe mit hands + pose', () => {
+      const hands = createHandData();
+      const pose = createPoseData();
+      const result = prepareMultimodalForMLP(hands, pose);
+
+      expect(result).toBeInstanceOf(Float32Array);
+      expect(result.length).toBe(258);
+    });
+
+    it('erzeugt 258-dimensionale Ausgabe mit hands + face', () => {
+      const hands = createHandData();
+      const face = createFaceData();
+      const result = prepareMultimodalForMLP(hands, undefined, face);
+
+      expect(result).toBeInstanceOf(Float32Array);
+      expect(result.length).toBe(258);
+    });
+
+    it('erzeugt 258-dimensionale Ausgabe mit hands + pose + face', () => {
+      const hands = createHandData();
+      const pose = createPoseData();
+      const face = createFaceData();
+      const result = prepareMultimodalForMLP(hands, pose, face);
+
+      expect(result).toBeInstanceOf(Float32Array);
+      expect(result.length).toBe(258);
+    });
+
+    it('normalisiert Handlandmarks korrekt (126 features)', () => {
+      const hands = createHandData();
+      const result = prepareMultimodalForMLP(hands);
+
+      // First 126 elements should be hand features (not all zeros)
+      const handFeatures = result.slice(0, 126);
+      const hasNonZero = Array.from(handFeatures).some(v => v !== 0);
+      expect(hasNonZero).toBe(true);
+
+      // Pose and face should be zeros when not provided
+      const poseFeatures = result.slice(126, 225);
+      expect(Array.from(poseFeatures).every(v => v === 0)).toBe(true);
+      const faceFeatures = result.slice(225, 258);
+      expect(Array.from(faceFeatures).every(v => v === 0)).toBe(true);
+    });
+
+    it('normalisiert Pose-Landmarks korrekt (99 features)', () => {
+      const hands = createHandData();
+      const pose = createPoseData();
+      const result = prepareMultimodalForMLP(hands, pose);
+
+      // Pose features at indices 126-224 should have non-zero values
+      const poseFeatures = result.slice(126, 225);
+      const hasNonZero = Array.from(poseFeatures).some(v => v !== 0);
+      expect(hasNonZero).toBe(true);
+
+      // Face features should be zeros when not provided
+      const faceFeatures = result.slice(225, 258);
+      expect(Array.from(faceFeatures).every(v => v === 0)).toBe(true);
+    });
+
+    it('normalisiert Gesichtslandmarks korrekt (33 features)', () => {
+      const hands = createHandData();
+      const face = createFaceData();
+      const result = prepareMultimodalForMLP(hands, undefined, face);
+
+      // Face features at indices 225-257 should have non-zero values
+      const faceFeatures = result.slice(225, 258);
+      const hasNonZero = Array.from(faceFeatures).some(v => v !== 0);
+      expect(hasNonZero).toBe(true);
+
+      // Pose features should be zeros when not provided
+      const poseFeatures = result.slice(126, 225);
+      expect(Array.from(poseFeatures).every(v => v === 0)).toBe(true);
+    });
+
+    it('behandelt fehlende Pose-Daten (< 33 landmarks)', () => {
+      const hands = createHandData();
+      const incompletePose = [[0.5, 0.5, 0.1, 0.9]]; // Only 1 landmark
+      const result = prepareMultimodalForMLP(hands, incompletePose);
+
+      // Pose section should be all zeros
+      const poseFeatures = result.slice(126, 225);
+      expect(Array.from(poseFeatures).every(v => v === 0)).toBe(true);
+    });
+
+    it('behandelt fehlende Gesichtsdaten (< 468 landmarks)', () => {
+      const hands = createHandData();
+      const incompleteFace = [[0.5, 0.5, 0.05]]; // Only 1 landmark
+      const result = prepareMultimodalForMLP(hands, undefined, incompleteFace);
+
+      // Face section should be all zeros
+      const faceFeatures = result.slice(225, 258);
+      expect(Array.from(faceFeatures).every(v => v === 0)).toBe(true);
+    });
+
+    it('skaliert Pose relativ zur Schulterbreite', () => {
+      const hands = createHandData();
+      const pose = createPoseData();
+      
+      // First normalization
+      const result1 = prepareMultimodalForMLP(hands, pose);
+      
+      // Scale up pose by 2x
+      const scaledPose = pose.map(p => [p[0] * 2, p[1] * 2, p[2] * 2, p[3]]);
+      const result2 = prepareMultimodalForMLP(hands, scaledPose);
+      
+      // Pose features should be similar after normalization (within tolerance)
+      const poseFeatures1 = result1.slice(126, 225);
+      const poseFeatures2 = result2.slice(126, 225);
+      
+      // At least some features should be normalized to similar values
+      let similarCount = 0;
+      for (let i = 0; i < poseFeatures1.length; i++) {
+        if (Math.abs(poseFeatures1[i] - poseFeatures2[i]) < 0.5) {
+          similarCount++;
+        }
+      }
+      // Expect most features to be similarly normalized
+      expect(similarCount).toBeGreaterThan(50);
+    });
+
+    it('skaliert Gesicht relativ zur Augendistanz', () => {
+      const hands = createHandData();
+      const face = createFaceData();
+      
+      const result1 = prepareMultimodalForMLP(hands, undefined, face);
+      
+      // Scale face by 2x
+      const scaledFace = face.map(p => [p[0] * 2, p[1] * 2, p[2] * 2]);
+      const result2 = prepareMultimodalForMLP(hands, undefined, scaledFace);
+      
+      // Face features should be similar after normalization
+      const faceFeatures1 = result1.slice(225, 258);
+      const faceFeatures2 = result2.slice(225, 258);
+      
+      // Most features should be normalized to similar values
+      let similarCount = 0;
+      for (let i = 0; i < faceFeatures1.length; i++) {
+        if (Math.abs(faceFeatures1[i] - faceFeatures2[i]) < 0.5) {
+          similarCount++;
+        }
+      }
+      expect(similarCount).toBeGreaterThan(20);
+    });
+
+    it('zentriert Pose auf Torso-Zentrum', () => {
+      const hands = createHandData();
+      const pose = createPoseData();
+      
+      const result = prepareMultimodalForMLP(hands, pose);
+      const poseFeatures = result.slice(126, 225);
+      
+      // After torso-centering, some coordinates should be negative, some positive
+      const hasPositive = Array.from(poseFeatures).some(v => v > 0);
+      const hasNegative = Array.from(poseFeatures).some(v => v < 0);
+      expect(hasPositive).toBe(true);
+      expect(hasNegative).toBe(true);
+    });
+
+    it('zentriert Gesicht auf Nasenspitze', () => {
+      const hands = createHandData();
+      const face = createFaceData();
+      
+      const result = prepareMultimodalForMLP(hands, undefined, face);
+      const faceFeatures = result.slice(225, 258);
+      
+      // After nose-tip centering, should have positive and negative values
+      const hasPositive = Array.from(faceFeatures).some(v => v > 0);
+      const hasNegative = Array.from(faceFeatures).some(v => v < 0);
+      expect(hasPositive).toBe(true);
+      expect(hasNegative).toBe(true);
     });
   });
 });

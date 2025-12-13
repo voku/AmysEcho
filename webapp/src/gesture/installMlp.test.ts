@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { unzip } from 'fflate';
 import { installMlp } from './installMlp';
 import { MINIMAL_MLP_ZIP_B64 } from './__fixtures__/minimalMlpZipB64';
+import { MINIMAL_MULTIMODAL_MLP_ZIP_B64 } from './__fixtures__/minimalMultimodalMlpZipB64';
 
 describe('installMlp', () => {
   const TEST_HAND = Array.from({ length: 21 }, (_, i) =>
@@ -303,5 +304,232 @@ describe('installMlp', () => {
     // Without loading model, prediction should return null
     const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
     expect(res).toBeNull();
+  });
+
+  describe('Multimodal prediction', () => {
+    // Helper to create realistic pose data (33 landmarks with x,y,z,visibility)
+    function createPoseLandmarks(): number[][] {
+      const pose: number[][] = [];
+      for (let i = 0; i < 33; i++) {
+        pose.push([
+          0.5 + i * 0.01,
+          0.5 + i * 0.01,
+          0.1 + i * 0.001,
+          0.9 // visibility
+        ]);
+      }
+      // Ensure shoulders exist at indices 11 and 12
+      pose[11] = [0.4, 0.3, 0.1, 0.95];
+      pose[12] = [0.6, 0.3, 0.1, 0.95];
+      // Ensure hips exist at indices 23 and 24
+      pose[23] = [0.4, 0.7, 0.15, 0.9];
+      pose[24] = [0.6, 0.7, 0.15, 0.9];
+      return pose;
+    }
+
+    // Helper to create realistic face data (468 landmarks)
+    function createFaceLandmarks(): number[][] {
+      const face: number[][] = [];
+      for (let i = 0; i < 468; i++) {
+        face.push([0.5 + i * 0.0001, 0.5 + i * 0.0001, 0.05 + i * 0.00001]);
+      }
+      // Ensure key landmarks exist
+      face[1] = [0.5, 0.5, 0.05]; // nose tip
+      face[33] = [0.45, 0.45, 0.05]; // left eye
+      face[263] = [0.55, 0.45, 0.05]; // right eye
+      face[13] = [0.5, 0.55, 0.05]; // upper lip
+      face[14] = [0.5, 0.58, 0.05]; // lower lip
+      return face;
+    }
+
+    beforeEach(async () => {
+      // Load multimodal model
+      const ok = await window.__setMlpModelB64!(MINIMAL_MULTIMODAL_MLP_ZIP_B64);
+      expect(ok).toBe(true);
+    });
+
+    it('erkennt multimodales Modell (258 Eingabe-Features)', async () => {
+      // Model should be loaded and recognized as multimodal
+      // The model expects 258 features (126 hands + 99 pose + 33 face)
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        createPoseLandmarks(),
+        createFaceLandmarks()
+      );
+      
+      // Should return a prediction
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('multimodal');
+    });
+
+    it('führt multimodale Vorhersage mit Pose-Landmarks durch', async () => {
+      const pose = createPoseLandmarks();
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        pose,
+        undefined
+      );
+
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('multimodal');
+      expect(res?.score).toBeGreaterThan(0);
+    });
+
+    it('führt multimodale Vorhersage mit Gesichts-Landmarks durch', async () => {
+      const face = createFaceLandmarks();
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        undefined,
+        face
+      );
+
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('multimodal');
+      expect(res?.score).toBeGreaterThan(0);
+    });
+
+    it('führt multimodale Vorhersage mit allen Modalitäten durch', async () => {
+      const pose = createPoseLandmarks();
+      const face = createFaceLandmarks();
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        pose,
+        face
+      );
+
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('multimodal');
+      expect(res?.score).toBeGreaterThan(0);
+    });
+
+    it('erzeugt 258-dimensionale Feature-Vektor für multimodales Modell', async () => {
+      const pose = createPoseLandmarks();
+      const face = createFaceLandmarks();
+      
+      // The prediction should process 258 features internally
+      // We verify this indirectly by ensuring the prediction succeeds
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        pose,
+        face
+      );
+
+      expect(res).not.toBeNull();
+      // The model was created with w1 shape (1, 258), so successful prediction
+      // confirms that 258 features were correctly provided
+    });
+
+    it('behandelt rechte Hand mit multimodalen Features', async () => {
+      const pose = createPoseLandmarks();
+      const face = createFaceLandmarks();
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Right' }]],
+        pose,
+        face
+      );
+
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('multimodal');
+    });
+
+    it('behandelt beide Hände mit multimodalen Features', async () => {
+      const pose = createPoseLandmarks();
+      const face = createFaceLandmarks();
+      const res = window.__mlpPredict!(
+        [TEST_HAND, TEST_HAND],
+        [[{ categoryName: 'Left' }], [{ categoryName: 'Right' }]],
+        pose,
+        face
+      );
+
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('multimodal');
+    });
+
+    it('behandelt fehlende Pose-Daten (padding mit Nullen)', async () => {
+      const incompletePose = [[0.5, 0.5, 0.1, 0.9]]; // Only 1 landmark
+      const face = createFaceLandmarks();
+      
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        incompletePose,
+        face
+      );
+
+      // Should still work - pose section will be padded with zeros
+      expect(res).not.toBeNull();
+    });
+
+    it('behandelt fehlende Gesichtsdaten (padding mit Nullen)', async () => {
+      const pose = createPoseLandmarks();
+      const incompleteFace = [[0.5, 0.5, 0.05]]; // Only 1 landmark
+      
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        pose,
+        incompleteFace
+      );
+
+      // Should still work - face section will be padded with zeros
+      expect(res).not.toBeNull();
+    });
+
+    it('verwendet hand-only Normalisierung für hand-only Modell', async () => {
+      // Load the original hand-only model
+      const ok = await window.__setMlpModelB64!(MINIMAL_MLP_ZIP_B64);
+      expect(ok).toBe(true);
+
+      // Even if pose/face are provided, hand-only model should use hand-only path
+      const pose = createPoseLandmarks();
+      const face = createFaceLandmarks();
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        pose,
+        face
+      );
+
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('hi'); // Original model label
+    });
+
+    it('normalisiert multimodale Features unabhängig voneinander', async () => {
+      const pose = createPoseLandmarks();
+      const face = createFaceLandmarks();
+
+      // First prediction
+      const res1 = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        pose,
+        face
+      );
+
+      // Scale pose and face by 2x
+      const scaledPose = pose.map(p => [p[0] * 2, p[1] * 2, p[2] * 2, p[3]]);
+      const scaledFace = face.map(p => [p[0] * 2, p[1] * 2, p[2] * 2]);
+
+      // Second prediction with scaled data
+      const res2 = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        scaledPose,
+        scaledFace
+      );
+
+      // Both should produce valid predictions
+      expect(res1).not.toBeNull();
+      expect(res2).not.toBeNull();
+      // Scores should be similar due to normalization
+      expect(Math.abs((res1?.score ?? 0) - (res2?.score ?? 0))).toBeLessThan(0.1);
+    });
   });
 });
