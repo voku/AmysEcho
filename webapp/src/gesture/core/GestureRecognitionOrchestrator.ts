@@ -264,8 +264,8 @@ export class GestureRecognitionOrchestrator {
 
       // Prepare processing context
       const normalized = mapMediaPipeResult(results);
+      this.collectFrameForBatch(normalized);
       const smoothed = this.multimodalSmoother.smooth(normalized, timestamp);
-      this.collectFrameForBatch(smoothed);
 
       const context: ProcessingContext = {
         landmarks: smoothed.landmarks,
