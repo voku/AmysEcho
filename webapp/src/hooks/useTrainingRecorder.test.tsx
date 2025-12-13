@@ -70,6 +70,17 @@ describe('useTrainingRecorder', () => {
         ],
       ],
       handednesses: [['Left']],
+      poseLandmarks: [
+        [
+          [0.5, 0.6, 0.1],
+        ],
+      ],
+      faceLandmarks: [
+        [
+          [0.2, 0.3, 0.4],
+        ],
+      ],
+      features: [{ lipPointing: 0.5 }],
       frames: ['data:image/jpeg;base64,test'],
     };
 
@@ -83,6 +94,9 @@ describe('useTrainingRecorder', () => {
     });
 
     expect(result.current.recordedData.stillImage).toBe('data:image/jpeg;base64,test');
+    expect(result.current.recordedData.frames[0]?.poseLandmarks?.[0]).toEqual([0.5, 0.6, 0.1]);
+    expect(result.current.recordedData.frames[0]?.faceLandmarks?.[0]).toEqual([0.2, 0.3, 0.4]);
+    expect(result.current.recordedData.frames[0]?.features?.lipPointing).toBe(0.5);
   });
 
   it('wertet FRAME_BATCH-Meldungen aus gesture_batch aus', async () => {

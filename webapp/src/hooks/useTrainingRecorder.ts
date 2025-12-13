@@ -12,6 +12,9 @@ interface FrameBatchPayload {
   frames?: string[];
   landmarks: number[][][][];
   handednesses?: string[][];
+  poseLandmarks?: number[][][];
+  faceLandmarks?: number[][][];
+  features?: Array<Record<string, unknown> | undefined>;
   timestamps?: number[];
 }
 
@@ -104,6 +107,9 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
 
     const framesToAppend: TrainingFrame[] = [];
     const handednessBatches = Array.isArray(payload.handednesses) ? payload.handednesses : [];
+    const poseLandmarkBatches = Array.isArray(payload.poseLandmarks) ? payload.poseLandmarks : [];
+    const faceLandmarkBatches = Array.isArray(payload.faceLandmarks) ? payload.faceLandmarks : [];
+    const featureBatches = Array.isArray(payload.features) ? payload.features : [];
     const frameImages = Array.isArray(payload.frames)
       ? payload.frames.filter((frame): frame is string => typeof frame === 'string')
       : [];
@@ -136,9 +142,46 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
           ? handednessBatches[index].filter((h): h is string => typeof h === 'string')
           : [];
 
+        const poseLandmarks = Array.isArray(poseLandmarkBatches[index])
+          ? poseLandmarkBatches[index].map((point) =>
+              Array.isArray(point) ? point.map((value) => (typeof value === 'number' ? value : 0)) : [],
+            )
+          : [];
+
+        const faceLandmarks = Array.isArray(faceLandmarkBatches[index])
+          ? faceLandmarkBatches[index].map((point) =>
+              Array.isArray(point) ? point.map((value) => (typeof value === 'number' ? value : 0)) : [],
+            )
+          : [];
+
+        const featuresCandidate = featureBatches[index];
+        const features =
+          featuresCandidate && typeof featuresCandidate === 'object'
+            ? {
+                ...(typeof (featuresCandidate as Record<string, unknown>).lipPointing === 'number'
+                  ? { lipPointing: (featuresCandidate as Record<string, number>).lipPointing }
+                  : {}),
+                ...(typeof (featuresCandidate as Record<string, unknown>).headYaw === 'number'
+                  ? { headYaw: (featuresCandidate as Record<string, number>).headYaw }
+                  : {}),
+                ...(typeof (featuresCandidate as Record<string, unknown>).headPitch === 'number'
+                  ? { headPitch: (featuresCandidate as Record<string, number>).headPitch }
+                  : {}),
+                ...(typeof (featuresCandidate as Record<string, unknown>).browRaise === 'number'
+                  ? { browRaise: (featuresCandidate as Record<string, number>).browRaise }
+                  : {}),
+                ...(typeof (featuresCandidate as Record<string, unknown>).mouthOpen === 'number'
+                  ? { mouthOpen: (featuresCandidate as Record<string, number>).mouthOpen }
+                  : {}),
+              }
+            : undefined;
+
         framesToAppend.push({
           landmarks: cloned as number[][][],
           handedness,
+          poseLandmarks,
+          faceLandmarks,
+          features: features as TrainingFrame['features'],
         });
 
         setPreviewLandmarks(cloned as number[][][]);

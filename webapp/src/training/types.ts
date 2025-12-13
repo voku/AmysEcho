@@ -1,11 +1,19 @@
+import type { MultimodalFeatureSet } from '../gesture/types/MediaPipeTypes';
+
 export interface TrainingFrame {
   landmarks: number[][][];
   handedness?: ReadonlyArray<string>;
+  poseLandmarks?: number[][];
+  faceLandmarks?: number[][];
+  features?: MultimodalFeatureSet;
 }
 
 export interface FrameData {
   landmarks: number[][][];
   handedness?: ReadonlyArray<string>;
+  poseLandmarks?: number[][];
+  faceLandmarks?: number[][];
+  features?: MultimodalFeatureSet;
 }
 
 export interface TrainingBundlePayload {
@@ -14,6 +22,12 @@ export interface TrainingBundlePayload {
   frames: TrainingFrame[];
   capturedAt?: string;
   source?: string;
+  smoothingConfig?: {
+    method?: string;
+    minCutOff?: number;
+    beta?: number;
+    dCutOff?: number;
+  };
   clipFile?: File | null;
   stillFile?: File | null;
 }

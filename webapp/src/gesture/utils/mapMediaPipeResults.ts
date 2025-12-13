@@ -10,9 +10,13 @@ export interface NormalizedMediaPipeResult {
   hands: NormalizedHandPrediction[];
   landmarks: number[][][];
   handednesses: string[];
+  poseLandmarks: number[][];
+  faceLandmarks: number[][];
 }
 
 type HandLandmarks = NonNullable<MediaPipeGestureResult['landmarks']>[number];
+type PoseLandmarks = NonNullable<MediaPipeGestureResult['poseLandmarks']>[number];
+type FaceLandmarks = NonNullable<MediaPipeGestureResult['faceLandmarks']>[number];
 
 function normalizeHandLandmarks(hand?: HandLandmarks): number[][] {
   if (!hand) {
@@ -35,7 +39,7 @@ function normalizeHandLandmarks(hand?: HandLandmarks): number[][] {
 
 export function mapMediaPipeResult(result?: MediaPipeGestureResult): NormalizedMediaPipeResult {
   if (!result) {
-    return { hands: [], landmarks: [], handednesses: [] };
+    return { hands: [], landmarks: [], handednesses: [], poseLandmarks: [], faceLandmarks: [] };
   }
 
   const maxHands = Math.max(
@@ -65,5 +69,17 @@ export function mapMediaPipeResult(result?: MediaPipeGestureResult): NormalizedM
     hands,
     landmarks: hands.map(hand => hand.landmarks),
     handednesses: hands.map(hand => hand.handedness),
+    poseLandmarks: normalizePoseLandmarks(result.poseLandmarks?.[0]),
+    faceLandmarks: normalizeFaceLandmarks(result.faceLandmarks?.[0]),
   };
+}
+
+function normalizePoseLandmarks(pose?: PoseLandmarks): number[][] {
+  if (!pose) return [];
+  return pose.map((point) => [point?.x ?? 0, point?.y ?? 0, point?.z ?? 0, point?.visibility ?? 0]);
+}
+
+function normalizeFaceLandmarks(face?: FaceLandmarks): number[][] {
+  if (!face) return [];
+  return face.map((point) => [point?.x ?? 0, point?.y ?? 0, point?.z ?? 0]);
 }

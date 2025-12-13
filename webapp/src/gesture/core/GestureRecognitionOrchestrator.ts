@@ -21,13 +21,18 @@ import { EmergencyGestureSystem } from '../core/EmergencyGestureSystem';
 import { HandStabilityAssistant } from '../core/HandStabilityAssistant';
 import { BatteryMonitor } from '../core/BatteryMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
-import { MediaPipeGestureResult, TwoHandGesture } from '../types/MediaPipeTypes';
+import {
+  MediaPipeGestureResult,
+  MultimodalFeatureSet,
+  TwoHandGesture,
+} from '../types/MediaPipeTypes';
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
 import { messageBatcher, FRAME_LATENCY_SAMPLE_INTERVAL } from '../utils/MessageBatcher';
 import { captureFrameForTrainer, getLastCapturedFrame, setFrameCaptureEnabled } from '../utils/FrameCaptureManager';
 import { FallbackClipRecorder, FallbackClipResult } from '../utils/FallbackClipRecorder';
 import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
+import { MultimodalSmoother } from '../utils/MultimodalSmoother';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
@@ -69,6 +74,9 @@ interface FrameBatchEntry {
   frame: string;
   landmarks: number[][][];
   handednesses: string[];
+  poseLandmarks: number[][];
+  faceLandmarks: number[][];
+  features: MultimodalFeatureSet;
   timestamp: number;
 }
 
@@ -126,6 +134,7 @@ export class GestureRecognitionOrchestrator {
   private frameBatchTimer: number | null = null;
   private clipCaptureState: ClipCaptureState | null = null;
   private frameCaptureCounter = 0; // Counter for frame throttling
+  private multimodalSmoother: MultimodalSmoother;
 
   private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
 
@@ -138,6 +147,7 @@ export class GestureRecognitionOrchestrator {
     this.memoryOptimizer = MemoryOptimizer.getInstance();
     this.processingPipeline = new ProcessingPipeline();
     this.config = loadConfig();
+    this.multimodalSmoother = new MultimodalSmoother();
 
     this.createGestureDetector =
       dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
@@ -254,27 +264,28 @@ export class GestureRecognitionOrchestrator {
 
       // Prepare processing context
       const normalized = mapMediaPipeResult(results);
-      this.collectFrameForBatch(normalized);
+      const smoothed = this.multimodalSmoother.smooth(normalized, timestamp);
+      this.collectFrameForBatch(smoothed);
 
       const context: ProcessingContext = {
-        landmarks: normalized.landmarks,
+        landmarks: smoothed.landmarks,
         timestamp,
         processingStep: 'gesture_results',
         skipExpensiveSteps: this.shouldSkipExpensiveSteps(),
         rawResults: results,
-        rawLandmarks: normalized.landmarks,
-        handednesses: normalized.handednesses,
-        normalizedResults: normalized
+        rawLandmarks: smoothed.landmarks,
+        handednesses: smoothed.handednesses,
+        normalizedResults: smoothed
       };
 
       // Execute processing pipeline
       const processingResult = await this.processingPipeline.executePipeline(context);
 
       // Send landmarks for preview and recognition at throttled rate
-      const hasLandmarks = normalized.landmarks.some(hand => hand.length > 0);
+      const hasLandmarks = smoothed.landmarks.some(hand => hand.length > 0);
       const now = Date.now();
       if (hasLandmarks && now - this.lastLandmarkSendTime >= this.landmarkSendIntervalMs) {
-        this.sendLandmarks(normalized.landmarks, normalized.handednesses, timestamp);
+        this.sendLandmarks(smoothed.landmarks, smoothed.handednesses, timestamp);
         this.lastLandmarkSendTime = now;
       }
 
@@ -304,11 +315,11 @@ export class GestureRecognitionOrchestrator {
         this.sendGestureResult({
           gesture: null,
           confidence: 0,
-          landmarks: normalized.landmarks,
+          landmarks: smoothed.landmarks,
           metadata: {
             method: 'none',
             perHand: [],
-            handednesses: normalized.handednesses,
+            handednesses: smoothed.handednesses,
             mlp: null,
             twoHand: null
           },
@@ -363,6 +374,9 @@ export class GestureRecognitionOrchestrator {
         frame: frameDataUrl,
         landmarks: normalized.landmarks,
         handednesses: normalized.handednesses,
+        poseLandmarks: normalized.poseLandmarks,
+        faceLandmarks: normalized.faceLandmarks,
+        features: this.computeFeatures(normalized),
         timestamp: Date.now(),
       };
 
@@ -402,6 +416,9 @@ export class GestureRecognitionOrchestrator {
         type: 'FRAME_BATCH',
         landmarks: entries.map((entry) => entry.landmarks),
         handednesses: entries.map((entry) => entry.handednesses),
+        poseLandmarks: entries.map((entry) => entry.poseLandmarks),
+        faceLandmarks: entries.map((entry) => entry.faceLandmarks),
+        features: entries.map((entry) => entry.features),
         timestamps: entries.map((entry) => entry.timestamp),
         frames: entries.map((entry) => entry.frame),
       } as const;
@@ -424,6 +441,25 @@ export class GestureRecognitionOrchestrator {
     if (!sendFullBuffer && this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
       this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
     }
+  }
+
+  private computeFeatures(normalized: NormalizedMediaPipeResult): MultimodalFeatureSet {
+    const features: MultimodalFeatureSet = {};
+
+    const face = normalized.faceLandmarks;
+    const hands = normalized.landmarks;
+    const lipLandmark = face?.[13];
+    const primaryHand = hands?.[0];
+    const indexTip = primaryHand?.[8];
+
+    if (lipLandmark && indexTip) {
+      const dx = (indexTip[0] ?? 0) - (lipLandmark[0] ?? 0);
+      const dy = (indexTip[1] ?? 0) - (lipLandmark[1] ?? 0);
+      const dz = (indexTip[2] ?? 0) - (lipLandmark[2] ?? 0);
+      features.lipPointing = Math.hypot(dx, dy, dz);
+    }
+
+    return features;
   }
 
   startClipCapture(requestId: string): void {

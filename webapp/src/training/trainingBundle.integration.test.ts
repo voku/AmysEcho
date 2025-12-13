@@ -5,7 +5,17 @@ import { REALISTIC_FRAMES } from './__fixtures__/realisticFrames';
 
 type ManifestEntry = {
   metadata: Record<string, any>;
-  landmarks: { frames: Array<{ handedness: string[]; landmarks: number[][] }> };
+  landmarks: {
+    frames: Array<{
+      handedness: string[];
+      landmarks: number[][];
+      handLandmarks: number[][][];
+      poseLandmarks: number[][];
+      faceLandmarks: number[][];
+      features?: Record<string, unknown>;
+    }>;
+    metadata: Record<string, unknown>;
+  };
   files: string[];
 };
 
@@ -81,7 +91,14 @@ describe('uploadTrainingBundle integration', () => {
       manifestEntries.push({
         metadata: JSON.parse(strFromU8(metadataEntry)) as Record<string, any>,
         landmarks: JSON.parse(strFromU8(landmarksEntry)) as {
-          frames: Array<{ handedness: string[]; landmarks: number[][] }>;
+          frames: Array<{
+            handedness: string[];
+            landmarks: number[][];
+            handLandmarks: number[][][];
+            poseLandmarks: number[][];
+            faceLandmarks: number[][];
+            features?: Record<string, unknown>;
+          }>;
         },
         files,
       });
@@ -117,6 +134,11 @@ describe('uploadTrainingBundle integration', () => {
       clipFilename: 'clip.mp4',
     });
 
+    expect(entry.landmarks.metadata).toMatchObject({
+      modalities: { hands: true, pose: false, face: false },
+      smoothing: { method: 'one_euro' },
+    });
+
     expect(entry.files).toEqual(
       expect.arrayContaining(['metadata.json', 'landmarks.json', 'clip.mp4']),
     );
@@ -126,10 +148,14 @@ describe('uploadTrainingBundle integration', () => {
     expect(firstFrame.landmarks).toHaveLength(42);
     expect(firstFrame.landmarks[0]).toEqual(REALISTIC_FRAMES[0].landmarks[0][0]);
     expect(firstFrame.landmarks[21]).toEqual(REALISTIC_FRAMES[0].landmarks[1][0]);
+    expect(firstFrame.handLandmarks[0][0]).toEqual(REALISTIC_FRAMES[0].landmarks[0][0]);
+    expect(firstFrame.poseLandmarks).toEqual([]);
+    expect(firstFrame.faceLandmarks).toEqual([]);
 
     expect(secondFrame.handedness).toEqual(['Right']);
     expect(secondFrame.landmarks).toHaveLength(42);
     expect(secondFrame.landmarks[0]).toEqual([0, 0, 0]);
     expect(secondFrame.landmarks[21]).toEqual(REALISTIC_FRAMES[1].landmarks[0][0]);
+    expect(secondFrame.handLandmarks[0][0]).toEqual(REALISTIC_FRAMES[1].landmarks[0][0]);
   }, 10000);
 });

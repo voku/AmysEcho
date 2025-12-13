@@ -27,6 +27,8 @@ vi.mock('../core/OverlayRenderer', () => {
     clear = vi.fn();
     resizeOverlay = vi.fn();
     drawHandLandmarks = vi.fn();
+    drawPoseLandmarks = vi.fn();
+    drawFaceLandmarks = vi.fn();
   }
   return { OverlayRenderer: MockOverlayRenderer };
 });
@@ -84,6 +86,7 @@ describe('GestureDetector', () => {
     vi.mocked(GestureConfig.loadConfig).mockReturnValue({
       performance: { telemetrySampleRate: 1000 },
       thresholds: { mlpConfidence: 0.8 },
+      camera: { mirrorOverlay: true },
     } as any);
 
     mockLoadTasksVision = vi.fn().mockResolvedValue(mockComponents);
@@ -157,6 +160,29 @@ describe('GestureDetector', () => {
 
       // Start should not throw
       await expect(detector.start()).resolves.not.toThrow();
+    });
+  });
+
+  describe('overlay rendering', () => {
+    it('draws multimodal overlays when pose and face landmarks are present', async () => {
+      const detector = new GestureDetector(mockVideo, mockOverlay);
+      await detector.initialize();
+
+      const overlayRenderer = (detector as any).overlayRenderer as OverlayRenderer;
+      const poseLandmarks = Array.from({ length: 29 }, (_, index) => [
+        0.1 + index * 0.001,
+        0.2,
+        0,
+      ]);
+      const faceLandmarks = Array.from({ length: 363 }, () => [0.3, 0.4, 0]);
+
+      (detector as any).updateOverlay([
+        [[0.1, 0.1, 0], [0.2, 0.2, 0]],
+      ], 12, 0, poseLandmarks, faceLandmarks);
+
+      expect(overlayRenderer.drawPoseLandmarks).toHaveBeenCalledWith(poseLandmarks, expect.any(Boolean));
+      expect(overlayRenderer.drawFaceLandmarks).toHaveBeenCalledWith(faceLandmarks, expect.any(Boolean));
+      expect(overlayRenderer.drawHandLandmarks).toHaveBeenCalled();
     });
   });
 
