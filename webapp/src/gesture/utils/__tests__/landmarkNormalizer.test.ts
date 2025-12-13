@@ -230,6 +230,17 @@ describe('LandmarkNormalizer', () => {
   });
 
   describe('prepareMultimodalForMLP', () => {
+    // Constants for multimodal feature dimensions
+    const HAND_FEATURES = 126; // 2 hands × 21 points × 3 coords
+    const POSE_FEATURES = 99;  // 33 points × 3 coords (visibility dropped)
+    const FACE_FEATURES = 33;  // 11 key points × 3 coords
+    const TOTAL_MULTIMODAL_FEATURES = 258; // hands + pose + face
+    const HAND_SECTION_END = HAND_FEATURES; // 0-125
+    const POSE_SECTION_START = HAND_FEATURES; // 126
+    const POSE_SECTION_END = HAND_FEATURES + POSE_FEATURES; // 126-224
+    const FACE_SECTION_START = HAND_FEATURES + POSE_FEATURES; // 225
+    const FACE_SECTION_END = TOTAL_MULTIMODAL_FEATURES; // 225-257
+
     // Helper to create realistic hand data (42 points = 2 hands × 21 landmarks)
     function createHandData(): number[][] {
       const hands: number[][] = [];
@@ -284,7 +295,7 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands);
 
       expect(result).toBeInstanceOf(Float32Array);
-      expect(result.length).toBe(258);
+      expect(result.length).toBe(TOTAL_MULTIMODAL_FEATURES);
     });
 
     it('erzeugt 258-dimensionale Ausgabe mit hands + pose', () => {
@@ -293,7 +304,7 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands, pose);
 
       expect(result).toBeInstanceOf(Float32Array);
-      expect(result.length).toBe(258);
+      expect(result.length).toBe(TOTAL_MULTIMODAL_FEATURES);
     });
 
     it('erzeugt 258-dimensionale Ausgabe mit hands + face', () => {
@@ -302,7 +313,7 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands, undefined, face);
 
       expect(result).toBeInstanceOf(Float32Array);
-      expect(result.length).toBe(258);
+      expect(result.length).toBe(TOTAL_MULTIMODAL_FEATURES);
     });
 
     it('erzeugt 258-dimensionale Ausgabe mit hands + pose + face', () => {
@@ -312,7 +323,7 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands, pose, face);
 
       expect(result).toBeInstanceOf(Float32Array);
-      expect(result.length).toBe(258);
+      expect(result.length).toBe(TOTAL_MULTIMODAL_FEATURES);
     });
 
     it('normalisiert Handlandmarks korrekt (126 features)', () => {
@@ -320,14 +331,14 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands);
 
       // First 126 elements should be hand features (not all zeros)
-      const handFeatures = result.slice(0, 126);
+      const handFeatures = result.slice(0, HAND_SECTION_END);
       const hasNonZero = Array.from(handFeatures).some(v => v !== 0);
       expect(hasNonZero).toBe(true);
 
       // Pose and face should be zeros when not provided
-      const poseFeatures = result.slice(126, 225);
+      const poseFeatures = result.slice(POSE_SECTION_START, POSE_SECTION_END);
       expect(Array.from(poseFeatures).every(v => v === 0)).toBe(true);
-      const faceFeatures = result.slice(225, 258);
+      const faceFeatures = result.slice(FACE_SECTION_START, FACE_SECTION_END);
       expect(Array.from(faceFeatures).every(v => v === 0)).toBe(true);
     });
 
@@ -337,12 +348,12 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands, pose);
 
       // Pose features at indices 126-224 should have non-zero values
-      const poseFeatures = result.slice(126, 225);
+      const poseFeatures = result.slice(POSE_SECTION_START, POSE_SECTION_END);
       const hasNonZero = Array.from(poseFeatures).some(v => v !== 0);
       expect(hasNonZero).toBe(true);
 
       // Face features should be zeros when not provided
-      const faceFeatures = result.slice(225, 258);
+      const faceFeatures = result.slice(FACE_SECTION_START, FACE_SECTION_END);
       expect(Array.from(faceFeatures).every(v => v === 0)).toBe(true);
     });
 
@@ -352,12 +363,12 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands, undefined, face);
 
       // Face features at indices 225-257 should have non-zero values
-      const faceFeatures = result.slice(225, 258);
+      const faceFeatures = result.slice(FACE_SECTION_START, FACE_SECTION_END);
       const hasNonZero = Array.from(faceFeatures).some(v => v !== 0);
       expect(hasNonZero).toBe(true);
 
       // Pose features should be zeros when not provided
-      const poseFeatures = result.slice(126, 225);
+      const poseFeatures = result.slice(POSE_SECTION_START, POSE_SECTION_END);
       expect(Array.from(poseFeatures).every(v => v === 0)).toBe(true);
     });
 
@@ -367,7 +378,7 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands, incompletePose);
 
       // Pose section should be all zeros
-      const poseFeatures = result.slice(126, 225);
+      const poseFeatures = result.slice(POSE_SECTION_START, POSE_SECTION_END);
       expect(Array.from(poseFeatures).every(v => v === 0)).toBe(true);
     });
 
@@ -377,7 +388,7 @@ describe('LandmarkNormalizer', () => {
       const result = prepareMultimodalForMLP(hands, undefined, incompleteFace);
 
       // Face section should be all zeros
-      const faceFeatures = result.slice(225, 258);
+      const faceFeatures = result.slice(FACE_SECTION_START, FACE_SECTION_END);
       expect(Array.from(faceFeatures).every(v => v === 0)).toBe(true);
     });
 
@@ -393,8 +404,8 @@ describe('LandmarkNormalizer', () => {
       const result2 = prepareMultimodalForMLP(hands, scaledPose);
       
       // Pose features should be similar after normalization (within tolerance)
-      const poseFeatures1 = result1.slice(126, 225);
-      const poseFeatures2 = result2.slice(126, 225);
+      const poseFeatures1 = result1.slice(POSE_SECTION_START, POSE_SECTION_END);
+      const poseFeatures2 = result2.slice(POSE_SECTION_START, POSE_SECTION_END);
       
       // At least some features should be normalized to similar values
       let similarCount = 0;
@@ -418,8 +429,8 @@ describe('LandmarkNormalizer', () => {
       const result2 = prepareMultimodalForMLP(hands, undefined, scaledFace);
       
       // Face features should be similar after normalization
-      const faceFeatures1 = result1.slice(225, 258);
-      const faceFeatures2 = result2.slice(225, 258);
+      const faceFeatures1 = result1.slice(FACE_SECTION_START, FACE_SECTION_END);
+      const faceFeatures2 = result2.slice(FACE_SECTION_START, FACE_SECTION_END);
       
       // Most features should be normalized to similar values
       let similarCount = 0;
@@ -436,7 +447,7 @@ describe('LandmarkNormalizer', () => {
       const pose = createPoseData();
       
       const result = prepareMultimodalForMLP(hands, pose);
-      const poseFeatures = result.slice(126, 225);
+      const poseFeatures = result.slice(POSE_SECTION_START, POSE_SECTION_END);
       
       // After torso-centering, some coordinates should be negative, some positive
       const hasPositive = Array.from(poseFeatures).some(v => v > 0);
@@ -450,7 +461,7 @@ describe('LandmarkNormalizer', () => {
       const face = createFaceData();
       
       const result = prepareMultimodalForMLP(hands, undefined, face);
-      const faceFeatures = result.slice(225, 258);
+      const faceFeatures = result.slice(FACE_SECTION_START, FACE_SECTION_END);
       
       // After nose-tip centering, should have positive and negative values
       const hasPositive = Array.from(faceFeatures).some(v => v > 0);
