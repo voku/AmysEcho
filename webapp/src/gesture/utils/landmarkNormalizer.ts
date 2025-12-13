@@ -162,9 +162,12 @@ function normalizePoseForMLP(pose: number[][]): Float32Array {
   const torsoIndices = [11, 12, 23, 24]; // left shoulder, right shoulder, left hip, right hip
   let centerX = 0, centerY = 0, centerZ = 0;
   for (const idx of torsoIndices) {
-    centerX += poseXYZ[idx][0];
-    centerY += poseXYZ[idx][1];
-    centerZ += poseXYZ[idx][2];
+    const point = poseXYZ[idx];
+    if (point) {
+      centerX += point[0] ?? 0;
+      centerY += point[1] ?? 0;
+      centerZ += point[2] ?? 0;
+    }
   }
   centerX /= 4;
   centerY /= 4;
@@ -173,19 +176,34 @@ function normalizePoseForMLP(pose: number[][]): Float32Array {
   // Calculate shoulder width for scaling
   const leftShoulder = poseXYZ[11];
   const rightShoulder = poseXYZ[12];
+  if (!leftShoulder || !rightShoulder) {
+    return result; // Can't normalize without shoulders
+  }
+  const leftX = leftShoulder[0] ?? 0;
+  const leftY = leftShoulder[1] ?? 0;
+  const leftZ = leftShoulder[2] ?? 0;
+  const rightX = rightShoulder[0] ?? 0;
+  const rightY = rightShoulder[1] ?? 0;
+  const rightZ = rightShoulder[2] ?? 0;
   const shoulderWidth = Math.sqrt(
-    Math.pow(leftShoulder[0] - rightShoulder[0], 2) +
-    Math.pow(leftShoulder[1] - rightShoulder[1], 2) +
-    Math.pow(leftShoulder[2] - rightShoulder[2], 2)
+    Math.pow(leftX - rightX, 2) +
+    Math.pow(leftY - rightY, 2) +
+    Math.pow(leftZ - rightZ, 2)
   );
   const scale = shoulderWidth > 0 ? shoulderWidth : 1;
   
   // Normalize and flatten
   let k = 0;
   for (const point of poseXYZ) {
-    result[k++] = (point[0] - centerX) / scale;
-    result[k++] = (point[1] - centerY) / scale;
-    result[k++] = (point[2] - centerZ) / scale;
+    if (point) {
+      result[k++] = ((point[0] ?? 0) - centerX) / scale;
+      result[k++] = ((point[1] ?? 0) - centerY) / scale;
+      result[k++] = ((point[2] ?? 0) - centerZ) / scale;
+    } else {
+      result[k++] = 0;
+      result[k++] = 0;
+      result[k++] = 0;
+    }
   }
   
   return result;
@@ -211,11 +229,14 @@ function normalizeFaceForMLP(face: number[][]): Float32Array {
     70, 300,  // brows (2)
   ];
   
-  const noseTip = [face[1][0] ?? 0, face[1][1] ?? 0, face[1][2] ?? 0];
+  const noseTipPoint = face[1];
+  const noseTip: [number, number, number] = noseTipPoint ? [noseTipPoint[0] ?? 0, noseTipPoint[1] ?? 0, noseTipPoint[2] ?? 0] : [0, 0, 0];
   
   // Calculate eye distance for scaling
-  const leftEye = [face[33][0] ?? 0, face[33][1] ?? 0, face[33][2] ?? 0];
-  const rightEye = [face[263][0] ?? 0, face[263][1] ?? 0, face[263][2] ?? 0];
+  const leftEyePoint = face[33];
+  const rightEyePoint = face[263];
+  const leftEye: [number, number, number] = leftEyePoint ? [leftEyePoint[0] ?? 0, leftEyePoint[1] ?? 0, leftEyePoint[2] ?? 0] : [0, 0, 0];
+  const rightEye: [number, number, number] = rightEyePoint ? [rightEyePoint[0] ?? 0, rightEyePoint[1] ?? 0, rightEyePoint[2] ?? 0] : [0, 0, 0];
   const eyeDist = Math.sqrt(
     Math.pow(leftEye[0] - rightEye[0], 2) +
     Math.pow(leftEye[1] - rightEye[1], 2) +
