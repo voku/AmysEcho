@@ -178,7 +178,7 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
 
     def fake_flatten(frames: list[dict]):
         captured["frames"] = frames
-        return [[0.0, 0.0, 0.0] for _ in range(42)]
+        return {"landmarks": [[0.0, 0.0, 0.0] for _ in range(42)]}
 
     monkeypatch.setattr(module, "flatten_landmarks_mean", fake_flatten)
 

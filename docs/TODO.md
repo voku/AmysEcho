@@ -37,7 +37,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Expand `server/src/server.ts`'s `/latest-mlp-model` handler to accept `?profileId=` and serve personalized bundles when available; fall back to the global model otherwise.
 - [x] Update the webapp model client (`webapp/src/gesture/modelClient.ts`) to request the personalized model first.
 - [x] Notify users when a newer model version is loaded.
-- [ ] Surface modality coverage and training version in model headers so caregivers know they are using the multimodal DGS model without forcing additional language tags.
+- [ ] Surface modality coverage and training version in model headers so caregivers know they are using the multimodal DGS model.
 
 ## 6. Verify & Document the Sign Language Training Loop
 - [x] Add end-to-end tests: one in `integration/` that records a fake sign, uploads it, triggers `/train-model`, downloads the new weights, and asserts the model file checksum changes.
