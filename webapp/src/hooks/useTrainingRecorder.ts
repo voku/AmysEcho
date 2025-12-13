@@ -155,23 +155,23 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
           : [];
 
         const featuresCandidate = featureBatches[index];
-        const features =
+        const features: TrainingFrame['features'] =
           featuresCandidate && typeof featuresCandidate === 'object'
             ? {
-                ...(typeof (featuresCandidate as Record<string, unknown>).lipPointing === 'number'
-                  ? { lipPointing: (featuresCandidate as Record<string, number>).lipPointing }
+                ...(typeof (featuresCandidate as Record<string, unknown>)['lipPointing'] === 'number'
+                  ? { lipPointing: (featuresCandidate as Record<string, number>)['lipPointing'] }
                   : {}),
-                ...(typeof (featuresCandidate as Record<string, unknown>).headYaw === 'number'
-                  ? { headYaw: (featuresCandidate as Record<string, number>).headYaw }
+                ...(typeof (featuresCandidate as Record<string, unknown>)['headYaw'] === 'number'
+                  ? { headYaw: (featuresCandidate as Record<string, number>)['headYaw'] }
                   : {}),
-                ...(typeof (featuresCandidate as Record<string, unknown>).headPitch === 'number'
-                  ? { headPitch: (featuresCandidate as Record<string, number>).headPitch }
+                ...(typeof (featuresCandidate as Record<string, unknown>)['headPitch'] === 'number'
+                  ? { headPitch: (featuresCandidate as Record<string, number>)['headPitch'] }
                   : {}),
-                ...(typeof (featuresCandidate as Record<string, unknown>).browRaise === 'number'
-                  ? { browRaise: (featuresCandidate as Record<string, number>).browRaise }
+                ...(typeof (featuresCandidate as Record<string, unknown>)['browRaise'] === 'number'
+                  ? { browRaise: (featuresCandidate as Record<string, number>)['browRaise'] }
                   : {}),
-                ...(typeof (featuresCandidate as Record<string, unknown>).mouthOpen === 'number'
-                  ? { mouthOpen: (featuresCandidate as Record<string, number>).mouthOpen }
+                ...(typeof (featuresCandidate as Record<string, unknown>)['mouthOpen'] === 'number'
+                  ? { mouthOpen: (featuresCandidate as Record<string, number>)['mouthOpen'] }
                   : {}),
               }
             : undefined;
@@ -181,7 +181,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): Tra
           handedness,
           poseLandmarks,
           faceLandmarks,
-          features: features as TrainingFrame['features'],
+          ...(features !== undefined ? { features } : {}),
         });
 
         setPreviewLandmarks(cloned as number[][][]);

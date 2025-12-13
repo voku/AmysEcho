@@ -147,7 +147,7 @@ export class OverlayRenderer {
     for (const [a, b] of POSE_CONNECTIONS) {
       const pa = poseLandmarks[a];
       const pb = poseLandmarks[b];
-      if (!pa || !pb) continue;
+      if (!pa || !pb || pa[0] === undefined || pa[1] === undefined || pb[0] === undefined || pb[1] === undefined) continue;
 
       this.ctx.moveTo(
         this.drawOffsetX + pa[0] * this.drawWidth,
