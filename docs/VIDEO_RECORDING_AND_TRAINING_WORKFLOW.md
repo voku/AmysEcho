@@ -128,8 +128,7 @@ export function getClipCaptureErrorMessage(error: unknown): string
         "handLandmarks": [[/* left hand */], [/* right hand */]],
         "landmarks": [/* flattened hands for backward-compat */],
         "poseLandmarks": [/* optional body keypoints */],
-        "faceLandmarks": [/* optional face mesh keypoints */],
-        "features": { "lipPointing": 0.12 }
+        "faceLandmarks": [/* optional face mesh keypoints */]
       }
     ]
   },

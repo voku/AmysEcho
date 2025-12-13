@@ -1,7 +1,6 @@
 import { zipSync } from 'fflate';
-import { flattenHandsWithHandedness, frameHasAnyLandmarks } from './handUtils';
+import { flattenHandsWithHandedness, frameHasAnyLandmarks, framesHaveHandLandmarks } from './handUtils';
 import { HttpError } from '../utils/http';
-import type { MultimodalFeatureSet } from '../gesture/types/MediaPipeTypes';
 import type {
   TrainingBundlePayload,
   TrainingFrame,
@@ -24,7 +23,21 @@ type TimelineFrame = {
   handLandmarks: number[][][];
   poseLandmarks: number[][];
   faceLandmarks: number[][];
-  features?: MultimodalFeatureSet;
+};
+
+type LandmarksMetadata = {
+  modalities: {
+    hands: { present: boolean; frameCount: number; coverage: number };
+    pose: { present: boolean; frameCount: number; coverage: number };
+    face: { present: boolean; frameCount: number; coverage: number };
+  };
+  smoothing: {
+    method: string;
+    minCutOff: number;
+    beta: number;
+    dCutOff: number;
+  };
+  handedness?: { labels: string[]; frameCount: number };
 };
 
 export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
@@ -48,7 +61,6 @@ export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
         faceLandmarks: Array.isArray(frame.faceLandmarks)
           ? frame.faceLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
           : [],
-        ...(frame.features && Object.keys(frame.features).length > 0 ? { features: frame.features } : {}),
       };
     });
 }
@@ -59,7 +71,12 @@ function extractExtensionFromFile(file: File | null | undefined, fallback: strin
   return match?.[1]?.toLowerCase() || fallback;
 }
 
-function buildMetadata(payload: TrainingBundlePayload, clipFilename: string | null, stillFilename: string | null) {
+function buildMetadata(
+  payload: TrainingBundlePayload,
+  clipFilename: string | null,
+  stillFilename: string | null,
+  landmarksMetadata: LandmarksMetadata,
+) {
   return {
     profileId: payload.profileId,
     label: payload.label,
@@ -67,6 +84,9 @@ function buildMetadata(payload: TrainingBundlePayload, clipFilename: string | nu
     source: payload.source ?? 'web://mediapipe',
     ...(clipFilename ? { clipFilename } : {}),
     ...(stillFilename ? { stillFilename } : {}),
+    modalities: landmarksMetadata.modalities,
+    smoothing: landmarksMetadata.smoothing,
+    ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),
   };
 }
 
@@ -80,6 +100,8 @@ function buildLandmarksMetadata(frames: TimelineFrame[], payload: TrainingBundle
   let handsFrameCount = 0;
   let poseFrameCount = 0;
   let faceFrameCount = 0;
+  let handednessFrameCount = 0;
+  const handednessLabels = new Set<string>();
 
   for (const frame of frames) {
     if (frame.landmarks && frame.landmarks.some((hand) => hand.length > 0)) {
@@ -90,6 +112,10 @@ function buildLandmarksMetadata(frames: TimelineFrame[], payload: TrainingBundle
     }
     if (frame.faceLandmarks && frame.faceLandmarks.length > 0) {
       faceFrameCount++;
+    }
+    if (frame.handedness && frame.handedness.length > 0) {
+      handednessFrameCount++;
+      frame.handedness.forEach((hand) => handednessLabels.add(hand));
     }
   }
 
@@ -118,14 +144,17 @@ function buildLandmarksMetadata(frames: TimelineFrame[], payload: TrainingBundle
     dCutOff: payload.smoothingConfig?.dCutOff ?? DEFAULT_SMOOTHING.dCutOff,
   };
 
-  const features = {
-    lipPointing: frames.some((frame) => typeof frame.features?.lipPointing === 'number'),
-  };
-
   return {
     modalities,
     smoothing,
-    features,
+    ...(handednessLabels.size > 0
+      ? {
+          handedness: {
+            labels: Array.from(handednessLabels),
+            frameCount: handednessFrameCount,
+          },
+        }
+      : {}),
   };
 }
 
@@ -196,12 +225,15 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   if (!payload.profileId || !payload.label) {
     throw new Error('Profil und Label sind Pflichtfelder.');
   }
+  if (!framesHaveHandLandmarks(payload.frames)) {
+    throw new Error('Keine Hand-Landmarks erkannt. Bitte nimm die Gebärde erneut mit sichtbaren Händen auf.');
+  }
 
   const clipFilename = payload.clipFile ? `clip.${extractExtensionFromFile(payload.clipFile, 'mp4')}` : null;
   const stillFilename = payload.stillFile ? `still.${extractExtensionFromFile(payload.stillFile, 'jpg')}` : null;
-  const metadata = buildMetadata(payload, clipFilename, stillFilename);
   const frames = buildFrameTimeline(payload.frames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
+  const metadata = buildMetadata(payload, clipFilename, stillFilename, landmarksMetadata);
 
   const metadataContent = JSON.stringify(metadata, null, 2);
   const landmarksContent = JSON.stringify({ frames, metadata: landmarksMetadata }, null, 2);

@@ -20,7 +20,7 @@ const defaultState: StoredAppState = {
   preferredGestureLabel: 'HILFE',
   lastRecognizedGesture: null,
   recentGestures: [],
-};
+}; 
 
 function readFromStorage(): StoredAppState {
   if (typeof window === 'undefined') return defaultState;

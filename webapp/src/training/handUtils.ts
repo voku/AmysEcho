@@ -58,7 +58,7 @@ export function frameHasAnyLandmarks(
   }
 
   if (frame && typeof frame === 'object') {
-    if (Array.isArray(frame.landmarks) && frame.landmarks.some((hand) => Array.isArray(hand) && hand.length > 0)) {
+    if (Array.isArray(frame.landmarks) && frame.landmarks.some((hand: unknown) => Array.isArray(hand) && hand.length > 0)) {
       return true;
     }
 
@@ -72,6 +72,20 @@ export function frameHasAnyLandmarks(
   }
 
   return false;
+}
+
+export function framesHaveHandLandmarks(
+  frames: ReadonlyArray<{ landmarks?: number[][][] }> | undefined,
+): boolean {
+  if (!Array.isArray(frames)) return false;
+
+  return frames.some(
+    (frame) =>
+      frame &&
+      typeof frame === 'object' &&
+      Array.isArray(frame.landmarks) &&
+      frame.landmarks.some((hand: unknown) => Array.isArray(hand) && hand.length > 0),
+  );
 }
 
 type Triplet = [number, number, number];

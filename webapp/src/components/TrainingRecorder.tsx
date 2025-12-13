@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
 import type { TrainingBundlePayload } from '../training/types';
+import { framesHaveHandLandmarks } from '../training/handUtils';
 
 export interface TrainingRecorderProps {
   profileId: string;
@@ -138,7 +139,13 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         return;
       }
 
+      const hasHandLandmarks = framesHaveHandLandmarks(recordedData.frames);
       setNeedsStillConfirmation(false);
+      if (!hasHandLandmarks) {
+        setDetectorStartFeedback('Keine Hand-Landmarks erkannt. Bitte nimm die Gebärde erneut mit sichtbaren Händen auf.');
+        return;
+      }
+
       setDetectorStartFeedback('');
 
       // Convert still image to File if available

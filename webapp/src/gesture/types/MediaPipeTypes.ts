@@ -62,14 +62,6 @@ export interface GestureResult {
   timestamp?: number;
 }
 
-export interface MultimodalFeatureSet {
-  lipPointing?: number;
-  headYaw?: number;
-  headPitch?: number;
-  browRaise?: number;
-  mouthOpen?: number;
-}
-
 // Two-hand gesture representation
 export interface TwoHandGesture {
   left: string;

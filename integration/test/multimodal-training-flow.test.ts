@@ -52,7 +52,7 @@ async function waitForTrainingCompletion(pollUrl: string, headers: Record<string
  * 3. Trigger model training
  * 4. Wait for training completion
  * 5. Download personalized model
- * 6. Verify model uses multimodal features (258-dim input)
+ * 6. Verify model uses multimodal inputs (258-dim input)
  * 7. Test model distribution (personalized vs global fallback)
  */
 test('Complete multimodal training and model distribution workflow', async () => {
@@ -91,14 +91,6 @@ test('Complete multimodal training and model distribution workflow', async () =>
       0.2 + Math.cos(i * 0.1) * 0.05,
       0.02 + (i % 10) * 0.001
     ]),
-    // Computed features (NMMs - Non-Manual Markers)
-    features: {
-      lipPointing: 0.12 + handOffset,
-      headYaw: -0.05 + poseOffset,
-      headPitch: 0.03,
-      browRaise: 0.08,
-      mouthOpen: 0.15
-    }
   });
 
   // Create training samples for multiple signs
@@ -239,10 +231,6 @@ test('Multimodal metadata is preserved in training bundles', async () => {
     handedness: ['Left', 'Right'],
     poseLandmarks: Array.from({ length: 33 }, () => [0.5, 0.5, 0.1, 0.9]),
     faceLandmarks: Array.from({ length: 468 }, () => [0.5, 0.5, 0.1]),
-    features: {
-      lipPointing: 0.12,
-      headYaw: -0.05,
-    }
   }];
 
   const payload = {

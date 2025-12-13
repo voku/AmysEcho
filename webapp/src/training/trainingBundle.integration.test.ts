@@ -6,16 +6,15 @@ import { REALISTIC_FRAMES } from './__fixtures__/realisticFrames';
 type ManifestEntry = {
   metadata: Record<string, any>;
   landmarks: {
-    frames: Array<{
-      handedness: string[];
-      landmarks: number[][];
-      handLandmarks: number[][][];
-      poseLandmarks: number[][];
-      faceLandmarks: number[][];
-      features?: Record<string, unknown>;
-    }>;
-    metadata: Record<string, unknown>;
-  };
+      frames: Array<{
+        handedness: string[];
+        landmarks: number[][];
+        handLandmarks: number[][][];
+        poseLandmarks: number[][];
+        faceLandmarks: number[][];
+      }>;
+      metadata: Record<string, unknown>;
+    };
   files: string[];
 };
 
@@ -97,7 +96,6 @@ describe('uploadTrainingBundle integration', () => {
             handLandmarks: number[][][];
             poseLandmarks: number[][];
             faceLandmarks: number[][];
-            features?: Record<string, unknown>;
           }>;
         },
         files,

@@ -70,13 +70,6 @@ interface TrainingFrame {
   handedness?: string[];          // Which hand is which
   poseLandmarks?: number[][];     // Body pose (33 points)
   faceLandmarks?: number[][];     // Facial points (468 points)
-  features?: {                    // Computed features
-    lipPointing?: number;         // Distance from finger to lips
-    headYaw?: number;             // Head rotation
-    headPitch?: number;           // Head tilt
-    browRaise?: number;           // Eyebrow position
-    mouthOpen?: number;           // Mouth opening
-  };
 }
 ```
 
@@ -102,12 +95,7 @@ Example `landmarks.json`:
       "handLandmarks": [...],       // Structured format
       "handedness": ["Left", "Right"],
       "poseLandmarks": [...],       // 33 pose landmarks
-      "faceLandmarks": [...],       // 468 face landmarks
-      "features": {
-        "lipPointing": 0.12,
-        "headYaw": -0.05,
-        "headPitch": 0.03
-      }
+      "faceLandmarks": [...]        // 468 face landmarks
     }
   ],
   "metadata": {

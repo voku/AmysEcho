@@ -45,7 +45,6 @@ interface LandmarksFrameEntry {
   poseLandmarks?: unknown;
   faceLandmarks?: unknown;
   handedness?: unknown;
-  features?: unknown;
 }
 
 interface LandmarksFile {
@@ -65,7 +64,6 @@ interface DatasetSample {
   poseLandmarks?: number[][];
   faceLandmarks?: number[][];
   handedness?: string[];
-  features?: Record<string, number>;
   captureMetadata?: CaptureMetadata;
 }
 
@@ -76,7 +74,6 @@ interface DatasetFile {
 interface CaptureMetadata {
   modalities?: { hands?: boolean; pose?: boolean; face?: boolean };
   smoothing?: { method?: string; minCutOff?: number; beta?: number; dCutOff?: number };
-  features?: Record<string, unknown>;
 }
 
 function isDatasetSample(value: unknown): value is DatasetSample {
@@ -213,19 +210,6 @@ function normalizeHandedness(raw: unknown): string[] {
     .filter((entry) => entry.length > 0);
 }
 
-function normalizeFeatures(raw: unknown): Record<string, number> {
-  if (!raw || typeof raw !== 'object') {
-    return {};
-  }
-  const features: Record<string, number> = {};
-  for (const [key, value] of Object.entries(raw)) {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      features[key] = value;
-    }
-  }
-  return features;
-}
-
 function normalizeHandLandmarks(raw: unknown): number[][][] {
   const hands: number[][][] = [];
   if (Array.isArray(raw)) {
@@ -288,7 +272,6 @@ interface NormalizedFrameData {
   poseLandmarks: number[][];
   faceLandmarks: number[][];
   handedness: string[];
-  features: Record<string, number>;
   captureMetadata?: CaptureMetadata;
 }
 
@@ -342,17 +325,14 @@ function normalizeCaptureMetadata(raw: unknown): CaptureMetadata | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const modalities = normalizeModalities((raw as Record<string, unknown>).modalities);
   const smoothing = normalizeSmoothing((raw as Record<string, unknown>).smoothing);
-  const featuresRaw = (raw as Record<string, unknown>).features;
-  const features = featuresRaw && typeof featuresRaw === 'object' ? { ...featuresRaw } : undefined;
 
-  if (!modalities && !smoothing && !features) {
+  if (!modalities && !smoothing) {
     return undefined;
   }
 
   return {
     ...(modalities ? { modalities } : {}),
     ...(smoothing ? { smoothing } : {}),
-    ...(features ? { features } : {}),
   };
 }
 
@@ -434,14 +414,12 @@ async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<Normal
       if (landmarks.length === 0) {
         return;
       }
-      const features = normalizeFeatures(frame?.features);
       frames.push({
         landmarks,
         handLandmarks,
         poseLandmarks,
         faceLandmarks,
         handedness,
-        features,
         ...(captureMetadata ? { captureMetadata } : {}),
       });
     });
@@ -482,9 +460,6 @@ function buildDatasetSample(
   }
   if (frameData.handedness.length > 0) {
     sample.handedness = frameData.handedness;
-  }
-  if (Object.keys(frameData.features).length > 0) {
-    sample.features = frameData.features;
   }
   if (frameData.captureMetadata) {
     sample.captureMetadata = frameData.captureMetadata;
