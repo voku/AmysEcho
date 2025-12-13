@@ -230,17 +230,17 @@ function normalizeFaceForMLP(face: number[][]): Float32Array {
   ];
   
   const noseTipPoint = face[1];
-  const noseTip = noseTipPoint ? [noseTipPoint[0] ?? 0, noseTipPoint[1] ?? 0, noseTipPoint[2] ?? 0] : [0, 0, 0];
+  const noseTip: [number, number, number] = noseTipPoint ? [noseTipPoint[0] ?? 0, noseTipPoint[1] ?? 0, noseTipPoint[2] ?? 0] : [0, 0, 0];
   
   // Calculate eye distance for scaling
   const leftEyePoint = face[33];
   const rightEyePoint = face[263];
-  const leftEye = leftEyePoint ? [leftEyePoint[0] ?? 0, leftEyePoint[1] ?? 0, leftEyePoint[2] ?? 0] : [0, 0, 0];
-  const rightEye = rightEyePoint ? [rightEyePoint[0] ?? 0, rightEyePoint[1] ?? 0, rightEyePoint[2] ?? 0] : [0, 0, 0];
+  const leftEye: [number, number, number] = leftEyePoint ? [leftEyePoint[0] ?? 0, leftEyePoint[1] ?? 0, leftEyePoint[2] ?? 0] : [0, 0, 0];
+  const rightEye: [number, number, number] = rightEyePoint ? [rightEyePoint[0] ?? 0, rightEyePoint[1] ?? 0, rightEyePoint[2] ?? 0] : [0, 0, 0];
   const eyeDist = Math.sqrt(
-    Math.pow((leftEye[0] ?? 0) - (rightEye[0] ?? 0), 2) +
-    Math.pow((leftEye[1] ?? 0) - (rightEye[1] ?? 0), 2) +
-    Math.pow((leftEye[2] ?? 0) - (rightEye[2] ?? 0), 2)
+    Math.pow(leftEye[0] - rightEye[0], 2) +
+    Math.pow(leftEye[1] - rightEye[1], 2) +
+    Math.pow(leftEye[2] - rightEye[2], 2)
   );
   const scale = eyeDist > 0 ? eyeDist : 1;
   
@@ -248,9 +248,9 @@ function normalizeFaceForMLP(face: number[][]): Float32Array {
   let k = 0;
   for (const idx of keyIndices) {
     const point = face[idx] ?? [0, 0, 0];
-    result[k++] = ((point[0] ?? 0) - (noseTip[0] ?? 0)) / scale;
-    result[k++] = ((point[1] ?? 0) - (noseTip[1] ?? 0)) / scale;
-    result[k++] = ((point[2] ?? 0) - (noseTip[2] ?? 0)) / scale;
+    result[k++] = ((point[0] ?? 0) - noseTip[0]) / scale;
+    result[k++] = ((point[1] ?? 0) - noseTip[1]) / scale;
+    result[k++] = ((point[2] ?? 0) - noseTip[2]) / scale;
   }
   
   return result;
