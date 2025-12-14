@@ -576,8 +576,8 @@ p {
 .video-wrapper {
   position: relative;
   width: 100%;
-  min-height: clamp(520px, 82vh, 1040px);
-  max-height: none;
+  max-width: 100%;
+  min-height: clamp(400px, 70vh, 900px);
   aspect-ratio: 9 / 16;
   background: radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.08), rgba(12, 56, 60, 0.18)), var(--color-neutral);
   border-radius: var(--radius-xl);
@@ -1064,7 +1064,8 @@ p {
   }
 
   .video-wrapper {
-    min-height: clamp(520px, 92vh, 1100px);
+    min-height: clamp(300px, 60vh, 700px);
+    max-width: 100%;
     aspect-ratio: 9 / 16;
   }
 
@@ -1087,6 +1088,59 @@ p {
   .nav {
     width: 100%;
     justify-content: center;
+  }
+
+  .hud-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
+  .hud-actions {
+    justify-content: center;
+  }
+
+  .hud-controls {
+    justify-content: center;
+  }
+
+  .status-chip {
+    min-width: auto;
+    text-align: center;
+  }
+}
+
+/* Extra small screens - mobile phones in portrait */
+@media (max-width: 480px) {
+  #root {
+    padding: var(--space-md) var(--space-sm) calc(var(--space-xl) + 80px);
+  }
+
+  .app-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .header-brand h1 {
+    font-size: var(--font-size-body-lg);
+  }
+
+  .video-wrapper {
+    min-height: clamp(250px, 50vh, 500px);
+  }
+
+  .video-hud {
+    padding: var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .hud-actions button {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-caption);
+    min-width: auto;
+  }
+
+  .card {
+    padding: var(--space-md);
   }
 }
 
