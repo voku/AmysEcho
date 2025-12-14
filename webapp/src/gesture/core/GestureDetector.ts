@@ -9,7 +9,7 @@ import { OverlayRenderer } from './OverlayRenderer';
 import { ResourceManager } from '../utils/ResourceManager';
 import { HealthMonitor } from '../utils/HealthMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
-import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark } from '../types/MediaPipeTypes';
+import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark, PoseLandmark, FaceLandmark, PoseLandmarkerLike, FaceLandmarkerLike } from '../types/MediaPipeTypes';
 import {
   initializeFrameCapture,
   captureFrameForTrainer,
@@ -26,6 +26,11 @@ import { TemporalGestureAnalyzer } from '../utils/TemporalGestureAnalyzer';
 const SLOW_FRAME_THRESHOLD_MS = 50;
 const OVERLAY_CLEAR_INTERVAL_MS = 300;
 
+// MediaPipe model URLs
+const GESTURE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
+const POSE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+const FACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+
 export class GestureDetector {
   private static loadTasksVisionImpl: () => Promise<MediaPipeComponents | undefined> = loadTasksVision;
 
@@ -38,6 +43,8 @@ export class GestureDetector {
   private temporalAnalyzer: TemporalGestureAnalyzer;
   private video: HTMLVideoElement;
   private gestureRecognizer: GestureRecognizerLike | null = null;
+  private poseLandmarker: PoseLandmarkerLike | null = null;
+  private faceLandmarker: FaceLandmarkerLike | null = null;
   private running = false;
   private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
   private lastCaptureAttempt = 0;
@@ -102,7 +109,7 @@ export class GestureDetector {
 
       const vision = await filesetResolver.forVisionTasks(components.wasmBase);
       const baseOptions = {
-        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
+        modelAssetPath: GESTURE_MODEL_URL,
         delegate: 'GPU' as const,
       };
 
@@ -119,6 +126,66 @@ export class GestureDetector {
           runningMode: 'VIDEO',
           numHands: 2,
         });
+      }
+
+      // Initialize PoseLandmarker for pose detection (body skeleton)
+      if (components.PoseLandmarker) {
+        try {
+          const poseBaseOptions = {
+            modelAssetPath: POSE_MODEL_URL,
+            delegate: 'GPU' as const,
+          };
+          try {
+            this.poseLandmarker = await components.PoseLandmarker.createFromOptions(vision, {
+              baseOptions: poseBaseOptions,
+              runningMode: 'VIDEO',
+              numPoses: 1,
+            });
+            console.log('PoseLandmarker initialized successfully');
+          } catch (gpuErr) {
+            console.warn('PoseLandmarker GPU delegate failed, falling back to CPU:', gpuErr);
+            this.poseLandmarker = await components.PoseLandmarker.createFromOptions(vision, {
+              baseOptions: { ...poseBaseOptions, delegate: 'CPU' as const },
+              runningMode: 'VIDEO',
+              numPoses: 1,
+            });
+            console.log('PoseLandmarker initialized with CPU fallback');
+          }
+        } catch (poseErr) {
+          console.warn('PoseLandmarker initialization failed, pose detection disabled:', poseErr);
+        }
+      } else {
+        console.log('PoseLandmarker not available in MediaPipe bundle');
+      }
+
+      // Initialize FaceLandmarker for face detection (facial landmarks)
+      if (components.FaceLandmarker) {
+        try {
+          const faceBaseOptions = {
+            modelAssetPath: FACE_MODEL_URL,
+            delegate: 'GPU' as const,
+          };
+          try {
+            this.faceLandmarker = await components.FaceLandmarker.createFromOptions(vision, {
+              baseOptions: faceBaseOptions,
+              runningMode: 'VIDEO',
+              numFaces: 1,
+            });
+            console.log('FaceLandmarker initialized successfully');
+          } catch (gpuErr) {
+            console.warn('FaceLandmarker GPU delegate failed, falling back to CPU:', gpuErr);
+            this.faceLandmarker = await components.FaceLandmarker.createFromOptions(vision, {
+              baseOptions: { ...faceBaseOptions, delegate: 'CPU' as const },
+              runningMode: 'VIDEO',
+              numFaces: 1,
+            });
+            console.log('FaceLandmarker initialized with CPU fallback');
+          }
+        } catch (faceErr) {
+          console.warn('FaceLandmarker initialization failed, face detection disabled:', faceErr);
+        }
+      } else {
+        console.log('FaceLandmarker not available in MediaPipe bundle');
       }
 
       // Set up video event listener
@@ -208,22 +275,42 @@ export class GestureDetector {
             )
           : [];
 
-        const poseLandmarks: number[][] = results?.poseLandmarks?.[0]
-          ? results.poseLandmarks[0].map((landmark) => [
-              landmark.x ?? 0,
-              landmark.y ?? 0,
-              landmark.z ?? 0,
-              landmark.visibility ?? 0,
-            ])
-          : [];
+        // Run pose detection using PoseLandmarker (separate from gesture recognition)
+        let poseLandmarks: number[][] = [];
+        if (this.poseLandmarker) {
+          try {
+            const poseResults = this.poseLandmarker.detectForVideo(this.video, frameStart);
+            if (poseResults?.landmarks?.[0]) {
+              poseLandmarks = poseResults.landmarks[0].map((landmark: PoseLandmark) => [
+                landmark.x ?? 0,
+                landmark.y ?? 0,
+                landmark.z ?? 0,
+                landmark.visibility ?? 0,
+              ]);
+            }
+          } catch (poseErr) {
+            // Silently ignore pose detection errors to not interrupt main gesture flow
+            gestureDebugLog('recognizer', 'Pose detection error', () => ({ error: String(poseErr) }));
+          }
+        }
 
-        const faceLandmarks: number[][] = results?.faceLandmarks?.[0]
-          ? results.faceLandmarks[0].map((landmark) => [
-              landmark.x ?? 0,
-              landmark.y ?? 0,
-              landmark.z ?? 0,
-            ])
-          : [];
+        // Run face detection using FaceLandmarker (separate from gesture recognition)
+        let faceLandmarks: number[][] = [];
+        if (this.faceLandmarker) {
+          try {
+            const faceResults = this.faceLandmarker.detectForVideo(this.video, frameStart);
+            if (faceResults?.faceLandmarks?.[0]) {
+              faceLandmarks = faceResults.faceLandmarks[0].map((landmark: FaceLandmark) => [
+                landmark.x ?? 0,
+                landmark.y ?? 0,
+                landmark.z ?? 0,
+              ]);
+            }
+          } catch (faceErr) {
+            // Silently ignore face detection errors to not interrupt main gesture flow
+            gestureDebugLog('recognizer', 'Face detection error', () => ({ error: String(faceErr) }));
+          }
+        }
 
         // Update temporal analysis for velocity-based optimizations
         // Process all detected hands and use the maximum velocity for adaptive processing
@@ -340,6 +427,14 @@ export class GestureDetector {
 
     if (this.gestureRecognizer?.close) {
       await this.gestureRecognizer.close();
+    }
+
+    if (this.poseLandmarker?.close) {
+      await this.poseLandmarker.close();
+    }
+
+    if (this.faceLandmarker?.close) {
+      await this.faceLandmarker.close();
     }
 
     await this.cameraManager.stopCamera();

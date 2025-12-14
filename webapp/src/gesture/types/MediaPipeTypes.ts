@@ -194,6 +194,32 @@ export interface HolisticLandmarkerLike {
   close?: () => Promise<void> | void;
 }
 
+// Pose detection result
+export interface PoseLandmarkerResult {
+  landmarks?: PoseLandmark[][];
+}
+
+export interface PoseLandmarkerLike {
+  detectForVideo(
+    video: HTMLVideoElement,
+    timestamp: number
+  ): PoseLandmarkerResult | undefined;
+  close?: () => Promise<void> | void;
+}
+
+// Face detection result
+export interface FaceLandmarkerResult {
+  faceLandmarks?: FaceLandmark[][];
+}
+
+export interface FaceLandmarkerLike {
+  detectForVideo(
+    video: HTMLVideoElement,
+    timestamp: number
+  ): FaceLandmarkerResult | undefined;
+  close?: () => Promise<void> | void;
+}
+
 // Fileset Resolver interface
 export interface FilesetResolver {
   forVisionTasks(wasmBase?: string): Promise<any>;
