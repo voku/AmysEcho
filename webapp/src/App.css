@@ -2915,7 +2915,6 @@ p {
 
 /* Caregiver Area styles (formerly Parent Area) */
 .parent-area {
-  max-width: 800px;
   max-width: min(800px, 100%);
   margin: 0 auto;
   box-sizing: border-box;
