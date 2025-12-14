@@ -59,6 +59,10 @@ describe('GestureDetector', () => {
     mockOverlayRenderer = {
       render: jest.fn(),
       clear: jest.fn(),
+      resizeOverlay: jest.fn(),
+      drawHandLandmarks: jest.fn(),
+      drawPoseLandmarks: jest.fn(),
+      drawFaceLandmarks: jest.fn(),
     } as any;
 
     mockResourceManager = {
