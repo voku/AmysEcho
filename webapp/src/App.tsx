@@ -20,6 +20,7 @@ import { Settings } from './components/Settings';
 import { Teach } from './components/Teach';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { useApiConfig } from './hooks/useApiConfig';
+import { useAppState } from './hooks/useAppState';
 import './App.css';
 
 const AUTO_HIDE_BREAKPOINT_PX = 1024;
@@ -33,8 +34,9 @@ const ONBOARDING_KEY = 'webapp:onboarding-complete';
 // ========================================
 // Auth/Login Screen - Erster Schritt
 // ========================================
-function LoginScreen({ onComplete }: { onComplete: () => void }) {
-  const { apiBaseUrl, setApiToken, setPersistToken } = useApiConfig();
+export function LoginScreen({ onComplete }: { onComplete: () => void }) {
+  const { apiBaseUrl, setTokens, setPersistToken } = useApiConfig();
+  const { setProfileId } = useAppState();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -64,9 +66,20 @@ function LoginScreen({ onComplete }: { onComplete: () => void }) {
       }
 
       const accessToken = payload?.tokens?.accessToken;
+      const refreshToken = payload?.tokens?.refreshToken ?? '';
+      const profileFromUser =
+        typeof payload?.user?.username === 'string'
+          ? payload.user.username
+          : typeof payload?.user?.id === 'string'
+            ? payload.user.id
+            : null;
+      const normalizedProfile = (profileFromUser ?? username).trim();
       if (accessToken) {
         setPersistToken(true);
-        setApiToken(accessToken);
+        setTokens({ accessToken, refreshToken });
+        if (normalizedProfile) {
+          setProfileId(normalizedProfile);
+        }
         setMessage('Erfolgreich! Weiter geht\'s…');
         setTimeout(onComplete, 500);
       } else {
@@ -77,7 +90,7 @@ function LoginScreen({ onComplete }: { onComplete: () => void }) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [apiBaseUrl, authMode, username, password, setApiToken, setPersistToken, onComplete]);
+  }, [apiBaseUrl, authMode, username, password, setPersistToken, setTokens, setProfileId, onComplete]);
 
   const handleSkip = useCallback(() => {
     // Ermöglicht das Überspringen für Demo-Zwecke
