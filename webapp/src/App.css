@@ -85,7 +85,7 @@
   --space-2xl: 32px;
 
   /* Layout */
-  --bottom-nav-height: 80px;
+  --bottom-nav-height: 72px;
 
   /* Typography (from app/src/constants/typography.ts) */
   --font-size-micro: 12px;
@@ -1127,7 +1127,7 @@ p {
   .bottom-nav-item {
     padding: var(--space-sm) var(--space-lg);
     min-width: 70px;
-    min-height: 60px;
+    min-height: 54px;
   }
 
   .nav-icon {
@@ -1216,7 +1216,7 @@ p {
   .bottom-nav-item {
     padding: var(--space-xs) var(--space-md);
     min-width: 60px;
-    min-height: 50px;
+    min-height: 46px;
   }
 
   .nav-icon {
@@ -3612,12 +3612,19 @@ p {
   display: flex;
   justify-content: center;
   gap: var(--space-md);
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-md) var(--space-xl);
   background: linear-gradient(to top, var(--color-primary) 0%, var(--color-primary-bright) 100%);
   border-top-left-radius: var(--radius-nav);
   border-top-right-radius: var(--radius-nav);
   box-shadow: var(--shadow-top-lg);
   z-index: 1000;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.bottom-nav.bottom-nav-hidden {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .bottom-nav-item {
@@ -3632,7 +3639,7 @@ p {
   text-decoration: none;
   transition: all 0.2s ease;
   min-width: 100px;
-  min-height: 70px;
+  min-height: 64px;
 }
 
 .bottom-nav-item:hover {

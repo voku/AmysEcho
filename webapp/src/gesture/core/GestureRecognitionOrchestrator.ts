@@ -247,7 +247,9 @@ export class GestureRecognitionOrchestrator {
     this.frameBuffer = [];
 
     await this.gestureDetector?.stop();
+    this.gestureDetector = null;
     this.isRunning = false;
+    this.isInitialized = false;
   }
 
   /**
@@ -1168,6 +1170,9 @@ export class GestureRecognitionOrchestrator {
     messageBatcher.forceFlush();
     setFrameCaptureEnabled(false);
     this.memoryOptimizer.performCleanup();
+    this.gestureDetector = null;
+    this.isInitialized = false;
+    this.isRunning = false;
   }
 }
 

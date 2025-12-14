@@ -290,6 +290,16 @@ describe('GestureRecognitionOrchestrator', () => {
       expect(mockCameraStart).toHaveBeenCalled();
       expect(toggleCaptureSpy.mock.calls.length).toBe(initialCaptureCalls);
     });
+
+    it('reinitializes camera resources after a stop/start cycle', async () => {
+      await orchestrator.start();
+      await orchestrator.stop();
+
+      mockCameraStart.mockClear();
+      await expect(orchestrator.start()).resolves.toBeUndefined();
+
+      expect(mockCameraStart).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('gesture result processing', () => {

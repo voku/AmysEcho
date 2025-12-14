@@ -192,8 +192,40 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
 // Bottom Navigation - Amy Loop Style
 // ========================================
 function BottomNav() {
+  const [isHidden, setIsHidden] = useState(false);
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    const handleScroll = () => {
+      const autoHideEnabled = window.innerWidth <= 1024;
+      if (!autoHideEnabled) {
+        setIsHidden(false);
+        lastScrollY = window.scrollY;
+        return;
+      }
+
+      const currentY = window.scrollY;
+      if (currentY > lastScrollY + 12) {
+        setIsHidden(true);
+      } else if (currentY < lastScrollY - 12 || currentY < 24) {
+        setIsHidden(false);
+      }
+      lastScrollY = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const revealNav = () => setIsHidden(false);
+
   return (
-    <nav className="bottom-nav">
+    <nav
+      className={`bottom-nav${isHidden ? ' bottom-nav-hidden' : ''}`}
+      onMouseEnter={revealNav}
+      onFocusCapture={revealNav}
+      onTouchStart={revealNav}
+    >
       <NavLink
         to="/"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
