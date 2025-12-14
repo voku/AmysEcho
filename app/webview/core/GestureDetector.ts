@@ -9,7 +9,7 @@ import { OverlayRenderer } from './OverlayRenderer';
 import { ResourceManager } from '../utils/ResourceManager';
 import { HealthMonitor } from '../utils/HealthMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
-import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark, PoseLandmark, FaceLandmark } from '../types/MediaPipeTypes';
+import { GestureRecognizerLike, HolisticLandmarkerLike, MediaPipeGestureResult, HandLandmark, PoseLandmark, FaceLandmark } from '../types/MediaPipeTypes';
 import {
   initializeFrameCapture,
   captureFrameForTrainer,
@@ -29,6 +29,7 @@ export class GestureDetector {
   private video: HTMLVideoElement;
   private overlay: HTMLCanvasElement;
   private gestureRecognizer: GestureRecognizerLike | null = null;
+  private holisticLandmarker: HolisticLandmarkerLike | null = null;
   private running = false;
   private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
   private lastCaptureAttempt = 0;
@@ -98,6 +99,35 @@ export class GestureDetector {
           runningMode: 'VIDEO',
           numHands: 2,
         });
+      }
+
+      // Create holistic landmarker for pose and face detection
+      if (components.HolisticLandmarker) {
+        try {
+          const holisticOptions = {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/holistic_landmarker/holistic_landmarker/float16/1/holistic_landmarker.task',
+            delegate: 'GPU' as const,
+          };
+          
+          try {
+            this.holisticLandmarker = await components.HolisticLandmarker.createFromOptions(vision, {
+              baseOptions: holisticOptions,
+              runningMode: 'VIDEO',
+            });
+            console.log('HolisticLandmarker initialized successfully');
+          } catch (gpuErr) {
+            console.warn('Holistic GPU delegate failed, falling back to CPU:', gpuErr);
+            this.holisticLandmarker = await components.HolisticLandmarker.createFromOptions(vision, {
+              baseOptions: { ...holisticOptions, delegate: 'CPU' as const },
+              runningMode: 'VIDEO',
+            });
+          }
+        } catch (holisticErr) {
+          console.warn('HolisticLandmarker initialization failed, continuing with hand-only detection:', holisticErr);
+          // Continue without holistic detection - hand detection will still work
+        }
+      } else {
+        console.log('HolisticLandmarker not available in MediaPipe bundle, using hand-only detection');
       }
 
       // Set up video event listener
@@ -174,6 +204,17 @@ export class GestureDetector {
         // Perform gesture recognition with timing
         const recognitionStart = performance.now();
         const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
+        
+        // Also perform holistic detection if available
+        let holisticResults = null;
+        if (this.holisticLandmarker) {
+          try {
+            holisticResults = this.holisticLandmarker.detectForVideo(this.video, frameStart);
+          } catch (holisticErr) {
+            console.warn('Holistic detection failed, continuing with hand-only:', holisticErr);
+          }
+        }
+        
         const recognitionTime = performance.now() - recognitionStart;
 
         console.log('MediaPipe recognition results:', {
@@ -181,27 +222,36 @@ export class GestureDetector {
           gestures: results?.gestures?.length || 0,
           landmarks: results?.landmarks?.length || 0,
           handednesses: results?.handednesses?.length || 0,
+          hasPose: !!holisticResults?.poseLandmarks?.length,
+          hasFace: !!holisticResults?.faceLandmarks?.length,
           recognitionTime: Math.round(recognitionTime)
         });
 
+        // Merge holistic results into gesture results for callback
+        const mergedResults: MediaPipeGestureResult = {
+          ...results,
+          poseLandmarks: holisticResults?.poseLandmarks ? [holisticResults.poseLandmarks] : undefined,
+          faceLandmarks: holisticResults?.faceLandmarks ? [holisticResults.faceLandmarks] : undefined,
+        };
+
         // Call result callback if set
-        if (this.resultCallback && results) {
-          this.resultCallback(results, frameStart);
+        if (this.resultCallback && mergedResults) {
+          this.resultCallback(mergedResults, frameStart);
         }
 
-        if (results?.landmarks) {
-          const normalizedLandmarks: number[][][] = results.landmarks.map((hand: HandLandmark[]) =>
+        if (results?.landmarks || holisticResults) {
+          const normalizedLandmarks: number[][][] = results?.landmarks?.map((hand: HandLandmark[]) =>
             hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]),
-          );
+          ) || [];
           
-          // Normalize pose landmarks if available
-          const poseLandmarks: number[][] = results.poseLandmarks?.[0]
-            ? results.poseLandmarks[0].map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0])
+          // Normalize pose landmarks from holistic results
+          const poseLandmarks: number[][] = holisticResults?.poseLandmarks
+            ? holisticResults.poseLandmarks.map((landmark: PoseLandmark) => [landmark.x, landmark.y, landmark.z ?? 0])
             : [];
           
-          // Normalize face landmarks if available
-          const faceLandmarks: number[][] = results.faceLandmarks?.[0]
-            ? results.faceLandmarks[0].map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0])
+          // Normalize face landmarks from holistic results
+          const faceLandmarks: number[][] = holisticResults?.faceLandmarks
+            ? holisticResults.faceLandmarks.map((landmark: FaceLandmark) => [landmark.x, landmark.y, landmark.z ?? 0])
             : [];
           
           // Optimize overlay updates - only redraw when necessary
@@ -270,6 +320,10 @@ export class GestureDetector {
 
     if (this.gestureRecognizer?.close) {
       await this.gestureRecognizer.close();
+    }
+
+    if (this.holisticLandmarker?.close) {
+      await this.holisticLandmarker.close();
     }
 
     await this.cameraManager.stopCamera();
