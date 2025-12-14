@@ -239,15 +239,19 @@ export class GestureRecognitionOrchestrator {
   /**
    * Stop gesture recognition
    */
-  async stop(): Promise<void> {
-    if (!this.isRunning) return;
+  async stop(force = false): Promise<void> {
+    const shouldPerformCleanup = this.isRunning || force;
+    if (!shouldPerformCleanup) return;
 
     this.cancelClipCapture();
     this.flushFrameBatch(true);
     this.frameBuffer = [];
 
     await this.gestureDetector?.stop();
-    this.isRunning = false;
+    // Force a fresh initialization on the next start so MediaPipe reloads and getUserMedia runs again.
+    // Without this reset, restarting after a stop could leave the camera stream detached even though
+    // the orchestrator reported a running state.
+    this.resetLifecycleState();
   }
 
   /**
@@ -1164,10 +1168,19 @@ export class GestureRecognitionOrchestrator {
    * Cleanup resources
    */
   async cleanup(): Promise<void> {
-    await this.stop();
+    await this.stop(true);
     messageBatcher.forceFlush();
     setFrameCaptureEnabled(false);
     this.memoryOptimizer.performCleanup();
+    this.resetLifecycleState(true);
+  }
+
+  private resetLifecycleState(shouldClearDetector = false): void {
+    if (shouldClearDetector) {
+      this.gestureDetector = null;
+    }
+    this.isInitialized = false;
+    this.isRunning = false;
   }
 }
 
