@@ -240,9 +240,10 @@ export class GestureRecognitionOrchestrator {
    * Stop gesture recognition
    */
   async stop(force = false): Promise<void> {
-    if (!this.isRunning && !force) return;
+    const shouldPerformCleanup = this.isRunning || force;
+    if (!shouldPerformCleanup) return;
 
-    if (this.isRunning || force) {
+    if (shouldPerformCleanup) {
       this.cancelClipCapture();
       this.flushFrameBatch(true);
       this.frameBuffer = [];
@@ -1170,11 +1171,13 @@ export class GestureRecognitionOrchestrator {
     messageBatcher.forceFlush();
     setFrameCaptureEnabled(false);
     this.memoryOptimizer.performCleanup();
-    this.resetLifecycleState();
+    this.resetLifecycleState(true);
   }
 
-  private resetLifecycleState(): void {
-    this.gestureDetector = null;
+  private resetLifecycleState(clearDetector = false): void {
+    if (clearDetector) {
+      this.gestureDetector = null;
+    }
     this.isInitialized = false;
     this.isRunning = false;
   }

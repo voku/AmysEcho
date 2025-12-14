@@ -204,7 +204,7 @@ function BottomNav() {
 
   useEffect(() => {
     if (typeof window === 'undefined') {
-      return;
+      return () => {};
     }
 
     lastScrollY.current = window.scrollY;
