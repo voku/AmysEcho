@@ -239,12 +239,14 @@ export class GestureRecognitionOrchestrator {
   /**
    * Stop gesture recognition
    */
-  async stop(): Promise<void> {
-    if (!this.isRunning) return;
+  async stop(force = false): Promise<void> {
+    if (!this.isRunning && !force) return;
 
-    this.cancelClipCapture();
-    this.flushFrameBatch(true);
-    this.frameBuffer = [];
+    if (this.isRunning || force) {
+      this.cancelClipCapture();
+      this.flushFrameBatch(true);
+      this.frameBuffer = [];
+    }
 
     await this.gestureDetector?.stop();
     this.resetLifecycleState();
@@ -1164,7 +1166,7 @@ export class GestureRecognitionOrchestrator {
    * Cleanup resources
    */
   async cleanup(): Promise<void> {
-    await this.stop();
+    await this.stop(true);
     messageBatcher.forceFlush();
     setFrameCaptureEnabled(false);
     this.memoryOptimizer.performCleanup();

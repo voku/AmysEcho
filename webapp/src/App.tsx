@@ -22,6 +22,10 @@ import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { useApiConfig } from './hooks/useApiConfig';
 import './App.css';
 
+const AUTO_HIDE_BREAKPOINT_PX = 1024;
+const HIDE_SCROLL_DELTA_PX = 12;
+const MIN_SCROLL_POSITION_PX = 24;
+
 // Storage-Schlüssel
 const AUTH_KEY = 'webapp:auth-complete';
 const ONBOARDING_KEY = 'webapp:onboarding-complete';
@@ -192,9 +196,6 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
 // Bottom Navigation - Amy Loop Style
 // ========================================
 function BottomNav() {
-  const AUTO_HIDE_BREAKPOINT = 1024;
-  const HIDE_SCROLL_DELTA = 12;
-  const MIN_SCROLL_POSITION = 24;
   const lastScrollY = useRef(0);
   const prefersAutoHide = useRef(false);
   const scrollTicking = useRef(false);
@@ -202,11 +203,15 @@ function BottomNav() {
   const [isHidden, setIsHidden] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     lastScrollY.current = window.scrollY;
-    prefersAutoHide.current = window.innerWidth <= AUTO_HIDE_BREAKPOINT;
+    prefersAutoHide.current = window.innerWidth <= AUTO_HIDE_BREAKPOINT_PX;
 
     const updateAutoHidePreference = () => {
-      prefersAutoHide.current = window.innerWidth <= AUTO_HIDE_BREAKPOINT;
+      prefersAutoHide.current = window.innerWidth <= AUTO_HIDE_BREAKPOINT_PX;
       if (!prefersAutoHide.current) {
         setIsHidden(false);
       }
@@ -220,11 +225,11 @@ function BottomNav() {
         return;
       }
 
-      if (currentY > lastScrollY.current + HIDE_SCROLL_DELTA) {
+      if (currentY > lastScrollY.current + HIDE_SCROLL_DELTA_PX) {
         setIsHidden(true);
       } else if (
-        currentY < lastScrollY.current - HIDE_SCROLL_DELTA ||
-        currentY < MIN_SCROLL_POSITION
+        currentY < lastScrollY.current - HIDE_SCROLL_DELTA_PX ||
+        currentY < MIN_SCROLL_POSITION_PX
       ) {
         setIsHidden(false);
       }
