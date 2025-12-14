@@ -40,6 +40,9 @@ describe('GestureDemo', () => {
     expect(
       screen.getByText(/Nimm deine Gesten direkt im Browser auf und probiere sie sofort aus\./)
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Starte die Kamera und sieh dir im Protokoll an, wie deine Bewegungen erkannt werden\./)
+    ).toBeInTheDocument();
   });
 
   it('shows camera control buttons', () => {
