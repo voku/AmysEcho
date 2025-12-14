@@ -248,7 +248,9 @@ export class GestureRecognitionOrchestrator {
     this.frameBuffer = [];
 
     await this.gestureDetector?.stop();
-    // Force a fresh initialization on the next start to ensure camera resources restart cleanly.
+    // Force a fresh initialization on the next start so MediaPipe reloads and getUserMedia runs again.
+    // Without this reset, restarting after a stop could leave the camera stream detached even though
+    // the orchestrator reported a running state.
     this.resetLifecycleState();
   }
 
