@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AboutAmysEcho } from './components/AboutAmysEcho';
 import { Admin } from './components/Admin';
@@ -195,51 +195,67 @@ function BottomNav() {
   const AUTO_HIDE_BREAKPOINT = 1024;
   const HIDE_SCROLL_DELTA = 12;
   const MIN_SCROLL_POSITION = 24;
+  const lastScrollY = useRef(0);
+  const prefersAutoHide = useRef(false);
+  const scrollTicking = useRef(false);
+  const resizeTicking = useRef(false);
   const [isHidden, setIsHidden] = useState(false);
 
   useEffect(() => {
-    let lastScrollY = window.scrollY;
-    let prefersAutoHide = window.innerWidth <= AUTO_HIDE_BREAKPOINT;
-    let ticking = false;
+    lastScrollY.current = window.scrollY;
+    prefersAutoHide.current = window.innerWidth <= AUTO_HIDE_BREAKPOINT;
 
     const updateAutoHidePreference = () => {
-      prefersAutoHide = window.innerWidth <= AUTO_HIDE_BREAKPOINT;
-      if (!prefersAutoHide) {
+      prefersAutoHide.current = window.innerWidth <= AUTO_HIDE_BREAKPOINT;
+      if (!prefersAutoHide.current) {
         setIsHidden(false);
       }
     };
 
     const runScrollEffect = () => {
       const currentY = window.scrollY;
-      if (!prefersAutoHide) {
-        lastScrollY = currentY;
-        ticking = false;
+      if (!prefersAutoHide.current) {
+        lastScrollY.current = currentY;
+        scrollTicking.current = false;
         return;
       }
 
-      if (currentY > lastScrollY + HIDE_SCROLL_DELTA) {
+      if (currentY > lastScrollY.current + HIDE_SCROLL_DELTA) {
         setIsHidden(true);
-      } else if (currentY < lastScrollY - HIDE_SCROLL_DELTA || currentY < MIN_SCROLL_POSITION) {
+      } else if (
+        currentY < lastScrollY.current - HIDE_SCROLL_DELTA ||
+        currentY < MIN_SCROLL_POSITION
+      ) {
         setIsHidden(false);
       }
 
-      lastScrollY = currentY;
-      ticking = false;
+      lastScrollY.current = currentY;
+      scrollTicking.current = false;
     };
 
     const handleScroll = () => {
-      if (!ticking) {
-        ticking = true;
+      if (!scrollTicking.current) {
+        scrollTicking.current = true;
         window.requestAnimationFrame(runScrollEffect);
       }
     };
 
+    const handleResize = () => {
+      if (!resizeTicking.current) {
+        resizeTicking.current = true;
+        window.requestAnimationFrame(() => {
+          updateAutoHidePreference();
+          resizeTicking.current = false;
+        });
+      }
+    };
+
     updateAutoHidePreference();
-    window.addEventListener('resize', updateAutoHidePreference, { passive: true });
+    window.addEventListener('resize', handleResize, { passive: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', updateAutoHidePreference);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 

@@ -86,6 +86,7 @@
 
   /* Layout */
   --bottom-nav-height: 72px;
+  --bottom-nav-hide-translate: 120%;
 
   /* Typography (from app/src/constants/typography.ts) */
   --font-size-micro: 12px;
@@ -3622,7 +3623,7 @@ p {
 }
 
 .bottom-nav.bottom-nav-hidden {
-  transform: translateY(120%);
+  transform: translateY(var(--bottom-nav-hide-translate));
   opacity: 0;
   pointer-events: none;
 }
