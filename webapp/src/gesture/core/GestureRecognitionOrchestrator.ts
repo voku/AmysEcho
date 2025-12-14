@@ -248,6 +248,7 @@ export class GestureRecognitionOrchestrator {
     this.frameBuffer = [];
 
     await this.gestureDetector?.stop();
+    // Force a fresh initialization on the next start to ensure camera resources restart cleanly.
     this.resetLifecycleState();
   }
 
