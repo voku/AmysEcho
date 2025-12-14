@@ -7,6 +7,9 @@
 export interface MediaPipeComponents {
   FilesetResolver: any;
   GestureRecognizer: any;
+  HolisticLandmarker?: any;
+  PoseLandmarker?: any;
+  FaceLandmarker?: any;
   wasmBase: string;
 }
 
@@ -123,7 +126,8 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
     window.fileset_resolver &&
     window.fileset_resolver.FilesetResolver &&
     window.vision &&
-    window.vision.GestureRecognizer;
+    window.vision.GestureRecognizer &&
+    window.vision.HolisticLandmarker;
 
   // Compute preferred URLs
   const pinned = await resolvePinnedBase();
@@ -158,11 +162,14 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
       // Try ESM first
       try {
         const mod = await import(/* @vite-ignore */ c.esm);
-        if (mod?.FilesetResolver && mod?.GestureRecognizer) {
+        if (mod?.FilesetResolver && mod?.GestureRecognizer && mod?.HolisticLandmarker) {
           console.log('Successfully loaded MediaPipe via ESM');
           return {
             FilesetResolver: mod.FilesetResolver,
             GestureRecognizer: mod.GestureRecognizer,
+            HolisticLandmarker: mod.HolisticLandmarker,
+            PoseLandmarker: mod.PoseLandmarker,
+            FaceLandmarker: mod.FaceLandmarker,
             wasmBase: c.wasm,
           };
         }
@@ -183,6 +190,9 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
         return {
           FilesetResolver: window.fileset_resolver!.FilesetResolver,
           GestureRecognizer: window.vision!.GestureRecognizer,
+          HolisticLandmarker: window.vision!.HolisticLandmarker,
+          PoseLandmarker: window.vision!.PoseLandmarker,
+          FaceLandmarker: window.vision!.FaceLandmarker,
           wasmBase: c.wasm,
         };
       }
