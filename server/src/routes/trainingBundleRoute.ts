@@ -17,6 +17,7 @@ import {
 } from '../constants/modelPaths.js';
 import { auth } from '../middleware/auth.js';
 import { withFileLock } from '../utils/fileLock.js';
+import { logger } from '../services/logger.js';
 
 interface TrainingJobTriggerContext {
   bundleId: string;
@@ -48,6 +49,9 @@ interface TrainingBundleMetadata {
     frameCount: number;
     landmarksPath: string;
   };
+  modalities?: Record<string, unknown>;
+  smoothing?: Record<string, unknown>;
+  handedness?: { labels?: string[]; frameCount?: number };
 }
 
 interface TrainingBundleManifestEntry {
@@ -76,6 +80,38 @@ const trainingBundleUpload = express.raw({
   limit: '64mb',
 });
 
+const SmoothingSchema = z
+  .object({
+    method: z.string().optional(),
+    minCutOff: z.number().optional(),
+    beta: z.number().optional(),
+    dCutOff: z.number().optional(),
+  })
+  .passthrough();
+
+const ModalityStatsSchema = z
+  .object({
+    present: z.boolean().optional(),
+    frameCount: z.number().optional(),
+    coverage: z.number().optional(),
+  })
+  .passthrough();
+
+const ModalitiesSchema = z
+  .object({
+    hands: ModalityStatsSchema.optional(),
+    pose: ModalityStatsSchema.optional(),
+    face: ModalityStatsSchema.optional(),
+  })
+  .passthrough();
+
+const HandednessSchema = z
+  .object({
+    labels: z.array(z.string()).optional(),
+    frameCount: z.number().optional(),
+  })
+  .passthrough();
+
 const MetadataSchema = z
   .object({
     label: z.string().min(1),
@@ -84,8 +120,11 @@ const MetadataSchema = z
     source: z.string().optional(),
     clipFilename: z.string().optional(),
     stillFilename: z.string().optional(),
-  })
-  .passthrough();
+  modalities: ModalitiesSchema.optional(),
+  smoothing: SmoothingSchema.optional(),
+  handedness: HandednessSchema.optional(),
+})
+.passthrough();
 
 const LandmarkFrameSchema = z
   .object({
@@ -97,6 +136,14 @@ const LandmarkFrameSchema = z
 const LandmarksFileSchema = z
   .object({
     frames: z.array(LandmarkFrameSchema),
+    metadata: z
+      .object({
+        modalities: ModalitiesSchema.optional(),
+        smoothing: SmoothingSchema.optional(),
+        handedness: HandednessSchema.optional(),
+      })
+      .passthrough()
+      .optional(),
   })
   .passthrough();
 
@@ -143,9 +190,120 @@ function isPathInside(target: string, root: string): boolean {
   return resolved === root || resolved.startsWith(normalizedRoot);
 }
 
+function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
+  const totalFrames = frames.length;
+  let handsFrameCount = 0;
+  let poseFrameCount = 0;
+  let faceFrameCount = 0;
+  let handednessFrameCount = 0;
+  const handednessLabels = new Set<string>();
+  for (const frame of frames) {
+    const landmarks = Array.isArray(frame.landmarks) ? (frame.landmarks as unknown[]) : [];
+    const poseLandmarks = Array.isArray(frame.poseLandmarks) ? (frame.poseLandmarks as unknown[]) : [];
+    const faceLandmarks = Array.isArray(frame.faceLandmarks) ? (frame.faceLandmarks as unknown[]) : [];
+    const handedness = Array.isArray(frame.handedness) ? (frame.handedness as unknown[]) : [];
+
+    if (landmarks.some((hand) => Array.isArray(hand) && (hand as unknown[]).length > 0)) {
+      handsFrameCount++;
+    }
+
+    if (poseLandmarks.length > 0) {
+      poseFrameCount++;
+    }
+
+    if (faceLandmarks.length > 0) {
+      faceFrameCount++;
+    }
+
+    const handednessStrings = handedness.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+    if (handednessStrings.length > 0) {
+      handednessFrameCount++;
+      handednessStrings.forEach((entry) => handednessLabels.add(entry));
+    }
+  }
+
+  return {
+    modalities: {
+      hands: {
+        present: handsFrameCount > 0,
+        frameCount: handsFrameCount,
+        coverage: totalFrames > 0 ? handsFrameCount / totalFrames : 0,
+      },
+      pose: {
+        present: poseFrameCount > 0,
+        frameCount: poseFrameCount,
+        coverage: totalFrames > 0 ? poseFrameCount / totalFrames : 0,
+      },
+    face: {
+      present: faceFrameCount > 0,
+      frameCount: faceFrameCount,
+      coverage: totalFrames > 0 ? faceFrameCount / totalFrames : 0,
+    },
+  },
+  handedness: handednessLabels.size > 0 ? { labels: Array.from(handednessLabels), frameCount: handednessFrameCount } : undefined,
+  };
+}
+
+function normalizeModalityStats(
+  source: z.infer<typeof ModalityStatsSchema> | undefined,
+  fallback?: { present: boolean; frameCount: number; coverage: number },
+) {
+  const present = typeof source?.present === 'boolean' ? source.present : fallback?.present ?? false;
+  const frameCount = typeof source?.frameCount === 'number' ? source.frameCount : fallback?.frameCount ?? 0;
+  const coverage = typeof source?.coverage === 'number' ? source.coverage : fallback?.coverage ?? 0;
+  return { present, frameCount, coverage };
+}
+
+function mergeModalities(
+  primary: unknown,
+  fallback?: { hands: { present: boolean; frameCount: number; coverage: number }; pose: { present: boolean; frameCount: number; coverage: number }; face: { present: boolean; frameCount: number; coverage: number } },
+) {
+  const parsed = ModalitiesSchema.safeParse(primary);
+  const data = parsed.success ? parsed.data : undefined;
+  return {
+    hands: normalizeModalityStats(data?.hands, fallback?.hands),
+    pose: normalizeModalityStats(data?.pose, fallback?.pose),
+    face: normalizeModalityStats(data?.face, fallback?.face),
+  };
+}
+
+function mergeSmoothing(primary: unknown, fallback?: Record<string, unknown>) {
+  const parsed = SmoothingSchema.safeParse(primary);
+  if (parsed.success) {
+    return { ...fallback, ...parsed.data };
+  }
+  return fallback;
+}
+
+function mergeHandedness(
+  primary: unknown,
+  fallback?: { labels: string[]; frameCount: number },
+): { labels: string[]; frameCount: number } | undefined {
+  const parsed = HandednessSchema.safeParse(primary);
+  if (parsed.success && parsed.data) {
+    const labels = Array.isArray(parsed.data.labels)
+      ? parsed.data.labels.filter((label): label is string => typeof label === 'string')
+      : [];
+    const frameCount = typeof parsed.data.frameCount === 'number' ? parsed.data.frameCount : fallback?.frameCount;
+    if (labels.length > 0 || typeof frameCount === 'number') {
+      return { labels: labels.length > 0 ? labels : fallback?.labels ?? [], frameCount: frameCount ?? 0 };
+    }
+  }
+  return fallback;
+}
+
 interface LandmarksValidationResult {
   relativePath: string;
   frameCount: number;
+  metadata?: z.infer<typeof LandmarksFileSchema>['metadata'];
+  computed: {
+    modalities: {
+      hands: { present: boolean; frameCount: number; coverage: number };
+      pose: { present: boolean; frameCount: number; coverage: number };
+      face: { present: boolean; frameCount: number; coverage: number };
+    };
+    handedness?: { labels: string[]; frameCount: number };
+  };
 }
 
 async function cleanupBundleRoot(bundleRoot: string): Promise<void> {
@@ -199,7 +357,8 @@ async function validateLandmarksFile(
     throw new Error('landmarks.json must include a frames array');
   }
 
-  const { frames } = validation.data;
+  const { frames, metadata } = validation.data;
+  const computed = summarizeLandmarkFrames(frames as Array<Record<string, unknown>>);
   const frameCount = frames.reduce((count, frame) => {
     if (frame?.landmarks && frame.landmarks.length > 0) {
       return count + 1;
@@ -211,7 +370,7 @@ async function validateLandmarksFile(
     throw new Error('landmarks.json must contain at least one frame with landmarks');
   }
 
-  return { relativePath: relative, frameCount };
+  return { relativePath: relative, frameCount, metadata, computed };
 }
 
 const VIDEO_FILE_EXTENSIONS = ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'];
@@ -309,6 +468,7 @@ export function registerTrainingBundleRoute(
         zip = new AdmZip(req.body as Buffer);
       } catch (error) {
         console.error('Invalid training bundle ZIP:', error);
+        logger.warn('Rejected training bundle: invalid ZIP payload');
         return res.status(400).json({ error: 'Invalid training bundle ZIP' });
       }
 
@@ -321,6 +481,7 @@ export function registerTrainingBundleRoute(
           null;
       }
       if (!metadataEntry) {
+        logger.warn('Rejected training bundle: metadata.json missing');
         return res.status(400).json({ error: 'metadata.json missing from bundle' });
       }
 
@@ -329,6 +490,7 @@ export function registerTrainingBundleRoute(
         metadataContent = metadataEntry.getData().toString('utf8');
       } catch (error) {
         console.error('Failed to read metadata.json from bundle:', error);
+        logger.warn('Rejected training bundle: metadata.json unreadable', { error });
         return res.status(400).json({ error: 'Failed to read metadata.json' });
       }
 
@@ -337,11 +499,13 @@ export function registerTrainingBundleRoute(
         const metadata = JSON.parse(metadataContent);
         const result = MetadataSchema.safeParse(metadata);
         if (!result.success) {
+          logger.warn('Rejected training bundle: metadata.json validation failed', { details: result.error.flatten() });
           return res.status(400).json({ error: 'metadata.json validation failed', details: result.error.flatten() });
         }
         parsedMetadata = result.data;
       } catch (error) {
         console.error('metadata.json is not valid JSON:', error);
+        logger.warn('Rejected training bundle: metadata.json invalid JSON', { error });
         return res.status(400).json({ error: 'metadata.json must be valid JSON' });
       }
 
@@ -424,6 +588,10 @@ export function registerTrainingBundleRoute(
         landmarksValidation = await validateLandmarksFile(bundleRoot, bundleRootResolved, files);
       } catch (error: any) {
         console.error('Invalid landmarks.json in training bundle:', error);
+        logger.warn('Rejected training bundle: landmarks invalid', {
+          profileId: profileIdRaw ?? null,
+          reason: error?.message ?? 'unknown',
+        });
         await cleanupBundleRoot(bundleRoot);
         return res.status(400).json({
           error: 'landmarks.json missing or invalid',
@@ -434,8 +602,25 @@ export function registerTrainingBundleRoute(
       const clipRelativePath = findClipRelativePath(files, clipFilename);
       const stillRelativePath = findStillRelativePath(files, stillFilename);
 
+      const mergedModalities = mergeModalities(
+        parsedMetadata.modalities ?? landmarksValidation.metadata?.modalities,
+        landmarksValidation.computed.modalities,
+      );
+      const mergedSmoothing = mergeSmoothing(
+        parsedMetadata.smoothing ?? landmarksValidation.metadata?.smoothing,
+        landmarksValidation.metadata?.smoothing,
+      );
+      // Smoothing metadata is persisted for transparency; the downstream training pipeline currently does not apply it.
+      const mergedHandedness = mergeHandedness(
+        parsedMetadata.handedness ?? landmarksValidation.metadata?.handedness,
+        landmarksValidation.computed.handedness,
+      );
+
       const metadataWithSummary: TrainingBundleMetadata = {
         ...sanitizedMetadata,
+        ...(mergedModalities ? { modalities: mergedModalities } : {}),
+        ...(mergedSmoothing ? { smoothing: mergedSmoothing } : {}),
+        ...(mergedHandedness ? { handedness: mergedHandedness } : {}),
         validationSummary: {
           frameCount: landmarksValidation.frameCount,
           landmarksPath: landmarksValidation.relativePath,
@@ -476,6 +661,21 @@ export function registerTrainingBundleRoute(
 
         manifest.entries.push(manifestEntry);
         await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
+      });
+
+      if (!mergedModalities.hands.present) {
+        logger.warn('Training bundle missing required hand landmarks', {
+          bundleId,
+          profileId: profileIdRaw ?? null,
+          coverage: mergedModalities,
+        });
+      }
+
+      logger.info('Training bundle stored', {
+        bundleId,
+        profileId: profileIdRaw ?? null,
+        frameCount: landmarksValidation.frameCount,
+        modalities: mergedModalities,
       });
 
       let trainingJob: TriggerTrainingJobResult | null = null;

@@ -6,6 +6,12 @@ import type { TrainingBundlePayload } from './types';
 const basePayload: TrainingBundlePayload = {
   profileId: 'p1',
   label: 'HILFE',
+  smoothingConfig: {
+    method: 'stability',
+    minCutOff: 0.9,
+    beta: 0.05,
+    dCutOff: 1.1,
+  },
   frames: [
     {
       landmarks: [
@@ -23,7 +29,6 @@ const basePayload: TrainingBundlePayload = {
         [0.25, 0.75, 0.05],
         [0.26, 0.76, 0.04],
       ],
-      features: { lipPointing: 0.12 },
     },
   ],
 };
@@ -54,12 +59,11 @@ describe('createTrainingZip', () => {
         handLandmarks: number[][][];
         poseLandmarks: number[][];
         faceLandmarks: number[][];
-        features?: Record<string, unknown>;
       }>;
       metadata: {
-        modalities: Record<string, boolean>;
+        modalities: Record<string, unknown>;
         smoothing: Record<string, number | string>;
-        features: Record<string, boolean>;
+        handedness?: { labels: string[]; frameCount: number };
       };
     };
     expect(Array.isArray(landmarks.frames)).toBe(true);
@@ -68,14 +72,18 @@ describe('createTrainingZip', () => {
     expect(firstFrame?.handLandmarks?.[0]?.[0]).toEqual([0.1, 0.2, 0.3]);
     expect(firstFrame?.poseLandmarks?.[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
     expect(firstFrame?.faceLandmarks?.[0]).toEqual([0.25, 0.75, 0.05]);
-    expect(firstFrame?.features?.lipPointing).toBe(0.12);
     expect(landmarks.metadata.modalities).toEqual({
       hands: { present: true, frameCount: 1, coverage: 1 },
       pose: { present: true, frameCount: 1, coverage: 1 },
       face: { present: true, frameCount: 1, coverage: 1 },
     });
-    expect(landmarks.metadata.smoothing).toMatchObject({ method: 'one_euro' });
-    expect(landmarks.metadata.features.lipPointing).toBe(true);
+    expect(landmarks.metadata.smoothing).toMatchObject({ method: 'stability', minCutOff: 0.9, beta: 0.05, dCutOff: 1.1 });
+    expect(landmarks.metadata.handedness).toEqual({ labels: ['Left'], frameCount: 1 });
+    expect(metadata).toMatchObject({
+      modalities: landmarks.metadata.modalities,
+      smoothing: landmarks.metadata.smoothing,
+      handedness: landmarks.metadata.handedness,
+    });
     expect(entries['clip.mp4']).toBeDefined();
   });
 
@@ -88,6 +96,23 @@ describe('createTrainingZip', () => {
     const metadataBytes = entries['metadata.json'];
     const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array()));
     expect(metadata.clipFilename).toBe('clip.webm');
+  });
+
+  it('bricht ab, wenn keine Hand-Landmarks enthalten sind', async () => {
+    const payload: TrainingBundlePayload = {
+      ...basePayload,
+      frames: [
+        {
+          landmarks: [[], []],
+          poseLandmarks: [[0.1, 0.2, 0.3]],
+          faceLandmarks: [],
+        },
+      ],
+    };
+
+    await expect(createTrainingZip(payload)).rejects.toThrow(
+      'Keine Hand-Landmarks erkannt. Bitte nimm die Gebärde erneut mit sichtbaren Händen auf.',
+    );
   });
 });
 

@@ -3,6 +3,7 @@ import {
   HAND_LANDMARKS_PER_HAND,
   flattenHandsWithHandedness,
   frameHasAnyLandmarks,
+  framesHaveHandLandmarks,
   processFramesForUpload,
 } from './handUtils';
 
@@ -63,6 +64,17 @@ describe('frameHasAnyLandmarks', () => {
     expect(frameHasAnyLandmarks([null as any])).toBe(false);
     // @ts-expect-error
     expect(frameHasAnyLandmarks([123 as any])).toBe(false);
+  });
+});
+
+describe('framesHaveHandLandmarks', () => {
+  it('returns false when no hands are present', () => {
+    expect(framesHaveHandLandmarks([])).toBe(false);
+    expect(framesHaveHandLandmarks([{ landmarks: [] }])).toBe(false);
+  });
+
+  it('detects at least one hand with landmarks', () => {
+    expect(framesHaveHandLandmarks([{ landmarks: [[[1, 2, 3]]] as unknown as number[][][] }])).toBe(true);
   });
 });
 

@@ -111,6 +111,13 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       clipFilename: 'clip.webm',
       stillFilename: 'still.jpg',
       extra: 'ignored',
+      modalities: {
+        hands: { present: true, frameCount: 1, coverage: 1 },
+        pose: { present: false, frameCount: 0, coverage: 0 },
+        face: { present: false, frameCount: 0, coverage: 0 },
+      },
+      smoothing: { method: 'one_euro', beta: 0.1 },
+      handedness: { labels: ['Left'], frameCount: 1 },
     };
     const landmarks = await loadSampleLandmarks();
 
@@ -121,7 +128,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       Buffer.from(
         JSON.stringify(
           {
-            frames: [{ landmarks }],
+            frames: [{ landmarks, handedness: ['Left'] }],
+            metadata: {
+              modalities: metadata.modalities,
+              handedness: metadata.handedness,
+              smoothing: { method: 'one_euro' },
+            },
           },
           null,
           2,
@@ -184,6 +196,9 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       source: metadata.source,
       clipFilename: metadata.clipFilename,
       stillFilename: metadata.stillFilename,
+      modalities: metadata.modalities,
+      smoothing: expect.objectContaining({ method: 'one_euro' }),
+      handedness: metadata.handedness,
       validationSummary: {
         frameCount: 1,
         landmarksPath: 'bundle/landmarks.json',
@@ -198,6 +213,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const storedLandmarksRaw = await fs.readFile(path.join(storedDir, 'bundle', 'landmarks.json'), 'utf8');
     const storedLandmarks = JSON.parse(storedLandmarksRaw);
     expect(storedLandmarks.frames[0].landmarks[0]).toEqual(landmarks[0]);
+    expect(storedLandmarks.metadata.handedness).toEqual(metadata.handedness);
 
     const bundleZipPath = path.join(dataDir, entry.storage.bundle);
     const bundleStat = await fs.stat(bundleZipPath);

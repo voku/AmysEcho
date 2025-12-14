@@ -23,7 +23,6 @@ type LandmarkFrame = {
   poseLandmarks?: number[][];
   faceLandmarks?: number[][];
   handedness?: Array<string | unknown>;
-  features?: Record<string, unknown>;
 };
 
 type LandmarksPayload = { frames: LandmarkFrame[]; metadata?: Record<string, unknown> };
@@ -180,7 +179,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(dataset.samples[0].landmarks[0][2]).toBeCloseTo(0.23, 6);
   });
 
-  it('persists multimodal landmarks, handedness, and numeric features', async () => {
+  it('persists multimodal landmarks and handedness', async () => {
     const frames: LandmarksPayload = {
       frames: [
         {
@@ -204,7 +203,6 @@ describe('ingestTrainingBundlesIntoDataset', () => {
             [Infinity as number, 0.6, 0.5],
           ],
           handedness: ['Right', 'Left', 123 as unknown as string],
-          features: { lipPointing: 0.12, browRaise: 'skip-me' as unknown as number },
         },
       ],
     };
@@ -232,7 +230,6 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     ]);
     expect(sample.faceLandmarks).toEqual([[0.9, 0.8, 0.7]]);
     expect(sample.handedness).toEqual(['Right', 'Left']);
-    expect(sample.features).toEqual({ lipPointing: 0.12 });
   });
 
   it('propagates capture metadata such as modalities and smoothing', async () => {
@@ -240,7 +237,6 @@ describe('ingestTrainingBundlesIntoDataset', () => {
       metadata: {
         modalities: { hands: true, pose: true, face: false },
         smoothing: { method: 'one_euro', minCutOff: 1.2, beta: 0.01 },
-        features: { lipPointing: true },
       },
       frames: [
         {
@@ -262,7 +258,6 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(sample.captureMetadata).toEqual({
       modalities: { hands: true, pose: true, face: false },
       smoothing: { method: 'one_euro', minCutOff: 1.2, beta: 0.01 },
-      features: { lipPointing: true },
     });
   });
 

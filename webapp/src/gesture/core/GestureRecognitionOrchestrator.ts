@@ -23,7 +23,6 @@ import { BatteryMonitor } from '../core/BatteryMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
 import {
   MediaPipeGestureResult,
-  MultimodalFeatureSet,
   TwoHandGesture,
 } from '../types/MediaPipeTypes';
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
@@ -76,7 +75,6 @@ interface FrameBatchEntry {
   handednesses: string[];
   poseLandmarks: number[][];
   faceLandmarks: number[][];
-  features: MultimodalFeatureSet;
   timestamp: number;
 }
 
@@ -379,7 +377,6 @@ export class GestureRecognitionOrchestrator {
         handednesses: normalized.handednesses,
         poseLandmarks: normalized.poseLandmarks,
         faceLandmarks: normalized.faceLandmarks,
-        features: this.computeFeatures(normalized),
         timestamp: Date.now(),
       };
 
@@ -421,7 +418,6 @@ export class GestureRecognitionOrchestrator {
         handednesses: entries.map((entry) => entry.handednesses),
         poseLandmarks: entries.map((entry) => entry.poseLandmarks),
         faceLandmarks: entries.map((entry) => entry.faceLandmarks),
-        features: entries.map((entry) => entry.features),
         timestamps: entries.map((entry) => entry.timestamp),
         frames: entries.map((entry) => entry.frame),
       } as const;
@@ -444,35 +440,6 @@ export class GestureRecognitionOrchestrator {
     if (!sendFullBuffer && this.frameBuffer.length > FRAME_BUFFER_LIMIT) {
       this.frameBuffer = this.frameBuffer.slice(-FRAME_BUFFER_LIMIT);
     }
-  }
-
-  private computeFeatures(normalized: NormalizedMediaPipeResult): MultimodalFeatureSet {
-    const features: MultimodalFeatureSet = {};
-
-    const face = normalized.faceLandmarks;
-    const hands = normalized.landmarks;
-    
-    // Validate that landmarks exist and have expected minimum length
-    const lipLandmark = face && face.length > 13 ? face[13] : undefined;
-    const primaryHand = hands && hands.length > 0 ? hands[0] : undefined;
-    const indexTip = primaryHand && primaryHand.length > 8 ? primaryHand[8] : undefined;
-
-    // Only compute lipPointing if we have complete 3D coordinates for both landmarks
-    if (
-      lipLandmark &&
-      indexTip &&
-      lipLandmark.length >= 3 &&
-      indexTip.length >= 3 &&
-      lipLandmark[0] != null && lipLandmark[1] != null && lipLandmark[2] != null &&
-      indexTip[0] != null && indexTip[1] != null && indexTip[2] != null
-    ) {
-      const dx = indexTip[0] - lipLandmark[0];
-      const dy = indexTip[1] - lipLandmark[1];
-      const dz = indexTip[2] - lipLandmark[2];
-      features.lipPointing = Math.hypot(dx, dy, dz);
-    }
-
-    return features;
   }
 
   startClipCapture(requestId: string): void {

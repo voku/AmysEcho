@@ -199,7 +199,12 @@ export function TrainingUploadWithRecording() {
     },
   });
   const { upload, lastResult, state, trainingJob } = uploadState;
-  const { setPreferredGestureLabel, preferredGestureLabel, setProfileId, profileId } = useAppState();
+  const {
+    setPreferredGestureLabel,
+    preferredGestureLabel,
+    setProfileId,
+    profileId,
+  } = useAppState();
   const modelInjection = useMlpModelInjection(profileId);
   const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
   const lastJobStatusRef = useRef<string | null>(null);
@@ -369,7 +374,11 @@ export function TrainingUploadWithRecording() {
 
       {modelNotice && <div className="notice success compact mb-md">{modelNotice}</div>}
 
-      <TrainingRecorder profileId={profileId} label={preferredGestureLabel} onRecordingComplete={handleRecordingComplete} />
+      <TrainingRecorder
+        profileId={profileId}
+        label={preferredGestureLabel}
+        onRecordingComplete={handleRecordingComplete}
+      />
 
       <div className="card mt-md">
         <div className="form-group">

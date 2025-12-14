@@ -33,4 +33,9 @@ sequenceDiagram
 6. **Manifest-Datei inspizieren** – `data/datasets/training_manifest.json` kontrollieren: neuer Eintrag mit korrekten Dateipfaden und aktualisiertem `metadata.validationSummary`?
 7. **Profil-Zuordnung bestätigen** – In `data/dgs_samples.json` prüfen, dass jede neue Probe `profileId` gesetzt hat und der `validationSummary.landmarksPath` aus dem Manifest auf die tatsächlich trainierte Datei zeigt.
 
+## Multimodale QA
+
+- **Hände sind Pflicht, Gesicht optional**: Für DGS-Uploads werden fehlende Hand-Landmarks als Warnung protokolliert, Gesicht und Pose sind optional, weil manche Gebärden keinen Bezug zum Gesicht haben. Modalitäts-Coverages und Handedness-Zusammenfassungen bleiben in `landmarks.json -> metadata.modalities/handedness` und im Manifest erhalten.
+- **Nur Smoothing beibehalten**: Die im Webapp-Smoothing verwendete Konfiguration bleibt in `metadata.smoothing` enthalten. Sie dient aktuell nur als Dokumentation und wird vom Trainingsskript nicht ausgewertet. Abgeleitete Feature-Metriken werden nicht mehr gesammelt oder gespeichert, um die Bundles schlank zu halten.
+
 Die Schritte 3–7 stellen sicher, dass jedes Paket vollständig vorliegt, bevor es in das Training einfließt.

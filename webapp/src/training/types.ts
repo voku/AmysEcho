@@ -1,11 +1,8 @@
-import type { MultimodalFeatureSet } from '../gesture/types/MediaPipeTypes';
-
 export interface TrainingFrame {
   landmarks: number[][][];
   handedness?: ReadonlyArray<string>;
   poseLandmarks?: number[][];
   faceLandmarks?: number[][];
-  features?: MultimodalFeatureSet;
 }
 
 export interface FrameData {
@@ -13,7 +10,6 @@ export interface FrameData {
   handedness?: ReadonlyArray<string>;
   poseLandmarks?: number[][];
   faceLandmarks?: number[][];
-  features?: MultimodalFeatureSet;
 }
 
 export interface TrainingBundlePayload {
