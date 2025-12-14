@@ -9,7 +9,7 @@ import { OverlayRenderer } from './OverlayRenderer';
 import { ResourceManager } from '../utils/ResourceManager';
 import { HealthMonitor } from '../utils/HealthMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
-import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark, PoseLandmark, FaceLandmark } from '../types/MediaPipeTypes';
+import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark, PoseLandmark, FaceLandmark, PoseLandmarkerLike, FaceLandmarkerLike } from '../types/MediaPipeTypes';
 import {
   initializeFrameCapture,
   captureFrameForTrainer,
@@ -26,6 +26,11 @@ import { TemporalGestureAnalyzer } from '../utils/TemporalGestureAnalyzer';
 const SLOW_FRAME_THRESHOLD_MS = 50;
 const OVERLAY_CLEAR_INTERVAL_MS = 300;
 
+// MediaPipe model URLs
+const GESTURE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
+const POSE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+const FACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+
 export class GestureDetector {
   private static loadTasksVisionImpl: () => Promise<MediaPipeComponents | undefined> = loadTasksVision;
 
@@ -38,8 +43,8 @@ export class GestureDetector {
   private temporalAnalyzer: TemporalGestureAnalyzer;
   private video: HTMLVideoElement;
   private gestureRecognizer: GestureRecognizerLike | null = null;
-  private poseLandmarker: { detectForVideo: (video: HTMLVideoElement, timestamp: number) => { landmarks?: Array<PoseLandmark[]> } | undefined; close?: () => Promise<void> | void } | null = null;
-  private faceLandmarker: { detectForVideo: (video: HTMLVideoElement, timestamp: number) => { faceLandmarks?: Array<FaceLandmark[]> } | undefined; close?: () => Promise<void> | void } | null = null;
+  private poseLandmarker: PoseLandmarkerLike | null = null;
+  private faceLandmarker: FaceLandmarkerLike | null = null;
   private running = false;
   private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
   private lastCaptureAttempt = 0;
@@ -104,7 +109,7 @@ export class GestureDetector {
 
       const vision = await filesetResolver.forVisionTasks(components.wasmBase);
       const baseOptions = {
-        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
+        modelAssetPath: GESTURE_MODEL_URL,
         delegate: 'GPU' as const,
       };
 
@@ -127,7 +132,7 @@ export class GestureDetector {
       if (components.PoseLandmarker) {
         try {
           const poseBaseOptions = {
-            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+            modelAssetPath: POSE_MODEL_URL,
             delegate: 'GPU' as const,
           };
           try {
@@ -157,7 +162,7 @@ export class GestureDetector {
       if (components.FaceLandmarker) {
         try {
           const faceBaseOptions = {
-            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+            modelAssetPath: FACE_MODEL_URL,
             delegate: 'GPU' as const,
           };
           try {
