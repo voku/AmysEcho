@@ -192,15 +192,18 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
 // Bottom Navigation - Amy Loop Style
 // ========================================
 function BottomNav() {
+  const AUTO_HIDE_BREAKPOINT = 1024;
+  const HIDE_SCROLL_DELTA = 12;
+  const MIN_SCROLL_POSITION = 24;
   const [isHidden, setIsHidden] = useState(false);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
-    let prefersAutoHide = window.innerWidth <= 1024;
+    let prefersAutoHide = window.innerWidth <= AUTO_HIDE_BREAKPOINT;
     let ticking = false;
 
     const updateAutoHidePreference = () => {
-      prefersAutoHide = window.innerWidth <= 1024;
+      prefersAutoHide = window.innerWidth <= AUTO_HIDE_BREAKPOINT;
       if (!prefersAutoHide) {
         setIsHidden(false);
       }
@@ -214,9 +217,9 @@ function BottomNav() {
         return;
       }
 
-      if (currentY > lastScrollY + 12) {
+      if (currentY > lastScrollY + HIDE_SCROLL_DELTA) {
         setIsHidden(true);
-      } else if (currentY < lastScrollY - 12 || currentY < 24) {
+      } else if (currentY < lastScrollY - HIDE_SCROLL_DELTA || currentY < MIN_SCROLL_POSITION) {
         setIsHidden(false);
       }
 
