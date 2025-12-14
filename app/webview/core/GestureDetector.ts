@@ -198,7 +198,8 @@ export class GestureDetector {
         if (this.cameraManager.hasDimensionsChanged()) {
           this.cameraManager.updateVideoDimensions();
           const rect = this.video.getBoundingClientRect();
-          this.overlayRenderer.resizeOverlay(rect);
+          const videoDimensions = this.cameraManager.getVideoDimensions();
+          this.overlayRenderer.resizeOverlay(rect, videoDimensions);
         }
 
         // Perform gesture recognition with timing

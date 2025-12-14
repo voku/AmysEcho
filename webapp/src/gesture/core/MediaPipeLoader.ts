@@ -126,8 +126,8 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
     window.fileset_resolver &&
     window.fileset_resolver.FilesetResolver &&
     window.vision &&
-    window.vision.GestureRecognizer &&
-    window.vision.HolisticLandmarker;
+    window.vision.GestureRecognizer;
+    // Note: HolisticLandmarker is optional, graceful fallback supported
 
   // Compute preferred URLs
   const pinned = await resolvePinnedBase();
@@ -162,14 +162,14 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
       // Try ESM first
       try {
         const mod = await import(/* @vite-ignore */ c.esm);
-        if (mod?.FilesetResolver && mod?.GestureRecognizer && mod?.HolisticLandmarker) {
+        if (mod?.FilesetResolver && mod?.GestureRecognizer) {
           console.log('Successfully loaded MediaPipe via ESM');
           return {
             FilesetResolver: mod.FilesetResolver,
             GestureRecognizer: mod.GestureRecognizer,
-            HolisticLandmarker: mod.HolisticLandmarker,
-            PoseLandmarker: mod.PoseLandmarker,
-            FaceLandmarker: mod.FaceLandmarker,
+            HolisticLandmarker: mod.HolisticLandmarker, // Optional
+            PoseLandmarker: mod.PoseLandmarker, // Optional
+            FaceLandmarker: mod.FaceLandmarker, // Optional
             wasmBase: c.wasm,
           };
         }
@@ -190,9 +190,9 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
         return {
           FilesetResolver: window.fileset_resolver!.FilesetResolver,
           GestureRecognizer: window.vision!.GestureRecognizer,
-          HolisticLandmarker: window.vision!.HolisticLandmarker,
-          PoseLandmarker: window.vision!.PoseLandmarker,
-          FaceLandmarker: window.vision!.FaceLandmarker,
+          HolisticLandmarker: window.vision!.HolisticLandmarker, // Optional
+          PoseLandmarker: window.vision!.PoseLandmarker, // Optional
+          FaceLandmarker: window.vision!.FaceLandmarker, // Optional
           wasmBase: c.wasm,
         };
       }
