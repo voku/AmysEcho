@@ -5,12 +5,30 @@
 
 import { HAND_CONNECTIONS } from '../../src/constants/hand';
 
+const POSE_CONNECTIONS: Array<[number, number]> = [
+  [11, 13], [13, 15], [12, 14], [14, 16],
+  [11, 12], [23, 24], [11, 23], [12, 24],
+  [23, 25], [25, 27], [24, 26], [26, 28],
+];
+
+const FACE_MESH_LITE_POINTS = [
+  33, 133, // eyes
+  362, 263,
+  1, // nose tip
+  13, 14, // lips
+  61, 291, // mouth corners
+];
+
 export class OverlayRenderer {
   private overlay: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null;
   private overlayWidth = 0;
   private overlayHeight = 0;
   private overlayDpr = 1;
+  private drawWidth = 0;
+  private drawHeight = 0;
+  private drawOffsetX = 0;
+  private drawOffsetY = 0;
 
   constructor(overlay: HTMLCanvasElement) {
     this.overlay = overlay;
@@ -28,7 +46,7 @@ export class OverlayRenderer {
   /**
    * Resize overlay to match video dimensions
    */
-  resizeOverlay(videoRect: DOMRect): void {
+  resizeOverlay(videoRect: DOMRect, videoDimensions?: { width: number; height: number }): void {
     const w = (videoRect.width || 0) | 0;
     const h = (videoRect.height || 0) | 0;
     const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -45,6 +63,22 @@ export class OverlayRenderer {
       this.overlayWidth = w;
       this.overlayHeight = h;
       this.overlayDpr = dpr;
+    }
+
+    const intrinsicWidth = videoDimensions?.width ?? w;
+    const intrinsicHeight = videoDimensions?.height ?? h;
+
+    if (intrinsicWidth > 0 && intrinsicHeight > 0 && w > 0 && h > 0) {
+      const scale = Math.max(w / intrinsicWidth, h / intrinsicHeight);
+      this.drawWidth = intrinsicWidth * scale;
+      this.drawHeight = intrinsicHeight * scale;
+      this.drawOffsetX = (w - this.drawWidth) / 2;
+      this.drawOffsetY = (h - this.drawHeight) / 2;
+    } else {
+      this.drawWidth = w;
+      this.drawHeight = h;
+      this.drawOffsetX = 0;
+      this.drawOffsetY = 0;
     }
   }
 
@@ -94,6 +128,85 @@ export class OverlayRenderer {
     this.ctx.restore();
   }
 
+  drawPoseLandmarks(poseLandmarks: number[][], mirrorOverlay: boolean): void {
+    if (!this.ctx || !this.overlayWidth || !this.overlayHeight || poseLandmarks.length === 0) return;
+
+    this.ctx.save();
+    this.ctx.scale(this.overlayDpr, this.overlayDpr);
+
+    if (mirrorOverlay) {
+      this.ctx.translate(this.overlayWidth, 0);
+      this.ctx.scale(-1, 1);
+    }
+
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeStyle = 'rgba(86, 166, 255, 0.9)';
+    this.ctx.fillStyle = 'rgba(86, 166, 255, 0.9)';
+
+    this.ctx.beginPath();
+    for (const [a, b] of POSE_CONNECTIONS) {
+      const pa = poseLandmarks[a];
+      const pb = poseLandmarks[b];
+      if (!pa || !pb || pa[0] === undefined || pa[1] === undefined || pb[0] === undefined || pb[1] === undefined) continue;
+
+      this.ctx.moveTo(
+        this.drawOffsetX + pa[0] * this.drawWidth,
+        this.drawOffsetY + pa[1] * this.drawHeight,
+      );
+      this.ctx.lineTo(
+        this.drawOffsetX + pb[0] * this.drawWidth,
+        this.drawOffsetY + pb[1] * this.drawHeight,
+      );
+    }
+    this.ctx.stroke();
+
+    for (const lm of poseLandmarks) {
+      if (!lm || lm[0] === undefined || lm[1] === undefined) continue;
+      this.ctx.beginPath();
+      this.ctx.arc(
+        this.drawOffsetX + lm[0] * this.drawWidth,
+        this.drawOffsetY + lm[1] * this.drawHeight,
+        3,
+        0,
+        Math.PI * 2,
+      );
+      this.ctx.fill();
+    }
+
+    this.ctx.restore();
+  }
+
+  drawFaceLandmarks(faceLandmarks: number[][], mirrorOverlay: boolean): void {
+    if (!this.ctx || !this.overlayWidth || !this.overlayHeight || faceLandmarks.length === 0) return;
+
+    this.ctx.save();
+    this.ctx.scale(this.overlayDpr, this.overlayDpr);
+
+    if (mirrorOverlay) {
+      this.ctx.translate(this.overlayWidth, 0);
+      this.ctx.scale(-1, 1);
+    }
+
+    this.ctx.fillStyle = 'rgba(255, 210, 86, 0.9)';
+
+    const indices = FACE_MESH_LITE_POINTS.filter((index) => index < faceLandmarks.length);
+    for (const idx of indices) {
+      const lm = faceLandmarks[idx];
+      if (!lm || lm[0] === undefined || lm[1] === undefined) continue;
+      this.ctx.beginPath();
+      this.ctx.arc(
+        this.drawOffsetX + lm[0] * this.drawWidth,
+        this.drawOffsetY + lm[1] * this.drawHeight,
+        3,
+        0,
+        Math.PI * 2,
+      );
+      this.ctx.fill();
+    }
+
+    this.ctx.restore();
+  }
+
   /**
    * Draw hand connections efficiently
    */
@@ -106,12 +219,13 @@ export class OverlayRenderer {
     for (const [a, b] of HAND_CONNECTIONS) {
       const pa = hand[a];
       const pb = hand[b];
-      if (!pa || !pb) continue;
+      if (!pa || !pb || pa[0] === undefined || pa[1] === undefined || 
+          pb[0] === undefined || pb[1] === undefined) continue;
 
-      const x1 = pa[0] * this.overlayWidth;
-      const y1 = pa[1] * this.overlayHeight;
-      const x2 = pb[0] * this.overlayWidth;
-      const y2 = pb[1] * this.overlayHeight;
+      const x1 = this.drawOffsetX + pa[0] * this.drawWidth;
+      const y1 = this.drawOffsetY + pa[1] * this.drawHeight;
+      const x2 = this.drawOffsetX + pb[0] * this.drawWidth;
+      const y2 = this.drawOffsetY + pb[1] * this.drawHeight;
 
       if (!hasMoves) {
         this.ctx.moveTo(x1, y1);
@@ -134,12 +248,12 @@ export class OverlayRenderer {
     if (!this.ctx) return;
 
     for (const lm of hand) {
-      if (!lm || lm.length < 2) continue;
+      if (!lm || lm.length < 2 || lm[0] === undefined || lm[1] === undefined) continue;
 
       this.ctx.beginPath();
       this.ctx.arc(
-        lm[0] * this.overlayWidth,
-        lm[1] * this.overlayHeight,
+        this.drawOffsetX + lm[0] * this.drawWidth,
+        this.drawOffsetY + lm[1] * this.drawHeight,
         4, 0, Math.PI * 2
       );
       this.ctx.fill();

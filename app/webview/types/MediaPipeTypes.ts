@@ -11,6 +11,19 @@ export interface HandLandmark {
   z?: number;
 }
 
+export interface PoseLandmark {
+  x: number;
+  y: number;
+  z?: number;
+  visibility?: number;
+}
+
+export interface FaceLandmark {
+  x: number;
+  y: number;
+  z?: number;
+}
+
 // MediaPipe Gesture Category
 export interface GestureCategory {
   categoryName: string;
@@ -27,6 +40,35 @@ export interface MediaPipeGestureResult {
   gestures?: GestureCategory[][];
   landmarks?: HandLandmark[][];
   handednesses?: HandednessCategory[][];
+  poseLandmarks?: PoseLandmark[][];
+  faceLandmarks?: FaceLandmark[][];
+}
+
+// MediaPipe Holistic Landmarker Result
+export interface HolisticLandmarkerResult {
+  faceLandmarks: FaceLandmark[];
+  poseLandmarks: PoseLandmark[];
+  leftHandLandmarks?: HandLandmark[];
+  rightHandLandmarks?: HandLandmark[];
+  faceBlendshapes?: Array<{ categoryName: string; score: number }>;
+  poseWorldLandmarks?: PoseLandmark[];
+}
+
+// MediaPipe Recognizer interfaces
+export interface GestureRecognizerLike {
+  recognizeForVideo(
+    video: HTMLVideoElement,
+    timestamp: number
+  ): MediaPipeGestureResult | undefined;
+  close?: () => Promise<void> | void;
+}
+
+export interface HolisticLandmarkerLike {
+  detectForVideo(
+    video: HTMLVideoElement,
+    timestamp: number
+  ): HolisticLandmarkerResult | undefined;
+  close?: () => Promise<void> | void;
 }
 
 // MLP Prediction Result
@@ -148,15 +190,6 @@ export function isTelemetryMessage(message: WebViewMessagePayload): message is T
 
 export function isTwoHandGesture(gesture: any): gesture is TwoHandGesture {
   return gesture && typeof gesture === 'object' && 'left' in gesture && 'right' in gesture;
-}
-
-// MediaPipe Recognizer interface
-export interface GestureRecognizerLike {
-  recognizeForVideo(
-    video: HTMLVideoElement,
-    timestamp: number
-  ): MediaPipeGestureResult | undefined;
-  close?: () => Promise<void> | void;
 }
 
 // Fileset Resolver interface

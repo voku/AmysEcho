@@ -6,7 +6,7 @@
 (() => {
   // node_modules/fflate/esm/browser.js
   var ch2 = {};
-  var wk = (function(c, id, msg, transfer, cb) {
+  var wk = function(c, id, msg, transfer, cb) {
     var w = new Worker(ch2[id] || (ch2[id] = URL.createObjectURL(new Blob([
       c + ';addEventListener("error",function(e){e=e.error;postMessage({$e$:[e.message,e.code,e.stack]})})'
     ], { type: "text/javascript" }))));
@@ -22,7 +22,7 @@
     };
     w.postMessage(msg, transfer);
     return w;
-  });
+  };
   var u8 = Uint8Array;
   var u16 = Uint16Array;
   var i32 = Int32Array;
@@ -127,7 +127,7 @@
   }
   var x;
   var i;
-  var hMap = (function(cd, mb, r) {
+  var hMap = function(cd, mb, r) {
     var s = cd.length;
     var i = 0;
     var l = new u16(mb);
@@ -162,7 +162,7 @@
       }
     }
     return co;
-  });
+  };
   var flt = new u8(288);
   for (i = 0; i < 144; ++i)
     flt[i] = 8;
@@ -1500,11 +1500,44 @@
   ];
 
   // webview/core/OverlayRenderer.ts
+  var POSE_CONNECTIONS = [
+    [11, 13],
+    [13, 15],
+    [12, 14],
+    [14, 16],
+    [11, 12],
+    [23, 24],
+    [11, 23],
+    [12, 24],
+    [23, 25],
+    [25, 27],
+    [24, 26],
+    [26, 28]
+  ];
+  var FACE_MESH_LITE_POINTS = [
+    33,
+    133,
+    // eyes
+    362,
+    263,
+    1,
+    // nose tip
+    13,
+    14,
+    // lips
+    61,
+    291
+    // mouth corners
+  ];
   var OverlayRenderer = class {
     constructor(overlay2) {
       this.overlayWidth = 0;
       this.overlayHeight = 0;
       this.overlayDpr = 1;
+      this.drawWidth = 0;
+      this.drawHeight = 0;
+      this.drawOffsetX = 0;
+      this.drawOffsetY = 0;
       this.overlay = overlay2;
       try {
         this.ctx = overlay2.getContext("2d");
@@ -1519,7 +1552,7 @@
     /**
      * Resize overlay to match video dimensions
      */
-    resizeOverlay(videoRect) {
+    resizeOverlay(videoRect, videoDimensions) {
       const w = (videoRect.width || 0) | 0;
       const h = (videoRect.height || 0) | 0;
       const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -1535,6 +1568,20 @@
         this.overlayWidth = w;
         this.overlayHeight = h;
         this.overlayDpr = dpr;
+      }
+      const intrinsicWidth = videoDimensions?.width ?? w;
+      const intrinsicHeight = videoDimensions?.height ?? h;
+      if (intrinsicWidth > 0 && intrinsicHeight > 0 && w > 0 && h > 0) {
+        const scale = Math.max(w / intrinsicWidth, h / intrinsicHeight);
+        this.drawWidth = intrinsicWidth * scale;
+        this.drawHeight = intrinsicHeight * scale;
+        this.drawOffsetX = (w - this.drawWidth) / 2;
+        this.drawOffsetY = (h - this.drawHeight) / 2;
+      } else {
+        this.drawWidth = w;
+        this.drawHeight = h;
+        this.drawOffsetX = 0;
+        this.drawOffsetY = 0;
       }
     }
     /**
@@ -1566,6 +1613,71 @@
       }
       this.ctx.restore();
     }
+    drawPoseLandmarks(poseLandmarks, mirrorOverlay2) {
+      if (!this.ctx || !this.overlayWidth || !this.overlayHeight || poseLandmarks.length === 0) return;
+      this.ctx.save();
+      this.ctx.scale(this.overlayDpr, this.overlayDpr);
+      if (mirrorOverlay2) {
+        this.ctx.translate(this.overlayWidth, 0);
+        this.ctx.scale(-1, 1);
+      }
+      this.ctx.lineWidth = 2;
+      this.ctx.strokeStyle = "rgba(86, 166, 255, 0.9)";
+      this.ctx.fillStyle = "rgba(86, 166, 255, 0.9)";
+      this.ctx.beginPath();
+      for (const [a, b] of POSE_CONNECTIONS) {
+        const pa = poseLandmarks[a];
+        const pb = poseLandmarks[b];
+        if (!pa || !pb || pa[0] === void 0 || pa[1] === void 0 || pb[0] === void 0 || pb[1] === void 0) continue;
+        this.ctx.moveTo(
+          this.drawOffsetX + pa[0] * this.drawWidth,
+          this.drawOffsetY + pa[1] * this.drawHeight
+        );
+        this.ctx.lineTo(
+          this.drawOffsetX + pb[0] * this.drawWidth,
+          this.drawOffsetY + pb[1] * this.drawHeight
+        );
+      }
+      this.ctx.stroke();
+      for (const lm of poseLandmarks) {
+        if (!lm || lm[0] === void 0 || lm[1] === void 0) continue;
+        this.ctx.beginPath();
+        this.ctx.arc(
+          this.drawOffsetX + lm[0] * this.drawWidth,
+          this.drawOffsetY + lm[1] * this.drawHeight,
+          3,
+          0,
+          Math.PI * 2
+        );
+        this.ctx.fill();
+      }
+      this.ctx.restore();
+    }
+    drawFaceLandmarks(faceLandmarks, mirrorOverlay2) {
+      if (!this.ctx || !this.overlayWidth || !this.overlayHeight || faceLandmarks.length === 0) return;
+      this.ctx.save();
+      this.ctx.scale(this.overlayDpr, this.overlayDpr);
+      if (mirrorOverlay2) {
+        this.ctx.translate(this.overlayWidth, 0);
+        this.ctx.scale(-1, 1);
+      }
+      this.ctx.fillStyle = "rgba(255, 210, 86, 0.9)";
+      const indices = FACE_MESH_LITE_POINTS.filter((index) => index < faceLandmarks.length);
+      for (const idx of indices) {
+        const lm = faceLandmarks[idx];
+        if (!lm || lm[0] === void 0 || lm[1] === void 0) continue;
+        this.ctx.beginPath();
+        this.ctx.arc(
+          this.drawOffsetX + lm[0] * this.drawWidth,
+          this.drawOffsetY + lm[1] * this.drawHeight,
+          3,
+          0,
+          Math.PI * 2
+        );
+        this.ctx.fill();
+      }
+      this.ctx.restore();
+    }
     /**
      * Draw hand connections efficiently
      */
@@ -1576,11 +1688,11 @@
       for (const [a, b] of HAND_CONNECTIONS) {
         const pa = hand[a];
         const pb = hand[b];
-        if (!pa || !pb) continue;
-        const x1 = pa[0] * this.overlayWidth;
-        const y1 = pa[1] * this.overlayHeight;
-        const x2 = pb[0] * this.overlayWidth;
-        const y2 = pb[1] * this.overlayHeight;
+        if (!pa || !pb || pa[0] === void 0 || pa[1] === void 0 || pb[0] === void 0 || pb[1] === void 0) continue;
+        const x1 = this.drawOffsetX + pa[0] * this.drawWidth;
+        const y1 = this.drawOffsetY + pa[1] * this.drawHeight;
+        const x2 = this.drawOffsetX + pb[0] * this.drawWidth;
+        const y2 = this.drawOffsetY + pb[1] * this.drawHeight;
         if (!hasMoves) {
           this.ctx.moveTo(x1, y1);
           hasMoves = true;
@@ -1599,11 +1711,11 @@
     drawPoints(hand) {
       if (!this.ctx) return;
       for (const lm of hand) {
-        if (!lm || lm.length < 2) continue;
+        if (!lm || lm.length < 2 || lm[0] === void 0 || lm[1] === void 0) continue;
         this.ctx.beginPath();
         this.ctx.arc(
-          lm[0] * this.overlayWidth,
-          lm[1] * this.overlayHeight,
+          this.drawOffsetX + lm[0] * this.drawWidth,
+          this.drawOffsetY + lm[1] * this.drawHeight,
           4,
           0,
           Math.PI * 2
@@ -2283,10 +2395,20 @@
             const normalizedLandmarks = results.landmarks.map(
               (hand) => hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0])
             );
+            const poseLandmarks = results.poseLandmarks?.[0] ? results.poseLandmarks[0].map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]) : [];
+            const faceLandmarks = results.faceLandmarks?.[0] ? results.faceLandmarks[0].map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]) : [];
             const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
             if (shouldRedraw) {
               this.overlayRenderer.clear();
-              this.overlayRenderer.drawHandLandmarks(normalizedLandmarks, this.config.camera.mirrorOverlay);
+              if (poseLandmarks.length) {
+                this.overlayRenderer.drawPoseLandmarks(poseLandmarks, this.config.camera.mirrorOverlay);
+              }
+              if (faceLandmarks.length) {
+                this.overlayRenderer.drawFaceLandmarks(faceLandmarks, this.config.camera.mirrorOverlay);
+              }
+              if (normalizedLandmarks.length) {
+                this.overlayRenderer.drawHandLandmarks(normalizedLandmarks, this.config.camera.mirrorOverlay);
+              }
             }
             const captureInterval = frameCaptureState.frameCaptureInterval;
             if (frameStart - this.lastCaptureAttempt >= captureInterval) {
@@ -4397,9 +4519,39 @@
     }
     return normalized;
   }
+  function normalizePoseLandmarks(pose) {
+    if (!pose) {
+      return [];
+    }
+    const normalized = [];
+    for (const point of pose) {
+      if (!point) {
+        normalized.push([0, 0, 0]);
+        continue;
+      }
+      const { x = 0, y = 0, z = 0 } = point;
+      normalized.push([x, y, z]);
+    }
+    return normalized;
+  }
+  function normalizeFaceLandmarks(face) {
+    if (!face) {
+      return [];
+    }
+    const normalized = [];
+    for (const point of face) {
+      if (!point) {
+        normalized.push([0, 0, 0]);
+        continue;
+      }
+      const { x = 0, y = 0, z = 0 } = point;
+      normalized.push([x, y, z]);
+    }
+    return normalized;
+  }
   function mapMediaPipeResult(result) {
     if (!result) {
-      return { hands: [], landmarks: [], handednesses: [] };
+      return { hands: [], landmarks: [], handednesses: [], poseLandmarks: [], faceLandmarks: [] };
     }
     const maxHands = Math.max(
       result.landmarks?.length ?? 0,
@@ -4422,7 +4574,9 @@
     return {
       hands,
       landmarks: hands.map((hand) => hand.landmarks),
-      handednesses: hands.map((hand) => hand.handedness)
+      handednesses: hands.map((hand) => hand.handedness),
+      poseLandmarks: normalizePoseLandmarks(result.poseLandmarks?.[0]),
+      faceLandmarks: normalizeFaceLandmarks(result.faceLandmarks?.[0])
     };
   }
 

@@ -4,7 +4,12 @@ import type { MLPPrediction } from './MediaPipeTypes';
 export interface GestureWindowAugmentations {
   ReactNativeWebView?: { postMessage?: (message: string) => void };
   fileset_resolver?: { FilesetResolver: any };
-  vision?: { GestureRecognizer: any };
+  vision?: { 
+    GestureRecognizer: any;
+    HolisticLandmarker?: any;
+    PoseLandmarker?: any;
+    FaceLandmarker?: any;
+  };
   __mlpPredict?: (
     landmarks: number[][][],
     handednesses: unknown,

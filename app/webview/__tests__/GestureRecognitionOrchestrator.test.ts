@@ -56,6 +56,8 @@ jest.mock('../core/OverlayRenderer', () => ({
     resizeOverlay: jest.fn(),
     clear: jest.fn(),
     drawHandLandmarks: jest.fn(),
+    drawPoseLandmarks: jest.fn(),
+    drawFaceLandmarks: jest.fn(),
   })),
 }));
 

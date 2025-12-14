@@ -3,7 +3,7 @@ import { MediaPipeGestureResult } from '../../types/MediaPipeTypes';
 
 describe('mapMediaPipeResult', () => {
   it('returns empty structures when result is undefined', () => {
-    expect(mapMediaPipeResult()).toEqual({ hands: [], landmarks: [], handednesses: [] });
+    expect(mapMediaPipeResult()).toEqual({ hands: [], landmarks: [], handednesses: [], poseLandmarks: [], faceLandmarks: [] });
   });
 
   it('normalizes single-hand landmarks and gestures', () => {

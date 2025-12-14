@@ -7,6 +7,9 @@
 export interface MediaPipeComponents {
   FilesetResolver: any;
   GestureRecognizer: any;
+  HolisticLandmarker?: any;
+  PoseLandmarker?: any;
+  FaceLandmarker?: any;
   wasmBase: string;
 }
 
@@ -118,6 +121,7 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
     window.fileset_resolver.FilesetResolver &&
     window.vision &&
     window.vision.GestureRecognizer;
+    // Note: HolisticLandmarker is optional, graceful fallback supported
 
   // Compute preferred URLs
   const pinned = await resolvePinnedBase();
@@ -157,6 +161,9 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
           return {
             FilesetResolver: mod.FilesetResolver,
             GestureRecognizer: mod.GestureRecognizer,
+            HolisticLandmarker: mod.HolisticLandmarker, // Optional
+            PoseLandmarker: mod.PoseLandmarker, // Optional
+            FaceLandmarker: mod.FaceLandmarker, // Optional
             wasmBase: c.wasm,
           };
         }
@@ -177,6 +184,9 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
         return {
           FilesetResolver: window.fileset_resolver!.FilesetResolver,
           GestureRecognizer: window.vision!.GestureRecognizer,
+          HolisticLandmarker: window.vision!.HolisticLandmarker, // Optional
+          PoseLandmarker: window.vision!.PoseLandmarker, // Optional
+          FaceLandmarker: window.vision!.FaceLandmarker, // Optional
           wasmBase: c.wasm,
         };
       }
