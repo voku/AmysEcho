@@ -1,5 +1,5 @@
 /**
- * ParentArea - Parent/caregiver control center
+ * ParentArea - Caregiver control center
  * Mirrors app/src/screens/ParentScreen.tsx
  * 
  * For Amy: Gives caregivers the tools to support Amy's communication journey
@@ -96,7 +96,7 @@ export const ParentArea: React.FC = () => {
 
   return (
     <div className="parent-area">
-      <h2>👨‍👩‍👧 Elternbereich</h2>
+      <h2>🤝 Betreuungsbereich</h2>
       
       <div className="parent-intro">
         <p>

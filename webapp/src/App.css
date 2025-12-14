@@ -2913,10 +2913,12 @@ p {
   background: #e2e8f0;
 }
 
-/* Parent Area styles */
+/* Caregiver Area styles (formerly Parent Area) */
 .parent-area {
   max-width: 800px;
+  max-width: min(800px, 100%);
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .parent-intro {
@@ -2939,6 +2941,7 @@ p {
 .option-grid {
   display: grid;
   gap: 1rem;
+  max-width: 100%;
 }
 
 .option-card {
@@ -2951,6 +2954,10 @@ p {
   color: inherit;
   transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .option-card:hover {

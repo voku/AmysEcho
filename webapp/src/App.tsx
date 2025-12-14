@@ -348,7 +348,7 @@ function App() {
             <nav className="header-nav">
               <NavLink to="/einstellungen">⚙️</NavLink>
               <NavLink to="/hilfe">❓</NavLink>
-              <NavLink to="/eltern">👨‍👩‍👧</NavLink>
+              <NavLink to="/eltern" title="Betreuungsbereich">🤝</NavLink>
             </nav>
           )}
         </header>
