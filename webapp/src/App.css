@@ -1116,6 +1116,10 @@ p {
   }
 
   .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     gap: var(--space-xs);
     padding: var(--space-md) var(--space-md);
   }
@@ -1205,6 +1209,10 @@ p {
   }
 
   .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-sm);
   }
