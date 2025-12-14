@@ -196,25 +196,48 @@ function BottomNav() {
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
-    const handleScroll = () => {
-      const autoHideEnabled = window.innerWidth <= 1024;
-      if (!autoHideEnabled) {
+    let prefersAutoHide = window.innerWidth <= 1024;
+    let ticking = false;
+
+    const updateAutoHidePreference = () => {
+      prefersAutoHide = window.innerWidth <= 1024;
+      if (!prefersAutoHide) {
         setIsHidden(false);
-        lastScrollY = window.scrollY;
+      }
+    };
+
+    const runScrollEffect = () => {
+      const currentY = window.scrollY;
+      if (!prefersAutoHide) {
+        lastScrollY = currentY;
+        ticking = false;
         return;
       }
 
-      const currentY = window.scrollY;
       if (currentY > lastScrollY + 12) {
         setIsHidden(true);
       } else if (currentY < lastScrollY - 12 || currentY < 24) {
         setIsHidden(false);
       }
+
       lastScrollY = currentY;
+      ticking = false;
     };
 
+    const handleScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        window.requestAnimationFrame(runScrollEffect);
+      }
+    };
+
+    updateAutoHidePreference();
+    window.addEventListener('resize', updateAutoHidePreference, { passive: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', updateAutoHidePreference);
+    };
   }, []);
 
   const revealNav = () => setIsHidden(false);
