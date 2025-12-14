@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, NavLink, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AboutAmysEcho } from './components/AboutAmysEcho';
 import { Admin } from './components/Admin';
+import { CaregiverArea } from './components/CaregiverArea';
 import { CaregiverReport } from './components/CaregiverReport';
 import { CommunicationInsights } from './components/CommunicationInsights';
 import { Dashboard } from './components/Dashboard';
@@ -11,7 +12,6 @@ import { GestureHistory } from './components/GestureHistory';
 import { GestureTutorial } from './components/GestureTutorial';
 import { Help } from './components/Help';
 import { LearningHub } from './components/LearningHub';
-import { ParentArea } from './components/ParentArea';
 import { ParentalGate } from './components/ParentalGate';
 import { ProfileSelect } from './components/ProfileSelect';
 import { ProgressChart } from './components/ProgressChart';
@@ -242,7 +242,7 @@ function MainAppContent() {
           <Route path="/hilfe" element={<Help />} />
           <Route path="/tutorial" element={<GestureTutorial />} />
           <Route path="/ueber" element={<AboutAmysEcho />} />
-          <Route path="/eltern" element={<ParentArea />} />
+          <Route path="/betreuung" element={<CaregiverArea />} />
           <Route path="/elterntor" element={<ParentalGate />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/bericht" element={<CaregiverReport />} />
@@ -348,7 +348,7 @@ function App() {
             <nav className="header-nav">
               <NavLink to="/einstellungen">⚙️</NavLink>
               <NavLink to="/hilfe">❓</NavLink>
-              <NavLink to="/eltern" title="Betreuungsbereich">🤝</NavLink>
+              <NavLink to="/betreuung" title="Betreuungsbereich">🤝</NavLink>
             </nav>
           )}
         </header>

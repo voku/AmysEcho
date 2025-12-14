@@ -1209,10 +1209,6 @@ p {
   }
 
   .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-sm);
   }
@@ -3001,14 +2997,14 @@ p {
   background: #e2e8f0;
 }
 
-/* Caregiver Area styles (formerly Parent Area) */
-.parent-area {
+/* Caregiver Area styles */
+.caregiver-area {
   max-width: min(800px, 100%);
   margin: 0 auto;
   box-sizing: border-box;
 }
 
-.parent-intro {
+.caregiver-intro {
   background: #f0fdf4;
   padding: 1rem 1.5rem;
   border-radius: 12px;
@@ -3016,11 +3012,11 @@ p {
   border: 1px solid #86efac;
 }
 
-.parent-section {
+.caregiver-section {
   margin: 2rem 0;
 }
 
-.parent-section h3 {
+.caregiver-section h3 {
   margin-bottom: 1rem;
   color: #334155;
 }
@@ -3075,7 +3071,7 @@ p {
   font-size: 0.8rem;
 }
 
-.parent-actions {
+.caregiver-actions {
   margin-top: 2rem;
 }
 

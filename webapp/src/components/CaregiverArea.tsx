@@ -1,5 +1,5 @@
 /**
- * ParentArea - Caregiver control center
+ * CaregiverArea - Caregiver control center
  * Mirrors app/src/screens/ParentScreen.tsx
  * 
  * For Amy: Gives caregivers the tools to support Amy's communication journey
@@ -7,14 +7,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-interface ParentOption {
+interface CaregiverOption {
   title: string;
   subtitle: string;
   route: string;
   requiresGate?: boolean;
 }
 
-const PARENT_SECTIONS: Array<{ title: string; items: ParentOption[] }> = [
+const CAREGIVER_SECTIONS: Array<{ title: string; items: CaregiverOption[] }> = [
   {
     title: 'Profile & Verwaltung',
     items: [
@@ -78,7 +78,7 @@ const PARENT_SECTIONS: Array<{ title: string; items: ParentOption[] }> = [
   }
 ];
 
-export const ParentArea: React.FC = () => {
+export const CaregiverArea: React.FC = () => {
   const [profile, setProfile] = React.useState<{ name: string } | null>(null);
 
   React.useEffect(() => {
@@ -95,10 +95,10 @@ export const ParentArea: React.FC = () => {
   const profileName = profile?.name?.trim() || 'dein Kind';
 
   return (
-    <div className="parent-area">
+    <div className="caregiver-area">
       <h2>🤝 Betreuungsbereich</h2>
       
-      <div className="parent-intro">
+      <div className="caregiver-intro">
         <p>
           <strong>{profileName}</strong> steht im Mittelpunkt. 
           Wähle die Karte, die zu deiner nächsten Aufgabe passt – 
@@ -106,8 +106,8 @@ export const ParentArea: React.FC = () => {
         </p>
       </div>
 
-      {PARENT_SECTIONS.map((section) => (
-        <section key={section.title} className="parent-section">
+      {CAREGIVER_SECTIONS.map((section) => (
+        <section key={section.title} className="caregiver-section">
           <h3>{section.title}</h3>
           <div className="option-grid">
             {section.items.map((item) => (
@@ -127,7 +127,7 @@ export const ParentArea: React.FC = () => {
         </section>
       ))}
 
-      <div className="parent-actions">
+      <div className="caregiver-actions">
         <Link to="/" className="secondary-button">
           Zurück zur Gestenkamera
         </Link>
