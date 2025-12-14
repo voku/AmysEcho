@@ -1172,8 +1172,8 @@ export class GestureRecognitionOrchestrator {
     this.resetLifecycleState(true);
   }
 
-  private resetLifecycleState(clearDetector = false): void {
-    if (clearDetector) {
+  private resetLifecycleState(shouldClearDetector = false): void {
+    if (shouldClearDetector) {
       this.gestureDetector = null;
     }
     this.isInitialized = false;

@@ -200,11 +200,12 @@ function BottomNav() {
   const prefersAutoHide = useRef(false);
   const scrollTicking = useRef(false);
   const resizeTicking = useRef(false);
+  const isHiddenRef = useRef(false);
   const [isHidden, setIsHidden] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
-      return () => {};
+      return undefined;
     }
 
     lastScrollY.current = window.scrollY;
@@ -213,7 +214,10 @@ function BottomNav() {
     const updateAutoHidePreference = () => {
       prefersAutoHide.current = window.innerWidth <= AUTO_HIDE_BREAKPOINT_PX;
       if (!prefersAutoHide.current) {
-        setIsHidden(false);
+        if (isHiddenRef.current) {
+          isHiddenRef.current = false;
+          setIsHidden(false);
+        }
       }
     };
 
@@ -225,13 +229,20 @@ function BottomNav() {
         return;
       }
 
+      let nextHidden = isHiddenRef.current;
+
       if (currentY > lastScrollY.current + HIDE_SCROLL_DELTA_PX) {
-        setIsHidden(true);
+        nextHidden = true;
       } else if (
         currentY < lastScrollY.current - HIDE_SCROLL_DELTA_PX ||
         currentY < MIN_SCROLL_POSITION_PX
       ) {
-        setIsHidden(false);
+        nextHidden = false;
+      }
+
+      if (nextHidden !== isHiddenRef.current) {
+        isHiddenRef.current = nextHidden;
+        setIsHidden(nextHidden);
       }
 
       lastScrollY.current = currentY;
@@ -264,7 +275,12 @@ function BottomNav() {
     };
   }, []);
 
-  const revealNav = () => setIsHidden(false);
+  const revealNav = () => {
+    if (isHiddenRef.current) {
+      isHiddenRef.current = false;
+      setIsHidden(false);
+    }
+  };
 
   return (
     <nav
