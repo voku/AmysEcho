@@ -205,7 +205,7 @@ function BottomNav() {
 
   useEffect(() => {
     if (typeof window === 'undefined') {
-      return undefined;
+      return;
     }
 
     lastScrollY.current = window.scrollY;
@@ -213,11 +213,9 @@ function BottomNav() {
 
     const updateAutoHidePreference = () => {
       prefersAutoHide.current = window.innerWidth <= AUTO_HIDE_BREAKPOINT_PX;
-      if (!prefersAutoHide.current) {
-        if (isHiddenRef.current) {
-          isHiddenRef.current = false;
-          setIsHidden(false);
-        }
+      if (!prefersAutoHide.current && isHiddenRef.current) {
+        isHiddenRef.current = false;
+        setIsHidden(false);
       }
     };
 
