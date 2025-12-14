@@ -243,11 +243,9 @@ export class GestureRecognitionOrchestrator {
     const shouldPerformCleanup = this.isRunning || force;
     if (!shouldPerformCleanup) return;
 
-    if (shouldPerformCleanup) {
-      this.cancelClipCapture();
-      this.flushFrameBatch(true);
-      this.frameBuffer = [];
-    }
+    this.cancelClipCapture();
+    this.flushFrameBatch(true);
+    this.frameBuffer = [];
 
     await this.gestureDetector?.stop();
     this.resetLifecycleState();
