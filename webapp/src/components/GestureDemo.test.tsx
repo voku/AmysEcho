@@ -37,6 +37,9 @@ describe('GestureDemo', () => {
 
     expect(screen.getByText('Browser-Gestenrekorder')).toBeInTheDocument();
     expect(screen.getByText('Gestenlabor')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Nimm deine Gesten direkt im Browser auf und probiere sie sofort aus\./)
+    ).toBeInTheDocument();
   });
 
   it('shows camera control buttons', () => {

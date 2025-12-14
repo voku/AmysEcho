@@ -143,14 +143,14 @@ export function GestureDemo() {
     <section className="card gesture-demo">
       <div className="card-header">
         <div>
-          <p className="eyebrow">Gestenlabor</p>
-          <h2>Browser-Gestenrekorder</h2>
-          <p className="muted">
-            Diese Ansicht nutzt das WebView-Bundle und spiegelt die Orchestrierung der Expo-App wider. Alle Meldungen werden im
-            Browser protokolliert.
-          </p>
-        </div>
-      </div>
+           <p className="eyebrow">Gestenlabor</p>
+           <h2>Browser-Gestenrekorder</h2>
+           <p className="muted">
+            Nimm deine Gesten direkt im Browser auf und probiere sie sofort aus. Starte die Kamera und sieh im Protokoll, wie deine
+            Bewegungen erkannt werden.
+           </p>
+         </div>
+       </div>
 
       <div className="detector-shell">
         <div className="video-column">
