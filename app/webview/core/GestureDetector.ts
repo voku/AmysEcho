@@ -9,7 +9,7 @@ import { OverlayRenderer } from './OverlayRenderer';
 import { ResourceManager } from '../utils/ResourceManager';
 import { HealthMonitor } from '../utils/HealthMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
-import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark } from '../types/MediaPipeTypes';
+import { GestureRecognizerLike, MediaPipeGestureResult, HandLandmark, PoseLandmark, FaceLandmark } from '../types/MediaPipeTypes';
 import {
   initializeFrameCapture,
   captureFrameForTrainer,
@@ -193,11 +193,30 @@ export class GestureDetector {
           const normalizedLandmarks: number[][][] = results.landmarks.map((hand: HandLandmark[]) =>
             hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]),
           );
+          
+          // Normalize pose landmarks if available
+          const poseLandmarks: number[][] = results.poseLandmarks?.[0]
+            ? results.poseLandmarks[0].map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0])
+            : [];
+          
+          // Normalize face landmarks if available
+          const faceLandmarks: number[][] = results.faceLandmarks?.[0]
+            ? results.faceLandmarks[0].map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0])
+            : [];
+          
           // Optimize overlay updates - only redraw when necessary
           const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
           if (shouldRedraw) {
             this.overlayRenderer.clear();
-            this.overlayRenderer.drawHandLandmarks(normalizedLandmarks, this.config.camera.mirrorOverlay);
+            if (poseLandmarks.length) {
+              this.overlayRenderer.drawPoseLandmarks(poseLandmarks, this.config.camera.mirrorOverlay);
+            }
+            if (faceLandmarks.length) {
+              this.overlayRenderer.drawFaceLandmarks(faceLandmarks, this.config.camera.mirrorOverlay);
+            }
+            if (normalizedLandmarks.length) {
+              this.overlayRenderer.drawHandLandmarks(normalizedLandmarks, this.config.camera.mirrorOverlay);
+            }
           }
           const captureInterval = frameCaptureState.frameCaptureInterval;
           if (frameStart - this.lastCaptureAttempt >= captureInterval) {

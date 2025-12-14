@@ -10,9 +10,13 @@ export interface NormalizedMediaPipeResult {
   hands: NormalizedHandPrediction[];
   landmarks: number[][][];
   handednesses: string[];
+  poseLandmarks: number[][];
+  faceLandmarks: number[][];
 }
 
 type HandLandmarks = NonNullable<MediaPipeGestureResult['landmarks']>[number];
+type PoseLandmarks = NonNullable<MediaPipeGestureResult['poseLandmarks']>[number];
+type FaceLandmarks = NonNullable<MediaPipeGestureResult['faceLandmarks']>[number];
 
 function normalizeHandLandmarks(hand?: HandLandmarks): number[][] {
   if (!hand) {
@@ -33,9 +37,47 @@ function normalizeHandLandmarks(hand?: HandLandmarks): number[][] {
   return normalized;
 }
 
+function normalizePoseLandmarks(pose?: PoseLandmarks): number[][] {
+  if (!pose) {
+    return [];
+  }
+
+  const normalized: number[][] = [];
+  for (const point of pose) {
+    if (!point) {
+      normalized.push([0, 0, 0]);
+      continue;
+    }
+
+    const { x = 0, y = 0, z = 0 } = point;
+    normalized.push([x, y, z]);
+  }
+
+  return normalized;
+}
+
+function normalizeFaceLandmarks(face?: FaceLandmarks): number[][] {
+  if (!face) {
+    return [];
+  }
+
+  const normalized: number[][] = [];
+  for (const point of face) {
+    if (!point) {
+      normalized.push([0, 0, 0]);
+      continue;
+    }
+
+    const { x = 0, y = 0, z = 0 } = point;
+    normalized.push([x, y, z]);
+  }
+
+  return normalized;
+}
+
 export function mapMediaPipeResult(result?: MediaPipeGestureResult): NormalizedMediaPipeResult {
   if (!result) {
-    return { hands: [], landmarks: [], handednesses: [] };
+    return { hands: [], landmarks: [], handednesses: [], poseLandmarks: [], faceLandmarks: [] };
   }
 
   const maxHands = Math.max(
@@ -65,5 +107,7 @@ export function mapMediaPipeResult(result?: MediaPipeGestureResult): NormalizedM
     hands,
     landmarks: hands.map(hand => hand.landmarks),
     handednesses: hands.map(hand => hand.handedness),
+    poseLandmarks: normalizePoseLandmarks(result.poseLandmarks?.[0]),
+    faceLandmarks: normalizeFaceLandmarks(result.faceLandmarks?.[0]),
   };
 }
