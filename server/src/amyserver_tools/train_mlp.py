@@ -330,72 +330,63 @@ def apply_hand_focus(
     List[List[float]]
         Filtered/weighted landmarks
     """
-    if hand_focus is None or len(landmarks) < TOTAL_HAND_LANDMARKS:
-        return landmarks
-    
-    # Normalize legacy values
-    if hand_focus in ('both', 'both_equal', 'either_hand'):
+    # Early return for no-op cases
+    if hand_focus is None or hand_focus in ('both', 'both_equal', 'either_hand') or len(landmarks) < TOTAL_HAND_LANDMARKS:
         return landmarks
     
     result = [list(point) for point in landmarks]
     
+    # Define index ranges for each hand
+    left_hand_indices = range(LANDMARKS_PER_HAND)
+    right_hand_indices = range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS)
+    
+    # Track which hand indices to zero or weight
+    hand_to_zero: Optional[range] = None
+    hand_to_weight: Optional[range] = None
+    
     # Explicit left/right specification
     if hand_focus == 'right':
-        # Zero out left hand landmarks (indices 0 to LANDMARKS_PER_HAND-1)
-        for i in range(LANDMARKS_PER_HAND):
-            if i < len(result):
-                result[i] = [0.0, 0.0, 0.0]
-        return result
-    
-    if hand_focus == 'left':
-        # Zero out right hand landmarks (indices LANDMARKS_PER_HAND to TOTAL_HAND_LANDMARKS-1)
-        for i in range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS):
-            if i < len(result):
-                result[i] = [0.0, 0.0, 0.0]
-        return result
-    
-    # For 'dominant_only' and 'both_asymmetric', detect which hand is dominant
-    # based on handedness labels or motion (more non-zero values)
-    left_motion = sum(1 for i in range(LANDMARKS_PER_HAND) if i < len(landmarks) and any(v != 0 for v in landmarks[i]))
-    right_motion = sum(1 for i in range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS) if i < len(landmarks) and any(v != 0 for v in landmarks[i]))
-    
-    # Determine dominant hand from handedness or motion
-    dominant_is_right = True  # Default
-    if handedness:
-        # Check handedness labels
-        if any('right' in h.lower() for h in handedness):
-            dominant_is_right = True
-        elif any('left' in h.lower() for h in handedness):
-            dominant_is_right = False
-    else:
-        # Fallback to motion-based detection
-        dominant_is_right = right_motion >= left_motion
-    
-    if hand_focus == 'dominant_only':
-        # Zero out non-dominant hand
-        if dominant_is_right:
-            for i in range(LANDMARKS_PER_HAND):
-                if i < len(result):
-                    result[i] = [0.0, 0.0, 0.0]
+        hand_to_zero = left_hand_indices
+    elif hand_focus == 'left':
+        hand_to_zero = right_hand_indices
+    elif hand_focus in ('dominant_only', 'both_asymmetric'):
+        # Count active landmarks per hand (landmarks with non-zero values)
+        left_landmark_count = sum(1 for i in left_hand_indices if any(v != 0 for v in landmarks[i]))
+        right_landmark_count = sum(1 for i in right_hand_indices if any(v != 0 for v in landmarks[i]))
+        
+        # Determine dominant hand from handedness labels or landmark counts
+        dominant_is_right = True  # Default
+        if handedness:
+            has_right = any('right' in h.lower() for h in handedness)
+            has_left = any('left' in h.lower() for h in handedness)
+            if has_right and not has_left:
+                dominant_is_right = True
+            elif has_left and not has_right:
+                dominant_is_right = False
+            else:
+                # Ambiguous (both or none detected), fallback to landmark count
+                dominant_is_right = right_landmark_count >= left_landmark_count
         else:
-            for i in range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS):
-                if i < len(result):
-                    result[i] = [0.0, 0.0, 0.0]
-        return result
+            # Fallback to landmark count-based detection
+            dominant_is_right = right_landmark_count >= left_landmark_count
+        
+        # Select secondary hand indices based on dominance
+        secondary_hand_indices = left_hand_indices if dominant_is_right else right_hand_indices
+        
+        if hand_focus == 'dominant_only':
+            hand_to_zero = secondary_hand_indices
+        else:  # 'both_asymmetric'
+            hand_to_weight = secondary_hand_indices
     
-    if hand_focus == 'both_asymmetric':
-        # Weight non-dominant hand at reduced weight
-        if dominant_is_right:
-            # Left hand is secondary
-            for i in range(LANDMARKS_PER_HAND):
-                if i < len(result):
-                    result[i] = [v * SECONDARY_HAND_WEIGHT for v in result[i]]
-        else:
-            # Right hand is secondary
-            for i in range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS):
-                if i < len(result):
-                    result[i] = [v * SECONDARY_HAND_WEIGHT for v in result[i]]
-        return result
+    # Apply zeroing to selected hand
+    if hand_to_zero is not None:
+        for i in hand_to_zero:
+            result[i] = [0.0, 0.0, 0.0]
+    
+    # Apply weighting to selected hand
+    if hand_to_weight is not None:
+        for i in hand_to_weight:
+            result[i] = [v * SECONDARY_HAND_WEIGHT for v in result[i]]
     
     return result
 

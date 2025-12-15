@@ -101,13 +101,13 @@ export class OverlayRenderer {
    * @param landmarks Array of hand landmarks
    * @param mirrorOverlay Whether to mirror the overlay horizontally
    * @param handedness Optional array of handedness labels ('Left', 'Right')
-   * @param handFocus Optional hand focus setting ('left', 'right', 'both')
+   * @param handFocus Optional hand focus setting - supports all HandFocus types
    */
   drawHandLandmarks(
     landmarks: number[][][],
     mirrorOverlay: boolean,
     handedness?: ReadonlyArray<string>,
-    handFocus?: 'left' | 'right' | 'both',
+    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand' | 'left' | 'right' | 'both',
   ): void {
     if (!this.ctx || !this.overlayWidth || !this.overlayHeight) return;
 
@@ -130,8 +130,8 @@ export class OverlayRenderer {
 
       // Determine if this hand is the "primary" (focused) hand
       const handLabel = handedness?.[i];
-      const isPrimary = this.isHandPrimary(handLabel, handFocus);
-      const isDimmed = this.isHandDimmed(handLabel, handFocus);
+      const isPrimary = this.isHandPrimary(handLabel, handFocus, handedness);
+      const isDimmed = this.isHandDimmed(handLabel, handFocus, handedness);
 
       // Set styles based on whether hand is primary
       if (isPrimary) {
@@ -168,24 +168,91 @@ export class OverlayRenderer {
 
   /**
    * Check if a hand should be highlighted as primary based on hand focus
+   * Supports all HandFocus types including dominant_only and both_asymmetric
    */
-  private isHandPrimary(handLabel: string | undefined, handFocus?: 'left' | 'right' | 'both'): boolean {
-    if (!handFocus || handFocus === 'both') return false;
+  private isHandPrimary(
+    handLabel: string | undefined,
+    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand' | 'left' | 'right' | 'both',
+    allHandedness?: ReadonlyArray<string>,
+  ): boolean {
+    // No focus or equal focus means no primary highlighting
+    if (!handFocus || handFocus === 'both' || handFocus === 'both_equal' || handFocus === 'either_hand') {
+      return false;
+    }
     if (!handLabel) return false;
+    
     const normalizedLabel = handLabel.toLowerCase();
-    return (handFocus === 'left' && normalizedLabel === 'left') ||
-           (handFocus === 'right' && normalizedLabel === 'right');
+    
+    // Explicit left/right specification
+    if (handFocus === 'left') {
+      return normalizedLabel === 'left';
+    }
+    if (handFocus === 'right') {
+      return normalizedLabel === 'right';
+    }
+    
+    // For dominant_only and both_asymmetric, determine dominant hand
+    // Default to right hand being dominant, unless only left is detected
+    if (handFocus === 'dominant_only' || handFocus === 'both_asymmetric') {
+      const hasRight = allHandedness?.some(h => /right/i.test(h)) ?? false;
+      const hasLeft = allHandedness?.some(h => /left/i.test(h)) ?? false;
+      
+      // Determine dominant: right if present, else left
+      const dominantIsRight = hasRight || !hasLeft;
+      
+      // Primary hand is the dominant one
+      if (dominantIsRight) {
+        return normalizedLabel === 'right';
+      } else {
+        return normalizedLabel === 'left';
+      }
+    }
+    
+    return false;
   }
 
   /**
    * Check if a hand should be dimmed (not important) based on hand focus
+   * Supports all HandFocus types including dominant_only and both_asymmetric
    */
-  private isHandDimmed(handLabel: string | undefined, handFocus?: 'left' | 'right' | 'both'): boolean {
-    if (!handFocus || handFocus === 'both') return false;
+  private isHandDimmed(
+    handLabel: string | undefined,
+    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand' | 'left' | 'right' | 'both',
+    allHandedness?: ReadonlyArray<string>,
+  ): boolean {
+    // No focus or equal focus means no dimming
+    if (!handFocus || handFocus === 'both' || handFocus === 'both_equal' || handFocus === 'either_hand') {
+      return false;
+    }
     if (!handLabel) return false;
+    
     const normalizedLabel = handLabel.toLowerCase();
-    return (handFocus === 'left' && normalizedLabel === 'right') ||
-           (handFocus === 'right' && normalizedLabel === 'left');
+    
+    // Explicit left/right specification
+    if (handFocus === 'left') {
+      return normalizedLabel === 'right';
+    }
+    if (handFocus === 'right') {
+      return normalizedLabel === 'left';
+    }
+    
+    // For dominant_only and both_asymmetric, dim the non-dominant hand
+    if (handFocus === 'dominant_only' || handFocus === 'both_asymmetric') {
+      const hasRight = allHandedness?.some(h => /right/i.test(h)) ?? false;
+      const hasLeft = allHandedness?.some(h => /left/i.test(h)) ?? false;
+      
+      // Determine dominant: right if present, else left
+      const dominantIsRight = hasRight || !hasLeft;
+      
+      // Dimmed hand is the non-dominant one
+      if (dominantIsRight) {
+        return normalizedLabel === 'left';
+      } else {
+        return normalizedLabel === 'right';
+      }
+    }
+    
+    return false;
   }
 
   /**
