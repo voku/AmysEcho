@@ -7,7 +7,7 @@ import { CaregiverReport } from './components/CaregiverReport';
 import { CommunicationInsights } from './components/CommunicationInsights';
 import { Dashboard } from './components/Dashboard';
 import { FeatureAvailability } from './components/FeatureAvailability';
-import { GestureDemo } from './components/GestureDemo';
+import { GestureRecorder } from './components/GestureRecorder';
 import { GestureHistory } from './components/GestureHistory';
 import { GestureTutorial } from './components/GestureTutorial';
 import { Help } from './components/Help';
@@ -338,7 +338,7 @@ function MainAppContent() {
     <>
       <main className="content main-content">
         <Routes>
-          <Route path="/" element={<GestureDemo />} />
+          <Route path="/" element={<GestureRecorder />} />
           <Route path="/verlauf" element={<GestureHistory />} />
           <Route path="/lernen" element={<LearningHub />} />
           <Route path="/training" element={<TrainingUploadWithRecording />} />

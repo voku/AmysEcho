@@ -19,7 +19,7 @@ function formatStatus(status: string): string {
   }
 }
 
-export function GestureDemo() {
+export function GestureRecorder() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
@@ -143,11 +143,11 @@ export function GestureDemo() {
     <section className="card gesture-demo">
       <div className="card-header">
         <div>
-          <p className="eyebrow">Gestenlabor</p>
-          <h2>Browser-Gestenrekorder</h2>
+          <p className="eyebrow">Gestenkamera</p>
+          <h2>Gestenrekorder</h2>
           <p className="muted">
-            Diese Ansicht nutzt das WebView-Bundle und spiegelt die Orchestrierung der Expo-App wider. Alle Meldungen werden im
-            Browser protokolliert.
+            Nimm deine Gesten direkt im Browser auf und probiere sie sofort aus. Starte die Kamera und sieh dir im Protokoll an, wie
+            deine Bewegungen erkannt werden.
           </p>
         </div>
       </div>
