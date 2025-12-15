@@ -1324,7 +1324,7 @@ p {
   }
 }
 
-/* Extra small screens - mobile phones in portrait (360px) */
+/* Extra small screens - mobile phones in portrait (380px and below) */
 @media (max-width: 380px) {
   .video-wrapper {
     min-height: clamp(200px, 45vh, 400px);
