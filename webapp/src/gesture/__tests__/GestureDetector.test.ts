@@ -184,6 +184,92 @@ describe('GestureDetector', () => {
       expect(overlayRenderer.drawFaceLandmarks).toHaveBeenCalledWith(faceLandmarks, expect.any(Boolean));
       expect(overlayRenderer.drawHandLandmarks).toHaveBeenCalled();
     });
+
+    it('prioritizes hand landmarks over body/face for redraw decisions (sign language)', async () => {
+      const detector = new GestureDetector(mockVideo, mockOverlay);
+      await detector.initialize();
+
+      const overlayRenderer = (detector as any).overlayRenderer as OverlayRenderer;
+      const performanceOptimizer = (detector as any).performanceOptimizer;
+      
+      // Create hand landmarks and pose/face landmarks
+      const handLandmarks = [[[0.1, 0.1, 0], [0.2, 0.2, 0]]];
+      const poseLandmarks = Array.from({ length: 29 }, () => [0.3, 0.3, 0]);
+      const faceLandmarks = Array.from({ length: 363 }, () => [0.4, 0.4, 0]);
+
+      // First call to establish baseline
+      (detector as any).updateOverlay(handLandmarks, 12, 0, poseLandmarks, faceLandmarks);
+      
+      // Clear mock call history
+      vi.mocked(overlayRenderer.clear).mockClear();
+      vi.mocked(overlayRenderer.drawHandLandmarks).mockClear();
+      vi.mocked(overlayRenderer.drawPoseLandmarks).mockClear();
+      vi.mocked(overlayRenderer.drawFaceLandmarks).mockClear();
+
+      // Change ONLY hand landmarks (should trigger redraw because hands are prioritized)
+      const newHandLandmarks = [[[0.5, 0.5, 0], [0.6, 0.6, 0]]];
+      (detector as any).updateOverlay(newHandLandmarks, 30, 100, poseLandmarks, faceLandmarks);
+
+      // Hand landmarks should still be drawn because they changed
+      // and hands are prioritized for sign language
+      expect(overlayRenderer.drawHandLandmarks).toHaveBeenCalledWith(
+        newHandLandmarks,
+        expect.any(Boolean)
+      );
+    });
+
+    it('draws hands last (on top) for sign language visibility', async () => {
+      const detector = new GestureDetector(mockVideo, mockOverlay);
+      await detector.initialize();
+
+      const overlayRenderer = (detector as any).overlayRenderer as OverlayRenderer;
+      
+      const handLandmarks = [[[0.1, 0.1, 0], [0.2, 0.2, 0]]];
+      const poseLandmarks = Array.from({ length: 29 }, () => [0.3, 0.3, 0]);
+      const faceLandmarks = Array.from({ length: 363 }, () => [0.4, 0.4, 0]);
+
+      // Clear any previous calls
+      vi.mocked(overlayRenderer.clear).mockClear();
+      vi.mocked(overlayRenderer.drawHandLandmarks).mockClear();
+      vi.mocked(overlayRenderer.drawPoseLandmarks).mockClear();
+      vi.mocked(overlayRenderer.drawFaceLandmarks).mockClear();
+
+      (detector as any).updateOverlay(handLandmarks, 12, 0, poseLandmarks, faceLandmarks);
+
+      // Verify the order of calls: pose -> face -> hands (hands last = on top)
+      const clearCallOrder = vi.mocked(overlayRenderer.clear).mock.invocationCallOrder[0];
+      const poseCallOrder = vi.mocked(overlayRenderer.drawPoseLandmarks).mock.invocationCallOrder[0];
+      const faceCallOrder = vi.mocked(overlayRenderer.drawFaceLandmarks).mock.invocationCallOrder[0];
+      const handCallOrder = vi.mocked(overlayRenderer.drawHandLandmarks).mock.invocationCallOrder[0];
+
+      expect(clearCallOrder).toBeDefined();
+      expect(poseCallOrder).toBeGreaterThan(clearCallOrder);
+      expect(faceCallOrder).toBeGreaterThan(poseCallOrder);
+      expect(handCallOrder).toBeGreaterThan(faceCallOrder);
+    });
+
+    it('still draws pose/face when only they are present (no hands)', async () => {
+      const detector = new GestureDetector(mockVideo, mockOverlay);
+      await detector.initialize();
+
+      const overlayRenderer = (detector as any).overlayRenderer as OverlayRenderer;
+      
+      const poseLandmarks = Array.from({ length: 29 }, () => [0.3, 0.3, 0]);
+      const faceLandmarks = Array.from({ length: 363 }, () => [0.4, 0.4, 0]);
+
+      // Clear any previous calls
+      vi.mocked(overlayRenderer.clear).mockClear();
+      vi.mocked(overlayRenderer.drawHandLandmarks).mockClear();
+      vi.mocked(overlayRenderer.drawPoseLandmarks).mockClear();
+      vi.mocked(overlayRenderer.drawFaceLandmarks).mockClear();
+
+      // No hand landmarks, only pose and face
+      (detector as any).updateOverlay([], 12, 0, poseLandmarks, faceLandmarks);
+
+      expect(overlayRenderer.drawPoseLandmarks).toHaveBeenCalled();
+      expect(overlayRenderer.drawFaceLandmarks).toHaveBeenCalled();
+      expect(overlayRenderer.drawHandLandmarks).not.toHaveBeenCalled();
+    });
   });
 
   describe('result callback', () => {
