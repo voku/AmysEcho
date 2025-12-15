@@ -25,6 +25,7 @@ import { TemporalGestureAnalyzer } from '../utils/TemporalGestureAnalyzer';
 // Performance thresholds
 const SLOW_FRAME_THRESHOLD_MS = 50;
 const OVERLAY_CLEAR_INTERVAL_MS = 300;
+const FAST_PROCESSING_THRESHOLD_MS = 20; // Same as PerformanceOptimizer.shouldRedrawOverlay
 
 // MediaPipe model URLs
 const GESTURE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
@@ -404,7 +405,7 @@ export class GestureDetector {
       // pose/face landmark changes that might otherwise suppress the redraw.
       const shouldRedraw = hasHandLandmarks
         ? this.performanceOptimizer.shouldRedrawOverlay(normalizedLandmarks, recognitionTime)
-        : recognitionTime < 20; // For pose/face only, just use fast processing check
+        : recognitionTime < FAST_PROCESSING_THRESHOLD_MS; // For pose/face only, just use fast processing check
 
       if (shouldRedraw) {
         this.overlayRenderer.clear();
