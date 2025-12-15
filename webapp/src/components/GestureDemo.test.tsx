@@ -35,8 +35,8 @@ describe('GestureDemo', () => {
   it('renders the gesture demo section', () => {
     renderWithProviders(<GestureDemo />);
 
-    expect(screen.getByText('Browser-Gestenrekorder')).toBeInTheDocument();
-    expect(screen.getByText('Gestenlabor')).toBeInTheDocument();
+    expect(screen.getByText('Gestenrekorder')).toBeInTheDocument();
+    expect(screen.getByText('Gestenkamera')).toBeInTheDocument();
     expect(
       screen.getByText(/Nimm deine Gesten direkt im Browser auf und probiere sie sofort aus\./)
     ).toBeInTheDocument();
