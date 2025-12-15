@@ -292,40 +292,106 @@ def sha256_file(path: Path) -> Optional[str]:
     return digest.hexdigest()
 
 
-def apply_hand_focus(landmarks: List[List[float]], hand_focus: Optional[str]) -> List[List[float]]:
-    """Apply hand focus filter to landmarks by zeroing out irrelevant hand data.
+def apply_hand_focus(
+    landmarks: List[List[float]], 
+    hand_focus: Optional[str],
+    handedness: Optional[List[str]] = None,
+) -> List[List[float]]:
+    """Apply hand focus filter to landmarks by adjusting irrelevant hand data.
     
     For gestures where only one hand is semantically important, this function
-    zeroes out the landmarks for the non-relevant hand. This helps the model
-    focus on the important hand and reduces noise from incidental hand movements.
+    either zeroes out or weights down the landmarks for the non-relevant hand.
+    This helps the model focus on the important hand and reduces noise.
+    
+    Hand Focus Types:
+    - 'dominant_only': Zero out the non-dominant hand (based on motion or handedness)
+    - 'both_equal' / 'both': Keep both hands as-is
+    - 'both_asymmetric': Weight non-dominant hand at 0.3x
+    - 'either_hand': Keep both hands as-is (gesture works with any hand)
+    - 'left': Keep only left hand, zero right
+    - 'right': Keep only right hand, zero left
     
     Parameters
     ----------
     landmarks:
         42 hand landmarks (21 left + 21 right), each [x, y, z]
     hand_focus:
-        Which hand(s) are important: 'left', 'right', or 'both' (or None)
+        Which hand(s) are important
+    handedness:
+        Optional list of handedness labels to help determine dominant hand
     
     Returns
     -------
     List[List[float]]
-        Filtered landmarks with irrelevant hand data zeroed out
+        Filtered/weighted landmarks
     """
-    if hand_focus is None or hand_focus == 'both' or len(landmarks) < 42:
+    if hand_focus is None or len(landmarks) < 42:
+        return landmarks
+    
+    # Normalize legacy values
+    if hand_focus in ('both', 'both_equal', 'either_hand'):
         return landmarks
     
     result = [list(point) for point in landmarks]
     
+    # Explicit left/right specification
     if hand_focus == 'right':
         # Zero out left hand landmarks (indices 0-20)
         for i in range(21):
             if i < len(result):
                 result[i] = [0.0, 0.0, 0.0]
-    elif hand_focus == 'left':
+        return result
+    
+    if hand_focus == 'left':
         # Zero out right hand landmarks (indices 21-41)
         for i in range(21, 42):
             if i < len(result):
                 result[i] = [0.0, 0.0, 0.0]
+        return result
+    
+    # For 'dominant_only' and 'both_asymmetric', detect which hand is dominant
+    # based on handedness labels or motion (more non-zero values)
+    left_motion = sum(1 for i in range(21) if i < len(landmarks) and any(v != 0 for v in landmarks[i]))
+    right_motion = sum(1 for i in range(21, 42) if i < len(landmarks) and any(v != 0 for v in landmarks[i]))
+    
+    # Determine dominant hand from handedness or motion
+    dominant_is_right = True  # Default
+    if handedness:
+        # Check handedness labels
+        if any('right' in h.lower() for h in handedness):
+            dominant_is_right = True
+        elif any('left' in h.lower() for h in handedness):
+            dominant_is_right = False
+    else:
+        # Fallback to motion-based detection
+        dominant_is_right = right_motion >= left_motion
+    
+    if hand_focus == 'dominant_only':
+        # Zero out non-dominant hand
+        if dominant_is_right:
+            for i in range(21):
+                if i < len(result):
+                    result[i] = [0.0, 0.0, 0.0]
+        else:
+            for i in range(21, 42):
+                if i < len(result):
+                    result[i] = [0.0, 0.0, 0.0]
+        return result
+    
+    if hand_focus == 'both_asymmetric':
+        # Weight non-dominant hand at 0.3x
+        weight = 0.3
+        if dominant_is_right:
+            # Left hand is secondary
+            for i in range(21):
+                if i < len(result):
+                    result[i] = [v * weight for v in result[i]]
+        else:
+            # Right hand is secondary
+            for i in range(21, 42):
+                if i < len(result):
+                    result[i] = [v * weight for v in result[i]]
+        return result
     
     return result
 

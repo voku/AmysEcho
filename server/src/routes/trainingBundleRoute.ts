@@ -52,7 +52,7 @@ interface TrainingBundleMetadata {
   modalities?: Record<string, unknown>;
   smoothing?: Record<string, unknown>;
   handedness?: { labels?: string[]; frameCount?: number };
-  handFocus?: 'left' | 'right' | 'both';
+  handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand' | 'left' | 'right' | 'both';
 }
 
 interface TrainingBundleManifestEntry {
@@ -113,7 +113,15 @@ const HandednessSchema = z
   })
   .passthrough();
 
-const HandFocusSchema = z.enum(['left', 'right', 'both']);
+const HandFocusSchema = z.enum([
+  'dominant_only',    // Only one hand matters (the moving one)
+  'both_equal',       // Both hands equally important
+  'both_asymmetric',  // Both hands, but weighted differently
+  'either_hand',      // Works with either hand
+  'left',             // Legacy: only left hand
+  'right',            // Legacy: only right hand
+  'both',             // Legacy: both hands (same as both_equal)
+]);
 
 const MetadataSchema = z
   .object({

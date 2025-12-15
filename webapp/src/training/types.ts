@@ -1,10 +1,20 @@
 /**
  * Specifies which hand(s) are semantically important for a gesture.
- * - 'left': Only the left hand is relevant
- * - 'right': Only the right hand is relevant  
- * - 'both': Both hands are relevant (default if not specified)
+ * - 'dominant_only': Only the dominant/primary hand is relevant (e.g., DGS "Papa")
+ * - 'both_equal': Both hands are equally important, symmetric gestures (e.g., "Haus")
+ * - 'both_asymmetric': Both hands matter but with different roles/weights (e.g., "Buch")
+ * - 'either_hand': Works with either hand, no preference (e.g., pointing)
+ * 
+ * Legacy values 'left', 'right', 'both' are also supported for backward compatibility.
  */
-export type HandFocus = 'left' | 'right' | 'both';
+export type HandFocus = 
+  | 'dominant_only'      // Only one hand matters (the one that's moving)
+  | 'both_equal'         // Both hands equally important
+  | 'both_asymmetric'    // Both hands, but weighted differently
+  | 'either_hand'        // Works with either hand
+  | 'left'               // Legacy: only left hand
+  | 'right'              // Legacy: only right hand
+  | 'both';              // Legacy: both hands (same as both_equal)
 
 export interface TrainingFrame {
   landmarks: number[][][];

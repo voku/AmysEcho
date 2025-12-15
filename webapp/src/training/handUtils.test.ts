@@ -5,6 +5,7 @@ import {
   frameHasAnyLandmarks,
   framesHaveHandLandmarks,
   processFramesForUpload,
+  suggestHandFocus,
 } from './handUtils';
 
 describe('flattenHandsWithHandedness', () => {
@@ -126,5 +127,61 @@ describe('processFramesForUpload', () => {
     expect(out).toHaveLength(1);
     expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
     expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+  });
+});
+
+describe('suggestHandFocus', () => {
+  const makeHand = (offset: number) =>
+    Array.from({ length: HAND_LANDMARKS_PER_HAND }, (_, i) => [i + offset, i + offset, i + offset]);
+
+  it('returns low confidence with insufficient frames', () => {
+    const result = suggestHandFocus([]);
+    expect(result.confidence).toBe('low');
+    expect(result.suggestion).toBe('both_equal');
+  });
+
+  it('suggests right when only right hand has data', () => {
+    // Right hand data at index 0, handedness indicates 'Right' at index 0
+    const frames = [
+      { landmarks: [makeHand(1)], handedness: ['Right'] },
+      { landmarks: [makeHand(2)], handedness: ['Right'] },
+    ];
+    const result = suggestHandFocus(frames);
+    expect(result.suggestion).toBe('right');
+    expect(result.confidence).toBe('high');
+  });
+
+  it('suggests left when only left hand has data', () => {
+    // Left hand data at index 0, handedness indicates 'Left' at index 0
+    const frames = [
+      { landmarks: [makeHand(1)], handedness: ['Left'] },
+      { landmarks: [makeHand(2)], handedness: ['Left'] },
+    ];
+    const result = suggestHandFocus(frames);
+    expect(result.suggestion).toBe('left');
+    expect(result.confidence).toBe('high');
+  });
+
+  it('suggests both_equal when both hands have similar motion', () => {
+    const frames = [
+      { landmarks: [makeHand(0), makeHand(100)], handedness: ['Left', 'Right'] },
+      { landmarks: [makeHand(1), makeHand(101)], handedness: ['Left', 'Right'] },
+      { landmarks: [makeHand(2), makeHand(102)], handedness: ['Left', 'Right'] },
+    ];
+    const result = suggestHandFocus(frames);
+    expect(result.suggestion).toBe('both_equal');
+  });
+
+  it('suggests dominant_only when one hand moves significantly more', () => {
+    // Right hand moves a lot, left hand static
+    const staticLeft = makeHand(0);
+    const frames = [
+      { landmarks: [staticLeft, makeHand(100)], handedness: ['Left', 'Right'] },
+      { landmarks: [staticLeft, makeHand(200)], handedness: ['Left', 'Right'] },
+      { landmarks: [staticLeft, makeHand(300)], handedness: ['Left', 'Right'] },
+    ];
+    const result = suggestHandFocus(frames);
+    expect(result.suggestion).toBe('dominant_only');
+    expect(result.confidence).toBe('high');
   });
 });
