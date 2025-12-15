@@ -269,12 +269,20 @@ const landmarksAreEqual = (
   for (let handIdx = 0; handIdx < prevLandmarks.length; handIdx++) {
     const prevHand = prevLandmarks[handIdx];
     const nextHand = nextLandmarks[handIdx];
+    // Handle null/undefined cases: both null/undefined = equal, only one = not equal
+    if (!prevHand && !nextHand) {
+      continue;
+    }
     if (!prevHand || !nextHand || prevHand.length !== nextHand.length) {
       return false;
     }
     for (let pointIdx = 0; pointIdx < prevHand.length; pointIdx++) {
       const prevPoint = prevHand[pointIdx];
       const nextPoint = nextHand[pointIdx];
+      // Handle null/undefined cases: both null/undefined = equal, only one = not equal
+      if (!prevPoint && !nextPoint) {
+        continue;
+      }
       if (!prevPoint || !nextPoint || prevPoint.length !== nextPoint.length) {
         return false;
       }
