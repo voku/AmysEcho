@@ -98,6 +98,15 @@ describe('createTrainingZip', () => {
     expect(metadata.clipFilename).toBe('clip.webm');
   });
 
+  it('speichert handFocus in den Metadaten', async () => {
+    const clip = new File([new Uint8Array([1, 2, 3])], 'demo.mp4', { type: 'video/mp4' });
+    const zip = await createTrainingZip({ ...basePayload, clipFile: clip, handFocus: 'right' });
+    const entries = unzipSync(zip);
+    const metadataBytes = entries['metadata.json'];
+    const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array())) as Record<string, unknown>;
+    expect(metadata.handFocus).toBe('right');
+  });
+
   it('bricht ab, wenn keine Hand-Landmarks enthalten sind', async () => {
     const payload: TrainingBundlePayload = {
       ...basePayload,

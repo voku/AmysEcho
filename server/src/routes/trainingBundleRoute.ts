@@ -52,6 +52,7 @@ interface TrainingBundleMetadata {
   modalities?: Record<string, unknown>;
   smoothing?: Record<string, unknown>;
   handedness?: { labels?: string[]; frameCount?: number };
+  handFocus?: 'left' | 'right' | 'both';
 }
 
 interface TrainingBundleManifestEntry {
@@ -112,6 +113,8 @@ const HandednessSchema = z
   })
   .passthrough();
 
+const HandFocusSchema = z.enum(['left', 'right', 'both']);
+
 const MetadataSchema = z
   .object({
     label: z.string().min(1),
@@ -123,6 +126,7 @@ const MetadataSchema = z
   modalities: ModalitiesSchema.optional(),
   smoothing: SmoothingSchema.optional(),
   handedness: HandednessSchema.optional(),
+  handFocus: HandFocusSchema.optional(),
 })
 .passthrough();
 
@@ -579,6 +583,7 @@ export function registerTrainingBundleRoute(
         source: isNonEmptyString(parsedMetadata.source) ? parsedMetadata.source : null,
         clipFilename,
         stillFilename,
+        ...(parsedMetadata.handFocus ? { handFocus: parsedMetadata.handFocus } : {}),
       };
 
       const files = Array.from(new Set(storedFiles));

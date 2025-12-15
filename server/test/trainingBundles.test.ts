@@ -220,6 +220,50 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(bundleStat.isFile()).toBe(true);
   });
 
+  it('stores handFocus metadata when provided', async () => {
+    const metadata = {
+      profileId: 'p-focus-test',
+      label: 'PAPA',
+      capturedAt: '2024-05-28T12:03:11Z',
+      source: 'app://mediapipe',
+      handFocus: 'right',  // Only right hand is important for this gesture
+    };
+    const landmarks = await loadSampleLandmarks();
+
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [{ landmarks, handedness: ['Right'] }],
+          },
+          null,
+          2,
+        ),
+      ),
+    );
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer())
+      .expect(202);
+
+    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
+    const manifest = JSON.parse(manifestRaw) as {
+      entries: Array<{
+        id: string;
+        metadata: any;
+      }>;
+    };
+
+    const entry = manifest.entries[0];
+    expect(entry.metadata.handFocus).toBe('right');
+  });
+
   it('omits training job payload when trigger returns null but keeps queued status', async () => {
     triggerOverride = () => null;
     const metadata = {

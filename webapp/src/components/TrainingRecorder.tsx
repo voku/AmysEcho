@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
-import type { TrainingBundlePayload } from '../training/types';
+import type { TrainingBundlePayload, HandFocus } from '../training/types';
 import { framesHaveHandLandmarks } from '../training/handUtils';
 
 export interface TrainingRecorderProps {
@@ -42,6 +42,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     }
   });
   const isMirroredPreview = facingMode === 'user';
+  const [handFocus, setHandFocus] = useState<HandFocus>('both');
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
     ? ''
@@ -170,6 +171,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         source: 'web://mediapipe',
         stillFile,
         clipFile: recordedData.clipFile,
+        handFocus,
       };
 
       onRecordingComplete(payload);
@@ -184,6 +186,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       onRecordingComplete,
       resetRecording,
       manualStillFile,
+      handFocus,
     ],
   );
 
@@ -697,6 +700,45 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 {uploadDisabledReason && <p className="muted small">{uploadDisabledReason}</p>}
               </>
             )}
+          </div>
+
+          <div className="form-group mt-sm">
+            <label htmlFor="hand-focus">Relevante Hand für diese Gebärde</label>
+            <div className="radio-group" role="radiogroup" aria-label="Handauswahl">
+              <label className={`radio-label${handFocus === 'both' ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="hand-focus"
+                  value="both"
+                  checked={handFocus === 'both'}
+                  onChange={() => setHandFocus('both')}
+                />
+                <span>Beide Hände</span>
+              </label>
+              <label className={`radio-label${handFocus === 'right' ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="hand-focus"
+                  value="right"
+                  checked={handFocus === 'right'}
+                  onChange={() => setHandFocus('right')}
+                />
+                <span>Nur rechts</span>
+              </label>
+              <label className={`radio-label${handFocus === 'left' ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="hand-focus"
+                  value="left"
+                  checked={handFocus === 'left'}
+                  onChange={() => setHandFocus('left')}
+                />
+                <span>Nur links</span>
+              </label>
+            </div>
+            <p className="muted small">
+              Wähle, welche Hand für diese Gebärde wichtig ist. Bei einigen Gebärden (z.B. „Papa") zählt nur die Haupthand – die andere kann Rauschen erzeugen.
+            </p>
           </div>
 
           <div className="form-group mt-sm">

@@ -182,6 +182,7 @@ class Sample:
     landmarks: List[List[float]]  # 42 hand landmarks (left+right), each [x, y, z]
     pose_landmarks: Optional[List[List[float]]] = None  # 33 pose landmarks, each [x, y, z, visibility]
     face_landmarks: Optional[List[List[float]]] = None  # 468 face landmarks, each [x, y, z]
+    hand_focus: Optional[str] = None  # 'left', 'right', or 'both' (or None = 'both')
 
 
 _UNSET = object()
@@ -289,6 +290,44 @@ def sha256_file(path: Path) -> Optional[str]:
     digest = hashlib.sha256()
     digest.update(data)
     return digest.hexdigest()
+
+
+def apply_hand_focus(landmarks: List[List[float]], hand_focus: Optional[str]) -> List[List[float]]:
+    """Apply hand focus filter to landmarks by zeroing out irrelevant hand data.
+    
+    For gestures where only one hand is semantically important, this function
+    zeroes out the landmarks for the non-relevant hand. This helps the model
+    focus on the important hand and reduces noise from incidental hand movements.
+    
+    Parameters
+    ----------
+    landmarks:
+        42 hand landmarks (21 left + 21 right), each [x, y, z]
+    hand_focus:
+        Which hand(s) are important: 'left', 'right', or 'both' (or None)
+    
+    Returns
+    -------
+    List[List[float]]
+        Filtered landmarks with irrelevant hand data zeroed out
+    """
+    if hand_focus is None or hand_focus == 'both' or len(landmarks) < 42:
+        return landmarks
+    
+    result = [list(point) for point in landmarks]
+    
+    if hand_focus == 'right':
+        # Zero out left hand landmarks (indices 0-20)
+        for i in range(21):
+            if i < len(result):
+                result[i] = [0.0, 0.0, 0.0]
+    elif hand_focus == 'left':
+        # Zero out right hand landmarks (indices 21-41)
+        for i in range(21, 42):
+            if i < len(result):
+                result[i] = [0.0, 0.0, 0.0]
+    
+    return result
 
 
 def flatten_landmarks_mean(frames: List[dict]) -> Optional[dict]:
@@ -1230,6 +1269,9 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         if not label:
             continue
         profile_id = entry.get("profileId") or entry.get("metadata", {}).get("profileId")
+        # Extract handFocus from bundle metadata
+        metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
+        hand_focus = metadata.get("handFocus")  # 'left', 'right', 'both', or None
         rel_dir = entry.get("storage", {}).get("directory")
         if not rel_dir:
             continue
@@ -1291,12 +1333,16 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         if averaged is None:
             continue
 
+        # Apply hand focus filtering to zero out irrelevant hand data
+        filtered_landmarks = apply_hand_focus(averaged['landmarks'], hand_focus)
+
         data.append(Sample(
             label=label,
             profile_id=profile_id,
-            landmarks=averaged['landmarks'],
+            landmarks=filtered_landmarks,
             pose_landmarks=averaged.get('poseLandmarks'),
             face_landmarks=averaged.get('faceLandmarks'),
+            hand_focus=hand_focus,
         ))
 
     stats = {

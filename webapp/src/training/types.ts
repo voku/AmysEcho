@@ -1,3 +1,11 @@
+/**
+ * Specifies which hand(s) are semantically important for a gesture.
+ * - 'left': Only the left hand is relevant
+ * - 'right': Only the right hand is relevant  
+ * - 'both': Both hands are relevant (default if not specified)
+ */
+export type HandFocus = 'left' | 'right' | 'both';
+
 export interface TrainingFrame {
   landmarks: number[][][];
   handedness?: ReadonlyArray<string>;
@@ -26,6 +34,12 @@ export interface TrainingBundlePayload {
   };
   clipFile?: File | null;
   stillFile?: File | null;
+  /**
+   * Specifies which hand(s) are semantically important for this gesture.
+   * The training pipeline will focus learning on the specified hand(s) only,
+   * reducing noise from irrelevant hand data.
+   */
+  handFocus?: HandFocus;
 }
 
 export type TrainingJobStatus = 'queued' | 'running' | 'completed' | 'failed';

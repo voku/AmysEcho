@@ -87,6 +87,7 @@ function buildMetadata(
     modalities: landmarksMetadata.modalities,
     smoothing: landmarksMetadata.smoothing,
     ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),
+    ...(payload.handFocus ? { handFocus: payload.handFocus } : {}),
   };
 }
 
