@@ -383,6 +383,7 @@ export class GestureDetector {
 
   /**
    * Update overlay rendering based on landmark changes and performance optimization
+   * For sign language recognition, hand landmarks are prioritized over body/face landmarks
    */
   private updateOverlay(
     normalizedLandmarks: number[][][],
@@ -391,27 +392,31 @@ export class GestureDetector {
     poseLandmarks: number[][],
     faceLandmarks: number[][],
   ): void {
-    const overlayLandmarks: number[][][] = [
-      ...normalizedLandmarks,
-      ...(poseLandmarks.length ? [poseLandmarks] : []),
-      ...(faceLandmarks.length ? [faceLandmarks] : []),
-    ];
+    const hasHandLandmarks = normalizedLandmarks.length > 0;
+    const hasPoseLandmarks = poseLandmarks.length > 0;
+    const hasFaceLandmarks = faceLandmarks.length > 0;
+    const hasAnyLandmarks = hasHandLandmarks || hasPoseLandmarks || hasFaceLandmarks;
 
-    if (overlayLandmarks.length > 0) {
-      const shouldRedraw = this.performanceOptimizer.shouldRedrawOverlay(
-        overlayLandmarks,
-        recognitionTime,
-      );
+    if (hasAnyLandmarks) {
+      // For sign language, prioritize hand landmarks for the redraw decision.
+      // Only use hand landmarks for the performance optimization signature
+      // to ensure hands are always redrawn when they change, regardless of
+      // pose/face landmark changes that might otherwise suppress the redraw.
+      const shouldRedraw = hasHandLandmarks
+        ? this.performanceOptimizer.shouldRedrawOverlay(normalizedLandmarks, recognitionTime)
+        : recognitionTime < 20; // For pose/face only, just use fast processing check
 
       if (shouldRedraw) {
         this.overlayRenderer.clear();
-        if (poseLandmarks.length) {
+        // Draw in order: pose first, face second, hands last (on top)
+        // This ensures hands are always visible for sign language
+        if (hasPoseLandmarks) {
           this.overlayRenderer.drawPoseLandmarks(poseLandmarks, this.config.camera.mirrorOverlay);
         }
-        if (faceLandmarks.length) {
+        if (hasFaceLandmarks) {
           this.overlayRenderer.drawFaceLandmarks(faceLandmarks, this.config.camera.mirrorOverlay);
         }
-        if (normalizedLandmarks.length) {
+        if (hasHandLandmarks) {
           this.overlayRenderer.drawHandLandmarks(
             normalizedLandmarks,
             this.config.camera.mirrorOverlay,
