@@ -25,11 +25,11 @@ function isLocalhostUrl(url: string | undefined): boolean {
   if (!url) return false;
   try {
     const parsed = new URL(url);
-    const hostname = parsed.hostname.toLowerCase();
-    return hostname === 'localhost' || hostname === '127.0.0.1';
+    // URL.hostname is already normalized to lowercase per spec
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
   } catch {
-    // If URL parsing fails, check via regex
-    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+    // If URL parsing fails, check via regex (handles trailing slashes too)
+    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?/i.test(url);
   }
 }
 
