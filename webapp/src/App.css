@@ -117,6 +117,8 @@
   --z-veil: 2;
   --z-overlay: 3;
   --z-hud: 4;
+  --z-notice: 5;
+  --z-modal: 100;
 }
 
 /* ==========================================================================
@@ -676,6 +678,8 @@ p {
 .notice-grid {
   display: grid;
   gap: var(--space-sm);
+  position: relative;
+  z-index: var(--z-notice);
 }
 
 .notice.compact {
@@ -712,6 +716,10 @@ p {
   gap: var(--space-sm);
 }
 
+.log {
+  overflow: hidden;
+}
+
 .log ul {
   list-style: none;
   padding: 0;
@@ -719,6 +727,8 @@ p {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .log li {
@@ -726,6 +736,14 @@ p {
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-overlay-border);
   background: var(--color-overlay-surface);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.log li p {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  margin: 0;
 }
 
 .log-header {
@@ -1116,6 +1134,25 @@ p {
     text-align: center;
   }
 
+  /* Settings responsive fixes for tablet */
+  .settings-section {
+    padding: var(--space-lg);
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-toggle {
+    flex-wrap: nowrap;
+  }
+
+  /* Log panel overflow fix */
+  .log ul {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
   .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -1209,6 +1246,64 @@ p {
     padding: var(--space-md);
   }
 
+  /* Settings fixes for mobile (480px and below) */
+  .settings-section {
+    padding: var(--space-md);
+    margin: var(--space-md) 0;
+  }
+
+  .settings-section h3 {
+    font-size: var(--font-size-body);
+    margin-bottom: var(--space-md);
+  }
+
+  .setting-toggle {
+    padding: var(--space-sm) var(--space-md);
+    min-height: 48px;
+  }
+
+  .setting-toggle label {
+    font-size: var(--font-size-caption);
+  }
+
+  .setting-toggle p.muted.small {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .setting-item label {
+    font-size: var(--font-size-caption);
+  }
+
+  .setting-item input[type="text"] {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-caption);
+  }
+
+  /* Log panel fixes for mobile */
+  .log ul {
+    max-height: 200px;
+  }
+
+  .log li {
+    padding: var(--space-sm);
+  }
+
+  .log li p {
+    font-size: var(--font-size-caption);
+    word-break: break-word;
+  }
+
+  /* Notice fixes for mobile */
+  .notice {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-caption);
+  }
+
+  .notice.compact {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
   .bottom-nav {
     gap: var(--space-xs);
     padding: var(--space-sm) var(--space-sm);
@@ -1226,6 +1321,76 @@ p {
 
   .nav-label {
     font-size: 11px;
+  }
+}
+
+/* Extra small screens - mobile phones in portrait (360px) */
+@media (max-width: 380px) {
+  .video-wrapper {
+    min-height: clamp(200px, 45vh, 400px);
+  }
+
+  .video-hud {
+    padding: var(--space-sm);
+    gap: var(--space-xs);
+  }
+
+  .hud-actions {
+    flex-direction: column;
+    gap: var(--space-xs);
+    width: 100%;
+  }
+
+  .hud-actions button {
+    width: 100%;
+    padding: var(--space-sm);
+    font-size: 12px;
+  }
+
+  .hud-controls {
+    flex-direction: column;
+    gap: var(--space-xs);
+    align-items: stretch;
+  }
+
+  .status-chip {
+    font-size: 12px;
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .setting-toggle {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+  }
+
+  .setting-toggle > div {
+    width: 100%;
+  }
+
+  .setting-toggle input[type="checkbox"] {
+    align-self: flex-end;
+  }
+
+  .controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .controls button {
+    width: 100%;
+  }
+
+  /* Correction section fixes for very small screens */
+  .correction-trigger {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .correction-trigger button {
+    width: 100%;
   }
 }
 
@@ -1500,12 +1665,26 @@ p {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-overlay-border);
   min-height: var(--touch-min);
+  gap: var(--space-md);
+}
+
+.setting-toggle > div {
+  flex: 1;
+  min-width: 0;
 }
 
 .setting-toggle label {
   font-weight: 500;
   cursor: pointer;
   color: var(--color-overlay-text);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.setting-toggle p.muted.small {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .setting-toggle input[type="checkbox"] {
@@ -1513,6 +1692,7 @@ p {
   height: 1.5rem;
   cursor: pointer;
   accent-color: var(--color-primary);
+  flex-shrink: 0;
 }
 
 .about-info {

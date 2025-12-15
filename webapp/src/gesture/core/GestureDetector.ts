@@ -141,21 +141,25 @@ export class GestureDetector {
               runningMode: 'VIDEO',
               numPoses: 1,
             });
-            console.log('PoseLandmarker initialized successfully');
+            gestureDebugLog('init', 'PoseLandmarker initialized successfully', undefined, { sampleIntervalMs: 0 });
           } catch (gpuErr) {
-            console.warn('PoseLandmarker GPU delegate failed, falling back to CPU:', gpuErr);
+            gestureDebugLog('init', 'PoseLandmarker GPU delegate failed, falling back to CPU', () => ({
+              error: gpuErr instanceof Error ? gpuErr.message : String(gpuErr),
+            }), { sampleIntervalMs: 0, level: 'warn' });
             this.poseLandmarker = await components.PoseLandmarker.createFromOptions(vision, {
               baseOptions: { ...poseBaseOptions, delegate: 'CPU' as const },
               runningMode: 'VIDEO',
               numPoses: 1,
             });
-            console.log('PoseLandmarker initialized with CPU fallback');
+            gestureDebugLog('init', 'PoseLandmarker initialized with CPU fallback', undefined, { sampleIntervalMs: 0 });
           }
         } catch (poseErr) {
-          console.warn('PoseLandmarker initialization failed, pose detection disabled:', poseErr);
+          gestureDebugLog('init', 'PoseLandmarker initialization failed, pose detection disabled', () => ({
+            error: poseErr instanceof Error ? poseErr.message : String(poseErr),
+          }), { sampleIntervalMs: 0, level: 'warn' });
         }
       } else {
-        console.log('PoseLandmarker not available in MediaPipe bundle');
+        gestureDebugLog('init', 'PoseLandmarker not available in MediaPipe bundle', undefined, { sampleIntervalMs: 0 });
       }
 
       // Initialize FaceLandmarker for face detection (facial landmarks)
@@ -171,21 +175,25 @@ export class GestureDetector {
               runningMode: 'VIDEO',
               numFaces: 1,
             });
-            console.log('FaceLandmarker initialized successfully');
+            gestureDebugLog('init', 'FaceLandmarker initialized successfully', undefined, { sampleIntervalMs: 0 });
           } catch (gpuErr) {
-            console.warn('FaceLandmarker GPU delegate failed, falling back to CPU:', gpuErr);
+            gestureDebugLog('init', 'FaceLandmarker GPU delegate failed, falling back to CPU', () => ({
+              error: gpuErr instanceof Error ? gpuErr.message : String(gpuErr),
+            }), { sampleIntervalMs: 0, level: 'warn' });
             this.faceLandmarker = await components.FaceLandmarker.createFromOptions(vision, {
               baseOptions: { ...faceBaseOptions, delegate: 'CPU' as const },
               runningMode: 'VIDEO',
               numFaces: 1,
             });
-            console.log('FaceLandmarker initialized with CPU fallback');
+            gestureDebugLog('init', 'FaceLandmarker initialized with CPU fallback', undefined, { sampleIntervalMs: 0 });
           }
         } catch (faceErr) {
-          console.warn('FaceLandmarker initialization failed, face detection disabled:', faceErr);
+          gestureDebugLog('init', 'FaceLandmarker initialization failed, face detection disabled', () => ({
+            error: faceErr instanceof Error ? faceErr.message : String(faceErr),
+          }), { sampleIntervalMs: 0, level: 'warn' });
         }
       } else {
-        console.log('FaceLandmarker not available in MediaPipe bundle');
+        gestureDebugLog('init', 'FaceLandmarker not available in MediaPipe bundle', undefined, { sampleIntervalMs: 0 });
       }
 
       // Set up video event listener
@@ -348,18 +356,23 @@ export class GestureDetector {
         // Record successful frame with performance metrics
         this.healthMonitor.recordFrame(frameStart);
 
-        // Log performance warnings for slow frames
+        // Log performance warnings for slow frames (throttled to avoid log spam)
         if (recognitionTime > SLOW_FRAME_THRESHOLD_MS) {
-          console.warn(`Slow frame detected: ${recognitionTime.toFixed(2)}ms`);
+          gestureDebugLog('performance', 'Slow frame detected', () => ({
+            recognitionTime: recognitionTime.toFixed(2),
+            thresholdMs: SLOW_FRAME_THRESHOLD_MS,
+          }), { sampleIntervalMs: 5000, level: 'warn' });
         }
       }
     } catch (error) {
-      console.error('Gesture detection error:', error);
+      gestureDebugLog('error', 'Gesture detection error', () => ({
+        error: error instanceof Error ? error.message : String(error),
+      }), { sampleIntervalMs: 1000, level: 'error' });
       this.healthMonitor.recordError();
 
       // Check if recovery is needed
       if (this.healthMonitor.needsRecovery()) {
-        console.warn('Health monitor indicates recovery needed');
+        gestureDebugLog('recovery', 'Health monitor indicates recovery needed', undefined, { sampleIntervalMs: 5000, level: 'warn' });
         // Could trigger recovery actions here
       }
     }
