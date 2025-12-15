@@ -3928,3 +3928,50 @@ p {
   align-items: center;
   justify-content: center;
 }
+
+/* ==========================================================================
+   Hand Focus Radio Group (for training recorder)
+   ========================================================================== */
+
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-overlay-border);
+  background: var(--color-overlay-surface-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: var(--font-size-caption);
+  color: var(--color-overlay-text);
+}
+
+.radio-label:hover {
+  border-color: var(--color-action-primary-bg);
+  background: var(--color-overlay-surface);
+}
+
+.radio-label.selected {
+  border-color: var(--color-action-primary-bg);
+  background: var(--color-action-primary-bg);
+  color: var(--color-action-primary-text);
+}
+
+.radio-label input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--color-action-primary-bg);
+}
+
+.radio-label.selected input[type="radio"] {
+  accent-color: var(--color-action-primary-text);
+}
