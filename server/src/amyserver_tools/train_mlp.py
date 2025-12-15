@@ -157,6 +157,11 @@ DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not
 LOSS_EPSILON = np.spacing(1.0)
 AUGMENTATION_EPSILON = 1e-8
 
+# Hand landmark constants for processing
+LANDMARKS_PER_HAND = 21  # MediaPipe hand model provides 21 landmarks per hand
+TOTAL_HAND_LANDMARKS = 42  # Left (21) + Right (21)
+SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
+
 # Still frames represent the precise target hand position for the gesture,
 # so they should be weighted more heavily than individual video frames during averaging.
 # Default weight of 10.0 means a single still frame has the same influence as 10 video frames.
@@ -325,7 +330,7 @@ def apply_hand_focus(
     List[List[float]]
         Filtered/weighted landmarks
     """
-    if hand_focus is None or len(landmarks) < 42:
+    if hand_focus is None or len(landmarks) < TOTAL_HAND_LANDMARKS:
         return landmarks
     
     # Normalize legacy values
@@ -336,23 +341,23 @@ def apply_hand_focus(
     
     # Explicit left/right specification
     if hand_focus == 'right':
-        # Zero out left hand landmarks (indices 0-20)
-        for i in range(21):
+        # Zero out left hand landmarks (indices 0 to LANDMARKS_PER_HAND-1)
+        for i in range(LANDMARKS_PER_HAND):
             if i < len(result):
                 result[i] = [0.0, 0.0, 0.0]
         return result
     
     if hand_focus == 'left':
-        # Zero out right hand landmarks (indices 21-41)
-        for i in range(21, 42):
+        # Zero out right hand landmarks (indices LANDMARKS_PER_HAND to TOTAL_HAND_LANDMARKS-1)
+        for i in range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS):
             if i < len(result):
                 result[i] = [0.0, 0.0, 0.0]
         return result
     
     # For 'dominant_only' and 'both_asymmetric', detect which hand is dominant
     # based on handedness labels or motion (more non-zero values)
-    left_motion = sum(1 for i in range(21) if i < len(landmarks) and any(v != 0 for v in landmarks[i]))
-    right_motion = sum(1 for i in range(21, 42) if i < len(landmarks) and any(v != 0 for v in landmarks[i]))
+    left_motion = sum(1 for i in range(LANDMARKS_PER_HAND) if i < len(landmarks) and any(v != 0 for v in landmarks[i]))
+    right_motion = sum(1 for i in range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS) if i < len(landmarks) and any(v != 0 for v in landmarks[i]))
     
     # Determine dominant hand from handedness or motion
     dominant_is_right = True  # Default
@@ -369,28 +374,27 @@ def apply_hand_focus(
     if hand_focus == 'dominant_only':
         # Zero out non-dominant hand
         if dominant_is_right:
-            for i in range(21):
+            for i in range(LANDMARKS_PER_HAND):
                 if i < len(result):
                     result[i] = [0.0, 0.0, 0.0]
         else:
-            for i in range(21, 42):
+            for i in range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS):
                 if i < len(result):
                     result[i] = [0.0, 0.0, 0.0]
         return result
     
     if hand_focus == 'both_asymmetric':
-        # Weight non-dominant hand at 0.3x
-        weight = 0.3
+        # Weight non-dominant hand at reduced weight
         if dominant_is_right:
             # Left hand is secondary
-            for i in range(21):
+            for i in range(LANDMARKS_PER_HAND):
                 if i < len(result):
-                    result[i] = [v * weight for v in result[i]]
+                    result[i] = [v * SECONDARY_HAND_WEIGHT for v in result[i]]
         else:
             # Right hand is secondary
-            for i in range(21, 42):
+            for i in range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS):
                 if i < len(result):
-                    result[i] = [v * weight for v in result[i]]
+                    result[i] = [v * SECONDARY_HAND_WEIGHT for v in result[i]]
         return result
     
     return result

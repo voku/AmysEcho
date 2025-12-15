@@ -19,6 +19,11 @@ const FACE_MESH_LITE_POINTS = [
   61, 291, // mouth corners
 ];
 
+// Primary hand indicator positioning (offset from wrist landmark)
+const PRIMARY_INDICATOR_OFFSET_X = -20;
+const PRIMARY_INDICATOR_OFFSET_Y = -20;
+const PRIMARY_INDICATOR_RADIUS = 12;
+
 export class OverlayRenderer {
   private overlay: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null;
@@ -203,18 +208,19 @@ export class OverlayRenderer {
     this.ctx.lineWidth = 2;
 
     // Draw a small circle with "★" symbol
-    const radius = 12;
+    const indicatorX = x + PRIMARY_INDICATOR_OFFSET_X;
+    const indicatorY = y + PRIMARY_INDICATOR_OFFSET_Y;
     this.ctx.beginPath();
-    this.ctx.arc(x - 20, y - 20, radius, 0, Math.PI * 2);
+    this.ctx.arc(indicatorX, indicatorY, PRIMARY_INDICATOR_RADIUS, 0, Math.PI * 2);
     this.ctx.fill();
     this.ctx.stroke();
 
-    // Draw star symbol
+    // Draw star symbol (slightly offset for visual centering)
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
     this.ctx.font = 'bold 14px sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('★', x - 20, y - 19);
+    this.ctx.fillText('★', indicatorX, indicatorY + 1);
 
     this.ctx.restore();
   }

@@ -146,8 +146,18 @@ export function processFramesForUpload(
 }
 
 /**
+ * Small epsilon value to prevent division by zero in motion ratio calculations.
+ */
+const MOTION_RATIO_EPSILON = 0.001;
+
+/**
  * Compute the total motion/movement for a hand across multiple frames.
- * Motion is calculated as the sum of position changes between consecutive frames.
+ * Motion is calculated as the sum of L1 (Manhattan) distance changes between 
+ * consecutive frames for all landmarks in the specified hand.
+ * 
+ * @param frames - Array of frame objects containing landmarks and handedness
+ * @param handLabel - Which hand to measure motion for ('left' or 'right')
+ * @returns Total accumulated motion value (sum of coordinate changes)
  */
 function computeHandMotion(frames: ReadonlyArray<{ landmarks?: number[][][]; handedness?: ReadonlyArray<string> }>, handLabel: 'left' | 'right'): number {
   let totalMotion = 0;
@@ -292,7 +302,7 @@ export function suggestHandFocus(
     };
   }
 
-  const motionRatio = rightMotion / (leftMotion + 0.001);
+  const motionRatio = rightMotion / (leftMotion + MOTION_RATIO_EPSILON);
 
   // Dominant right hand (much more motion in right)
   if (motionRatio > 3.0) {

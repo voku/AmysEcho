@@ -456,6 +456,14 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     ? 'Noch keine verwertbaren Frames empfangen'
     : 'Kamera noch nicht gestartet';
 
+  // Helper to check if handFocus matches a value (handles legacy 'both' as 'both_equal')
+  const isHandFocusSelected = (value: HandFocus) => {
+    if (value === 'both_equal') {
+      return handFocus === 'both_equal' || handFocus === 'both';
+    }
+    return handFocus === value;
+  };
+
   return (
     <section className="card">
       <div className="card-header">
@@ -715,42 +723,42 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           <div className="form-group mt-sm">
             <label htmlFor="hand-focus">Relevante Hand für diese Gebärde</label>
             <div className="radio-group" role="radiogroup" aria-label="Handauswahl">
-              <label className={`radio-label${handFocus === 'both_equal' || handFocus === 'both' ? ' selected' : ''}`}>
+              <label className={`radio-label${isHandFocusSelected('both_equal') ? ' selected' : ''}`}>
                 <input
                   type="radio"
                   name="hand-focus"
                   value="both_equal"
-                  checked={handFocus === 'both_equal' || handFocus === 'both'}
+                  checked={isHandFocusSelected('both_equal')}
                   onChange={() => setHandFocus('both_equal')}
                 />
                 <span>Beide Hände gleich</span>
               </label>
-              <label className={`radio-label${handFocus === 'dominant_only' ? ' selected' : ''}`}>
+              <label className={`radio-label${isHandFocusSelected('dominant_only') ? ' selected' : ''}`}>
                 <input
                   type="radio"
                   name="hand-focus"
                   value="dominant_only"
-                  checked={handFocus === 'dominant_only'}
+                  checked={isHandFocusSelected('dominant_only')}
                   onChange={() => setHandFocus('dominant_only')}
                 />
                 <span>Nur Haupthand</span>
               </label>
-              <label className={`radio-label${handFocus === 'both_asymmetric' ? ' selected' : ''}`}>
+              <label className={`radio-label${isHandFocusSelected('both_asymmetric') ? ' selected' : ''}`}>
                 <input
                   type="radio"
                   name="hand-focus"
                   value="both_asymmetric"
-                  checked={handFocus === 'both_asymmetric'}
+                  checked={isHandFocusSelected('both_asymmetric')}
                   onChange={() => setHandFocus('both_asymmetric')}
                 />
                 <span>Beide unterschiedlich</span>
               </label>
-              <label className={`radio-label${handFocus === 'either_hand' ? ' selected' : ''}`}>
+              <label className={`radio-label${isHandFocusSelected('either_hand') ? ' selected' : ''}`}>
                 <input
                   type="radio"
                   name="hand-focus"
                   value="either_hand"
-                  checked={handFocus === 'either_hand'}
+                  checked={isHandFocusSelected('either_hand')}
                   onChange={() => setHandFocus('either_hand')}
                 />
                 <span>Egal welche Hand</span>
