@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { GestureDemo } from './GestureDemo';
+import { GestureRecorder } from './GestureRecorder';
 import { AppStateProvider } from '../hooks/useAppState';
 
 // Mock the hooks that have external dependencies
@@ -27,13 +27,13 @@ const renderWithProviders = (ui: React.ReactElement) => {
   return render(<AppStateProvider>{ui}</AppStateProvider>);
 };
 
-describe('GestureDemo', () => {
+describe('GestureRecorder', () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
 
   it('renders the gesture demo section', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     expect(screen.getByText('Gestenrekorder')).toBeInTheDocument();
     expect(screen.getByText('Gestenkamera')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('GestureDemo', () => {
   });
 
   it('shows camera control buttons', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     expect(screen.getByText('Kamera starten')).toBeInTheDocument();
     expect(screen.getByText('Aufnahme stoppen')).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('GestureDemo', () => {
   });
 
   it('shows overlay toggle checkbox', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     const overlayToggle = screen.getByLabelText('Overlay anzeigen');
     expect(overlayToggle).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('GestureDemo', () => {
   });
 
   it('toggles overlay visibility when checkbox is clicked', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     const overlayToggle = screen.getByLabelText('Overlay anzeigen') as HTMLInputElement;
     expect(overlayToggle.checked).toBe(true);
@@ -72,25 +72,25 @@ describe('GestureDemo', () => {
   });
 
   it('shows initial status as ready (Bereit)', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     expect(screen.getByText(/Live-Status:\s*Bereit/)).toBeInTheDocument();
   });
 
   it('shows "noch keine erkannt" when no gesture detected', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     expect(screen.getByText('noch keine erkannt')).toBeInTheDocument();
   });
 
   it('shows empty message log initially', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     expect(screen.getByText('Noch keine Bridge-Nachrichten.')).toBeInTheDocument();
   });
 
   it('displays profile information', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     expect(screen.getByText(/Aktives Profil:/)).toBeInTheDocument();
     expect(screen.getByText(/Standardlabel:/)).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe('GestureDemo', () => {
       configurable: true,
     });
 
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     // Restore original
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -114,7 +114,7 @@ describe('GestureDemo', () => {
   });
 
   it('has video element for camera stream', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     const videoElement = document.querySelector('video');
     expect(videoElement).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe('GestureDemo', () => {
   });
 
   it('has canvas element for overlay', () => {
-    renderWithProviders(<GestureDemo />);
+    renderWithProviders(<GestureRecorder />);
 
     const canvasElement = document.querySelector('canvas');
     expect(canvasElement).toBeInTheDocument();

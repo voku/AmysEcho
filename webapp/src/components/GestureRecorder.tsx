@@ -19,7 +19,7 @@ function formatStatus(status: string): string {
   }
 }
 
-export function GestureDemo() {
+export function GestureRecorder() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);

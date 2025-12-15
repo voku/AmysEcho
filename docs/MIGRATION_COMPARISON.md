@@ -6,7 +6,7 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 
 | App Screen | Webapp Component | Route | Status |
 |------------|-----------------|-------|--------|
-| RecognitionScreen.tsx | GestureDemo.tsx | `/` | ✅ Migrated |
+| RecognitionScreen.tsx | GestureRecorder.tsx | `/` | ✅ Migrated |
 | DashboardScreen.tsx | Dashboard.tsx | `/dashboard` | ✅ Migrated |
 | LernenScreen.tsx | LearningHub.tsx | `/lernen` | ✅ Migrated |
 | HistoryScreen.tsx | GestureHistory.tsx | `/verlauf` | ✅ Migrated |
