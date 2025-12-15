@@ -264,19 +264,19 @@ export function suggestHandFocus(
   const leftHasData = handHasLandmarks(frames, 'left');
   const rightHasData = handHasLandmarks(frames, 'right');
 
-  // Only one hand visible
+  // Only one hand visible - suggest dominant_only since only one hand matters
   if (leftHasData && !rightHasData) {
     return {
-      suggestion: 'left',
+      suggestion: 'dominant_only',
       confidence: 'high',
-      reason: 'Nur die linke Hand wurde erkannt.',
+      reason: 'Nur die linke Hand wurde erkannt. Empfehle Fokus auf Haupthand.',
     };
   }
   if (rightHasData && !leftHasData) {
     return {
-      suggestion: 'right',
+      suggestion: 'dominant_only',
       confidence: 'high',
-      reason: 'Nur die rechte Hand wurde erkannt.',
+      reason: 'Nur die rechte Hand wurde erkannt. Empfehle Fokus auf Haupthand.',
     };
   }
 

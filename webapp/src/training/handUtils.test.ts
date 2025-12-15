@@ -140,25 +140,25 @@ describe('suggestHandFocus', () => {
     expect(result.suggestion).toBe('both_equal');
   });
 
-  it('suggests right when only right hand has data', () => {
+  it('suggests dominant_only when only right hand has data', () => {
     // Right hand data at index 0, handedness indicates 'Right' at index 0
     const frames = [
       { landmarks: [makeHand(1)], handedness: ['Right'] },
       { landmarks: [makeHand(2)], handedness: ['Right'] },
     ];
     const result = suggestHandFocus(frames);
-    expect(result.suggestion).toBe('right');
+    expect(result.suggestion).toBe('dominant_only');
     expect(result.confidence).toBe('high');
   });
 
-  it('suggests left when only left hand has data', () => {
+  it('suggests dominant_only when only left hand has data', () => {
     // Left hand data at index 0, handedness indicates 'Left' at index 0
     const frames = [
       { landmarks: [makeHand(1)], handedness: ['Left'] },
       { landmarks: [makeHand(2)], handedness: ['Left'] },
     ];
     const result = suggestHandFocus(frames);
-    expect(result.suggestion).toBe('left');
+    expect(result.suggestion).toBe('dominant_only');
     expect(result.confidence).toBe('high');
   });
 

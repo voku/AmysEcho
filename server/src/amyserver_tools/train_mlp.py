@@ -310,11 +310,9 @@ def apply_hand_focus(
     
     Hand Focus Types:
     - 'dominant_only': Zero out the non-dominant hand (based on motion or handedness)
-    - 'both_equal' / 'both': Keep both hands as-is
+    - 'both_equal': Keep both hands as-is
     - 'both_asymmetric': Weight non-dominant hand at 0.3x
     - 'either_hand': Keep both hands as-is (gesture works with any hand)
-    - 'left': Keep only left hand, zero right
-    - 'right': Keep only right hand, zero left
     
     Parameters
     ----------
@@ -331,7 +329,7 @@ def apply_hand_focus(
         Filtered/weighted landmarks
     """
     # Early return for no-op cases
-    if hand_focus is None or hand_focus in ('both', 'both_equal', 'either_hand') or len(landmarks) < TOTAL_HAND_LANDMARKS:
+    if hand_focus is None or hand_focus in ('both_equal', 'either_hand') or len(landmarks) < TOTAL_HAND_LANDMARKS:
         return landmarks
     
     result = [list(point) for point in landmarks]
@@ -344,12 +342,7 @@ def apply_hand_focus(
     hand_to_zero: Optional[range] = None
     hand_to_weight: Optional[range] = None
     
-    # Explicit left/right specification
-    if hand_focus == 'right':
-        hand_to_zero = left_hand_indices
-    elif hand_focus == 'left':
-        hand_to_zero = right_hand_indices
-    elif hand_focus in ('dominant_only', 'both_asymmetric'):
+    if hand_focus in ('dominant_only', 'both_asymmetric'):
         # Count active landmarks per hand (landmarks with non-zero values)
         left_landmark_count = sum(1 for i in left_hand_indices if any(v != 0 for v in landmarks[i]))
         right_landmark_count = sum(1 for i in right_hand_indices if any(v != 0 for v in landmarks[i]))

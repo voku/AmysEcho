@@ -226,7 +226,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       label: 'PAPA',
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
-      handFocus: 'right',  // Only right hand is important for this gesture
+      handFocus: 'dominant_only',  // Only dominant hand is important for this gesture
     };
     const landmarks = await loadSampleLandmarks();
 
@@ -261,7 +261,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     };
 
     const entry = manifest.entries[0];
-    expect(entry.metadata.handFocus).toBe('right');
+    expect(entry.metadata.handFocus).toBe('dominant_only');
   });
 
   it('omits training job payload when trigger returns null but keeps queued status', async () => {

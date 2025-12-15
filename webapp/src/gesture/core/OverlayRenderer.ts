@@ -101,13 +101,13 @@ export class OverlayRenderer {
    * @param landmarks Array of hand landmarks
    * @param mirrorOverlay Whether to mirror the overlay horizontally
    * @param handedness Optional array of handedness labels ('Left', 'Right')
-   * @param handFocus Optional hand focus setting - supports all HandFocus types
+   * @param handFocus Optional hand focus setting
    */
   drawHandLandmarks(
     landmarks: number[][][],
     mirrorOverlay: boolean,
     handedness?: ReadonlyArray<string>,
-    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand' | 'left' | 'right' | 'both',
+    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand',
   ): void {
     if (!this.ctx || !this.overlayWidth || !this.overlayHeight) return;
 
@@ -168,28 +168,19 @@ export class OverlayRenderer {
 
   /**
    * Check if a hand should be highlighted as primary based on hand focus
-   * Supports all HandFocus types including dominant_only and both_asymmetric
    */
   private isHandPrimary(
     handLabel: string | undefined,
-    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand' | 'left' | 'right' | 'both',
+    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand',
     allHandedness?: ReadonlyArray<string>,
   ): boolean {
     // No focus or equal focus means no primary highlighting
-    if (!handFocus || handFocus === 'both' || handFocus === 'both_equal' || handFocus === 'either_hand') {
+    if (!handFocus || handFocus === 'both_equal' || handFocus === 'either_hand') {
       return false;
     }
     if (!handLabel) return false;
     
     const normalizedLabel = handLabel.toLowerCase();
-    
-    // Explicit left/right specification
-    if (handFocus === 'left') {
-      return normalizedLabel === 'left';
-    }
-    if (handFocus === 'right') {
-      return normalizedLabel === 'right';
-    }
     
     // For dominant_only and both_asymmetric, determine dominant hand
     // Default to right hand being dominant, unless only left is detected
@@ -213,28 +204,19 @@ export class OverlayRenderer {
 
   /**
    * Check if a hand should be dimmed (not important) based on hand focus
-   * Supports all HandFocus types including dominant_only and both_asymmetric
    */
   private isHandDimmed(
     handLabel: string | undefined,
-    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand' | 'left' | 'right' | 'both',
+    handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand',
     allHandedness?: ReadonlyArray<string>,
   ): boolean {
     // No focus or equal focus means no dimming
-    if (!handFocus || handFocus === 'both' || handFocus === 'both_equal' || handFocus === 'either_hand') {
+    if (!handFocus || handFocus === 'both_equal' || handFocus === 'either_hand') {
       return false;
     }
     if (!handLabel) return false;
     
     const normalizedLabel = handLabel.toLowerCase();
-    
-    // Explicit left/right specification
-    if (handFocus === 'left') {
-      return normalizedLabel === 'right';
-    }
-    if (handFocus === 'right') {
-      return normalizedLabel === 'left';
-    }
     
     // For dominant_only and both_asymmetric, dim the non-dominant hand
     if (handFocus === 'dominant_only' || handFocus === 'both_asymmetric') {
