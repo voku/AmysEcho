@@ -960,7 +960,7 @@
       return out;
     }
     const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0]);
-    function normalizeLandmarks(all, handednesses) {
+    function normalizeLandmarks2(all, handednesses) {
       const flat = new Float32Array(21 * 2 * 3);
       function normHand(hand) {
         if (!hand || hand.length < 21) return null;
@@ -1007,7 +1007,7 @@
     function mlpPredict(all, handednesses) {
       try {
         if (!mlp) return null;
-        const x = normalizeLandmarks(all, handednesses);
+        const x = normalizeLandmarks2(all, handednesses);
         if (!x) return null;
         if (x.every((v) => v === 0)) return null;
         const cols1 = x.length;
@@ -1286,6 +1286,12 @@
             return {
               FilesetResolver: mod.FilesetResolver,
               GestureRecognizer: mod.GestureRecognizer,
+              HolisticLandmarker: mod.HolisticLandmarker,
+              // Optional
+              PoseLandmarker: mod.PoseLandmarker,
+              // Optional
+              FaceLandmarker: mod.FaceLandmarker,
+              // Optional
               wasmBase: c.wasm
             };
           }
@@ -1303,6 +1309,12 @@
           return {
             FilesetResolver: window.fileset_resolver.FilesetResolver,
             GestureRecognizer: window.vision.GestureRecognizer,
+            HolisticLandmarker: window.vision.HolisticLandmarker,
+            // Optional
+            PoseLandmarker: window.vision.PoseLandmarker,
+            // Optional
+            FaceLandmarker: window.vision.FaceLandmarker,
+            // Optional
             wasmBase: c.wasm
           };
         }
@@ -2264,6 +2276,7 @@
   var GestureDetector = class _GestureDetector {
     constructor(video2, overlay2) {
       this.gestureRecognizer = null;
+      this.holisticLandmarker = null;
       this.running = false;
       this.lastCaptureAttempt = 0;
       this.video = video2;
@@ -2321,6 +2334,31 @@
             numHands: 2
           });
         }
+        if (components.HolisticLandmarker) {
+          try {
+            const holisticOptions = {
+              modelAssetPath: "https://storage.googleapis.com/mediapipe-models/holistic_landmarker/holistic_landmarker/float16/1/holistic_landmarker.task",
+              delegate: "GPU"
+            };
+            try {
+              this.holisticLandmarker = await components.HolisticLandmarker.createFromOptions(vision, {
+                baseOptions: holisticOptions,
+                runningMode: "VIDEO"
+              });
+              console.log("HolisticLandmarker initialized successfully");
+            } catch (gpuErr) {
+              console.warn("Holistic GPU delegate failed, falling back to CPU:", gpuErr);
+              this.holisticLandmarker = await components.HolisticLandmarker.createFromOptions(vision, {
+                baseOptions: { ...holisticOptions, delegate: "CPU" },
+                runningMode: "VIDEO"
+              });
+            }
+          } catch (holisticErr) {
+            console.warn("HolisticLandmarker initialization failed, continuing with hand-only detection:", holisticErr);
+          }
+        } else {
+          console.log("HolisticLandmarker not available in MediaPipe bundle, using hand-only detection");
+        }
         const onLoadedData = () => {
           initializeFrameCapture(this.video);
           this.lastCaptureAttempt = 0;
@@ -2376,27 +2414,43 @@
           if (this.cameraManager.hasDimensionsChanged()) {
             this.cameraManager.updateVideoDimensions();
             const rect = this.video.getBoundingClientRect();
-            this.overlayRenderer.resizeOverlay(rect);
+            const videoDimensions = this.cameraManager.getVideoDimensions();
+            this.overlayRenderer.resizeOverlay(rect, videoDimensions);
           }
           const recognitionStart = performance.now();
           const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
+          let holisticResults = null;
+          if (this.holisticLandmarker) {
+            try {
+              holisticResults = this.holisticLandmarker.detectForVideo(this.video, frameStart);
+            } catch (holisticErr) {
+              console.warn("Holistic detection failed, continuing with hand-only:", holisticErr);
+            }
+          }
           const recognitionTime = performance.now() - recognitionStart;
           console.log("MediaPipe recognition results:", {
             hasResults: !!results,
             gestures: results?.gestures?.length || 0,
             landmarks: results?.landmarks?.length || 0,
             handednesses: results?.handednesses?.length || 0,
+            hasPose: !!holisticResults?.poseLandmarks?.length,
+            hasFace: !!holisticResults?.faceLandmarks?.length,
             recognitionTime: Math.round(recognitionTime)
           });
-          if (this.resultCallback && results) {
-            this.resultCallback(results, frameStart);
+          const mergedResults = {
+            ...results,
+            poseLandmarks: holisticResults?.poseLandmarks ? [holisticResults.poseLandmarks] : void 0,
+            faceLandmarks: holisticResults?.faceLandmarks ? [holisticResults.faceLandmarks] : void 0
+          };
+          if (this.resultCallback && mergedResults) {
+            this.resultCallback(mergedResults, frameStart);
           }
-          if (results?.landmarks) {
-            const normalizedLandmarks = results.landmarks.map(
+          if (results?.landmarks || holisticResults) {
+            const normalizedLandmarks = results?.landmarks?.map(
               (hand) => hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0])
-            );
-            const poseLandmarks = results.poseLandmarks?.[0] ? results.poseLandmarks[0].map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]) : [];
-            const faceLandmarks = results.faceLandmarks?.[0] ? results.faceLandmarks[0].map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]) : [];
+            ) || [];
+            const poseLandmarks = holisticResults?.poseLandmarks ? holisticResults.poseLandmarks.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]) : [];
+            const faceLandmarks = holisticResults?.faceLandmarks ? holisticResults.faceLandmarks.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]) : [];
             const shouldRedraw = this.shouldRedrawOverlay(results, recognitionTime);
             if (shouldRedraw) {
               this.overlayRenderer.clear();
@@ -2446,6 +2500,9 @@
       this.running = false;
       if (this.gestureRecognizer?.close) {
         await this.gestureRecognizer.close();
+      }
+      if (this.holisticLandmarker?.close) {
+        await this.holisticLandmarker.close();
       }
       await this.cameraManager.stopCamera();
       await this.resourceManager.dispose();
@@ -4504,42 +4561,12 @@
   };
 
   // webview/utils/mapMediaPipeResults.ts
-  function normalizeHandLandmarks(hand) {
-    if (!hand) {
+  function normalizeLandmarks(landmarks) {
+    if (!landmarks) {
       return [];
     }
     const normalized = [];
-    for (const point of hand) {
-      if (!point) {
-        normalized.push([0, 0, 0]);
-        continue;
-      }
-      const { x = 0, y = 0, z = 0 } = point;
-      normalized.push([x, y, z]);
-    }
-    return normalized;
-  }
-  function normalizePoseLandmarks(pose) {
-    if (!pose) {
-      return [];
-    }
-    const normalized = [];
-    for (const point of pose) {
-      if (!point) {
-        normalized.push([0, 0, 0]);
-        continue;
-      }
-      const { x = 0, y = 0, z = 0 } = point;
-      normalized.push([x, y, z]);
-    }
-    return normalized;
-  }
-  function normalizeFaceLandmarks(face) {
-    if (!face) {
-      return [];
-    }
-    const normalized = [];
-    for (const point of face) {
+    for (const point of landmarks) {
       if (!point) {
         normalized.push([0, 0, 0]);
         continue;
@@ -4560,7 +4587,7 @@
     );
     const hands = [];
     for (let i = 0; i < maxHands; i += 1) {
-      const landmarks = normalizeHandLandmarks(result.landmarks?.[i]);
+      const landmarks = normalizeLandmarks(result.landmarks?.[i]);
       const handedness = result.handednesses?.[i]?.[0]?.categoryName ?? "unknown";
       const gestures = (result.gestures?.[i] ?? []).map((gesture) => ({
         label: gesture.categoryName,
@@ -4575,8 +4602,8 @@
       hands,
       landmarks: hands.map((hand) => hand.landmarks),
       handednesses: hands.map((hand) => hand.handedness),
-      poseLandmarks: normalizePoseLandmarks(result.poseLandmarks?.[0]),
-      faceLandmarks: normalizeFaceLandmarks(result.faceLandmarks?.[0])
+      poseLandmarks: normalizeLandmarks(result.poseLandmarks?.[0]),
+      faceLandmarks: normalizeLandmarks(result.faceLandmarks?.[0])
     };
   }
 
