@@ -187,7 +187,7 @@ class Sample:
     landmarks: List[List[float]]  # 42 hand landmarks (left+right), each [x, y, z]
     pose_landmarks: Optional[List[List[float]]] = None  # 33 pose landmarks, each [x, y, z, visibility]
     face_landmarks: Optional[List[List[float]]] = None  # 468 face landmarks, each [x, y, z]
-    hand_focus: Optional[str] = None  # 'left', 'right', or 'both' (or None = 'both')
+    hand_focus: Optional[str] = None  # 'dominant_only', 'both_equal', 'both_asymmetric', 'either_hand', or None
 
 
 _UNSET = object()
