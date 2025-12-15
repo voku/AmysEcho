@@ -1251,7 +1251,9 @@ export class GestureDetectionStep implements ProcessingStep {
   constructor(private config: GestureDetectorConfig) {}
 
   async execute(context: ProcessingContext): Promise<any> {
-    console.log('GestureDetectionStep executing, skipExpensive:', context.skipExpensiveSteps);
+    gestureDebugLog('detection', 'GestureDetectionStep executing', () => ({
+      skipExpensive: context.skipExpensiveSteps,
+    }), { sampleIntervalMs: 5000 });
     const rawResults = context.rawResults;
     const normalized = context.normalizedResults ?? mapMediaPipeResult(rawResults);
     const handednesses = normalized.handednesses;
@@ -1262,7 +1264,10 @@ export class GestureDetectionStep implements ProcessingStep {
         : handednesses.map(hand => [{ categoryName: hand as 'Left' | 'Right' }]);
 
     const perHand = this.extractPerHandDetections(normalized);
-    console.log('Per hand detections:', perHand);
+    gestureDebugLog('detection', 'Per hand detections', () => ({
+      count: perHand.length,
+      detections: perHand,
+    }), { sampleIntervalMs: 3000 });
 
     let selectedGesture: string | null = null;
     let selectedConfidence = 0;
@@ -1293,29 +1298,38 @@ export class GestureDetectionStep implements ProcessingStep {
 
     // Invoke custom MLP if available and better than MediaPipe result
     let mlpMetadata: { label: string; score: number } | null = null;
-    console.log('Checking MLP availability:', typeof window.__mlpPredict);
+    gestureDebugLog('mlp', 'Checking MLP availability', () => ({
+      available: typeof window.__mlpPredict === 'function',
+    }), { sampleIntervalMs: 10000 });
     if (typeof window.__mlpPredict === 'function') {
-      console.log('MLP function available, attempting prediction');
+      gestureDebugLog('mlp', 'MLP function available, attempting prediction', () => ({
+        landmarksCount: context.landmarks?.length ?? 0,
+        poseCount: context.poseLandmarks?.length ?? 0,
+        faceCount: context.faceLandmarks?.length ?? 0,
+      }), { sampleIntervalMs: 5000 });
       try {
         // The embedded MLP expects MediaPipe's handedness structure to decide which
         // hand should be mirrored, so prefer the raw array when available. Fall
         // back to the normalized labels only if MediaPipe omitted handedness
         // information entirely.
-        console.log('MLP input landmarks:', context.landmarks);
-        console.log('MLP input handednesses:', handednessesForMlp);
-        console.log('MLP pose landmarks:', context.poseLandmarks?.length);
-        console.log('MLP face landmarks:', context.faceLandmarks?.length);
         const mlpResult = window.__mlpPredict(
           context.rawLandmarks ?? context.landmarks ?? [],
           handednessesForMlp,
           context.poseLandmarks,
           context.faceLandmarks
         );
-        console.log('MLP prediction result:', JSON.stringify(mlpResult)); // Debug logging
+        gestureDebugLog('mlp', 'MLP prediction result', () => ({
+          label: mlpResult?.label,
+          score: mlpResult?.score,
+        }), { sampleIntervalMs: 2000 });
         if (mlpResult && typeof mlpResult.score === 'number') {
           mlpMetadata = mlpResult;
           const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
-          console.log('MLP threshold check:', JSON.stringify({ score: mlpResult.score, threshold, selectedConfidence })); // Debug logging
+          gestureDebugLog('mlp', 'MLP threshold check', () => ({
+            score: mlpResult.score,
+            threshold,
+            selectedConfidence,
+          }), { sampleIntervalMs: 3000 });
           // Calculate confidence margin - require higher confidence to override mediapipe
           const isMediaPipeConfident = selectedConfidence > 0.3;
           const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
@@ -1324,28 +1338,33 @@ export class GestureDetectionStep implements ProcessingStep {
               (selectedGesture === null || 
                selectedGesture === 'none' || 
                mlpResult.score >= (selectedConfidence + confidenceMargin))) {
-            console.log('MLP gesture selected:', JSON.stringify({ 
-              label: mlpResult.label, 
+            gestureDebugLog('mlp', 'MLP gesture selected', () => ({
+              label: mlpResult.label,
               score: mlpResult.score,
-              margin: confidenceMargin
-            })); // Debug logging
+              margin: confidenceMargin,
+            }), { sampleIntervalMs: 2000 });
             selectedGesture = this.normalizeLabel(mlpResult.label);
             selectedConfidence = mlpResult.score;
             detectionMethod = 'mlp';
             twoHandMetadata = null;
           } else {
-            console.log('MLP gesture not selected:', JSON.stringify({ 
-              score: mlpResult.score, 
-              threshold, 
+            gestureDebugLog('mlp', 'MLP gesture not selected', () => ({
+              score: mlpResult.score,
+              threshold,
               selectedConfidence,
-              margin: confidenceMargin 
-            })); // Debug logging
+              margin: confidenceMargin,
+            }), { sampleIntervalMs: 3000 });
           }
         } else {
-          console.log('MLP result invalid:', JSON.stringify({ mlpResult, hasScore: typeof mlpResult?.score === 'number' })); // Debug logging
+          gestureDebugLog('mlp', 'MLP result invalid', () => ({
+            hasResult: !!mlpResult,
+            hasScore: typeof mlpResult?.score === 'number',
+          }), { sampleIntervalMs: 5000 });
         }
       } catch (error) {
-        console.warn('MLP prediction failed:', error);
+        gestureDebugLog('mlp', 'MLP prediction failed', () => ({
+          error: error instanceof Error ? error.message : String(error),
+        }), { sampleIntervalMs: 5000, level: 'warn' });
         const predictionPrefix = typeof window.__predictionError === 'string' && window.__predictionError.length > 0
           ? window.__predictionError
           : 'MLP prediction failed: ';
@@ -1360,7 +1379,8 @@ export class GestureDetectionStep implements ProcessingStep {
             })
           );
         } catch (postMessageError) {
-          console.debug('Failed to post MLP prediction error to React Native:', postMessageError);
+          // Silently ignore post message errors to React Native to avoid console spam.
+          // These errors are expected when running in browser environments without the React Native WebView.
         }
       }
     }
