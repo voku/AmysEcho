@@ -86,6 +86,40 @@ describe('useApiConfig', () => {
     });
   });
 
+  it('overwrites any persisted localhost URL (any port) when environment provides production backend', async () => {
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_API_URL', 'https://amysecho.moelleken.org');
+
+    // Test with localhost:3000 (a different port than the default 5000)
+    window.localStorage.setItem(
+      'webapp:api-config',
+      JSON.stringify({ apiBaseUrl: 'http://localhost:3000', persistToken: false }),
+    );
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await waitFor(() => {
+      expect(result.current.apiBaseUrl).toBe('https://amysecho.moelleken.org');
+    });
+  });
+
+  it('overwrites persisted 127.0.0.1 URL when environment provides production backend', async () => {
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_API_URL', 'https://amysecho.moelleken.org');
+
+    // Test with 127.0.0.1 (alternative localhost notation)
+    window.localStorage.setItem(
+      'webapp:api-config',
+      JSON.stringify({ apiBaseUrl: 'http://127.0.0.1:8080', persistToken: false }),
+    );
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await waitFor(() => {
+      expect(result.current.apiBaseUrl).toBe('https://amysecho.moelleken.org');
+    });
+  });
+
   it('normalizes API base URL by removing trailing slashes', () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 

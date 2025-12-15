@@ -17,6 +17,22 @@ const DEV_ORIGINS = new Set([
   'https://127.0.0.1:4173',
 ]);
 
+/**
+ * Check if a URL is a localhost URL (any port).
+ * Used to override persisted localhost configs with production URLs.
+ */
+function isLocalhostUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    // If URL parsing fails, check via regex
+    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+  }
+}
+
 export function resolveFallbackApiBase(
   env: Pick<ImportMetaEnv, 'MODE'> & { VITE_API_URL?: string } = import.meta.env,
   runtimeWindow: Pick<Window, 'location'> | undefined = typeof window !== 'undefined' ? window : undefined,
@@ -226,8 +242,10 @@ function readFromStorage(): StoredApiConfig {
       ? persistedParsed?.apiBaseUrl ?? sessionParsed?.apiBaseUrl ?? parsed?.apiBaseUrl
       : parsed?.apiBaseUrl;
     const normalizedStoredBase = normalizeApiBase(storedBase);
+    // Override any persisted localhost URL with the production fallback URL
+    // This ensures GitHub Pages deployment uses the correct backend
     const apiBaseUrl =
-      normalizedStoredBase === DEFAULT_NON_PROD_API_BASE && fallbackBase !== DEFAULT_NON_PROD_API_BASE
+      isLocalhostUrl(normalizedStoredBase) && !isLocalhostUrl(fallbackBase)
         ? fallbackBase
         : normalizedStoredBase;
     const tokenSource =
