@@ -1,10 +1,7 @@
-import React, { memo, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import Svg, { Circle, G, Line } from 'react-native-svg';
-
-// Tolerance for landmark coordinate comparison to avoid re-renders from minor floating point variations
-const LANDMARK_TOLERANCE = 0.001;
 
 
 const HAND_CONNECTIONS: Array<[number, number]> = [
@@ -86,7 +83,7 @@ const toLandmark = (point?: number[]): Landmark | null => {
   return [x, y, z];
 };
 
-const HandLandmarkPreviewComponent: React.FC<HandLandmarkPreviewProps> = ({
+export const HandLandmarkPreview: React.FC<HandLandmarkPreviewProps> = ({
   landmarks,
   handedness = [],
   mirror = false,
@@ -251,102 +248,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-/**
- * Custom comparison function for React.memo to avoid unnecessary re-renders.
- * Compares landmark arrays with tolerance for small floating point variations.
- */
-const landmarksAreEqual = (
-  prevLandmarks: number[][][],
-  nextLandmarks: number[][][],
-): boolean => {
-  if (prevLandmarks === nextLandmarks) {
-    return true;
-  }
-  if (prevLandmarks.length !== nextLandmarks.length) {
-    return false;
-  }
-  for (let handIdx = 0; handIdx < prevLandmarks.length; handIdx++) {
-    const prevHand = prevLandmarks[handIdx];
-    const nextHand = nextLandmarks[handIdx];
-    // Handle null/undefined cases: both null/undefined = equal, only one = not equal
-    if (!prevHand && !nextHand) {
-      continue;
-    }
-    if (!prevHand || !nextHand || prevHand.length !== nextHand.length) {
-      return false;
-    }
-    for (let pointIdx = 0; pointIdx < prevHand.length; pointIdx++) {
-      const prevPoint = prevHand[pointIdx];
-      const nextPoint = nextHand[pointIdx];
-      // Handle null/undefined cases: both null/undefined = equal, only one = not equal
-      if (!prevPoint && !nextPoint) {
-        continue;
-      }
-      if (!prevPoint || !nextPoint || prevPoint.length !== nextPoint.length) {
-        return false;
-      }
-      for (let coord = 0; coord < prevPoint.length; coord++) {
-        const diff = Math.abs((prevPoint[coord] ?? 0) - (nextPoint[coord] ?? 0));
-        if (diff > LANDMARK_TOLERANCE) {
-          return false;
-        }
-      }
-    }
-  }
-  return true;
-};
-
-const handednessAreEqual = (
-  prevHandedness: string[] | undefined,
-  nextHandedness: string[] | undefined,
-): boolean => {
-  if (prevHandedness === nextHandedness) {
-    return true;
-  }
-  if (!prevHandedness || !nextHandedness) {
-    return prevHandedness === nextHandedness;
-  }
-  if (prevHandedness.length !== nextHandedness.length) {
-    return false;
-  }
-  for (let i = 0; i < prevHandedness.length; i++) {
-    if (prevHandedness[i] !== nextHandedness[i]) {
-      return false;
-    }
-  }
-  return true;
-};
-
-const propsAreEqual = (
-  prevProps: HandLandmarkPreviewProps,
-  nextProps: HandLandmarkPreviewProps,
-): boolean => {
-  // Fast path: check reference equality first
-  if (prevProps === nextProps) {
-    return true;
-  }
-
-  // Check simple props
-  if (prevProps.mirror !== nextProps.mirror) {
-    return false;
-  }
-  if (prevProps.confidence !== nextProps.confidence) {
-    return false;
-  }
-  if (prevProps.style !== nextProps.style) {
-    return false;
-  }
-
-  // Check handedness array
-  if (!handednessAreEqual(prevProps.handedness, nextProps.handedness)) {
-    return false;
-  }
-
-  // Check landmarks with tolerance
-  return landmarksAreEqual(prevProps.landmarks, nextProps.landmarks);
-};
-
-export const HandLandmarkPreview = memo(HandLandmarkPreviewComponent, propsAreEqual);
 
 export default HandLandmarkPreview;
