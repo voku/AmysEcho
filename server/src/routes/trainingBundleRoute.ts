@@ -52,6 +52,7 @@ interface TrainingBundleMetadata {
   modalities?: Record<string, unknown>;
   smoothing?: Record<string, unknown>;
   handedness?: { labels?: string[]; frameCount?: number };
+  handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand';
 }
 
 interface TrainingBundleManifestEntry {
@@ -112,6 +113,13 @@ const HandednessSchema = z
   })
   .passthrough();
 
+const HandFocusSchema = z.enum([
+  'dominant_only',    // Only one hand matters (the moving one)
+  'both_equal',       // Both hands equally important
+  'both_asymmetric',  // Both hands, but weighted differently
+  'either_hand',      // Works with either hand
+]);
+
 const MetadataSchema = z
   .object({
     label: z.string().min(1),
@@ -123,6 +131,7 @@ const MetadataSchema = z
   modalities: ModalitiesSchema.optional(),
   smoothing: SmoothingSchema.optional(),
   handedness: HandednessSchema.optional(),
+  handFocus: HandFocusSchema.optional(),
 })
 .passthrough();
 
@@ -579,6 +588,7 @@ export function registerTrainingBundleRoute(
         source: isNonEmptyString(parsedMetadata.source) ? parsedMetadata.source : null,
         clipFilename,
         stillFilename,
+        ...(parsedMetadata.handFocus ? { handFocus: parsedMetadata.handFocus } : {}),
       };
 
       const files = Array.from(new Set(storedFiles));

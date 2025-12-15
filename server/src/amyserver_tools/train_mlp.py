@@ -157,6 +157,11 @@ DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not
 LOSS_EPSILON = np.spacing(1.0)
 AUGMENTATION_EPSILON = 1e-8
 
+# Hand landmark constants for processing
+LANDMARKS_PER_HAND = 21  # MediaPipe hand model provides 21 landmarks per hand
+TOTAL_HAND_LANDMARKS = 42  # Left (21) + Right (21)
+SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
+
 # Still frames represent the precise target hand position for the gesture,
 # so they should be weighted more heavily than individual video frames during averaging.
 # Default weight of 10.0 means a single still frame has the same influence as 10 video frames.
@@ -182,6 +187,7 @@ class Sample:
     landmarks: List[List[float]]  # 42 hand landmarks (left+right), each [x, y, z]
     pose_landmarks: Optional[List[List[float]]] = None  # 33 pose landmarks, each [x, y, z, visibility]
     face_landmarks: Optional[List[List[float]]] = None  # 468 face landmarks, each [x, y, z]
+    hand_focus: Optional[str] = None  # 'dominant_only', 'both_equal', 'both_asymmetric', 'either_hand', or None
 
 
 _UNSET = object()
@@ -289,6 +295,93 @@ def sha256_file(path: Path) -> Optional[str]:
     digest = hashlib.sha256()
     digest.update(data)
     return digest.hexdigest()
+
+
+def apply_hand_focus(
+    landmarks: List[List[float]], 
+    hand_focus: Optional[str],
+    handedness: Optional[List[str]] = None,
+) -> List[List[float]]:
+    """Apply hand focus filter to landmarks by adjusting irrelevant hand data.
+    
+    For gestures where only one hand is semantically important, this function
+    either zeroes out or weights down the landmarks for the non-relevant hand.
+    This helps the model focus on the important hand and reduces noise.
+    
+    Hand Focus Types:
+    - 'dominant_only': Zero out the non-dominant hand (based on motion or handedness)
+    - 'both_equal': Keep both hands as-is
+    - 'both_asymmetric': Weight non-dominant hand at 0.3x
+    - 'either_hand': Keep both hands as-is (gesture works with any hand)
+    
+    Parameters
+    ----------
+    landmarks:
+        42 hand landmarks (21 left + 21 right), each [x, y, z]
+    hand_focus:
+        Which hand(s) are important
+    handedness:
+        Optional list of handedness labels to help determine dominant hand
+    
+    Returns
+    -------
+    List[List[float]]
+        Filtered/weighted landmarks
+    """
+    # Early return for no-op cases
+    if hand_focus is None or hand_focus in ('both_equal', 'either_hand') or len(landmarks) < TOTAL_HAND_LANDMARKS:
+        return landmarks
+    
+    result = [list(point) for point in landmarks]
+    
+    # Define index ranges for each hand
+    left_hand_indices = range(LANDMARKS_PER_HAND)
+    right_hand_indices = range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS)
+    
+    # Track which hand indices to zero or weight
+    hand_to_zero: Optional[range] = None
+    hand_to_weight: Optional[range] = None
+    
+    if hand_focus in ('dominant_only', 'both_asymmetric'):
+        # Count active landmarks per hand (landmarks with non-zero values)
+        left_landmark_count = sum(1 for i in left_hand_indices if any(v != 0 for v in landmarks[i]))
+        right_landmark_count = sum(1 for i in right_hand_indices if any(v != 0 for v in landmarks[i]))
+        
+        # Determine dominant hand from handedness labels or landmark counts
+        dominant_is_right = True  # Default
+        if handedness:
+            has_right = any('right' in h.lower() for h in handedness)
+            has_left = any('left' in h.lower() for h in handedness)
+            if has_right and not has_left:
+                dominant_is_right = True
+            elif has_left and not has_right:
+                dominant_is_right = False
+            else:
+                # Ambiguous (both or none detected), fallback to landmark count
+                dominant_is_right = right_landmark_count >= left_landmark_count
+        else:
+            # Fallback to landmark count-based detection
+            dominant_is_right = right_landmark_count >= left_landmark_count
+        
+        # Select secondary hand indices based on dominance
+        secondary_hand_indices = left_hand_indices if dominant_is_right else right_hand_indices
+        
+        if hand_focus == 'dominant_only':
+            hand_to_zero = secondary_hand_indices
+        else:  # 'both_asymmetric'
+            hand_to_weight = secondary_hand_indices
+    
+    # Apply zeroing to selected hand
+    if hand_to_zero is not None:
+        for i in hand_to_zero:
+            result[i] = [0.0, 0.0, 0.0]
+    
+    # Apply weighting to selected hand
+    if hand_to_weight is not None:
+        for i in hand_to_weight:
+            result[i] = [v * SECONDARY_HAND_WEIGHT for v in result[i]]
+    
+    return result
 
 
 def flatten_landmarks_mean(frames: List[dict]) -> Optional[dict]:
@@ -1230,6 +1323,9 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         if not label:
             continue
         profile_id = entry.get("profileId") or entry.get("metadata", {}).get("profileId")
+        # Extract handFocus from bundle metadata
+        metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
+        hand_focus = metadata.get("handFocus")  # 'left', 'right', 'both', or None
         rel_dir = entry.get("storage", {}).get("directory")
         if not rel_dir:
             continue
@@ -1291,12 +1387,16 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         if averaged is None:
             continue
 
+        # Apply hand focus filtering to zero out irrelevant hand data
+        filtered_landmarks = apply_hand_focus(averaged['landmarks'], hand_focus)
+
         data.append(Sample(
             label=label,
             profile_id=profile_id,
-            landmarks=averaged['landmarks'],
+            landmarks=filtered_landmarks,
             pose_landmarks=averaged.get('poseLandmarks'),
             face_landmarks=averaged.get('faceLandmarks'),
+            hand_focus=hand_focus,
         ))
 
     stats = {

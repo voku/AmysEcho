@@ -31,6 +31,9 @@ const TrainingBundleManifestEntrySchema = z
           })
           .passthrough()
           .optional(),
+        handFocus: z.enum([
+          'dominant_only', 'both_equal', 'both_asymmetric', 'either_hand',
+        ]).optional(),
       })
       .passthrough()
       .optional(),
@@ -65,6 +68,7 @@ interface DatasetSample {
   faceLandmarks?: number[][];
   handedness?: string[];
   captureMetadata?: CaptureMetadata;
+  handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand';
 }
 
 interface DatasetFile {
@@ -74,6 +78,7 @@ interface DatasetFile {
 interface CaptureMetadata {
   modalities?: { hands?: boolean; pose?: boolean; face?: boolean };
   smoothing?: { method?: string; minCutOff?: number; beta?: number; dCutOff?: number };
+  handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand';
 }
 
 function isDatasetSample(value: unknown): value is DatasetSample {
@@ -463,6 +468,11 @@ function buildDatasetSample(
   }
   if (frameData.captureMetadata) {
     sample.captureMetadata = frameData.captureMetadata;
+  }
+  // Pass through handFocus from bundle metadata
+  const handFocus = entry.metadata?.handFocus;
+  if (handFocus) {
+    sample.handFocus = handFocus;
   }
   return sample;
 }

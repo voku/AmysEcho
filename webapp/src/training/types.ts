@@ -1,3 +1,16 @@
+/**
+ * Specifies which hand(s) are semantically important for a gesture.
+ * - 'dominant_only': Only the dominant/primary hand is relevant (e.g., DGS "Papa")
+ * - 'both_equal': Both hands are equally important, symmetric gestures (e.g., "Haus")
+ * - 'both_asymmetric': Both hands matter but with different roles/weights (e.g., "Buch")
+ * - 'either_hand': Works with either hand, no preference (e.g., pointing)
+ */
+export type HandFocus = 
+  | 'dominant_only'      // Only one hand matters (the one that's moving)
+  | 'both_equal'         // Both hands equally important
+  | 'both_asymmetric'    // Both hands, but weighted differently
+  | 'either_hand';       // Works with either hand
+
 export interface TrainingFrame {
   landmarks: number[][][];
   handedness?: ReadonlyArray<string>;
@@ -26,6 +39,12 @@ export interface TrainingBundlePayload {
   };
   clipFile?: File | null;
   stillFile?: File | null;
+  /**
+   * Specifies which hand(s) are semantically important for this gesture.
+   * The training pipeline will focus learning on the specified hand(s) only,
+   * reducing noise from irrelevant hand data.
+   */
+  handFocus?: HandFocus;
 }
 
 export type TrainingJobStatus = 'queued' | 'running' | 'completed' | 'failed';

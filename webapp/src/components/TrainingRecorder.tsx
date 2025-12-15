@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGestureDetector } from '../hooks/useGestureDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
-import type { TrainingBundlePayload } from '../training/types';
-import { framesHaveHandLandmarks } from '../training/handUtils';
+import type { TrainingBundlePayload, HandFocus } from '../training/types';
+import { framesHaveHandLandmarks, suggestHandFocus } from '../training/handUtils';
 
 export interface TrainingRecorderProps {
   profileId: string;
@@ -42,6 +42,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     }
   });
   const isMirroredPreview = facingMode === 'user';
+  const [handFocus, setHandFocus] = useState<HandFocus>('both_equal');
+  const [handFocusSuggestion, setHandFocusSuggestion] = useState<ReturnType<typeof suggestHandFocus> | null>(null);
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
     ? ''
@@ -128,7 +130,16 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
   const handleStopRecording = useCallback(() => {
     stopRecording();
-  }, [stopRecording]);
+    // Auto-suggest hand focus based on recorded motion after stopping
+    if (recordedData.frames.length > 1) {
+      const suggestion = suggestHandFocus(recordedData.frames);
+      setHandFocusSuggestion(suggestion);
+      // Only auto-apply if high confidence and different from current selection
+      if (suggestion.confidence === 'high' && suggestion.suggestion !== handFocus) {
+        setHandFocus(suggestion.suggestion);
+      }
+    }
+  }, [stopRecording, recordedData.frames, handFocus]);
 
   const finalizeSaveRecording = useCallback(
     async () => {
@@ -170,6 +181,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         source: 'web://mediapipe',
         stillFile,
         clipFile: recordedData.clipFile,
+        handFocus,
       };
 
       onRecordingComplete(payload);
@@ -184,6 +196,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       onRecordingComplete,
       resetRecording,
       manualStillFile,
+      handFocus,
     ],
   );
 
@@ -697,6 +710,60 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 {uploadDisabledReason && <p className="muted small">{uploadDisabledReason}</p>}
               </>
             )}
+          </div>
+
+          <div className="form-group mt-sm">
+            <label htmlFor="hand-focus">Relevante Hand für diese Gebärde</label>
+            <div className="radio-group" role="radiogroup" aria-label="Handauswahl">
+              <label className={`radio-label${handFocus === 'both_equal' ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="hand-focus"
+                  value="both_equal"
+                  checked={handFocus === 'both_equal'}
+                  onChange={() => setHandFocus('both_equal')}
+                />
+                <span>Beide Hände gleich</span>
+              </label>
+              <label className={`radio-label${handFocus === 'dominant_only' ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="hand-focus"
+                  value="dominant_only"
+                  checked={handFocus === 'dominant_only'}
+                  onChange={() => setHandFocus('dominant_only')}
+                />
+                <span>Nur Haupthand</span>
+              </label>
+              <label className={`radio-label${handFocus === 'both_asymmetric' ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="hand-focus"
+                  value="both_asymmetric"
+                  checked={handFocus === 'both_asymmetric'}
+                  onChange={() => setHandFocus('both_asymmetric')}
+                />
+                <span>Beide unterschiedlich</span>
+              </label>
+              <label className={`radio-label${handFocus === 'either_hand' ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="hand-focus"
+                  value="either_hand"
+                  checked={handFocus === 'either_hand'}
+                  onChange={() => setHandFocus('either_hand')}
+                />
+                <span>Egal welche Hand</span>
+              </label>
+            </div>
+            {handFocusSuggestion && (
+              <div className={`notice ${handFocusSuggestion.confidence === 'high' ? 'info' : 'warning'} compact mt-sm`}>
+                <strong>Automatische Erkennung:</strong> {handFocusSuggestion.reason}
+              </div>
+            )}
+            <p className="muted small">
+              Wähle, welche Hand für diese Gebärde wichtig ist. Bei einigen Gebärden (z.B. „Papa") zählt nur die Haupthand – die andere kann Rauschen erzeugen.
+            </p>
           </div>
 
           <div className="form-group mt-sm">
