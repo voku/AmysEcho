@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
-import { ApiConfigProvider, useApiConfig, resolveFallbackApiBase, resolvePollUrl } from './useApiConfig';
+import { ApiConfigProvider, useApiConfig, resolveFallbackApiBase, resolvePollUrl, CURRENT_STORAGE_VERSION } from './useApiConfig';
 
 describe('useApiConfig', () => {
   const DEFAULT_API_BASE = 'http://localhost:5000';
@@ -23,6 +23,7 @@ describe('useApiConfig', () => {
     expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
     expect(result.current.apiToken).toBe('');
     expect(result.current.persistToken).toBe(false);
+    expect(result.current.isLoadingTokens).toBe(false);
     expect(result.current.uploadEndpoint).toBe(`${DEFAULT_API_BASE}/api/v1/dgs/sample-bundles`);
     expect(result.current.modelEndpoint).toBe(`${DEFAULT_API_BASE}/latest-mlp-model`);
   });
@@ -208,9 +209,11 @@ describe('useApiConfig', () => {
 
     expect(reloaded.current.apiBaseUrl).toBe('https://stored.example.com');
     expect(reloaded.current.persistToken).toBe(true);
+    expect(reloaded.current.isLoadingTokens).toBe(true);
 
     await waitFor(() => {
       expect(reloaded.current.apiToken).toBe('persisted-token');
+      expect(reloaded.current.isLoadingTokens).toBe(false);
     });
   });
 
@@ -283,6 +286,7 @@ describe('useApiConfig', () => {
   it('clears corrupted persisted tokens so the hook can recover', async () => {
     const cryptoKeyBytes = new Uint8Array(32);
     webcrypto.getRandomValues(cryptoKeyBytes);
+    window.localStorage.setItem('webapp:api-config:version', CURRENT_STORAGE_VERSION);
     window.localStorage.setItem('webapp:api-config', JSON.stringify({ apiBaseUrl: 'https://broken.example.com', persistToken: true }));
     window.localStorage.setItem('webapp:api-config:persisted-key', Buffer.from(cryptoKeyBytes).toString('base64'));
     window.localStorage.setItem(
@@ -337,6 +341,22 @@ describe('useApiConfig', () => {
     });
 
     expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
+  });
+
+  it('clears old storage when version changes', () => {
+    // Set up old storage with version 1
+    window.localStorage.setItem('webapp:api-config:version', '1');
+    window.localStorage.setItem('webapp:api-config', JSON.stringify({ apiBaseUrl: 'https://old.example.com', persistToken: true }));
+    window.localStorage.setItem('webapp:api-config:persisted-token', 'old-encrypted-data');
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    // Should use default config after clearing old storage
+    expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
+    expect(result.current.persistToken).toBe(false);
+    expect(result.current.apiToken).toBe('');
+    expect(window.localStorage.getItem('webapp:api-config:version')).toBe(CURRENT_STORAGE_VERSION);
+    expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
   });
 
   it('throws error when used without provider', () => {

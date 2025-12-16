@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'webapp:api-config';
+const STORAGE_VERSION_KEY = 'webapp:api-config:version';
+export const CURRENT_STORAGE_VERSION = '2';
 const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
 const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
@@ -62,6 +64,7 @@ type ApiConfigContextValue = {
   apiToken: string;
   refreshToken: string;
   persistToken: boolean;
+  isLoadingTokens: boolean;
   setApiBaseUrl: (value: string) => void;
   setApiToken: (value: string) => void;
   setTokens: (tokens: AuthTokens) => void;
@@ -214,6 +217,23 @@ function readFromStorage(): StoredApiConfig {
   if (typeof window === 'undefined') return createDefaultConfig();
   initialEncryptedToken.current = null;
   const fallbackBase = resolveFallbackApiBase();
+  
+  // Check storage version and clear if outdated
+  const storedVersion = window.localStorage.getItem(STORAGE_VERSION_KEY);
+  if (storedVersion !== CURRENT_STORAGE_VERSION) {
+    // Clear all API config storage on version mismatch for robustness
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith('webapp:api-config') && key !== STORAGE_VERSION_KEY)
+      .forEach((key) => window.localStorage.removeItem(key));
+    Object.keys(window.sessionStorage)
+      .filter((key) => key.startsWith('webapp:api-config'))
+      .forEach((key) => window.sessionStorage.removeItem(key));
+
+    window.localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
+    console.info('API-Konfiguration wurde aktualisiert und zurückgesetzt');
+    return createDefaultConfig();
+  }
+  
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     const persistedRaw = window.localStorage.getItem(PERSISTED_TOKEN_KEY);
@@ -254,6 +274,7 @@ const ApiConfigContext = createContext<ApiConfigContextValue | null>(null);
 
 export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<StoredApiConfig>(() => readFromStorage());
+  const [isLoadingTokens, setIsLoadingTokens] = useState(() => initialEncryptedToken.current !== null);
   const refreshInFlight = useRef<Promise<string | null> | null>(null);
 
   useEffect(() => {
@@ -261,7 +282,10 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const loadEncryptedToken = async () => {
-      if (!initialEncryptedToken.current) return;
+      if (!initialEncryptedToken.current) {
+        setIsLoadingTokens(false);
+        return;
+      }
       try {
         const decrypted = await decryptToken(
           initialEncryptedToken.current.encrypted,
@@ -298,6 +322,9 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         initialEncryptedToken.current = null;
+        if (!cancelled) {
+          setIsLoadingTokens(false);
+        }
       }
     };
 
@@ -314,6 +341,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
         STORAGE_KEY,
         JSON.stringify({ apiBaseUrl: config.apiBaseUrl, persistToken: config.persistToken }),
       );
+      window.localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
     } catch (error) {
       console.warn('Konnte API-Konfiguration nicht speichern', error);
     }
@@ -446,6 +474,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
       apiToken: config.tokens.accessToken,
       refreshToken: config.tokens.refreshToken,
       persistToken: config.persistToken,
+      isLoadingTokens,
       setApiBaseUrl,
       setApiToken,
       setTokens,
@@ -460,6 +489,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     config.tokens.accessToken,
     config.tokens.refreshToken,
     config.persistToken,
+    isLoadingTokens,
     setApiBaseUrl,
     setApiToken,
     setTokens,
