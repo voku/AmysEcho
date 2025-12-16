@@ -396,11 +396,153 @@ export class SignVariationTracker {
       return successfulVariations[0]?.landmarks ?? { handLandmarks: [] };
     }
     
-    // For now, return the highest-confidence successful variation as the canonical template
-    // TODO: Implement proper weighted averaging of landmark positions for more robust templates
-    const best = successfulVariations.sort((a, b) => b.confidence - a.confidence)[0];
+    // Implement weighted averaging of landmark positions for more robust templates
+    return this.computeWeightedAverageLandmarks(successfulVariations, totalWeight);
+  }
+  
+  /**
+   * Compute weighted average of hand landmarks from multiple variations
+   * Each variation is weighted by its confidence score
+   */
+  private computeWeightedAverageLandmarks(
+    variations: SignVariation[],
+    totalWeight: number
+  ): GestureLandmarks {
+    if (variations.length === 0 || totalWeight === 0) {
+      return { handLandmarks: [] };
+    }
     
-    return best?.landmarks ?? { handLandmarks: [] };
+    // Initialize result structure
+    const result: GestureLandmarks = {
+      handLandmarks: [],
+    };
+    
+    // Find the maximum number of hands across all variations
+    const maxHands = Math.max(
+      ...variations.map(v => v.landmarks.handLandmarks.length),
+      0
+    );
+    
+    // Average each hand separately
+    for (let handIdx = 0; handIdx < maxHands; handIdx++) {
+      // Find maximum number of landmarks for this hand across variations
+      const maxLandmarks = Math.max(
+        ...variations
+          .filter(v => v.landmarks.handLandmarks[handIdx])
+          .map(v => v.landmarks.handLandmarks[handIdx]!.length),
+        0
+      );
+      
+      const handLandmarks: number[][] = [];
+      
+      // Average each landmark position
+      for (let lmIdx = 0; lmIdx < maxLandmarks; lmIdx++) {
+        let sumX = 0;
+        let sumY = 0;
+        let sumZ = 0;
+        let weight = 0;
+        
+        for (const variation of variations) {
+          const hand = variation.landmarks.handLandmarks[handIdx];
+          const landmark = hand?.[lmIdx];
+          
+          if (landmark && this.isValidLandmarkPoint(landmark)) {
+            const w = variation.confidence;
+            sumX += landmark[0]! * w;
+            sumY += landmark[1]! * w;
+            sumZ += landmark[2]! * w;
+            weight += w;
+          }
+        }
+        
+        if (weight > 0) {
+          handLandmarks.push([sumX / weight, sumY / weight, sumZ / weight]);
+        } else {
+          // Fallback to first valid landmark if no weighted average possible
+          const firstValid = variations.find(
+            v => v.landmarks.handLandmarks[handIdx]?.[lmIdx]
+          );
+          if (firstValid?.landmarks.handLandmarks[handIdx]?.[lmIdx]) {
+            handLandmarks.push([...firstValid.landmarks.handLandmarks[handIdx]![lmIdx]!]);
+          }
+        }
+      }
+      
+      result.handLandmarks.push(handLandmarks);
+    }
+    
+    // Also average pose and face landmarks if present
+    const hasPose = variations.some(v => v.landmarks.poseLandmarks);
+    const hasFace = variations.some(v => v.landmarks.faceLandmarks);
+    
+    if (hasPose) {
+      const averaged = this.averageOptionalLandmarks(
+        variations,
+        v => v.landmarks.poseLandmarks
+      );
+      if (averaged) {
+        result.poseLandmarks = averaged;
+      }
+    }
+    
+    if (hasFace) {
+      const averaged = this.averageOptionalLandmarks(
+        variations,
+        v => v.landmarks.faceLandmarks
+      );
+      if (averaged) {
+        result.faceLandmarks = averaged;
+      }
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Average optional landmarks (pose or face) across variations
+   */
+  private averageOptionalLandmarks(
+    variations: SignVariation[],
+    getLandmarks: (v: SignVariation) => number[][] | undefined
+  ): number[][] | undefined {
+    const validVariations = variations.filter(v => getLandmarks(v));
+    
+    if (validVariations.length === 0) {
+      return undefined;
+    }
+    
+    const maxLandmarks = Math.max(
+      ...validVariations.map(v => getLandmarks(v)?.length ?? 0),
+      0
+    );
+    
+    const result: number[][] = [];
+    
+    for (let lmIdx = 0; lmIdx < maxLandmarks; lmIdx++) {
+      let sumX = 0;
+      let sumY = 0;
+      let sumZ = 0;
+      let weight = 0;
+      
+      for (const variation of validVariations) {
+        const landmarks = getLandmarks(variation);
+        const landmark = landmarks?.[lmIdx];
+        
+        if (landmark && this.isValidLandmarkPoint(landmark)) {
+          const w = variation.confidence;
+          sumX += landmark[0]! * w;
+          sumY += landmark[1]! * w;
+          sumZ += landmark[2]! * w;
+          weight += w;
+        }
+      }
+      
+      if (weight > 0) {
+        result.push([sumX / weight, sumY / weight, sumZ / weight]);
+      }
+    }
+    
+    return result.length > 0 ? result : undefined;
   }
   
   private calculateVariationDiversity(gesture: string): number {

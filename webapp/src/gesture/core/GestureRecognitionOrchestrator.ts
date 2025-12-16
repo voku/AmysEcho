@@ -136,6 +136,8 @@ export class GestureRecognitionOrchestrator {
   private frameCaptureCounter = 0; // Counter for frame throttling
   private multimodalSmoother: MultimodalSmoother;
   private variationTracker: SignVariationTracker;
+  private variationCleanupCounter = 0;
+  private readonly VARIATION_CLEANUP_INTERVAL = 100; // Run cleanup every 100 gestures
 
   private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
 
@@ -1180,9 +1182,14 @@ export class GestureRecognitionOrchestrator {
     successfulMatch: boolean
   ): void {
     try {
+      // Filter handedness to only include valid values (exclude 'unknown')
+      const validHandedness = handedness.filter(
+        (h): h is 'Left' | 'Right' | 'Both' => h === 'Left' || h === 'Right' || h === 'Both'
+      );
+      
       const landmarks: GestureLandmarks = {
         handLandmarks,
-        handedness: handedness as ('Left' | 'Right' | 'Both')[],
+        handedness: validHandedness,
       };
       
       // Only add optional properties if they exist
@@ -1204,9 +1211,11 @@ export class GestureRecognitionOrchestrator {
         profileId
       );
 
-      // Periodically clean up old variations
-      if (Math.random() < 0.01) { // 1% chance per gesture
+      // Deterministic cleanup every N gestures instead of random
+      this.variationCleanupCounter++;
+      if (this.variationCleanupCounter >= this.VARIATION_CLEANUP_INTERVAL) {
         this.variationTracker.cleanup();
+        this.variationCleanupCounter = 0;
       }
     } catch (error) {
       gestureDebugLog('variation', 'Failed to track gesture variation', () => ({ error }));
