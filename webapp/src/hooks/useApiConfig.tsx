@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 const STORAGE_KEY = 'webapp:api-config';
 const STORAGE_VERSION_KEY = 'webapp:api-config:version';
-const CURRENT_STORAGE_VERSION = '2';
+export const CURRENT_STORAGE_VERSION = '2';
 const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
 const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';

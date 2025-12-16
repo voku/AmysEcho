@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
-import { ApiConfigProvider, useApiConfig, resolveFallbackApiBase, resolvePollUrl } from './useApiConfig';
+import { ApiConfigProvider, useApiConfig, resolveFallbackApiBase, resolvePollUrl, CURRENT_STORAGE_VERSION } from './useApiConfig';
 
 describe('useApiConfig', () => {
   const DEFAULT_API_BASE = 'http://localhost:5000';
@@ -286,7 +286,7 @@ describe('useApiConfig', () => {
   it('clears corrupted persisted tokens so the hook can recover', async () => {
     const cryptoKeyBytes = new Uint8Array(32);
     webcrypto.getRandomValues(cryptoKeyBytes);
-    window.localStorage.setItem('webapp:api-config:version', '2');
+    window.localStorage.setItem('webapp:api-config:version', CURRENT_STORAGE_VERSION);
     window.localStorage.setItem('webapp:api-config', JSON.stringify({ apiBaseUrl: 'https://broken.example.com', persistToken: true }));
     window.localStorage.setItem('webapp:api-config:persisted-key', Buffer.from(cryptoKeyBytes).toString('base64'));
     window.localStorage.setItem(
@@ -355,7 +355,7 @@ describe('useApiConfig', () => {
     expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
     expect(result.current.persistToken).toBe(false);
     expect(result.current.apiToken).toBe('');
-    expect(window.localStorage.getItem('webapp:api-config:version')).toBe('2');
+    expect(window.localStorage.getItem('webapp:api-config:version')).toBe(CURRENT_STORAGE_VERSION);
     expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
   });
 
