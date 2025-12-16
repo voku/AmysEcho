@@ -117,10 +117,11 @@ export class SignVariationTracker {
     const clusters = this.getVariationClusters(gesture);
     if (clusters.length === 0) return null;
     
-    // Sort by success count and recency
+    // Sort by success rate and recency to favor quality over quantity
+    // This allows Amy's style to evolve and improve over time
     const sorted = clusters.sort((a, b) => {
-      const scoreA = a.successCount * 0.7 + (a.lastUsed / Date.now()) * 0.3;
-      const scoreB = b.successCount * 0.7 + (b.lastUsed / Date.now()) * 0.3;
+      const scoreA = a.successRate * 0.7 + (a.lastUsed / Date.now()) * 0.3;
+      const scoreB = b.successRate * 0.7 + (b.lastUsed / Date.now()) * 0.3;
       return scoreB - scoreA;
     });
     
@@ -328,7 +329,7 @@ export class SignVariationTracker {
     landmarks1: GestureLandmarks,
     landmarks2: GestureLandmarks
   ): number {
-    // Simple hand landmark similarity (can be enhanced with pose/face later)
+    // Enhanced hand landmark similarity with handedness awareness
     const hands1 = landmarks1.handLandmarks;
     const hands2 = landmarks2.handLandmarks;
     
@@ -336,14 +337,60 @@ export class SignVariationTracker {
       return 0;
     }
     
-    // Compare first hand (most implementations will have at least one)
-    const hand1 = hands1[0];
-    const hand2 = hands2[0];
+    // Use handedness information to match corresponding hands correctly
+    const handedness1 = landmarks1.handedness || [];
+    const handedness2 = landmarks2.handedness || [];
     
-    if (!hand1 || !hand2 || hand1.length !== hand2.length) {
-      return 0;
+    // For two-handed signs, compare both hands with correct matching
+    if (hands1.length > 1 && hands2.length > 1 && handedness1.length > 0 && handedness2.length > 0) {
+      // Try to match hands by handedness
+      let totalSimilarity = 0;
+      let matchCount = 0;
+      
+      for (let i = 0; i < hands1.length; i++) {
+        const hand1 = hands1[i];
+        const handType1 = handedness1[i];
+        
+        // Find matching hand in landmarks2
+        for (let j = 0; j < hands2.length; j++) {
+          const hand2 = hands2[j];
+          const handType2 = handedness2[j];
+          
+          // Match hands by handedness (Left with Left, Right with Right)
+          if (handType1 === handType2 && hand1 && hand2 && hand1.length === hand2.length) {
+            const similarity = this.compareHandLandmarks(hand1, hand2);
+            totalSimilarity += similarity;
+            matchCount++;
+            break; // Found match for this hand
+          }
+        }
+      }
+      
+      return matchCount > 0 ? totalSimilarity / matchCount : 0;
     }
     
+    // Fallback: If handedness info not available or single hand, compare all possible pairings
+    // and take the maximum similarity (best match)
+    let maxSimilarity = 0;
+    
+    for (const hand1 of hands1) {
+      if (!hand1) continue;
+      
+      for (const hand2 of hands2) {
+        if (!hand2 || hand1.length !== hand2.length) continue;
+        
+        const similarity = this.compareHandLandmarks(hand1, hand2);
+        maxSimilarity = Math.max(maxSimilarity, similarity);
+      }
+    }
+    
+    return maxSimilarity;
+  }
+  
+  /**
+   * Compare two hand landmark arrays and return similarity score
+   */
+  private compareHandLandmarks(hand1: number[][], hand2: number[][]): number {
     // Calculate average Euclidean distance between landmarks
     let totalDistance = 0;
     let count = 0;

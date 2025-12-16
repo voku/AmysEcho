@@ -163,7 +163,7 @@ if (stored) {
 
 Old variations are automatically cleaned up:
 - Variations older than 7 days are removed
-- Cleanup runs periodically (1% chance per gesture recognition)
+- Cleanup runs periodically (every 100 gestures)
 - Clusters are also cleaned up based on last usage
 
 ## Configuration
