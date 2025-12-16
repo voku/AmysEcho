@@ -8,7 +8,8 @@
     "src/hooks/**/*.tsx",
     "src/utils/**/*.ts",
     "src/setupTests.ts",
-    "src/**/*.test.tsx"
+    "src/**/*.test.tsx",
+    "src/types/**/*.d.ts"
   ],
   "exclude": [
     "src/gesture/**"
