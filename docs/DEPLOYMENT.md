@@ -140,6 +140,44 @@ Tested browsers:
 
 ## Troubleshooting
 
+### Login Screen Appears After Reload (GitHub Pages)
+
+**Problem:** After reloading the page on GitHub Pages, the login screen appears even though you were authenticated.
+
+**Causes & Solutions:**
+
+1. **localStorage version mismatch** (Most common)
+   - The app uses a versioning system for localStorage to ensure compatibility
+   - When deploying a new version, old localStorage data is automatically cleared
+   - **Solution:** This is working as intended. Simply log in again. Your credentials will be saved if you enabled "Remember me"
+
+2. **Wrong API URL stored**
+   - Old development URL (`http://localhost:5000`) may be cached in localStorage
+   - **Solution:** Clear browser localStorage manually or wait for automatic migration
+   ```javascript
+   // Open browser console and run:
+   localStorage.clear();
+   location.reload();
+   ```
+
+3. **Environment variable not set**
+   - Ensure `VITE_API_URL` is set in the GitHub Actions workflow
+   - Check `.github/workflows/deploy-webapp.yml` has: `VITE_API_URL: https://amysecho.moelleken.org`
+   - **Solution:** Update workflow file and redeploy
+
+4. **Tokens expired**
+   - Access tokens have a limited lifetime
+   - **Solution:** Log in again. If using refresh tokens, they should automatically refresh
+
+### LocalStorage Schema Version
+
+The webapp uses a versioning system for localStorage (current version: `2`) to ensure clean state across deployments:
+
+- **Key:** `webapp:api-config:version`
+- **Behavior:** When version changes, all API configuration storage is cleared
+- **Impact:** Users will need to log in again after updates that change the schema version
+- **Benefits:** Prevents bugs from incompatible localStorage data; ensures production environment uses correct API URL
+
 ### Build Fails
 ```bash
 cd webapp
@@ -159,3 +197,20 @@ For SPA routing on GitHub Pages, the app includes a 404.html redirect script (if
 For other hosts, configure the server to serve index.html for all routes:
 - Netlify: Add `_redirects` file with `/* /index.html 200`
 - Nginx: `try_files $uri $uri/ /index.html;`
+
+### API Configuration Best Practices
+
+**For Development:**
+- Set `VITE_API_URL=http://localhost:5000` in `.env.local`
+- Do NOT commit `.env.local` to git
+- API URL defaults to localhost:5000 when not set
+
+**For Production (GitHub Pages):**
+- Set `VITE_API_URL` in GitHub Actions workflow (already configured)
+- Set `VITE_BASE_PATH=/AmysEcho/` for repository deployment
+- Environment variables are baked into the build, not runtime
+
+**For Production (Custom Domain):**
+- Set `VITE_API_URL` to your backend server URL
+- Set `VITE_BASE_PATH=/` for root deployment
+- Consider using same domain for API and webapp to avoid CORS
