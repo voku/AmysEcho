@@ -23,6 +23,7 @@ describe('useApiConfig', () => {
     expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
     expect(result.current.apiToken).toBe('');
     expect(result.current.persistToken).toBe(false);
+    expect(result.current.isLoadingTokens).toBe(false);
     expect(result.current.uploadEndpoint).toBe(`${DEFAULT_API_BASE}/api/v1/dgs/sample-bundles`);
     expect(result.current.modelEndpoint).toBe(`${DEFAULT_API_BASE}/latest-mlp-model`);
   });
@@ -208,9 +209,11 @@ describe('useApiConfig', () => {
 
     expect(reloaded.current.apiBaseUrl).toBe('https://stored.example.com');
     expect(reloaded.current.persistToken).toBe(true);
+    expect(reloaded.current.isLoadingTokens).toBe(true);
 
     await waitFor(() => {
       expect(reloaded.current.apiToken).toBe('persisted-token');
+      expect(reloaded.current.isLoadingTokens).toBe(false);
     });
   });
 

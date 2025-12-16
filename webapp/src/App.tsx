@@ -370,7 +370,7 @@ function MainAppContent() {
 // ========================================
 export function useAppStatus() {
   const [status, setStatus] = useState<'loading' | 'auth' | 'hero' | 'app'>('loading');
-  const { apiToken, refreshToken, persistToken } = useApiConfig();
+  const { apiToken, refreshToken, persistToken, isLoadingTokens } = useApiConfig();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -402,7 +402,8 @@ export function useAppStatus() {
   }, []);
 
   useEffect(() => {
-    if (status === 'loading' || !persistToken) return;
+    // Don't check tokens while they are still loading
+    if (status === 'loading' || !persistToken || isLoadingTokens) return;
 
     const noActiveTokens = !apiToken && !refreshToken;
     if (noActiveTokens) {
@@ -411,7 +412,7 @@ export function useAppStatus() {
       }
       setStatus('auth');
     }
-  }, [apiToken, persistToken, refreshToken, status]);
+  }, [apiToken, persistToken, refreshToken, status, isLoadingTokens]);
 
   return { status, completeAuth, completeOnboarding };
 }

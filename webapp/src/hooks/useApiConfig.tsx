@@ -62,6 +62,7 @@ type ApiConfigContextValue = {
   apiToken: string;
   refreshToken: string;
   persistToken: boolean;
+  isLoadingTokens: boolean;
   setApiBaseUrl: (value: string) => void;
   setApiToken: (value: string) => void;
   setTokens: (tokens: AuthTokens) => void;
@@ -254,6 +255,7 @@ const ApiConfigContext = createContext<ApiConfigContextValue | null>(null);
 
 export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<StoredApiConfig>(() => readFromStorage());
+  const [isLoadingTokens, setIsLoadingTokens] = useState(() => initialEncryptedToken.current !== null);
   const refreshInFlight = useRef<Promise<string | null> | null>(null);
 
   useEffect(() => {
@@ -261,7 +263,10 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const loadEncryptedToken = async () => {
-      if (!initialEncryptedToken.current) return;
+      if (!initialEncryptedToken.current) {
+        setIsLoadingTokens(false);
+        return;
+      }
       try {
         const decrypted = await decryptToken(
           initialEncryptedToken.current.encrypted,
@@ -298,6 +303,9 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         initialEncryptedToken.current = null;
+        if (!cancelled) {
+          setIsLoadingTokens(false);
+        }
       }
     };
 
@@ -446,6 +454,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
       apiToken: config.tokens.accessToken,
       refreshToken: config.tokens.refreshToken,
       persistToken: config.persistToken,
+      isLoadingTokens,
       setApiBaseUrl,
       setApiToken,
       setTokens,
@@ -460,6 +469,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     config.tokens.accessToken,
     config.tokens.refreshToken,
     config.persistToken,
+    isLoadingTokens,
     setApiBaseUrl,
     setApiToken,
     setTokens,
