@@ -286,6 +286,7 @@ describe('useApiConfig', () => {
   it('clears corrupted persisted tokens so the hook can recover', async () => {
     const cryptoKeyBytes = new Uint8Array(32);
     webcrypto.getRandomValues(cryptoKeyBytes);
+    window.localStorage.setItem('webapp:api-config:version', '2');
     window.localStorage.setItem('webapp:api-config', JSON.stringify({ apiBaseUrl: 'https://broken.example.com', persistToken: true }));
     window.localStorage.setItem('webapp:api-config:persisted-key', Buffer.from(cryptoKeyBytes).toString('base64'));
     window.localStorage.setItem(
@@ -340,6 +341,22 @@ describe('useApiConfig', () => {
     });
 
     expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
+  });
+
+  it('clears old storage when version changes', () => {
+    // Set up old storage with version 1
+    window.localStorage.setItem('webapp:api-config:version', '1');
+    window.localStorage.setItem('webapp:api-config', JSON.stringify({ apiBaseUrl: 'https://old.example.com', persistToken: true }));
+    window.localStorage.setItem('webapp:api-config:persisted-token', 'old-encrypted-data');
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    // Should use default config after clearing old storage
+    expect(result.current.apiBaseUrl).toBe(DEFAULT_API_BASE);
+    expect(result.current.persistToken).toBe(false);
+    expect(result.current.apiToken).toBe('');
+    expect(window.localStorage.getItem('webapp:api-config:version')).toBe('2');
+    expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
   });
 
   it('throws error when used without provider', () => {

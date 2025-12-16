@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'webapp:api-config';
+const STORAGE_VERSION_KEY = 'webapp:api-config:version';
+const CURRENT_STORAGE_VERSION = '2';
 const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
 const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
@@ -215,6 +217,21 @@ function readFromStorage(): StoredApiConfig {
   if (typeof window === 'undefined') return createDefaultConfig();
   initialEncryptedToken.current = null;
   const fallbackBase = resolveFallbackApiBase();
+  
+  // Check storage version and clear if outdated
+  const storedVersion = window.localStorage.getItem(STORAGE_VERSION_KEY);
+  if (storedVersion !== CURRENT_STORAGE_VERSION) {
+    // Clear all API config storage on version mismatch
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(PERSISTED_TOKEN_KEY);
+    window.localStorage.removeItem(PERSISTED_CRYPTO_KEY);
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+    window.localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
+    console.info('API-Konfiguration wurde aktualisiert und zurückgesetzt');
+    return createDefaultConfig();
+  }
+  
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     const persistedRaw = window.localStorage.getItem(PERSISTED_TOKEN_KEY);
@@ -322,6 +339,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
         STORAGE_KEY,
         JSON.stringify({ apiBaseUrl: config.apiBaseUrl, persistToken: config.persistToken }),
       );
+      window.localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
     } catch (error) {
       console.warn('Konnte API-Konfiguration nicht speichern', error);
     }
