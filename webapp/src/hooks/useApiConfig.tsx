@@ -221,12 +221,14 @@ function readFromStorage(): StoredApiConfig {
   // Check storage version and clear if outdated
   const storedVersion = window.localStorage.getItem(STORAGE_VERSION_KEY);
   if (storedVersion !== CURRENT_STORAGE_VERSION) {
-    // Clear all API config storage on version mismatch
-    window.localStorage.removeItem(STORAGE_KEY);
-    window.localStorage.removeItem(PERSISTED_TOKEN_KEY);
-    window.localStorage.removeItem(PERSISTED_CRYPTO_KEY);
-    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+    // Clear all API config storage on version mismatch for robustness
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith('webapp:api-config') && key !== STORAGE_VERSION_KEY)
+      .forEach((key) => window.localStorage.removeItem(key));
+    Object.keys(window.sessionStorage)
+      .filter((key) => key.startsWith('webapp:api-config'))
+      .forEach((key) => window.sessionStorage.removeItem(key));
+
     window.localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
     console.info('API-Konfiguration wurde aktualisiert und zurückgesetzt');
     return createDefaultConfig();
