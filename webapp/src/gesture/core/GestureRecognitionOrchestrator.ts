@@ -34,6 +34,15 @@ import { gestureDebugLog } from '../utils/DebugLogger';
 import { MultimodalSmoother } from '../utils/MultimodalSmoother';
 import { SignVariationTracker, type GestureLandmarks } from '../../services/signVariationTracker';
 
+// Window extensions for Amy's Echo
+declare global {
+  interface Window {
+    __fallbackThreshold?: number;
+    __mlpThreshold?: number;
+    __currentProfileId?: string;
+  }
+}
+
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
 const MLP_CONFIDENCE_THRESHOLD =
@@ -1193,7 +1202,7 @@ export class GestureRecognitionOrchestrator {
       }
 
       // Get current profile ID from window context if available
-      const profileId = (window as any).__currentProfileId || 'default';
+      const profileId = window.__currentProfileId || 'default';
 
       this.variationTracker.recordVariation(
         gesture,

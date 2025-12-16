@@ -241,7 +241,7 @@ export class SignVariationTracker {
   // Private helper methods
   
   private generateVariationId(): string {
-    return `var_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `var_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
   
   private updateClusters(gesture: string, variation: SignVariation): void {
@@ -282,7 +282,7 @@ export class SignVariationTracker {
     } else if (this.shouldCreateNewCluster(gesture, variation)) {
       // Create new cluster
       const newCluster: VariationCluster = {
-        id: `cluster_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `cluster_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         gesture,
         variations: [variation],
         canonicalTemplate: variation.landmarks,
@@ -339,10 +339,13 @@ export class SignVariationTracker {
       const p1 = hand1[i];
       const p2 = hand2[i];
       
-      if (p1 && p2 && p1.length >= 3 && p2.length >= 3) {
-        const dx = (p1[0] ?? 0) - (p2[0] ?? 0);
-        const dy = (p1[1] ?? 0) - (p2[1] ?? 0);
-        const dz = (p1[2] ?? 0) - (p2[2] ?? 0);
+      // Validate points before accessing coordinates
+      if (p1 && p2 && p1.length >= 3 && p2.length >= 3 && 
+          p1[0] !== undefined && p1[1] !== undefined && p1[2] !== undefined &&
+          p2[0] !== undefined && p2[1] !== undefined && p2[2] !== undefined) {
+        const dx = p1[0] - p2[0];
+        const dy = p1[1] - p2[1];
+        const dz = p1[2] - p2[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         totalDistance += dist;
         count++;
