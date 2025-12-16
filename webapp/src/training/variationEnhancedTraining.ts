@@ -12,7 +12,15 @@ import type { TrainingBundlePayload } from './types';
 
 export interface VariationEnhancedMetadata {
   variationData?: {
+    /**
+     * The specific cluster ID this training sample belongs to (if clustered).
+     * This represents a unique variation pattern discovered for this gesture.
+     */
     clusterId?: string;
+    /**
+     * The ID of the dominant (most frequently used) cluster for this gesture.
+     * This represents Amy's preferred way of performing the sign.
+     */
     dominantCluster: string;
     variationDiversity: number;
     totalVariations: number;

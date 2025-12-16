@@ -24,8 +24,8 @@ describe('Variation-Enhanced Training', () => {
         profileId: 'test-profile',
         label: 'hello',
         frames: [],
-        clip: null,
-        still: null,
+        clipFile: null,
+        stillFile: null,
       };
 
       // Record some variations
@@ -46,8 +46,8 @@ describe('Variation-Enhanced Training', () => {
         profileId: 'test-profile',
         label: 'hello',
         frames: [],
-        clip: null,
-        still: null,
+        clipFile: null,
+        stillFile: null,
       };
 
       const enhanced = enhanceWithVariationData(payload, tracker);
@@ -231,8 +231,8 @@ describe('Variation-Enhanced Training', () => {
         profileId: 'profile1',
         label: 'hello',
         frames: [],
-        clip: null,
-        still: null,
+        clipFile: null,
+        stillFile: null,
       };
       const enhanced = enhanceWithVariationData(payload, tracker);
 

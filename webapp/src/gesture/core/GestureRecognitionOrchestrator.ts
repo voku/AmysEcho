@@ -33,15 +33,7 @@ import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { MultimodalSmoother } from '../utils/MultimodalSmoother';
 import { SignVariationTracker, type GestureLandmarks } from '../../services/signVariationTracker';
-
-// Window extensions for Amy's Echo
-declare global {
-  interface Window {
-    __fallbackThreshold?: number;
-    __mlpThreshold?: number;
-    __currentProfileId?: string;
-  }
-}
+import '../../types/window';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;

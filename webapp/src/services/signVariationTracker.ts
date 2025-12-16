@@ -240,6 +240,19 @@ export class SignVariationTracker {
   
   // Private helper methods
   
+  /**
+   * Validate that a landmark point has all required coordinates
+   */
+  private isValidLandmarkPoint(point: number[] | undefined): boolean {
+    return Boolean(
+      point && 
+      point.length >= 3 && 
+      point[0] !== undefined && 
+      point[1] !== undefined && 
+      point[2] !== undefined
+    );
+  }
+  
   private generateVariationId(): string {
     return `var_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
@@ -340,12 +353,10 @@ export class SignVariationTracker {
       const p2 = hand2[i];
       
       // Validate points before accessing coordinates
-      if (p1 && p2 && p1.length >= 3 && p2.length >= 3 && 
-          p1[0] !== undefined && p1[1] !== undefined && p1[2] !== undefined &&
-          p2[0] !== undefined && p2[1] !== undefined && p2[2] !== undefined) {
-        const dx = p1[0] - p2[0];
-        const dy = p1[1] - p2[1];
-        const dz = p1[2] - p2[2];
+      if (this.isValidLandmarkPoint(p1) && this.isValidLandmarkPoint(p2)) {
+        const dx = p1![0]! - p2![0]!;
+        const dy = p1![1]! - p2![1]!;
+        const dz = p1![2]! - p2![2]!;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         totalDistance += dist;
         count++;
@@ -370,25 +381,26 @@ export class SignVariationTracker {
     }
     
     // Weight successful variations more heavily
-    const weighted = variations.map(v => ({
-      landmarks: v.landmarks,
-      weight: v.successfulMatch ? v.confidence : v.confidence * 0.5,
-    }));
+    const successfulVariations = variations.filter(v => v.successfulMatch);
     
-    // Calculate weighted average of hand landmarks
-    const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
-    
-    if (totalWeight === 0) {
-      return variations[0]?.landmarks ?? { handLandmarks: [] };
+    if (successfulVariations.length === 0) {
+      // Fall back to highest confidence variation if no successful ones
+      const sorted = [...variations].sort((a, b) => b.confidence - a.confidence);
+      return sorted[0]?.landmarks ?? { handLandmarks: [] };
     }
     
-    // For now, just return the highest-confidence successful variation
-    // TODO: Implement proper weighted averaging
-    const best = variations
-      .filter(v => v.successfulMatch)
-      .sort((a, b) => b.confidence - a.confidence)[0];
+    // Use weighted average based on confidence for successful variations
+    const totalWeight = successfulVariations.reduce((sum, v) => sum + v.confidence, 0);
     
-    return best ? best.landmarks : (variations[0]?.landmarks ?? { handLandmarks: [] });
+    if (totalWeight === 0) {
+      return successfulVariations[0]?.landmarks ?? { handLandmarks: [] };
+    }
+    
+    // For now, return the highest-confidence successful variation as the canonical template
+    // TODO: Implement proper weighted averaging of landmark positions for more robust templates
+    const best = successfulVariations.sort((a, b) => b.confidence - a.confidence)[0];
+    
+    return best?.landmarks ?? { handLandmarks: [] };
   }
   
   private calculateVariationDiversity(gesture: string): number {
