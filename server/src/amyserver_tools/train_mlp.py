@@ -188,6 +188,10 @@ class Sample:
     pose_landmarks: Optional[List[List[float]]] = None  # 33 pose landmarks, each [x, y, z, visibility]
     face_landmarks: Optional[List[List[float]]] = None  # 468 face landmarks, each [x, y, z]
     hand_focus: Optional[str] = None  # 'dominant_only', 'both_equal', 'both_asymmetric', 'either_hand', or None
+    # Variation learning metadata (from webapp's SignVariationTracker)
+    variation_cluster_id: Optional[str] = None  # Cluster ID from variation tracking
+    variation_diversity: Optional[float] = None  # 0-1 score indicating variation diversity
+    canonical_templates_count: Optional[int] = None  # Number of canonical templates for this gesture
 
 
 _UNSET = object()
@@ -1326,6 +1330,13 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         # Extract handFocus from bundle metadata
         metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
         hand_focus = metadata.get("handFocus")  # 'left', 'right', 'both', or None
+        
+        # Extract variation data from webapp's SignVariationTracker
+        variation_data = metadata.get("variationData", {}) if isinstance(metadata.get("variationData"), dict) else {}
+        variation_cluster_id = variation_data.get("clusterId") or variation_data.get("dominantCluster")
+        variation_diversity = variation_data.get("variationDiversity")
+        canonical_templates_count = variation_data.get("canonicalTemplates")
+        
         rel_dir = entry.get("storage", {}).get("directory")
         if not rel_dir:
             continue
@@ -1397,6 +1408,9 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             pose_landmarks=averaged.get('poseLandmarks'),
             face_landmarks=averaged.get('faceLandmarks'),
             hand_focus=hand_focus,
+            variation_cluster_id=variation_cluster_id,
+            variation_diversity=variation_diversity,
+            canonical_templates_count=canonical_templates_count,
         ))
 
     stats = {

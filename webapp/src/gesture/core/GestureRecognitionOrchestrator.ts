@@ -32,6 +32,7 @@ import { FallbackClipRecorder, FallbackClipResult } from '../utils/FallbackClipR
 import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { MultimodalSmoother } from '../utils/MultimodalSmoother';
+import { SignVariationTracker, type GestureLandmarks } from '../../services/signVariationTracker';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
@@ -133,6 +134,9 @@ export class GestureRecognitionOrchestrator {
   private clipCaptureState: ClipCaptureState | null = null;
   private frameCaptureCounter = 0; // Counter for frame throttling
   private multimodalSmoother: MultimodalSmoother;
+  private variationTracker: SignVariationTracker;
+  private variationCleanupCounter = 0;
+  private readonly VARIATION_CLEANUP_INTERVAL = 100; // Run cleanup every 100 gestures
 
   private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
 
@@ -146,6 +150,7 @@ export class GestureRecognitionOrchestrator {
     this.processingPipeline = new ProcessingPipeline();
     this.config = loadConfig();
     this.multimodalSmoother = new MultimodalSmoother();
+    this.variationTracker = new SignVariationTracker();
 
     this.createGestureDetector =
       dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
@@ -311,7 +316,7 @@ export class GestureRecognitionOrchestrator {
           isFallback: processingResult.isFallback,
           stepsExecuted: processingResult.stepsExecuted,
         }), { sampleIntervalMs: 3000 });
-        this.sendGestureResult(processingResult, results);
+        this.sendGestureResult(processingResult, results, smoothed);
       } else if (hasLandmarks) {
         // Send landmark data so the app can log uncertain frames and build training datasets
         this.sendGestureResult({
@@ -331,7 +336,7 @@ export class GestureRecognitionOrchestrator {
           processingTime: processingResult.processingTime,
           stepsExecuted: processingResult.stepsExecuted,
           skippedSteps: processingResult.skippedSteps,
-        }, results);
+        }, results, smoothed);
       }
 
       // Update performance metrics
@@ -1069,7 +1074,11 @@ export class GestureRecognitionOrchestrator {
     messageBatcher.queueMessage(payload, {});
   }
 
-  private sendGestureResult(processingResult: ProcessingResult, originalResults: MediaPipeGestureResult): void {
+  private sendGestureResult(
+    processingResult: ProcessingResult,
+    originalResults: MediaPipeGestureResult,
+    normalizedResults?: NormalizedMediaPipeResult
+  ): void {
     try {
       const handednessLabels =
         processingResult.metadata?.handednesses?.map((label) => String(label)) ??
@@ -1129,6 +1138,19 @@ export class GestureRecognitionOrchestrator {
       messageBatcher.queueMessage(payload, {
         flushImmediately: shouldFlushImmediately,
       });
+
+      // Track gesture variation for learning
+      if (gestureLabel && typeof gestureLabel === 'string') {
+        this.trackGestureVariation(
+          gestureLabel,
+          processingResult.landmarks,
+          normalizedResults?.poseLandmarks,
+          normalizedResults?.faceLandmarks,
+          handednessLabels,
+          effectiveConfidence,
+          effectiveConfidence >= FALLBACK_CONFIDENCE_THRESHOLD
+        );
+      }
     } catch (error) {
       console.warn('Failed to send gesture result:', error);
     }
@@ -1143,6 +1165,75 @@ export class GestureRecognitionOrchestrator {
     const computed = average > 0 ? average * PROCESSING_TIME_MULTIPLIER + adaptivePadding : DEFAULT_LANDMARK_INTERVAL_MS;
     const clamped = Math.max(MIN_LANDMARK_INTERVAL_MS, Math.min(MAX_LANDMARK_INTERVAL_MS, computed));
     this.landmarkSendIntervalMs = Math.round(clamped);
+  }
+
+  /**
+   * Track gesture variation for adaptive learning
+   * Amy First: Learn from her natural signing variations
+   */
+  private trackGestureVariation(
+    gesture: string,
+    handLandmarks: number[][][],
+    poseLandmarks: number[][] | undefined,
+    faceLandmarks: number[][] | undefined,
+    handedness: string[],
+    confidence: number,
+    successfulMatch: boolean
+  ): void {
+    try {
+      // Filter handedness to only include valid values (exclude 'unknown')
+      const validHandedness = handedness.filter(
+        (h): h is 'Left' | 'Right' | 'Both' => h === 'Left' || h === 'Right' || h === 'Both'
+      );
+      
+      const landmarks: GestureLandmarks = {
+        handLandmarks,
+        handedness: validHandedness,
+      };
+      
+      // Only add optional properties if they exist
+      if (poseLandmarks) {
+        landmarks.poseLandmarks = poseLandmarks;
+      }
+      if (faceLandmarks) {
+        landmarks.faceLandmarks = faceLandmarks;
+      }
+
+      // Get current profile ID from window context if available
+      const profileId = window.__currentProfileId || 'default';
+
+      this.variationTracker.recordVariation(
+        gesture,
+        landmarks,
+        confidence,
+        successfulMatch,
+        profileId
+      );
+
+      // Deterministic cleanup every N gestures instead of random
+      this.variationCleanupCounter++;
+      if (this.variationCleanupCounter >= this.VARIATION_CLEANUP_INTERVAL) {
+        this.variationTracker.cleanup();
+        this.variationCleanupCounter = 0;
+      }
+    } catch (error) {
+      gestureDebugLog('variation', 'Failed to track gesture variation', () => ({ error }));
+    }
+  }
+
+  /**
+   * Get variation learning insights for a gesture
+   * Useful for caregiver dashboard and practice recommendations
+   */
+  getVariationMetrics(gesture: string) {
+    return this.variationTracker.getLearningMetrics(gesture);
+  }
+
+  /**
+   * Export variation data for training
+   */
+  exportVariationsForTraining(gesture: string) {
+    return this.variationTracker.exportForTraining(gesture);
   }
 
   /**
