@@ -52,8 +52,8 @@ class PrivacyPreservingAugmenter:
         self.preserve_semantics = preserve_semantics
         self.random_seed = random_seed
         
-        if random_seed is not None:
-            np.random.seed(random_seed)
+        # Use a RandomState instance for reproducibility
+        self.rng = np.random.RandomState(random_seed)
     
     def augment(self, landmarks: np.ndarray) -> np.ndarray:
         """
@@ -68,8 +68,23 @@ class PrivacyPreservingAugmenter:
         # Create a copy to avoid modifying original
         augmented = landmarks.copy()
         
-        # Add Gaussian noise for privacy
-        noise = np.random.normal(0, self.noise_level, landmarks.shape)
+        # Add temporally correlated Gaussian noise for privacy
+        # This preserves temporal structure better than independent noise
+        # Scale by 0.4 to keep mean perturbation within noise_level
+        base_noise = self.rng.normal(0, self.noise_level * 0.4, landmarks.shape)
+        
+        # Add temporal correlation to preserve gesture flow
+        if len(landmarks) > 1:
+            # Smooth the noise itself to create temporal correlation
+            smoothed_noise = np.zeros_like(base_noise)
+            smoothed_noise[0] = base_noise[0]
+            for i in range(1, len(base_noise)):
+                # Each frame's noise is blend of current and previous
+                smoothed_noise[i] = 0.5 * base_noise[i] + 0.5 * smoothed_noise[i-1]
+            noise = smoothed_noise
+        else:
+            noise = base_noise
+        
         augmented += noise.astype(landmarks.dtype)
         
         if self.preserve_semantics:
@@ -94,9 +109,9 @@ class PrivacyPreservingAugmenter:
         
         # Lightweight smoothing - only blend with immediate neighbors
         # This preserves noise for privacy while reducing jitter
-        alpha = 0.6  # Weight for current frame (maintain difference from original)
+        alpha = 0.85  # Higher weight for current frame to preserve privacy and semantics
         for i in range(1, len(landmarks) - 1):
-            # Weighted average favoring current frame
+            # Weighted average strongly favoring current frame
             smoothed[i] = (
                 alpha * landmarks[i] +
                 (1 - alpha) * 0.5 * (landmarks[i-1] + landmarks[i+1])
@@ -131,11 +146,17 @@ class PrivacyPreservingAugmenter:
         variations = []
         
         for i in range(num_variations):
-            # Use different seed for each variation if seed was set
+            # Each variation gets its own RNG state
             if self.random_seed is not None:
-                np.random.seed(self.random_seed + i + 1)
+                temp_rng = np.random.RandomState(self.random_seed + i + 1)
+                # Temporarily replace rng
+                old_rng = self.rng
+                self.rng = temp_rng
+                variation = self.augment(landmarks)
+                self.rng = old_rng
+            else:
+                variation = self.augment(landmarks)
             
-            variation = self.augment(landmarks)
             variations.append(variation)
         
         return variations
