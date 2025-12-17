@@ -209,9 +209,34 @@ export class MultiScaleTemporalFeatureExtractor {
     }
 
     // Apply temporal scale weighting if provided and enabled
+    // Adjusts feature importance based on detected gesture tempo
     if (temporalScale !== undefined && this.config.useTemporalWeighting) {
-      // Currently placeholder - could weight features by temporal scale
-      // Future: adjust attention to local vs global features based on tempo
+      const numScales = this.config.scales.length;
+      const featuresPerScale = fused[0] ? Math.floor(fused[0].length / numScales) : 0;
+      
+      if (featuresPerScale > 0) {
+        for (let t = 0; t < fused.length; t++) {
+          const frame = fused[t];
+          if (!frame) continue;
+          
+          // Weight each scale's features based on temporal scale
+          // Higher temporalScale = emphasize larger windows (slower gestures)
+          // Lower temporalScale = emphasize smaller windows (faster gestures)
+          for (let scaleIdx = 0; scaleIdx < numScales; scaleIdx++) {
+            const startIdx = scaleIdx * featuresPerScale;
+            const endIdx = Math.min(startIdx + featuresPerScale, frame.length);
+            
+            // Compute weight: scales that match temporalScale get boosted
+            const scaleValue = this.config.scales[scaleIdx] ?? 1;
+            const scaleMatch = 1 - Math.abs(scaleValue - temporalScale) / temporalScale;
+            const weight = 0.5 + 0.5 * Math.max(0, scaleMatch); // Range [0.5, 1.0]
+            
+            for (let i = startIdx; i < endIdx; i++) {
+              frame[i] *= weight;
+            }
+          }
+        }
+      }
     }
 
     return fused;

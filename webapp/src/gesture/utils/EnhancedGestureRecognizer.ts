@@ -19,6 +19,21 @@ import { SpatialAttentionProcessor, AttentionWeights } from './SpatialAttentionP
 import { MultiScaleTemporalFeatureExtractor, VelocityFrame } from './MultiScaleTemporalFeatureExtractor';
 import { LandmarkEmbedding, EmbeddedLandmarks } from './LandmarkEmbedding';
 
+// Named constants for configuration
+/** Maximum age for learned patterns in milliseconds (7 days) */
+const MAX_PATTERN_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+/** Recognition count threshold for statistics reset */
+const RECOGNITION_COUNT_RESET_THRESHOLD = 100000;
+/** Number of pose landmarks to use for feature extraction (torso and arms) */
+const POSE_LANDMARK_LIMIT = 7;
+/**
+ * MediaPipe face landmark indices for lip area
+ * Index 13 = upper lip center, Index 14 = lower lip center
+ * Average of these gives accurate lip center
+ */
+const FACE_LIP_UPPER_INDEX = 13;
+const FACE_LIP_LOWER_INDEX = 14;
+
 /**
  * Configuration for enhanced gesture recognizer
  */
@@ -328,10 +343,12 @@ export class EnhancedGestureRecognizer {
       }
     }
     
-    // Process pose landmarks (simplified - just use positions)
+    // Process pose landmarks - use first N landmarks (torso and arms) for feature extraction
     if (modalitiesUsed.pose) {
-      const poseFeatures = input.poseLandmarks.flatMap(p => p.slice(0, 3));
-      features.push(...poseFeatures.slice(0, 20)); // Limit to avoid feature explosion
+      const poseFeatures = input.poseLandmarks
+        .slice(0, POSE_LANDMARK_LIMIT)
+        .flatMap(p => p.slice(0, 3));
+      features.push(...poseFeatures);
     }
     
     // Process face landmarks
@@ -359,13 +376,29 @@ export class EnhancedGestureRecognizer {
 
   /**
    * Compute distance between lip and nearest hand point
+   * Uses MediaPipe face landmark indices 13 (upper lip) and 14 (lower lip)
+   * to compute accurate lip center
    */
   private computeLipHandDistance(faceLandmarks: number[][], handLandmarks: number[][]): number {
     if (faceLandmarks.length === 0 || handLandmarks.length === 0) return 1.0;
     
-    // Approximate lip center (use first face landmark as proxy)
-    const lipCenter = faceLandmarks[0];
-    if (!lipCenter) return 1.0;
+    // Compute lip center from upper and lower lip landmarks
+    const upperLip = faceLandmarks[FACE_LIP_UPPER_INDEX];
+    const lowerLip = faceLandmarks[FACE_LIP_LOWER_INDEX];
+    
+    // Fall back to first landmark if lip indices not available
+    let lipCenter: number[];
+    if (upperLip && lowerLip) {
+      lipCenter = [
+        ((upperLip[0] ?? 0) + (lowerLip[0] ?? 0)) / 2,
+        ((upperLip[1] ?? 0) + (lowerLip[1] ?? 0)) / 2,
+        ((upperLip[2] ?? 0) + (lowerLip[2] ?? 0)) / 2,
+      ];
+    } else {
+      const fallback = faceLandmarks[0];
+      if (!fallback) return 1.0;
+      lipCenter = fallback;
+    }
     
     // Find closest hand point to lip
     let minDist = Infinity;
@@ -467,8 +500,13 @@ export class EnhancedGestureRecognizer {
     
     // Calculate confidence based on attention concentration
     // Higher entropy = less concentrated = lower confidence
-    const maxEntropy = Math.log2(landmarks.length);
-    const confidence = maxEntropy > 0 ? Math.max(0, 1 - entropy / maxEntropy) : 1;
+    // Handle edge cases: 0 landmarks = 0 confidence, 1 landmark = full confidence
+    const confidence = (() => {
+      if (landmarks.length === 0) return 0;
+      if (landmarks.length === 1) return 1;
+      const maxEntropy = Math.log2(landmarks.length);
+      return Math.max(0, 1 - entropy / maxEntropy);
+    })();
     
     // Track processing time
     const processingTimeMs = performance.now() - startTime;
@@ -527,16 +565,15 @@ export class EnhancedGestureRecognizer {
   private cleanup(): void {
     // Clear old learned patterns
     const now = Date.now();
-    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
     
     for (const [gesture, pattern] of this.learnedPatterns.entries()) {
-      if (now - pattern.lastUpdate > maxAge) {
+      if (now - pattern.lastUpdate > MAX_PATTERN_AGE_MS) {
         this.learnedPatterns.delete(gesture);
       }
     }
     
     // Reset statistics under extreme counts
-    if (this.recognitionCount > 100000) {
+    if (this.recognitionCount > RECOGNITION_COUNT_RESET_THRESHOLD) {
       this.recognitionCount = 0;
       this.totalProcessingTime = 0;
       this.totalEntropy = 0;

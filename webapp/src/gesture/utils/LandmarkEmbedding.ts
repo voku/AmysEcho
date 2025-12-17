@@ -414,6 +414,7 @@ export class LandmarkEmbedding {
 
   /**
    * Compute finger spread angles
+   * Uses full 3D vectors for accurate angle calculation with depth
    */
   private computeFingerSpreads(landmarks: number[][]): number[] {
     const spreads: number[] = [];
@@ -429,14 +430,22 @@ export class LandmarkEmbedding {
         continue;
       }
 
-      // Vector from wrist to each MCP
-      const v1 = [(mcp1[0] ?? 0) - (wrist[0] ?? 0), (mcp1[1] ?? 0) - (wrist[1] ?? 0)];
-      const v2 = [(mcp2[0] ?? 0) - (wrist[0] ?? 0), (mcp2[1] ?? 0) - (wrist[1] ?? 0)];
+      // Vector from wrist to each MCP (using all 3 dimensions for 3D accuracy)
+      const v1 = [
+        (mcp1[0] ?? 0) - (wrist[0] ?? 0),
+        (mcp1[1] ?? 0) - (wrist[1] ?? 0),
+        (mcp1[2] ?? 0) - (wrist[2] ?? 0),
+      ];
+      const v2 = [
+        (mcp2[0] ?? 0) - (wrist[0] ?? 0),
+        (mcp2[1] ?? 0) - (wrist[1] ?? 0),
+        (mcp2[2] ?? 0) - (wrist[2] ?? 0),
+      ];
 
-      // Angle between vectors
-      const dot = v1[0] * v2[0] + v1[1] * v2[1];
-      const mag1 = Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1]);
-      const mag2 = Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1]);
+      // Angle between 3D vectors
+      const dot = v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+      const mag1 = Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
+      const mag2 = Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2]);
 
       if (mag1 > 0 && mag2 > 0) {
         const angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2))));

@@ -17,6 +17,16 @@
 
 import { MemoryOptimizer } from './MemoryOptimizer';
 
+// Named constants for attention algorithm parameters
+/** Minimum samples required before using learned pattern for adaptation */
+const MIN_SAMPLES_FOR_ADAPTATION = 3;
+/** Number of samples for full adaptation strength (pattern.sampleCount / this value) */
+const FULL_ADAPTATION_SAMPLE_COUNT = 10;
+/** Proximity threshold for hand interaction detection (10% of normalized space) */
+const HAND_INTERACTION_PROXIMITY_THRESHOLD = 0.1;
+/** Multiplier for converting average difference to symmetry score */
+const SYMMETRY_DIFFERENCE_MULTIPLIER = 3;
+
 /**
  * Configuration for spatial attention processor
  */
@@ -551,7 +561,7 @@ export class SpatialAttentionProcessor {
     const baseWeights = this.computeAttentionWeights(landmarks);
     const pattern = this.learnedPatterns.get(gesture);
     
-    if (!pattern || pattern.sampleCount < 3) {
+    if (!pattern || pattern.sampleCount < MIN_SAMPLES_FOR_ADAPTATION) {
       return {
         ...baseWeights,
         isAdapted: false,
@@ -560,7 +570,7 @@ export class SpatialAttentionProcessor {
     }
     
     // Blend base attention with learned pattern
-    const adaptationStrength = Math.min(1, pattern.sampleCount / 10);
+    const adaptationStrength = Math.min(1, pattern.sampleCount / FULL_ADAPTATION_SAMPLE_COUNT);
     const adaptedWeights = baseWeights.jointWeights.map((w, i) => {
       const learned = pattern.jointImportance[i] ?? w;
       return w * (1 - adaptationStrength) + learned * adaptationStrength;
@@ -637,7 +647,7 @@ export class SpatialAttentionProcessor {
     
     const avgDiff = totalDiff / count;
     // Convert difference to symmetry score (0 diff = 1 symmetry)
-    return Math.max(0, 1 - avgDiff * 3);
+    return Math.max(0, 1 - avgDiff * SYMMETRY_DIFFERENCE_MULTIPLIER);
   }
 
   /**
@@ -648,7 +658,6 @@ export class SpatialAttentionProcessor {
     rightHand: number[][]
   ): Array<{ leftIdx: number; rightIdx: number; distance: number }> {
     const interactions: Array<{ leftIdx: number; rightIdx: number; distance: number }> = [];
-    const proximityThreshold = 0.1; // 10% of normalized space
     
     for (let i = 0; i < leftHand.length; i++) {
       const left = leftHand[i];
@@ -660,7 +669,7 @@ export class SpatialAttentionProcessor {
         
         const distance = this.euclideanDistance(left, right);
         
-        if (distance < proximityThreshold) {
+        if (distance < HAND_INTERACTION_PROXIMITY_THRESHOLD) {
           interactions.push({ leftIdx: i, rightIdx: j, distance });
         }
       }
