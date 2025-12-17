@@ -157,6 +157,9 @@ const DEFAULT_CONFIG: RecognizerConfig = {
   embeddingDimension: 32,
 };
 
+// Threshold for normalizing interaction score (number of touching pairs for max score)
+const MAX_TOUCHING_PAIRS_FOR_FULL_SCORE = 5;
+
 /**
  * Enhanced Gesture Recognizer
  * 
@@ -287,7 +290,10 @@ export class EnhancedGestureRecognizer {
     const twoHandEmbeddings = this.landmarkEmbedding.embedTwoHands(leftHand, rightHand);
     
     // Calculate interaction score based on touching pairs
-    const interactionScore = Math.min(1, twoHandEmbeddings.interHandFeatures.touchingPairs.length / 5);
+    const interactionScore = Math.min(
+      1, 
+      twoHandEmbeddings.interHandFeatures.touchingPairs.length / MAX_TOUCHING_PAIRS_FOR_FULL_SCORE
+    );
     
     return {
       leftHandResult: leftResult,

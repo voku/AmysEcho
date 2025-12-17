@@ -60,6 +60,16 @@ export interface TemporalFeatureStats {
   averageSequenceLength: number;
 }
 
+// Multi-scale convolution kernel cache for efficiency
+const kernelCache: Map<number, number[]> = new Map();
+
+function getKernel(scale: number): number[] {
+  if (!kernelCache.has(scale)) {
+    kernelCache.set(scale, new Array(scale).fill(1 / scale));
+  }
+  return kernelCache.get(scale)!;
+}
+
 // Default configuration matching server-side Python implementation
 const DEFAULT_CONFIG: TemporalFeatureConfig = {
   scales: [3, 5, 7],
@@ -107,8 +117,8 @@ export class MultiScaleTemporalFeatureExtractor {
     const numFeatures = sequence[0]?.length ?? 0;
     if (numFeatures === 0) return [];
 
-    // Create box filter kernel (simple averaging)
-    const kernel = new Array(scale).fill(1 / scale);
+    // Create box filter kernel (simple averaging) - cached for efficiency
+    const kernel = getKernel(scale);
     
     const localFeatures: number[][] = [];
     
