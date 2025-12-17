@@ -15,9 +15,9 @@
  */
 
 import { MemoryOptimizer } from './MemoryOptimizer';
-import { SpatialAttentionProcessor, AttentionWeights, AdaptedAttentionWeights } from './SpatialAttentionProcessor';
+import { SpatialAttentionProcessor, AttentionWeights } from './SpatialAttentionProcessor';
 import { MultiScaleTemporalFeatureExtractor, VelocityFrame } from './MultiScaleTemporalFeatureExtractor';
-import { LandmarkEmbedding, EmbeddedLandmarks, TwoHandEmbeddings } from './LandmarkEmbedding';
+import { LandmarkEmbedding, EmbeddedLandmarks } from './LandmarkEmbedding';
 
 /**
  * Configuration for enhanced gesture recognizer
@@ -385,7 +385,7 @@ export class EnhancedGestureRecognizer {
   /**
    * Record a successful gesture recognition for learning
    */
-  recordSuccess(gesture: string, landmarks: number[][], confidence: number): void {
+  recordSuccess(gesture: string, landmarks: number[][], _confidence: number): void {
     const attentionWeights = this.spatialAttention.computeAttentionWeights(landmarks);
     
     const existing = this.learnedPatterns.get(gesture);

@@ -13,8 +13,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   LandmarkEmbedding,
   EmbeddingConfig,
-  EmbeddedLandmarks,
-  PositionalEncoding,
 } from '../LandmarkEmbedding';
 
 describe('LandmarkEmbedding', () => {

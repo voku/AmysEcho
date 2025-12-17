@@ -12,7 +12,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   SpatialAttentionProcessor,
-  AttentionWeights,
   SpatialAttentionConfig,
 } from '../SpatialAttentionProcessor';
 

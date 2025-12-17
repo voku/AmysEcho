@@ -128,8 +128,8 @@ const INDEX_INDICES = [5, 6, 7, 8];
 const MIDDLE_INDICES = [9, 10, 11, 12];
 const RING_INDICES = [13, 14, 15, 16];
 const PINKY_INDICES = [17, 18, 19, 20];
-const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
-const NUM_HAND_LANDMARKS = 21;
+const _FINGERTIP_INDICES = [4, 8, 12, 16, 20];
+const _NUM_HAND_LANDMARKS = 21;
 
 // Default configuration
 const DEFAULT_CONFIG: EmbeddingConfig = {

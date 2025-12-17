@@ -12,8 +12,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   EnhancedGestureRecognizer,
-  EnhancedRecognitionResult,
-  RecognizerConfig,
 } from '../EnhancedGestureRecognizer';
 
 describe('EnhancedGestureRecognizer', () => {

@@ -13,7 +13,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   MultiScaleTemporalFeatureExtractor,
   TemporalFeatureConfig,
-  MultiScaleFeatures,
 } from '../MultiScaleTemporalFeatureExtractor';
 
 describe('MultiScaleTemporalFeatureExtractor', () => {
