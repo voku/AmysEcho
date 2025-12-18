@@ -22,17 +22,15 @@ function checkPkg(file, criticalDeps) {
   return problems;
 }
 
-const criticalAppDeps = [
+const criticalWebappDeps = [
   'react',
-  'react-native',
-  'expo',
-  'react-native-webview',
-  '@nozbe/watermelondb',
+  'react-dom',
+  'vite',
 ];
 const criticalServerDeps = ['express', 'express-rate-limit'];
 
 let failed = [];
-failed = failed.concat(checkPkg('app/package.json', criticalAppDeps));
+failed = failed.concat(checkPkg('webapp/package.json', criticalWebappDeps));
 failed = failed.concat(checkPkg('server/package.json', criticalServerDeps));
 
 if (failed.length) {
