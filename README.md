@@ -198,6 +198,10 @@ All major features for Phase 1, 2 and 3 have been implemented. The project is no
 
 The repository now focuses on the core gesture recognition loop: recording high-quality samples, uploading them to the server, training personalized models, and serving those models back to the browser client. Auxiliary caregiver portals, analytics dashboards, and dialog services have been removed so local development only requires the upload, training, and model-serving endpoints exposed by the Node server.
 
+### Archivierte mobile App (`app/`)
+
+Die frühere React-Native/Expo-App diente nur noch als Referenz, nachdem alle relevanten DGS-Funktionen in die Browser-Webapp migriert wurden. Um Wartungs- und CI-Aufwand zu reduzieren, wurde der `app/`-Ordner aus dem Repository entfernt. Bei Bedarf lässt sich der Stand über die Git-Historie wiederherstellen; Details finden sich in [`docs/APP_ARCHIVE.md`](docs/APP_ARCHIVE.md).
+
 ## ▶️ Running the Web Application
 
 The webapp code lives in `webapp/`. Install dependencies with `npm install` inside that folder, then run `npm run dev` to start the development server at http://localhost:5173.

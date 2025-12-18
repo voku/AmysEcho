@@ -1,6 +1,6 @@
 # App to Webapp Migration Comparison
 
-This document compares the React Native/Expo `app/` directory with the browser-based `webapp/` to verify feature parity.
+This document compares the React Native/Expo `app/` directory with the browser-based `webapp/` to verify feature parity. The `app/` codebase has been removed from the repository; keep this table as a historical map if you need to cross-check migrations against the Webapp implementation.
 
 ## Screen/Component Mapping
 

@@ -39,16 +39,26 @@ export type GestureHookResult = {
 
 const UNKNOWN_TYPE = 'unbekannt';
 
-function parseIncomingMessage(raw: string): GestureMessage {
+function parseIncomingMessage(raw: string): GestureMessage | null {
   try {
     const parsed = JSON.parse(raw);
     const type = typeof parsed?.type === 'string' ? parsed.type : UNKNOWN_TYPE;
     const gestureCandidate = parsed?.gesture ?? parsed?.messages?.[0]?.gesture;
     const summaryParts = [] as string[];
 
+    const hasGesture = Boolean(
+      gestureCandidate || parsed?.messages?.some((m: { gesture?: string }) => m?.gesture),
+    );
+
     // Check if this is a "no hands detected" scenario
-    const hasLandmarks = parsed?.landmarks?.length > 0 || 
-                         parsed?.messages?.some((m: { landmarks?: unknown[] }) => (m?.landmarks?.length ?? 0) > 0);
+    const hasLandmarks =
+      parsed?.landmarks?.length > 0 ||
+      parsed?.messages?.some((m: { landmarks?: unknown[] }) => (m?.landmarks?.length ?? 0) > 0);
+
+    const isGesturePayload = type === 'gesture_batch' || type === 'gesture' || type === 'landmarks';
+    if (isGesturePayload && !hasGesture && !hasLandmarks) {
+      return null;
+    }
 
     if (gestureCandidate) {
       summaryParts.push(`Geste: ${String(gestureCandidate)}`);
@@ -113,6 +123,7 @@ export function useGestureDetector(
       const detail = (event as CustomEvent<string>).detail;
       if (!detail) return;
       const parsed = parseIncomingMessage(detail);
+      if (!parsed) return;
       setMessageLog((prev) => {
         const previousFirst = prev[0];
         if (previousFirst && previousFirst.summary === parsed.summary && previousFirst.type === parsed.type) {

@@ -73,6 +73,37 @@ describe('useGestureDetector', () => {
     });
   });
 
+  it('ignoriert leere gesture_batch Meldungen ohne Gesten und Landmarks', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useGestureDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              { gesture: null, landmarks: [] },
+              { gesture: undefined, landmarks: [] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.messageLog.length).toBe(0);
+      expect(result.current.lastGesture).toBeNull();
+    });
+  });
+
   it('übernimmt Landmark-Previews aus Bridge-Meldungen', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
