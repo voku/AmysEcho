@@ -4,7 +4,15 @@
 - **Mission:** Amy's Echo is a multimodal communication platform for non-verbal children focused on Deutsche Gebärdensprache (DGS) capture, training, and playback.
 - **Principles:** Follow the Amy First commitments in `AGENTS.md` (zero interruption/confusion/delay/failure/judgment/compromise) and favor reliability over cleverness.
 - **Source layout:**
-  - `webapp/` React + TypeScript (Vite) UI; gesture pipeline in `webapp/src/gesture/`, training queue in `webapp/src/training/`.
+  - `webapp/` React + TypeScript (Vite) UI with structured directories:
+    - `src/components/` UI components
+    - `src/hooks/` custom React hooks
+    - `src/gesture/` gesture recognition pipeline
+    - `src/training/` training queue and workflows
+    - `src/services/` API clients and external services
+    - `src/context/` React context providers
+    - `src/types/` TypeScript type definitions
+    - `src/utils/` utility functions
   - `server/` Node/TypeScript API plus Python training tools in `server/src/amyserver_tools/`.
   - `integration/` end-to-end tests that exercise the full training loop.
   - Docs live in `docs/` (start with `docs/TODO.md` for current priorities).
@@ -27,6 +35,7 @@
   - Install: `npm ci --prefix server` and `pip install -r server/requirements.txt`
   - Type check: `npm run type-check --prefix server`
   - Tests: `npm test --prefix server`
+  - Build: `npm run build --prefix server`
 - **Integration:**
   - Install: `npm ci --prefix integration`
   - Tests: `npm test --prefix integration`
