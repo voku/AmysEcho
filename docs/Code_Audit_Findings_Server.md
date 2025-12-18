@@ -2,9 +2,11 @@
 
 This report details potential blind spots, logic errors, and areas for improvement identified during a manual code review of the `server` directory.
 
-### 1. Audit of `app/src/services/syncService.ts` (Client-side Sync Logic)
+### 1. Audit of `app/src/services/syncService.ts` (Client-side Sync Logic - Archived App)
 
-**Status: Resolved**
+**Status: Resolved (Historical - refers to archived mobile app)**
+
+Note: This audit refers to the archived React Native app. See `docs/APP_ARCHIVE.md` for details.
 
 All issues identified in the previous audit have been addressed:
 
