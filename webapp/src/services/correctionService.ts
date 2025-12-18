@@ -13,7 +13,7 @@ export const correctionService = {
     const token = config.apiToken;
 
     try {
-      await fetch(`${apiUrl}/api/corrections`, {
+      await fetch(`${apiUrl}/api/v1/corrections`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,7 +32,7 @@ export const correctionService = {
     const token = config.apiToken;
 
     try {
-      await fetch(`${apiUrl}/api/negative-samples`, {
+      await fetch(`${apiUrl}/api/v1/negative-samples`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

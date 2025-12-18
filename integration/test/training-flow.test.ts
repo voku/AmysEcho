@@ -92,7 +92,7 @@ test('webapp training helpers integrate with live server', async () => {
 
   const pollUrl = job.pollUrl
     ? new URL(job.pollUrl, baseUrl).href
-    : `${baseUrl}/train-status/${job.jobId}`;
+    : `${baseUrl}/api/v1/train-status/${job.jobId}`;
 
   const headers = serverHeaders();
   await waitForTrainingCompletion(pollUrl, headers);

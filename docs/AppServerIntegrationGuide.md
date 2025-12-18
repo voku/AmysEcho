@@ -31,7 +31,7 @@ This guide explains how to verify end-to-end communication between the Amy's Ech
    The server console should log the upload.
 5. **Check training status**
    ```bash
-   curl -H "Authorization: Bearer ${ACCESS_TOKEN}" http://localhost:5000/train-status
+   curl -H "Authorization: Bearer ${ACCESS_TOKEN}" http://localhost:5000/api/v1/train-status
    ```
 6. **Download the model**
    After training reaches 100%:

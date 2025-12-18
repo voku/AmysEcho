@@ -49,6 +49,6 @@ This guide explains how to deploy both the mobile app and the backend server.
     -H "Content-Type: application/json" \
     http://<server-host>:5000/train-model -d '{"samples": [], "trigger": "manual"}'
   ```
-- Monitor progress via `GET /train-status/<jobId>` and redeploy the resulting NPZ files if you are distributing the server statically.
+- Monitor progress via `GET /api/v1/train-status/<jobId>` and redeploy the resulting NPZ files if you are distributing the server statically.
 
 With these steps the app and server are ready for production deployment.

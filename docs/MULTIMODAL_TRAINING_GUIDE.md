@@ -230,7 +230,7 @@ const model = await fetchMlpModelWithFallback({
 
 3. **Check Training Status**:
    ```bash
-   curl http://localhost:3001/train-status/JOB_ID \
+   curl http://localhost:3001/api/v1/train-status/JOB_ID \
      -H "Authorization: Bearer $TOKEN"
    ```
 
@@ -307,7 +307,7 @@ console.log('Token:', localStorage.getItem('authToken'));
 tail -f server/logs/training.log
 
 # Or check training report:
-curl http://localhost:3001/train-status/JOB_ID
+curl http://localhost:3001/api/v1/train-status/JOB_ID
 ```
 
 ### Recognition Not Using Multimodal Data

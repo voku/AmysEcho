@@ -87,7 +87,7 @@ describe('GDPR profile endpoints', () => {
     const { app } = await buildServer();
 
     const response = await request(app)
-      .get('/api/profiles/gdpr/export')
+      .get('/api/v1/profiles/gdpr/export')
       .set('Authorization', `Bearer ${LEGACY_TOKEN}`)
       .expect(200);
 
@@ -104,7 +104,7 @@ describe('GDPR profile endpoints', () => {
     const { app } = await buildServer();
 
     await request(app)
-      .get('/api/profiles/unknown/export')
+      .get('/api/v1/profiles/unknown/export')
       .set('Authorization', `Bearer ${LEGACY_TOKEN}`)
       .expect(404);
   });
@@ -113,7 +113,7 @@ describe('GDPR profile endpoints', () => {
     const { app, dbPath } = await buildServer();
 
     await request(app)
-      .delete('/api/profiles/gdpr')
+      .delete('/api/v1/profiles/gdpr')
       .set('Authorization', `Bearer ${LEGACY_TOKEN}`)
       .expect(200)
       .expect({ status: 'deleted' });
@@ -125,7 +125,7 @@ describe('GDPR profile endpoints', () => {
     expect(parsed.corrections.find((c) => c.profileId === 'gdpr')).toBeUndefined();
 
     await request(app)
-      .get('/api/profiles/gdpr/export')
+      .get('/api/v1/profiles/gdpr/export')
       .set('Authorization', `Bearer ${LEGACY_TOKEN}`)
       .expect(404);
   });

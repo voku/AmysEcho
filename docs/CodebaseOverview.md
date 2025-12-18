@@ -46,8 +46,8 @@ The performance budget for the gesture recognition pipeline is as follows:
 These are target values and should be validated in real browser environments.
 
 ## 7. Data Privacy & Profile Management
-- `GET /api/profiles/:id/export` returns a profile's stored data as JSON
-- `DELETE /api/profiles/:id` removes a profile and associated usage/correction records to honor caregiver deletion requests
+- `GET /api/v1/profiles/:id/export` returns a profile's stored data as JSON
+- `DELETE /api/v1/profiles/:id` removes a profile and associated usage/correction records to honor caregiver deletion requests
 
 ## 8. Integration Tests
 - Integration tests in `integration/` verify the full training loop
