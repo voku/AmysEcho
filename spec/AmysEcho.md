@@ -269,7 +269,7 @@ Each child profile maintains its own MLP weights on the server. Training data up
 🧾 Chapter 7 – The Handoff: For Future Developers and LLMs
 “You’re not inheriting code. You’re inheriting trust.”
 
-Before making changes, read the contributor guides in `AGENTS.md`, `app/AGENTS.md`, and `server/AGENTS.md` and follow their instructions.
+Before making changes, read the contributor guides in `AGENTS.md`, `webapp/AGENTS.md`, and `server/AGENTS.md` and follow their instructions.
 
 7.1 What You Must Not Do
  * ❌ Never break the offline fallback: The app must always function without internet.

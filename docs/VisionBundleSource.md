@@ -15,7 +15,7 @@ The WebView build checks in a local copy of the MediaPipe Tasks vision bundle be
    ```bash
    curl -L "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@<version>/vision_bundle.js" -o webapp/src/gesture/vision_bundle.js
    ```
-2. Compute the new checksum and store it in `app/webview/vision_bundle.sha256`:
+2. Compute the new checksum and store it in `webapp/src/gesture/vision_bundle.sha256`:
    ```bash
    sha256sum webapp/src/gesture/vision_bundle.js | awk '{print $1}' > webapp/src/gesture/vision_bundle.sha256
    ```

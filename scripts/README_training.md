@@ -4,34 +4,35 @@ This guide explains how to train and deploy gesture recognition models for Amy's
 
 ## Quick Start
 
+Training data is now primarily captured through the webapp's training flow. For historical reference or if you need to train from external video files:
+
 ```bash
-# Train a model with default settings
-python scripts/train_model.py --videos-dir app/assets/videos/
+# Train a model with video files (legacy approach)
+python scripts/train_model.py --videos-dir /path/to/videos/
 ```
 
 This will:
-1. Extract landmarks from all videos in `app/assets/videos/`
+1. Extract landmarks from all videos in the specified directory
 2. Augment the data (4x increase)
 3. Split the data into training (80%) and testing (20%) sets
 4. Train an MLP model for 500 epochs
 5. Evaluate the model on the test set
-6. Deploy the model to the app
-7. Rebuild the WebView bundle
+6. Deploy the model to the server's data directory
 
 ### Browser-captured DGS clips
 
-Record Amy's DGS attempts directly in the webapp training flow. The browser produces ZIP bundles containing `metadata.json`,
-`landmarks.json`, and optional `clip/still` media. Use these bundles as the primary data source for early-child vocabulary and
-idiosyncratic signing patterns instead of relying on large academic corpora.
+**This is now the primary training method.** Record Amy's DGS attempts directly in the webapp training flow (`/training` route). The browser produces ZIP bundles containing `metadata.json`, `landmarks.json`, and optional `clip/still` media. These bundles are uploaded to the server and used for training, providing the best data source for early-child vocabulary and idiosyncratic signing patterns.
 
-## Adding More Training Videos
+## Adding More Training Videos (Legacy)
+
+**Note:** The preferred method is now to use the webapp's training interface. This section is for reference if you need to train from external video files.
 
 ### Multiple Videos per Gesture
 
 You can add multiple videos for the same gesture by naming them with a suffix:
 
 ```
-app/assets/videos/
+/path/to/videos/
 ├── rot.mp4
 ├── rot_1.mp4
 ├── rot_2.mp4
@@ -56,7 +57,7 @@ The script automatically recognizes these as additional samples for the same ges
 
 ```bash
 python scripts/train_model.py \
-  --videos-dir app/assets/videos/ \
+  --videos-dir /path/to/videos/ \
   --output-model data/my_custom_model.npz \
   --epochs 1000 \
   --hidden-size 256 \
@@ -82,7 +83,7 @@ python scripts/train_model.py \
 If you only want to train the model without deploying:
 
 ```bash
-python scripts/train_model.py --videos-dir app/assets/videos/ --skip-deploy
+python scripts/train_model.py --videos-dir /path/to/videos/ --skip-deploy
 ```
 
 ## Model Validation

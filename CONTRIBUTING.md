@@ -7,25 +7,25 @@ Thanks for your interest in improving Amy's Echo! This project supports one chil
 ## Getting Started
 - Read `AGENTS.md` for workflow and `spec/AmysEcho.md` for the project requirements.
 - Run `npm install` in the repo root to install shared tools.
-- Each package has its own dependencies; run `npm install` inside `app/` and `server/` when working there.
+- Each package has its own dependencies; run `npm install` inside `webapp/`, `server/`, and `integration/` when working there.
 
 ## Development Workflow
 1. Create your changes on top of `main` and keep commits focused.
 2. Run the full test suite before submitting:
    ```bash
-   npm run type-check --prefix app
-   npm test --prefix app
+   npm run type-check --prefix webapp
+   npm test --prefix webapp
    pip install -r server/requirements.txt
    npm test --prefix server
    npm test --prefix integration
    ```
-   Or run `./scripts/full-check.sh` from the repo root to execute all of the above, including Expo dependency checks.
+   Or run `./scripts/full-check.sh` from the repo root to execute all of the above checks.
 3. Update `docs/TODO.md` when completing a task from the action plan.
 4. Submit a pull request with a clear description of the change and its motivation.
 
 ## Code Style
 - TypeScript uses strict mode; keep types explicit.
-- Prefer functional components in React Native.
+- Prefer functional components in React.
 - Write tests for new functionality or regression fixes.
 
 ## Commit Guidelines
