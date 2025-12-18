@@ -213,7 +213,9 @@ export const Admin: React.FC = () => {
 
   const handleDownloadModel = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/models/latest`);
+      const response = await fetch(`${apiBaseUrl}/api/v1/dgs/mlp-model`, {
+        headers: { Authorization: `Bearer ${apiToken}` },
+      });
       if (response.ok) {
         showToast({ message: 'Modell aktualisiert', tone: 'success' });
       } else {

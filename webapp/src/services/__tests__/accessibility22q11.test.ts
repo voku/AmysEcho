@@ -155,7 +155,7 @@ describe('22q11 Accessibility Support', () => {
       expect(normalized.length).toBe(21); // MediaPipe hand landmarks
       
       // Each landmark should have x, y, z coordinates
-      normalized.forEach((landmark, index) => {
+      normalized.forEach((landmark) => {
         expect(landmark.length).toBe(3);
         expect(typeof landmark[0]).toBe('number');
         expect(typeof landmark[1]).toBe('number');
@@ -171,7 +171,6 @@ describe('22q11 Accessibility Support', () => {
       // Create a partial fist (only first two fingers curled)
       const partialFist = makeHand((index, point) => {
         const tips = [8, 12, 16, 20];
-        const joints = [6, 10, 14, 18];
         
         if (tips.includes(index)) {
           // Index and middle finger tips below joints (curled)
