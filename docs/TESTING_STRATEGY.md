@@ -3,6 +3,8 @@
 ## 🎯 Testing Mission
 **Ensure Amy's communication works reliably, especially when she needs it most.**
 
+> ℹ️ **Historischer Kontext:** Die frühere React-Native/Expo-App (`app/`) wurde aus dem Repository entfernt. App-spezifische Hinweise oder Beispiele in diesem Dokument dienen nur noch als Referenz und sind nicht mehr Teil des aktiven Test-Setups.
+
 ## 📊 Test Coverage Goals
 
 ### Critical Communication Paths (P0)

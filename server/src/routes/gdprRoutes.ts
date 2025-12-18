@@ -18,7 +18,7 @@ type GdprDependencies = {
 export function registerGdprRoutes(app: Express, deps: GdprDependencies): void {
   const { authMiddleware, db, dbFilePath, getProfileData, deleteProfileData, withFileLock, logError } = deps;
 
-  app.get('/api/profiles/:id/export', authMiddleware, (req: Request, res: Response) => {
+  app.get('/api/v1/profiles/:id/export', authMiddleware, (req: Request, res: Response) => {
     const { id } = req.params;
     const data = getProfileData(db, id);
     if (!data.profile) {
@@ -28,7 +28,7 @@ export function registerGdprRoutes(app: Express, deps: GdprDependencies): void {
     res.json(data);
   });
 
-  app.delete('/api/profiles/:id', authMiddleware, async (req: Request, res: Response) => {
+  app.delete('/api/v1/profiles/:id', authMiddleware, async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
       await withFileLock(dbFilePath, async () => deleteProfileData(db, id, dbFilePath));

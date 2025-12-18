@@ -69,10 +69,9 @@ export function getMlpModelPath(profileId?: string): string {
   return path.join(MLP_MODELS_DIR, profileId, 'amy_model.npz');
 }
 export const BASELINE_MLP_MODEL_PATH = path.join(DATA_DIR, 'amy_model.npz');
-export const GESTURE_LABELS_PATH = path.join(
-  SERVER_DIR,
-  '../app/assets/models/gesture_labels.json',
-);
+// ARCHIVED: gesture_labels.json was part of the old app/ structure.
+// If needed in the future, it should be placed in server/data/ or webapp/public/.
+// export const GESTURE_LABELS_PATH = path.join(SERVER_DIR, '../app/assets/models/gesture_labels.json');
 
 export const TRAINING_UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 export const TRAINING_DATASETS_DIR = path.join(DATA_DIR, 'datasets');

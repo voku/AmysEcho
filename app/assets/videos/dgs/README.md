@@ -1,1 +1,0 @@
-# DGS videos placeholder

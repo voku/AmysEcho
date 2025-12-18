@@ -144,7 +144,7 @@ test('Complete multimodal training and model distribution workflow', async () =>
 
   const pollUrl = trainingJob.pollUrl
     ? new URL(trainingJob.pollUrl, baseUrl).href
-    : `${baseUrl}/train-status/${trainingJob.jobId}`;
+    : `${baseUrl}/api/v1/train-status/${trainingJob.jobId}`;
 
   console.log('\n=== Step 3: Wait for Training Completion ===');
   console.log('  (This may take 30-60 seconds for multimodal training...)');

@@ -75,7 +75,7 @@ test('POST /train-model processes samples and returns model', async () => {
   const payload = await res.json();
   const jobId = typeof payload.jobId === 'string' ? payload.jobId : undefined;
   assert.ok(jobId && jobId.length > 0);
-  const pollUrlRaw = typeof payload.pollUrl === 'string' ? payload.pollUrl : `/train-status/${jobId}`;
+  const pollUrlRaw = typeof payload.pollUrl === 'string' ? payload.pollUrl : `/api/v1/train-status/${jobId}`;
   const statusUrl = new URL(pollUrlRaw, baseUrl).href;
   const headers = serverHeaders();
   const start = Date.now();
@@ -224,7 +224,7 @@ test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model',
   const pollUrl =
     typeof trainingJob.pollUrl === 'string' && trainingJob.pollUrl.length > 0
       ? trainingJob.pollUrl
-      : `/train-status/${trainingJob.jobId}`;
+      : `/api/v1/train-status/${trainingJob.jobId}`;
 
   const headers = serverHeaders();
   const statusUrl = new URL(pollUrl, baseUrl).href;

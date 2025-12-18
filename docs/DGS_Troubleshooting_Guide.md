@@ -348,7 +348,7 @@ tail -f server/logs/training.log
 
 2. **Monitor Training Progress**:
 ```bash
-curl http://localhost:5000/train-status?jobId=abc123
+curl http://localhost:5000/api/v1/train-status?jobId=abc123
 ```
 
 **Solutions**:

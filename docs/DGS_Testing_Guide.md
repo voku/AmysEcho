@@ -14,7 +14,7 @@ verifies:
 
 - **Training endpoints** – `POST /train-model` rejects malformed payloads and
   accepts valid landmark arrays.
-- **Training jobs** – `/train-status/:id` reaches the `completed` state before
+- **Training jobs** – `/api/v1/train-status/:id` reaches the `completed` state before
   the timeout expires and returns the progress payload expected by the app.
 - **Model distribution** – `GET /model-version` and
   `GET /latest-mlp-model?profileId=` return the binary `.npz` contents and the
