@@ -489,7 +489,7 @@ registerTrainingBundleRoute(app, genId, {
       void logTraining(
         `job ${jobId}: scheduled automatically from bundle ${bundleId} (status=${status})`,
       );
-      return { jobId, status, pollUrl: `/train-status/${jobId}` };
+      return { jobId, status, pollUrl: `/api/v1/train-status/${jobId}` };
     } catch (error) {
       console.error('Failed to schedule training after bundle upload:', error);
       return null;
@@ -549,7 +549,7 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
 });
 
 // Crash report ingestion
-app.post('/api/crash-reports', auth, async (req: Request, res: Response) => {
+app.post('/api/v1/crash-reports', auth, async (req: Request, res: Response) => {
   try {
     const payload = Array.isArray(req.body) ? req.body : [req.body];
     const valid: CrashReport[] = [];
@@ -602,7 +602,7 @@ const LandmarkTupleSchema = z
     },
   );
 
-app.post('/api/corrections', auth, async (req: Request, res: Response) => {
+app.post('/api/v1/corrections', auth, async (req: Request, res: Response) => {
   const parsed = GesturePayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
@@ -629,7 +629,7 @@ app.post('/api/corrections', auth, async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/negative-samples', auth, async (req: Request, res: Response) => {
+app.post('/api/v1/negative-samples', auth, async (req: Request, res: Response) => {
   const parsed = GesturePayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
@@ -695,13 +695,13 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
   res.status(202).json({
     status,
     jobId,
-    pollUrl: `/train-status/${jobId}`,
+    pollUrl: `/api/v1/train-status/${jobId}`,
     message,
   });
 });
 
 // Query training job status (explicit id)
-app.get('/train-status/:id', auth, healthLimiter, (req: Request, res: Response) => {
+app.get('/api/v1/train-status/:id', auth, healthLimiter, (req: Request, res: Response) => {
   const id = req.params.id;
   const job = trainingJobs.get(id);
   if (!job) {
@@ -711,12 +711,12 @@ app.get('/train-status/:id', auth, healthLimiter, (req: Request, res: Response) 
 });
 
 // Gracefully handle accidental empty-id requests
-app.get('/train-status', auth, healthLimiter, (_req: Request, res: Response) => {
+app.get('/api/v1/train-status', auth, healthLimiter, (_req: Request, res: Response) => {
   res.json({ status: 'unknown' });
 });
 
 // Query video training job status
-app.get('/api/training-status/:id', auth, (req: Request, res: Response) => {
+app.get('/api/v1/training-status/:id', auth, (req: Request, res: Response) => {
   const id = req.params.id;
   const result = buildTrainingStatusResponse(trainingJobs, id);
   res.status(result.status).json(result.body);

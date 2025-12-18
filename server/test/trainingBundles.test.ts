@@ -83,7 +83,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
           return triggerOverride(context);
         }
         const jobId = `job-${triggerCalls.length}`;
-        return { jobId, status: 'queued', pollUrl: `/train-status/${jobId}` };
+        return { jobId, status: 'queued', pollUrl: `/api/v1/train-status/${jobId}` };
       },
     });
     manifestPath = TRAINING_MANIFEST_PATH;
@@ -155,7 +155,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(response.body.trainingJob).toEqual({
       jobId: 'job-1',
       status: 'queued',
-      pollUrl: '/train-status/job-1',
+      pollUrl: '/api/v1/train-status/job-1',
     });
 
     expect(triggerCalls).toEqual([
