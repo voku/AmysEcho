@@ -745,21 +745,42 @@ async function resolveModelFile(
     res.status(400).json({ error: 'Invalid profileId' });
     return;
   }
+  
+  // Resolve base directory first
   const base = await fs
     .realpath(DATA_DIR)
     .catch(() => path.resolve(DATA_DIR));
-  const resolvedFile = await fs
-    .realpath(file)
-    .catch(() => path.resolve(file));
-  // Check path containment robustly
-  const relative = path.relative(base, resolvedFile);
+  
+  // Normalize the file path to remove any ".." segments
+  // This prevents path traversal attacks
+  const normalizedFile = path.resolve(file);
+  
+  // Check path containment BEFORE resolving symlinks
+  const preCheckRelative = path.relative(base, normalizedFile);
   if (
-    relative.startsWith('..') ||
-    path.isAbsolute(relative)
+    preCheckRelative.startsWith('..') ||
+    path.isAbsolute(preCheckRelative)
   ) {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }
+  
+  // Resolve any symbolic links if the file exists
+  const resolvedFile = await fs
+    .realpath(normalizedFile)
+    .catch(() => normalizedFile);
+  
+  // Check path containment again after resolving symlinks
+  // This prevents symlink attacks that point outside the base directory
+  const postCheckRelative = path.relative(base, resolvedFile);
+  if (
+    postCheckRelative.startsWith('..') ||
+    path.isAbsolute(postCheckRelative)
+  ) {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+  
   return resolvedFile;
 }
 

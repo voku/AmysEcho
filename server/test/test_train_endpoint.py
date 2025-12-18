@@ -127,7 +127,7 @@ def stop_server(proc):
 
 
 def wait_for_training_completion(job_id: str, access_token: str, *, timeout: float = 180.0):
-    status_url = f"http://localhost:{PORT}/train-status/{job_id}"
+    status_url = f"http://localhost:{PORT}/api/v1/train-status/{job_id}"
     headers = _make_auth_headers(access_token)
     start = time.time()
     while True:
@@ -166,7 +166,7 @@ def test_train_endpoint():
             resp_data = json.loads(resp.read().decode())
             job_id = resp_data["jobId"]
             assert resp_data["status"] in ("running", "queued")
-            assert resp_data.get("pollUrl") == f"/train-status/{job_id}"
+            assert resp_data.get("pollUrl") == f"/api/v1/train-status/{job_id}"
 
         final_info = wait_for_training_completion(job_id, access_token)
         assert final_info.get("status") == "completed"

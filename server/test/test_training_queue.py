@@ -64,7 +64,7 @@ def stop_server(proc):
 
 
 def post_correction(payload):
-    url = f'http://localhost:{PORT}/api/corrections'
+    url = f'http://localhost:{PORT}/api/v1/corrections'
     body = json.dumps(payload).encode('utf-8')
     headers = {
         'Content-Type': 'application/json',
