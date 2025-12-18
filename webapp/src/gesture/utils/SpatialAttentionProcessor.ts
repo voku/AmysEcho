@@ -16,6 +16,7 @@
  */
 
 import { MemoryOptimizer } from './MemoryOptimizer';
+import { euclideanDistance, calculate3DHandSymmetry } from './mathUtils';
 
 // Named constants for attention algorithm parameters
 /** Minimum samples required before using learned pattern for adaptation */
@@ -294,7 +295,7 @@ export class SpatialAttentionProcessor {
         const neighbor = landmarks[neighborIdx];
         if (!neighbor || neighbor.length < 2) continue;
         
-        const dist = this.euclideanDistance(point, neighbor);
+        const dist = euclideanDistance(point, neighbor);
         totalDist += dist;
         validNeighbors++;
       }
@@ -361,7 +362,7 @@ export class SpatialAttentionProcessor {
         const p2 = landmarks[idx2];
         
         if (p1 && p2 && p1.length >= 2 && p2.length >= 2) {
-          const dist = this.euclideanDistance(p1, p2);
+          const dist = euclideanDistance(p1, p2);
           // Closer fingertips indicate potential gesture features (pinching, touching)
           const score = Math.exp(-dist * 5);
           scores.push(score);
@@ -375,7 +376,7 @@ export class SpatialAttentionProcessor {
       const wrist = landmarks[WRIST];
       
       if (tip && wrist && tip.length >= 2 && wrist.length >= 2) {
-        const dist = this.euclideanDistance(tip, wrist);
+        const dist = euclideanDistance(tip, wrist);
         // Normalized by typical hand length
         scores.push(Math.min(1, dist * 2));
       }
@@ -461,6 +462,11 @@ export class SpatialAttentionProcessor {
    * Returns weighted/enhanced landmarks
    */
   applyAttention(landmarks: number[][]): number[][] {
+    // Guard against empty landmarks to prevent division by zero
+    if (landmarks.length === 0) {
+      return [];
+    }
+    
     const weights = this.computeAttentionWeights(landmarks);
     const weighted: number[][] = [];
     
@@ -615,39 +621,11 @@ export class SpatialAttentionProcessor {
   }
 
   /**
-   * Calculate symmetry between two hands
+   * Calculate symmetry between two hands using 3D coordinates
+   * Delegates to shared mathUtils for consistent 3D calculation
    */
   private calculateHandSymmetry(leftHand: number[][], rightHand: number[][]): number {
-    if (leftHand.length === 0 || rightHand.length === 0) return 0;
-    
-    // Compare corresponding landmarks after mirroring
-    let totalDiff = 0;
-    let count = 0;
-    
-    for (let i = 0; i < Math.min(leftHand.length, rightHand.length); i++) {
-      const left = leftHand[i];
-      const right = rightHand[i];
-      
-      if (!left || !right || left.length < 2 || right.length < 2) continue;
-      
-      // Mirror right hand X coordinate for comparison
-      const leftX = left[0] ?? 0;
-      const leftY = left[1] ?? 0;
-      const rightX = 1 - (right[0] ?? 0); // Mirror
-      const rightY = right[1] ?? 0;
-      
-      const diff = Math.sqrt(
-        Math.pow(leftX - rightX, 2) + Math.pow(leftY - rightY, 2)
-      );
-      totalDiff += diff;
-      count++;
-    }
-    
-    if (count === 0) return 0;
-    
-    const avgDiff = totalDiff / count;
-    // Convert difference to symmetry score (0 diff = 1 symmetry)
-    return Math.max(0, 1 - avgDiff * SYMMETRY_DIFFERENCE_MULTIPLIER);
+    return calculate3DHandSymmetry(leftHand, rightHand, SYMMETRY_DIFFERENCE_MULTIPLIER);
   }
 
   /**
@@ -667,7 +645,7 @@ export class SpatialAttentionProcessor {
         const right = rightHand[j];
         if (!right || right.length < 2) continue;
         
-        const distance = this.euclideanDistance(left, right);
+        const distance = euclideanDistance(left, right);
         
         if (distance < HAND_INTERACTION_PROXIMITY_THRESHOLD) {
           interactions.push({ leftIdx: i, rightIdx: j, distance });
@@ -799,16 +777,6 @@ export class SpatialAttentionProcessor {
       averageEntropy: this.computationCount > 0 ? this.entropySum / this.computationCount : 0,
       peakAttentionJoint: peakJoint,
     };
-  }
-
-  /**
-   * Euclidean distance between two points
-   */
-  private euclideanDistance(p1: number[], p2: number[]): number {
-    const dx = (p1[0] ?? 0) - (p2[0] ?? 0);
-    const dy = (p1[1] ?? 0) - (p2[1] ?? 0);
-    const dz = (p1[2] ?? 0) - (p2[2] ?? 0);
-    return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
   /**

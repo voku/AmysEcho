@@ -382,9 +382,13 @@ export class EnhancedGestureRecognizer {
   private computeLipHandDistance(faceLandmarks: number[][], handLandmarks: number[][]): number {
     if (faceLandmarks.length === 0 || handLandmarks.length === 0) return 1.0;
     
+    // Check if we have enough face landmarks for lip indices
+    const hasUpperLip = faceLandmarks.length > FACE_LIP_UPPER_INDEX;
+    const hasLowerLip = faceLandmarks.length > FACE_LIP_LOWER_INDEX;
+    
     // Compute lip center from upper and lower lip landmarks
-    const upperLip = faceLandmarks[FACE_LIP_UPPER_INDEX];
-    const lowerLip = faceLandmarks[FACE_LIP_LOWER_INDEX];
+    const upperLip = hasUpperLip ? faceLandmarks[FACE_LIP_UPPER_INDEX] : undefined;
+    const lowerLip = hasLowerLip ? faceLandmarks[FACE_LIP_LOWER_INDEX] : undefined;
     
     // Fall back to first landmark if lip indices not available
     let lipCenter: number[];

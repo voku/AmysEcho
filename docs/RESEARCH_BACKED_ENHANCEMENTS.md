@@ -18,22 +18,22 @@ All enhancements follow Amy First commitments:
 ### Key Papers Referenced
 
 1. **Spatial Attention Mechanisms**
-   - "Sequential Spatio-Temporal Attention Networks (SSTAN)" (2024)
-   - "Sign Pose-based Transformer for Word-level Sign Language Recognition" (WACV 2022)
+   - "Sequential Spatio-Temporal Attention Networks (SSTAN)" (arXiv, 2024)
+   - "Sign Pose-based Transformer for Word-level Sign Language Recognition" (WACV, 2022)
    - Multi-head spatial attention for capturing intra-frame joint relationships
 
 2. **Temporal Feature Extraction**
-   - "Multi-scale local-temporal similarity fusion for continuous sign language" (Pattern Recognition 2022)
+   - "Multi-scale local-temporal similarity fusion for continuous sign language" (Pattern Recognition, 2022)
    - Combines local (short-term) and global (long-term) temporal patterns
 
 3. **Landmark Embedding**
-   - "Hybrid Positional Encoding for Spatiotemporal Feature Separation in SLR" (Springer 2025)
-   - "Cross-lingual few-shot sign language recognition" (Pattern Recognition 2024)
+   - "Hybrid Positional Encoding for Spatiotemporal Feature Separation in SLR" (Springer, 2025)
+   - "Cross-lingual few-shot sign language recognition" (Pattern Recognition, 2024)
    - Dual-branch positional encoding for spatial and temporal features
 
 4. **Multimodal Integration**
-   - "SLRNet: A Real-Time LSTM-Based Sign Language Recognition System" (arXiv 2025)
-   - "Spatial-temporal attention with graph and general neural networks" (Springer 2024)
+   - "SLRNet: A Real-Time LSTM-Based Sign Language Recognition System" (arXiv, 2025)
+   - "Spatial-temporal attention with graph and general neural networks" (Springer, 2024)
 
 ## Implemented Components
 

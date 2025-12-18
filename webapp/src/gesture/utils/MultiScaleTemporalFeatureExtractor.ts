@@ -227,8 +227,11 @@ export class MultiScaleTemporalFeatureExtractor {
             const endIdx = Math.min(startIdx + featuresPerScale, frame.length);
             
             // Compute weight: scales that match temporalScale get boosted
+            // Guard against division by zero when temporalScale is 0
             const scaleValue = this.config.scales[scaleIdx] ?? 1;
-            const scaleMatch = 1 - Math.abs(scaleValue - temporalScale) / temporalScale;
+            const scaleMatch = temporalScale 
+              ? 1 - Math.abs(scaleValue - temporalScale) / temporalScale 
+              : 1;
             const weight = 0.5 + 0.5 * Math.max(0, scaleMatch); // Range [0.5, 1.0]
             
             for (let i = startIdx; i < endIdx; i++) {

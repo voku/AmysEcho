@@ -16,6 +16,7 @@
  */
 
 import { MemoryOptimizer } from './MemoryOptimizer';
+import { euclideanDistance } from './mathUtils';
 
 /**
  * Configuration for landmark embedding
@@ -128,8 +129,6 @@ const INDEX_INDICES = [5, 6, 7, 8];
 const MIDDLE_INDICES = [9, 10, 11, 12];
 const RING_INDICES = [13, 14, 15, 16];
 const PINKY_INDICES = [17, 18, 19, 20];
-const _FINGERTIP_INDICES = [4, 8, 12, 16, 20];
-const _NUM_HAND_LANDMARKS = 21;
 
 // Default configuration
 const DEFAULT_CONFIG: EmbeddingConfig = {
@@ -399,9 +398,9 @@ export class LandmarkEmbedding {
     if (!wrist || !base || !tip) return 0;
 
     // Distance from wrist to base
-    const wristToBase = this.distance(wrist, base);
+    const wristToBase = euclideanDistance(wrist, base);
     // Distance from wrist to tip
-    const wristToTip = this.distance(wrist, tip);
+    const wristToTip = euclideanDistance(wrist, tip);
     // Extended finger: tip is far from wrist
     // Curled finger: tip is close to wrist (closer than base)
 
@@ -459,16 +458,6 @@ export class LandmarkEmbedding {
   }
 
   /**
-   * Euclidean distance between two points
-   */
-  private distance(a: number[], b: number[]): number {
-    const dx = (a[0] ?? 0) - (b[0] ?? 0);
-    const dy = (a[1] ?? 0) - (b[1] ?? 0);
-    const dz = (a[2] ?? 0) - (b[2] ?? 0);
-    return Math.sqrt(dx * dx + dy * dy + dz * dz);
-  }
-
-  /**
    * Normalize a vector to unit length
    */
   private normalizeVector(v: number[]): number[] {
@@ -511,7 +500,7 @@ export class LandmarkEmbedding {
         
         if (!left || !right) continue;
         
-        const dist = this.distance(left, right);
+        const dist = euclideanDistance(left, right);
         totalDist += dist;
         minDist = Math.min(minDist, dist);
 
