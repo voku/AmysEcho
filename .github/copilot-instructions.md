@@ -79,6 +79,8 @@
 - **Check for integration issues** - ensure your changes work with existing features
 
 ## Build and test commands (run from repo root)
+
+> **Note:** You can also run `./scripts/full-check.sh` to execute most of the checks below.
 - **Webapp:**
   - Install: `npm ci --prefix webapp`
   - Type check: `npm run type-check --prefix webapp`
