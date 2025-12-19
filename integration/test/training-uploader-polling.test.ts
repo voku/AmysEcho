@@ -38,19 +38,17 @@ test('upload with default options and polling works end-to-end', async () => {
   const zip = await createTrainingZip(testPayload);
   assert.ok(zip.byteLength > 0, 'Training zip should be created');
 
-  // Upload the bundle
-  const formData = new FormData();
-  formData.append('file', new Blob([zip]), 'training.zip');
-  formData.append('profileId', testPayload.profileId);
-  formData.append('label', testPayload.label);
-
+  // Upload the bundle (server expects raw ZIP buffer, not FormData)
   const uploadResp = await fetch(endpoint, {
     method: 'POST',
-    headers,
-    body: formData,
+    headers: {
+      ...headers,
+      'Content-Type': 'application/zip',
+    },
+    body: zip,
   });
 
-  assert.strictEqual(uploadResp.status, 200, 'Upload should succeed');
+  assert.strictEqual(uploadResp.status, 202, 'Upload should succeed with 202 Accepted');
   const uploadResult = await uploadResp.json();
   assert.ok(uploadResult.id, 'Upload result should have an ID');
   assert.strictEqual(uploadResult.status, 'queued', 'Bundle should be queued');
@@ -97,20 +95,19 @@ test('trigger training job manually when upload has no job info', async () => {
   const endpoint = `${baseUrl}/api/v1/dgs/sample-bundles`;
   const headers = serverHeaders();
 
-  // Create and upload bundle
+  // Create and upload bundle (server expects raw ZIP buffer, not FormData)
   const zip = await createTrainingZip(testPayload);
-  const formData = new FormData();
-  formData.append('file', new Blob([zip]), 'training.zip');
-  formData.append('profileId', testPayload.profileId);
-  formData.append('label', testPayload.label);
 
   const uploadResp = await fetch(endpoint, {
     method: 'POST',
-    headers,
-    body: formData,
+    headers: {
+      ...headers,
+      'Content-Type': 'application/zip',
+    },
+    body: zip,
   });
 
-  assert.strictEqual(uploadResp.status, 200, 'Upload should succeed');
+  assert.strictEqual(uploadResp.status, 202, 'Upload should succeed with 202 Accepted');
   const uploadResult = await uploadResp.json();
   
   // If no training job was included, trigger one manually
@@ -178,19 +175,18 @@ test('bundles can be queued and synced manually', async () => {
   // Here we just test that the upload endpoint works when we're "back online"
   
   const zip = await createTrainingZip(testPayload);
-  const formData = new FormData();
-  formData.append('file', new Blob([zip]), 'training.zip');
-  formData.append('profileId', testPayload.profileId);
-  formData.append('label', testPayload.label);
 
-  // Simulate "going online" and syncing
+  // Simulate "going online" and syncing (server expects raw ZIP buffer)
   const uploadResp = await fetch(endpoint, {
     method: 'POST',
-    headers,
-    body: formData,
+    headers: {
+      ...headers,
+      'Content-Type': 'application/zip',
+    },
+    body: zip,
   });
 
-  assert.strictEqual(uploadResp.status, 200, 'Manual sync upload should succeed');
+  assert.strictEqual(uploadResp.status, 202, 'Manual sync upload should succeed with 202 Accepted');
   const result = await uploadResp.json();
   assert.ok(result.id, 'Synced bundle should have an ID');
   assert.strictEqual(result.status, 'queued', 'Synced bundle should be queued');
@@ -218,18 +214,17 @@ test('automatic sync uploads and processes bundles', async () => {
 
   for (const bundle of bundles) {
     const zip = await createTrainingZip(bundle);
-    const formData = new FormData();
-    formData.append('file', new Blob([zip]), 'training.zip');
-    formData.append('profileId', bundle.profileId);
-    formData.append('label', bundle.label);
 
     const uploadResp = await fetch(endpoint, {
       method: 'POST',
-      headers,
-      body: formData,
+      headers: {
+        ...headers,
+        'Content-Type': 'application/zip',
+      },
+      body: zip,
     });
 
-    assert.strictEqual(uploadResp.status, 200, `Upload for ${bundle.label} should succeed`);
+    assert.strictEqual(uploadResp.status, 202, `Upload for ${bundle.label} should succeed with 202 Accepted`);
     const result = await uploadResp.json();
     assert.ok(result.id, `Uploaded bundle ${bundle.label} should have an ID`);
     uploadedIds.push(result.id);

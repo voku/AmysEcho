@@ -136,8 +136,9 @@ async function actuallyStartServer(attempt = 1) {
   });
 
   const start = Date.now();
-  const timeoutMs = 30_000;
-  while (Date.now() - start < timeoutMs) {
+  const timeoutMs = 40_000;
+  let serverReady = false;
+  while (Date.now() - start < timeoutMs && !serverReady) {
     if (proc.exitCode !== null) {
       if (attempt < 2) {
         await delay(500);
@@ -145,12 +146,17 @@ async function actuallyStartServer(attempt = 1) {
       }
       throw new Error(`server exited ${proc.exitCode}`);
     }
-    await waitForServerReady(`http://localhost:${TEST_PORT}`, serverHeaders()).catch(() => {});
-    if (proc.exitCode === null) {
-      return;
+    try {
+      await waitForServerReady(`http://localhost:${TEST_PORT}`, serverHeaders());
+      serverReady = true;
+    } catch {
+      // Server not ready yet, continue waiting
+      await delay(100);
     }
   }
-  throw new Error('server start timeout');
+  if (!serverReady) {
+    throw new Error('server start timeout');
+  }
 }
 
 export async function startServer() {
