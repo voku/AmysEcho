@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "adm-zip": "^0.5.16",
-    "tsx": "^4.20.5"
+    "tsx": "^4.21.0"
   },
   "dependencies": {
     "fflate": "^0.8.2",
