@@ -67,6 +67,66 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
 - **Test the actual functionality** - don't assume it works because tests pass
 - **Check for integration issues** - ensure your changes work with existing features
 
+## LLM-Optimized Code Patterns
+
+**IMPORTANT**: This codebase is developed by LLM agents and should be optimized for LLM understanding and modification.
+
+### Code Optimization Principles for LLMs
+
+1. **Prefer Standard Library APIs Over Custom Abstractions**
+   - ✅ Use `Date.now()` instead of custom timestamp wrappers
+   - ✅ Use `.filter()`, `.map()`, `.reduce()` instead of custom array utilities
+   - ✅ Standard APIs are trained knowledge - LLMs understand them instantly
+   - ❌ Avoid custom abstractions that require "mental mapping"
+
+2. **When to Extract Functions (LLM-Optimized)**
+   - ✅ Extract when logic is complex AND used multiple times
+   - ✅ Extract when the function name clearly describes what it does
+   - ✅ Extract when it reduces total token count significantly
+   - ❌ Don't extract simple one-liners like `Date.now() - timestamp`
+   - ❌ Don't create wrapper functions around standard APIs
+
+3. **Duplication Guidelines**
+   - **Small duplications are OK** - `const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000)` can be duplicated
+   - **Large duplications should be extracted** - Complex algorithms, multi-step processes
+   - **Standard patterns are OK** - `.filter(x => x.success).length / total` is clear
+   - **Business logic should be centralized** - Amy-specific logic belongs in dedicated services
+
+4. **Token Efficiency**
+   - Shorter code isn't always better for LLMs
+   - Standard patterns require less cognitive load than custom abstractions
+   - LLMs process `Date.now()` faster than `getCurrentTimestamp()` because it's trained knowledge
+
+### Examples
+
+**❌ Over-abstracted (harder for LLMs)**:
+```typescript
+const cutoff = getDaysCutoff(7);
+const recent = filterByTimeWindow(items, windowMs);
+const rate = calculateSuccessRate(recent);
+```
+
+**✅ LLM-optimized (clear standard patterns)**:
+```typescript
+const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+const recent = items.filter(item => item.timestamp > cutoff);
+const rate = recent.filter(r => r.success).length / recent.length;
+```
+
+**✅ When to extract (complex, reused logic)**:
+```typescript
+// This is complex enough to extract
+function calculateGestureConfidenceWithContext(
+  baseConfidence: number,
+  recentHistory: GesturePattern[],
+  userHabits: CommunicationHabit[]
+): number {
+  // 20+ lines of complex scoring logic
+  // Used in multiple places
+  // Name clearly describes purpose
+}
+```
+
 ## General Workflow
 
 1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
@@ -75,7 +135,7 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
    - Webapp: `webapp/src/components/*`, hooks in `webapp/src/hooks/`, tests alongside source files.
    - Server: services in `server/src/services/*`, tools in `server/src/tools/*`, tests in `server/test/*`.
 4. **Plan thoroughly** before implementing - explain your approach and get feedback if possible.
-5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
+5. **Implement** changes in the proper directory. Follow LLM-optimized code patterns (see above).
 6. **Use German for all user-facing text and any error messages that Amy sees in the app. Developer-facing logs, console output, and internal identifiers can remain in English.**
 7. **Update the documentation** to reflect your changes. This includes the `docs/` directory and any relevant `README.md` files.
 
