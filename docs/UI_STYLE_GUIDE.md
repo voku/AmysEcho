@@ -61,6 +61,7 @@ We use an 8-point grid system for spacing and layout. This means that all margin
 
 *   **Standard Padding:** `16px`
 *   **Component Spacing:** `24px`
+*   **Mobile Navigation Safe Area:** Ensure main content keeps enough bottom padding so fixed navigation never overlaps key controls on small screens.
 
 Layouts should be center-aligned when possible to create a sense of balance and calm.
 
@@ -97,6 +98,8 @@ The `AmyLoopTimeline` component visualises the mission-critical communication lo
 ### Kamera-Aktionsbuttons
 
 Im Kamera-Overlay führen drei Buttons („Stimmt“, „Lernen“, „Alternativen“) durch die Schleife. Die Farben kommen aus `colors.ts` (`cameraActionConfirm*`, `cameraActionLearn*`, `cameraActionAlternatives*`). Sie kombinieren warme Töne (#E5E0CF) für Bestätigen mit tiefem Petrol (#25706F, #1C4A4B) für Lernpfade, um das Mockup widerzuspiegeln.
+
+**Lesbarkeit im Kamera-Overlay:** Statuszeilen, Metadaten und Buttons müssen auch bei hellem Kamera-Feed klar bleiben. Verwende dafür dunkle, halbtransparente HUD-Flächen (Glas-Optik), `overlayText`/`inverseText` als Textfarbe und klare Button-Hintergründe mit Schatten, damit die Aktionen auf dem Video jederzeit erkennbar bleiben.
 
 ### Selbstentdeckungs-Ribbon
 

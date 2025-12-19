@@ -23,7 +23,7 @@ import { useApiConfig } from './hooks/useApiConfig';
 import { useAppState } from './hooks/useAppState';
 import './App.css';
 
-const AUTO_HIDE_BREAKPOINT_PX = 1024;
+const AUTO_HIDE_BREAKPOINT_PX = 768;
 const HIDE_SCROLL_DELTA_PX = 12;
 const MIN_SCROLL_POSITION_PX = 24;
 

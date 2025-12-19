@@ -25,6 +25,7 @@ function formatBytes(bytes: number): string {
 export function TrainingRecorder({ profileId, label, onRecordingComplete }: TrainingRecorderProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
+  const isMountedRef = useRef(true);
   const [showOverlay, setShowOverlay] = useState(true);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
@@ -53,6 +54,12 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
   );
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     (window as any).__facingMode = facingMode;
@@ -362,15 +369,19 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       // Start with new facing mode
       const started = await startCamera();
       if (started) {
-        setDetectorStartFeedback(
-          newFacingMode === 'user' 
-            ? 'Frontkamera aktiviert' 
-            : 'Rückkamera aktiviert'
-        );
+        if (isMountedRef.current) {
+          setDetectorStartFeedback(
+            newFacingMode === 'user' 
+              ? 'Frontkamera aktiviert' 
+              : 'Rückkamera aktiviert'
+          );
+        }
       } else {
-        setDetectorStartFeedback(
-          cameraError ?? 'Kamera konnte nicht gewechselt werden. Bitte versuche es erneut.'
-        );
+        if (isMountedRef.current) {
+          setDetectorStartFeedback(
+            cameraError ?? 'Kamera konnte nicht gewechselt werden. Bitte versuche es erneut.'
+          );
+        }
         // Revert facing mode if switch failed
         try {
           window.localStorage.setItem('cameraFacingMode', facingMode);
@@ -378,7 +389,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           // localStorage might be disabled
         }
         (window as any).__facingMode = facingMode;
-        setFacingMode(facingMode);
+        if (isMountedRef.current) {
+          setFacingMode(facingMode);
+        }
       }
     }
   }, [cameraError, facingMode, startCamera, stopCamera, status]);
