@@ -1,0 +1,24 @@
+{
+  "manifestSha256": "15eeb3e84e251181e8a2c9a1faf4046330dd448f0b2ec112f89b1714a0b3bf5f",
+  "hyperparameters": {
+    "hiddenSize": 128,
+    "learningRate": 0.01,
+    "epochs": 1,
+    "dropoutRate": 0.0,
+    "validationFraction": 0.15,
+    "augmentationsPerSample": 0,
+    "classWeightSmoothing": 0.0,
+    "earlyStoppingPatience": null,
+    "earlyStoppingMinDelta": 0.0
+  },
+  "dependencies": {
+    "mediapipe": true,
+    "opencv": true
+  },
+  "generatedAt": "2025-12-19T19:27:47.819791Z",
+  "samples": 2,
+  "profiles": [
+    "p-integration"
+  ],
+  "durationMs": 8
+}

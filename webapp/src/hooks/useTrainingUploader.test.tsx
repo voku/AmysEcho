@@ -101,9 +101,9 @@ describe('useTrainingUploader', () => {
     expect(queued.length).toBe(0);
   });
 
-  // TODO: React 19 stricter effect timing causes polling effects to not fire reliably in tests
-  // These tests are flaky due to setTimeout-based polling and should be rewritten to use
-  // more deterministic testing patterns or properly mock the timing
+  // This test has been converted to an integration test due to React 19's stricter effect timing.
+  // See: integration/test/training-uploader-polling.test.ts - "upload with default options and polling works end-to-end"
+  // React 19 causes setTimeout-based polling effects to not fire reliably in unit tests.
   it.skip('verwendet Default-Optionen für Uploads und Polling', async () => {
     const fetchSpy = vi
       .fn()
@@ -139,9 +139,9 @@ describe('useTrainingUploader', () => {
     );
   }, 15000);
 
-  // TODO: React 19 stricter effect timing causes polling effects to not fire reliably in tests
-  // These tests are flaky due to setTimeout-based polling and should be rewritten to use
-  // more deterministic testing patterns or properly mock the timing
+  // This test has been converted to an integration test due to React 19's stricter effect timing.
+  // See: integration/test/training-uploader-polling.test.ts - "trigger training job manually when upload has no job info"
+  // React 19 causes setTimeout-based polling effects to not fire reliably in unit tests.
   it.skip('triggert einen Trainingsjob, wenn der Upload keine Job-Info liefert', async () => {
     const fetchSpy = vi
       .fn()
@@ -203,9 +203,9 @@ describe('useTrainingUploader', () => {
     expect(result.current.error).toMatch(/gespeichert/);
   });
 
-  // TODO: React 19 stricter effect timing causes polling effects to not fire reliably in tests
-  // These tests are flaky due to setTimeout-based polling and should be rewritten to use
-  // more deterministic testing patterns or properly mock the timing  
+  // This test has been converted to an integration test due to React 19's stricter effect timing.
+  // See: integration/test/training-uploader-polling.test.ts - "bundles can be queued and synced manually"
+  // React 19 causes setTimeout-based polling effects to not fire reliably in unit tests.
   it.skip('legt Bundles offline ab und synchronisiert sie manuell', async () => {
     Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
     const { result } = renderHook(() =>
@@ -234,9 +234,9 @@ describe('useTrainingUploader', () => {
     expect(queuedAfterSync.length).toBe(0);
   }, 15000);
 
-  // TODO: React 19 stricter effect timing causes auto-sync effects to not fire reliably in tests
-  // These tests are flaky due to setTimeout-based background sync and should be rewritten
-  // to use more deterministic testing patterns or properly mock the timing
+  // This test has been converted to an integration test due to React 19's stricter effect timing.
+  // See: integration/test/training-uploader-polling.test.ts - "automatic sync uploads and processes bundles"
+  // React 19 causes setTimeout-based polling effects to not fire reliably in unit tests.
   it.skip('synchronisiert gespeicherte Bundles automatisch, wenn online', async () => {
     await enqueuePersistedBundle({
       profileId: 'demo',
