@@ -12,6 +12,9 @@
  * Amy Impact: Zero judgment - celebrate all signing attempts, learn from each one
  */
 
+import { getCurrentTimestamp, getTimestampId, isWithinTimeWindow } from '../utils/timeUtils';
+import { sortByTimestampDesc } from '../utils/arrayUtils';
+
 export interface GestureLandmarks {
   handLandmarks: number[][][]; // [hand][landmark][x,y,z]
   poseLandmarks?: number[][]; // [landmark][x,y,z,visibility]
@@ -81,7 +84,7 @@ export class SignVariationTracker {
       gesture,
       landmarks,
       confidence,
-      timestamp: Date.now(),
+      timestamp: getCurrentTimestamp(),
       successfulMatch,
       profileId,
     };
@@ -119,9 +122,10 @@ export class SignVariationTracker {
     
     // Sort by success rate and recency to favor quality over quantity
     // This allows Amy's style to evolve and improve over time
+    const now = getCurrentTimestamp();
     const sorted = clusters.sort((a, b) => {
-      const scoreA = a.successRate * 0.7 + (a.lastUsed / Date.now()) * 0.3;
-      const scoreB = b.successRate * 0.7 + (b.lastUsed / Date.now()) * 0.3;
+      const scoreA = a.successRate * 0.7 + (a.lastUsed / now) * 0.3;
+      const scoreB = b.successRate * 0.7 + (b.lastUsed / now) * 0.3;
       return scoreB - scoreA;
     });
     
@@ -174,11 +178,11 @@ export class SignVariationTracker {
    * Clear old variations to keep memory manageable
    */
   cleanup(): void {
-    const now = Date.now();
+    const now = getCurrentTimestamp();
     const retentionMs = this.CLUSTER_STABILITY_DAYS * 24 * 60 * 60 * 1000;
     
     for (const [gesture, variations] of this.variations.entries()) {
-      const recent = variations.filter(v => now - v.timestamp < retentionMs);
+      const recent = variations.filter(v => isWithinTimeWindow(v.timestamp, retentionMs, now));
       if (recent.length === 0) {
         this.variations.delete(gesture);
       } else {
@@ -255,7 +259,7 @@ export class SignVariationTracker {
   }
   
   private generateVariationId(): string {
-    return `var_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    return `var_${getTimestampId()}_${Math.random().toString(36).substring(2, 11)}`;
   }
   
   private updateClusters(gesture: string, variation: SignVariation): void {
@@ -296,7 +300,7 @@ export class SignVariationTracker {
     } else if (this.shouldCreateNewCluster(gesture, variation)) {
       // Create new cluster
       const newCluster: VariationCluster = {
-        id: `cluster_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        id: `cluster_${getTimestampId()}_${Math.random().toString(36).substring(2, 11)}`,
         gesture,
         variations: [variation],
         canonicalTemplate: variation.landmarks,
