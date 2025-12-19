@@ -79,6 +79,11 @@ export class ProcessingPipeline {
   private memoryOptimizer: MemoryOptimizer;
   private processingSteps: ProcessingStep[] = [];
   private lastProcessingResult: ProcessingResult | null = null;
+  
+  // LLM-optimized: Processing optimization thresholds
+  private readonly SLOW_PROCESSING_THRESHOLD_MS = 50; // Skip expensive steps if processing is slow
+  private readonly EXPENSIVE_STEP_SKIP_PROBABILITY = 0.5; // 50% chance to skip when slow
+  private readonly LANDMARK_CHANGE_THRESHOLD = 0.01; // 1% change threshold for significant movement
 
   constructor() {
     this.performanceOptimizer = new PerformanceOptimizer();
@@ -204,8 +209,8 @@ export class ProcessingPipeline {
 
     // Skip based on performance constraints
     const diagnostics = this.performanceOptimizer.getDiagnostics();
-    if (diagnostics.averageProcessingTime > 50) { // If processing is slow
-      return Math.random() < 0.5; // 50% chance to skip expensive steps
+    if (diagnostics.averageProcessingTime > this.SLOW_PROCESSING_THRESHOLD_MS) { // If processing is slow
+      return Math.random() < this.EXPENSIVE_STEP_SKIP_PROBABILITY;
     }
 
     return false;
@@ -236,7 +241,7 @@ export class ProcessingPipeline {
           const currentCoord = currentPoint[coord];
           const previousCoord = previousPoint[coord];
           if (currentCoord === undefined || previousCoord === undefined) continue;
-          if (Math.abs(currentCoord - previousCoord) > 0.01) { // 1% change threshold
+          if (Math.abs(currentCoord - previousCoord) > this.LANDMARK_CHANGE_THRESHOLD) {
             return false;
           }
         }

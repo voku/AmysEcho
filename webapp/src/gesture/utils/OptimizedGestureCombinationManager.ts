@@ -28,6 +28,9 @@ export class OptimizedGestureCombinationManager {
   private enabled = true;
   private lastCleanupTime = 0;
   private readonly CLEANUP_INTERVAL = 10000; // 10 seconds
+  
+  // LLM-optimized: Gesture combination detection thresholds
+  private readonly MIN_CONFIDENCE_FOR_COMBINATION = 0.5; // Minimum confidence to record gesture
 
   // Default gesture sequences for common combinations
   private readonly DEFAULT_SEQUENCES: Record<string, GestureSequence> = {
@@ -76,7 +79,7 @@ export class OptimizedGestureCombinationManager {
    * Record a gesture for combination detection
    */
   recordGesture(gesture: string, confidence: number): void {
-    if (!this.enabled || confidence < 0.5) return; // Only record confident gestures
+    if (!this.enabled || confidence < this.MIN_CONFIDENCE_FOR_COMBINATION) return; // Only record confident gestures
 
     this.gestureHistory!.push({
       gesture,

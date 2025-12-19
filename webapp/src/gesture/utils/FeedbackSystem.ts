@@ -19,6 +19,16 @@ export class FeedbackSystem {
   private feedbackHistory: FeedbackAttempt[] = [];
   private readonly MAX_HISTORY = 15;
   private frustrationThreshold = 3; // Consecutive low-effort attempts
+  
+  // LLM-optimized: Effort and mood detection thresholds
+  private readonly LOW_EFFORT_THRESHOLD = 0.5; // Below this is low effort
+  private readonly MEDIUM_EFFORT_THRESHOLD = 0.6; // Above this is medium effort
+  private readonly HIGH_EFFORT_THRESHOLD = 0.8; // Above this is high effort
+  private readonly FRUSTRATION_LOW_EFFORT_COUNT = 3; // Consecutive low efforts indicates frustration
+  private readonly EXCITEMENT_HIGH_EFFORT_COUNT = 3; // Consecutive high efforts indicates excitement
+  private readonly TIREDNESS_EFFORT_DECLINE = 0.2; // Effort decline indicating tiredness
+  private readonly SUGGESTION_LOW_EFFORT_THRESHOLD = 0.7; // Suggest break below this
+  private readonly VERY_LOW_EFFORT_THRESHOLD = 0.4; // Recommend break below this
 
   // Mood-aware feedback patterns
   private moodBasedFeedback = {
@@ -123,7 +133,7 @@ export class FeedbackSystem {
     }
 
     // Add tip for unsuccessful attempts
-    if (!attemptResult.success && attemptResult.effort < 0.7) {
+    if (!attemptResult.success && attemptResult.effort < this.SUGGESTION_LOW_EFFORT_THRESHOLD) {
       tip = gestureFeedback.tip;
     }
 
@@ -151,24 +161,24 @@ export class FeedbackSystem {
     if (recent.length < 3) return 'calm';
 
     // Detect frustration from consecutive low-effort attempts
-    const lowEffortCount = recent.filter(r => r.effort < 0.5).length;
-    if (lowEffortCount >= 3) return 'frustrated';
+    const lowEffortCount = recent.filter(r => r.effort < this.LOW_EFFORT_THRESHOLD).length;
+    if (lowEffortCount >= this.FRUSTRATION_LOW_EFFORT_COUNT) return 'frustrated';
 
     // Detect excitement from high effort with varying success
-    const highEffortCount = recent.filter(r => r.effort > 0.8).length;
-    if (highEffortCount >= 3) return 'excited';
+    const highEffortCount = recent.filter(r => r.effort > this.HIGH_EFFORT_THRESHOLD).length;
+    if (highEffortCount >= this.EXCITEMENT_HIGH_EFFORT_COUNT) return 'excited';
 
     // Detect tiredness from declining effort over time
     const recentEffort = recent.slice(-3).reduce((sum, r) => sum + r.effort, 0) / 3;
     const olderEffort = recent.slice(0, 3).reduce((sum, r) => sum + r.effort, 0) / 3;
-    if (recentEffort < olderEffort - 0.2) return 'tired';
+    if (recentEffort < olderEffort - this.TIREDNESS_EFFORT_DECLINE) return 'tired';
 
     return 'calm';
   }
 
   private categorizeEffort(effort: number): 'high_effort' | 'medium_effort' | 'low_effort' {
-    if (effort > 0.8) return 'high_effort';
-    if (effort > 0.6) return 'medium_effort';
+    if (effort > this.HIGH_EFFORT_THRESHOLD) return 'high_effort';
+    if (effort > this.MEDIUM_EFFORT_THRESHOLD) return 'medium_effort';
     return 'low_effort';
   }
 
@@ -176,7 +186,7 @@ export class FeedbackSystem {
     if (this.feedbackHistory.length < this.frustrationThreshold) return false;
 
     const recent = this.feedbackHistory.slice(-this.frustrationThreshold);
-    const lowEffortCount = recent.filter(r => r.effort < 0.5).length;
+    const lowEffortCount = recent.filter(r => r.effort < this.LOW_EFFORT_THRESHOLD).length;
 
     return lowEffortCount >= this.frustrationThreshold;
   }
@@ -228,7 +238,7 @@ export class FeedbackSystem {
 
     // Calculate frustration level
     const recent = this.feedbackHistory.slice(-5);
-    const lowEffortCount = recent.filter(r => r.effort < 0.5).length;
+    const lowEffortCount = recent.filter(r => r.effort < this.LOW_EFFORT_THRESHOLD).length;
     let frustrationLevel: 'low' | 'medium' | 'high' = 'low';
     if (lowEffortCount >= 3) frustrationLevel = 'high';
     else if (lowEffortCount >= 2) frustrationLevel = 'medium';
@@ -245,7 +255,7 @@ export class FeedbackSystem {
     return {
       averageEffort,
       frustrationLevel,
-      recommendedBreak: frustrationLevel === 'high' || averageEffort < 0.4,
+      recommendedBreak: frustrationLevel === 'high' || averageEffort < this.VERY_LOW_EFFORT_THRESHOLD,
       mostPracticedGesture
     };
   }

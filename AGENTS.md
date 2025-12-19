@@ -67,6 +67,120 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
 - **Test the actual functionality** - don't assume it works because tests pass
 - **Check for integration issues** - ensure your changes work with existing features
 
+## LLM-Optimized Code Patterns
+
+**IMPORTANT**: This codebase is developed by LLM agents and should be optimized for LLM understanding and modification.
+
+### Why Optimize for LLMs?
+
+LLMs process code differently than humans:
+- **Trained patterns** - LLMs have seen millions of examples of standard APIs like `Date.now()`, `.filter()`, and `.map()` during training
+- **Token efficiency** - Standard library calls require fewer tokens to understand because they're part of the LLM's base knowledge
+- **Mental mapping cost** - Custom abstractions require the LLM to first understand the wrapper, then map it back to underlying concepts
+- **Context window** - Simpler patterns leave more context space for understanding the actual business logic
+
+### Code Optimization Principles for LLMs
+
+1. **Prefer Standard Library APIs Over Custom Abstractions**
+   - ✅ Use `Date.now()` instead of custom timestamp wrappers
+   - ✅ Use `.filter()`, `.map()`, `.reduce()` instead of custom array utilities
+   - ✅ Standard APIs are trained knowledge - LLMs understand them instantly
+   - ❌ Avoid custom abstractions that require "mental mapping"
+   
+   **Why?** When an LLM sees `Date.now()`, it instantly recognizes it from training data and understands it returns milliseconds since epoch. When it sees `getCurrentTimestamp()`, it must:
+   1. Find the function definition
+   2. Read the implementation
+   3. Understand what it does
+   4. Map it back to `Date.now()`
+   
+   This 4-step process consumes tokens and cognitive load that could be spent understanding Amy-specific business logic instead.
+
+2. **When to Extract Functions (LLM-Optimized)**
+   - ✅ Extract when logic is complex AND used multiple times
+   - ✅ Extract when the function name clearly describes what it does
+   - ✅ Extract when it reduces total token count significantly
+   - ❌ Don't extract simple one-liners like `Date.now() - timestamp`
+   - ❌ Don't create wrapper functions around standard APIs
+   
+   **Why?** Extraction is beneficial when the function name provides MORE clarity than reading the code directly. For example:
+   - `calculateGestureConfidenceWithContext(...)` - The name tells you WHAT it does, the implementation is complex
+   - `getCurrentTimestamp()` - The name adds NO information beyond `Date.now()`, and the implementation is trivial
+
+3. **Duplication Guidelines**
+   - **Small duplications are OK** - `const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000)` can be duplicated
+   - **Large duplications should be extracted** - Complex algorithms, multi-step processes
+   - **Standard patterns are OK** - `.filter(x => x.success).length / total` is clear
+   - **Business logic should be centralized** - Amy-specific logic belongs in dedicated services
+   
+   **Why?** LLMs can process duplicated standard patterns faster than following function references. When you see the same pattern twice, the LLM recognizes it immediately. When it's abstracted into a function, the LLM must jump to the definition, increasing token usage.
+   
+   **Exception**: Business logic (Amy-specific thresholds, calculations) SHOULD be extracted as named constants because:
+   - The constant name documents the PURPOSE (e.g., `STRUGGLING_SUCCESS_THRESHOLD`)
+   - It's used in multiple places for consistency
+   - Changes to business rules happen in one place
+
+4. **Token Efficiency**
+   - Shorter code isn't always better for LLMs
+   - Standard patterns require less cognitive load than custom abstractions
+   - LLMs process `Date.now()` faster than `getCurrentTimestamp()` because it's trained knowledge
+   
+   **Why?** Token efficiency isn't about character count - it's about cognitive processing:
+   ```typescript
+   // This uses MORE characters but LESS cognitive load for LLMs:
+   const recent = items.filter(item => item.timestamp > Date.now() - 60000);
+   
+   // This uses FEWER characters but MORE cognitive load (must understand custom function):
+   const recent = filterRecent(items, 60000);
+   ```
+
+### Examples
+
+**❌ Over-abstracted (harder for LLMs)**:
+```typescript
+const cutoff = getDaysCutoff(7);
+const recent = filterByTimeWindow(items, windowMs);
+const rate = calculateSuccessRate(recent);
+```
+**Why this is harder**: LLMs must find and read 3 custom function definitions, understand their implementations, and map them to standard operations. This consumes tokens and cognitive load.
+
+**✅ LLM-optimized (clear standard patterns)**:
+```typescript
+const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+const recent = items.filter(item => item.timestamp > cutoff);
+const rate = recent.filter(r => r.success).length / recent.length;
+```
+**Why this is easier**: LLMs recognize these patterns instantly from training data. No function lookups needed. The intent is immediately clear.
+
+**✅ When to extract (complex, reused Amy-specific logic)**:
+```typescript
+// Extract Amy-specific business logic as named constants
+private readonly STRUGGLING_SUCCESS_THRESHOLD = 0.6;
+private readonly MIN_ATTEMPTS_FOR_STRUGGLING = 5;
+
+// Then use them with standard patterns
+const struggling = gestures.filter(g => {
+  const successRate = g.successful / g.total;
+  return successRate < this.STRUGGLING_SUCCESS_THRESHOLD && 
+         g.total >= this.MIN_ATTEMPTS_FOR_STRUGGLING;
+});
+```
+**Why this is best**: Combines standard patterns (`.filter()`) with self-documenting constants for Amy-specific business logic. LLMs understand both the HOW (standard filter) and the WHY (struggling threshold) immediately.
+
+**✅ When complex logic justifies extraction**:
+```typescript
+// This is complex enough to extract
+function calculateGestureConfidenceWithContext(
+  baseConfidence: number,
+  recentHistory: GesturePattern[],
+  userHabits: CommunicationHabit[]
+): number {
+  // 20+ lines of complex scoring logic
+  // Used in multiple places
+  // Name clearly describes purpose
+}
+```
+**Why extract this**: The function name tells you WHAT it does without reading the implementation. The logic is too complex to inline everywhere. This reduces total token count when the function is called multiple times.
+
 ## General Workflow
 
 1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
@@ -75,7 +189,7 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
    - Webapp: `webapp/src/components/*`, hooks in `webapp/src/hooks/`, tests alongside source files.
    - Server: services in `server/src/services/*`, tools in `server/src/tools/*`, tests in `server/test/*`.
 4. **Plan thoroughly** before implementing - explain your approach and get feedback if possible.
-5. **Implement** changes in the proper directory. Do not introduce unnecessary abstractions or large mock setups.
+5. **Implement** changes in the proper directory. Follow LLM-optimized code patterns (see above).
 6. **Use German for all user-facing text and any error messages that Amy sees in the app. Developer-facing logs, console output, and internal identifiers can remain in English.**
 7. **Update the documentation** to reflect your changes. This includes the `docs/` directory and any relevant `README.md` files.
 

@@ -87,6 +87,15 @@ class AdaptiveLearningService {
   private readonly BREAK_RECENT_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
   private readonly MIN_RECENT_SESSIONS_FOR_BREAK = 3;
   private readonly MIN_RECENT_DURATION_MS = 5 * 60 * 1000; // 5 minutes total
+  
+  // LLM-optimized: Performance thresholds for recommendations
+  private readonly STRUGGLING_SUCCESS_THRESHOLD = 0.6; // Below this = struggling
+  private readonly REVIEW_SUCCESS_THRESHOLD = 0.7; // Above this = ready for review
+  private readonly CHALLENGE_SUCCESS_THRESHOLD = 0.8; // Above this = ready for challenge
+  private readonly MIN_ATTEMPTS_FOR_STRUGGLING = 5; // Minimum attempts to identify struggling
+  private readonly MIN_ATTEMPTS_FOR_REVIEW = 10; // Minimum attempts before recommending review
+  private readonly ADVANCED_SUCCESS_THRESHOLD = 0.9; // For practice recommendations
+  private readonly INTERMEDIATE_SUCCESS_THRESHOLD = 0.7; // For practice recommendations
 
   // Learning path templates (German localized)
   private readonly LEARNING_PATH_TEMPLATES = {
@@ -341,9 +350,9 @@ class AdaptiveLearningService {
         avgConfidence >= threshold.minConfidence &&
         metrics.totalAttempts >= threshold.minAttempts &&
         (level === 'master'
-          ? successRate >= 0.9
+          ? successRate >= this.ADVANCED_SUCCESS_THRESHOLD
           : level === 'advanced'
-            ? successRate >= 0.7
+            ? successRate >= this.INTERMEDIATE_SUCCESS_THRESHOLD
             : true)
       ) {
         return level;
@@ -479,7 +488,7 @@ class AdaptiveLearningService {
     return Array.from(this.performanceMetrics.values())
       .filter(metrics => {
         const successRate = metrics.successfulAttempts / Math.max(metrics.totalAttempts, 1);
-        return successRate < 0.6 && metrics.totalAttempts >= 5;
+        return successRate < this.STRUGGLING_SUCCESS_THRESHOLD && metrics.totalAttempts >= this.MIN_ATTEMPTS_FOR_STRUGGLING;
       })
       .sort((a, b) => {
         const aRate = a.successfulAttempts / Math.max(a.totalAttempts, 1);
@@ -499,7 +508,7 @@ class AdaptiveLearningService {
     return Array.from(this.performanceMetrics.values())
       .filter(metrics => {
         const successRate = metrics.successfulAttempts / Math.max(metrics.totalAttempts, 1);
-        return successRate >= 0.7 && metrics.lastPracticed < oneDayAgo && metrics.totalAttempts >= 10;
+        return successRate >= this.REVIEW_SUCCESS_THRESHOLD && metrics.lastPracticed < oneDayAgo && metrics.totalAttempts >= this.MIN_ATTEMPTS_FOR_REVIEW;
       })
       .sort((a, b) => a.lastPracticed - b.lastPracticed)
       .map(metrics => metrics.gesture);
@@ -512,7 +521,7 @@ class AdaptiveLearningService {
     return Array.from(this.performanceMetrics.values())
       .filter(metrics => {
         const successRate = metrics.successfulAttempts / Math.max(metrics.totalAttempts, 1);
-        return successRate >= 0.8 && metrics.difficultyLevel !== 'master';
+        return successRate >= this.CHALLENGE_SUCCESS_THRESHOLD && metrics.difficultyLevel !== 'master';
       })
       .sort((a, b) => b.averageConfidence - a.averageConfidence)
       .map(metrics => metrics.gesture);

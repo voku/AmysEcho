@@ -66,6 +66,15 @@ export class SignVariationTracker {
   private readonly MIN_CLUSTER_SIZE = 3; // Need at least 3 samples to form a cluster
   private readonly CLUSTER_STABILITY_DAYS = 7; // Keep clusters for 7 days
   
+  // Scoring weights for variation quality (LLM-optimized: named constants for clarity)
+  private readonly SUCCESS_RATE_WEIGHT = 0.7; // Prioritize successful variations
+  private readonly RECENCY_WEIGHT = 0.3; // Consider recent usage patterns
+  
+  // Training recommendation thresholds
+  private readonly HIGH_DIVERSITY_THRESHOLD = 0.6; // When variation diversity suggests training needed
+  private readonly LOW_SUCCESS_THRESHOLD = 0.7; // When success rate indicates training could help
+  private readonly MIN_SUCCESS_RATE_FOR_TRAINING = 0.5; // Minimum success rate to include in training data
+  
   /**
    * Record a new gesture variation
    */
@@ -120,8 +129,8 @@ export class SignVariationTracker {
     // Sort by success rate and recency to favor quality over quantity
     // This allows Amy's style to evolve and improve over time
     const sorted = clusters.sort((a, b) => {
-      const scoreA = a.successRate * 0.7 + (a.lastUsed / Date.now()) * 0.3;
-      const scoreB = b.successRate * 0.7 + (b.lastUsed / Date.now()) * 0.3;
+      const scoreA = a.successRate * this.SUCCESS_RATE_WEIGHT + (a.lastUsed / Date.now()) * this.RECENCY_WEIGHT;
+      const scoreB = b.successRate * this.SUCCESS_RATE_WEIGHT + (b.lastUsed / Date.now()) * this.RECENCY_WEIGHT;
       return scoreB - scoreA;
     });
     
@@ -139,7 +148,8 @@ export class SignVariationTracker {
     const diversity = this.calculateVariationDiversity(gesture);
     
     // Recommend training if there's high diversity but low success rates
-    const recommendTraining = diversity > 0.6 && clusters.some(c => c.successRate < 0.7);
+    const recommendTraining = diversity > this.HIGH_DIVERSITY_THRESHOLD && 
+                            clusters.some(c => c.successRate < this.LOW_SUCCESS_THRESHOLD);
     
     return {
       gesture,
@@ -164,7 +174,7 @@ export class SignVariationTracker {
   } {
     const clusters = this.getVariationClusters(gesture);
     const canonicalTemplates = clusters
-      .filter(c => c.successRate > 0.5) // Only include successful variations
+      .filter(c => c.successRate > this.MIN_SUCCESS_RATE_FOR_TRAINING) // Only include successful variations
       .map(c => c.canonicalTemplate);
     
     return { clusters, canonicalTemplates };

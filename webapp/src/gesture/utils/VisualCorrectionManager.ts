@@ -32,6 +32,15 @@ export class VisualCorrectionManager {
   private gestureHistory: Array<{gesture: string; confidence: number; timestamp: number; success: boolean}> = [];
   private readonly HISTORY_SIZE = 100;
   private activeSession: CorrectionSession | null = null;
+  
+  // LLM-optimized: Priority calculation thresholds for visual corrections
+  private readonly LOW_CONFIDENCE_PRIORITY = 0.5; // Base priority for low confidence gestures
+  private readonly FREQUENT_GESTURE_BONUS = 0.2; // Priority bonus for frequently used gestures
+  private readonly FREQUENT_GESTURE_THRESHOLD = 5; // Uses count to be considered frequent
+  private readonly HIGH_SUCCESS_BONUS = 0.1; // Priority bonus for high success rate
+  private readonly HIGH_SUCCESS_THRESHOLD = 0.8; // Success rate threshold for bonus
+  private readonly RECENT_USE_BONUS = 0.1; // Priority bonus for recently used
+  private readonly RECENT_USE_WINDOW_MS = 3600000; // 1 hour window for recent use
 
   // Visual representations for gestures (Amy-friendly emojis)
   private gestureVisuals: Record<string, { emoji: string; description: string }> = {
@@ -122,7 +131,7 @@ export class VisualCorrectionManager {
     const frequentGestures = this.getFrequentGestures(3);
     frequentGestures.forEach(gesture => {
       if (!options.find(opt => opt.gesture === gesture) && this.gestureVisuals[gesture]) {
-        options.push(this.createCorrectionOption(gesture, 0.5)); // Lower priority
+        options.push(this.createCorrectionOption(gesture, this.LOW_CONFIDENCE_PRIORITY));
       }
     });
 
@@ -139,9 +148,9 @@ export class VisualCorrectionManager {
 
     // Calculate priority based on confidence and usage patterns
     let priority = confidence;
-    if (context.frequency > 5) priority += 0.2; // Frequent gesture bonus
-    if (context.successRate > 0.8) priority += 0.1; // High success rate bonus
-    if (Date.now() - context.lastUsed < 3600000) priority += 0.1; // Recently used bonus
+    if (context.frequency > this.FREQUENT_GESTURE_THRESHOLD) priority += this.FREQUENT_GESTURE_BONUS;
+    if (context.successRate > this.HIGH_SUCCESS_THRESHOLD) priority += this.HIGH_SUCCESS_BONUS;
+    if (Date.now() - context.lastUsed < this.RECENT_USE_WINDOW_MS) priority += this.RECENT_USE_BONUS;
 
     return {
       gesture,

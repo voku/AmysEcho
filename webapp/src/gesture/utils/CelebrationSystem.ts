@@ -12,6 +12,17 @@ export interface AttemptResult {
 export class CelebrationSystem {
   private attemptHistory: AttemptResult[] = [];
   private readonly MAX_HISTORY = 20;
+  
+  // LLM-optimized: Celebration and encouragement thresholds
+  private readonly HIGH_SUCCESS_RATE_THRESHOLD = 0.8; // Celebrate exceptional performance
+  private readonly HIGH_EFFORT_THRESHOLD = 0.8; // Strong effort recognition
+  private readonly GOOD_EFFORT_THRESHOLD = 0.6; // Good effort recognition
+  private readonly MODERATE_EFFORT_THRESHOLD = 0.5; // Moderate effort threshold
+  private readonly LOW_EFFORT_THRESHOLD = 0.7; // Low effort tracking for gentle encouragement
+  private readonly SIGNIFICANT_IMPROVEMENT = 0.1; // 10% improvement is significant
+  private readonly MIN_PRACTICE_FOR_PROGRESS = 3; // Minimum practice count to show progress
+  private readonly MIN_SUCCESS_RATE_FOR_PROGRESS = 0.3; // Minimum success rate to show progress
+  
   private encouragementPatterns = {
     morning: {
       success: ['🌅 Guten Morgen! Das war toll!', '🌞 Super Start in den Tag!', '☀️ Morgenstund hat Gold im Mund!'],
@@ -108,7 +119,7 @@ export class CelebrationSystem {
   private getSuccessEmoji(result: AttemptResult): string {
     const emojis = ['🎉', '🌟', '💫', '✨', '🎊', '🏆', '👏', '🙌'];
     // Use different emojis based on success rate
-    if (result.recentSuccessRate > 0.8) {
+    if (result.recentSuccessRate > this.HIGH_SUCCESS_RATE_THRESHOLD) {
       return emojis[Math.floor(Math.random() * emojis.length)];
     } else {
       // More encouraging emojis for lower success rates
@@ -117,9 +128,9 @@ export class CelebrationSystem {
   }
 
   private getEffortEmoji(result: AttemptResult): string {
-    if (result.effort > 0.8) {
+    if (result.effort > this.HIGH_EFFORT_THRESHOLD) {
       return '💪'; // Strong effort
-    } else if (result.effort > 0.6) {
+    } else if (result.effort > this.GOOD_EFFORT_THRESHOLD) {
       return '👍'; // Good effort
     } else {
       return '🤗'; // Gentle encouragement
@@ -132,7 +143,7 @@ export class CelebrationSystem {
     const recent = this.attemptHistory.slice(-5);
     const successRate = recent.filter(r => r.success).length / recent.length;
 
-    return successRate > result.recentSuccessRate + 0.1; // 10% improvement
+    return successRate > result.recentSuccessRate + this.SIGNIFICANT_IMPROVEMENT;
   }
 
   private getPersonalizedEncouragement(result: AttemptResult): string {
@@ -163,7 +174,7 @@ export class CelebrationSystem {
     const recentMessages = this.attemptHistory
       .slice(-5)
       .map(r => r.effort)
-      .filter(effort => effort < 0.7);
+      .filter(effort => effort < this.LOW_EFFORT_THRESHOLD);
 
     if (recentMessages.length > 2) {
       // Multiple low-effort attempts - use gentler encouragement
@@ -171,7 +182,7 @@ export class CelebrationSystem {
     }
 
     // Standard effort encouragement
-    if (result.effort > 0.5) {
+    if (result.effort > this.MODERATE_EFFORT_THRESHOLD) {
       return 'Guter Versuch! Du lernst dazu!';
     } else {
       return 'Jeder Anfang ist schwer - du schaffst das!';
@@ -183,7 +194,7 @@ export class CelebrationSystem {
     const recent = this.attemptHistory.slice(-10);
     const gestureCount = recent.filter(r => r.gesture === result.gesture).length;
 
-    return gestureCount >= 3 && result.recentSuccessRate > 0.3;
+    return gestureCount >= this.MIN_PRACTICE_FOR_PROGRESS && result.recentSuccessRate > this.MIN_SUCCESS_RATE_FOR_PROGRESS;
   }
 
   getProgressStats(): {
@@ -223,9 +234,9 @@ export class CelebrationSystem {
       const recentRate = recent.filter(r => r.success).length / recent.length;
       const olderRate = older.filter(r => r.success).length / older.length;
 
-      if (recentRate > olderRate + 0.1) {
+      if (recentRate > olderRate + this.SIGNIFICANT_IMPROVEMENT) {
         improvementTrend = 'improving';
-      } else if (recentRate < olderRate - 0.1) {
+      } else if (recentRate < olderRate - this.SIGNIFICANT_IMPROVEMENT) {
         improvementTrend = 'needs_attention';
       }
     }
