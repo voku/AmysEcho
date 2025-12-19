@@ -4,9 +4,6 @@
  * including time-of-day patterns, activity levels, and communication habits
  */
 
-import { getCurrentTimestamp, getHoursCutoff, filterByTimeWindow, TIME_CONSTANTS } from '../../utils/timeUtils';
-import { calculateSuccessRate } from '../../utils/arrayUtils';
-
 export interface ContextAnalysis {
   adjustedConfidence: number;
   contextBonus: number;
@@ -128,11 +125,11 @@ export class EnhancedContextAwareRecognizer {
    * Detect activity level based on recent gesture patterns
    */
   private detectActivityLevel(): 'high' | 'low' | 'normal' {
-    const now = getCurrentTimestamp();
-    const recentWindow = this.SHORT_TERM_WINDOW_MINUTES * 60 * 1000;
+    const now = Date.now();
+    const recentWindow = now - (this.SHORT_TERM_WINDOW_MINUTES * 60 * 1000);
 
     // Get recent gestures
-    const recentGestures = filterByTimeWindow(this.gestureHistory, recentWindow, now);
+    const recentGestures = this.gestureHistory.filter(h => h.timestamp > recentWindow);
 
     if (recentGestures.length < 3) {
       return 'low'; // Not enough activity to determine
@@ -141,7 +138,7 @@ export class EnhancedContextAwareRecognizer {
     // Calculate activity metrics
     const avgConfidence = recentGestures.reduce((sum, h) => sum + h.confidence, 0) / recentGestures.length;
     const gestureFrequency = recentGestures.length / this.SHORT_TERM_WINDOW_MINUTES; // gestures per minute
-    const successRate = calculateSuccessRate(recentGestures);
+    const successRate = recentGestures.filter(h => h.success).length / recentGestures.length;
 
     // Activity scoring (0-1 scale)
     const confidenceScore = avgConfidence;
@@ -171,7 +168,7 @@ export class EnhancedContextAwareRecognizer {
     }
 
     // Clean old entries (older than pattern window)
-    const cutoffTime = getHoursCutoff(this.PATTERN_WINDOW_HOURS);
+    const cutoffTime = Date.now() - (this.PATTERN_WINDOW_HOURS * 60 * 60 * 1000);
     this.gestureHistory = this.gestureHistory.filter(h => h.timestamp > cutoffTime);
   }
 
@@ -285,7 +282,7 @@ export class EnhancedContextAwareRecognizer {
     strength += habit.frequencyScore * 0.2;
 
     // Recency strength (more recent = stronger)
-    const daysSinceLastUse = (getCurrentTimestamp() - habit.lastUsed) / TIME_CONSTANTS.DAY;
+    const daysSinceLastUse = (Date.now() - habit.lastUsed) / (24 * 60 * 60 * 1000);
     const recencyStrength = Math.max(0, 1 - (daysSinceLastUse / 7)); // Decay over 7 days
     strength += recencyStrength * 0.2;
 
@@ -301,11 +298,11 @@ export class EnhancedContextAwareRecognizer {
    * Get recent frequency of a gesture
    */
   private getRecentFrequency(gesture: string): number {
-    const now = getCurrentTimestamp();
-    const recentWindow = TIME_CONSTANTS.HOUR; // Last hour
+    const now = Date.now();
+    const recentWindow = now - (60 * 60 * 1000); // Last hour
 
     const recentGestures = this.gestureHistory.filter(h =>
-      h.gesture === gesture && h.timestamp > now - recentWindow
+      h.gesture === gesture && h.timestamp > recentWindow
     );
 
     return recentGestures.length;
@@ -433,16 +430,16 @@ export class EnhancedContextAwareRecognizer {
    * Get recent success rate for a gesture
    */
   private getRecentSuccessRate(gesture: string): number {
-    const now = getCurrentTimestamp();
-    const recentWindow = TIME_CONSTANTS.HOUR; // Last hour
+    const now = Date.now();
+    const recentWindow = now - (60 * 60 * 1000); // Last hour
 
     const recentGestures = this.gestureHistory.filter(h =>
-      h.gesture === gesture && h.timestamp > now - recentWindow
+      h.gesture === gesture && h.timestamp > recentWindow
     );
 
     if (recentGestures.length === 0) return 0;
 
-    return calculateSuccessRate(recentGestures);
+    return recentGestures.filter(h => h.success).length / recentGestures.length;
   }
 
   /**
@@ -488,7 +485,7 @@ export class EnhancedContextAwareRecognizer {
       }));
 
     const patternStrength = this.gestureHistory.length > 20 ?
-      calculateSuccessRate(this.gestureHistory) : 0;
+      (this.gestureHistory.filter(h => h.success).length / this.gestureHistory.length) : 0;
 
     // Get current stress indicators
     const currentPattern = this.gestureHistory[this.gestureHistory.length - 1];

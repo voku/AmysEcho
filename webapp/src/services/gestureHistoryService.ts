@@ -11,8 +11,6 @@
 
 import { logger } from './logger';
 import { gestureDataProtector } from './dataProtection';
-import { getCurrentTimestamp, getTimestampId, getMinutesCutoff, getDaysCutoff, filterAfterTimestamp } from '../utils/timeUtils';
-import { groupByProperty } from '../utils/arrayUtils';
 
 export interface GestureHistoryEntry {
   id: string;
@@ -85,7 +83,7 @@ class GestureHistoryService {
   addGesture(gesture: Omit<GestureHistoryEntry, 'timestamp'>): void {
     const entry: GestureHistoryEntry = {
       ...gesture,
-      timestamp: getCurrentTimestamp()
+      timestamp: Date.now()
     };
 
     this.history.unshift(entry);
@@ -115,7 +113,7 @@ class GestureHistoryService {
   private generateRandomSessionId(): string {
     if (typeof crypto.getRandomValues !== 'function') {
       logger.warn('Konnte keine sichere Sitzungs-ID generieren, verwende Fallback.');
-      return `fallback-${getTimestampId()}-${Math.random().toString(16).slice(2, 10)}`;
+      return `fallback-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
     }
     const bytes = crypto.getRandomValues(new Uint8Array(16));
     bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
@@ -150,7 +148,7 @@ class GestureHistoryService {
    * Get gestures from the last N minutes
    */
   getRecentGestures(minutes: number): GestureHistoryEntry[] {
-    const cutoff = getMinutesCutoff(minutes);
+    const cutoff = Date.now() - (minutes * 60 * 1000);
     return this.history.filter(entry => entry.timestamp > cutoff);
   }
 
@@ -174,7 +172,7 @@ class GestureHistoryService {
       };
     }
 
-    const now = getCurrentTimestamp();
+    const now = Date.now();
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -351,8 +349,8 @@ class GestureHistoryService {
       .filter(entry => typeof entry.timestamp === 'number')
       .sort((a, b) => b.timestamp - a.timestamp);
 
-    const retentionCutoff = getDaysCutoff(this.ANALYTICS_RETENTION_DAYS);
-    const filtered = filterAfterTimestamp(normalized, retentionCutoff);
+    const retentionCutoff = Date.now() - (this.ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const filtered = normalized.filter(entry => entry.timestamp >= retentionCutoff);
 
     if (filtered.length > this.MAX_ANALYTICS_ENTRIES) {
       return filtered.slice(0, this.MAX_ANALYTICS_ENTRIES);
@@ -362,7 +360,7 @@ class GestureHistoryService {
   }
 
   private enforceRecentHistoryRetention(): void {
-    const oneDayAgo = getDaysCutoff(1);
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
     this.history = this.history
       .filter(entry => typeof entry.timestamp === 'number' && entry.timestamp >= oneDayAgo)
       .sort((a, b) => b.timestamp - a.timestamp)

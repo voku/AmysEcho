@@ -1,5 +1,3 @@
-import { calculateSuccessRate, takeLast } from '../../utils/arrayUtils';
-
 export interface AttemptResult {
   success: boolean;
   gesture: string;
@@ -131,15 +129,15 @@ export class CelebrationSystem {
   private isSignificantProgress(result: AttemptResult): boolean {
     if (this.attemptHistory.length < 5) return false;
 
-    const recent = takeLast(this.attemptHistory, 5);
-    const successRate = calculateSuccessRate(recent);
+    const recent = this.attemptHistory.slice(-5);
+    const successRate = recent.filter(r => r.success).length / recent.length;
 
     return successRate > result.recentSuccessRate + 0.1; // 10% improvement
   }
 
   private getPersonalizedEncouragement(result: AttemptResult): string {
     // Analyze patterns in attempt history
-    const recentAttempts = takeLast(this.attemptHistory, 10);
+    const recentAttempts = this.attemptHistory.slice(-10);
     const gestureAttempts = recentAttempts.filter(r => r.gesture === result.gesture);
 
     if (gestureAttempts.length > 3) {
@@ -162,7 +160,8 @@ export class CelebrationSystem {
 
   private getGentleEncouragement(result: AttemptResult): string {
     // Avoid repetitive messages by cycling through encouragements
-    const recentMessages = takeLast(this.attemptHistory, 5)
+    const recentMessages = this.attemptHistory
+      .slice(-5)
       .map(r => r.effort)
       .filter(effort => effort < 0.7);
 
@@ -181,7 +180,7 @@ export class CelebrationSystem {
 
   private shouldShowProgress(result: AttemptResult): boolean {
     // Show progress indicator for consistent practice
-    const recent = takeLast(this.attemptHistory, 10);
+    const recent = this.attemptHistory.slice(-10);
     const gestureCount = recent.filter(r => r.gesture === result.gesture).length;
 
     return gestureCount >= 3 && result.recentSuccessRate > 0.3;
@@ -203,7 +202,7 @@ export class CelebrationSystem {
     }
 
     const totalAttempts = this.attemptHistory.length;
-    const successRate = calculateSuccessRate(this.attemptHistory);
+    const successRate = this.attemptHistory.filter(r => r.success).length / totalAttempts;
 
     // Find most practiced gesture
     const gestureCounts = this.attemptHistory.reduce((acc, result) => {
@@ -215,14 +214,14 @@ export class CelebrationSystem {
       .sort(([,a], [,b]) => b - a)[0]?.[0] || '';
 
     // Calculate improvement trend
-    const recent = takeLast(this.attemptHistory, 10);
+    const recent = this.attemptHistory.slice(-10);
     const older = this.attemptHistory.slice(-20, -10);
 
     let improvementTrend: 'improving' | 'stable' | 'needs_attention' = 'stable';
 
     if (recent.length >= 5 && older.length >= 5) {
-      const recentRate = calculateSuccessRate(recent);
-      const olderRate = calculateSuccessRate(older);
+      const recentRate = recent.filter(r => r.success).length / recent.length;
+      const olderRate = older.filter(r => r.success).length / older.length;
 
       if (recentRate > olderRate + 0.1) {
         improvementTrend = 'improving';

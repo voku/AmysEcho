@@ -43,34 +43,3 @@ export {
   slugify,
   normalizeGestureLabel,
 } from './stringUtils';
-
-export {
-  getCurrentTimestamp,
-  getTimestampId,
-  getTimeDiff,
-  isWithinTimeWindow,
-  filterByTimeWindow,
-  filterAfterTimestamp,
-  TIME_CONSTANTS,
-  getDaysCutoff,
-  getHoursCutoff,
-  getMinutesCutoff,
-  formatTimestamp,
-  getUptimeSeconds,
-} from './timeUtils';
-
-export {
-  calculateSuccessRate,
-  filterByProperty,
-  groupByProperty,
-  countByProperty,
-  getMostRecent,
-  sortByTimestampDesc,
-  sortByTimestampAsc,
-  calculateAverage,
-  getUniqueValues,
-  chunkArray,
-  takeFirst,
-  takeLast,
-  uniqueByProperty,
-} from './arrayUtils';
