@@ -80,7 +80,7 @@ function isFrameBatchMessage(payload: unknown): payload is FrameBatchPayload {
   );
 }
 
-export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement>): TrainingRecorderResult {
+export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null>): TrainingRecorderResult {
   const [state, setState] = useState<RecordingState>('idle');
   const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
   const [stillImage, setStillImage] = useState<string | null>(null);

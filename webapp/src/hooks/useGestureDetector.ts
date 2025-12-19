@@ -94,8 +94,8 @@ function parseIncomingMessage(raw: string): GestureMessage | null {
 }
 
 export function useGestureDetector(
-  videoRef: React.RefObject<HTMLVideoElement>,
-  overlayRef: React.RefObject<HTMLCanvasElement>,
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  overlayRef: React.RefObject<HTMLCanvasElement | null>,
   options: GestureHookOptions = {},
 ): GestureHookResult {
   const [status, setStatus] = useState<GestureStatus>('idle');

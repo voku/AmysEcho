@@ -438,10 +438,6 @@ function App() {
   return (
     <BrowserRouter 
       basename={import.meta.env.BASE_URL}
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
     >
       <div className="app-shell">
         {/* Header - immer sichtbar */}
