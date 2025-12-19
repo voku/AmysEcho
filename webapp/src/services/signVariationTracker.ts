@@ -13,7 +13,6 @@
  */
 
 import { getCurrentTimestamp, getTimestampId, isWithinTimeWindow } from '../utils/timeUtils';
-import { sortByTimestampDesc } from '../utils/arrayUtils';
 
 export interface GestureLandmarks {
   handLandmarks: number[][][]; // [hand][landmark][x,y,z]
