@@ -47,10 +47,21 @@ class PerformanceMonitor {
   private readonly SAMPLE_WINDOW_MS = 60000; // 1 Minute Fenster
   private startTime = Date.now();
   private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+  
+  // LLM-optimized: Performance thresholds for monitoring and alerts
+  private readonly SLOW_PROCESSING_THRESHOLD_MS = 100; // Warn if gesture processing takes >100ms
+  private readonly LOW_FRAME_RATE_THRESHOLD = 15; // Warn if FPS drops below 15
+  private readonly GOOD_FRAME_RATE_THRESHOLD = 20; // Good performance is >20 FPS
+  private readonly GOOD_PROCESSING_TIME_MS = 50; // Good performance is <50ms average
+  private readonly CLEANUP_INTERVAL_MS = 30000; // Clean up old samples every 30 seconds
+  private readonly ACCEPTABLE_ACCURACY_THRESHOLD = 0.8; // Acceptable accuracy is >80%
+  private readonly LOW_ACCURACY_THRESHOLD = 0.7; // Alert if accuracy drops below 70%
+  private readonly ACCEPTABLE_ERROR_RATE = 0.1; // Acceptable error rate is <10%
+  private readonly HIGH_ERROR_RATE_THRESHOLD = 0.2; // Alert if error rate exceeds 20%
 
   private constructor() {
     // Alte Proben regelmäßig bereinigen
-    this.cleanupIntervalId = setInterval(() => this.cleanupOldSamples(), 30000);
+    this.cleanupIntervalId = setInterval(() => this.cleanupOldSamples(), this.CLEANUP_INTERVAL_MS);
   }
 
   static getInstance(): PerformanceMonitor {
@@ -102,7 +113,7 @@ class PerformanceMonitor {
       this.samples.shift();
     }
 
-    if (processingTime > 100) {
+    if (processingTime > this.SLOW_PROCESSING_THRESHOLD_MS) {
       logger.warn(`Langsame Gestenverarbeitung: ${processingTime}ms für ${gesture}`);
     }
   }
@@ -112,7 +123,7 @@ class PerformanceMonitor {
    */
   recordFrameProcessing(frameCount: number, processingTime: number): void {
     const frameRate = frameCount / (processingTime / 1000);
-    if (frameRate < 15) {
+    if (frameRate < this.LOW_FRAME_RATE_THRESHOLD) {
       logger.warn(`Niedrige Frame-Rate: ${frameRate} fps`);
     }
   }
@@ -184,10 +195,10 @@ class PerformanceMonitor {
     const metrics = this.getMetrics();
 
     return (
-      metrics.averageProcessingTime < 50 && // < 50ms Durchschnitt
-      metrics.overallAccuracy > 0.8 && // > 80% Genauigkeit
-      metrics.frameRate > 20 && // > 20 fps
-      metrics.errorRate < 0.1 // < 10% Fehlerrate
+      metrics.averageProcessingTime < this.GOOD_PROCESSING_TIME_MS &&
+      metrics.overallAccuracy > this.ACCEPTABLE_ACCURACY_THRESHOLD &&
+      metrics.frameRate > this.GOOD_FRAME_RATE_THRESHOLD &&
+      metrics.errorRate < this.ACCEPTABLE_ERROR_RATE
     );
   }
 
@@ -218,19 +229,19 @@ class PerformanceMonitor {
     const alerts: string[] = [];
     const metrics = this.getMetrics();
 
-    if (metrics.averageProcessingTime > 100) {
+    if (metrics.averageProcessingTime > this.SLOW_PROCESSING_THRESHOLD_MS) {
       alerts.push(`Hohe Latenz: ${metrics.averageProcessingTime.toFixed(1)}ms Durchschnitt`);
     }
 
-    if (metrics.overallAccuracy < 0.7) {
+    if (metrics.overallAccuracy < this.LOW_ACCURACY_THRESHOLD) {
       alerts.push(`Niedrige Genauigkeit: ${(metrics.overallAccuracy * 100).toFixed(1)}%`);
     }
 
-    if (metrics.frameRate < 15) {
+    if (metrics.frameRate < this.LOW_FRAME_RATE_THRESHOLD) {
       alerts.push(`Niedrige Frame-Rate: ${metrics.frameRate.toFixed(1)} fps`);
     }
 
-    if (metrics.errorRate > 0.2) {
+    if (metrics.errorRate > this.HIGH_ERROR_RATE_THRESHOLD) {
       alerts.push(`Hohe Fehlerrate: ${(metrics.errorRate * 100).toFixed(1)}%`);
     }
 
