@@ -86,7 +86,7 @@
   - Tests: `npm test --prefix webapp`
   - Build: `npm run build --prefix webapp`
 - **Server:**
-  - Install: `npm ci --prefix server` and `pip install -r server/requirements.txt`
+  - Install: `npm ci --prefix server` and `pip install -r server/requirements.txt` (preferably in a Python virtual environment)
   - Type check: `npm run type-check --prefix server`
   - Tests: `npm test --prefix server`
   - Build: `npm run build --prefix server`
