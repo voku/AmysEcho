@@ -1,5 +1,5 @@
 {
-  "manifestSha256": "15eeb3e84e251181e8a2c9a1faf4046330dd448f0b2ec112f89b1714a0b3bf5f",
+  "manifestSha256": "45b21308b41b6dfc97e8b6b15cfe89fec01bbe882e029de296de8f9046215eae",
   "hyperparameters": {
     "hiddenSize": 128,
     "learningRate": 0.01,
@@ -15,7 +15,7 @@
     "mediapipe": true,
     "opencv": true
   },
-  "generatedAt": "2025-12-19T19:27:47.819791Z",
+  "generatedAt": "2025-12-19T21:24:19.396887Z",
   "samples": 2,
   "profiles": [
     "p-integration"
