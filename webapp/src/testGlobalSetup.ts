@@ -5,7 +5,7 @@ const isValidBlob = (ctor: typeof Blob | undefined): ctor is typeof Blob => {
   try {
     const blob = new ctor();
     return Object.prototype.toString.call(blob) === '[object Blob]';
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -15,7 +15,7 @@ const isValidFile = (ctor: typeof File | undefined): ctor is typeof File => {
   try {
     const file = new ctor([], 'stub');
     return Object.prototype.toString.call(file) === '[object File]';
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -54,7 +54,7 @@ export default async function globalSetup() {
     if (!descriptor || descriptor.value !== tag) {
       try {
         Object.defineProperty(ctor.prototype, Symbol.toStringTag, { value: tag, configurable: true });
-      } catch (error) {
+      } catch {
         // Ignore if the environment prevents redefining the tag; fallback relies on the constructor swap above.
       }
     }

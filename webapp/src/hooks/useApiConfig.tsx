@@ -300,7 +300,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
                 refreshToken: typeof parsed.refreshToken === 'string' ? parsed.refreshToken : '',
               } satisfies AuthTokens;
             }
-          } catch (error) {
+          } catch {
             // Fall through to legacy handling
           }
           return { accessToken: decrypted, refreshToken: '' } satisfies AuthTokens;

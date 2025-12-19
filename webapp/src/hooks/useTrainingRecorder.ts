@@ -201,7 +201,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
         } else {
           tryProcessPayload(parsed);
         }
-      } catch (error) {
+      } catch {
         // Ignore parse errors
       }
     };

@@ -304,7 +304,7 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
   let responseJson: unknown;
   try {
     responseJson = await response.json();
-  } catch (error) {
+  } catch {
     throw new Error('Serverantwort konnte nicht gelesen werden.');
   }
 

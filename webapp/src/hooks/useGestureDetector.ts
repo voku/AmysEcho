@@ -82,7 +82,7 @@ function parseIncomingMessage(raw: string): GestureMessage | null {
       receivedAt: Date.now(),
       count: 1,
     };
-  } catch (error) {
+  } catch {
     return {
       type: UNKNOWN_TYPE,
       summary: 'Konnte Meldung nicht lesen',

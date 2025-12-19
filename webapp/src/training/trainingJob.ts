@@ -109,7 +109,7 @@ export async function triggerTrainingJob(
   let payload: unknown;
   try {
     payload = await response.json();
-  } catch (error) {
+  } catch {
     throw new Error('Antwort vom Training-Trigger konnte nicht gelesen werden.');
   }
 

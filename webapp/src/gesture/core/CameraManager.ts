@@ -29,7 +29,7 @@ export class CameraManager {
       if (persisted === 'user' || persisted === 'environment') {
         facingMode = persisted;
       }
-    } catch (e) {
+    } catch {
       // localStorage might be disabled
     }
     // Fallback to window global for backward compatibility

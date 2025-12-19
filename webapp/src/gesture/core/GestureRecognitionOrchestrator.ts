@@ -1469,7 +1469,7 @@ export class GestureDetectionStep implements ProcessingStep {
               }
             })
           );
-        } catch (postMessageError) {
+        } catch {
           // Silently ignore post message errors to React Native to avoid console spam.
           // These errors are expected when running in browser environments without the React Native WebView.
         }
