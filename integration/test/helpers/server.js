@@ -131,6 +131,8 @@ async function actuallyStartServer(attempt = 1) {
       MLP_MIN_SAMPLES_PER_LABEL: '1',
       MLP_MIN_SAMPLES_PER_PROFILE: '1',
       MLP_REQUIRE_MEDIAPIPE: '0',
+      API_LIMIT: '1000', // Increase rate limit for integration tests
+      MODEL_METADATA_LIMIT: '1000', // Increase model metadata rate limit for integration tests
     },
     stdio: ['ignore', 'ignore', 'ignore'],
   });

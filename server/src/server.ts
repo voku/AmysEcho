@@ -98,7 +98,7 @@ const apiLimiter = rateLimit({
 
 const modelMetadataLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: config.modelMetadataLimit,
   standardHeaders: true,
   legacyHeaders: false,
 });
