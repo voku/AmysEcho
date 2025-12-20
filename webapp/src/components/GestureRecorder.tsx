@@ -89,7 +89,7 @@ export function GestureRecorder() {
     ? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
-    ? gestureMeaning?.audioText ?? gestureMeaning?.label ?? gestureLabel ?? normalizedGesture
+    ? gestureMeaning?.audioText ?? gestureLabel ?? normalizedGesture
     : '';
 
   const handleStart = async () => {
