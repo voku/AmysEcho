@@ -220,6 +220,7 @@ def test_train_endpoint_without_baseline_file():
             backup_path.unlink()
         backup_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(BASELINE_MODEL_PATH), str(backup_path))
+
     # We manipulate the on-disk artifact because the server runs in a separate
     # process and reads the actual filesystem path. Mocking would not affect the
     # child process, so we isolate by backing up and restoring the file.
@@ -257,6 +258,46 @@ def test_train_endpoint_without_baseline_file():
         elif not baseline_was_present and BASELINE_MODEL_PATH.exists():
             BASELINE_MODEL_PATH.unlink()
         shutil.rmtree(tmp_backup_root, ignore_errors=True)
+
+
+def test_train_endpoint_returns_queue_metadata():
+    proc, access_token = start_server()
+    try:
+        url = f"http://localhost:{PORT}/train-model"
+        landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
+        samples = [
+            {
+                "gestureDefinitionId": "g1",
+                "profileId": "p1",
+                "landmarkData": landmarks_one_hand,
+            }
+        ]
+        data = json.dumps({"samples": samples}).encode("utf-8")
+        headers = {
+            **_make_auth_headers(access_token),
+            "Content-Type": "application/json",
+        }
+
+        req_first = urllib.request.Request(url, data=data, headers=headers)
+        with urllib.request.urlopen(req_first, timeout=10) as resp_first:
+            assert resp_first.getcode() == 202
+            first_payload = json.loads(resp_first.read().decode())
+            first_job_id = first_payload["jobId"]
+
+        req_second = urllib.request.Request(url, data=data, headers=headers)
+        with urllib.request.urlopen(req_second, timeout=10) as resp_second:
+            assert resp_second.getcode() == 202
+            second_payload = json.loads(resp_second.read().decode())
+            second_job_id = second_payload["jobId"]
+            assert second_payload.get("queueDepth", 0) >= 1
+            assert second_payload.get("retryAfterMs", 0) >= 1000
+            retry_after = resp_second.headers.get("Retry-After")
+            assert retry_after is not None
+
+        wait_for_training_completion(first_job_id, access_token)
+        wait_for_training_completion(second_job_id, access_token)
+    finally:
+        stop_server(proc)
 
 
 def test_train_requests_are_serialized():
