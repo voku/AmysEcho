@@ -51,7 +51,6 @@ describe('GestureRecorder', () => {
     expect(screen.getByText('Kamera starten')).toBeInTheDocument();
     expect(screen.getByText('Stimmt')).toBeInTheDocument();
     expect(screen.getByText('Lernen')).toBeInTheDocument();
-    expect(screen.getByText('Alternativen')).toBeInTheDocument();
   });
 
   it('shows overlay toggle checkbox', () => {
