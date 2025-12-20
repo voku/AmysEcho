@@ -981,12 +981,6 @@ p {
   color: var(--color-error);
 }
 
-.gesture-screen__correction {
-  background: var(--color-gesture-overlay-dark);
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg);
-}
-
 /* ==========================================================================
    Panel
    ========================================================================== */
@@ -1731,17 +1725,6 @@ p {
   .controls button {
     width: 100%;
   }
-
-  /* Correction section fixes for very small screens */
-  .correction-trigger {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-sm);
-  }
-
-  .correction-trigger button {
-    width: 100%;
-  }
 }
 
 /* ==========================================================================
@@ -1779,88 +1762,6 @@ p {
 .history-item .timestamp {
   font-size: var(--font-size-caption);
   color: var(--color-overlay-text-muted);
-}
-
-/* ==========================================================================
-   Correction Panel
-   ========================================================================== */
-
-.correction-section {
-  margin: var(--space-lg) 0;
-  padding: var(--space-lg);
-  background: var(--color-status-learning-bg);
-  border: 1px solid var(--color-warning);
-  border-radius: var(--radius-md);
-}
-
-.correction-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-lg);
-}
-
-.correction-trigger p {
-  margin: 0;
-  color: var(--color-status-learning-text);
-}
-
-.correction-panel {
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--color-warning);
-}
-
-.panel-header h3 {
-  margin: var(--space-sm) 0;
-  color: var(--color-status-learning-text);
-}
-
-.gesture-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: var(--space-sm);
-  margin: var(--space-lg) 0;
-}
-
-.gesture-option {
-  padding: var(--space-md);
-  background: var(--color-surface);
-  border: 2px solid var(--color-outline);
-  border-radius: var(--radius-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  position: relative;
-  color: var(--color-text);
-  min-height: var(--touch-min);
-}
-
-.gesture-option:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  background: var(--color-surface-muted);
-}
-
-.gesture-option.selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-inverse-text);
-}
-
-.gesture-option:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.current-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: var(--font-size-micro);
-  padding: var(--space-xs);
-  background: var(--color-text-muted);
-  color: var(--color-inverse-text);
-  border-radius: var(--radius-sm);
 }
 
 /* ==========================================================================

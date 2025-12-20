@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGestureDetector } from '../hooks/useGestureDetector';
-import { CorrectionPanel } from './CorrectionPanel';
 import { useAppState } from '../hooks/useAppState';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
@@ -45,7 +44,6 @@ export function GestureRecorder() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
-  const [showCorrection, setShowCorrection] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>(() => {
     try {
       const persisted = window.localStorage.getItem('cameraFacingMode');
@@ -95,10 +93,6 @@ export function GestureRecorder() {
     }
   }, [lastGesture, recordGesture]);
 
-  useEffect(() => {
-    setShowCorrection(false);
-  }, [lastGesture]);
-
   const normalizedGesture = lastGesture?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
   const gestureMeaning = gestureKey ? gestureMeaningService.getMeaning(gestureKey) : undefined;
@@ -111,11 +105,6 @@ export function GestureRecorder() {
 
   const handleStart = async () => {
     await start();
-  };
-
-  const handleCorrection = (originalGesture: string, correctedGesture: string) => {
-    console.log(`Korrektur: ${originalGesture} → ${correctedGesture}`);
-    setShowCorrection(false);
   };
 
   const handleSwitchCamera = useCallback(async () => {
@@ -173,11 +162,6 @@ export function GestureRecorder() {
   const handleLearn = useCallback(() => {
     navigate('/lernen');
   }, [navigate]);
-
-  const handleAlternatives = useCallback(() => {
-    if (!gestureLabel) return;
-    setShowCorrection((prev) => !prev);
-  }, [gestureLabel]);
 
   const needsCameraStart = status === 'idle' || status === 'stopped' || status === 'error';
 
@@ -254,13 +238,6 @@ export function GestureRecorder() {
           >
             Lernen
           </button>
-          <button
-            className="gesture-screen__action gesture-screen__action--alt"
-            onClick={handleAlternatives}
-            disabled={!gestureLabel}
-          >
-            Alternativen
-          </button>
         </div>
 
         <div className="gesture-screen__meta">
@@ -294,17 +271,6 @@ export function GestureRecorder() {
           )}
           {error && <div className="gesture-screen__meta-error">{error}</div>}
         </div>
-
-        {showCorrection && (
-          <div className="gesture-screen__correction">
-            <CorrectionPanel
-              recognizedGesture={normalizedGesture || null}
-              onCorrection={handleCorrection}
-              forceOpen
-              onDismiss={() => setShowCorrection(false)}
-            />
-          </div>
-        )}
       </div>
     </section>
   );
