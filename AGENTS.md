@@ -66,6 +66,7 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
 - **Verify type checking** - no TypeScript errors
 - **Test the actual functionality** - don't assume it works because tests pass
 - **Check for integration issues** - ensure your changes work with existing features
+- **Fix pre-existing issues when in context** - If you're working in an area and notice pre-existing bugs, flaky tests, or performance issues that you can fix without changing scope, fix them. This improves overall project health and prevents future problems.
 
 ## LLM-Optimized Code Patterns
 
