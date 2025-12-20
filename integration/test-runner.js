@@ -6,9 +6,7 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.warn(
-  '\n`node integration/test-runner.js` is deprecated. Use `npm test --prefix integration` or `node integration/run-tests.mjs` instead.\n',
-);
+// Intentionally silent to keep CI output free of warnings.
 
 const passthroughArgs = process.argv
   .slice(2)

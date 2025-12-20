@@ -1,6 +1,6 @@
 import type { TrainingJobInfo, TrainingJobStatus } from './types';
 import { normalizeTrainingJobStatus } from './trainingBundle';
-import { HttpError } from '../utils/http';
+import { fetchWithRetry, HttpError } from '../utils/http';
 
 const STATUS_ALIASES: Record<string, TrainingJobStatus> = {
   queued: 'queued',
@@ -58,6 +58,8 @@ export function extractTrainingJob(payload: unknown): TrainingJobInfo | undefine
 
     const statusRaw = (candidate as { status?: unknown }).status;
     const pollUrlRaw = (candidate as { pollUrl?: unknown }).pollUrl;
+    const queueDepthRaw = (candidate as { queueDepth?: unknown }).queueDepth;
+    const retryAfterRaw = (candidate as { retryAfterMs?: unknown }).retryAfterMs;
     const normalizedStatus =
       normalizeStatus(statusRaw) ?? normalizeStatus((payload as { status?: unknown })?.status ?? '') ?? 'queued';
     const pollUrl = typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? pollUrlRaw.trim() : undefined;
@@ -66,6 +68,12 @@ export function extractTrainingJob(payload: unknown): TrainingJobInfo | undefine
       jobId: jobIdRaw.trim(),
       status: normalizedStatus,
       ...(pollUrl ? { pollUrl } : {}),
+      ...(typeof queueDepthRaw === 'number' && Number.isFinite(queueDepthRaw)
+        ? { queueDepth: queueDepthRaw }
+        : {}),
+      ...(typeof retryAfterRaw === 'number' && Number.isFinite(retryAfterRaw)
+        ? { retryAfterMs: retryAfterRaw }
+        : {}),
     } satisfies TrainingJobInfo;
   }
 
@@ -91,16 +99,29 @@ export async function triggerTrainingJob(
 
   const endpoint = `${base}/train-model`;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ trigger: 'bundles' }),
-    ...(signal ? { signal } : {}),
-  });
+  let response: Response;
+  try {
+    response = await fetchWithRetry(
+      endpoint,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ trigger: 'bundles' }),
+        ...(signal ? { signal } : {}),
+      },
+      { retries: 2, retryDelayMs: 400, timeoutMs: 15000 },
+    );
+  } catch (error) {
+    const message =
+      error instanceof DOMException && error.name === 'AbortError'
+        ? 'Trainings-Trigger wurde wegen einer Zeitüberschreitung abgebrochen.'
+        : 'Trainings-Trigger konnte wegen eines Netzwerkfehlers nicht ausgeführt werden.';
+    throw new Error(message);
+  }
 
   if (!response.ok) {
     throw new HttpError(response.status, `Training-Trigger fehlgeschlagen (HTTP ${response.status}).`);

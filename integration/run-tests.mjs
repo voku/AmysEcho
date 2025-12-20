@@ -13,6 +13,12 @@ const tsxPath = path.join(binDir, tsxExecutable);
 const rawArgs = process.argv.slice(2);
 
 const nodeFlags = [];
+const hasConcurrencyFlag = rawArgs.some(
+  (arg) => arg === '--test-concurrency' || arg.startsWith('--test-concurrency='),
+);
+if (!hasConcurrencyFlag) {
+  nodeFlags.push('--test-concurrency=1');
+}
 for (let i = 0; i < rawArgs.length; i += 1) {
   const arg = rawArgs[i];
   if (arg === '--grep') {
