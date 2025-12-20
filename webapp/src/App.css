@@ -45,6 +45,7 @@
   --color-gesture-overlay-soft: rgba(8, 32, 35, 0.5);
   --color-gesture-stopped-bg: rgba(12, 56, 60, 0.65);
   --color-gesture-pill-bg: rgba(255, 255, 255, 0.85);
+  --color-gesture-button-bg: rgba(255, 255, 255, 0.94);
   --color-gesture-border-light: rgba(255, 255, 255, 0.25);
   --color-gesture-border-medium: rgba(255, 255, 255, 0.2);
   --color-gesture-border-soft: rgba(255, 255, 255, 0.18);
@@ -667,8 +668,8 @@ p {
   gap: var(--space-md);
   align-items: center;
   flex-wrap: wrap;
-  background: rgba(8, 32, 35, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--color-gesture-overlay-light);
+  border: 1px solid var(--color-gesture-border-soft);
   border-radius: var(--radius-lg);
   padding: var(--space-sm) var(--space-md);
   backdrop-filter: blur(8px);
@@ -704,13 +705,13 @@ p {
 }
 
 .video-hud button:not(.primary):not(.secondary):not(.danger):not(.ghost) {
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--color-gesture-button-bg);
   color: var(--color-text);
 }
 
 .video-hud button.ghost {
-  background: rgba(8, 32, 35, 0.55);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--color-gesture-overlay-light);
+  border-color: var(--color-gesture-border-light);
   color: var(--color-inverse-text);
 }
 
@@ -718,13 +719,13 @@ p {
   background: rgba(255, 255, 255, 0.06);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--color-gesture-border-soft);
   color: var(--color-inverse-text);
 }
 
 .video-hud .ghost-inline {
-  background: rgba(8, 32, 35, 0.55);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--color-gesture-overlay-light);
+  border-color: var(--color-gesture-border-light);
 }
 
 .hud-controls {
