@@ -6,17 +6,6 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 
-const GESTURE_LABELS: Record<string, string> = {
-  thumbs_up: 'Ja',
-  thumbs_down: 'Nein',
-  open_palm: 'Hallo',
-  fist: 'Halt',
-  pointing_up: 'Da!',
-  victory: 'Spaß',
-  iloveyou: 'Liebhaben',
-  help: 'Hilfe',
-};
-
 function formatStatusLabel(status: string): string {
   switch (status) {
     case 'initializing':
@@ -97,10 +86,10 @@ export function GestureRecorder() {
   const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
   const gestureMeaning = gestureKey ? gestureMeaningService.getMeaning(gestureKey) : undefined;
   const gestureLabel = gestureKey
-    ? GESTURE_LABELS[gestureKey] ?? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
+    ? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
-    ? gestureMeaning?.audioText ?? GESTURE_LABELS[gestureKey] ?? gestureLabel ?? normalizedGesture
+    ? gestureMeaning?.audioText ?? gestureMeaning?.label ?? gestureLabel ?? normalizedGesture
     : '';
 
   const handleStart = async () => {
