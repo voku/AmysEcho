@@ -1,4 +1,5 @@
 import { useAppState } from '../hooks/useAppState';
+import { gestureMeaningService } from '../services/gestureMeaningService';
 
 /**
  * Displays a list of recently recognized gestures.
@@ -8,27 +9,26 @@ export function GestureHistory() {
   const { recentGestures, lastRecognizedGesture } = useAppState();
 
   const formatGestureLabel = (label: string): string => {
-    const mappings: Record<string, string> = {
+    // Try to get meaning from the service first
+    const meaning = gestureMeaningService.getMeaning(label.toLowerCase());
+    if (meaning) {
+      return meaning.label;
+    }
+
+    // Legacy fallback mappings for gestures not yet in the service
+    const legacyMappings: Record<string, string> = {
       'alle': 'Alle',
       'blau': 'Blau',
-      'essen': 'Essen',
-      'fertig': 'Fertig',
-      'gelb': 'Gelb',
       'gruen': 'Grün',
-      'nochmal': 'Nochmal',
+      'gelb': 'Gelb',
       'rot': 'Rot',
       'satt': 'Satt',
       'schwester': 'Schwester',
-      'spielen': 'Spielen',
-      'trinken': 'Trinken',
+      'nochmal': 'Nochmal',
       'HILFE': 'Hilfe',
-      'open_palm': 'Offene Hand',
-      'fist': 'Faust',
-      'pointing_up': 'Zeigen (hoch)',
-      'thumbs_up': 'Daumen hoch',
       'peace': 'Peace-Zeichen',
     };
-    return mappings[label] || label;
+    return legacyMappings[label] || label;
   };
 
   return (

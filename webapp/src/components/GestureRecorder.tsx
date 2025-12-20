@@ -6,6 +6,11 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 
+/**
+ * @deprecated Legacy gesture labels - kept for backward compatibility.
+ * New gestures should be added to gestureMeaningService instead.
+ * This mapping will be removed in a future version.
+ */
 const GESTURE_LABELS: Record<string, string> = {
   thumbs_up: 'Ja',
   thumbs_down: 'Nein',
@@ -97,10 +102,10 @@ export function GestureRecorder() {
   const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
   const gestureMeaning = gestureKey ? gestureMeaningService.getMeaning(gestureKey) : undefined;
   const gestureLabel = gestureKey
-    ? GESTURE_LABELS[gestureKey] ?? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
+    ? gestureMeaning?.label ?? GESTURE_LABELS[gestureKey] ?? toTitleCase(normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
-    ? gestureMeaning?.audioText ?? GESTURE_LABELS[gestureKey] ?? gestureLabel ?? normalizedGesture
+    ? gestureMeaning?.audioText ?? gestureMeaning?.label ?? GESTURE_LABELS[gestureKey] ?? gestureLabel ?? normalizedGesture
     : '';
 
   const handleStart = async () => {

@@ -48,6 +48,26 @@ const DEFAULT_MEANINGS: GestureMeaning[] = [
   { gestureId: 'bitte', label: 'Bitte', emoji: '🙏', category: 'kommunikation', color: '#FF6348', audioText: 'Bitte', priority: 2 },
   { gestureId: 'toilette', label: 'Toilette', emoji: '🚽', category: 'grundbedürfnisse', color: '#747D8C', audioText: 'Ich muss auf die Toilette', priority: 1 },
   { gestureId: 'wasser', label: 'Wasser', emoji: '💧', category: 'grundbedürfnisse', color: '#1E90FF', audioText: 'Ich möchte Wasser', priority: 1 },
+  
+  // Additional DGS signs for colors, family, and common expressions
+  { gestureId: 'alle', label: 'Alle', emoji: '👐', category: 'kommunikation', color: '#A55EEA', audioText: 'Alle', priority: 2 },
+  { gestureId: 'blau', label: 'Blau', emoji: '🔵', category: 'farben', color: '#3867D6', audioText: 'Blau', priority: 3 },
+  { gestureId: 'gelb', label: 'Gelb', emoji: '🟡', category: 'farben', color: '#FED330', audioText: 'Gelb', priority: 3 },
+  { gestureId: 'gruen', label: 'Grün', emoji: '🟢', category: 'farben', color: '#26DE81', audioText: 'Grün', priority: 3 },
+  { gestureId: 'rot', label: 'Rot', emoji: '🔴', category: 'farben', color: '#FC5C65', audioText: 'Rot', priority: 3 },
+  { gestureId: 'nochmal', label: 'Nochmal', emoji: '🔄', category: 'kommunikation', color: '#778BEB', audioText: 'Nochmal', priority: 2 },
+  { gestureId: 'satt', label: 'Satt', emoji: '😊', category: 'grundbedürfnisse', color: '#A8E6CF', audioText: 'Ich bin satt', priority: 2 },
+  { gestureId: 'schwester', label: 'Schwester', emoji: '👧', category: 'personen', color: '#FD79A8', audioText: 'Schwester', priority: 2 },
+  
+  // MediaPipe gesture recognizer outputs - map to meaningful DGS signs
+  { gestureId: 'thumbs_up', label: 'Ja', emoji: '👍', category: 'antworten', color: '#2ED573', audioText: 'Ja', priority: 1 },
+  { gestureId: 'thumbs_down', label: 'Nein', emoji: '👎', category: 'antworten', color: '#FF6B6B', audioText: 'Nein', priority: 1 },
+  { gestureId: 'open_palm', label: 'Hallo', emoji: '🖐️', category: 'begrüßung', color: '#FFA502', audioText: 'Hallo', priority: 2 },
+  { gestureId: 'fist', label: 'Halt', emoji: '✊', category: 'kommunikation', color: '#FF6348', audioText: 'Halt', priority: 2 },
+  { gestureId: 'pointing_up', label: 'Da!', emoji: '☝️', category: 'kommunikation', color: '#5352ED', audioText: 'Da', priority: 2 },
+  { gestureId: 'victory', label: 'Spaß', emoji: '✌️', category: 'emotionen', color: '#FFA502', audioText: 'Spaß', priority: 2 },
+  { gestureId: 'iloveyou', label: 'Liebhaben', emoji: '🤟', category: 'emotionen', color: '#FF6B81', audioText: 'Ich habe dich lieb', priority: 2 },
+  { gestureId: 'help', label: 'Hilfe', emoji: '🆘', category: 'kommunikation', color: '#FF4757', audioText: 'Ich brauche Hilfe', priority: 1 },
 ];
 
 /**
