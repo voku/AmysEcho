@@ -15,16 +15,8 @@ export function GestureHistory() {
       return meaning.label;
     }
 
-    // Legacy fallback mappings for gestures not yet in the service
+    // Legacy fallback mappings for gestures not in the service
     const legacyMappings: Record<string, string> = {
-      'alle': 'Alle',
-      'blau': 'Blau',
-      'gruen': 'Grün',
-      'gelb': 'Gelb',
-      'rot': 'Rot',
-      'satt': 'Satt',
-      'schwester': 'Schwester',
-      'nochmal': 'Nochmal',
       'HILFE': 'Hilfe',
       'peace': 'Peace-Zeichen',
     };

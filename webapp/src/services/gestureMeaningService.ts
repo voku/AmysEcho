@@ -60,6 +60,13 @@ const DEFAULT_MEANINGS: GestureMeaning[] = [
   { gestureId: 'schwester', label: 'Schwester', emoji: '👧', category: 'personen', color: '#FD79A8', audioText: 'Schwester', priority: 2 },
   
   // MediaPipe gesture recognizer outputs - map to meaningful DGS signs
+  // Note: Some MediaPipe outputs map to the same semantic meaning as existing DGS signs
+  // (e.g., thumbs_up → "Ja", which is the same as the 'ja' DGS sign).
+  // This is intentional: MediaPipe gesture IDs and DGS sign IDs serve different purposes:
+  // - MediaPipe IDs: Raw gesture recognizer output (what the camera sees)
+  // - DGS sign IDs: Semantic meanings for communication (what Amy wants to express)
+  // Having both allows the system to work whether the input is a MediaPipe detection
+  // or a semantic DGS sign selection.
   { gestureId: 'thumbs_up', label: 'Ja', emoji: '👍', category: 'antworten', color: '#2ED573', audioText: 'Ja', priority: 1 },
   { gestureId: 'thumbs_down', label: 'Nein', emoji: '👎', category: 'antworten', color: '#FF6B6B', audioText: 'Nein', priority: 1 },
   { gestureId: 'open_palm', label: 'Hallo', emoji: '🖐️', category: 'begrüßung', color: '#FFA502', audioText: 'Hallo', priority: 2 },
