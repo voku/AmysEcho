@@ -139,10 +139,8 @@ async function actuallyStartServer(attempt = 1) {
     detached: false, // Keep as subprocess to allow cleanup
   });
   
-  // Ensure server process doesn't prevent test exit
-  if (proc.unref) {
-    proc.unref();
-  }
+  // Unref the server so it doesn't prevent the test runner from exiting
+  proc.unref();
   
   // Keep server alive across multiple test files by preventing premature shutdown
   proc.on('exit', (code) => {
@@ -152,12 +150,12 @@ async function actuallyStartServer(attempt = 1) {
       refCount = 0;
     }
   });
-
-  // Track cleanup registered status globally
+  
+  // Register cleanup handler to kill server when test process exits
   if (!global.__serverCleanupRegistered) {
     global.__serverCleanupRegistered = true;
     
-    // Use 'exit' event instead of 'beforeExit' for more reliable cleanup
+    // Kill server when test process exits
     process.on('exit', () => {
       if (proc && !isLiveServer()) {
         try {
@@ -225,8 +223,8 @@ export async function startServer() {
 
 export async function stopServer() {
   refCount = Math.max(0, refCount - 1);
-  // Don't kill the server - keep it running for all tests
-  // The process exit handler will clean it up when all tests complete
+  // Don't kill the server - keep it running for all test files
+  // The process exit handler will clean it up when the test runner exits
   // This prevents ECONNREFUSED errors when tests run across multiple files
 }
 
