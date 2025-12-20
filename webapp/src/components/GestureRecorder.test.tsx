@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { GestureRecorder } from './GestureRecorder';
 import { AppStateProvider } from '../hooks/useAppState';
 
@@ -24,7 +25,11 @@ vi.mock('../hooks/useMlpModelInjection', () => ({
 }));
 
 const renderWithProviders = (ui: React.ReactElement) => {
-  return render(<AppStateProvider>{ui}</AppStateProvider>);
+  return render(
+    <MemoryRouter>
+      <AppStateProvider>{ui}</AppStateProvider>
+    </MemoryRouter>,
+  );
 };
 
 describe('GestureRecorder', () => {
@@ -35,28 +40,24 @@ describe('GestureRecorder', () => {
   it('renders the gesture demo section', () => {
     renderWithProviders(<GestureRecorder />);
 
-    expect(screen.getByText('Gestenrekorder')).toBeInTheDocument();
-    expect(screen.getByText('Gestenkamera')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Nimm deine Gesten direkt im Browser auf und probiere sie sofort aus\./)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Starte die Kamera und sieh dir im Protokoll an, wie deine Bewegungen erkannt werden\./)
-    ).toBeInTheDocument();
+    expect(screen.getByText('Bereit für die Kamera')).toBeInTheDocument();
+    expect(screen.getByText(/Profil/)).toBeInTheDocument();
+    expect(screen.getByText(/Standardgeste/)).toBeInTheDocument();
   });
 
-  it('shows camera control buttons', () => {
+  it('shows camera action buttons', () => {
     renderWithProviders(<GestureRecorder />);
 
     expect(screen.getByText('Kamera starten')).toBeInTheDocument();
-    expect(screen.getByText('Aufnahme stoppen')).toBeInTheDocument();
-    expect(screen.getByText('Neu aufsetzen')).toBeInTheDocument();
+    expect(screen.getByText('Stimmt')).toBeInTheDocument();
+    expect(screen.getByText('Lernen')).toBeInTheDocument();
+    expect(screen.getByText('Alternativen')).toBeInTheDocument();
   });
 
   it('shows overlay toggle checkbox', () => {
     renderWithProviders(<GestureRecorder />);
 
-    const overlayToggle = screen.getByLabelText('Overlay anzeigen');
+    const overlayToggle = screen.getByLabelText('Overlay');
     expect(overlayToggle).toBeInTheDocument();
     expect(overlayToggle).toBeChecked();
   });
@@ -64,36 +65,30 @@ describe('GestureRecorder', () => {
   it('toggles overlay visibility when checkbox is clicked', () => {
     renderWithProviders(<GestureRecorder />);
 
-    const overlayToggle = screen.getByLabelText('Overlay anzeigen') as HTMLInputElement;
+    const overlayToggle = screen.getByLabelText('Overlay') as HTMLInputElement;
     expect(overlayToggle.checked).toBe(true);
 
     fireEvent.click(overlayToggle);
     expect(overlayToggle.checked).toBe(false);
   });
 
+  it('shows placeholder when no gesture detected', () => {
+    renderWithProviders(<GestureRecorder />);
+
+    expect(screen.getByText('Zeige eine Geste in die Kamera…')).toBeInTheDocument();
+  });
+
   it('shows initial status as ready (Bereit)', () => {
     renderWithProviders(<GestureRecorder />);
 
-    expect(screen.getByText(/Live-Status:\s*Bereit/)).toBeInTheDocument();
-  });
-
-  it('shows "noch keine erkannt" when no gesture detected', () => {
-    renderWithProviders(<GestureRecorder />);
-
-    expect(screen.getByText('noch keine erkannt')).toBeInTheDocument();
-  });
-
-  it('shows empty message log initially', () => {
-    renderWithProviders(<GestureRecorder />);
-
-    expect(screen.getByText('Noch keine Bridge-Nachrichten.')).toBeInTheDocument();
+    expect(screen.getByText('Bereit für die Kamera')).toBeInTheDocument();
   });
 
   it('displays profile information', () => {
     renderWithProviders(<GestureRecorder />);
 
-    expect(screen.getByText(/Aktives Profil:/)).toBeInTheDocument();
-    expect(screen.getByText(/Standardlabel:/)).toBeInTheDocument();
+    expect(screen.getByText(/Profil/)).toBeInTheDocument();
+    expect(screen.getByText(/Standardgeste/)).toBeInTheDocument();
   });
 
   it('shows camera warning when camera is not supported', () => {

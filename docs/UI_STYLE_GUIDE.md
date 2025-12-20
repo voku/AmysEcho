@@ -16,8 +16,8 @@ This guide is a living document. Please update it with any new patterns or compo
 
 *   **Corners:** Rounded elements should feel friendly. Default radius is `8px`, with hero panels using `16px` or `20px`.
 *   **Shadows:** Use soft shadows (opacity ≤ 0.18) to lift interactive elements without overwhelming the calm UI.
-*   **Background:** `ScreenBackground` renders a gentle gradient from `#D1FAE5` to `#F0FDFA`. High-contrast mode swaps to pure black.
-*   **Text:** Primary copy uses `#0F172A`. Secondary copy uses `#475569`. On dark overlays use the `overlayText` palette values.
+*   **Background:** `ScreenBackground` renders a deep teal gradient from `#1C4A4B` to `#0F3A3B`. High-contrast mode swaps to pure black.
+*   **Text:** Primary copy uses `#0D1B1B`. Secondary copy uses `#476667`. On dark overlays use the `overlayText` palette values.
 
 ## 3. Color Palette
 
@@ -25,25 +25,25 @@ All values originate in `app/src/constants/colors.ts` and are re-exported for co
 
 | Color Token            | Hex Code  | Usage                                                           |
 | ---------------------- | --------- | --------------------------------------------------------------- |
-| **primary**            | `#14B8A6` | Primary actions, hero pills, confirmation badges.               |
-| **accent**             | `#EAB308` | Accent CTAs and alternative actions.                            |
-| **success**            | `#10B981` | Positive confirmations (e.g. gesture gefunden).                 |
-| **warning**            | `#F59E0B` | Encouraging warnings (e.g. Aufnahme braucht Ruhe).              |
-| **error**              | `#EF4444` | Critical errors only; soften copy when surfacing.               |
-| **backgroundStart**    | `#D1FAE5` | Gradient start in `ScreenBackground`.                           |
-| **backgroundEnd**      | `#F0FDFA` | Gradient end in `ScreenBackground`.                             |
-| **surface**            | `#FFFFFF` | Cards, hero panels, Amy-First commitment list.                  |
-| **surfaceMuted**       | `#F1F5F9` | Secondary panels or inactive states.                            |
-| **text**               | `#0F172A` | Primary typography color.                                       |
-| **textMuted**          | `#475569` | Secondary body text and helper hints.                           |
-| **inverseText**        | `#F8FAFC` | Text on primary buttons or dark overlays.                       |
-| **overlaySurface**     | `rgba(255,255,255,0.28)` | Recognition overlay backgrounds.               |
-| **overlaySurfaceMuted** | `rgba(255,255,255,0.18)` | Subtle overlay cards or inactive overlay panels. |
-| **overlayBorder**      | `rgba(255,255,255,0.35)` | Divider lines and outlines on overlays.         |
-| **overlayBadgeBackground** | `rgba(255,255,255,0.85)` | Active overlay badges (timeline + chips). |
-| **overlayBadgeText**   | `#0F172A` | Text/icon color on overlay badges.                           |
-| **overlayText**        | `#F9FAFB` | Primary text rendered over camera overlays.                  |
-| **overlayTextMuted**   | `#E2E8F0` | Secondary copy on overlays (e.g. hints).                     |
+| **primary**            | `#146C6E` | Primary actions, hero pills, confirmation badges.               |
+| **accent**             | `#F8F4E3` | Accent CTAs and alternative actions.                            |
+| **success**            | `#4CD964` | Positive confirmations (e.g. gesture gefunden).                 |
+| **warning**            | `#F3C969` | Encouraging warnings (e.g. Aufnahme braucht Ruhe).              |
+| **error**              | `#D9534F` | Critical errors only; soften copy when surfacing.               |
+| **backgroundStart**    | `#1C4A4B` | Gradient start in `ScreenBackground`.                           |
+| **backgroundEnd**      | `#0F3A3B` | Gradient end in `ScreenBackground`.                             |
+| **surface**            | `#F8F4E3` | Cards, hero panels, Amy-First commitment list.                  |
+| **surfaceMuted**       | `#E5E0CF` | Secondary panels or inactive states.                            |
+| **text**               | `#0D1B1B` | Primary typography color.                                       |
+| **textMuted**          | `#476667` | Secondary body text and helper hints.                           |
+| **inverseText**        | `#FFFFFF` | Text on primary buttons or dark overlays.                       |
+| **overlaySurface**     | `rgba(248,244,227,0.95)` | Recognition overlay backgrounds.               |
+| **overlaySurfaceMuted** | `rgba(229,224,207,0.88)` | Subtle overlay cards or inactive overlay panels. |
+| **overlayBorder**      | `rgba(229,224,207,0.45)` | Divider lines and outlines on overlays.         |
+| **overlayBadgeBackground** | `rgba(248,244,227,0.9)` | Active overlay badges (timeline + chips). |
+| **overlayBadgeText**   | `#0D1B1B` | Text/icon color on overlay badges.                           |
+| **overlayText**        | `#FFFFFF` | Primary text rendered over camera overlays.                  |
+| **overlayTextMuted**   | `rgba(255,255,255,0.75)` | Secondary copy on overlays (e.g. hints).                     |
 | **highContrastBackground** | `#000000` | Background when high-contrast mode enabled.          |
 | **highContrastText**   | `#FFFFFF` | Foreground text/icons in high-contrast mode.                    |
 
@@ -101,6 +101,15 @@ The `AmyLoopTimeline` component visualises the mission-critical communication lo
 Im Kamera-Overlay führen drei Buttons („Stimmt“, „Lernen“, „Alternativen“) durch die Schleife. Die Farben kommen aus `colors.ts` (`cameraActionConfirm*`, `cameraActionLearn*`, `cameraActionAlternatives*`). Sie kombinieren warme Töne (#E5E0CF) für Bestätigen mit tiefem Petrol (#25706F, #1C4A4B) für Lernpfade, um das Mockup widerzuspiegeln.
 
 **Lesbarkeit im Kamera-Overlay:** Statuszeilen, Metadaten und Buttons müssen auch bei hellem Kamera-Feed klar bleiben. Verwende dafür dunkle, halbtransparente HUD-Flächen (Glas-Optik), `overlayText`/`inverseText` als Textfarbe und klare Button-Hintergründe mit Schatten, damit die Aktionen auf dem Video jederzeit erkennbar bleiben.
+
+### Vollbild-Gestenkamera (Web)
+
+Die Web-Gestenkamera nutzt ein Vollbild-Layout, damit Hände und Oberkörper komplett sichtbar bleiben und Amy nicht durch Rahmen abgelenkt wird:
+
+* **Statuskapsel oben:** Zeigt „Ich höre zu…“, Initialisierung und Fehler klar und ruhig an, inkl. farbigem Punkt.
+* **Profilzeile im HUD:** Kleine, dezente Zeile für Profil und Standardgeste, damit Betreuungspersonen Kontext behalten.
+* **Unteres Steuerdock:** Erkennungs-Banner, die drei Hauptaktionen sowie optionales „Kamera starten“, falls die Erkennung pausiert ist.
+* **Korrekturfläche:** „Alternativen“ öffnet die Korrektur direkt im Dock, damit Amy im gleichen Fokus bleibt.
 
 ### Selbstentdeckungs-Ribbon
 
