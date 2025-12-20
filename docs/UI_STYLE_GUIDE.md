@@ -62,6 +62,7 @@ We use an 8-point grid system for spacing and layout. This means that all margin
 *   **Standard Padding:** `16px`
 *   **Component Spacing:** `24px`
 *   **Mobile Navigation Safe Area:** Ensure main content keeps enough bottom padding so fixed navigation never overlaps key controls on small screens.
+*   **Mobile Kamera-Ansicht:** Die Gestenerkennung nutzt auf kleinen Displays eine Vollbild-Kamera (edge-to-edge), damit Hände und Oberkörper frei sichtbar bleiben und Bedienelemente nicht die Mitte überdecken.
 
 Layouts should be center-aligned when possible to create a sense of balance and calm.
 

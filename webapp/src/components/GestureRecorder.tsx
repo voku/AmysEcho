@@ -140,7 +140,7 @@ export function GestureRecorder() {
   }, [facingMode, start, stop, status]);
 
   return (
-    <section className="card gesture-demo">
+    <section className="card gesture-demo gesture-demo-fullscreen">
       <div className="card-header">
         <div>
           <p className="eyebrow">Gestenkamera</p>
