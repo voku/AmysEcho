@@ -195,23 +195,18 @@ export async function startServer() {
 
 export async function stopServer() {
   refCount = Math.max(0, refCount - 1);
-  // Don't stop server between test files - keep it running for all tests
-  // Only the test runner process exit will actually stop the server
+  // Don't stop server between test files - only stop after the last test file
   if (refCount > 0) {
     return;
   }
 
-  // In multi-file test runs, keep server running even when refCount hits 0
-  // The server will be cleaned up on process exit
-  return;
-}
-
-// Ensure server is cleaned up on process exit
-process.on('exit', () => {
+  // All test files have finished, now we can stop the server
   if (proc && !isLiveServer()) {
-    proc.kill();
+    proc.kill('SIGTERM');
+    proc = null;
+    startPromise = null;
   }
-});
+}
 
 export function serverHeaders(extra = {}) {
   return {
