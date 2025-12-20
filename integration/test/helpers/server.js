@@ -133,8 +133,18 @@ async function actuallyStartServer(attempt = 1) {
       MLP_REQUIRE_MEDIAPIPE: '0',
       API_LIMIT: '1000', // Increase rate limit for integration tests
       MODEL_METADATA_LIMIT: '1000', // Increase model metadata rate limit for integration tests
+      NODE_ENV: 'test', // Set environment to test mode
     },
     stdio: ['ignore', 'ignore', 'ignore'],
+  });
+  
+  // Keep server alive across multiple test files by preventing premature shutdown
+  proc.on('exit', (code) => {
+    // If server exits unexpectedly, clear the cached promise so next startServer() will retry
+    if (code !== 0 && code !== null) {
+      startPromise = null;
+      refCount = 0;
+    }
   });
 
   const start = Date.now();
@@ -185,25 +195,23 @@ export async function startServer() {
 
 export async function stopServer() {
   refCount = Math.max(0, refCount - 1);
+  // Don't stop server between test files - keep it running for all tests
+  // Only the test runner process exit will actually stop the server
   if (refCount > 0) {
     return;
   }
 
-  if (isLiveServer()) {
-    startPromise = null;
-    return;
-  }
-
-  if (proc) {
-    proc.kill();
-    await once(proc, 'exit').catch(() => {});
-  }
-
-  proc = null;
-  startPromise = null;
-  await delay(200);
-  await cleanServerArtifacts();
+  // In multi-file test runs, keep server running even when refCount hits 0
+  // The server will be cleaned up on process exit
+  return;
 }
+
+// Ensure server is cleaned up on process exit
+process.on('exit', () => {
+  if (proc && !isLiveServer()) {
+    proc.kill();
+  }
+});
 
 export function serverHeaders(extra = {}) {
   return {
