@@ -1,5 +1,5 @@
 {
-  "manifestSha256": "b732adfe50e0afe7d45b34b43686e32e9322f7be3c3a978b9ef6f7c938b4c55d",
+  "manifestSha256": "bb3952e1977475035631b095d0742d38d21b3f1950e94f639222119e49e86f35",
   "hyperparameters": {
     "hiddenSize": 128,
     "learningRate": 0.01,
@@ -15,7 +15,7 @@
     "mediapipe": true,
     "opencv": true
   },
-  "generatedAt": "2025-12-19T23:20:39.921690Z",
+  "generatedAt": "2025-12-20T00:17:41.767450Z",
   "samples": 7,
   "profiles": [
     "demo",
