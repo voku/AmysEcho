@@ -6,7 +6,7 @@ import { BottomNav } from './BottomNav';
 describe('BottomNav', () => {
   it('renders all navigation items', () => {
     render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <BottomNav />
       </BrowserRouter>
     );
@@ -18,7 +18,7 @@ describe('BottomNav', () => {
 
   it('has navigation role with proper aria-label', () => {
     render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <BottomNav />
       </BrowserRouter>
     );
@@ -29,7 +29,7 @@ describe('BottomNav', () => {
 
   it('marks home route as active by default', () => {
     render(
-      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={['/']}>
         <BottomNav />
       </MemoryRouter>
     );
@@ -40,7 +40,7 @@ describe('BottomNav', () => {
 
   it('marks training route as active when on /training', () => {
     render(
-      <MemoryRouter initialEntries={['/training']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={['/training']}>
         <BottomNav />
       </MemoryRouter>
     );
@@ -51,7 +51,7 @@ describe('BottomNav', () => {
 
   it('marks info route as active when on /funktionen', () => {
     render(
-      <MemoryRouter initialEntries={['/funktionen']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={['/funktionen']}>
         <BottomNav />
       </MemoryRouter>
     );
@@ -62,7 +62,7 @@ describe('BottomNav', () => {
 
   it('renders SVG icons for each navigation item', () => {
     render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <BottomNav />
       </BrowserRouter>
     );
@@ -73,7 +73,7 @@ describe('BottomNav', () => {
 
   it('has correct links to all routes', () => {
     render(
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter>
         <BottomNav />
       </BrowserRouter>
     );

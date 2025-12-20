@@ -37,7 +37,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     try {
       const persisted = window.localStorage.getItem('cameraFacingMode');
       return persisted === 'user' || persisted === 'environment' ? persisted : 'user';
-    } catch (e) {
+    } catch {
       // localStorage might be disabled (e.g., in private browsing)
       return 'user';
     }
@@ -349,7 +349,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     // Persist to localStorage
     try {
       window.localStorage.setItem('cameraFacingMode', newFacingMode);
-    } catch (e) {
+    } catch {
       // localStorage might be disabled
     }
     
@@ -385,7 +385,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         // Revert facing mode if switch failed
         try {
           window.localStorage.setItem('cameraFacingMode', facingMode);
-        } catch (e) {
+        } catch {
           // localStorage might be disabled
         }
         (window as any).__facingMode = facingMode;

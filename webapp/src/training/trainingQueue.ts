@@ -393,7 +393,7 @@ export async function removeQueuedBundle(key: string): Promise<void> {
   if (opfsRoot) {
     try {
       await opfsRoot.removeEntry(key);
-    } catch (error) {
+    } catch {
       // Datei existiert eventuell nicht im OPFS (z. B. nur in IndexedDB gespeichert)
     }
   }

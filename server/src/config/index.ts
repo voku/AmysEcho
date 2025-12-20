@@ -5,6 +5,7 @@ export interface ServerConfig {
   port: number;
   nodeEnv: string;
   apiLimit: number;
+  modelMetadataLimit: number;
   mlpScript: string;
   trainingTimeoutMs: number;
   backupSecret: string;
@@ -39,6 +40,7 @@ export const config: ServerConfig = {
   port: getEnvVarAsNumber('PORT', 5000),
   nodeEnv: getEnvVar('NODE_ENV', 'development'),
   apiLimit: getEnvVarAsNumber('API_LIMIT', 120),
+  modelMetadataLimit: getEnvVarAsNumber('MODEL_METADATA_LIMIT', 10),
   mlpScript: getEnvVar('MLP_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
   trainingTimeoutMs: getEnvVarAsNumber('TRAINING_JOB_TIMEOUT_MS', 300_000),
   backupSecret: getEnvVar('BACKUP_SECRET', 'default-secret-password'),

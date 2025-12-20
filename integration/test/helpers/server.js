@@ -131,13 +131,49 @@ async function actuallyStartServer(attempt = 1) {
       MLP_MIN_SAMPLES_PER_LABEL: '1',
       MLP_MIN_SAMPLES_PER_PROFILE: '1',
       MLP_REQUIRE_MEDIAPIPE: '0',
+      API_LIMIT: '1000', // Increase rate limit for integration tests
+      MODEL_METADATA_LIMIT: '1000', // Increase model metadata rate limit for integration tests
+      NODE_ENV: 'test', // Set environment to test mode
     },
     stdio: ['ignore', 'ignore', 'ignore'],
+    detached: false, // Keep as subprocess to allow cleanup
   });
+  
+  // Unref the server process so it doesn't prevent the test runner from exiting
+  // The server will stay alive as long as the Node.js process is running
+  proc.unref();
+  
+  // Keep server alive across multiple test files by preventing premature shutdown
+  proc.on('exit', (code) => {
+    // If server exits unexpectedly, clear the cached promise so next startServer() will retry
+    if (code !== 0 && code !== null) {
+      startPromise = null;
+      refCount = 0;
+    }
+  });
+  
+  // Register cleanup handler to kill server when test process exits
+  if (!global.__serverCleanupRegistered) {
+    global.__serverCleanupRegistered = true;
+    
+    // Use beforeExit to allow all test files to complete before cleanup
+    process.on('beforeExit', () => {
+      if (proc && !isLiveServer()) {
+        try {
+          proc.kill('SIGTERM');
+          proc = null;
+          startPromise = null;
+        } catch {
+          // Process may already be dead
+        }
+      }
+    });
+  }
 
   const start = Date.now();
-  const timeoutMs = 30_000;
-  while (Date.now() - start < timeoutMs) {
+  const timeoutMs = 40_000;
+  let serverReady = false;
+  while (Date.now() - start < timeoutMs && !serverReady) {
     if (proc.exitCode !== null) {
       if (attempt < 2) {
         await delay(500);
@@ -145,12 +181,17 @@ async function actuallyStartServer(attempt = 1) {
       }
       throw new Error(`server exited ${proc.exitCode}`);
     }
-    await waitForServerReady(`http://localhost:${TEST_PORT}`, serverHeaders()).catch(() => {});
-    if (proc.exitCode === null) {
-      return;
+    try {
+      await waitForServerReady(`http://localhost:${TEST_PORT}`, serverHeaders());
+      serverReady = true;
+    } catch {
+      // Server not ready yet, continue waiting
+      await delay(100);
     }
   }
-  throw new Error('server start timeout');
+  if (!serverReady) {
+    throw new Error('server start timeout');
+  }
 }
 
 export async function startServer() {
@@ -165,6 +206,14 @@ export async function startServer() {
     }
     return startPromise;
   }
+  
+  // Check if we have a cached promise but the server process is dead or missing
+  if (startPromise && (!proc || proc.exitCode !== null)) {
+    // Server died or was cleaned up, reset everything and restart
+    startPromise = null;
+    proc = null;
+  }
+  
   if (!startPromise) {
     startPromise = actuallyStartServer().catch((error) => {
       startPromise = null;
@@ -177,24 +226,8 @@ export async function startServer() {
 
 export async function stopServer() {
   refCount = Math.max(0, refCount - 1);
-  if (refCount > 0) {
-    return;
-  }
-
-  if (isLiveServer()) {
-    startPromise = null;
-    return;
-  }
-
-  if (proc) {
-    proc.kill();
-    await once(proc, 'exit').catch(() => {});
-  }
-
-  proc = null;
-  startPromise = null;
-  await delay(200);
-  await cleanServerArtifacts();
+  // Keep the server alive across all test files
+  // The process exit handler will clean it up when the test runner fully exits
 }
 
 export function serverHeaders(extra = {}) {

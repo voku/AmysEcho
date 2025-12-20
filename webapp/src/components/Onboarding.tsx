@@ -65,7 +65,7 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
     }
   }, [data, setProfileId, onComplete]);
 
-  const steps: Record<OnboardingStep, JSX.Element> = {
+  const steps: Record<OnboardingStep, React.JSX.Element> = {
     welcome: (
       <div className="onboarding-step">
         <div className="onboarding-icon">❤️</div>

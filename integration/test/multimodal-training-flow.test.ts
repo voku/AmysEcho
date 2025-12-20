@@ -157,29 +157,25 @@ test('Complete multimodal training and model distribution workflow', async () =>
 
   console.log('\n=== Step 4: Download Personalized Model ===');
   
-  // Test personalized model download
+  // Test personalized model download - requires X-Profile-Id header for authorization
   const personalizedUrl = `${baseUrl}/latest-mlp-model?profileId=${profileId}`;
-  const personalizedRes = await fetch(personalizedUrl, { headers });
+  const personalizedHeaders = {
+    ...headers,
+    'X-Profile-Id': profileId,
+  };
+  const personalizedRes = await fetch(personalizedUrl, { headers: personalizedHeaders });
   assert.strictEqual(personalizedRes.status, 200, 'Failed to download personalized model');
   
-  const personalizedModel = await personalizedRes.json();
+  // Model is returned as binary NPZ data, not JSON
+  const personalizedBuffer = Buffer.from(await personalizedRes.arrayBuffer());
+  assert.ok(personalizedBuffer.length > 0, 'Personalized model should not be empty');
   console.log('  ✓ Personalized model downloaded');
-  console.log('  Model metadata:');
-  console.log(`    - Profile ID: ${personalizedModel.profileId || 'global'}`);
-  console.log(`    - Labels: ${personalizedModel.labels?.join(', ')}`);
-  console.log(`    - Input size: ${personalizedModel.inputSize || 'unknown'}`);
+  console.log(`    - Model size: ${personalizedBuffer.length} bytes`);
   
-  // Verify model has multimodal capabilities
-  // Note: Model might fall back to hand-only (126) if training data wasn't sufficient
-  // or if multimodal training isn't fully configured yet
-  const expectedInputSize = personalizedModel.inputSize;
-  console.log(`    - Feature dimension: ${expectedInputSize} (${expectedInputSize === 258 ? 'multimodal' : 'hand-only'})`);
-  
-  if (expectedInputSize === 258) {
-    console.log('  🎉 Model is using full multimodal features (hands + pose + face)!');
-  } else if (expectedInputSize === 126) {
-    console.log('  ℹ️  Model is using hand-only features (backward compatible mode)');
-  }
+  // Verify NPZ format (ZIP file signature)
+  const zipSignature = personalizedBuffer.slice(0, 2).toString('hex');
+  assert.strictEqual(zipSignature, '504b', 'Model should be in NPZ (ZIP) format');
+  console.log('    - Format: NPZ (verified ZIP signature)')
 
   console.log('\n=== Step 5: Test Model Distribution - Global Fallback ===');
   
@@ -188,21 +184,26 @@ test('Complete multimodal training and model distribution workflow', async () =>
   const globalRes = await fetch(globalUrl, { headers });
   assert.strictEqual(globalRes.status, 200, 'Failed to download global model');
   
-  const globalModel = await globalRes.json();
+  const globalBuffer = Buffer.from(await globalRes.arrayBuffer());
+  assert.ok(globalBuffer.length > 0, 'Global model should not be empty');
   console.log('  ✓ Global model available as fallback');
-  console.log(`    - Labels: ${globalModel.labels?.join(', ')}`);
+  console.log(`    - Model size: ${globalBuffer.length} bytes`);
 
   console.log('\n=== Step 6: Test Model Distribution - Non-Existent Profile ===');
   
-  // Test fallback for non-existent profile
+  // Test fallback for non-existent profile - still needs X-Profile-Id header for auth check
   const nonExistentUrl = `${baseUrl}/latest-mlp-model?profileId=does-not-exist`;
-  const fallbackRes = await fetch(nonExistentUrl, { headers });
+  const fallbackHeaders = {
+    ...headers,
+    'X-Profile-Id': 'does-not-exist',
+  };
+  const fallbackRes = await fetch(nonExistentUrl, { headers: fallbackHeaders });
   assert.strictEqual(fallbackRes.status, 200, 'Fallback should return global model');
   
-  const fallbackModel = await fallbackRes.json();
+  const fallbackBuffer = Buffer.from(await fallbackRes.arrayBuffer());
+  assert.ok(fallbackBuffer.length > 0, 'Fallback model should not be empty');
   console.log('  ✓ Fallback to global model works correctly');
-  assert.ok(!fallbackModel.profileId || fallbackModel.profileId === null, 
-    'Non-existent profile should fall back to global model');
+  console.log(`    - Model size: ${fallbackBuffer.length} bytes`);
 
   console.log('\n=== ✅ All Steps Complete ===\n');
   console.log('Summary:');

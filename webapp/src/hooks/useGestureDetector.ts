@@ -82,7 +82,7 @@ function parseIncomingMessage(raw: string): GestureMessage | null {
       receivedAt: Date.now(),
       count: 1,
     };
-  } catch (error) {
+  } catch {
     return {
       type: UNKNOWN_TYPE,
       summary: 'Konnte Meldung nicht lesen',
@@ -94,8 +94,8 @@ function parseIncomingMessage(raw: string): GestureMessage | null {
 }
 
 export function useGestureDetector(
-  videoRef: React.RefObject<HTMLVideoElement>,
-  overlayRef: React.RefObject<HTMLCanvasElement>,
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  overlayRef: React.RefObject<HTMLCanvasElement | null>,
   options: GestureHookOptions = {},
 ): GestureHookResult {
   const [status, setStatus] = useState<GestureStatus>('idle');
