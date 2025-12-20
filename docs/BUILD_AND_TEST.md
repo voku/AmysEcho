@@ -75,7 +75,7 @@ Integration tests verify that the Node server and webapp API clients work togeth
 npm test --prefix integration
 ```
 
-The tests will build the server and exercise key endpoints. They are also executed by `./scripts/full-check.sh`.
+The tests will build the server and exercise key endpoints. The integration runner forces `node --test` to use a single worker (`--test-concurrency=1`) so the shared test server stays stable. They are also executed by `./scripts/full-check.sh`.
 
 ## Production Deployment
 

@@ -1,6 +1,6 @@
 import { zipSync } from 'fflate';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks, framesHaveHandLandmarks } from './handUtils';
-import { HttpError } from '../utils/http';
+import { fetchWithRetry, HttpError } from '../utils/http';
 import type {
   TrainingBundlePayload,
   TrainingFrame,
@@ -167,6 +167,8 @@ export function parseTrainingJob(raw: unknown): TrainingJobInfo | undefined {
   const statusRaw = (raw as { status?: unknown }).status;
   const status = normalizeTrainingJobStatus(typeof statusRaw === 'string' ? statusRaw : '');
   const pollUrlRaw = (raw as { pollUrl?: unknown }).pollUrl;
+  const queueDepthRaw = (raw as { queueDepth?: unknown }).queueDepth;
+  const retryAfterRaw = (raw as { retryAfterMs?: unknown }).retryAfterMs;
   const progressRaw = (raw as { progress?: unknown }).progress;
   const messageRaw = (raw as { message?: unknown }).message;
   const errorRaw = (raw as { error?: unknown }).error;
@@ -181,6 +183,8 @@ export function parseTrainingJob(raw: unknown): TrainingJobInfo | undefined {
     jobId: jobId.trim(),
     status: status ?? 'queued',
     ...(typeof pollUrlRaw === 'string' && pollUrlRaw.trim().length > 0 ? { pollUrl: pollUrlRaw.trim() } : {}),
+    ...(typeof queueDepthRaw === 'number' && Number.isFinite(queueDepthRaw) ? { queueDepth: queueDepthRaw } : {}),
+    ...(typeof retryAfterRaw === 'number' && Number.isFinite(retryAfterRaw) ? { retryAfterMs: retryAfterRaw } : {}),
     ...(typeof progressRaw === 'number' && Number.isFinite(progressRaw) ? { progress: progressRaw } : {}),
     ...(typeof messageRaw === 'string' && messageRaw.trim().length > 0 ? { message: messageRaw.trim() } : {}),
     ...(typeof errorRaw === 'string' && errorRaw.trim().length > 0 ? { error: errorRaw.trim() } : {}),
@@ -287,15 +291,28 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
   const zipView = new Uint8Array(zip);
   const body = new Blob([zipView], { type: 'application/zip' });
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/zip',
-      Accept: 'application/json',
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-    },
-    body,
-  });
+  let response: Response;
+  try {
+    response = await fetchWithRetry(
+      endpoint,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/zip',
+          Accept: 'application/json',
+          ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        },
+        body,
+      },
+      { retries: 2, retryDelayMs: 400, timeoutMs: 20000 },
+    );
+  } catch (error) {
+    const message =
+      error instanceof DOMException && error.name === 'AbortError'
+        ? 'Upload wurde wegen einer Zeitüberschreitung abgebrochen.'
+        : 'Upload konnte wegen eines Netzwerkfehlers nicht abgeschlossen werden.';
+    throw new Error(message);
+  }
 
   if (!response.ok) {
     throw new HttpError(response.status, `Upload fehlgeschlagen (HTTP ${response.status}).`);
