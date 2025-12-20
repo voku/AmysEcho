@@ -7,15 +7,15 @@ Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen-Sch
 ## 1. Onboarding & Profile Creation (HIP&nbsp;1)
 - **Story**: As a caregiver, I want to set up the profile and preferences for Amy’s Echo the first time we open the app.
 - **Flow**:
-  1. Launching the app shows the four-step **Onboarding** wizard (Name → Zugänglichkeit → Einverständnis → Vokabular).
-  2. Jede Stufe bestätigt Amy’s Echo per Emoji und erklärt, wie sich die Auswahl auf die Erfahrung des Kindes auswirkt.
+  1. Launching the app shows the two-step **Onboarding** wizard (Willkommen → Name).
+  2. Amy’s Echo bestätigt den Abschluss mit Emoji und leitet direkt in den Kamera-Flow weiter.
   3. Nach Abschluss wird das Profil gespeichert und die App navigiert zur **ProfileManager**- bzw. **Tutorial**-Sequenz.
 
 ## 2. Selecting a Profile
 - **Story**: As Amy or her caregiver, I want to choose who is using the app.
 - **Flow**:
   1. From **ProfileManager** oder **ProfileSelect** ein bestehendes Profil auswählen.
-  2. Die barrierefreien Einstellungen werden geladen und die App landet im Tab **Kamera** (Recognition).
+  2. Das Profil wird geladen und die App landet im Tab **Kamera** (Recognition).
   3. Weitere Optionen wie Familienbereich, Einstellungen oder Admin werden über die `WorkflowSupportLinks` nach dem Sicherheitsgate geöffnet.
   4. Fortgeschrittene Betreuungstools (vertrauenswürdiges Gerät, Gestengrößen-Toleranz, Erfolgsfeedback, Gestenverlauf) sind in aufklappbaren Abschnitten gebündelt, damit die Profilübersicht jederzeit sichtbar bleibt.
 

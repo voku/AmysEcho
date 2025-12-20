@@ -2468,58 +2468,6 @@ p {
   margin-top: var(--space-2xl);
 }
 
-.onboarding-toggles {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  max-width: 300px;
-  margin: var(--space-xl) auto;
-}
-
-.toggle-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-md) var(--space-lg);
-  background: var(--color-overlay-surface);
-  border-radius: var(--radius-md);
-  min-height: var(--touch-min);
-}
-
-.consent-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  margin: var(--space-xl) 0;
-}
-
-.vocabulary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-md);
-  margin: var(--space-xl) 0;
-}
-
-.vocabulary-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: var(--color-surface);
-  border: 2px solid transparent;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.vocabulary-option.selected {
-  border-color: var(--color-primary);
-  background: var(--color-overlay-surface-muted);
-}
-
-.vocabulary-option input {
-  margin-top: 0.25rem;
-}
-
 /* Learning Hub styles */
 .learning-stats {
   display: flex;

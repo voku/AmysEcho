@@ -2,22 +2,7 @@ import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 
-type OnboardingStep = 'welcome' | 'name' | 'accessibility' | 'consent' | 'vocabulary' | 'complete';
-
-interface OnboardingData {
-  profileName: string;
-  largeText: boolean;
-  highContrast: boolean;
-  analyticsConsent: boolean;
-  vocabulary: string;
-}
-
-const VOCABULARY_SETS = [
-  { id: 'basics', label: 'Basis', description: 'Essen, Trinken, Spielen, etc.' },
-  { id: 'colors', label: 'Farben', description: 'Rot, Blau, Gelb, Grün, etc.' },
-  { id: 'family', label: 'Familie', description: 'Mama, Papa, Schwester, etc.' },
-  { id: 'emotions', label: 'Gefühle', description: 'Glücklich, Traurig, Müde, etc.' },
-];
+type OnboardingStep = 'welcome' | 'name' | 'complete';
 
 /**
  * Onboarding component - mirrors OnboardingScreen from the Expo app.
@@ -26,17 +11,7 @@ const VOCABULARY_SETS = [
 export function Onboarding({ onComplete }: { onComplete?: () => void }) {
   const { setProfileId } = useAppState();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  const [data, setData] = useState<OnboardingData>({
-    profileName: '',
-    largeText: false,
-    highContrast: false,
-    analyticsConsent: false,
-    vocabulary: 'basics',
-  });
-
-  const updateData = useCallback(<K extends keyof OnboardingData>(key: K, value: OnboardingData[K]) => {
-    setData((prev) => ({ ...prev, [key]: value }));
-  }, []);
+  const [profileName, setProfileName] = useState('');
 
   const goToStep = useCallback((step: OnboardingStep) => {
     setCurrentStep(step);
@@ -44,18 +19,9 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
 
   const handleComplete = useCallback(() => {
     // Save profile
-    const profileId = data.profileName.trim() || 'amy';
+    const profileId = profileName.trim() || 'amy';
     setProfileId(profileId);
     
-    // Save settings to localStorage
-    const settings = {
-      largeText: data.largeText,
-      highContrast: data.highContrast,
-      analyticsConsent: data.analyticsConsent,
-      vocabulary: data.vocabulary,
-      onboardingComplete: true,
-    };
-    localStorage.setItem('webapp:settings', JSON.stringify(settings));
     localStorage.setItem('webapp:onboarding-complete', 'true');
     
     setCurrentStep('complete');
@@ -63,7 +29,7 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
     if (onComplete) {
       onComplete();
     }
-  }, [data, setProfileId, onComplete]);
+  }, [profileName, setProfileId, onComplete]);
 
   const steps: Record<OnboardingStep, React.JSX.Element> = {
     welcome: (
@@ -101,113 +67,12 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
         <input
           type="text"
           placeholder="Dein Name (optional)"
-          value={data.profileName}
-          onChange={(e) => updateData('profileName', e.target.value)}
+          value={profileName}
+          onChange={(e) => setProfileName(e.target.value)}
           className="onboarding-input"
         />
         <div className="onboarding-buttons">
           <button className="ghost" onClick={() => goToStep('welcome')}>
-            Zurück
-          </button>
-          <button className="primary" onClick={() => goToStep('accessibility')}>
-            Weiter
-          </button>
-        </div>
-      </div>
-    ),
-
-    accessibility: (
-      <div className="onboarding-step">
-        <div className="onboarding-icon">🫶</div>
-        <h2>Barrierefreiheit</h2>
-        <p className="muted">
-          Passe Schriftgröße und Kontrast an, damit die Oberfläche überall klar erkennbar ist.
-        </p>
-        <div className="onboarding-toggles">
-          <label className="toggle-item">
-            <span>Große Schrift</span>
-            <input
-              type="checkbox"
-              checked={data.largeText}
-              onChange={(e) => updateData('largeText', e.target.checked)}
-            />
-          </label>
-          <label className="toggle-item">
-            <span>Hoher Kontrast</span>
-            <input
-              type="checkbox"
-              checked={data.highContrast}
-              onChange={(e) => updateData('highContrast', e.target.checked)}
-            />
-          </label>
-        </div>
-        <div className="onboarding-buttons">
-          <button className="ghost" onClick={() => goToStep('name')}>
-            Zurück
-          </button>
-          <button className="primary" onClick={() => goToStep('consent')}>
-            Weiter
-          </button>
-        </div>
-      </div>
-    ),
-
-    consent: (
-      <div className="onboarding-step">
-        <div className="onboarding-icon">🛡️</div>
-        <h2>Anonyme Nutzungsdaten</h2>
-        <p className="muted">
-          Mit deiner Freigabe trainieren wir die Modelle anonym weiter – nie persönliche Daten, 
-          nur bessere Gesten für alle.
-        </p>
-        <label className="consent-toggle">
-          <input
-            type="checkbox"
-            checked={data.analyticsConsent}
-            onChange={(e) => updateData('analyticsConsent', e.target.checked)}
-          />
-          <span>Ich stimme der anonymen Datennutzung zu</span>
-        </label>
-        <div className="onboarding-buttons">
-          <button className="ghost" onClick={() => goToStep('accessibility')}>
-            Zurück
-          </button>
-          <button className="primary" onClick={() => goToStep('vocabulary')}>
-            Weiter
-          </button>
-        </div>
-      </div>
-    ),
-
-    vocabulary: (
-      <div className="onboarding-step">
-        <div className="onboarding-icon">💬</div>
-        <h2>Wortfeld auswählen</h2>
-        <p className="muted">
-          Starte mit dem Vokabular, das euren Alltag sofort erleichtert. Weitere Sets lassen sich jederzeit ergänzen.
-        </p>
-        <div className="vocabulary-grid">
-          {VOCABULARY_SETS.map((vocab) => (
-            <label
-              key={vocab.id}
-              className={`vocabulary-option ${data.vocabulary === vocab.id ? 'selected' : ''}`}
-            >
-              <input
-                type="radio"
-                name="vocabulary"
-                value={vocab.id}
-                checked={data.vocabulary === vocab.id}
-                onChange={(e) => updateData('vocabulary', e.target.value)}
-              />
-              <div>
-                <strong>{vocab.label}</strong>
-                <p className="muted small">{vocab.description}</p>
-              </div>
-            </label>
-          ))}
-        </div>
-        <div className="onboarding-buttons">
-          <button className="ghost" onClick={() => goToStep('consent')}>
             Zurück
           </button>
           <button className="primary" onClick={handleComplete}>
@@ -234,11 +99,11 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
   return (
     <section className="card onboarding-card">
       <div className="onboarding-progress">
-        {(['welcome', 'name', 'accessibility', 'consent', 'vocabulary'] as OnboardingStep[]).map((step, index) => (
+        {(['welcome', 'name'] as OnboardingStep[]).map((step, index) => (
           <div
             key={step}
             className={`progress-dot ${currentStep === step ? 'active' : ''} ${
-              ['welcome', 'name', 'accessibility', 'consent', 'vocabulary'].indexOf(currentStep) > index ? 'completed' : ''
+              ['welcome', 'name'].indexOf(currentStep) > index ? 'completed' : ''
             }`}
           />
         ))}
