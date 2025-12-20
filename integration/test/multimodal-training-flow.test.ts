@@ -191,9 +191,13 @@ test('Complete multimodal training and model distribution workflow', async () =>
 
   console.log('\n=== Step 6: Test Model Distribution - Non-Existent Profile ===');
   
-  // Test fallback for non-existent profile
+  // Test fallback for non-existent profile - still needs X-Profile-Id header for auth check
   const nonExistentUrl = `${baseUrl}/latest-mlp-model?profileId=does-not-exist`;
-  const fallbackRes = await fetch(nonExistentUrl, { headers });
+  const fallbackHeaders = {
+    ...headers,
+    'X-Profile-Id': 'does-not-exist',
+  };
+  const fallbackRes = await fetch(nonExistentUrl, { headers: fallbackHeaders });
   assert.strictEqual(fallbackRes.status, 200, 'Fallback should return global model');
   
   const fallbackBuffer = Buffer.from(await fallbackRes.arrayBuffer());

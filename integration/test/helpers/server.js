@@ -205,6 +205,14 @@ export async function startServer() {
     }
     return startPromise;
   }
+  
+  // Check if we have a cached promise but the server process is dead or missing
+  if (startPromise && (!proc || proc.exitCode !== null)) {
+    // Server died or was cleaned up, reset everything and restart
+    startPromise = null;
+    proc = null;
+  }
+  
   if (!startPromise) {
     startPromise = actuallyStartServer().catch((error) => {
       startPromise = null;
@@ -217,8 +225,9 @@ export async function startServer() {
 
 export async function stopServer() {
   refCount = Math.max(0, refCount - 1);
-  // Keep server running - will be cleaned up by process exit handler
-  // This prevents issues with server shutdown while tests are still running
+  // Don't kill the server - keep it running for all tests
+  // The process exit handler will clean it up when all tests complete
+  // This prevents ECONNREFUSED errors when tests run across multiple files
 }
 
 export function serverHeaders(extra = {}) {
