@@ -34,6 +34,7 @@ data/amy_model.npz
 server/data/uploads/
 server/data/dgs_samples.json
 server/data/datasets/training_manifest.json
+server/data/models/training_metadata.json
 server/db.json
 # code coverage
 app/coverage/

@@ -136,7 +136,13 @@ async function actuallyStartServer(attempt = 1) {
       NODE_ENV: 'test', // Set environment to test mode
     },
     stdio: ['ignore', 'ignore', 'ignore'],
+    detached: false, // Keep as subprocess to allow cleanup
   });
+  
+  // Ensure server process doesn't prevent test exit
+  if (proc.unref) {
+    proc.unref();
+  }
   
   // Keep server alive across multiple test files by preventing premature shutdown
   proc.on('exit', (code) => {
@@ -147,11 +153,18 @@ async function actuallyStartServer(attempt = 1) {
     }
   });
 
-  // Register cleanup handler to stop server when all tests complete
-  if (!process.listenerCount('beforeExit')) {
-    process.on('beforeExit', () => {
+  // Track cleanup registered status globally
+  if (!global.__serverCleanupRegistered) {
+    global.__serverCleanupRegistered = true;
+    
+    // Use 'exit' event instead of 'beforeExit' for more reliable cleanup
+    process.on('exit', () => {
       if (proc && !isLiveServer()) {
-        proc.kill('SIGTERM');
+        try {
+          proc.kill('SIGTERM');
+        } catch {
+          // Process may already be dead
+        }
       }
     });
   }
