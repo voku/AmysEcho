@@ -147,6 +147,15 @@ async function actuallyStartServer(attempt = 1) {
     }
   });
 
+  // Register cleanup handler to stop server when all tests complete
+  if (!process.listenerCount('beforeExit')) {
+    process.on('beforeExit', () => {
+      if (proc && !isLiveServer()) {
+        proc.kill('SIGTERM');
+      }
+    });
+  }
+
   const start = Date.now();
   const timeoutMs = 40_000;
   let serverReady = false;
@@ -195,17 +204,8 @@ export async function startServer() {
 
 export async function stopServer() {
   refCount = Math.max(0, refCount - 1);
-  // Don't stop server between test files - only stop after the last test file
-  if (refCount > 0) {
-    return;
-  }
-
-  // All test files have finished, now we can stop the server
-  if (proc && !isLiveServer()) {
-    proc.kill('SIGTERM');
-    proc = null;
-    startPromise = null;
-  }
+  // Keep server running - will be cleaned up by process exit handler
+  // This prevents issues with server shutdown while tests are still running
 }
 
 export function serverHeaders(extra = {}) {
