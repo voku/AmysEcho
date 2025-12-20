@@ -1,29 +1,49 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGestureDetector } from '../hooks/useGestureDetector';
-import { CorrectionPanel } from './CorrectionPanel';
 import { useAppState } from '../hooks/useAppState';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
+import { audioService } from '../services/audioService';
+import { gestureMeaningService } from '../services/gestureMeaningService';
 
-function formatStatus(status: string): string {
+const GESTURE_LABELS: Record<string, string> = {
+  thumbs_up: 'Ja',
+  thumbs_down: 'Nein',
+  open_palm: 'Hallo',
+  fist: 'Halt',
+  pointing_up: 'Da!',
+  victory: 'Spaß',
+  iloveyou: 'Liebhaben',
+  help: 'Hilfe',
+};
+
+function formatStatusLabel(status: string): string {
   switch (status) {
     case 'initializing':
-      return 'Initialisierung läuft…';
+      return 'Kamera wird vorbereitet…';
     case 'running':
-      return 'Erkennung aktiv';
+      return 'Ich höre zu…';
     case 'stopped':
-      return 'Angehalten';
+      return 'Kamera pausiert';
     case 'error':
-      return 'Fehlerzustand';
+      return 'Kamera nicht bereit';
     default:
-      return 'Bereit';
+      return 'Bereit für die Kamera';
   }
 }
 
+function toTitleCase(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
 export function GestureRecorder() {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
-  const [showCorrection, setShowCorrection] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>(() => {
     try {
       const persisted = window.localStorage.getItem('cameraFacingMode');
@@ -47,12 +67,10 @@ export function GestureRecorder() {
   const {
     start,
     stop,
-    cleanup,
     status,
     error,
     lastGesture,
     lastConfidence,
-    messageLog,
   } = useGestureDetector(videoRef, overlayRef);
   const { profileId, preferredGestureLabel, recordGesture } = useAppState();
   const { notice: modelNotice } = useMlpModelInjection(profileId);
@@ -75,21 +93,18 @@ export function GestureRecorder() {
     }
   }, [lastGesture, recordGesture]);
 
+  const normalizedGesture = lastGesture?.trim() ?? '';
+  const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
+  const gestureMeaning = gestureKey ? gestureMeaningService.getMeaning(gestureKey) : undefined;
+  const gestureLabel = gestureKey
+    ? GESTURE_LABELS[gestureKey] ?? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
+    : null;
+  const gestureSpeech = gestureKey
+    ? gestureMeaning?.audioText ?? GESTURE_LABELS[gestureKey] ?? gestureLabel ?? normalizedGesture
+    : '';
+
   const handleStart = async () => {
     await start();
-  };
-
-  const handleStop = async () => {
-    await stop();
-  };
-
-  const handleReset = async () => {
-    await cleanup();
-  };
-
-  const handleCorrection = (originalGesture: string, correctedGesture: string) => {
-    console.log(`Korrektur: ${originalGesture} → ${correctedGesture}`);
-    setShowCorrection(false);
   };
 
   const handleSwitchCamera = useCallback(async () => {
@@ -139,155 +154,122 @@ export function GestureRecorder() {
     }
   }, [facingMode, start, stop, status]);
 
+  const handleConfirm = useCallback(async () => {
+    if (!gestureSpeech) return;
+    await audioService.speak(gestureSpeech);
+  }, [gestureSpeech]);
+
+  const handleLearn = useCallback(() => {
+    navigate('/lernen');
+  }, [navigate]);
+
+  const needsCameraStart = status === 'idle' || status === 'stopped' || status === 'error';
+
   return (
-    <section className="card gesture-demo gesture-demo-fullscreen">
-      <div className="card-header">
-        <div>
-          <p className="eyebrow">Gestenkamera</p>
-          <h2>Gestenrekorder</h2>
-          <p className="muted">
-            Nimm deine Gesten direkt im Browser auf und probiere sie sofort aus. Starte die Kamera und sieh dir im Protokoll an, wie
-            deine Bewegungen erkannt werden.
-          </p>
+    <section className="gesture-screen">
+      <div className="video-wrapper gesture-fullscreen">
+        <video
+          ref={videoRef}
+          className={`video${isMirroredPreview ? ' mirrored' : ''}`}
+          playsInline
+          muted
+          autoPlay
+        />
+        <canvas
+          ref={overlayRef}
+          className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
+          aria-hidden={!showOverlay}
+        />
+        <div className="video-veil" aria-hidden="true" />
+
+        <div className="gesture-screen__hud">
+          <div className="gesture-screen__status">
+            <div className="gesture-screen__status-pill" data-state={status}>
+              <span className="gesture-screen__status-dot" />
+              <span>{formatStatusLabel(status)}</span>
+            </div>
+            {modelNotice && <span className="gesture-screen__pill">{modelNotice}</span>}
+          </div>
+          <div className="gesture-screen__status-meta">
+            <p>
+              Profil <strong>{profileId || '…'}</strong> · Standardgeste <strong>{preferredGestureLabel}</strong>
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="detector-shell">
-        <div className="video-column">
-          <div className="video-wrapper">
-            <video
-              ref={videoRef}
-              className={`video${isMirroredPreview ? ' mirrored' : ''}`}
-              playsInline
-              muted
-              autoPlay
-            />
-            <canvas
-              ref={overlayRef}
-              className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
-              aria-hidden={!showOverlay}
-            />
-            <div className="video-veil" aria-hidden="true" />
-
-            <div className="video-hud">
-              <div className="hud-row">
-                <div className="status-chip" data-state={status}>
-                  Live-Status: {formatStatus(status)}
-                </div>
-                <div className="hud-actions">
-                  <button
-                    className="primary"
-                    onClick={handleStart}
-                    disabled={!cameraSupported || status === 'running' || status === 'initializing'}
-                  >
-                    Kamera starten
-                  </button>
-                  <button onClick={handleStop} disabled={status !== 'running'}>
-                    Aufnahme stoppen
-                  </button>
-                  <button className="ghost" onClick={handleReset}>
-                    Neu aufsetzen
-                  </button>
-                </div>
-              </div>
-
-              <div className="hud-row meta">
-                <div className="hud-meta">
-                  <p className="muted no-margin">
-                    Aktives Profil: <strong>{profileId || '…'}</strong> · Standardlabel: <strong>{preferredGestureLabel}</strong>.
-                  </p>
-                  {modelNotice && <span className="pill info">{modelNotice}</span>}
-                </div>
-                <div className="hud-controls">
-                  <button
-                    className="ghost-inline"
-                    onClick={handleSwitchCamera}
-                    disabled={!cameraSupported}
-                    title={facingMode === 'user' ? 'Zur Rückkamera wechseln' : 'Zur Frontkamera wechseln'}
-                  >
-                    {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
-                  </button>
-                  <div className="toggle ghost-inline">
-                    <input
-                      id="overlay-toggle"
-                      type="checkbox"
-                      checked={showOverlay}
-                      onChange={(event) => setShowOverlay(event.target.checked)}
-                    />
-                    <label htmlFor="overlay-toggle">Overlay anzeigen</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="notice-grid" aria-live="polite">
-            {cameraSwitchFeedback && (
-              <div className="notice info compact">{cameraSwitchFeedback}</div>
-            )}
-
-            {!cameraSupported && (
-              <div className="notice warning compact">
-                <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam. Die Gestenlogik
-                bleibt aktiv, sendet aber keine Frames.
-              </div>
-            )}
-
-            {error && <div className="notice error compact">{error}</div>}
-          </div>
-        </div>
-
-        <div className="panel">
-          <div className="panel-row">
-            <div>
-              <p className="eyebrow">Letzte Geste</p>
-              <p className="value">{lastGesture ?? 'noch keine erkannt'}</p>
-            </div>
-          </div>
-
-          {/* Correction Panel */}
-          {lastGesture && (
-            <div className="correction-section">
-              <div className="correction-trigger">
-                <p className="muted">
-                  Erkannt: <strong>{lastGesture}</strong>
-                  {lastConfidence != null && ` (${Math.round(lastConfidence * 100)}%)`}
-                </p>
-                <button className="ghost small" onClick={() => setShowCorrection(!showCorrection)}>
-                  {showCorrection ? 'Korrektur ausblenden' : 'War das falsch? Korrigieren'}
-                </button>
-              </div>
-              {showCorrection && (
-                <CorrectionPanel 
-                  recognizedGesture={lastGesture} 
-                  onCorrection={handleCorrection}
-                />
+      <div className="gesture-screen__controls">
+        <div className="gesture-screen__banner">
+          {gestureLabel ? (
+            <div className="gesture-screen__result">
+              <span className="gesture-screen__result-label">{gestureLabel}</span>
+              {lastConfidence != null && (
+                <span className="gesture-screen__result-confidence">
+                  {Math.round(lastConfidence * 100)}% Sicherheit
+                </span>
               )}
             </div>
+          ) : (
+            <span className="gesture-screen__placeholder">Zeige eine Geste in die Kamera…</span>
           )}
+        </div>
 
-          <div className="log">
-            <p className="eyebrow">Live-Meldungen</p>
-            <ul>
-              {messageLog.length === 0 && <li className="muted">Noch keine Bridge-Nachrichten.</li>}
-              {messageLog.map((item) => (
-                <li key={item.receivedAt + item.summary}>
-                  <div className="log-header">
-                    <span className="badge">{item.type}</span>
-                    <span className="timestamp">{new Date(item.receivedAt).toLocaleTimeString()}</span>
-                  </div>
-                  <p>
-                    {item.summary}
-                    {item.count > 1 && (
-                      <span className="badge stacked" aria-label={`${item.count} ähnliche Meldungen zusammengefasst`}>
-                        ×{item.count}
-                      </span>
-                    )}
-                  </p>
-                </li>
-              ))}
-            </ul>
+        {needsCameraStart && (
+          <button
+            className="gesture-screen__start"
+            onClick={handleStart}
+            disabled={!cameraSupported}
+          >
+            Kamera starten
+          </button>
+        )}
+
+        <div className="gesture-screen__actions">
+          <button
+            className="gesture-screen__action gesture-screen__action--confirm"
+            onClick={handleConfirm}
+            disabled={!gestureLabel}
+          >
+            Stimmt
+          </button>
+          <button
+            className="gesture-screen__action gesture-screen__action--learn"
+            onClick={handleLearn}
+          >
+            Lernen
+          </button>
+        </div>
+
+        <div className="gesture-screen__meta">
+          <div className="gesture-screen__meta-actions">
+            <button
+              className="ghost-inline"
+              onClick={handleSwitchCamera}
+              disabled={!cameraSupported}
+              title={facingMode === 'user' ? 'Zur Rückkamera wechseln' : 'Zur Frontkamera wechseln'}
+            >
+              {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
+            </button>
+            <label className="toggle ghost-inline">
+              <input
+                id="overlay-toggle"
+                type="checkbox"
+                checked={showOverlay}
+                onChange={(event) => setShowOverlay(event.target.checked)}
+              />
+              <span>Overlay</span>
+            </label>
           </div>
+
+          {cameraSwitchFeedback && (
+            <div className="gesture-screen__meta-note">{cameraSwitchFeedback}</div>
+          )}
+          {!cameraSupported && (
+            <div className="gesture-screen__meta-warning">
+              Kamera nicht verfügbar. Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
+            </div>
+          )}
+          {error && <div className="gesture-screen__meta-error">{error}</div>}
         </div>
       </div>
     </section>

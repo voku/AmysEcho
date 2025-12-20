@@ -19,17 +19,25 @@ const AVAILABLE_GESTURES = [
 interface CorrectionPanelProps {
   recognizedGesture: string | null;
   onCorrection?: (originalGesture: string, correctedGesture: string) => void;
+  forceOpen?: boolean;
+  onDismiss?: () => void;
 }
 
 /**
  * Panel for correcting misrecognized gestures.
  * Mirrors the CorrectionPanel from the Expo app.
  */
-export function CorrectionPanel({ recognizedGesture, onCorrection }: CorrectionPanelProps) {
+export function CorrectionPanel({
+  recognizedGesture,
+  onCorrection,
+  forceOpen = false,
+  onDismiss,
+}: CorrectionPanelProps) {
   const { recordGesture } = useAppState();
   const [selectedCorrection, setSelectedCorrection] = useState<string | null>(null);
   const [showPanel, setShowPanel] = useState(false);
   const [correctionApplied, setCorrectionApplied] = useState(false);
+  const panelOpen = forceOpen || showPanel;
 
   const handleCorrectionSelect = useCallback((gestureId: string) => {
     setSelectedCorrection(gestureId);
@@ -57,14 +65,19 @@ export function CorrectionPanel({ recognizedGesture, onCorrection }: CorrectionP
   }, [selectedCorrection, recognizedGesture, recordGesture, onCorrection]);
 
   const handleOpenPanel = useCallback(() => {
+    if (forceOpen) return;
     setShowPanel(true);
     setCorrectionApplied(false);
-  }, []);
+  }, [forceOpen]);
 
   const handleClosePanel = useCallback(() => {
+    if (forceOpen) {
+      onDismiss?.();
+      return;
+    }
     setShowPanel(false);
     setSelectedCorrection(null);
-  }, []);
+  }, [forceOpen, onDismiss]);
 
   if (!recognizedGesture) {
     return (
@@ -83,7 +96,7 @@ export function CorrectionPanel({ recognizedGesture, onCorrection }: CorrectionP
     );
   }
 
-  if (!showPanel) {
+  if (!panelOpen) {
     return (
       <div className="correction-trigger">
         <p className="muted">
