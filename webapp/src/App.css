@@ -38,6 +38,19 @@
   --color-overlay-text: #0D1B1B;
   --color-overlay-text-muted: #2E5657;
 
+  /* Gesture Screen Dark Overlays */
+  --color-gesture-overlay-dark: rgba(8, 32, 35, 0.7);
+  --color-gesture-overlay-medium: rgba(8, 32, 35, 0.6);
+  --color-gesture-overlay-light: rgba(8, 32, 35, 0.55);
+  --color-gesture-overlay-soft: rgba(8, 32, 35, 0.5);
+  --color-gesture-stopped-bg: rgba(12, 56, 60, 0.65);
+  --color-gesture-pill-bg: rgba(255, 255, 255, 0.85);
+  --color-gesture-border-light: rgba(255, 255, 255, 0.25);
+  --color-gesture-border-medium: rgba(255, 255, 255, 0.2);
+  --color-gesture-border-soft: rgba(255, 255, 255, 0.18);
+  --color-gesture-text-bright: rgba(255, 255, 255, 0.85);
+  --color-gesture-text-medium: rgba(255, 255, 255, 0.72);
+
   /* State Surfaces */
   --color-chip-success-bg: rgba(76, 217, 100, 0.18);
   --color-chip-success-border: rgba(76, 217, 100, 0.45);
@@ -779,8 +792,8 @@ p {
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-pill);
-  background: rgba(8, 32, 35, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: var(--color-gesture-overlay-medium);
+  border: 1px solid var(--color-gesture-border-light);
   font-size: var(--font-size-caption);
   font-weight: 600;
   color: var(--color-inverse-text);
@@ -802,7 +815,7 @@ p {
 }
 
 .gesture-screen__status-pill[data-state='stopped'] {
-  background: rgba(12, 56, 60, 0.65);
+  background: var(--color-gesture-stopped-bg);
   color: var(--color-inverse-text);
 }
 
@@ -816,23 +829,23 @@ p {
 .gesture-screen__pill {
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--color-gesture-pill-bg);
   color: var(--color-text);
   font-size: var(--font-size-caption);
   font-weight: 600;
 }
 
 .gesture-screen__status-meta {
-  background: rgba(8, 32, 35, 0.55);
+  background: var(--color-gesture-overlay-light);
   border-radius: var(--radius-lg);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-gesture-border-medium);
   font-size: var(--font-size-caption);
 }
 
 .gesture-screen__status-meta p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-gesture-text-bright);
 }
 
 .gesture-screen__controls {
@@ -940,7 +953,7 @@ p {
   display: grid;
   gap: var(--space-sm);
   font-size: var(--font-size-caption);
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--color-gesture-text-medium);
 }
 
 .gesture-screen__meta-actions {
@@ -955,8 +968,8 @@ p {
 .gesture-screen__meta-error {
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-lg);
-  background: rgba(8, 32, 35, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--color-gesture-overlay-soft);
+  border: 1px solid var(--color-gesture-border-soft);
 }
 
 .gesture-screen__meta-warning {
@@ -968,7 +981,7 @@ p {
 }
 
 .gesture-screen__correction {
-  background: rgba(8, 32, 35, 0.7);
+  background: var(--color-gesture-overlay-dark);
   border-radius: var(--radius-xl);
   padding: var(--space-lg);
 }
@@ -2712,7 +2725,7 @@ p {
 }
 
 .add-gesture-button:hover {
-  background: var(--color-warning);
+  filter: brightness(0.95);
 }
 
 .learning-tips {
@@ -2755,7 +2768,7 @@ p {
 
 .mission {
   text-align: center;
-  background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-warning-bg) 100%);
+  background: var(--color-warning-bg);
   border: 2px solid var(--color-chip-warning-border);
 }
 
@@ -3186,7 +3199,7 @@ p {
 }
 
 .danger-button:hover {
-  background: var(--color-error);
+  filter: brightness(0.9);
 }
 
 .small {

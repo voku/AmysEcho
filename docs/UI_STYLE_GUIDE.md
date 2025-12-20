@@ -37,7 +37,7 @@ All values originate in `app/src/constants/colors.ts` and are re-exported for co
 | **text**               | `#0D1B1B` | Primary typography color.                                       |
 | **textMuted**          | `#476667` | Secondary body text and helper hints.                           |
 | **inverseText**        | `#FFFFFF` | Text on primary buttons or dark overlays.                       |
-| **overlaySurface**     | `rgba(248,244,227,0.95)` | Recognition overlay backgrounds.               |
+| **overlaySurface**     | `rgba(248,244,227,0.92)` | Recognition overlay backgrounds.               |
 | **overlaySurfaceMuted** | `rgba(229,224,207,0.88)` | Subtle overlay cards or inactive overlay panels. |
 | **overlayBorder**      | `rgba(229,224,207,0.45)` | Divider lines and outlines on overlays.         |
 | **overlayBadgeBackground** | `rgba(248,244,227,0.9)` | Active overlay badges (timeline + chips). |
