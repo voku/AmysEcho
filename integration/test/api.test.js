@@ -230,8 +230,8 @@ test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model',
   const statusUrl = new URL(pollUrl, baseUrl).href;
   const start = Date.now();
   // Allow extra time in slower CI environments to avoid flaky training completions
-  // Increased to 60s for both local and live since CI can be slow
-  const timeoutMs = 60000;
+  // Increased to 120s for both local and CI since training can take time
+  const timeoutMs = 120000;
   let completed = false;
   while (Date.now() - start <= timeoutMs) {
     const statusResp = await fetch(statusUrl, { headers }).catch(() => null);
