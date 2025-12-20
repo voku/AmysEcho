@@ -29,6 +29,8 @@ const TriggerTrainingJobResultSchema = z.object({
   jobId: z.string().trim().min(1),
   status: z.enum(['queued', 'running', 'completed', 'failed']),
   pollUrl: z.string().trim().min(1).optional(),
+  queueDepth: z.number().int().nonnegative().optional(),
+  retryAfterMs: z.number().int().positive().optional(),
 });
 type TriggerTrainingJobResult = z.infer<typeof TriggerTrainingJobResultSchema>;
 

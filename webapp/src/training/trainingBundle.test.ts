@@ -157,4 +157,27 @@ describe('uploadTrainingBundle', () => {
       'API-Endpunkt fehlt für Trainings-Uploads.',
     );
   });
+
+  it('liest Queue-Metadaten aus der Upload-Antwort', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 202,
+      json: async () => ({
+        id: 'bundle-2',
+        status: 'queued',
+        trainingJob: {
+          jobId: 'job-2',
+          status: 'queued',
+          pollUrl: '/api/v1/train-status/job-2',
+          queueDepth: 2,
+          retryAfterMs: 1000,
+        },
+      }),
+    });
+    (globalThis as any).fetch = fetchSpy;
+
+    const result = await uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
+    expect(result.trainingJob?.queueDepth).toBe(2);
+    expect(result.trainingJob?.retryAfterMs).toBe(1000);
+  });
 });

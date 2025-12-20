@@ -58,6 +58,8 @@ export interface TrainingJobInfo {
   jobId: string;
   status: TrainingJobStatus;
   pollUrl?: string;
+  queueDepth?: number;
+  retryAfterMs?: number;
   progress?: number;
   message?: string;
   error?: string;

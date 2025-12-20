@@ -168,6 +168,8 @@ interface TrainingJob {
   id: string;
   status: TrainStatus;
   progress: number; // 0..100
+  queueDepth?: number;
+  retryAfterMs?: number;
   error?: string;
   startedAt?: number;
   endedAt?: number;
@@ -228,6 +230,8 @@ async function executeTrainingQueueEntry(entry: TrainingQueueEntry): Promise<voi
   const { job } = entry;
   job.status = 'running';
   job.startedAt = Date.now();
+  job.queueDepth = 0;
+  job.retryAfterMs = undefined;
   trainingJobs.set(job.id, job);
 
   try {
@@ -287,14 +291,26 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 function startTrainingJob(
   samples: TrainingSample[],
   trigger: 'bundles' | null = null,
-): { jobId: string; status: TrainStatus; completion: Promise<TrainingJob> } {
+): {
+  jobId: string;
+  status: TrainStatus;
+  completion: Promise<TrainingJob>;
+  queueDepth: number;
+  retryAfterMs: number;
+} {
   const isQueueIdle = !isProcessingTrainingQueue && trainingQueue.length === 0;
+  const queuedBefore = trainingQueue.length;
+  const runningJobs = isProcessingTrainingQueue ? 1 : 0;
+  const queueDepth = queuedBefore + runningJobs;
+  const retryAfterMs = queueDepth > 0 ? 1000 : 0;
   const id = genId();
   const initialStatus: TrainStatus = isQueueIdle ? 'running' : 'queued';
   const job: TrainingJob = {
     id,
     status: initialStatus,
     progress: 0,
+    queueDepth,
+    retryAfterMs: retryAfterMs || undefined,
   };
   trainingJobs.set(id, job);
 
@@ -315,7 +331,7 @@ function startTrainingJob(
     void logTraining(`job ${id}: queued (trigger=${trigger ?? 'manual'})`);
   }
 
-  return { jobId: id, status: initialStatus, completion };
+  return { jobId: id, status: initialStatus, completion, queueDepth, retryAfterMs };
 }
 
 async function runTrainingWorkflow(
@@ -485,11 +501,17 @@ app.get('/api/v1/dgs/mlp-model', auth, modelMetadataLimiter, latestMlpModelHandl
 registerTrainingBundleRoute(app, genId, {
   triggerTrainingJob: ({ bundleId }) => {
     try {
-      const { jobId, status } = startTrainingJob([], 'bundles');
+      const { jobId, status, queueDepth, retryAfterMs } = startTrainingJob([], 'bundles');
       void logTraining(
         `job ${jobId}: scheduled automatically from bundle ${bundleId} (status=${status})`,
       );
-      return { jobId, status, pollUrl: `/api/v1/train-status/${jobId}` };
+      return {
+        jobId,
+        status,
+        pollUrl: `/api/v1/train-status/${jobId}`,
+        queueDepth,
+        ...(retryAfterMs > 0 ? { retryAfterMs } : {}),
+      };
     } catch (error) {
       console.error('Failed to schedule training after bundle upload:', error);
       return null;
@@ -682,7 +704,7 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
     landmarkData: sample.landmarkData,
   }));
 
-  const { jobId, status } = startTrainingJob(
+  const { jobId, status, queueDepth, retryAfterMs } = startTrainingJob(
     trainingSamples,
     triggeredByBundles ? 'bundles' : null,
   );
@@ -692,11 +714,17 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
       ? 'Trainingsauftrag wurde in die Warteschlange gestellt'
       : 'Trainingsauftrag gestartet';
 
+  if (retryAfterMs > 0) {
+    res.setHeader('Retry-After', Math.ceil(retryAfterMs / 1000).toString());
+  }
+
   res.status(202).json({
     status,
     jobId,
     pollUrl: `/api/v1/train-status/${jobId}`,
     message,
+    queueDepth,
+    ...(retryAfterMs > 0 ? { retryAfterMs } : {}),
   });
 });
 

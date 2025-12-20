@@ -83,9 +83,13 @@ Schedule a training job with an explicit list of samples. When called without sa
   "status": "running",
   "jobId": "train_123",
   "pollUrl": "/api/v1/train-status/train_123",
-  "message": "Trainingsauftrag gestartet"
+  "message": "Trainingsauftrag gestartet",
+  "queueDepth": 0,
+  "retryAfterMs": 1000
 }
 ```
+
+When the job is queued, the server also emits a `Retry-After` header (seconds) to hint at how soon to poll.
 
 #### GET /api/v1/train-status/:id
 Retrieve the latest job metadata including status, progress, metrics, and timestamps. Returns `404` if the job id is unknown.
