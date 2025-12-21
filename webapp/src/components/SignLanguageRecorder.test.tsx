@@ -12,7 +12,7 @@ vi.mock('../hooks/useSignLanguageDetector', () => ({
     cleanup: vi.fn().mockResolvedValue(undefined),
     status: 'idle',
     error: null,
-    lastGesture: null,
+    lastSign: null,
     lastConfidence: null,
     messageLog: [],
   }),

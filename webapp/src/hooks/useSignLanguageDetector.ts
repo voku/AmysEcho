@@ -30,7 +30,7 @@ export type SignLanguageHookResult = {
   cleanup: () => Promise<void>;
   status: SignLanguageStatus;
   error: string | null;
-  lastGesture: string | null;
+  lastSign: string | null;
   lastLandmarks: number[][][];
   lastHandedness: string[];
   lastConfidence: number | null;
@@ -100,7 +100,7 @@ export function useSignLanguageDetector(
 ): SignLanguageHookResult {
   const [status, setStatus] = useState<SignLanguageStatus>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [lastGesture, setLastGesture] = useState<string | null>(null);
+  const [lastSign, setLastSign] = useState<string | null>(null);
   const [lastLandmarks, setLastLandmarks] = useState<number[][][]>([]);
   const [lastHandedness, setLastHandedness] = useState<string[]>([]);
   const [lastConfidence, setLastConfidence] = useState<number | null>(null);
@@ -150,12 +150,12 @@ export function useSignLanguageDetector(
           handedness?: string[];
         };
         if (payload.gesture) {
-          setLastGesture(payload.gesture);
+          setLastSign(payload.gesture);
           setLastConfidence(typeof payload.confidence === 'number' ? payload.confidence : null);
         } else if (Array.isArray(payload.messages)) {
-          const gestureMessage = payload.messages.find((msg) => typeof msg?.gesture === 'string');
-          if (gestureMessage?.gesture) {
-            setLastGesture(gestureMessage.gesture);
+          const signMessage = payload.messages.find((msg) => typeof msg?.gesture === 'string');
+          if (signMessage?.gesture) {
+            setLastSign(signMessage.gesture);
           }
         }
 
@@ -241,7 +241,7 @@ export function useSignLanguageDetector(
       orchestratorRef.current = null;
       handStabilizerRef.current.reset();
       setStatus('idle');
-      setLastGesture(null);
+      setLastSign(null);
       setLastLandmarks([]);
       setLastHandedness([]);
       setLastConfidence(null);
@@ -260,7 +260,7 @@ export function useSignLanguageDetector(
     cleanup,
     status,
     error,
-    lastGesture,
+    lastSign,
     lastLandmarks,
     lastHandedness,
     lastConfidence,

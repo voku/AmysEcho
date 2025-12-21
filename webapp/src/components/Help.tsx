@@ -52,7 +52,11 @@ export function Help() {
         <h3>✋ Unterstützte Gebärden</h3>
         <p>Amy&apos;s Echo erkennt aktuell diese trainierten Gebärden:</p>
         <div className="gesture-list">
-          {hasSymbols ? (
+          {loading ? (
+            <span className="badge">Gebärden werden geladen…</span>
+          ) : syncError ? (
+            <span className="badge">Gebärdenliste konnte nicht geladen werden: {syncError}</span>
+          ) : hasSymbols ? (
             sortedSymbols.map((symbol) => (
               <span className="badge" key={symbol.id}>
                 {symbol.name}
@@ -62,8 +66,6 @@ export function Help() {
             <span className="badge">Noch keine Gebärden geladen</span>
           )}
         </div>
-        {loading && <p className="muted small">Gebärden werden geladen…</p>}
-        {syncError && <p className="muted small">Gebärdenliste konnte nicht geladen werden: {syncError}</p>}
         <p className="muted small">
           Durch Training können weitere Gebärden hinzugefügt werden.
         </p>
