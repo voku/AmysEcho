@@ -1,6 +1,8 @@
 # vendor stuff
 node_modules
 server/**/__pycache__/
+.venv
+venv/
 
 # build stuff
 dist
