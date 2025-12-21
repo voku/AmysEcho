@@ -43,11 +43,11 @@ function parseIncomingMessage(raw: string): SignLanguageMessage | null {
   try {
     const parsed = JSON.parse(raw);
     const type = typeof parsed?.type === 'string' ? parsed.type : UNKNOWN_TYPE;
-    const gestureCandidate = parsed?.gesture ?? parsed?.messages?.[0]?.gesture;
+    const signCandidate = parsed?.gesture ?? parsed?.messages?.[0]?.gesture;
     const summaryParts = [] as string[];
 
-    const hasGesture = Boolean(
-      gestureCandidate || parsed?.messages?.some((m: { gesture?: string }) => m?.gesture),
+    const hasSign = Boolean(
+      signCandidate || parsed?.messages?.some((m: { gesture?: string }) => m?.gesture),
     );
 
     // Check if this is a "no hands detected" scenario
@@ -55,15 +55,15 @@ function parseIncomingMessage(raw: string): SignLanguageMessage | null {
       parsed?.landmarks?.length > 0 ||
       parsed?.messages?.some((m: { landmarks?: unknown[] }) => (m?.landmarks?.length ?? 0) > 0);
 
-    const isGesturePayload = type === 'gesture_batch' || type === 'gesture' || type === 'landmarks';
-    if (isGesturePayload && !hasGesture && !hasLandmarks) {
+    const isSignPayload = type === 'gesture_batch' || type === 'gesture' || type === 'landmarks';
+    if (isSignPayload && !hasSign && !hasLandmarks) {
       return null;
     }
 
-    if (gestureCandidate) {
-      summaryParts.push(`Gebärde: ${String(gestureCandidate)}`);
+    if (signCandidate) {
+      summaryParts.push(`Gebärde: ${String(signCandidate)}`);
     } else if (!hasLandmarks && type !== UNKNOWN_TYPE) {
-      // No gesture and no landmarks = no hands detected
+      // No sign and no landmarks = no hands detected
       summaryParts.push('Keine Hand erkannt');
     }
 
