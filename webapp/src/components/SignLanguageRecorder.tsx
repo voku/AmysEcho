@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGestureDetector } from '../hooks/useGestureDetector';
+import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useAppState } from '../hooks/useAppState';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
@@ -28,7 +28,7 @@ function toTitleCase(value: string): string {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
-export function GestureRecorder() {
+export function SignLanguageRecorder() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
@@ -60,8 +60,8 @@ export function GestureRecorder() {
     error,
     lastGesture,
     lastConfidence,
-  } = useGestureDetector(videoRef, overlayRef);
-  const { profileId, preferredGestureLabel, recordGesture } = useAppState();
+  } = useSignLanguageDetector(videoRef, overlayRef);
+  const { profileId, recordGesture } = useAppState();
   const { notice: modelNotice } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
 
@@ -181,7 +181,7 @@ export function GestureRecorder() {
           </div>
           <div className="gesture-screen__status-meta">
             <p>
-              Profil <strong>{profileId || '…'}</strong> · Standardgeste <strong>{preferredGestureLabel}</strong>
+              Profil <strong>{profileId || '…'}</strong>
             </p>
           </div>
         </div>
@@ -199,7 +199,7 @@ export function GestureRecorder() {
               )}
             </div>
           ) : (
-            <span className="gesture-screen__placeholder">Zeige eine Geste in die Kamera…</span>
+            <span className="gesture-screen__placeholder">Zeige eine Gebärde in die Kamera…</span>
           )}
         </div>
 
@@ -219,7 +219,7 @@ export function GestureRecorder() {
             onClick={handleConfirm}
             disabled={!gestureLabel}
           >
-            Stimmt
+            Aussprechen
           </button>
           <button
             className="gesture-screen__action gesture-screen__action--learn"

@@ -14,7 +14,7 @@ export const Teach: React.FC = () => {
         <span className="teach-icon">✋</span>
         <h2>Neue Gebärde beibringen</h2>
         <p className="muted">
-          Hilf Amy, neue Gesten zu lernen, indem du Trainingsbeispiele aufnimmst.
+          Hilf Amy, neue Gebärden zu lernen, indem du Trainingsbeispiele aufnimmst.
         </p>
         
         <Link to="/training" className="primary-button teach-button">
@@ -24,8 +24,8 @@ export const Teach: React.FC = () => {
         <div className="teach-info">
           <h3>So funktioniert's:</h3>
           <ol>
-            <li>Wähle eine Geste aus der Liste oder erstelle eine neue</li>
-            <li>Zeige die Geste vor der Kamera</li>
+            <li>Wähle eine Gebärde aus der Liste oder erstelle eine neue</li>
+            <li>Zeige die Gebärde vor der Kamera</li>
             <li>Nimm mehrere Beispiele auf (je mehr, desto besser!)</li>
             <li>Die Beispiele werden zum Trainieren hochgeladen</li>
           </ol>
@@ -36,8 +36,8 @@ export const Teach: React.FC = () => {
           <ul>
             <li>Gute Beleuchtung – Amy sieht besser bei Tageslicht</li>
             <li>Freier Hintergrund – weniger Ablenkung für die Erkennung</li>
-            <li>Verschiedene Winkel – hilft Amy, die Geste zu verallgemeinern</li>
-            <li>Natürliche Bewegungen – so wie die Geste im Alltag aussieht</li>
+            <li>Verschiedene Winkel – hilft Amy, die Gebärde zu verallgemeinern</li>
+            <li>Natürliche Bewegungen – so wie die Gebärde im Alltag aussieht</li>
           </ul>
         </div>
 

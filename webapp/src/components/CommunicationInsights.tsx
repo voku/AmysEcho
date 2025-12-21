@@ -117,7 +117,7 @@ export function CommunicationInsights() {
             <p className="eyebrow">Erkenntnisse</p>
             <h2>Kommunikationsmuster</h2>
             <p className="muted">
-              Entdecke Muster in deiner Gestenkommunikation.
+              Entdecke Muster in deiner Gebärdenkommunikation.
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ export function CommunicationInsights() {
           <span className="empty-icon">📊</span>
           <p>Noch keine Daten vorhanden.</p>
           <p className="muted small">
-            Nutze die Gestenerkennung, um Erkenntnisse zu sammeln.
+            Nutze die Gebärdenerkennung, um Erkenntnisse zu sammeln.
           </p>
           <a href="/" className="primary-button">
             Zur Erkennung
@@ -197,7 +197,7 @@ export function CommunicationInsights() {
       {/* Top Gestures */}
       {insightData.topGestures.length > 0 && (
         <div className="insights-section">
-          <h3>🏆 Top Gesten</h3>
+          <h3>🏆 Top Gebärden</h3>
           <div className="top-gestures">
             {insightData.topGestures.map((gesture, index) => (
               <div key={gesture.gesture} className="gesture-rank">
@@ -248,8 +248,8 @@ export function CommunicationInsights() {
             <span className="insight-icon">🎯</span>
             <p>
               {insightData.topGestures.length > 0 && insightData.topGestures[0]
-                ? `Deine Lieblingsgeste ist "${insightData.topGestures[0].gesture}".`
-                : 'Probiere verschiedene Gesten aus!'}
+                ? `Deine Lieblingsgebärde ist "${insightData.topGestures[0].gesture}".`
+                : 'Probiere verschiedene Gebärden aus!'}
             </p>
           </div>
           <div className="insight-item">

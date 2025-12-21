@@ -49,7 +49,7 @@ export function AboutAmysEcho() {
             <span className="commitment-emoji">🧭</span>
             <div>
               <strong>Keine Verwirrung</strong>
-              <p>Klare Symbole, einfache Wörter und sofortige Gestenübersetzung.</p>
+              <p>Klare Symbole, einfache Wörter und sofortige Gebärdenübersetzung.</p>
             </div>
           </div>
           <div className="commitment-item">
@@ -91,7 +91,7 @@ export function AboutAmysEcho() {
             <div className="loop-icon">📷</div>
             <div className="loop-content">
               <strong>Kamera</strong>
-              <p>Erkennt Gesten in Echtzeit mit MediaPipe-Handtracking</p>
+              <p>Erkennt Gebärden in Echtzeit mit MediaPipe-Handtracking</p>
             </div>
           </div>
           <div className="loop-arrow">→</div>
@@ -127,7 +127,7 @@ export function AboutAmysEcho() {
         <div className="awareness-list">
           <div className="awareness-item">
             <span className="awareness-check">✓</span>
-            <p>Ich bin eine <strong>Brücke zur Kommunikation</strong> – ich übersetze Gesten in Worte.</p>
+            <p>Ich bin eine <strong>Brücke zur Kommunikation</strong> – ich übersetze Gebärden in Worte.</p>
           </div>
           <div className="awareness-item">
             <span className="awareness-check">✓</span>
@@ -177,7 +177,7 @@ export function AboutAmysEcho() {
         <p className="dedication">
           Diese App wurde mit Liebe entwickelt für Amy und alle Kinder, 
           die eine neue Art der Kommunikation brauchen. 
-          Jede Geste ist eine Stimme. Jede Stimme zählt.
+          Jede Gebärde ist eine Stimme. Jede Stimme zählt.
         </p>
         <div className="heart-pulse">❤️</div>
       </div>

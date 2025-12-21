@@ -14,6 +14,7 @@ This guide helps caregivers set up and use **Amy's Echo** with a child who commu
    - Speaks the associated word aloud.
    - Shows a large symbol or emoji on screen.
 3. If confidence is low, a **Help Me** panel appears. Select the correct symbol to teach the app.
+4. The **Help** page lists the gestures that are currently trained for the active profile.
 
 ## Training New Gestures
 1. Go to the **Training** screen.

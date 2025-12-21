@@ -82,7 +82,7 @@ export function CorrectionPanel({
   if (!recognizedGesture) {
     return (
       <div className="notice muted">
-        <p>Warte auf erkannte Geste, um Korrektur anzubieten...</p>
+        <p>Warte auf erkannte Gebärde, um Korrektur anzubieten...</p>
       </div>
     );
   }
@@ -91,7 +91,7 @@ export function CorrectionPanel({
     return (
       <div className="notice success">
         <strong>✓ Korrektur gespeichert!</strong>
-        <p>Die Geste wurde korrigiert. Das hilft, die Erkennung zu verbessern.</p>
+        <p>Die Gebärde wurde korrigiert. Das hilft, die Erkennung zu verbessern.</p>
       </div>
     );
   }
@@ -113,9 +113,9 @@ export function CorrectionPanel({
     <div className="correction-panel">
       <div className="panel-header">
         <p className="eyebrow">Korrektur</p>
-        <h3>Welche Geste war gemeint?</h3>
+        <h3>Welche Gebärde war gemeint?</h3>
         <p className="muted">
-          Wähle die richtige Geste aus. Diese Information hilft, die Erkennung zu verbessern.
+          Wähle die richtige Gebärde aus. Diese Information hilft, die Erkennung zu verbessern.
         </p>
       </div>
 

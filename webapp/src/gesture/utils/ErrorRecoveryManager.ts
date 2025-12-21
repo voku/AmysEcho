@@ -76,7 +76,7 @@ export class ErrorRecoveryManager {
         recoverable: true,
         severity: 'medium',
         suggestedAction: 'fallback_mode',
-        userMessage: 'Gestenerkennung wird neu gestartet...'
+        userMessage: 'Gebärdenerkennung wird neu gestartet...'
       };
     }
 

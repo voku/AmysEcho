@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TrainingRecorder } from './TrainingRecorder';
-import type { GestureStatus } from '../hooks/useGestureDetector';
+import type { SignLanguageStatus } from '../hooks/useSignLanguageDetector';
 
 const startMock = vi.fn();
 
@@ -51,11 +51,11 @@ const createTrainingState = (): TrainingState => ({
   lastFrameReceivedAt: null,
 });
 
-let gestureState: { status: GestureStatus } = { status: 'idle' };
+let gestureState: { status: SignLanguageStatus } = { status: 'idle' };
 let trainingState: TrainingState = createTrainingState();
 
-vi.mock('../hooks/useGestureDetector', () => ({
-  useGestureDetector: () => ({
+vi.mock('../hooks/useSignLanguageDetector', () => ({
+  useSignLanguageDetector: () => ({
     start: startMock,
     stop: vi.fn(),
     cleanup: vi.fn(),

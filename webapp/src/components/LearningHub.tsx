@@ -15,7 +15,7 @@ const BASELINE_GESTURES: GestureItem[] = [
   { id: 'alle', label: 'Alle', emoji: '👐', description: 'Zeigt mit beiden Händen' },
   { id: 'blau', label: 'Blau', emoji: '🔵', description: 'Farbe Blau zeigen' },
   { id: 'essen', label: 'Essen', emoji: '🍽️', description: 'Hand zum Mund führen' },
-  { id: 'fertig', label: 'Fertig', emoji: '✅', description: 'Abschließende Geste' },
+  { id: 'fertig', label: 'Fertig', emoji: '✅', description: 'Abschließende Gebärde' },
   { id: 'gelb', label: 'Gelb', emoji: '🟡', description: 'Farbe Gelb zeigen' },
   { id: 'gruen', label: 'Grün', emoji: '🟢', description: 'Farbe Grün zeigen' },
   { id: 'nochmal', label: 'Nochmal', emoji: '🔄', description: 'Wiederholung zeigen' },

@@ -28,7 +28,7 @@ export function FeatureAvailability() {
         name: 'Kamera',
         available: typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
         description:
-          'Kamera-Zugriff ist erforderlich, um Gesten live zu erkennen. Ohne Freigabe laufen die Algorithmen im Leerlauf.',
+          'Kamera-Zugriff ist erforderlich, um Gebärden live zu erkennen. Ohne Freigabe laufen die Algorithmen im Leerlauf.',
       },
       {
         id: 'filesystem',

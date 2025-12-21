@@ -84,7 +84,7 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
   const avgMotion = motionSamples > 0 ? totalMotion / motionSamples : 0;
   if (avgMotion < 0.0015) {
     issues.push('insufficient_motion');
-    suggestions.push('Bewege Finger und Hand deutlich, damit die Geste erfasst wird.');
+    suggestions.push('Bewege Finger und Hand deutlich, damit die Gebärde erfasst wird.');
   }
 
   // Calculate quality score based on various factors

@@ -161,13 +161,13 @@ export const Admin: React.FC = () => {
     try {
       const artifact = await backupService.backupProtectedGestures();
       if (!artifact) {
-        showToast({ message: 'Keine geschützten Gesten gefunden', tone: 'info' });
+        showToast({ message: 'Keine geschützten Gebärden gefunden', tone: 'info' });
         return;
       }
       triggerDownload(artifact, 'Sicherung erstellt');
     } catch (error) {
       showToast({ message: 'Sicherung fehlgeschlagen', tone: 'error' });
-      console.warn('Backup der geschützten Gesten fehlgeschlagen', error);
+      console.warn('Backup der geschützten Gebärden fehlgeschlagen', error);
     }
   };
 
@@ -181,7 +181,7 @@ export const Admin: React.FC = () => {
       }
     } catch (error) {
       showToast({ message: 'Wiederherstellung fehlgeschlagen', tone: 'error' });
-      console.warn('Wiederherstellung der geschützten Gesten fehlgeschlagen', error);
+      console.warn('Wiederherstellung der geschützten Gebärden fehlgeschlagen', error);
     }
   };
 
@@ -195,7 +195,7 @@ export const Admin: React.FC = () => {
       triggerDownload(artifact, 'Export erstellt');
     } catch (error) {
       showToast({ message: 'Export fehlgeschlagen', tone: 'error' });
-      console.warn('Export der geschützten Gesten fehlgeschlagen', error);
+      console.warn('Export der geschützten Gebärden fehlgeschlagen', error);
     }
   };
 
@@ -325,23 +325,23 @@ export const Admin: React.FC = () => {
 
         <div className="action-group">
           <button className="secondary-button" onClick={handleBackupProtectedGestures}>
-            Geschützte Gesten sichern
+            Geschützte Gebärden sichern
           </button>
           <p className="muted">Erstellt eine verschlüsselte Sicherung mit Browser-Schlüssel</p>
         </div>
 
         <div className="action-group">
           <button className="secondary-button" onClick={handleExportProtectedGestures}>
-            Geschützte Gesten exportieren
+            Geschützte Gebärden exportieren
           </button>
-          <p className="muted">Exportiert anonymisierte Gesten zur Prüfung oder Migration</p>
+          <p className="muted">Exportiert anonymisierte Gebärden zur Prüfung oder Migration</p>
         </div>
 
         <div className="action-group">
           <button className="secondary-button" onClick={handleRestoreProtectedGestures}>
             Sicherung wiederherstellen
           </button>
-          <p className="muted">Stellt die letzte Sicherung geschützter Gesten wieder her</p>
+          <p className="muted">Stellt die letzte Sicherung geschützter Gebärden wieder her</p>
         </div>
 
         <div className="action-group">

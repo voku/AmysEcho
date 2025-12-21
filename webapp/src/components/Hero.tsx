@@ -25,7 +25,7 @@ const AMY_LOOP_STEPS: WorkflowStep[] = [
     icon: '🔍',
     label: 'Erkennung',
     route: '/',
-    description: 'Geste erkennen'
+    description: 'Gebärde erkennen'
   },
   {
     icon: '💬',
@@ -58,7 +58,7 @@ export const Hero: React.FC = () => {
         <span className="hero-pill">Amy's Echo hört zu</span>
         <h1 className="hero-title">Willkommen bei Amy's Echo</h1>
         <p className="hero-subtitle">
-          Die Gestenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
+          Die Gebärdenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
           So bleibt das Gespräch mit Amy's Echo nie stehen.
         </p>
       </header>
@@ -85,7 +85,7 @@ export const Hero: React.FC = () => {
       {/* CTA Buttons */}
       <div className="hero-cta-row">
         <Link to="/" className="primary-button hero-cta">
-          Zur Gestenkamera
+          Zur Gebärdenkamera
         </Link>
         <Link to="/lernen" className="secondary-button hero-cta">
           Lernen entdecken

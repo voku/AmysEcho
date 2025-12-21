@@ -7,7 +7,7 @@ import {
   type HandLandmarkStabilizer,
 } from '../utils/landmarkUtils';
 
-export type GestureMessage = {
+export type SignLanguageMessage = {
   type: string;
   summary: string;
   payload: unknown;
@@ -15,31 +15,31 @@ export type GestureMessage = {
   count: number;
 };
 
-export type GestureHookOptions = {
+export type SignLanguageHookOptions = {
   orchestratorFactory?: (
     video: HTMLVideoElement,
     overlay: HTMLCanvasElement,
   ) => GestureRecognitionOrchestrator;
 };
 
-export type GestureStatus = 'idle' | 'initializing' | 'running' | 'stopped' | 'error';
+export type SignLanguageStatus = 'idle' | 'initializing' | 'running' | 'stopped' | 'error';
 
-export type GestureHookResult = {
+export type SignLanguageHookResult = {
   start: () => Promise<boolean>;
   stop: () => Promise<void>;
   cleanup: () => Promise<void>;
-  status: GestureStatus;
+  status: SignLanguageStatus;
   error: string | null;
   lastGesture: string | null;
   lastLandmarks: number[][][];
   lastHandedness: string[];
   lastConfidence: number | null;
-  messageLog: GestureMessage[];
+  messageLog: SignLanguageMessage[];
 };
 
 const UNKNOWN_TYPE = 'unbekannt';
 
-function parseIncomingMessage(raw: string): GestureMessage | null {
+function parseIncomingMessage(raw: string): SignLanguageMessage | null {
   try {
     const parsed = JSON.parse(raw);
     const type = typeof parsed?.type === 'string' ? parsed.type : UNKNOWN_TYPE;
@@ -61,7 +61,7 @@ function parseIncomingMessage(raw: string): GestureMessage | null {
     }
 
     if (gestureCandidate) {
-      summaryParts.push(`Geste: ${String(gestureCandidate)}`);
+      summaryParts.push(`Gebärde: ${String(gestureCandidate)}`);
     } else if (!hasLandmarks && type !== UNKNOWN_TYPE) {
       // No gesture and no landmarks = no hands detected
       summaryParts.push('Keine Hand erkannt');
@@ -93,18 +93,18 @@ function parseIncomingMessage(raw: string): GestureMessage | null {
   }
 }
 
-export function useGestureDetector(
+export function useSignLanguageDetector(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   overlayRef: React.RefObject<HTMLCanvasElement | null>,
-  options: GestureHookOptions = {},
-): GestureHookResult {
-  const [status, setStatus] = useState<GestureStatus>('idle');
+  options: SignLanguageHookOptions = {},
+): SignLanguageHookResult {
+  const [status, setStatus] = useState<SignLanguageStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [lastGesture, setLastGesture] = useState<string | null>(null);
   const [lastLandmarks, setLastLandmarks] = useState<number[][][]>([]);
   const [lastHandedness, setLastHandedness] = useState<string[]>([]);
   const [lastConfidence, setLastConfidence] = useState<number | null>(null);
-  const [messageLog, setMessageLog] = useState<GestureMessage[]>([]);
+  const [messageLog, setMessageLog] = useState<SignLanguageMessage[]>([]);
   const orchestratorRef = useRef<GestureRecognitionOrchestrator | null>(null);
   const handStabilizerRef = useRef<HandLandmarkStabilizer>(
     createHandLandmarkStabilizer({ ttlMs: 250, maxHands: 2 }),

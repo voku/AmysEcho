@@ -6,17 +6,17 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 
 | App Screen | Webapp Component | Route | Status |
 |------------|-----------------|-------|--------|
-| RecognitionScreen.tsx | GestureRecorder.tsx | `/` | ✅ Migrated |
+| RecognitionScreen.tsx | SignLanguageRecorder.tsx | `/` | ✅ Migrated |
 | DashboardScreen.tsx | Dashboard.tsx | `/dashboard` | ✅ Migrated |
 | LernenScreen.tsx | LearningHub.tsx | `/lernen` | ✅ Migrated |
-| HistoryScreen.tsx | GestureHistory.tsx | `/verlauf` | ✅ Migrated |
+| HistoryScreen.tsx | SignLanguageHistory.tsx | `/verlauf` | ✅ Migrated |
 | CommunicationInsightsScreen.tsx | CommunicationInsights.tsx | `/erkenntnisse` | ✅ Migrated |
 | TrainingScreen.tsx | TrainingUpload.tsx | `/training` | ✅ Migrated |
 | ProgressScreen.tsx | ProgressTracker.tsx | `/fortschritt` | ✅ Migrated |
 | ProgressChartScreen.tsx | ProgressChart.tsx | `/fortschritt-detail` | ✅ Migrated |
 | ProfileManagerScreen.tsx | Settings.tsx | `/einstellungen` | ✅ Migrated |
 | HelpScreen.tsx | Help.tsx | `/hilfe` | ✅ Migrated |
-| GestureTutorialScreen.tsx | GestureTutorial.tsx | `/tutorial` | ✅ Migrated |
+| GestureTutorialScreen.tsx | SignLanguageTutorial.tsx | `/tutorial` | ✅ Migrated |
 | OnboardingScreen.tsx | Onboarding.tsx | `/onboarding` | ✅ Migrated |
 | HeroScreen.tsx | Hero.tsx | `/willkommen` | ✅ Migrated |
 | ProfileSelectScreen.tsx | ProfileSelect.tsx | `/auswahl` | ✅ Migrated |
@@ -35,7 +35,7 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 | HandLandmarkPreview.tsx | HandLandmarkPreview.tsx | ✅ Migrated |
 | BottomNav.tsx | BottomNav.tsx | ✅ Migrated |
 | ProgressTracker.tsx | (in ProgressTracker.tsx) | ✅ Migrated |
-| GestureHistoryViewer.tsx | (in GestureHistory.tsx) | ✅ Migrated |
+| GestureHistoryViewer.tsx | (in SignLanguageHistory.tsx) | ✅ Migrated |
 | AmyFirstCommitments.tsx | (in AboutAmysEcho.tsx) | ✅ Migrated |
 | AmyLoopTimeline.tsx | (in Hero.tsx) | ✅ Migrated |
 | PrimaryButton.tsx | (uses CSS .primary-button) | ✅ Adapted |
@@ -91,7 +91,7 @@ This document compares the React Native/Expo `app/` directory with the browser-b
 |----------|-------------|--------|
 | useRecognitionState.ts | hooks/useAppState.tsx | ✅ Migrated |
 | useModelInjection.ts | hooks/useMlpModelInjection.ts | ✅ Migrated |
-| N/A | hooks/useGestureDetector.ts | ✅ New |
+| N/A | hooks/useSignLanguageDetector.ts | ✅ New |
 | N/A | hooks/useApiConfig.tsx | ✅ New |
 | N/A | hooks/useTrainingRecorder.ts | ✅ New |
 | N/A | hooks/useTrainingUploader.ts | ✅ New |

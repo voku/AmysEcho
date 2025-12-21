@@ -115,11 +115,11 @@ export function Dashboard() {
         <div className="dashboard-summary">
           <div className="stat-card">
             <p className="stat-value">{summary.totalGestures}</p>
-            <p className="stat-label">Gesten erkannt</p>
+            <p className="stat-label">Gebärden erkannt</p>
           </div>
           <div className="stat-card">
             <p className="stat-value">{summary.uniqueGestures}</p>
-            <p className="stat-label">Verschiedene Gesten</p>
+            <p className="stat-label">Verschiedene Gebärden</p>
           </div>
           <div className="stat-card">
             <p className="stat-value">{summary.sessionsCount}</p>
@@ -144,7 +144,7 @@ export function Dashboard() {
             ))}
           </div>
         ) : (
-          <p className="muted">Noch keine Gesten in dieser Sitzung erkannt.</p>
+          <p className="muted">Noch keine Gebärden in dieser Sitzung erkannt.</p>
         )}
       </div>
 

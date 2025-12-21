@@ -159,7 +159,7 @@ describe('LearningHub', () => {
       await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
-      await user.type(nameInput, 'Meine Geste');
+      await user.type(nameInput, 'Meine Gebärde');
 
       const saveButton = screen.getByRole('button', { name: 'Speichern' });
       expect(saveButton).not.toBeDisabled();
@@ -200,7 +200,7 @@ describe('LearningHub', () => {
       await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
-      await user.type(nameInput, 'Test Geste');
+      await user.type(nameInput, 'Test Gebärde');
 
       const saveButton = screen.getByRole('button', { name: 'Speichern' });
       await user.click(saveButton);
@@ -223,7 +223,7 @@ describe('LearningHub', () => {
       await user.click(screen.getByText('Neue Gebärde speichern'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
-      await user.type(nameInput, 'Test Geste');
+      await user.type(nameInput, 'Test Gebärde');
 
       const saveButton = screen.getByRole('button', { name: 'Speichern' });
       await user.click(saveButton);

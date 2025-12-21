@@ -37,7 +37,7 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
         <div className="onboarding-icon">❤️</div>
         <h2>Amy zuerst – immer.</h2>
         <p className="muted">
-          Willkommen bei Amy&apos;s Echo! Diese App hilft bei der Kommunikation durch Gestenerkennung.
+          Willkommen bei Amy&apos;s Echo! Diese App hilft bei der Kommunikation durch Gebärdenerkennung.
           Der neue Amy-Loop bedeutet: Kamera → Verlauf → Lernen.
         </p>
         <div className="amy-commitments">
@@ -87,10 +87,10 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
         <div className="onboarding-icon">🎉</div>
         <h2>Alles bereit!</h2>
         <p className="muted">
-          Dein Profil ist eingerichtet. Du kannst jetzt mit der Gestenerkennung beginnen.
+          Dein Profil ist eingerichtet. Du kannst jetzt mit der Gebärdenerkennung beginnen.
         </p>
         <Link to="/" className="primary-button">
-          Zur Gestenerkennung
+          Zur Gebärdenerkennung
         </Link>
       </div>
     ),
