@@ -917,6 +917,10 @@ def augment_multimodal_landmarks(
     numpy.ndarray
         Augmented multimodal landmark tensor with the same shape as the input.
     """
+    # Jitter scaling factors to preserve structure of different modalities
+    POSE_JITTER_SCALE = 0.5  # Reduced variance for pose to maintain body structure
+    FACE_JITTER_SCALE = 0.3  # Reduced variance for face to maintain facial structure
+    
     if rng is None:
         rng = np.random.default_rng()
         
@@ -944,14 +948,14 @@ def augment_multimodal_landmarks(
     # Apply minimal jitter to pose (smaller variance to maintain body structure)
     pose_features = features[hand_size:hand_size + pose_size].reshape(33, 3)
     if np.any(pose_features):
-        pose_jitter = rng.normal(0.0, jitter_std * 0.5, size=pose_features.shape).astype(np.float32)
+        pose_jitter = rng.normal(0.0, jitter_std * POSE_JITTER_SCALE, size=pose_features.shape).astype(np.float32)
         pose_features = pose_features + pose_jitter
     augmented_pose = pose_features.flatten()
     
     # Apply minimal jitter to face (smaller variance to maintain facial structure)
     face_features = features[hand_size + pose_size:].reshape(11, 3)
     if np.any(face_features):
-        face_jitter = rng.normal(0.0, jitter_std * 0.3, size=face_features.shape).astype(np.float32)
+        face_jitter = rng.normal(0.0, jitter_std * FACE_JITTER_SCALE, size=face_features.shape).astype(np.float32)
         face_features = face_features + face_jitter
     augmented_face = face_features.flatten()
     

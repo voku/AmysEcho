@@ -676,21 +676,18 @@ export function registerTrainingBundleRoute(
       });
 
       // Analytics: Log missing modalities for monitoring data quality
-      const missingModalities: string[] = [];
-      if (!mergedModalities.hands.present) {
-        missingModalities.push('hands');
-        logger.warn('Training bundle missing required hand landmarks', {
-          bundleId,
-          profileId: profileIdRaw ?? null,
-          coverage: mergedModalities,
-        });
-      }
-      if (!mergedModalities.pose.present) {
-        missingModalities.push('pose');
-      }
-      if (!mergedModalities.face.present) {
-        missingModalities.push('face');
-      }
+      const modalities: Array<keyof typeof mergedModalities> = ['hands', 'pose', 'face'];
+      const missingModalities = modalities.filter(modality => {
+        const isMissing = !mergedModalities[modality].present;
+        if (isMissing && modality === 'hands') {
+          logger.warn('Training bundle missing required hand landmarks', {
+            bundleId,
+            profileId: profileIdRaw ?? null,
+            coverage: mergedModalities,
+          });
+        }
+        return isMissing;
+      });
 
       if (missingModalities.length > 0) {
         logger.info('Training bundle with incomplete multimodal data', {
