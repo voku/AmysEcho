@@ -1,4 +1,4 @@
-const MAX_CAPTURE_DIMENSION = 640;
+const MAX_CAPTURE_DIMENSION_640 = 640;
 const MAX_DATA_URL_LENGTH = 400_000; // ~400 KB cap to protect bridge bandwidth
 
 let frameCaptureEnabled = false;
@@ -22,7 +22,7 @@ function ensureCanvas(video: HTMLVideoElement): void {
   const height = video.videoHeight;
 
   if (width && height) {
-    const scale = Math.min(1, MAX_CAPTURE_DIMENSION / width, MAX_CAPTURE_DIMENSION / height);
+    const scale = Math.min(1, MAX_CAPTURE_DIMENSION_640 / width, MAX_CAPTURE_DIMENSION_640 / height);
     const targetWidth = Math.max(1, Math.round(width * scale));
     const targetHeight = Math.max(1, Math.round(height * scale));
 

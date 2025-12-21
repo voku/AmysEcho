@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi, afterEach } from 'vitest';
-import { MessageBatcher, BATCH_INTERVAL_MS, MAX_BATCH_SIZE } from '../MessageBatcher';
+import { MessageBatcher, BATCH_INTERVAL_MS_35, MAX_BATCH_SIZE_6 } from '../MessageBatcher';
 import { WEBVIEW_MESSAGE_EVENT } from '../../../utils/reactNativeBridge';
 
 describe('MessageBatcher', () => {
@@ -23,7 +23,7 @@ describe('MessageBatcher', () => {
 
       expect(dispatchEventSpy).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(BATCH_INTERVAL_MS);
+      vi.advanceTimersByTime(BATCH_INTERVAL_MS_35);
 
       expect(dispatchEventSpy).toHaveBeenCalledTimes(1);
       const event = dispatchEventSpy.mock.calls[0][0] as CustomEvent;
@@ -38,7 +38,7 @@ describe('MessageBatcher', () => {
       messageBatcher.queueMessage({ type: 'test', data: 2 });
       messageBatcher.queueMessage({ type: 'test', data: 3 });
 
-      vi.advanceTimersByTime(BATCH_INTERVAL_MS);
+      vi.advanceTimersByTime(BATCH_INTERVAL_MS_35);
 
       expect(dispatchEventSpy).toHaveBeenCalledTimes(1);
       const event = dispatchEventSpy.mock.calls[0][0] as CustomEvent;
@@ -47,14 +47,14 @@ describe('MessageBatcher', () => {
     });
 
     it('flushes immediately when batch size reached', () => {
-      for (let i = 0; i < MAX_BATCH_SIZE; i++) {
+      for (let i = 0; i < MAX_BATCH_SIZE_6; i++) {
         messageBatcher.queueMessage({ type: 'test', index: i });
       }
 
       expect(dispatchEventSpy).toHaveBeenCalledTimes(1);
       const event = dispatchEventSpy.mock.calls[0][0] as CustomEvent;
       const detail = JSON.parse(event.detail as string);
-      expect(detail.messages).toHaveLength(MAX_BATCH_SIZE);
+      expect(detail.messages).toHaveLength(MAX_BATCH_SIZE_6);
     });
 
     it('flushes immediately with flushImmediately option', () => {
