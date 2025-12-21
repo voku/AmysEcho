@@ -1023,9 +1023,24 @@ export class GestureRecognitionOrchestrator {
 
   private getPlatformDefaultMime(): string {
     const ua = typeof navigator !== 'undefined' && navigator?.userAgent ? navigator.userAgent : '';
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const uaData = typeof navigator !== 'undefined'
+      ? (navigator as Navigator & {
+          userAgentData?: {
+            platform?: string;
+            brands?: Array<{ brand: string }>;
+          };
+        }).userAgentData
+      : undefined;
+    const brandList = uaData?.brands ?? [];
+    const isChromium = brandList.some((brand) => /Chrom(e|ium)|Edge/i.test(brand.brand));
+    if (isChromium) {
+      return 'video/webm';
+    }
+    const platform = uaData?.platform?.toLowerCase() ?? '';
+    const isIOS = platform.length > 0
+      ? /ios|iphone|ipad|ipod/.test(platform)
+      : /iPhone|iPad|iPod/i.test(ua);
     const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua);
-    // TODO: consider navigator.userAgentData once widely supported to avoid user-agent sniffing.
     return isIOS || isSafari ? 'video/mp4' : 'video/webm';
   }
 

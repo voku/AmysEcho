@@ -170,6 +170,9 @@ describe('End-to-End Communication', () => {
 
 ## 🔧 Test Infrastructure
 
+### Timer-driven Hooks
+Validate timer-driven polling flows (for example, `useTrainingUploader`) in integration tests when React's strict effect lifecycle makes unit tests flaky. Use fake timers sparingly and only when async storage or network mocks remain reliable under simulated time.
+
 ### Test Utilities
 ```typescript
 // test/utils/testHelpers.ts

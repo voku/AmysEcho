@@ -21,6 +21,7 @@ This document verifies that all video recording, training, and gesture recogniti
   - Automatic quality adjustment
   - Error handling with graceful fallback
   - MIME type detection and support checking
+  - Prefer `navigator.userAgentData` (when available) to avoid relying solely on user-agent strings for default MIME selection
 
 **Expo Packages Used**:
 ```json

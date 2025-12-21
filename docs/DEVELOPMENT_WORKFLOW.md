@@ -66,6 +66,7 @@ app/src/
 - **Components**: `PascalCase` (e.g., `GestureComparison`)
 - **Files**: `kebab-case` (e.g., `gesture-history-service.ts`)
 - **Functions**: `camelCase` (e.g., `getCachedResponse`)
+- **Constants with fixed thresholds**: include the numeric value in the name (e.g., `EXPENSIVE_STEP_SKIP_PROBABILITY_50_PERCENT`)
 
 ### Code Comments
 ```typescript

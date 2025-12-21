@@ -11,7 +11,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Upgrade the sign language detector (`webapp/src/gesture/`) to stream a rolling buffer of frames alongside the existing landmark payload.
 - [x] Extend the Training page to record both the landmark timeline and captured frames while recording is active.
 - [x] Persist the sample shape in the training queue (`webapp/src/training/trainingQueue.ts`). Use IndexedDB via OPFS for offline support.
-- [ ] Harden multimodal capture for kids: verify pose/face/hand landmark availability across supported browsers/devices, and surface guidance when a modality drops (e.g., "Please keep face in frame").
+- [x] Harden multimodal capture for kids: verify pose/face/hand landmark availability across supported browsers/devices, and surface guidance when a modality drops (e.g., "Please keep face in frame").
 - [ ] Add privacy-safe preview controls: allow caregivers to toggle raw video vs. skeleton-only while keeping overlay drawing for hands/pose/face visible.
 
 ## 2. Package & Queue Upload Bundles (`webapp/src/training`)
