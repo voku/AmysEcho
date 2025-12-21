@@ -222,7 +222,7 @@ export const ProgressChart: React.FC = () => {
           )}
           {latestRate >= 0.8 && (
             <li className="insight positive">
-              <span>⭐</span> Diese Geste wird sehr zuverlässig erkannt!
+              <span>⭐</span> Diese Gebärde wird sehr zuverlässig erkannt!
             </li>
           )}
           {latestRate < 0.6 && (
@@ -238,7 +238,7 @@ export const ProgressChart: React.FC = () => {
 
       <div className="chart-actions">
         <Link to={`/lernen?gesture=${gestureId}`} className="primary-button">
-          Geste üben
+          Gebärde üben
         </Link>
         <Link to="/bericht" className="secondary-button">
           Zum Gesamtbericht

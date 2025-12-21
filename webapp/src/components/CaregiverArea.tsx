@@ -129,7 +129,7 @@ export const CaregiverArea: React.FC = () => {
 
       <div className="caregiver-actions">
         <Link to="/" className="secondary-button">
-          Zurück zur Gestenkamera
+          Zurück zur Gebärdenkamera
         </Link>
       </div>
     </div>

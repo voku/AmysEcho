@@ -74,7 +74,7 @@ export class FeedbackSystem {
     },
     emergency: {
       encouragement: 'Notfallzeichen sind lebenswichtig!',
-      tip: 'Diese Geste hat höchste Priorität'
+      tip: 'Diese Gebärde hat höchste Priorität'
     }
   };
 

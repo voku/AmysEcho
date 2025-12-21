@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useGestureDetector } from '../hooks/useGestureDetector';
+import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
 import type { TrainingBundlePayload, HandFocus } from '../training/types';
 import { framesHaveHandLandmarks, suggestHandFocus } from '../training/handUtils';
@@ -66,7 +66,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     (window as any).__mirrorOverlay = isMirroredPreview;
   }, [facingMode, isMirroredPreview]);
 
-  const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks } = useGestureDetector(
+  const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks } = useSignLanguageDetector(
     videoRef,
     overlayRef,
   );
@@ -476,7 +476,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           <p className="eyebrow">Aufnahme</p>
           <h2>Gebärde aufzeichnen</h2>
           <p className="muted">
-            Nimm deine Geste mit der Kamera auf. Die Handbewegungen werden automatisch erkannt und gespeichert.
+            Nimm deine Gebärde mit der Kamera auf. Die Handbewegungen werden automatisch erkannt und gespeichert.
           </p>
         </div>
       </div>
@@ -605,7 +605,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                     Profil: <strong>{profileId || '–'}</strong>
                   </p>
                   <p className="muted no-margin">
-                    Geste: <strong>{displayedLabel}</strong>
+                    Gebärde: <strong>{displayedLabel}</strong>
                   </p>
                   <p className="muted small no-margin">{framesLine}</p>
                 </div>
@@ -802,7 +802,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               <p className="eyebrow">Vorschau</p>
               <img
                 src={manualStillPreviewUrl ?? recordedData.stillImage ?? undefined}
-                alt={manualStillPreviewUrl ? 'Hochgeladenes Referenzbild' : 'Aufgenommene Geste'}
+                alt={manualStillPreviewUrl ? 'Hochgeladenes Referenzbild' : 'Aufgenommene Gebärde'}
               />
             </div>
           )}

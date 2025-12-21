@@ -49,7 +49,7 @@ export const ProfileSelect: React.FC = () => {
             <span className="option-icon">📚</span>
             <div className="option-content">
               <strong>Lernen</strong>
-              <p>Übe Gesten gemeinsam und sammle neue Trainingsbeispiele.</p>
+              <p>Übe Gebärden gemeinsam und sammle neue Trainingsbeispiele.</p>
             </div>
           </Link>
         </div>

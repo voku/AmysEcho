@@ -62,7 +62,7 @@ We use an 8-point grid system for spacing and layout. This means that all margin
 *   **Standard Padding:** `16px`
 *   **Component Spacing:** `24px`
 *   **Mobile Navigation Safe Area:** Ensure main content keeps enough bottom padding so fixed navigation never overlaps key controls on small screens.
-*   **Mobile Kamera-Ansicht:** Die Gestenerkennung nutzt auf kleinen Displays eine Vollbild-Kamera (edge-to-edge), damit Hände und Oberkörper frei sichtbar bleiben und Bedienelemente nicht die Mitte überdecken.
+*   **Mobile Kamera-Ansicht:** Die Gebärdenerkennung nutzt auf kleinen Displays eine Vollbild-Kamera (edge-to-edge), damit Hände und Oberkörper frei sichtbar bleiben und Bedienelemente nicht die Mitte überdecken.
 
 Layouts should be center-aligned when possible to create a sense of balance and calm.
 
@@ -98,16 +98,16 @@ The `AmyLoopTimeline` component visualises the mission-critical communication lo
 
 ### Kamera-Aktionsbuttons
 
-Im Kamera-Overlay führen drei Buttons („Stimmt“, „Lernen“, „Alternativen“) durch die Schleife. Die Farben kommen aus `colors.ts` (`cameraActionConfirm*`, `cameraActionLearn*`, `cameraActionAlternatives*`). Sie kombinieren warme Töne (#E5E0CF) für Bestätigen mit tiefem Petrol (#25706F, #1C4A4B) für Lernpfade, um das Mockup widerzuspiegeln.
+Im Kamera-Overlay führen drei Buttons („Aussprechen“, „Lernen“, „Alternativen“) durch die Schleife. Die Farben kommen aus `colors.ts` (`cameraActionConfirm*`, `cameraActionLearn*`, `cameraActionAlternatives*`). Sie kombinieren warme Töne (#E5E0CF) für Bestätigen mit tiefem Petrol (#25706F, #1C4A4B) für Lernpfade, um das Mockup widerzuspiegeln.
 
 **Lesbarkeit im Kamera-Overlay:** Statuszeilen, Metadaten und Buttons müssen auch bei hellem Kamera-Feed klar bleiben. Verwende dafür dunkle, halbtransparente HUD-Flächen (Glas-Optik), `overlayText`/`inverseText` als Textfarbe und klare Button-Hintergründe mit Schatten, damit die Aktionen auf dem Video jederzeit erkennbar bleiben.
 
-### Vollbild-Gestenkamera (Web)
+### Vollbild-Gebärdenkamera (Web)
 
-Die Web-Gestenkamera nutzt ein Vollbild-Layout, damit Hände und Oberkörper komplett sichtbar bleiben und Amy nicht durch Rahmen abgelenkt wird:
+Die Web-Gebärdenkamera nutzt ein Vollbild-Layout, damit Hände und Oberkörper komplett sichtbar bleiben und Amy nicht durch Rahmen abgelenkt wird:
 
 * **Statuskapsel oben:** Zeigt „Ich höre zu…“, Initialisierung und Fehler klar und ruhig an, inkl. farbigem Punkt.
-* **Profilzeile im HUD:** Kleine, dezente Zeile für Profil und Standardgeste, damit Betreuungspersonen Kontext behalten.
+* **Profilzeile im HUD:** Kleine, dezente Zeile für das Profil, damit Betreuungspersonen Kontext behalten.
 * **Unteres Steuerdock:** Erkennungs-Banner, die drei Hauptaktionen sowie optionales „Kamera starten“, falls die Erkennung pausiert ist.
 * **Korrekturfläche:** „Alternativen“ öffnet die Korrektur direkt im Dock, damit Amy im gleichen Fokus bleibt.
 

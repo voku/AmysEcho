@@ -135,7 +135,7 @@ All app screens have webapp equivalents. See `docs/MIGRATION_COMPARISON.md`.
 |-----------|-------------|--------|
 | `GestureWebView.tsx` | WebView for gesture detection | ⚠️ Not needed - direct MediaPipe |
 | `MediaPipeGestureDetector.tsx` | MediaPipe integration | ⚠️ Different architecture |
-| `GestureHistoryViewer.tsx` | History visualization | ⚠️ Covered by `GestureHistory.tsx` |
+| `GestureHistoryViewer.tsx` | History visualization | ⚠️ Covered by `SignLanguageHistory.tsx` |
 | `ErrorMessage.tsx` | Error display | ⚠️ Covered by `ErrorBoundary.tsx` |
 | `ChildErrorBoundary.tsx` | Child error handling | ⚠️ Covered by `ErrorBoundary.tsx` |
 
@@ -253,7 +253,7 @@ The gesture pipeline has **full parity**:
 | `landmarkUtils.ts` | utils/landmarkUtils | ✅ |
 | `logger.ts` | services/logger | ✅ |
 | `pathUtils.ts` | N/A | 🟢 Low - not needed for web |
-| `recognitionState.ts` | hooks/useGestureDetector | ✅ |
+| `recognitionState.ts` | hooks/useSignLanguageDetector | ✅ |
 | `shortcutUtils.ts` | N/A | 🟢 Low |
 | `storageUtils.ts` | localStorage | ✅ |
 | `stringUtils.ts` | utils/stringUtils | ✅ |

@@ -276,7 +276,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         ? SESSION_EXPIRED_MESSAGE
         : error instanceof Error
           ? error.message
-          : 'Unbekannter Fehler beim Laden der Gesten';
+          : 'Unbekannter Fehler beim Laden der Gebärden';
       setSyncError(reason);
 
       if (!isAuthError) {

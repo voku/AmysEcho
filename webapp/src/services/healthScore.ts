@@ -1,7 +1,7 @@
 /**
  * Health Score Service - Amy First
  *
- * Verfolgt Gestengesundheit und Übungsvorschläge basierend auf Erfolgsrate
+ * Verfolgt Gebärdengesundheit und Übungsvorschläge basierend auf Erfolgsrate
  */
 
 const LOG_KEY = 'interactionLogs';
@@ -35,7 +35,7 @@ export interface ProgressReport {
 }
 
 /**
- * Gestengesundheit basierend auf Interaktionsprotokollen abrufen
+ * Gebärdengesundheit basierend auf Interaktionsprotokollen abrufen
  */
 export function getGestureHealth(
   gestureId: string,

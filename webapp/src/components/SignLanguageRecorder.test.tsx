@@ -1,18 +1,18 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { GestureRecorder } from './GestureRecorder';
+import { SignLanguageRecorder } from './SignLanguageRecorder';
 import { AppStateProvider } from '../hooks/useAppState';
 
 // Mock the hooks that have external dependencies
-vi.mock('../hooks/useGestureDetector', () => ({
-  useGestureDetector: () => ({
+vi.mock('../hooks/useSignLanguageDetector', () => ({
+  useSignLanguageDetector: () => ({
     start: vi.fn().mockResolvedValue(true),
     stop: vi.fn().mockResolvedValue(undefined),
     cleanup: vi.fn().mockResolvedValue(undefined),
     status: 'idle',
     error: null,
-    lastGesture: null,
+    lastSign: null,
     lastConfidence: null,
     messageLog: [],
   }),
@@ -32,29 +32,28 @@ const renderWithProviders = (ui: React.ReactElement) => {
   );
 };
 
-describe('GestureRecorder', () => {
+describe('SignLanguageRecorder', () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
 
   it('renders the gesture demo section', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     expect(screen.getByText('Bereit für die Kamera')).toBeInTheDocument();
     expect(screen.getByText(/Profil/)).toBeInTheDocument();
-    expect(screen.getByText(/Standardgeste/)).toBeInTheDocument();
   });
 
   it('shows camera action buttons', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     expect(screen.getByText('Kamera starten')).toBeInTheDocument();
-    expect(screen.getByText('Stimmt')).toBeInTheDocument();
+    expect(screen.getByText('Aussprechen')).toBeInTheDocument();
     expect(screen.getByText('Lernen')).toBeInTheDocument();
   });
 
   it('shows overlay toggle checkbox', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     const overlayToggle = screen.getByLabelText('Overlay');
     expect(overlayToggle).toBeInTheDocument();
@@ -62,7 +61,7 @@ describe('GestureRecorder', () => {
   });
 
   it('toggles overlay visibility when checkbox is clicked', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     const overlayToggle = screen.getByLabelText('Overlay') as HTMLInputElement;
     expect(overlayToggle.checked).toBe(true);
@@ -72,22 +71,21 @@ describe('GestureRecorder', () => {
   });
 
   it('shows placeholder when no gesture detected', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText('Zeige eine Geste in die Kamera…')).toBeInTheDocument();
+    expect(screen.getByText('Zeige eine Gebärde in die Kamera…')).toBeInTheDocument();
   });
 
   it('shows initial status as ready (Bereit)', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     expect(screen.getByText('Bereit für die Kamera')).toBeInTheDocument();
   });
 
   it('displays profile information', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     expect(screen.getByText(/Profil/)).toBeInTheDocument();
-    expect(screen.getByText(/Standardgeste/)).toBeInTheDocument();
   });
 
   it('shows camera warning when camera is not supported', () => {
@@ -98,7 +96,7 @@ describe('GestureRecorder', () => {
       configurable: true,
     });
 
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     // Restore original
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -108,7 +106,7 @@ describe('GestureRecorder', () => {
   });
 
   it('has video element for camera stream', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     const videoElement = document.querySelector('video');
     expect(videoElement).toBeInTheDocument();
@@ -117,7 +115,7 @@ describe('GestureRecorder', () => {
   });
 
   it('has canvas element for overlay', () => {
-    renderWithProviders(<GestureRecorder />);
+    renderWithProviders(<SignLanguageRecorder />);
 
     const canvasElement = document.querySelector('canvas');
     expect(canvasElement).toBeInTheDocument();

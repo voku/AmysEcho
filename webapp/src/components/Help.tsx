@@ -1,8 +1,18 @@
+import { useMemo } from 'react';
+import { useSymbolStore } from '../context/SymbolStore';
+
 /**
  * Help component - mirrors HelpScreen from the Expo app.
  * Provides documentation and FAQ for users.
  */
 export function Help() {
+  const { symbols, loading, syncError } = useSymbolStore();
+  const sortedSymbols = useMemo(
+    () => [...symbols].sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    [symbols],
+  );
+  const hasSymbols = sortedSymbols.length > 0;
+
   return (
     <section className="card">
       <div className="card-header">
@@ -23,40 +33,41 @@ export function Help() {
             <strong>Kamera starten:</strong> Klicke auf &quot;Kamera starten&quot; und erlaube den Zugriff.
           </li>
           <li>
-            <strong>Geste zeigen:</strong> Halte deine Hand vor die Kamera und führe eine Geste aus.
+            <strong>Gebärde zeigen:</strong> Halte deine Hand vor die Kamera und führe eine Gebärde aus.
           </li>
           <li>
-            <strong>Erkennung prüfen:</strong> Die erkannte Geste wird angezeigt.
+            <strong>Erkennung prüfen:</strong> Die erkannte Gebärde wird angezeigt.
           </li>
           <li>
             <strong>Korrigieren:</strong> Falls falsch erkannt, nutze die Korrekturfunktion.
           </li>
           <li>
-            <strong>Training:</strong> Nimm neue Gesten auf, um die Erkennung zu verbessern.
+            <strong>Training:</strong> Nimm neue Gebärden auf, um die Erkennung zu verbessern.
           </li>
         </ol>
       </div>
 
       {/* Supported Gestures */}
       <div className="help-section">
-        <h3>✋ Unterstützte Gesten</h3>
-        <p>Amy&apos;s Echo erkennt folgende Basis-Gesten:</p>
+        <h3>✋ Unterstützte Gebärden</h3>
+        <p>Amy&apos;s Echo erkennt aktuell diese trainierten Gebärden:</p>
         <div className="gesture-list">
-          <span className="badge">Alle</span>
-          <span className="badge">Blau</span>
-          <span className="badge">Essen</span>
-          <span className="badge">Fertig</span>
-          <span className="badge">Gelb</span>
-          <span className="badge">Grün</span>
-          <span className="badge">Nochmal</span>
-          <span className="badge">Rot</span>
-          <span className="badge">Satt</span>
-          <span className="badge">Schwester</span>
-          <span className="badge">Spielen</span>
-          <span className="badge">Trinken</span>
+          {loading ? (
+            <span className="badge">Gebärden werden geladen…</span>
+          ) : syncError ? (
+            <span className="badge">Gebärdenliste konnte nicht geladen werden: {syncError}</span>
+          ) : hasSymbols ? (
+            sortedSymbols.map((symbol) => (
+              <span className="badge" key={symbol.id}>
+                {symbol.name}
+              </span>
+            ))
+          ) : (
+            <span className="badge">Noch keine Gebärden geladen</span>
+          )}
         </div>
         <p className="muted small">
-          Durch Training können weitere Gesten hinzugefügt werden.
+          Durch Training können weitere Gebärden hinzugefügt werden.
         </p>
       </div>
 
@@ -101,7 +112,7 @@ export function Help() {
           <summary>Funktioniert die App offline?</summary>
           <div className="faq-answer">
             <p>
-              Die Gestenerkennung funktioniert vollständig offline. Nur das Training und die 
+              Die Gebärdenerkennung funktioniert vollständig offline. Nur das Training und die 
               Modell-Updates benötigen eine Internetverbindung.
             </p>
           </div>

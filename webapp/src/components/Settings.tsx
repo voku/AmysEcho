@@ -6,21 +6,17 @@ import { useAppState } from '../hooks/useAppState';
  * Allows users to configure app preferences and manage their profile.
  */
 export function Settings() {
-  const { profileId, setProfileId, preferredGestureLabel, setPreferredGestureLabel } = useAppState();
+  const { profileId, setProfileId } = useAppState();
   const [newProfileId, setNewProfileId] = useState(profileId);
-  const [newGestureLabel, setNewGestureLabel] = useState(preferredGestureLabel);
   const [showSaved, setShowSaved] = useState(false);
 
   const handleSaveProfile = useCallback(() => {
     if (newProfileId.trim()) {
       setProfileId(newProfileId.trim());
     }
-    if (newGestureLabel.trim()) {
-      setPreferredGestureLabel(newGestureLabel.trim().toUpperCase());
-    }
     setShowSaved(true);
     setTimeout(() => setShowSaved(false), 2000);
-  }, [newProfileId, newGestureLabel, setProfileId, setPreferredGestureLabel]);
+  }, [newProfileId, setProfileId]);
 
   const handleExportData = useCallback(() => {
     const data = {
@@ -78,17 +74,6 @@ export function Settings() {
             />
             <p className="muted small">Eindeutige Kennung für dein Profil</p>
           </div>
-          <div className="setting-item">
-            <label htmlFor="preferred-gesture">Standard-Geste</label>
-            <input
-              id="preferred-gesture"
-              type="text"
-              value={newGestureLabel}
-              onChange={(e) => setNewGestureLabel(e.target.value)}
-              placeholder="z.B. HILFE"
-            />
-            <p className="muted small">Bevorzugte Geste für neue Trainings</p>
-          </div>
         </div>
         <div className="controls">
           <button className="primary" onClick={handleSaveProfile}>
@@ -118,7 +103,7 @@ export function Settings() {
           <p><strong>Version:</strong> Webapp Preview</p>
           <p><strong>Profil:</strong> {profileId}</p>
           <p className="muted small">
-            Amy&apos;s Echo hilft bei der Kommunikation durch Gestenerkennung. 
+            Amy&apos;s Echo hilft bei der Kommunikation durch Gebärdenerkennung. 
             Die Daten werden lokal im Browser gespeichert.
           </p>
         </div>

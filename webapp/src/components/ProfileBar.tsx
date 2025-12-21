@@ -5,13 +5,9 @@ export function ProfileBar() {
   const {
     profileId,
     setProfileId,
-    preferredGestureLabel,
-    setPreferredGestureLabel,
     lastRecognizedGesture,
     recentGestures,
   } = useAppState();
-
-  const suggestedLabel = lastRecognizedGesture ?? recentGestures[0] ?? '';
 
   return (
     <section className="card profile-card">
@@ -35,28 +31,8 @@ export function ProfileBar() {
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor="default-label">Standard-Gestenlabel</label>
-          <input
-            id="default-label"
-            value={preferredGestureLabel}
-            onChange={(event) => setPreferredGestureLabel(event.target.value)}
-            placeholder="z. B. HILFE"
-          />
-          {suggestedLabel && suggestedLabel !== preferredGestureLabel && (
-            <button
-              type="button"
-              className="ghost mt-sm"
-              onClick={() => setPreferredGestureLabel(suggestedLabel)}
-              aria-label="Letzte erkannte Geste übernehmen"
-            >
-              Letzte erkannte Geste übernehmen ({suggestedLabel})
-            </button>
-          )}
-        </div>
-
         <div className="panel panel-tight">
-          <p className="eyebrow">Letzte Gesten</p>
+          <p className="eyebrow">Letzte Gebärden</p>
           {recentGestures.length === 0 && <p className="muted">Noch keine Erkennung erfasst.</p>}
           {recentGestures.length > 0 && (
             <ul className="muted small gesture-list">

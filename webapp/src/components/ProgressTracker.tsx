@@ -155,7 +155,7 @@ export function ProgressTracker() {
           <p className="eyebrow">Fortschritt</p>
           <h2>Lernübersicht</h2>
           <p className="muted">
-            Verfolge deinen Lernfortschritt und sieh, welche Gesten du bereits beherrschst.
+            Verfolge deinen Lernfortschritt und sieh, welche Gebärden du bereits beherrschst.
           </p>
         </div>
       </div>
@@ -164,11 +164,11 @@ export function ProgressTracker() {
       <div className="progress-summary">
         <div className="stat-card">
           <p className="stat-value">{progressData.totalGestures}</p>
-          <p className="stat-label">Erkannte Gesten</p>
+          <p className="stat-label">Erkannte Gebärden</p>
         </div>
         <div className="stat-card">
           <p className="stat-value">{progressData.uniqueGestures}</p>
-          <p className="stat-label">Verschiedene Gesten</p>
+          <p className="stat-label">Verschiedene Gebärden</p>
         </div>
         <div className="stat-card">
           <p className="stat-value">{progressData.sessionsCount}</p>
@@ -184,7 +184,7 @@ export function ProgressTracker() {
       {learnedGestures.length > 0 && (
         <div className="progress-section">
           <h3>✓ Gelernt</h3>
-          <p className="muted small">Diese Gesten hast du mindestens 3x erfolgreich gezeigt.</p>
+          <p className="muted small">Diese Gebärden hast du mindestens 3x erfolgreich gezeigt.</p>
           <div className="gesture-grid">
             {learnedGestures.map((gesture) => (
               <div key={gesture.label} className="gesture-card learned">
@@ -216,7 +216,7 @@ export function ProgressTracker() {
       {notStartedGestures.length > 0 && (
         <div className="progress-section">
           <h3>📚 Noch zu lernen</h3>
-          <p className="muted small">Diese Gesten warten noch auf dich!</p>
+          <p className="muted small">Diese Gebärden warten noch auf dich!</p>
           <div className="gesture-grid">
             {notStartedGestures.map((gesture) => (
               <div key={gesture} className="gesture-card not-started">

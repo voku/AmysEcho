@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import type { GestureRecognitionOrchestrator } from '../gesture/core/GestureRecognitionOrchestrator';
-import { useGestureDetector } from './useGestureDetector';
+import { useSignLanguageDetector } from './useSignLanguageDetector';
 
 function createStubOrchestrator() {
   return {
@@ -13,14 +13,14 @@ function createStubOrchestrator() {
   } as unknown as GestureRecognitionOrchestrator;
 }
 
-describe('useGestureDetector', () => {
+describe('useSignLanguageDetector', () => {
   it('startet und stoppt den Orchestrator', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
 
     const { result } = renderHook(() =>
-      useGestureDetector(videoRef, overlayRef, {
+      useSignLanguageDetector(videoRef, overlayRef, {
         orchestratorFactory: () => orchestrator,
       }),
     );
@@ -46,7 +46,7 @@ describe('useGestureDetector', () => {
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
 
     const { result } = renderHook(() =>
-      useGestureDetector(videoRef, overlayRef, {
+      useSignLanguageDetector(videoRef, overlayRef, {
         orchestratorFactory: () => orchestrator,
       }),
     );
@@ -68,7 +68,7 @@ describe('useGestureDetector', () => {
     await waitFor(() => {
       expect(result.current.messageLog.length).toBe(1);
       expect(result.current.messageLog[0]?.count).toBe(2);
-      expect(result.current.lastGesture).toBe('WINKEN');
+      expect(result.current.lastSign).toBe('WINKEN');
       expect(result.current.lastConfidence).toBeCloseTo(0.92);
     });
   });
@@ -79,7 +79,7 @@ describe('useGestureDetector', () => {
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
 
     const { result } = renderHook(() =>
-      useGestureDetector(videoRef, overlayRef, {
+      useSignLanguageDetector(videoRef, overlayRef, {
         orchestratorFactory: () => orchestrator,
       }),
     );
@@ -100,7 +100,7 @@ describe('useGestureDetector', () => {
 
     await waitFor(() => {
       expect(result.current.messageLog.length).toBe(0);
-      expect(result.current.lastGesture).toBeNull();
+      expect(result.current.lastSign).toBeNull();
     });
   });
 
@@ -110,7 +110,7 @@ describe('useGestureDetector', () => {
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
 
     const { result } = renderHook(() =>
-      useGestureDetector(videoRef, overlayRef, {
+      useSignLanguageDetector(videoRef, overlayRef, {
         orchestratorFactory: () => orchestrator,
       }),
     );
@@ -139,7 +139,7 @@ describe('useGestureDetector', () => {
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
 
     const { result } = renderHook(() =>
-      useGestureDetector(videoRef, overlayRef, {
+      useSignLanguageDetector(videoRef, overlayRef, {
         orchestratorFactory: () => orchestrator,
       }),
     );

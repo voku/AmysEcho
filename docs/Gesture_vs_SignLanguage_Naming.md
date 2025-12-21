@@ -1,7 +1,7 @@
 # Gesture vs. Sign Language Naming Review
 
 ## Context
-Recent fixes reduced UI churn in the sign-language detector by ignoring empty `gesture_batch` payloads in the web bridge (see `useGestureDetector`). The broader stack already targets Deutsche Gebärdensprache (DGS) end to end, but many core classes, message types, and directories still carry the legacy "gesture" naming.
+Recent fixes reduced UI churn in the sign-language detector by ignoring empty `gesture_batch` payloads in the web bridge (see `useSignLanguageDetector`). The broader stack already targets Deutsche Gebärdensprache (DGS) end to end, but many core classes, message types, and directories still carry the legacy "gesture" naming.
 
 ## Pros for renaming to "Sign Language"
 - **Aligns with product scope**: The training and distribution roadmap is explicitly DGS-focused (capture → bundle → train → distribute), so naming the detector accordingly would match our documented mission and reduce ambiguity about which gestures we support.
@@ -16,4 +16,4 @@ Recent fixes reduced UI churn in the sign-language detector by ignoring empty `g
 - **API and data compatibility**: Bridge messages, persisted training bundles, and telemetry payloads currently serialize gesture-typed fields. Renaming would ripple into stored data, tests, and backend ingestion, requiring migration steps to avoid breaking historical bundles or logs.
 
 ## Recommendation
-Keep the current "gesture" identifiers for low-level event types and cross-platform interfaces until we can coordinate a synchronized rename across mobile, web, and server transports. We can still use "sign language" in user-facing copy and higher-level documentation to reflect the DGS goal without risking transport breakage. When ready, stage the rename behind compatibility shims that preserve the existing bridge event names.
+Keep the current "gesture" identifiers for low-level event types and cross-platform interfaces until we can coordinate a synchronized rename across mobile, web, and server transports. We can still use "sign language" naming in UI-facing hooks and higher-level documentation to reflect the DGS goal without risking transport breakage. When ready, stage the transport rename behind compatibility shims that preserve the existing bridge event names.

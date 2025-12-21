@@ -22,17 +22,14 @@ describe('ProfileBar', () => {
 
     expect(screen.getByText('Aktives Profil')).toBeInTheDocument();
     expect(screen.getByLabelText('Profil-ID')).toBeInTheDocument();
-    expect(screen.getByLabelText('Standard-Gestenlabel')).toBeInTheDocument();
   });
 
-  it('shows default values for profile and label', () => {
+  it('shows default value for profile', () => {
     renderWithProviders(<ProfileBar />);
 
     const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-    const labelInput = screen.getByLabelText('Standard-Gestenlabel') as HTMLInputElement;
 
     expect(profileInput.value).toBe('web-demo');
-    expect(labelInput.value).toBe('HILFE');
   });
 
   it('updates profile ID when typing', () => {
@@ -42,15 +39,6 @@ describe('ProfileBar', () => {
     fireEvent.change(profileInput, { target: { value: 'new-profile' } });
 
     expect(profileInput.value).toBe('new-profile');
-  });
-
-  it('updates gesture label when typing', () => {
-    renderWithProviders(<ProfileBar />);
-
-    const labelInput = screen.getByLabelText('Standard-Gestenlabel') as HTMLInputElement;
-    fireEvent.change(labelInput, { target: { value: 'DANKE' } });
-
-    expect(labelInput.value).toBe('DANKE');
   });
 
   it('shows "Profil bereit" status when no gestures recognized', () => {

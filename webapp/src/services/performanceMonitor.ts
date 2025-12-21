@@ -1,7 +1,7 @@
 /**
  * Performance Monitor Service - Amy First
  *
- * Umfassendes Performance-Monitoring für das Gestenerkennungssystem.
+ * Umfassendes Performance-Monitoring für das Gebärdenerkennungssystem.
  * Verfolgt Latenz, Genauigkeit und Systemzustand.
  */
 
@@ -83,7 +83,7 @@ class PerformanceMonitor {
   }
 
   /**
-   * Gestenverarbeitungsprobe aufzeichnen
+   * Gebärdenverarbeitungsprobe aufzeichnen
    */
   recordGestureProcessing(
     processingTime: number,
@@ -114,7 +114,7 @@ class PerformanceMonitor {
     }
 
     if (processingTime > this.SLOW_PROCESSING_THRESHOLD_MS) {
-      logger.warn(`Langsame Gestenverarbeitung: ${processingTime}ms für ${gesture}`);
+      logger.warn(`Langsame Gebärdenverarbeitung: ${processingTime}ms für ${gesture}`);
     }
   }
 

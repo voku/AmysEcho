@@ -171,20 +171,20 @@ export function generateTrainingInsights(
   const consistent = allMetrics.filter((m) => m.variationDiversity < 0.3 && m.totalVariations > 5);
   
   const summary = highDiversity.length > recentGestures.length / 2
-    ? 'Amy zeigt viele verschiedene Ausführungen ihrer Gesten. Das ist normal beim Lernen!'
-    : 'Amy wird immer konsistenter bei ihren Gesten. Tolles Training!';
+    ? 'Amy zeigt viele verschiedene Ausführungen ihrer Gebärden. Das ist normal beim Lernen!'
+    : 'Amy wird immer konsistenter bei ihren Gebärden. Tolles Training!';
   
   const recommendations: string[] = [];
   if (highDiversity.length > 0) {
     recommendations.push(
-      `Üben Sie diese Gesten öfter: ${highDiversity.slice(0, 3).map(m => m.gesture).join(', ')}`
+      `Üben Sie diese Gebärden öfter: ${highDiversity.slice(0, 3).map(m => m.gesture).join(', ')}`
     );
   }
   
   const needsTraining = allMetrics.filter((m) => m.recommendTraining);
   if (needsTraining.length > 0) {
     recommendations.push(
-      `${needsTraining.length} Gesten würden von zusätzlichem Training profitieren`
+      `${needsTraining.length} Gebärden würden von zusätzlichem Training profitieren`
     );
   }
   

@@ -1,18 +1,18 @@
 import { Link } from 'react-router-dom';
 
 /**
- * GestureTutorial component - mirrors GestureTutorialScreen from the Expo app.
+ * SignLanguageTutorial component - mirrors GestureTutorialScreen from the Expo app.
  * Teaches users how to use gestures effectively.
  */
-export function GestureTutorial() {
+export function SignLanguageTutorial() {
   return (
     <section className="card">
       <div className="card-header">
         <div>
           <p className="eyebrow">Tutorial</p>
-          <h2>So funktioniert die Gestenerkennung</h2>
+          <h2>So funktioniert die Gebärdenerkennung</h2>
           <p className="muted">
-            Lerne, wie du Gesten optimal vor der Kamera zeigst, um die beste Erkennung zu erzielen.
+            Lerne, wie du Gebärden optimal vor der Kamera zeigst, um die beste Erkennung zu erzielen.
           </p>
         </div>
       </div>
@@ -24,7 +24,7 @@ export function GestureTutorial() {
           <div className="step-content">
             <h3>📷 Kamera freigeben</h3>
             <p>
-              Erlaube der App den Zugriff auf deine Kamera. Die Gestenerkennung funktioniert 
+              Erlaube der App den Zugriff auf deine Kamera. Die Gebärdenerkennung funktioniert 
               nur mit aktivierter Kamera.
             </p>
           </div>
@@ -47,9 +47,9 @@ export function GestureTutorial() {
         <div className="tutorial-step">
           <div className="step-number">3</div>
           <div className="step-content">
-            <h3>🤲 Geste zeigen</h3>
+            <h3>🤲 Gebärde zeigen</h3>
             <p>
-              Führe die Geste langsam und deutlich aus. Halte die Position für etwa 1-2 Sekunden.
+              Führe die Gebärde langsam und deutlich aus. Halte die Position für etwa 1-2 Sekunden.
             </p>
             <div className="tip-box">
               <strong>💡 Tipp:</strong> Ruhige, gleichmäßige Bewegungen werden besser erkannt.
@@ -62,7 +62,7 @@ export function GestureTutorial() {
           <div className="step-content">
             <h3>🎯 Erkennung abwarten</h3>
             <p>
-              Warte auf das visuelle Feedback. Die erkannte Geste wird oben rechts angezeigt.
+              Warte auf das visuelle Feedback. Die erkannte Gebärde wird oben rechts angezeigt.
               Bei einer erfolgreichen Erkennung siehst du das Label.
             </p>
           </div>
@@ -73,7 +73,7 @@ export function GestureTutorial() {
           <div className="step-content">
             <h3>✏️ Bei Bedarf korrigieren</h3>
             <p>
-              Falls die Geste falsch erkannt wurde, kannst du sie korrigieren. 
+              Falls die Gebärde falsch erkannt wurde, kannst du sie korrigieren. 
               Das hilft, die Erkennung zu verbessern.
             </p>
           </div>
@@ -117,8 +117,8 @@ export function GestureTutorial() {
 
       {/* Common gestures */}
       <div className="tutorial-section">
-        <h3>🤲 Basis-Gesten</h3>
-        <p className="muted">Diese Gesten sind standardmäßig verfügbar:</p>
+        <h3>🤲 Basis-Gebärden</h3>
+        <p className="muted">Diese Gebärden sind standardmäßig verfügbar:</p>
         <div className="gesture-examples">
           {[
             { name: 'Essen', emoji: '🍽️', description: 'Hand zum Mund führen' },

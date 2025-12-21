@@ -78,7 +78,7 @@ class GestureSuggester {
       this.addToHistory(failedGesture);
     }
 
-    // 1. Verlaufsbasierte Vorschläge (kürzlich erfolgreiche Gesten)
+    // 1. Verlaufsbasierte Vorschläge (kürzlich erfolgreiche Gebärden)
     const historySuggestions = this.getHistoryBasedSuggestions(context.recentGestures);
     suggestions.push(...historySuggestions);
 
@@ -127,7 +127,7 @@ class GestureSuggester {
   }
 
   /**
-   * Geste zum Verlauf hinzufügen
+   * Gebärde zum Verlauf hinzufügen
    */
   private addToHistory(gesture: string): void {
     this.gestureHistory.push(gesture);
@@ -137,7 +137,7 @@ class GestureSuggester {
   }
 
   /**
-   * Vorschläge basierend auf kürzlich erfolgreichen Gesten
+   * Vorschläge basierend auf kürzlich erfolgreichen Gebärden
    */
   private getHistoryBasedSuggestions(recentGestures: string[]): GestureSuggestion[] {
     const suggestions: GestureSuggestion[] = [];
@@ -174,11 +174,11 @@ class GestureSuggester {
     }
     const handShape = this.analyzeHandShape(primaryHand);
     
-    // Händigkeit kann für spezifische Gesten relevant sein
+    // Händigkeit kann für spezifische Gebärden relevant sein
     const isDominantHand = handedness[0]?.toLowerCase() === 'right';
     const confidenceBoost = isDominantHand ? 0.1 : 0; // Dominante Hand oft genauer
 
-    // Gesten die ähnliche Handformen haben könnten
+    // Gebärden die ähnliche Handformen haben könnten
     const shapeMatches: Record<string, string[]> = {
       'open_palm': ['danke', 'bitte', 'ja'],
       'fist': ['nein', 'fertig'],
@@ -274,12 +274,12 @@ class GestureSuggester {
   }
 
   /**
-   * Vorschläge für häufig verwechselte Gesten
+   * Vorschläge für häufig verwechselte Gebärden
    */
   private getCommonConfusionSuggestions(failedGesture: string | null): GestureSuggestion[] {
     const suggestions: GestureSuggestion[] = [];
 
-    // Häufige Gestenverwechslungen
+    // Häufige Gebärdenverwechslungen
     const confusions: Record<string, string[]> = {
       'ja': ['nein', 'bitte', 'danke'],
       'nein': ['ja', 'fertig'],
@@ -323,7 +323,7 @@ class GestureSuggester {
   }
 
   /**
-   * Gestenverlauf löschen
+   * Gebärdenverlauf löschen
    */
   clearHistory(): void {
     this.gestureHistory = [];

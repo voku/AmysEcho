@@ -97,7 +97,7 @@ export const CaregiverReport: React.FC = () => {
       <div className="report-summary">
         <div className="summary-card">
           <span className="summary-value">{gestures.length}</span>
-          <span className="summary-label">Gesten gelernt</span>
+          <span className="summary-label">Gebärden gelernt</span>
         </div>
         <div className="summary-card">
           <span className="summary-value">{totalAttempts}</span>
@@ -111,10 +111,10 @@ export const CaregiverReport: React.FC = () => {
 
       {/* Gesture List */}
       <section className="report-section">
-        <h3>Gestenübersicht</h3>
+        <h3>Gebärdenübersicht</h3>
         
         {gestures.length === 0 ? (
-          <p className="empty-state">Noch keine Gesten geübt</p>
+          <p className="empty-state">Noch keine Gebärden geübt</p>
         ) : (
           <ul className="gesture-progress-list">
             {gestures.map(gesture => (

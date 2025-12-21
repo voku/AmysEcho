@@ -101,7 +101,7 @@ class AdaptiveLearningService {
   private readonly LEARNING_PATH_TEMPLATES = {
     basic_communication: {
       name: 'Grundlegende Kommunikation',
-      description: 'Wichtige Gesten für den Alltag',
+      description: 'Wichtige Gebärden für den Alltag',
       targetGestures: ['hallo', 'danke', 'bitte', 'ja', 'nein'],
       difficulty: 'easy' as const,
       estimatedDuration: 15,
@@ -117,7 +117,7 @@ class AdaptiveLearningService {
     },
     daily_activities: {
       name: 'Tägliche Aktivitäten',
-      description: 'Gesten für Routinen und Tagesabläufe',
+      description: 'Gebärden für Routinen und Tagesabläufe',
       targetGestures: ['essen', 'trinken', 'schlafen', 'spielen', 'toilette'],
       difficulty: 'medium' as const,
       estimatedDuration: 25,
@@ -125,7 +125,7 @@ class AdaptiveLearningService {
     },
     advanced_communication: {
       name: 'Fortgeschrittene Kommunikation',
-      description: 'Komplexe Gesten für soziale Situationen',
+      description: 'Komplexe Gebärden für soziale Situationen',
       targetGestures: ['entschuldigung', 'warten', 'fertig', 'mehr', 'hilfe'],
       difficulty: 'hard' as const,
       estimatedDuration: 30,

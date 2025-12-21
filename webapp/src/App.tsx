@@ -7,9 +7,9 @@ import { CaregiverReport } from './components/CaregiverReport';
 import { CommunicationInsights } from './components/CommunicationInsights';
 import { Dashboard } from './components/Dashboard';
 import { FeatureAvailability } from './components/FeatureAvailability';
-import { GestureRecorder } from './components/GestureRecorder';
-import { GestureHistory } from './components/GestureHistory';
-import { GestureTutorial } from './components/GestureTutorial';
+import { SignLanguageRecorder } from './components/SignLanguageRecorder';
+import { SignLanguageHistory } from './components/SignLanguageHistory';
+import { SignLanguageTutorial } from './components/SignLanguageTutorial';
 import { Help } from './components/Help';
 import { LearningHub } from './components/LearningHub';
 import { ParentalGate } from './components/ParentalGate';
@@ -193,7 +193,7 @@ function HeroScreen({ onStart }: { onStart: () => void }) {
       {/* CTA Buttons */}
       <div className="hero-cta-row">
         <button className="primary hero-cta" onClick={handleStartCamera}>
-          🖐️ Zur Gestenkamera
+          🖐️ Zur Gebärdenkamera
         </button>
         <button className="secondary hero-cta" onClick={handleStartLearning}>
           🧠 Lernen entdecken
@@ -324,6 +324,28 @@ function BottomNav() {
         <span className="nav-icon">🧠</span>
         <span className="nav-label">Lernen</span>
       </NavLink>
+      <NavLink
+        to="/einstellungen"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+      >
+        <span className="nav-icon">⚙️</span>
+        <span className="nav-label">Einstellungen</span>
+      </NavLink>
+      <NavLink
+        to="/hilfe"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+      >
+        <span className="nav-icon">❓</span>
+        <span className="nav-label">Hilfe</span>
+      </NavLink>
+      <NavLink
+        to="/betreuung"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Betreuungsbereich"
+      >
+        <span className="nav-icon">🤝</span>
+        <span className="nav-label">Betreuung</span>
+      </NavLink>
     </nav>
   );
 }
@@ -338,8 +360,8 @@ function MainAppContent() {
     <>
       <main className="content main-content">
         <Routes>
-          <Route path="/" element={<GestureRecorder />} />
-          <Route path="/verlauf" element={<GestureHistory />} />
+          <Route path="/" element={<SignLanguageRecorder />} />
+          <Route path="/verlauf" element={<SignLanguageHistory />} />
           <Route path="/lernen" element={<LearningHub />} />
           <Route path="/training" element={<TrainingUploadWithRecording />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -348,7 +370,7 @@ function MainAppContent() {
           <Route path="/fortschritt-detail" element={<ProgressChart />} />
           <Route path="/einstellungen" element={<Settings />} />
           <Route path="/hilfe" element={<Help />} />
-          <Route path="/tutorial" element={<GestureTutorial />} />
+          <Route path="/tutorial" element={<SignLanguageTutorial />} />
           <Route path="/ueber" element={<AboutAmysEcho />} />
           <Route path="/betreuung" element={<CaregiverArea />} />
           <Route path="/elterntor" element={<ParentalGate />} />
@@ -440,24 +462,6 @@ function App() {
       basename={import.meta.env.BASE_URL}
     >
       <div className="app-shell">
-        {/* Header - immer sichtbar */}
-        <header className="app-header compact-header">
-          <div className="header-brand">
-            <span className="brand-icon">❤️</span>
-            <div>
-              <p className="eyebrow">Amy&apos;s Echo</p>
-              <h1>Gestenerkennung für Amy</h1>
-            </div>
-          </div>
-          {status === 'app' && (
-            <nav className="header-nav">
-              <NavLink to="/einstellungen">⚙️</NavLink>
-              <NavLink to="/hilfe">❓</NavLink>
-              <NavLink to="/betreuung" title="Betreuungsbereich">🤝</NavLink>
-            </nav>
-          )}
-        </header>
-
         {/* Content basierend auf Status */}
         {status === 'auth' && (
           <main className="content auth-content">
