@@ -675,11 +675,33 @@ export function registerTrainingBundleRoute(
         await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
       });
 
+      // Analytics: Log missing modalities for monitoring data quality
+      const missingModalities: string[] = [];
       if (!mergedModalities.hands.present) {
+        missingModalities.push('hands');
         logger.warn('Training bundle missing required hand landmarks', {
           bundleId,
           profileId: profileIdRaw ?? null,
           coverage: mergedModalities,
+        });
+      }
+      if (!mergedModalities.pose.present) {
+        missingModalities.push('pose');
+      }
+      if (!mergedModalities.face.present) {
+        missingModalities.push('face');
+      }
+
+      if (missingModalities.length > 0) {
+        logger.info('Training bundle with incomplete multimodal data', {
+          bundleId,
+          profileId: profileIdRaw ?? null,
+          missingModalities,
+          coverage: {
+            hands: mergedModalities.hands.coverage,
+            pose: mergedModalities.pose.coverage,
+            face: mergedModalities.face.coverage,
+          },
         });
       }
 
