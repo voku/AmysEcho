@@ -324,6 +324,28 @@ function BottomNav() {
         <span className="nav-icon">🧠</span>
         <span className="nav-label">Lernen</span>
       </NavLink>
+      <NavLink
+        to="/einstellungen"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+      >
+        <span className="nav-icon">⚙️</span>
+        <span className="nav-label">Einstellungen</span>
+      </NavLink>
+      <NavLink
+        to="/hilfe"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+      >
+        <span className="nav-icon">❓</span>
+        <span className="nav-label">Hilfe</span>
+      </NavLink>
+      <NavLink
+        to="/betreuung"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Betreuungsbereich"
+      >
+        <span className="nav-icon">🤝</span>
+        <span className="nav-label">Betreuung</span>
+      </NavLink>
     </nav>
   );
 }
@@ -440,23 +462,6 @@ function App() {
       basename={import.meta.env.BASE_URL}
     >
       <div className="app-shell">
-        {/* Header - immer sichtbar */}
-        <header className="app-header compact-header">
-          <div className="header-brand">
-            <span className="brand-icon">❤️</span>
-            <div>
-              <p className="eyebrow">Amy&apos;s Echo</p>
-            </div>
-          </div>
-          {status === 'app' && (
-            <nav className="header-nav">
-              <NavLink to="/einstellungen">⚙️</NavLink>
-              <NavLink to="/hilfe">❓</NavLink>
-              <NavLink to="/betreuung" title="Betreuungsbereich">🤝</NavLink>
-            </nav>
-          )}
-        </header>
-
         {/* Content basierend auf Status */}
         {status === 'auth' && (
           <main className="content auth-content">
