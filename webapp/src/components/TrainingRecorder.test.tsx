@@ -26,6 +26,8 @@ type TrainingState = {
   maxClipBytes: number;
   previewLandmarks: unknown[];
   previewHandedness: string[];
+  previewPoseLandmarks: number[][];
+  previewFaceLandmarks: number[][];
   lastFrameReceivedAt: number | null;
 };
 
@@ -48,6 +50,8 @@ const createTrainingState = (): TrainingState => ({
   maxClipBytes: 1024 * 1024,
   previewLandmarks: [],
   previewHandedness: [],
+  previewPoseLandmarks: [],
+  previewFaceLandmarks: [],
   lastFrameReceivedAt: null,
 });
 

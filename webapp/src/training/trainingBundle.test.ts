@@ -123,6 +123,164 @@ describe('createTrainingZip', () => {
       'Keine Hand-Landmarks erkannt. Bitte nimm die Gebärde erneut mit sichtbaren Händen auf.',
     );
   });
+
+  it('bewahrt multimodale Daten vollständig über mehrere Frames', async () => {
+    const payload: TrainingBundlePayload = {
+      ...basePayload,
+      frames: [
+        {
+          landmarks: [[[0.1, 0.2, 0.3]], [[0.4, 0.5, 0.6]]],
+          handedness: ['Left', 'Right'],
+          poseLandmarks: [[0.5, 0.6, 0.1, 0.9], [0.4, 0.2, -0.1, 0.8]],
+          faceLandmarks: [[0.25, 0.75, 0.05], [0.26, 0.76, 0.04]],
+        },
+        {
+          landmarks: [[[0.11, 0.21, 0.31]], []],
+          handedness: ['Left'],
+          poseLandmarks: [[0.51, 0.61, 0.11, 0.91]],
+          faceLandmarks: [[0.27, 0.77, 0.06]],
+        },
+        {
+          landmarks: [[], [[0.41, 0.51, 0.61]]],
+          handedness: ['Right'],
+          poseLandmarks: [],
+          faceLandmarks: [],
+        },
+      ],
+    };
+
+    const zip = await createTrainingZip(payload);
+    const entries = unzipSync(zip);
+    const landmarksBytes = entries['landmarks.json'];
+    const landmarks = JSON.parse(strFromU8(landmarksBytes ?? new Uint8Array())) as {
+      frames: Array<{
+        handedness: string[];
+        landmarks: number[][];
+        handLandmarks: number[][][];
+        poseLandmarks: number[][];
+        faceLandmarks: number[][];
+      }>;
+      metadata: {
+        modalities: {
+          hands: { present: boolean; frameCount: number; coverage: number };
+          pose: { present: boolean; frameCount: number; coverage: number };
+          face: { present: boolean; frameCount: number; coverage: number };
+        };
+        smoothing: Record<string, number | string>;
+        handedness?: { labels: string[]; frameCount: number };
+      };
+    };
+
+    expect(landmarks.frames).toHaveLength(3);
+    
+    // Frame 1: Both hands, pose, and face present
+    expect(landmarks.frames[0].handedness).toEqual(['Left', 'Right']);
+    expect(landmarks.frames[0].handLandmarks).toHaveLength(2);
+    expect(landmarks.frames[0].handLandmarks[0][0]).toEqual([0.1, 0.2, 0.3]);
+    expect(landmarks.frames[0].handLandmarks[1][0]).toEqual([0.4, 0.5, 0.6]);
+    expect(landmarks.frames[0].poseLandmarks).toHaveLength(2);
+    expect(landmarks.frames[0].poseLandmarks[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
+    expect(landmarks.frames[0].faceLandmarks).toHaveLength(2);
+    expect(landmarks.frames[0].faceLandmarks[0]).toEqual([0.25, 0.75, 0.05]);
+    
+    // Frame 2: Left hand, pose, and face present
+    expect(landmarks.frames[1].handedness).toEqual(['Left']);
+    expect(landmarks.frames[1].handLandmarks).toHaveLength(2);
+    expect(landmarks.frames[1].handLandmarks[0][0]).toEqual([0.11, 0.21, 0.31]);
+    expect(landmarks.frames[1].poseLandmarks).toHaveLength(1);
+    expect(landmarks.frames[1].poseLandmarks[0]).toEqual([0.51, 0.61, 0.11, 0.91]);
+    expect(landmarks.frames[1].faceLandmarks).toHaveLength(1);
+    expect(landmarks.frames[1].faceLandmarks[0]).toEqual([0.27, 0.77, 0.06]);
+    
+    // Frame 3: Right hand only, no pose or face
+    expect(landmarks.frames[2].handedness).toEqual(['Right']);
+    expect(landmarks.frames[2].handLandmarks).toHaveLength(2);
+    expect(landmarks.frames[2].handLandmarks[1][0]).toEqual([0.41, 0.51, 0.61]);
+    expect(landmarks.frames[2].poseLandmarks).toHaveLength(0);
+    expect(landmarks.frames[2].faceLandmarks).toHaveLength(0);
+    
+    // Verify modality metadata
+    expect(landmarks.metadata.modalities.hands).toEqual({ present: true, frameCount: 3, coverage: 1 });
+    expect(landmarks.metadata.modalities.pose).toEqual({ present: true, frameCount: 2, coverage: 2/3 });
+    expect(landmarks.metadata.modalities.face).toEqual({ present: true, frameCount: 2, coverage: 2/3 });
+    expect(landmarks.metadata.handedness).toEqual({ labels: ['Left', 'Right'], frameCount: 3 });
+  });
+
+  it('bewahrt Pose-Landmarks nach der Verarbeitung', async () => {
+    const payload: TrainingBundlePayload = {
+      ...basePayload,
+      frames: [
+        {
+          landmarks: [[[0.1, 0.2, 0.3]]],
+          handedness: ['Left'],
+          poseLandmarks: [[0.5, 0.6, 0.1, 0.9]],
+          faceLandmarks: [],
+        },
+      ],
+    };
+
+    const zip = await createTrainingZip(payload);
+    const entries = unzipSync(zip);
+    const landmarksBytes = entries['landmarks.json'];
+    const landmarks = JSON.parse(strFromU8(landmarksBytes ?? new Uint8Array())) as {
+      frames: Array<{ poseLandmarks?: number[][] }>;
+    };
+
+    // This test ensures pose landmarks are never dropped
+    expect(landmarks.frames[0].poseLandmarks).toBeDefined();
+    expect(landmarks.frames[0].poseLandmarks).toHaveLength(1);
+    expect(landmarks.frames[0].poseLandmarks![0]).toEqual([0.5, 0.6, 0.1, 0.9]);
+  });
+
+  it('bewahrt Face-Landmarks nach der Verarbeitung', async () => {
+    const payload: TrainingBundlePayload = {
+      ...basePayload,
+      frames: [
+        {
+          landmarks: [[[0.1, 0.2, 0.3]]],
+          handedness: ['Left'],
+          poseLandmarks: [],
+          faceLandmarks: [[0.25, 0.75, 0.05]],
+        },
+      ],
+    };
+
+    const zip = await createTrainingZip(payload);
+    const entries = unzipSync(zip);
+    const landmarksBytes = entries['landmarks.json'];
+    const landmarks = JSON.parse(strFromU8(landmarksBytes ?? new Uint8Array())) as {
+      frames: Array<{ faceLandmarks?: number[][] }>;
+    };
+
+    // This test ensures face landmarks are never dropped
+    expect(landmarks.frames[0].faceLandmarks).toBeDefined();
+    expect(landmarks.frames[0].faceLandmarks).toHaveLength(1);
+    expect(landmarks.frames[0].faceLandmarks![0]).toEqual([0.25, 0.75, 0.05]);
+  });
+
+  it('bewahrt Smoothing-Konfiguration in Metadaten', async () => {
+    const customSmoothing = {
+      method: 'one_euro',
+      minCutOff: 1.5,
+      beta: 0.02,
+      dCutOff: 1.2,
+    };
+    const payload: TrainingBundlePayload = {
+      ...basePayload,
+      smoothingConfig: customSmoothing,
+    };
+
+    const zip = await createTrainingZip(payload);
+    const entries = unzipSync(zip);
+    const metadataBytes = entries['metadata.json'];
+    const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array())) as {
+      smoothing?: Record<string, string | number>;
+    };
+
+    // This test ensures smoothing config is preserved in metadata
+    expect(metadata.smoothing).toBeDefined();
+    expect(metadata.smoothing).toEqual(customSmoothing);
+  });
 });
 
 describe('normalizeTrainingJobStatus', () => {

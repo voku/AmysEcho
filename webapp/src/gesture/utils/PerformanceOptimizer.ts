@@ -24,8 +24,8 @@ export class PerformanceOptimizer {
 
   // Frame skipping configuration
   private skipFrameCount = 0;
-  private readonly MAX_SKIP_FRAMES = 3; // Maximum consecutive frames to skip
-  private readonly PROCESSING_TIME_THRESHOLD = 50; // ms - if processing takes longer, consider skipping
+  private readonly MAX_SKIP_FRAMES_3 = 3; // Maximum consecutive frames to skip
+  private readonly PROCESSING_TIME_THRESHOLD_MS_50 = 50; // ms - if processing takes longer, consider skipping
 
   // Landmark change tracking for overlay optimization
   private lastLandmarksSignature = '';
@@ -91,7 +91,7 @@ export class PerformanceOptimizer {
 
     // Enable adaptive frame skipping if consistently slow
     const avgProcessingTime = this.getAverageProcessingTime();
-    this.adaptiveFrameSkipping = avgProcessingTime > this.PROCESSING_TIME_THRESHOLD;
+    this.adaptiveFrameSkipping = avgProcessingTime > this.PROCESSING_TIME_THRESHOLD_MS_50;
   }
 
   /**
@@ -107,7 +107,7 @@ export class PerformanceOptimizer {
    * Determine if frame should be skipped based on performance
    */
   private shouldSkipFrame(): boolean {
-    if (this.skipFrameCount >= this.MAX_SKIP_FRAMES) {
+    if (this.skipFrameCount >= this.MAX_SKIP_FRAMES_3) {
       return false; // Don't skip too many consecutive frames
     }
 

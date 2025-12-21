@@ -82,7 +82,7 @@ export class ProcessingPipeline {
   
   // LLM-optimized: Processing optimization thresholds
   private readonly SLOW_PROCESSING_THRESHOLD_MS = 50; // Skip expensive steps if processing is slow
-  private readonly EXPENSIVE_STEP_SKIP_PROBABILITY = 0.5; // 50% chance to skip when slow
+  private readonly EXPENSIVE_STEP_SKIP_PROBABILITY_50_PERCENT = 0.5; // 50% chance to skip when slow
   private readonly LANDMARK_CHANGE_THRESHOLD = 0.01; // 1% change threshold for significant movement
 
   constructor() {
@@ -210,7 +210,7 @@ export class ProcessingPipeline {
     // Skip based on performance constraints
     const diagnostics = this.performanceOptimizer.getDiagnostics();
     if (diagnostics.averageProcessingTime > this.SLOW_PROCESSING_THRESHOLD_MS) { // If processing is slow
-      return Math.random() < this.EXPENSIVE_STEP_SKIP_PROBABILITY;
+      return Math.random() < this.EXPENSIVE_STEP_SKIP_PROBABILITY_50_PERCENT;
     }
 
     return false;

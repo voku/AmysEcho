@@ -1,4 +1,4 @@
-const DEFAULT_SAMPLE_INTERVAL_MS = 2000;
+const DEFAULT_SAMPLE_INTERVAL_MS_2000 = 2000;
 
 const isDebugEnabled = (): boolean => {
   if (typeof window === 'undefined') {
@@ -28,7 +28,7 @@ export function gestureDebugLog(
 
   const now = performance.now();
   const key = `${category}:${message}`;
-  const sampleInterval = options.sampleIntervalMs ?? DEFAULT_SAMPLE_INTERVAL_MS;
+  const sampleInterval = options.sampleIntervalMs ?? DEFAULT_SAMPLE_INTERVAL_MS_2000;
   const lastLogged = lastLogTimes.get(key) ?? 0;
 
   if (now - lastLogged < sampleInterval) {

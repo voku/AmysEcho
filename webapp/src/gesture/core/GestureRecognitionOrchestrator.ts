@@ -58,7 +58,7 @@ interface GestureMessagePayload {
   frameCapture?: string | null;
 }
 
-const FRAME_BATCH_INTERVAL_MS = 250;
+const FRAME_BATCH_INTERVAL_MS_250 = 250;
 const FRAME_BUFFER_LIMIT = 24;
 const FRAME_CAPTURE_THROTTLE = 5; // Capture every 5th frame to optimize memory usage (inspired by Gemini click-dummy)
 const DEFAULT_LANDMARK_INTERVAL_MS = 120;
@@ -399,7 +399,7 @@ export class GestureRecognitionOrchestrator {
       }
 
       if (this.frameBatchTimer === null) {
-        this.frameBatchTimer = window.setTimeout(() => this.flushFrameBatch(), FRAME_BATCH_INTERVAL_MS);
+        this.frameBatchTimer = window.setTimeout(() => this.flushFrameBatch(), FRAME_BATCH_INTERVAL_MS_250);
       }
     } catch (error) {
       console.warn('Failed to collect frame batch:', error);
@@ -1023,9 +1023,24 @@ export class GestureRecognitionOrchestrator {
 
   private getPlatformDefaultMime(): string {
     const ua = typeof navigator !== 'undefined' && navigator?.userAgent ? navigator.userAgent : '';
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const uaData = typeof navigator !== 'undefined'
+      ? (navigator as Navigator & {
+          userAgentData?: {
+            platform?: string;
+            brands?: Array<{ brand: string }>;
+          };
+        }).userAgentData
+      : undefined;
+    const brandList = uaData?.brands ?? [];
+    const isChromium = brandList.some((brand) => /Chrom(e|ium)|Edge/i.test(brand.brand));
+    if (isChromium) {
+      return 'video/webm';
+    }
+    const platform = uaData?.platform?.toLowerCase() ?? '';
+    const isIOS = platform.length > 0
+      ? /ios|iphone|ipad|ipod/.test(platform)
+      : /iPhone|iPad|iPod/i.test(ua);
     const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua);
-    // TODO: consider navigator.userAgentData once widely supported to avoid user-agent sniffing.
     return isIOS || isSafari ? 'video/mp4' : 'video/webm';
   }
 

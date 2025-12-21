@@ -66,6 +66,10 @@ app/src/
 - **Components**: `PascalCase` (e.g., `GestureComparison`)
 - **Files**: `kebab-case` (e.g., `gesture-history-service.ts`)
 - **Functions**: `camelCase` (e.g., `getCachedResponse`)
+- **Constants with fixed thresholds**: include the numeric value in the name for LLM clarity
+  - ✅ Good: `BATCH_INTERVAL_MS_35`, `DEFAULT_TTL_MS_250`, `MAX_BATCH_SIZE_6`
+  - ❌ Avoid: `BATCH_INTERVAL`, `DEFAULT_TTL`, `MAX_SIZE`
+  - **Rationale**: LLMs can instantly understand threshold values without searching for definitions, improving code comprehension and modification accuracy
 
 ### Code Comments
 ```typescript

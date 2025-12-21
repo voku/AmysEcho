@@ -5,10 +5,10 @@ import {
   setFrameCaptureEnabled,
 } from './FrameCaptureManager';
 
-const DEFAULT_FRAME_INTERVAL_MS = 120;
-const MAX_CAPTURE_FRAMES = 180;
+const DEFAULT_FRAME_INTERVAL_MS_120 = 120;
+const MAX_CAPTURE_FRAMES_180 = 180;
 const MIN_FPS = 6;
-const MAX_FPS = 24;
+const MAX_FPS_24 = 24;
 
 export type FallbackClipResult = {
   base64: string;
@@ -41,8 +41,8 @@ export class FallbackClipRecorder {
   };
 
   constructor(private readonly video: HTMLVideoElement, options: RecorderOptions = {}) {
-    this.frameIntervalMs = Math.max(60, options.frameIntervalMs ?? DEFAULT_FRAME_INTERVAL_MS);
-    this.maxFrames = Math.max(10, options.maxFrames ?? MAX_CAPTURE_FRAMES);
+    this.frameIntervalMs = Math.max(60, options.frameIntervalMs ?? DEFAULT_FRAME_INTERVAL_MS_120);
+    this.maxFrames = Math.max(10, options.maxFrames ?? MAX_CAPTURE_FRAMES_180);
     this.mimeType = options.mimeType ?? 'video/avi';
   }
 
@@ -129,7 +129,7 @@ export class FallbackClipRecorder {
 
   private computeFps(): number {
     const estimated = Math.round(1000 / this.frameIntervalMs);
-    return Math.max(MIN_FPS, Math.min(MAX_FPS, estimated || MIN_FPS));
+    return Math.max(MIN_FPS, Math.min(MAX_FPS_24, estimated || MIN_FPS));
   }
 
   private clearTimer(): void {

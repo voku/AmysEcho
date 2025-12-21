@@ -38,6 +38,8 @@ export interface TrainingRecorderResult {
   maxClipBytes: number;
   previewLandmarks: number[][][];
   previewHandedness: string[];
+  previewPoseLandmarks: number[][];
+  previewFaceLandmarks: number[][];
   lastFrameReceivedAt: number | null;
 }
 
@@ -91,6 +93,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
   const [clipError, setClipError] = useState<string | null>(null);
   const [previewLandmarks, setPreviewLandmarks] = useState<number[][][]>([]);
   const [previewHandedness, setPreviewHandedness] = useState<string[]>([]);
+  const [previewPoseLandmarks, setPreviewPoseLandmarks] = useState<number[][]>([]);
+  const [previewFaceLandmarks, setPreviewFaceLandmarks] = useState<number[][]>([]);
   const [lastFrameReceivedAt, setLastFrameReceivedAt] = useState<number | null>(null);
   const isRecordingRef = useRef(false);
   const clipRecorderRef = useRef<MediaRecorder | null>(null);
@@ -161,6 +165,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
 
         setPreviewLandmarks(cloned as number[][][]);
         setPreviewHandedness(handedness);
+        setPreviewPoseLandmarks(poseLandmarks);
+        setPreviewFaceLandmarks(faceLandmarks);
       });
     }
 
@@ -220,6 +226,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     setFramesCaptured(0);
     setPreviewLandmarks([]);
     setPreviewHandedness([]);
+    setPreviewPoseLandmarks([]);
+    setPreviewFaceLandmarks([]);
     setLastFrameReceivedAt(null);
     setClipFile(null);
     setClipSizeBytes(0);
@@ -314,6 +322,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     setFramesCaptured(0);
     setPreviewLandmarks([]);
     setPreviewHandedness([]);
+    setPreviewPoseLandmarks([]);
+    setPreviewFaceLandmarks([]);
     setLastFrameReceivedAt(null);
     setClipFile(null);
     setClipSizeBytes(0);
@@ -344,6 +354,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     maxClipBytes: MAX_CLIP_BYTES,
     previewLandmarks,
     previewHandedness,
+    previewPoseLandmarks,
+    previewFaceLandmarks,
     lastFrameReceivedAt,
   };
 }

@@ -82,6 +82,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     maxClipBytes,
     previewLandmarks,
     previewHandedness,
+    previewPoseLandmarks,
+    previewFaceLandmarks,
     lastFrameReceivedAt,
   } = useTrainingRecorder(videoRef);
 
@@ -423,11 +425,28 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       previewLandmarks.reduce((total, hand) => (Array.isArray(hand) ? total + hand.length : total), 0),
     [previewLandmarks],
   );
+  const poseLandmarksAvailable = previewPoseLandmarks.length > 0;
+  const faceLandmarksAvailable = previewFaceLandmarks.length > 0;
+  const handLandmarksAvailable = latestHandCount > 0;
   const detectorInactiveNotice = !detectorRunning
     ? 'Die Kameraerkennung ist angehalten. Starte sie erneut, damit Frames und Standbilder gesammelt werden.'
     : !hasLiveFrames
     ? 'Es kommen noch keine Live-Frames an. Positioniere dich vor der Kamera oder warte einen Moment.'
     : '';
+  const showModalityGuidance = detectorRunning && lastFrameReceivedAt !== null;
+  const modalityNotices = showModalityGuidance
+    ? [
+        !handLandmarksAvailable
+          ? 'Bitte halte beide Hände sichtbar im Kamerabild.'
+          : null,
+        !poseLandmarksAvailable
+          ? 'Bitte halte deinen Oberkörper im Bild, damit Pose-Landmarks erkannt werden.'
+          : null,
+        !faceLandmarksAvailable
+          ? 'Bitte halte dein Gesicht im Bild, damit Gesichts-Landmarks erkannt werden.'
+          : null,
+      ].filter((message): message is string => Boolean(message))
+    : [];
 
   const isRecording = state === 'recording';
   const hasRecording = state === 'idle' && recordedData.frames.length > 0;
@@ -656,6 +675,17 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
             {detectorStartFeedback && (
               <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>{detectorStartFeedback}</div>
+            )}
+
+            {modalityNotices.length > 0 && (
+              <div className="notice warning compact">
+                <strong>Hinweis zur Erkennung:</strong>
+                <ul>
+                  {modalityNotices.map((message) => (
+                    <li key={message}>{message}</li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             {needsStillConfirmation && (
