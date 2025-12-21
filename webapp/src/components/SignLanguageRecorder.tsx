@@ -58,7 +58,7 @@ export function SignLanguageRecorder() {
     stop,
     status,
     error,
-    lastGesture,
+    lastSign,
     lastConfidence,
   } = useSignLanguageDetector(videoRef, overlayRef);
   const { profileId, recordGesture } = useAppState();
@@ -77,12 +77,12 @@ export function SignLanguageRecorder() {
   }, [cameraSupported, status, start]);
 
   useEffect(() => {
-    if (lastGesture) {
-      recordGesture(lastGesture);
+    if (lastSign) {
+      recordGesture(lastSign);
     }
-  }, [lastGesture, recordGesture]);
+  }, [lastSign, recordGesture]);
 
-  const normalizedGesture = lastGesture?.trim() ?? '';
+  const normalizedGesture = lastSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
   const gestureMeaning = gestureKey ? gestureMeaningService.getMeaning(gestureKey) : undefined;
   const gestureLabel = gestureKey

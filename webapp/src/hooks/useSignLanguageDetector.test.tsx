@@ -68,7 +68,7 @@ describe('useSignLanguageDetector', () => {
     await waitFor(() => {
       expect(result.current.messageLog.length).toBe(1);
       expect(result.current.messageLog[0]?.count).toBe(2);
-      expect(result.current.lastGesture).toBe('WINKEN');
+      expect(result.current.lastSign).toBe('WINKEN');
       expect(result.current.lastConfidence).toBeCloseTo(0.92);
     });
   });
@@ -100,7 +100,7 @@ describe('useSignLanguageDetector', () => {
 
     await waitFor(() => {
       expect(result.current.messageLog.length).toBe(0);
-      expect(result.current.lastGesture).toBeNull();
+      expect(result.current.lastSign).toBeNull();
     });
   });
 

@@ -61,7 +61,7 @@ vi.mock('../hooks/useSignLanguageDetector', () => ({
     cleanup: vi.fn(),
     status: gestureState.status,
     error: null,
-    lastGesture: null,
+    lastSign: null,
     lastLandmarks: [],
     lastHandedness: [],
     lastConfidence: null,
