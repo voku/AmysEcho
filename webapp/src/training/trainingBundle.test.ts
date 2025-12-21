@@ -206,7 +206,7 @@ describe('createTrainingZip', () => {
     expect(landmarks.metadata.handedness).toEqual({ labels: ['Left', 'Right'], frameCount: 3 });
   });
 
-  it('schlägt fehl wenn Pose-Landmarks nach der Verarbeitung verloren gehen', async () => {
+  it('bewahrt Pose-Landmarks nach der Verarbeitung', async () => {
     const payload: TrainingBundlePayload = {
       ...basePayload,
       frames: [
@@ -232,7 +232,7 @@ describe('createTrainingZip', () => {
     expect(landmarks.frames[0].poseLandmarks![0]).toEqual([0.5, 0.6, 0.1, 0.9]);
   });
 
-  it('schlägt fehl wenn Face-Landmarks nach der Verarbeitung verloren gehen', async () => {
+  it('bewahrt Face-Landmarks nach der Verarbeitung', async () => {
     const payload: TrainingBundlePayload = {
       ...basePayload,
       frames: [
