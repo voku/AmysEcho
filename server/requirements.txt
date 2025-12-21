@@ -1,6 +1,6 @@
 numpy
 pytest
-mediapipe==0.10.21
+mediapipe==0.10.31
 opencv-python
 pillow
 PyJWT~=2.9
