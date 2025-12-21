@@ -86,8 +86,8 @@ export interface HandLandmarkStabilizer {
   reset: () => void;
 }
 
-const DEFAULT_TTL = 250;
-const DEFAULT_MAX_HANDS = 2;
+const DEFAULT_TTL_MS_250 = 250;
+const DEFAULT_MAX_HANDS_2 = 2;
 
 const getStableId = (handedness: string | undefined, index: number): string => {
   const normalized = typeof handedness === 'string' ? handedness.trim().toLowerCase() : '';
@@ -126,10 +126,10 @@ const compareEntries = (a: StabilizerEntry, b: StabilizerEntry): number => {
 export const createHandLandmarkStabilizer = (
   options: HandLandmarkStabilizerOptions = {},
 ): HandLandmarkStabilizer => {
-  const ttl = Number.isFinite(options.ttlMs) && (options.ttlMs ?? 0) > 0 ? options.ttlMs! : DEFAULT_TTL;
+  const ttl = Number.isFinite(options.ttlMs) && (options.ttlMs ?? 0) > 0 ? options.ttlMs! : DEFAULT_TTL_MS_250;
   const maxHands = Number.isFinite(options.maxHands) && (options.maxHands ?? 0) > 0
     ? Math.floor(options.maxHands!)
-    : DEFAULT_MAX_HANDS;
+    : DEFAULT_MAX_HANDS_2;
 
   const cache = new Map<string, StabilizerEntry>();
 

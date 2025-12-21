@@ -170,8 +170,14 @@ describe('End-to-End Communication', () => {
 
 ## 🔧 Test Infrastructure
 
-### Timer-driven Hooks
-Validate timer-driven polling flows (for example, `useTrainingUploader`) in integration tests when React's strict effect lifecycle makes unit tests flaky. Use fake timers sparingly and only when async storage or network mocks remain reliable under simulated time.
+### Timer-driven Hooks & React 19 Compatibility
+Validate timer-driven polling flows (for example, `useTrainingUploader`) in integration tests when React 19's strict effect lifecycle prevents setTimeout-based polling from executing in unit tests. 
+
+**Best Practice**: When you encounter tests that rely on timer-based effects:
+1. ✅ **Convert to integration tests** - Move to `integration/test/` for full lifecycle testing
+2. ✅ **Document the conversion** - Add comments explaining why (see `useTrainingUploader.test.tsx` lines 104-107, 142-145, 206-209, 237-240)
+3. ✅ **Use `it.skip()` with clear explanation** - Keep the unit test code as documentation
+4. ⚠️ **Use fake timers sparingly** - Only when async storage or network mocks remain reliable under simulated time
 
 ### Test Utilities
 ```typescript

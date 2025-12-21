@@ -58,7 +58,7 @@ interface GestureMessagePayload {
   frameCapture?: string | null;
 }
 
-const FRAME_BATCH_INTERVAL_MS = 250;
+const FRAME_BATCH_INTERVAL_MS_250 = 250;
 const FRAME_BUFFER_LIMIT = 24;
 const FRAME_CAPTURE_THROTTLE = 5; // Capture every 5th frame to optimize memory usage (inspired by Gemini click-dummy)
 const DEFAULT_LANDMARK_INTERVAL_MS = 120;
@@ -399,7 +399,7 @@ export class GestureRecognitionOrchestrator {
       }
 
       if (this.frameBatchTimer === null) {
-        this.frameBatchTimer = window.setTimeout(() => this.flushFrameBatch(), FRAME_BATCH_INTERVAL_MS);
+        this.frameBatchTimer = window.setTimeout(() => this.flushFrameBatch(), FRAME_BATCH_INTERVAL_MS_250);
       }
     } catch (error) {
       console.warn('Failed to collect frame batch:', error);

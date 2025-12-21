@@ -18,19 +18,20 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Create `uploadTrainingBundle` that builds a zip with `{metadata.json, landmarks.json, still.jpg}`.
 - [x] Store pending bundles in IndexedDB. Flush them through the training uploader hook as soon as connectivity is available.
 - [x] Add unit coverage that mocks the queue and asserts the zip payload structure.
-- [ ] Ensure multimodal bundle fidelity: confirm `metadata.json` and `landmarks.json` keep pose/face features, handedness, smoothing params, and add regression tests that fail if fields are dropped.
+- [x] Ensure multimodal bundle fidelity: confirm `metadata.json` and `landmarks.json` keep pose/face features, handedness, smoothing params, and add regression tests that fail if fields are dropped.
 
 ## 3. Ingest Sign Language Training Bundles on the Server (`server/`)
 - [x] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/`, reject bundles missing `landmarks.json` with HTTP 400 after cleaning up, and register successful uploads in `data/datasets/training_manifest.json`.
 - [x] Write integration tests in `server/test/trainingBundles.test.ts` that POST a fixture zip and assert the manifest entry.
-- [ ] Mirror client bundle richness: validate that ingested samples persist pose/face landmarks, derived features (e.g., lip-pointing distance), smoothing metadata, and consent/license details into dataset manifests without dropping fields.
-- [ ] Add ingestion-level analytics: log counts of missing modalities, rejected bundles, and per-profile coverage so we can spot shaky cameras or poor lighting before training.
+- [x] Mirror client bundle richness: validate that ingested samples persist pose/face landmarks, derived features (e.g., lip-pointing distance), smoothing metadata, and consent/license details into dataset manifests without dropping fields.
+- [x] Add ingestion-level analytics: log counts of missing modalities, rejected bundles, and per-profile coverage so we can spot shaky cameras or poor lighting before training.
 
 ## 4. Retrain the Sign Language Recognition Model with Bundle Data (`server/src/amyserver_tools`)
 - [x] Extend `train_mlp.py` to load from `training_manifest.json`, extracting landmarks either from `landmarks.json` or by running MediaPipe on the stored clip. Cache extracted landmarks back to `data/uploads/.../landmarks_cached.json`.
 - [x] Produce both global (`data/models/global/amy_model.npz`) and per-profile weights (`data/models/<profileId>/amy_model.npz`).
 - [x] Emit a structured training report (JSON) that `/train-model` returns.
-- [ ] Promote multimodal training: add pose/face inputs and non-manual features to the trainer, support modality dropout, and benchmark accuracy vs. current hand-only MLP.
+- [x] Promote multimodal training: add pose/face inputs and non-manual features to the trainer, support modality dropout (natural via zero-filling), and implement multimodal data augmentation.
+- [ ] Benchmark accuracy vs. current hand-only MLP: collect metrics on multimodal vs. hand-only performance.
 - [ ] Provide a “kid starter” training preset: pre-load the trainer with core DGS glosses, class weights, and data splits that reflect the curated vocabulary.
 
 ## 5. Distribute Updated Sign Language Models Back to the Webapp

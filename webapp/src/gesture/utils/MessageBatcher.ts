@@ -1,10 +1,10 @@
 import type { WebViewMessagePayload } from '../types/MediaPipeTypes';
 import { postWebviewMessage } from '../../utils/reactNativeBridge';
 
-export const BATCH_INTERVAL_MS = 35;
-export const MAX_BATCH_SIZE = 6;
+export const BATCH_INTERVAL_MS_35 = 35;
+export const MAX_BATCH_SIZE_6 = 6;
 export const FRAME_LATENCY_SAMPLE_INTERVAL = 6;
-const MAX_QUEUE_LATENCY_MS = 120;
+const MAX_QUEUE_LATENCY_MS_120 = 120;
 
 type BridgePayload = Record<string, unknown> | WebViewMessagePayload;
 
@@ -28,7 +28,7 @@ export class MessageBatcher {
     }
 
     if (
-      this.queue.length >= MAX_BATCH_SIZE ||
+      this.queue.length >= MAX_BATCH_SIZE_6 ||
       (this.frameCount > 0 && this.frameCount % FRAME_LATENCY_SAMPLE_INTERVAL === 0)
     ) {
       this.flushBatch();
@@ -36,13 +36,13 @@ export class MessageBatcher {
     }
 
     const now = Date.now();
-    if (this.lastSentAt && now - this.lastSentAt >= MAX_QUEUE_LATENCY_MS) {
+    if (this.lastSentAt && now - this.lastSentAt >= MAX_QUEUE_LATENCY_MS_120) {
       this.flushBatch();
       return;
     }
 
     if (!this.timer) {
-      this.timer = setTimeout(() => this.flushBatch(), BATCH_INTERVAL_MS);
+      this.timer = setTimeout(() => this.flushBatch(), BATCH_INTERVAL_MS_35);
     }
   }
 
