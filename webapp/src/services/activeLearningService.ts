@@ -135,7 +135,7 @@ export class ActiveLearningService {
   }
 
   /**
-   * Lernpriorität für eine Geste aktualisieren
+   * Lernpriorität für eine Gebärde aktualisieren
    */
   private updateLearningPriority(
     gesture: string,
@@ -167,7 +167,7 @@ export class ActiveLearningService {
   }
 
   /**
-   * Erfolgsrate für eine Geste berechnen
+   * Erfolgsrate für eine Gebärde berechnen
    */
   private calculateSuccessRate(gesture: string): number {
     const recentMisclassifications = this.misclassifications
@@ -187,7 +187,7 @@ export class ActiveLearningService {
   }
 
   /**
-   * Aktuelle Fehler für eine Geste zählen
+   * Aktuelle Fehler für eine Gebärde zählen
    */
   private countRecentFailures(gesture: string): number {
     const recentWindow = Date.now() - (60 * 60 * 1000); // Letzte Stunde
@@ -203,7 +203,7 @@ export class ActiveLearningService {
   }
 
   /**
-   * Prioritätsstufe für eine Geste berechnen
+   * Prioritätsstufe für eine Gebärde berechnen
    */
   private calculatePriorityLevel(priority: LearningPriority): 'critical' | 'high' | 'medium' | 'low' {
     const { successRate, recentFailures, totalAttempts } = priority;

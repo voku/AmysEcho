@@ -66,7 +66,7 @@ export class EmergencyGestureSystem {
         shouldProcess: false,
         priority: 'critical',
         cooldownRemaining: this.EMERGENCY_COOLDOWN_MS - timeSinceLastEmergency,
-        feedback: 'Notfall-Geste erkannt, wird verarbeitet...'
+        feedback: 'Notfall-Gebärde erkannt, wird verarbeitet...'
       };
     }
 
@@ -101,7 +101,7 @@ export class EmergencyGestureSystem {
       'angst': '😨 Angstsignal erkannt!'
     };
 
-    return feedbackMap[gesture.toLowerCase()] || '🚨 Notfall-Geste erkannt!';
+    return feedbackMap[gesture.toLowerCase()] || '🚨 Notfall-Gebärde erkannt!';
   }
 
   /**

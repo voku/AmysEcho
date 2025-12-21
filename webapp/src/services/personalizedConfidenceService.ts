@@ -3,14 +3,14 @@
  *
  * Passt Vertrauensschwellen dynamisch an basierend auf Amys individuellen Mustern
  * und Lernfortschritt. Dies stellt optimale Erkennungsgenauigkeit sicher,
- * während es sich an Amys einzigartigen Gestenstil anpasst.
+ * während es sich an Amys einzigartigen Gebärdenstil anpasst.
  */
 
 export interface ConfidenceProfile {
   gestureId: string;
   baseThreshold: number;
-  learningProgress: number; // 0-1, wie gut Amy diese Geste gelernt hat
-  successRate: number; // Rollende Erfolgsrate für diese Geste
+  learningProgress: number; // 0-1, wie gut Amy diese Gebärde gelernt hat
+  successRate: number; // Rollende Erfolgsrate für diese Gebärde
   lastUpdated: number;
   attemptCount: number;
 }
@@ -42,7 +42,7 @@ class PersonalizedConfidenceService {
   }
 
   /**
-   * Personalisierte Vertrauensschwelle für eine Geste abrufen
+   * Personalisierte Vertrauensschwelle für eine Gebärde abrufen
    */
   getPersonalizedThreshold(gestureId: string, _baseConfidence: number): PersonalizedThreshold {
     const profile = this.profiles.get(gestureId);
@@ -58,14 +58,14 @@ class PersonalizedConfidenceService {
 
       // Lernfortschrittsanpassung anwenden
       if (profile.learningProgress > 0.7) {
-        // Amy hat diese Geste gemeistert - kann strenger sein
+        // Amy hat diese Gebärde gemeistert - kann strenger sein
         threshold += 0.1;
-        adjustments.push('Gemeisterte Geste: +0.1');
+        adjustments.push('Gemeisterte Gebärde: +0.1');
         confidence = 'high';
       } else if (profile.learningProgress < 0.3) {
         // Amy lernt noch - nachsichtiger sein
         threshold -= 0.15;
-        adjustments.push('Lernende Geste: -0.15');
+        adjustments.push('Lernende Gebärde: -0.15');
         confidence = 'low';
       }
 
@@ -95,13 +95,13 @@ class PersonalizedConfidenceService {
   }
 
   /**
-   * Gestenversuch für Schwellenanpassung aufzeichnen
+   * Gebärdenversuch für Schwellenanpassung aufzeichnen
    */
   recordGestureAttempt(gestureId: string, confidence: number, wasSuccessful: boolean): void {
     const profile = this.profiles.get(gestureId) || this.createDefaultProfile(gestureId);
 
     if (!Number.isFinite(profile.attemptCount)) {
-      console.warn(`Korrupte attemptCount für Geste ${gestureId} zurückgesetzt. Aktueller Wert:`, profile.attemptCount);
+      console.warn(`Korrupte attemptCount für Gebärde ${gestureId} zurückgesetzt. Aktueller Wert:`, profile.attemptCount);
       profile.attemptCount = this.MIN_SAMPLES_FOR_ADAPTATION;
     }
 

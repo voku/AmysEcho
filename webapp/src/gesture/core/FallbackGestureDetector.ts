@@ -272,14 +272,14 @@ export class FallbackGestureDetector {
 
     const celebrationMessages = [
       'Super! Deine Hand bewegt sich richtig.',
-      'Toll! Ich sehe deine Geste ganz deutlich.',
-      'Fantastisch! Das war eine klasse Geste.',
+      'Toll! Ich sehe deine Gebärde ganz deutlich.',
+      'Fantastisch! Das war eine klasse Gebärde.',
     ];
 
     const gestureLabels: Record<string, string> = {
       fist: 'Faust',
       point: 'Zeigefinger',
-      peace: 'Peace-Geste',
+      peace: 'Peace-Gebärde',
       thumbs_up: 'Daumen hoch',
       open_palm: 'offene Hand',
     };
@@ -290,7 +290,7 @@ export class FallbackGestureDetector {
       Math.floor((clampedConfidence - 0.4) / 0.2)
     );
     const celebration = celebrationMessages[Math.max(0, messageIndex)];
-    const friendlyLabel = gestureLabels[gesture] ?? 'deine Geste';
+    const friendlyLabel = gestureLabels[gesture] ?? 'deine Gebärde';
 
     return `${celebration} (${friendlyLabel}).`;
   }
