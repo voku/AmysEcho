@@ -937,7 +937,7 @@ sudo systemctl start amysecho
 Use the repository-provided script to pull the latest code, install dependencies, rebuild, and restart the systemd service:
 
 ```bash
-/opt/amysecho/app/deployment/scripts/update-server.sh
+sudo /opt/amysecho/app/deployment/scripts/update-server.sh
 ```
 
 #### Manual Update Steps

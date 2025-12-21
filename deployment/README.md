@@ -64,7 +64,7 @@ docker-compose up -d
 Use the update script to pull the latest code, install dependencies, rebuild, and restart:
 
 ```bash
-/opt/amysecho/app/deployment/scripts/update-server.sh
+sudo /opt/amysecho/app/deployment/scripts/update-server.sh
 ```
 
 ## Configuration Files
