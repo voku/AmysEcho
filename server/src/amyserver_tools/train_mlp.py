@@ -736,6 +736,10 @@ def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
     - Pose landmarks (optional, 99 values): x,y,z for 33 points, normalized to torso center
     - Face landmarks (optional, subset ~60 values): key facial points for NMMs
     
+    This function naturally supports modality dropout: when pose or face landmarks are
+    missing from a sample, zeros are filled in. This trains the model to be robust to
+    missing modalities, which can occur due to occlusion, poor lighting, or device limitations.
+    
     Returns None if hand landmarks cannot be normalized.
     """
     # Normalize hand landmarks (required)
@@ -886,6 +890,73 @@ def augment_landmarks(
             hand /= max_l1
 
     return augmented.astype(np.float32).flatten()
+
+
+def augment_multimodal_landmarks(
+    normalized: Union[List[float], np.ndarray],
+    *,
+    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
+    jitter_std: float = 0.01,
+    max_rotation_degrees: float = 10.0,
+) -> np.ndarray:
+    """Augment multimodal landmarks (hands + pose + face).
+    
+    Parameters
+    ----------
+    normalized:
+        Flattened multimodal feature vector (126 hand + 99 pose + 33 face = 258 values).
+    rng:
+        Optional random number generator for deterministic tests.
+    jitter_std:
+        Standard deviation of per-point jitter applied to each coordinate.
+    max_rotation_degrees:
+        Maximum absolute in-plane rotation applied to hands.
+        
+    Returns
+    -------
+    numpy.ndarray
+        Augmented multimodal landmark tensor with the same shape as the input.
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+        
+    features = np.asarray(normalized, dtype=np.float32)
+    
+    # Split into hand, pose, and face components
+    # Expected: 126 (hands) + 99 (pose) + 33 (face) = 258
+    hand_size = 126  # 42 points * 3 coords
+    pose_size = 99   # 33 points * 3 coords
+    face_size = 33   # 11 points * 3 coords
+    
+    if len(features) != hand_size + pose_size + face_size:
+        # If size doesn't match expected multimodal format, return as-is
+        return features
+    
+    # Augment hand landmarks using existing augmentation
+    hand_features = features[:hand_size]
+    augmented_hands = augment_landmarks(
+        hand_features, 
+        rng=rng, 
+        jitter_std=jitter_std, 
+        max_rotation_degrees=max_rotation_degrees
+    )
+    
+    # Apply minimal jitter to pose (smaller variance to maintain body structure)
+    pose_features = features[hand_size:hand_size + pose_size].reshape(33, 3)
+    if np.any(pose_features):
+        pose_jitter = rng.normal(0.0, jitter_std * 0.5, size=pose_features.shape).astype(np.float32)
+        pose_features = pose_features + pose_jitter
+    augmented_pose = pose_features.flatten()
+    
+    # Apply minimal jitter to face (smaller variance to maintain facial structure)
+    face_features = features[hand_size + pose_size:].reshape(11, 3)
+    if np.any(face_features):
+        face_jitter = rng.normal(0.0, jitter_std * 0.3, size=face_features.shape).astype(np.float32)
+        face_features = face_features + face_jitter
+    augmented_face = face_features.flatten()
+    
+    return np.concatenate([augmented_hands, augmented_pose, augmented_face])
+
 
 
 # --- MLP implementation (unchanged core) ------------------------------------
@@ -1470,15 +1541,13 @@ def dataset_to_arrays(
         y_list.append(label_to_idx[sample.label])
 
         for _ in range(augmentations):
-            # For multimodal, we only augment hand landmarks for now
+            # Apply appropriate augmentation based on data type
             if has_multimodal:
-                # Augmentation for multimodal needs separate handling
-                # For now, skip augmentation for multimodal to avoid complexity
-                continue
+                augmented = augment_multimodal_landmarks(normalized_array, rng=rng)
             else:
                 augmented = augment_landmarks(normalized_array, rng=rng)
-                X_list.append(augmented)
-                y_list.append(label_to_idx[sample.label])
+            X_list.append(augmented)
+            y_list.append(label_to_idx[sample.label])
 
     if not X_list:
         # Feature size depends on whether we have multimodal data
