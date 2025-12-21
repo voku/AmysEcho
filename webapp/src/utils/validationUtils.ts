@@ -205,7 +205,7 @@ export function validateGestureData(data: {
     {
       name: 'gesture_valid',
       validate: (value) => value.gesture === undefined || commonValidationRules.gesture('gesture').validate(value.gesture),
-      message: 'gesture muss einen gültigen Gestennamen enthalten',
+      message: 'gesture muss einen gültigen Gebärdennamen enthalten',
       severity: 'error'
     },
     {
@@ -303,7 +303,7 @@ export function validateTrainingSample(sample: {
       name: 'gestureId_valid',
       validate: (value) =>
         value.gestureId === undefined || commonValidationRules.gesture('gestureId').validate(value.gestureId),
-      message: 'gestureId muss ein gültiger Gestenname sein',
+      message: 'gestureId muss ein gültiger Gebärdenname sein',
       severity: 'error'
     },
     {

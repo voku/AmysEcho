@@ -196,7 +196,7 @@ export class PartialGestureDetector {
           ? 'Hand öffnen und Finger ausstrecken.'
           : 'Fast offen! Strecke alle Finger aus.';
       default:
-        return `Geste zu ${completionPercent}% fertig.`;
+        return `Gebärde zu ${completionPercent}% fertig.`;
     }
   }
 
