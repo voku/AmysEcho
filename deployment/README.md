@@ -12,6 +12,7 @@ This directory contains configuration files and scripts for deploying Amy's Echo
 
 ### scripts/
 - `backup.sh` - Automated backup script for data and database
+- `update-server.sh` - Updates server dependencies and restarts the systemd service
 - `monitor.sh` - Health check monitoring script with alerting
 
 ## Quick Start
@@ -57,6 +58,14 @@ docker-compose up -d
    sudo chmod +x /opt/amysecho/monitor.sh
    # Add to crontab: */5 * * * * /opt/amysecho/monitor.sh
    ```
+
+## Updating the Server
+
+Use the update script to pull the latest code, install dependencies, rebuild, and restart:
+
+```bash
+/opt/amysecho/app/deployment/scripts/update-server.sh
+```
 
 ## Configuration Files
 
