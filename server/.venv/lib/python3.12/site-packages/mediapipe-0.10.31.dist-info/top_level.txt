@@ -1,2 +1,0 @@
-mediapipe
-mediapipe/tasks/c/libmediapipe_c_lib
