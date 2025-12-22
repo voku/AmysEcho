@@ -33,7 +33,7 @@ export function ProfileManager() {
   // Load profiles on mount
   useEffect(() => {
     loadProfiles();
-  }, []);
+  }, [loadProfiles]);
 
   const loadProfiles = useCallback(async () => {
     setLoading(true);
