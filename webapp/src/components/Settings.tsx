@@ -8,8 +8,6 @@ import { useAppState } from '../hooks/useAppState';
  */
 export function Settings() {
   const { profileId, displayName } = useAppState();
-export function Settings() {
-  const { profileId, displayName } = useAppState();
 
   const handleExportData = useCallback(() => {
 
