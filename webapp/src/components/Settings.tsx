@@ -8,7 +8,10 @@ import { useAppState } from '../hooks/useAppState';
  */
 export function Settings() {
   const { profileId, displayName } = useAppState();
-  const navigate = useNavigate();
+export function Settings() {
+  const { profileId, displayName } = useAppState();
+
+  const handleExportData = useCallback(() => {
 
   const handleExportData = useCallback(() => {
     const data = {
