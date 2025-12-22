@@ -208,7 +208,7 @@ if (!PROFILE_ID_PATTERN.test(profileId)) {
 
 **Backend:**
 ```typescript
-export const PROFILE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+export const PROFILE_ID_PATTERN = /^[a-z0-9-]+$/;
 if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
   return res.status(400).json({ 
     error: 'metadata.profileId is invalid' 
