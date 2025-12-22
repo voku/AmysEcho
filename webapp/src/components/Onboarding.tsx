@@ -9,7 +9,7 @@ type OnboardingStep = 'welcome' | 'name' | 'complete';
  * Guides new users through initial setup.
  */
 export function Onboarding({ onComplete }: { onComplete?: () => void }) {
-  const { setProfileId } = useAppState();
+  const { setProfileId, setDisplayName } = useAppState();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const [profileName, setProfileName] = useState('');
 
@@ -19,8 +19,15 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
 
   const handleComplete = useCallback(() => {
     // Save profile
-    const profileId = profileName.trim() || 'amy';
+    const displayName = profileName.trim();
+    const profileId = displayName
+      ? displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')
+      : 'amy';
+    
     setProfileId(profileId);
+    if (displayName) {
+      setDisplayName(displayName);
+    }
     
     localStorage.setItem('webapp:onboarding-complete', 'true');
     
@@ -29,7 +36,7 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
     if (onComplete) {
       onComplete();
     }
-  }, [profileName, setProfileId, onComplete]);
+  }, [profileName, setProfileId, setDisplayName, onComplete]);
 
   const steps: Record<OnboardingStep, React.JSX.Element> = {
     welcome: (

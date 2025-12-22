@@ -4,6 +4,7 @@ const STORAGE_KEY = 'webapp:app-state';
 
 type StoredAppState = {
   profileId: string;
+  displayName?: string; // User-friendly display name (can be changed)
   preferredGestureLabel: string;
   lastRecognizedGesture: string | null;
   recentGestures: string[];
@@ -11,12 +12,14 @@ type StoredAppState = {
 
 type AppStateContextValue = StoredAppState & {
   setProfileId: (value: string) => void;
+  setDisplayName: (value: string) => void;
   setPreferredGestureLabel: (value: string) => void;
   recordGesture: (gesture: string) => void;
 };
 
 const defaultState: StoredAppState = {
   profileId: 'web-demo',
+  displayName: undefined,
   preferredGestureLabel: 'HILFE',
   lastRecognizedGesture: null,
   recentGestures: [],
@@ -32,6 +35,9 @@ function readFromStorage(): StoredAppState {
       profileId: typeof parsed?.profileId === 'string' && parsed.profileId.trim()
         ? parsed.profileId.trim()
         : defaultState.profileId,
+      displayName: typeof parsed?.displayName === 'string' && parsed.displayName.trim()
+        ? parsed.displayName.trim()
+        : undefined,
       preferredGestureLabel: typeof parsed?.preferredGestureLabel === 'string' && parsed.preferredGestureLabel.trim()
         ? parsed.preferredGestureLabel.trim()
         : defaultState.preferredGestureLabel,
@@ -73,6 +79,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const setDisplayName = useCallback((value: string) => {
+    setState((prev) => ({
+      ...prev,
+      displayName: value.trim() || undefined,
+    }));
+  }, []);
+
   const setPreferredGestureLabel = useCallback((value: string) => {
     setState((prev) => ({
       ...prev,
@@ -99,10 +112,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ...state,
       setProfileId,
+      setDisplayName,
       setPreferredGestureLabel,
       recordGesture,
     }),
-    [state, setPreferredGestureLabel, setProfileId, recordGesture],
+    [state, setPreferredGestureLabel, setProfileId, setDisplayName, recordGesture],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

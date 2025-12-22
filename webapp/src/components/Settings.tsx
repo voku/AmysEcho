@@ -6,17 +6,15 @@ import { useAppState } from '../hooks/useAppState';
  * Allows users to configure app preferences and manage their profile.
  */
 export function Settings() {
-  const { profileId, setProfileId } = useAppState();
-  const [newProfileId, setNewProfileId] = useState(profileId);
+  const { profileId, displayName, setDisplayName } = useAppState();
+  const [newDisplayName, setNewDisplayName] = useState(displayName || '');
   const [showSaved, setShowSaved] = useState(false);
 
   const handleSaveProfile = useCallback(() => {
-    if (newProfileId.trim()) {
-      setProfileId(newProfileId.trim());
-    }
+    setDisplayName(newDisplayName.trim());
     setShowSaved(true);
     setTimeout(() => setShowSaved(false), 2000);
-  }, [newProfileId, setProfileId]);
+  }, [newDisplayName, setDisplayName]);
 
   const handleExportData = useCallback(() => {
     const data = {
@@ -64,20 +62,37 @@ export function Settings() {
         <h3>Profil</h3>
         <div className="settings-grid">
           <div className="setting-item">
-            <label htmlFor="profile-id">Profil-ID</label>
+            <label htmlFor="profile-name">Anzeigename</label>
             <input
-              id="profile-id"
+              id="profile-name"
               type="text"
-              value={newProfileId}
-              onChange={(e) => setNewProfileId(e.target.value)}
-              placeholder="z.B. amy-1"
+              value={newDisplayName}
+              onChange={(e) => setNewDisplayName(e.target.value)}
+              placeholder={profileId}
             />
-            <p className="muted small">Eindeutige Kennung für dein Profil</p>
+            <p className="muted small">
+              Freundlicher Name, der in der App angezeigt wird. Du kannst diesen Namen jederzeit ändern.
+            </p>
+          </div>
+          <div className="setting-item">
+            <label htmlFor="profile-id-readonly">Profil-ID (unveränderlich)</label>
+            <input
+              id="profile-id-readonly"
+              type="text"
+              value={profileId}
+              disabled
+              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+            />
+            <p className="muted small">
+              ⚠️ <strong>Wichtig:</strong> Die Profil-ID ist dauerhaft und mit allen Trainingsdaten,
+              Modellen und aufgezeichneten Gebärden verknüpft. Sie kann nicht geändert werden,
+              ohne alle Daten zu verlieren.
+            </p>
           </div>
         </div>
         <div className="controls">
           <button className="primary" onClick={handleSaveProfile}>
-            Profil speichern
+            Anzeigename speichern
           </button>
         </div>
       </div>
@@ -101,7 +116,8 @@ export function Settings() {
         <h3>Über Amy&apos;s Echo</h3>
         <div className="about-info">
           <p><strong>Version:</strong> Webapp Preview</p>
-          <p><strong>Profil:</strong> {profileId}</p>
+          <p><strong>Profil:</strong> {displayName || profileId}</p>
+          <p><strong>Profil-ID:</strong> {profileId}</p>
           <p className="muted small">
             Amy&apos;s Echo hilft bei der Kommunikation durch Gebärdenerkennung. 
             Die Daten werden lokal im Browser gespeichert.
