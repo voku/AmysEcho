@@ -10,8 +10,6 @@ export function Settings() {
   const { profileId, displayName } = useAppState();
 
   const handleExportData = useCallback(() => {
-
-  const handleExportData = useCallback(() => {
     const data = {
       profileId,
       displayName,
