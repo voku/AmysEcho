@@ -13,14 +13,7 @@ type AppStateContextValue = {
   refreshFromRegistry: () => Promise<void>;
 };
 
-const defaultState = {
-  profileUuid: null,
-  profileId: null,
-  displayName: null,
-  preferredGestureLabel: 'HILFE',
-  lastRecognizedGesture: null,
-  recentGestures: [],
-}; 
+// defaultState removed - was unused and causing ESLint warning
 
 const AppStateContext = createContext<AppStateContextValue | null>(null);
 
