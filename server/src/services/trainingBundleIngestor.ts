@@ -447,20 +447,23 @@ function analyzeTimestampSequence(frames: LandmarksFrameEntry[]): TimingMetadata
   let minDelta = Infinity;
   let maxDelta = 0;
   let count = 0;
-  for (let i = 1; i < timestamps.length; i += 1) {
-    const delta = timestamps[i] - timestamps[i - 1];
-    if (delta <= 0) {
-      nonMonotonic = true;
+    const deltas: number[] = [];
+    for (let i = 1; i < timestamps.length; i += 1) {
+      const delta = timestamps[i] - timestamps[i - 1];
+      if (delta <= 0) {
+        nonMonotonic = true;
+      }
+      if (delta > 0) {
+        deltas.push(delta);
+      }
     }
-    totalDelta += delta;
-    count += 1;
-    if (delta < minDelta) {
-      minDelta = delta;
+    if (deltas.length === 0) {
+      return nonMonotonic ? { nonMonotonic: true } : undefined;
     }
-    if (delta > maxDelta) {
-      maxDelta = delta;
-    }
-  }
+    const totalDelta = deltas.reduce((sum, d) => sum + d, 0);
+    const averageDelta = totalDelta / deltas.length;
+    const minDelta = Math.min(...deltas);
+    const maxDelta = Math.max(...deltas);
   if (count === 0) {
     return undefined;
   }
