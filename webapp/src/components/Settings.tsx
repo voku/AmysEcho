@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 
 /**
@@ -60,6 +61,20 @@ export function Settings() {
       {/* Profile Settings */}
       <div className="settings-section">
         <h3>Profil</h3>
+        
+        <div className="notice info">
+          <p>
+            <strong>🔒 Neues Multi-Profil-System verfügbar!</strong>
+          </p>
+          <p className="muted small">
+            Unterstütze mehrere Kinder im Haushalt mit individuellen Profilen. 
+            Jedes Profil hat eigene Trainingsdaten, Modelle und ist kryptografisch geschützt.
+          </p>
+          <Link to="/profile" className="primary-button" style={{ marginTop: '1rem', display: 'inline-block' }}>
+            Profile verwalten
+          </Link>
+        </div>
+
         <div className="settings-grid">
           <div className="setting-item">
             <label htmlFor="profile-name">Anzeigename</label>

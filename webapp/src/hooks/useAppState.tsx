@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { getActiveProfile, initializeProfileRegistry, type Profile } from '../services/profileRegistry';
 
 const STORAGE_KEY = 'webapp:app-state';
 
@@ -11,10 +12,12 @@ type StoredAppState = {
 };
 
 type AppStateContextValue = StoredAppState & {
+  profileUuid?: string; // UUID from profile registry (if available)
   setProfileId: (value: string) => void;
   setDisplayName: (value: string) => void;
   setPreferredGestureLabel: (value: string) => void;
   recordGesture: (gesture: string) => void;
+  refreshFromRegistry: () => Promise<void>; // Sync with profile registry
 };
 
 const defaultState: StoredAppState = {
@@ -62,6 +65,29 @@ const AppStateContext = createContext<AppStateContextValue | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<StoredAppState>(() => readFromStorage());
+  const [profileUuid, setProfileUuid] = useState<string | undefined>();
+
+  // Initialize profile registry on mount
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await initializeProfileRegistry();
+        const activeProfile = await getActiveProfile();
+        if (activeProfile) {
+          setProfileUuid(activeProfile.uuid);
+          // Sync state with active profile
+          setState((prev) => ({
+            ...prev,
+            profileId: activeProfile.profileId,
+            displayName: activeProfile.displayName,
+          }));
+        }
+      } catch (error) {
+        console.warn('[AppState] Failed to initialize profile registry:', error);
+      }
+    };
+    init();
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -108,15 +134,33 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const refreshFromRegistry = useCallback(async () => {
+    try {
+      const activeProfile = await getActiveProfile();
+      if (activeProfile) {
+        setProfileUuid(activeProfile.uuid);
+        setState((prev) => ({
+          ...prev,
+          profileId: activeProfile.profileId,
+          displayName: activeProfile.displayName,
+        }));
+      }
+    } catch (error) {
+      console.warn('[AppState] Failed to refresh from registry:', error);
+    }
+  }, []);
+
   const value = useMemo<AppStateContextValue>(
     () => ({
       ...state,
+      profileUuid,
       setProfileId,
       setDisplayName,
       setPreferredGestureLabel,
       recordGesture,
+      refreshFromRegistry,
     }),
-    [state, setPreferredGestureLabel, setProfileId, setDisplayName, recordGesture],
+    [state, profileUuid, setPreferredGestureLabel, setProfileId, setDisplayName, recordGesture, refreshFromRegistry],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
