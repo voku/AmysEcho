@@ -31,10 +31,6 @@ export function ProfileManager() {
   const avatarOptions = ['👤', '🌈', '🌸', '🎨', '⭐', '🦋', '🌻', '🐻', '🦊', '🐰'];
 
   // Load profiles on mount
-  useEffect(() => {
-    loadProfiles();
-  }, [loadProfiles]);
-
   const loadProfiles = useCallback(async () => {
     setLoading(true);
     try {
@@ -50,6 +46,11 @@ export function ProfileManager() {
       setLoading(false);
     }
   }, []);
+
+  // Load profiles on mount
+  useEffect(() => {
+    loadProfiles();
+  }, [loadProfiles]);
 
   const handleSelectProfile = useCallback(async (profile: Profile) => {
     try {
