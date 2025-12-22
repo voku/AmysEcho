@@ -16,6 +16,7 @@ export interface TrainingFrame {
   handedness?: ReadonlyArray<string>;
   poseLandmarks?: number[][];
   faceLandmarks?: number[][];
+  timestampMs?: number;
 }
 
 export interface FrameData {
@@ -39,6 +40,15 @@ export interface TrainingBundlePayload {
   };
   clipFile?: File | null;
   stillFile?: File | null;
+  recording?: {
+    frameCount?: number;
+    usableFrameCount?: number;
+    clipDurationMs?: number;
+    clipBytes?: number;
+    clipMimeType?: string;
+    stillBytes?: number;
+    stillMimeType?: string;
+  };
   /**
    * Specifies which hand(s) are semantically important for this gesture.
    * The training pipeline will focus learning on the specified hand(s) only,

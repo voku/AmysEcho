@@ -23,6 +23,7 @@ type TimelineFrame = {
   handLandmarks: number[][][];
   poseLandmarks: number[][];
   faceLandmarks: number[][];
+  timestampMs?: number;
 };
 
 type LandmarksMetadata = {
@@ -61,6 +62,9 @@ export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
         faceLandmarks: Array.isArray(frame.faceLandmarks)
           ? frame.faceLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
           : [],
+        ...(typeof frame.timestampMs === 'number' && Number.isFinite(frame.timestampMs)
+          ? { timestampMs: frame.timestampMs }
+          : {}),
       };
     });
 }
@@ -76,7 +80,22 @@ function buildMetadata(
   clipFilename: string | null,
   stillFilename: string | null,
   landmarksMetadata: LandmarksMetadata,
+  frames: TimelineFrame[],
 ) {
+  const clipBytes = payload.recording?.clipBytes ?? payload.clipFile?.size;
+  const stillBytes = payload.recording?.stillBytes ?? payload.stillFile?.size;
+  const clipMimeType = payload.recording?.clipMimeType ?? payload.clipFile?.type;
+  const stillMimeType = payload.recording?.stillMimeType ?? payload.stillFile?.type;
+  const recording = {
+    ...(typeof payload.recording?.frameCount === 'number' ? { frameCount: payload.recording.frameCount } : {}),
+    ...(frames.length > 0 ? { usableFrameCount: frames.length } : {}),
+    ...(typeof payload.recording?.clipDurationMs === 'number' ? { clipDurationMs: payload.recording.clipDurationMs } : {}),
+    ...(typeof clipBytes === 'number' ? { clipBytes } : {}),
+    ...(typeof clipMimeType === 'string' && clipMimeType.trim().length > 0 ? { clipMimeType } : {}),
+    ...(typeof stillBytes === 'number' ? { stillBytes } : {}),
+    ...(typeof stillMimeType === 'string' && stillMimeType.trim().length > 0 ? { stillMimeType } : {}),
+  };
+
   return {
     profileId: payload.profileId,
     label: payload.label,
@@ -88,6 +107,7 @@ function buildMetadata(
     smoothing: landmarksMetadata.smoothing,
     ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),
     ...(payload.handFocus ? { handFocus: payload.handFocus } : {}),
+    ...(Object.keys(recording).length > 0 ? { recording } : {}),
   };
 }
 
@@ -238,7 +258,7 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const stillFilename = payload.stillFile ? `still.${extractExtensionFromFile(payload.stillFile, 'jpg')}` : null;
   const frames = buildFrameTimeline(payload.frames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
-  const metadata = buildMetadata(payload, clipFilename, stillFilename, landmarksMetadata);
+  const metadata = buildMetadata(payload, clipFilename, stillFilename, landmarksMetadata, frames);
 
   const metadataContent = JSON.stringify(metadata, null, 2);
   const landmarksContent = JSON.stringify({ frames, metadata: landmarksMetadata }, null, 2);

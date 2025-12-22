@@ -23,6 +23,7 @@ type LandmarkFrame = {
   poseLandmarks?: number[][];
   faceLandmarks?: number[][];
   handedness?: Array<string | unknown>;
+  timestampMs?: number;
 };
 
 type LandmarksPayload = { frames: LandmarkFrame[]; metadata?: Record<string, unknown> };
@@ -31,6 +32,7 @@ type BundleFixtureOptions = {
   landmarksRelativePath?: string;
   frames?: LandmarksPayload;
   includeValidationSummary?: boolean;
+  recordingMetadata?: Record<string, unknown>;
   extraFiles?: ExtraFile[];
 };
 
@@ -261,6 +263,58 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     });
   });
 
+  it('prefers per-frame timestamps and includes recording metadata', async () => {
+    const frames: LandmarksPayload = {
+      frames: [
+        {
+          ...buildLandmarkFrame(0.3),
+          timestampMs: 1716897791000,
+        },
+        {
+          ...buildLandmarkFrame(0.31),
+          timestampMs: 1716897791100,
+        },
+      ],
+    };
+
+    await writeBundleFixture('bundle-timestamps', {
+      frames,
+      recordingMetadata: {
+        frameCount: 12,
+        usableFrameCount: 10,
+        clipDurationMs: 1200,
+        clipBytes: 2048,
+        clipMimeType: 'video/webm',
+        stillBytes: 512,
+        stillMimeType: 'image/jpeg',
+      },
+    });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(2);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
+    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const sample = dataset.samples[0];
+
+    expect(sample.ts).toBe(1716897791000);
+    expect(sample.captureMetadata?.recording).toEqual({
+      frameCount: 12,
+      usableFrameCount: 10,
+      clipDurationMs: 1200,
+      clipBytes: 2048,
+      clipMimeType: 'video/webm',
+      stillBytes: 512,
+      stillMimeType: 'image/jpeg',
+    });
+    expect(sample.captureMetadata?.timing).toMatchObject({
+      averageDeltaMs: 100,
+      minDeltaMs: 100,
+      maxDeltaMs: 100,
+    });
+  });
+
   async function writeBundleFixture(
     bundleId: string,
     options: BundleFixtureOptions = {},
@@ -319,6 +373,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
             source: 'app://mediapipe',
             clipFilename: 'clip.webm',
             stillFilename: 'still.jpg',
+            ...(options.recordingMetadata ? { recording: options.recordingMetadata } : {}),
             ...(options.includeValidationSummary === false
               ? {}
               : {

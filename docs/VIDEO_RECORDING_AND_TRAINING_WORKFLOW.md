@@ -91,7 +91,7 @@ export function getClipCaptureErrorMessage(error: unknown): string
 - **Location**: `app/src/services/trainingBundleService.ts`
 - **Features**:
   - Creates ZIP bundles with:
-    - `metadata.json` (profile, label, timestamps)
+    - `metadata.json` (profile, label, timestamps, recording stats)
     - `landmarks.json` (hand + optional pose/face landmarks including non-manual marker features)
     - `clip.mp4` (video recording, optional when the camera pipeline fails)
   - Uploads to `/api/v1/dgs/sample-bundles`
@@ -121,7 +121,16 @@ export function getClipCaptureErrorMessage(error: unknown): string
     "label": "HILFE",
     "capturedAt": "2024-05-28T12:03:11Z",
     "source": "app://mediapipe",
-    "clipFilename": "clip.mp4" // optional when degraded
+    "clipFilename": "clip.mp4", // optional when degraded
+    "recording": {
+      "frameCount": 48,
+      "usableFrameCount": 45,
+      "clipDurationMs": 1600,
+      "clipBytes": 2048576,
+      "clipMimeType": "video/webm",
+      "stillBytes": 120341,
+      "stillMimeType": "image/jpeg"
+    }
   },
   "landmarks.json": {
     "frames": [
@@ -129,7 +138,8 @@ export function getClipCaptureErrorMessage(error: unknown): string
         "handLandmarks": [[/* left hand */], [/* right hand */]],
         "landmarks": [/* flattened hands for backward-compat */],
         "poseLandmarks": [/* optional body keypoints */],
-        "faceLandmarks": [/* optional face mesh keypoints */]
+        "faceLandmarks": [/* optional face mesh keypoints */],
+        "timestampMs": 1716897791000
       }
     ]
   },

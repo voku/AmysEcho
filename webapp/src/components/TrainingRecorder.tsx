@@ -182,6 +182,19 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         }
       }
 
+      const clipBytes = recordedData.clipFile?.size ?? (recordedData.clipSizeBytes > 0 ? recordedData.clipSizeBytes : undefined);
+      const clipMimeType = recordedData.clipFile?.type;
+      const stillBytes = stillFile?.size;
+      const stillMimeType = stillFile?.type;
+      const recording = {
+        ...(recordedData.frameCount > 0 ? { frameCount: recordedData.frameCount } : {}),
+        ...(recordedData.clipDurationMs > 0 ? { clipDurationMs: recordedData.clipDurationMs } : {}),
+        ...(typeof clipBytes === 'number' ? { clipBytes } : {}),
+        ...(clipMimeType ? { clipMimeType } : {}),
+        ...(typeof stillBytes === 'number' ? { stillBytes } : {}),
+        ...(stillMimeType ? { stillMimeType } : {}),
+      };
+
       const payload: TrainingBundlePayload = {
         profileId: profileId.trim(),
         label: label.trim(),
@@ -191,6 +204,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         stillFile,
         clipFile: recordedData.clipFile,
         handFocus,
+        ...(Object.keys(recording).length > 0 ? { recording } : {}),
       };
 
       onRecordingComplete(payload);

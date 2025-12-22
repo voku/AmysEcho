@@ -37,5 +37,6 @@ sequenceDiagram
 
 - **Hände sind Pflicht, Gesicht optional**: Für DGS-Uploads werden fehlende Hand-Landmarks als Warnung protokolliert, Gesicht und Pose sind optional, weil manche Gebärden keinen Bezug zum Gesicht haben. Modalitäts-Coverages und Handedness-Zusammenfassungen bleiben in `landmarks.json -> metadata.modalities/handedness` und im Manifest erhalten.
 - **Nur Smoothing beibehalten**: Die im Webapp-Smoothing verwendete Konfiguration bleibt in `metadata.smoothing` enthalten. Sie dient aktuell nur als Dokumentation und wird vom Trainingsskript nicht ausgewertet. Abgeleitete Feature-Metriken werden nicht mehr gesammelt oder gespeichert, um die Bundles schlank zu halten.
+- **Aufnahme-Metadaten & Zeitstempel behalten**: `metadata.recording` (Frame-Zahlen, Clip-Dauer/-Größe, MIME-Typen) wird im Manifest erhalten. Frame-Zeitstempel (`timestampMs`) werden beim Ingest als `ts` in `dgs_samples.json` verwendet, damit Trainingsdaten zeitlich korrekt bleiben.
 
 Die Schritte 3–7 stellen sicher, dass jedes Paket vollständig vorliegt, bevor es in das Training einfließt.

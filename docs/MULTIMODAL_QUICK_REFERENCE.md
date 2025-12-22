@@ -23,7 +23,7 @@
 │                    2. AUTOMATIC UPLOAD                           │
 │                                                                   │
 │  App creates training bundle ZIP:                                │
-│  • metadata.json (profile, label, timestamps)                    │
+│  • metadata.json (profile, label, timestamps, recording stats)   │
 │  • landmarks.json (all multimodal landmark data)                 │
 │  • clip.mp4 (optional video)                                     │
 │                                                                   │

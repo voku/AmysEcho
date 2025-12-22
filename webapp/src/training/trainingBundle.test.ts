@@ -107,6 +107,47 @@ describe('createTrainingZip', () => {
     expect(metadata.handFocus).toBe('dominant_only');
   });
 
+  it('übernimmt Aufnahme-Metadaten und Frame-Zeitstempel', async () => {
+    const clip = new File([new Uint8Array([1, 2, 3, 4])], 'demo.webm', { type: 'video/webm' });
+    const still = new File([new Uint8Array([5, 6])], 'still.jpg', { type: 'image/jpeg' });
+    const timestampMs = 1_700_000_123_456;
+    const payload: TrainingBundlePayload = {
+      ...basePayload,
+      clipFile: clip,
+      stillFile: still,
+      recording: {
+        frameCount: 12,
+        clipDurationMs: 1200,
+      },
+      frames: [
+        {
+          ...basePayload.frames[0],
+          timestampMs,
+        },
+      ],
+    };
+
+    const zip = await createTrainingZip(payload);
+    const entries = unzipSync(zip);
+    const metadataBytes = entries['metadata.json'];
+    const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array())) as { recording?: Record<string, unknown> };
+    expect(metadata.recording).toMatchObject({
+      frameCount: 12,
+      usableFrameCount: 1,
+      clipDurationMs: 1200,
+      clipBytes: clip.size,
+      clipMimeType: clip.type,
+      stillBytes: still.size,
+      stillMimeType: still.type,
+    });
+
+    const landmarksBytes = entries['landmarks.json'];
+    const landmarks = JSON.parse(strFromU8(landmarksBytes ?? new Uint8Array())) as {
+      frames: Array<{ timestampMs?: number }>;
+    };
+    expect(landmarks.frames[0].timestampMs).toBe(timestampMs);
+  });
+
   it('bricht ab, wenn keine Hand-Landmarks enthalten sind', async () => {
     const payload: TrainingBundlePayload = {
       ...basePayload,

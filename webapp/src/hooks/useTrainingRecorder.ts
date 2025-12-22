@@ -112,6 +112,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     const handednessBatches = Array.isArray(payload.handednesses) ? payload.handednesses : [];
     const poseLandmarkBatches = Array.isArray(payload.poseLandmarks) ? payload.poseLandmarks : [];
     const faceLandmarkBatches = Array.isArray(payload.faceLandmarks) ? payload.faceLandmarks : [];
+    const timestampBatches = Array.isArray(payload.timestamps) ? payload.timestamps : [];
     const frameImages = Array.isArray(payload.frames)
       ? payload.frames.filter((frame): frame is string => typeof frame === 'string')
       : [];
@@ -155,12 +156,16 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
               Array.isArray(point) ? point.map((value) => (typeof value === 'number' ? value : 0)) : [],
             )
           : [];
+        const timestampCandidate = timestampBatches[index];
+        const timestampMs =
+          typeof timestampCandidate === 'number' && Number.isFinite(timestampCandidate) ? timestampCandidate : undefined;
 
         framesToAppend.push({
           landmarks: cloned as number[][][],
           handedness,
           poseLandmarks,
           faceLandmarks,
+          ...(timestampMs !== undefined ? { timestampMs } : {}),
         });
 
         setPreviewLandmarks(cloned as number[][][]);

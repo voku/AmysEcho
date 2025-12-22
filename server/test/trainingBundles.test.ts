@@ -110,6 +110,15 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       source: 'app://mediapipe',
       clipFilename: 'clip.webm',
       stillFilename: 'still.jpg',
+      recording: {
+        frameCount: 12,
+        usableFrameCount: 10,
+        clipDurationMs: 1200,
+        clipBytes: 2048,
+        clipMimeType: 'video/webm',
+        stillBytes: 512,
+        stillMimeType: 'image/jpeg',
+      },
       extra: 'ignored',
       modalities: {
         hands: { present: true, frameCount: 1, coverage: 1 },
@@ -196,6 +205,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       source: metadata.source,
       clipFilename: metadata.clipFilename,
       stillFilename: metadata.stillFilename,
+      recording: metadata.recording,
       modalities: metadata.modalities,
       smoothing: expect.objectContaining({ method: 'one_euro' }),
       handedness: metadata.handedness,
