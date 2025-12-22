@@ -521,7 +521,7 @@ await addProfile(profile);
    - Amy's training → `data/uploads/amy/`
    - Max's training → `data/uploads/max/`
    - Emma's training → `data/uploads/emma/`
-   - Each has own model: `data/models/{name}/amy_model.npz`
+   - Each has own model: `data/models/{profileId}/amy_model.npz`
 
 4. **Security:**
    - If someone tries to manually edit localStorage
