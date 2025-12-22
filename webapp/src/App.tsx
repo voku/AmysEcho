@@ -14,6 +14,7 @@ import { Help } from './components/Help';
 import { LearningHub } from './components/LearningHub';
 import { ParentalGate } from './components/ParentalGate';
 import { ProfileSelect } from './components/ProfileSelect';
+import { ProfileManager } from './components/ProfileManager';
 import { ProgressChart } from './components/ProgressChart';
 import { ProgressTracker } from './components/ProgressTracker';
 import { Settings } from './components/Settings';
@@ -378,6 +379,7 @@ function MainAppContent() {
           <Route path="/bericht" element={<CaregiverReport />} />
           <Route path="/beibringen" element={<Teach />} />
           <Route path="/auswahl" element={<ProfileSelect />} />
+          <Route path="/profile" element={<ProfileManager />} />
           <Route path="/funktionen" element={<FeatureAvailability />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,48 +1,34 @@
-import { useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useAppState } from '../hooks/useAppState';
-
-type OnboardingStep = 'welcome' | 'name' | 'complete';
+import { useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 /**
- * Onboarding component - mirrors OnboardingScreen from the Expo app.
- * Guides new users through initial setup.
+ * Onboarding component - redirects to ProfileManager for profile setup
  */
 export function Onboarding({ onComplete }: { onComplete?: () => void }) {
-  const { setProfileId } = useAppState();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  const [profileName, setProfileName] = useState('');
+  const navigate = useNavigate();
 
-  const goToStep = useCallback((step: OnboardingStep) => {
-    setCurrentStep(step);
-  }, []);
-
-  const handleComplete = useCallback(() => {
-    // Save profile
-    const profileId = profileName.trim() || 'amy';
-    setProfileId(profileId);
-    
+  const handleStart = useCallback(() => {
     localStorage.setItem('webapp:onboarding-complete', 'true');
     
-    setCurrentStep('complete');
+    // Navigate to profile manager to create first profile
+    navigate('/profile');
     
     if (onComplete) {
       onComplete();
     }
-  }, [profileName, setProfileId, onComplete]);
+  }, [navigate, onComplete]);
 
-  const steps: Record<OnboardingStep, React.JSX.Element> = {
-    welcome: (
+  return (
+    <section className="card onboarding-card">
       <div className="onboarding-step">
         <div className="onboarding-icon">❤️</div>
-        <h2>Amy zuerst – immer.</h2>
+        <h2>Willkommen bei Amy's Echo!</h2>
         <p className="muted">
-          Willkommen bei Amy&apos;s Echo! Diese App hilft bei der Kommunikation durch Gebärdenerkennung.
-          Der neue Amy-Loop bedeutet: Kamera → Verlauf → Lernen.
+          Diese App hilft bei der Kommunikation durch Gebärdenerkennung.
         </p>
         <div className="amy-commitments">
           <div className="commitment">
-            <span>✓</span> Zero Interruption – Amy&apos;s Kommunikation pausiert nie
+            <span>✓</span> Zero Interruption – Kommunikation pausiert nie
           </div>
           <div className="commitment">
             <span>✓</span> Zero Confusion – Einfache, klare Oberfläche
@@ -50,65 +36,14 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
           <div className="commitment">
             <span>✓</span> Zero Delay – Sofortiges Feedback
           </div>
+          <div className="commitment">
+            <span>🔒</span> Sicher – Kryptografisch geschützte Profile
+          </div>
         </div>
-        <button className="primary" onClick={() => goToStep('name')}>
-          Weiter
+        <button className="primary" onClick={handleStart}>
+          Profil erstellen
         </button>
       </div>
-    ),
-
-    name: (
-      <div className="onboarding-step">
-        <div className="onboarding-icon">👋</div>
-        <h2>Wie darf ich dich nennen?</h2>
-        <p className="muted">
-          Gib einen Namen für dein Profil ein. Lass das Feld leer, wenn du bei &quot;Amy&quot; bleiben möchtest.
-        </p>
-        <input
-          type="text"
-          placeholder="Dein Name (optional)"
-          value={profileName}
-          onChange={(e) => setProfileName(e.target.value)}
-          className="onboarding-input"
-        />
-        <div className="onboarding-buttons">
-          <button className="ghost" onClick={() => goToStep('welcome')}>
-            Zurück
-          </button>
-          <button className="primary" onClick={handleComplete}>
-            Fertig!
-          </button>
-        </div>
-      </div>
-    ),
-
-    complete: (
-      <div className="onboarding-step">
-        <div className="onboarding-icon">🎉</div>
-        <h2>Alles bereit!</h2>
-        <p className="muted">
-          Dein Profil ist eingerichtet. Du kannst jetzt mit der Gebärdenerkennung beginnen.
-        </p>
-        <Link to="/" className="primary-button">
-          Zur Gebärdenerkennung
-        </Link>
-      </div>
-    ),
-  };
-
-  return (
-    <section className="card onboarding-card">
-      <div className="onboarding-progress">
-        {(['welcome', 'name'] as OnboardingStep[]).map((step, index) => (
-          <div
-            key={step}
-            className={`progress-dot ${currentStep === step ? 'active' : ''} ${
-              ['welcome', 'name'].indexOf(currentStep) > index ? 'completed' : ''
-            }`}
-          />
-        ))}
-      </div>
-      {steps[currentStep]}
     </section>
   );
 }
