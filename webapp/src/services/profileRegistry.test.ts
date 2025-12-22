@@ -8,17 +8,6 @@ import {
   updateProfile,
   deleteProfile,
   loadProfileRegistry,
- import {
-   createProfile,
-   addProfile,
-   listProfiles,
-   getActiveProfile,
-   setActiveProfile,
-   updateProfile,
-   deleteProfile,
-   loadProfileRegistry,
-   type Profile,
- } from './profileRegistry';
   type Profile,
 } from './profileRegistry';
 
