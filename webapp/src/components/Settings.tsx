@@ -1,27 +1,20 @@
 import { useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 
 /**
- * Settings component - mirrors ProfileManagerScreen from the Expo app.
- * Allows users to configure app preferences and manage their profile.
+ * Settings component
+ * Now redirects to ProfileManager for profile management.
  */
 export function Settings() {
-  const { profileId, displayName, setDisplayName } = useAppState();
-  const [newDisplayName, setNewDisplayName] = useState(displayName || '');
-  const [showSaved, setShowSaved] = useState(false);
-
-  const handleSaveProfile = useCallback(() => {
-    setDisplayName(newDisplayName.trim());
-    setShowSaved(true);
-    setTimeout(() => setShowSaved(false), 2000);
-  }, [newDisplayName, setDisplayName]);
+  const { profileId, displayName } = useAppState();
+  const navigate = useNavigate();
 
   const handleExportData = useCallback(() => {
     const data = {
       profileId,
+      displayName,
       exportedAt: new Date().toISOString(),
-      appState: localStorage.getItem('webapp:app-state'),
       progress: localStorage.getItem(`webapp:progress:${profileId}`),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -31,7 +24,7 @@ export function Settings() {
     link.download = `amys-echo-export-${profileId}-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
-  }, [profileId]);
+  }, [profileId, displayName]);
 
   const handleClearData = useCallback(() => {
     if (window.confirm('Alle lokalen Daten löschen? Dies kann nicht rückgängig gemacht werden.')) {
@@ -52,63 +45,27 @@ export function Settings() {
         </div>
       </div>
 
-      {showSaved && (
-        <div className="notice success">
-          ✓ Einstellungen gespeichert!
-        </div>
-      )}
-
-      {/* Profile Settings */}
+      {/* Profile Management */}
       <div className="settings-section">
-        <h3>Profil</h3>
+        <h3>Profilverwaltung</h3>
         
         <div className="notice info">
           <p>
-            <strong>🔒 Neues Multi-Profil-System verfügbar!</strong>
+            <strong>🔒 Sicheres Multi-Profil-System</strong>
           </p>
           <p className="muted small">
             Unterstütze mehrere Kinder im Haushalt mit individuellen Profilen. 
             Jedes Profil hat eigene Trainingsdaten, Modelle und ist kryptografisch geschützt.
           </p>
+          {profileId && (
+            <div style={{ marginTop: '1rem' }}>
+              <p><strong>Aktuelles Profil:</strong> {displayName || profileId}</p>
+              <p className="muted small">Profil-ID: {profileId}</p>
+            </div>
+          )}
           <Link to="/profile" className="primary-button" style={{ marginTop: '1rem', display: 'inline-block' }}>
             Profile verwalten
           </Link>
-        </div>
-
-        <div className="settings-grid">
-          <div className="setting-item">
-            <label htmlFor="profile-name">Anzeigename</label>
-            <input
-              id="profile-name"
-              type="text"
-              value={newDisplayName}
-              onChange={(e) => setNewDisplayName(e.target.value)}
-              placeholder={profileId}
-            />
-            <p className="muted small">
-              Freundlicher Name, der in der App angezeigt wird. Du kannst diesen Namen jederzeit ändern.
-            </p>
-          </div>
-          <div className="setting-item">
-            <label htmlFor="profile-id-readonly">Profil-ID (unveränderlich)</label>
-            <input
-              id="profile-id-readonly"
-              type="text"
-              value={profileId}
-              disabled
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
-            />
-            <p className="muted small">
-              ⚠️ <strong>Wichtig:</strong> Die Profil-ID ist dauerhaft und mit allen Trainingsdaten,
-              Modellen und aufgezeichneten Gebärden verknüpft. Sie kann nicht geändert werden,
-              ohne alle Daten zu verlieren.
-            </p>
-          </div>
-        </div>
-        <div className="controls">
-          <button className="primary" onClick={handleSaveProfile}>
-            Anzeigename speichern
-          </button>
         </div>
       </div>
 
@@ -131,9 +88,16 @@ export function Settings() {
         <h3>Über Amy&apos;s Echo</h3>
         <div className="about-info">
           <p><strong>Version:</strong> Webapp Preview</p>
-          <p><strong>Profil:</strong> {displayName || profileId}</p>
-          <p><strong>Profil-ID:</strong> {profileId}</p>
-          <p className="muted small">
+          {profileId && (
+            <>
+              <p><strong>Profil:</strong> {displayName || profileId}</p>
+              <p className="muted small">ID: {profileId}</p>
+            </>
+          )}
+          {!profileId && (
+            <p className="muted">Kein Profil aktiv. Bitte erstelle ein Profil unter <Link to="/profile">Profile verwalten</Link>.</p>
+          )}
+          <p className="muted small" style={{ marginTop: '1rem' }}>
             Amy&apos;s Echo hilft bei der Kommunikation durch Gebärdenerkennung. 
             Die Daten werden lokal im Browser gespeichert.
           </p>

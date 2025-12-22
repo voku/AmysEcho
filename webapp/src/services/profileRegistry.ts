@@ -5,7 +5,6 @@
  * - UUID-based stable identities
  * - HMAC-SHA256 integrity verification
  * - Tamper detection and recovery
- * - Backward compatibility with single-profile setup
  * 
  * For Amy: Supports multiple children in one household while keeping
  * each child's training data, models, and progress completely separate
@@ -28,7 +27,7 @@ export interface ProfileMetadata {
 
 export interface Profile {
   uuid: string;              // UUID v4 - truly stable ID
-  profileId: string;         // Backend storage key (for compatibility)
+  profileId: string;         // Backend storage key
   displayName: string;       // User-friendly name
   createdAt: string;         // ISO timestamp
   metadata: ProfileMetadata;
@@ -337,48 +336,9 @@ export async function deleteProfile(uuid: string): Promise<void> {
 }
 
 /**
- * Migrate from old single-profile system to registry
- */
-export async function migrateFromLegacyStorage(): Promise<Profile | null> {
-  try {
-    // Check if already migrated
-    const registry = await loadProfileRegistry();
-    if (registry && registry.profiles.length > 0) {
-      return null; // Already migrated
-    }
-    
-    // Load old app state
-    const oldState = localStorage.getItem('webapp:app-state');
-    if (!oldState) return null;
-    
-    const parsed = JSON.parse(oldState);
-    if (!parsed.profileId) return null;
-    
-    // Create profile from old data
-    const profile = await createProfile({
-      displayName: parsed.displayName || parsed.profileId,
-      profileId: parsed.profileId,
-      metadata: {},
-    });
-    
-    // Add to registry
-    await addProfile(profile);
-    
-    console.log('[Profile Registry] Migrated legacy profile to registry');
-    return profile;
-  } catch (error) {
-    console.error('[Profile Registry] Migration failed:', error);
-    return null;
-  }
-}
-
-/**
  * Initialize profile registry (call on app startup)
  */
 export async function initializeProfileRegistry(): Promise<void> {
-  // Try to migrate from legacy storage
-  await migrateFromLegacyStorage();
-  
   // Verify registry integrity
   const registry = await loadProfileRegistry();
   if (!registry) {

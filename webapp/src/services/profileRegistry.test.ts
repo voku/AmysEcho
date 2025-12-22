@@ -258,45 +258,4 @@ describe('profileRegistry', () => {
       expect(loadedRegistry).toBeNull();
     });
   });
-
-  describe('migration', () => {
-    it('should migrate from legacy single-profile storage', async () => {
-      // Set up legacy storage
-      const legacyState = {
-        profileId: 'amy',
-        displayName: 'Amy',
-        preferredGestureLabel: 'HILFE',
-      };
-      localStorage.setItem('webapp:app-state', JSON.stringify(legacyState));
-
-      await initializeProfileRegistry();
-
-      const profiles = await listProfiles();
-      expect(profiles).toHaveLength(1);
-      expect(profiles[0].profileId).toBe('amy');
-      expect(profiles[0].displayName).toBe('Amy');
-      expect(profiles[0].uuid).toBeTruthy();
-    });
-
-    it('should not re-migrate if already migrated', async () => {
-      // Set up legacy storage
-      const legacyState = {
-        profileId: 'amy',
-        displayName: 'Amy',
-      };
-      localStorage.setItem('webapp:app-state', JSON.stringify(legacyState));
-
-      // First migration
-      await initializeProfileRegistry();
-      const profiles1 = await listProfiles();
-      const uuid1 = profiles1[0].uuid;
-
-      // Second initialization should not create duplicate
-      await initializeProfileRegistry();
-      const profiles2 = await listProfiles();
-      
-      expect(profiles2).toHaveLength(1);
-      expect(profiles2[0].uuid).toBe(uuid1);
-    });
-  });
 });
