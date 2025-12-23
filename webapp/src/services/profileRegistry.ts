@@ -147,11 +147,12 @@ async function getRegistrySecret(): Promise<string> {
       const encrypted = await encryptRegistrySecret(secret);
       if (encrypted) {
         localStorage.setItem(SECRET_STORAGE_KEY, encrypted);
-      } else {
-        // Fallback to plaintext if encryption is unavailable (integrity still holds)
-        localStorage.setItem(SECRET_STORAGE_KEY, secret);
+        return secret;
       }
-      return secret;
+      
+      // If encryption fails, we do not store the random secret in clear text.
+      // We fall back to the stable LEGACY_SECRET_SEED to ensure stability across reloads.
+      return LEGACY_SECRET_SEED;
     }
   } catch (error) {
     console.error('[Profile Registry] Failed to generate or retrieve registry secret:', error);
