@@ -870,17 +870,26 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
 
 
 def filter_samples_by_profile(samples: Iterable[Sample], profile_id: str) -> List[Sample]:
-    """Return samples matching ``profile_id``.
+    """Return samples for a profile-specific model.
 
-    Example
-    -------
-    >>> s1 = Sample('hallo', 'p1', [[0.0, 0.0, 0.0]] * 42)
-    >>> s2 = Sample('hallo', 'p2', [[0.1, 0.1, 0.1]] * 42)
-    >>> filter_samples_by_profile([s1, s2], 'p1')
-    [Sample(label='hallo', profile_id='p1', landmarks=[[0.0, 0.0, 0.0], ...])]
+    Includes:
+    1. All samples explicitly belonging to this profile.
+    2. All global samples (no profile_id) whose labels are NOT overridden
+       by this profile.
+
+    This ensures the profile model is a specialized superset of the global model,
+    supporting custom sign languages per child without losing baseline gestures.
     """
+    all_samples = list(samples)
+    profile_samples = [s for s in all_samples if s.profile_id == profile_id]
+    profile_labels = {s.label for s in profile_samples}
 
-    return [sample for sample in samples if sample.profile_id == profile_id]
+    global_samples = [
+        s for s in all_samples
+        if not s.profile_id and s.label not in profile_labels
+    ]
+
+    return profile_samples + global_samples
 
 
 def _normalize(lm):
@@ -1915,70 +1924,73 @@ def train_models(
     if not samples:
         return profiles_report, global_report
 
-    X, y, labels, quality_weights = dataset_to_arrays(
-        samples,
-        augmentations_per_sample=resolved_config.augmentations_per_sample,
-        rng=rng,
-    )
-    if X.shape[0] == 0:
-        return profiles_report, global_report
+    # Filter for global samples (no profile_id) to prevent data leakage between users
+    global_samples = [s for s in samples if not s.profile_id]
 
-    train_indices, validation_indices = plan_train_validation_split(
-        X, validation_fraction=resolved_config.validation_fraction, rng=rng
-    )
+    if global_samples:
+        X, y, labels, quality_weights = dataset_to_arrays(
+            global_samples,
+            augmentations_per_sample=resolved_config.augmentations_per_sample,
+            rng=rng,
+        )
 
-    X_train, y_train = X[train_indices], y[train_indices]
-    X_val, y_val = X[validation_indices], y[validation_indices]
+        if X.shape[0] > 0:
+            train_indices, validation_indices = plan_train_validation_split(
+                X, validation_fraction=resolved_config.validation_fraction, rng=rng
+            )
 
-    train_quality = quality_weights[train_indices] if quality_weights.size else None
-    val_quality = quality_weights[validation_indices] if quality_weights.size else None
+            X_train, y_train = X[train_indices], y[train_indices]
+            X_val, y_val = X[validation_indices], y[validation_indices]
 
-    train_class_weights = (
-        compute_sample_weights(y_train, smoothing=resolved_config.class_weight_smoothing)
-        if y_train.size
-        else None
-    )
-    val_class_weights = (
-        compute_sample_weights(y_val, smoothing=resolved_config.class_weight_smoothing)
-        if y_val.size
-        else None
-    )
+            train_quality = quality_weights[train_indices] if quality_weights.size else None
+            val_quality = quality_weights[validation_indices] if quality_weights.size else None
 
-    train_weights = train_class_weights
-    if train_quality is not None and train_quality.size:
-        train_weights = train_quality if train_weights is None else train_weights * train_quality
+            train_class_weights = (
+                compute_sample_weights(y_train, smoothing=resolved_config.class_weight_smoothing)
+                if y_train.size
+                else None
+            )
+            val_class_weights = (
+                compute_sample_weights(y_val, smoothing=resolved_config.class_weight_smoothing)
+                if y_val.size
+                else None
+            )
 
-    val_weights = val_class_weights
-    if val_quality is not None and val_quality.size:
-        val_weights = val_quality if val_weights is None else val_weights * val_quality
+            train_weights = train_class_weights
+            if train_quality is not None and train_quality.size:
+                train_weights = train_quality if train_weights is None else train_weights * train_quality
 
-    trainer_config = replace(resolved_config, return_best_and_final=True)
-    snapshot = train_mlp(
-        X_train,
-        y_train,
-        len(labels),
-        config=trainer_config,
-        sample_weights=train_weights,
-        validation_data=(X_val, y_val) if X_val.size else None,
-        validation_sample_weights=val_weights,
-        rng=rng,
-    )
+            val_weights = val_class_weights
+            if val_quality is not None and val_quality.size:
+                val_weights = val_quality if val_weights is None else val_weights * val_quality
 
-    best_weights = snapshot.best_weights if isinstance(snapshot, TrainingSnapshots) else snapshot
+            trainer_config = replace(resolved_config, return_best_and_final=True)
+            snapshot = train_mlp(
+                X_train,
+                y_train,
+                len(labels),
+                config=trainer_config,
+                sample_weights=train_weights,
+                validation_data=(X_val, y_val) if X_val.size else None,
+                validation_sample_weights=val_weights,
+                rng=rng,
+            )
 
-    train_acc = _compute_accuracy(X_train, y_train, best_weights)
-    val_acc = _compute_accuracy(X_val, y_val, best_weights)
+            best_weights = snapshot.best_weights if isinstance(snapshot, TrainingSnapshots) else snapshot
 
-    save_model(GLOBAL_MODEL_PATH, best_weights, labels)
-    global_report = {
-        "samples": int(X.shape[0]),
-        "accuracy": train_acc,
-        "validationSamples": int(X_val.shape[0]),
-        "validationAccuracy": val_acc,
-        "labels": {label: int(sum(1 for sample in samples if sample.label == label)) for label in labels},
-        "recordingStats": _summarize_recording_stats(samples),
-        "modelPath": os.path.relpath(GLOBAL_MODEL_PATH, DATA_DIR),
-    }
+            train_acc = _compute_accuracy(X_train, y_train, best_weights)
+            val_acc = _compute_accuracy(X_val, y_val, best_weights)
+
+            save_model(GLOBAL_MODEL_PATH, best_weights, labels)
+            global_report = {
+                "samples": int(X.shape[0]),
+                "accuracy": train_acc,
+                "validationSamples": int(X_val.shape[0]),
+                "validationAccuracy": val_acc,
+                "labels": {label: int(sum(1 for sample in global_samples if sample.label == label)) for label in labels},
+                "recordingStats": _summarize_recording_stats(global_samples),
+                "modelPath": os.path.relpath(GLOBAL_MODEL_PATH, DATA_DIR),
+            }
 
     profiles = sorted({s.profile_id for s in samples if s.profile_id})
     for pid in profiles:

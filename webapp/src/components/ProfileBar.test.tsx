@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { ProfileBar } from './ProfileBar';
@@ -24,27 +24,25 @@ describe('ProfileBar', () => {
     expect(screen.getByLabelText('Profil-ID')).toBeInTheDocument();
   });
 
-  it('shows default value for profile', () => {
+  it('shows empty default value for profile when none active', () => {
     renderWithProviders(<ProfileBar />);
 
     const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
 
-    expect(profileInput.value).toBe('web-demo');
+    expect(profileInput.value).toBe('');
   });
 
-  it('updates profile ID when typing', () => {
+  it('has read-only profile ID field', () => {
     renderWithProviders(<ProfileBar />);
 
     const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-    fireEvent.change(profileInput, { target: { value: 'new-profile' } });
-
-    expect(profileInput.value).toBe('new-profile');
+    expect(profileInput).toHaveAttribute('readOnly');
   });
 
-  it('shows "Profil bereit" status when no gestures recognized', () => {
+  it('shows "Bereit" status when no gestures recognized', () => {
     renderWithProviders(<ProfileBar />);
 
-    expect(screen.getByText('Profil bereit')).toBeInTheDocument();
+    expect(screen.getByText('Bereit')).toBeInTheDocument();
   });
 
   it('shows empty gesture list message when no gestures recorded', () => {

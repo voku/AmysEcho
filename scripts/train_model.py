@@ -253,19 +253,32 @@ def prepare_data(
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, int]]:
     """
     Load, augment, and split data for training and testing.
-    If profile_id_filter is provided, only data for that profile will be loaded.
+    - If profile_id_filter is None: Loads ONLY global data (no profileId).
+    - If profile_id_filter is set: Loads profile data + non-overridden global data.
     """
     with open(manifest_file, "r") as f:
         manifest = json.load(f)
 
+    all_entries = manifest.get("entries", [])
+    
+    if profile_id_filter is None:
+        # Global model: Only use samples without a profileId
+        selected_entries = [e for e in all_entries if not e.get("profileId")]
+    else:
+        # Profile model: Use profile samples + global samples not overridden by name
+        profile_entries = [e for e in all_entries if e.get("profileId") == profile_id_filter]
+        profile_labels = {e.get("label") for e in profile_entries}
+        
+        global_entries = [
+            e for e in all_entries 
+            if not e.get("profileId") and e.get("label") not in profile_labels
+        ]
+        selected_entries = profile_entries + global_entries
+
     samples = []
     data_dir = Path(manifest_file).resolve().parent.parent
 
-    for entry in manifest.get("entries", []):
-        profile_id = entry.get("profileId")
-        if profile_id_filter and profile_id != profile_id_filter:
-            continue
-
+    for entry in selected_entries:
         lm_file = next((f for f in entry["storage"]["files"] if f.endswith("landmarks.json")), None)
         if not lm_file:
             continue

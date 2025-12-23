@@ -22,6 +22,7 @@ import { Teach } from './components/Teach';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { useApiConfig } from './hooks/useApiConfig';
 import { useAppState } from './hooks/useAppState';
+import { addProfile, createProfile, listProfiles, setActiveProfile } from './services/profileRegistry';
 import './App.css';
 
 const AUTO_HIDE_BREAKPOINT_PX = 768;
@@ -72,6 +73,26 @@ export function LoginScreen({ onComplete }: { onComplete: () => void }) {
       if (accessToken) {
         setPersistToken(true);
         setTokens({ accessToken, refreshToken });
+        
+        // Ensure a profile exists for this user in the local registry
+        try {
+          const profiles = await listProfiles();
+          const usernameId = username.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          
+          const existing = profiles.find(p => p.profileId === usernameId);
+          if (!existing) {
+            const newProfile = await createProfile({
+              displayName: username.trim(),
+              profileId: usernameId
+            });
+            await addProfile(newProfile);
+          } else {
+            await setActiveProfile(existing.uuid);
+          }
+        } catch (profileError) {
+          console.warn('[Login] Failed to sync local profile:', profileError);
+        }
+
         // After auth, profiles are managed by the registry.
         // Refresh the app state to pick up the active profile.
         await refreshFromRegistry();

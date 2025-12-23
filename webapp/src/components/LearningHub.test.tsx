@@ -60,10 +60,15 @@ const renderWithProviders = (ui: ReactElement) => {
 describe('LearningHub', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ symbols: [] }),
+    }));
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('render', () => {

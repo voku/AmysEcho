@@ -11,11 +11,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <MessageProvider>
       <ApiConfigProvider>
-        <SymbolStoreProvider>
-          <AppStateProvider>
+        <AppStateProvider>
+          <SymbolStoreProvider>
             <App />
-          </AppStateProvider>
-        </SymbolStoreProvider>
+          </SymbolStoreProvider>
+        </AppStateProvider>
       </ApiConfigProvider>
     </MessageProvider>
   </React.StrictMode>,

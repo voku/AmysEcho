@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
 import { TrainingUploadWithRecording } from './TrainingUpload';
@@ -7,6 +7,7 @@ import { AppStateProvider } from '../hooks/useAppState';
 import { MemoryRouter } from 'react-router-dom';
 import { SymbolStoreProvider } from '../context/SymbolStore';
 import { MessageProvider } from '../context/MessageContext';
+import { createProfile, addProfile, setActiveProfile } from '../services/profileRegistry';
 
 const uploadMock = vi.fn();
 const syncQueuedMock = vi.fn();
@@ -57,11 +58,11 @@ function renderWithProviders() {
     <MemoryRouter>
       <MessageProvider>
         <ApiConfigProvider>
-          <SymbolStoreProvider>
-            <AppStateProvider>
+          <AppStateProvider>
+            <SymbolStoreProvider>
               <TrainingUploadWithRecording />
-            </AppStateProvider>
-          </SymbolStoreProvider>
+            </SymbolStoreProvider>
+          </AppStateProvider>
         </ApiConfigProvider>
       </MessageProvider>
     </MemoryRouter>,
@@ -98,10 +99,8 @@ describe('TrainingUploadWithRecording', () => {
     const user = userEvent.setup();
     renderWithProviders();
 
-    const profileInput = screen.getByLabelText('Profil-ID');
+    // profileInput is read-only now, so we only clear the label
     const labelInput = screen.getByLabelText('Gebärden-Name');
-
-    await user.clear(profileInput);
     await user.clear(labelInput);
 
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
@@ -115,19 +114,25 @@ describe('TrainingUploadWithRecording', () => {
 
   it('übermittelt Aufnahmen nur mit gefüllter Profil-ID und Label', async () => {
     const user = userEvent.setup();
+    
+    // Create and set a profile before rendering
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
     renderWithProviders();
 
-    const profileInput = screen.getByLabelText('Profil-ID');
     const labelInput = screen.getByLabelText('Gebärden-Name');
 
-    await user.clear(profileInput);
     await user.clear(labelInput);
-    await user.type(profileInput, 'profil-1');
     await user.type(labelInput, 'NEUES-LABEL');
 
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
 
-    expect(uploadMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(uploadMock).toHaveBeenCalledTimes(1);
+    });
+    
     const payload = uploadMock.mock.calls[0]?.[0];
     expect(payload).toBeDefined();
     if (!payload) return;

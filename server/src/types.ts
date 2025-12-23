@@ -9,6 +9,8 @@ export interface SymbolRecord {
   /** Optional path to a German Sign Language (DGS) demonstration video */
   dgsVideoUri?: string;
   healthScore: number;
+  /** ID of the child profile this symbol belongs to. If undefined, it is a global symbol. */
+  profileId?: string;
 }
 
 export type GestureDefinitionStatus = 'training' | 'ready' | 'disabled';

@@ -143,9 +143,12 @@ async function verifySecurityToken(profile: Profile): Promise<boolean> {
  * Generate checksum for the entire registry
  */
 async function generateChecksum(profiles: Profile[]): Promise<string> {
+  // Include more fields in the checksum for better integrity
   const data = JSON.stringify(profiles.map((p) => ({
     uuid: p.uuid,
     profileId: p.profileId,
+    displayName: p.displayName,
+    createdAt: p.createdAt,
     securityToken: p.securityToken,
   })));
   
@@ -278,11 +281,11 @@ export async function addProfile(profile: Profile): Promise<void> {
   
   // Check for duplicate UUID or profileId
   if (registry.profiles.some((p) => p.uuid === profile.uuid)) {
-    throw new Error(`Profile with this UUID (${profile.uuid}) already exists`);
+    throw new Error('Profile with this UUID already exists');
   }
   
   if (registry.profiles.some((p) => p.profileId === profile.profileId)) {
-    throw new Error(`Profile with this profileId (${profile.profileId}) already exists`);
+    throw new Error('Profile with this profileId already exists');
   }
   
   registry.profiles.push(profile);
@@ -324,15 +327,12 @@ export async function getActiveProfile(): Promise<Profile | null> {
 export async function setActiveProfile(uuid: string): Promise<void> {
   const registry = await loadProfileRegistry();
   if (!registry) {
-    // If there's no registry, there are no profiles to set as active.
-    // We could throw, but it might be better to just log it.
-    console.warn('Cannot set active profile: No profile registry found.');
-    return;
+    throw new Error('Profile not found');
   }
   
   const profile = registry.profiles.find((p) => p.uuid === uuid);
   if (!profile) {
-    throw new Error(`Profile not found: Cannot set active profile with UUID ${uuid}`);
+    throw new Error('Profile not found');
   }
   
   if (registry.activeProfileUuid !== uuid) {
@@ -355,12 +355,12 @@ export async function listProfiles(): Promise<Profile[]> {
 export async function updateProfile(uuid: string, updates: Partial<Omit<Profile, 'uuid' | 'profileId' | 'securityToken'>>): Promise<void> {
   const registry = await loadProfileRegistry();
   if (!registry) {
-    throw new Error('No profile registry found to update.');
+    throw new Error('Profile not found');
   }
   
   const index = registry.profiles.findIndex((p) => p.uuid === uuid);
   if (index === -1) {
-    throw new Error('Profile not found for update.');
+    throw new Error('Profile not found');
   }
   
   // Apply updates to the found profile
