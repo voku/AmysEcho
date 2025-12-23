@@ -287,6 +287,7 @@ export function TrainingUploadWithRecording() {
         setMessage(metadataError);
         return;
       }
+      // Clear previous validation error if any
       setMessage('Aufnahme wird hochgeladen…');
       try {
         const result = await upload(payload);

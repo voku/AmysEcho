@@ -148,7 +148,14 @@ describe('TrainingUploadWithRecording', () => {
 
     renderWithProviders();
 
+    // Wait for async profile loading
+    await waitFor(() => {
+      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+      expect(profileInput.value).toBe('profil-1');
+    });
+
     const labelInput = screen.getByLabelText('Gebärden-Name');
+    await user.clear(labelInput);
     await user.type(labelInput, 'HALLO');
 
     uploadMock.mockResolvedValue({ id: 'bundle-123', status: 'accepted' });
@@ -168,7 +175,14 @@ describe('TrainingUploadWithRecording', () => {
 
     renderWithProviders();
 
+    // Wait for async profile loading
+    await waitFor(() => {
+      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+      expect(profileInput.value).toBe('profil-1');
+    });
+
     const labelInput = screen.getByLabelText('Gebärden-Name');
+    await user.clear(labelInput);
     await user.type(labelInput, 'FEHLER');
 
     uploadMock.mockRejectedValue(new Error('Netzwerkfehler'));
