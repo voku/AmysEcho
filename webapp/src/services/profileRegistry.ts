@@ -1,9 +1,11 @@
+import { sha256 } from 'js-sha256';
+
 /**
  * Profile Registry Service
  * 
  * Provides secure multi-child profile management with:
  * - UUID-based stable identities
- * - HMAC-SHA256 integrity verification
+ * - HMAC-SHA-256 integrity verification
  * - Tamper detection and recovery
  * 
  * For Amy: Supports multiple children in one household while keeping
@@ -31,7 +33,7 @@ export interface Profile {
   displayName: string;       // User-friendly name
   createdAt: string;         // ISO timestamp
   metadata: ProfileMetadata;
-  securityToken: string;     // HMAC-SHA256 for integrity
+  securityToken: string;     // HMAC-SHA-256 for integrity
 }
 
 export interface ProfileRegistry {
@@ -53,17 +55,49 @@ function generateUuid(): string {
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
     // Set version 4 bits
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    if (bytes[6] !== undefined) {
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    }
     // Set variant bits
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    if (bytes[8] !== undefined) {
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    }
     const hex = Array.from(bytes)
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }
   // Last resort fallback - should rarely if ever be reached in modern browsers
-  throw new Error('No secure random number generator available');
+  console.error('Crypto functions are not available. UUIDs will not be truly random.');
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
+
+/**
+ * Securely generate a hash using Web Crypto API or a fallback.
+ * @param data The data to hash.
+ * @returns A hex-encoded hash string.
+ */
+async function secureHash(data: Uint8Array): Promise<string> {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data as BufferSource);
+      return Array.from(new Uint8Array(hashBuffer))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    } catch (e) {
+      console.warn('Web Crypto API failed, falling back to js-sha256.', e);
+      // Fallback to js-sha256 if Web Crypto fails for any reason
+      return sha256(data);
+    }
+  }
+  console.warn('Web Crypto API not available, falling back to js-sha256. Tamper detection will be less secure.');
+  return sha256(data);
+}
+
 
 /**
  * Generate HMAC-SHA256 security token for a profile
@@ -87,26 +121,14 @@ async function generateSecurityToken(uuid: string, profileId: string): Promise<s
       return Array.from(new Uint8Array(signature))
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
-    } catch {
-      // Fall back to simple hash if Web Crypto fails
-      return simpleHash(data);
+    } catch (e) {
+      console.warn('Web Crypto API failed for HMAC, falling back to SHA-256 hash.', e);
+      return secureHash(data);
     }
   }
   
-  // Fallback for environments without crypto.subtle
-  return simpleHash(data);
-}
-
-/**
- * Simple hash function as fallback
- */
-function simpleHash(data: Uint8Array): string {
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    hash = ((hash << 5) - hash) + data[i];
-    hash |= 0; // Convert to 32bit integer
-  }
-  return Math.abs(hash).toString(16).padStart(16, '0');
+  console.warn('Web Crypto API not available for HMAC, falling back to SHA-256 hash.');
+  return secureHash(data);
 }
 
 /**
@@ -127,19 +149,7 @@ async function generateChecksum(profiles: Profile[]): Promise<string> {
     securityToken: p.securityToken,
   })));
   
-  if (typeof crypto !== 'undefined' && crypto.subtle) {
-    try {
-      const encoder = new TextEncoder();
-      const hash = await crypto.subtle.digest('SHA-256', encoder.encode(data));
-      return Array.from(new Uint8Array(hash))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-    } catch {
-      return simpleHash(new TextEncoder().encode(data));
-    }
-  }
-  
-  return simpleHash(new TextEncoder().encode(data));
+  return secureHash(new TextEncoder().encode(data));
 }
 
 /**
@@ -152,30 +162,54 @@ export async function loadProfileRegistry(): Promise<ProfileRegistry | null> {
     
     const registry = JSON.parse(raw) as ProfileRegistry;
     
+    // Basic structure validation
+    if (!registry || !Array.isArray(registry.profiles) || typeof registry.checksum !== 'string') {
+        console.error('[Profile Registry] Invalid registry structure in localStorage.');
+        return null;
+    }
+    
     // Verify registry version
     if (registry.registryVersion !== REGISTRY_VERSION) {
-      console.warn('[Profile Registry] Version mismatch, registry may be outdated');
+      console.warn(`[Profile Registry] Version mismatch (found ${registry.registryVersion}, expected ${REGISTRY_VERSION}), registry may be outdated or incompatible.`);
     }
     
     // Verify checksum
     const expectedChecksum = await generateChecksum(registry.profiles);
     if (expectedChecksum !== registry.checksum) {
-      console.error('[Profile Registry] Checksum mismatch - registry has been tampered with!');
+      console.error('[Profile Registry] Checksum mismatch - registry has been tampered with or is corrupt!');
+      // Optionally, trigger a recovery flow or clear the corrupted data
+      // localStorage.removeItem(REGISTRY_STORAGE_KEY);
       return null;
     }
     
     // Verify each profile's security token
     for (const profile of registry.profiles) {
+      if (!profile || typeof profile.uuid !== 'string') {
+        console.error('[Profile Registry] Found invalid profile entry while loading.');
+        continue; // Skip invalid entries
+      }
       const isValid = await verifySecurityToken(profile);
       if (!isValid) {
-        console.error(`[Profile Registry] Security token invalid for profile ${profile.uuid}`);
+        console.error(`[Profile Registry] Security token invalid for profile ${profile.uuid}. The profile may be corrupt or tampered with.`);
+        // Decide on a strategy: either return null to invalidate the whole registry,
+        // or filter out invalid profiles. For now, we invalidate the whole registry.
         return null;
       }
     }
     
+    // Ensure active profile is valid
+    if (registry.activeProfileUuid && !registry.profiles.some(p => p.uuid === registry.activeProfileUuid)) {
+        console.warn(`[Profile Registry] Active profile UUID "${registry.activeProfileUuid}" not found in profiles list. Resetting active profile.`);
+        registry.activeProfileUuid = registry.profiles.length > 0 ? registry.profiles[0]?.uuid ?? null : null;
+        // No need to save here, as this is a read operation. The next write will fix it.
+    }
+
+
     return registry;
   } catch (error) {
-    console.error('[Profile Registry] Failed to load registry:', error);
+    console.error('[Profile Registry] Failed to load or parse registry:', error);
+    // Clear potentially corrupted data
+    // localStorage.removeItem(REGISTRY_STORAGE_KEY);
     return null;
   }
 }
@@ -185,7 +219,7 @@ export async function loadProfileRegistry(): Promise<ProfileRegistry | null> {
  */
 export async function saveProfileRegistry(registry: ProfileRegistry): Promise<void> {
   try {
-    // Generate fresh checksum
+    // Generate fresh checksum before saving
     registry.checksum = await generateChecksum(registry.profiles);
     registry.registryVersion = REGISTRY_VERSION;
     
@@ -197,7 +231,7 @@ export async function saveProfileRegistry(registry: ProfileRegistry): Promise<vo
 }
 
 /**
- * Create a new profile
+ * Create a new profile object. Does not add to the registry.
  */
 export async function createProfile(params: {
   displayName: string;
@@ -207,13 +241,14 @@ export async function createProfile(params: {
   const uuid = generateUuid();
   const profileId = params.profileId || params.displayName
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/^-|-$/g, '') || `profile-${uuid.slice(0, 8)}`;
   
   const securityToken = await generateSecurityToken(uuid, profileId);
   
-  return {
+  const profile: Profile = {
     uuid,
     profileId,
     displayName: params.displayName,
@@ -221,6 +256,8 @@ export async function createProfile(params: {
     metadata: params.metadata || {},
     securityToken,
   };
+  
+  return profile;
 }
 
 /**
@@ -230,25 +267,22 @@ export async function addProfile(profile: Profile): Promise<void> {
   let registry = await loadProfileRegistry();
   
   if (!registry) {
-    // Create new registry
+    // Create new registry if one doesn't exist
     registry = {
       profiles: [],
       activeProfileUuid: null,
       registryVersion: REGISTRY_VERSION,
-      checksum: '',
+      checksum: '', // Will be calculated on save
     };
   }
   
   // Check for duplicate UUID or profileId
-  const duplicateUuid = registry.profiles.find((p) => p.uuid === profile.uuid);
-  const duplicateProfileId = registry.profiles.find((p) => p.profileId === profile.profileId);
-  
-  if (duplicateUuid) {
-    throw new Error('Profile with this UUID already exists');
+  if (registry.profiles.some((p) => p.uuid === profile.uuid)) {
+    throw new Error(`Profile with this UUID (${profile.uuid}) already exists`);
   }
   
-  if (duplicateProfileId) {
-    throw new Error('Profile with this profileId already exists');
+  if (registry.profiles.some((p) => p.profileId === profile.profileId)) {
+    throw new Error(`Profile with this profileId (${profile.profileId}) already exists`);
   }
   
   registry.profiles.push(profile);
@@ -268,7 +302,20 @@ export async function getActiveProfile(): Promise<Profile | null> {
   const registry = await loadProfileRegistry();
   if (!registry || !registry.activeProfileUuid) return null;
   
-  return registry.profiles.find((p) => p.uuid === registry.activeProfileUuid) || null;
+  const profile = registry.profiles.find((p) => p.uuid === registry.activeProfileUuid);
+  // The load function already handles invalid active UUID, but as a fallback:
+  if (!profile) {
+      if (registry.profiles.length > 0) {
+          const firstProfile = registry.profiles[0];
+          if(firstProfile) {
+            console.warn('Active profile not found, falling back to the first available profile.');
+            await setActiveProfile(firstProfile.uuid);
+            return firstProfile;
+          }
+      }
+      return null;
+  }
+  return profile;
 }
 
 /**
@@ -277,16 +324,21 @@ export async function getActiveProfile(): Promise<Profile | null> {
 export async function setActiveProfile(uuid: string): Promise<void> {
   const registry = await loadProfileRegistry();
   if (!registry) {
-    throw new Error('No profile registry found');
+    // If there's no registry, there are no profiles to set as active.
+    // We could throw, but it might be better to just log it.
+    console.warn('Cannot set active profile: No profile registry found.');
+    return;
   }
   
   const profile = registry.profiles.find((p) => p.uuid === uuid);
   if (!profile) {
-    throw new Error('Profile not found');
+    throw new Error(`Profile not found: Cannot set active profile with UUID ${uuid}`);
   }
   
-  registry.activeProfileUuid = uuid;
-  await saveProfileRegistry(registry);
+  if (registry.activeProfileUuid !== uuid) {
+    registry.activeProfileUuid = uuid;
+    await saveProfileRegistry(registry);
+  }
 }
 
 /**
@@ -303,20 +355,28 @@ export async function listProfiles(): Promise<Profile[]> {
 export async function updateProfile(uuid: string, updates: Partial<Omit<Profile, 'uuid' | 'profileId' | 'securityToken'>>): Promise<void> {
   const registry = await loadProfileRegistry();
   if (!registry) {
-    throw new Error('No profile registry found');
+    throw new Error('No profile registry found to update.');
   }
   
   const index = registry.profiles.findIndex((p) => p.uuid === uuid);
   if (index === -1) {
-    throw new Error('Profile not found');
+    throw new Error('Profile not found for update.');
   }
   
-  // Apply updates
-  registry.profiles[index] = {
-    ...registry.profiles[index],
-    ...updates,
-  };
-  
+  // Apply updates to the found profile
+  const originalProfile = registry.profiles[index];
+  if (originalProfile) {
+    registry.profiles[index] = {
+      ...originalProfile,
+      ...updates,
+      // Ensure metadata is merged, not replaced, if it exists in updates
+      metadata: {
+        ...originalProfile.metadata,
+        ...(updates.metadata || {}),
+      },
+    };
+  }
+
   await saveProfileRegistry(registry);
 }
 
@@ -326,19 +386,21 @@ export async function updateProfile(uuid: string, updates: Partial<Omit<Profile,
 export async function deleteProfile(uuid: string): Promise<void> {
   const registry = await loadProfileRegistry();
   if (!registry) {
-    throw new Error('No profile registry found');
+    console.warn('Cannot delete profile: No profile registry found.');
+    return;
   }
   
-  const index = registry.profiles.findIndex((p) => p.uuid === uuid);
-  if (index === -1) {
-    throw new Error('Profile not found');
+  const initialProfileCount = registry.profiles.length;
+  registry.profiles = registry.profiles.filter((p) => p.uuid !== uuid);
+  
+  if (registry.profiles.length === initialProfileCount) {
+    console.warn(`Profile with UUID ${uuid} not found for deletion.`);
+    return; // Nothing to do
   }
   
-  registry.profiles.splice(index, 1);
-  
-  // If we deleted the active profile, switch to another
+  // If we deleted the active profile, switch to another one
   if (registry.activeProfileUuid === uuid) {
-    registry.activeProfileUuid = registry.profiles.length > 0 ? registry.profiles[0].uuid : null;
+    registry.activeProfileUuid = registry.profiles.length > 0 ? (registry.profiles[0]?.uuid ?? null) : null;
   }
   
   await saveProfileRegistry(registry);
@@ -348,11 +410,11 @@ export async function deleteProfile(uuid: string): Promise<void> {
  * Initialize profile registry (call on app startup)
  */
 export async function initializeProfileRegistry(): Promise<void> {
-  // Verify registry integrity
+  console.log('[Profile Registry] Initializing and verifying integrity...');
   const registry = await loadProfileRegistry();
   if (!registry) {
-    console.log('[Profile Registry] No registry found, will be created on first profile creation');
+    console.log('[Profile Registry] No valid registry found. A new one will be created on first profile addition.');
   } else {
-    console.log(`[Profile Registry] Loaded ${registry.profiles.length} profiles`);
+    console.log(`[Profile Registry] Initialization complete. Loaded ${registry.profiles.length} profiles.`);
   }
 }

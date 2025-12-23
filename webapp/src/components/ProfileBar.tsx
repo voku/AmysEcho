@@ -4,7 +4,7 @@ import { useAppState } from '../hooks/useAppState';
 export function ProfileBar() {
   const {
     profileId,
-    setProfileId,
+    displayName,
     lastRecognizedGesture,
     recentGestures,
   } = useAppState();
@@ -15,19 +15,26 @@ export function ProfileBar() {
         <div>
           <h2>Aktives Profil</h2>
         </div>
-        <div className="status-chip" data-state="idle">
-          {lastRecognizedGesture ? 'Profil gebunden' : 'Profil bereit'}
+        <div className="status-chip" data-state={lastRecognizedGesture ? 'active' : 'idle'}>
+          {lastRecognizedGesture ? 'Aktiv' : 'Bereit'}
         </div>
       </div>
 
       <div className="profile-grid">
         <div className="form-group">
-          <label htmlFor="profile-id">Profil-ID</label>
+          <label htmlFor="profile-name">Anzeigename</label>
+          <input
+            id="profile-name"
+            value={displayName || ''}
+            readOnly
+            placeholder="Kein Profil aktiv"
+          />
+           <label htmlFor="profile-id">Profil-ID</label>
           <input
             id="profile-id"
-            value={profileId}
-            onChange={(event) => setProfileId(event.target.value)}
-            placeholder="z. B. amy-browser"
+            value={profileId || ''}
+            readOnly
+            placeholder="-"
           />
         </div>
 
@@ -36,8 +43,8 @@ export function ProfileBar() {
           {recentGestures.length === 0 && <p className="muted">Noch keine Erkennung erfasst.</p>}
           {recentGestures.length > 0 && (
             <ul className="muted small gesture-list">
-              {recentGestures.map((gesture) => (
-                <li key={gesture}>
+              {recentGestures.map((gesture, index) => (
+                <li key={`${gesture}-${index}`}>
                   <span className="badge">{gesture}</span>
                 </li>
               ))}
@@ -51,3 +58,4 @@ export function ProfileBar() {
     </section>
   );
 }
+

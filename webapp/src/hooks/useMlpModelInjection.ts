@@ -7,7 +7,7 @@ import { useApiConfig } from './useApiConfig';
 
 export type ModelInjectionStatus = 'idle' | 'loading' | 'ready' | 'error';
 
-export function useMlpModelInjection(profileId: string) {
+export function useMlpModelInjection(profileId: string | null) {
   const { modelEndpoint, apiToken, refreshAccessToken } = useApiConfig();
   const [status, setStatus] = useState<ModelInjectionStatus>('idle');
   const [notice, setNotice] = useState<string | null>(null);
@@ -42,6 +42,12 @@ export function useMlpModelInjection(profileId: string) {
   }, []);
 
   const refreshModel = useCallback(async () => {
+    if (!profileId) {
+      setStatus('idle');
+      setNotice('Kein Profil aktiv, Standardmodell wird verwendet.');
+      return null;
+    }
+    
     setStatus('loading');
     setNotice(null);
 

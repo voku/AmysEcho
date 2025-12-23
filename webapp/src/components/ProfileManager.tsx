@@ -73,13 +73,22 @@ export function ProfileManager() {
 
     try {
       const age = newProfileAge ? parseInt(newProfileAge, 10) : undefined;
+      const metadata: {
+          childAge?: number;
+          avatar: string;
+          primaryLanguage: string;
+      } = {
+        avatar: newProfileAvatar,
+        primaryLanguage: 'de',
+      };
+
+      if (age !== undefined && !isNaN(age)) {
+        metadata.childAge = age;
+      }
+
       const profile = await createProfile({
         displayName: newProfileName.trim(),
-        metadata: {
-          childAge: age,
-          avatar: newProfileAvatar,
-          primaryLanguage: 'de',
-        },
+        metadata,
       });
 
       await addProfile(profile);

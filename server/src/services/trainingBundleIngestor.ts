@@ -439,41 +439,47 @@ function analyzeTimestampSequence(frames: LandmarksFrameEntry[]): TimingMetadata
   const timestamps = frames
     .map((frame) => frame.timestampMs)
     .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
   if (timestamps.length < 2) {
     return undefined;
   }
+
   let nonMonotonic = false;
-  let totalDelta = 0;
-  let minDelta = Infinity;
-  let maxDelta = 0;
-  let count = 0;
-    const deltas: number[] = [];
-    for (let i = 1; i < timestamps.length; i += 1) {
-      const delta = timestamps[i] - timestamps[i - 1];
-      if (delta <= 0) {
-        nonMonotonic = true;
-      }
-      if (delta > 0) {
-        deltas.push(delta);
-      }
+  const deltas: number[] = [];
+  for (let i = 1; i < timestamps.length; i += 1) {
+    const delta = timestamps[i] - timestamps[i - 1];
+    if (delta <= 0) {
+      nonMonotonic = true;
     }
-    if (deltas.length === 0) {
-      return nonMonotonic ? { nonMonotonic: true } : undefined;
+    if (delta > 0) {
+      deltas.push(delta);
     }
-    const totalDelta = deltas.reduce((sum, d) => sum + d, 0);
-    const averageDelta = totalDelta / deltas.length;
-    const minDelta = Math.min(...deltas);
-    const maxDelta = Math.max(...deltas);
-  if (count === 0) {
-    return undefined;
   }
-  const averageDelta = totalDelta / count;
-  return {
-    ...(nonMonotonic ? { nonMonotonic } : {}),
-    ...(Number.isFinite(averageDelta) ? { averageDeltaMs: averageDelta } : {}),
-    ...(Number.isFinite(minDelta) ? { minDeltaMs: minDelta } : {}),
-    ...(Number.isFinite(maxDelta) ? { maxDeltaMs: maxDelta } : {}),
-  };
+
+  if (deltas.length === 0) {
+    return nonMonotonic ? { nonMonotonic: true } : undefined;
+  }
+
+  const totalDelta = deltas.reduce((sum, d) => sum + d, 0);
+  const averageDelta = totalDelta / deltas.length;
+  const minDelta = Math.min(...deltas);
+  const maxDelta = Math.max(...deltas);
+
+  const result: Partial<TimingMetadata> = {};
+  if (nonMonotonic) {
+    result.nonMonotonic = true;
+  }
+  if (Number.isFinite(averageDelta)) {
+    result.averageDeltaMs = averageDelta;
+  }
+  if (Number.isFinite(minDelta)) {
+    result.minDeltaMs = minDelta;
+  }
+  if (Number.isFinite(maxDelta)) {
+    result.maxDeltaMs = maxDelta;
+  }
+
+  return Object.keys(result).length > 0 ? (result as TimingMetadata) : undefined;
 }
 
 async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {

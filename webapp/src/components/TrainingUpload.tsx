@@ -202,7 +202,6 @@ export function TrainingUploadWithRecording() {
   const {
     setPreferredGestureLabel,
     preferredGestureLabel,
-    setProfileId,
     profileId,
   } = useAppState();
   const modelInjection = useMlpModelInjection(profileId);
@@ -211,7 +210,7 @@ export function TrainingUploadWithRecording() {
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
   const [modelNotice, setModelNotice] = useState<string | null>(null);
-  const metadataReady = profileId.trim().length > 0 && preferredGestureLabel.trim().length > 0;
+  const metadataReady = !!profileId && profileId.trim().length > 0 && preferredGestureLabel.trim().length > 0;
   const metadataError = metadataReady
     ? ''
     : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest.';
@@ -375,7 +374,7 @@ export function TrainingUploadWithRecording() {
       {modelNotice && <div className="notice success compact mb-md">{modelNotice}</div>}
 
       <TrainingRecorder
-        profileId={profileId}
+        profileId={profileId || 'default'}
         label={preferredGestureLabel}
         onRecordingComplete={handleRecordingComplete}
       />
@@ -383,11 +382,11 @@ export function TrainingUploadWithRecording() {
       <div className="card mt-md">
         <div className="form-group">
           <label htmlFor="record-profile">Profil-ID</label>
-          <input id="record-profile" value={profileId} onChange={(event) => setProfileId(event.target.value)} />
+          <input id="record-profile" value={profileId || ''} readOnly />
         </div>
         <div className="form-group">
           <label htmlFor="record-label">Gebärden-Name</label>
-          <input id="record-label" value={preferredGestureLabel} onChange={(event) => handleLabelUpdate(event.target.value)} />
+          <input id="record-label" value={preferredGestureLabel || ''} onChange={(event) => handleLabelUpdate(event.target.value)} />
         </div>
         {!metadataReady && <div className="notice error mt-sm">{metadataError}</div>}
       </div>
