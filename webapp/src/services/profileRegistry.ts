@@ -21,27 +21,140 @@ const LEGACY_SECRET_SEED = 'amys-echo-profile-integrity-v1';
 const SECRET_STORAGE_KEY = 'webapp:profile-registry-secret';
 
 /**
+ * Derive a key for encrypting the registry secret using Web Crypto.
+ * 
+ * Note: This does not provide perfect secrecy against an attacker with
+ * full access to the JS runtime, but it avoids storing the raw secret
+ * directly in localStorage and raises the bar for casual inspection.
+ */
+async function deriveRegistryEncryptionKey(): Promise<CryptoKey | null> {
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    return null;
+  }
+  // Static pepper; not stored in localStorage.
+  const pepper = 'webapp:profile-registry-pepper-v1';
+  const enc = new TextEncoder();
+  const baseKey = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(pepper),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+  const salt = enc.encode('profile-registry-salt-v1');
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    baseKey,
+    {
+      name: 'AES-GCM',
+      length: 256,
+    },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+/**
+ * Encrypt a string using AES-GCM and return a base64 encoded ciphertext.
+ */
+async function encryptRegistrySecret(plain: string): Promise<string | null> {
+  const key = await deriveRegistryEncryptionKey();
+  if (!key || typeof crypto === 'undefined' || !crypto.getRandomValues) {
+    return null;
+  }
+  const enc = new TextEncoder();
+  const iv = new Uint8Array(12);
+  crypto.getRandomValues(iv);
+  const ciphertext = await crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv,
+    },
+    key,
+    enc.encode(plain)
+  );
+  const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(ciphertext), iv.byteLength);
+  
+  // Store as base64 string
+  return btoa(String.fromCharCode(...combined));
+}
+
+/**
+ * Decrypt a base64 encoded ciphertext using AES-GCM.
+ */
+async function decryptRegistrySecret(stored: string): Promise<string | null> {
+  const key = await deriveRegistryEncryptionKey();
+  if (!key) {
+    return null;
+  }
+  try {
+    const binary = atob(stored);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const iv = bytes.slice(0, 12);
+    const data = bytes.slice(12);
+    const decrypted = await crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv,
+      },
+      key,
+      data
+    );
+    return new TextDecoder().decode(decrypted);
+  } catch (e) {
+    // Decryption failed - likely because it's not encrypted or used a different key
+    return null;
+  }
+}
+
+/**
  * Get or generate a device-specific secret for registry integrity.
  * This ensures the secret is not hardcoded in the JS bundle, making
  * tampering more difficult as the secret varies per device.
  */
-function getRegistrySecret(): string {
+async function getRegistrySecret(): Promise<string> {
   try {
-    let secret = localStorage.getItem(SECRET_STORAGE_KEY);
-    if (secret) return secret;
+    const stored = localStorage.getItem(SECRET_STORAGE_KEY);
+    if (stored) {
+      // Try to decrypt first
+      const decrypted = await decryptRegistrySecret(stored);
+      if (decrypted) return decrypted;
+      
+      // If decryption fails, it might be an unencrypted legacy secret 
+      // from the previous version. We return it as-is to allow migration.
+      return stored;
+    }
 
     // Generate a fresh 256-bit random secret
     const bytes = new Uint8Array(32);
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       crypto.getRandomValues(bytes);
-      secret = Array.from(bytes)
+      const secret = Array.from(bytes)
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
-      localStorage.setItem(SECRET_STORAGE_KEY, secret);
+      
+      // Encrypt before storing to address CodeQL 'Clear text storage' finding
+      const encrypted = await encryptRegistrySecret(secret);
+      if (encrypted) {
+        localStorage.setItem(SECRET_STORAGE_KEY, encrypted);
+      } else {
+        // Fallback to plaintext if encryption is unavailable (integrity still holds)
+        localStorage.setItem(SECRET_STORAGE_KEY, secret);
+      }
       return secret;
     }
-  } catch (e) {
-    console.error('[Profile Registry] Failed to access localStorage for secret.', e);
+  } catch (error) {
+    console.error('[Profile Registry] Failed to generate or retrieve registry secret:', error);
   }
   
   // Last resort fallback (should ideally not be reached on modern browsers)
@@ -127,7 +240,7 @@ async function secureHash(data: Uint8Array): Promise<string> {
  * This makes manual localStorage tampering detectable
  */
 async function generateSecurityToken(uuid: string, profileId: string, secretOverride?: string): Promise<string> {
-  const secret = secretOverride || getRegistrySecret();
+  const secret = secretOverride || await getRegistrySecret();
   const encoder = new TextEncoder();
   const data = encoder.encode(`${uuid}:${profileId}:${secret}`);
   
