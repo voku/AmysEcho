@@ -97,8 +97,20 @@ async function runStressTest() {
   await new Promise(r => setTimeout(r, 10000));
 
   console.log('\n📊 Final Manifest Check:');
-  const manifest = JSON.parse(fs.readFileSync('data/datasets/training_manifest.json', 'utf8'));
-  console.log(`Count: ${manifest.entries.length} entries recorded.`);
+  try {
+    if (fs.existsSync('data/datasets/training_manifest.json')) {
+      const manifestRaw = fs.readFileSync('data/datasets/training_manifest.json', 'utf8');
+      const manifest = JSON.parse(manifestRaw);
+      console.log(`Count: ${manifest.entries.length} entries recorded.`);
+    } else {
+      console.warn('⚠️ Warning: data/datasets/training_manifest.json not found.');
+    }
+  } catch (err) {
+    console.error('❌ Error reading or parsing training manifest:', err.message);
+    if (err instanceof SyntaxError) {
+      console.error('   Details: Invalid JSON structure in manifest file.');
+    }
+  }
   
   const finalJobId = triggerResults[triggerResults.length - 1].jobId;
   const statusRes = await fetch(`${API_BASE}/api/v1/train-status/${finalJobId}`, {
