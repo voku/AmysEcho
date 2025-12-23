@@ -408,49 +408,17 @@ await addProfile(profile);
 
 ## Files Changed
 
-### New Files (4)
-1. `webapp/src/services/profileRegistry.ts` (11,120 bytes)
-   - Secure profile registry service
-   - HMAC and checksum generation
-   - CRUD operations with validation
-   - Tamper detection and recovery
+### New Files
+- `webapp/src/services/profileRegistry.ts` - Secure profile registry service
+- `webapp/src/services/profileRegistry.test.ts` - Comprehensive unit tests
+- `webapp/src/components/ProfileManager.tsx` - Multi-child profile UI
+- `docs/PROFILE_IDENTITY_ARCHITECTURE.md` - Technical architecture documentation
 
-2. `webapp/src/services/profileRegistry.test.ts` (10,096 bytes)
-   - Comprehensive unit tests
-   - Security tampering tests
-   - Migration tests
-   - All CRUD operation coverage
-
-3. `webapp/src/components/ProfileManager.tsx` (9,575 bytes)
-   - Multi-child profile UI
-   - Profile creation wizard
-   - Profile list and switcher
-   - Delete with confirmation
-
-4. `docs/PROFILE_IDENTITY_ARCHITECTURE.md` (Previous work, 9,605 bytes)
-   - Technical architecture documentation
-   - Design decisions and rationale
-
-### Modified Files (4)
-1. `webapp/src/hooks/useAppState.tsx`
-   - Added `profileUuid` field
-   - Added `refreshFromRegistry()` method
-   - Auto-init profile registry on mount
-   - Sync with active profile
-
-2. `webapp/src/components/Settings.tsx`
-   - Added profile manager notice
-   - Added link to `/profile` route
-   - Explained multi-child system
-
-3. `webapp/src/App.tsx`
-   - Imported ProfileManager component
-   - Added `/profile` route
-   - Integrated with routing system
-
-4. `webapp/src/components/Onboarding.tsx` (Previous work)
-   - Generates stable profileId
-   - Sets displayName separately
+### Modified Files
+- `webapp/src/hooks/useAppState.tsx` - Added profile registry integration
+- `webapp/src/components/Settings.tsx` - Added profile manager link
+- `webapp/src/App.tsx` - Added profile route
+- `webapp/src/components/Onboarding.tsx` - Updated for stable profile IDs
 
 ## Performance Considerations
 
@@ -572,6 +540,4 @@ Your identity in the system is now **cryptographically protected** and supports 
 ---
 
 **Implementation Date:** 2025-12-22  
-**Commits:** 90bbf01 (Registry) + 95548d9 (UI)  
-**Total Lines Added:** ~1,700 lines (code + tests + docs)  
 **Status:** Production-ready for multi-child households
