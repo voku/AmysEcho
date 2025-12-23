@@ -297,6 +297,18 @@ export const loadDatabase = async (filePath: string): Promise<Database> => {
 // Utility to create a cryptographically secure unique id
 const generateId = (): string => randomBytes(16).toString('hex');
 
+export const seedProfileSymbols = (db: Database, profileId: string): void => {
+  const globalSymbols = db.symbols.filter((s) => !s.profileId);
+  for (const globalSymbol of globalSymbols) {
+    const profileSymbol: SymbolRecord = {
+      ...globalSymbol,
+      id: `${globalSymbol.id}-${profileId}`, // Unique ID for profile symbol
+      profileId,
+    };
+    db.symbols.push(profileSymbol);
+  }
+};
+
 export const persistProfile = async (
   db: Database,
   profile: Profile,
@@ -373,30 +385,32 @@ export async function setupDatabase(filePath: string): Promise<Database> {
   }
 
   if (db.symbols.length === 0) {
-    const defaults: SymbolRecord[] = [
-      {
-        id: 'hello',
-        name: 'Hello',
-        emoji: '👋',
-        color: '#ffcc00',
-        category: 'basic',
-        imageUrl: undefined,
-        audioUri: 'hello.mp3',
-        dgsVideoUri: 'dgs/hello.mp4',
-        healthScore: 1,
-      },
-      {
-        id: 'drink',
-        name: 'Drink',
-        emoji: '🥤',
-        color: '#0099ff',
-        category: 'basic',
-        imageUrl: undefined,
-        audioUri: 'drink.mp3',
-        dgsVideoUri: 'dgs/drink.mp4',
-        healthScore: 1,
-      },
+    const defaultLabels = [
+      { id: 'alle', name: 'Alle', emoji: '👥', color: '#94a3b8' },
+      { id: 'blau', name: 'Blau', emoji: '🔵', color: '#3b82f6' },
+      { id: 'essen', name: 'Essen', emoji: '🍽️', color: '#f59e0b' },
+      { id: 'fertig', name: 'Fertig', emoji: '✅', color: '#10b981' },
+      { id: 'gelb', name: 'Gelb', emoji: '🟡', color: '#fbbf24' },
+      { id: 'gruen', name: 'Grün', emoji: '🟢', color: '#22c55e' },
+      { id: 'nochmal', name: 'Nochmal', emoji: '🔁', color: '#6366f1' },
+      { id: 'rot', name: 'Rot', emoji: '🔴', color: '#ef4444' },
+      { id: 'satt', name: 'Satt', emoji: '😋', color: '#8b5cf6' },
+      { id: 'schwester', name: 'Schwester', emoji: '👧', color: '#ec4899' },
+      { id: 'spielen', name: 'Spielen', emoji: '🧸', color: '#f43f5e' },
+      { id: 'trinken', name: 'Trinken', emoji: '🥤', color: '#0ea5e9' },
     ];
+
+    const defaults: SymbolRecord[] = defaultLabels.map(label => ({
+      id: label.id,
+      name: label.name,
+      emoji: label.emoji,
+      color: label.color,
+      category: 'basic',
+      imageUrl: undefined,
+      audioUri: `${label.id}.mp3`,
+      dgsVideoUri: `dgs/${label.id}.mp4`,
+      healthScore: 1,
+    }));
     db.symbols.push(...defaults);
     changed = true;
   }

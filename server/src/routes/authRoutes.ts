@@ -2,7 +2,7 @@ import express from 'express';
 import { randomUUID } from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { addUser, Database, findUserById, findUserByUsername, saveDatabase } from '../db.js';
+import { addUser, Database, findUserById, findUserByUsername, saveDatabase, seedProfileSymbols } from '../db.js';
 import { AuthService } from '../services/authService.js';
 import logger from '../services/logger.js';
 import { withFileLock } from '../utils/fileLock.js';
@@ -74,6 +74,8 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
           createdAt: Date.now(),
         };
         addUser(deps.db, user);
+        // Seed symbols for the user's primary profile (using userId as profileId for now as per current app patterns)
+        seedProfileSymbols(deps.db, user.id);
         await saveDatabase(deps.db, deps.dbFilePath);
         createdUser = user;
       });
