@@ -195,10 +195,15 @@ interface TrainingQueueEntry {
 const trainingQueue: TrainingQueueEntry[] = [];
 let isProcessingTrainingQueue = false;
 
-app.use('/health', healthLimiter);
-app.get('/health', (_req: Request, res: Response) => {
+const healthHandler = (_req: Request, res: Response) => {
   res.json({ status: 'ok', uptime: process.uptime(), pendingTrainingJobs: trainingQueue.length });
-});
+};
+
+app.use('/health', healthLimiter);
+app.get('/health', healthHandler);
+
+app.use('/api/v1/health', healthLimiter);
+app.get('/api/v1/health', healthHandler);
 
 async function processTrainingQueue(): Promise<void> {
   if (isProcessingTrainingQueue) {
