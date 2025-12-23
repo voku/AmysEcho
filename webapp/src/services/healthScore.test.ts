@@ -156,7 +156,10 @@ describe('HealthScore', () => {
       
       const data = loadHistoricalHealthData('essen');
       expect(data.length).toBe(1);
-      expect(data[0].successRate).toBe(0.8);
+      const firstData = data[0];
+      if (firstData) {
+        expect(firstData.successRate).toBe(0.8);
+      }
     });
 
     it('gibt leeres Array für unbekannte Geste', () => {

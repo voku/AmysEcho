@@ -15,8 +15,10 @@ describe('backupService', () => {
   beforeEach(async () => {
     localStorage.clear();
     lastBlob = null;
-    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob: Blob) => {
-      lastBlob = blob;
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((obj: Blob | MediaSource) => {
+      if (obj instanceof Blob) {
+        lastBlob = obj;
+      }
       return 'blob://test';
     });
     await gestureDataProtector.storeGesture({

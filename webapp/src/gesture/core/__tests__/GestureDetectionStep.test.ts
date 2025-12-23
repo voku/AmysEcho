@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { GestureDetectionStep } from '../GestureRecognitionOrchestrator';
 import type { GestureDetectorConfig } from '../../config/GestureConfig';
 import type { MediaPipeGestureResult } from '../../types/MediaPipeTypes';

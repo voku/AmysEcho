@@ -90,7 +90,7 @@ class CustomGestureRegistry {
       profileId: params.profileId,
       name: params.name,
       label: params.label,
-      description: params.description,
+      ...(params.description !== undefined ? { description: params.description } : {}),
       emoji: params.emoji ?? '✋',
       category: params.category ?? 'benutzerdefiniert',
       status: 'draft',

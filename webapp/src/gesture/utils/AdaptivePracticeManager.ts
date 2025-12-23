@@ -312,7 +312,9 @@ export class AdaptivePracticeManager {
       .sort(([,a], [,b]) => b.successRate - a.successRate)
       .slice(0, 3)
       .map(([key, data]) => {
-        const [timeOfDay, activityLevel] = key.split('_');
+        const parts = key.split('_');
+        const timeOfDay = parts[0] ?? 'unknown';
+        const activityLevel = parts[1] ?? 'unknown';
         return {
           timeOfDay,
           activityLevel,

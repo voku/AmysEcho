@@ -144,6 +144,9 @@ export class VisualCorrectionManager {
    */
   private createCorrectionOption(gesture: string, confidence: number): CorrectionOption {
     const visual = this.gestureVisuals[gesture];
+    if (!visual) {
+      throw new Error(`No visual representation for gesture: ${gesture}`);
+    }
     const context = this.getGestureContext(gesture);
 
     // Calculate priority based on confidence and usage patterns

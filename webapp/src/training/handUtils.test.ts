@@ -45,8 +45,7 @@ describe('flattenHandsWithHandedness', () => {
 
 describe('frameHasAnyLandmarks', () => {
   it('returns false for non-array input', () => {
-    // @ts-expect-error intentionally passing invalid input
-    expect(frameHasAnyLandmarks(null)).toBe(false);
+    expect(frameHasAnyLandmarks(null as any)).toBe(false);
   });
 
   it('detects presence of landmarks', () => {
@@ -61,9 +60,7 @@ describe('frameHasAnyLandmarks', () => {
   });
 
   it('returns false for non-array inner values', () => {
-    // @ts-expect-error
     expect(frameHasAnyLandmarks([null as any])).toBe(false);
-    // @ts-expect-error
     expect(frameHasAnyLandmarks([123 as any])).toBe(false);
   });
 });
@@ -88,9 +85,12 @@ describe('processFramesForUpload', () => {
     const frames = [{ landmarks: [left], handedness: ['Left'] }];
     const out = processFramesForUpload(frames, 'g1', 'p1');
     expect(out).toHaveLength(1);
-    expect(out[0].gestureDefinitionId).toBe('g1');
-    expect(out[0].profileId).toBe('p1');
-    expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
+    const firstOut = out[0];
+    if (firstOut) {
+      expect(firstOut.gestureDefinitionId).toBe('g1');
+      expect(firstOut.profileId).toBe('p1');
+      expect(firstOut.landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
+    }
   });
 
   it('filters frames without landmarks', () => {
@@ -105,8 +105,11 @@ describe('processFramesForUpload', () => {
     const frames = [[left, right]] as any;
     const out = processFramesForUpload(frames, 'g1');
     expect(out).toHaveLength(1);
-    expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
-    expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+    const firstOut = out[0];
+    if (firstOut) {
+      expect(firstOut.landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
+      expect(firstOut.landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+    }
   });
 
   it('normalizes flattened legacy arrays', () => {
@@ -115,8 +118,11 @@ describe('processFramesForUpload', () => {
     const flattened = [...left, ...right] as any;
     const out = processFramesForUpload(flattened, 'g1');
     expect(out).toHaveLength(1);
-    expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
-    expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+    const firstOut = out[0];
+    if (firstOut) {
+      expect(firstOut.landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
+      expect(firstOut.landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+    }
   });
 
   it('drops incomplete trailing landmarks in flattened legacy arrays', () => {
@@ -125,8 +131,11 @@ describe('processFramesForUpload', () => {
     const flattened = [...left, ...right, [1, 2, 3]] as any;
     const out = processFramesForUpload(flattened, 'g1');
     expect(out).toHaveLength(1);
-    expect(out[0].landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
-    expect(out[0].landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+    const firstOut = out[0];
+    if (firstOut) {
+      expect(firstOut.landmarkData.slice(0, HAND_LANDMARKS_PER_HAND)).toEqual(left);
+      expect(firstOut.landmarkData.slice(HAND_LANDMARKS_PER_HAND)).toEqual(right);
+    }
   });
 });
 

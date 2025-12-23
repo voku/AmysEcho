@@ -95,7 +95,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 function mergePendingSymbols(symbols: SymbolDefinition[], pending: SymbolDefinition[]): SymbolDefinition[] {
   const mergedMap = new Map<string, SymbolDefinition>();
   
-  // confirmed symbols first
+  // confirmed symbols 
   const confirmedList = Array.isArray(symbols) ? symbols : [];
   for (const s of confirmedList) {
     if (s && s.id) {
@@ -103,7 +103,7 @@ function mergePendingSymbols(symbols: SymbolDefinition[], pending: SymbolDefinit
     }
   }
   
-  // pending symbols override confirmed ones
+  // pending symbols override confirmed ones and FORCE pending: true
   const pendingList = Array.isArray(pending) ? pending : [];
   for (const s of pendingList) {
     if (s && s.id) {
@@ -119,8 +119,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   const { profileId } = useAppState();
   const { showToast } = useMessage();
   
-  // Initialize state based on current profileId
-  const [state, setState] = useState<CachedSymbols>(() => readCache(profileId));
+  const [state, setState] = useState<CachedSymbols>({ symbols: [], pending: [], cachedAt: 0 });
   const { symbols, pending } = state;
   
   const [loading, setLoading] = useState(false);
@@ -130,29 +129,34 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   const retryStateRef = useRef({ retryCount: 0, nextAllowed: 0 });
   const syncTimerRef = useRef<number | null>(null);
   
-  // Use ref to track current state for async operations
   const stateRef = useRef(state);
+  const profileIdRef = useRef(profileId);
+
+  useEffect(() => {
+    profileIdRef.current = profileId;
+  }, [profileId]);
   
-  // Helper to keep ref in sync with state immediately
   const updateStoreState = useCallback((next: CachedSymbols | ((prev: CachedSymbols) => CachedSymbols)) => {
     setState((prev) => {
       const resolved = typeof next === 'function' ? next(prev) : next;
-      stateRef.current = resolved;
-      return resolved;
+      stateRef.current = {
+        symbols: resolved.symbols ?? [],
+        pending: resolved.pending ?? [],
+        cachedAt: resolved.cachedAt ?? Date.now()
+      };
+      return stateRef.current;
     });
   }, []);
 
-  // Refetch when profileId changes
+  // Handle profile context switches and initial load
   useEffect(() => {
-    // Update local state from cache immediately on profile switch
+    // Only proceed if profileId is determined (or explicitly 'global' baseline)
     const cached = readCache(profileId);
     updateStoreState(cached);
-    // Then fetch fresh data
     void fetchSymbols();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId]);
 
-  // Memoize merged symbols to prevent infinite re-renders in components that depend on this array
   const mergedSymbols = useMemo(() => mergePendingSymbols(symbols, pending), [symbols, pending]);
   const pendingCount = pending?.length ?? 0;
 
@@ -202,25 +206,22 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     
     const currentPending = stateRef.current.pending;
     const currentSymbols = stateRef.current.symbols;
-    const currentProfileId = profileId;
+    const currentProfileId = profileIdRef.current;
     
     if (currentPending.length === 0) {
       return { symbols: currentSymbols, pending: currentPending };
     }
 
-    // Check if we have an API token
     if (!apiToken || apiToken.trim().length === 0) {
       return { symbols: currentSymbols, pending: currentPending };
     }
 
     syncingRef.current = true;
     try {
-      const remainingPending: SymbolDefinition[] = [];
-      let syncedCount = 0;
-      let updatedSymbols = currentSymbols;
+      const syncedIds = new Set<string>();
+      const nextConfirmedSymbols = [...currentSymbols];
 
-      for (let i = 0; i < currentPending.length; i++) {
-        const pendingSymbol = currentPending[i];
+      for (const pendingSymbol of currentPending) {
         if (!pendingSymbol) continue;
 
         try {
@@ -240,56 +241,52 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
                 body: JSON.stringify(payload),
               }),
           );
-          syncedCount += 1;
-          updatedSymbols = updatedSymbols.some((symbol) => symbol.id === saved.id)
-            ? updatedSymbols.map((symbol) => (symbol.id === saved.id ? saved : symbol))
-            : [...updatedSymbols, saved];
+          syncedIds.add(saved.id);
+          const exists = nextConfirmedSymbols.findIndex(s => s.id === saved.id);
+          if (exists !== -1) {
+            nextConfirmedSymbols[exists] = saved;
+          } else {
+            nextConfirmedSymbols.push(saved);
+          }
         } catch (error) {
           if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
             if (error.status === 401) {
-              remainingPending.push(...currentPending.slice(i));
               break;
             } else {
               showToast({
                 message: `Gebärde "${pendingSymbol.name}" konnte nicht synchronisiert werden: ${error.message}`,
                 tone: 'error',
               });
-              updatedSymbols = updatedSymbols.filter((symbol) => symbol.id !== pendingSymbol.id);
+              syncedIds.add(pendingSymbol.id); // Mark as "processed" to remove from pending
             }
           } else {
-            remainingPending.push(pendingSymbol);
+            // Network error - keep in pending for retry
           }
         }
       }
 
       updateStoreState((prev) => {
-        const finalSymbols = updatedSymbols;
-        const prevPending = prev?.pending ?? [];
-        const flushedIds = new Set(currentPending.map(p => p.id));
-        const newPendingDuringFlush = prevPending.filter(p => !flushedIds.has(p.id));
-        const finalPending = [...remainingPending, ...newPendingDuringFlush];
-        writeCache(currentProfileId, finalSymbols, finalPending);
-        return { symbols: finalSymbols, pending: finalPending, cachedAt: Date.now() };
+        const finalPending = (prev?.pending ?? []).filter(p => !syncedIds.has(p.id));
+        writeCache(currentProfileId, nextConfirmedSymbols, finalPending);
+        return { symbols: nextConfirmedSymbols, pending: finalPending, cachedAt: Date.now() };
       });
 
-      if (syncedCount > 0) {
+      if (syncedIds.size > 0) {
         showToast({ message: 'Offline gespeicherte Gebärden synchronisiert.', tone: 'success' });
       }
 
-      return { symbols: updatedSymbols, pending: remainingPending };
+      return { symbols: nextConfirmedSymbols, pending: stateRef.current.pending };
     } finally {
       syncingRef.current = false;
     }
-  }, [apiBaseUrl, apiToken, profileId, resolveHeaders, showToast, updateStoreState, withAuthRetry]);
+  }, [apiBaseUrl, apiToken, resolveHeaders, showToast, updateStoreState, withAuthRetry]);
 
   const fetchSymbols = useCallback(async (options?: { silent?: boolean }) => {
     const now = Date.now();
     const delayRemaining = retryStateRef.current.nextAllowed - now;
     if (options?.silent && delayRemaining > 0 && stateRef.current.pending.length > 0) {
       if (typeof window !== 'undefined') {
-        if (syncTimerRef.current) {
-          window.clearTimeout(syncTimerRef.current);
-        }
+        if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
         syncTimerRef.current = window.setTimeout(() => {
           syncTimerRef.current = null;
           void fetchSymbols(options);
@@ -299,7 +296,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
-    const currentProfileId = profileId;
+    const currentProfileId = profileIdRef.current;
 
     try {
       const { pending: pendingSymbols } = await flushPending();
@@ -341,9 +338,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         const delay = Math.min(MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS * 2 ** (nextRetryCount - 1));
         retryStateRef.current = { retryCount: nextRetryCount, nextAllowed: Date.now() + delay };
         if (typeof window !== 'undefined' && stateRef.current.pending.length > 0) {
-          if (syncTimerRef.current) {
-            window.clearTimeout(syncTimerRef.current);
-          }
+          if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
           syncTimerRef.current = window.setTimeout(() => {
             syncTimerRef.current = null;
             void fetchSymbols({ silent: true });
@@ -357,7 +352,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [apiBaseUrl, flushPending, profileId, resolveHeaders, showToast, updateStoreState, withAuthRetry]);
+  }, [apiBaseUrl, flushPending, resolveHeaders, showToast, updateStoreState, withAuthRetry]);
 
   const refresh = useCallback(() => fetchSymbols(), [fetchSymbols]);
 
@@ -367,9 +362,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       if (typeof window === 'undefined' || delay === 0) {
         void fetchSymbols({ silent: true });
       } else {
-        if (syncTimerRef.current) {
-          window.clearTimeout(syncTimerRef.current);
-        }
+        if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
         syncTimerRef.current = window.setTimeout(() => {
           syncTimerRef.current = null;
           void fetchSymbols({ silent: true });
@@ -387,39 +380,31 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
 
   const saveSymbol = useCallback(
     async (input: SymbolDefinition & { imageDataUrl?: string | null }) => {
-      const currentProfileId = profileId;
-      // Check if we have an API token before attempting to save
+      const currentProfileId = profileIdRef.current;
+      const fallback: SymbolDefinition = {
+        ...input,
+        imageUrl: input.imageDataUrl ? null : input.imageUrl ?? null,
+        imageDataUrl: input.imageDataUrl ?? null,
+        profileId: currentProfileId ?? undefined,
+        pending: true,
+      };
+
       if (!apiToken || apiToken.trim().length === 0) {
         showToast({
           message: 'Keine Anmeldung. Bitte in den Einstellungen API-Token konfigurieren.',
           tone: 'warning',
         });
-        const fallback: SymbolDefinition = {
-          id: input.id,
-          name: input.name,
-          category: input.category,
-          imageUrl: input.imageDataUrl ? null : input.imageUrl ?? null,
-          imageDataUrl: input.imageDataUrl ?? null,
-          profileId: currentProfileId ?? undefined,
-          pending: true,
-        };
         updateStoreState((prev) => {
-          const prevPending = prev?.pending ?? [];
-          const prevSymbols = prev?.symbols ?? [];
-          const nextPending = prevPending.some((symbol) => symbol.id === fallback.id)
-            ? prevPending.map((symbol) => (symbol.id === fallback.id ? fallback : symbol))
-            : [...prevPending, fallback];
-          writeCache(currentProfileId, prevSymbols, nextPending);
-          return { symbols: prevSymbols, pending: nextPending, cachedAt: Date.now() };
+          const nextPending = [...(prev?.pending ?? [])];
+          const exists = nextPending.findIndex(p => p.id === fallback.id);
+          if (exists !== -1) nextPending[exists] = fallback; else nextPending.push(fallback);
+          writeCache(currentProfileId, prev?.symbols ?? [], nextPending);
+          return { symbols: prev?.symbols ?? [], pending: nextPending, cachedAt: Date.now() };
         });
         return fallback;
       }
 
-      const payload = { 
-        ...input, 
-        imageDataUrl: input.imageDataUrl ?? undefined,
-        profileId: currentProfileId ?? undefined,
-      };
+      const payload = { ...input, profileId: currentProfileId ?? undefined };
       try {
         const saved = await withAuthRetry(
           (tokenOverride) =>
@@ -430,14 +415,12 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
             }),
         );
         updateStoreState((prev) => {
-          const prevPending = prev?.pending ?? [];
-          const prevSymbols = prev?.symbols ?? [];
-          const nextPending = prevPending.filter((symbol) => symbol.id !== saved.id);
-          const nextSymbols = prevSymbols.some((s) => s.id === saved.id)
-            ? prevSymbols.map((s) => (s.id === saved.id ? saved : symbol))
-            : [...prevSymbols, saved];
-          writeCache(currentProfileId, nextSymbols, nextPending);
-          return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
+          const nextPending = (prev?.pending ?? []).filter((symbol) => symbol.id !== saved.id);
+          const nextConfirmedSymbols = [...(prev?.symbols ?? [])];
+          const exists = nextConfirmedSymbols.findIndex(s => s.id === saved.id);
+          if (exists !== -1) nextConfirmedSymbols[exists] = saved; else nextConfirmedSymbols.push(saved);
+          writeCache(currentProfileId, nextConfirmedSymbols, nextPending);
+          return { symbols: nextConfirmedSymbols, pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(null);
         setLastSyncedAt(Date.now());
@@ -446,45 +429,30 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
           const reason = error.status === 401 ? SESSION_EXPIRED_MESSAGE : error.message || 'Ungültige Eingabe';
-          if (error.status !== 401) {
-            showToast({ message: `Gebärde abgelehnt: ${reason}`, tone: 'error' });
-          }
+          if (error.status !== 401) showToast({ message: `Gebärde abgelehnt: ${reason}`, tone: 'error' });
           setSyncError(reason);
           throw error;
         }
 
         const reason = error instanceof Error ? error.message : 'Unbekannter Fehler beim Speichern';
         showToast({ message: `Server nicht erreichbar, lokal gespeichert: ${reason}`, tone: 'warning' });
-        const fallback: SymbolDefinition = {
-          id: input.id,
-          name: input.name,
-          category: input.category,
-          imageUrl: input.imageDataUrl ? null : input.imageUrl ?? null,
-          imageDataUrl: input.imageDataUrl ?? null,
-          profileId: currentProfileId ?? undefined,
-          pending: true,
-        };
         updateStoreState((prev) => {
-          const prevPending = prev?.pending ?? [];
-          const prevSymbols = prev?.symbols ?? [];
-          const nextPending = prevPending.some((symbol) => symbol.id === fallback.id)
-            ? prevPending.map((symbol) => (symbol.id === fallback.id ? fallback : symbol))
-            : [...prevPending, fallback];
-          
-          writeCache(currentProfileId, prevSymbols, nextPending);
-          return { symbols: prevSymbols, pending: nextPending, cachedAt: Date.now() };
+          const nextPending = [...(prev?.pending ?? [])];
+          const exists = nextPending.findIndex(p => p.id === fallback.id);
+          if (exists !== -1) nextPending[exists] = fallback; else nextPending.push(fallback);
+          writeCache(currentProfileId, prev?.symbols ?? [], nextPending);
+          return { symbols: prev?.symbols ?? [], pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(reason);
-        setLastSyncedAt(null);
         return fallback;
       }
     },
-    [apiBaseUrl, apiToken, profileId, resolveHeaders, showToast, updateStoreState, withAuthRetry],
+    [apiBaseUrl, apiToken, resolveHeaders, showToast, updateStoreState, withAuthRetry],
   );
 
   const removeSymbol = useCallback(
     async (id: string) => {
-      const currentProfileId = profileId;
+      const currentProfileId = profileIdRef.current;
       try {
         await withAuthRetry(
           (tokenOverride) =>
@@ -503,11 +471,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         setLastSyncedAt(Date.now());
       } catch (error) {
         const isAuthError = error instanceof HttpError && error.status === 401;
-        const reason = isAuthError
-          ? SESSION_EXPIRED_MESSAGE
-          : error instanceof Error
-            ? error.message
-            : 'Unbekannter Fehler beim Löschen';
+        const reason = isAuthError ? SESSION_EXPIRED_MESSAGE : error instanceof Error ? error.message : 'Unbekannter Fehler';
         updateStoreState((prev) => {
           const nextSymbols = (prev?.symbols ?? []).filter((symbol) => symbol.id !== id);
           const nextPending = (prev?.pending ?? []).filter((symbol) => symbol.id !== id);
@@ -515,12 +479,10 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
         });
         setSyncError(reason);
-        if (!isAuthError) {
-          showToast({ message: `Gebärde nur lokal gelöscht: ${reason}`, tone: 'warning' });
-        }
+        if (!isAuthError) showToast({ message: `Gebärde nur lokal gelöscht: ${reason}`, tone: 'warning' });
       }
     },
-    [apiBaseUrl, profileId, resolveHeaders, showToast, updateStoreState, withAuthRetry],
+    [apiBaseUrl, resolveHeaders, showToast, updateStoreState, withAuthRetry],
   );
 
   const value = useMemo<SymbolStoreValue>(
@@ -533,8 +495,6 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
 
 export function useSymbolStore(): SymbolStoreValue {
   const ctx = useContext(SymbolStoreContext);
-  if (!ctx) {
-    throw new Error('useSymbolStore must be used within a SymbolStoreProvider');
-  }
+  if (!ctx) throw new Error('useSymbolStore must be used within a SymbolStoreProvider');
   return ctx;
 }

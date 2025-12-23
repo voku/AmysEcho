@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fetchMlpModelWithFallback, onMlpModelUpdated } from './modelClient';
 
 function createResponse(body: Uint8Array, init: ResponseInit = {}) {
-  return new Response(body, init);
+  return new Response(body as BodyInit, init);
 }
 
 describe('fetchMlpModelWithFallback', () => {

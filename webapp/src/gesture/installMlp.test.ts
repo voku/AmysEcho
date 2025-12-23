@@ -6,8 +6,8 @@ import { MINIMAL_MULTIMODAL_MLP_ZIP_B64 } from './__fixtures__/minimalMultimodal
 
 describe('installMlp', () => {
   const TEST_HAND = Array.from({ length: 21 }, (_, i) =>
-    i === 0 ? ([1, 0, 0] as const) : ([0, 0, 0] as const),
-  );
+    i === 0 ? ([1, 0, 0] as number[]) : ([0, 0, 0] as number[]),
+  ) as number[][];
 
   beforeEach(() => {
     // Reset window state
@@ -36,9 +36,12 @@ describe('installMlp', () => {
     await window.__setMlpModelB64!('YQ==');
     await Promise.resolve();
     expect(postMessage).toHaveBeenCalledTimes(1);
-    const msg = JSON.parse(postMessage.mock.calls[0][0]);
-    expect(msg.event).toBe('mlp_load_failed');
-    expect(msg.reason).toContain('boom');
+    const firstCall = postMessage.mock.calls[0];
+    if (firstCall && firstCall[0]) {
+      const msg = JSON.parse(firstCall[0]);
+      expect(msg.event).toBe('mlp_load_failed');
+      expect(msg.reason).toContain('boom');
+    }
   });
 
   it('lädt minimales Modell und führt Vorhersage durch', async () => {
@@ -46,8 +49,11 @@ describe('installMlp', () => {
     const ok = await window.__setMlpModelB64!(MINIMAL_MLP_ZIP_B64);
     expect(ok).toBe(true);
     expect(postMessage).toHaveBeenCalledTimes(1);
-    const evt = JSON.parse(postMessage.mock.calls[0][0]);
-    expect(evt.event).toBe('mlp_loaded');
+    const firstCall = postMessage.mock.calls[0];
+    if (firstCall && firstCall[0]) {
+      const evt = JSON.parse(firstCall[0]);
+      expect(evt.event).toBe('mlp_loaded');
+    }
 
     const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
     expect(res?.label).toBe('hi');
@@ -62,7 +68,7 @@ describe('installMlp', () => {
     window.__pushMlpChunk!(MINIMAL_MLP_ZIP_B64.slice(mid));
     await window.__commitMlpTransfer!();
 
-    const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
+    const events = postMessage.mock.calls.map((c) => c[0] ? JSON.parse(c[0]).event : null);
     expect(events).toEqual(['mlp_transfer', 'mlp_loaded', 'mlp_transfer_complete']);
 
     const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
@@ -86,11 +92,13 @@ describe('installMlp', () => {
     window.__pushMlpChunk!(oversizeB64);
     await window.__commitMlpTransfer!();
 
-    const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
+    const events = postMessage.mock.calls.map((c) => c[0] ? JSON.parse(c[0]).event : null);
     expect(events).toEqual(['mlp_transfer', 'mlp_load_failed', 'mlp_transfer_complete']);
-    const failCall = postMessage.mock.calls.find((c) => JSON.parse(c[0]).event === 'mlp_load_failed')!;
-    const msg = JSON.parse(failCall[0]);
-    expect(msg.reason).toMatch(/too many entries/);
+    const failCall = postMessage.mock.calls.find((c) => c[0] && JSON.parse(c[0]).event === 'mlp_load_failed');
+    if (failCall && failCall[0]) {
+      const msg = JSON.parse(failCall[0]);
+      expect(msg.reason).toMatch(/too many entries/);
+    }
     expect(
       window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]])
     ).toBeNull();
@@ -99,7 +107,7 @@ describe('installMlp', () => {
   it('überspringt Commit, wenn Transfer nicht begonnen', async () => {
     const postMessage = (window.ReactNativeWebView?.postMessage as ReturnType<typeof vi.fn>);
     await window.__commitMlpTransfer!();
-    const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
+    const events = postMessage.mock.calls.map((c) => c[0] ? JSON.parse(c[0]).event : null);
     expect(events).toEqual(['mlp_transfer_skipped', 'mlp_transfer_complete']);
     expect(
       window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]])
@@ -113,10 +121,13 @@ describe('installMlp', () => {
     // simulate missing loader
     delete (window as any).__setMlpModelB64;
     await window.__commitMlpTransfer!();
-    const events = postMessage.mock.calls.map((c) => JSON.parse(c[0]).event);
+    const events = postMessage.mock.calls.map((c) => c[0] ? JSON.parse(c[0]).event : null);
     expect(events).toEqual(['mlp_transfer_failed', 'mlp_transfer_complete']);
-    const msg = JSON.parse(postMessage.mock.calls[0][0]);
-    expect(msg.reason).toBe('setter_missing');
+    const firstCall = postMessage.mock.calls[0];
+    if (firstCall && firstCall[0]) {
+      const msg = JSON.parse(firstCall[0]);
+      expect(msg.reason).toBe('setter_missing');
+    }
     expect(
       window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]])
     ).toBeNull();
@@ -146,7 +157,7 @@ describe('installMlp', () => {
     expect(ok).toBe(true);
 
     // Test with hand that has fewer than 21 landmarks - falls back to EMPTY_HAND
-    const invalidHand = Array.from({ length: 20 }, () => [0, 0, 0] as const);
+    const invalidHand = Array.from({ length: 20 }, () => [0, 0, 0] as number[]) as number[][];
     const res = window.__mlpPredict!([invalidHand], [[{ categoryName: 'Left' }]]);
     // Returns null because both hands are EMPTY_HAND (all zeros)
     expect(res).toBeNull();
@@ -157,7 +168,7 @@ describe('installMlp', () => {
     expect(ok).toBe(true);
 
     // Create hand with all points at origin (after centering)
-    const zeroHand = Array.from({ length: 21 }, () => [0, 0, 0] as const);
+    const zeroHand = Array.from({ length: 21 }, () => [0, 0, 0] as number[]) as number[][];
     const res = window.__mlpPredict!([zeroHand], [[{ categoryName: 'Left' }]]);
     // Returns null when input is all zeros
     expect(res).toBeNull();
@@ -514,8 +525,8 @@ describe('installMlp', () => {
       );
 
       // Scale pose and face by 2x
-      const scaledPose = pose.map(p => [p[0] * 2, p[1] * 2, p[2] * 2, p[3]]);
-      const scaledFace = face.map(p => [p[0] * 2, p[1] * 2, p[2] * 2]);
+      const scaledPose = pose.map(p => [(p[0] ?? 0) * 2, (p[1] ?? 0) * 2, (p[2] ?? 0) * 2, p[3] ?? 0]) as number[][];
+      const scaledFace = face.map(p => [(p[0] ?? 0) * 2, (p[1] ?? 0) * 2, (p[2] ?? 0) * 2]) as number[][];
 
       // Second prediction with scaled data
       const res2 = window.__mlpPredict!(

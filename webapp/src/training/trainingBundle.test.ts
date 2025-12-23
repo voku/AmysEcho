@@ -47,9 +47,9 @@ describe('createTrainingZip', () => {
     const metadataBytes = metadataEntry;
     expect(metadataBytes?.length ?? 0).toBeGreaterThan(0);
     const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array())) as Record<string, unknown>;
-    expect(metadata.profileId).toBe('p1');
-    expect(metadata.label).toBe('HILFE');
-    expect(metadata.clipFilename).toBe('clip.mp4');
+    expect(metadata['profileId']).toBe('p1');
+    expect(metadata['label']).toBe('HILFE');
+    expect(metadata['clipFilename']).toBe('clip.mp4');
 
     const landmarksBytes = entries['landmarks.json'] ?? entries['landmarks.json/'];
     expect(landmarksBytes?.length ?? 0).toBeGreaterThan(0);
@@ -68,10 +68,18 @@ describe('createTrainingZip', () => {
     };
     expect(Array.isArray(landmarks.frames)).toBe(true);
     const firstFrame = landmarks.frames[0];
-    expect(firstFrame?.landmarks?.length).toBe(42);
-    expect(firstFrame?.handLandmarks?.[0]?.[0]).toEqual([0.1, 0.2, 0.3]);
-    expect(firstFrame?.poseLandmarks?.[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
-    expect(firstFrame?.faceLandmarks?.[0]).toEqual([0.25, 0.75, 0.05]);
+    if (firstFrame) {
+      expect(firstFrame.landmarks.length).toBe(42);
+      if (firstFrame.handLandmarks[0]) {
+        expect(firstFrame.handLandmarks[0][0]).toEqual([0.1, 0.2, 0.3]);
+      }
+      if (firstFrame.poseLandmarks) {
+        expect(firstFrame.poseLandmarks[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
+      }
+      if (firstFrame.faceLandmarks && firstFrame.faceLandmarks[0]) {
+        expect(firstFrame.faceLandmarks[0]).toEqual([0.25, 0.75, 0.05]);
+      }
+    }
     expect(landmarks.metadata.modalities).toEqual({
       hands: { present: true, frameCount: 1, coverage: 1 },
       pose: { present: true, frameCount: 1, coverage: 1 },
@@ -104,7 +112,7 @@ describe('createTrainingZip', () => {
     const entries = unzipSync(zip);
     const metadataBytes = entries['metadata.json'];
     const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array())) as Record<string, unknown>;
-    expect(metadata.handFocus).toBe('dominant_only');
+    expect(metadata['handFocus']).toBe('dominant_only');
   });
 
   it('übernimmt Aufnahme-Metadaten und Frame-Zeitstempel', async () => {
@@ -121,9 +129,9 @@ describe('createTrainingZip', () => {
       },
       frames: [
         {
-          ...basePayload.frames[0],
+          ...(basePayload.frames[0] ?? {}),
           timestampMs,
-        },
+        } as any,
       ],
     };
 
@@ -145,7 +153,10 @@ describe('createTrainingZip', () => {
     const landmarks = JSON.parse(strFromU8(landmarksBytes ?? new Uint8Array())) as {
       frames: Array<{ timestampMs?: number }>;
     };
-    expect(landmarks.frames[0].timestampMs).toBe(timestampMs);
+    const f0 = landmarks.frames[0];
+    if (f0) {
+      expect(f0.timestampMs).toBe(timestampMs);
+    }
   });
 
   it('bricht ab, wenn keine Hand-Landmarks enthalten sind', async () => {
@@ -214,31 +225,43 @@ describe('createTrainingZip', () => {
 
     expect(landmarks.frames).toHaveLength(3);
     
-    // Frame 1: Both hands, pose, and face present
-    expect(landmarks.frames[0].handedness).toEqual(['Left', 'Right']);
-    expect(landmarks.frames[0].handLandmarks).toHaveLength(2);
-    expect(landmarks.frames[0].handLandmarks[0][0]).toEqual([0.1, 0.2, 0.3]);
-    expect(landmarks.frames[0].handLandmarks[1][0]).toEqual([0.4, 0.5, 0.6]);
-    expect(landmarks.frames[0].poseLandmarks).toHaveLength(2);
-    expect(landmarks.frames[0].poseLandmarks[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
-    expect(landmarks.frames[0].faceLandmarks).toHaveLength(2);
-    expect(landmarks.frames[0].faceLandmarks[0]).toEqual([0.25, 0.75, 0.05]);
+    const f0 = landmarks.frames[0];
+    if (f0) {
+      expect(f0.handedness).toEqual(['Left', 'Right']);
+      expect(f0.handLandmarks).toHaveLength(2);
+      expect(f0.handLandmarks[0]?.[0]).toEqual([0.1, 0.2, 0.3]);
+      expect(f0.handLandmarks[1]?.[0]).toEqual([0.4, 0.5, 0.6]);
+      expect(f0.poseLandmarks).toHaveLength(2);
+      expect(f0.poseLandmarks[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
+      expect(f0.faceLandmarks).toHaveLength(2);
+      if (f0.faceLandmarks && f0.faceLandmarks[0]) {
+        expect(f0.faceLandmarks[0]).toEqual([0.25, 0.75, 0.05]);
+      }
+    }
     
     // Frame 2: Left hand, pose, and face present
-    expect(landmarks.frames[1].handedness).toEqual(['Left']);
-    expect(landmarks.frames[1].handLandmarks).toHaveLength(2);
-    expect(landmarks.frames[1].handLandmarks[0][0]).toEqual([0.11, 0.21, 0.31]);
-    expect(landmarks.frames[1].poseLandmarks).toHaveLength(1);
-    expect(landmarks.frames[1].poseLandmarks[0]).toEqual([0.51, 0.61, 0.11, 0.91]);
-    expect(landmarks.frames[1].faceLandmarks).toHaveLength(1);
-    expect(landmarks.frames[1].faceLandmarks[0]).toEqual([0.27, 0.77, 0.06]);
+    const f1 = landmarks.frames[1];
+    if (f1) {
+      expect(f1.handedness).toEqual(['Left']);
+      expect(f1.handLandmarks).toHaveLength(2);
+      expect(f1.handLandmarks[0]?.[0]).toEqual([0.11, 0.21, 0.31]);
+      expect(f1.poseLandmarks).toHaveLength(1);
+      expect(f1.poseLandmarks[0]).toEqual([0.51, 0.61, 0.11, 0.91]);
+      expect(f1.faceLandmarks).toHaveLength(1);
+      if (f1.faceLandmarks && f1.faceLandmarks[0]) {
+        expect(f1.faceLandmarks[0]).toEqual([0.27, 0.77, 0.06]);
+      }
+    }
     
     // Frame 3: Right hand only, no pose or face
-    expect(landmarks.frames[2].handedness).toEqual(['Right']);
-    expect(landmarks.frames[2].handLandmarks).toHaveLength(2);
-    expect(landmarks.frames[2].handLandmarks[1][0]).toEqual([0.41, 0.51, 0.61]);
-    expect(landmarks.frames[2].poseLandmarks).toHaveLength(0);
-    expect(landmarks.frames[2].faceLandmarks).toHaveLength(0);
+    const f2 = landmarks.frames[2];
+    if (f2) {
+      expect(f2.handedness).toEqual(['Right']);
+      expect(f2.handLandmarks).toHaveLength(2);
+      expect(f2.handLandmarks[1]?.[0]).toEqual([0.41, 0.51, 0.61]);
+      expect(f2.poseLandmarks).toHaveLength(0);
+      expect(f2.faceLandmarks).toHaveLength(0);
+    }
     
     // Verify modality metadata
     expect(landmarks.metadata.modalities.hands).toEqual({ present: true, frameCount: 3, coverage: 1 });
@@ -267,10 +290,15 @@ describe('createTrainingZip', () => {
       frames: Array<{ poseLandmarks?: number[][] }>;
     };
 
-    // This test ensures pose landmarks are never dropped
-    expect(landmarks.frames[0].poseLandmarks).toBeDefined();
-    expect(landmarks.frames[0].poseLandmarks).toHaveLength(1);
-    expect(landmarks.frames[0].poseLandmarks![0]).toEqual([0.5, 0.6, 0.1, 0.9]);
+    const f0 = landmarks.frames[0];
+    if (f0 && f0.poseLandmarks) {
+      expect(f0.poseLandmarks).toBeDefined();
+      expect(f0.poseLandmarks).toHaveLength(1);
+      const firstPose = f0.poseLandmarks[0];
+      if (firstPose) {
+        expect(firstPose).toEqual([0.5, 0.6, 0.1, 0.9]);
+      }
+    }
   });
 
   it('bewahrt Face-Landmarks nach der Verarbeitung', async () => {
@@ -293,10 +321,15 @@ describe('createTrainingZip', () => {
       frames: Array<{ faceLandmarks?: number[][] }>;
     };
 
-    // This test ensures face landmarks are never dropped
-    expect(landmarks.frames[0].faceLandmarks).toBeDefined();
-    expect(landmarks.frames[0].faceLandmarks).toHaveLength(1);
-    expect(landmarks.frames[0].faceLandmarks![0]).toEqual([0.25, 0.75, 0.05]);
+    const f0 = landmarks.frames[0];
+    if (f0 && f0.faceLandmarks) {
+      expect(f0.faceLandmarks).toBeDefined();
+      expect(f0.faceLandmarks).toHaveLength(1);
+      const firstFace = f0.faceLandmarks[0];
+      if (firstFace) {
+        expect(firstFace).toEqual([0.25, 0.75, 0.05]);
+      }
+    }
   });
 
   it('bewahrt Smoothing-Konfiguration in Metadaten', async () => {
@@ -320,7 +353,9 @@ describe('createTrainingZip', () => {
 
     // This test ensures smoothing config is preserved in metadata
     expect(metadata.smoothing).toBeDefined();
-    expect(metadata.smoothing).toEqual(customSmoothing);
+    if (metadata.smoothing) {
+      expect(metadata.smoothing).toEqual(customSmoothing);
+    }
   });
 });
 
@@ -345,10 +380,13 @@ describe('uploadTrainingBundle', () => {
     const result = await uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
     expect(result.id).toBe('bundle-1');
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [, requestInit] = fetchSpy.mock.calls[0];
-    expect(requestInit?.method).toBe('POST');
-    expect(requestInit?.headers).toMatchObject({ 'Content-Type': 'application/zip' });
-    expect(requestInit?.body).toBeInstanceOf(Blob);
+    const firstCall = fetchSpy.mock.calls[0];
+    if (firstCall) {
+      const [, requestInit] = firstCall;
+      expect(requestInit?.method).toBe('POST');
+      expect(requestInit?.headers).toMatchObject({ 'Content-Type': 'application/zip' });
+      expect(requestInit?.body).toBeInstanceOf(Blob);
+    }
   });
 
   it('wirft einen Fehler, wenn kein Upload-Endpunkt konfiguriert ist', async () => {

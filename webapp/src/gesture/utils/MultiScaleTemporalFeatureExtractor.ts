@@ -132,7 +132,9 @@ export class MultiScaleTemporalFeatureExtractor {
         // Convolve: weighted sum of kernel and signal
         let sum = 0;
         for (let k = 0; k < scale; k++) {
-          sum += (sequence[t + k]?.[f] ?? 0) * kernel[k];
+          const seqVal = sequence[t + k]?.[f] ?? 0;
+          const kernelVal = kernel[k] ?? 0;
+          sum += seqVal * kernelVal;
         }
         frame.push(sum);
       }
@@ -235,7 +237,10 @@ export class MultiScaleTemporalFeatureExtractor {
             const weight = 0.5 + 0.5 * Math.max(0, scaleMatch); // Range [0.5, 1.0]
             
             for (let i = startIdx; i < endIdx; i++) {
-              frame[i] *= weight;
+              const currentVal = frame[i];
+              if (currentVal !== undefined) {
+                frame[i] = currentVal * weight;
+              }
             }
           }
         }

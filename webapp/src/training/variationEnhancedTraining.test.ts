@@ -2,6 +2,7 @@
  * Tests for Variation-Enhanced Training Service
  */
 
+import { describe, it, expect, beforeEach } from 'vitest';
 import { SignVariationTracker } from '../services/signVariationTracker';
 import {
   enhanceWithVariationData,
@@ -101,9 +102,12 @@ describe('Variation-Enhanced Training', () => {
       const recommendations = getVariationTrainingRecommendations(tracker, ['hello']);
 
       if (recommendations.length > 0) {
-        expect(recommendations[0].reason).toBeTruthy();
-        // Should contain German text
-        expect(recommendations[0].reason.length).toBeGreaterThan(0);
+        const firstRec = recommendations[0];
+        if (firstRec) {
+          expect(firstRec.reason).toBeTruthy();
+          // Should contain German text
+          expect(firstRec.reason.length).toBeGreaterThan(0);
+        }
       }
     });
   });

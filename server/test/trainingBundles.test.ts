@@ -41,7 +41,11 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let dataDir: string;
   let manifestPath: string;
   type TriggerCall = { bundleId: string; profileId: string | null; label: string };
-  type TriggerResult = { jobId: string; status: string; pollUrl?: string };
+  type TriggerResult = {
+    jobId: string;
+    status: 'queued' | 'running' | 'completed' | 'failed';
+    pollUrl?: string;
+  };
   let triggerCalls: TriggerCall[];
   let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
   let accessToken: string;
@@ -70,14 +74,14 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       role: 'caregiver',
     }).accessToken;
     const mod = await import('../src/routes/trainingBundleRoute.js');
-    const registerRoute: RegisterTrainingBundleRoute = mod.registerTrainingBundleRoute;
+    const registerRoute = mod.registerTrainingBundleRoute;
     const { TRAINING_MANIFEST_PATH } = await import('../src/constants/modelPaths.js');
     app = express();
     let counter = 0;
     triggerCalls = [];
     triggerOverride = null;
     registerRoute(app, () => `bundle-${++counter}`, {
-      triggerTrainingJob: (context) => {
+      triggerTrainingJob: (context: TriggerCall) => {
         triggerCalls.push(context);
         if (triggerOverride) {
           return triggerOverride(context);
@@ -177,7 +181,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         id: string;
         profileId: string | null;
         label: string;
-        storage: { directory: string; bundle: string; files: string[]; clip?: string };
+        storage: { directory: string; bundle: string; files: string[]; clip?: string; still?: string };
         metadata: any;
       }>;
     };

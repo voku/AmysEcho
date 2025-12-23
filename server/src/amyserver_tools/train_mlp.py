@@ -1917,6 +1917,7 @@ def train_models(
     """Train global and per-profile models. Returns (profiles_report, global_report)."""
 
     resolved_config = config or TrainingConfig()
+    trainer_config = replace(resolved_config, return_best_and_final=True)
 
     global_report = {"samples": 0, "accuracy": 0.0, "labels": {}}
     profiles_report: Dict[str, dict] = {}
@@ -1964,7 +1965,6 @@ def train_models(
             if val_quality is not None and val_quality.size:
                 val_weights = val_quality if val_weights is None else val_weights * val_quality
 
-            trainer_config = replace(resolved_config, return_best_and_final=True)
             snapshot = train_mlp(
                 X_train,
                 y_train,

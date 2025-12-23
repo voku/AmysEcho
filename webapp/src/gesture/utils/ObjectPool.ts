@@ -11,7 +11,7 @@ export class ObjectPool<T> {
 
   constructor(createFn: () => T, resetFn?: (obj: T) => void, maxSize = 100) {
     this.createFn = createFn;
-    this.resetFn = resetFn;
+    if (resetFn !== undefined) this.resetFn = resetFn;
     this.maxSize = maxSize;
   }
 

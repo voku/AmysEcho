@@ -85,7 +85,7 @@ export class GestureReplayManager {
 
     // Convert landmarks to serializable format
     const frameLandmarks: number[][] = landmarks.flatMap((hand: number[][]) =>
-      hand.map((lm: number[]) => [lm[0], lm[1], lm[2] ?? 0]),
+      hand.map((lm: number[]) => [lm[0] ?? 0, lm[1] ?? 0, lm[2] ?? 0]),
     );
 
     this.currentRecording.landmarkSequence.push(frameLandmarks);

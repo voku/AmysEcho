@@ -142,6 +142,9 @@ export class OptimizedGestureCombinationManager {
       if (this.sequenceMatches(chronologicalSequence, gestures)) {
         const earliestGesture = chronologicalSequence[0];
         const latestGesture = chronologicalSequence[chronologicalSequence.length - 1];
+        
+        if (!earliestGesture || !latestGesture) continue;
+        
         const timeSpan = latestGesture.timestamp - earliestGesture.timestamp;
 
         if (timeSpan <= timeWindow) {
@@ -171,7 +174,9 @@ export class OptimizedGestureCombinationManager {
     if (candidate.length !== target.length) return false;
 
     for (let i = 0; i < target.length; i++) {
-      if (candidate[i].gesture !== target[i]) {
+      const cand = candidate[i];
+      const targ = target[i];
+      if (!cand || cand.gesture !== targ) {
         return false;
       }
     }
@@ -231,13 +236,15 @@ export class OptimizedGestureCombinationManager {
     currentTime: number
   ): { progress: number; nextGesture: string; timeRemaining: number } {
     if (history.length === 0) {
-      return { progress: 0, nextGesture: sequence.gestures[0], timeRemaining: sequence.timeWindow };
+      return { progress: 0, nextGesture: sequence.gestures[0] ?? '', timeRemaining: sequence.timeWindow };
     }
 
     // Find the longest matching prefix
     let matchLength = 0;
     for (let i = 0; i < Math.min(history.length, sequence.gestures.length); i++) {
-      if (history[history.length - 1 - i].gesture === sequence.gestures[sequence.gestures.length - 1 - i]) {
+      const histEntry = history[history.length - 1 - i];
+      const seqEntry = sequence.gestures[sequence.gestures.length - 1 - i];
+      if (histEntry && histEntry.gesture === seqEntry) {
         matchLength++;
       } else {
         break;
@@ -245,12 +252,13 @@ export class OptimizedGestureCombinationManager {
     }
 
     const progress = matchLength / sequence.gestures.length;
-    const nextGesture = matchLength < sequence.gestures.length ? sequence.gestures[matchLength] : '';
+    const nextGesture = matchLength < sequence.gestures.length ? (sequence.gestures[matchLength] ?? '') : '';
 
     // Calculate time remaining based on last matching gesture
     let timeRemaining = sequence.timeWindow;
     if (matchLength > 0) {
-      const lastMatchTime = history[history.length - matchLength].timestamp;
+      const lastHistEntry = history[history.length - matchLength];
+      const lastMatchTime = lastHistEntry ? lastHistEntry.timestamp : currentTime;
       const elapsed = currentTime - lastMatchTime;
       timeRemaining = Math.max(0, sequence.timeWindow - elapsed);
     }

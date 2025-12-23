@@ -310,11 +310,11 @@ export class HapticFeedbackManager {
    * Get adapted haptic pattern based on preferences and context
    */
   private getAdaptedPattern(event: string, context?: any): WebviewHapticPattern | null {
-    let basePattern = this.patterns[event as keyof typeof this.patterns];
+    let basePattern = this.patterns[event];
 
     if (!basePattern) {
       // Fallback to light haptic for unknown events
-      basePattern = this.patterns.hand_detected;
+      basePattern = this.patterns['hand_detected'];
     }
 
     if (!basePattern) {
@@ -430,7 +430,11 @@ export class HapticFeedbackManager {
 
     const intervals = [];
     for (let i = 1; i < this.hapticHistory.length; i++) {
-      intervals.push(this.hapticHistory[i].timestamp - this.hapticHistory[i - 1].timestamp);
+      const current = this.hapticHistory[i];
+      const previous = this.hapticHistory[i - 1];
+      if (current && previous) {
+        intervals.push(current.timestamp - previous.timestamp);
+      }
     }
     const averageInterval = intervals.length > 0
       ? intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length

@@ -53,7 +53,7 @@ describe('Training Pipeline Compatibility', () => {
 
     it('should handle two-hand gestures in training format', () => {
       const leftHand = createServerFormatLandmarks();
-      const rightHand = createServerFormatLandmarks().map(l => [l[0] + 0.3, l[1], l[2]]);
+      const rightHand = createServerFormatLandmarks().map(l => [(l[0] ?? 0) + 0.3, l[1] ?? 0, l[2] ?? 0]);
       
       const recognizer = new EnhancedGestureRecognizer();
       
@@ -113,8 +113,9 @@ describe('Training Pipeline Compatibility', () => {
         expect(features.length).toBeGreaterThan(0);
         
         // Features should be consistent dimensions
-        const expectedDim = flatSequence[0].length * 3; // 3 scales
-        if (features[0]) {
+        const firstFlat = flatSequence[0];
+        if (firstFlat && features[0]) {
+          const expectedDim = firstFlat.length * 3; // 3 scales
           expect(features[0].length).toBe(expectedDim);
         }
       } finally {
@@ -161,12 +162,14 @@ describe('Training Pipeline Compatibility', () => {
           recognizer.recordSuccess('HALLO', landmarks, 0.9 + i * 0.01);
         }
         
-        // Export learned patterns
+        // Check aggregated attention
         const patterns = recognizer.exportLearnedPatterns();
-        
-        expect(patterns.HALLO).toBeDefined();
-        expect(patterns.HALLO.sampleCount).toBe(5);
-        expect(patterns.HALLO.attentionPattern).toHaveLength(21);
+        const halloPattern = patterns['HALLO'];
+        expect(halloPattern).toBeDefined();
+        if (halloPattern) {
+          expect(halloPattern.sampleCount).toBe(5);
+          expect(halloPattern.attentionPattern).toHaveLength(21);
+        }
       } finally {
         recognizer.dispose();
       }
@@ -231,14 +234,19 @@ describe('Model Prediction Compatibility', () => {
         results.push(attention.computeAttentionWeights(landmarks));
       }
       
-      // All results should be identical for same input
       for (let i = 1; i < results.length; i++) {
-        expect(results[i].jointWeights).toEqual(results[0].jointWeights);
+        const res = results[i];
+        const res0 = results[0];
+        if (res && res0) {
+          expect(res.jointWeights).toEqual(res0.jointWeights);
+        }
       }
       
-      // Weights should sum to 1 (normalized)
-      const sum = results[0].jointWeights.reduce((a, b) => a + b, 0);
-      expect(sum).toBeCloseTo(1.0, 5);
+      const res0 = results[0];
+      if (res0) {
+        const sum = res0.jointWeights.reduce((a: number, b: number) => a + b, 0);
+        expect(sum).toBeCloseTo(1.0, 5);
+      }
     } finally {
       attention.dispose();
     }
@@ -398,7 +406,7 @@ function createTrainingFrameSequence(numFrames: number): number[][][] {
     const landmarks = createServerFormatLandmarks();
     // Add slight movement over time
     const offset = f * 0.005;
-    const movedLandmarks = landmarks.map(l => [l[0] + offset, l[1], l[2]]);
+    const movedLandmarks = landmarks.map(l => [(l[0] ?? 0) + offset, l[1] ?? 0, l[2] ?? 0]);
     sequence.push(movedLandmarks);
   }
   

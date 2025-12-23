@@ -160,8 +160,16 @@ export class GestureCombinationManager {
 
     // Calculate combination confidence and time span
     const matchedGestures = recentGestures.slice(-gestures.length);
+    if (matchedGestures.length === 0) return null;
+    
     const avgConfidence = matchedGestures.reduce((sum, g) => sum + g.confidence, 0) / matchedGestures.length;
-    const timeSpan = matchedGestures[matchedGestures.length - 1].timestamp - matchedGestures[0].timestamp;
+    
+    const lastGesture = matchedGestures[matchedGestures.length - 1];
+    const firstGesture = matchedGestures[0];
+    
+    if (!lastGesture || !firstGesture) return null;
+    
+    const timeSpan = lastGesture.timestamp - firstGesture.timestamp;
 
     // Clear the matched gestures from history to prevent duplicate detection
     this.clearMatchedGestures(matchedGestures);
@@ -192,15 +200,20 @@ export class GestureCombinationManager {
     const candidateGestures = recentGestures.slice(-expectedSequence.length);
 
     for (let i = 0; i < expectedSequence.length; i++) {
-      if (candidateGestures[i].gesture !== expectedSequence[i] ||
-          candidateGestures[i].confidence < minConfidence) {
+      const candidate = candidateGestures[i];
+      if (!candidate || candidate.gesture !== expectedSequence[i] ||
+          candidate.confidence < minConfidence) {
         return false;
       }
     }
 
     // Check timing - gestures should be reasonably spaced
     for (let i = 1; i < candidateGestures.length; i++) {
-      const timeDiff = candidateGestures[i].timestamp - candidateGestures[i - 1].timestamp;
+      const current = candidateGestures[i];
+      const previous = candidateGestures[i - 1];
+      if (!current || !previous) continue;
+      
+      const timeDiff = current.timestamp - previous.timestamp;
       if (timeDiff < this.MIN_SEQUENCE_TIME || timeDiff > this.MAX_SEQUENCE_TIME) {
         return false;
       }
@@ -233,13 +246,14 @@ export class GestureCombinationManager {
 
     const messages = baseMessages[combinationName as keyof typeof baseMessages] || ['Great combination!'];
     const messageIndex = Math.floor(Math.random() * messages.length);
+    const message = messages[messageIndex] ?? 'Great combination!';
 
     if (confidence > 0.8) {
-      return messages[messageIndex] + ' (Perfect timing!)';
+      return message + ' (Perfect timing!)';
     } else if (confidence > 0.7) {
-      return messages[messageIndex] + ' (Nice work!)';
+      return message + ' (Nice work!)';
     } else {
-      return messages[messageIndex];
+      return message;
     }
   }
 
@@ -302,7 +316,9 @@ export class GestureCombinationManager {
     // Check if recent gestures match the start of the sequence
     let matchCount = 0;
     for (let i = 0; i < Math.min(recentGestures.length, gestures.length - 1); i++) {
-      if (recentGestures[recentGestures.length - 1 - i].gesture === gestures[gestures.length - 1 - i]) {
+      const recent = recentGestures[recentGestures.length - 1 - i];
+      const expected = gestures[gestures.length - 1 - i];
+      if (recent && recent.gesture === expected) {
         matchCount++;
       } else {
         break;
@@ -313,7 +329,7 @@ export class GestureCombinationManager {
       return {
         expected: sequence.combinationName,
         progress: matchCount / gestures.length,
-        nextGesture: gestures[matchCount]
+        nextGesture: gestures[matchCount] ?? ''
       };
     }
 

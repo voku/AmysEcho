@@ -104,7 +104,7 @@ export class FeedbackSystem {
 
     // Get mood-appropriate feedback
     const moodFeedback = this.moodBasedFeedback[mood][effortLevel];
-    const primaryMessage = moodFeedback[Math.floor(Math.random() * moodFeedback.length)];
+    const primaryMessage = moodFeedback[Math.floor(Math.random() * moodFeedback.length)] ?? '';
 
     // Add gesture-specific encouragement
     const fallbackKey: GestureFeedbackKey =
@@ -112,7 +112,7 @@ export class FeedbackSystem {
     const gestureKey = this.isGestureFeedbackKey(attemptResult.gesture)
       ? attemptResult.gesture
       : fallbackKey;
-    const gestureFeedback = this.gestureSpecificFeedback[gestureKey];
+    const gestureFeedback = this.gestureSpecificFeedback[gestureKey]!;
 
     // Generate secondary message based on context
     let secondaryMessage = gestureFeedback.encouragement;
@@ -126,10 +126,10 @@ export class FeedbackSystem {
     } else if (attemptResult.attemptCount > 5) {
       // Multiple attempts - provide variety
       const variations = this.timeBasedVariations.consistent_practice;
-      secondaryMessage = variations[Math.floor(Math.random() * variations.length)];
+      secondaryMessage = variations[Math.floor(Math.random() * variations.length)] ?? gestureFeedback.encouragement;
     } else if (attemptResult.timeSinceLastAttempt > 300000) { // 5 minutes
       const variations = this.timeBasedVariations.long_break;
-      secondaryMessage = variations[Math.floor(Math.random() * variations.length)];
+      secondaryMessage = variations[Math.floor(Math.random() * variations.length)] ?? gestureFeedback.encouragement;
     }
 
     // Add tip for unsuccessful attempts
@@ -143,7 +143,7 @@ export class FeedbackSystem {
     return {
       primaryMessage,
       secondaryMessage,
-      tip,
+      ...(tip !== undefined ? { tip } : {}),
       showBreakSuggestion,
       encouragement
     };
@@ -191,7 +191,7 @@ export class FeedbackSystem {
     return lowEffortCount >= this.frustrationThreshold;
   }
 
-  private generateEncouragement(attempt: FeedbackAttempt, mood: string): string {
+  private generateEncouragement(_attempt: FeedbackAttempt, mood: string): string {
     const encouragements = {
       calm: [
         'Du gehst das ganz ruhig an - das ist perfekt!',
@@ -216,7 +216,7 @@ export class FeedbackSystem {
     };
 
     const moodEncouragements = encouragements[mood as keyof typeof encouragements] || encouragements.calm;
-    return moodEncouragements[Math.floor(Math.random() * moodEncouragements.length)];
+    return moodEncouragements[Math.floor(Math.random() * moodEncouragements.length)] ?? 'Du machst das prima!';
   }
 
   getFeedbackStats(): {

@@ -71,7 +71,10 @@ describe('profileRegistry', () => {
 
       const profiles = await listProfiles();
       expect(profiles).toHaveLength(1);
-      expect(profiles[0].uuid).toBe(profile.uuid);
+      const firstProfile = profiles[0];
+      if (firstProfile) {
+        expect(firstProfile.uuid).toBe(profile.uuid);
+      }
     });
 
     it('should set first profile as active', async () => {
@@ -153,20 +156,30 @@ describe('profileRegistry', () => {
       await updateProfile(profile.uuid, { displayName: 'Amy Marie' });
 
       const profiles = await listProfiles();
-      expect(profiles[0].displayName).toBe('Amy Marie');
+      expect(profiles).toHaveLength(1);
+      const firstProfile = profiles[0];
+      if (firstProfile) {
+        expect(firstProfile.displayName).toBe('Amy Marie');
+      }
     });
 
     it('should update profile metadata', async () => {
-      const profile = await createProfile({ displayName: 'Amy' });
+      const profile = await createProfile({
+        displayName: 'Amy',
+        metadata: { childAge: 5, avatar: '👶' }
+      });
       await addProfile(profile);
 
       await updateProfile(profile.uuid, {
-        metadata: { childAge: 6, avatar: '🌈' },
+        metadata: { childAge: 6, avatar: '🌈' }
       });
 
       const profiles = await listProfiles();
-      expect(profiles[0].metadata.childAge).toBe(6);
-      expect(profiles[0].metadata.avatar).toBe('🌈');
+      const firstProfile = profiles[0];
+      if (firstProfile) {
+        expect(firstProfile.metadata.childAge).toBe(6);
+        expect(firstProfile.metadata.avatar).toBe('🌈');
+      }
     });
 
     it('should throw error when updating non-existent profile', async () => {

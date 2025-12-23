@@ -7,7 +7,7 @@
  * Migrated from app/test/amyFirstCritical.test.ts with adaptations for webapp architecture.
  */
 
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { gestureHistoryService } from '../gestureHistoryService';
 import { zeroDowntimeModelService } from '../zeroDowntimeModelService';
 

@@ -31,7 +31,10 @@ describe('TelemetryRecorder', () => {
     await recorder.whenReady();
     const dumped = await recorder.dump();
     expect(dumped).toHaveLength(1);
-    expect(dumped[0].event).toBe('existing');
+    const firstEvent = dumped[0];
+    if (firstEvent) {
+      expect(firstEvent.event).toBe('existing');
+    }
   });
 
   it('caps buffer to max entries and clears storage on dump', async () => {

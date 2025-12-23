@@ -55,8 +55,8 @@ describe('EnhancedGestureRecognizer', () => {
     it('should extract temporal features when sequence is provided', () => {
       const sequence = [
         createTestHandLandmarks(),
-        createTestHandLandmarks().map(l => [l[0] + 0.01, l[1], l[2]]),
-        createTestHandLandmarks().map(l => [l[0] + 0.02, l[1], l[2]]),
+        createTestHandLandmarks().map(l => [(l[0] ?? 0) + 0.01, l[1] ?? 0, l[2] ?? 0]),
+        createTestHandLandmarks().map(l => [(l[0] ?? 0) + 0.02, l[1] ?? 0, l[2] ?? 0]),
       ];
       
       // Process as sequence
@@ -70,7 +70,7 @@ describe('EnhancedGestureRecognizer', () => {
   describe('two-hand recognition', () => {
     it('should process two-hand gestures with cross-hand attention', () => {
       const leftHand = createTestHandLandmarks();
-      const rightHand = createTestHandLandmarks().map(l => [l[0] + 0.3, l[1], l[2]]);
+      const rightHand = createTestHandLandmarks().map(l => [(l[0] ?? 0) + 0.3, l[1] ?? 0, l[2] ?? 0]);
       
       const result = recognizer.processTwoHands(leftHand, rightHand);
       
@@ -81,7 +81,7 @@ describe('EnhancedGestureRecognizer', () => {
 
     it('should compute symmetry score for two hands', () => {
       const leftHand = createTestHandLandmarks();
-      const rightHand = leftHand.map(l => [1 - l[0], l[1], l[2]]); // Mirror
+      const rightHand = leftHand.map(l => [1 - (l[0] ?? 0), l[1] ?? 0, l[2] ?? 0]); // Mirror
       
       const result = recognizer.processTwoHands(leftHand, rightHand);
       
@@ -91,7 +91,7 @@ describe('EnhancedGestureRecognizer', () => {
     it('should detect interaction points between hands', () => {
       // Create hands with overlapping positions
       const leftHand = createTestHandLandmarks();
-      const rightHand = createTestHandLandmarks().map(l => [l[0] + 0.05, l[1], l[2]]);
+      const rightHand = createTestHandLandmarks().map(l => [(l[0] ?? 0) + 0.05, l[1] ?? 0, l[2] ?? 0]);
       
       const result = recognizer.processTwoHands(leftHand, rightHand);
       

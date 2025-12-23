@@ -193,7 +193,10 @@ export class GestureUndoManager {
     );
 
     if (targetIndex >= 0) {
-      this.gestureHistory[targetIndex].canUndo = false;
+      const gesture = this.gestureHistory[targetIndex];
+      if (gesture) {
+        gesture.canUndo = false;
+      }
     }
 
     // Send undo confirmation to React Native
@@ -241,7 +244,7 @@ export class GestureUndoManager {
     // Find the most recent undoable gesture within the time window
     for (let i = this.gestureHistory.length - 1; i >= 0; i--) {
       const gesture = this.gestureHistory[i];
-      if (gesture.canUndo && (now - gesture.timestamp) <= this.UNDO_WINDOW) {
+      if (gesture && gesture.canUndo && (now - gesture.timestamp) <= this.UNDO_WINDOW) {
         return gesture;
       }
     }

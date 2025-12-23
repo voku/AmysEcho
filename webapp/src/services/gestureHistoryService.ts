@@ -116,8 +116,12 @@ class GestureHistoryService {
       return `fallback-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
     }
     const bytes = crypto.getRandomValues(new Uint8Array(16));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
-    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant
+    const b6 = bytes[6];
+    const b8 = bytes[8];
+    if (b6 !== undefined && b8 !== undefined) {
+      bytes[6] = (b6 & 0x0f) | 0x40; // version 4
+      bytes[8] = (b8 & 0x3f) | 0x80; // variant
+    }
     const toHex = (value: number) => value.toString(16).padStart(2, '0');
     const hex = Array.from(bytes, toHex).join('');
     return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`;

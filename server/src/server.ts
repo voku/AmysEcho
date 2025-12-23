@@ -386,9 +386,9 @@ async function runTrainingWorkflow(
   await logTraining(`job ${id}: label counts computed global=${Object.keys(globalCounts).length}`);
 
   const profileIdSet = new Set<string>();
-  for (const pid of profileCounts.keys()) {
+  Array.from(profileCounts.keys()).forEach((pid) => {
     profileIdSet.add(pid);
-  }
+  });
   for (const pid of samples
     .map((s) => s.profileId)
     .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p))) {
@@ -701,7 +701,7 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
   const trainingSamples: TrainingSample[] = samples.map((sample) => ({
     gestureDefinitionId: sample.gestureDefinitionId,
     profileId: sample.profileId ?? null,
-    landmarkData: sample.landmarkData,
+    landmarkData: sample.landmarkData as number[][],
   }));
 
   const { jobId, status, queueDepth, retryAfterMs } = startTrainingJob(

@@ -3,7 +3,7 @@
  * Provides accessibility settings and preferences.
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
 interface AccessibilitySettings {
   largeText: boolean;
