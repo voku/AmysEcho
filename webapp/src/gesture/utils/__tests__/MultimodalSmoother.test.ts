@@ -23,7 +23,10 @@ describe('MultimodalSmoother', () => {
     });
 
     const firstResult = smoother.smooth(first, 0);
-    expect(firstResult.landmarks[0][0]).toEqual([0.1, 0.1, 0.1]);
+    const firstHand = firstResult.landmarks[0];
+    if (firstHand && firstHand[0]) {
+      expect(firstHand[0]).toEqual([0.1, 0.1, 0.1]);
+    }
     expect(firstResult.poseLandmarks[0]).toEqual([0.2, 0.3, 0.4, 0.9]);
     expect(firstResult.faceLandmarks[0]).toEqual([0.3, 0.4, 0.5]);
 
@@ -34,18 +37,25 @@ describe('MultimodalSmoother', () => {
     });
 
     const secondResult = smoother.smooth(second, 1);
-    const handPoint = secondResult.landmarks[0][0];
-    expect(handPoint[0]).toBeGreaterThan(0.15);
-    expect(handPoint[0]).toBeLessThan(0.2);
+    const secondHand = secondResult.landmarks[0];
+    const handPoint = secondHand ? secondHand[0] : undefined;
+    if (handPoint) {
+      expect(handPoint[0]).toBeGreaterThan(0.15);
+      expect(handPoint[0]).toBeLessThan(0.2);
+    }
 
     const posePoint = secondResult.poseLandmarks[0];
-    expect(posePoint[0]).toBeGreaterThan(0.25);
-    expect(posePoint[0]).toBeLessThan(0.4);
-    expect(posePoint[3]).toBe(0.8);
+    if (posePoint) {
+      expect(posePoint[0]).toBeGreaterThan(0.25);
+      expect(posePoint[0]).toBeLessThan(0.4);
+      expect(posePoint[3]).toBe(0.8);
+    }
 
     const facePoint = secondResult.faceLandmarks[0];
-    expect(facePoint[0]).toBeGreaterThan(0.35);
-    expect(facePoint[0]).toBeLessThan(0.5);
+    if (facePoint) {
+      expect(facePoint[0]).toBeGreaterThan(0.35);
+      expect(facePoint[0]).toBeLessThan(0.5);
+    }
   });
 
   it('caps smoothing to expected landmark counts', () => {

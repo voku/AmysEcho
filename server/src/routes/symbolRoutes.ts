@@ -21,6 +21,7 @@ const SymbolPayloadSchema = z.object({
     .regex(/^data:image\//)
     .max(8 * 1024 * 1024, 'image too large')
     .optional(),
+  profileId: z.string().optional(),
 });
 
 function normalizeSymbolPayload(body: unknown) {
@@ -46,12 +47,29 @@ function toClientSymbol(symbol: SymbolRecord) {
     name: symbol.name,
     category: symbol.category ?? 'custom',
     imageUrl: symbol.imageUrl ?? null,
+    profileId: symbol.profileId,
   };
 }
 
 export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: RequestHandler): void {
-  app.get('/api/v1/symbols', async (_req: Request, res: Response) => {
-    const symbols = db.symbols.map(toClientSymbol);
+  app.get('/api/v1/symbols', async (req: Request, res: Response) => {
+    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    
+    // Separate global and profile-specific symbols
+    const globalSymbols = db.symbols.filter((s) => !s.profileId);
+    const profileSymbols = profileId 
+      ? db.symbols.filter((s) => s.profileId === profileId)
+      : [];
+
+    // Names of symbols defined by the profile
+    const profileSymbolNames = new Set(profileSymbols.map(s => s.name.toLowerCase()));
+
+    // Return profile symbols + global symbols that are NOT overridden by name
+    const symbols = [
+      ...profileSymbols,
+      ...globalSymbols.filter(gs => !profileSymbolNames.has(gs.name.toLowerCase()))
+    ].map(toClientSymbol);
+
     res.json({ symbols });
   });
 
@@ -61,7 +79,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
   ): Promise<void> => {
     const result = updater();
     if (!result) {
-      res.status(404).json({ error: 'Symbol nicht gefunden' });
+      res.status(404).json({ error: 'Symbol nicht gefunden oder Zugriff verweigert' });
       return;
     }
     await withFileLock(DB_FILE_PATH, async () => saveDatabase(db, DB_FILE_PATH));
@@ -76,8 +94,31 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
       res.status(400).json({ error: 'Ungültige Symbol-Daten', details: normalized.error });
       return;
     }
+
+    const existing = db.symbols.find((s) => s.id === normalized.data.id);
+    const isAdmin = req.user?.role === 'admin';
+    
+    // If updating existing, check ownership
+    if (existing) {
+      if (existing.profileId !== normalized.data.profileId) {
+        // If overwriting a global symbol, only admins can do it
+        if (!existing.profileId && !isAdmin) {
+          res.status(403).json({ error: 'Globale Symbole können nur von Administratoren überschrieben werden.' });
+          return;
+        }
+
+        res.status(403).json({ error: 'Bestehende Symbole anderer Profile können nicht überschrieben werden.' });
+        return;
+      }
+
+      // Even if profileIds match (both undefined), still need admin check for global
+      if (!existing.profileId && !isAdmin) {
+        res.status(403).json({ error: 'Globale Symbole können nur von Administratoren überschrieben werden.' });
+        return;
+      }
+    }
+
     await persistAndRespond(() => {
-      const existing = db.symbols.find((s) => s.id === normalized.data.id);
       const next: SymbolRecord = {
         id: normalized.data.id,
         name: normalized.data.name,
@@ -88,6 +129,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
         healthScore: existing?.healthScore ?? 1,
         category: normalized.data.category,
         imageUrl: normalized.data.imageUrl ?? existing?.imageUrl,
+        profileId: normalized.data.profileId,
       };
       if (existing) {
         Object.assign(existing, next);
@@ -105,11 +147,32 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
       return;
     }
 
-    await persistAndRespond(() => {
-      const existing = db.symbols.find((s) => s.id === req.params.id);
-      if (!existing) {
-        return null;
+    const existing = db.symbols.find((s) => s.id === req.params.id);
+    if (!existing) {
+      res.status(404).json({ error: 'Symbol nicht gefunden' });
+      return;
+    }
+
+    // Ownership check: must match profileId (unless global, but we restrict that too)
+    const isAdmin = req.user?.role === 'admin';
+    if (existing.profileId !== normalized.data.profileId) {
+      // If it's a global symbol (no profileId), only admins can modify it
+      if (!existing.profileId && !isAdmin) {
+        res.status(403).json({ error: 'Globale Symbole können nur von Administratoren bearbeitet werden.' });
+        return;
       }
+      
+      res.status(403).json({ error: 'Nur eigene Symbole können bearbeitet werden.' });
+      return;
+    }
+
+    // Special case: if the symbol IS global, only allow update if user is admin
+    if (!existing.profileId && !isAdmin) {
+      res.status(403).json({ error: 'Globale Symbole können nur von Administratoren bearbeitet werden.' });
+      return;
+    }
+
+    await persistAndRespond(() => {
       Object.assign(existing, {
         name: normalized.data.name,
         category: normalized.data.category,
@@ -124,6 +187,26 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
     const existing = db.symbols.find((s) => s.id === targetId);
     if (!existing) {
       res.status(404).json({ error: 'Symbol nicht gefunden' });
+      return;
+    }
+
+    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    const isAdmin = req.user?.role === 'admin';
+
+    if (existing.profileId !== profileId) {
+      // If it's a global symbol, only admins can delete it
+      if (!existing.profileId && !isAdmin) {
+        res.status(403).json({ error: 'Globale Symbole können nur von Administratoren gelöscht werden.' });
+        return;
+      }
+
+      res.status(403).json({ error: 'Nur eigene Symbole können gelöscht werden.' });
+      return;
+    }
+
+    // Special case: if it IS global, only allow deletion if user is admin
+    if (!existing.profileId && !isAdmin) {
+      res.status(403).json({ error: 'Globale Symbole können nur von Administratoren gelöscht werden.' });
       return;
     }
 

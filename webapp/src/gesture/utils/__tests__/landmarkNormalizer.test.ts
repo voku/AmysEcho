@@ -233,7 +233,6 @@ describe('LandmarkNormalizer', () => {
     // Constants for multimodal feature dimensions
     const HAND_FEATURES = 126; // 2 hands × 21 points × 3 coords
     const POSE_FEATURES = 99;  // 33 points × 3 coords (visibility dropped)
-    const _FACE_FEATURES = 33;  // 11 key points × 3 coords
     const TOTAL_MULTIMODAL_FEATURES = 258; // hands + pose + face
     const HAND_SECTION_END = HAND_FEATURES; // 0-125
     const POSE_SECTION_START = HAND_FEATURES; // 126
@@ -400,7 +399,7 @@ describe('LandmarkNormalizer', () => {
       const result1 = prepareMultimodalForMLP(hands, pose);
       
       // Scale up pose by 2x
-      const scaledPose = pose.map(p => [p[0] * 2, p[1] * 2, p[2] * 2, p[3]]);
+      const scaledPose = pose.map(p => [(p[0] ?? 0) * 2, (p[1] ?? 0) * 2, (p[2] ?? 0) * 2, p[3] ?? 0]) as number[][];
       const result2 = prepareMultimodalForMLP(hands, scaledPose);
       
       // Pose features should be similar after normalization (within tolerance)
@@ -410,7 +409,9 @@ describe('LandmarkNormalizer', () => {
       // At least some features should be normalized to similar values
       let similarCount = 0;
       for (let i = 0; i < poseFeatures1.length; i++) {
-        if (Math.abs(poseFeatures1[i] - poseFeatures2[i]) < 0.5) {
+        const val1 = poseFeatures1[i];
+        const val2 = poseFeatures2[i];
+        if (val1 !== undefined && val2 !== undefined && Math.abs(val1 - val2) < 0.5) {
           similarCount++;
         }
       }
@@ -425,7 +426,7 @@ describe('LandmarkNormalizer', () => {
       const result1 = prepareMultimodalForMLP(hands, undefined, face);
       
       // Scale face by 2x
-      const scaledFace = face.map(p => [p[0] * 2, p[1] * 2, p[2] * 2]);
+      const scaledFace = face.map(p => [(p[0] ?? 0) * 2, (p[1] ?? 0) * 2, (p[2] ?? 0) * 2]) as number[][];
       const result2 = prepareMultimodalForMLP(hands, undefined, scaledFace);
       
       // Face features should be similar after normalization
@@ -435,7 +436,9 @@ describe('LandmarkNormalizer', () => {
       // Most features should be normalized to similar values
       let similarCount = 0;
       for (let i = 0; i < faceFeatures1.length; i++) {
-        if (Math.abs(faceFeatures1[i] - faceFeatures2[i]) < 0.5) {
+        const val1 = faceFeatures1[i];
+        const val2 = faceFeatures2[i];
+        if (val1 !== undefined && val2 !== undefined && Math.abs(val1 - val2) < 0.5) {
           similarCount++;
         }
       }

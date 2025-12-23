@@ -14,6 +14,7 @@ import { Help } from './components/Help';
 import { LearningHub } from './components/LearningHub';
 import { ParentalGate } from './components/ParentalGate';
 import { ProfileSelect } from './components/ProfileSelect';
+import { ProfileManager } from './components/ProfileManager';
 import { ProgressChart } from './components/ProgressChart';
 import { ProgressTracker } from './components/ProgressTracker';
 import { Settings } from './components/Settings';
@@ -21,6 +22,7 @@ import { Teach } from './components/Teach';
 import { TrainingUploadWithRecording } from './components/TrainingUpload';
 import { useApiConfig } from './hooks/useApiConfig';
 import { useAppState } from './hooks/useAppState';
+import { addProfile, createProfile, listProfiles, setActiveProfile } from './services/profileRegistry';
 import './App.css';
 
 const AUTO_HIDE_BREAKPOINT_PX = 768;
@@ -36,7 +38,7 @@ const ONBOARDING_KEY = 'webapp:onboarding-complete';
 // ========================================
 export function LoginScreen({ onComplete }: { onComplete: () => void }) {
   const { apiBaseUrl, setTokens, setPersistToken } = useApiConfig();
-  const { setProfileId } = useAppState();
+  const { refreshFromRegistry } = useAppState();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -67,19 +69,33 @@ export function LoginScreen({ onComplete }: { onComplete: () => void }) {
 
       const accessToken = payload?.tokens?.accessToken;
       const refreshToken = payload?.tokens?.refreshToken ?? '';
-      const profileFromUser =
-        typeof payload?.user?.username === 'string'
-          ? payload.user.username
-          : typeof payload?.user?.id === 'string'
-            ? payload.user.id
-            : null;
-      const normalizedProfile = (profileFromUser ?? username).trim();
+      
       if (accessToken) {
         setPersistToken(true);
         setTokens({ accessToken, refreshToken });
-        if (normalizedProfile) {
-          setProfileId(normalizedProfile);
+        
+        // Ensure a profile exists for this user in the local registry
+        try {
+          const profiles = await listProfiles();
+          const usernameId = username.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          
+          const existing = profiles.find(p => p.profileId === usernameId);
+          if (!existing) {
+            const newProfile = await createProfile({
+              displayName: username.trim(),
+              profileId: usernameId
+            });
+            await addProfile(newProfile);
+          } else {
+            await setActiveProfile(existing.uuid);
+          }
+        } catch (profileError) {
+          console.warn('[Login] Failed to sync local profile:', profileError);
         }
+
+        // After auth, profiles are managed by the registry.
+        // Refresh the app state to pick up the active profile.
+        await refreshFromRegistry();
         setMessage('Erfolgreich! Weiter geht\'s…');
         setTimeout(onComplete, 500);
       } else {
@@ -87,10 +103,8 @@ export function LoginScreen({ onComplete }: { onComplete: () => void }) {
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Ein Fehler ist aufgetreten.');
-    } finally {
-      setIsSubmitting(false);
     }
-  }, [apiBaseUrl, authMode, username, password, setPersistToken, setTokens, setProfileId, onComplete]);
+  }, [apiBaseUrl, authMode, username, password, setPersistToken, setTokens, refreshFromRegistry, onComplete]);
 
   const handleSkip = useCallback(() => {
     // Ermöglicht das Überspringen für Demo-Zwecke
@@ -378,6 +392,7 @@ function MainAppContent() {
           <Route path="/bericht" element={<CaregiverReport />} />
           <Route path="/beibringen" element={<Teach />} />
           <Route path="/auswahl" element={<ProfileSelect />} />
+          <Route path="/profile" element={<ProfileManager />} />
           <Route path="/funktionen" element={<FeatureAvailability />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

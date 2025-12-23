@@ -77,12 +77,12 @@ function saveProgressToStorage(profileId: string, data: ProgressData): void {
 export function ProgressTracker() {
   const { profileId, recentGestures } = useAppState();
   const [progressData, setProgressData] = useState<ProgressData>(() => 
-    loadProgressFromStorage(profileId)
+    loadProgressFromStorage(profileId || 'default')
   );
 
   // Update progress when gestures are recognized
   useEffect(() => {
-    if (recentGestures.length === 0) return;
+    if (recentGestures.length === 0 || !profileId) return;
 
     setProgressData((prev) => {
       const statsMap = new Map<string, GestureStats>(
@@ -122,6 +122,7 @@ export function ProgressTracker() {
 
   // Track session on mount
   useEffect(() => {
+    if (!profileId) return;
     setProgressData((prev) => {
       const newData = { ...prev, sessionsCount: prev.sessionsCount + 1 };
       saveProgressToStorage(profileId, newData);
@@ -131,6 +132,7 @@ export function ProgressTracker() {
 
   const handleReset = useCallback(() => {
     if (window.confirm('Fortschritt zurücksetzen? Alle Statistiken werden gelöscht.')) {
+      if (!profileId) return;
       const newData: ProgressData = {
         totalGestures: 0,
         uniqueGestures: 0,

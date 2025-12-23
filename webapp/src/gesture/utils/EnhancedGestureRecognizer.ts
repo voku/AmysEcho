@@ -266,7 +266,17 @@ export class EnhancedGestureRecognizer {
     }
     
     // Process first frame for basic features
-    const baseResult = this.processLandmarks(sequence[0]);
+    const firstFrame = sequence[0];
+    if (!firstFrame) {
+      return {
+        enhancedLandmarks: [],
+        attentionWeights: [],
+        embeddings: [],
+        temporalFeatures: [],
+        velocityFeatures: [],
+      };
+    }
+    const baseResult = this.processLandmarks(firstFrame);
     
     // Convert sequence to flat features for temporal extraction
     const flatSequence = sequence.map(frame => 
@@ -370,7 +380,7 @@ export class EnhancedGestureRecognizer {
     return {
       modalitiesUsed,
       combinedFeatures: features,
-      nonManualFeatures,
+      ...(nonManualFeatures ? { nonManualFeatures } : {}),
     };
   }
 
@@ -430,9 +440,10 @@ export class EnhancedGestureRecognizer {
     if (existing) {
       // Update with exponential moving average
       const lr = 0.2;
-      const newPattern = attentionWeights.jointWeights.map((w, i) => 
-        existing.attentionPattern[i] * (1 - lr) + w * lr
-      );
+      const newPattern = attentionWeights.jointWeights.map((w, i) => {
+        const oldVal = existing.attentionPattern[i] ?? 0;
+        return oldVal * (1 - lr) + w * lr;
+      });
       
       existing.attentionPattern = newPattern;
       existing.sampleCount++;

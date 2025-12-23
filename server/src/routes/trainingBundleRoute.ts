@@ -47,6 +47,15 @@ interface TrainingBundleMetadata {
   source: string | null;
   clipFilename: string | null;
   stillFilename: string | null;
+  recording?: {
+    frameCount?: number;
+    usableFrameCount?: number;
+    clipDurationMs?: number;
+    clipBytes?: number;
+    clipMimeType?: string;
+    stillBytes?: number;
+    stillMimeType?: string;
+  };
   validationSummary?: {
     frameCount: number;
     landmarksPath: string;
@@ -115,6 +124,18 @@ const HandednessSchema = z
   })
   .passthrough();
 
+const RecordingSchema = z
+  .object({
+    frameCount: z.number().int().nonnegative().optional(),
+    usableFrameCount: z.number().int().nonnegative().optional(),
+    clipDurationMs: z.number().int().nonnegative().optional(),
+    clipBytes: z.number().int().nonnegative().optional(),
+    clipMimeType: z.string().optional(),
+    stillBytes: z.number().int().nonnegative().optional(),
+    stillMimeType: z.string().optional(),
+  })
+  .passthrough();
+
 const HandFocusSchema = z.enum([
   'dominant_only',    // Only one hand matters (the moving one)
   'both_equal',       // Both hands equally important
@@ -130,11 +151,12 @@ const MetadataSchema = z
     source: z.string().optional(),
     clipFilename: z.string().optional(),
     stillFilename: z.string().optional(),
-  modalities: ModalitiesSchema.optional(),
-  smoothing: SmoothingSchema.optional(),
-  handedness: HandednessSchema.optional(),
-  handFocus: HandFocusSchema.optional(),
-})
+    modalities: ModalitiesSchema.optional(),
+    smoothing: SmoothingSchema.optional(),
+    handedness: HandednessSchema.optional(),
+    recording: RecordingSchema.optional(),
+    handFocus: HandFocusSchema.optional(),
+  })
 .passthrough();
 
 const LandmarkFrameSchema = z
@@ -174,6 +196,26 @@ function normalizeClipFilename(value: unknown): string | null {
     return null;
   }
   return trimmed;
+}
+
+function validateRecordingMetadata(
+  recording: z.infer<typeof RecordingSchema> | undefined,
+  clipFilename: string | null,
+): string | null {
+  if (!recording) {
+    return null;
+  }
+  if (
+    typeof recording.frameCount === 'number' &&
+    typeof recording.usableFrameCount === 'number' &&
+    recording.usableFrameCount > recording.frameCount
+  ) {
+    return 'metadata.recording.usableFrameCount must be <= metadata.recording.frameCount';
+  }
+  if (clipFilename && typeof recording.clipDurationMs === 'number' && recording.clipDurationMs <= 0) {
+    return 'metadata.recording.clipDurationMs must be > 0 when clipFilename is provided';
+  }
+  return null;
 }
 
 function sanitizeEntryName(entryName: string): string {
@@ -582,6 +624,10 @@ export function registerTrainingBundleRoute(
 
       const clipFilename = normalizeClipFilename(parsedMetadata.clipFilename);
       const stillFilename = normalizeClipFilename(parsedMetadata.stillFilename);
+      const recordingError = validateRecordingMetadata(parsedMetadata.recording, clipFilename);
+      if (recordingError) {
+        return res.status(400).json({ error: recordingError });
+      }
 
       const sanitizedMetadata: TrainingBundleMetadata = {
         label,
@@ -590,6 +636,7 @@ export function registerTrainingBundleRoute(
         source: isNonEmptyString(parsedMetadata.source) ? parsedMetadata.source : null,
         clipFilename,
         stillFilename,
+        ...(parsedMetadata.recording ? { recording: parsedMetadata.recording } : {}),
         ...(parsedMetadata.handFocus ? { handFocus: parsedMetadata.handFocus } : {}),
       };
 
@@ -659,7 +706,7 @@ export function registerTrainingBundleRoute(
       await withFileLock(TRAINING_MANIFEST_PATH, async () => {
         await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
 
-        let manifest: TrainingBundleManifestFile = { entries: [] };
+        const manifest: TrainingBundleManifestFile = { entries: [] };
         try {
           const raw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
           const parsed = JSON.parse(raw);

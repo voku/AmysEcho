@@ -2,6 +2,7 @@
  * Tests for Sign Variation Tracker
  */
 
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   SignVariationTracker,
   type GestureLandmarks,
@@ -93,8 +94,11 @@ describe('SignVariationTracker', () => {
 
       const clusters = tracker.getVariationClusters('hello');
       expect(clusters.length).toBeGreaterThan(0);
-      expect(clusters[0].gesture).toBe('hello');
-      expect(clusters[0].variations.length).toBeGreaterThan(0);
+      const firstCluster = clusters[0];
+      if (firstCluster) {
+        expect(firstCluster.gesture).toBe('hello');
+        expect(firstCluster.variations.length).toBeGreaterThan(0);
+      }
     });
   });
 
@@ -316,8 +320,8 @@ describe('SignVariationTracker', () => {
       }
 
       const clusters = tracker.getVariationClusters('hello');
-      if (clusters.length > 0) {
-        const cluster = clusters[0];
+      const cluster = clusters[0];
+      if (cluster) {
         expect(cluster.successRate).toBeGreaterThan(0);
         expect(cluster.successRate).toBeLessThanOrEqual(1);
         expect(cluster.totalAttempts).toBeGreaterThan(0);
@@ -337,8 +341,9 @@ describe('SignVariationTracker', () => {
       }
 
       const clusters = tracker.getVariationClusters('hello');
-      if (clusters.length > 0) {
-        expect(clusters[0].lastUsed).toBeGreaterThanOrEqual(start);
+      const firstCluster = clusters[0];
+      if (firstCluster) {
+        expect(firstCluster.lastUsed).toBeGreaterThanOrEqual(start);
       }
     });
   });

@@ -144,6 +144,9 @@ export class VisualCorrectionManager {
    */
   private createCorrectionOption(gesture: string, confidence: number): CorrectionOption {
     const visual = this.gestureVisuals[gesture];
+    if (!visual) {
+      throw new Error(`No visual representation for gesture: ${gesture}`);
+    }
     const context = this.getGestureContext(gesture);
 
     // Calculate priority based on confidence and usage patterns
@@ -238,7 +241,7 @@ export class VisualCorrectionManager {
       cryptoObj.getRandomValues(array);
       return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
     }
-    return Math.random().toString(16).slice(2, 2 + lengthBytes * 2);
+    throw new Error('Cryptographic functions are not available. Cannot generate secure random strings.');
   }
 
   /**

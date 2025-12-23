@@ -1,11 +1,15 @@
 import AdmZip from 'adm-zip';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { once } from 'events';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import jwt from 'jsonwebtoken';
+
+declare global {
+  var __serverCleanupRegistered: boolean | undefined;
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', '..', 'server');
@@ -31,8 +35,8 @@ export function serverBaseUrl() {
   return BASE_URL;
 }
 
-let proc;
-let startPromise = null;
+let proc: ChildProcess | null = null;
+let startPromise: Promise<void> | null = null;
 let refCount = 0;
 
 function buildLandmarks(count = 42) {
@@ -88,7 +92,7 @@ async function cleanServerArtifacts() {
   await fs.rm(join(serverDir, 'data', 'datasets'), { recursive: true, force: true }).catch(() => {});
 }
 
-async function waitForServerReady(baseUrl, headers) {
+async function waitForServerReady(baseUrl: string, headers: Record<string, string>) {
   const start = Date.now();
   const timeoutMs = 30_000;
   while (Date.now() - start < timeoutMs) {
@@ -153,8 +157,8 @@ async function actuallyStartServer(attempt = 1) {
   });
   
   // Register cleanup handler to kill server when test process exits
-  if (!global.__serverCleanupRegistered) {
-    global.__serverCleanupRegistered = true;
+  if (!globalThis.__serverCleanupRegistered) {
+    globalThis.__serverCleanupRegistered = true;
     
     // Use beforeExit to allow all test files to complete before cleanup
     process.on('beforeExit', () => {

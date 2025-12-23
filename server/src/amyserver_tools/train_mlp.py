@@ -23,6 +23,10 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
+# Add scripts directory to path for shared utils
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts")))
+from ml_shared_utils import filter_by_profile_logic
+
 LOGGER = logging.getLogger("amyserver.train_mlp")
 if not LOGGER.handlers:
     handler = logging.StreamHandler(sys.stderr)
@@ -167,6 +171,15 @@ SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestur
 # Default weight of 10.0 means a single still frame has the same influence as 10 video frames.
 STILL_FRAME_WEIGHT = float(os.environ.get("MLP_STILL_FRAME_WEIGHT", "10.0"))
 
+# Quality thresholds
+MIN_USABLE_FRAME_RATIO = float(os.environ.get("MLP_MIN_USABLE_FRAME_RATIO", "0.6"))
+MIN_CLIP_DURATION_MS = float(os.environ.get("MLP_MIN_CLIP_DURATION_MS", "500"))
+MIN_HANDS_COVERAGE = float(os.environ.get("MLP_MIN_HANDS_COVERAGE", "0.7"))
+MIN_POSE_COVERAGE = float(os.environ.get("MLP_MIN_POSE_COVERAGE", "0.4"))
+MIN_FACE_COVERAGE = float(os.environ.get("MLP_MIN_FACE_COVERAGE", "0.4"))
+MIN_AVG_FRAME_DELTA_MS = float(os.environ.get("MLP_MIN_AVG_FRAME_DELTA_MS", "10"))
+MAX_AVG_FRAME_DELTA_MS = float(os.environ.get("MLP_MAX_AVG_FRAME_DELTA_MS", "200"))
+
 WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 def _emit_event(payload: Dict[str, object]) -> None:
@@ -192,6 +205,9 @@ class Sample:
     variation_cluster_id: Optional[str] = None  # Cluster ID from variation tracking
     variation_diversity: Optional[float] = None  # 0-1 score indicating variation diversity
     canonical_templates_count: Optional[int] = None  # Number of canonical templates for this gesture
+    recording: Optional[Dict[str, object]] = None
+    timing_stats: Optional[Dict[str, float]] = None
+    modality_coverage: Optional[Dict[str, float]] = None
 
 
 _UNSET = object()
@@ -486,6 +502,179 @@ def flatten_landmarks_mean(frames: List[dict]) -> Optional[dict]:
     return result
 
 
+def _extract_recording_metadata(metadata: dict) -> Optional[Dict[str, object]]:
+    recording = metadata.get("recording") if isinstance(metadata, dict) else None
+    if not isinstance(recording, dict):
+        return None
+    cleaned: Dict[str, object] = {}
+    for key in (
+        "frameCount",
+        "usableFrameCount",
+        "clipDurationMs",
+        "clipBytes",
+        "clipMimeType",
+        "stillBytes",
+        "stillMimeType",
+    ):
+        value = recording.get(key)
+        if isinstance(value, (int, float, str)):
+            cleaned[key] = value
+    return cleaned or None
+
+
+def _extract_modality_coverage(metadata: dict) -> Optional[Dict[str, float]]:
+    modalities = metadata.get("modalities") if isinstance(metadata, dict) else None
+    if not isinstance(modalities, dict):
+        return None
+    coverage: Dict[str, float] = {}
+    for key in ("hands", "pose", "face"):
+        stats = modalities.get(key)
+        if isinstance(stats, dict):
+            raw = stats.get("coverage")
+            if isinstance(raw, (int, float)) and math.isfinite(raw):
+                coverage[key] = float(raw)
+    return coverage or None
+
+
+def _analyze_frame_timing(frames: List[dict]) -> Optional[Dict[str, float]]:
+    timestamps: List[float] = []
+    for frame in frames:
+        value = frame.get("timestampMs")
+        if isinstance(value, (int, float)) and math.isfinite(value):
+            timestamps.append(float(value))
+    if len(timestamps) < 2:
+        return None
+    deltas: List[float] = []
+    non_monotonic = False
+    for idx in range(1, len(timestamps)):
+        delta = timestamps[idx] - timestamps[idx - 1]
+        if delta <= 0:
+            non_monotonic = True
+        if delta > 0:
+            deltas.append(delta)
+    if not deltas:
+        return {"nonMonotonic": True}
+    avg_delta = float(sum(deltas) / len(deltas))
+    variance = float(
+        sum((delta - avg_delta) ** 2 for delta in deltas) / len(deltas)
+    )
+    return {
+        "nonMonotonic": non_monotonic,
+        "averageDeltaMs": avg_delta,
+        "minDeltaMs": float(min(deltas)),
+        "maxDeltaMs": float(max(deltas)),
+        "varianceDeltaMs": variance,
+    }
+
+
+def _apply_timing_weights(frames: List[dict]) -> Optional[Dict[str, float]]:
+    timestamps: List[Tuple[int, float]] = []
+    for idx, frame in enumerate(frames):
+        value = frame.get("timestampMs")
+        if isinstance(value, (int, float)) and math.isfinite(value):
+            timestamps.append((idx, float(value)))
+    if len(timestamps) < 2:
+        return None
+    deltas: List[float] = []
+    for idx in range(1, len(timestamps)):
+        delta = timestamps[idx][1] - timestamps[idx - 1][1]
+        if delta > 0:
+            deltas.append(delta)
+    if not deltas:
+        return {"nonMonotonic": True}
+    avg_delta = float(sum(deltas) / len(deltas))
+    if avg_delta <= 0:
+        return {"nonMonotonic": True}
+    for idx in range(1, len(timestamps)):
+        delta = timestamps[idx][1] - timestamps[idx - 1][1]
+        if delta <= 0:
+            continue
+        weight = delta / avg_delta
+        frame_index = timestamps[idx][0]
+        existing = frames[frame_index].get("weight", 1.0)
+        try:
+            frames[frame_index]["weight"] = float(existing) * float(weight)
+        except (TypeError, ValueError):
+            frames[frame_index]["weight"] = float(weight)
+    return _analyze_frame_timing(frames)
+
+
+def _compute_quality_weight(sample: Sample) -> float:
+    weight = 1.0
+    recording = sample.recording or {}
+    frame_count = recording.get("frameCount")
+    usable_count = recording.get("usableFrameCount")
+    if isinstance(frame_count, (int, float)) and isinstance(usable_count, (int, float)) and frame_count > 0:
+        ratio = float(usable_count) / float(frame_count)
+        if ratio < MIN_USABLE_FRAME_RATIO:
+            weight *= 0.7
+        if ratio < MIN_USABLE_FRAME_RATIO * 0.5:
+            weight *= 0.7
+
+    clip_duration = recording.get("clipDurationMs")
+    if isinstance(clip_duration, (int, float)) and clip_duration > 0 and clip_duration < MIN_CLIP_DURATION_MS:
+        weight *= 0.75
+
+    timing = sample.timing_stats or {}
+    avg_delta = timing.get("averageDeltaMs")
+    if isinstance(avg_delta, (int, float)) and (
+        avg_delta < MIN_AVG_FRAME_DELTA_MS or avg_delta > MAX_AVG_FRAME_DELTA_MS
+    ):
+        weight *= 0.8
+    if timing.get("nonMonotonic"):
+        weight *= 0.6
+
+    coverage = sample.modality_coverage or {}
+    hands_cov = coverage.get("hands")
+    if isinstance(hands_cov, (int, float)) and hands_cov < MIN_HANDS_COVERAGE:
+        weight *= 0.6
+    pose_cov = coverage.get("pose")
+    if isinstance(pose_cov, (int, float)) and pose_cov < MIN_POSE_COVERAGE:
+        weight *= 0.85
+    face_cov = coverage.get("face")
+    if isinstance(face_cov, (int, float)) and face_cov < MIN_FACE_COVERAGE:
+        weight *= 0.9
+
+    return max(weight, 0.1)
+
+
+def _summarize_recording_stats(samples: List[Sample]) -> Dict[str, object]:
+    frame_counts: List[float] = []
+    usable_counts: List[float] = []
+    clip_durations: List[float] = []
+    timing_variances: List[float] = []
+    non_monotonic = 0
+    for sample in samples:
+        recording = sample.recording or {}
+        frame_count = recording.get("frameCount")
+        usable_count = recording.get("usableFrameCount")
+        clip_duration = recording.get("clipDurationMs")
+        if isinstance(frame_count, (int, float)):
+            frame_counts.append(float(frame_count))
+        if isinstance(usable_count, (int, float)):
+            usable_counts.append(float(usable_count))
+        if isinstance(clip_duration, (int, float)):
+            clip_durations.append(float(clip_duration))
+        timing = sample.timing_stats or {}
+        variance = timing.get("varianceDeltaMs")
+        if isinstance(variance, (int, float)) and math.isfinite(variance):
+            timing_variances.append(float(variance))
+        if timing.get("nonMonotonic"):
+            non_monotonic += 1
+
+    def _avg(values: List[float]) -> Optional[float]:
+        return float(sum(values) / len(values)) if values else None
+
+    return {
+        "samplesWithRecording": len(frame_counts),
+        "averageFrameCount": _avg(frame_counts),
+        "averageUsableFrameCount": _avg(usable_counts),
+        "averageClipDurationMs": _avg(clip_durations),
+        "averageTimingVarianceMs": _avg(timing_variances),
+        "nonMonotonicTimingSamples": non_monotonic,
+    }
+
+
 def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
     """Run MediaPipe Holistic on a clip and return multimodal frame landmark dictionaries."""
 
@@ -685,17 +874,22 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
 
 
 def filter_samples_by_profile(samples: Iterable[Sample], profile_id: str) -> List[Sample]:
-    """Return samples matching ``profile_id``.
+    """Return samples for a profile-specific model.
 
-    Example
-    -------
-    >>> s1 = Sample('hallo', 'p1', [[0.0, 0.0, 0.0]] * 42)
-    >>> s2 = Sample('hallo', 'p2', [[0.1, 0.1, 0.1]] * 42)
-    >>> filter_samples_by_profile([s1, s2], 'p1')
-    [Sample(label='hallo', profile_id='p1', landmarks=[[0.0, 0.0, 0.0], ...])]
+    Includes:
+    1. All samples explicitly belonging to this profile.
+    2. All global samples (no profile_id) whose labels are NOT overridden
+       by this profile.
+
+    This ensures the profile model is a specialized superset of the global model,
+    supporting custom sign languages per child without losing baseline gestures.
     """
-
-    return [sample for sample in samples if sample.profile_id == profile_id]
+    return filter_by_profile_logic(
+        list(samples),
+        profile_id,
+        get_label=lambda s: s.label,
+        get_profile_id=lambda s: s.profile_id
+    )
 
 
 def _normalize(lm):
@@ -1405,6 +1599,8 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         # Extract handFocus from bundle metadata
         metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
         hand_focus = metadata.get("handFocus")  # 'left', 'right', 'both', or None
+        recording_metadata = _extract_recording_metadata(metadata)
+        modality_coverage = _extract_modality_coverage(metadata)
         
         # Extract variation data from webapp's SignVariationTracker
         variation_data = metadata.get("variationData", {}) if isinstance(metadata.get("variationData"), dict) else {}
@@ -1460,6 +1656,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
                 extracted["weight"] = STILL_FRAME_WEIGHT
                 frame_list.append(extracted)
 
+        timing_stats = _apply_timing_weights(frame_list)
         if frames_from_clip and frame_list:
             cache_writes += 1
             cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1486,6 +1683,9 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             variation_cluster_id=variation_cluster_id,
             variation_diversity=variation_diversity,
             canonical_templates_count=canonical_templates_count,
+            recording=recording_metadata,
+            timing_stats=timing_stats,
+            modality_coverage=modality_coverage,
         ))
 
     stats = {
@@ -1519,12 +1719,13 @@ def dataset_to_arrays(
     *,
     augmentations_per_sample: int = 0,
     rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+) -> Tuple[np.ndarray, np.ndarray, List[str], np.ndarray]:
     label_set = sorted({sample.label for sample in samples})
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
 
     X_list: List[np.ndarray] = []
     y_list: List[int] = []
+    weight_list: List[float] = []
 
     # Check if any samples have multimodal data
     has_multimodal = any(s.pose_landmarks or s.face_landmarks for s in samples)
@@ -1543,6 +1744,7 @@ def dataset_to_arrays(
         normalized_array = normalized.astype(np.float32, copy=False)
         X_list.append(normalized_array)
         y_list.append(label_to_idx[sample.label])
+        weight_list.append(_compute_quality_weight(sample))
 
         for _ in range(augmentations):
             # Apply appropriate augmentation based on data type
@@ -1552,15 +1754,21 @@ def dataset_to_arrays(
                 augmented = augment_landmarks(normalized_array, rng=rng)
             X_list.append(augmented)
             y_list.append(label_to_idx[sample.label])
+            weight_list.append(_compute_quality_weight(sample))
 
     if not X_list:
         # Feature size depends on whether we have multimodal data
         feature_size = 258 if has_multimodal else 126  # 126 hand + 99 pose + 33 face
-        return np.zeros((0, feature_size), dtype=np.float32), np.zeros((0,), dtype=np.int64), label_set
+        return (
+            np.zeros((0, feature_size), dtype=np.float32),
+            np.zeros((0,), dtype=np.int64),
+            label_set,
+            np.zeros((0,), dtype=np.float32),
+        )
 
     X = np.vstack(X_list)
     y = np.array(y_list, dtype=np.int64)
-    return X, y, label_set
+    return X, y, label_set, np.array(weight_list, dtype=np.float32)
 
 
 def validate_samples(samples: List[Sample]) -> None:
@@ -1709,6 +1917,7 @@ def train_models(
     """Train global and per-profile models. Returns (profiles_report, global_report)."""
 
     resolved_config = config or TrainingConfig()
+    trainer_config = replace(resolved_config, return_best_and_final=True)
 
     global_report = {"samples": 0, "accuracy": 0.0, "labels": {}}
     profiles_report: Dict[str, dict] = {}
@@ -1716,65 +1925,79 @@ def train_models(
     if not samples:
         return profiles_report, global_report
 
-    X, y, labels = dataset_to_arrays(
-        samples,
-        augmentations_per_sample=resolved_config.augmentations_per_sample,
-        rng=rng,
-    )
-    if X.shape[0] == 0:
-        return profiles_report, global_report
+    # Filter for global samples (no profile_id) to prevent data leakage between users
+    global_samples = [s for s in samples if not s.profile_id]
 
-    train_indices, validation_indices = plan_train_validation_split(
-        X, validation_fraction=resolved_config.validation_fraction, rng=rng
-    )
+    if global_samples:
+        X, y, labels, quality_weights = dataset_to_arrays(
+            global_samples,
+            augmentations_per_sample=resolved_config.augmentations_per_sample,
+            rng=rng,
+        )
 
-    X_train, y_train = X[train_indices], y[train_indices]
-    X_val, y_val = X[validation_indices], y[validation_indices]
+        if X.shape[0] > 0:
+            train_indices, validation_indices = plan_train_validation_split(
+                X, validation_fraction=resolved_config.validation_fraction, rng=rng
+            )
 
-    train_weights = (
-        compute_sample_weights(y_train, smoothing=resolved_config.class_weight_smoothing)
-        if y_train.size
-        else None
-    )
-    val_weights = (
-        compute_sample_weights(y_val, smoothing=resolved_config.class_weight_smoothing)
-        if y_val.size
-        else None
-    )
+            X_train, y_train = X[train_indices], y[train_indices]
+            X_val, y_val = X[validation_indices], y[validation_indices]
 
-    trainer_config = replace(resolved_config, return_best_and_final=True)
-    snapshot = train_mlp(
-        X_train,
-        y_train,
-        len(labels),
-        config=trainer_config,
-        sample_weights=train_weights,
-        validation_data=(X_val, y_val) if X_val.size else None,
-        validation_sample_weights=val_weights,
-        rng=rng,
-    )
+            train_quality = quality_weights[train_indices] if quality_weights.size else None
+            val_quality = quality_weights[validation_indices] if quality_weights.size else None
 
-    best_weights = snapshot.best_weights if isinstance(snapshot, TrainingSnapshots) else snapshot
+            train_class_weights = (
+                compute_sample_weights(y_train, smoothing=resolved_config.class_weight_smoothing)
+                if y_train.size
+                else None
+            )
+            val_class_weights = (
+                compute_sample_weights(y_val, smoothing=resolved_config.class_weight_smoothing)
+                if y_val.size
+                else None
+            )
 
-    train_acc = _compute_accuracy(X_train, y_train, best_weights)
-    val_acc = _compute_accuracy(X_val, y_val, best_weights)
+            train_weights = train_class_weights
+            if train_quality is not None and train_quality.size:
+                train_weights = train_quality if train_weights is None else train_weights * train_quality
 
-    save_model(GLOBAL_MODEL_PATH, best_weights, labels)
-    global_report = {
-        "samples": int(X.shape[0]),
-        "accuracy": train_acc,
-        "validationSamples": int(X_val.shape[0]),
-        "validationAccuracy": val_acc,
-        "labels": {label: int(sum(1 for sample in samples if sample.label == label)) for label in labels},
-        "modelPath": os.path.relpath(GLOBAL_MODEL_PATH, DATA_DIR),
-    }
+            val_weights = val_class_weights
+            if val_quality is not None and val_quality.size:
+                val_weights = val_quality if val_weights is None else val_weights * val_quality
+
+            snapshot = train_mlp(
+                X_train,
+                y_train,
+                len(labels),
+                config=trainer_config,
+                sample_weights=train_weights,
+                validation_data=(X_val, y_val) if X_val.size else None,
+                validation_sample_weights=val_weights,
+                rng=rng,
+            )
+
+            best_weights = snapshot.best_weights if isinstance(snapshot, TrainingSnapshots) else snapshot
+
+            train_acc = _compute_accuracy(X_train, y_train, best_weights)
+            val_acc = _compute_accuracy(X_val, y_val, best_weights)
+
+            save_model(GLOBAL_MODEL_PATH, best_weights, labels)
+            global_report = {
+                "samples": int(X.shape[0]),
+                "accuracy": train_acc,
+                "validationSamples": int(X_val.shape[0]),
+                "validationAccuracy": val_acc,
+                "labels": {label: int(sum(1 for sample in global_samples if sample.label == label)) for label in labels},
+                "recordingStats": _summarize_recording_stats(global_samples),
+                "modelPath": os.path.relpath(GLOBAL_MODEL_PATH, DATA_DIR),
+            }
 
     profiles = sorted({s.profile_id for s in samples if s.profile_id})
     for pid in profiles:
         subset = filter_samples_by_profile(samples, pid)
         if not subset:
             continue
-        Xp, yp, labels_p = dataset_to_arrays(
+        Xp, yp, labels_p, quality_weights_p = dataset_to_arrays(
             subset,
             augmentations_per_sample=resolved_config.augmentations_per_sample,
             rng=rng,
@@ -1789,18 +2012,29 @@ def train_models(
         Xp_train, yp_train = Xp[train_idx_p], yp[train_idx_p]
         Xp_val, yp_val = Xp[val_idx_p], yp[val_idx_p]
 
-        train_weights_p = (
+        train_quality_p = quality_weights_p[train_idx_p] if quality_weights_p.size else None
+        val_quality_p = quality_weights_p[val_idx_p] if quality_weights_p.size else None
+
+        train_class_weights_p = (
             compute_sample_weights(
                 yp_train, smoothing=resolved_config.class_weight_smoothing
             )
             if yp_train.size
             else None
         )
-        val_weights_p = (
+        val_class_weights_p = (
             compute_sample_weights(yp_val, smoothing=resolved_config.class_weight_smoothing)
             if yp_val.size
             else None
         )
+
+        train_weights_p = train_class_weights_p
+        if train_quality_p is not None and train_quality_p.size:
+            train_weights_p = train_quality_p if train_weights_p is None else train_weights_p * train_quality_p
+
+        val_weights_p = val_class_weights_p
+        if val_quality_p is not None and val_quality_p.size:
+            val_weights_p = val_quality_p if val_weights_p is None else val_weights_p * val_quality_p
 
         snapshot_p = train_mlp(
             Xp_train,
@@ -1824,6 +2058,7 @@ def train_models(
             "validationSamples": int(Xp_val.shape[0]),
             "validationAccuracy": val_acc_p,
             "labels": {label: int(sum(1 for sample in subset if sample.label == label)) for label in labels_p},
+            "recordingStats": _summarize_recording_stats(subset),
             "modelPath": os.path.relpath(profile_path, DATA_DIR),
         }
 
@@ -1909,4 +2144,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

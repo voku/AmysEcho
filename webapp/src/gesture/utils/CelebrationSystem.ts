@@ -83,12 +83,12 @@ export class CelebrationSystem {
       } else {
         // Regular success
         const successMessages = timePatterns.success;
-        message = successMessages[Math.floor(Math.random() * successMessages.length)];
+        message = successMessages[Math.floor(Math.random() * successMessages.length)] ?? '';
         emoji = this.getSuccessEmoji(attemptResult);
 
         // Check for progress improvement
         if (this.isSignificantProgress(attemptResult)) {
-          encouragement = this.progressCelebrations[Math.floor(Math.random() * this.progressCelebrations.length)];
+          encouragement = this.progressCelebrations[Math.floor(Math.random() * this.progressCelebrations.length)] ?? '';
         } else {
           encouragement = this.getPersonalizedEncouragement(attemptResult);
         }
@@ -102,7 +102,7 @@ export class CelebrationSystem {
       } else {
         // Pure effort-based encouragement
         const effortMessages = timePatterns.effort;
-        message = effortMessages[Math.floor(Math.random() * effortMessages.length)];
+        message = effortMessages[Math.floor(Math.random() * effortMessages.length)] ?? '';
         emoji = this.getEffortEmoji(attemptResult);
         encouragement = this.getGentleEncouragement(attemptResult);
       }
@@ -120,10 +120,10 @@ export class CelebrationSystem {
     const emojis = ['🎉', '🌟', '💫', '✨', '🎊', '🏆', '👏', '🙌'];
     // Use different emojis based on success rate
     if (result.recentSuccessRate > this.HIGH_SUCCESS_RATE_THRESHOLD) {
-      return emojis[Math.floor(Math.random() * emojis.length)];
+      return emojis[Math.floor(Math.random() * emojis.length)] ?? '🎉';
     } else {
       // More encouraging emojis for lower success rates
-      return ['🌟', '💫', '✨', '🎊'][Math.floor(Math.random() * 4)];
+      return (['🌟', '💫', '✨', '🎊'] as const)[Math.floor(Math.random() * 4)] ?? '🌟';
     }
   }
 
@@ -178,7 +178,7 @@ export class CelebrationSystem {
 
     if (recentMessages.length > 2) {
       // Multiple low-effort attempts - use gentler encouragement
-      return this.gentleEncouragements[Math.floor(Math.random() * this.gentleEncouragements.length)];
+      return this.gentleEncouragements[Math.floor(Math.random() * this.gentleEncouragements.length)] ?? 'Du machst das prima!';
     }
 
     // Standard effort encouragement

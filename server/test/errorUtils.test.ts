@@ -6,7 +6,7 @@ import {
   safeJsonStringify,
   handleApiError,
   handleDatabaseError,
-} from '../src/utils/errorUtils';
+} from '../src/utils/errorUtils.js';
 
 describe('errorUtils', () => {
   it('withErrorHandling returns data on success', async () => {

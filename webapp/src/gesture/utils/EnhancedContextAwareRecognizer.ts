@@ -45,13 +45,9 @@ export class EnhancedContextAwareRecognizer {
   private readonly MAX_HISTORY = 200; // Increased for better pattern analysis
   private readonly PATTERN_WINDOW_HOURS = 168; // 7 days for long-term patterns
   private readonly SHORT_TERM_WINDOW_MINUTES = 60; // 1 hour for recent activity
-  private readonly HABIT_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // Update habits daily
 
   // Activity level detection
-  private recentActivity: number[] = [];
-  private readonly ACTIVITY_WINDOW_SIZE = 20;
   private activityBaseline = 0.5; // Baseline activity level
-  private lastActivityUpdate = 0;
 
   // Stress detection patterns
   private stressPatterns = {
@@ -83,7 +79,7 @@ export class EnhancedContextAwareRecognizer {
       dayOfWeek,
       activityLevel,
       success: confidence >= 0.7,
-      duration
+      ...(duration !== undefined ? { duration } : {})
     };
 
     this.addToHistory(pattern);
@@ -470,8 +466,12 @@ export class EnhancedContextAwareRecognizer {
     const gestureCounts: Record<string, number> = {};
 
     this.gestureHistory.forEach(h => {
-      timeOfDayDistribution[h.timeOfDay]++;
-      activityLevelDistribution[h.activityLevel]++;
+      const currentTODCount = timeOfDayDistribution[h.timeOfDay] || 0;
+      timeOfDayDistribution[h.timeOfDay] = currentTODCount + 1;
+      
+      const currentALCount = activityLevelDistribution[h.activityLevel] || 0;
+      activityLevelDistribution[h.activityLevel] = currentALCount + 1;
+      
       gestureCounts[h.gesture] = (gestureCounts[h.gesture] || 0) + 1;
     });
 
@@ -513,9 +513,7 @@ export class EnhancedContextAwareRecognizer {
   reset(): void {
     this.gestureHistory = [];
     this.communicationHabits.clear();
-    this.recentActivity = [];
     this.activityBaseline = 0.5;
-    this.lastActivityUpdate = 0;
   }
 
   /**

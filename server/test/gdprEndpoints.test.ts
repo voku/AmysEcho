@@ -11,6 +11,7 @@ import { registerGdprRoutes } from '../src/routes/gdprRoutes.js';
 const LEGACY_TOKEN = 'gdpr-token';
 
 const baseDb: Database = {
+  users: [],
   symbols: [],
   gestureDefinitions: [],
   gestureTrainingData: [],

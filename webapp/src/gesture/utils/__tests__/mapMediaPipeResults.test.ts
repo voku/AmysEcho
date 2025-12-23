@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { mapMediaPipeResult } from '../mapMediaPipeResults';
 import { MediaPipeGestureResult } from '../../types/MediaPipeTypes';
 
@@ -27,8 +28,11 @@ describe('mapMediaPipeResult', () => {
     const mapped = mapMediaPipeResult(result);
 
     expect(mapped.hands).toHaveLength(1);
-    expect(mapped.hands[0].handedness).toBe('Left');
-    expect(mapped.hands[0].gestures[0]).toEqual({ label: 'thumbs_up', score: 0.9 });
+    const firstHand = mapped.hands[0];
+    if (firstHand) {
+      expect(firstHand.handedness).toBe('Left');
+      expect(firstHand.gestures[0]).toEqual({ label: 'thumbs_up', score: 0.9 });
+    }
     expect(mapped.landmarks[0]).toEqual([
       [0.1, 0.2, 0.3],
       [0.4, 0.5, 0],
@@ -56,9 +60,13 @@ describe('mapMediaPipeResult', () => {
     const mapped = mapMediaPipeResult(result);
 
     expect(mapped.hands).toHaveLength(2);
-    expect(mapped.hands[0].handedness).toBe('unknown');
-    expect(mapped.hands[1].landmarks).toEqual([]);
-    expect(mapped.hands[1].gestures[0]).toEqual({ label: 'fist', score: 0.7 });
+    const firstHand = mapped.hands[0];
+    const secondHand = mapped.hands[1];
+    if (firstHand) expect(firstHand.handedness).toBe('unknown');
+    if (secondHand) {
+      expect(secondHand.landmarks).toEqual([]);
+      expect(secondHand.gestures[0]).toEqual({ label: 'fist', score: 0.7 });
+    }
     expect(mapped.handednesses).toEqual(['unknown', 'unknown']);
   });
 });

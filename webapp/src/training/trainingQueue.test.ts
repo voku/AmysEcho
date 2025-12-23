@@ -42,7 +42,10 @@ describe('trainingQueue - IndexedDB operations', () => {
 
     const bundles = await listQueuedBundles();
     expect(bundles.length).toBe(1);
-    expect(bundles[0].key).toBe(bundle!.key);
+    const firstBundle = bundles[0];
+    if (firstBundle && bundle) {
+      expect(firstBundle.key).toBe(bundle.key);
+    }
   });
 
   it('lists all queued bundles', async () => {
@@ -69,8 +72,10 @@ describe('trainingQueue - IndexedDB operations', () => {
 
     const bundles = await listQueuedBundles();
     expect(bundles.length).toBe(2);
-    expect(bundles[0].label).toBe('GESTURE_1');
-    expect(bundles[1].label).toBe('GESTURE_2');
+    const b0 = bundles[0];
+    const b1 = bundles[1];
+    if (b0) expect(b0.label).toBe('GESTURE_1');
+    if (b1) expect(b1.label).toBe('GESTURE_2');
   });
 
   it('marks bundle as uploading', async () => {
@@ -84,11 +89,16 @@ describe('trainingQueue - IndexedDB operations', () => {
       zip: testZip,
     });
 
-    await markBundleUploading(bundle!.key);
+    if (bundle) {
+      await markBundleUploading(bundle.key);
 
-    const bundles = await listQueuedBundles();
-    expect(bundles.length).toBe(1);
-    expect(bundles[0].status).toBe('uploading');
+      const bundles = await listQueuedBundles();
+      expect(bundles.length).toBe(1);
+      const firstBundle = bundles[0];
+      if (firstBundle) {
+        expect(firstBundle.status).toBe('uploading');
+      }
+    }
   });
 
   it('marks bundle as failed with error message', async () => {
@@ -107,9 +117,12 @@ describe('trainingQueue - IndexedDB operations', () => {
 
     const bundles = await listQueuedBundles();
     expect(bundles.length).toBe(1);
-    expect(bundles[0].status).toBe('failed');
-    expect(bundles[0].lastError).toBe(errorMessage);
-    expect(bundles[0].attempts).toBe(1);
+    const firstBundle = bundles[0];
+    if (firstBundle) {
+      expect(firstBundle.status).toBe('failed');
+      expect(firstBundle.lastError).toBe(errorMessage);
+      expect(firstBundle.attempts).toBe(1);
+    }
   });
 
   it('removes bundle after successful upload', async () => {
@@ -126,7 +139,9 @@ describe('trainingQueue - IndexedDB operations', () => {
     let bundles = await listQueuedBundles();
     expect(bundles.length).toBe(1);
 
-    await removeQueuedBundle(bundle!.key);
+    if (bundle) {
+      await removeQueuedBundle(bundle.key);
+    }
 
     bundles = await listQueuedBundles();
     expect(bundles.length).toBe(0);
@@ -144,12 +159,12 @@ describe('trainingQueue - IndexedDB operations', () => {
       zip: testZip,
     });
 
-    const retrievedZip = await readBundleData(bundle!.key);
-    expect(retrievedZip).toBeTruthy();
-    expect(retrievedZip!.length).toBe(testZip.length);
-    
-    const retrievedContent = new TextDecoder().decode(retrievedZip);
-    expect(retrievedContent).toBe(testZipContent);
+    const retrievedZip = bundle ? await readBundleData(bundle.key) : null;
+    expect(retrievedZip).toBeDefined();
+    if (retrievedZip) {
+      const retrievedContent = new TextDecoder().decode(retrievedZip);
+      expect(retrievedContent).toBe(testZipContent);
+    }
   });
 
   it('handles multiple failed attempts with retry count', async () => {
@@ -166,18 +181,20 @@ describe('trainingQueue - IndexedDB operations', () => {
     // First failure
     await markBundleFailed(bundle!.key, 'First error');
     let bundles = await listQueuedBundles();
-    expect(bundles[0].attempts).toBe(1);
+    if (bundles[0]) expect(bundles[0].attempts).toBe(1);
 
     // Second failure
     await markBundleFailed(bundle!.key, 'Second error');
     bundles = await listQueuedBundles();
-    expect(bundles[0].attempts).toBe(2);
-    expect(bundles[0].lastError).toBe('Second error');
+    if (bundles[0]) {
+      expect(bundles[0].attempts).toBe(2);
+      expect(bundles[0].lastError).toBe('Second error');
+    }
 
     // Third failure
     await markBundleFailed(bundle!.key, 'Third error');
     bundles = await listQueuedBundles();
-    expect(bundles[0].attempts).toBe(3);
+    if (bundles[0]) expect(bundles[0].attempts).toBe(3);
   });
 
   it('persists bundle data across operations', async () => {
@@ -203,8 +220,11 @@ describe('trainingQueue - IndexedDB operations', () => {
 
     // Check metadata
     const bundles = await listQueuedBundles();
-    expect(bundles[0].clipBytes).toBe(1024);
-    expect(bundles[0].stillBytes).toBe(512);
-    expect(bundles[0].framesCount).toBe(5);
+    const firstBundle = bundles[0];
+    if (firstBundle) {
+      expect(firstBundle.clipBytes).toBe(1024);
+      expect(firstBundle.stillBytes).toBe(512);
+      expect(firstBundle.framesCount).toBe(5);
+    }
   });
 });

@@ -70,6 +70,7 @@ interface TrainingFrame {
   handedness?: string[];          // Which hand is which
   poseLandmarks?: number[][];     // Body pose (33 points)
   faceLandmarks?: number[][];     // Facial points (468 points)
+  timestampMs?: number;           // Frame timestamp (ms since epoch)
 }
 ```
 
@@ -108,6 +109,15 @@ Example `landmarks.json`:
       "method": "one_euro",
       "minCutOff": 1.0,
       "beta": 0.05
+    },
+    "recording": {
+      "frameCount": 52,
+      "usableFrameCount": 45,
+      "clipDurationMs": 1800,
+      "clipBytes": 2048576,
+      "clipMimeType": "video/webm",
+      "stillBytes": 120341,
+      "stillMimeType": "image/jpeg"
     }
   }
 }

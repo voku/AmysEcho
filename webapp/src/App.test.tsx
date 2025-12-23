@@ -121,11 +121,11 @@ describe('LoginScreen', () => {
     await waitFor(() => {
       const debug = screen.getByTestId('login-debug');
       expect(debug.dataset['token']).toBe('token-abc');
+      expect(debug.dataset['profile']).toBe('amy-user');
     });
 
     const debug = screen.getByTestId('login-debug');
     expect(debug.dataset['refresh']).toBe('refresh-xyz');
-    expect(debug.dataset['profile']).toBe('amy-user');
     expect(debug.dataset['persist']).toBe('true');
   });
 });

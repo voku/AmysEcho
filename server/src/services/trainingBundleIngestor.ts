@@ -34,6 +34,18 @@ const TrainingBundleManifestEntrySchema = z
         handFocus: z.enum([
           'dominant_only', 'both_equal', 'both_asymmetric', 'either_hand',
         ]).optional(),
+        recording: z
+          .object({
+            frameCount: z.number().optional(),
+            usableFrameCount: z.number().optional(),
+            clipDurationMs: z.number().optional(),
+            clipBytes: z.number().optional(),
+            clipMimeType: z.string().optional(),
+            stillBytes: z.number().optional(),
+            stillMimeType: z.string().optional(),
+          })
+          .passthrough()
+          .optional(),
       })
       .passthrough()
       .optional(),
@@ -48,6 +60,7 @@ interface LandmarksFrameEntry {
   poseLandmarks?: unknown;
   faceLandmarks?: unknown;
   handedness?: unknown;
+  timestampMs?: unknown;
 }
 
 interface LandmarksFile {
@@ -79,6 +92,25 @@ interface CaptureMetadata {
   modalities?: { hands?: boolean; pose?: boolean; face?: boolean };
   smoothing?: { method?: string; minCutOff?: number; beta?: number; dCutOff?: number };
   handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand';
+  recording?: RecordingMetadata;
+  timing?: TimingMetadata;
+}
+
+interface RecordingMetadata {
+  frameCount?: number;
+  usableFrameCount?: number;
+  clipDurationMs?: number;
+  clipBytes?: number;
+  clipMimeType?: string;
+  stillBytes?: number;
+  stillMimeType?: string;
+}
+
+interface TimingMetadata {
+  nonMonotonic?: boolean;
+  averageDeltaMs?: number;
+  minDeltaMs?: number;
+  maxDeltaMs?: number;
 }
 
 function isDatasetSample(value: unknown): value is DatasetSample {
@@ -278,6 +310,7 @@ interface NormalizedFrameData {
   faceLandmarks: number[][];
   handedness: string[];
   captureMetadata?: CaptureMetadata;
+  timestampMs?: number;
 }
 
 function hasAnyNonZeroPoint(points: number[][]): boolean {
@@ -339,6 +372,114 @@ function normalizeCaptureMetadata(raw: unknown): CaptureMetadata | undefined {
     ...(modalities ? { modalities } : {}),
     ...(smoothing ? { smoothing } : {}),
   };
+}
+
+function normalizeRecordingMetadata(raw: unknown): RecordingMetadata | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const candidate = raw as Record<string, unknown>;
+  const frameCount = typeof candidate.frameCount === 'number' && Number.isFinite(candidate.frameCount)
+    ? candidate.frameCount
+    : undefined;
+  const usableFrameCount = typeof candidate.usableFrameCount === 'number' && Number.isFinite(candidate.usableFrameCount)
+    ? candidate.usableFrameCount
+    : undefined;
+  const clipDurationMs = typeof candidate.clipDurationMs === 'number' && Number.isFinite(candidate.clipDurationMs)
+    ? candidate.clipDurationMs
+    : undefined;
+  const clipBytes = typeof candidate.clipBytes === 'number' && Number.isFinite(candidate.clipBytes)
+    ? candidate.clipBytes
+    : undefined;
+  const clipMimeType = typeof candidate.clipMimeType === 'string' && candidate.clipMimeType.trim()
+    ? candidate.clipMimeType.trim()
+    : undefined;
+  const stillBytes = typeof candidate.stillBytes === 'number' && Number.isFinite(candidate.stillBytes)
+    ? candidate.stillBytes
+    : undefined;
+  const stillMimeType = typeof candidate.stillMimeType === 'string' && candidate.stillMimeType.trim()
+    ? candidate.stillMimeType.trim()
+    : undefined;
+
+  if (
+    frameCount === undefined &&
+    usableFrameCount === undefined &&
+    clipDurationMs === undefined &&
+    clipBytes === undefined &&
+    !clipMimeType &&
+    stillBytes === undefined &&
+    !stillMimeType
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...(frameCount !== undefined ? { frameCount } : {}),
+    ...(usableFrameCount !== undefined ? { usableFrameCount } : {}),
+    ...(clipDurationMs !== undefined ? { clipDurationMs } : {}),
+    ...(clipBytes !== undefined ? { clipBytes } : {}),
+    ...(clipMimeType ? { clipMimeType } : {}),
+    ...(stillBytes !== undefined ? { stillBytes } : {}),
+    ...(stillMimeType ? { stillMimeType } : {}),
+  };
+}
+
+function mergeCaptureMetadata(
+  frameMetadata: CaptureMetadata | undefined,
+  recording: RecordingMetadata | undefined,
+  timing: TimingMetadata | undefined,
+): CaptureMetadata | undefined {
+  if (!frameMetadata && !recording && !timing) return undefined;
+  return {
+    ...(frameMetadata ?? {}),
+    ...(recording ? { recording } : {}),
+    ...(timing ? { timing } : {}),
+  };
+}
+
+function analyzeTimestampSequence(frames: LandmarksFrameEntry[]): TimingMetadata | undefined {
+  const timestamps = frames
+    .map((frame) => frame.timestampMs)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+  if (timestamps.length < 2) {
+    return undefined;
+  }
+
+  let nonMonotonic = false;
+  const deltas: number[] = [];
+  for (let i = 1; i < timestamps.length; i += 1) {
+    const delta = timestamps[i] - timestamps[i - 1];
+    if (delta <= 0) {
+      nonMonotonic = true;
+    }
+    if (delta > 0) {
+      deltas.push(delta);
+    }
+  }
+
+  if (deltas.length === 0) {
+    return nonMonotonic ? { nonMonotonic: true } : undefined;
+  }
+
+  const totalDelta = deltas.reduce((sum, d) => sum + d, 0);
+  const averageDelta = totalDelta / deltas.length;
+  const minDelta = Math.min(...deltas);
+  const maxDelta = Math.max(...deltas);
+
+  const result: Partial<TimingMetadata> = {};
+  if (nonMonotonic) {
+    result.nonMonotonic = true;
+  }
+  if (Number.isFinite(averageDelta)) {
+    result.averageDeltaMs = averageDelta;
+  }
+  if (Number.isFinite(minDelta)) {
+    result.minDeltaMs = minDelta;
+  }
+  if (Number.isFinite(maxDelta)) {
+    result.maxDeltaMs = maxDelta;
+  }
+
+  return Object.keys(result).length > 0 ? (result as TimingMetadata) : undefined;
 }
 
 async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
@@ -408,6 +549,18 @@ async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<Normal
       return [];
     }
     const captureMetadata = normalizeCaptureMetadata((parsed as Record<string, unknown>).metadata);
+    const recordingMetadata = normalizeRecordingMetadata(
+      entry.metadata && typeof entry.metadata === 'object' ? (entry.metadata as Record<string, unknown>).recording : null,
+    );
+    const timingMetadata = analyzeTimestampSequence(parsed.frames);
+    if (timingMetadata?.nonMonotonic) {
+      logger.warn('Training bundle contains non-monotonic frame timestamps', {
+        bundleId: entry.id,
+        profileId: entry.profileId ?? null,
+        timing: timingMetadata,
+      });
+    }
+    const mergedCaptureMetadata = mergeCaptureMetadata(captureMetadata, recordingMetadata, timingMetadata);
     const frames: NormalizedFrameData[] = [];
     parsed.frames.forEach((frame) => {
       const handedness = normalizeHandedness(frame?.handedness);
@@ -415,6 +568,8 @@ async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<Normal
       const poseLandmarks = normalizePoseLandmarks(frame?.poseLandmarks);
       const faceLandmarks = normalizeFaceLandmarks(frame?.faceLandmarks);
       const flattened = normalizeFlattenedLandmarks(frame?.landmarks);
+      const timestampRaw = frame?.timestampMs;
+      const timestampMs = typeof timestampRaw === 'number' && Number.isFinite(timestampRaw) ? timestampRaw : undefined;
       const landmarks = flattened.length > 0 ? flattened : deriveFlattenedHands(handLandmarks, handedness);
       if (landmarks.length === 0) {
         return;
@@ -425,7 +580,8 @@ async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<Normal
         poseLandmarks,
         faceLandmarks,
         handedness,
-        ...(captureMetadata ? { captureMetadata } : {}),
+        ...(mergedCaptureMetadata ? { captureMetadata: mergedCaptureMetadata } : {}),
+        ...(timestampMs !== undefined ? { timestampMs } : {}),
       });
     });
     return frames;
@@ -442,9 +598,12 @@ function buildDatasetSample(
   frameIndex: number,
   frameData: NormalizedFrameData,
 ): DatasetSample {
+  const frameTimestamp = typeof frameData.timestampMs === 'number' && Number.isFinite(frameData.timestampMs)
+    ? frameData.timestampMs
+    : undefined;
   const timestampSource = entry.capturedAt ?? entry.receivedAt;
   const parsedTimestamp = timestampSource ? Date.parse(timestampSource) : NaN;
-  const ts = Number.isFinite(parsedTimestamp) ? parsedTimestamp : Date.now();
+  const ts = frameTimestamp ?? (Number.isFinite(parsedTimestamp) ? parsedTimestamp : Date.now());
   const sample: DatasetSample = {
     id: `${BUNDLE_SAMPLE_PREFIX}${entry.id}:frame:${frameIndex}`,
     label: entry.label,

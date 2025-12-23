@@ -187,24 +187,24 @@ export class SignVariationTracker {
     const now = Date.now();
     const retentionMs = this.CLUSTER_STABILITY_DAYS * 24 * 60 * 60 * 1000;
     
-    for (const [gesture, variations] of this.variations.entries()) {
+    Array.from(this.variations.entries()).forEach(([gesture, variations]) => {
       const recent = variations.filter(v => now - v.timestamp < retentionMs);
       if (recent.length === 0) {
         this.variations.delete(gesture);
       } else {
         this.variations.set(gesture, recent);
       }
-    }
+    });
     
     // Also clean up clusters
-    for (const [gesture, clusters] of this.clusters.entries()) {
+    Array.from(this.clusters.entries()).forEach(([gesture, clusters]) => {
       const recent = clusters.filter(c => now - c.lastUsed < retentionMs);
       if (recent.length === 0) {
         this.clusters.delete(gesture);
       } else {
         this.clusters.set(gesture, recent);
       }
-    }
+    });
   }
   
   /**
@@ -215,14 +215,14 @@ export class SignVariationTracker {
     clusters: Record<string, VariationCluster[]>;
   } {
     const variations: Record<string, SignVariation[]> = {};
-    for (const [gesture, vars] of this.variations) {
+    Array.from(this.variations.entries()).forEach(([gesture, vars]) => {
       variations[gesture] = vars;
-    }
+    });
     
     const clusters: Record<string, VariationCluster[]> = {};
-    for (const [gesture, clusts] of this.clusters) {
+    Array.from(this.clusters.entries()).forEach(([gesture, clusts]) => {
       clusters[gesture] = clusts;
-    }
+    });
     
     return { variations, clusters };
   }

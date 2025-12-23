@@ -5,7 +5,7 @@ import { test, before, after } from 'node:test';
 import { createTrainingZip, uploadTrainingZip } from '../../webapp/src/training/trainingBundle.ts';
 import { triggerTrainingJob } from '../../webapp/src/training/trainingJob.ts';
 import type { TrainingFrame } from '../../webapp/src/training/types.ts';
-import { TEST_TOKEN, serverHeaders, serverBaseUrl, startServer, stopServer } from './helpers/server.js';
+import { TEST_TOKEN, serverHeaders, serverBaseUrl, startServer, stopServer } from './helpers/server.ts';
 
 before(startServer);
 after(stopServer);

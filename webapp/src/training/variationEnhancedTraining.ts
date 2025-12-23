@@ -163,7 +163,6 @@ export function generateTrainingInsights(
   needsPractice: string[];
 } {
   const allMetrics = recentGestures.map((g) => ({
-    gesture: g,
     ...variationTracker.getLearningMetrics(g),
   }));
   

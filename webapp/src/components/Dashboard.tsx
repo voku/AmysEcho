@@ -30,9 +30,13 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load local analytics
-    const localSummary = loadLocalAnalytics(profileId);
-    setSummary(localSummary);
+    // Load local analytics only when a profile is active
+    if (profileId) {
+      const localSummary = loadLocalAnalytics(profileId);
+      setSummary(localSummary);
+    } else {
+      setSummary(null); // Clear summary if no profile is active
+    }
 
     // Fetch server analytics if configured
     if (apiBaseUrl && apiToken) {
@@ -102,7 +106,7 @@ export function Dashboard() {
           <p className="eyebrow">Dashboard</p>
           <h2>Übersicht</h2>
           <p className="muted">
-            Zusammenfassung der Nutzung und Lernfortschritte für {profileId}.
+            Zusammenfassung der Nutzung und Lernfortschritte für {profileId || 'N/A'}.
           </p>
         </div>
       </div>

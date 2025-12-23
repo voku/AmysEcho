@@ -7,6 +7,7 @@
  * Migrated from app/test/accessibility22q11.test.ts with adaptations for webapp architecture.
  */
 
+import { describe, it, expect } from 'vitest';
 import { HandStabilityAssistant } from '../../gesture/core/HandStabilityAssistant';
 import { PartialGestureDetector, GestureSizeNormalizer } from '../../gesture/gestureProcessing';
 
@@ -14,6 +15,17 @@ const makeHand = (transform: (index: number, point: number[]) => number[] = (_i,
   const base = Array.from({ length: 21 }, (_, i) => [i * 0.05, i * 0.02, 0]);
   return base.map((point, index) => transform(index, point));
 };
+
+function getHandSize(hand: number[][]): number {
+  if (hand.length < 21) return 0;
+  const wrist = hand[0];
+  const middleMCP = hand[9];
+  if (!wrist || !middleMCP) return 0;
+  return Math.sqrt(
+    Math.pow((middleMCP[0] ?? 0) - (wrist[0] ?? 0), 2) +
+    Math.pow((middleMCP[1] ?? 0) - (wrist[1] ?? 0), 2)
+  );
+}
 
 describe('22q11 Accessibility Support', () => {
   describe('HandStabilityAssistant', () => {
@@ -38,7 +50,7 @@ describe('22q11 Accessibility Support', () => {
       // Then introduce jitter
       const jitterHand = makeHand((index, point) => {
         const jitter = index % 2 === 0 ? 0.1 : -0.1;
-        return [point[0] + jitter, point[1] + jitter, point[2]];
+        return [(point[0] ?? 0) + jitter, (point[1] ?? 0) + jitter, point[2] ?? 0];
       });
 
       const result = assistant.analyzeStability([jitterHand]);
@@ -52,9 +64,9 @@ describe('22q11 Accessibility Support', () => {
       const assistant = new HandStabilityAssistant();
 
       // Very jittery hand
-      const veryJitterHand = makeHand((index, point) => {
+      const veryJitterHand = makeHand((_index, point) => {
         const jitter = Math.random() * 0.3;
-        return [point[0] + jitter, point[1] + jitter, point[2]];
+        return [(point[0] ?? 0) + jitter, (point[1] ?? 0) + jitter, point[2] ?? 0];
       });
 
       for (let i = 0; i < 5; i++) {
@@ -89,26 +101,16 @@ describe('22q11 Accessibility Support', () => {
       normalizer.normalizeHandSize([referenceHand]);
 
       // Create a larger hand (scaled 2x)
-      const largerHand = makeHand((index, point) => [
-        point[0] * 2,
-        point[1] * 2,
-        point[2] * 2
+      const largerHand = makeHand((_index, point) => [
+        (point[0] ?? 0) * 2,
+        (point[1] ?? 0) * 2,
+        (point[2] ?? 0) * 2
       ]);
 
       const [normalized] = normalizer.normalizeHandSize([largerHand]);
+      if (!normalized) throw new Error('Normalization failed');
 
       // Calculate hand sizes
-      const getHandSize = (hand: number[][]): number => {
-        const wrist = hand[0];
-        const middle = hand[12];
-        if (!wrist || !middle) return 0;
-        return Math.sqrt(
-          Math.pow(middle[0]! - wrist[0]!, 2) +
-          Math.pow(middle[1]! - wrist[1]!, 2) +
-          Math.pow(middle[2]! - wrist[2]!, 2)
-        );
-      };
-
       const refSize = getHandSize(referenceHand);
       const normSize = getHandSize(normalized);
       
@@ -122,10 +124,10 @@ describe('22q11 Accessibility Support', () => {
       
       normalizer.normalizeHandSize([referenceHand]);
 
-      const largerHand = makeHand((index, point) => [
-        point[0] * 3,
-        point[1] * 3,
-        point[2] * 3
+      const largerHand = makeHand((_index, point) => [
+        (point[0] ?? 0) * 3,
+        (point[1] ?? 0) * 3,
+        (point[2] ?? 0) * 3
       ]);
 
       const [normalized] = normalizer.normalizeHandSize([largerHand]);
@@ -136,7 +138,9 @@ describe('22q11 Accessibility Support', () => {
       
       // Normalized hand should exist and have proper structure
       expect(normalized).toBeDefined();
-      expect(normalized.length).toBe(21);
+      if (normalized) {
+        expect(normalized.length).toBe(21);
+      }
     });
 
     it('handles empty hand arrays', () => {
@@ -151,16 +155,19 @@ describe('22q11 Accessibility Support', () => {
       
       const [normalized] = normalizer.normalizeHandSize([hand]);
 
-      expect(normalized.length).toBe(hand.length);
-      expect(normalized.length).toBe(21); // MediaPipe hand landmarks
-      
-      // Each landmark should have x, y, z coordinates
-      normalized.forEach((landmark) => {
-        expect(landmark.length).toBe(3);
-        expect(typeof landmark[0]).toBe('number');
-        expect(typeof landmark[1]).toBe('number');
-        expect(typeof landmark[2]).toBe('number');
-      });
+      expect(normalized).toBeDefined();
+      if (normalized) {
+        expect(normalized.length).toBe(hand.length);
+        expect(normalized.length).toBe(21); // MediaPipe hand landmarks
+        
+        // Each landmark should have x, y, z coordinates
+        normalized.forEach((landmark) => {
+          expect(landmark.length).toBe(3);
+          expect(typeof landmark[0]).toBe('number');
+          expect(typeof landmark[1]).toBe('number');
+          expect(typeof landmark[2]).toBe('number');
+        });
+      }
     });
   });
 
@@ -175,15 +182,16 @@ describe('22q11 Accessibility Support', () => {
         if (tips.includes(index)) {
           // Index and middle finger tips below joints (curled)
           if (index === 8 || index === 12) {
-            return [point[0], point[1] + 0.05, point[2]];
+            return [point[0] ?? 0, (point[1] ?? 0) + 0.05, point[2] ?? 0];
           }
           // Ring and pinky extended (tips above joints)
-          return [point[0], point[1] - 0.05, point[2]];
+          return [point[0] ?? 0, (point[1] ?? 0) - 0.05, point[2] ?? 0];
         }
         return point;
       });
 
       const analysis = detector.analyzePartialCompletion([partialFist], 'fist');
+      if (!analysis) throw new Error('Analysis failed');
       
       expect(analysis.isPartial).toBe(true);
       expect(analysis.completion).toBeGreaterThan(0.3);
@@ -198,14 +206,14 @@ describe('22q11 Accessibility Support', () => {
       const partialHand = makeHand((index, point) => {
         // Simulate 50% completion
         if (index > 10) {
-          return [point[0], point[1] + 0.03, point[2]];
+          return [(point[0] ?? 0), (point[1] ?? 0) + 0.03, point[2] ?? 0];
         }
         return point;
       });
 
       const analysis = detector.analyzePartialCompletion([partialHand], 'point');
       
-      if (analysis.isPartial) {
+      if (analysis && analysis.isPartial) {
         expect(analysis.feedback).toBeTruthy();
         expect(analysis.confidence).toBeGreaterThan(0);
       }
@@ -269,26 +277,29 @@ describe('22q11 Accessibility Support', () => {
 
       // Step 2: Normalize hand size
       const [normalizedHand] = sizeNormalizer.normalizeHandSize([hand]);
-      expect(normalizedHand.length).toBe(21);
+      expect(normalizedHand).toBeDefined();
+      if (normalizedHand) {
+        expect(normalizedHand.length).toBe(21);
 
-      // Step 3: Detect partial gesture
-      const partialResult = partialDetector.analyzePartialCompletion(
-        [normalizedHand],
-        'fist'
-      );
-      
-      expect(partialResult).toHaveProperty('isPartial');
-      expect(partialResult).toHaveProperty('feedback');
+        // Step 3: Detect partial gesture
+        const partialResult = partialDetector.analyzePartialCompletion(
+          [normalizedHand],
+          'fist'
+        );
+        
+        expect(partialResult).toHaveProperty('isPartial');
+        expect(partialResult).toHaveProperty('feedback');
+      }
     });
 
     it('provides German feedback throughout the workflow', () => {
       const stabilityAssistant = new HandStabilityAssistant();
       const partialDetector = new PartialGestureDetector();
 
-      const unstableHand = makeHand((i, p) => [
-        p[0] + Math.random() * 0.1,
-        p[1] + Math.random() * 0.1,
-        p[2]
+      const unstableHand = makeHand((_i, p) => [
+        (p[0] ?? 0) + Math.random() * 0.1,
+        (p[1] ?? 0) + Math.random() * 0.1,
+        p[2] ?? 0
       ]);
 
       // All feedback should be in German

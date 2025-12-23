@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { app, databaseReady } from '../../src/server';
+import { app, databaseReady } from '../../src/server.js';
 
 describe('Health Check Integration', () => {
   beforeAll(async () => {

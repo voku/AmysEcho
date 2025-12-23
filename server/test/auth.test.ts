@@ -26,7 +26,7 @@ describe('Auth Middleware', () => {
   // Import after setting environment variables
   let auth: any;
   beforeAll(async () => {
-    const authModule = await import('../src/middleware/auth');
+    const authModule = await import('../src/middleware/auth.js');
     auth = authModule.auth;
   });
 

@@ -31,8 +31,16 @@ describe('TrainingDataValidator', () => {
     let base = [makeFlat(21)];
     for (let i = 0; i < 15; i++) {
       // create slight motion per frame
-      base = [base[0].map(([x, y, z]) => [x + 0.002, y + 0.001, z])];
-      seq.push(base);
+      const firstHand = base[0];
+      if (firstHand) {
+        base = [firstHand.map((p) => {
+          const x = p[0] ?? 0;
+          const y = p[1] ?? 0;
+          const z = p[2] ?? 0;
+          return [x + 0.002, y + 0.001, z];
+        })];
+        seq.push(base);
+      }
     }
     const result = validateLandmarkSequence(seq);
     expect(result.ok).toBe(true);

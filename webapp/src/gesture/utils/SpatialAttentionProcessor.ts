@@ -304,7 +304,10 @@ export class SpatialAttentionProcessor {
         const avgDist = totalDist / validNeighbors;
         // Landmarks with larger distances from neighbors may be more distinctive
         // Apply gentle boost for positions that deviate from typical hand structure
-        enhanced[i] *= (1 + avgDist * 0.5);
+        const currentWeight = enhanced[i];
+        if (currentWeight !== undefined) {
+          enhanced[i] = currentWeight * (1 + avgDist * 0.5);
+        }
       }
     }
     
@@ -358,6 +361,8 @@ export class SpatialAttentionProcessor {
       for (let j = i + 1; j < FINGERTIP_INDICES.length; j++) {
         const idx1 = FINGERTIP_INDICES[i];
         const idx2 = FINGERTIP_INDICES[j];
+        if (idx1 === undefined || idx2 === undefined) continue;
+        
         const p1 = landmarks[idx1];
         const p2 = landmarks[idx2];
         
@@ -449,12 +454,16 @@ export class SpatialAttentionProcessor {
     let maxWeight = 0;
     let maxIdx = 0;
     for (let i = 0; i < weights.length; i++) {
-      if (weights[i] > maxWeight) {
-        maxWeight = weights[i];
+      const w = weights[i];
+      if (w !== undefined && w > maxWeight) {
+        maxWeight = w;
         maxIdx = i;
       }
     }
-    this.jointAttentionCounts[maxIdx]++;
+    const currentCount = this.jointAttentionCounts[maxIdx];
+    if (currentCount !== undefined) {
+      this.jointAttentionCounts[maxIdx] = currentCount + 1;
+    }
   }
 
   /**
@@ -671,8 +680,9 @@ export class SpatialAttentionProcessor {
     // Boost weights for interacting landmarks
     for (const interaction of interactions) {
       const boost = 1 + (1 - interaction.distance * 10); // More boost for closer points
-      if (combined[interaction.leftIdx] !== undefined) {
-        combined[interaction.leftIdx] *= boost;
+      const current = combined[interaction.leftIdx];
+      if (current !== undefined) {
+        combined[interaction.leftIdx] = current * boost;
       }
     }
     
@@ -766,8 +776,9 @@ export class SpatialAttentionProcessor {
     let peakJoint = 0;
     let peakCount = 0;
     for (let i = 0; i < this.jointAttentionCounts.length; i++) {
-      if (this.jointAttentionCounts[i] > peakCount) {
-        peakCount = this.jointAttentionCounts[i];
+      const count = this.jointAttentionCounts[i];
+      if (count !== undefined && count > peakCount) {
+        peakCount = count;
         peakJoint = i;
       }
     }

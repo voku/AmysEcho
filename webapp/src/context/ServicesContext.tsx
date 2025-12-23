@@ -3,7 +3,7 @@
  * Provides dependency injection for services.
  */
 
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import { createContext, useContext, ReactNode, useMemo } from 'react';
 import { audioService } from '../services/audioService';
 import { feedbackService } from '../services/feedbackService';
 import { gestureHistoryService } from '../services/gestureHistoryService';

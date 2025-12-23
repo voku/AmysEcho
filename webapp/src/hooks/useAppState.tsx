@@ -1,108 +1,87 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { getActiveProfile, initializeProfileRegistry } from '../services/profileRegistry';
 
-const STORAGE_KEY = 'webapp:app-state';
-
-type StoredAppState = {
-  profileId: string;
+type AppStateContextValue = {
+  profileUuid: string | null;
+  profileId: string | null;
+  displayName: string | null;
   preferredGestureLabel: string;
   lastRecognizedGesture: string | null;
   recentGestures: string[];
-};
-
-type AppStateContextValue = StoredAppState & {
-  setProfileId: (value: string) => void;
   setPreferredGestureLabel: (value: string) => void;
   recordGesture: (gesture: string) => void;
+  refreshFromRegistry: () => Promise<void>;
 };
 
-const defaultState: StoredAppState = {
-  profileId: 'web-demo',
-  preferredGestureLabel: 'HILFE',
-  lastRecognizedGesture: null,
-  recentGestures: [],
-}; 
-
-function readFromStorage(): StoredAppState {
-  if (typeof window === 'undefined') return defaultState;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
-    const parsed = JSON.parse(raw);
-    return {
-      profileId: typeof parsed?.profileId === 'string' && parsed.profileId.trim()
-        ? parsed.profileId.trim()
-        : defaultState.profileId,
-      preferredGestureLabel: typeof parsed?.preferredGestureLabel === 'string' && parsed.preferredGestureLabel.trim()
-        ? parsed.preferredGestureLabel.trim()
-        : defaultState.preferredGestureLabel,
-      lastRecognizedGesture:
-        typeof parsed?.lastRecognizedGesture === 'string' && parsed.lastRecognizedGesture.trim()
-          ? parsed.lastRecognizedGesture.trim()
-          : null,
-      recentGestures: Array.isArray(parsed?.recentGestures)
-        ? (parsed.recentGestures as unknown[])
-            .map((entry: unknown) => String(entry))
-            .filter((entry: string) => entry.trim().length > 0)
-            .slice(0, 5)
-        : [],
-    } satisfies StoredAppState;
-  } catch (error) {
-    console.warn('Konnte gespeicherten Status nicht lesen', error);
-    return defaultState;
-  }
-}
+// defaultState removed - was unused and causing ESLint warning
 
 const AppStateContext = createContext<AppStateContextValue | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<StoredAppState>(() => readFromStorage());
+  const [profileUuid, setProfileUuid] = useState<string | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [preferredGestureLabel, setPreferredGestureLabel] = useState('HILFE');
+  const [lastRecognizedGesture, setLastRecognizedGesture] = useState<string | null>(null);
+  const [recentGestures, setRecentGestures] = useState<string[]>([]);
 
+  // Initialize profile registry and load active profile on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (error) {
-      console.warn('Konnte Status nicht speichern', error);
-    }
-  }, [state]);
-
-  const setProfileId = useCallback((value: string) => {
-    setState((prev) => ({
-      ...prev,
-      profileId: value,
-    }));
+    const init = async () => {
+      try {
+        await initializeProfileRegistry();
+        const activeProfile = await getActiveProfile();
+        if (activeProfile) {
+          setProfileUuid(activeProfile.uuid);
+          setProfileId(activeProfile.profileId);
+          setDisplayName(activeProfile.displayName);
+        }
+      } catch (error) {
+        console.warn('[AppState] Failed to initialize profile registry:', error);
+      }
+    };
+    init();
   }, []);
-
-  const setPreferredGestureLabel = useCallback((value: string) => {
-    setState((prev) => ({
-      ...prev,
-      preferredGestureLabel: value,
-    }));
-  }, []);
-
   const recordGesture = useCallback((gesture: string) => {
-    setState((prev) => {
-      const normalized = gesture.trim();
-      if (!normalized) return prev;
-      const existing = prev.recentGestures.filter((entry) => entry !== normalized);
-      const updatedRecent = [normalized, ...existing].slice(0, 5);
-      return {
-        ...prev,
-        lastRecognizedGesture: normalized,
-        recentGestures: updatedRecent,
-        preferredGestureLabel: prev.preferredGestureLabel || normalized,
-      };
+    const normalized = gesture.trim();
+    if (!normalized) return;
+    
+    setLastRecognizedGesture(normalized);
+    setRecentGestures((prev) => {
+      const existing = prev.filter((entry) => entry !== normalized);
+      return [normalized, ...existing].slice(0, 5);
     });
+    
+    // Set as preferred if not already set
+    setPreferredGestureLabel((prev) => prev || normalized);
+  }, []);
+
+  const refreshFromRegistry = useCallback(async () => {
+    try {
+      const activeProfile = await getActiveProfile();
+      if (activeProfile) {
+        setProfileUuid(activeProfile.uuid);
+        setProfileId(activeProfile.profileId);
+        setDisplayName(activeProfile.displayName);
+      }
+    } catch (error) {
+      console.warn('[AppState] Failed to refresh from registry:', error);
+    }
   }, []);
 
   const value = useMemo<AppStateContextValue>(
     () => ({
-      ...state,
-      setProfileId,
+      profileUuid,
+      profileId,
+      displayName,
+      preferredGestureLabel,
+      lastRecognizedGesture,
+      recentGestures,
       setPreferredGestureLabel,
       recordGesture,
+      refreshFromRegistry,
     }),
-    [state, setPreferredGestureLabel, setProfileId, recordGesture],
+    [profileUuid, profileId, displayName, preferredGestureLabel, lastRecognizedGesture, recentGestures, recordGesture, refreshFromRegistry],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

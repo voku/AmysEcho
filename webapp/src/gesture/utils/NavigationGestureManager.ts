@@ -73,7 +73,7 @@ export class NavigationGestureManager {
   checkNavigationTrigger(
     gesture: string,
     confidence: number,
-    landmarks: number[][][],
+    _landmarks: number[][][],
     context?: any
   ): NavigationTrigger | null {
     // Find matching navigation gesture

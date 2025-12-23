@@ -41,8 +41,8 @@ class ZeroDowntimeModelService {
 
   configure(params: { endpoint: string; token?: string; profileId?: string }): void {
     this.endpoint = params.endpoint;
-    this.token = params.token;
-    this.profileId = params.profileId;
+    if (params.token !== undefined) this.token = params.token;
+    if (params.profileId !== undefined) this.profileId = params.profileId;
   }
 
   onModelUpdate(callback: ModelUpdateCallback): () => void {
@@ -83,8 +83,8 @@ class ZeroDowntimeModelService {
     try {
       const result = await fetchMlpModelWithFallback({
         endpoint: this.endpoint,
-        token: this.token,
-        profileId: this.profileId,
+        ...(this.token !== undefined ? { token: this.token } : {}),
+        ...(this.profileId !== undefined ? { profileId: this.profileId } : {}),
       });
 
       if (!result) {
@@ -94,7 +94,7 @@ class ZeroDowntimeModelService {
       const version: ModelVersion = {
         version: result.meta.version ?? 'unknown',
         source: result.meta.source,
-        profileId: result.meta.profileId ?? undefined,
+        ...(result.meta.profileId ? { profileId: result.meta.profileId } : {}),
         loadedAt: new Date().toISOString(),
         isActive: true,
       };
@@ -121,8 +121,8 @@ class ZeroDowntimeModelService {
     try {
       const result = await fetchMlpModelWithFallback({
         endpoint: this.endpoint,
-        token: this.token,
-        profileId: this.profileId,
+        ...(this.token !== undefined ? { token: this.token } : {}),
+        ...(this.profileId !== undefined ? { profileId: this.profileId } : {}),
       });
 
       if (!result) {
@@ -140,14 +140,23 @@ class ZeroDowntimeModelService {
       this.pendingVersion = {
         version: newVersion,
         source: result.meta.source,
-        profileId: result.meta.profileId ?? undefined,
+        ...(result.meta.profileId ? { profileId: result.meta.profileId } : {}),
         loadedAt: new Date().toISOString(),
         isActive: false,
       };
 
       // Hot-swap: notify listeners to update their model reference
       const previousVersion = this.currentVersion?.version;
-      this.currentVersion = { ...this.pendingVersion, isActive: true };
+      const currentPending = this.pendingVersion;
+      if (!currentPending) return { success: false, error: 'Pending version lost' };
+      
+      this.currentVersion = { 
+        version: currentPending.version,
+        source: currentPending.source,
+        ...(currentPending.profileId ? { profileId: currentPending.profileId } : {}),
+        loadedAt: currentPending.loadedAt,
+        isActive: true 
+      };
       this.pendingVersion = null;
       this.retryCount = 0;
 
@@ -160,7 +169,7 @@ class ZeroDowntimeModelService {
 
       return {
         success: true,
-        previousVersion,
+        ...(previousVersion ? { previousVersion } : {}),
         newVersion,
       };
     } catch (error) {

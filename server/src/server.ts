@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { spawn } from 'child_process';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
@@ -260,9 +260,9 @@ export function buildTrainingStatusResponse(
   return { status: 200, body: job };
 }
 
-// Utility to generate lightweight unique ids
+// Utility to generate cryptographically secure unique ids
 const genId = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2);
+  Date.now().toString(36) + randomBytes(4).toString('hex');
 
 // Initialize database before starting server
 let dbInstance: Database;
@@ -386,9 +386,9 @@ async function runTrainingWorkflow(
   await logTraining(`job ${id}: label counts computed global=${Object.keys(globalCounts).length}`);
 
   const profileIdSet = new Set<string>();
-  for (const pid of profileCounts.keys()) {
+  Array.from(profileCounts.keys()).forEach((pid) => {
     profileIdSet.add(pid);
-  }
+  });
   for (const pid of samples
     .map((s) => s.profileId)
     .filter((p): p is string => !!p && PROFILE_ID_PATTERN.test(p))) {
@@ -701,7 +701,7 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
   const trainingSamples: TrainingSample[] = samples.map((sample) => ({
     gestureDefinitionId: sample.gestureDefinitionId,
     profileId: sample.profileId ?? null,
-    landmarkData: sample.landmarkData,
+    landmarkData: sample.landmarkData as number[][],
   }));
 
   const { jobId, status, queueDepth, retryAfterMs } = startTrainingJob(

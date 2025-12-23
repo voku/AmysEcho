@@ -194,8 +194,16 @@ export class LandmarkEmbedding {
       
       // Add positional encoding to embeddings
       for (let i = 0; i < embeddings.length; i++) {
-        for (let j = 0; j < embeddings[i].length; j++) {
-          embeddings[i][j] += positionalEncodings[i]?.[j] ?? 0;
+        const embedding = embeddings[i];
+        const encoding = positionalEncodings[i];
+        if (embedding && encoding) {
+          for (let j = 0; j < embedding.length; j++) {
+            const encVal = encoding[j];
+            const currentVal = embedding[j];
+            if (encVal !== undefined && currentVal !== undefined) {
+              embedding[j] = currentVal + encVal;
+            }
+          }
         }
       }
     }
@@ -209,7 +217,10 @@ export class LandmarkEmbedding {
     // Normalize embeddings if enabled
     if (this.config.normalizeEmbeddings) {
       for (let i = 0; i < embeddings.length; i++) {
-        embeddings[i] = this.normalizeVector(embeddings[i]);
+        const vec = embeddings[i];
+        if (vec) {
+          embeddings[i] = this.normalizeVector(vec);
+        }
       }
     }
 
@@ -221,8 +232,8 @@ export class LandmarkEmbedding {
       embeddings,
       positionalEncodings,
       hasPositionalEncoding: this.config.usePositionalEncoding ?? false,
-      anatomicalInfo,
-      relativePositions,
+      ...(anatomicalInfo ? { anatomicalInfo } : {}),
+      ...(relativePositions ? { relativePositions } : {}),
     };
   }
 
@@ -337,13 +348,16 @@ export class LandmarkEmbedding {
    */
   private computeMaxDistance(landmarks: number[][], reference: number[]): number {
     let maxDist = 0;
+    const rx = reference[0] ?? 0;
+    const ry = reference[1] ?? 0;
+    const rz = reference[2] ?? 0;
 
     for (const point of landmarks) {
       if (!point || point.length < 2) continue;
       
-      const dx = (point[0] ?? 0) - reference[0];
-      const dy = (point[1] ?? 0) - reference[1];
-      const dz = (point[2] ?? 0) - reference[2];
+      const dx = (point[0] ?? 0) - rx;
+      const dy = (point[1] ?? 0) - ry;
+      const dz = (point[2] ?? 0) - rz;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       
       maxDist = Math.max(maxDist, dist);
@@ -392,8 +406,13 @@ export class LandmarkEmbedding {
     if (fingerIndices.length < 2) return 0;
 
     const wrist = landmarks[WRIST];
-    const base = landmarks[fingerIndices[0]]; // MCP joint
-    const tip = landmarks[fingerIndices[fingerIndices.length - 1]]; // Fingertip
+    const baseIdx = fingerIndices[0];
+    const tipIdx = fingerIndices[fingerIndices.length - 1];
+    
+    if (baseIdx === undefined || tipIdx === undefined) return 0;
+
+    const base = landmarks[baseIdx]; // MCP joint
+    const tip = landmarks[tipIdx]; // Fingertip
 
     if (!wrist || !base || !tip) return 0;
 
@@ -420,8 +439,12 @@ export class LandmarkEmbedding {
     const mcpIndices = [5, 9, 13, 17]; // Index, Middle, Ring, Pinky MCPs
 
     for (let i = 0; i < mcpIndices.length - 1; i++) {
-      const mcp1 = landmarks[mcpIndices[i]];
-      const mcp2 = landmarks[mcpIndices[i + 1]];
+      const idx1 = mcpIndices[i];
+      const idx2 = mcpIndices[i + 1];
+      if (idx1 === undefined || idx2 === undefined) continue;
+      
+      const mcp1 = landmarks[idx1];
+      const mcp2 = landmarks[idx2];
       const wrist = landmarks[WRIST];
 
       if (!mcp1 || !mcp2 || !wrist) {
@@ -442,9 +465,9 @@ export class LandmarkEmbedding {
       ];
 
       // Angle between 3D vectors
-      const dot = v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
-      const mag1 = Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
-      const mag2 = Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2]);
+      const dot = (v1[0] ?? 0) * (v2[0] ?? 0) + (v1[1] ?? 0) * (v2[1] ?? 0) + (v1[2] ?? 0) * (v2[2] ?? 0);
+      const mag1 = Math.sqrt((v1[0] ?? 0) * (v1[0] ?? 0) + (v1[1] ?? 0) * (v1[1] ?? 0) + (v1[2] ?? 0) * (v1[2] ?? 0));
+      const mag2 = Math.sqrt((v2[0] ?? 0) * (v2[0] ?? 0) + (v2[1] ?? 0) * (v2[1] ?? 0) + (v2[2] ?? 0) * (v2[2] ?? 0));
 
       if (mag1 > 0 && mag2 > 0) {
         const angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2))));
@@ -537,14 +560,14 @@ export class LandmarkEmbedding {
       const left = leftHand[i];
       const right = rightHand[i];
 
-      if (!left || !right || left.length < 2 || right.length < 2) continue;
+      if (!left || !right || left[0] === undefined || right[0] === undefined) continue;
 
       // Mirror right hand X coordinate
       const mirroredRight = [1 - (right[0] ?? 0), right[1] ?? 0, right[2] ?? 0];
       
-      const dx = (left[0] ?? 0) - mirroredRight[0];
-      const dy = (left[1] ?? 0) - mirroredRight[1];
-      const dz = (left[2] ?? 0) - mirroredRight[2];
+      const dx = (left[0] ?? 0) - (mirroredRight[0] ?? 0);
+      const dy = (left[1] ?? 0) - (mirroredRight[1] ?? 0);
+      const dz = (left[2] ?? 0) - (mirroredRight[2] ?? 0);
       
       totalDiff += Math.sqrt(dx * dx + dy * dy + dz * dz);
       count++;
@@ -566,6 +589,7 @@ export class LandmarkEmbedding {
 
     for (let t = 0; t < sequence.length; t++) {
       const frame = sequence[t];
+      if (!frame) continue;
       const embedded = this.embed(frame);
       frames.push(embedded);
 

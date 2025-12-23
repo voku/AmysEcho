@@ -46,7 +46,6 @@ export class DetectionAccuracyEnhancer {
   private readonly HISTORY_SIZE = 5;
   private readonly CONFIDENCE_THRESHOLD_HIGH = 0.8;
   private readonly CONFIDENCE_THRESHOLD_MEDIUM = 0.6;
-  private readonly CONFIDENCE_THRESHOLD_LOW = 0.4;
   private readonly HISTORICAL_CONFIDENCE_THRESHOLD = 0.7;
   private readonly BOOSTED_CONFIDENCE_CAP = 0.95;
   private readonly HISTORICAL_BONUS_FACTOR = 0.9;
@@ -272,7 +271,7 @@ export class DetectionAccuracyEnhancer {
       const tip = hand[availablePair.tip];
       const joint = hand[availablePair.joint];
 
-      if (!tip || !joint || tip.length < 2 || joint.length < 2) {
+      if (!tip || !joint || tip[0] === undefined || tip[1] === undefined || joint[0] === undefined || joint[1] === undefined) {
         return;
       }
 
@@ -296,7 +295,7 @@ export class DetectionAccuracyEnhancer {
     const wrist = hand[0];
     const middleBase = hand[9];
 
-    if (!wrist || !middleBase) return 'unknown';
+    if (!wrist || !middleBase || wrist[0] === undefined || wrist[1] === undefined || middleBase[0] === undefined || middleBase[1] === undefined) return 'unknown';
 
     const angle = Math.atan2(middleBase[1] - wrist[1], middleBase[0] - wrist[0]);
     const angleDegrees = (angle * 180) / Math.PI;
@@ -461,18 +460,22 @@ export class DetectionAccuracyEnhancer {
 
     gestureGroups.forEach(results => {
       const sortedByConfidence = [...results].sort((a, b) => b.confidence - a.confidence);
-      const top = sortedByConfidence[0];
+      const topResult = sortedByConfidence[0];
+      if (!topResult) return;
       const tiedResults = sortedByConfidence.filter(
-        candidate => Math.abs(candidate.confidence - top.confidence) < this.CONFIDENCE_TIE_THRESHOLD
+        candidate => Math.abs(candidate.confidence - topResult.confidence) < this.CONFIDENCE_TIE_THRESHOLD
       );
 
       if (tiedResults.length > 1) {
         tiedResults.sort(
           (a, b) => this.METHOD_PRIORITY[b.method] - this.METHOD_PRIORITY[a.method]
         );
-        const chosen = tiedResults[0];
+        const chosen = tiedResults[0]!;
         bestResults.push({
           ...chosen,
+          gesture: chosen.gesture,
+          confidence: chosen.confidence,
+          method: chosen.method,
           metadata: {
             ...(chosen.metadata || {}),
             conflictReason: 'Method priority tiebreaker',
@@ -481,7 +484,7 @@ export class DetectionAccuracyEnhancer {
         return;
       }
 
-      bestResults.push(top);
+      bestResults.push(topResult);
     });
 
     return bestResults;
@@ -527,7 +530,7 @@ export class DetectionAccuracyEnhancer {
       return this.METHOD_PRIORITY[b.result.method] - this.METHOD_PRIORITY[a.result.method];
     });
 
-    const best = enriched[0];
+    const best = enriched[0]!;
     const alternatives = enriched.slice(1).map(entry => entry.result);
     const finalConfidence = best.boostedConfidence;
 

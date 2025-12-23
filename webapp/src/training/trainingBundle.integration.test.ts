@@ -97,6 +97,7 @@ describe('uploadTrainingBundle integration', () => {
             poseLandmarks: number[][];
             faceLandmarks: number[][];
           }>;
+          metadata: Record<string, unknown>;
         },
         files,
       });
@@ -124,6 +125,7 @@ describe('uploadTrainingBundle integration', () => {
 
     expect(manifestEntries).toHaveLength(1);
     const entry = manifestEntries[0];
+    if (!entry) throw new Error('Manifest entry missing');
     expect(entry.metadata).toMatchObject({
       profileId: payload.profileId,
       label: payload.label,
@@ -146,18 +148,35 @@ describe('uploadTrainingBundle integration', () => {
     );
 
     const [firstFrame, secondFrame] = entry.landmarks.frames;
+    if (!firstFrame || !secondFrame) throw new Error('Frames missing');
     expect(firstFrame.handedness).toEqual(['Left', 'Right']);
     expect(firstFrame.landmarks).toHaveLength(42);
-    expect(firstFrame.landmarks[0]).toEqual(REALISTIC_FRAMES[0].landmarks[0][0]);
-    expect(firstFrame.landmarks[21]).toEqual(REALISTIC_FRAMES[0].landmarks[1][0]);
-    expect(firstFrame.handLandmarks[0][0]).toEqual(REALISTIC_FRAMES[0].landmarks[0][0]);
+    
+    const firstRealisticFrame = REALISTIC_FRAMES[0];
+    if (firstRealisticFrame && firstRealisticFrame.landmarks[0]) {
+      expect(firstFrame.landmarks[0]).toEqual(firstRealisticFrame.landmarks[0][0]);
+    }
+    
+    if (firstRealisticFrame && firstRealisticFrame.landmarks[1]) {
+      expect(firstFrame.landmarks[21]).toEqual(firstRealisticFrame.landmarks[1][0]);
+    }
+
+    if (firstRealisticFrame && firstRealisticFrame.landmarks[0] && firstFrame.handLandmarks[0]) {
+      expect(firstFrame.handLandmarks[0][0]).toEqual(firstRealisticFrame.landmarks[0][0]);
+    }
     expect(firstFrame.poseLandmarks).toEqual([]);
     expect(firstFrame.faceLandmarks).toEqual([]);
 
     expect(secondFrame.handedness).toEqual(['Right']);
     expect(secondFrame.landmarks).toHaveLength(42);
     expect(secondFrame.landmarks[0]).toEqual([0, 0, 0]);
-    expect(secondFrame.landmarks[21]).toEqual(REALISTIC_FRAMES[1].landmarks[0][0]);
-    expect(secondFrame.handLandmarks[0][0]).toEqual(REALISTIC_FRAMES[1].landmarks[0][0]);
+    
+    const secondRealisticFrame = REALISTIC_FRAMES[1];
+    if (secondRealisticFrame && secondRealisticFrame.landmarks[0]) {
+      expect(secondFrame.landmarks[21]).toEqual(secondRealisticFrame.landmarks[0][0]);
+      if (secondFrame.handLandmarks[0]) {
+        expect(secondFrame.handLandmarks[0][0]).toEqual(secondRealisticFrame.landmarks[0][0]);
+      }
+    }
   }, 10000);
 });

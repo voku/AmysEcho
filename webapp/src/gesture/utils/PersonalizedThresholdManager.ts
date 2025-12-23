@@ -27,7 +27,6 @@ export class PersonalizedThresholdManager {
   private readonly PERFORMANCE_WINDOW = 50; // Track last 50 attempts per gesture
   private readonly MIN_ATTEMPTS_FOR_PERSONALIZATION = 10;
   private readonly MAX_THRESHOLD_ADJUSTMENT = 0.3; // Max 30% adjustment
-  private readonly LEARNING_RATE = 0.1; // How quickly thresholds adapt
   private readonly BASE_THRESHOLD = 0.2; // Tuned for gentle onboarding of new gestures
 
   /**

@@ -151,7 +151,6 @@ def test_train_endpoint():
         samples = [
             {
                 "gestureDefinitionId": "g1",
-                "profileId": "p1",
                 "landmarkData": landmarks_one_hand,
             }
         ]
@@ -178,9 +177,7 @@ def test_train_endpoint():
 
         # verify MLP model files created
         npz = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
-        prof_npz = SERVER_DIR / "data" / "models" / "p1" / "amy_model.npz"
         assert npz.exists()
-        assert prof_npz.exists()
         with np.load(npz, allow_pickle=False) as model:
             assert "labels" in model
             assert model["labels"][0] == "g1"

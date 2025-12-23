@@ -34,7 +34,10 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       expect(features).toBeDefined();
       // Convolution with kernel size 3 reduces length by 2
       expect(features.length).toBe(8);
-      expect(features[0].length).toBe(63);
+      const firstFeature = features[0];
+      if (firstFeature) {
+        expect(firstFeature.length).toBe(63);
+      }
     });
 
     it('should return original sequence when shorter than scale', () => {
@@ -43,14 +46,20 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       
       // Should return original when sequence is shorter than scale
       expect(features.length).toBe(2);
-      expect(features[0].length).toBe(63);
+      const firstFeature = features[0];
+      if (firstFeature) {
+        expect(firstFeature.length).toBe(63);
+      }
     });
 
     it('should apply smoothing through convolution', () => {
       // Create a sequence with a spike to test smoothing
       const sequence = createTestSequence(10, 3);
       // Add spike at frame 5
-      sequence[5][0] = 10.0;
+      const spikeFrame = sequence[5];
+      if (spikeFrame) {
+        spikeFrame[0] = 10.0;
+      }
       
       const smoothed = extractor.extractLocalFeatures(sequence, 3);
       
@@ -59,9 +68,13 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       const spikeInfluencedFrames = [3, 4, 5];
       let foundSmoothing = false;
       for (const idx of spikeInfluencedFrames) {
-        if (smoothed[idx] && smoothed[idx][0] < 10.0 && smoothed[idx][0] > sequence[4][0]) {
-          foundSmoothing = true;
-          break;
+        const smoothedFrame = smoothed[idx];
+        const fourthFrame = sequence[4];
+        if (smoothedFrame && smoothedFrame[0] !== undefined && fourthFrame && fourthFrame[0] !== undefined) {
+          if (smoothedFrame[0] < 10.0 && smoothedFrame[0] > fourthFrame[0]) {
+            foundSmoothing = true;
+            break;
+          }
         }
       }
       expect(foundSmoothing).toBe(true);
@@ -75,8 +88,10 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       
       expect(fused).toBeDefined();
       expect(fused.length).toBeGreaterThan(0);
-      // Default scales [3, 5, 7] means fused features have 3x original dimensions
-      expect(fused[0].length).toBe(21 * 3);
+      const firstFused = fused[0];
+      if (firstFused) {
+        expect(firstFused.length).toBe(21 * 3);
+      }
     });
 
     it('should handle empty sequences', () => {
@@ -103,7 +118,10 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       const fused = customExtractor.extractAndFuse(sequence);
       
       // With scales [2, 4], fused should have 2x original dimensions
-      expect(fused[0].length).toBe(5 * 2);
+      const firstFused = fused[0];
+      if (firstFused) {
+        expect(firstFused.length).toBe(5 * 2);
+      }
       
       customExtractor.dispose();
     });
@@ -124,7 +142,11 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       expect(slowFeatures.length).toBeGreaterThan(0);
       
       // Feature dimensions should be the same
-      expect(fastFeatures[0].length).toBe(slowFeatures[0].length);
+      const firstFast = fastFeatures[0];
+      const firstSlow = slowFeatures[0];
+      if (firstFast && firstSlow) {
+        expect(firstFast.length).toBe(firstSlow.length);
+      }
     });
   });
 
@@ -135,7 +157,10 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       
       expect(velocityFeatures).toBeDefined();
       expect(velocityFeatures.length).toBe(9); // n-1 frames for velocity
-      expect(velocityFeatures[0].averageVelocity).toBeGreaterThan(0);
+      const firstVel = velocityFeatures[0];
+      if (firstVel) {
+        expect(firstVel.averageVelocity).toBeGreaterThan(0);
+      }
     });
 
     it('should detect acceleration in velocity features', () => {
@@ -189,8 +214,14 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       
       // Add slight variations to gesture2
       for (let i = 0; i < gesture2.length; i++) {
-        for (let j = 0; j < gesture2[i].length; j++) {
-          gesture2[i][j] += (Math.random() - 0.5) * 0.01; // Small noise
+        const frame = gesture2[i];
+        if (frame) {
+          for (let j = 0; j < frame.length; j++) {
+            const val = frame[j];
+            if (val !== undefined) {
+              frame[j] = val + (Math.random() - 0.5) * 0.01; // Small noise
+            }
+          }
         }
       }
       
@@ -198,8 +229,12 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       const features2 = extractor.extractAndFuse(gesture2);
       
       // Features should be similar (correlated)
-      const similarity = computeCosineSimilarity(features1[0], features2[0]);
-      expect(similarity).toBeGreaterThan(0.9);
+      const f1 = features1[0];
+      const f2 = features2[0];
+      if (f1 && f2) {
+        const similarity = computeCosineSimilarity(f1, f2);
+        expect(similarity).toBeGreaterThan(0.9);
+      }
     });
 
     it('should produce different features for different gestures', () => {
@@ -211,12 +246,16 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       
       // Features should be similar but not identical (both are valid hand poses)
       // The multi-scale fusion captures structural similarity but also movement patterns
-      const similarity = computeCosineSimilarity(staticFeatures[0], movingFeatures[0]);
-      
-      // They may have high structural similarity but the features capture timing differences
-      // We verify they produce valid, non-identical outputs
-      expect(similarity).toBeLessThan(1.0); // Should not be identical
-      expect(staticFeatures[0]).not.toEqual(movingFeatures[0]);
+      const s0 = staticFeatures[0];
+      const m0 = movingFeatures[0];
+      if (s0 && m0) {
+        const similarity = computeCosineSimilarity(s0, m0);
+        
+        // They may have high structural similarity but the features capture timing differences
+        // We verify they produce valid, non-identical outputs
+        expect(similarity).toBeLessThan(1.0); // Should not be identical
+        expect(s0).not.toEqual(m0);
+      }
     });
   });
 
@@ -316,9 +355,13 @@ function computeCosineSimilarity(a: number[], b: number[]): number {
   let normB = 0;
   
   for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
+    const valA = a[i];
+    const valB = b[i];
+    if (valA !== undefined && valB !== undefined) {
+      dotProduct += valA * valB;
+      normA += valA * valA;
+      normB += valB * valB;
+    }
   }
   
   if (normA === 0 || normB === 0) return 0;

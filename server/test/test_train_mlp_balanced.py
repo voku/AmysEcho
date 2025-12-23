@@ -24,11 +24,12 @@ def test_dataset_to_arrays_includes_augmentations(monkeypatch):
 
     # Use deterministic jitter to make the test repeatable.
     rng = np.random.default_rng(0)
-    X, y, labels = module.dataset_to_arrays([sample], augmentations_per_sample=2, rng=rng)
+    X, y, labels, weights = module.dataset_to_arrays([sample], augmentations_per_sample=2, rng=rng)
 
     assert X.shape[0] == 3
     assert y.tolist() == [0, 0, 0]
     assert labels == ["HALLO"]
+    assert weights.shape[0] == 3
 
 
 def test_validation_loss_guides_best_weights():
@@ -70,4 +71,3 @@ def test_validation_loss_guides_best_weights():
         return float(np.sum(-np.log(p)) / len(y_val))
 
     assert _loss(best_weights) < _loss(final_weights)
-

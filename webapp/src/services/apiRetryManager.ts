@@ -84,7 +84,7 @@ export async function withRetry<T>(
 
   return {
     success: false,
-    error: lastError,
+    ...(lastError ? { error: lastError } : {}),
     attempts: attempt + 1,
     totalTimeMs: Date.now() - startTime,
   };

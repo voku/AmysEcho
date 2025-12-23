@@ -47,8 +47,8 @@ describe('GestureConfig', () => {
 
     it('falls back to defaults when window config unavailable', () => {
       // Clear window config
-      delete mockWindow.__mlpThreshold;
-      delete mockWindow.__amyIntensity;
+      delete mockWindow['__mlpThreshold'];
+      delete mockWindow['__amyIntensity'];
 
       const config = loadConfig();
 
@@ -60,8 +60,8 @@ describe('GestureConfig', () => {
   describe('Adaptive Configuration', () => {
     it('applies time-based adjustments for morning', () => {
       // Clear overrides so we get default config
-      delete mockWindow.__mlpThreshold;
-      delete mockWindow.__gestureSizeTolerance;
+      delete mockWindow['__mlpThreshold'];
+      delete mockWindow['__gestureSizeTolerance'];
 
       const baseConfig = loadConfig();
       expect(baseConfig.thresholds.mlpConfidence).toBe(0.4); // default
@@ -78,8 +78,8 @@ describe('GestureConfig', () => {
 
     it('applies time-based adjustments for afternoon', () => {
       // Clear overrides so we get default config
-      delete mockWindow.__mlpThreshold;
-      delete mockWindow.__gestureSizeTolerance;
+      delete mockWindow['__mlpThreshold'];
+      delete mockWindow['__gestureSizeTolerance'];
 
       const baseConfig = loadConfig();
 
@@ -94,8 +94,8 @@ describe('GestureConfig', () => {
 
     it('applies activity-based adjustments', () => {
       // Clear overrides so we get default config
-      delete mockWindow.__mlpThreshold;
-      delete mockWindow.__gestureSizeTolerance;
+      delete mockWindow['__mlpThreshold'];
+      delete mockWindow['__gestureSizeTolerance'];
 
       const baseConfig = loadConfig();
 

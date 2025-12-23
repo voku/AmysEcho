@@ -11,7 +11,7 @@
  * The actual temporal modulation happens during model training when processing sequences.
  */
 
-import type { GestureLandmarks } from '../gesture/core/types';
+import type { GestureLandmarks } from './signVariationTracker';
 
 /**
  * Extended GestureLandmarks with temporal metadata
@@ -104,7 +104,7 @@ export class TemporalAugmenter {
           success: sample.success,
           metadata: {
             temporalAugmentation: true,
-            originalSpeed: variation.temporalScale === 1.0 ? 1.0 : undefined,
+            ...(variation.temporalScale === 1.0 ? { originalSpeed: 1.0 } : {}),
           },
         });
       }

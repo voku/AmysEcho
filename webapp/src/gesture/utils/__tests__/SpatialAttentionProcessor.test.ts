@@ -42,13 +42,12 @@ describe('SpatialAttentionProcessor', () => {
 
       // Fingertip indices: 4 (thumb), 8 (index), 12 (middle), 16 (ring), 20 (pinky)
       const fingertipIndices = [4, 8, 12, 16, 20];
-      const fingertipWeights = fingertipIndices.map(i => weights.jointWeights[i]);
-      const avgFingertipWeight = fingertipWeights.reduce((a, b) => a + b, 0) / fingertipWeights.length;
-
-      // Wrist and palm base landmarks: 0, 1, 5, 9, 13, 17
-      const baseIndices = [0, 1, 5, 9, 13, 17];
-      const baseWeights = baseIndices.map(i => weights.jointWeights[i]);
-      const avgBaseWeight = baseWeights.reduce((a, b) => a + b, 0) / baseWeights.length;
+      const fingertipWeights = fingertipIndices.map(i => weights.jointWeights[i] ?? 0);
+      const avgFingertipWeight = fingertipWeights.reduce((a: number, b: number) => a + b, 0) / fingertipWeights.length;
+      
+      const baseIndices = [0, 1, 2, 5, 9, 13, 17];
+      const baseWeights = baseIndices.map(idx => weights.jointWeights[idx] ?? 0);
+      const avgBaseWeight = baseWeights.reduce((a: number, b: number) => a + b, 0) / baseWeights.length;
 
       // Fingertips should generally have higher attention than palm base for static gestures
       expect(avgFingertipWeight).toBeGreaterThanOrEqual(avgBaseWeight * 0.8);
@@ -95,8 +94,10 @@ describe('SpatialAttentionProcessor', () => {
       // At least some landmarks should have been modified
       let hasChanges = false;
       for (let i = 0; i < original.length; i++) {
-        if (Math.abs(original[i][0] - weighted[i][0]) > 0.0001 ||
-            Math.abs(original[i][1] - weighted[i][1]) > 0.0001) {
+        const orig = original[i];
+        const weight = weighted[i];
+        if (orig && weight && (Math.abs((orig[0] ?? 0) - (weight[0] ?? 0)) > 0.0001 ||
+            Math.abs((orig[1] ?? 0) - (weight[1] ?? 0)) > 0.0001)) {
           hasChanges = true;
           break;
         }
@@ -183,7 +184,7 @@ describe('SpatialAttentionProcessor', () => {
       const rightHand = createTestLandmarks();
       
       // Offset right hand to be to the right of left hand
-      const offsetRightHand = rightHand.map(([x, y, z]) => [x + 0.3, y, z]);
+      const offsetRightHand = rightHand.map(([x, y, z]) => [(x ?? 0) + 0.3, y ?? 0, z ?? 0]);
       
       const crossAttention = processor.computeCrossHandAttention(leftHand, offsetRightHand);
       
@@ -196,7 +197,7 @@ describe('SpatialAttentionProcessor', () => {
     it('should identify interaction points between hands', () => {
       // Create hands positioned close together
       const leftHand = createTestLandmarks();
-      const rightHand = createTestLandmarks().map(([x, y, z]) => [x + 0.15, y, z]);
+      const rightHand = createTestLandmarks().map(([x, y, z]) => [(x ?? 0) + 0.15, y ?? 0, z ?? 0]);
       
       const crossAttention = processor.computeCrossHandAttention(leftHand, rightHand);
       
@@ -233,8 +234,8 @@ describe('SpatialAttentionProcessor', () => {
       
       // Moving fingertips should have higher attention
       const fingertipIndices = [4, 8, 12, 16, 20];
-      const fingertipAttention = fingertipIndices.map(i => temporalWeights.movementAttention[i]);
-      const avgFingertipMovement = fingertipAttention.reduce((a, b) => a + b, 0) / fingertipAttention.length;
+      const fingertipAttention = fingertipIndices.map(i => temporalWeights.movementAttention[i] ?? 0);
+      const avgFingertipMovement = fingertipAttention.reduce((a: number, b: number) => a + b, 0) / fingertipAttention.length;
       
       expect(avgFingertipMovement).toBeGreaterThan(0);
     });
@@ -332,8 +333,11 @@ function createMovingFingertipLandmarks(base: number[][]): number[][] {
   // Move fingertips (indices 4, 8, 12, 16, 20) more than other landmarks
   const fingertipIndices = [4, 8, 12, 16, 20];
   for (const idx of fingertipIndices) {
-    moved[idx][0] += 0.1; // Move X significantly
-    moved[idx][1] += 0.05; // Move Y
+    const point = moved[idx];
+    if (point) {
+      point[0] = (point[0] ?? 0) + 0.1; // Move X significantly
+      point[1] = (point[1] ?? 0) + 0.05; // Move Y
+    }
   }
   
   return moved;

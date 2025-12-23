@@ -1,7 +1,7 @@
 import path from 'path';
 import { promises as fs } from 'fs';
-import { atomicWriteJson, atomicWriteBuffer } from '../src/utils/atomicFs';
-import { DATA_DIR } from '../src/constants/modelPaths';
+import { atomicWriteJson, atomicWriteBuffer } from '../src/utils/atomicFs.js';
+import { DATA_DIR } from '../src/constants/modelPaths.js';
 
 describe('atomicFs', () => {
   const target = path.join(DATA_DIR, 'atomic_test.json');

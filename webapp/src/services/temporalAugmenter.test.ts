@@ -7,14 +7,14 @@
 
 import { describe, it, expect } from 'vitest';
 import { TemporalAugmenter } from './temporalAugmenter';
-import type { GestureLandmarks } from '../gesture/core/types';
+import type { GestureLandmarks } from './signVariationTracker';
 
 describe('TemporalAugmenter', () => {
   const createSampleLandmarks = (): GestureLandmarks => ({
     handLandmarks: [
       [
-        { x: 0.5, y: 0.5, z: 0 },
-        { x: 0.6, y: 0.6, z: 0.1 },
+        [0.5, 0.5, 0],
+        [0.6, 0.6, 0.1],
       ],
     ],
     handedness: ['Right'],
@@ -62,9 +62,9 @@ describe('TemporalAugmenter', () => {
       const variations = augmenter.generateSpeedVariations(original);
       
       expect(variations).toHaveLength(3); // 0.8x, 1.0x, 1.2x
-      expect(variations[0].temporalScale).toBe(0.8);
-      expect(variations[1].temporalScale).toBe(1.0);
-      expect(variations[2].temporalScale).toBe(1.2);
+      expect(variations[0]?.temporalScale).toBe(0.8);
+      expect(variations[1]?.temporalScale).toBe(1.0);
+      expect(variations[2]?.temporalScale).toBe(1.2);
     });
 
     it('should preserve all landmark data across variations', () => {
@@ -180,10 +180,10 @@ describe('TemporalAugmenter', () => {
     it('should handle pose and face landmarks if present', () => {
       const augmenter = new TemporalAugmenter();
       const withPose: GestureLandmarks = {
-        handLandmarks: [[{ x: 0.5, y: 0.5, z: 0 }]],
+        handLandmarks: [[[0.5, 0.5, 0]]],
         handedness: ['Right'],
-        poseLandmarks: [{ x: 0.5, y: 0.5, z: 0 }],
-        faceLandmarks: [{ x: 0.5, y: 0.5, z: 0 }],
+        poseLandmarks: [[0.5, 0.5, 0]],
+        faceLandmarks: [[0.5, 0.5, 0]],
       };
       
       const variations = augmenter.generateSpeedVariations(withPose);
