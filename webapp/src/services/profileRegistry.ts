@@ -111,7 +111,7 @@ async function decryptRegistrySecret(stored: string): Promise<string | null> {
       data
     );
     return new TextDecoder().decode(decrypted);
-  } catch (e) {
+  } catch {
     // Decryption failed - likely because it's not encrypted or used a different key
     return null;
   }
