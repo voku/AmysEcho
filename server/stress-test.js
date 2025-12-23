@@ -1,9 +1,14 @@
 import AdmZip from 'adm-zip';
 import fs from 'fs';
-import path from 'path';
 
 const API_BASE = 'http://localhost:5000';
-const TOKEN = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItMTIzIiwidXNlcm5hbWUiOiJ0ZXN0dXNlciIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzY2NTE1MTU5LCJleHAiOjE3NjY1MTYwNTl9.EcRKMhCAeQ8ZVOvWNT7T6mxP_sFZflWTlyyC1VO73wg";
+const TOKEN = process.env.STRESS_TEST_TOKEN;
+
+if (!TOKEN) {
+  console.error('STRESS_TEST_TOKEN environment variable not set. Please generate a token and export it.');
+  console.log('Usage: STRESS_TEST_TOKEN=$(node generate-token.js) node stress-test.js');
+  process.exit(1);
+}
 
 const profiles = ['amy-primary', 'caregiver-alpha', 'guest-beta'];
 const gestures = ['ESSEN', 'TRINKEN', 'HILFE', 'SPIELEN', 'SCHLAFEN'];
@@ -41,7 +46,6 @@ async function createBundle(profileId, label) {
 
 async function runStressTest() {
   console.log('🚀 Starting Amy\'s Echo Stress Test...');
-  const results = [];
 
   for (const profile of profiles) {
     for (const gesture of gestures) {
@@ -57,23 +61,34 @@ async function runStressTest() {
         body: buffer
       });
 
+      if (!response.ok) {
+        console.error(`❌ Upload failed for ${profile} -> ${gesture} with status ${response.status}`);
+        const errorText = await response.text();
+        console.error(`   Error: ${errorText}`);
+        continue;
+      }
+
       const data = await response.json();
-      console.log(`✅ Uploaded: ${data.id || data.error}`);
-      results.push(data);
+      console.log(`✅ Uploaded: ${data.id}`);
     }
   }
 
   console.log('\n⚖️ Triggering Concurrent Training Jobs...');
-  const triggers = [1, 2, 3].map(() => 
-    fetch(`${API_BASE}/train-model`, {
+  const triggers = [1, 2, 3].map(async (i) => {
+    const response = await fetch(`${API_BASE}/train-model`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': TOKEN
       },
       body: JSON.stringify({ trigger: 'bundles' })
-    }).then(r => r.json())
-  );
+    });
+
+    if (!response.ok) {
+      throw new Error(`Training trigger ${i} failed with status ${response.status}: ${await response.text()}`);
+    }
+    return response.json();
+  });
 
   const triggerResults = await Promise.all(triggers);
   triggerResults.forEach((res, i) => console.log(`🔄 Training Trigger ${i+1}: ${res.status} (Job: ${res.jobId})`));
@@ -89,7 +104,12 @@ async function runStressTest() {
   const statusRes = await fetch(`${API_BASE}/api/v1/train-status/${finalJobId}`, {
     headers: { 'Authorization': TOKEN }
   });
-  console.log(`🏁 Final Job Status:`, await statusRes.json());
+
+  if (!statusRes.ok) {
+    console.error(`❌ Status check failed with status ${statusRes.status}`);
+  } else {
+    console.log(`🏁 Final Job Status:`, await statusRes.json());
+  }
 }
 
 runStressTest().catch(console.error);

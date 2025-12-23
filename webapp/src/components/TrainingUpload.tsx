@@ -107,6 +107,23 @@ function TrainingStatusBlock({
           {formatPercent(activeTrainingJob.progress) && (
             <p className="muted small">Fortschritt: {formatPercent(activeTrainingJob.progress)}</p>
           )}
+          {typeof activeTrainingJob.metrics?.samples === 'number' && (
+            <p className="muted small">Verwendete Beispiele: {activeTrainingJob.metrics.samples}</p>
+          )}
+          {typeof activeTrainingJob.metrics?.accuracy === 'number' && (
+            <p className="muted small">
+              Erste Genauigkeits-Schätzung: {Math.round(activeTrainingJob.metrics.accuracy * 100)}%
+            </p>
+          )}
+          {(() => {
+            const started = formatDateTime(activeTrainingJob.startedAt);
+            const ended = formatDateTime(activeTrainingJob.endedAt);
+            if (!started && !ended) return null;
+            const parts = [];
+            if (started) parts.push(`Gestartet: ${started}`);
+            if (ended) parts.push(`Beendet: ${ended}`);
+            return <p className="muted small">{parts.join(' · ')}</p>;
+          })()}
           <p className="muted small">Wir holen den Status automatisch vom Server. Job-ID: {activeTrainingJob.jobId}</p>
         </div>
       )}
