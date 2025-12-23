@@ -706,7 +706,7 @@ export function registerTrainingBundleRoute(
       await withFileLock(TRAINING_MANIFEST_PATH, async () => {
         await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
 
-        let manifest: TrainingBundleManifestFile = { entries: [] };
+        const manifest: TrainingBundleManifestFile = { entries: [] };
         try {
           const raw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
           const parsed = JSON.parse(raw);

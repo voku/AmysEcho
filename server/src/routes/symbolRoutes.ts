@@ -96,11 +96,24 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
     }
 
     const existing = db.symbols.find((s) => s.id === normalized.data.id);
+    const isAdmin = req.user?.role === 'admin';
     
     // If updating existing, check ownership
     if (existing) {
       if (existing.profileId !== normalized.data.profileId) {
+        // If overwriting a global symbol, only admins can do it
+        if (!existing.profileId && !isAdmin) {
+          res.status(403).json({ error: 'Globale Symbole können nur von Administratoren überschrieben werden.' });
+          return;
+        }
+
         res.status(403).json({ error: 'Bestehende Symbole anderer Profile können nicht überschrieben werden.' });
+        return;
+      }
+
+      // Even if profileIds match (both undefined), still need admin check for global
+      if (!existing.profileId && !isAdmin) {
+        res.status(403).json({ error: 'Globale Symbole können nur von Administratoren überschrieben werden.' });
         return;
       }
     }
@@ -141,8 +154,21 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
     }
 
     // Ownership check: must match profileId (unless global, but we restrict that too)
+    const isAdmin = req.user?.role === 'admin';
     if (existing.profileId !== normalized.data.profileId) {
+      // If it's a global symbol (no profileId), only admins can modify it
+      if (!existing.profileId && !isAdmin) {
+        res.status(403).json({ error: 'Globale Symbole können nur von Administratoren bearbeitet werden.' });
+        return;
+      }
+      
       res.status(403).json({ error: 'Nur eigene Symbole können bearbeitet werden.' });
+      return;
+    }
+
+    // Special case: if the symbol IS global, only allow update if user is admin
+    if (!existing.profileId && !isAdmin) {
+      res.status(403).json({ error: 'Globale Symbole können nur von Administratoren bearbeitet werden.' });
       return;
     }
 
@@ -165,8 +191,22 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
     }
 
     const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    const isAdmin = req.user?.role === 'admin';
+
     if (existing.profileId !== profileId) {
+      // If it's a global symbol, only admins can delete it
+      if (!existing.profileId && !isAdmin) {
+        res.status(403).json({ error: 'Globale Symbole können nur von Administratoren gelöscht werden.' });
+        return;
+      }
+
       res.status(403).json({ error: 'Nur eigene Symbole können gelöscht werden.' });
+      return;
+    }
+
+    // Special case: if it IS global, only allow deletion if user is admin
+    if (!existing.profileId && !isAdmin) {
+      res.status(403).json({ error: 'Globale Symbole können nur von Administratoren gelöscht werden.' });
       return;
     }
 

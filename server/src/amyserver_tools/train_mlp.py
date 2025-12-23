@@ -23,6 +23,10 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
+# Add scripts directory to path for shared utils
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts")))
+from ml_shared_utils import filter_by_profile_logic
+
 LOGGER = logging.getLogger("amyserver.train_mlp")
 if not LOGGER.handlers:
     handler = logging.StreamHandler(sys.stderr)
@@ -880,16 +884,12 @@ def filter_samples_by_profile(samples: Iterable[Sample], profile_id: str) -> Lis
     This ensures the profile model is a specialized superset of the global model,
     supporting custom sign languages per child without losing baseline gestures.
     """
-    all_samples = list(samples)
-    profile_samples = [s for s in all_samples if s.profile_id == profile_id]
-    profile_labels = {s.label for s in profile_samples}
-
-    global_samples = [
-        s for s in all_samples
-        if not s.profile_id and s.label not in profile_labels
-    ]
-
-    return profile_samples + global_samples
+    return filter_by_profile_logic(
+        list(samples),
+        profile_id,
+        get_label=lambda s: s.label,
+        get_profile_id=lambda s: s.profile_id
+    )
 
 
 def _normalize(lm):

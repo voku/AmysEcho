@@ -48,6 +48,7 @@ from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 from collections import Counter
 import random
+from ml_shared_utils import filter_by_profile_logic
 
 # --- Normalization (must match recognizer) ---
 def _normalize(lm):
@@ -266,14 +267,12 @@ def prepare_data(
         selected_entries = [e for e in all_entries if not e.get("profileId")]
     else:
         # Profile model: Use profile samples + global samples not overridden by name
-        profile_entries = [e for e in all_entries if e.get("profileId") == profile_id_filter]
-        profile_labels = {e.get("label") for e in profile_entries}
-        
-        global_entries = [
-            e for e in all_entries 
-            if not e.get("profileId") and e.get("label") not in profile_labels
-        ]
-        selected_entries = profile_entries + global_entries
+        selected_entries = filter_by_profile_logic(
+            all_entries, 
+            profile_id_filter, 
+            get_label=lambda e: e.get("label"), 
+            get_profile_id=lambda e: e.get("profileId")
+        )
 
     samples = []
     data_dir = Path(manifest_file).resolve().parent.parent

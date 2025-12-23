@@ -16,9 +16,37 @@ import { sha256 } from 'js-sha256';
 const REGISTRY_STORAGE_KEY = 'webapp:profile-registry';
 const REGISTRY_VERSION = 1;
 
-// Secret key for HMAC (in production, this would be per-device or server-provided)
-// For now, we use a stable key that makes tampering detectable
-const SECRET_SEED = 'amys-echo-profile-integrity-v1';
+// Legacy secret key for HMAC migration
+const LEGACY_SECRET_SEED = 'amys-echo-profile-integrity-v1';
+const SECRET_STORAGE_KEY = 'webapp:profile-registry-secret';
+
+/**
+ * Get or generate a device-specific secret for registry integrity.
+ * This ensures the secret is not hardcoded in the JS bundle, making
+ * tampering more difficult as the secret varies per device.
+ */
+function getRegistrySecret(): string {
+  try {
+    let secret = localStorage.getItem(SECRET_STORAGE_KEY);
+    if (secret) return secret;
+
+    // Generate a fresh 256-bit random secret
+    const bytes = new Uint8Array(32);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(bytes);
+      secret = Array.from(bytes)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+      localStorage.setItem(SECRET_STORAGE_KEY, secret);
+      return secret;
+    }
+  } catch (e) {
+    console.error('[Profile Registry] Failed to access localStorage for secret.', e);
+  }
+  
+  // Last resort fallback (should ideally not be reached on modern browsers)
+  return LEGACY_SECRET_SEED;
+}
 
 export interface ProfileMetadata {
   childAge?: number;
@@ -98,16 +126,17 @@ async function secureHash(data: Uint8Array): Promise<string> {
  * Generate HMAC-SHA256 security token for a profile
  * This makes manual localStorage tampering detectable
  */
-async function generateSecurityToken(uuid: string, profileId: string): Promise<string> {
+async function generateSecurityToken(uuid: string, profileId: string, secretOverride?: string): Promise<string> {
+  const secret = secretOverride || getRegistrySecret();
   const encoder = new TextEncoder();
-  const data = encoder.encode(`${uuid}:${profileId}:${SECRET_SEED}`);
+  const data = encoder.encode(`${uuid}:${profileId}:${secret}`);
   
   if (typeof crypto !== 'undefined' && crypto.subtle) {
     try {
       // Use Web Crypto API
       const key = await crypto.subtle.importKey(
         'raw',
-        encoder.encode(SECRET_SEED),
+        encoder.encode(secret),
         { name: 'HMAC', hash: 'SHA-256' },
         false,
         ['sign']
@@ -130,8 +159,18 @@ async function generateSecurityToken(uuid: string, profileId: string): Promise<s
  * Verify a profile's security token
  */
 async function verifySecurityToken(profile: Profile): Promise<boolean> {
+  // 1. Try with the current device secret
   const expectedToken = await generateSecurityToken(profile.uuid, profile.profileId);
-  return expectedToken === profile.securityToken;
+  if (expectedToken === profile.securityToken) return true;
+  
+  // 2. Fallback to legacy seed for migration
+  const legacyToken = await generateSecurityToken(profile.uuid, profile.profileId, LEGACY_SECRET_SEED);
+  if (legacyToken === profile.securityToken) {
+    console.log(`[Profile Registry] Migrating legacy token for profile ${profile.uuid} to new device secret.`);
+    return true;
+  }
+  
+  return false;
 }
 
 /**

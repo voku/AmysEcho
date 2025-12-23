@@ -295,8 +295,7 @@ export const loadDatabase = async (filePath: string): Promise<Database> => {
 };
 
 // Utility to create a cryptographically secure unique id
-const generateId = (): string =>
-  Date.now().toString(36) + randomBytes(4).toString('hex');
+const generateId = (): string => randomBytes(16).toString('hex');
 
 export const persistProfile = async (
   db: Database,
@@ -358,7 +357,7 @@ export const logCorrection = (
 };
 
 export async function setupDatabase(filePath: string): Promise<Database> {
-  let db = await loadDatabase(filePath);
+  const db = await loadDatabase(filePath);
   let changed = false;
 
   if (db.profiles.length === 0) {
