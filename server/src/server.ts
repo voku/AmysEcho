@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { spawn } from 'child_process';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
@@ -260,9 +260,9 @@ export function buildTrainingStatusResponse(
   return { status: 200, body: job };
 }
 
-// Utility to generate lightweight unique ids
+// Utility to generate cryptographically secure unique ids
 const genId = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2);
+  Date.now().toString(36) + randomBytes(4).toString('hex');
 
 // Initialize database before starting server
 let dbInstance: Database;

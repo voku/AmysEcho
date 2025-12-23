@@ -14,6 +14,7 @@ import {
 } from './types.js';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { randomBytes } from 'crypto';
 
 export interface Database {
   symbols: SymbolRecord[];
@@ -293,9 +294,9 @@ export const loadDatabase = async (filePath: string): Promise<Database> => {
   }
 };
 
-// Utility to create a lightweight unique id without external deps
+// Utility to create a cryptographically secure unique id
 const generateId = (): string =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2);
+  Date.now().toString(36) + randomBytes(4).toString('hex');
 
 export const persistProfile = async (
   db: Database,

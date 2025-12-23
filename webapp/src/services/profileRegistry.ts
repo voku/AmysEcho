@@ -67,13 +67,8 @@ function generateUuid(): string {
       .join('');
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }
-  // Last resort fallback - should rarely if ever be reached in modern browsers
-  console.error('Crypto functions are not available. UUIDs will not be truly random.');
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  // Crypto is required for secure UUID generation
+  throw new Error('Cryptographic functions are not available. Cannot generate secure UUIDs.');
 }
 
 /**
