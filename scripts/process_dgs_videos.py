@@ -179,7 +179,32 @@ class DGSVideoProcessor:
         print(f"  Completed: {successful_extractions}/{processed_frames} frames successfully processed")
         return samples
 
-    def process_directory(self, videos_dir: str, max_frames: int, frame_skip: int) -> List[Dict[str, Any]]:
+    def load_video_gesture_mapping(self, manifest_path: Optional[str] = None) -> Dict[str, str]:
+        """Load video-to-gesture mapping from manifest or use fallback mapping"""
+        if manifest_path and os.path.exists(manifest_path):
+            try:
+                with open(manifest_path, 'r') as f:
+                    manifest_data = json.load(f)
+                    mapping = {}
+                    for gesture_info in manifest_data.get('gestures', []):
+                        video_file = gesture_info.get('video')
+                        label = gesture_info.get('label')
+                        if video_file and label:
+                            mapping[video_file] = label
+                    print(f"Loaded {len(mapping)} gesture mappings from {manifest_path}")
+                    return mapping
+            except Exception as e:
+                print(f"Warning: Failed to load manifest {manifest_path}: {e}")
+        
+        # Fallback mapping (hardcoded for backward compatibility)
+        return {
+            'alle.mp4': 'alle', 'blau.mp4': 'blau', 'rot.mp4': 'rot',
+            'gelb.mp4': 'gelb', 'gruen.mp4': 'gruen', 'essen.mp4': 'essen',
+            'trinken.mp4': 'trinken', 'satt.mp4': 'satt', 'spielen.mp4': 'spielen',
+            'schwester.mp4': 'schwester', 'nochmal.mp4': 'nochmal', 'fertig.mp4': 'fertig'
+        }
+
+    def process_directory(self, videos_dir: str, max_frames: int, frame_skip: int, manifest_path: Optional[str] = None) -> List[Dict[str, Any]]:
         # Validate directory exists first
         if not os.path.exists(videos_dir):
             print(f"Error: Videos directory {videos_dir} does not exist")
@@ -190,13 +215,8 @@ class DGSVideoProcessor:
             return []
 
         all_samples = []
-        # Basic mapping - in production use a DB or manifest
-        video_gesture_map = {
-            'alle.mp4': 'alle', 'blau.mp4': 'blau', 'rot.mp4': 'rot',
-            'gelb.mp4': 'gelb', 'gruen.mp4': 'gruen', 'essen.mp4': 'essen',
-            'trinken.mp4': 'trinken', 'satt.mp4': 'satt', 'spielen.mp4': 'spielen',
-            'schwester.mp4': 'schwester', 'nochmal.mp4': 'nochmal', 'fertig.mp4': 'fertig'
-        }
+        # Load mapping from manifest or use fallback
+        video_gesture_map = self.load_video_gesture_mapping(manifest_path)
         
         try:
             files = [f for f in os.listdir(videos_dir) if f.endswith('.mp4')]
@@ -257,6 +277,7 @@ def main():
     parser.add_argument('--output', help='Output JSON file for bulk data')
     parser.add_argument('--split-output', action='store_true', help='Save individual landmark files per video')
     parser.add_argument('--models-dir', default='server/data/models', help='Directory containing MediaPipe model files')
+    parser.add_argument('--manifest', default='server/data/dgs_manifest.json', help='JSON manifest with video-to-gesture mappings')
     parser.add_argument('--max-frames', type=int, default=300, help='Maximum frames to process per video')
     parser.add_argument('--frame-skip', type=int, default=2, help='Number of frames to skip between processing')
     parser.add_argument('--confidence', type=float, default=0.5, help='Detection confidence threshold')
@@ -266,6 +287,7 @@ def main():
     print(f"Videos directory: {args.videos_dir}")
     print(f"Output file: {args.output}")
     print(f"Models directory: {args.models_dir}")
+    print(f"Manifest file: {args.manifest}")
     print(f"Max frames: {args.max_frames}, Frame skip: {args.frame_skip}")
     print(f"Confidence threshold: {args.confidence}")
 
@@ -275,7 +297,7 @@ def main():
             raise FileNotFoundError(f"Models directory does not exist: {args.models_dir}")
         
         processor = DGSVideoProcessor(args.models_dir, args.confidence)
-        samples = processor.process_directory(args.videos_dir, args.max_frames, args.frame_skip)
+        samples = processor.process_directory(args.videos_dir, args.max_frames, args.frame_skip, args.manifest)
 
         if samples:
             save_output(samples, args.output, args.split_output, args.videos_dir)

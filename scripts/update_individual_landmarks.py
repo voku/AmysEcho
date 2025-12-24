@@ -9,8 +9,8 @@ import json
 import sys
 from process_dgs_videos import DGSVideoProcessor
 
-def update_individual_files(data_dir, model_path):
-    print(f"Updating files in {data_dir} using model at {model_path}")
+def update_individual_files(data_dir, models_dir, max_frames=300, frame_skip=2, confidence=0.5):
+    print(f"Updating files in {data_dir} using models from {models_dir}")
     
     if not os.path.exists(data_dir):
         print(f"Directory {data_dir} does not exist")
@@ -18,7 +18,7 @@ def update_individual_files(data_dir, model_path):
 
     # Initialize processor
     try:
-        processor = DGSVideoProcessor(model_path=model_path, frame_skip=2)
+        processor = DGSVideoProcessor(models_dir=models_dir, confidence=confidence)
     except Exception as e:
         print(f"Failed to initialize processor: {e}")
         return
@@ -31,7 +31,7 @@ def update_individual_files(data_dir, model_path):
         gesture = os.path.splitext(video_file)[0]
         
         print(f"Processing {gesture}...")
-        samples = processor.process_video(video_path, gesture)
+        samples = processor.process_video(video_path, gesture, max_frames, frame_skip)
         
         if not samples:
             print(f"  Warning: No samples extracted for {gesture}")
@@ -54,6 +54,6 @@ def update_individual_files(data_dir, model_path):
 if __name__ == "__main__":
     # Run from project root
     data_dir = "server/data/dgs_video_examples"
-    model_path = "server/data/models/hand_landmarker.task"
+    models_dir = "server/data/models"
     
-    update_individual_files(data_dir, model_path)
+    update_individual_files(data_dir, models_dir)

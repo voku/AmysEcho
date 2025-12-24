@@ -1,172 +1,64 @@
 {
-  "entries": [
+  "gestures": [
     {
+      "video": "alle.mp4",
       "label": "alle",
-      "id": "dgs_000_alle",
-      "storage": {
-        "type": "file",
-        "clip": "alle.mp4"
-      },
-      "metadata": {
-        "clipFilename": "alle.mp4",
-        "label": "alle",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
+      "description": "All/Everything"
     },
     {
+      "video": "blau.mp4", 
       "label": "blau",
-      "id": "dgs_001_blau",
-      "storage": {
-        "type": "file",
-        "clip": "blau.mp4"
-      },
-      "metadata": {
-        "clipFilename": "blau.mp4",
-        "label": "blau",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
+      "description": "Blue color"
     },
     {
-      "label": "essen",
-      "id": "dgs_002_essen",
-      "storage": {
-        "type": "file",
-        "clip": "essen.mp4"
-      },
-      "metadata": {
-        "clipFilename": "essen.mp4",
-        "label": "essen",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
+      "video": "rot.mp4",
+      "label": "rot", 
+      "description": "Red color"
     },
     {
-      "label": "fertig",
-      "id": "dgs_003_fertig",
-      "storage": {
-        "type": "file",
-        "clip": "fertig.mp4"
-      },
-      "metadata": {
-        "clipFilename": "fertig.mp4",
-        "label": "fertig",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
-    },
-    {
+      "video": "gelb.mp4",
       "label": "gelb",
-      "id": "dgs_004_gelb",
-      "storage": {
-        "type": "file",
-        "clip": "gelb.mp4"
-      },
-      "metadata": {
-        "clipFilename": "gelb.mp4",
-        "label": "gelb",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
+      "description": "Yellow color"
     },
     {
+      "video": "gruen.mp4",
       "label": "gruen",
-      "id": "dgs_005_gruen",
-      "storage": {
-        "type": "file",
-        "clip": "gruen.mp4"
-      },
-      "metadata": {
-        "clipFilename": "gruen.mp4",
-        "label": "gruen",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
+      "description": "Green color"
     },
     {
-      "label": "nochmal",
-      "id": "dgs_006_nochmal",
-      "storage": {
-        "type": "file",
-        "clip": "nochmal.mp4"
-      },
-      "metadata": {
-        "clipFilename": "nochmal.mp4",
-        "label": "nochmal",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
+      "video": "essen.mp4",
+      "label": "essen",
+      "description": "To eat"
     },
     {
-      "label": "rot",
-      "id": "dgs_007_rot",
-      "storage": {
-        "type": "file",
-        "clip": "rot.mp4"
-      },
-      "metadata": {
-        "clipFilename": "rot.mp4",
-        "label": "rot",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
-    },
-    {
-      "label": "satt",
-      "id": "dgs_008_satt",
-      "storage": {
-        "type": "file",
-        "clip": "satt.mp4"
-      },
-      "metadata": {
-        "clipFilename": "satt.mp4",
-        "label": "satt",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
-    },
-    {
-      "label": "schwester",
-      "id": "dgs_009_schwester",
-      "storage": {
-        "type": "file",
-        "clip": "schwester.mp4"
-      },
-      "metadata": {
-        "clipFilename": "schwester.mp4",
-        "label": "schwester",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
-    },
-    {
-      "label": "spielen",
-      "id": "dgs_010_spielen",
-      "storage": {
-        "type": "file",
-        "clip": "spielen.mp4"
-      },
-      "metadata": {
-        "clipFilename": "spielen.mp4",
-        "label": "spielen",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
-    },
-    {
+      "video": "trinken.mp4",
       "label": "trinken",
-      "id": "dgs_011_trinken",
-      "storage": {
-        "type": "file",
-        "clip": "trinken.mp4"
-      },
-      "metadata": {
-        "clipFilename": "trinken.mp4",
-        "label": "trinken",
-        "capturedAt": "2024-01-01T00:00:00.000Z",
-        "profileId": "global"
-      }
+      "description": "To drink"
+    },
+    {
+      "video": "satt.mp4",
+      "label": "satt",
+      "description": "Full/Satiated"
+    },
+    {
+      "video": "spielen.mp4",
+      "label": "spielen",
+      "description": "To play"
+    },
+    {
+      "video": "schwester.mp4",
+      "label": "schwester",
+      "description": "Sister"
+    },
+    {
+      "video": "nochmal.mp4",
+      "label": "nochmal",
+      "description": "Again/Repeat"
+    },
+    {
+      "video": "fertig.mp4",
+      "label": "fertig",
+      "description": "Finished/Done"
     }
   ]
 }
