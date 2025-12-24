@@ -110,7 +110,7 @@ export function prepareMultimodalForMLP(
   
   // Apply Hand Priority Factor
   for (let i = 0; i < handFeatures.length; i++) {
-    handFeatures[i] *= HAND_PRIORITY_FACTOR;
+    handFeatures[i] = (handFeatures[i] ?? 0) * HAND_PRIORITY_FACTOR;
   }
   
   // Normalize pose if available - 99 features (33 points × 3 coords, drop visibility)
@@ -120,7 +120,7 @@ export function prepareMultimodalForMLP(
     
   // Apply Pose Priority Factor
   for (let i = 0; i < poseFeatures.length; i++) {
-    poseFeatures[i] *= POSE_PRIORITY_FACTOR;
+    poseFeatures[i] = (poseFeatures[i] ?? 0) * POSE_PRIORITY_FACTOR;
   }
   
   // Normalize face if available - 1404 features (468 points × 3 coords)
@@ -130,7 +130,7 @@ export function prepareMultimodalForMLP(
     
   // Apply Face Priority Factor
   for (let i = 0; i < faceFeatures.length; i++) {
-    faceFeatures[i] *= FACE_PRIORITY_FACTOR;
+    faceFeatures[i] = (faceFeatures[i] ?? 0) * FACE_PRIORITY_FACTOR;
   }
   
   // Concatenate all features: 126 + 99 + 1404 = 1629 total
