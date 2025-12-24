@@ -8,7 +8,6 @@
 export type Point = [number, number, number];
 
 const WRIST_INDEX = 0;
-const HAND_SIZE = 21;
 
 /**
  * Normalize landmarks for a single hand.
@@ -19,7 +18,7 @@ export function normalizeLandmarks(landmarks: Point[]): Point[] {
     return [];
   }
 
-  const hand = landmarks.slice(0, HAND_SIZE);
+  const hand = landmarks.slice(0, MEDIAPIPE_HAND_LANDMARKS);
   const wrist = hand[WRIST_INDEX];
   if (!wrist) {
     return [];
@@ -47,8 +46,8 @@ export function normalizeLandmarks(landmarks: Point[]): Point[] {
  * Normalize landmarks to a flat Float32Array for MLP input.
  */
 export function normalizeLandmarksToFlat(landmarks: Point[]): Float32Array {
-  if (!landmarks || landmarks.length < HAND_SIZE) return new Float32Array(0);
-  const norm = normalizeLandmarks(landmarks.slice(0, HAND_SIZE));
+  if (!landmarks || landmarks.length < MEDIAPIPE_HAND_LANDMARKS) return new Float32Array(0);
+  const norm = normalizeLandmarks(landmarks.slice(0, MEDIAPIPE_HAND_LANDMARKS));
   const out = new Float32Array(norm.length * 3);
   let k = 0;
   for (const [x, y, z] of norm) {
@@ -111,9 +110,9 @@ export function prepareLandmarksForMLP(rawLandmarks: number[][]): Float32Array {
  * Prepare multimodal data (hands + pose + face) for MLP classification.
  * Returns a feature vector matching the server's _normalize_multimodal format.
  * 
- * @param hands - Array of hand landmarks (2 hands x 21 landmarks)
- * @param pose - Optional pose landmarks (33 landmarks with visibility)
- * @param face - Optional face landmarks (468 landmarks)
+ * @param hands - Array of hand landmarks (2 hands x {MEDIAPIPE_HAND_LANDMARKS} landmarks)
+ * @param pose - Optional pose landmarks ({MEDIAPIPE_POSE_LANDMARKS} landmarks with visibility)
+ * @param face - Optional face landmarks ({MEDIAPIPE_FACE_LANDMARKS} landmarks)
  * @returns Float32Array with concatenated normalized features
  */
 export function prepareMultimodalForMLP(
@@ -175,7 +174,7 @@ function prepareHandsForMLP(hands: number[][]): Float32Array {
   if (hands.length > MEDIAPIPE_HAND_LANDMARKS) {
     const rightHand = hands.slice(MEDIAPIPE_HAND_LANDMARKS, MEDIAPIPE_HAND_LANDMARKS * 2);
     const rightNorm = prepareLandmarksForMLP(rightHand);
-    result.set(rightNorm, HAND_FEATURES_SIZE / 2); // 126 / 2 = 63
+    result.set(rightNorm, HAND_FEATURES_SIZE / 2);
   }
   
   return result;
