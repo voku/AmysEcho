@@ -229,13 +229,13 @@ describe('LandmarkNormalizer', () => {
     });
   });
 
-  describe('prepareMultimodalForMLP', () => {
+describe('prepareMultimodalForMLP', () => {
     // Constants for multimodal feature dimensions
-    const HAND_FEATURES = 126; // 2 hands × 21 points × 3 coords
-    const POSE_FEATURES = 99;  // 33 points × 3 coords (visibility dropped)
+    const _HAND_FEATURES = 126; // 2 hands × 21 points × 3 coords
+    const _POSE_FEATURES = 99; // 33 points × 3 coords (visibility dropped)
 const TOTAL_MULTIMODAL_FEATURES = 1629; // hands (126) + pose (99) + face (1404)
-const HAND_SECTION_END = 126; // 0-125
-const POSE_SECTION_START = 126; // 126-224
+const HAND_SECTION_END = _HAND_FEATURES; // 0-125
+const POSE_SECTION_START = _HAND_FEATURES; // 126-224
 const POSE_SECTION_END = 225; // 126-224  
 const FACE_SECTION_START = 225; // 225-1628
 const FACE_SECTION_END = TOTAL_MULTIMODAL_FEATURES; // 225-1628
