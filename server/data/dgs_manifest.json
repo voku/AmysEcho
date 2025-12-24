@@ -1,0 +1,172 @@
+{
+  "entries": [
+    {
+      "label": "alle",
+      "id": "dgs_000_alle",
+      "storage": {
+        "type": "file",
+        "clip": "alle.mp4"
+      },
+      "metadata": {
+        "clipFilename": "alle.mp4",
+        "label": "alle",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "blau",
+      "id": "dgs_001_blau",
+      "storage": {
+        "type": "file",
+        "clip": "blau.mp4"
+      },
+      "metadata": {
+        "clipFilename": "blau.mp4",
+        "label": "blau",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "essen",
+      "id": "dgs_002_essen",
+      "storage": {
+        "type": "file",
+        "clip": "essen.mp4"
+      },
+      "metadata": {
+        "clipFilename": "essen.mp4",
+        "label": "essen",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "fertig",
+      "id": "dgs_003_fertig",
+      "storage": {
+        "type": "file",
+        "clip": "fertig.mp4"
+      },
+      "metadata": {
+        "clipFilename": "fertig.mp4",
+        "label": "fertig",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "gelb",
+      "id": "dgs_004_gelb",
+      "storage": {
+        "type": "file",
+        "clip": "gelb.mp4"
+      },
+      "metadata": {
+        "clipFilename": "gelb.mp4",
+        "label": "gelb",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "gruen",
+      "id": "dgs_005_gruen",
+      "storage": {
+        "type": "file",
+        "clip": "gruen.mp4"
+      },
+      "metadata": {
+        "clipFilename": "gruen.mp4",
+        "label": "gruen",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "nochmal",
+      "id": "dgs_006_nochmal",
+      "storage": {
+        "type": "file",
+        "clip": "nochmal.mp4"
+      },
+      "metadata": {
+        "clipFilename": "nochmal.mp4",
+        "label": "nochmal",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "rot",
+      "id": "dgs_007_rot",
+      "storage": {
+        "type": "file",
+        "clip": "rot.mp4"
+      },
+      "metadata": {
+        "clipFilename": "rot.mp4",
+        "label": "rot",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "satt",
+      "id": "dgs_008_satt",
+      "storage": {
+        "type": "file",
+        "clip": "satt.mp4"
+      },
+      "metadata": {
+        "clipFilename": "satt.mp4",
+        "label": "satt",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "schwester",
+      "id": "dgs_009_schwester",
+      "storage": {
+        "type": "file",
+        "clip": "schwester.mp4"
+      },
+      "metadata": {
+        "clipFilename": "schwester.mp4",
+        "label": "schwester",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "spielen",
+      "id": "dgs_010_spielen",
+      "storage": {
+        "type": "file",
+        "clip": "spielen.mp4"
+      },
+      "metadata": {
+        "clipFilename": "spielen.mp4",
+        "label": "spielen",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "trinken",
+      "id": "dgs_011_trinken",
+      "storage": {
+        "type": "file",
+        "clip": "trinken.mp4"
+      },
+      "metadata": {
+        "clipFilename": "trinken.mp4",
+        "label": "trinken",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    }
+  ]
+}
