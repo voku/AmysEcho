@@ -777,7 +777,7 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
                      mp_vision.FaceLandmarker.create_from_options(face_options) as face_landmarker:
                     
                     index = 0
-                    while cap.isOpened():
+                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
                         success, frame = cap.read()
                         if not success:
                             break
