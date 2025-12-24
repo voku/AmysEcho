@@ -359,9 +359,9 @@ describe('installMlp', () => {
       expect(ok).toBe(true);
     });
 
-    it('erkennt multimodales Modell (258 Eingabe-Features)', async () => {
+    it('erkennt multimodales Modell (1629 Eingabe-Features)', async () => {
       // Model should be loaded and recognized as multimodal
-      // The model expects 258 features (126 hands + 99 pose + 33 face)
+      // The model expects 1629 features (126 hands + 99 pose + 1404 face)
       const res = window.__mlpPredict!(
         [TEST_HAND],
         [[{ categoryName: 'Left' }]],
