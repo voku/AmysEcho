@@ -15,6 +15,9 @@ const syncBundleMock = vi.fn();
 const removeBundleMock = vi.fn();
 const fetchMock = vi.fn();
 
+let mockTrainingJob: any = null;
+let mockTrainingJobError: string | null = null;
+
 vi.mock('../hooks/useTrainingUploader', () => ({
   useTrainingUploader: () => ({
     upload: uploadMock,
@@ -29,8 +32,8 @@ vi.mock('../hooks/useTrainingUploader', () => ({
     syncing: false,
     syncError: null,
     lastQueuedKey: null,
-    trainingJob: null,
-    trainingJobError: null,
+    trainingJob: mockTrainingJob,
+    trainingJobError: mockTrainingJobError,
   }),
 }));
 
@@ -199,31 +202,15 @@ describe('TrainingUploadWithRecording', () => {
     await addProfile(profile);
     await setActiveProfile(profile.uuid);
 
-    // Mock hook specifically for this test to simulate an active but failed training job
-    const trainingJob = {
+    // Set mock state using the reactive variables defined at top level
+    mockTrainingJob = {
       jobId: 'job-123',
       status: 'failed',
       error: 'Skript-Fehler in train_mlp.py',
       message: 'Training abgebrochen wegen fehlender Daten',
       progress: 0,
     };
-
-    vi.mocked(await import('../hooks/useTrainingUploader')).useTrainingUploader = vi.fn().mockReturnValue({
-      upload: uploadMock,
-      state: 'idle',
-      lastResult: null,
-      error: null,
-      queuedCount: 0,
-      queuedBundles: [],
-      syncQueued: syncQueuedMock,
-      syncBundle: syncBundleMock,
-      removeBundle: removeBundleMock,
-      syncing: false,
-      syncError: null,
-      lastQueuedKey: null,
-      trainingJob: trainingJob,
-      trainingJobError: 'Skript-Fehler in train_mlp.py',
-    });
+    mockTrainingJobError = 'Skript-Fehler in train_mlp.py';
 
     renderWithProviders();
 

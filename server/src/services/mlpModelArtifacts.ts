@@ -38,14 +38,14 @@ function loadDefaultBaselineLabels(): readonly string[] {
       if (parsed.every((item) => typeof item === 'string')) {
         return Object.freeze(parsed.map((label) => String(label)));
       }
-      // eslint-disable-next-line no-console -- fallback logging for configuration loading issues
+       
       console.warn(
         `Invalid structure in ${defaultPath}; expected array of strings. Falling back to hard-coded values.`,
       );
     }
   } catch (error) {
     // ignore and fall back to hard-coded defaults
-    // eslint-disable-next-line no-console -- fallback logging for configuration loading issues
+     
     console.warn(
       `Failed to load default baseline labels from ${defaultPath}; falling back to hard-coded values.`,
       error,

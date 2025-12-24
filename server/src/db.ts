@@ -300,12 +300,17 @@ const generateId = (): string => randomBytes(16).toString('hex');
 export const seedProfileSymbols = (db: Database, profileId: string): void => {
   const globalSymbols = db.symbols.filter((s) => !s.profileId);
   for (const globalSymbol of globalSymbols) {
-    const profileSymbol: SymbolRecord = {
-      ...globalSymbol,
-      id: `${globalSymbol.id}-${profileId}`, // Unique ID for profile symbol
-      profileId,
-    };
-    db.symbols.push(profileSymbol);
+    const profileSymbolId = `${globalSymbol.id}-${profileId}`;
+    // Check if this symbol already exists for the profile to prevent duplicates
+    const alreadyExists = db.symbols.some((s) => s.id === profileSymbolId);
+    if (!alreadyExists) {
+      const profileSymbol: SymbolRecord = {
+        ...globalSymbol,
+        id: profileSymbolId, // Unique ID for profile symbol
+        profileId,
+      };
+      db.symbols.push(profileSymbol);
+    }
   }
 };
 
