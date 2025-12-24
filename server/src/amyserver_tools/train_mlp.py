@@ -697,11 +697,16 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
 
     # 1. Try modern Tasks API (highly robust for new MP versions)
     if mp_tasks and mp_vision:
-        model_path = Path(__file__).resolve().parents[2] / "data" / "models" / "hand_landmarker.task"
-        if not model_path.exists():
-            model_path = Path("server/data/models/hand_landmarker.task")
+        models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
+        if not models_dir.exists():
+            models_dir = Path("server/data/models")
         
-        if model_path.exists():
+        hand_model = models_dir / "hand_landmarker.task"
+        pose_model = models_dir / "pose_landmarker.task"
+        face_model = models_dir / "face_landmarker.task"
+        
+        # Try full multimodal if all models available
+        if hand_model.exists() and pose_model.exists() and face_model.exists():
             try:
                 base_options = mp_tasks.BaseOptions(model_asset_path=str(model_path))
                 options = mp_vision.HandLandmarkerOptions(
@@ -840,9 +845,52 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
             except Exception as e:
                 print(f"warning: Multimodal Tasks API failed: {e}", file=sys.stderr)
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Reset video
+        
+        # Fallback to hands-only Tasks API if multimodal models unavailable
+        if hand_model.exists():
+            try:
+                base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
+                options = mp_vision.HandLandmarkerOptions(
+                    base_options=base_options, 
+                    num_hands=2,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
+                with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
+                    index = 0
+                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
+                        success, frame = cap.read()
+                        if not success:
+                            break
+                        if index % FRAME_STRIDE != 0:
+                            index += 1
+                            continue
+
+                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                        result = landmarker.detect(mp_image)
+
+                        left = np.zeros((21, 3), dtype=np.float32)
+                        right = np.zeros((21, 3), dtype=np.float32)
+
+                        if result.hand_landmarks:
+                            for i, hand_lms in enumerate(result.hand_landmarks):
+                                coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
+                                # Handedness is inverted in some MP versions relative to camera
+                                category = result.handedness[i][0].category_name
+                                if category == "Left":
+                                    left[:] = coords
+                                else:
+                                    right[:] = coords
+
+                        combined = np.vstack([left, right])
+                        frames.append({"landmarks": combined.tolist()})
+                        index += 1
+                return frames
+            except Exception as e:
+                print(f"warning: Hands-only Tasks API failed: {e}", file=sys.stderr)
     
     # Legacy solutions not available in current MediaPipe version
-
+    
     return frames
 
 
