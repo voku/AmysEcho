@@ -10,7 +10,7 @@ python scripts/process_dgs_videos.py --videos-dir ../app/assets/videos/ --output
 
 The script will:
 1. Process each MP4 video file in the videos directory
-2. Extract hand landmarks using MediaPipe
+2. Extract hand landmarks using MediaPipe Tasks API
 3. Save landmark sequences in the format expected by the training pipeline
 """
 
@@ -19,72 +19,88 @@ import numpy as np
 import json
 import os
 import argparse
-from typing import List, Dict, Any, Optional
 import sys
-from mediapipe.python.solutions import hands as mp_hands
-from mediapipe.python.solutions import drawing_utils as mp_drawing
+from typing import List, Dict, Any, Optional
+
+try:
+    import mediapipe as mp
+    from mediapipe.tasks import python as mp_tasks
+    from mediapipe.tasks.python import vision as mp_vision
+except ImportError:
+    print("Error: MediaPipe is not installed or incorrectly installed.")
+    print("Please install it with: pip install mediapipe")
+    sys.exit(1)
 
 class DGSVideoProcessor:
-    def __init__(self, max_frames: int = 300, confidence_threshold: float = 0.7, frame_skip: int = 2):
+    def __init__(self, model_path: str, max_frames: int = 300, confidence_threshold: float = 0.5, frame_skip: int = 2):
         self.max_frames = max_frames
-        self.confidence_threshold = confidence_threshold
         self.frame_skip = frame_skip
-        self.hands = mp_hands.Hands(
-            static_image_mode=False,
-            max_num_hands=2,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+        self.model_path = model_path
+        
+        if not os.path.exists(self.model_path):
+            raise FileNotFoundError(f"MediaPipe model not found at {self.model_path}")
+
+        base_options = mp_tasks.BaseOptions(model_asset_path=self.model_path)
+        options = mp_vision.HandLandmarkerOptions(
+            base_options=base_options,
+            num_hands=2,
+            min_hand_detection_confidence=confidence_threshold,
+            min_hand_presence_confidence=confidence_threshold,
+            min_tracking_confidence=confidence_threshold,
+            running_mode=mp_vision.RunningMode.IMAGE
         )
+        self.landmarker = mp_vision.HandLandmarker.create_from_options(options)
 
     def extract_landmarks_from_frame(self, frame: np.ndarray) -> Optional[List[List[float]]]:
         """Extract hand landmarks from a single frame"""
         # Convert BGR to RGB
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Create MediaPipe Image
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
         # Process the frame
-        results = self.hands.process(rgb_frame)
+        result = self.landmarker.detect(mp_image)
 
-        if not results.multi_hand_landmarks:
+        if not result.hand_landmarks:
             return None
 
-        # Extract landmarks for both hands (42 points total)
-        all_landmarks = []
-
-        # Process left hand (first 21 landmarks)
+        # Initialize 42 landmarks (21 for left, 21 for right) with zeros
+        # Format: [[x,y,z], [x,y,z], ...]
+        landmarks_42 = [[0.0, 0.0, 0.0] for _ in range(42)]
+        
+        # Track which hands we've processed to avoid duplicates if multiple hands of same type detected
         left_hand_processed = False
-        # Process right hand (next 21 landmarks)
         right_hand_processed = False
 
-        for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
-            hand_label = handedness.classification[0].label  # 'Left' or 'Right'
-
-            landmarks = []
-            for landmark in hand_landmarks.landmark:
-                landmarks.extend([landmark.x, landmark.y, landmark.z])
-
-            if hand_label == 'Left' and not left_hand_processed:
-                all_landmarks.extend(landmarks)
-                left_hand_processed = True
-            elif hand_label == 'Right' and not right_hand_processed:
-                all_landmarks.extend(landmarks)
-                right_hand_processed = True
-
-        # Pad with zeros if hands are missing
-        while len(all_landmarks) < 126:  # 42 landmarks * 3 coordinates
-            all_landmarks.append(0.0)
-
-        # Reshape to 42 landmarks with 3 coordinates each
-        landmarks_42 = []
-        for i in range(42):
-            start_idx = i * 3
-            if start_idx + 2 < len(all_landmarks):
-                landmarks_42.append([
-                    all_landmarks[start_idx],
-                    all_landmarks[start_idx + 1],
-                    all_landmarks[start_idx + 2]
-                ])
-            else:
-                landmarks_42.append([0.0, 0.0, 0.0])
+        # Iterate through detected hands
+        for i, hand_landmarks in enumerate(result.hand_landmarks):
+            # Get handedness (Left/Right)
+            # Note: MediaPipe Tasks handedness is a list of lists (one list per hand)
+            if i < len(result.handedness):
+                handedness_category = result.handedness[i][0]
+                hand_label = handedness_category.category_name # "Left" or "Right" 
+                
+                # Extract coordinates
+                current_hand_coords = []
+                for landmark in hand_landmarks:
+                    current_hand_coords.append([landmark.x, landmark.y, landmark.z])
+                
+                # Map to correct slots
+                # Indices 0-20: Left Hand
+                # Indices 21-41: Right Hand
+                
+                if hand_label == 'Left' and not left_hand_processed:
+                    for j, coord in enumerate(current_hand_coords):
+                        if j < 21:
+                            landmarks_42[j] = coord
+                    left_hand_processed = True
+                    
+                elif hand_label == 'Right' and not right_hand_processed:
+                    for j, coord in enumerate(current_hand_coords):
+                        if j < 21:
+                            landmarks_42[21 + j] = coord
+                    right_hand_processed = True
 
         return landmarks_42
 
@@ -189,30 +205,38 @@ def main():
     parser.add_argument('--videos-dir', required=True, help='Directory containing DGS video files')
     parser.add_argument('--output', required=True, help='Output JSON file path')
     parser.add_argument('--max-frames', type=int, default=300, help='Maximum frames to process per video')
-    parser.add_argument('--confidence', type=float, default=0.7, help='Detection confidence threshold')
-    parser.add_argument('--frame-skip', type=int, default=2, help='Process every Nth frame (1 = every frame, 2 = every 2nd frame, etc.)')
+    parser.add_argument('--confidence', type=float, default=0.5, help='Detection confidence threshold')
+    parser.add_argument('--frame-skip', type=int, default=2, help='Process every Nth frame')
+    parser.add_argument('--model-path', default='server/data/models/hand_landmarker.task', help='Path to MediaPipe model task file')
 
     args = parser.parse_args()
 
     print("Starting DGS Video Processing...")
     print(f"Videos directory: {args.videos_dir}")
     print(f"Output file: {args.output}")
-    print(f"Max frames per video: {args.max_frames}")
-    print(f"Frame skip: {args.frame_skip}")
+    print(f"Model path: {args.model_path}")
 
-    processor = DGSVideoProcessor(
-        max_frames=args.max_frames,
-        confidence_threshold=args.confidence,
-        frame_skip=args.frame_skip
-    )
+    try:
+        processor = DGSVideoProcessor(
+            model_path=args.model_path,
+            max_frames=args.max_frames,
+            confidence_threshold=args.confidence,
+            frame_skip=args.frame_skip
+        )
 
-    samples = processor.process_videos_directory(args.videos_dir)
+        samples = processor.process_videos_directory(args.videos_dir)
 
-    if samples:
-        save_samples_to_json(samples, args.output)
-        print(f"\nSuccess! Processed {len(samples)} landmark samples from videos.")
-    else:
-        print("No samples were extracted from the videos.")
+        if samples:
+            save_samples_to_json(samples, args.output)
+            print(f"\nSuccess! Processed {len(samples)} landmark samples from videos.")
+        else:
+            print("No samples were extracted from the videos.")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"Fatal Error: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == '__main__':

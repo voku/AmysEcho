@@ -294,7 +294,20 @@ def prepare_data(
         label = entry.get("label")
 
         for frame in landmark_data.get("frames", []):
-            sample = {"label": label, "landmarks": frame["landmarks"]}
+            landmarks = frame["landmarks"]
+            # Check for all-zeros (invalid landmarks)
+            flat_check = []
+            if isinstance(landmarks, list):
+                if len(landmarks) > 0 and isinstance(landmarks[0], list):
+                    # List of lists
+                    flat_check = [c for p in landmarks for c in p]
+                else:
+                    flat_check = landmarks
+            
+            if flat_check and all(v == 0 for v in flat_check):
+                 print(f"Warning: Found all-zero landmarks for label '{label}' in {lm_file}", file=sys.stderr)
+                 
+            sample = {"label": label, "landmarks": landmarks}
             samples.append(sample)
 
     if not samples:
@@ -366,6 +379,12 @@ def train_and_evaluate_model(X_train, y_train, X_test, y_test, label_to_idx, arg
     mlp.train(X_train, y_train, args.epochs, args.learning_rate)
     train_acc = evaluate_model(mlp, X_train, y_train)
     test_acc = evaluate_model(mlp, X_test, y_test)
+    
+    if test_acc < 0.2: # 20% threshold mentioned in docstring
+        print(f"⚠️  CRITICAL: Model accuracy is very low ({test_acc:.1%}). Check training data!", file=sys.stderr)
+    elif test_acc < 0.5:
+        print(f"⚠️  WARNING: Model accuracy is low ({test_acc:.1%}).", file=sys.stderr)
+        
     return mlp, train_acc, test_acc
 
 
