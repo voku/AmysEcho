@@ -233,12 +233,12 @@ describe('LandmarkNormalizer', () => {
     // Constants for multimodal feature dimensions
     const HAND_FEATURES = 126; // 2 hands × 21 points × 3 coords
     const POSE_FEATURES = 99;  // 33 points × 3 coords (visibility dropped)
-    const TOTAL_MULTIMODAL_FEATURES = 258; // hands + pose + face
-    const HAND_SECTION_END = HAND_FEATURES; // 0-125
-    const POSE_SECTION_START = HAND_FEATURES; // 126
-    const POSE_SECTION_END = HAND_FEATURES + POSE_FEATURES; // 126-224
-    const FACE_SECTION_START = HAND_FEATURES + POSE_FEATURES; // 225
-    const FACE_SECTION_END = TOTAL_MULTIMODAL_FEATURES; // 225-257
+const TOTAL_MULTIMODAL_FEATURES = 1629; // hands (126) + pose (99) + face (1404)
+const HAND_SECTION_END = 126; // 0-125
+const POSE_SECTION_START = 126; // 126-224
+const POSE_SECTION_END = 225; // 126-224  
+const FACE_SECTION_START = 225; // 225-1628
+const FACE_SECTION_END = TOTAL_MULTIMODAL_FEATURES; // 225-1628
 
     // Helper to create realistic hand data (42 points = 2 hands × 21 landmarks)
     function createHandData(): number[][] {
