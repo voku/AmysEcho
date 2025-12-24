@@ -275,6 +275,30 @@ export class GestureDetector {
 
         // Call result callback if set
         if (this.resultCallback && results) {
+          // Run pose detection using PoseLandmarker (separate from gesture recognition)
+          if (this.poseLandmarker) {
+            try {
+              const poseResults = this.poseLandmarker.detectForVideo(this.video, frameStart);
+              if (poseResults?.landmarks) {
+                results.poseLandmarks = poseResults.landmarks;
+              }
+            } catch (poseErr) {
+              gestureDebugLog('recognizer', 'Pose detection error', () => ({ error: String(poseErr) }));
+            }
+          }
+
+          // Run face detection using FaceLandmarker (separate from gesture recognition)
+          if (this.faceLandmarker) {
+            try {
+              const faceResults = this.faceLandmarker.detectForVideo(this.video, frameStart);
+              if (faceResults?.faceLandmarks) {
+                results.faceLandmarks = faceResults.faceLandmarks;
+              }
+            } catch (faceErr) {
+              gestureDebugLog('recognizer', 'Face detection error', () => ({ error: String(faceErr) }));
+            }
+          }
+
           this.resultCallback(results, frameStart);
         }
 
@@ -284,41 +308,25 @@ export class GestureDetector {
             )
           : [];
 
-        // Run pose detection using PoseLandmarker (separate from gesture recognition)
+        // Run pose detection for overlay (already done above for results, but we need variables for updateOverlay)
         let poseLandmarks: number[][] = [];
-        if (this.poseLandmarker) {
-          try {
-            const poseResults = this.poseLandmarker.detectForVideo(this.video, frameStart);
-            if (poseResults?.landmarks?.[0]) {
-              poseLandmarks = poseResults.landmarks[0].map((landmark: PoseLandmark) => [
-                landmark.x ?? 0,
-                landmark.y ?? 0,
-                landmark.z ?? 0,
-                landmark.visibility ?? 0,
-              ]);
-            }
-          } catch (poseErr) {
-            // Silently ignore pose detection errors to not interrupt main gesture flow
-            gestureDebugLog('recognizer', 'Pose detection error', () => ({ error: String(poseErr) }));
-          }
+        if (results?.poseLandmarks?.[0]) {
+          poseLandmarks = results.poseLandmarks[0].map((landmark: PoseLandmark) => [
+            landmark.x ?? 0,
+            landmark.y ?? 0,
+            landmark.z ?? 0,
+            landmark.visibility ?? 0,
+          ]);
         }
 
-        // Run face detection using FaceLandmarker (separate from gesture recognition)
+        // Run face detection for overlay
         let faceLandmarks: number[][] = [];
-        if (this.faceLandmarker) {
-          try {
-            const faceResults = this.faceLandmarker.detectForVideo(this.video, frameStart);
-            if (faceResults?.faceLandmarks?.[0]) {
-              faceLandmarks = faceResults.faceLandmarks[0].map((landmark: FaceLandmark) => [
-                landmark.x ?? 0,
-                landmark.y ?? 0,
-                landmark.z ?? 0,
-              ]);
-            }
-          } catch (faceErr) {
-            // Silently ignore face detection errors to not interrupt main gesture flow
-            gestureDebugLog('recognizer', 'Face detection error', () => ({ error: String(faceErr) }));
-          }
+        if (results?.faceLandmarks?.[0]) {
+          faceLandmarks = results.faceLandmarks[0].map((landmark: FaceLandmark) => [
+            landmark.x ?? 0,
+            landmark.y ?? 0,
+            landmark.z ?? 0,
+          ]);
         }
 
         // Update temporal analysis for velocity-based optimizations

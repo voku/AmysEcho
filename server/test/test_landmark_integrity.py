@@ -53,6 +53,38 @@ def test_dgs_video_samples_integrity():
     # Assert that at least 50% of samples have data (conservative threshold)
     assert zero_ratio < 0.5, f"Too many samples have all-zero landmarks! Ratio: {zero_ratio:.2%}"
 
+def test_individual_landmark_files_integrity():
+    """
+    Verify that the individual *_landmarks.json files in server/data/dgs_video_examples
+    contain valid non-zero landmarks. These are likely used by the training manifest.
+    """
+    examples_dir = "server/data/dgs_video_examples"
+    if not os.path.exists(examples_dir):
+        pytest.skip(f"{examples_dir} does not exist.")
+        
+    files = [f for f in os.listdir(examples_dir) if f.endswith("_landmarks.json")]
+    if not files:
+        pytest.skip("No landmark files found in examples dir")
+        
+    for filename in files:
+        filepath = os.path.join(examples_dir, filename)
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+            
+        frames = data.get("frames", [])
+        if not frames:
+            continue
+            
+        # Check for non-zero data
+        has_nonzero = False
+        for frame in frames:
+            landmarks = np.array(frame["landmarks"])
+            if landmarks.size > 0 and not np.all(landmarks == 0):
+                has_nonzero = True
+                break
+                
+        assert has_nonzero, f"File {filename} contains ONLY zero-valued landmarks!"
+
 def test_synthetic_gestures_integrity():
     """
     Check synthetic gestures if they exist

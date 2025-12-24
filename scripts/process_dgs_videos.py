@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
-DGS Video Processing Script for Amy's Echo
+DGS Video Processing Script for Amy's Echo (Multimodal Edition)
 
-This script processes German Sign Language (DGS) videos to extract hand landmark data
-for training the gesture recognition model.
+This script processes German Sign Language (DGS) videos to extract 
+Hands + Pose + Face landmarks for training the multimodal gesture recognition model.
 
 Usage:
-python scripts/process_dgs_videos.py --videos-dir ../app/assets/videos/ --output ../server/data/dgs_video_samples.json
+python scripts/process_dgs_videos.py --videos-dir ../app/assets/videos/ --output ../server/data/dgs_video_samples.json --split-output
 
 The script will:
-1. Process each MP4 video file in the videos directory
-2. Extract hand landmarks using MediaPipe Tasks API
-3. Save landmark sequences in the format expected by the training pipeline
+1. Load Hand, Pose, and Face landmarkers.
+2. Process each frame through all three models.
+3. Fuse the results into a single vector: [Hands(42) + Pose(33) + Face(468)].
+4. Save the data for training.
 """
 
 import cv2
@@ -27,217 +28,199 @@ try:
     from mediapipe.tasks import python as mp_tasks
     from mediapipe.tasks.python import vision as mp_vision
 except ImportError:
-    print("Error: MediaPipe is not installed or incorrectly installed.")
-    print("Please install it with: pip install mediapipe")
+    print("Error: MediaPipe is not installed.")
     sys.exit(1)
 
 class DGSVideoProcessor:
-    def __init__(self, model_path: str, max_frames: int = 300, confidence_threshold: float = 0.5, frame_skip: int = 2):
-        self.max_frames = max_frames
-        self.frame_skip = frame_skip
-        self.model_path = model_path
+    def __init__(self, models_dir: str, confidence: float = 0.5):
+        self.confidence = confidence
         
-        if not os.path.exists(self.model_path):
-            raise FileNotFoundError(f"MediaPipe model not found at {self.model_path}")
+        # Paths
+        self.hand_model = os.path.join(models_dir, "hand_landmarker.task")
+        self.pose_model = os.path.join(models_dir, "pose_landmarker.task")
+        self.face_model = os.path.join(models_dir, "face_landmarker.task")
+        
+        # Verify models exist
+        for m in [self.hand_model, self.pose_model, self.face_model]:
+            if not os.path.exists(m):
+                raise FileNotFoundError(f"Model not found: {m}")
 
-        base_options = mp_tasks.BaseOptions(model_asset_path=self.model_path)
-        options = mp_vision.HandLandmarkerOptions(
-            base_options=base_options,
+        # Initialize Landmarkers
+        # 1. Hands
+        base_options_hand = mp_tasks.BaseOptions(model_asset_path=self.hand_model)
+        options_hand = mp_vision.HandLandmarkerOptions(
+            base_options=base_options_hand,
             num_hands=2,
-            min_hand_detection_confidence=confidence_threshold,
-            min_hand_presence_confidence=confidence_threshold,
-            min_tracking_confidence=confidence_threshold,
+            min_hand_detection_confidence=confidence,
+            min_hand_presence_confidence=confidence,
+            min_tracking_confidence=confidence,
             running_mode=mp_vision.RunningMode.IMAGE
         )
-        self.landmarker = mp_vision.HandLandmarker.create_from_options(options)
-
-    def extract_landmarks_from_frame(self, frame: np.ndarray) -> Optional[List[List[float]]]:
-        """Extract hand landmarks from a single frame"""
-        # Convert BGR to RGB
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self.detector_hand = mp_vision.HandLandmarker.create_from_options(options_hand)
         
-        # Create MediaPipe Image
+        # 2. Pose
+        base_options_pose = mp_tasks.BaseOptions(model_asset_path=self.pose_model)
+        options_pose = mp_vision.PoseLandmarkerOptions(
+            base_options=base_options_pose,
+            min_pose_detection_confidence=confidence,
+            min_tracking_confidence=confidence,
+            running_mode=mp_vision.RunningMode.IMAGE
+        )
+        self.detector_pose = mp_vision.PoseLandmarker.create_from_options(options_pose)
+
+        # 3. Face
+        base_options_face = mp_tasks.BaseOptions(model_asset_path=self.face_model)
+        options_face = mp_vision.FaceLandmarkerOptions(
+            base_options=base_options_face,
+            min_face_detection_confidence=confidence,
+            min_face_presence_confidence=confidence,
+            min_tracking_confidence=confidence,
+            output_face_blendshapes=False,
+            output_facial_transformation_matrixes=False,
+            num_faces=1,
+            running_mode=mp_vision.RunningMode.IMAGE
+        )
+        self.detector_face = mp_vision.FaceLandmarker.create_from_options(options_face)
+
+    def extract_frame(self, frame: np.ndarray) -> Optional[List[List[float]]]:
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
-        # Process the frame
-        result = self.landmarker.detect(mp_image)
+        # --- HANDS (42 points) ---
+        hand_result = self.detector_hand.detect(mp_image)
+        hands_data = [[0.0, 0.0, 0.0] for _ in range(42)]
+        
+        left_done, right_done = False, False
+        for i, hand_landmarks in enumerate(hand_result.hand_landmarks):
+            if i >= len(hand_result.handedness): break
+            label = hand_result.handedness[i][0].category_name
+            
+            coords = [[lm.x, lm.y, lm.z] for lm in hand_landmarks]
+            
+            if label == 'Left' and not left_done:
+                for j in range(min(21, len(coords))): hands_data[j] = coords[j]
+                left_done = True
+            elif label == 'Right' and not right_done:
+                for j in range(min(21, len(coords))): hands_data[21 + j] = coords[j]
+                right_done = True
 
-        if not result.hand_landmarks:
+        # --- POSE (33 points) ---
+        pose_result = self.detector_pose.detect(mp_image)
+        pose_data = [[0.0, 0.0, 0.0] for _ in range(33)]
+        if pose_result.pose_landmarks:
+            # Pose landmarks is a list of lists (usually 1 body)
+            pl = pose_result.pose_landmarks[0]
+            pose_data = [[lm.x, lm.y, lm.z] for lm in pl]
+
+        # --- FACE (468 points) ---
+        face_result = self.detector_face.detect(mp_image)
+        face_data = [[0.0, 0.0, 0.0] for _ in range(468)]
+        if face_result.face_landmarks:
+            # Face landmarks is a list of lists (num_faces)
+            fl = face_result.face_landmarks[0]
+            face_data = [[lm.x, lm.y, lm.z] for lm in fl]
+
+        # --- FUSION ---
+        # Structure: Hands (42) + Pose (33) + Face (468) = 543 points
+        full_vector = hands_data + pose_data + face_data
+        
+        # Check integrity - if everything is zero, return None to skip frame
+        # Optimization: Just check first point of each modality
+        h_active = any(c != 0 for c in hands_data[0]) or any(c != 0 for c in hands_data[21])
+        p_active = any(c != 0 for c in pose_data[0])
+        f_active = any(c != 0 for c in face_data[0])
+        
+        if not (h_active or p_active or f_active):
             return None
 
-        # Initialize 42 landmarks (21 for left, 21 for right) with zeros
-        # Format: [[x,y,z], [x,y,z], ...]
-        landmarks_42 = [[0.0, 0.0, 0.0] for _ in range(42)]
-        
-        # Track which hands we've processed to avoid duplicates if multiple hands of same type detected
-        left_hand_processed = False
-        right_hand_processed = False
+        return full_vector
 
-        # Iterate through detected hands
-        for i, hand_landmarks in enumerate(result.hand_landmarks):
-            # Get handedness (Left/Right)
-            # Note: MediaPipe Tasks handedness is a list of lists (one list per hand)
-            if i < len(result.handedness):
-                handedness_category = result.handedness[i][0]
-                hand_label = handedness_category.category_name # "Left" or "Right" 
-                
-                # Extract coordinates
-                current_hand_coords = []
-                for landmark in hand_landmarks:
-                    current_hand_coords.append([landmark.x, landmark.y, landmark.z])
-                
-                # Map to correct slots
-                # Indices 0-20: Left Hand
-                # Indices 21-41: Right Hand
-                
-                if hand_label == 'Left' and not left_hand_processed:
-                    for j, coord in enumerate(current_hand_coords):
-                        if j < 21:
-                            landmarks_42[j] = coord
-                    left_hand_processed = True
-                    
-                elif hand_label == 'Right' and not right_hand_processed:
-                    for j, coord in enumerate(current_hand_coords):
-                        if j < 21:
-                            landmarks_42[21 + j] = coord
-                    right_hand_processed = True
-
-        return landmarks_42
-
-    def process_video(self, video_path: str, gesture_name: str) -> List[Dict[str, Any]]:
-        """Process a single video file and extract landmark sequences"""
-        print(f"Processing video: {video_path}")
-
+    def process_video(self, video_path: str, gesture_name: str, max_frames: int, frame_skip: int) -> List[Dict[str, Any]]:
+        print(f"Processing {os.path.basename(video_path)}...")
         cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            print(f"Error: Could not open video {video_path}")
-            return []
-
         samples = []
         frame_count = 0
-        successful_frames = 0
-
-        while frame_count < self.max_frames:
+        
+        while frame_count < max_frames:
             ret, frame = cap.read()
-            if not ret:
-                break
-
+            if not ret: break
             frame_count += 1
-
-            # Skip frames for efficiency (process every Nth frame)
-            if frame_count % self.frame_skip != 0:
-                continue
-
-            landmarks = self.extract_landmarks_from_frame(frame)
-
+            if frame_count % frame_skip != 0: continue
+            
+            landmarks = self.extract_frame(frame)
             if landmarks:
-                successful_frames += 1
-                sample = {
+                samples.append({
                     "label": gesture_name,
                     "landmarks": landmarks,
                     "frame_number": frame_count,
                     "video_source": os.path.basename(video_path)
-                }
-                samples.append(sample)
-
+                })
+        
         cap.release()
-
-        print(f"Extracted {successful_frames} landmark frames from {frame_count} video frames")
         return samples
 
-    def process_videos_directory(self, videos_dir: str) -> List[Dict[str, Any]]:
-        """Process all videos in a directory"""
+    def process_directory(self, videos_dir: str, max_frames: int, frame_skip: int) -> List[Dict[str, Any]]:
         all_samples = []
-
-        if not os.path.exists(videos_dir):
-            print(f"Error: Videos directory {videos_dir} does not exist")
-            return []
-
-        # Map video filenames to gesture names
+        # Basic mapping - in production use a DB or manifest
         video_gesture_map = {
-            'alle.mp4': 'alle',
-            'blau.mp4': 'blau',
-            'rot.mp4': 'rot',
-            'gelb.mp4': 'gelb',
-            'gruen.mp4': 'gruen',
-            'essen.mp4': 'essen',
-            'trinken.mp4': 'trinken',
-            'satt.mp4': 'satt',
-            'spielen.mp4': 'spielen',
-            'schwester.mp4': 'schwester',
-            'nochmal.mp4': 'nochmal',
-            'fertig.mp4': 'fertig'
+            'alle.mp4': 'alle', 'blau.mp4': 'blau', 'rot.mp4': 'rot',
+            'gelb.mp4': 'gelb', 'gruen.mp4': 'gruen', 'essen.mp4': 'essen',
+            'trinken.mp4': 'trinken', 'satt.mp4': 'satt', 'spielen.mp4': 'spielen',
+            'schwester.mp4': 'schwester', 'nochmal.mp4': 'nochmal', 'fertig.mp4': 'fertig'
         }
-
-        for filename in os.listdir(videos_dir):
-            if filename.endswith('.mp4'):
-                gesture_name = video_gesture_map.get(filename)
-                if gesture_name:
-                    video_path = os.path.join(videos_dir, filename)
-                    samples = self.process_video(video_path, gesture_name)
-                    all_samples.extend(samples)
-                else:
-                    print(f"Warning: No gesture mapping found for {filename}")
-
+        
+        files = [f for f in os.listdir(videos_dir) if f.endswith('.mp4')]
+        for f in files:
+            label = video_gesture_map.get(f)
+            if label:
+                path = os.path.join(videos_dir, f)
+                all_samples.extend(self.process_video(path, label, max_frames, frame_skip))
+            else:
+                print(f"Skipping {f} (unknown label)")
+                
         return all_samples
 
-def save_samples_to_json(samples: List[Dict[str, Any]], output_path: str):
-    """Save extracted samples to JSON file in the format expected by training"""
-    # Convert to the format expected by the training pipeline
-    training_data = {"samples": []}
+def save_output(samples: List[Dict[str, Any]], output_path: str, split_output: bool, videos_dir: str):
+    # Bulk save
+    if output_path:
+        data = {"samples": [{"label": s["label"], "landmarks": s["landmarks"]} for s in samples]}
+        with open(output_path, 'w') as f: json.dump(data, f)
+        print(f"Saved bulk data to {output_path}")
 
-    for sample in samples:
-        training_sample = {
-            "label": sample["label"],
-            "landmarks": sample["landmarks"]
-        }
-        training_data["samples"].append(training_sample)
-
-    # Save to file
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w') as f:
-        json.dump(training_data, f, indent=2)
-
-    print(f"Saved {len(training_data['samples'])} samples to {output_path}")
+    # Split save (for training manifest)
+    if split_output:
+        grouped = {}
+        for s in samples:
+            src = s.get("video_source")
+            if src:
+                if src not in grouped: grouped[src] = []
+                grouped[src].append(s)
+        
+        for src, group in grouped.items():
+            gesture = os.path.splitext(src)[0]
+            out_file = os.path.join(videos_dir, f"{gesture}_landmarks.json")
+            frames = [{"landmarks": s["landmarks"]} for s in group]
+            with open(out_file, 'w') as f: json.dump({"frames": frames}, f)
+            print(f"Updated {out_file}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Process DGS videos to extract hand landmarks for training")
-    parser.add_argument('--videos-dir', required=True, help='Directory containing DGS video files')
-    parser.add_argument('--output', required=True, help='Output JSON file path')
-    parser.add_argument('--max-frames', type=int, default=300, help='Maximum frames to process per video')
-    parser.add_argument('--confidence', type=float, default=0.5, help='Detection confidence threshold')
-    parser.add_argument('--frame-skip', type=int, default=2, help='Process every Nth frame')
-    parser.add_argument('--model-path', default='server/data/models/hand_landmarker.task', help='Path to MediaPipe model task file')
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--videos-dir', required=True)
+    parser.add_argument('--output')
+    parser.add_argument('--split-output', action='store_true')
+    parser.add_argument('--models-dir', default='server/data/models')
+    parser.add_argument('--max-frames', type=int, default=300)
+    parser.add_argument('--frame-skip', type=int, default=2)
     args = parser.parse_args()
 
-    print("Starting DGS Video Processing...")
-    print(f"Videos directory: {args.videos_dir}")
-    print(f"Output file: {args.output}")
-    print(f"Model path: {args.model_path}")
+    processor = DGSVideoProcessor(args.models_dir)
+    samples = processor.process_directory(args.videos_dir, args.max_frames, args.frame_skip)
+    
+    if samples:
+        save_output(samples, args.output, args.split_output, args.videos_dir)
+        print(f"Done. Processed {len(samples)} frames.")
+    else:
+        print("No samples found.")
 
-    try:
-        processor = DGSVideoProcessor(
-            model_path=args.model_path,
-            max_frames=args.max_frames,
-            confidence_threshold=args.confidence,
-            frame_skip=args.frame_skip
-        )
-
-        samples = processor.process_videos_directory(args.videos_dir)
-
-        if samples:
-            save_samples_to_json(samples, args.output)
-            print(f"\nSuccess! Processed {len(samples)} landmark samples from videos.")
-        else:
-            print("No samples were extracted from the videos.")
-            sys.exit(1)
-            
-    except Exception as e:
-        print(f"Fatal Error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

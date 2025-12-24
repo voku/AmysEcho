@@ -532,14 +532,18 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
     const Body = z.object({
       label: z.string().min(1),
       profileId: z.string().optional(),
-      // exactly 42 points of [x,y,z] in [0,1]
+      // 21 (one hand), 42 (two hands), or 543 (multimodal: 42 + 33 + 468)
       landmarks: z
         .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
-        .length(42)
+        .refine(
+          (pts: [number, number, number][]) =>
+            pts.length === 21 || pts.length === 42 || pts.length === 543,
+          'landmarks must be 21, 42 or 543 points',
+        )
         .refine(
           (pts: [number, number, number][]) =>
             pts.every(([x, y, z]: [number, number, number]) => x >= 0 && x <= 1 && y >= 0 && y <= 1 && Number.isFinite(z)),
-          'landmarks must be 42 points of [x,y,z] within [0,1] for x,y',
+          'landmarks must be within [0,1] for x,y',
         ),
     });
     const parsed = Body.safeParse(req.body);
@@ -686,8 +690,8 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
     profileId: z.string().optional(),
     landmarkData: z
       .array(LandmarkTupleSchema)
-      .refine((arr) => arr.length === 21 || arr.length === 42, {
-        message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1] for x,y',
+      .refine((arr) => arr.length === 21 || arr.length === 42 || arr.length === 543, {
+        message: 'landmarks must be 21, 42 or 543 points',
       }),
   });
   const BodySchema = z.object({

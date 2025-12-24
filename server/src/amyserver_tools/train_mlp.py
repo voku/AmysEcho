@@ -634,14 +634,17 @@ def _compute_quality_weight(sample: Sample) -> float:
 
     coverage = sample.modality_coverage or {}
     hands_cov = coverage.get("hands")
-    if isinstance(hands_cov, (int, float)) and hands_cov < MIN_HANDS_COVERAGE:
-        weight *= 0.6
+    if isinstance(hands_cov, (int, float)):
+        if hands_cov < MIN_HANDS_COVERAGE:
+            weight *= 0.4  # More aggressive penalty for children's signs (hands are critical)
+        elif hands_cov > 0.9:  # Bonus for excellent hand coverage
+            weight *= 1.2
     pose_cov = coverage.get("pose")
     if isinstance(pose_cov, (int, float)) and pose_cov < MIN_POSE_COVERAGE:
-        weight *= 0.85
+        weight *= 0.95  # Reduced penalty - pose less critical for children's signs
     face_cov = coverage.get("face")
     if isinstance(face_cov, (int, float)) and face_cov < MIN_FACE_COVERAGE:
-        weight *= 0.9
+        weight *= 0.98  # Minimal penalty - face least critical for signing
 
     return max(weight, 0.1)
 
@@ -1080,17 +1083,24 @@ def _normalize(lm):
     return np.concatenate([left, right]).flatten()
 
 
+# Density-Balanced Priority factors (Hands > Pose > Face)
+# This prevents the 1404 face features from drowning out the 126 hand features.
+HAND_PRIORITY_FACTOR = 3.0
+POSE_PRIORITY_FACTOR = 0.4
+FACE_PRIORITY_FACTOR = 0.1
+
 def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
     """Normalize multimodal sample (hands + optional pose/face) into a feature vector.
     
     The feature vector includes:
-    - Hand landmarks (126 values): normalized and flattened
-    - Pose landmarks (optional, 99 values): x,y,z for 33 points, normalized to torso center
-    - Face landmarks (optional, subset ~60 values): key facial points for NMMs
+    - Hand landmarks (126 values): normalized and flattened, scaled by HAND_PRIORITY_FACTOR
+    - Pose landmarks (optional, 99 values): x,y,z for 33 points, normalized to torso center, scaled by POSE_PRIORITY_FACTOR
+    - Face landmarks (optional, 1404 values): full 468 face mesh landmarks, scaled by FACE_PRIORITY_FACTOR
+    
+    Total vector size: 126 + 99 + 1404 = 1629 floats.
     
     This function naturally supports modality dropout: when pose or face landmarks are
-    missing from a sample, zeros are filled in. This trains the model to be robust to
-    missing modalities, which can occur due to occlusion, poor lighting, or device limitations.
+    missing from a sample, zeros are filled in.
     
     Returns None if hand landmarks cannot be normalized.
     """
@@ -1098,6 +1108,9 @@ def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
     hand_features = _normalize(sample.landmarks)
     if hand_features is None:
         return None
+    
+    # Prioritize hands by scaling their magnitude in the input vector
+    hand_features = hand_features * HAND_PRIORITY_FACTOR
     
     features = [hand_features]
     
@@ -1115,7 +1128,8 @@ def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
             shoulder_width = np.linalg.norm(pose_xyz[11] - pose_xyz[12])
             if shoulder_width > 0:
                 pose_normalized /= shoulder_width
-            features.append(pose_normalized.flatten())
+            # Apply Pose Priority Factor
+            features.append(pose_normalized.flatten() * POSE_PRIORITY_FACTOR)
         else:
             # Pose landmarks missing or incomplete - add zeros
             features.append(np.zeros(99, dtype=np.float32))
@@ -1123,34 +1137,25 @@ def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
         # No pose data - add zeros to maintain consistent feature size
         features.append(np.zeros(99, dtype=np.float32))
     
-    # Add face landmarks if present (use subset for efficiency)
+    # Add face landmarks if present (use full 468 mesh for maximum detail)
     if sample.face_landmarks:
         face_arr = np.array(sample.face_landmarks, dtype=np.float32)
         if face_arr.shape[0] >= 468:
-            # Key facial points for NMMs (eyes, mouth, brows)
-            key_indices = [
-                33, 133, 362, 263,  # eyes (4)
-                1,  # nose tip (1)
-                13, 14,  # lips (2)
-                61, 291,  # mouth corners (2)
-                70, 300,  # brows (2)
-                # Add more key points as needed
-            ]
-            face_subset = face_arr[key_indices, :3]  # x,y,z only
-            # Normalize to nose tip
+            # Center on nose tip (landmark 1)
             nose = face_arr[1, :3]
-            face_normalized = face_subset - nose
-            # Scale by eye distance
+            face_normalized = face_arr[:468, :3] - nose
+            # Scale by eye distance (indices 33 and 263)
             eye_dist = np.linalg.norm(face_arr[33, :3] - face_arr[263, :3])
             if eye_dist > 0:
                 face_normalized /= eye_dist
-            features.append(face_normalized.flatten())
+            # Apply Face Priority Factor
+            features.append(face_normalized.flatten() * FACE_PRIORITY_FACTOR)
         else:
             # Face landmarks missing or incomplete
-            features.append(np.zeros(33, dtype=np.float32))  # 11 points * 3
+            features.append(np.zeros(1404, dtype=np.float32))
     else:
         # No face data
-        features.append(np.zeros(33, dtype=np.float32))
+        features.append(np.zeros(1404, dtype=np.float32))
     
     return np.concatenate(features)
 
@@ -1256,7 +1261,7 @@ def augment_multimodal_landmarks(
     Parameters
     ----------
     normalized:
-        Flattened multimodal feature vector (126 hand + 99 pose + 33 face = 258 values).
+        Flattened multimodal feature vector (126 hand + 99 pose + 1404 face = 1629 values).
     rng:
         Optional random number generator for deterministic tests.
     jitter_std:
@@ -1270,8 +1275,8 @@ def augment_multimodal_landmarks(
         Augmented multimodal landmark tensor with the same shape as the input.
     """
     # Jitter scaling factors to preserve structure of different modalities
-    POSE_JITTER_SCALE = 0.5  # Reduced variance for pose to maintain body structure
-    FACE_JITTER_SCALE = 0.3  # Reduced variance for face to maintain facial structure
+    POSE_JITTER_SCALE = 0.2  # Further reduced variance for pose - children's signs focus on hands
+    FACE_JITTER_SCALE = 0.1  # Further reduced variance for face - minimal facial contribution in signing
     
     if rng is None:
         rng = np.random.default_rng()
@@ -1279,10 +1284,10 @@ def augment_multimodal_landmarks(
     features = np.asarray(normalized, dtype=np.float32)
     
     # Split into hand, pose, and face components
-    # Expected: 126 (hands) + 99 (pose) + 33 (face) = 258
+    # Expected: 126 (hands) + 99 (pose) + 1404 (face) = 1629
     hand_size = 126  # 42 points * 3 coords
     pose_size = 99   # 33 points * 3 coords
-    face_size = 33   # 11 points * 3 coords
+    face_size = 1404  # 468 points * 3 coords
     
     if len(features) != hand_size + pose_size + face_size:
         # If size doesn't match expected multimodal format, return as-is
@@ -1297,15 +1302,15 @@ def augment_multimodal_landmarks(
         max_rotation_degrees=max_rotation_degrees
     )
     
-    # Apply minimal jitter to pose (smaller variance to maintain body structure)
+    # Apply minimal jitter to pose
     pose_features = features[hand_size:hand_size + pose_size].reshape(33, 3)
     if np.any(pose_features):
         pose_jitter = rng.normal(0.0, jitter_std * POSE_JITTER_SCALE, size=pose_features.shape).astype(np.float32)
         pose_features = pose_features + pose_jitter
     augmented_pose = pose_features.flatten()
     
-    # Apply minimal jitter to face (smaller variance to maintain facial structure)
-    face_features = features[hand_size + pose_size:].reshape(11, 3)
+    # Apply minimal jitter to face (468 points)
+    face_features = features[hand_size + pose_size:].reshape(468, 3)
     if np.any(face_features):
         face_jitter = rng.normal(0.0, jitter_std * FACE_JITTER_SCALE, size=face_features.shape).astype(np.float32)
         face_features = face_features + face_jitter
@@ -1955,7 +1960,7 @@ def dataset_to_arrays(
 
     if not X_list:
         # Feature size depends on whether we have multimodal data
-        feature_size = 258 if has_multimodal else 126  # 126 hand + 99 pose + 33 face
+        feature_size = 1629 if has_multimodal else 126
         return (
             np.zeros((0, feature_size), dtype=np.float32),
             np.zeros((0,), dtype=np.int64),

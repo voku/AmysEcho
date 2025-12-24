@@ -393,9 +393,9 @@ export function installMlp() {
     try {
       if (!mlp) return null;
       
-      // Check if model expects multimodal input (258 features vs 126 hand-only)
+      // Check if model expects multimodal input (1629 features vs 126 hand-only)
       const [rows1, cols1Expected] = mlp.w1.shape;
-      const isMultimodal = cols1Expected === 258;
+      const isMultimodal = cols1Expected === 1629;
       
       let x: Float32Array;
       if (isMultimodal && (poseLandmarks || faceLandmarks)) {

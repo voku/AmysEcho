@@ -9,7 +9,11 @@ def test_normalize_one_hand() -> None:
     assert res is not None
     arr = res.reshape(42, 3)
     assert np.allclose(arr[0], [0, 0, 0])
-    assert np.allclose(arr[12], [0.5, 0, 0.5])
+    # [0.4-0.2, 0.3-0.3, 0.3-0.1] = [0.2, 0, 0.2]
+    # L1 max dist = 0.2+0+0.2 = 0.4
+    # [0.2/0.4, 0, 0.2/0.4] = [0.5, 0, 0.5]
+    # Scaled by 3.0 priority factor = [1.5, 0, 1.5]
+    assert np.allclose(arr[12], [1.5, 0, 1.5])
     assert np.allclose(arr[21:], 0)
 
 
@@ -31,8 +35,8 @@ def test_augment_preserves_center_and_scale_two_hands() -> None:
 
     np.testing.assert_allclose(arr[0], [0.0, 0.0, 0.0], atol=1e-6)
     np.testing.assert_allclose(arr[21], [0.0, 0.0, 0.0], atol=1e-6)
-    assert np.isclose(_max_l1(arr[:21]), 1.0, atol=1e-6)
-    assert np.isclose(_max_l1(arr[21:]), 1.0, atol=1e-6)
+    assert np.isclose(_max_l1(arr[:21]), 3.0, atol=1e-6)
+    assert np.isclose(_max_l1(arr[21:]), 3.0, atol=1e-6)
     assert not np.allclose(augmented, normalized)
 
 
@@ -46,7 +50,7 @@ def test_augment_keeps_missing_hand_zero() -> None:
     arr = augmented.reshape(42, 3)
 
     np.testing.assert_allclose(arr[0], [0.0, 0.0, 0.0], atol=1e-6)
-    assert np.isclose(_max_l1(arr[:21]), 1.0, atol=1e-6)
+    assert np.isclose(_max_l1(arr[:21]), 3.0, atol=1e-6)
     np.testing.assert_allclose(arr[21:], 0.0, atol=1e-6)
 
 

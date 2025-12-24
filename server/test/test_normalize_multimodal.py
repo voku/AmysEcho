@@ -23,12 +23,11 @@ def test_normalize_multimodal_hands_only(monkeypatch, tmp_path):
     result = module._normalize_multimodal(sample)
     
     assert result is not None
-    # Should be 126 (hands) + 99 (pose zeros) + 33 (face zeros) = 258
-    assert result.shape == (258,)
+    # Should be 126 (hands) + 99 (pose zeros) + 1404 (face zeros) = 1629
+    assert result.shape == (1629,)
     # First 126 should be normalized hands, rest zeros
     assert not np.allclose(result[:126], 0.0)  # Hands should have values
-    assert np.allclose(result[126:225], 0.0)  # Pose should be zeros
-    assert np.allclose(result[225:], 0.0)  # Face should be zeros
+    assert np.allclose(result[126:], 0.0)  # Pose and Face should be zeros
 
 
 def test_normalize_multimodal_all_modalities(monkeypatch, tmp_path):
@@ -51,7 +50,7 @@ def test_normalize_multimodal_all_modalities(monkeypatch, tmp_path):
     result = module._normalize_multimodal(sample)
     
     assert result is not None
-    assert result.shape == (258,)
+    assert result.shape == (1629,)
     # All sections should have non-zero values
     assert not np.allclose(result[:126], 0.0)  # Hands
     assert not np.allclose(result[126:225], 0.0)  # Pose
@@ -77,7 +76,7 @@ def test_normalize_multimodal_pose_only(monkeypatch, tmp_path):
     result = module._normalize_multimodal(sample)
     
     assert result is not None
-    assert result.shape == (258,)
+    assert result.shape == (1629,)
     assert not np.allclose(result[:126], 0.0)  # Hands
     assert not np.allclose(result[126:225], 0.0)  # Pose
     assert np.allclose(result[225:], 0.0)  # Face should be zeros
@@ -102,7 +101,7 @@ def test_normalize_multimodal_face_only(monkeypatch, tmp_path):
     result = module._normalize_multimodal(sample)
     
     assert result is not None
-    assert result.shape == (258,)
+    assert result.shape == (1629,)
     assert not np.allclose(result[:126], 0.0)  # Hands
     assert np.allclose(result[126:225], 0.0)  # Pose should be zeros
     assert not np.allclose(result[225:], 0.0)  # Face
@@ -128,7 +127,7 @@ def test_normalize_multimodal_all_zero_hand_landmarks(monkeypatch, tmp_path):
     
     # All zeros input produces all zeros output
     assert result is not None
-    assert result.shape == (258,)
+    assert result.shape == (1629,)
     assert np.allclose(result, 0.0)
 
 
@@ -152,7 +151,7 @@ def test_normalize_multimodal_incomplete_pose(monkeypatch, tmp_path):
     result = module._normalize_multimodal(sample)
     
     assert result is not None
-    assert result.shape == (258,)
+    assert result.shape == (1629,)
     assert not np.allclose(result[:126], 0.0)  # Hands
     assert np.allclose(result[126:225], 0.0)  # Incomplete pose -> zeros
     assert np.allclose(result[225:], 0.0)  # No face
@@ -178,7 +177,7 @@ def test_normalize_multimodal_incomplete_face(monkeypatch, tmp_path):
     result = module._normalize_multimodal(sample)
     
     assert result is not None
-    assert result.shape == (258,)
+    assert result.shape == (1629,)
     assert not np.allclose(result[:126], 0.0)  # Hands
     assert np.allclose(result[126:225], 0.0)  # No pose
     assert np.allclose(result[225:], 0.0)  # Incomplete face -> zeros
@@ -241,10 +240,10 @@ def test_normalize_multimodal_face_normalized_to_nose(monkeypatch, tmp_path):
     
     assert result is not None
     # Face section should be normalized (scaled by eye distance = 1.0)
-    face_section = result[225:].reshape(11, 3)
-    # Nose tip is at index 4 in key_indices list (5th element)
+    face_section = result[225:].reshape(468, 3)
+    # Nose tip is at index 1
     # After normalization to nose, it should be (0, 0, 0)
-    assert np.allclose(face_section[4], [0.0, 0.0, 0.0], atol=0.01)
+    assert np.allclose(face_section[1], [0.0, 0.0, 0.0], atol=0.01)
 
 
 def test_normalize_multimodal_zero_shoulder_width(monkeypatch, tmp_path):
@@ -298,4 +297,4 @@ def test_normalize_multimodal_zero_eye_distance(monkeypatch, tmp_path):
     assert result is not None
     # Should not crash, face section should exist
     face_section = result[225:]
-    assert face_section.shape == (33,)
+    assert face_section.shape == (1404,)

@@ -77,6 +77,12 @@ export function convertToPoints(landmarks: number[][]): Point[] {
   });
 }
 
+// Density-Balanced Priority factors (Hands > Pose > Face)
+// This prevents the 1404 face features from drowning out the 126 hand features.
+const HAND_PRIORITY_FACTOR = 3.0;
+const POSE_PRIORITY_FACTOR = 0.4;
+const FACE_PRIORITY_FACTOR = 0.1;
+
 /**
  * Get normalized landmark data ready for MLP classification.
  */
@@ -102,18 +108,33 @@ export function prepareMultimodalForMLP(
   // Normalize hands (required) - 126 features (2 hands × 21 points × 3 coords)
   const handFeatures = prepareHandsForMLP(hands);
   
+  // Apply Hand Priority Factor
+  for (let i = 0; i < handFeatures.length; i++) {
+    handFeatures[i] *= HAND_PRIORITY_FACTOR;
+  }
+  
   // Normalize pose if available - 99 features (33 points × 3 coords, drop visibility)
   const poseFeatures = pose && pose.length >= 33 
     ? normalizePoseForMLP(pose)
     : new Float32Array(99).fill(0);
+    
+  // Apply Pose Priority Factor
+  for (let i = 0; i < poseFeatures.length; i++) {
+    poseFeatures[i] *= POSE_PRIORITY_FACTOR;
+  }
   
-  // Normalize face if available - 33 features (11 key points × 3 coords)
+  // Normalize face if available - 1404 features (468 points × 3 coords)
   const faceFeatures = face && face.length >= 468
-    ? normalizeFaceForMLP(face)
-    : new Float32Array(33).fill(0);
+    ? normalizeFaceFullForMLP(face)
+    : new Float32Array(1404).fill(0);
+    
+  // Apply Face Priority Factor
+  for (let i = 0; i < faceFeatures.length; i++) {
+    faceFeatures[i] *= FACE_PRIORITY_FACTOR;
+  }
   
-  // Concatenate all features: 126 + 99 + 33 = 258 total
-  const result = new Float32Array(258);
+  // Concatenate all features: 126 + 99 + 1404 = 1629 total
+  const result = new Float32Array(1629);
   result.set(handFeatures, 0);
   result.set(poseFeatures, 126);
   result.set(faceFeatures, 225);
@@ -210,29 +231,21 @@ function normalizePoseForMLP(pose: number[][]): Float32Array {
 }
 
 /**
- * Normalize face landmarks for MLP input.
- * Uses key facial points and normalizes to nose tip, scaled by eye distance.
+ * Normalize ALL 468 face landmarks for MLP input.
+ * Normalizes to nose tip, scaled by eye distance.
  */
-function normalizeFaceForMLP(face: number[][]): Float32Array {
-  const result = new Float32Array(33);
+function normalizeFaceFullForMLP(face: number[][]): Float32Array {
+  const result = new Float32Array(1404);
   
   if (!face || face.length < 468) {
     return result;
   }
   
-  // Key facial points for NMMs (matching server-side)
-  const keyIndices = [
-    33, 133, 362, 263,  // eyes (4)
-    1,  // nose tip (1)
-    13, 14,  // lips (2)
-    61, 291,  // mouth corners (2)
-    70, 300,  // brows (2)
-  ];
-  
+  // Center on Nose Tip (landmark 1)
   const noseTipPoint = face[1];
   const noseTip: [number, number, number] = noseTipPoint ? [noseTipPoint[0] ?? 0, noseTipPoint[1] ?? 0, noseTipPoint[2] ?? 0] : [0, 0, 0];
   
-  // Calculate eye distance for scaling
+  // Calculate eye distance for scaling (indices 33 and 263)
   const leftEyePoint = face[33];
   const rightEyePoint = face[263];
   const leftEye: [number, number, number] = leftEyePoint ? [leftEyePoint[0] ?? 0, leftEyePoint[1] ?? 0, leftEyePoint[2] ?? 0] : [0, 0, 0];
@@ -244,10 +257,10 @@ function normalizeFaceForMLP(face: number[][]): Float32Array {
   );
   const scale = eyeDist > 0 ? eyeDist : 1;
   
-  // Normalize key points
+  // Normalize all 468 points
   let k = 0;
-  for (const idx of keyIndices) {
-    const point = face[idx] ?? [0, 0, 0];
+  for (let i = 0; i < 468; i++) {
+    const point = face[i] ?? [0, 0, 0];
     result[k++] = ((point[0] ?? 0) - noseTip[0]) / scale;
     result[k++] = ((point[1] ?? 0) - noseTip[1]) / scale;
     result[k++] = ((point[2] ?? 0) - noseTip[2]) / scale;
