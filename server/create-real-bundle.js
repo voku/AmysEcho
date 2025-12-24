@@ -1,5 +1,5 @@
 import AdmZip from 'adm-zip';
-import { writeFileSync, mkdirSync } from 'fs';
+import { mkdirSync } from 'fs';
 import { join } from 'path';
 
 // Create output directory if it doesn't exist
