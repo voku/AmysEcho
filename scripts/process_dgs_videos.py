@@ -136,30 +136,59 @@ class DGSVideoProcessor:
         return full_vector
 
     def process_video(self, video_path: str, gesture_name: str, max_frames: int, frame_skip: int) -> List[Dict[str, Any]]:
-        print(f"Processing {os.path.basename(video_path)}...")
+        video_name = os.path.basename(video_path)
+        print(f"Processing {video_name} (gesture: {gesture_name})...")
+        
         cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"Error: Cannot open video file {video_path}")
+            return []
+            
+        # Get video info
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        print(f"  Video info: {total_frames} total frames, {fps:.2f} FPS")
+        
         samples = []
         frame_count = 0
+        processed_frames = 0
+        successful_extractions = 0
         
         while frame_count < max_frames:
             ret, frame = cap.read()
-            if not ret: break
+            if not ret: 
+                print(f"  Reached end of video at frame {frame_count}")
+                break
+                
             frame_count += 1
             if frame_count % frame_skip != 0: continue
             
+            processed_frames += 1
             landmarks = self.extract_frame(frame)
             if landmarks:
+                successful_extractions += 1
                 samples.append({
                     "label": gesture_name,
                     "landmarks": landmarks,
                     "frame_number": frame_count,
-                    "video_source": os.path.basename(video_path)
+                    "video_source": video_name
                 })
         
         cap.release()
+        
+        print(f"  Completed: {successful_extractions}/{processed_frames} frames successfully processed")
         return samples
 
     def process_directory(self, videos_dir: str, max_frames: int, frame_skip: int) -> List[Dict[str, Any]]:
+        # Validate directory exists first
+        if not os.path.exists(videos_dir):
+            print(f"Error: Videos directory {videos_dir} does not exist")
+            return []
+        
+        if not os.path.isdir(videos_dir):
+            print(f"Error: {videos_dir} is not a directory")
+            return []
+
         all_samples = []
         # Basic mapping - in production use a DB or manifest
         video_gesture_map = {
@@ -169,15 +198,34 @@ class DGSVideoProcessor:
             'schwester.mp4': 'schwester', 'nochmal.mp4': 'nochmal', 'fertig.mp4': 'fertig'
         }
         
-        files = [f for f in os.listdir(videos_dir) if f.endswith('.mp4')]
+        try:
+            files = [f for f in os.listdir(videos_dir) if f.endswith('.mp4')]
+            if not files:
+                print(f"Warning: No MP4 files found in {videos_dir}")
+                return []
+        except OSError as e:
+            print(f"Error: Cannot read directory {videos_dir}: {e}")
+            return []
+        
+        successful_frames = 0
+        total_frames = 0
+        
         for f in files:
             label = video_gesture_map.get(f)
             if label:
                 path = os.path.join(videos_dir, f)
-                all_samples.extend(self.process_video(path, label, max_frames, frame_skip))
+                if not os.path.exists(path):
+                    print(f"Warning: Video file {path} does not exist, skipping")
+                    continue
+                    
+                video_samples = self.process_video(path, label, max_frames, frame_skip)
+                all_samples.extend(video_samples)
+                successful_frames += len(video_samples)
+                total_frames += max_frames // frame_skip
             else:
                 print(f"Skipping {f} (unknown label)")
                 
+        print(f"Processed {len(files)} videos, extracted {successful_frames} landmark frames")
         return all_samples
 
 def save_output(samples: List[Dict[str, Any]], output_path: str, split_output: bool, videos_dir: str):
@@ -204,23 +252,46 @@ def save_output(samples: List[Dict[str, Any]], output_path: str, split_output: b
             print(f"Updated {out_file}")
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--videos-dir', required=True)
-    parser.add_argument('--output')
-    parser.add_argument('--split-output', action='store_true')
-    parser.add_argument('--models-dir', default='server/data/models')
-    parser.add_argument('--max-frames', type=int, default=300)
-    parser.add_argument('--frame-skip', type=int, default=2)
+    parser = argparse.ArgumentParser(description="Process DGS videos to extract multimodal landmarks for training")
+    parser.add_argument('--videos-dir', required=True, help='Directory containing DGS video files')
+    parser.add_argument('--output', help='Output JSON file for bulk data')
+    parser.add_argument('--split-output', action='store_true', help='Save individual landmark files per video')
+    parser.add_argument('--models-dir', default='server/data/models', help='Directory containing MediaPipe model files')
+    parser.add_argument('--max-frames', type=int, default=300, help='Maximum frames to process per video')
+    parser.add_argument('--frame-skip', type=int, default=2, help='Number of frames to skip between processing')
+    parser.add_argument('--confidence', type=float, default=0.5, help='Detection confidence threshold')
     args = parser.parse_args()
 
-    processor = DGSVideoProcessor(args.models_dir)
-    samples = processor.process_directory(args.videos_dir, args.max_frames, args.frame_skip)
-    
-    if samples:
-        save_output(samples, args.output, args.split_output, args.videos_dir)
-        print(f"Done. Processed {len(samples)} frames.")
-    else:
-        print("No samples found.")
+    print("Starting DGS Video Processing...")
+    print(f"Videos directory: {args.videos_dir}")
+    print(f"Output file: {args.output}")
+    print(f"Models directory: {args.models_dir}")
+    print(f"Max frames: {args.max_frames}, Frame skip: {args.frame_skip}")
+    print(f"Confidence threshold: {args.confidence}")
+
+    try:
+        # Validate models directory first
+        if not os.path.exists(args.models_dir):
+            raise FileNotFoundError(f"Models directory does not exist: {args.models_dir}")
+        
+        processor = DGSVideoProcessor(args.models_dir, args.confidence)
+        samples = processor.process_directory(args.videos_dir, args.max_frames, args.frame_skip)
+
+        if samples:
+            save_output(samples, args.output, args.split_output, args.videos_dir)
+            print(f"\nSuccess! Processed {len(samples)} landmark samples from videos.")
+        else:
+            print("Error: No samples were extracted from the videos.")
+            sys.exit(1)
+            
+    except FileNotFoundError as e:
+        print(f"Fatal Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Fatal Error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
