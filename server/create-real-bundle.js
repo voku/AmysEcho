@@ -1,5 +1,4 @@
 import AdmZip from 'adm-zip';
-import fs from 'fs';
 
 const metadata = {
   label: "REAL_TEST_GESTURE",

@@ -394,14 +394,14 @@ async function validateLandmarksFile(
   let raw: string;
   try {
     raw = await fs.readFile(targetPath, 'utf8');
-  } catch (error) {
+  } catch {
     throw new Error('landmarks.json could not be read');
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
-  } catch (error) {
+  } catch {
     throw new Error('landmarks.json must be valid JSON');
   }
 
