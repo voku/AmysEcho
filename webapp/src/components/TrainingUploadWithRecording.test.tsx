@@ -15,6 +15,9 @@ const syncBundleMock = vi.fn();
 const removeBundleMock = vi.fn();
 const fetchMock = vi.fn();
 
+let mockTrainingJob: any = null;
+let mockTrainingJobError: string | null = null;
+
 vi.mock('../hooks/useTrainingUploader', () => ({
   useTrainingUploader: () => ({
     upload: uploadMock,
@@ -29,8 +32,8 @@ vi.mock('../hooks/useTrainingUploader', () => ({
     syncing: false,
     syncError: null,
     lastQueuedKey: null,
-    trainingJob: null,
-    trainingJobError: null,
+    trainingJob: mockTrainingJob,
+    trainingJobError: mockTrainingJobError,
   }),
 }));
 
@@ -138,5 +141,83 @@ describe('TrainingUploadWithRecording', () => {
     if (!payload) return;
     expect(payload.profileId).toBe('profil-1');
     expect(payload.label).toBe('NEUES-LABEL');
+  }, TEST_TIMEOUT);
+
+  it('zeigt Erfolgsmeldung nach erfolgreichem Upload an', async () => {
+    const user = userEvent.setup();
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
+    renderWithProviders();
+
+    // Wait for async profile loading
+    await waitFor(() => {
+      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+      expect(profileInput.value).toBe('profil-1');
+    });
+
+    const labelInput = screen.getByLabelText('Gebärden-Name');
+    await user.clear(labelInput);
+    await user.type(labelInput, 'HALLO');
+
+    uploadMock.mockResolvedValue({ id: 'bundle-123', status: 'accepted' });
+
+    await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Upload abgeschlossen\. Vielen Dank für die neue Gebärde!/i)).toBeInTheDocument();
+    });
+  }, TEST_TIMEOUT);
+
+  it('zeigt Fehlermeldung nach fehlgeschlagenem Upload an', async () => {
+    const user = userEvent.setup();
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
+    renderWithProviders();
+
+    // Wait for async profile loading
+    await waitFor(() => {
+      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+      expect(profileInput.value).toBe('profil-1');
+    });
+
+    const labelInput = screen.getByLabelText('Gebärden-Name');
+    await user.clear(labelInput);
+    await user.type(labelInput, 'FEHLER');
+
+    uploadMock.mockRejectedValue(new Error('Netzwerkfehler'));
+
+    await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Upload fehlgeschlagen: Netzwerkfehler/i)).toBeInTheDocument();
+    });
+  }, TEST_TIMEOUT);
+
+  it('zeigt Trainings-Fehlermeldung sauber an', async () => {
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
+    // Set mock state using the reactive variables defined at top level
+    mockTrainingJob = {
+      jobId: 'job-123',
+      status: 'failed',
+      error: 'Skript-Fehler in train_mlp.py',
+      message: 'Training abgebrochen wegen fehlender Daten',
+      progress: 0,
+    };
+    mockTrainingJobError = 'Skript-Fehler in train_mlp.py';
+
+    renderWithProviders();
+
+    // Should show the specific job message or error, but not multiple redundant fallbacks
+    expect(screen.getByText(/Training abgebrochen wegen fehlender Daten/i)).toBeInTheDocument();
+    
+    // It should NOT show the generic fallback since message is present
+    expect(screen.queryByText(/Training fehlgeschlagen\. Bitte prüfe die Logs oder versuche es erneut\./i)).not.toBeInTheDocument();
   }, TEST_TIMEOUT);
 });

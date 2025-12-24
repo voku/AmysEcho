@@ -91,15 +91,18 @@ function TrainingStatusBlock({
           <p className="eyebrow">Trainingsstatus</p>
           <p className="value">{trainingJobLabel[activeTrainingJob.status]}</p>
           <p className="muted small">
-            {activeTrainingJob.message
-              ? activeTrainingJob.message
-              : activeTrainingJob.status === 'queued'
-              ? 'Dein Paket wartet auf den nächsten freien Trainingsplatz.'
-              : activeTrainingJob.status === 'running'
-              ? 'Das Modell wird gerade mit deinen Beispielen aktualisiert.'
-              : activeTrainingJob.status === 'completed'
-              ? 'Training abgeschlossen. Das neue Modell wird bereitgestellt.'
-              : 'Training fehlgeschlagen. Bitte versuche es erneut.'}
+            {(() => {
+              if (activeTrainingJob.message) return activeTrainingJob.message;
+              if (activeTrainingJob.status === 'failed' && activeTrainingJob.error) return activeTrainingJob.error;
+              
+              switch (activeTrainingJob.status) {
+                case 'queued': return 'Dein Paket wartet auf den nächsten freien Trainingsplatz.';
+                case 'running': return 'Das Modell wird gerade mit deinen Beispielen aktualisiert.';
+                case 'completed': return 'Training abgeschlossen. Das neue Modell wird bereitgestellt.';
+                case 'failed': return 'Training fehlgeschlagen. Bitte prüfe die Logs oder versuche es erneut.';
+                default: return '';
+              }
+            })()}
           </p>
           {formatPercent(activeTrainingJob.progress) && (
             <p className="muted small">Fortschritt: {formatPercent(activeTrainingJob.progress)}</p>
@@ -121,9 +124,6 @@ function TrainingStatusBlock({
             if (ended) parts.push(`Beendet: ${ended}`);
             return <p className="muted small">{parts.join(' · ')}</p>;
           })()}
-          {activeTrainingJob.error && activeTrainingJob.status === 'failed' && (
-            <p className="muted small">Fehler beim Training. Bitte prüfe die Logs oder versuche es erneut.</p>
-          )}
           <p className="muted small">Wir holen den Status automatisch vom Server. Job-ID: {activeTrainingJob.jobId}</p>
         </div>
       )}
@@ -287,6 +287,7 @@ export function TrainingUploadWithRecording() {
         setMessage(metadataError);
         return;
       }
+      // Clear previous validation error if any
       setMessage('Aufnahme wird hochgeladen…');
       try {
         const result = await upload(payload);

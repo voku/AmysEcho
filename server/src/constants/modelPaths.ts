@@ -43,7 +43,7 @@ export const DATA_DIR = explicitDataDir
   : path.join(SERVER_DIR, 'data');
 
 export const PROFILE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
-function getProfiledPath(basePath: string, profileId?: string): string {
+function _getProfiledPath(basePath: string, profileId?: string): string {
   if (profileId) {
     if (!PROFILE_ID_PATTERN.test(profileId)) {
       throw new Error('Invalid profileId');

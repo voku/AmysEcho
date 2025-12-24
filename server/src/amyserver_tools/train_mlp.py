@@ -38,9 +38,17 @@ LOGGER.propagate = False
 try:  # Optional heavy dependencies – we degrade gracefully when absent
     import cv2  # type: ignore
     import mediapipe as mp  # type: ignore
+    try:
+        from mediapipe.tasks import python as mp_tasks
+        from mediapipe.tasks.python import vision as mp_vision
+    except (ImportError, AttributeError):
+        mp_tasks = None
+        mp_vision = None
 except Exception:  # pragma: no cover - mediapipe not always available in CI
     cv2 = None
     mp = None
+    mp_tasks = None
+    mp_vision = None
 
 
 class DependencyUnavailableError(RuntimeError):
@@ -676,8 +684,7 @@ def _summarize_recording_stats(samples: List[Sample]) -> Dict[str, object]:
 
 
 def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
-    """Run MediaPipe Holistic on a clip and return multimodal frame landmark dictionaries."""
-
+    """Run MediaPipe on a clip and return landmark dictionaries."""
     _require_hand_landmark_dependencies(f"Videoclip {clip_path}")
     if cv2 is None or mp is None:
         return []
@@ -688,103 +695,159 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
         print(f"warning: unable to open clip {clip_path}", file=sys.stderr)
         return frames
 
-    # Use Holistic for multimodal capture (hands + pose + face)
-    try:
-        holistic_solution = mp.solutions.holistic.Holistic(
-            static_image_mode=False,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.3,
-        )
-    except Exception:
-        # Fallback to hands-only if Holistic is not available
-        holistic_solution = None
+    # 1. Try modern Tasks API (highly robust for new MP versions)
+    if mp_tasks and mp_vision:
+        model_path = Path(__file__).resolve().parents[2] / "data" / "models" / "hand_landmarker.task"
+        if not model_path.exists():
+            model_path = Path("server/data/models/hand_landmarker.task")
+        
+        if model_path.exists():
+            try:
+                base_options = mp_tasks.BaseOptions(model_asset_path=str(model_path))
+                options = mp_vision.HandLandmarkerOptions(
+                    base_options=base_options, 
+                    num_hands=2,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
+                with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
+                    index = 0
+                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
+                        success, frame = cap.read()
+                        if not success:
+                            break
+                        if index % FRAME_STRIDE != 0:
+                            index += 1
+                            continue
+
+                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                        result = landmarker.detect(mp_image)
+
+                        left = np.zeros((21, 3), dtype=np.float32)
+                        right = np.zeros((21, 3), dtype=np.float32)
+
+                        if result.hand_landmarks:
+                            for i, hand_lms in enumerate(result.hand_landmarks):
+                                coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
+                                # Handedness is inverted in some MP versions relative to camera
+                                category = result.handedness[i][0].category_name
+                                if category == "Left":
+                                    left[:] = coords
+                                else:
+                                    right[:] = coords
+
+                        combined = np.vstack([left, right])
+                        frames.append({"landmarks": combined.tolist()})
+                        index += 1
+                return frames
+            except Exception as e:
+                print(f"warning: Hands-only Tasks API failed: {e}", file=sys.stderr)
+
+    # 2. Try multimodal Tasks API fallback
+    if mp_tasks and mp_vision:
+        models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
+        if not models_dir.exists():
+            models_dir = Path("server/data/models")
+        
+        hand_model = models_dir / "hand_landmarker.task"
+        pose_model = models_dir / "pose_landmarker.task"
+        face_model = models_dir / "face_landmarker.task"
+        
+        if hand_model.exists() and pose_model.exists() and face_model.exists():
+            try:
+                # Initialize all landmarkers
+                hand_base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
+                hand_options = mp_vision.HandLandmarkerOptions(
+                    base_options=hand_base_options, 
+                    num_hands=2,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
+                
+                pose_base_options = mp_tasks.BaseOptions(model_asset_path=str(pose_model))
+                pose_options = mp_vision.PoseLandmarkerOptions(
+                    base_options=pose_base_options,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
+                
+                face_base_options = mp_tasks.BaseOptions(model_asset_path=str(face_model))
+                face_options = mp_vision.FaceLandmarkerOptions(
+                    base_options=face_base_options,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
+                
+                with mp_vision.HandLandmarker.create_from_options(hand_options) as hand_landmarker, \
+                     mp_vision.PoseLandmarker.create_from_options(pose_options) as pose_landmarker, \
+                     mp_vision.FaceLandmarker.create_from_options(face_options) as face_landmarker:
+                    
+                    index = 0
+                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
+                        success, frame = cap.read()
+                        if not success:
+                            break
+                        if index % FRAME_STRIDE != 0:
+                            index += 1
+                            continue
+
+                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                        
+                        # Extract all landmarks
+                        hand_result = hand_landmarker.detect(mp_image)
+                        pose_result = pose_landmarker.detect(mp_image)
+                        face_result = face_landmarker.detect(mp_image)
+
+                        left = np.zeros((21, 3), dtype=np.float32)
+                        right = np.zeros((21, 3), dtype=np.float32)
+                        pose_landmarks = []
+                        face_landmarks = []
+
+                        # Process hand landmarks
+                        if hand_result.hand_landmarks:
+                            for i, hand_lms in enumerate(hand_result.hand_landmarks):
+                                coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
+                                category = hand_result.handedness[i][0].category_name
+                                if category == "Left":
+                                    left[:] = coords
+                                else:
+                                    right[:] = coords
+
+                        # Process pose landmarks
+                        if pose_result.pose_landmarks:
+                            pose_landmarks = [
+                                [lm.x, lm.y, lm.z, lm.visibility] 
+                                for lm in pose_result.pose_landmarks[0]
+                            ]
+                        
+                        # Process face landmarks
+                        if face_result.face_landmarks:
+                            face_landmarks = [
+                                [lm.x, lm.y, lm.z] 
+                                for lm in face_result.face_landmarks[0]
+                            ]
+
+                        combined = np.vstack([left, right])
+                        frame_data = {"landmarks": combined.tolist()}
+                        
+                        # Add multimodal data if available
+                        if pose_landmarks:
+                            frame_data["poseLandmarks"] = pose_landmarks
+                        if face_landmarks:
+                            frame_data["faceLandmarks"] = face_landmarks
+                            
+                        frames.append(frame_data)
+                        index += 1
+                return frames
+            except Exception as e:
+                print(f"warning: Multimodal Tasks API failed: {e}", file=sys.stderr)
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Reset video
     
-    with (holistic_solution if holistic_solution else mp.solutions.hands.Hands(
-        static_image_mode=False,
-        max_num_hands=2,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.3,
-    )) as detector:
-        index = 0
-        while cap.isOpened():
-            success, frame = cap.read()
-            if not success:
-                break
-            if index % FRAME_STRIDE != 0:
-                index += 1
-                continue
+    # Legacy solutions not available in current MediaPipe version
 
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            result = detector.process(rgb)
-
-            left = np.zeros((21, 3), dtype=np.float32)
-            right = np.zeros((21, 3), dtype=np.float32)
-            pose_landmarks = []
-            face_landmarks = []
-
-            # Extract hand landmarks
-            if holistic_solution:
-                # Holistic provides left_hand_landmarks and right_hand_landmarks
-                if result.left_hand_landmarks:
-                    left = np.array(
-                        [[lm.x, lm.y, lm.z] for lm in result.left_hand_landmarks.landmark],
-                        dtype=np.float32,
-                    )
-                if result.right_hand_landmarks:
-                    right = np.array(
-                        [[lm.x, lm.y, lm.z] for lm in result.right_hand_landmarks.landmark],
-                        dtype=np.float32,
-                    )
-                
-                # Extract pose landmarks
-                if result.pose_landmarks:
-                    pose_landmarks = [
-                        [lm.x, lm.y, lm.z, lm.visibility] for lm in result.pose_landmarks.landmark
-                    ]
-                
-                # Extract face landmarks
-                if result.face_landmarks:
-                    face_landmarks = [
-                        [lm.x, lm.y, lm.z] for lm in result.face_landmarks.landmark
-                    ]
-            else:
-                # Hands-only fallback
-                if result.multi_hand_landmarks:
-                    for hand_idx, hand_landmarks in enumerate(result.multi_hand_landmarks):
-                        coords = np.array(
-                            [[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark],
-                            dtype=np.float32,
-                        )
-                        label = None
-                        if result.multi_handedness and len(result.multi_handedness) > hand_idx:
-                            label = result.multi_handedness[hand_idx].classification[0].label
-                        target = left if label and label.lower().startswith("left") else right
-                        target[:] = coords
-                        # if both hands are present but unlabeled, alternate
-                        if label is None and hand_idx == 0:
-                            left[:] = coords
-                        elif label is None:
-                            right[:] = coords
-
-            combined = np.vstack([left, right])
-            frame_data = {"landmarks": combined.tolist()}
-            
-            if pose_landmarks:
-                frame_data["poseLandmarks"] = pose_landmarks
-            if face_landmarks:
-                frame_data["faceLandmarks"] = face_landmarks
-                
-            frames.append(frame_data)
-            index += 1
-            if len(frames) >= MAX_FRAMES_PER_CLIP:
-                break
-
-    cap.release()
     return frames
 
 
 def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
-    """Run MediaPipe Holistic on a still image and return multimodal landmark frame."""
+    """Run MediaPipe Tasks API on a still image and return multimodal landmark frame."""
 
     _require_hand_landmark_dependencies(f"Standbild {still_path}")
     if cv2 is None or mp is None:
@@ -797,80 +860,127 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
 
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
-    # Try Holistic first for multimodal capture
-    try:
-        with mp.solutions.holistic.Holistic(
-            static_image_mode=True,
-            min_detection_confidence=0.5,
-        ) as holistic:
-            result = holistic.process(rgb)
-            
-        left = np.zeros((21, 3), dtype=np.float32)
-        right = np.zeros((21, 3), dtype=np.float32)
-        pose_landmarks = []
-        face_landmarks = []
+    # Try Tasks API for multimodal capture
+    if mp_tasks and mp_vision:
+        models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
+        if not models_dir.exists():
+            models_dir = Path("server/data/models")
         
-        if result.left_hand_landmarks:
-            left = np.array(
-                [[lm.x, lm.y, lm.z] for lm in result.left_hand_landmarks.landmark],
-                dtype=np.float32,
-            )
-        if result.right_hand_landmarks:
-            right = np.array(
-                [[lm.x, lm.y, lm.z] for lm in result.right_hand_landmarks.landmark],
-                dtype=np.float32,
-            )
+        hand_model = models_dir / "hand_landmarker.task"
+        pose_model = models_dir / "pose_landmarker.task"
+        face_model = models_dir / "face_landmarker.task"
         
-        if result.pose_landmarks:
-            pose_landmarks = [
-                [lm.x, lm.y, lm.z, lm.visibility] for lm in result.pose_landmarks.landmark
-            ]
-        
-        if result.face_landmarks:
-            face_landmarks = [
-                [lm.x, lm.y, lm.z] for lm in result.face_landmarks.landmark
-            ]
-    except Exception:
-        # Fallback to hands-only
-        with mp.solutions.hands.Hands(
-            static_image_mode=True,
-            max_num_hands=2,
-            min_detection_confidence=0.5,
-        ) as hands:
-            result = hands.process(rgb)
-        
-        left = np.zeros((21, 3), dtype=np.float32)
-        right = np.zeros((21, 3), dtype=np.float32)
-        pose_landmarks = []
-        face_landmarks = []
-        
-        if result.multi_hand_landmarks:
-            for hand_idx, hand_landmarks in enumerate(result.multi_hand_landmarks):
-                coords = np.array(
-                    [[lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark],
-                    dtype=np.float32,
+        # Try full multimodal if all models available
+        if hand_model.exists() and pose_model.exists() and face_model.exists():
+            try:
+                # Initialize all landmarkers
+                hand_base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
+                hand_options = mp_vision.HandLandmarkerOptions(
+                    base_options=hand_base_options, 
+                    num_hands=2,
+                    running_mode=mp_vision.RunningMode.IMAGE
                 )
-                label = None
-                if result.multi_handedness and len(result.multi_handedness) > hand_idx:
-                    label = result.multi_handedness[hand_idx].classification[0].label
-                target = left if label and label.lower().startswith("left") else right
-                target[:] = coords
-                if label is None and hand_idx == 0:
-                    left[:] = coords
-                elif label is None:
-                    right[:] = coords
+                
+                pose_base_options = mp_tasks.BaseOptions(model_asset_path=str(pose_model))
+                pose_options = mp_vision.PoseLandmarkerOptions(
+                    base_options=pose_base_options,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
+                
+                face_base_options = mp_tasks.BaseOptions(model_asset_path=str(face_model))
+                face_options = mp_vision.FaceLandmarkerOptions(
+                    base_options=face_base_options,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
+                
+                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                
+                with mp_vision.HandLandmarker.create_from_options(hand_options) as hand_landmarker, \
+                     mp_vision.PoseLandmarker.create_from_options(pose_options) as pose_landmarker, \
+                     mp_vision.FaceLandmarker.create_from_options(face_options) as face_landmarker:
+                    
+                    # Extract all landmarks
+                    hand_result = hand_landmarker.detect(mp_image)
+                    pose_result = pose_landmarker.detect(mp_image)
+                    face_result = face_landmarker.detect(mp_image)
 
-    combined = np.vstack([left, right])
-    if not np.any(combined):
-        return None
+                    left = np.zeros((21, 3), dtype=np.float32)
+                    right = np.zeros((21, 3), dtype=np.float32)
+                    pose_landmarks = []
+                    face_landmarks = []
 
-    frame_data = {"landmarks": combined.tolist()}
-    if pose_landmarks:
-        frame_data["poseLandmarks"] = pose_landmarks
-    if face_landmarks:
-        frame_data["faceLandmarks"] = face_landmarks
+                    # Process hand landmarks
+                    if hand_result.hand_landmarks:
+                        for i, hand_lms in enumerate(hand_result.hand_landmarks):
+                            coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
+                            category = hand_result.handedness[i][0].category_name
+                            if category == "Left":
+                                left[:] = coords
+                            else:
+                                right[:] = coords
+
+                    # Process pose landmarks
+                    if pose_result.pose_landmarks:
+                        pose_landmarks = [
+                            [lm.x, lm.y, lm.z, lm.visibility] 
+                            for lm in pose_result.pose_landmarks[0]
+                        ]
+                    
+                    # Process face landmarks
+                    if face_result.face_landmarks:
+                        face_landmarks = [
+                            [lm.x, lm.y, lm.z] 
+                            for lm in face_result.face_landmarks[0]
+                        ]
+                    
+                    combined = np.vstack([left, right])
+                    frame_data = {"landmarks": combined.tolist()}
+                    
+                    # Add multimodal data if available
+                    if pose_landmarks:
+                        frame_data["poseLandmarks"] = pose_landmarks
+                    if face_landmarks:
+                        frame_data["faceLandmarks"] = face_landmarks
+                        
+                    return frame_data
+            except Exception as e:
+                print(f"warning: Multimodal Tasks API failed for still image: {e}", file=sys.stderr)
+        
+        # Fallback to hands-only Tasks API
+        if hand_model.exists():
+            try:
+                base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
+                options = mp_vision.HandLandmarkerOptions(
+                    base_options=base_options, 
+                    num_hands=2,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
+                
+                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                
+                with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
+                    result = landmarker.detect(mp_image)
+ 
+                    left = np.zeros((21, 3), dtype=np.float32)
+                    right = np.zeros((21, 3), dtype=np.float32)
+ 
+                    if result.hand_landmarks:
+                        for i, hand_lms in enumerate(result.hand_landmarks):
+                            coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
+                            category = result.handedness[i][0].category_name
+                            if category == "Left":
+                                left[:] = coords
+                            else:
+                                right[:] = coords
+ 
+                    combined = np.vstack([left, right])
+                    return {"landmarks": combined.tolist()}
+            except Exception as e:
+                print(f"warning: Hands-only Tasks API failed for still image: {e}", file=sys.stderr)
     
-    return frame_data
+    # Fallback if Tasks API fails or unavailable
+    print(f"warning: Unable to extract landmarks from {still_path}", file=sys.stderr)
+    return None
 
 
 def filter_samples_by_profile(samples: Iterable[Sample], profile_id: str) -> List[Sample]:
@@ -1687,6 +1797,45 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             timing_stats=timing_stats,
             modality_coverage=modality_coverage,
         ))
+
+    # 2. Process default video examples (global)
+    video_examples_dir = DATA_DIR / "dgs_video_examples"
+    if video_examples_dir.exists():
+        for video_file in video_examples_dir.glob("*.mp4"):
+            label = video_file.stem
+            # Cache landmarks next to the video file
+            video_cache_path = video_examples_dir / f"{label}_landmarks.json"
+            
+            v_frames: Optional[List[dict]] = None
+            if video_cache_path.exists():
+                v_cached = load_json(video_cache_path)
+                if v_cached and isinstance(v_cached.get("frames"), list):
+                    v_frames = v_cached["frames"]
+                    cache_hits += 1
+            
+            if not v_frames:
+                LOGGER.info(f"Extracting landmarks from default example: {video_file.name}")
+                v_frames = extract_landmarks_from_clip(video_file)
+                if v_frames:
+                    cache_writes += 1
+                    try:
+                        with video_cache_path.open("w", encoding="utf-8") as handle:
+                            json.dump({"frames": v_frames}, handle, indent=2)
+                    except Exception as e:
+                        LOGGER.warning(f"Failed to cache landmarks for {video_file.name}: {e}")
+                else:
+                    cache_misses += 1
+            
+            if v_frames:
+                v_averaged = flatten_landmarks_mean(v_frames)
+                if v_averaged:
+                    data.append(Sample(
+                        label=label,
+                        profile_id=None, # Global
+                        landmarks=v_averaged['landmarks'],
+                        pose_landmarks=v_averaged.get('poseLandmarks'),
+                        face_landmarks=v_averaged.get('faceLandmarks')
+                    ))
 
     stats = {
         "entries": len(entries),
