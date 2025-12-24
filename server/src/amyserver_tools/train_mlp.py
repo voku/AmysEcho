@@ -704,10 +704,14 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
         if model_path.exists():
             try:
                 base_options = mp_tasks.BaseOptions(model_asset_path=str(model_path))
-                options = mp_vision.HandLandmarkerOptions(base_options=base_options, num_hands=2)
+                options = mp_vision.HandLandmarkerOptions(
+                    base_options=base_options, 
+                    num_hands=2,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
                 with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
                     index = 0
-                    while cap.isOpened():
+                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
                         success, frame = cap.read()
                         if not success:
                             break
@@ -737,8 +741,7 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
                         index += 1
                 return frames
             except Exception as e:
-                print(f"warning: Tasks API failed, trying legacy solutions: {e}", file=sys.stderr)
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Reset video
+                print(f"warning: Hands-only Tasks API failed: {e}", file=sys.stderr)
 
     # 2. Try multimodal Tasks API fallback
     if mp_tasks and mp_vision:
@@ -947,16 +950,20 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
         if hand_model.exists():
             try:
                 base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
-                options = mp_vision.HandLandmarkerOptions(base_options=base_options, num_hands=2)
+                options = mp_vision.HandLandmarkerOptions(
+                    base_options=base_options, 
+                    num_hands=2,
+                    running_mode=mp_vision.RunningMode.IMAGE
+                )
                 
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
                 
                 with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
                     result = landmarker.detect(mp_image)
-
+ 
                     left = np.zeros((21, 3), dtype=np.float32)
                     right = np.zeros((21, 3), dtype=np.float32)
-
+ 
                     if result.hand_landmarks:
                         for i, hand_lms in enumerate(result.hand_landmarks):
                             coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
@@ -965,7 +972,7 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
                                 left[:] = coords
                             else:
                                 right[:] = coords
-
+ 
                     combined = np.vstack([left, right])
                     return {"landmarks": combined.tolist()}
             except Exception as e:
