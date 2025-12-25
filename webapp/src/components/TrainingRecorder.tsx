@@ -193,7 +193,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         clusterId: metrics.dominantCluster !== 'none' ? metrics.dominantCluster : undefined,
         variationDiversity: metrics.variationDiversity,
         canonicalTemplates: metrics.activeClusters,
-      } : undefined;
+      } : {};
 
       const recording = {
         ...(recordedData.frameCount > 0 ? { frameCount: recordedData.frameCount } : {}),

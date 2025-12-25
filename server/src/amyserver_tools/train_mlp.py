@@ -627,7 +627,7 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
         print(f"warning: unable to open clip {clip_path}", file=sys.stderr)
         return frames
 
-    # 1. Try modern Tasks API (highly robust for new MP versions)
+    # Try modern Tasks API (highly robust for new MP versions)
     if mp_tasks and mp_vision:
         models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
         if not models_dir.exists():
@@ -637,59 +637,7 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
         pose_model = models_dir / "pose_landmarker.task"
         face_model = models_dir / "face_landmarker.task"
         
-        # Try full multimodal if all models available
-        if hand_model.exists() and pose_model.exists() and face_model.exists():
-            try:
-                base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
-                options = mp_vision.HandLandmarkerOptions(
-                    base_options=base_options, 
-                    num_hands=2,
-                    running_mode=mp_vision.RunningMode.IMAGE
-                )
-                with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
-                    index = 0
-                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
-                        success, frame = cap.read()
-                        if not success:
-                            break
-                        if index % FRAME_STRIDE != 0:
-                            index += 1
-                            continue
-
-                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                        result = landmarker.detect(mp_image)
-
-                        left = np.zeros((21, 3), dtype=np.float32)
-                        right = np.zeros((21, 3), dtype=np.float32)
-
-                        if result.hand_landmarks:
-                            for i, hand_lms in enumerate(result.hand_landmarks):
-                                coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
-                                # Handedness is inverted in some MP versions relative to camera
-                                category = result.handedness[i][0].category_name
-                                if category == "Left":
-                                    left[:] = coords
-                                else:
-                                    right[:] = coords
-
-                        combined = np.vstack([left, right])
-                        frames.append({"landmarks": combined.tolist()})
-                        index += 1
-                return frames
-            except Exception as e:
-                print(f"warning: Hands-only Tasks API failed: {e}", file=sys.stderr)
-
-    # 2. Try multimodal Tasks API fallback
-    if mp_tasks and mp_vision:
-        models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
-        if not models_dir.exists():
-            models_dir = Path("server/data/models")
-        
-        hand_model = models_dir / "hand_landmarker.task"
-        pose_model = models_dir / "pose_landmarker.task"
-        face_model = models_dir / "face_landmarker.task"
-        
+        # Scenario 1: Full Multimodal (All models available)
         if hand_model.exists() and pose_model.exists() and face_model.exists():
             try:
                 # Initialize all landmarkers
@@ -773,12 +721,13 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
                             
                         frames.append(frame_data)
                         index += 1
-                return frames
             except Exception as e:
                 print(f"warning: Multimodal Tasks API failed: {e}", file=sys.stderr)
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Reset video
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Reset video for fallback
+            else:
+                return frames
         
-        # Fallback to hands-only Tasks API if multimodal models unavailable
+        # Scenario 2: Hands-only fallback (Only hand model available OR multimodal failed)
         if hand_model.exists():
             try:
                 base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
@@ -817,9 +766,12 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
                         combined = np.vstack([left, right])
                         frames.append({"landmarks": combined.tolist()})
                         index += 1
-                return frames
             except Exception as e:
                 print(f"warning: Hands-only Tasks API failed: {e}", file=sys.stderr)
+            else:
+                return frames
+    
+    return frames
     
     # Legacy solutions not available in current MediaPipe version
     
@@ -1070,7 +1022,7 @@ def create_sliding_windows(
     Strategy:
     - Padding: Edge replication (repeat last frame) for clips shorter than WINDOW_SIZE
     - Stride: 1 frame (generates overlapping windows for data augmentation)
-    - Output: Each Sample.landmarks contains a flattened (WINDOW_SIZE × 1629) vector
+    - Output: Each Sample.landmarks contains a flattened (WINDOW_SIZE * 1629) vector
     
     Args:
         frame_vectors: List of (1629,) normalized frame vectors
@@ -1238,7 +1190,7 @@ def train_mlp(
     layer2_size = MLP_LAYER2_SIZE  # 512
     
     if input_dim != WINDOW_FEATURE_SIZE:
-        LOGGER.warning(
+        raise ValueError(
             f"Expected input dimension {WINDOW_FEATURE_SIZE}, got {input_dim}. "
             "Ensure WINDOW_SIZE and INPUT_FEATURE_SIZE are correctly configured."
         )
@@ -1726,6 +1678,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         }
 
         # 3. Generate "_NULL_" class (background/transition frames)
+        # ASSUMPTION: Signs typically don't start in the first second of recording.
         # Use the first WINDOW_SIZE frames as "pre-sign" noise
         if len(normalized_frames) >= WINDOW_SIZE:
             null_window = normalized_frames[:WINDOW_SIZE]
@@ -2225,7 +2178,9 @@ def main() -> int:
         start_ts = datetime.now(timezone.utc)
 
         samples, stats = build_samples_from_manifest(manifest_path)
-        # Legacy dataset support disabled for sliding window architecture
+        # Legacy dataset support disabled for sliding window architecture:
+        # Legacy samples contain pre-averaged landmarks (not temporal sequences),
+        # which cannot be converted to sliding windows.
         # if not samples:
         #     legacy_samples = build_samples_from_legacy_dataset(LEGACY_DATASET_PATH)
         #     samples = legacy_samples
@@ -2249,7 +2204,7 @@ def main() -> int:
         metadata = {
             "manifestSha256": sha256_file(manifest_path),
             "hyperparameters": {
-                "hiddenSize": HIDDEN_SIZE,
+                "hiddenSize": MLP_LAYER1_SIZE,
                 "learningRate": LEARNING_RATE,
                 "epochs": EPOCHS,
                 "dropoutRate": DROPOUT_RATE,
