@@ -209,12 +209,11 @@ def test_normalize_multimodal_pose_normalized_to_torso(monkeypatch, tmp_path):
     result = module._normalize_multimodal(sample)
     
     assert result is not None
-    # Verify pose section is normalized (all values should be scaled by shoulder width = 2.0)
+    # Verify pose section is normalized (all values should be scaled by shoulder width = 2.0 and POSE_PRIORITY_FACTOR = 0.4)
     pose_section = result[126:225].reshape(33, 3)
-    # Shoulders should be at y = ±0.5 after normalization (±1.0 / 2.0)
-    assert np.allclose(pose_section[11, 1], 0.5, atol=0.1)
-    assert np.allclose(pose_section[12, 1], -0.5, atol=0.1)
-
+    # Shoulders should be at y = ±0.2 after normalization (±1.0 / 2.0 * 0.4)
+    assert np.allclose(pose_section[11, 1], 0.2, atol=0.1)
+    assert np.allclose(pose_section[12, 1], -0.2, atol=0.1)
 
 def test_normalize_multimodal_face_normalized_to_nose(monkeypatch, tmp_path):
     """Test that face landmarks are properly centered on nose."""

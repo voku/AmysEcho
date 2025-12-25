@@ -1,5 +1,5 @@
 import numpy as np
-from src.amyserver_tools.train_mlp import _max_l1, _normalize, augment_landmarks
+from amyserver_tools.train_mlp import _max_l1, _normalize, augment_landmarks
 
 
 def test_normalize_one_hand() -> None:

@@ -1080,7 +1080,7 @@ def _normalize(lm):
     left = _norm_hand(pts[:21])
     right = _norm_hand(pts[21:]) if pts.shape[0] >= 42 else np.zeros_like(pts[:21])
 
-    return np.concatenate([left, right]).flatten()
+    return (np.concatenate([left, right]).flatten() * HAND_PRIORITY_FACTOR)
 
 
 # Density-Balanced Priority factors (Hands > Pose > Face)
@@ -1108,9 +1108,6 @@ def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
     hand_features = _normalize(sample.landmarks)
     if hand_features is None:
         return None
-    
-    # Prioritize hands by scaling their magnitude in the input vector
-    hand_features = hand_features * HAND_PRIORITY_FACTOR
     
     features = [hand_features]
     
@@ -1233,8 +1230,8 @@ def augment_landmarks(
         present[0] = True  # Always keep the wrist entry
         hand[~present] = 0.0
 
-        # Re-normalize the entire hand to restore the unit-scale invariant without
-        # distorting relative joint geometry.
+        # Re-normalize the entire hand to restore the scale invariant while
+        # preserving the HAND_PRIORITY_FACTOR.
         max_l1 = _max_l1(hand)
         if max_l1 <= AUGMENTATION_EPSILON:
             # Revert to the original geometry while preserving the shared rotation.
@@ -1242,9 +1239,9 @@ def augment_landmarks(
             _rotate_xy(hand, rotation_radians)
             max_l1_reverted = _max_l1(hand)
             if max_l1_reverted > AUGMENTATION_EPSILON:
-                hand /= max_l1_reverted
+                hand[:] = (hand / max_l1_reverted) * HAND_PRIORITY_FACTOR
         else:
-            hand /= max_l1
+            hand[:] = (hand / max_l1) * HAND_PRIORITY_FACTOR
 
     return augmented.astype(np.float32).flatten()
 

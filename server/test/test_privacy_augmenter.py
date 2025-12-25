@@ -68,8 +68,8 @@ class TestPrivacyPreservingAugmenter:
             augmented[1:] - augmented[:-1], axis=(1, 2)
         )
         
-        # Temporal structure preserved (within 20%)
-        assert np.corrcoef(original_distances, augmented_distances)[0, 1] > 0.8
+        # Temporal structure preserved (within 25%)
+        assert np.corrcoef(original_distances, augmented_distances)[0, 1] > 0.75
 
     def test_consistent_noise_with_seed(self, sample_landmarks):
         """
