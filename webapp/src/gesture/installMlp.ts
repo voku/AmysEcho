@@ -335,55 +335,83 @@ export function installMlp() {
     return out;
   }
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
+  const WINDOW_SIZE = 30;
+  const rollingBuffer: Float32Array[] = [];
 
-  function normalizeLandmarks(all: Hand[], handednesses: Handedness) {
-    const flat = new Float32Array(21 * 2 * 3);
-    function normHand(hand: Hand | null): Hand | null {
-      if (!hand || hand.length < 21) return null;
-      const wrist = hand[0];
-      if (!wrist) {
-        return null;
+  function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
+    const isMultimodalInModel = mlp && (mlp.w1.shape[1] === 1629 || mlp.w1.shape[1] === 48870);
+    
+    let frameFeatures: Float32Array;
+    
+    if (isMultimodalInModel) {
+      // Convert Hand[] to number[][] format (42 points for left+right hands)
+      const leftHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === 'Left',
+      );
+      const rightHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === 'Right',
+      );
+      
+      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
+      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
+      
+      // Convert to number[][] format: [point0, point1, ...] where each point is [x,y,z]
+      const handsFlat: number[][] = [];
+      
+      // Add left hand (21 points)
+      for (let i = 0; i < 21; i++) {
+        const point = leftHand?.[i];
+        handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
       }
-      const [wx = 0, wy = 0, wz = 0] = wrist;
-      const centered = hand.map(
-        (p) => {
+      
+      // Add right hand (21 points)
+      for (let i = 0; i < 21; i++) {
+        const point = rightHand?.[i];
+        handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
+      }
+      
+      frameFeatures = prepareMultimodalForMLP(handsFlat, poseLandmarks, faceLandmarks);
+    } else {
+      // Use hand-only normalization (legacy)
+      const flat = new Float32Array(21 * 2 * 3);
+      function normHand(hand: Hand | null): Hand | null {
+        if (!hand || hand.length < 21) return null;
+        const wrist = hand[0];
+        if (!wrist) return null;
+        const [wx = 0, wy = 0, wzRaw = 0] = wrist;
+        const centered = hand.map((p) => {
           const [x = 0, y = 0, z = 0] = p ?? [0, 0, 0];
-          return [x - wx, y - wy, z - wz] as const;
-        },
-      );
-      const maxd = centered.reduce(
-        (currentMax, [x, y, z]) =>
-          Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
-        0,
-      );
-      if (maxd === 0) return null;
-      return centered.map(
-        ([x, y, z]) => [x / maxd, y / maxd, z / maxd] as const,
-      );
+          return [x - wx, y - wy, z - wzRaw] as const;
+        });
+        const maxd = centered.reduce(
+          (currentMax, [x, y, z]) => Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
+          0,
+        );
+        if (maxd === 0) return null;
+        return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd] as const);
+      }
+
+      const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Left');
+      const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Right');
+
+      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
+      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
+
+      const left = normHand(leftHand) ?? EMPTY_HAND;
+      const right = normHand(rightHand) ?? EMPTY_HAND;
+      const both = [...left, ...right];
+      let k = 0;
+      for (const p of both) {
+        const [px = 0, py = 0, pz = 0] = p ?? [0, 0, 0];
+        flat[k++] = px * 3.0; // Apply priority factor matching backend
+        flat[k++] = py * 3.0;
+        flat[k++] = pz * 3.0;
+      }
+      frameFeatures = flat;
     }
-
-    const leftHandIndex = handednesses?.findIndex(
-      (h) => h?.[0]?.categoryName === 'Left',
-    );
-    const rightHandIndex = handednesses?.findIndex(
-      (h) => h?.[0]?.categoryName === 'Right',
-    );
-
-    const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
-    const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
-
-    const left = normHand(leftHand) ?? EMPTY_HAND;
-    const right = normHand(rightHand) ?? EMPTY_HAND;
-    const both = [...left, ...right];
-    let k = 0;
-    for (const p of both) {
-      const [px = 0, py = 0, pz = 0] = p ?? [0, 0, 0];
-      flat[k++] = px;
-      flat[k++] = py;
-      flat[k++] = pz;
-    }
-    return flat;
+    return frameFeatures;
   }
+
   function mlpPredict(
     all: Hand[],
     handednesses: Handedness,
@@ -393,53 +421,52 @@ export function installMlp() {
     try {
       if (!mlp) return null;
       
-      // Check if model expects multimodal input (1629 or 258 features vs 126 hand-only)
-      const [rows1, cols1Expected] = mlp.w1.shape;
-      const isMultimodal = cols1Expected === 1629 || cols1Expected === 258;
+      // 1. Normalize current frame
+      const currentFrameVec = normalizeLandmarks(all, handednesses, poseLandmarks, faceLandmarks);
       
+      // 2. Manage rolling buffer
+      rollingBuffer.push(currentFrameVec);
+      if (rollingBuffer.length > WINDOW_SIZE) {
+        rollingBuffer.shift();
+      }
+      
+      // 3. Prepare input vector based on model expected input size
+      const [rows1, cols1Expected] = mlp.w1.shape;
+      if (rows1 === undefined || cols1Expected === undefined || rows1 === 0) {
+        throw new Error('Invalid w1 shape');
+      }
+
       let x: Float32Array;
-      if (isMultimodal && (poseLandmarks || faceLandmarks)) {
-        // Use multimodal normalization
-        // Convert Hand[] to number[][] format (42 points for left+right hands)
-        const leftHandIndex = handednesses?.findIndex(
-          (h) => h?.[0]?.categoryName === 'Left',
-        );
-        const rightHandIndex = handednesses?.findIndex(
-          (h) => h?.[0]?.categoryName === 'Right',
-        );
-        
-        const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
-        const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
-        
-        // Convert to number[][] format: [point0, point1, ...] where each point is [x,y,z]
-        const handsFlat: number[][] = [];
-        
-        // Add left hand (21 points)
-        for (let i = 0; i < 21; i++) {
-          const point = leftHand?.[i];
-          handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
+      if (cols1Expected === 48870) {
+        // Temporal model (30 frames * 1629 features)
+        if (rollingBuffer.length < WINDOW_SIZE) {
+          // Pad with replicates of the first available frame if buffer is not full
+          const first = rollingBuffer[0]!;
+          const padded = new Float32Array(WINDOW_SIZE * 1629);
+          for (let i = 0; i < WINDOW_SIZE - rollingBuffer.length; i++) {
+            padded.set(first, i * 1629);
+          }
+          for (let i = 0; i < rollingBuffer.length; i++) {
+            padded.set(rollingBuffer[i]!, (WINDOW_SIZE - rollingBuffer.length + i) * 1629);
+          }
+          x = padded;
+        } else {
+          x = new Float32Array(WINDOW_SIZE * 1629);
+          for (let i = 0; i < WINDOW_SIZE; i++) {
+            x.set(rollingBuffer[i]!, i * 1629);
+          }
         }
-        
-        // Add right hand (21 points)
-        for (let i = 0; i < 21; i++) {
-          const point = rightHand?.[i];
-          handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
-        }
-        
-        x = prepareMultimodalForMLP(handsFlat, poseLandmarks, faceLandmarks);
       } else {
-        // Use hand-only normalization
-        x = normalizeLandmarks(all, handednesses);
-        if (!x) return null;
+        // Static model (single frame)
+        x = currentFrameVec;
       }
       
       // Skip prediction if input is all zeros (no hands detected)
       if (x.every(v => v === 0)) return null;
+      
       const cols1 = x.length;
-      if (rows1 === undefined || cols1Expected === undefined || rows1 === 0) {
-        throw new Error('Invalid w1 shape');
-      }
-      if (cols1Expected !== cols1) throw new Error('Input dimension mismatch');
+      if (cols1Expected !== cols1) throw new Error(`Input dimension mismatch: expected ${cols1Expected}, got ${cols1}`);
+      
       const b1Shape = mlp.b1.shape[0];
       if (b1Shape === undefined || b1Shape !== rows1) throw new Error('b1 dimension mismatch');
       const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);

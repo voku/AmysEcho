@@ -412,104 +412,6 @@ def apply_hand_focus(
     return result
 
 
-def flatten_landmarks_mean(frames: List[dict]) -> Optional[dict]:
-    """Average multimodal landmarks across frames with optional weighting.
-    
-    Frames can include an optional 'weight' field to indicate their relative importance.
-    Still frames typically have higher weights since they represent the precise target
-    position for the gesture being trained.
-    
-    Parameters
-    ----------
-    frames:
-        List of frame dictionaries, each containing:
-        - 'landmarks' (required): hand landmarks
-        - 'poseLandmarks' (optional): pose landmarks
-        - 'faceLandmarks' (optional): face landmarks  
-        - 'weight' (optional, default 1.0): frame importance
-    
-    Returns
-    -------
-    Optional[dict]
-        Dictionary with averaged landmarks for each modality, or None if no valid frames.
-        Keys: 'landmarks', 'poseLandmarks' (if present), 'faceLandmarks' (if present)
-    """
-
-    hand_collected: List[np.ndarray] = []
-    pose_collected: List[np.ndarray] = []
-    face_collected: List[np.ndarray] = []
-    weights: List[float] = []
-    
-    for frame in frames:
-        # Hand landmarks (required)
-        coords = frame.get("landmarks")
-        if not coords:
-            continue
-        arr = np.array(coords, dtype=np.float32).reshape(-1, 3)
-        if arr.shape[0] < 42:
-            padding = np.zeros((42 - arr.shape[0], 3), dtype=np.float32)
-            arr = np.vstack([arr, padding])
-        hand_collected.append(arr[:42])
-        
-        # Pose landmarks (optional)
-        pose = frame.get("poseLandmarks")
-        if pose:
-            pose_arr = np.array(pose, dtype=np.float32).reshape(-1, 4)  # x, y, z, visibility
-            if pose_arr.shape[0] < 33:
-                padding = np.zeros((33 - pose_arr.shape[0], 4), dtype=np.float32)
-                pose_arr = np.vstack([pose_arr, padding])
-            pose_collected.append(pose_arr[:33])
-        
-        # Face landmarks (optional)
-        face = frame.get("faceLandmarks")
-        if face:
-            face_arr = np.array(face, dtype=np.float32).reshape(-1, 3)
-            if face_arr.shape[0] < 468:
-                padding = np.zeros((468 - face_arr.shape[0], 3), dtype=np.float32)
-                face_arr = np.vstack([face_arr, padding])
-            face_collected.append(face_arr[:468])
-        
-        # Extract weight for this frame (default to 1.0 for backward compatibility)
-        frame_weight = frame.get("weight", 1.0)
-        weights.append(float(frame_weight))
-    
-    if not hand_collected:
-        return None
-    
-    weights_array = np.array(weights, dtype=np.float32)
-    total_weight = np.sum(weights_array)
-    
-    result = {}
-    
-    # Average hand landmarks
-    stacked = np.stack(hand_collected, axis=0)
-    if total_weight <= 0:
-        averaged = stacked.mean(axis=0)
-    else:
-        averaged = np.average(stacked, axis=0, weights=weights_array)
-    result['landmarks'] = averaged.tolist()
-    
-    # Average pose landmarks if present
-    if pose_collected and len(pose_collected) == len(hand_collected):
-        pose_stacked = np.stack(pose_collected, axis=0)
-        if total_weight <= 0:
-            pose_averaged = pose_stacked.mean(axis=0)
-        else:
-            pose_averaged = np.average(pose_stacked, axis=0, weights=weights_array)
-        result['poseLandmarks'] = pose_averaged.tolist()
-    
-    # Average face landmarks if present
-    if face_collected and len(face_collected) == len(hand_collected):
-        face_stacked = np.stack(face_collected, axis=0)
-        if total_weight <= 0:
-            face_averaged = face_stacked.mean(axis=0)
-        else:
-            face_averaged = np.average(face_stacked, axis=0, weights=weights_array)
-        result['faceLandmarks'] = face_averaged.tolist()
-    
-    return result
-
-
 def _extract_recording_metadata(metadata: dict) -> Optional[Dict[str, object]]:
     recording = metadata.get("recording") if isinstance(metadata, dict) else None
     if not isinstance(recording, dict):
@@ -711,7 +613,7 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
         # Try full multimodal if all models available
         if hand_model.exists() and pose_model.exists() and face_model.exists():
             try:
-                base_options = mp_tasks.BaseOptions(model_asset_path=str(model_path))
+                base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
                 options = mp_vision.HandLandmarkerOptions(
                     base_options=base_options, 
                     num_hands=2,
@@ -1034,60 +936,103 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
     return None
 
 
-def filter_samples_by_profile(samples: Iterable[Sample], profile_id: str) -> List[Sample]:
-    """Return samples for a profile-specific model.
-
-    Includes:
-    1. All samples explicitly belonging to this profile.
-    2. All global samples (no profile_id) whose labels are NOT overridden
-       by this profile.
-
-    This ensures the profile model is a specialized superset of the global model,
-    supporting custom sign languages per child without losing baseline gestures.
+def flatten_landmarks_mean(frames: List[dict]) -> Optional[dict]:
+    """Average multimodal landmarks across frames with optional weighting.
+    
+    Frames can include an optional 'weight' field to indicate their relative importance.
+    Still frames typically have higher weights since they represent the precise target
+    position for the gesture being trained.
+    
+    Parameters
+    ----------
+    frames:
+        List of frame dictionaries, each containing:
+        - 'landmarks' (required): hand landmarks
+        - 'poseLandmarks' (optional): pose landmarks
+        - 'faceLandmarks' (optional): face landmarks  
+        - 'weight' (optional, default 1.0): frame importance
+    
+    Returns
+    -------
+    Optional[dict]
+        Dictionary with averaged landmarks for each modality, or None if no valid frames.
+        Keys: 'landmarks', 'poseLandmarks' (if present), 'faceLandmarks' (if present)
     """
-    return filter_by_profile_logic(
-        list(samples),
-        profile_id,
-        get_label=lambda s: s.label,
-        get_profile_id=lambda s: s.profile_id
-    )
 
-
-def _normalize(lm):
-    """Normalize one or two hands to be wrist-centered and scale-invariant."""
-    if not lm or len(lm) < 21:
+    hand_collected: List[np.ndarray] = []
+    pose_collected: List[np.ndarray] = []
+    face_collected: List[np.ndarray] = []
+    weights: List[float] = []
+    
+    for frame in frames:
+        # Hand landmarks (required)
+        coords = frame.get("landmarks")
+        if not coords:
+            continue
+        arr = np.array(coords, dtype=np.float32).reshape(-1, 3)
+        if arr.shape[0] < 42:
+            padding = np.zeros((42 - arr.shape[0], 3), dtype=np.float32)
+            arr = np.vstack([arr, padding])
+        hand_collected.append(arr[:42])
+        
+        # Pose landmarks (optional)
+        pose = frame.get("poseLandmarks")
+        if pose:
+            pose_arr = np.array(pose, dtype=np.float32).reshape(-1, 4)  # x, y, z, visibility
+            if pose_arr.shape[0] < 33:
+                padding = np.zeros((33 - pose_arr.shape[0], 4), dtype=np.float32)
+                pose_arr = np.vstack([pose_arr, padding])
+            pose_collected.append(pose_arr[:33])
+        
+        # Face landmarks (optional)
+        face = frame.get("faceLandmarks")
+        if face:
+            face_arr = np.array(face, dtype=np.float32).reshape(-1, 3)
+            if face_arr.shape[0] < 468:
+                padding = np.zeros((468 - face_arr.shape[0], 3), dtype=np.float32)
+                face_arr = np.vstack([face_arr, padding])
+            face_collected.append(face_arr[:468])
+        
+        # Extract weight for this frame (default to 1.0 for backward compatibility)
+        frame_weight = frame.get("weight", 1.0)
+        weights.append(float(frame_weight))
+    
+    if not hand_collected:
         return None
-
-    if isinstance(lm[0], list) and len(lm[0]) == 3:
-        pts = np.array(lm[:42])
+    
+    weights_array = np.array(weights, dtype=np.float32)
+    total_weight = np.sum(weights_array)
+    
+    result = {}
+    
+    # Average hand landmarks
+    stacked = np.stack(hand_collected, axis=0)
+    if total_weight <= 0:
+        averaged = stacked.mean(axis=0)
     else:
-        flat_lm = lm[:126] if len(lm) >= 126 else lm + [0.0] * (126 - len(lm))
-        pts = np.array(flat_lm).reshape(42, 3)
+        averaged = np.average(stacked, axis=0, weights=weights_array)
+    result['landmarks'] = averaged.tolist()
+    
+    # Average pose landmarks if present
+    if pose_collected and len(pose_collected) == len(hand_collected):
+        pose_stacked = np.stack(pose_collected, axis=0)
+        if total_weight <= 0:
+            pose_averaged = pose_stacked.mean(axis=0)
+        else:
+            pose_averaged = np.average(pose_stacked, axis=0, weights=weights_array)
+        result['poseLandmarks'] = pose_averaged.tolist()
+    
+    # Average face landmarks if present
+    if face_collected and len(face_collected) == len(hand_collected):
+        face_stacked = np.stack(face_collected, axis=0)
+        if total_weight <= 0:
+            face_averaged = face_stacked.mean(axis=0)
+        else:
+            face_averaged = np.average(face_stacked, axis=0, weights=weights_array)
+        result['faceLandmarks'] = face_averaged.tolist()
+    
+    return result
 
-    if len(pts) < 42:
-        pad = np.zeros((42 - len(pts), 3))
-        pts = np.vstack([pts, pad])
-
-    def _norm_hand(hand: np.ndarray) -> np.ndarray:
-        wrist = hand[0]
-        hand = hand - wrist
-        max_dist = _max_l1(hand)
-        if max_dist == 0:
-            return hand
-        hand /= max_dist
-        return hand
-
-    left = _norm_hand(pts[:21])
-    right = _norm_hand(pts[21:]) if pts.shape[0] >= 42 else np.zeros_like(pts[:21])
-
-    return (np.concatenate([left, right]).flatten() * HAND_PRIORITY_FACTOR)
-
-
-# Density-Balanced Priority factors (Hands > Pose > Face)
-# This prevents the 1404 face features from drowning out the 126 hand features.
-HAND_PRIORITY_FACTOR = 3.0
-POSE_PRIORITY_FACTOR = 0.4
-FACE_PRIORITY_FACTOR = 0.1
 
 def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
     """Normalize multimodal sample (hands + optional pose/face) into a feature vector.
@@ -1155,6 +1100,43 @@ def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
         features.append(np.zeros(1404, dtype=np.float32))
     
     return np.concatenate(features)
+
+
+# Density-Balanced Priority factors (Hands > Pose > Face)
+# This prevents the 1404 face features from drowning out the 126 hand features.
+HAND_PRIORITY_FACTOR = 3.0
+POSE_PRIORITY_FACTOR = 0.4
+FACE_PRIORITY_FACTOR = 0.1
+
+
+def _normalize(lm):
+    """Normalize one or two hands to be wrist-centered and scale-invariant."""
+    if not lm or len(lm) < 21:
+        return None
+
+    if isinstance(lm[0], list) and len(lm[0]) == 3:
+        pts = np.array(lm[:42])
+    else:
+        flat_lm = lm[:126] if len(lm) >= 126 else lm + [0.0] * (126 - len(lm))
+        pts = np.array(flat_lm).reshape(42, 3)
+
+    if len(pts) < 42:
+        pad = np.zeros((42 - len(pts), 3))
+        pts = np.vstack([pts, pad])
+
+    def _norm_hand(hand: np.ndarray) -> np.ndarray:
+        wrist = hand[0]
+        hand = hand - wrist
+        max_dist = _max_l1(hand)
+        if max_dist == 0:
+            return hand
+        hand /= max_dist
+        return hand
+
+    left = _norm_hand(pts[:21])
+    right = _norm_hand(pts[21:]) if pts.shape[0] >= 42 else np.zeros_like(pts[:21])
+
+    return (np.concatenate([left, right]).flatten() * HAND_PRIORITY_FACTOR)
 
 
 def augment_landmarks(
@@ -2075,19 +2057,25 @@ def plan_train_validation_split(
     return train_indices, validation_indices
 
 
-def save_model(path: Path, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], labels: List[str]):
+def save_model(path: Path, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], labels: List[str], counts: Optional[np.ndarray] = None):
     w1, b1, w2, b2 = weights
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
+    
+    save_dict = {
+        "w1": np.array(w1.T, order="C"),
+        "b1": b1,
+        "w2": np.array(w2.T, order="C"),
+        "b2": b2,
+        "labels": np.array(labels),
+    }
+    if counts is not None:
+        save_dict["counts"] = counts
+    else:
+        save_dict["counts"] = np.zeros(len(labels), dtype=np.float32)
+
     with tmp_path.open("wb") as handle:
-        np.savez(
-            handle,
-            w1=np.array(w1.T, order="C"),
-            b1=b1,
-            w2=np.array(w2.T, order="C"),
-            b2=b2,
-            labels=np.array(labels),
-        )
+        np.savez(handle, **save_dict)
     os.replace(tmp_path, path)
     try:
         os.chmod(path, 0o640)
@@ -2180,13 +2168,14 @@ def train_models(
             train_acc = _compute_accuracy(X_train, y_train, best_weights)
             val_acc = _compute_accuracy(X_val, y_val, best_weights)
 
-            save_model(GLOBAL_MODEL_PATH, best_weights, labels)
+            counts = np.array([int(sum(1 for sample in global_samples if sample.label == label)) for label in labels], dtype=np.float32)
+            save_model(GLOBAL_MODEL_PATH, best_weights, labels, counts=counts)
             global_report = {
                 "samples": int(X.shape[0]),
                 "accuracy": train_acc,
                 "validationSamples": int(X_val.shape[0]),
                 "validationAccuracy": val_acc,
-                "labels": {label: int(sum(1 for sample in global_samples if sample.label == label)) for label in labels},
+                "labels": {label: int(counts[i]) for i, label in enumerate(labels)},
                 "recordingStats": _summarize_recording_stats(global_samples),
                 "modelPath": os.path.relpath(GLOBAL_MODEL_PATH, DATA_DIR),
             }
@@ -2250,13 +2239,14 @@ def train_models(
         acc_p = _compute_accuracy(Xp_train, yp_train, weights_p)
         val_acc_p = _compute_accuracy(Xp_val, yp_val, weights_p)
         profile_path = MODELS_DIR / pid / "amy_model.npz"
-        save_model(profile_path, weights_p, labels_p)
+        counts_p = np.array([int(sum(1 for sample in subset if sample.label == label)) for label in labels_p], dtype=np.float32)
+        save_model(profile_path, weights_p, labels_p, counts=counts_p)
         profiles_report[pid] = {
             "samples": int(Xp.shape[0]),
             "accuracy": acc_p,
             "validationSamples": int(Xp_val.shape[0]),
             "validationAccuracy": val_acc_p,
-            "labels": {label: int(sum(1 for sample in subset if sample.label == label)) for label in labels_p},
+            "labels": {label: int(counts_p[i]) for i, label in enumerate(labels_p)},
             "recordingStats": _summarize_recording_stats(subset),
             "modelPath": os.path.relpath(profile_path, DATA_DIR),
         }
