@@ -91,9 +91,8 @@ class DGSVideoProcessor:
         hands_data = [[0.0, 0.0, 0.0] for _ in range(42)]
         
         left_done, right_done = False, False
-        for i, hand_landmarks in enumerate(hand_result.hand_landmarks):
-            if i >= len(hand_result.handedness): break
-            label = hand_result.handedness[i][0].category_name
+        for hand_landmarks, handedness in zip(hand_result.hand_landmarks, hand_result.handedness):
+            label = handedness[0].category_name
             
             coords = [[lm.x, lm.y, lm.z] for lm in hand_landmarks]
             

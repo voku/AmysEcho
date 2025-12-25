@@ -20,36 +20,81 @@ def generate_realistic_hand_gesture(gesture_type, num_frames=30):
             base_x = 0.5 - t * 0.3
             base_y = 0.3 + np.sin(t * 4 * np.pi) * 0.1  # Vertical oscillation
             
-            # Finger positions with natural hand anatomy
-            finger_spread = 0.8 + np.sin(t * 2 * np.pi) * 0.2
-            
-            # Generate 21 hand landmarks (MediaPipe format)
+            # Generate 42 hand landmarks (MediaPipe format)
             landmarks = []
             for landmark_idx in range(42):
                 if landmark_idx < 21:  # Left hand
-                    # Simple static hand, slightly closed
-                    if landmark_idx in [0, 4, 8, 12, 16]:  # Finger tips
-                        lm_x = base_x - 0.1 + np.random.normal(0, 0.01)
-                        lm_y = base_y - 0.05 + np.random.normal(0, 0.005)
-                    else:  # Finger joints and palm
-                        lm_x = base_x - 0.15 + np.random.normal(0, 0.01)
-                        lm_y = base_y - 0.08 + np.random.normal(0, 0.005)
+                    lm_x = base_x - 0.1 + np.random.normal(0, 0.01)
+                    lm_y = base_y - 0.05 + np.random.normal(0, 0.005)
                     lm_z = np.random.normal(0, 0.002)
                 else:  # Right hand
-                    # More dynamic movement
                     wave_x = base_x + np.sin(t * 6 * np.pi) * 0.1
                     wave_y = base_y + np.cos(t * 6 * np.pi) * 0.03
-                    
-                    if landmark_idx - 21 < 21 + 21:  # Finger tips
-                        lm_x = wave_x + np.random.normal(0, 0.01)
-                        lm_y = wave_y + np.random.normal(0, 0.005)
-                    else:
-                        lm_x = wave_x + np.random.normal(0, 0.005)
-                        lm_y = wave_y + np.random.normal(0, 0.005)
+                    lm_x = wave_x + np.random.normal(0, 0.01)
+                    lm_y = wave_y + np.random.normal(0, 0.005)
                     lm_z = np.random.normal(0, 0.005)
                 
                 landmarks.append([lm_x, lm_y, lm_z])
             
+            frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
+    elif gesture_type == "BITTE":
+        # Please: hands together moving slightly
+        for i in range(num_frames):
+            t = i / (num_frames - 1)
+            base_x, base_y = 0.5, 0.6 + t * 0.05
+            landmarks = []
+            for landmark_idx in range(42):
+                lm_x = base_x + (0.02 if landmark_idx >= 21 else -0.02) + np.random.normal(0, 0.005)
+                lm_y = base_y + np.random.normal(0, 0.005)
+                lm_z = np.random.normal(0, 0.002)
+                landmarks.append([lm_x, lm_y, lm_z])
+            frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
+    elif gesture_type == "DANKE":
+        # Thank you: hand moving from chin forward
+        for i in range(num_frames):
+            t = i / (num_frames - 1)
+            base_x, base_y = 0.5, 0.4 + t * 0.2
+            landmarks = []
+            for landmark_idx in range(42):
+                lm_x = base_x + np.random.normal(0, 0.01)
+                lm_y = base_y + np.random.normal(0, 0.01)
+                lm_z = t * 0.1 + np.random.normal(0, 0.005)
+                landmarks.append([lm_x, lm_y, lm_z])
+            frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
+    elif gesture_type == "JA":
+        # Yes: nodding-like motion with fist
+        for i in range(num_frames):
+            t = i / (num_frames - 1)
+            base_x, base_y = 0.5, 0.4 + np.sin(t * 4 * np.pi) * 0.05
+            landmarks = []
+            for landmark_idx in range(42):
+                lm_x = base_x + np.random.normal(0, 0.005)
+                lm_y = base_y + np.random.normal(0, 0.005)
+                lm_z = np.random.normal(0, 0.002)
+                landmarks.append([lm_x, lm_y, lm_z])
+            frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
+    elif gesture_type == "NEIN":
+        # No: shaking motion with index finger
+        for i in range(num_frames):
+            t = i / (num_frames - 1)
+            base_x, base_y = 0.5 + np.sin(t * 6 * np.pi) * 0.1, 0.4
+            landmarks = []
+            for landmark_idx in range(42):
+                lm_x = base_x + np.random.normal(0, 0.005)
+                lm_y = base_y + np.random.normal(0, 0.005)
+                lm_z = np.random.normal(0, 0.002)
+                landmarks.append([lm_x, lm_y, lm_z])
+            frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
+    else:
+        # Fallback for unknown gestures: random motion around center
+        print(f"   Warning: No specific implementation for {gesture_type}, using fallback.")
+        for i in range(num_frames):
+            landmarks = []
+            for landmark_idx in range(42):
+                lm_x = 0.5 + np.random.normal(0, 0.05)
+                lm_y = 0.5 + np.random.normal(0, 0.05)
+                lm_z = np.random.normal(0, 0.01)
+                landmarks.append([lm_x, lm_y, lm_z])
             frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
     
     return frames

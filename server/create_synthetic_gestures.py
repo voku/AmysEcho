@@ -13,28 +13,28 @@ def create_synthetic_gesture_data():
     gestures = {
         "HALLO": [
             # Waving gesture - open hand moving
-            [[0.4 + i*0.02, 0.3 + np.sin(i*0.2)*0.1, 0.05 + np.cos(i*0.15)*0.02] 
-             for i in range(20) for _ in range(42)]
+            [[0.4 + i*0.02, 0.3 + np.sin(i*0.2)*0.1, 0.05 + np.cos(i*0.15)*0.02] for _ in range(42)]
+             for i in range(20)
         ],
         "BITTE": [
             # Please gesture - flat hand with slight movement
-            [[0.45 + np.sin(i*0.1)*0.03, 0.5 + np.cos(i*0.08)*0.02, 0.0] 
-             for i in range(15) for _ in range(42)]
+            [[0.45 + np.sin(i*0.1)*0.03, 0.5 + np.cos(i*0.08)*0.02, 0.0] for _ in range(42)]
+             for i in range(15)
         ],
         "DANKE": [
             # Thank you gesture - closing hand
-            [[0.4 - i*0.01, 0.2 + i*0.008, 0.0] 
-             for i in range(20) for _ in range(42)]
+            [[0.4 - i*0.01, 0.2 + i*0.008, 0.0] for _ in range(42)]
+             for i in range(20)
         ],
         "JA": [
             # Yes gesture - thumbs up variation
-            [[0.35, 0.25 + i*0.005, 0.1 + np.sin(i*0.2)*0.02] 
-             for i in range(25) for _ in range(42)]
+            [[0.35, 0.25 + i*0.005, 0.1 + np.sin(i*0.2)*0.02] for _ in range(42)]
+             for i in range(25)
         ],
         "NEIN": [
             # No gesture - head shaking equivalent for hands
-            [[0.4 + np.sin(i*0.3)*0.05, 0.3 + np.cos(i*0.25)*0.05, 0.0] 
-             for i in range(15) for _ in range(42)]
+            [[0.4 + np.sin(i*0.3)*0.05, 0.3 + np.cos(i*0.25)*0.05, 0.0] for _ in range(42)]
+             for i in range(15)
         ]
     }
     

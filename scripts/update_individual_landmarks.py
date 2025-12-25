@@ -52,8 +52,14 @@ def update_individual_files(data_dir, models_dir, max_frames=300, frame_skip=2, 
         print(f"  Wrote {len(frames_out)} frames to {output_json}")
 
 if __name__ == "__main__":
-    # Run from project root
-    data_dir = "server/data/dgs_video_examples"
-    models_dir = "server/data/models"
+    import argparse
+    parser = argparse.ArgumentParser(description="Update individual landmark files using MediaPipe Tasks API.")
+    parser.add_argument('--data-dir', default="server/data/dgs_video_examples", help='Directory containing video examples and landmarks')
+    parser.add_argument('--models-dir', default="server/data/models", help='Directory containing MediaPipe model files')
+    parser.add_argument('--max-frames', type=int, default=300, help='Maximum frames to process per video')
+    parser.add_argument('--frame-skip', type=int, default=2, help='Number of frames to skip')
+    parser.add_argument('--confidence', type=float, default=0.5, help='Minimum detection confidence')
     
-    update_individual_files(data_dir, models_dir)
+    args = parser.parse_args()
+    
+    update_individual_files(args.data_dir, args.models_dir, args.max_frames, args.frame_skip, args.confidence)
