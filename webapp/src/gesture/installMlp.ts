@@ -15,6 +15,8 @@ export function installMlp() {
     w3: Tensor;
     b3: Tensor;
     labels: string[];
+    window_size?: number;
+    input_dim?: number;
   };
   const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
     void sendTelemetryEvent(event, data ?? {}).catch((err) => {
@@ -283,6 +285,31 @@ export function installMlp() {
           labels = [];
         }
       }
+
+      // Parse metadata if available
+      let window_size: number | undefined;
+      let input_dim: number | undefined;
+      
+      const wsb = npzFind(map, 'window_size');
+      if (wsb) {
+        try {
+          const parsed = parseNPY(wsb);
+          window_size = Number(parsed.data[0]);
+        } catch (e) {
+          console.warn('Failed to parse window_size:', e);
+        }
+      }
+
+      const idb = npzFind(map, 'input_dim');
+      if (idb) {
+        try {
+          const parsed = parseNPY(idb);
+          input_dim = Number(parsed.data[0]);
+        } catch (e) {
+          console.warn('Failed to parse input_dim:', e);
+        }
+      }
+
       // Validate tensor dimensions for MLP compatibility
       const inputSize = w1.shape[1];
       const layer1Size = w1.shape[0];
@@ -315,6 +342,8 @@ export function installMlp() {
         w3: { data: Float32Array.from(w3.data as ArrayLike<number>), shape: w3.shape },
         b3: { data: Float32Array.from(b3.data as ArrayLike<number>), shape: b3.shape },
         labels,
+        ...(window_size !== undefined ? { window_size } : {}),
+        ...(input_dim !== undefined ? { input_dim } : {}),
       };
       return true;
     } catch (e: any) {
@@ -470,23 +499,26 @@ export function installMlp() {
       }
 
       let x: Float32Array;
-      if (cols1Expected === 48870) {
-        // Temporal model (30 frames * 1629 features)
-        if (rollingBuffer.length < WINDOW_SIZE) {
+      const windowSize = mlp.window_size ?? WINDOW_SIZE;
+      const inputDim = mlp.input_dim ?? 1629; // Single frame feature size
+      
+      if (cols1Expected === windowSize * inputDim) {
+        // Temporal model
+        if (rollingBuffer.length < windowSize) {
           // Pad with replicates of the first available frame if buffer is not full
           const first = rollingBuffer[0]!;
-          const padded = new Float32Array(WINDOW_SIZE * 1629);
-          for (let i = 0; i < WINDOW_SIZE - rollingBuffer.length; i++) {
-            padded.set(first, i * 1629);
+          const padded = new Float32Array(windowSize * inputDim);
+          for (let i = 0; i < windowSize - rollingBuffer.length; i++) {
+            padded.set(first, i * inputDim);
           }
           for (let i = 0; i < rollingBuffer.length; i++) {
-            padded.set(rollingBuffer[i]!, (WINDOW_SIZE - rollingBuffer.length + i) * 1629);
+            padded.set(rollingBuffer[i]!, (windowSize - rollingBuffer.length + i) * inputDim);
           }
           x = padded;
         } else {
-          x = new Float32Array(WINDOW_SIZE * 1629);
-          for (let i = 0; i < WINDOW_SIZE; i++) {
-            x.set(rollingBuffer[i]!, i * 1629);
+          x = new Float32Array(windowSize * inputDim);
+          for (let i = 0; i < windowSize; i++) {
+            x.set(rollingBuffer[i]!, i * inputDim);
           }
         }
       } else {

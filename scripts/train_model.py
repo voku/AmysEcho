@@ -55,11 +55,8 @@ def _normalize(lm):
     if not lm:
         return None
 
-    # Handle both structured ([x,y,z] points) and flat formats
-    if isinstance(lm[0], list) and len(lm[0]) == 3:
-        pts = np.array(lm)
-    else:
-        pts = np.array(lm).reshape(-1, 3)
+    # Landmark data is expected to be flattened by prepare_data
+    pts = np.array(lm).reshape(-1, 3)
 
     num_pts = len(pts)
     
@@ -223,7 +220,7 @@ def augment_sample(sample: Dict[str, Any], num_augmentations: int = 3) -> List[D
         augmented.append({"label": sample["label"], "landmarks": augmented_landmarks.tolist()})
     return augmented
 
-def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float, profile_id_filter: Optional[str] = None):
+def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float, profile_id_filter: Optional[str] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, int], np.ndarray, np.ndarray]:
     with open(manifest_file, "r") as f:
         manifest = json.load(f)
     
@@ -389,43 +386,92 @@ def main():
     args = parser.parse_args()
 
     try:
+        # 1. Train Global Model
+        print("\n=== Training Global Model ===")
         X_train, y_train, X_test, y_test, label_to_idx, X_full, y_full = prepare_data(
-            args.manifest, args.augmentation_factor, args.test_split
+            args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=None
         )
         
-        # 1. Cross Validation (Optional)
         if args.k_fold > 1:
             run_cross_validation(X_full, y_full, label_to_idx, args, k=args.k_fold)
             
-        # 2. Standard Training
-        print("\n--- Training Final Model ---")
         mlp = MLP(X_train.shape[1], args.hidden_size, len(label_to_idx), args.hidden_size_2)
         mlp.train(X_train, y_train, args.epochs, args.learning_rate, verbose=True)
+        evaluate_detailed(mlp, X_test, y_test, label_to_idx, title="Global Test Set Evaluation")
         
-        evaluate_detailed(mlp, X_test, y_test, label_to_idx, title="Test Set Evaluation")
-        
-        # Save Model
+        # Save Global Model
         labels = sorted(label_to_idx.keys())
         os.makedirs(os.path.dirname(args.output_model), exist_ok=True)
         with open(args.output_model, "wb") as f:
             weights = {
                 'w1': mlp.w1.T, 'b1': mlp.b1,
                 'w2': mlp.w2.T, 'b2': mlp.b2,
-                'labels': labels
+                'labels': labels,
+                'window_size': 1,
+                'input_dim': X_train.shape[1],
+                'feature_size': X_train.shape[1],
+                'arch': 'mlp_multimodal_static'
             }
             if args.hidden_size_2 > 0:
                 weights.update({'w3': mlp.w3.T, 'b3': mlp.b3})
             np.savez(f, **weights)
-        print(f"\nModel saved to {args.output_model}")
+        print(f"Global model saved to {args.output_model}")
 
         if not args.skip_deploy:
             deploy_model(args.output_model, "app/assets")
 
-    except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+        # 2. Train Per-Profile Models
+        with open(args.manifest, "r") as f:
+            manifest = json.load(f)
+        
+        profile_ids = sorted({e.get("profileId") for e in manifest.get("entries", []) if e.get("profileId")})
+        
+        for profile_id in profile_ids:
+            print(f"\n=== Training Model for Profile: {profile_id} ===")
+            try:
+                X_train_p, y_train_p, X_test_p, y_test_p, label_to_idx_p, X_full_p, y_full_p = prepare_data(
+                    args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=profile_id
+                )
+                
+                mlp_p = MLP(X_train_p.shape[1], args.hidden_size, len(label_to_idx_p), args.hidden_size_2)
+                mlp_p.train(X_train_p, y_train_p, args.epochs, args.learning_rate, verbose=True)
+                evaluate_detailed(mlp_p, X_test_p, y_test_p, label_to_idx_p, title=f"Profile {profile_id} Evaluation")
+                
+                # Save Profile Model
+                profile_model_path = os.path.join(os.path.dirname(args.output_model), f"amy_model_{profile_id}.npz")
+                labels_p = sorted(label_to_idx_p.keys())
+                with open(profile_model_path, "wb") as f:
+                    weights_p = {
+                        'w1': mlp_p.w1.T, 'b1': mlp_p.b1,
+                        'w2': mlp_p.w2.T, 'b2': mlp_p.b2,
+                        'labels': labels_p,
+                        'window_size': 1,
+                        'input_dim': X_train_p.shape[1],
+                        'feature_size': X_train_p.shape[1],
+                        'arch': 'mlp_multimodal_static'
+                    }
+                    if args.hidden_size_2 > 0:
+                        weights_p.update({'w3': mlp_p.w3.T, 'b3': mlp_p.b3})
+                    np.savez(f, **weights_p)
+                print(f"Profile model saved to {profile_model_path}")
+                
+            except Exception as pe:
+                print(f"Warning: Failed to train model for profile {profile_id}: {pe}")
 
-if __name__ == "__main__":
-    main()
+        except Exception as e:
+
+            print(f"Error: {e}")
+
+            import traceback
+
+            traceback.print_exc()
+
+            sys.exit(1)
+
+    
+
+    if __name__ == "__main__":
+
+        main()
+
+    

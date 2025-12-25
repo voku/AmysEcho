@@ -71,7 +71,9 @@ describe('installMlp', () => {
       'b2.npy': createMockNpy(b2, [layer2]),
       'w3.npy': createMockNpy(w3, [output, layer2]),
       'b3.npy': createMockNpy(b3, [output]),
-      'labels.npy': createMockNpy(labels, [labels.length])
+      'labels.npy': createMockNpy(labels, [labels.length]),
+      'window_size.npy': createMockNpy(new Float32Array([inputDim === 126 ? 1 : 1]), [1]),
+      'input_dim.npy': createMockNpy(new Float32Array([1629]), [1])
     });
     
     return Buffer.from(zip).toString('base64');
