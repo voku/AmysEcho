@@ -230,6 +230,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       resetRecording,
       manualStillFile,
       handFocus,
+      getVariationMetrics,
     ],
   );
 
