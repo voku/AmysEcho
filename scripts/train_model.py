@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import subprocess
+import shutil
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
@@ -37,7 +38,10 @@ except ImportError:
     print("Warning: scikit-learn not found. Advanced validation disabled. Install with 'pip install scikit-learn'")
 
 # Density-Balanced Priority factors (Hands > Pose > Face)
-# This prevents the 1404 face features from drowning out the 126 hand features.
+# These factors were determined empirically to prevent the high-dimensional
+# modalities (like Face with 1404 features) from drowning out the low-dimensional
+# but highly critical modalities (like Hands with 126 features) during MLP training.
+# Ratio: Hands receive 3x boost, Body context 0.4x, Facial expressions 0.1x.
 HAND_PRIORITY_FACTOR = 3.0
 POSE_PRIORITY_FACTOR = 0.4
 FACE_PRIORITY_FACTOR = 0.1
@@ -61,8 +65,11 @@ def _normalize(lm):
     num_pts = len(pts)
     
     def _norm_geometric(points: np.ndarray, ref_idx: int, scale_indices: Tuple[int, int]) -> np.ndarray:
-        if len(points) <= ref_idx: return points
-        ref = points[ref_idx]
+        # Handle invalid ref_idx gracefully
+        if len(points) <= ref_idx:
+            ref = np.zeros(3)  # Use zero vector if ref_idx out of bounds
+        else:
+            ref = points[ref_idx]
         points = points - ref
         # Scaling
         if scale_indices[0] < len(points) and scale_indices[1] < len(points):
@@ -92,31 +99,23 @@ def _normalize(lm):
         hands_norm = np.zeros((42, 3))
 
     # 2. Pose (Indices 42-74)
-    pose_norm = np.array([])
+    pose_norm = np.zeros((33, 3))
     if num_pts >= 42 + 33:
         pose = pts[42:42+33]
         pose_norm = _norm_geometric(pose, 0, (11, 12)) * POSE_PRIORITY_FACTOR
-    elif num_pts > 42:
-        pose_norm = np.zeros((33, 3))
     
     # 3. Face (Indices 75-542)
-    face_norm = np.array([])
+    face_norm = np.zeros((468, 3))
     if num_pts >= 42 + 33 + 468:
         face = pts[42+33:42+33+468]
         face_norm = _norm_geometric(face, 1, (33, 263)) * FACE_PRIORITY_FACTOR
-    elif num_pts > 42 + 33:
-        face_norm = np.zeros((468, 3))
 
-    # Concatenate all available modalities to reach consistent size
-    result = hands_norm.flatten()
-    
-    if pose_norm.size > 0 or num_pts > 42:
-        if pose_norm.size == 0: pose_norm = np.zeros((33, 3))
-        result = np.concatenate([result, pose_norm.flatten()])
-        
-    if face_norm.size > 0 or num_pts > 42 + 33:
-        if face_norm.size == 0: face_norm = np.zeros((468, 3))
-        result = np.concatenate([result, face_norm.flatten()])
+    # Always output consistent 1629-element vector for multimodal pipeline
+    result = np.concatenate([
+        hands_norm.flatten(),
+        pose_norm.flatten(),
+        face_norm.flatten()
+    ])
         
     return result
 
@@ -203,14 +202,6 @@ class MLP:
             if verbose and (epoch + 1) % 100 == 0:
                 print(json.dumps({"type": "progress", "current": epoch + 1, "total": epochs, "loss": f"{loss:.4f}"}), flush=True)
 
-def run_command(cmd: str, cwd: Optional[str] = None) -> bool:
-    try:
-        result = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True)
-        return result.returncode == 0
-    except Exception as e:
-        print(f"Error running command: {e}")
-        return False
-
 def augment_sample(sample: Dict[str, Any], num_augmentations: int = 3) -> List[Dict[str, Any]]:
     augmented = [sample]
     landmarks = np.array(sample["landmarks"])
@@ -295,6 +286,7 @@ def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float
             # Fallback if some class has too few samples for stratification
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_split, random_state=42)
     else:
+        np.random.seed(42)
         indices = np.arange(X.shape[0])
         np.random.shuffle(indices)
         X, y = X[indices], y[indices]
@@ -364,12 +356,23 @@ def deploy_model(model_path: str, _app_assets_dir: str) -> bool:
     baseline_dir = os.path.join("server", "data", "models", "global")
     os.makedirs(baseline_dir, exist_ok=True)
     baseline_model = os.path.join(baseline_dir, "amy_model.npz")
-    if run_command(f"cp {model_path} {baseline_model}"):
+    
+    try:
+        shutil.copy2(model_path, baseline_model)
         print(f"Copied model to {baseline_model}")
-        if run_command("npm run build:webview", cwd="app"):
+        
+        # Rebuild WebView bundle
+        app_dir = os.path.abspath("app")
+        result = subprocess.run(["npm", "run", "build:webview"], cwd=app_dir, capture_output=True, text=True)
+        if result.returncode == 0:
             print("Rebuilt WebView bundle")
             return True
-    return False
+        else:
+            print(f"Error rebuilding WebView: {result.stderr}")
+            return False
+    except Exception as e:
+        print(f"Error deploying model: {e}")
+        return False
 
 def main():
     parser = argparse.ArgumentParser(description="Train and evaluate the gesture recognition model with multimodal support and advanced validation.")
@@ -403,17 +406,33 @@ def main():
         labels = sorted(label_to_idx.keys())
         os.makedirs(os.path.dirname(args.output_model), exist_ok=True)
         with open(args.output_model, "wb") as f:
-            weights = {
-                'w1': mlp.w1.T, 'b1': mlp.b1,
-                'w2': mlp.w2.T, 'b2': mlp.b2,
-                'labels': labels,
-                'window_size': 1,
-                'input_dim': X_train.shape[1],
-                'feature_size': X_train.shape[1],
-                'arch': 'mlp_multimodal_static'
-            }
             if args.hidden_size_2 > 0:
-                weights.update({'w3': mlp.w3.T, 'b3': mlp.b3})
+                weights = {
+                    'w1': mlp.w1.T, 'b1': mlp.b1,
+                    'w2': mlp.w2.T, 'b2': mlp.b2,
+                    'w3': mlp.w3.T, 'b3': mlp.b3,
+                    'labels': labels,
+                    'window_size': 1,
+                    'input_dim': X_train.shape[1],
+                    'feature_size': X_train.shape[1],
+                    'arch': 'mlp_multimodal_static'
+                }
+            else:
+                # 2-layer model: Pad with identity for 3-layer inference
+                # JS Layer 1: Input -> Hidden (Original Layer 1)
+                # JS Layer 2: Hidden -> Hidden (Identity)
+                # JS Layer 3: Hidden -> Output (Original Layer 2)
+                h_size = mlp.w1.shape[1]
+                weights = {
+                    'w1': mlp.w1.T, 'b1': mlp.b1,
+                    'w2': np.eye(h_size, dtype=np.float32), 'b2': np.zeros(h_size, dtype=np.float32),
+                    'w3': mlp.w2.T, 'b3': mlp.b2,
+                    'labels': labels,
+                    'window_size': 1,
+                    'input_dim': X_train.shape[1],
+                    'feature_size': X_train.shape[1],
+                    'arch': 'mlp_multimodal_static'
+                }
             np.savez(f, **weights)
         print(f"Global model saved to {args.output_model}")
 
@@ -441,37 +460,43 @@ def main():
                 profile_model_path = os.path.join(os.path.dirname(args.output_model), f"amy_model_{profile_id}.npz")
                 labels_p = sorted(label_to_idx_p.keys())
                 with open(profile_model_path, "wb") as f:
-                    weights_p = {
-                        'w1': mlp_p.w1.T, 'b1': mlp_p.b1,
-                        'w2': mlp_p.w2.T, 'b2': mlp_p.b2,
-                        'labels': labels_p,
-                        'window_size': 1,
-                        'input_dim': X_train_p.shape[1],
-                        'feature_size': X_train_p.shape[1],
-                        'arch': 'mlp_multimodal_static'
-                    }
                     if args.hidden_size_2 > 0:
-                        weights_p.update({'w3': mlp_p.w3.T, 'b3': mlp_p.b3})
+                        weights_p = {
+                            'w1': mlp_p.w1.T, 'b1': mlp_p.b1,
+                            'w2': mlp_p.w2.T, 'b2': mlp_p.b2,
+                            'w3': mlp_p.w3.T, 'b3': mlp_p.b3,
+                            'labels': labels_p,
+                            'window_size': 1,
+                            'input_dim': X_train_p.shape[1],
+                            'feature_size': X_train_p.shape[1],
+                            'arch': 'mlp_multimodal_static'
+                        }
+                    else:
+                        # 2-layer model: Pad with identity for 3-layer inference
+                        h_size_p = mlp_p.w1.shape[1]
+                        weights_p = {
+                            'w1': mlp_p.w1.T, 'b1': mlp_p.b1,
+                            'w2': np.eye(h_size_p, dtype=np.float32), 'b2': np.zeros(h_size_p, dtype=np.float32),
+                            'w3': mlp_p.w2.T, 'b3': mlp_p.b2,
+                            'labels': labels_p,
+                            'window_size': 1,
+                            'input_dim': X_train_p.shape[1],
+                            'feature_size': X_train_p.shape[1],
+                            'arch': 'mlp_multimodal_static'
+                        }
                     np.savez(f, **weights_p)
                 print(f"Profile model saved to {profile_model_path}")
                 
             except Exception as pe:
                 print(f"Warning: Failed to train model for profile {profile_id}: {pe}")
 
-        except Exception as e:
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
-            print(f"Error: {e}")
-
-            import traceback
-
-            traceback.print_exc()
-
-            sys.exit(1)
-
-    
-
-    if __name__ == "__main__":
-
-        main()
+if __name__ == "__main__":
+    main()
 
     

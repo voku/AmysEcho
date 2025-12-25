@@ -1,5 +1,5 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
-import { prepareMultimodalForMLP } from './utils/landmarkNormalizer';
+import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
 
 export function installMlp() {
   type Tensor = { data: Float32Array; shape: number[] };
@@ -24,6 +24,10 @@ export function installMlp() {
     });
   };
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
+  const WINDOW_SIZE = 30;
+  const TEMPORAL_FEATURES_SIZE = WINDOW_SIZE * MULTIMODAL_FEATURES_SIZE; // 48870
+  const rollingBuffer: Float32Array[] = [];
+
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     if (view.getUint8(0) !== 0x93) throw new Error('bad npy');
@@ -345,6 +349,8 @@ export function installMlp() {
         ...(window_size !== undefined ? { window_size } : {}),
         ...(input_dim !== undefined ? { input_dim } : {}),
       };
+      // Clear rolling buffer when loading new model to prevent dimension mismatches
+      rollingBuffer.length = 0;
       return true;
     } catch (e: any) {
       console.warn('MLP load failed:', e?.message ?? e);
@@ -397,11 +403,9 @@ export function installMlp() {
     return out;
   }
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
-  const WINDOW_SIZE = 30;
-  const rollingBuffer: Float32Array[] = [];
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
-    const isMultimodalInModel = mlp && (mlp.w1.shape[1] === 1629 || mlp.w1.shape[1] === 48870);
+    const isMultimodalInModel = mlp && (mlp.w1.shape[1] === MULTIMODAL_FEATURES_SIZE || mlp.w1.shape[1] === TEMPORAL_FEATURES_SIZE);
     
     let frameFeatures: Float32Array;
     
@@ -465,9 +469,9 @@ export function installMlp() {
       let k = 0;
       for (const p of both) {
         const [px = 0, py = 0, pz = 0] = p ?? [0, 0, 0];
-        flat[k++] = px * 3.0; // Apply priority factor matching backend
-        flat[k++] = py * 3.0;
-        flat[k++] = pz * 3.0;
+        flat[k++] = px * HAND_PRIORITY_FACTOR; // Apply priority factor matching backend
+        flat[k++] = py * HAND_PRIORITY_FACTOR;
+        flat[k++] = pz * HAND_PRIORITY_FACTOR;
       }
       frameFeatures = flat;
     }
@@ -500,7 +504,7 @@ export function installMlp() {
 
       let x: Float32Array;
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
-      const inputDim = mlp.input_dim ?? 1629; // Single frame feature size
+      const inputDim = mlp.input_dim ?? MULTIMODAL_FEATURES_SIZE; // Single frame feature size
       
       if (cols1Expected === windowSize * inputDim) {
         // Temporal model

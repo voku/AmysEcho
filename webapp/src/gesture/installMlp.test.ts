@@ -72,8 +72,8 @@ describe('installMlp', () => {
       'w3.npy': createMockNpy(w3, [output, layer2]),
       'b3.npy': createMockNpy(b3, [output]),
       'labels.npy': createMockNpy(labels, [labels.length]),
-      'window_size.npy': createMockNpy(new Float32Array([inputDim === 126 ? 1 : 1]), [1]),
-      'input_dim.npy': createMockNpy(new Float32Array([1629]), [1])
+      'window_size.npy': createMockNpy(new Float32Array([1]), [1]),
+      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1])
     });
     
     return Buffer.from(zip).toString('base64');
@@ -81,8 +81,6 @@ describe('installMlp', () => {
 
   const MINIMAL_3LAYER_ZIP_B64 = create3LayerZipB64(126, 10, 5, 1, ['hi']);
   const MULTIMODAL_3LAYER_ZIP_B64 = create3LayerZipB64(1629, 10, 5, 1, ['multimodal']);
-
-  // Helper to create realistic pose data (33 landmarks with x,y,z,visibility)
 
   // Helper to create realistic pose data (33 landmarks with x,y,z,visibility)
   function createPoseLandmarks(): number[][] {

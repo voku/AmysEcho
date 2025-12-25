@@ -937,12 +937,8 @@ def _normalize_frame(
 
     # Handle flat list or list of lists
     if isinstance(landmarks[0], (int, float)):
-        # Flat list - reshape to (42, 3) or whatever size it is
-        # But wait, input 'landmarks' is usually list of [x,y,z].
-        # If it's already flat, we need to handle it.
-        # Based on extract_landmarks_from_clip, it returns list of dicts with "landmarks": [[x,y,z], ...]
-        # So it should be list of lists.
         pts = np.array(landmarks, dtype=np.float32).reshape(-1, 3)
+        LOGGER.debug("Received flat landmark list; reshaped to (N, 3)")
     else:
         pts = np.array(landmarks, dtype=np.float32)
     
@@ -1038,6 +1034,12 @@ def create_sliding_windows(
     # Convert to array for efficient slicing
     arr = np.array(frame_vectors, dtype=np.float32)  # Shape: (T, 1629)
     seq_len, _ = arr.shape
+
+    # Validate feature dimension
+    if arr.shape[1] != INPUT_FEATURE_SIZE:
+        raise ValueError(
+            f"Expected frame vectors of size {INPUT_FEATURE_SIZE}, got {arr.shape[1]}"
+        )
 
     # ========== PADDING FOR SHORT CLIPS ==========
     if seq_len < WINDOW_SIZE:

@@ -178,30 +178,46 @@ def validate_model():
         import numpy as np
 
         # Load the model
-        with np.load(MODEL_FILE) as data:
+        with np.load(MODEL_FILE, allow_pickle=True) as data:
             w1 = data['w1']
             b1 = data['b1']
             w2 = data['w2']
             b2 = data['b2']
+            w3 = data['w3']
+            b3 = data['b3']
             labels = data['labels']
+            arch = str(data.get('arch', 'unknown'))
+            window_size = int(data.get('window_size', 0))
+            input_dim = int(data.get('input_dim', 0))
 
         print(f"✓ Model loaded successfully")
-        print(f"  - Input layer: {w1.shape[1]} -> {w1.shape[0]}")
-        print(f"  - Hidden layer: {w1.shape[0]} -> {w2.shape[0]}")
-        print(f"  - Output layer: {w2.shape[0]} -> {w2.shape[1]}")
-        print(f"  - Classes: {list(labels)}")
+        print(f"  - Architecture: {arch}")
+        print(f"  - Window Size: {window_size}")
+        print(f"  - Input Dim: {input_dim}")
+        print(f"  - W1 shape: {w1.shape}")
+        print(f"  - W2 shape: {w2.shape}")
+        print(f"  - W3 shape: {w3.shape}")
+        print(f"  - Classes: {len(labels)} ({list(labels)[:5]}...)")
 
-        # Basic validation - check shapes are reasonable
-        assert w1.shape[0] == 126, f"Input size mismatch: {w1.shape[0]}"  # 42 landmarks * 3 coordinates
-        assert w1.shape[1] == 128, f"Hidden layer size mismatch: {w1.shape[1]}"
-        assert w2.shape[0] == 128, f"Hidden to output layer size mismatch: {w2.shape[0]}"
-        assert w2.shape[1] == len(labels), f"Output size mismatch: {w2.shape[1]} vs {len(labels)}"
+        # Basic validation for the new 3-layer temporal architecture
+        # Expecting input_dim = 1629, window_size = 30, so W1 input = 48870
+        # W1 is stored as (hidden, input) in train_mlp.py's save_model? 
+        # Actually save_model does: "w1": np.array(w1.T, order="C")
+        # In train_mlp.py: w1 shape is (input_dim, layer1_size)
+        # So w1.T shape is (layer1_size, input_dim)
+        
+        expected_input = input_dim * window_size
+        assert w1.shape[1] == expected_input, f"Input size mismatch: {w1.shape[1]} vs {expected_input}"
+        assert w3.shape[0] == len(labels), f"Output size mismatch: {w3.shape[0]} vs {len(labels)}"
+        assert arch == "mlp_3layer_window", f"Unexpected architecture: {arch}"
 
         print("✓ Model validation passed")
         return True
 
     except Exception as e:
         print(f"✗ Model validation failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def main():

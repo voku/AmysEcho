@@ -91,16 +91,18 @@ class DGSVideoProcessor:
         hands_data = [[0.0, 0.0, 0.0] for _ in range(42)]
         
         left_done, right_done = False, False
-        for hand_landmarks, handedness in zip(hand_result.hand_landmarks, hand_result.handedness):
+        for hand_landmarks, handedness in zip(hand_result.hand_landmarks, hand_result.handedness, strict=False):
             label = handedness[0].category_name
             
             coords = [[lm.x, lm.y, lm.z] for lm in hand_landmarks]
             
             if label == 'Left' and not left_done:
-                for j in range(min(21, len(coords))): hands_data[j] = coords[j]
+                for j in range(min(21, len(coords))):
+                    hands_data[j] = coords[j]
                 left_done = True
             elif label == 'Right' and not right_done:
-                for j in range(min(21, len(coords))): hands_data[21 + j] = coords[j]
+                for j in range(min(21, len(coords))):
+                    hands_data[21 + j] = coords[j]
                 right_done = True
 
         # --- POSE (33 points) ---
@@ -160,7 +162,8 @@ class DGSVideoProcessor:
                 break
                 
             frame_count += 1
-            if frame_count % frame_skip != 0: continue
+            if frame_count % frame_skip != 0:
+                continue
             
             processed_frames += 1
             landmarks = self.extract_frame(frame)
@@ -182,7 +185,7 @@ class DGSVideoProcessor:
         """Load video-to-gesture mapping from manifest or use fallback mapping"""
         if manifest_path and os.path.exists(manifest_path):
             try:
-                with open(manifest_path, 'r') as f:
+                with open(manifest_path, 'r', encoding='utf-8') as f:
                     manifest_data = json.load(f)
                     mapping = {}
                     for gesture_info in manifest_data.get('gestures', []):
@@ -227,7 +230,6 @@ class DGSVideoProcessor:
             return []
         
         successful_frames = 0
-        total_frames = 0
         
         for f in files:
             label = video_gesture_map.get(f)
@@ -240,7 +242,6 @@ class DGSVideoProcessor:
                 video_samples = self.process_video(path, label, max_frames, frame_skip)
                 all_samples.extend(video_samples)
                 successful_frames += len(video_samples)
-                total_frames += max_frames // frame_skip
             else:
                 print(f"Skipping {f} (unknown label)")
                 
@@ -250,9 +251,17 @@ class DGSVideoProcessor:
 def save_output(samples: List[Dict[str, Any]], output_path: str, split_output: bool, videos_dir: str):
     # Bulk save
     if output_path:
-        data = {"samples": [{"label": s["label"], "landmarks": s["landmarks"]} for s in samples]}
-        with open(output_path, 'w') as f: json.dump(data, f)
-        print(f"Saved bulk data to {output_path}")
+        try:
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir, exist_ok=True)
+                
+            data = {"samples": [{"label": s["label"], "landmarks": s["landmarks"]} for s in samples]}
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f)
+            print(f"Saved bulk data to {output_path}")
+        except (OSError, IOError) as e:
+            print(f"Error: Failed to write bulk output to {output_path}: {e}")
 
     # Split save (for training manifest)
     if split_output:
@@ -260,15 +269,20 @@ def save_output(samples: List[Dict[str, Any]], output_path: str, split_output: b
         for s in samples:
             src = s.get("video_source")
             if src:
-                if src not in grouped: grouped[src] = []
+                if src not in grouped:
+                    grouped[src] = []
                 grouped[src].append(s)
         
         for src, group in grouped.items():
             gesture = os.path.splitext(src)[0]
             out_file = os.path.join(videos_dir, f"{gesture}_landmarks.json")
-            frames = [{"landmarks": s["landmarks"]} for s in group]
-            with open(out_file, 'w') as f: json.dump({"frames": frames}, f)
-            print(f"Updated {out_file}")
+            try:
+                frames = [{"landmarks": s["landmarks"]} for s in group]
+                with open(out_file, 'w', encoding='utf-8') as f:
+                    json.dump({"frames": frames}, f)
+                print(f"Updated {out_file}")
+            except (OSError, IOError) as e:
+                print(f"Error: Failed to write {out_file}: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Process DGS videos to extract multimodal landmarks for training")

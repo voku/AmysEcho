@@ -24,6 +24,14 @@ export type SignLanguageHookOptions = {
 
 export type SignLanguageStatus = 'idle' | 'initializing' | 'running' | 'stopped' | 'error';
 
+export type VariationMetrics = {
+  dominantCluster: string;
+  variationDiversity?: number;
+  activeClusters?: number;
+  recommendTraining?: boolean;
+  reason?: string;
+};
+
 export type SignLanguageHookResult = {
   start: () => Promise<boolean>;
   stop: () => Promise<void>;
@@ -35,7 +43,7 @@ export type SignLanguageHookResult = {
   lastHandedness: string[];
   lastConfidence: number | null;
   messageLog: SignLanguageMessage[];
-  getVariationMetrics: (gesture: string) => any;
+  getVariationMetrics: (gesture: string) => VariationMetrics | undefined;
 };
 
 const UNKNOWN_TYPE = 'unbekannt';
@@ -256,7 +264,16 @@ export function useSignLanguageDetector(
   }, [cleanup]);
 
   const getVariationMetrics = useCallback((gesture: string) => {
-    return orchestratorRef.current?.getVariationMetrics(gesture);
+    const metrics = orchestratorRef.current?.getVariationMetrics(gesture);
+    if (!metrics) return undefined;
+    
+    return {
+      dominantCluster: metrics.dominantCluster,
+      variationDiversity: metrics.variationDiversity,
+      activeClusters: metrics.activeClusters,
+      recommendTraining: metrics.recommendTraining,
+      ...(metrics.reason !== undefined ? { reason: metrics.reason } : {}),
+    };
   }, []);
 
   return {

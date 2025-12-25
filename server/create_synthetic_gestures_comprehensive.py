@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
 """Create comprehensive synthetic gesture dataset with proper temporal variation"""
 
 import json
-import sys
 import numpy as np
 from pathlib import Path
 
@@ -11,7 +9,7 @@ def generate_realistic_hand_gesture(gesture_type, num_frames=30):
     
     frames = []
     
-    if gesture_type == "HELLO":
+    if gesture_type == "HALLO":
         # Waving: open hand moving from right to left
         for i in range(num_frames):
             t = i / (num_frames - 1)  # Normalized time 0-1
@@ -24,14 +22,14 @@ def generate_realistic_hand_gesture(gesture_type, num_frames=30):
             landmarks = []
             for landmark_idx in range(42):
                 if landmark_idx < 21:  # Left hand
-                    lm_x = base_x - 0.1 + np.random.normal(0, 0.01)
-                    lm_y = base_y - 0.05 + np.random.normal(0, 0.005)
+                    lm_x = base_x - 0.1 + np.random.normal(0, 0.01) + landmark_idx * 0.001
+                    lm_y = base_y - 0.05 + np.random.normal(0, 0.005) + (landmark_idx % 5) * 0.002
                     lm_z = np.random.normal(0, 0.002)
                 else:  # Right hand
                     wave_x = base_x + np.sin(t * 6 * np.pi) * 0.1
                     wave_y = base_y + np.cos(t * 6 * np.pi) * 0.03
-                    lm_x = wave_x + np.random.normal(0, 0.01)
-                    lm_y = wave_y + np.random.normal(0, 0.005)
+                    lm_x = wave_x + np.random.normal(0, 0.01) + (landmark_idx - 21) * 0.001
+                    lm_y = wave_y + np.random.normal(0, 0.005) + ((landmark_idx - 21) % 5) * 0.002
                     lm_z = np.random.normal(0, 0.005)
                 
                 landmarks.append([lm_x, lm_y, lm_z])
@@ -44,8 +42,8 @@ def generate_realistic_hand_gesture(gesture_type, num_frames=30):
             base_x, base_y = 0.5, 0.6 + t * 0.05
             landmarks = []
             for landmark_idx in range(42):
-                lm_x = base_x + (0.02 if landmark_idx >= 21 else -0.02) + np.random.normal(0, 0.005)
-                lm_y = base_y + np.random.normal(0, 0.005)
+                lm_x = base_x + (0.02 if landmark_idx >= 21 else -0.02) + np.random.normal(0, 0.005) + (landmark_idx % 21) * 0.001
+                lm_y = base_y + np.random.normal(0, 0.005) + (landmark_idx % 21) * 0.001
                 lm_z = np.random.normal(0, 0.002)
                 landmarks.append([lm_x, lm_y, lm_z])
             frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
@@ -56,8 +54,8 @@ def generate_realistic_hand_gesture(gesture_type, num_frames=30):
             base_x, base_y = 0.5, 0.4 + t * 0.2
             landmarks = []
             for landmark_idx in range(42):
-                lm_x = base_x + np.random.normal(0, 0.01)
-                lm_y = base_y + np.random.normal(0, 0.01)
+                lm_x = base_x + np.random.normal(0, 0.01) + landmark_idx * 0.001
+                lm_y = base_y + np.random.normal(0, 0.01) + (landmark_idx % 5) * 0.002
                 lm_z = t * 0.1 + np.random.normal(0, 0.005)
                 landmarks.append([lm_x, lm_y, lm_z])
             frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
@@ -68,8 +66,8 @@ def generate_realistic_hand_gesture(gesture_type, num_frames=30):
             base_x, base_y = 0.5, 0.4 + np.sin(t * 4 * np.pi) * 0.05
             landmarks = []
             for landmark_idx in range(42):
-                lm_x = base_x + np.random.normal(0, 0.005)
-                lm_y = base_y + np.random.normal(0, 0.005)
+                lm_x = base_x + np.random.normal(0, 0.005) + landmark_idx * 0.001
+                lm_y = base_y + np.random.normal(0, 0.005) + (landmark_idx % 5) * 0.002
                 lm_z = np.random.normal(0, 0.002)
                 landmarks.append([lm_x, lm_y, lm_z])
             frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
@@ -80,19 +78,19 @@ def generate_realistic_hand_gesture(gesture_type, num_frames=30):
             base_x, base_y = 0.5 + np.sin(t * 6 * np.pi) * 0.1, 0.4
             landmarks = []
             for landmark_idx in range(42):
-                lm_x = base_x + np.random.normal(0, 0.005)
-                lm_y = base_y + np.random.normal(0, 0.005)
+                lm_x = base_x + np.random.normal(0, 0.005) + landmark_idx * 0.001
+                lm_y = base_y + np.random.normal(0, 0.005) + (landmark_idx % 5) * 0.002
                 lm_z = np.random.normal(0, 0.002)
                 landmarks.append([lm_x, lm_y, lm_z])
             frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
     else:
         # Fallback for unknown gestures: random motion around center
         print(f"   Warning: No specific implementation for {gesture_type}, using fallback.")
-        for i in range(num_frames):
+        for _ in range(num_frames):
             landmarks = []
             for landmark_idx in range(42):
-                lm_x = 0.5 + np.random.normal(0, 0.05)
-                lm_y = 0.5 + np.random.normal(0, 0.05)
+                lm_x = 0.5 + np.random.normal(0, 0.05) + landmark_idx * 0.001
+                lm_y = 0.5 + np.random.normal(0, 0.05) + (landmark_idx % 5) * 0.002
                 lm_z = np.random.normal(0, 0.01)
                 landmarks.append([lm_x, lm_y, lm_z])
             frames.append({"landmarks": np.array(landmarks, dtype=np.float32).tolist()})
@@ -179,11 +177,11 @@ def main():
     
     print("\n🎉 Comprehensive synthetic dataset creation complete!")
     print("📊 Dataset summary:")
-    print(f"   - Gestures: HALLO, BITTE, DANKE, JA, NEIN (5 German gestures)")
-    print(f"   - 125 frames total with realistic temporal dynamics")
-    print(f"   - Proper MediaPipe hand landmark coordinates (non-zero)")
-    print(f"   - Natural hand movement patterns and anatomy")
-    print(f"   - Ready for MLP training with actual gesture recognition capability")
+    print("   - Gestures: HALLO, BITTE, DANKE, JA, NEIN (5 German gestures)")
+    print("   - 125 frames total with realistic temporal dynamics")
+    print("   - Proper MediaPipe hand landmark coordinates (non-zero)")
+    print("   - Natural hand movement patterns and anatomy")
+    print("   - Ready for MLP training with actual gesture recognition capability")
     
     return samples_file, manifest_file
 

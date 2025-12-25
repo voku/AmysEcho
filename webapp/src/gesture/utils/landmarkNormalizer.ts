@@ -77,26 +77,26 @@ export function convertToPoints(landmarks: number[][]): Point[] {
 }
 
 // MediaPipe Landmark Constants
-const MEDIAPIPE_HAND_LANDMARKS = 21;  // Landmarks per hand
-const MEDIAPIPE_POSE_LANDMARKS = 33;  // Pose landmarks  
-const MEDIAPIPE_FACE_LANDMARKS = 468; // Face mesh landmarks
+export const MEDIAPIPE_HAND_LANDMARKS = 21;  // Landmarks per hand
+export const MEDIAPIPE_POSE_LANDMARKS = 33;  // Pose landmarks  
+export const MEDIAPIPE_FACE_LANDMARKS = 468; // Face mesh landmarks
 
 // Hand Landmark Indices
-const MEDIAPIPE_FACE_NOSE_TIP = 1;        // Nose tip landmark
-const MEDIAPIPE_FACE_LEFT_EYE = 33;       // Left eye center  
-const MEDIAPIPE_FACE_RIGHT_EYE = 263;     // Right eye center
+export const MEDIAPIPE_FACE_NOSE_TIP = 1;        // Nose tip landmark
+export const MEDIAPIPE_FACE_LEFT_EYE = 33;       // Left eye center  
+export const MEDIAPIPE_FACE_RIGHT_EYE = 263;     // Right eye center
 
 // Feature Vector Sizes
-const HAND_FEATURES_SIZE = MEDIAPIPE_HAND_LANDMARKS * 3 * 2; // 2 hands × 21 landmarks × 3 coords = 126
-const POSE_FEATURES_SIZE = MEDIAPIPE_POSE_LANDMARKS * 3;   // 33 landmarks × 3 coords = 99
-const FACE_FEATURES_SIZE = MEDIAPIPE_FACE_LANDMARKS * 3;  // 468 landmarks × 3 coords = 1404
-const MULTIMODAL_FEATURES_SIZE = HAND_FEATURES_SIZE + POSE_FEATURES_SIZE + FACE_FEATURES_SIZE; // 1629
+export const HAND_FEATURES_SIZE = MEDIAPIPE_HAND_LANDMARKS * 3 * 2; // 2 hands × 21 landmarks × 3 coords = 126
+export const POSE_FEATURES_SIZE = MEDIAPIPE_POSE_LANDMARKS * 3;   // 33 landmarks × 3 coords = 99
+export const FACE_FEATURES_SIZE = MEDIAPIPE_FACE_LANDMARKS * 3;  // 468 landmarks × 3 coords = 1404
+export const MULTIMODAL_FEATURES_SIZE = HAND_FEATURES_SIZE + POSE_FEATURES_SIZE + FACE_FEATURES_SIZE; // 1629
 
 // Density-Balanced Priority factors (Hands > Pose > Face)
 // This prevents the 1404 face features from drowning out the 126 hand features.
-const HAND_PRIORITY_FACTOR = 3.0;
-const POSE_PRIORITY_FACTOR = 0.4;
-const FACE_PRIORITY_FACTOR = 0.1;
+export const HAND_PRIORITY_FACTOR = 3.0;
+export const POSE_PRIORITY_FACTOR = 0.4;
+export const FACE_PRIORITY_FACTOR = 0.1;
 
 /**
  * Get normalized landmark data ready for MLP classification.

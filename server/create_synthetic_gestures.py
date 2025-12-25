@@ -2,7 +2,6 @@
 """Create synthetic gesture data with realistic hand movements"""
 
 import json
-import sys
 import numpy as np
 from pathlib import Path
 
@@ -13,27 +12,27 @@ def create_synthetic_gesture_data():
     gestures = {
         "HALLO": [
             # Waving gesture - open hand moving
-            [[0.4 + i*0.02, 0.3 + np.sin(i*0.2)*0.1, 0.05 + np.cos(i*0.15)*0.02] for _ in range(42)]
+            [[0.4 + i*0.02 + lm*0.005, 0.3 + np.sin(i*0.2)*0.1 + (lm % 21)*0.01, 0.05 + np.cos(i*0.15)*0.02] for lm in range(42)]
              for i in range(20)
         ],
         "BITTE": [
             # Please gesture - flat hand with slight movement
-            [[0.45 + np.sin(i*0.1)*0.03, 0.5 + np.cos(i*0.08)*0.02, 0.0] for _ in range(42)]
+            [[0.45 + np.sin(i*0.1)*0.03 + lm*0.002, 0.5 + np.cos(i*0.08)*0.02 + (lm % 21)*0.005, 0.0] for lm in range(42)]
              for i in range(15)
         ],
         "DANKE": [
             # Thank you gesture - closing hand
-            [[0.4 - i*0.01, 0.2 + i*0.008, 0.0] for _ in range(42)]
+            [[0.4 - i*0.01 + lm*0.003, 0.2 + i*0.008 + (lm % 21)*0.004, 0.0] for lm in range(42)]
              for i in range(20)
         ],
         "JA": [
             # Yes gesture - thumbs up variation
-            [[0.35, 0.25 + i*0.005, 0.1 + np.sin(i*0.2)*0.02] for _ in range(42)]
+            [[0.35 + lm*0.001, 0.25 + i*0.005 + (lm % 21)*0.002, 0.1 + np.sin(i*0.2)*0.02] for lm in range(42)]
              for i in range(25)
         ],
         "NEIN": [
             # No gesture - head shaking equivalent for hands
-            [[0.4 + np.sin(i*0.3)*0.05, 0.3 + np.cos(i*0.25)*0.05, 0.0] for _ in range(42)]
+            [[0.4 + np.sin(i*0.3)*0.05 + lm*0.002, 0.3 + np.cos(i*0.25)*0.05 + (lm % 21)*0.002, 0.0] for lm in range(42)]
              for i in range(15)
         ]
     }
@@ -120,10 +119,10 @@ def main():
     
     print("\n🎉 Synthetic dataset creation complete!")
     print("📊 Dataset summary:")
-    print(f"   - Gestures: HALLO, BITTE, DANKE, JA, NEIN (5 German gestures)")
-    print(f"   - Realistic hand movements with proper temporal variation")
-    print(f"   - Non-zero landmark coordinates for training")
-    print(f"   - Ready for MLP training with actual gesture patterns")
+    print("   - Gestures: HALLO, BITTE, DANKE, JA, NEIN (5 German gestures)")
+    print("   - Realistic hand movements with proper temporal variation")
+    print("   - Non-zero landmark coordinates for training")
+    print("   - Ready for MLP training with actual gesture patterns")
     
     return samples_file, manifest_file
 

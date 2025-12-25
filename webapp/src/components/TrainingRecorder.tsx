@@ -190,10 +190,10 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       // Get variation learning insights
       const metrics = getVariationMetrics(label.trim());
       const variationData = metrics ? {
-        clusterId: metrics.dominantCluster !== 'none' ? metrics.dominantCluster : undefined,
-        variationDiversity: metrics.variationDiversity,
-        canonicalTemplates: metrics.activeClusters,
-      } : {};
+        ...(metrics.dominantCluster !== 'none' ? { clusterId: metrics.dominantCluster } : {}),
+        ...(metrics.variationDiversity !== undefined ? { variationDiversity: metrics.variationDiversity } : {}),
+        ...(metrics.activeClusters !== undefined ? { canonicalTemplates: metrics.activeClusters } : {}),
+      } : null;
 
       const recording = {
         ...(recordedData.frameCount > 0 ? { frameCount: recordedData.frameCount } : {}),
@@ -213,7 +213,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         stillFile,
         clipFile: recordedData.clipFile,
         handFocus,
-        variationData,
+        ...(variationData && Object.keys(variationData).length > 0 ? { variationData } : {}),
         ...(Object.keys(recording).length > 0 ? { recording } : {}),
       };
 
