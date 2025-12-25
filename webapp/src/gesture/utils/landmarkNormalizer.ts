@@ -284,8 +284,10 @@ function normalizeFaceFullForMLP(face: number[][]): Float32Array {
    return result;
  }
 
+
+
 /**
- * Calculate the centroid of a hand landmark set.
+ * Calculate centroid of a hand landmark set.
  */
 export function calculateCentroid(landmarks: Point[]): Point {
   if (!landmarks || landmarks.length === 0) {

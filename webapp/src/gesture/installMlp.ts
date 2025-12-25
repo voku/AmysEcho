@@ -1,7 +1,16 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
+import { enhancePredictionWithFeedback } from './performanceFeedback';
 
-export function installMlp() {
+export type ModelMetadata = {
+  window_size?: number;
+  input_dim?: number;
+  arch?: string;
+  feature_size?: number;
+  labels?: string[];
+};
+
+export function installMlp(customModelData?: string): boolean | void {
   type Tensor = { data: Float32Array; shape: number[] };
   type Landmark = readonly [number, number, number];
   type Hand = ReadonlyArray<Landmark>;
@@ -24,9 +33,9 @@ export function installMlp() {
     });
   };
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
-  const WINDOW_SIZE = 30;
-  const TEMPORAL_FEATURES_SIZE = WINDOW_SIZE * MULTIMODAL_FEATURES_SIZE; // 48870
-  const rollingBuffer: Float32Array[] = [];
+  let WINDOW_SIZE = 30; // Default, will be updated from model metadata
+  let TEMPORAL_FEATURES_SIZE = WINDOW_SIZE * MULTIMODAL_FEATURES_SIZE;
+  let rollingBuffer: Float32Array[] = [];
 
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -336,7 +345,13 @@ export function installMlp() {
         throw new Error(`Dimension mismatch: b3 has ${b3.shape[0]} but expected ${outputSize}`);
       }
 
+      // Update temporal window parameters from model metadata
+      WINDOW_SIZE = window_size || 30;
+      TEMPORAL_FEATURES_SIZE = WINDOW_SIZE * (input_dim || MULTIMODAL_FEATURES_SIZE);
+      rollingBuffer = []; // Reset buffer with new window size
+      
       console.log(`MLP model loaded: ${inputSize} -> ${layer1Size} -> ${layer2Size} -> ${outputSize} (${labels.length} labels)`);
+      console.log(`Temporal config: window_size=${WINDOW_SIZE}, input_dim=${input_dim || MULTIMODAL_FEATURES_SIZE}`);
 
       mlp = {
         w1: { data: Float32Array.from(w1.data as ArrayLike<number>), shape: w1.shape },
@@ -358,7 +373,42 @@ export function installMlp() {
       mlp = null;
       return false;
     }
+    
+    // Try custom model data first (for profile models)
+    if (customModelData) {
+      const modelData = customModelData as string;
+      if (await loadMlpFromB64(modelData)) {
+        forwardTelemetry('mlp_custom_loaded', { size: modelData.length });
+        return true;
+      }
+      throw new Error('Failed to load custom model data');
+    }
+
+    // bundled model loading would go here if needed
+    // For now, try server fallback
+
+    // Try server fallback
+    try {
+      const modelUrl = '/api/models/current';
+      const response = await fetch(modelUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const serverB64 = await response.text();
+      if (await loadMlpFromB64(serverB64)) {
+        forwardTelemetry('mlp_server_loaded');
+        return true;
+      }
+    } catch (e) {
+      console.warn('Server model fallback failed:', e);
+      forwardTelemetry('mlp_server_failed', { error: String(e) });
+    }
+
+    // All loading attempts failed
+    console.warn('All model loading attempts failed');
+    return false;
   }
+  
   function relu(x: Float32Array) {
     for (let i = 0; i < x.length; i++) {
       const value = x[i] ?? 0;
@@ -484,6 +534,7 @@ export function installMlp() {
     poseLandmarks?: number[][],
     faceLandmarks?: number[][]
   ) {
+    const startTime = performance.now();
     try {
       if (!mlp) return null;
       
@@ -574,7 +625,12 @@ export function installMlp() {
         return null;
       }
       const label = mlp.labels?.[bestI] ?? String(bestI);
-      return { label, score: best };
+      const prediction = { label, score: best };
+      
+      // Record prediction for performance feedback
+      enhancePredictionWithFeedback(prediction, performance.now() - startTime);
+      
+      return prediction;
     } catch (e) {
       console.warn('MLP prediction failed:', e);
       return null;
