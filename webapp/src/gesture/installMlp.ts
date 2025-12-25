@@ -12,6 +12,8 @@ export function installMlp() {
     b1: Tensor;
     w2: Tensor;
     b2: Tensor;
+    w3: Tensor;
+    b3: Tensor;
     labels: string[];
   };
   const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
@@ -19,7 +21,7 @@ export function installMlp() {
       console.warn(`Failed to send '${event}' telemetry event:`, err);
     });
   };
-  let mlp: MlpModel | null = null; // { w1,b1,w2,b2,labels }
+  let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     if (view.getUint8(0) !== 0x93) throw new Error('bad npy');
@@ -203,9 +205,13 @@ export function installMlp() {
       const b1b = npzFind(map, 'b1');
       const w2b = npzFind(map, 'w2');
       const b2b = npzFind(map, 'b2');
-      if (!w1b || !b1b || !w2b || !b2b) throw new Error('missing weights');
+      const w3b = npzFind(map, 'w3');
+      const b3b = npzFind(map, 'b3');
+      
+      if (!w1b || !b1b || !w2b || !b2b || !w3b || !b3b) throw new Error('missing weights for 3-layer model');
+      
       // Parse and validate model weights
-      let w1, b1, w2, b2, labels: string[] = [];
+      let w1, b1, w2, b2, w3, b3, labels: string[] = [];
 
        try {
          w1 = parseNPY(w1b);
@@ -243,6 +249,24 @@ export function installMlp() {
         throw new Error('Failed to parse b2 biases: ' + (e instanceof Error ? e.message : String(e)));
       }
 
+      try {
+        w3 = parseNPY(w3b);
+        if (!w3.data || w3.shape.length !== 2) {
+          throw new Error('Invalid w3 tensor: expected 2D array');
+        }
+      } catch (e) {
+        throw new Error('Failed to parse w3 weights: ' + (e instanceof Error ? e.message : String(e)));
+      }
+
+     try {
+       b3 = parseNPY(b3b);
+       if (!b3.data || b3.shape.length !== 1) {
+         throw new Error('Invalid b3 tensor: expected 1D array');
+       }
+     } catch (e) {
+       throw new Error('Failed to parse b3 biases: ' + (e instanceof Error ? e.message : String(e)));
+     }
+
       // Parse labels if available
       const lb = npzFind(map, 'labels');
       if (lb) {
@@ -261,26 +285,35 @@ export function installMlp() {
       }
       // Validate tensor dimensions for MLP compatibility
       const inputSize = w1.shape[1];
-      const hiddenSize = w1.shape[0];
-      const outputSize = w2.shape[0];
+      const layer1Size = w1.shape[0];
+      const layer2Size = w2.shape[0];
+      const outputSize = w3.shape[0];
 
-      if (b1.shape[0] !== hiddenSize) {
-        throw new Error(`Dimension mismatch: b1 has ${b1.shape[0]} elements but expected ${hiddenSize}`);
+      if (b1.shape[0] !== layer1Size) {
+        throw new Error(`Dimension mismatch: b1 has ${b1.shape[0]} but expected ${layer1Size}`);
       }
-      if (w2.shape[1] !== hiddenSize) {
-        throw new Error(`Dimension mismatch: w2 input size ${w2.shape[1]} doesn't match hidden size ${hiddenSize}`);
+      if (w2.shape[1] !== layer1Size) {
+        throw new Error(`Dimension mismatch: w2 input ${w2.shape[1]} doesn't match layer1 ${layer1Size}`);
       }
-      if (b2.shape[0] !== outputSize) {
-        throw new Error(`Dimension mismatch: b2 has ${b2.shape[0]} elements but expected ${outputSize}`);
+      if (b2.shape[0] !== layer2Size) {
+        throw new Error(`Dimension mismatch: b2 has ${b2.shape[0]} but expected ${layer2Size}`);
+      }
+      if (w3.shape[1] !== layer2Size) {
+        throw new Error(`Dimension mismatch: w3 input ${w3.shape[1]} doesn't match layer2 ${layer2Size}`);
+      }
+      if (b3.shape[0] !== outputSize) {
+        throw new Error(`Dimension mismatch: b3 has ${b3.shape[0]} but expected ${outputSize}`);
       }
 
-      console.log(`MLP model loaded successfully: ${inputSize} -> ${hiddenSize} -> ${outputSize} with ${labels.length} labels`);
+      console.log(`MLP model loaded: ${inputSize} -> ${layer1Size} -> ${layer2Size} -> ${outputSize} (${labels.length} labels)`);
 
       mlp = {
         w1: { data: Float32Array.from(w1.data as ArrayLike<number>), shape: w1.shape },
         b1: { data: Float32Array.from(b1.data as ArrayLike<number>), shape: b1.shape },
         w2: { data: Float32Array.from(w2.data as ArrayLike<number>), shape: w2.shape },
         b2: { data: Float32Array.from(b2.data as ArrayLike<number>), shape: b2.shape },
+        w3: { data: Float32Array.from(w3.data as ArrayLike<number>), shape: w3.shape },
+        b3: { data: Float32Array.from(b3.data as ArrayLike<number>), shape: b3.shape },
         labels,
       };
       return true;
@@ -469,18 +502,29 @@ export function installMlp() {
       
       const b1Shape = mlp.b1.shape[0];
       if (b1Shape === undefined || b1Shape !== rows1) throw new Error('b1 dimension mismatch');
+      
+      // Layer 1: Input -> 1024
       const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);
       const a1 = relu(z1);
+      
+      // Layer 2: 1024 -> 512
       const [rows2Raw, cols2] = mlp.w2.shape;
       const rows2 = rows2Raw ?? 0;
-      if (cols2 === undefined || rows2 === 0) {
-        throw new Error('Invalid w2 shape');
-      }
-      if (cols2 !== a1.length) throw new Error('Hidden layer size mismatch');
-      const b2Shape = mlp.b2.shape[0];
-      if (b2Shape === undefined || b2Shape !== rows2) throw new Error('b2 dimension mismatch');
+      if (cols2 === undefined || rows2 === 0) throw new Error('Invalid w2 shape');
+      if (cols2 !== a1.length) throw new Error('Layer 2 input size mismatch');
+      
       const z2 = affineMV(mlp.w2.data, rows2, cols2, a1, mlp.b2.data);
-      const probs = softmax(z2);
+      const a2 = relu(z2);
+      
+      // Layer 3: 512 -> Output
+      const [rows3Raw, cols3] = mlp.w3.shape;
+      const rows3 = rows3Raw ?? 0;
+      if (cols3 === undefined || rows3 === 0) throw new Error('Invalid w3 shape');
+      if (cols3 !== a2.length) throw new Error('Layer 3 input size mismatch');
+      
+      const z3 = affineMV(mlp.w3.data, rows3, cols3, a2, mlp.b3.data);
+      const probs = softmax(z3);
+      
       let bestI = 0;
       let best = probs[0] ?? -Infinity;
       for (let i = 1; i < probs.length; i++) {

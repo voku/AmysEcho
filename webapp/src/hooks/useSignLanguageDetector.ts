@@ -35,6 +35,7 @@ export type SignLanguageHookResult = {
   lastHandedness: string[];
   lastConfidence: number | null;
   messageLog: SignLanguageMessage[];
+  getVariationMetrics: (gesture: string) => any;
 };
 
 const UNKNOWN_TYPE = 'unbekannt';
@@ -254,6 +255,10 @@ export function useSignLanguageDetector(
     };
   }, [cleanup]);
 
+  const getVariationMetrics = useCallback((gesture: string) => {
+    return orchestratorRef.current?.getVariationMetrics(gesture);
+  }, []);
+
   return {
     start,
     stop,
@@ -265,5 +270,6 @@ export function useSignLanguageDetector(
     lastHandedness,
     lastConfidence,
     messageLog,
+    getVariationMetrics,
   };
 }
