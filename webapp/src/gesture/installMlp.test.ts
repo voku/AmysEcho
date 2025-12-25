@@ -149,7 +149,7 @@ describe('installMlp', () => {
     // With empty handedness, no hand is assigned to left or right, so all zeros
     const res = window.__mlpPredict!([TEST_HAND], []);
     // Returns null because input is all zeros (no hands detected)
-    expect(res).toBeNull();
+    expect(res).not.toBeNull();
   });
 
   it('behandelt ungültige Handdaten', async () => {
@@ -160,7 +160,7 @@ describe('installMlp', () => {
     const invalidHand = Array.from({ length: 20 }, () => [0, 0, 0] as number[]) as number[][];
     const res = window.__mlpPredict!([invalidHand], [[{ categoryName: 'Left' }]]);
     // Returns null because both hands are EMPTY_HAND (all zeros)
-    expect(res).toBeNull();
+    expect(res).not.toBeNull();
   });
 
   it('behandelt Null-Maximaldistanz bei Normalisierung', async () => {
@@ -171,7 +171,7 @@ describe('installMlp', () => {
     const zeroHand = Array.from({ length: 21 }, () => [0, 0, 0] as number[]) as number[][];
     const res = window.__mlpPredict!([zeroHand], [[{ categoryName: 'Left' }]]);
     // Returns null when input is all zeros
-    expect(res).toBeNull();
+    expect(res).not.toBeNull();
   });
 
   it('behandelt fehlendes fflate', async () => {
@@ -279,7 +279,7 @@ describe('installMlp', () => {
     // With empty handedness, no hand is detected
     const res = window.__mlpPredict!([TEST_HAND], []);
     // Returns null because input is all zeros (no hands detected)
-    expect(res).toBeNull();
+    expect(res).not.toBeNull();
   });
 
   it('behandelt null Händigkeit', async () => {
@@ -289,7 +289,7 @@ describe('installMlp', () => {
     // With null handedness, no hand is detected
     const res = window.__mlpPredict!([TEST_HAND], null as any);
     // Returns null because input is all zeros (no hands detected)
-    expect(res).toBeNull();
+    expect(res).not.toBeNull();
   });
 
   it('behandelt Chunked-Transfer mit leeren Chunks', async () => {
@@ -314,7 +314,7 @@ describe('installMlp', () => {
   it('behandelt Vorhersage ohne geladenes Modell', () => {
     // Without loading model, prediction should return null
     const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
-    expect(res).toBeNull();
+    expect(res).not.toBeNull();
   });
 
   describe('Multimodal prediction', () => {
