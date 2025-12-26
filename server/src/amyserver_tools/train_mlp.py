@@ -1791,6 +1791,25 @@ def build_samples_from_legacy_dataset(dataset_path: Path) -> List[Sample]:
         landmarks = entry.get("landmarks") or entry.get("landmarkData")
         if not landmarks:
             continue
+            
+        # Support frame sequences in legacy dataset
+        if isinstance(landmarks, list) and len(landmarks) > 0 and isinstance(landmarks[0], dict):
+            normalized_frames = []
+            for f in landmarks:
+                vec = _normalize_frame(
+                    f.get("landmarks"),
+                    f.get("poseLandmarks"),
+                    f.get("faceLandmarks")
+                )
+                if vec is not None:
+                    normalized_frames.append(vec)
+            
+            if normalized_frames:
+                # Generate sliding windows
+                ctx = {'profile_id': profile_id}
+                samples.extend(create_sliding_windows(normalized_frames, label, ctx))
+            continue
+
         samples.append(Sample(label=label, profile_id=profile_id, landmarks=landmarks))
     return samples
 
@@ -2282,13 +2301,21 @@ def main() -> None:
     
     try:
         samples, stats = build_samples_from_manifest(args.manifest)
+        
+        # Also load from legacy dataset if it exists
+        if LEGACY_DATASET_PATH.exists():
+            LOGGER.info(f"Loading additional samples from legacy dataset: {LEGACY_DATASET_PATH}")
+            legacy_samples = build_samples_from_legacy_dataset(LEGACY_DATASET_PATH)
+            samples.extend(legacy_samples)
+            stats["legacy_entries"] = len(legacy_samples)
+
         if not samples:
             print(json.dumps({"error": "No valid training samples found."}))
             return
 
         report = run_training_pipeline(samples, config=config, output_dir=MODELS_DIR)
         report["stats"] = stats
-        print(json.dumps(report, indent=2))
+        print(json.dumps(report))
         
     except Exception as e:
         print(json.dumps({"error": str(e)}))

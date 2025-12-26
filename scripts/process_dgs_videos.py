@@ -91,10 +91,10 @@ class DGSVideoProcessor:
         hands_data = [[0.0, 0.0, 0.0] for _ in range(42)]
         
         if len(hand_result.hand_landmarks) != len(hand_result.handedness):
-            print(f"Warning: MediaPipe returned mismatched hands/handedness: {len(hand_result.hand_landmarks)} vs {len(hand_result.handedness)}")
+            print(f"Warning: MediaPipe returned mismatched hands/handedness lengths: {len(hand_result.hand_landmarks)} vs {len(hand_result.handedness)}")
 
         left_done, right_done = False, False
-        for hand_landmarks, handedness in zip(hand_result.hand_landmarks, hand_result.handedness):
+        for hand_landmarks, handedness in zip(hand_result.hand_landmarks, hand_result.handedness, strict=True):
             label = handedness[0].category_name
             
             coords = [[lm.x, lm.y, lm.z] for lm in hand_landmarks]

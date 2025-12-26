@@ -26,17 +26,20 @@ DATA_DIR = PROJECT_ROOT / "server" / "data"
 UPLOADS_DIR = DATA_DIR / "uploads"
 MANIFEST_PATH = DATA_DIR / "datasets" / "real_world_test_manifest.json"
 PROFILE_ID = "amy-test-2025"
-GESTURE_LABEL = "APPEL"  # Dynamic label (Apple in Luxembourgish/German dialect)
+GESTURE_LABELS = ["APPEL", "BITTE", "DANKE"]  # Dynamic labels
 
-def generate_gesture_sequence(num_frames=40):
-    """Generate realistic multimodal landmarks for a 'eating apple' gesture."""
+def generate_gesture_sequence(label, num_frames=40):
+    """Generate realistic multimodal landmarks for a given gesture."""
     frames = []
+    # Use label to slightly vary the motion pattern
+    label_hash = sum(ord(c) for c in label) % 10 / 10.0
+    
     for i in range(num_frames):
         t = i / (num_frames - 1) if num_frames > 1 else 0.0
         
-        # Simulate hand moving towards mouth
-        hand_x = 0.5
-        hand_y = 0.6 - t * 0.3  # Moving up towards face
+        # Simulate hand moving towards mouth/chest based on label
+        hand_x = 0.5 + (0.1 * label_hash)
+        hand_y = 0.6 - t * (0.3 + 0.1 * label_hash)  # Moving up
         hand_z = 0.1
         
         # 42 hand landmarks
@@ -70,68 +73,68 @@ def generate_gesture_sequence(num_frames=40):
 def setup_test_interaction():
     print(f"🚀 Starting Real-World Test Interaction for Profile: {PROFILE_ID}")
     
-    # 1. Create Bundle Directory
-    bundle_id = f"test_bundle_{int(datetime.now().timestamp())}"
-    bundle_dir = UPLOADS_DIR / PROFILE_ID / bundle_id
-    bundle_dir.mkdir(parents=True, exist_ok=True)
-    
-    # 2. Generate and Save Landmarks
-    frames = generate_gesture_sequence()
-    landmarks_file = bundle_dir / "landmarks.json"
-    with open(landmarks_file, "w") as f:
-        json.dump({"frames": frames}, f, indent=2)
-    
-    # 3. Create Metadata
-    metadata = {
-        "profileId": PROFILE_ID,
-        "label": GESTURE_LABEL,
-        "capturedAt": datetime.now().isoformat(),
-        "handFocus": "dominant_only",
-        "recording": {
-            "frameCount": len(frames),
-            "clipDurationMs": len(frames) * 33
-        },
-        "modalities": {
-            "hands": {"present": True, "coverage": 1.0},
-            "pose": {"present": True, "coverage": 1.0},
-            "face": {"present": True, "coverage": 1.0}
-        }
-    }
-    with open(bundle_dir / "metadata.json", "w") as f:
-        json.dump(metadata, f, indent=2)
-        
-    # 4. Update Manifest
-    manifest_entry = {
-        "id": bundle_id,
-        "profileId": PROFILE_ID,
-        "label": GESTURE_LABEL,
-        "storage": {
-            "directory": str(bundle_dir.relative_to(DATA_DIR)),
-            "files": ["landmarks.json", "metadata.json"]
-        },
-        "metadata": metadata
-    }
-    
     if MANIFEST_PATH.exists():
         with open(MANIFEST_PATH, "r") as f:
             manifest = json.load(f)
     else:
         manifest = {"entries": []}
+
+    for label in GESTURE_LABELS:
+        # 1. Create Bundle Directory
+        bundle_id = f"test_bundle_{label.lower()}_{int(datetime.now().timestamp())}"
+        bundle_dir = UPLOADS_DIR / PROFILE_ID / bundle_id
+        bundle_dir.mkdir(parents=True, exist_ok=True)
         
-    # Add 5 copies of the same gesture to ensure enough samples for training
-    for i in range(5):
-        entry = copy.deepcopy(manifest_entry)
-        entry["id"] = f"{bundle_id}_{i}"
-        manifest["entries"].append(entry)
+        # 2. Generate and Save Landmarks
+        frames = generate_gesture_sequence(label)
+        landmarks_file = bundle_dir / "landmarks.json"
+        with open(landmarks_file, "w") as f:
+            json.dump({"frames": frames}, f, indent=2)
         
-    # Also add some global examples from synthetic data if they exist to prevent single-class issues
-    # (Simplified for this test: we just want to see if the profile model trains)
+        # 3. Create Metadata
+        metadata = {
+            "profileId": PROFILE_ID,
+            "label": label,
+            "capturedAt": datetime.now().isoformat(),
+            "handFocus": "dominant_only",
+            "recording": {
+                "frameCount": len(frames),
+                "clipDurationMs": len(frames) * 33
+            },
+            "modalities": {
+                "hands": {"present": True, "coverage": 1.0},
+                "pose": {"present": True, "coverage": 1.0},
+                "face": {"present": True, "coverage": 1.0}
+            }
+        }
+        with open(bundle_dir / "metadata.json", "w") as f:
+            json.dump(metadata, f, indent=2)
+            
+        # 4. Update Manifest
+        manifest_entry = {
+            "id": bundle_id,
+            "profileId": PROFILE_ID,
+            "label": label,
+            "storage": {
+                "directory": str(bundle_dir.relative_to(DATA_DIR)),
+                "files": ["landmarks.json", "metadata.json"]
+            },
+            "metadata": metadata
+        }
+        
+        # Add 5 copies of each gesture to ensure enough samples for training
+        for i in range(5):
+            entry = copy.deepcopy(manifest_entry)
+            entry["id"] = f"{bundle_id}_{i}"
+            manifest["entries"].append(entry)
+        
+    # Ensure datasets directory exists
+    MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     
     with open(MANIFEST_PATH, "w") as f:
         json.dump(manifest, f, indent=2)
         
-    print(f"✅ Created training bundle and updated manifest at {MANIFEST_PATH}")
-    return bundle_dir
+    print(f"✅ Created training bundles and updated manifest at {MANIFEST_PATH}")
 
 def run_training():
     print(f"🧠 Running training for profile {PROFILE_ID}...")
@@ -171,11 +174,14 @@ def verify_model():
         data = np.load(model_path, allow_pickle=True)
         labels = data["labels"]
         print(f"🏷️  Model Labels: {labels}")
-        if GESTURE_LABEL in labels:
-            print(f"🎯 SUCCESS: Model includes custom label '{GESTURE_LABEL}'")
-            return True
-        else:
-            print(f"❌ ERROR: Model does not include label '{GESTURE_LABEL}'")
+        success = True
+        for label in GESTURE_LABELS:
+            if label in labels:
+                print(f"🎯 SUCCESS: Model includes custom label '{label}'")
+            else:
+                print(f"❌ ERROR: Model does not include label '{label}'")
+                success = False
+        return success
     else:
         print(f"❌ ERROR: Model file not found at {model_path}")
     return False

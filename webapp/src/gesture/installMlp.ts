@@ -34,7 +34,6 @@ export function installMlp(customModelData?: string): boolean | void {
   };
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
   let WINDOW_SIZE = 30; // Default, will be updated from model metadata
-  let _TEMPORAL_FEATURES_SIZE = WINDOW_SIZE * MULTIMODAL_FEATURES_SIZE;
   let rollingBuffer: Float32Array[] = [];
 
   function parseNPY(buf: Uint8Array) {
@@ -347,7 +346,6 @@ export function installMlp(customModelData?: string): boolean | void {
 
       // Update temporal window parameters from model metadata
       WINDOW_SIZE = window_size || 30;
-      TEMPORAL_FEATURES_SIZE = WINDOW_SIZE * (input_dim || MULTIMODAL_FEATURES_SIZE);
       rollingBuffer = []; // Reset buffer with new window size
       
       console.log(`MLP model loaded: ${inputSize} -> ${layer1Size} -> ${layer2Size} -> ${outputSize} (${labels.length} labels)`);

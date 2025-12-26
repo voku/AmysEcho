@@ -147,11 +147,21 @@ def test_train_endpoint():
     try:
         url = f"http://localhost:{PORT}/train-model"
         # vary landmark coordinates slightly so normalization succeeds
-        landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
+        # Create 30 frames to fill a temporal window
+        landmarks_sequence = []
+        for f in range(30):
+            frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
+            landmarks_sequence.append({
+                "timestampMs": f * 33,
+                "landmarks": frame,
+                "poseLandmarks": [[0.5, 0.5, 0.5, 1.0] for _ in range(33)],
+                "faceLandmarks": [[0.5, 0.5, 0.5] for _ in range(468)],
+            })
+            
         samples = [
             {
                 "gestureDefinitionId": "g1",
-                "landmarkData": landmarks_one_hand,
+                "landmarkData": landmarks_sequence,
             }
         ]
         data = json.dumps({"samples": samples}).encode("utf-8")

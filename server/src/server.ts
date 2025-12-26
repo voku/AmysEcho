@@ -685,14 +685,24 @@ app.post('/api/v1/negative-samples', auth, async (req: Request, res: Response) =
 });
 
 app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) => {
+  const FrameSchema = z.object({
+    timestampMs: z.number().finite(),
+    landmarks: z.array(LandmarkTupleSchema),
+    poseLandmarks: z.array(z.array(z.number().finite())).optional(),
+    faceLandmarks: z.array(z.array(z.number().finite())).optional(),
+  });
+
   const SampleSchema = z.object({
     gestureDefinitionId: z.string().min(1),
     profileId: z.string().optional(),
-    landmarkData: z
-      .array(LandmarkTupleSchema)
-      .refine((arr) => arr.length === 21 || arr.length === 42 || arr.length === 543, {
-        message: 'landmarks must be 21, 42 or 543 points',
-      }),
+    landmarkData: z.union([
+      z
+        .array(LandmarkTupleSchema)
+        .refine((arr) => arr.length === 21 || arr.length === 42 || arr.length === 543, {
+          message: 'landmarks must be 21, 42 or 543 points',
+        }),
+      z.array(FrameSchema),
+    ]),
   });
   const BodySchema = z.object({
     samples: z.array(SampleSchema).optional(),
