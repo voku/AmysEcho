@@ -1,0 +1,74 @@
+{
+  "entries": [
+    {
+      "label": "HALLO",
+      "id": "synthetic_000_hallo",
+      "storage": {
+        "type": "file",
+        "clip": "synthetic_hallo.mp4"
+      },
+      "metadata": {
+        "clipFilename": "synthetic_hallo.mp4",
+        "label": "HALLO",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "BITTE",
+      "id": "synthetic_001_bitte",
+      "storage": {
+        "type": "file",
+        "clip": "synthetic_bitte.mp4"
+      },
+      "metadata": {
+        "clipFilename": "synthetic_bitte.mp4",
+        "label": "BITTE",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "DANKE",
+      "id": "synthetic_002_danke",
+      "storage": {
+        "type": "file",
+        "clip": "synthetic_danke.mp4"
+      },
+      "metadata": {
+        "clipFilename": "synthetic_danke.mp4",
+        "label": "DANKE",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "JA",
+      "id": "synthetic_003_ja",
+      "storage": {
+        "type": "file",
+        "clip": "synthetic_ja.mp4"
+      },
+      "metadata": {
+        "clipFilename": "synthetic_ja.mp4",
+        "label": "JA",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    },
+    {
+      "label": "NEIN",
+      "id": "synthetic_004_nein",
+      "storage": {
+        "type": "file",
+        "clip": "synthetic_nein.mp4"
+      },
+      "metadata": {
+        "clipFilename": "synthetic_nein.mp4",
+        "label": "NEIN",
+        "capturedAt": "2024-01-01T00:00:00.000Z",
+        "profileId": "global"
+      }
+    }
+  ]
+}

@@ -73,8 +73,8 @@ INPUT_FEATURE_SIZE = 1629  # 126 (Hands) + 99 (Pose) + 1404 (Face)
 WINDOW_FEATURE_SIZE = INPUT_FEATURE_SIZE * WINDOW_SIZE  # 48,870 features
 
 # --- MLP Architecture Constants ---
-MLP_LAYER1_SIZE = 1024  # First hidden layer (funnel entrance)
-MLP_LAYER2_SIZE = 512   # Second hidden layer (funnel middle)
+MLP_LAYER1_SIZE = 512   # First hidden layer (funnel entrance)
+MLP_LAYER2_SIZE = 256   # Second hidden layer (funnel middle)
 # Output layer size is dynamic (number of classes)
 
 # --- Density-Balanced Priority Factors ---
