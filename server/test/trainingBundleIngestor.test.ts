@@ -185,7 +185,6 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const frames: LandmarksPayload = {
       frames: [
         {
-          landmarks: Array.from({ length: 10 }, (_, idx) => [idx * 0.1, idx * 0.2, idx * 0.3]),
           handLandmarks: [
             [
               [0.1, 0.2, 0.3],

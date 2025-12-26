@@ -178,7 +178,7 @@ def validate_model():
         import numpy as np
 
         # Load the model
-        with np.load(MODEL_FILE, allow_pickle=True) as data:
+        with np.load(MODEL_FILE) as data:
             w1 = data['w1']
             b1 = data['b1']
             w2 = data['w2']
@@ -200,13 +200,10 @@ def validate_model():
         print(f"  - Classes: {len(labels)} ({list(labels)[:5]}...)")
 
         # Basic validation for the new 3-layer temporal architecture
-        # Expecting input_dim = 1629, window_size = 30, so W1 input = 48870
-        # W1 is stored as (hidden, input) in train_mlp.py's save_model? 
-        # Actually save_model does: "w1": np.array(w1.T, order="C")
-        # In train_mlp.py: w1 shape is (input_dim, layer1_size)
-        # So w1.T shape is (layer1_size, input_dim)
+        # Expecting input_dim = 48870 (1629 * 30)
         
-        expected_input = input_dim * window_size
+        # In the saved model, input_dim represents the total flattened input vector size
+        expected_input = input_dim
         assert w1.shape[1] == expected_input, f"Input size mismatch: {w1.shape[1]} vs {expected_input}"
         assert w3.shape[0] == len(labels), f"Output size mismatch: {w3.shape[0]} vs {len(labels)}"
         assert arch == "mlp_3layer_window", f"Unexpected architecture: {arch}"

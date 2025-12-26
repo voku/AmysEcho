@@ -525,7 +525,6 @@ async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
 function normalizeFlattenedLandmarks(raw: unknown): number[][] {
   const points = normalizePointArray(raw, {
     maxPoints: MAX_FLATTENED_LANDMARK_POINTS,
-    padToLength: MAX_FLATTENED_LANDMARK_POINTS,
   });
   return points;
 }

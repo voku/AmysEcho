@@ -25,7 +25,43 @@ import numpy as np
 
 # Add scripts directory to path for shared utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "training")))
 from ml_shared_utils import filter_by_profile_logic
+from config_constants import (
+    WINDOW_SIZE,
+    INPUT_FEATURE_SIZE,
+    WINDOW_FEATURE_SIZE,
+    HAND_PRIORITY_FACTOR,
+    POSE_PRIORITY_FACTOR,
+    FACE_PRIORITY_FACTOR,
+    NULL_CLASS_LABEL,
+    NULL_SAMPLES_PER_CLIP,
+    MLP_LAYER1_SIZE,
+    MLP_LAYER2_SIZE,
+    LEARNING_RATE,
+    EPOCHS,
+    DROPOUT_RATE,
+    VALIDATION_FRACTION,
+    LOSS_EPSILON,
+    STILL_FRAME_WEIGHT,
+    MIN_USABLE_FRAME_RATIO,
+    MIN_CLIP_DURATION_MS,
+    MIN_HANDS_COVERAGE,
+    MIN_POSE_COVERAGE,
+    MIN_FACE_COVERAGE,
+    MIN_AVG_FRAME_DELTA_MS,
+    MAX_AVG_FRAME_DELTA_MS,
+    EARLY_STOPPING_PATIENCE,
+    EARLY_STOPPING_MIN_DELTA,
+    MIN_SAMPLES_PER_PROFILE,
+    MIN_SAMPLES_PER_LABEL,
+)
+from frame_normalization import _normalize_frame
+from sliding_window import Sample, create_sliding_windows
+
+# Re-export architecture constants for module-level access (needed for tests)
+MLP_LAYER1_SIZE = MLP_LAYER1_SIZE
+MLP_LAYER2_SIZE = MLP_LAYER2_SIZE
 
 LOGGER = logging.getLogger("amyserver.train_mlp")
 if not LOGGER.handlers:
@@ -67,22 +103,6 @@ def _require_hand_landmark_dependencies(context: str) -> None:
         raise DependencyUnavailableError(message)
     print(message, file=sys.stderr)
 
-# --- Temporal Window Configuration ---
-WINDOW_SIZE = 30  # Fixed window size for temporal context (1 second at 30fps)
-INPUT_FEATURE_SIZE = 1629  # 126 (Hands) + 99 (Pose) + 1404 (Face)
-WINDOW_FEATURE_SIZE = INPUT_FEATURE_SIZE * WINDOW_SIZE  # 48,870 features
-
-# --- MLP Architecture Constants ---
-MLP_LAYER1_SIZE = 512   # First hidden layer (funnel entrance)
-MLP_LAYER2_SIZE = 256   # Second hidden layer (funnel middle)
-# Output layer size is dynamic (number of classes)
-
-# --- Density-Balanced Priority Factors ---
-# These prevent high-dimensional modalities from drowning out critical features
-HAND_PRIORITY_FACTOR = 3.0   # Hands are most critical for sign language
-POSE_PRIORITY_FACTOR = 0.4   # Body posture provides context
-FACE_PRIORITY_FACTOR = 0.1   # Facial expressions are supplementary
-
 # --- Config -----------------------------------------------------------------
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -123,93 +143,23 @@ IMAGE_EXTENSIONS = {
 # HIDDEN_SIZE: No longer used (hardcoded to 1024/512)
 # The old 2-layer architecture has been replaced with 3-layer funnel
 
-# --- New Recommended Hyperparameters ---
-LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.005"))  # Reduced for deeper network
-DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.3"))))  # Increased for regularization
-EPOCHS = int(os.environ.get("MLP_EPOCHS", "1000"))  # Increased for convergence
-
 MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
-VALIDATION_FRACTION = float(os.environ.get("MLP_VALIDATION_FRACTION", "0.15"))
 # Augmentation via frame replication (disabled in favor of sliding windows)
 AUGMENTATIONS_PER_SAMPLE = 0  # Set to 0 - overlapping windows provide augmentation
 
 CLASS_WEIGHT_SMOOTHING = max(0.0, float(os.environ.get("MLP_CLASS_WEIGHT_SMOOTHING", "0.0")))
-_ENV_PATIENCE = os.environ.get("MLP_EARLY_STOPPING_PATIENCE")
-EARLY_STOPPING_PATIENCE: Optional[int] = None
-if _ENV_PATIENCE:
-    try:
-        parsed = int(_ENV_PATIENCE)
-        if parsed > 0:
-            EARLY_STOPPING_PATIENCE = parsed
-        else:
-            LOGGER.warning(
-                "MLP_EARLY_STOPPING_PATIENCE must be > 0, got '%s'. Disabling.",
-                _ENV_PATIENCE,
-            )
-    except ValueError:
-        LOGGER.warning(
-            "MLP_EARLY_STOPPING_PATIENCE is not a valid integer: '%s'. Disabling.",
-            _ENV_PATIENCE,
-        )
 
-_env_min_delta_str = os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0")
-try:
-    _parsed_min_delta = float(_env_min_delta_str)
-except ValueError:
-    LOGGER.warning(
-        "MLP_EARLY_STOPPING_MIN_DELTA is not a valid float: '%s'. Using 0.0.",
-        _env_min_delta_str,
-    )
-    _parsed_min_delta = 0.0
-EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
-
-_env_min_samples_label = os.environ.get("MLP_MIN_SAMPLES_PER_LABEL", "1")
-try:
-    MIN_SAMPLES_PER_LABEL = max(1, int(_env_min_samples_label))
-except ValueError:
-    LOGGER.warning(
-        "MLP_MIN_SAMPLES_PER_LABEL is not a valid integer: '%s'. Using 1.",
-        _env_min_samples_label,
-    )
-    MIN_SAMPLES_PER_LABEL = 1
-
-_env_min_samples_profile = os.environ.get("MLP_MIN_SAMPLES_PER_PROFILE", "1")
-try:
-    MIN_SAMPLES_PER_PROFILE = max(1, int(_env_min_samples_profile))
-except ValueError:
-    LOGGER.warning(
-        "MLP_MIN_SAMPLES_PER_PROFILE is not a valid integer: '%s'. Using 1.",
-        _env_min_samples_profile,
-    )
-    MIN_SAMPLES_PER_PROFILE = 1
 DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not in {
     "0",
     "false",
     "no",
 }
 
-LOSS_EPSILON = np.spacing(1.0)
-AUGMENTATION_EPSILON = 1e-8
-
 # Hand landmark constants for processing
 LANDMARKS_PER_HAND = 21  # MediaPipe hand model provides 21 landmarks per hand
 TOTAL_HAND_LANDMARKS = 42  # Left (21) + Right (21)
 SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
-
-# Still frames represent the precise target hand position for the gesture,
-# so they should be weighted more heavily than individual video frames during averaging.
-# Default weight of 10.0 means a single still frame has the same influence as 10 video frames.
-STILL_FRAME_WEIGHT = float(os.environ.get("MLP_STILL_FRAME_WEIGHT", "10.0"))
-
-# Quality thresholds
-MIN_USABLE_FRAME_RATIO = float(os.environ.get("MLP_MIN_USABLE_FRAME_RATIO", "0.6"))
-MIN_CLIP_DURATION_MS = float(os.environ.get("MLP_MIN_CLIP_DURATION_MS", "500"))
-MIN_HANDS_COVERAGE = float(os.environ.get("MLP_MIN_HANDS_COVERAGE", "0.7"))
-MIN_POSE_COVERAGE = float(os.environ.get("MLP_MIN_POSE_COVERAGE", "0.4"))
-MIN_FACE_COVERAGE = float(os.environ.get("MLP_MIN_FACE_COVERAGE", "0.4"))
-MIN_AVG_FRAME_DELTA_MS = float(os.environ.get("MLP_MIN_AVG_FRAME_DELTA_MS", "10"))
-MAX_AVG_FRAME_DELTA_MS = float(os.environ.get("MLP_MAX_AVG_FRAME_DELTA_MS", "200"))
 
 WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
@@ -219,60 +169,6 @@ def _emit_event(payload: Dict[str, object]) -> None:
     message = json.dumps(payload)
     print(message, file=sys.stderr, flush=True)
     LOGGER.info(message)
-
-# --- Data structures --------------------------------------------------------
-
-@dataclass
-class Sample:
-    """Training sample produced from a bundle. 
-    
-    In temporal sliding window mode, `landmarks` contains the flattened
-    feature vector for the entire window (30 frames * 1629 features).
-    """
-
-    label: str
-    profile_id: Optional[str]
-    landmarks: List[float]  # Flattened window vector (48,870 floats)
-    pose_landmarks: Optional[List[List[float]]] = None  # Legacy / Embedded
-    face_landmarks: Optional[List[List[float]]] = None  # Legacy / Embedded
-    hand_focus: Optional[str] = None  # 'dominant_only', 'both_equal', 'both_asymmetric', 'either_hand', or None
-    # Variation learning metadata (from webapp's SignVariationTracker)
-    variation_cluster_id: Optional[str] = None  # Cluster ID from variation tracking
-    variation_diversity: Optional[float] = None  # 0-1 score indicating variation diversity
-    canonical_templates_count: Optional[int] = None  # Number of canonical templates for this gesture
-    recording: Optional[Dict[str, object]] = None
-    timing_stats: Optional[Dict[str, float]] = None
-    modality_coverage: Optional[Dict[str, float]] = None
-
-
-_UNSET = object()
-
-
-@dataclass(frozen=True)
-class TrainingConfig:
-    """Configuration values that control the trainer's behaviour."""
-
-    hidden_size: int = MLP_LAYER1_SIZE # Deprecated but kept for compat
-    epochs: int = EPOCHS
-    learning_rate: float = LEARNING_RATE
-    dropout_rate: float = DROPOUT_RATE
-    validation_fraction: float = VALIDATION_FRACTION
-    augmentations_per_sample: int = AUGMENTATIONS_PER_SAMPLE
-    class_weight_smoothing: float = CLASS_WEIGHT_SMOOTHING
-    early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE
-    early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
-    return_best_and_final: bool = False
-
-
-@dataclass
-class TrainingSnapshots:
-    """Container for the best and terminal weights observed during training."""
-
-    best_weights: WeightTuple
-    final_weights: WeightTuple
-    best_epoch: int
-    final_epoch: int
-
 
 # --- Helpers ----------------------------------------------------------------
 
@@ -725,6 +621,7 @@ def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
                 except Exception as e:
                     print(f"warning: Multimodal Tasks API failed: {e}", file=sys.stderr)
                     cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Reset video for fallback
+                    frames = [] # Clear any partial results
                 else:
                     return frames
             
@@ -898,7 +795,7 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
                     if result.hand_landmarks:
                         for i, hand_lms in enumerate(result.hand_landmarks):
                             coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
-                            category = result.handedness[i][0].category_name
+                            category = hand_result.handedness[i][0].category_name
                             if category == "Left":
                                 left[:] = coords
                             else:
@@ -914,171 +811,35 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
     return None
 
 
-def _normalize_frame(
-    landmarks: Optional[List[List[float]]], 
-    pose_landmarks: Optional[List[List[float]]], 
-    face_landmarks: Optional[List[List[float]]]
-) -> Optional[np.ndarray]:
-    """
-    Normalize a single frame into a 1629-dimensional feature vector.
-    
-    This function processes one temporal instant and applies scale/translation
-    invariance separately to each modality (hands, pose, face).
-    
-    Returns:
-        np.ndarray: Normalized feature vector [126 + 99 + 1404 = 1629 features]
-        None: If mandatory hand landmarks are missing or invalid
-    """
-    
-    # ========== 1. HAND LANDMARKS (MANDATORY) - 126 Features ========== 
-    if not landmarks or len(landmarks) < 21:
-        return None  # Hands are required for sign language
+# --- Temporal Sliding Window logic ------------------------------------------
 
-    # Handle flat list or list of lists
-    if isinstance(landmarks[0], (int, float)):
-        pts = np.array(landmarks, dtype=np.float32).reshape(-1, 3)
-        LOGGER.debug("Received flat landmark list; reshaped to (N, 3)")
-    else:
-        pts = np.array(landmarks, dtype=np.float32)
-    
-    # Ensure we have 42 points (21 left + 21 right)
-    if pts.shape[0] < 42:
-        pad = np.zeros((42 - pts.shape[0], 3), dtype=np.float32)
-        pts = np.vstack([pts, pad])
-    else:
-        pts = pts[:42]  # Truncate if extra points
-
-    def _normalize_hand(hand_points: np.ndarray) -> np.ndarray:
-        """Center on wrist and scale by maximum extension."""
-        wrist = hand_points[0]
-        centered = hand_points - wrist
-        
-        # Scale by L1 norm (sum of absolute coordinates)
-        max_dist = np.max(np.sum(np.abs(centered), axis=1))
-        if max_dist < 1e-8:
-            return centered  # Avoid division by zero
-        return centered / max_dist
-
-    left_hand = _normalize_hand(pts[:21])
-    right_hand = _normalize_hand(pts[21:])
-    
-    # Apply priority weighting and flatten
-    hand_features = np.concatenate([left_hand, right_hand]).flatten() * HAND_PRIORITY_FACTOR
-
-    # ========== 2. POSE LANDMARKS (OPTIONAL) - 99 Features ========== 
-    if pose_landmarks and len(pose_landmarks) >= 33:
-        pose_arr = np.array(pose_landmarks, dtype=np.float32)[:33, :3]  # x,y,z only (drop visibility)
-        
-        # Normalize to torso center (midpoint of shoulders 11,12 and hips 23,24)
-        torso_indices = [11, 12, 23, 24]
-        torso_center = np.mean(pose_arr[torso_indices], axis=0)
-        pose_centered = pose_arr - torso_center
-        
-        # Scale by shoulder width for size invariance
-        shoulder_dist = np.linalg.norm(pose_arr[11] - pose_arr[12])
-        if shoulder_dist > 1e-6:
-            pose_centered /= shoulder_dist
-        
-        pose_features = pose_centered.flatten() * POSE_PRIORITY_FACTOR
-    else:
-        # Fill with zeros if pose data unavailable (modality dropout)
-        pose_features = np.zeros(99, dtype=np.float32)
-
-    # ========== 3. FACE LANDMARKS (OPTIONAL) - 1404 Features ========== 
-    if face_landmarks and len(face_landmarks) >= 468:
-        face_arr = np.array(face_landmarks, dtype=np.float32)[:468, :3]
-        
-        # Center on nose tip (landmark index 1)
-        nose = face_arr[1]
-        face_centered = face_arr - nose
-        
-        # Scale by eye distance (landmarks 33 to 263)
-        eye_dist = np.linalg.norm(face_arr[33] - face_arr[263])
-        if eye_dist > 1e-6:
-            face_centered /= eye_dist
-        
-        face_features = face_centered.flatten() * FACE_PRIORITY_FACTOR
-    else:
-        # Fill with zeros if face data unavailable
-        face_features = np.zeros(1404, dtype=np.float32)
-
-    # ========== CONCATENATE ALL MODALITIES ========== 
-    return np.concatenate([hand_features, pose_features, face_features])
+_UNSET = object()
 
 
-def create_sliding_windows(
-    frame_vectors: List[np.ndarray], 
-    label: str, 
-    context: dict
-) -> List[Sample]:
-    """
-    Convert a sequence of normalized frame vectors into sliding window training samples.
-    
-    Strategy:
-    - Padding: Edge replication (repeat last frame) for clips shorter than WINDOW_SIZE
-    - Stride: 1 frame (generates overlapping windows for data augmentation)
-    - Output: Each Sample.landmarks contains a flattened (WINDOW_SIZE * 1629) vector
-    
-    Args:
-        frame_vectors: List of (1629,) normalized frame vectors
-        label: Class label for these windows (or "_NULL_" for background)
-        context: Metadata dictionary (profile_id, hand_focus, etc.)
-    
-    Returns:
-        List of Sample objects with temporal window features
-    """
-    if not frame_vectors:
-        return []
+@dataclass(frozen=True)
+class TrainingConfig:
+    """Configuration values that control the trainer's behaviour."""
 
-    # Convert to array for efficient slicing
-    arr = np.array(frame_vectors, dtype=np.float32)  # Shape: (T, 1629)
-    seq_len, _ = arr.shape
+    hidden_size: int = 512 # Deprecated but kept for compat
+    epochs: int = EPOCHS
+    learning_rate: float = LEARNING_RATE
+    dropout_rate: float = DROPOUT_RATE
+    validation_fraction: float = VALIDATION_FRACTION
+    augmentations_per_sample: int = AUGMENTATIONS_PER_SAMPLE
+    class_weight_smoothing: float = 0.0
+    early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE
+    early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
+    return_best_and_final: bool = False
 
-    # Validate feature dimension
-    if arr.shape[1] != INPUT_FEATURE_SIZE:
-        raise ValueError(
-            f"Expected frame vectors of size {INPUT_FEATURE_SIZE}, got {arr.shape[1]}"
-        )
 
-    # ========== PADDING FOR SHORT CLIPS ========== 
-    if seq_len < WINDOW_SIZE:
-        pad_qty = WINDOW_SIZE - seq_len
-        last_frame = arr[-1:, :]  # Keep 2D shape for vstack
-        
-        # Repeat last frame (edge padding preserves final hand position)
-        padding = np.repeat(last_frame, pad_qty, axis=0)
-        arr = np.vstack([arr, padding])
-        seq_len = WINDOW_SIZE
+@dataclass
+class TrainingSnapshots:
+    """Container for the best and terminal weights observed during training."""
 
-    # ========== GENERATE SLIDING WINDOWS ========== 
-    samples = []
-    num_windows = seq_len - WINDOW_SIZE + 1  # Overlapping windows with stride=1
-    
-    for i in range(num_windows):
-        # Extract window: (WINDOW_SIZE, 1629)
-        window = arr[i : i + WINDOW_SIZE, :]
-        
-        # Flatten to super-vector: (48870,)
-        flat_vector = window.flatten().tolist()
-        
-        # Create Sample with temporal features
-        samples.append(Sample(
-            label=label,
-            profile_id=context.get('profile_id'),
-            landmarks=flat_vector,  # Contains full temporal window
-            pose_landmarks=None,    # Now embedded in landmarks
-            face_landmarks=None,    # Now embedded in landmarks
-            hand_focus=context.get('hand_focus'),
-            variation_cluster_id=context.get('variation_cluster_id'),
-            variation_diversity=context.get('variation_diversity'),
-            canonical_templates_count=context.get('canonical_templates_count'),
-            recording=context.get('recording'),
-            timing_stats=context.get('timing_stats'),
-            modality_coverage=context.get('modality_coverage')
-        ))
-    
-    return samples
-
+    best_weights: WeightTuple
+    final_weights: WeightTuple
+    best_epoch: int
+    final_epoch: int
 
 
 # --- MLP implementation (unchanged core) ------------------------------------
@@ -1670,10 +1431,12 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         
         # 1. Normalize each frame individually
         normalized_frames = []
+        frame_weights = []
         for f in frame_list:
             lms = f.get("landmarks")
             pose = f.get("poseLandmarks")
             face = f.get("faceLandmarks")
+            w = float(f.get("weight", 1.0))
             
             # Apply hand focus filtering if specified
             if hand_focus and lms:
@@ -1683,6 +1446,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             vec = _normalize_frame(lms, pose, face)
             if vec is not None:
                 normalized_frames.append(vec)
+                frame_weights.append(w)
         
         if not normalized_frames:
             continue
@@ -1704,12 +1468,13 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         # Use the first WINDOW_SIZE frames as "pre-sign" noise
         if len(normalized_frames) >= WINDOW_SIZE:
             null_window = normalized_frames[:WINDOW_SIZE]
-            null_samples = create_sliding_windows(null_window, "_NULL_", ctx)
+            null_weights = frame_weights[:WINDOW_SIZE]
+            null_samples = create_sliding_windows(null_window, "_NULL_", ctx, null_weights)
             # Limit to 2 samples to prevent class imbalance
             data.extend(null_samples[:2])
 
         # 4. Generate sliding windows for the actual sign
-        sign_samples = create_sliding_windows(normalized_frames, label, ctx)
+        sign_samples = create_sliding_windows(normalized_frames, label, ctx, frame_weights)
         data.extend(sign_samples)
 
     # ========== PROCESS DEFAULT VIDEO EXAMPLES (GLOBAL) ========== 
@@ -1742,7 +1507,9 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             if v_frames:
                 # Normalize frames
                 v_normalized = []
+                v_weights = []
                 for f in v_frames:
+                    w = float(f.get("weight", 1.0))
                     vec = _normalize_frame(
                         f.get("landmarks"),
                         f.get("poseLandmarks"),
@@ -1750,10 +1517,11 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
                     )
                     if vec is not None:
                         v_normalized.append(vec)
+                        v_weights.append(w)
                 
                 if v_normalized:
                     v_ctx = {'profile_id': None}  # Global examples
-                    v_samples = create_sliding_windows(v_normalized, label, v_ctx)
+                    v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
                     data.extend(v_samples)
 
     stats = {
@@ -1810,7 +1578,21 @@ def build_samples_from_legacy_dataset(dataset_path: Path) -> List[Sample]:
                 samples.extend(create_sliding_windows(normalized_frames, label, ctx))
             continue
 
-        samples.append(Sample(label=label, profile_id=profile_id, landmarks=landmarks))
+        # For single-frame legacy samples, we inflate them to a full window by repetition
+        # to remain compatible with the new 3D temporal architecture.
+        if isinstance(landmarks, list) and len(landmarks) >= 21:
+            # Assume it's a single frame of hand landmarks (legacy format)
+            # Normalize it first (this expects [landmarks, pose, face])
+            norm_vec = _normalize_frame(landmarks, None, None)
+            if norm_vec is not None:
+                # Repeat the same frame WINDOW_SIZE times
+                inflated_landmarks = np.tile(norm_vec, WINDOW_SIZE).tolist()
+                samples.append(Sample(label=label, profile_id=profile_id, landmarks=inflated_landmarks))
+            else:
+                LOGGER.warning(f"Skipping invalid legacy sample for {label}")
+        else:
+            LOGGER.warning(f"Skipping unknown legacy format for {label}")
+            
     return samples
 
 
@@ -1857,7 +1639,8 @@ def dataset_to_arrays(
         
         X_list.append(features)
         y_list.append(label_to_idx[sample.label])
-        weight_list.append(_compute_quality_weight(sample))
+        # Combine structural quality weight with aggregated frame weights (e.g. still-frame emphasis)
+        weight_list.append(_compute_quality_weight(sample) * sample.quality_weight)
         
         # NOTE: Augmentation disabled for temporal windows
         # Overlapping windows (stride=1) already provide data augmentation
@@ -2291,6 +2074,7 @@ def main() -> None:
     
     DATA_DIR = args.data_dir
     MODELS_DIR = args.output_dir or (DATA_DIR / "models")
+    legacy_dataset_path = DATA_DIR / LEGACY_DATASET_PATH.name
     
     config = TrainingConfig(
         epochs=args.epochs if args.epochs is not None else EPOCHS,
@@ -2303,9 +2087,9 @@ def main() -> None:
         samples, stats = build_samples_from_manifest(args.manifest)
         
         # Also load from legacy dataset if it exists
-        if LEGACY_DATASET_PATH.exists():
-            LOGGER.info(f"Loading additional samples from legacy dataset: {LEGACY_DATASET_PATH}")
-            legacy_samples = build_samples_from_legacy_dataset(LEGACY_DATASET_PATH)
+        if legacy_dataset_path.exists():
+            LOGGER.info(f"Loading additional samples from legacy dataset: {legacy_dataset_path}")
+            legacy_samples = build_samples_from_legacy_dataset(legacy_dataset_path)
             samples.extend(legacy_samples)
             stats["legacy_entries"] = len(legacy_samples)
 
@@ -2318,6 +2102,9 @@ def main() -> None:
         print(json.dumps(report))
         
     except Exception as e:
+        import traceback
+        LOGGER.error(f"Training pipeline failed: {e}")
+        LOGGER.error(traceback.format_exc())
         print(json.dumps({"error": str(e)}))
         sys.exit(1)
 

@@ -95,7 +95,8 @@ def start_server():
         cwd=SERVER_DIR,
         env=env,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
     )
     access_token = create_access_token(env["JWT_SECRET"], user_id="train-tester")
     # wait for server up
@@ -212,7 +213,10 @@ def test_train_endpoint():
         with urllib.request.urlopen(mlp_prof_req, timeout=10) as mlp_presp:
             assert mlp_presp.getcode() == 200
             buf = mlp_presp.read()
-            assert len(buf) > 0
+    except Exception as e:
+        if proc and proc.stderr:
+            print("Server Stderr:", proc.stderr.read())
+        raise e
     finally:
         stop_server(proc)
 
@@ -341,6 +345,11 @@ def test_train_requests_are_serialized():
 
         final_first = wait_for_training_completion(job1, access_token)
         final_second = wait_for_training_completion(job2, access_token)
+
+        if final_first.get("status") == "failed":
+            print("First Job Failed:", json.dumps(final_first, indent=2))
+        if final_second.get("status") == "failed":
+            print("Second Job Failed:", json.dumps(final_second, indent=2))
 
         assert final_first.get("status") == "completed"
         assert final_second.get("status") == "completed"

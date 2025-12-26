@@ -12,8 +12,9 @@ import {
   SERVER_DIR,
 } from '../constants/modelPaths.js';
 
-export const DEFAULT_MLP_INPUT_SIZE = 126;
-export const DEFAULT_MLP_HIDDEN_SIZE = 256;
+export const DEFAULT_MLP_INPUT_SIZE = 48870;
+export const DEFAULT_MLP_LAYER1_SIZE = 1024;
+export const DEFAULT_MLP_LAYER2_SIZE = 512;
 const FALLBACK_BASELINE_LABELS = [
   'alle',
   'blau',
@@ -149,7 +150,8 @@ async function writeZeroInitializedModel(
     labels: effectiveLabels,
     counts: effectiveCounts,
     inputSize: DEFAULT_MLP_INPUT_SIZE,
-    hiddenSize: DEFAULT_MLP_HIDDEN_SIZE,
+    layer1Size: DEFAULT_MLP_LAYER1_SIZE,
+    layer2Size: DEFAULT_MLP_LAYER2_SIZE,
   });
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await new Promise<void>((resolve, reject) => {

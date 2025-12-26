@@ -76,6 +76,12 @@ def setup_test_interaction():
     if MANIFEST_PATH.exists():
         with open(MANIFEST_PATH, "r") as f:
             manifest = json.load(f)
+        # Filter out previous synthetic entries for this test profile to prevent unbounded growth
+        if "entries" in manifest:
+            manifest["entries"] = [
+                e for e in manifest["entries"] 
+                if e.get("profileId") != PROFILE_ID
+            ]
     else:
         manifest = {"entries": []}
 

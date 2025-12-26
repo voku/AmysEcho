@@ -10,7 +10,7 @@ export type ModelMetadata = {
   labels?: string[];
 };
 
-export function installMlp(customModelData?: string): void {
+export function installMlp(customModelData?: string): Promise<boolean> {
   type Tensor = { data: Float32Array; shape: number[] };
   type Landmark = readonly [number, number, number];
   type Hand = ReadonlyArray<Landmark>;
@@ -654,12 +654,12 @@ export function installMlp(customModelData?: string): void {
   };
 
   // Initial model loading orchestration
-  (async () => {
+  return (async () => {
     // Try custom model data first (for profile models)
     if (customModelData) {
       if (await loadMlpFromB64(customModelData)) {
         forwardTelemetry('mlp_custom_loaded', { size: customModelData.length });
-        return;
+        return true;
       }
       console.warn('Failed to load provided custom model data');
     }
@@ -674,11 +674,13 @@ export function installMlp(customModelData?: string): void {
       const serverB64 = await response.text();
       if (await loadMlpFromB64(serverB64)) {
         forwardTelemetry('mlp_server_loaded');
+        return true;
       }
     } catch (e) {
       // Server fallback is optional, log but don't fail
       console.info('Server model fallback not available or failed:', e instanceof Error ? e.message : String(e));
       forwardTelemetry('mlp_server_failed', { error: String(e) });
     }
+    return false;
   })();
 }

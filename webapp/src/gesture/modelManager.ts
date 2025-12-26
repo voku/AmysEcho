@@ -37,8 +37,8 @@ class ModelManager {
    */
   async loadGlobalModel(): Promise<boolean> {
     try {
-      installMlp();
-      if (this.globalModelLoaded) {
+      const loaded = await installMlp();
+      if (loaded) {
         this.globalModelLoaded = true;
         await this.sendTelemetry('global_model_loaded', { success: true });
         console.log('🌍 Global model loaded successfully');
@@ -69,19 +69,32 @@ class ModelManager {
       // Load and install profile-specific model
       const modelData = await response.arrayBuffer();
       
-      // This would need installMlp to accept custom model data
-      // For now, indicate availability
-      this.profileModels.set(profileId, true);
-      this.currentProfileId = profileId;
+      // Convert ArrayBuffer to base64
+      const bytes = new Uint8Array(modelData);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]!);
+      }
+      const b64 = btoa(binary);
+
+      // Install the profile model
+      const installed = await installMlp(b64);
       
-      await this.sendTelemetry('profile_model_loaded', { 
-        profileId, 
-        success: true,
-        modelSize: modelData.byteLength 
-      });
-      
-      console.log(`👤 Profile model loaded for ${profileId}`);
-      return true;
+      if (installed) {
+        this.profileModels.set(profileId, true);
+        this.currentProfileId = profileId;
+        
+        await this.sendTelemetry('profile_model_loaded', { 
+          profileId, 
+          success: true,
+          modelSize: modelData.byteLength 
+        });
+        
+        console.log(`👤 Profile model loaded for ${profileId}`);
+        return true;
+      } else {
+        throw new Error('MLP installation failed');
+      }
       
     } catch (error) {
       console.error(`❌ Failed to load profile model for ${profileId}:`, error);
@@ -112,7 +125,10 @@ class ModelManager {
     
     // Always ensure global model is loaded as fallback
     if (!this.globalModelLoaded) {
-      await this.loadGlobalModel();
+      const globalLoaded = await this.loadGlobalModel();
+      if (!globalLoaded && !this.config.preferProfile) {
+        return { loaded: false, usingProfile: false };
+      }
     }
 
     // Try profile model first if configured
@@ -123,10 +139,15 @@ class ModelManager {
       }
       
       // Fall back to global if configured
-      if (this.config.fallbackToGlobal) {
+      if (this.config.fallbackToGlobal && this.globalModelLoaded) {
         console.log(`🔄 Falling back to global model for ${profileId}`);
         this.currentProfileId = null;
         return { loaded: true, usingProfile: false };
+      }
+
+      // Global model not available
+      if (!this.globalModelLoaded) {
+        return { loaded: false, usingProfile: false };
       }
     }
 

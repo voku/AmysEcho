@@ -178,10 +178,27 @@ interface TrainingJob {
   message?: string;
 }
 
+// Define reusable landmark validation schema at module level
+const LandmarkTupleSchema = z
+  .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+  .refine(
+    ([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1,
+    {
+      message: 'landmarks must be valid landmark points in range [0,1] for x,y',
+    },
+  );
+
+const FrameSchema = z.object({
+  timestampMs: z.number().finite(),
+  landmarks: z.array(LandmarkTupleSchema),
+  poseLandmarks: z.array(z.array(z.number().finite())).optional(),
+  faceLandmarks: z.array(z.array(z.number().finite())).optional(),
+});
+
 type TrainingSample = {
   gestureDefinitionId: string;
   profileId?: string | null;
-  landmarkData: number[][];
+  landmarkData: number[][] | z.infer<typeof FrameSchema>[];
 };
 const trainingJobs = new Map<string, TrainingJob>();
 
@@ -550,7 +567,7 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ error: 'label and landmarks (42 × [x,y,z]) required', details: parsed.error.flatten() });
+        .json({ error: 'label and landmarks (21, 42 oder 543 × [x,y,z]) required', details: parsed.error.flatten() });
     }
     const { label, profileId, landmarks } = parsed.data;
     if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
@@ -623,17 +640,8 @@ const GesturePayloadSchema = z.object({
   ]),
 });
 
-// Define reusable landmark validation schema at module level
-const LandmarkTupleSchema = z
-  .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
-  .refine(
-    ([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1,
-    {
-      message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1] for x,y',
-    },
-  );
-
 app.post('/api/v1/corrections', auth, async (req: Request, res: Response) => {
+
   const parsed = GesturePayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
@@ -685,13 +693,6 @@ app.post('/api/v1/negative-samples', auth, async (req: Request, res: Response) =
 });
 
 app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) => {
-  const FrameSchema = z.object({
-    timestampMs: z.number().finite(),
-    landmarks: z.array(LandmarkTupleSchema),
-    poseLandmarks: z.array(z.array(z.number().finite())).optional(),
-    faceLandmarks: z.array(z.array(z.number().finite())).optional(),
-  });
-
   const SampleSchema = z.object({
     gestureDefinitionId: z.string().min(1),
     profileId: z.string().optional(),

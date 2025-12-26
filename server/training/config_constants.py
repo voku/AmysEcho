@@ -72,6 +72,10 @@ DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.3")
 # Validation split
 VALIDATION_FRACTION = float(os.environ.get("MLP_VALIDATION_FRACTION", "0.15"))
 
+# Minimum samples required for training
+MIN_SAMPLES_PER_LABEL = int(os.environ.get("MLP_MIN_SAMPLES_PER_LABEL", "1"))
+MIN_SAMPLES_PER_PROFILE = int(os.environ.get("MLP_MIN_SAMPLES_PER_PROFILE", "1"))
+
 # Early stopping
 _ENV_PATIENCE = os.environ.get("MLP_EARLY_STOPPING_PATIENCE", "10")
 try:
@@ -80,6 +84,22 @@ except ValueError:
     EARLY_STOPPING_PATIENCE = None
 
 EARLY_STOPPING_MIN_DELTA = float(os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.001"))
+
+# ============================================================================
+# QUALITY THRESHOLDS & WEIGHTS
+# ============================================================================
+
+# Still frames represent precise target hand positions and are weighted more heavily
+STILL_FRAME_WEIGHT = float(os.environ.get("MLP_STILL_FRAME_WEIGHT", "10.0"))
+
+# Validation thresholds for training data quality
+MIN_USABLE_FRAME_RATIO = float(os.environ.get("MLP_MIN_USABLE_FRAME_RATIO", "0.6"))
+MIN_CLIP_DURATION_MS = float(os.environ.get("MLP_MIN_CLIP_DURATION_MS", "500"))
+MIN_HANDS_COVERAGE = float(os.environ.get("MLP_MIN_HANDS_COVERAGE", "0.7"))
+MIN_POSE_COVERAGE = float(os.environ.get("MLP_MIN_POSE_COVERAGE", "0.4"))
+MIN_FACE_COVERAGE = float(os.environ.get("MLP_MIN_FACE_COVERAGE", "0.4"))
+MIN_AVG_FRAME_DELTA_MS = float(os.environ.get("MLP_MIN_AVG_FRAME_DELTA_MS", "10"))
+MAX_AVG_FRAME_DELTA_MS = float(os.environ.get("MLP_MAX_AVG_FRAME_DELTA_MS", "200"))
 
 # ============================================================================
 # SPECIAL CLASS LABELS
