@@ -1856,6 +1856,16 @@ def validate_samples(samples: List[Sample]) -> None:
             )
 
 
+def filter_samples_by_profile(samples: List[Sample], profile_id: str) -> List[Sample]:
+    """Filter samples for a specific profile, including relevant global samples."""
+    return filter_by_profile_logic(
+        samples, 
+        profile_id, 
+        get_label=lambda s: s.label, 
+        get_profile_id=lambda s: s.profile_id
+    )
+
+
 def compute_sample_weights(y: np.ndarray, *, smoothing: float = 0.0) -> np.ndarray:
     """Return per-sample weights using inverse frequency with optional smoothing."""
 
