@@ -122,7 +122,9 @@ def setup_test_interaction():
             "metadata": metadata
         }
         
-        # Add 5 copies of each gesture to ensure enough samples for training
+        # Add 5 copies of each gesture to ensure enough samples for training.
+        # This duplication is intentional for the simulator to provide enough samples
+        # for the training pipeline to complete successfully in a test environment.
         for i in range(5):
             entry = copy.deepcopy(manifest_entry)
             entry["id"] = f"{bundle_id}_{i}"

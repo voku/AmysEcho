@@ -2097,7 +2097,7 @@ def _compute_confusion_matrix(
     preds = np.argmax(probs, axis=1)
     
     cm = [[0]*num_classes for _ in range(num_classes)]
-    for true_label, pred_label in zip(y, preds):
+    for true_label, pred_label in zip(y, preds, strict=True):
         cm[int(true_label)][int(pred_label)] += 1
     return cm
 

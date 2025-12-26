@@ -1,6 +1,5 @@
 import numpy as np
 import sys
-from pathlib import Path
 
 def check_model(path):
     print(f"Checking model: {path}")
@@ -21,8 +20,10 @@ def check_model(path):
             
             if 'labels' in data:
                 print(f"  labels: {data['labels']}")
-    except Exception as e:
+    except (FileNotFoundError, ValueError, IOError) as e:
         print(f"Error checking model: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
