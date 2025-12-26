@@ -455,7 +455,11 @@ export function installMlp(customModelData?: string): boolean | void {
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
-    const isMultimodalInModel = mlp && (mlp.w1.shape[1] === MULTIMODAL_FEATURES_SIZE || mlp.w1.shape[1] === TEMPORAL_FEATURES_SIZE);
+    const inputSize = mlp?.w1.shape[1] ?? 0;
+    const windowSize = mlp?.window_size ?? WINDOW_SIZE;
+    const featuresPerFrame = windowSize > 0 ? inputSize / windowSize : inputSize;
+    
+    const isMultimodalInModel = mlp && featuresPerFrame === MULTIMODAL_FEATURES_SIZE;
     
     let frameFeatures: Float32Array;
     
@@ -555,9 +559,9 @@ export function installMlp(customModelData?: string): boolean | void {
 
       let x: Float32Array;
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
-      const inputDim = mlp.input_dim ?? MULTIMODAL_FEATURES_SIZE; // Single frame feature size
+      const inputDim = currentFrameVec.length; // Use actual length of normalized features
       
-      if (cols1Expected === windowSize * inputDim) {
+      if (cols1Expected === windowSize * inputDim && windowSize > 1) {
         // Temporal model
         if (rollingBuffer.length < windowSize) {
           // Pad with replicates of the first available frame if buffer is not full
@@ -577,7 +581,7 @@ export function installMlp(customModelData?: string): boolean | void {
           }
         }
       } else {
-        // Static model (single frame)
+        // Static model or single-window model
         x = currentFrameVec;
       }
       
