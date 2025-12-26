@@ -143,7 +143,7 @@ def run_training():
     env["MLP_MANIFEST_PATH"] = str(MANIFEST_PATH)
     env["MLP_EPOCHS"] = "50"  # Fast training for test
     
-    cmd = [sys.executable, str(trainer_script), "--manifest", str(MANIFEST_PATH), "--data-dir", str(PROJECT_ROOT / "server")]
+    cmd = [sys.executable, str(trainer_script), "--manifest", str(MANIFEST_PATH), "--data-dir", str(DATA_DIR)]
     
     result = subprocess.run(cmd, env=env, capture_output=True, text=True)
     

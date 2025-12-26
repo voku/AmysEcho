@@ -25,4 +25,7 @@ def check_model(path):
         print(f"Error checking model: {e}")
 
 if __name__ == "__main__":
-    check_model("data/amy_model.npz")
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} <path_to_model.npz>")
+        sys.exit(1)
+    check_model(sys.argv[1])

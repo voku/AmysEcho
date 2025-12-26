@@ -297,7 +297,7 @@ def ensure_inside(base: Path, candidate: Path) -> Path:
 def resolve_relative_path(base: Path, relative: str) -> Optional[Path]:
     if not relative:
         return None
-    normalized = relative.replace("\", "/").lstrip("/")
+    normalized = relative.replace("\\", "/").lstrip("/")
     if not normalized:
         return None
     try:
@@ -312,7 +312,7 @@ def select_landmarks_relative_path(entry: dict) -> str:
     if isinstance(summary, dict):
         path_candidate = summary.get("landmarksPath")
         if isinstance(path_candidate, str):
-            normalized = path_candidate.replace("\", "/").lstrip("/")
+            normalized = path_candidate.replace("\\", "/").lstrip("/")
             if normalized:
                 return normalized
 
@@ -321,7 +321,7 @@ def select_landmarks_relative_path(entry: dict) -> str:
         for file in files:
             if not isinstance(file, str):
                 continue
-            normalized = file.replace("\", "/").lstrip("/")
+            normalized = file.replace("\\", "/").lstrip("/")
             if not normalized:
                 continue
             base_name = normalized.split("/")[-1]
@@ -1456,7 +1456,7 @@ def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
     if isinstance(storage_files_raw, list):
         for file_entry in storage_files_raw:
             if isinstance(file_entry, str) and file_entry.strip():
-                normalized = file_entry.replace("\", "/").lstrip("/")
+                normalized = file_entry.replace("\\", "/").lstrip("/")
                 if normalized:
                     storage_files.append(normalized)
 
@@ -1877,7 +1877,7 @@ def validate_samples(samples: List[Sample]) -> None:
     if low_labels and MIN_SAMPLES_PER_LABEL > 1:
         raise ValueError(
             "Zu wenige Beispiele pro Geste: "
-            + ", ".join(f"{label} ({label_counts[label]})") for label in sorted(low_labels))
+            + ", ".join(f"{label} ({label_counts[label]})" for label in sorted(low_labels))
         )
 
     for profile_id, counts in profile_counts.items():
@@ -1885,7 +1885,7 @@ def validate_samples(samples: List[Sample]) -> None:
         if short_labels and MIN_SAMPLES_PER_PROFILE > 1:
             raise ValueError(
                 f"Profil {profile_id} hat zu wenige Beispiele: "
-                + ", ".join(f"{label} ({counts[label]})") for label in sorted(short_labels))
+                + ", ".join(f"{label} ({counts[label]})" for label in sorted(short_labels))
             )
 
 
@@ -2055,7 +2055,7 @@ def _compute_f1_score(
     for i in range(num_classes):
         tp = np.sum((preds == i) & (y == i))
         fp = np.sum((preds == i) & (y != i))
-        fn = np.sum((preds != i) & (y == i)) # Fix: should be (preds != i) & (y == i)
+        fn = np.sum((preds != i) & (y == i))
         
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
@@ -2228,6 +2228,7 @@ def run_training_pipeline(samples: List[Sample], *, config: Optional[TrainingCon
 
 
 def main() -> None:
+    global DATA_DIR, MODELS_DIR
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--manifest",
@@ -2269,7 +2270,6 @@ def main() -> None:
     
     args = parser.parse_args()
     
-    global DATA_DIR, MODELS_DIR
     DATA_DIR = args.data_dir
     MODELS_DIR = args.output_dir or (DATA_DIR / "models")
     

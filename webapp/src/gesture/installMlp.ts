@@ -528,14 +528,16 @@ export function installMlp(customModelData?: string): boolean | void {
       if (cols1Expected === windowSize * inputDim && windowSize > 1) {
         // Temporal model
         if (rollingBuffer.length < windowSize) {
-          // Pad with replicates of the first available frame if buffer is not full
-          const first = rollingBuffer[0]!;
+          // Pad with replicates of the last available frame at the end if buffer is not full
+          const last = rollingBuffer[rollingBuffer.length - 1]!;
           const padded = new Float32Array(windowSize * inputDim);
-          for (let i = 0; i < windowSize - rollingBuffer.length; i++) {
-            padded.set(first, i * inputDim);
-          }
+          // Add existing frames at the beginning
           for (let i = 0; i < rollingBuffer.length; i++) {
-            padded.set(rollingBuffer[i]!, (windowSize - rollingBuffer.length + i) * inputDim);
+            padded.set(rollingBuffer[i]!, i * inputDim);
+          }
+          // Pad with replicates of the last frame at the end
+          for (let i = rollingBuffer.length; i < windowSize; i++) {
+            padded.set(last, i * inputDim);
           }
           x = padded;
         } else {
