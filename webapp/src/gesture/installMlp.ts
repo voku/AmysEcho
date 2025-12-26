@@ -364,8 +364,6 @@ export function installMlp(customModelData?: string): boolean | void {
         ...(window_size !== undefined ? { window_size } : {}),
         ...(input_dim !== undefined ? { input_dim } : {}),
       };
-      // Clear rolling buffer when loading new model to prevent dimension mismatches
-      rollingBuffer.length = 0;
       return true;
     } catch (e: any) {
       console.warn('MLP load failed:', e?.message ?? e);
@@ -373,40 +371,6 @@ export function installMlp(customModelData?: string): boolean | void {
       mlp = null;
       return false;
     }
-    
-    // Try custom model data first (for profile models)
-    if (customModelData) {
-      const modelData = customModelData as string;
-      if (await loadMlpFromB64(modelData)) {
-        forwardTelemetry('mlp_custom_loaded', { size: modelData.length });
-        return true;
-      }
-      throw new Error('Failed to load custom model data');
-    }
-
-    // bundled model loading would go here if needed
-    // For now, try server fallback
-
-    // Try server fallback
-    try {
-      const modelUrl = '/api/models/current';
-      const response = await fetch(modelUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      const serverB64 = await response.text();
-      if (await loadMlpFromB64(serverB64)) {
-        forwardTelemetry('mlp_server_loaded');
-        return true;
-      }
-    } catch (e) {
-      console.warn('Server model fallback failed:', e);
-      forwardTelemetry('mlp_server_failed', { error: String(e) });
-    }
-
-    // All loading attempts failed
-    console.warn('All model loading attempts failed');
-    return false;
   }
   
   function relu(x: Float32Array) {
@@ -688,4 +652,33 @@ export function installMlp(customModelData?: string): boolean | void {
       forwardTelemetry('mlp_transfer_complete');
     }
   };
+
+  // Initial model loading orchestration
+  (async () => {
+    // Try custom model data first (for profile models)
+    if (customModelData) {
+      if (await loadMlpFromB64(customModelData)) {
+        forwardTelemetry('mlp_custom_loaded', { size: customModelData.length });
+        return;
+      }
+      console.warn('Failed to load provided custom model data');
+    }
+
+    // Try server fallback
+    try {
+      const modelUrl = '/api/models/current';
+      const response = await fetch(modelUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const serverB64 = await response.text();
+      if (await loadMlpFromB64(serverB64)) {
+        forwardTelemetry('mlp_server_loaded');
+      }
+    } catch (e) {
+      // Server fallback is optional, log but don't fail
+      console.info('Server model fallback not available or failed:', e instanceof Error ? e.message : String(e));
+      forwardTelemetry('mlp_server_failed', { error: String(e) });
+    }
+  })();
 }

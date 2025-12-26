@@ -224,7 +224,7 @@ def _emit_event(payload: Dict[str, object]) -> None:
 
 @dataclass
 class Sample:
-    """Training sample produced from a bundle.
+    """Training sample produced from a bundle. 
     
     In temporal sliding window mode, `landmarks` contains the flattened
     feature vector for the entire window (30 frames * 1629 features).
@@ -297,7 +297,7 @@ def ensure_inside(base: Path, candidate: Path) -> Path:
 def resolve_relative_path(base: Path, relative: str) -> Optional[Path]:
     if not relative:
         return None
-    normalized = relative.replace("\\", "/").lstrip("/")
+    normalized = relative.replace("\", "/").lstrip("/")
     if not normalized:
         return None
     try:
@@ -312,7 +312,7 @@ def select_landmarks_relative_path(entry: dict) -> str:
     if isinstance(summary, dict):
         path_candidate = summary.get("landmarksPath")
         if isinstance(path_candidate, str):
-            normalized = path_candidate.replace("\\", "/").lstrip("/")
+            normalized = path_candidate.replace("\", "/").lstrip("/")
             if normalized:
                 return normalized
 
@@ -321,7 +321,7 @@ def select_landmarks_relative_path(entry: dict) -> str:
         for file in files:
             if not isinstance(file, str):
                 continue
-            normalized = file.replace("\\", "/").lstrip("/")
+            normalized = file.replace("\", "/").lstrip("/")
             if not normalized:
                 continue
             base_name = normalized.split("/")[-1]
@@ -930,7 +930,7 @@ def _normalize_frame(
         None: If mandatory hand landmarks are missing or invalid
     """
     
-    # ========== 1. HAND LANDMARKS (MANDATORY) - 126 Features ==========
+    # ========== 1. HAND LANDMARKS (MANDATORY) - 126 Features ========== 
     if not landmarks or len(landmarks) < 21:
         return None  # Hands are required for sign language
 
@@ -965,7 +965,7 @@ def _normalize_frame(
     # Apply priority weighting and flatten
     hand_features = np.concatenate([left_hand, right_hand]).flatten() * HAND_PRIORITY_FACTOR
 
-    # ========== 2. POSE LANDMARKS (OPTIONAL) - 99 Features ==========
+    # ========== 2. POSE LANDMARKS (OPTIONAL) - 99 Features ========== 
     if pose_landmarks and len(pose_landmarks) >= 33:
         pose_arr = np.array(pose_landmarks, dtype=np.float32)[:33, :3]  # x,y,z only (drop visibility)
         
@@ -984,7 +984,7 @@ def _normalize_frame(
         # Fill with zeros if pose data unavailable (modality dropout)
         pose_features = np.zeros(99, dtype=np.float32)
 
-    # ========== 3. FACE LANDMARKS (OPTIONAL) - 1404 Features ==========
+    # ========== 3. FACE LANDMARKS (OPTIONAL) - 1404 Features ========== 
     if face_landmarks and len(face_landmarks) >= 468:
         face_arr = np.array(face_landmarks, dtype=np.float32)[:468, :3]
         
@@ -1002,7 +1002,7 @@ def _normalize_frame(
         # Fill with zeros if face data unavailable
         face_features = np.zeros(1404, dtype=np.float32)
 
-    # ========== CONCATENATE ALL MODALITIES ==========
+    # ========== CONCATENATE ALL MODALITIES ========== 
     return np.concatenate([hand_features, pose_features, face_features])
 
 
@@ -1040,7 +1040,7 @@ def create_sliding_windows(
             f"Expected frame vectors of size {INPUT_FEATURE_SIZE}, got {arr.shape[1]}"
         )
 
-    # ========== PADDING FOR SHORT CLIPS ==========
+    # ========== PADDING FOR SHORT CLIPS ========== 
     if seq_len < WINDOW_SIZE:
         pad_qty = WINDOW_SIZE - seq_len
         last_frame = arr[-1:, :]  # Keep 2D shape for vstack
@@ -1050,7 +1050,7 @@ def create_sliding_windows(
         arr = np.vstack([arr, padding])
         seq_len = WINDOW_SIZE
 
-    # ========== GENERATE SLIDING WINDOWS ==========
+    # ========== GENERATE SLIDING WINDOWS ========== 
     samples = []
     num_windows = seq_len - WINDOW_SIZE + 1  # Overlapping windows with stride=1
     
@@ -1106,7 +1106,7 @@ def _forward_mlp(
     dropout_mask2: Optional[np.ndarray] = None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Three-layer MLP forward pass with optional dropout.
+    Three-layer MLP forward pass with optional dropout. 
     
     Architecture: Input(48870) → 512 → 256 → Output(num_classes)
     
@@ -1194,7 +1194,7 @@ def train_mlp(
     early_stopping_min_delta = resolved.early_stopping_min_delta
     return_best_and_final_flag = resolved.return_best_and_final
 
-    # ========== ARCHITECTURE DEFINITION ==========
+    # ========== ARCHITECTURE DEFINITION ========== 
     input_dim = X.shape[1]  # Should be 48,870 (WINDOW_SIZE * INPUT_FEATURE_SIZE)
     layer1_size = MLP_LAYER1_SIZE  # 512
     layer2_size = MLP_LAYER2_SIZE  # 256
@@ -1205,7 +1205,7 @@ def train_mlp(
             "This is expected in unit tests but may indicate a configuration error in production."
         )
 
-    # ========== WEIGHT INITIALIZATION (He Initialization) ==========
+    # ========== WEIGHT INITIALIZATION (He Initialization) ========== 
     random_source = np.random if rng is None else rng
     
     def _sample_from_rng(rs, shape):
@@ -1241,7 +1241,7 @@ def train_mlp(
     w3 = _sample_from_rng(random_source, (layer2_size, output_size)).astype(np.float32) * scale3
     b3 = np.zeros(output_size, dtype=np.float32)
 
-    # ========== TRAINING SETUP ==========
+    # ========== TRAINING SETUP ========== 
     num_samples = X.shape[0]
     sanitized_dropout = max(0.0, min(1.0, dropout_rate))
     keep_prob = 1.0 - sanitized_dropout
@@ -1283,7 +1283,7 @@ def train_mlp(
     best_epoch = 0
     final_epoch = 0
 
-    # ========== TRAINING LOOP ==========
+    # ========== TRAINING LOOP ========== 
     for epoch in range(epochs):
         current_epoch = epoch + 1
         
@@ -1372,7 +1372,7 @@ def train_mlp(
                     )
                     stop_after_epoch = True
 
-        # ========== BACKPROPAGATION (CHAIN RULE) ==========
+        # ========== BACKPROPAGATION (CHAIN RULE) ========== 
         
         # Output layer gradient
         dz3 = probs.copy()
@@ -1402,7 +1402,7 @@ def train_mlp(
         dw1 = np.dot(X.T, dz1)
         db1 = np.sum(dz1, axis=0)
 
-        # ========== GRADIENT DESCENT UPDATE ==========
+        # ========== GRADIENT DESCENT UPDATE ========== 
         w1 -= learning_rate * dw1
         b1 -= learning_rate * db1
         w2 -= learning_rate * dw2
@@ -1415,7 +1415,7 @@ def train_mlp(
         if stop_after_epoch:
             break
 
-    # ========== RETURN BEST WEIGHTS ==========
+    # ========== RETURN BEST WEIGHTS ========== 
     final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy(), w3.copy(), b3.copy())
 
     if return_best_and_final_flag:
@@ -1456,7 +1456,7 @@ def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
     if isinstance(storage_files_raw, list):
         for file_entry in storage_files_raw:
             if isinstance(file_entry, str) and file_entry.strip():
-                normalized = file_entry.replace("\\", "/").lstrip("/")
+                normalized = file_entry.replace("\", "/").lstrip("/")
                 if normalized:
                     storage_files.append(normalized)
 
@@ -1607,7 +1607,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         recording_metadata = _extract_recording_metadata(metadata)
         modality_coverage = _extract_modality_coverage(metadata)
         
-        # ========== PATH RESOLUTION (keep existing logic) ==========
+        # ========== PATH RESOLUTION (keep existing logic) ========== 
         rel_dir = entry.get("storage", {}).get("directory")
         if not rel_dir:
             continue
@@ -1623,7 +1623,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         clip_path = _resolve_clip_path(entry, bundle_dir)
         still_path = _resolve_still_path(entry, bundle_dir)
 
-        # ========== LOAD FRAMES (with caching) ==========
+        # ========== LOAD FRAMES (with caching) ========== 
         frames: Optional[List[dict]] = None
         frames_from_clip = False
 
@@ -1666,7 +1666,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         if not frame_list:
             continue
 
-        # ========== NEW SLIDING WINDOW PROCESSING ==========
+        # ========== NEW SLIDING WINDOW PROCESSING ========== 
         
         # 1. Normalize each frame individually
         normalized_frames = []
@@ -1712,7 +1712,7 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         sign_samples = create_sliding_windows(normalized_frames, label, ctx)
         data.extend(sign_samples)
 
-    # ========== PROCESS DEFAULT VIDEO EXAMPLES (GLOBAL) ==========
+    # ========== PROCESS DEFAULT VIDEO EXAMPLES (GLOBAL) ========== 
     video_examples_dir = DATA_DIR / "dgs_video_examples"
     if video_examples_dir.exists():
         for video_file in video_examples_dir.glob("*.mp4"):
@@ -1805,7 +1805,7 @@ def dataset_to_arrays(
     Convert Sample objects to training arrays.
     
     CRITICAL: Sample.landmarks now contains pre-normalized window vectors (48,870 floats),
-    so we skip normalization here. Just convert to numpy arrays.
+    so we skip normalization here. Just convert to numpy arrays. 
     
     Note: Augmentation is disabled for temporal windows since geometric transforms
     on flattened vectors would break temporal coherence. Augmentation happens naturally
@@ -1877,7 +1877,7 @@ def validate_samples(samples: List[Sample]) -> None:
     if low_labels and MIN_SAMPLES_PER_LABEL > 1:
         raise ValueError(
             "Zu wenige Beispiele pro Geste: "
-            + ", ".join(f"{label} ({label_counts[label]})" for label in sorted(low_labels))
+            + ", ".join(f"{label} ({label_counts[label]})") for label in sorted(low_labels))
         )
 
     for profile_id, counts in profile_counts.items():
@@ -1885,7 +1885,7 @@ def validate_samples(samples: List[Sample]) -> None:
         if short_labels and MIN_SAMPLES_PER_PROFILE > 1:
             raise ValueError(
                 f"Profil {profile_id} hat zu wenige Beispiele: "
-                + ", ".join(f"{label} ({counts[label]})" for label in sorted(short_labels))
+                + ", ".join(f"{label} ({counts[label]})") for label in sorted(short_labels))
             )
 
 
@@ -1960,7 +1960,7 @@ def plan_train_validation_split(
         raise TypeError("The provided 'rng' object must have a 'permutation' or 'shuffle' method.")
 
     if num_samples < 2:
-        return indices, np.zeros((0,), dtype=np.int64)
+        return indices, np.zeros((0,), np.int64)
 
     sanitized_fraction = float(np.clip(validation_fraction, 0.0, 1.0))
     validation_count = int(num_samples * sanitized_fraction)
@@ -2031,254 +2031,269 @@ def _compute_accuracy(
     y: np.ndarray,
     weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 ) -> float:
-    """Compute classification accuracy using 3-layer MLP."""
     if X.size == 0 or y.size == 0:
         return 0.0
-
     w1, b1, w2, b2, w3, b3 = weights
     probs, _, _, _, _ = _forward_mlp(X, w1, b1, w2, b2, w3, b3)
     preds = np.argmax(probs, axis=1)
-    return float(np.mean(preds == y)) if len(y) else 0.0
+    return float(np.mean(preds == y))
 
 
-def train_models(
-    samples: List[Sample],
-    *,
-    config: Optional[TrainingConfig] = None,
-    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-) -> Tuple[Dict[str, dict], dict]:
-    """Train global and per-profile models. Returns (profiles_report, global_report)."""
+def _compute_f1_score(
+    X: np.ndarray,
+    y: np.ndarray,
+    weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    num_classes: int
+) -> float:
+    if X.size == 0 or y.size == 0:
+        return 0.0
+    w1, b1, w2, b2, w3, b3 = weights
+    probs, _, _, _, _ = _forward_mlp(X, w1, b1, w2, b2, w3, b3)
+    preds = np.argmax(probs, axis=1)
+    
+    f1_scores = []
+    for i in range(num_classes):
+        tp = np.sum((preds == i) & (y == i))
+        fp = np.sum((preds == i) & (y != i))
+        fn = np.sum((preds != i) & (y == i)) # Fix: should be (preds != i) & (y == i)
+        
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        f1_scores.append(f1)
+        
+    return float(np.mean(f1_scores))
 
-    resolved_config = config or TrainingConfig()
-    trainer_config = replace(resolved_config, return_best_and_final=True)
 
-    global_report = {"samples": 0, "accuracy": 0.0, "labels": {}}
-    profiles_report: Dict[str, dict] = {}
+def _compute_confusion_matrix(
+    X: np.ndarray,
+    y: np.ndarray,
+    weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    num_classes: int
+) -> List[List[int]]:
+    if X.size == 0 or y.size == 0:
+        return [[0]*num_classes for _ in range(num_classes)]
+    w1, b1, w2, b2, w3, b3 = weights
+    probs, _, _, _, _ = _forward_mlp(X, w1, b1, w2, b2, w3, b3)
+    preds = np.argmax(probs, axis=1)
+    
+    cm = [[0]*num_classes for _ in range(num_classes)]
+    for true_label, pred_label in zip(y, preds):
+        cm[int(true_label)][int(pred_label)] += 1
+    return cm
+
+
+def run_training_pipeline(samples: List[Sample], *, config: Optional[TrainingConfig] = None, output_dir: Optional[Path] = None, rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None) -> Dict[str, object]:
+    """Train global and per-profile models and return detailed metrics."""
 
     if not samples:
-        return profiles_report, global_report
+        return {"error": "No training samples found."}
 
-    # Filter for global samples (no profile_id) to prevent data leakage between users
-    global_samples = [s for s in samples if not s.profile_id]
+    resolved_config = config or TrainingConfig()
+    label_set = sorted({s.label for s in samples})
+    
+    # Global training
+    X, y, labels, weights = dataset_to_arrays(
+        samples, 
+        augmentations_per_sample=resolved_config.augmentations_per_sample, 
+        rng=rng
+    )
+    
+    if labels != label_set:
+        LOGGER.warning("Label set mismatch between samples and arrays")
+        label_set = labels
 
-    if global_samples:
-        X, y, labels, quality_weights = dataset_to_arrays(
-            global_samples,
-            augmentations_per_sample=resolved_config.augmentations_per_sample,
-            rng=rng,
-        )
+    num_classes = len(label_set)
+    if num_classes < 1:
+        return {"error": "No labels found in training data."}
 
-        if X.shape[0] > 0:
-            train_indices, validation_indices = plan_train_validation_split(
-                X, validation_fraction=resolved_config.validation_fraction, rng=rng
-            )
+    # Stratified split or simple shuffle
+    train_idx, val_idx = plan_train_validation_split(
+        X, 
+        validation_fraction=resolved_config.validation_fraction, 
+        rng=rng
+    )
+    
+    X_train, y_train = X[train_idx], y[train_idx]
+    w_train = weights[train_idx]
+    
+    validation_data = None
+    if val_idx.size > 0:
+        validation_data = (X[val_idx], y[val_idx])
+        val_weights = weights[val_idx]
+    else:
+        val_weights = None
 
-            X_train, y_train = X[train_indices], y[train_indices]
-            X_val, y_val = X[validation_indices], y[validation_indices]
+    # Train global model
+    global_weights = train_mlp(
+        X_train,
+        y_train,
+        num_classes,
+        config=resolved_config,
+        sample_weights=w_train,
+        validation_data=validation_data,
+        validation_sample_weights=val_weights,
+        rng=rng,
+    )
+    
+    # If returned TrainingSnapshots, extract best weights
+    if isinstance(global_weights, TrainingSnapshots):
+        global_best_weights = global_weights.best_weights
+    else:
+        global_best_weights = global_weights
 
-            train_quality = quality_weights[train_indices] if quality_weights.size else None
-            val_quality = quality_weights[validation_indices] if quality_weights.size else None
+    # Evaluate global model
+    global_accuracy = _compute_accuracy(X, y, global_best_weights)
+    global_f1 = _compute_f1_score(X, y, global_best_weights, num_classes)
+    global_cm = _compute_confusion_matrix(X, y, global_best_weights, num_classes)
+    
+    class_counts = np.bincount(y, minlength=num_classes)
+    
+    if output_dir:
+        save_model(output_dir / "global" / "amy_model.npz", global_best_weights, label_set, class_counts)
 
-            train_class_weights = (
-                compute_sample_weights(y_train, smoothing=resolved_config.class_weight_smoothing)
-                if y_train.size
-                else None
-            )
-            val_class_weights = (
-                compute_sample_weights(y_val, smoothing=resolved_config.class_weight_smoothing)
-                if y_val.size
-                else None
-            )
-
-            train_weights = train_class_weights
-            if train_quality is not None and train_quality.size:
-                train_weights = train_quality if train_weights is None else train_weights * train_quality
-
-            val_weights = val_class_weights
-            if val_quality is not None and val_quality.size:
-                val_weights = val_quality if val_weights is None else val_weights * val_quality
-
-            snapshot = train_mlp(
-                X_train,
-                y_train,
-                len(labels),
-                config=trainer_config,
-                sample_weights=train_weights,
-                validation_data=(X_val, y_val) if X_val.size else None,
-                validation_sample_weights=val_weights,
-                rng=rng,
-            )
-
-            best_weights = snapshot.best_weights if isinstance(snapshot, TrainingSnapshots) else snapshot
-
-            train_acc = _compute_accuracy(X_train, y_train, best_weights)
-            val_acc = _compute_accuracy(X_val, y_val, best_weights)
-
-            counts = np.array([int(sum(1 for sample in global_samples if sample.label == label)) for label in labels], dtype=np.float32)
-            save_model(GLOBAL_MODEL_PATH, best_weights, labels, counts=counts)
-            global_report = {
-                "samples": int(X.shape[0]),
-                "accuracy": train_acc,
-                "validationSamples": int(X_val.shape[0]),
-                "validationAccuracy": val_acc,
-                "labels": {label: int(counts[i]) for i, label in enumerate(labels)},
-                "recordingStats": _summarize_recording_stats(global_samples),
-                "modelPath": os.path.relpath(GLOBAL_MODEL_PATH, DATA_DIR),
-            }
-
-    profiles = sorted({s.profile_id for s in samples if s.profile_id})
-    for pid in profiles:
-        subset = filter_samples_by_profile(samples, pid)
-        if not subset:
+    # Per-profile models
+    profile_reports = {}
+    profiles = {s.profile_id for s in samples if s.profile_id}
+    
+    for profile_id in profiles:
+        p_samples = filter_samples_by_profile(samples, profile_id)
+        if len(p_samples) < MIN_SAMPLES_PER_PROFILE:
             continue
-        Xp, yp, labels_p, quality_weights_p = dataset_to_arrays(
-            subset,
-            augmentations_per_sample=resolved_config.augmentations_per_sample,
-            rng=rng,
-        )
-        if Xp.shape[0] == 0:
+            
+        p_X, p_y, p_labels, p_weights = dataset_to_arrays(p_samples, rng=rng)
+        p_num_classes = len(p_labels)
+        
+        if p_num_classes < 1:
             continue
-
-        train_idx_p, val_idx_p = plan_train_validation_split(
-            Xp, validation_fraction=resolved_config.validation_fraction, rng=rng
+            
+        # Per-profile split
+        p_train_idx, p_val_idx = plan_train_validation_split(
+            p_X, 
+            validation_fraction=resolved_config.validation_fraction, 
+            rng=rng
         )
-
-        Xp_train, yp_train = Xp[train_idx_p], yp[train_idx_p]
-        Xp_val, yp_val = Xp[val_idx_p], yp[val_idx_p]
-
-        train_quality_p = quality_weights_p[train_idx_p] if quality_weights_p.size else None
-        val_quality_p = quality_weights_p[val_idx_p] if quality_weights_p.size else None
-
-        train_class_weights_p = (
-            compute_sample_weights(
-                yp_train, smoothing=resolved_config.class_weight_smoothing
-            )
-            if yp_train.size
-            else None
-        )
-        val_class_weights_p = (
-            compute_sample_weights(yp_val, smoothing=resolved_config.class_weight_smoothing)
-            if yp_val.size
-            else None
-        )
-
-        train_weights_p = train_class_weights_p
-        if train_quality_p is not None and train_quality_p.size:
-            train_weights_p = train_quality_p if train_weights_p is None else train_weights_p * train_quality_p
-
-        val_weights_p = val_class_weights_p
-        if val_quality_p is not None and val_quality_p.size:
-            val_weights_p = val_quality_p if val_weights_p is None else val_weights_p * val_quality_p
-
-        snapshot_p = train_mlp(
-            Xp_train,
-            yp_train,
-            len(labels_p),
-            config=trainer_config,
-            sample_weights=train_weights_p,
-            validation_data=(Xp_val, yp_val) if Xp_val.size else None,
-            validation_sample_weights=val_weights_p,
+        
+        p_validation_data = None
+        p_val_weights = None
+        if p_val_idx.size > 0:
+            p_validation_data = (p_X[p_val_idx], p_y[p_val_idx])
+            p_val_weights = p_weights[p_val_idx]
+            
+        # Train profile model
+        p_weights_result = train_mlp(
+            p_X[p_train_idx],
+            p_y[p_train_idx],
+            p_num_classes,
+            config=resolved_config,
+            sample_weights=p_weights[p_train_idx],
+            validation_data=p_validation_data,
+            validation_sample_weights=p_val_weights,
             rng=rng,
         )
-
-        weights_p = snapshot_p.best_weights if isinstance(snapshot_p, TrainingSnapshots) else snapshot_p
-        acc_p = _compute_accuracy(Xp_train, yp_train, weights_p)
-        val_acc_p = _compute_accuracy(Xp_val, yp_val, weights_p)
-        profile_path = MODELS_DIR / pid / "amy_model.npz"
-        counts_p = np.array([int(sum(1 for sample in subset if sample.label == label)) for label in labels_p], dtype=np.float32)
-        save_model(profile_path, weights_p, labels_p, counts=counts_p)
-        profiles_report[pid] = {
-            "samples": int(Xp.shape[0]),
-            "accuracy": acc_p,
-            "validationSamples": int(Xp_val.shape[0]),
-            "validationAccuracy": val_acc_p,
-            "labels": {label: int(counts_p[i]) for i, label in enumerate(labels_p)},
-            "recordingStats": _summarize_recording_stats(subset),
-            "modelPath": os.path.relpath(profile_path, DATA_DIR),
+        
+        if isinstance(p_weights_result, TrainingSnapshots):
+            p_best_weights = p_weights_result.best_weights
+        else:
+            p_best_weights = p_weights_result
+            
+        p_accuracy = _compute_accuracy(p_X, p_y, p_best_weights)
+        p_f1 = _compute_f1_score(p_X, p_y, p_best_weights, p_num_classes)
+        
+        p_counts = np.bincount(p_y, minlength=p_num_classes)
+        
+        if output_dir:
+            save_model(output_dir / profile_id / "amy_model.npz", p_best_weights, p_labels, p_counts)
+            
+        profile_reports[profile_id] = {
+            "accuracy": p_accuracy,
+            "f1_score": p_f1,
+            "samples": len(p_samples),
+            "labels": p_labels,
+            "class_counts": p_counts.tolist()
         }
 
-    return profiles_report, global_report
-
-
-def persist_training_metadata(payload: Dict[str, object]) -> None:
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    metadata_path = MODELS_DIR / "training_metadata.json"
-    tmp_path = metadata_path.with_suffix(".tmp")
-    with tmp_path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, ensure_ascii=False)
-    os.replace(tmp_path, metadata_path)
-
-
-# --- Entry point ------------------------------------------------------------
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Train Amy's MLP from manifest bundles")
-    parser.add_argument("--manifest", type=str, default=str(MANIFEST_PATH))
-    parser.add_argument("--data-dir", type=str, default=str(DATA_DIR))
-    args = parser.parse_args()
-
-    try:
-        manifest_path = ensure_inside(Path(args.data_dir), Path(args.manifest))
-        start_ts = datetime.now(timezone.utc)
-
-        samples, stats = build_samples_from_manifest(manifest_path)
-        # Legacy dataset support disabled for sliding window architecture:
-        # Legacy samples contain pre-averaged landmarks (not temporal sequences),
-        # which cannot be converted to sliding windows.
-        # if not samples:
-        #     legacy_samples = build_samples_from_legacy_dataset(LEGACY_DATASET_PATH)
-        #     samples = legacy_samples
-        #     stats["legacy_samples"] = len(legacy_samples)
-
-        validate_samples(samples)
-        profiles_report, global_report = train_models(samples)
-
-        finished_at = datetime.now(timezone.utc)
-        report = {
-            "generatedAt": finished_at.isoformat().replace("+00:00", "Z"),
-            "manifestPath": os.path.relpath(manifest_path, Path(args.data_dir)),
-            "cache": stats,
-            "global": global_report,
-            "profiles": profiles_report,
-            "totalSamples": len(samples),
-            "dependencies": {"mediapipe": mp is not None, "opencv": cv2 is not None},
-            "durationMs": int((finished_at - start_ts).total_seconds() * 1000),
-        }
-
-        metadata = {
-            "manifestSha256": sha256_file(manifest_path),
-            "hyperparameters": {
-                "hiddenSize": MLP_LAYER1_SIZE,
-                "learningRate": LEARNING_RATE,
-                "epochs": EPOCHS,
-                "dropoutRate": DROPOUT_RATE,
-                "validationFraction": VALIDATION_FRACTION,
-                "augmentationsPerSample": AUGMENTATIONS_PER_SAMPLE,
-                "classWeightSmoothing": CLASS_WEIGHT_SMOOTHING,
-                "earlyStoppingPatience": EARLY_STOPPING_PATIENCE,
-                "earlyStoppingMinDelta": EARLY_STOPPING_MIN_DELTA,
-            },
-            "dependencies": {"mediapipe": mp is not None, "opencv": cv2 is not None},
-            "generatedAt": report["generatedAt"],
+    return {
+        "global": {
+            "accuracy": global_accuracy,
+            "f1_score": global_f1,
+            "confusion_matrix": global_cm,
             "samples": len(samples),
-            "profiles": list(profiles_report.keys()),
-            "durationMs": report["durationMs"],
-        }
-        persist_training_metadata(metadata)
+            "labels": label_set,
+            "class_counts": class_counts.tolist()
+        },
+        "profiles": profile_reports,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
-        print(json.dumps(report))
-        return 0
-    except DependencyUnavailableError as err:
-        print(str(err), file=sys.stderr)
-        return 2
-    except ValueError as err:
-        print(f"Training abgebrochen: {err}", file=sys.stderr)
-        return 1
-    except Exception:  # pragma: no cover - defensive fallback
-        LOGGER.exception("Unhandled training error")
-        return 1
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=MANIFEST_PATH,
+        help="Path to training bundle manifest JSON",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=DATA_DIR,
+        help="Root directory for landmark storage",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Directory to write trained weight files (defaults to models dir)",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        help="Maximum training epochs",
+    )
+    parser.add_argument(
+        "--lr",
+        type=float,
+        help="Learning rate",
+    )
+    parser.add_argument(
+        "--dropout",
+        type=float,
+        help="Dropout rate",
+    )
+    parser.add_argument(
+        "--early-stopping",
+        type=int,
+        help="Patience for early stopping",
+    )
+    
+    args = parser.parse_args()
+    
+    global DATA_DIR, MODELS_DIR
+    DATA_DIR = args.data_dir
+    MODELS_DIR = args.output_dir or (DATA_DIR / "models")
+    
+    config = TrainingConfig(
+        epochs=args.epochs if args.epochs is not None else EPOCHS,
+        learning_rate=args.lr if args.lr is not None else LEARNING_RATE,
+        dropout_rate=args.dropout if args.dropout is not None else DROPOUT_RATE,
+        early_stopping_patience=args.early_stopping if args.early_stopping is not None else EARLY_STOPPING_PATIENCE,
+    )
+    
+    try:
+        samples, stats = build_samples_from_manifest(args.manifest)
+        if not samples:
+            print(json.dumps({"error": "No valid training samples found."}))
+            return
+
+        report = run_training_pipeline(samples, config=config, output_dir=MODELS_DIR)
+        report["stats"] = stats
+        print(json.dumps(report, indent=2))
+        
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

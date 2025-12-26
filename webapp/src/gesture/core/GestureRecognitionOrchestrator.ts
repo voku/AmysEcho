@@ -38,6 +38,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
 const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
+const MLP_NULL_LABEL = '_NULL_';
 
 interface GestureMessagePayload {
   type: 'gesture';
@@ -1440,8 +1441,8 @@ export class GestureDetectionStep implements ProcessingStep {
           const isMediaPipeConfident = selectedConfidence > 0.3;
           const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
 
-          if (mlpResult.label === '_NULL_') {
-            gestureDebugLog('mlp', 'Ignoring background noise (_NULL_)', undefined, { sampleIntervalMs: 2000 });
+          if (mlpResult.label === MLP_NULL_LABEL) {
+            gestureDebugLog('mlp', `Ignoring background noise (${MLP_NULL_LABEL})`, undefined, { sampleIntervalMs: 2000 });
           } else if (mlpResult.score >= threshold && 
               (selectedGesture === null || 
                selectedGesture === 'none' || 
