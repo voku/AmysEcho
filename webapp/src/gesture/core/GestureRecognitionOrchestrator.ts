@@ -1440,7 +1440,9 @@ export class GestureDetectionStep implements ProcessingStep {
           const isMediaPipeConfident = selectedConfidence > 0.3;
           const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
 
-          if (mlpResult.score >= threshold && 
+          if (mlpResult.label === '_NULL_') {
+            gestureDebugLog('mlp', 'Ignoring background noise (_NULL_)', undefined, { sampleIntervalMs: 2000 });
+          } else if (mlpResult.score >= threshold && 
               (selectedGesture === null || 
                selectedGesture === 'none' || 
                mlpResult.score >= (selectedConfidence + confidenceMargin))) {
