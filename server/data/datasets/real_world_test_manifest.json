@@ -1,0 +1,544 @@
+{
+  "entries": [
+    {
+      "id": "test_bundle_1766734211_0",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734211",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:30:12.050914",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734211_1",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734211",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:30:12.050914",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734211_2",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734211",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:30:12.050914",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734211_3",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734211",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:30:12.050914",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734211_4",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734211",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:30:12.050914",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734382_0",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734382",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:33:03.264971",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734382_1",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734382",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:33:03.264971",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734382_2",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734382",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:33:03.264971",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734382_3",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734382",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:33:03.264971",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766734382_4",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766734382",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:33:03.264971",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766735782_0",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766735782",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:56:22.433158",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766735782_1",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766735782",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:56:22.433158",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766735782_2",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766735782",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:56:22.433158",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766735782_3",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766735782",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:56:22.433158",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    },
+    {
+      "id": "test_bundle_1766735782_4",
+      "profileId": "amy-test-2025",
+      "label": "APPEL",
+      "storage": {
+        "directory": "uploads/amy-test-2025/test_bundle_1766735782",
+        "files": [
+          "landmarks.json",
+          "metadata.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "amy-test-2025",
+        "label": "APPEL",
+        "capturedAt": "2025-12-26T08:56:22.433158",
+        "handFocus": "dominant_only",
+        "recording": {
+          "frameCount": 40,
+          "clipDurationMs": 1320
+        },
+        "modalities": {
+          "hands": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "pose": {
+            "present": true,
+            "coverage": 1.0
+          },
+          "face": {
+            "present": true,
+            "coverage": 1.0
+          }
+        }
+      }
+    }
+  ]
+}
