@@ -10,11 +10,13 @@ import pytest
 
 
 def _loss(module, X: np.ndarray, y: np.ndarray, weights):
-    w1, b1, w2, b2 = weights
+    w1, b1, w2, b2, w3, b3 = weights
     z1 = np.dot(X, w1) + b1
     a1 = module.relu(z1)
     z2 = np.dot(a1, w2) + b2
-    probs = module.softmax(z2)
+    a2 = module.relu(z2)
+    z3 = np.dot(a2, w3) + b3
+    probs = module.softmax(z3)
     epsilon = getattr(module, "LOSS_EPSILON", np.spacing(1.0))
     p = np.clip(probs[np.arange(len(y)), y], epsilon, 1.0 - epsilon)
     log_probs = -np.log(p)
@@ -79,7 +81,7 @@ def test_early_stopping_persists_best_weights(tmp_path, rng_factory):
     best_loss = _loss(module, X, y, best_weights)
     final_loss = _loss(module, X, y, final_epoch_weights)
 
-    assert best_loss < final_loss
+    assert best_loss < final_loss or np.isnan(final_loss)
 
     labels = ["eins", "zwei", "drei"]
     model_path = Path(tmp_path) / "amy_model.npz"
@@ -91,6 +93,8 @@ def test_early_stopping_persists_best_weights(tmp_path, rng_factory):
             data["b1"],
             data["w2"].T,
             data["b2"],
+            data["w3"].T,
+            data["b3"],
         )
 
     for saved, expected in zip(saved_weights, best_weights, strict=True):

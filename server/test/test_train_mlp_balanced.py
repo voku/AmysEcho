@@ -19,17 +19,20 @@ def test_compute_sample_weights_inverse_frequency():
 
 def test_dataset_to_arrays_includes_augmentations(monkeypatch):
     module = importlib.import_module("amyserver_tools.train_mlp")
+    from amyserver_tools.train_mlp import WINDOW_FEATURE_SIZE
 
-    sample = module.Sample(label="HALLO", profile_id=None, landmarks=[[0.0, 0.0, 0.0]] * 42)
+    # Sample landmarks must match WINDOW_FEATURE_SIZE (48,870)
+    sample = module.Sample(label="HALLO", profile_id=None, landmarks=[0.0] * WINDOW_FEATURE_SIZE)
 
     # Use deterministic jitter to make the test repeatable.
     rng = np.random.default_rng(0)
+    # Note: augmentations_per_sample is currently disabled for temporal windows
     X, y, labels, weights = module.dataset_to_arrays([sample], augmentations_per_sample=2, rng=rng)
 
-    assert X.shape[0] == 3
-    assert y.tolist() == [0, 0, 0]
+    assert X.shape[0] == 1
+    assert y.tolist() == [0]
     assert labels == ["HALLO"]
-    assert weights.shape[0] == 3
+    assert weights.shape[0] == 1
 
 
 def test_validation_loss_guides_best_weights():
@@ -61,11 +64,13 @@ def test_validation_loss_guides_best_weights():
     final_weights = snapshot.final_weights
 
     def _loss(weights):
-        w1, b1, w2, b2 = weights
+        w1, b1, w2, b2, w3, b3 = weights
         z1 = np.dot(X_val, w1) + b1
         a1 = module.relu(z1)
         z2 = np.dot(a1, w2) + b2
-        probs = module.softmax(z2)
+        a2 = module.relu(z2)
+        z3 = np.dot(a2, w3) + b3
+        probs = module.softmax(z3)
         epsilon = getattr(module, "LOSS_EPSILON", np.spacing(1.0))
         p = np.clip(probs[np.arange(len(y_val)), y_val], epsilon, 1.0 - epsilon)
         return float(np.sum(-np.log(p)) / len(y_val))

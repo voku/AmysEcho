@@ -18,6 +18,7 @@ import numpy as np
 from pathlib import Path
 import subprocess
 from datetime import datetime
+import copy
 
 # Configuration
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -31,7 +32,7 @@ def generate_gesture_sequence(num_frames=40):
     """Generate realistic multimodal landmarks for a 'eating apple' gesture."""
     frames = []
     for i in range(num_frames):
-        t = i / (num_frames - 1)
+        t = i / (num_frames - 1) if num_frames > 1 else 0.0
         
         # Simulate hand moving towards mouth
         hand_x = 0.5
@@ -49,12 +50,12 @@ def generate_gesture_sequence(num_frames=40):
             
         # 33 pose landmarks (torso/head)
         pose_lms = []
-        for lm_idx in range(33):
+        for _ in range(33):
             pose_lms.append([0.5 + np.random.normal(0, 0.01), 0.3 + np.random.normal(0, 0.01), 0.0, 0.99])
             
         # 468 face landmarks
         face_lms = []
-        for lm_idx in range(468):
+        for _ in range(468):
             face_lms.append([0.5 + np.random.normal(0, 0.005), 0.3 + np.random.normal(0, 0.005), 0.05])
             
         frames.append({
@@ -119,9 +120,9 @@ def setup_test_interaction():
         
     # Add 5 copies of the same gesture to ensure enough samples for training
     for i in range(5):
-        entry = manifest_entry.copy()
+        entry = copy.deepcopy(manifest_entry)
         entry["id"] = f"{bundle_id}_{i}"
-        manifest.get("entries", []).append(entry)
+        manifest["entries"].append(entry)
         
     # Also add some global examples from synthetic data if they exist to prevent single-class issues
     # (Simplified for this test: we just want to see if the profile model trains)
@@ -154,7 +155,7 @@ def run_training():
                 p_report = report["profiles"][PROFILE_ID]
                 print(f"📊 Profile Model Accuracy: {p_report.get('accuracy', 0):.2%}")
                 return True
-        except:
+        except (json.JSONDecodeError, KeyError, TypeError):
             print("⚠️ Could not parse training report, but exit code was 0.")
             return True
     else:
@@ -182,6 +183,7 @@ def verify_model():
 if __name__ == "__main__":
     setup_test_interaction()
     if run_training():
-        verify_model()
+        if not verify_model():
+            sys.exit(1)
     else:
         sys.exit(1)
