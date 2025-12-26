@@ -10,7 +10,7 @@ export type ModelMetadata = {
   labels?: string[];
 };
 
-export function installMlp(customModelData?: string): boolean | void {
+export function installMlp(customModelData?: string): void {
   type Tensor = { data: Float32Array; shape: number[] };
   type Landmark = readonly [number, number, number];
   type Hand = ReadonlyArray<Landmark>;

@@ -37,8 +37,8 @@ class ModelManager {
    */
   async loadGlobalModel(): Promise<boolean> {
     try {
-      const success = installMlp();
-      if (success) {
+      installMlp();
+      if (this.globalModelLoaded) {
         this.globalModelLoaded = true;
         await this.sendTelemetry('global_model_loaded', { success: true });
         console.log('🌍 Global model loaded successfully');
