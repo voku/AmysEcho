@@ -6,7 +6,6 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-
 BASELINE_MODEL_PATH = Path(__file__).resolve().parents[1] / "server" / "data" / "models" / "global" / "amy_model.npz"
 CHECKSUM_PATH = BASELINE_MODEL_PATH.with_suffix(BASELINE_MODEL_PATH.suffix + ".sha256")
 

@@ -2,9 +2,9 @@
 """Shared feature schema loader for multimodal landmark sizes."""
 
 from __future__ import annotations
+
 import json
 from pathlib import Path
-
 
 _ROOT = Path(__file__).resolve().parents[2]
 _SCHEMA_PATH = _ROOT / "spec" / "feature_schema.json"
