@@ -1478,14 +1478,9 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
         }
 
         # 3. Generate "_NULL_" class (background/transition frames)
-        # ASSUMPTION: Signs typically don't start in the first second of recording.
-        # Use the first WINDOW_SIZE frames as "pre-sign" noise
-        if len(normalized_frames) >= WINDOW_SIZE:
-            null_window = normalized_frames[:WINDOW_SIZE]
-            null_weights = frame_weights[:WINDOW_SIZE]
-            null_samples = create_sliding_windows(null_window, "_NULL_", ctx, null_weights)
-            # Limit to 2 samples to prevent class imbalance
-            data.extend(null_samples[:2])
+        # Skip automatic heuristic for now to avoid class collisions
+        # If explicitly marked negative samples are needed, they should be added via dedicated logic
+        pass
 
         # 4. Generate sliding windows for the actual sign
         sign_samples = create_sliding_windows(normalized_frames, label, ctx, frame_weights)

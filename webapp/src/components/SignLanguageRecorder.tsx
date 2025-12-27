@@ -113,12 +113,24 @@ export function SignLanguageRecorder() {
           // Fallback to model info if specific endpoint fails
           const profiles = await modelManager.getAvailableProfileModels();
           const currentProfile = profiles.find(p => p.profileId === profileId);
-          setHasTrainedGestures((currentProfile?.gestureCount ?? 0) > 0);
+          const hasAny = (currentProfile?.gestureCount ?? 0) > 0;
+          setHasTrainedGestures(hasAny);
+          
+          // Update cache if we got data from modelManager
+          try {
+            window.localStorage.setItem('webapp:has-trained-gestures', String(hasAny));
+          } catch { /* ignore */ }
         }
       } catch (err) {
         console.warn('Failed to check profile gestures:', err);
-        // If we have cached data, keep it; otherwise default to false to show training prompt
-        setHasTrainedGestures(prev => prev === null ? false : prev);
+        // On network error, prefer the cached value if it exists
+        const cached = window.localStorage.getItem('webapp:has-trained-gestures');
+        if (cached !== null) {
+          setHasTrainedGestures(cached === 'true');
+        } else {
+          // If no cache, default to false to be safe but allow Demo mode
+          setHasTrainedGestures(false);
+        }
       } finally {
         setIsLoadingProfile(false);
       }
