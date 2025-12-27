@@ -1,6 +1,6 @@
 /**
- * Battery monitoring system for emergency mode activation
- * Tracks battery level and triggers emergency protocols when critical
+ * Battery monitoring system
+ * Tracks battery level for system diagnostics
  */
 
 export class BatteryMonitor {

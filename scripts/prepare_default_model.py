@@ -136,13 +136,20 @@ def create_fallback_data():
                 current_x_base = 0.3 + start_offset_x + (t * move_x)
                 current_y_base = 0.4 + start_offset_y + (t * move_y)
                 
+                # 1. Hands (42 points)
                 for i in range(42):
-                    # Generate somewhat realistic hand landmark positions
-                    # Incorporate trajectory, seeds, and small frame noise
                     lx = current_x_base + (i % 21) * 0.01 + (0.05 if i >= 21 else 0) + gesture_seed + sample_seed + np.random.normal(0, 0.002)
                     ly = current_y_base + (i // 21) * 0.1 + gesture_seed - sample_seed + np.random.normal(0, 0.002)
                     lz = (i % 5) * 0.01 + (gesture_idx * 0.001) + np.random.normal(0, 0.001)
                     landmarks.append([lx, ly, lz])
+                
+                # 2. Pose (33 points)
+                for i in range(33):
+                    landmarks.append([0.5 + np.random.normal(0, 0.01), 0.5 + np.random.normal(0, 0.01), 0.0])
+                
+                # 3. Face (468 points)
+                for i in range(468):
+                    landmarks.append([0.5 + np.random.normal(0, 0.005), 0.5 + np.random.normal(0, 0.005), 0.0])
                 
                 sequence_landmarks.append(landmarks)
 

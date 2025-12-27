@@ -141,8 +141,9 @@ export function SignLanguageRecorder() {
 
   useEffect(() => {
     if (lastSign) {
-      // Only record if it's a trained label
-      if (trainedLabels.includes(lastSign.toUpperCase()) || trainedLabels.includes(lastSign.toLowerCase())) {
+      // Only record if it's a trained label (case-insensitive)
+      const normalizedSign = lastSign.toLowerCase();
+      if (trainedLabels.some(label => label.toLowerCase() === normalizedSign)) {
         recordGesture(lastSign);
       }
     }

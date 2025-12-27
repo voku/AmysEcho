@@ -37,6 +37,7 @@ const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
 const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
+// Label used by the MLP model to indicate background noise or no gesture detected
 const MLP_NULL_LABEL = '_NULL_';
 
 interface GestureMessagePayload {
