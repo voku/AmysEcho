@@ -25,7 +25,9 @@ describe('writeMinimalMlpModel', () => {
   });
 
   afterEach(async () => {
-    await fs.rm(tmpDir, { recursive: true, force: true });
+    if (tmpDir) {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
     if (originalDataDir) {
       process.env.AMY_ECHO_DATA_DIR = originalDataDir;
     } else {

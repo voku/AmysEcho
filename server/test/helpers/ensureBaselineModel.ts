@@ -30,7 +30,7 @@ export async function ensureBaselineModelFixture(explicitPath?: string): Promise
 
   await fs.mkdir(path.dirname(baselinePath), { recursive: true });
 
-  const script = `import numpy as np, os, sys
+  const script = `import numpy as np, os, sys, tempfile
 dest = sys.argv[1]
 labels = np.array(['baseline'], dtype='<U64')
 counts = np.zeros((labels.shape[0],), dtype=np.float32)
@@ -43,11 +43,15 @@ w2 = np.zeros((layer2, layer1), dtype=np.float32)
 b2 = np.zeros((layer2,), dtype=np.float32)
 w3 = np.zeros((labels.shape[0], layer2), dtype=np.float32)
 b3 = np.zeros((labels.shape[0],), dtype=np.float32)
-tmp = dest + '.tmp'
 os.makedirs(os.path.dirname(dest) or '.', exist_ok=True)
-with open(tmp, 'wb') as fh:
-    np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2, w3=w3, b3=b3, arch='mlp_3layer_window', window_size=30, input_dim=input_size, feature_size=1629)
-os.replace(tmp, dest)`;
+fd, tmp = tempfile.mkstemp(dir=os.path.dirname(dest) or '.', suffix='.tmp')
+try:
+    with os.fdopen(fd, 'wb') as fh:
+        np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2, w3=w3, b3=b3, arch='mlp_3layer_window', window_size=30, input_dim=input_size, feature_size=1629)
+    os.replace(tmp, dest)
+finally:
+    if os.path.exists(tmp):
+        os.remove(tmp)`;
 
   const result = spawnSync('python3', ['-c', script, baselinePath], {
     encoding: 'utf8',

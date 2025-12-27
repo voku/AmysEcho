@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import AdmZip from 'adm-zip';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel';
+import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel.js';
 import { BASELINE_MLP_MODEL_PATH } from '../src/constants/modelPaths';
 
 describe('MediaPipe Integration Tests', () => {
