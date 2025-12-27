@@ -5,6 +5,8 @@ import path from 'path';
 import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel.js';
 import { BASELINE_MLP_MODEL_PATH } from '../src/constants/modelPaths.js';
 
+const fileExists = (p: string) => fs.access(p).then(() => true).catch(() => false);
+
 describe('MediaPipe Integration Tests', () => {
   const testBundlesDir = path.join(__dirname, '../test-bundles');
   
@@ -32,9 +34,9 @@ describe('MediaPipe Integration Tests', () => {
       const poseModel = path.join(modelsDir, 'pose_landmarker.task');
       const faceModel = path.join(modelsDir, 'face_landmarker.task');
       
-      expect(await fs.access(handModel).then(() => true).catch(() => false)).toBe(true);
-      expect(await fs.access(poseModel).then(() => true).catch(() => false)).toBe(true);
-      expect(await fs.access(faceModel).then(() => true).catch(() => false)).toBe(true);
+      expect(await fileExists(handModel)).toBe(true);
+      expect(await fileExists(poseModel)).toBe(true);
+      expect(await fileExists(faceModel)).toBe(true);
       
       // Check model file sizes are reasonable
       const handStats = await fs.stat(handModel);
@@ -50,15 +52,15 @@ describe('MediaPipe Integration Tests', () => {
       const rootPath = path.join(__dirname, '../../');
       const modelsInRoot = path.join(rootPath, 'hand_landmarker.task');
       
-      expect(await fs.access(modelsInRoot).then(() => true).catch(() => false)).toBe(false);
+      expect(await fileExists(modelsInRoot)).toBe(false);
     });
   });
 
-  describe('Bundle Validation', () => {
-    it('should accept bundles with proper multimodal data', async () => {
+  describe('Bundle Structure Validation', () => {
+    it('should create valid multimodal bundle structure', async () => {
       // Create a test bundle with all modalities
       const bundleData = {
-        label: 'TEST_GESTURE',
+        label: 'TEST_SIGN',
         profileId: 'test-profile',
         capturedAt: new Date().toISOString(),
         metadata: {
@@ -92,7 +94,7 @@ describe('MediaPipe Integration Tests', () => {
       expect(bundleStats.size).toBeGreaterThan(1000);
     });
 
-    it('should accept hands-only bundles for fallback', async () => {
+    it('should create valid hands-only bundle structure for fallback', async () => {
       // Create a test bundle with hands-only data
       const bundleData = {
         label: 'HANDS_ONLY',
@@ -134,7 +136,7 @@ describe('MediaPipe Integration Tests', () => {
 
       for (const video of expectedVideos) {
         const videoPath = path.join(videoDir, video);
-        expect(await fs.access(videoPath).then(() => true).catch(() => false)).toBe(true);
+        expect(await fileExists(videoPath)).toBe(true);
       }
     });
 
@@ -150,14 +152,14 @@ describe('MediaPipe Integration Tests', () => {
 
       for (const landmarks of expectedLandmarks) {
         const landmarksPath = path.join(videoDir, landmarks);
-        expect(await fs.access(landmarksPath).then(() => true).catch(() => false)).toBe(true);
+        expect(await fileExists(landmarksPath)).toBe(true);
       }
     });
 
     it('should have valid DGS manifest', async () => {
       const manifestPath = path.join(__dirname, '../data/dgs_manifest.json');
       
-      expect(await fs.access(manifestPath).then(() => true).catch(() => false)).toBe(true);
+      expect(await fileExists(manifestPath)).toBe(true);
       
       const manifestContent = await fs.readFile(manifestPath, 'utf8');
       const manifest = JSON.parse(manifestContent);
@@ -195,7 +197,7 @@ describe('MediaPipe Integration Tests', () => {
     it('should have trained default model', async () => {
       const modelPath = BASELINE_MLP_MODEL_PATH;
       
-      expect(await fs.access(modelPath).then(() => true).catch(() => false)).toBe(true);
+      expect(await fileExists(modelPath)).toBe(true);
       
       const modelStats = await fs.stat(modelPath);
       expect(modelStats.size).toBeGreaterThan(100000); // Should be at least 100KB

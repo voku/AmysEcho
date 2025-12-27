@@ -85,6 +85,11 @@ console.log(JSON.stringify(Array.from(result)));
             
         js_result = np.array(json.loads(process.stdout), dtype=np.float32)
         
+        # Validate JS result dimension
+        if js_result.shape[0] != INPUT_FEATURE_SIZE:
+            print(f"❌ Unexpected JS feature size: {js_result.shape[0]}, expected {INPUT_FEATURE_SIZE}")
+            sys.exit(1)
+        
         # 4. Compare results
         if py_result.shape != js_result.shape:
             print(f"❌ Shape mismatch: Python {py_result.shape} vs JS {js_result.shape}")
