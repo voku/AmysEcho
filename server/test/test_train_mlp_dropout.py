@@ -53,15 +53,19 @@ def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
     hidden_size = 6
     output_size = 3
 
+    from amyserver_tools.train_mlp import MLP_LAYER1_SIZE, MLP_LAYER2_SIZE
     original_dot = module.np.dot
 
     def capturing_dot(a, b, *args, **kwargs):
         result = original_dot(a, b, *args, **kwargs)
+        # We want to capture activations after Layer 1 (a1) which is passed to Layer 2 (dot(a1, w2))
+        # a1 shape: (num_samples, MLP_LAYER1_SIZE)
+        # w2 shape: (MLP_LAYER1_SIZE, MLP_LAYER2_SIZE)
         if (
             isinstance(a, np.ndarray)
             and isinstance(b, np.ndarray)
-            and a.shape == (num_samples, hidden_size)
-            and b.shape == (hidden_size, output_size)
+            and a.shape == (num_samples, MLP_LAYER1_SIZE)
+            and b.shape == (MLP_LAYER1_SIZE, MLP_LAYER2_SIZE)
         ):
             captured_a1.append(a.copy())
         return result
@@ -81,17 +85,22 @@ def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
         rng=stub_rng,
     )
 
-    assert sampled_values, "dropout should sample a mask each epoch"
-    mask_seed = sampled_values[0]
-    assert mask_seed.shape == (num_samples, hidden_size)
+    assert sampled_values, "dropout should sample masks each epoch"
+    # We now have 2 masks per epoch (layer 1 and layer 2)
+    assert len(sampled_values) >= 2
+    mask1_seed = sampled_values[0]
+    assert mask1_seed.shape == (num_samples, MLP_LAYER1_SIZE)
 
-    boolean_mask = mask_seed < keep_prob
+    boolean_mask = mask1_seed < keep_prob
     unique_rows = np.unique(boolean_mask, axis=0)
     assert unique_rows.shape[0] > 1, "each sample should receive an independent dropout pattern"
 
     assert captured_a1, "should capture activations after dropout is applied"
 
-    w1_stub = np.ones((input_size, hidden_size), dtype=np.float32) * 0.01
+    # He initialization scale
+    scale1 = np.sqrt(2.0 / input_size)
+    # StubRNG.randn returns 1.0
+    w1_stub = np.ones((input_size, MLP_LAYER1_SIZE), dtype=np.float32) * scale1
     pre_dropout = np.maximum(0, X.dot(w1_stub))
     scaled_mask = boolean_mask.astype(np.float32)
     if keep_prob > 0.0:
@@ -127,7 +136,7 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
     epochs = 3
     learning_rate = 0.0
 
-    w1, b1, w2, b2 = module.train_mlp(
+    w1, b1, w2, b2, w3, b3 = module.train_mlp(
         X,
         y,
         output_size=2,
@@ -138,16 +147,25 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
         rng=stub_rng,
     )
 
-    assert w1.shape == (X.shape[1], hidden_size)
-    assert w2.shape == (hidden_size, 2)
+    from amyserver_tools.train_mlp import MLP_LAYER1_SIZE, MLP_LAYER2_SIZE
+    assert w1.shape == (X.shape[1], MLP_LAYER1_SIZE)
+    assert w2.shape == (MLP_LAYER1_SIZE, MLP_LAYER2_SIZE)
+    assert w3.shape == (MLP_LAYER2_SIZE, 2)
 
-    expected_w1 = np.ones((X.shape[1], hidden_size), dtype=np.float32) * 0.01
-    expected_w2 = np.ones((hidden_size, 2), dtype=np.float32) * 0.01
+    scale1 = np.sqrt(2.0 / X.shape[1])
+    scale2 = np.sqrt(2.0 / MLP_LAYER1_SIZE)
+    scale3 = np.sqrt(2.0 / MLP_LAYER2_SIZE)
+
+    expected_w1 = np.ones((X.shape[1], MLP_LAYER1_SIZE), dtype=np.float32) * scale1
+    expected_w2 = np.ones((MLP_LAYER1_SIZE, MLP_LAYER2_SIZE), dtype=np.float32) * scale2
+    expected_w3 = np.ones((MLP_LAYER2_SIZE, 2), dtype=np.float32) * scale3
 
     np.testing.assert_allclose(w1, expected_w1)
-    np.testing.assert_allclose(b1, np.zeros(hidden_size))
+    np.testing.assert_allclose(b1, np.zeros(MLP_LAYER1_SIZE))
     np.testing.assert_allclose(w2, expected_w2)
-    np.testing.assert_allclose(b2, np.zeros(2))
+    np.testing.assert_allclose(b2, np.zeros(MLP_LAYER2_SIZE))
+    np.testing.assert_allclose(w3, expected_w3)
+    np.testing.assert_allclose(b3, np.zeros(2))
 
     assert len(printed) == epochs
     totals = [json.loads(args[0]) for args, _ in printed]
@@ -185,15 +203,23 @@ def test_plan_train_validation_split_keeps_single_training_sample():
         dropout_rate=0.0,
     )
 
-    w1, b1, w2, b2 = weights
+    w1, b1, w2, b2, w3, b3 = weights
 
-    assert w1.shape == (X.shape[1], 2)
-    assert b1.shape == (2,)
-    assert w2.shape == (2, 1)
-    assert b2.shape == (1,)
+    from amyserver_tools.train_mlp import MLP_LAYER1_SIZE, MLP_LAYER2_SIZE
+    assert w1.shape == (X.shape[1], MLP_LAYER1_SIZE)
+    assert b1.shape == (MLP_LAYER1_SIZE,)
+    assert w2.shape == (MLP_LAYER1_SIZE, MLP_LAYER2_SIZE)
+    assert b2.shape == (MLP_LAYER2_SIZE,)
+    assert w3.shape == (MLP_LAYER2_SIZE, 1)
+    assert b3.shape == (1,)
 
-    logits = module.relu(np.dot(X[train_idx], w1) + b1).dot(w2) + b2
+    # Using standard initialization in test - weights won't be 1.0 but He-scaled.
+    # We just want to check if the forward pass logic is consistent.
+    a1 = module.relu(np.dot(X[train_idx], w1) + b1)
+    a2 = module.relu(np.dot(a1, w2) + b2)
+    logits = np.dot(a2, w3) + b3
     probs = module.softmax(logits)
+    # With 1 class, softmax should always be 1.0
     np.testing.assert_allclose(probs, np.ones_like(probs))
 
 

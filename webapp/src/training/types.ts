@@ -55,6 +55,15 @@ export interface TrainingBundlePayload {
    * reducing noise from irrelevant hand data.
    */
   handFocus?: HandFocus;
+  /**
+   * Variation learning metadata from SignVariationTracker.
+   * Helps the training pipeline identify and learn from natural sign variations.
+   */
+  variationData?: {
+    clusterId?: string;
+    variationDiversity?: number;
+    canonicalTemplates?: number;
+  };
 }
 
 export type TrainingJobStatus = 'queued' | 'running' | 'completed' | 'failed';

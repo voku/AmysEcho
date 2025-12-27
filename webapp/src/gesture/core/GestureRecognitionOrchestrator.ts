@@ -17,7 +17,6 @@ import { GestureSizeNormalizer } from '../gestureProcessing';
 import { PartialGestureDetector } from '../gestureProcessing';
 import { ErrorRecoveryManager } from '../utils/ErrorRecoveryManager';
 import { FallbackGestureDetector } from '../core/FallbackGestureDetector';
-import { EmergencyGestureSystem } from '../core/EmergencyGestureSystem';
 import { HandStabilityAssistant } from '../core/HandStabilityAssistant';
 import { BatteryMonitor } from '../core/BatteryMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
@@ -38,6 +37,8 @@ const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
 const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
+// Label used by the MLP model to indicate background noise or no gesture detected
+const MLP_NULL_LABEL = '_NULL_';
 
 interface GestureMessagePayload {
   type: 'gesture';
@@ -119,7 +120,6 @@ export class GestureRecognitionOrchestrator {
   private partialDetector!: PartialGestureDetector;
   private errorRecoveryManager: ErrorRecoveryManager;
   private fallbackDetector!: FallbackGestureDetector;
-  private emergencySystem!: EmergencyGestureSystem;
   private handStabilityAssistant!: HandStabilityAssistant;
   private batteryMonitor!: BatteryMonitor;
   private config: GestureDetectorConfig;
@@ -169,7 +169,6 @@ export class GestureRecognitionOrchestrator {
     this.sizeNormalizer = new GestureSizeNormalizer();
     this.partialDetector = new PartialGestureDetector();
     this.fallbackDetector = new FallbackGestureDetector();
-    this.emergencySystem = new EmergencyGestureSystem();
     this.handStabilityAssistant = new HandStabilityAssistant();
     this.batteryMonitor = new BatteryMonitor();
 
@@ -187,7 +186,6 @@ export class GestureRecognitionOrchestrator {
     this.processingPipeline.addStep(new StabilityAnalysisStep(this.handStabilityAssistant));
     this.processingPipeline.addStep(new GestureDetectionStep(this.config));
     this.processingPipeline.addStep(new PartialGestureAnalysisStep(this.partialDetector));
-    this.processingPipeline.addStep(new EmergencyGestureCheckStep(this.emergencySystem));
     this.processingPipeline.addStep(new FallbackProcessingStep(this.fallbackDetector, this.errorRecoveryManager));
     this.processingPipeline.addStep(new ResultProcessingStep());
 
@@ -1144,8 +1142,7 @@ export class GestureRecognitionOrchestrator {
       }
 
       const shouldFlushImmediately = Boolean(
-        processingResult.emergency?.detected ||
-          processingResult.isFallback ||
+        processingResult.isFallback ||
           fallbackResult?.isFallback ||
           processingResult.isUsingFallback
       );
@@ -1440,7 +1437,9 @@ export class GestureDetectionStep implements ProcessingStep {
           const isMediaPipeConfident = selectedConfidence > 0.3;
           const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
 
-          if (mlpResult.score >= threshold && 
+          if (mlpResult.label === MLP_NULL_LABEL) {
+            gestureDebugLog('mlp', `Ignoring background noise (${MLP_NULL_LABEL})`, undefined, { sampleIntervalMs: 2000 });
+          } else if (mlpResult.score >= threshold && 
               (selectedGesture === null || 
                selectedGesture === 'none' || 
                mlpResult.score >= (selectedConfidence + confidenceMargin))) {
@@ -1610,54 +1609,6 @@ class PartialGestureAnalysisStep implements ProcessingStep {
     }
 
     return { partial: bestPartial };
-  }
-}
-
-/**
- * Processing step for emergency gesture checking
- */
-class EmergencyGestureCheckStep implements ProcessingStep {
-  name = 'emergency_gesture_check';
-  isExpensive = false;
-
-  constructor(private emergencySystem: EmergencyGestureSystem) {}
-
-  async execute(context: ProcessingContext): Promise<any> {
-    const normalized = context.normalizedResults ?? mapMediaPipeResult(context.rawResults);
-    const emergencyStatus = {
-      detected: false,
-      priority: 'normal' as 'normal' | 'high' | 'critical',
-      feedback: '',
-      cooldownRemaining: 0,
-    };
-
-    for (const hand of normalized.hands) {
-      const candidate = hand.gestures?.[0];
-      if (!candidate || !candidate.label) {
-        continue;
-      }
-
-      if (!this.emergencySystem.isEmergencyGesture(candidate.label, candidate.score ?? 0)) {
-        continue;
-      }
-
-      const processed = this.emergencySystem.processEmergencyGesture(
-        candidate.label,
-        candidate.score ?? 0,
-        context.landmarks
-      );
-
-      emergencyStatus.priority = processed.priority;
-      emergencyStatus.cooldownRemaining = processed.cooldownRemaining;
-      emergencyStatus.feedback = processed.feedback;
-
-      if (processed.shouldProcess) {
-        emergencyStatus.detected = true;
-        break;
-      }
-    }
-
-    return { emergency: emergencyStatus };
   }
 }
 

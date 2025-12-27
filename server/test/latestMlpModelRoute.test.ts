@@ -66,6 +66,8 @@ describe('GET /latest-mlp-model', () => {
     expect(entries.has('b1.npy')).toBe(true);
     expect(entries.has('w2.npy')).toBe(true);
     expect(entries.has('b2.npy')).toBe(true);
+    expect(entries.has('w3.npy')).toBe(true);
+    expect(entries.has('b3.npy')).toBe(true);
     expect(entries.has('labels.npy')).toBe(true);
     expect(entries.has('counts.npy')).toBe(true);
 
@@ -85,6 +87,14 @@ describe('GET /latest-mlp-model', () => {
     const b2 = parseNpyHeader(entries.get('b2.npy')!);
     expect(b2.shape.length).toBe(1);
     expect(b2.shape[0]).toBe(w2.shape[0]);
+
+    const w3 = parseNpyHeader(entries.get('w3.npy')!);
+    expect(w3.shape.length).toBe(2);
+    expect(w3.shape[1]).toBe(w2.shape[0]);
+
+    const b3 = parseNpyHeader(entries.get('b3.npy')!);
+    expect(b3.shape.length).toBe(1);
+    expect(b3.shape[0]).toBe(w3.shape[0]);
 
     const labels = parseNpyHeader(entries.get('labels.npy')!);
     expect(labels.dtype.includes('U')).toBe(true);
@@ -168,6 +178,7 @@ describe('GET /latest-mlp-model', () => {
       .get('/latest-mlp-model')
       .set('Authorization', `Bearer ${accessToken}`)
       .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
       .parse(binaryParser)
       .expect(200);
     await expectValidModelResponse(response);
@@ -182,6 +193,7 @@ describe('GET /latest-mlp-model', () => {
       .get('/latest-mlp-model')
       .set('Authorization', `Bearer ${accessToken}`)
       .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
       .parse(binaryParser)
       .expect(200);
 
@@ -232,6 +244,7 @@ describe('GET /latest-mlp-model', () => {
       .get('/api/v1/dgs/mlp-model')
       .set('Authorization', `Bearer ${accessToken}`)
       .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
       .parse(binaryParser)
       .expect(200);
 
@@ -268,6 +281,7 @@ describe('GET /latest-mlp-model', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .set('X-Profile-Id', 'p1')
       .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
       .parse(binaryParser)
       .expect(200)
       .expect('X-Model-Source', 'profile')

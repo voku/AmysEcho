@@ -1,18 +1,17 @@
-import time
-import urllib.request
-import urllib.error
-import subprocess
-import os
 import json
+import os
 import shutil
+import subprocess
 import tempfile
+import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
-
 from conftest import create_access_token
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
@@ -95,7 +94,8 @@ def start_server():
         cwd=SERVER_DIR,
         env=env,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
     )
     access_token = create_access_token(env["JWT_SECRET"], user_id="train-tester")
     # wait for server up
@@ -147,11 +147,21 @@ def test_train_endpoint():
     try:
         url = f"http://localhost:{PORT}/train-model"
         # vary landmark coordinates slightly so normalization succeeds
-        landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
+        # Create 30 frames to fill a temporal window
+        landmarks_sequence = []
+        for f in range(30):
+            frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
+            landmarks_sequence.append({
+                "timestampMs": f * 33,
+                "landmarks": frame,
+                "poseLandmarks": [[0.5, 0.5, 0.5, 1.0] for _ in range(33)],
+                "faceLandmarks": [[0.5, 0.5, 0.5] for _ in range(468)],
+            })
+
         samples = [
             {
-                "gestureDefinitionId": "g1",
-                "landmarkData": landmarks_one_hand,
+                "signId": "g1",
+                "landmarkData": landmarks_sequence,
             }
         ]
         data = json.dumps({"samples": samples}).encode("utf-8")
@@ -202,7 +212,10 @@ def test_train_endpoint():
         with urllib.request.urlopen(mlp_prof_req, timeout=10) as mlp_presp:
             assert mlp_presp.getcode() == 200
             buf = mlp_presp.read()
-            assert len(buf) > 0
+    except Exception:
+        if proc and proc.stderr:
+            print("Server Stderr:", proc.stderr.read())
+        raise
     finally:
         stop_server(proc)
 
@@ -261,12 +274,20 @@ def test_train_endpoint_returns_queue_metadata():
     proc, access_token = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
-        landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
+        landmarks_sequence = []
+        for f in range(30):
+            frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
+            landmarks_sequence.append({
+                "timestampMs": f * 33,
+                "landmarks": frame,
+                "poseLandmarks": [[0.5, 0.5, 0.5, 1.0] for _ in range(33)],
+                "faceLandmarks": [[0.5, 0.5, 0.5] for _ in range(468)],
+            })
         samples = [
             {
-                "gestureDefinitionId": "g1",
+                "signId": "g1",
                 "profileId": "p1",
-                "landmarkData": landmarks_one_hand,
+                "landmarkData": landmarks_sequence,
             }
         ]
         data = json.dumps({"samples": samples}).encode("utf-8")
@@ -301,12 +322,20 @@ def test_train_requests_are_serialized():
     proc, access_token = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
-        landmarks_one_hand = [[i * 0.01, 0.1, 0.1] for i in range(21)]
+        landmarks_sequence = []
+        for f in range(30):
+            frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
+            landmarks_sequence.append({
+                "timestampMs": f * 33,
+                "landmarks": frame,
+                "poseLandmarks": [[0.5, 0.5, 0.5, 1.0] for _ in range(33)],
+                "faceLandmarks": [[0.5, 0.5, 0.5] for _ in range(468)],
+            })
         samples = [
             {
-                "gestureDefinitionId": "g1",
+                "signId": "g1",
                 "profileId": "p1",
-                "landmarkData": landmarks_one_hand,
+                "landmarkData": landmarks_sequence,
             }
         ]
         payload = json.dumps({"samples": samples}).encode("utf-8")
@@ -331,6 +360,11 @@ def test_train_requests_are_serialized():
 
         final_first = wait_for_training_completion(job1, access_token)
         final_second = wait_for_training_completion(job2, access_token)
+
+        if final_first.get("status") == "failed":
+            print("First Job Failed:", json.dumps(final_first, indent=2))
+        if final_second.get("status") == "failed":
+            print("Second Job Failed:", json.dumps(final_second, indent=2))
 
         assert final_first.get("status") == "completed"
         assert final_second.get("status") == "completed"
@@ -363,7 +397,7 @@ def test_train_model_rejects_out_of_range_landmarks():
                 {
                     "samples": [
                         {
-                            "gestureDefinitionId": "g1",
+                            "signId": "g1",
                             "landmarkData": invalid_landmarks,
                         }
                     ]

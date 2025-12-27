@@ -8,9 +8,8 @@ Research basis:
 Amy First: Better distinction of timing-dependent gestures like "SCHNELL" (fast) vs "LANGSAM" (slow)
 """
 
+
 import numpy as np
-from typing import List, Optional
-from scipy.signal import convolve
 
 
 class MultiScaleTemporalExtractor:
@@ -28,8 +27,8 @@ class MultiScaleTemporalExtractor:
         >>> features = extractor.extract_and_fuse(sequence)
         >>> print(features.shape)  # (time_steps, fused_features)
     """
-    
-    def __init__(self, scales: List[int] = None):
+
+    def __init__(self, scales: list[int] | None = None):
         """
         Initialize the multi-scale temporal extractor.
         
@@ -38,7 +37,7 @@ class MultiScaleTemporalExtractor:
                    Default is [3, 5, 7] for local, medium, and global patterns.
         """
         self.scales = scales if scales is not None else [3, 5, 7]
-        
+
     def extract_local_features(self, sequence: np.ndarray, scale: int) -> np.ndarray:
         """
         Extract local (short-term) temporal features using convolution.
@@ -53,19 +52,19 @@ class MultiScaleTemporalExtractor:
         if len(sequence) < scale:
             # For very short sequences, return as-is
             return sequence
-            
+
         # Apply temporal convolution with a box filter
         kernel = np.ones(scale) / scale
         local_features = []
-        
+
         for feature_idx in range(sequence.shape[1]):
             feature_signal = sequence[:, feature_idx]
             # Convolve and trim to valid region
             convolved = np.convolve(feature_signal, kernel, mode='valid')
             local_features.append(convolved)
-            
+
         return np.column_stack(local_features)
-    
+
     def extract_global_features(self, sequence: np.ndarray, scale: int) -> np.ndarray:
         """
         Extract global (long-term) temporal features.
@@ -79,8 +78,8 @@ class MultiScaleTemporalExtractor:
         """
         # For global features, use same convolution but with larger scale
         return self.extract_local_features(sequence, scale)
-    
-    def extract_and_fuse(self, sequence: np.ndarray, temporal_scale: Optional[float] = None) -> np.ndarray:
+
+    def extract_and_fuse(self, sequence: np.ndarray, temporal_scale: float | None = None) -> np.ndarray:
         """
         Extract features at all scales and fuse them.
         
@@ -93,9 +92,9 @@ class MultiScaleTemporalExtractor:
         """
         if len(sequence) == 0:
             return np.array([]).reshape(0, sequence.shape[1] * len(self.scales) if sequence.shape[1] > 0 else 0)
-        
+
         multi_scale_features = []
-        
+
         # Always use all scales, padding short sequences if necessary
         for scale in self.scales:
             if len(sequence) >= scale:
@@ -105,26 +104,26 @@ class MultiScaleTemporalExtractor:
                 # This ensures consistent feature dimensionality
                 features = sequence
             multi_scale_features.append(features)
-        
+
         if not multi_scale_features:
             # Should never happen, but fallback just in case
             return sequence
-        
+
         # Find minimum length across all scales
         min_length = min(f.shape[0] for f in multi_scale_features)
-        
+
         # Trim all features to same length and concatenate
         trimmed_features = [f[:min_length, :] for f in multi_scale_features]
         fused = np.concatenate(trimmed_features, axis=1)
-        
+
         # If temporal_scale metadata is provided (from Phase 1), we could use it
         # for future adaptive feature weighting
         if temporal_scale is not None:
             # Currently just a placeholder - could weight features by temporal scale
             pass
-        
+
         return fused
-    
+
     def get_feature_dimension(self, input_features: int) -> int:
         """
         Calculate the output feature dimension after fusion.

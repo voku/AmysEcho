@@ -125,6 +125,12 @@ describe('TrainingUploadWithRecording', () => {
 
     renderWithProviders();
 
+    // Wait for profile to be loaded into UI
+    await waitFor(() => {
+      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+      expect(profileInput.value).toBe('profil-1');
+    });
+
     const labelInput = screen.getByLabelText('Gebärden-Name');
 
     await user.clear(labelInput);

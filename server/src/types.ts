@@ -13,12 +13,12 @@ export interface SymbolRecord {
   profileId?: string;
 }
 
-export type GestureDefinitionStatus = 'training' | 'ready' | 'disabled';
+export type SignDefinitionStatus = 'training' | 'ready' | 'disabled';
 
-export interface GestureDefinition {
+export interface SignDefinition {
   id: string;
   symbolId: string;
-  status: GestureDefinitionStatus;
+  status: SignDefinitionStatus;
   healthScore: number;
   minConfidenceThreshold: number;
 }
@@ -26,9 +26,9 @@ export interface GestureDefinition {
 export type TrainingSource = 'HIP_2' | 'HIP_3';
 export type SyncStatus = 'pending' | 'synced';
 
-export interface GestureTrainingData {
+export interface SignTrainingData {
   id: string;
-  gestureDefinitionId: string;
+  signId: string;
   landmarkData: unknown;
   source: TrainingSource;
   syncStatus: SyncStatus;
@@ -39,7 +39,7 @@ export type ProcessedBy = 'local' | 'cloud';
 
 export interface InteractionLog {
   id: string;
-  gestureDefinitionId: string;
+  signId: string;
   wasSuccessful: boolean;
   confidenceScore: number;
   timestamp: number;
@@ -77,7 +77,7 @@ export interface UsageStat {
 
 export interface LearningAnalytics {
   id: string;
-  gestureDefinitionId: string; // Added gestureDefinitionId
+  signId: string; // Added gestureDefinitionId
   successRate24h: number;
   successRate7d: number;
   avgConfidenceScore: number; // Added avgConfidenceScore
@@ -98,8 +98,8 @@ export interface StoredUser {
 
 export interface Correction {
   id: string;
-  predictedGesture: string;
-  actualGesture: string;
+  predictedSign: string;
+  actualSign: string;
   confidence: number;
   timestamp: number;
   isSynced: boolean;
@@ -108,7 +108,7 @@ export interface Correction {
 
 export interface NegativeSample {
   id: string;
-  gesture: string;
+  sign: string;
   timestamp: number;
 }
 

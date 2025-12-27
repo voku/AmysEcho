@@ -1,16 +1,16 @@
 import os
 import socket
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
 import subprocess
 import time
-import urllib.request
 import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import jwt
 import numpy as np
 import pytest
-import jwt
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 BASELINE_PATH = SERVER_DIR / "data" / "amy_model.npz"
@@ -113,7 +113,7 @@ def start_server() -> ServerContext:
                 raise RuntimeError("server did not start in time") from err
             time.sleep(0.5)
             continue
-        except (urllib.error.URLError, ConnectionRefusedError, socket.timeout):
+        except (TimeoutError, urllib.error.URLError, ConnectionRefusedError):
             if time.time() - start > 30:
                 raise RuntimeError("server did not start in time")
             time.sleep(0.5)

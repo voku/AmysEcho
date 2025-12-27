@@ -66,7 +66,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     (window as any).__mirrorOverlay = isMirroredPreview;
   }, [facingMode, isMirroredPreview]);
 
-  const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks } = useSignLanguageDetector(
+  const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks, getVariationMetrics } = useSignLanguageDetector(
     videoRef,
     overlayRef,
   );
@@ -186,6 +186,15 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       const clipMimeType = recordedData.clipFile?.type;
       const stillBytes = stillFile?.size;
       const stillMimeType = stillFile?.type;
+      
+      // Get variation learning insights
+      const metrics = getVariationMetrics(label.trim());
+      const variationData = metrics ? {
+        ...(metrics.dominantCluster !== 'none' ? { clusterId: metrics.dominantCluster } : {}),
+        ...(metrics.variationDiversity !== undefined ? { variationDiversity: metrics.variationDiversity } : {}),
+        ...(metrics.activeClusters !== undefined ? { canonicalTemplates: metrics.activeClusters } : {}),
+      } : null;
+
       const recording = {
         ...(recordedData.frameCount > 0 ? { frameCount: recordedData.frameCount } : {}),
         ...(recordedData.clipDurationMs > 0 ? { clipDurationMs: recordedData.clipDurationMs } : {}),
@@ -204,6 +213,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         stillFile,
         clipFile: recordedData.clipFile,
         handFocus,
+        ...(variationData && Object.keys(variationData).length > 0 ? { variationData } : {}),
         ...(Object.keys(recording).length > 0 ? { recording } : {}),
       };
 
@@ -220,6 +230,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       resetRecording,
       manualStillFile,
       handFocus,
+      getVariationMetrics,
     ],
   );
 

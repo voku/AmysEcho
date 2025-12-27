@@ -5,8 +5,8 @@ export function ProfileBar() {
   const {
     profileId,
     displayName,
-    lastRecognizedGesture,
-    recentGestures,
+    lastRecognizedSign,
+    recentSigns,
   } = useAppState();
 
   return (
@@ -15,8 +15,8 @@ export function ProfileBar() {
         <div>
           <h2>Aktives Profil</h2>
         </div>
-        <div className="status-chip" data-state={lastRecognizedGesture ? 'active' : 'idle'}>
-          {lastRecognizedGesture ? 'Aktiv' : 'Bereit'}
+        <div className="status-chip" data-state={lastRecognizedSign ? 'active' : 'idle'}>
+          {lastRecognizedSign ? 'Aktiv' : 'Bereit'}
         </div>
       </div>
 
@@ -40,12 +40,12 @@ export function ProfileBar() {
 
         <div className="panel panel-tight">
           <p className="eyebrow">Letzte Gebärden</p>
-          {recentGestures.length === 0 && <p className="muted">Noch keine Erkennung erfasst.</p>}
-          {recentGestures.length > 0 && (
+          {recentSigns.length === 0 && <p className="muted">Noch keine Erkennung erfasst.</p>}
+          {recentSigns.length > 0 && (
             <ul className="muted small gesture-list">
-              {recentGestures.map((gesture, index) => (
-                <li key={`${gesture}-${index}`}>
-                  <span className="badge">{gesture}</span>
+              {recentSigns.map((sign, index) => (
+                <li key={`${sign}-${index}`}>
+                  <span className="badge">{sign}</span>
                 </li>
               ))}
             </ul>

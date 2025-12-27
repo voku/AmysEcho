@@ -1,15 +1,15 @@
-import { Database, getGestureDefinitionById, updateGestureDefinition } from '../db.js';
+import { Database, getSignDefinitionById, updateSignDefinition } from '../db.js';
 import { InteractionLog } from '../types.js';
 
 /**
- * Adjust gesture definition metrics after an interaction.
+ * Adjust sign definition metrics after an interaction.
  * Returns true when HIP 4 proactive practice should be triggered.
  */
 export function processInteraction(
   db: Database,
   log: InteractionLog,
 ): boolean {
-  const def = getGestureDefinitionById(db, log.gestureDefinitionId);
+  const def = getSignDefinitionById(db, log.signId);
   if (!def) return false;
 
   if (log.wasSuccessful) {
@@ -20,7 +20,7 @@ export function processInteraction(
     def.minConfidenceThreshold = Math.min(1, def.minConfidenceThreshold + 0.02);
   }
 
-  updateGestureDefinition(db, def);
+  updateSignDefinition(db, def);
 
   return def.healthScore < 70;
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a zero-initialized MLP model artifact."""
+"""Generate a zero-initialized 3-layer MLP model artifact for temporal multimodal recognition."""
 
 from __future__ import annotations
 
@@ -56,29 +56,50 @@ def main() -> int:
     labels = _ensure_label_list(payload.get("labels"))
     counts = _ensure_counts_list(payload.get("counts"), len(labels))
 
-    input_size = int(payload.get("inputSize", 126))
-    hidden_size = int(payload.get("hiddenSize", 256))
-    if input_size <= 0 or hidden_size <= 0:
+    # Support both legacy 'hiddenSize' and new 'layer1Size'/'layer2Size'
+    input_size = int(payload.get("inputSize", 48870))
+    window_size = int(payload.get("windowSize", 30))
+    feature_size = int(payload.get("featureSize", 1629))
+    layer1_size = int(payload.get("layer1Size", payload.get("hiddenSize", 1024)))
+    layer2_size = int(payload.get("layer2Size", 512))
+
+    if input_size <= 0 or layer1_size <= 0 or layer2_size <= 0:
         print(
-            f"inputSize and hiddenSize must be positive (got {input_size}, {hidden_size})",
+            f"inputSize and layer sizes must be positive (got {input_size}, {layer1_size}, {layer2_size})",
             file=sys.stderr,
         )
         return 1
     output_size = max(len(labels), 1)
 
     dtype = np.float32
-    w1 = np.zeros((hidden_size, input_size), dtype=dtype)
-    b1 = np.zeros((hidden_size,), dtype=dtype)
-    w2 = np.zeros((output_size, hidden_size), dtype=dtype)
-    b2 = np.zeros((output_size,), dtype=dtype)
+    # Architecture: Input -> L1 -> L2 -> Output
+    w1 = np.zeros((layer1_size, input_size), dtype=dtype)
+    b1 = np.zeros((layer1_size,), dtype=dtype)
+    w2 = np.zeros((layer2_size, layer1_size), dtype=dtype)
+    b2 = np.zeros((layer2_size,), dtype=dtype)
+    w3 = np.zeros((output_size, layer2_size), dtype=dtype)
+    b3 = np.zeros((output_size,), dtype=dtype)
 
     labels_arr = np.array(labels, dtype="<U64")
     counts_arr = np.array(counts, dtype=dtype)
 
     os.makedirs(os.path.dirname(destination) or ".", exist_ok=True)
     tmp_path = f"{destination}.tmp"
+
+    save_dict = {
+        "labels": labels_arr,
+        "counts": counts_arr,
+        "w1": w1, "b1": b1,
+        "w2": w2, "b2": b2,
+        "w3": w3, "b3": b3,
+        "arch": "mlp_3layer_window",
+        "window_size": window_size,
+        "input_dim": input_size,
+        "feature_size": feature_size
+    }
+
     with open(tmp_path, "wb") as handle:
-        np.savez(handle, labels=labels_arr, counts=counts_arr, w1=w1, b1=b1, w2=w2, b2=b2)
+        np.savez(handle, **save_dict)
         handle.flush()
         os.fsync(handle.fileno())
     os.replace(tmp_path, destination)

@@ -12,7 +12,6 @@ export class ErrorRecoveryManager {
   private fallbackMode = false;
   private recoveryAttempts = new Map<string, number>();
   private lastRecoveryTime = 0;
-  private emergencyMode = false;
   private lastRecoveryAttemptByContext = new Map<string, number>();
 
   private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
@@ -31,18 +30,6 @@ export class ErrorRecoveryManager {
     userMessage: string;
   } {
     const errorMessage = error.message.toLowerCase();
-
-    // Emergency gesture errors - highest priority
-    if (context.includes('emergency') || errorMessage.includes('emergency')) {
-      return {
-        message: 'Emergency gesture detection failed',
-        code: 'EMERGENCY_ERROR',
-        recoverable: true,
-        severity: 'critical',
-        suggestedAction: 'immediate_retry',
-        userMessage: 'Notfall-Erkennung wird wiederhergestellt...'
-      };
-    }
 
     // Network-related errors
     if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
@@ -157,7 +144,6 @@ export class ErrorRecoveryManager {
     if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD || (isMediaPipeCtx && typeof process !== 'undefined' && process.env['NODE_ENV'] === 'test')) {
       this.circuitBreakerOpen = true;
       console.warn('Circuit breaker opened due to repeated failures');
-      this.activateEmergencyMode();
       return false;
     }
 
@@ -174,7 +160,6 @@ export class ErrorRecoveryManager {
       this.failureCount = 0;
       this.recoveryAttempts.clear();
       console.info('Circuit breaker auto-closed');
-      this.deactivateEmergencyMode();
     }
 
     return this.circuitBreakerOpen;
@@ -193,35 +178,8 @@ export class ErrorRecoveryManager {
     }
   }
 
-  activateEmergencyMode(): void {
-    if (!this.emergencyMode) {
-      this.emergencyMode = true;
-      console.warn('🚨 EMERGENCY MODE ACTIVATED - Critical gesture detection only');
-
-      this.sendTelemetryEvent('emergency_mode_activated', {
-        timestamp: Date.now(),
-        reason: 'circuit_breaker_opened'
-      });
-    }
-  }
-
-  deactivateEmergencyMode(): void {
-    if (this.emergencyMode) {
-      this.emergencyMode = false;
-      console.info('✅ Emergency mode deactivated - Full functionality restored');
-
-      this.sendTelemetryEvent('emergency_mode_deactivated', {
-        timestamp: Date.now()
-      });
-    }
-  }
-
   isInFallbackMode(): boolean {
     return this.fallbackMode;
-  }
-
-  isInEmergencyMode(): boolean {
-    return this.emergencyMode;
   }
 
   canAttemptRecovery(context: string): boolean {
@@ -265,7 +223,6 @@ export class ErrorRecoveryManager {
     this.lastFailureTime = 0;
     this.circuitBreakerOpen = false;
     this.fallbackMode = false;
-    this.emergencyMode = false;
     this.recoveryAttempts.clear();
     this.lastRecoveryTime = 0;
     this.lastRecoveryAttemptByContext.clear();
@@ -274,7 +231,6 @@ export class ErrorRecoveryManager {
   getHealthStatus(): {
     healthy: boolean;
     fallbackActive: boolean;
-    emergencyActive: boolean;
     failureCount: number;
     lastFailure: number;
     circuitBreakerOpen: boolean;
@@ -282,9 +238,8 @@ export class ErrorRecoveryManager {
     // Update circuit breaker state before reporting
     this.isCircuitBreakerOpen();
     return {
-      healthy: !this.circuitBreakerOpen && !this.emergencyMode,
+      healthy: !this.circuitBreakerOpen,
       fallbackActive: this.fallbackMode,
-      emergencyActive: this.emergencyMode,
       failureCount: this.failureCount,
       lastFailure: this.lastFailureTime,
       circuitBreakerOpen: this.circuitBreakerOpen

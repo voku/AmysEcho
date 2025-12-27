@@ -8,7 +8,6 @@
 export type Point = [number, number, number];
 
 const WRIST_INDEX = 0;
-const HAND_SIZE = 21;
 
 /**
  * Normalize landmarks for a single hand.
@@ -19,7 +18,7 @@ export function normalizeLandmarks(landmarks: Point[]): Point[] {
     return [];
   }
 
-  const hand = landmarks.slice(0, HAND_SIZE);
+  const hand = landmarks.slice(0, MEDIAPIPE_HAND_LANDMARKS);
   const wrist = hand[WRIST_INDEX];
   if (!wrist) {
     return [];
@@ -47,8 +46,8 @@ export function normalizeLandmarks(landmarks: Point[]): Point[] {
  * Normalize landmarks to a flat Float32Array for MLP input.
  */
 export function normalizeLandmarksToFlat(landmarks: Point[]): Float32Array {
-  if (!landmarks || landmarks.length < HAND_SIZE) return new Float32Array(0);
-  const norm = normalizeLandmarks(landmarks.slice(0, HAND_SIZE));
+  if (!landmarks || landmarks.length < MEDIAPIPE_HAND_LANDMARKS) return new Float32Array(0);
+  const norm = normalizeLandmarks(landmarks.slice(0, MEDIAPIPE_HAND_LANDMARKS));
   const out = new Float32Array(norm.length * 3);
   let k = 0;
   for (const [x, y, z] of norm) {
@@ -77,6 +76,37 @@ export function convertToPoints(landmarks: number[][]): Point[] {
   });
 }
 
+// MediaPipe Landmark Constants
+export const MEDIAPIPE_HAND_LANDMARKS = 21;  // Landmarks per hand
+export const MEDIAPIPE_POSE_LANDMARKS = 33;  // Pose landmarks  
+export const MEDIAPIPE_FACE_LANDMARKS = 468; // Face mesh landmarks
+
+// Hand Landmark Indices
+export const MEDIAPIPE_FACE_NOSE_TIP = 1;        // Nose tip landmark
+export const MEDIAPIPE_FACE_LEFT_EYE = 33;       // Left eye center  
+export const MEDIAPIPE_FACE_RIGHT_EYE = 263;     // Right eye center
+
+// Feature Vector Sizes
+export const HAND_FEATURES_SIZE = MEDIAPIPE_HAND_LANDMARKS * 3 * 2; // 2 hands × 21 landmarks × 3 coords = 126
+export const POSE_FEATURES_SIZE = MEDIAPIPE_POSE_LANDMARKS * 3;   // 33 landmarks × 3 coords = 99
+export const FACE_FEATURES_SIZE = MEDIAPIPE_FACE_LANDMARKS * 3;  // 468 landmarks × 3 coords = 1404
+export const MULTIMODAL_FEATURES_SIZE = HAND_FEATURES_SIZE + POSE_FEATURES_SIZE + FACE_FEATURES_SIZE; // 1629
+
+// Density-Balanced Priority factors (Hands > Pose > Face)
+// This prevents the 1404 face features from drowning out the 126 hand features.
+export let HAND_PRIORITY_FACTOR = 3.0;
+export let POSE_PRIORITY_FACTOR = 0.4;
+export let FACE_PRIORITY_FACTOR = 0.1;
+
+/**
+ * Update priority factors from external config.
+ */
+export function updatePriorityFactors(factors: { hands?: number; pose?: number; face?: number }): void {
+  if (typeof factors.hands === 'number') HAND_PRIORITY_FACTOR = factors.hands;
+  if (typeof factors.pose === 'number') POSE_PRIORITY_FACTOR = factors.pose;
+  if (typeof factors.face === 'number') FACE_PRIORITY_FACTOR = factors.face;
+}
+
 /**
  * Get normalized landmark data ready for MLP classification.
  */
@@ -89,9 +119,9 @@ export function prepareLandmarksForMLP(rawLandmarks: number[][]): Float32Array {
  * Prepare multimodal data (hands + pose + face) for MLP classification.
  * Returns a feature vector matching the server's _normalize_multimodal format.
  * 
- * @param hands - Array of hand landmarks (2 hands x 21 landmarks)
- * @param pose - Optional pose landmarks (33 landmarks with visibility)
- * @param face - Optional face landmarks (468 landmarks)
+ * @param hands - Array of hand landmarks (2 hands x {MEDIAPIPE_HAND_LANDMARKS} landmarks)
+ * @param pose - Optional pose landmarks ({MEDIAPIPE_POSE_LANDMARKS} landmarks with visibility)
+ * @param face - Optional face landmarks ({MEDIAPIPE_FACE_LANDMARKS} landmarks)
  * @returns Float32Array with concatenated normalized features
  */
 export function prepareMultimodalForMLP(
@@ -102,21 +132,36 @@ export function prepareMultimodalForMLP(
   // Normalize hands (required) - 126 features (2 hands × 21 points × 3 coords)
   const handFeatures = prepareHandsForMLP(hands);
   
+  // Apply Hand Priority Factor
+  for (let i = 0; i < handFeatures.length; i++) {
+    handFeatures[i] = (handFeatures[i] ?? 0) * HAND_PRIORITY_FACTOR;
+  }
+  
   // Normalize pose if available - 99 features (33 points × 3 coords, drop visibility)
-  const poseFeatures = pose && pose.length >= 33 
+  const poseFeatures = pose && pose.length >= MEDIAPIPE_POSE_LANDMARKS 
     ? normalizePoseForMLP(pose)
-    : new Float32Array(99).fill(0);
+    : new Float32Array(POSE_FEATURES_SIZE).fill(0);
+    
+  // Apply Pose Priority Factor
+  for (let i = 0; i < poseFeatures.length; i++) {
+    poseFeatures[i] = (poseFeatures[i] ?? 0) * POSE_PRIORITY_FACTOR;
+  }
   
-  // Normalize face if available - 33 features (11 key points × 3 coords)
-  const faceFeatures = face && face.length >= 468
-    ? normalizeFaceForMLP(face)
-    : new Float32Array(33).fill(0);
+  // Normalize face if available - 1404 features (468 points × 3 coords)
+  const faceFeatures = face && face.length >= MEDIAPIPE_FACE_LANDMARKS
+    ? normalizeFaceFullForMLP(face)
+    : new Float32Array(FACE_FEATURES_SIZE).fill(0);
+    
+  // Apply Face Priority Factor
+  for (let i = 0; i < faceFeatures.length; i++) {
+    faceFeatures[i] = (faceFeatures[i] ?? 0) * FACE_PRIORITY_FACTOR;
+  }
   
-  // Concatenate all features: 126 + 99 + 33 = 258 total
-  const result = new Float32Array(258);
+  // Concatenate all features using constants: 126 + 99 + 1404 = 1629 total
+  const result = new Float32Array(MULTIMODAL_FEATURES_SIZE);
   result.set(handFeatures, 0);
-  result.set(poseFeatures, 126);
-  result.set(faceFeatures, 225);
+  result.set(poseFeatures, HAND_FEATURES_SIZE);
+  result.set(faceFeatures, HAND_FEATURES_SIZE + POSE_FEATURES_SIZE);
   
   return result;
 }
@@ -125,20 +170,20 @@ export function prepareMultimodalForMLP(
  * Normalize both hands for MLP input.
  */
 function prepareHandsForMLP(hands: number[][]): Float32Array {
-  const result = new Float32Array(126);
+  const result = new Float32Array(HAND_FEATURES_SIZE);
   
   // Normalize left hand (first 21 landmarks)
   if (hands.length > 0) {
-    const leftHand = hands.slice(0, 21);
+    const leftHand = hands.slice(0, MEDIAPIPE_HAND_LANDMARKS);
     const leftNorm = prepareLandmarksForMLP(leftHand);
     result.set(leftNorm, 0);
   }
   
   // Normalize right hand (next 21 landmarks)
-  if (hands.length > 21) {
-    const rightHand = hands.slice(21, 42);
+  if (hands.length > MEDIAPIPE_HAND_LANDMARKS) {
+    const rightHand = hands.slice(MEDIAPIPE_HAND_LANDMARKS, MEDIAPIPE_HAND_LANDMARKS * 2);
     const rightNorm = prepareLandmarksForMLP(rightHand);
-    result.set(rightNorm, 63);
+    result.set(rightNorm, HAND_FEATURES_SIZE / 2);
   }
   
   return result;
@@ -149,14 +194,14 @@ function prepareHandsForMLP(hands: number[][]): Float32Array {
  * Normalizes to torso center and scales by shoulder width.
  */
 function normalizePoseForMLP(pose: number[][]): Float32Array {
-  const result = new Float32Array(99);
+  const result = new Float32Array(POSE_FEATURES_SIZE);
   
-  if (!pose || pose.length < 33) {
+  if (!pose || pose.length < MEDIAPIPE_POSE_LANDMARKS) {
     return result;
   }
   
-  // Extract x,y,z coordinates (drop visibility)
-  const poseXYZ = pose.slice(0, 33).map(p => [p[0] ?? 0, p[1] ?? 0, p[2] ?? 0]);
+   // Extract x,y,z coordinates (drop visibility)
+   const poseXYZ = pose.slice(0, MEDIAPIPE_POSE_LANDMARKS).map(p => [p[0] ?? 0, p[1] ?? 0, p[2] ?? 0]);
   
   // Calculate torso center from shoulders and hips
   const torsoIndices = [11, 12, 23, 24]; // left shoulder, right shoulder, left hip, right hip
@@ -210,54 +255,48 @@ function normalizePoseForMLP(pose: number[][]): Float32Array {
 }
 
 /**
- * Normalize face landmarks for MLP input.
- * Uses key facial points and normalizes to nose tip, scaled by eye distance.
+ * Normalize ALL 468 face landmarks for MLP input.
+ * Normalizes to nose tip, scaled by eye distance.
  */
-function normalizeFaceForMLP(face: number[][]): Float32Array {
-  const result = new Float32Array(33);
-  
-  if (!face || face.length < 468) {
-    return result;
-  }
-  
-  // Key facial points for NMMs (matching server-side)
-  const keyIndices = [
-    33, 133, 362, 263,  // eyes (4)
-    1,  // nose tip (1)
-    13, 14,  // lips (2)
-    61, 291,  // mouth corners (2)
-    70, 300,  // brows (2)
-  ];
-  
-  const noseTipPoint = face[1];
-  const noseTip: [number, number, number] = noseTipPoint ? [noseTipPoint[0] ?? 0, noseTipPoint[1] ?? 0, noseTipPoint[2] ?? 0] : [0, 0, 0];
-  
-  // Calculate eye distance for scaling
-  const leftEyePoint = face[33];
-  const rightEyePoint = face[263];
-  const leftEye: [number, number, number] = leftEyePoint ? [leftEyePoint[0] ?? 0, leftEyePoint[1] ?? 0, leftEyePoint[2] ?? 0] : [0, 0, 0];
-  const rightEye: [number, number, number] = rightEyePoint ? [rightEyePoint[0] ?? 0, rightEyePoint[1] ?? 0, rightEyePoint[2] ?? 0] : [0, 0, 0];
-  const eyeDist = Math.sqrt(
-    Math.pow(leftEye[0] - rightEye[0], 2) +
-    Math.pow(leftEye[1] - rightEye[1], 2) +
-    Math.pow(leftEye[2] - rightEye[2], 2)
-  );
-  const scale = eyeDist > 0 ? eyeDist : 1;
-  
-  // Normalize key points
-  let k = 0;
-  for (const idx of keyIndices) {
-    const point = face[idx] ?? [0, 0, 0];
-    result[k++] = ((point[0] ?? 0) - noseTip[0]) / scale;
-    result[k++] = ((point[1] ?? 0) - noseTip[1]) / scale;
-    result[k++] = ((point[2] ?? 0) - noseTip[2]) / scale;
-  }
-  
-  return result;
-}
+function normalizeFaceFullForMLP(face: number[][]): Float32Array {
+   const result = new Float32Array(FACE_FEATURES_SIZE);
+   
+   if (!face || face.length < MEDIAPIPE_FACE_LANDMARKS) {
+     return result;
+   }
+   
+   // Center on Nose Tip (landmark 1)
+   const noseTipPoint = face[MEDIAPIPE_FACE_NOSE_TIP];
+   const noseTip: [number, number, number] = noseTipPoint ? [noseTipPoint[0] ?? 0, noseTipPoint[1] ?? 0, noseTipPoint[2] ?? 0] : [0, 0, 0];
+   
+   // Calculate eye distance for scaling (left eye 33, right eye 263)
+   const leftEyePoint = face[MEDIAPIPE_FACE_LEFT_EYE];
+   const rightEyePoint = face[MEDIAPIPE_FACE_RIGHT_EYE];
+   const leftEye: [number, number, number] = leftEyePoint ? [leftEyePoint[0] ?? 0, leftEyePoint[1] ?? 0, leftEyePoint[2] ?? 0] : [0, 0, 0];
+   const rightEye: [number, number, number] = rightEyePoint ? [rightEyePoint[0] ?? 0, rightEyePoint[1] ?? 0, rightEyePoint[2] ?? 0] : [0, 0, 0];
+   const eyeDist = Math.sqrt(
+     Math.pow(leftEye[0] - rightEye[0], 2) +
+     Math.pow(leftEye[1] - rightEye[1], 2) +
+     Math.pow(leftEye[2] - rightEye[2], 2)
+   );
+   const scale = eyeDist > 0 ? eyeDist : 1;
+   
+   // Normalize all 468 points
+   let k = 0;
+   for (let i = 0; i < MEDIAPIPE_FACE_LANDMARKS; i++) {
+     const point = face[i] ?? [0, 0, 0];
+     result[k++] = ((point[0] ?? 0) - noseTip[0]) / scale;
+     result[k++] = ((point[1] ?? 0) - noseTip[1]) / scale;
+     result[k++] = ((point[2] ?? 0) - noseTip[2]) / scale;
+   }
+   
+   return result;
+ }
+
+
 
 /**
- * Calculate the centroid of a hand landmark set.
+ * Calculate centroid of a hand landmark set.
  */
 export function calculateCentroid(landmarks: Point[]): Point {
   if (!landmarks || landmarks.length === 0) {

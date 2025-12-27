@@ -1,9 +1,10 @@
+import json
 import os
 import subprocess
 import time
-import json
-import urllib.request
 import urllib.error
+import urllib.request
+
 from conftest import create_access_token
 
 SERVER_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -78,7 +79,7 @@ def post_correction(payload):
 def load_training_count():
     with open(DB_PATH) as f:
         data = json.load(f)
-    return len(data.get('gestureTrainingData', []))
+    return len(data.get('signTrainingData', []))
 
 
 def test_training_queue_increment_single():
@@ -86,7 +87,7 @@ def test_training_queue_increment_single():
     proc = start_server()
     try:
         before = load_training_count()
-        status = post_correction({"gesture": "wave"})
+        status = post_correction({"sign": "wave"})
         assert status == 202
         after = load_training_count()
         assert after == before + 1
@@ -101,7 +102,7 @@ def test_training_queue_increment_object():
     proc = start_server()
     try:
         before = load_training_count()
-        status = post_correction({"gesture": {"left": "wave", "right": "fist"}})
+        status = post_correction({"sign": {"left": "wave", "right": "fist"}})
         assert status == 202
         after = load_training_count()
         assert after == before + 1

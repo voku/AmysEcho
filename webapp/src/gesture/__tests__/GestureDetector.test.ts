@@ -299,7 +299,6 @@ describe('GestureDetector', () => {
   describe('Error Recovery System', () => {
     let mockErrorRecoveryManager: any;
     let mockFallbackDetector: any;
-    let mockEmergencySystem: any;
 
     beforeEach(() => {
       // Mock the error recovery components
@@ -307,9 +306,7 @@ describe('GestureDetector', () => {
         getErrorInfo: vi.fn(),
         recordFailure: vi.fn(),
         activateFallbackMode: vi.fn(),
-        activateEmergencyMode: vi.fn(),
         isInFallbackMode: vi.fn(),
-        isInEmergencyMode: vi.fn(),
         canAttemptRecovery: vi.fn(),
         recordSuccessfulRecovery: vi.fn(),
         getHealthStatus: vi.fn(),
@@ -320,15 +317,9 @@ describe('GestureDetector', () => {
         detectGesture: vi.fn()
       };
 
-      mockEmergencySystem = {
-        processEmergencyGesture: vi.fn(),
-        shouldEnterEmergencyMode: vi.fn()
-      };
-
       // Replace the global instances with mocks for testing
       (global as any).errorRecoveryManager = mockErrorRecoveryManager;
       (global as any).fallbackGestureDetector = mockFallbackDetector;
-      (global as any).emergencyGestureSystem = mockEmergencySystem;
     });
 
     it('should activate fallback mode on MediaPipe failures', () => {
@@ -350,25 +341,6 @@ describe('GestureDetector', () => {
       expect(errorInfo.recoverable).toBe(true);
     });
 
-    it('should handle emergency gestures with priority', () => {
-      mockEmergencySystem.processEmergencyGesture.mockReturnValue({
-        shouldProcess: true,
-        priority: 'critical',
-        cooldownRemaining: 0,
-        feedback: '🆘 Hilfe wird gerufen!'
-      });
-
-      const emergencyResult = mockEmergencySystem.processEmergencyGesture(
-        'hilfe',
-        0.8,
-        [[[0.5, 0.5, 0]]]
-      );
-
-      expect(emergencyResult.shouldProcess).toBe(true);
-      expect(emergencyResult.priority).toBe('critical');
-      expect(emergencyResult.feedback).toContain('Hilfe');
-    });
-
     it('should use fallback gesture detection when main system fails', () => {
       mockErrorRecoveryManager.isInFallbackMode.mockReturnValue(true);
       mockFallbackDetector.detectGesture.mockReturnValue({
@@ -385,26 +357,6 @@ describe('GestureDetector', () => {
       expect(fallbackResult.isFallback).toBe(true);
       expect(fallbackResult.gesture).toBe('thumbs_up');
       expect(fallbackResult.confidence).toBe(0.7);
-    });
-
-    it('should activate emergency mode on repeated critical failures', () => {
-      // Mock the circuit breaker opening after 5 failures
-      let failureCount = 0;
-      mockErrorRecoveryManager.recordFailure.mockImplementation(() => {
-        failureCount++;
-        if (failureCount >= 5) {
-          mockErrorRecoveryManager.activateEmergencyMode();
-          return false; // Circuit breaker opens
-        }
-        return true; // Should retry
-      });
-
-      // Simulate multiple failures
-      for (let i = 0; i < 6; i++) {
-        mockErrorRecoveryManager.recordFailure(new Error('Critical failure'), 'test');
-      }
-
-      expect(mockErrorRecoveryManager.activateEmergencyMode).toHaveBeenCalled();
     });
 
     it('should provide appropriate error messages for different error types', () => {
@@ -469,7 +421,6 @@ describe('GestureDetector', () => {
       mockErrorRecoveryManager.getHealthStatus.mockReturnValue({
         healthy: false,
         fallbackActive: true,
-        emergencyActive: true,
         failureCount: 3,
         lastFailure: Date.now() - 1000,
         circuitBreakerOpen: false
@@ -479,7 +430,6 @@ describe('GestureDetector', () => {
 
       expect(health.healthy).toBe(false);
       expect(health.fallbackActive).toBe(true);
-      expect(health.emergencyActive).toBe(true);
       expect(health.failureCount).toBe(3);
     });
   });

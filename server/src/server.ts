@@ -6,7 +6,7 @@ import { spawn } from 'child_process';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
-import { registerCustomGesturesRoute } from './routes/customGesturesRoute.js';
+import { registerCustomSignsRoute } from './routes/customSignsRoute.js';
 import { registerGdprRoutes } from './routes/gdprRoutes.js';
 import { createLatestMlpModelHandler } from './routes/latestMlpModelRoute.js';
 import { registerAuthRoutes } from './routes/authRoutes.js';
@@ -178,10 +178,27 @@ interface TrainingJob {
   message?: string;
 }
 
+// Define reusable landmark validation schema at module level
+const LandmarkTupleSchema = z
+  .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+  .refine(
+    ([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1,
+    {
+      message: 'landmarks must be valid landmark points in range [0,1] for x,y',
+    },
+  );
+
+const FrameSchema = z.object({
+  timestampMs: z.number().finite(),
+  landmarks: z.array(LandmarkTupleSchema),
+  poseLandmarks: z.array(z.array(z.number().finite())).optional(),
+  faceLandmarks: z.array(z.array(z.number().finite())).optional(),
+});
+
 type TrainingSample = {
-  gestureDefinitionId: string;
+  signId: string;
   profileId?: string | null;
-  landmarkData: number[][];
+  landmarkData: number[][] | z.infer<typeof FrameSchema>[];
 };
 const trainingJobs = new Map<string, TrainingJob>();
 
@@ -351,7 +368,7 @@ async function runTrainingWorkflow(
 
   const toAdd = samples.map((s) => ({
     id: genId(),
-    label: s.gestureDefinitionId,
+    label: s.signId,
     profileId: s.profileId ?? undefined,
     landmarks: s.landmarkData,
     ts: Date.now(),
@@ -524,7 +541,7 @@ registerTrainingBundleRoute(app, genId, {
   },
 });
 
-registerCustomGesturesRoute(app);
+registerCustomSignsRoute(app);
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
@@ -532,21 +549,25 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
     const Body = z.object({
       label: z.string().min(1),
       profileId: z.string().optional(),
-      // exactly 42 points of [x,y,z] in [0,1]
+      // 21 (one hand), 42 (two hands), or 543 (multimodal: 42 + 33 + 468)
       landmarks: z
         .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
-        .length(42)
+        .refine(
+          (pts: [number, number, number][]) =>
+            pts.length === 21 || pts.length === 42 || pts.length === 543,
+          'landmarks must be 21, 42 or 543 points',
+        )
         .refine(
           (pts: [number, number, number][]) =>
             pts.every(([x, y, z]: [number, number, number]) => x >= 0 && x <= 1 && y >= 0 && y <= 1 && Number.isFinite(z)),
-          'landmarks must be 42 points of [x,y,z] within [0,1] for x,y',
+          'landmarks must be within [0,1] for x,y',
         ),
     });
     const parsed = Body.safeParse(req.body);
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ error: 'label and landmarks (42 × [x,y,z]) required', details: parsed.error.flatten() });
+        .json({ error: 'label and landmarks (21, 42 oder 543 × [x,y,z]) required', details: parsed.error.flatten() });
     }
     const { label, profileId, landmarks } = parsed.data;
     if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
@@ -601,7 +622,7 @@ app.post('/api/v1/crash-reports', auth, async (req: Request, res: Response) => {
   }
 });
 
-const gestureToString = (g: unknown): string | null => {
+const signToString = (g: unknown): string | null => {
   if (typeof g === 'string') return g;
   if (g && typeof g === 'object') {
     const { left, right } = g as { left?: unknown; right?: unknown };
@@ -612,37 +633,28 @@ const gestureToString = (g: unknown): string | null => {
   return null;
 };
 
-const GesturePayloadSchema = z.object({
-  gesture: z.union([
+const SignPayloadSchema = z.object({
+  sign: z.union([
     z.string().min(1),
     z.object({ left: z.string().min(1), right: z.string().min(1) }),
   ]),
 });
 
-// Define reusable landmark validation schema at module level
-const LandmarkTupleSchema = z
-  .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
-  .refine(
-    ([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1,
-    {
-      message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1] for x,y',
-    },
-  );
-
 app.post('/api/v1/corrections', auth, async (req: Request, res: Response) => {
-  const parsed = GesturePayloadSchema.safeParse(req.body);
+
+  const parsed = SignPayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
       .status(400)
       .json({ error: 'Invalid correction', details: parsed.error.flatten() });
   }
-  const gestureStr = gestureToString(parsed.data.gesture)!;
+  const signStr = signToString(parsed.data.sign)!;
   try {
-    logCorrection(dbInstance, 'unknown', gestureStr, null);
+    logCorrection(dbInstance, 'unknown', signStr, null);
     const record: Correction = {
       id: genId(),
-      predictedGesture: 'unknown',
-      actualGesture: gestureStr,
+      predictedSign: 'unknown',
+      actualSign: signStr,
       confidence: 0,
       timestamp: Date.now(),
       isSynced: false,
@@ -657,18 +669,18 @@ app.post('/api/v1/corrections', auth, async (req: Request, res: Response) => {
 });
 
 app.post('/api/v1/negative-samples', auth, async (req: Request, res: Response) => {
-  const parsed = GesturePayloadSchema.safeParse(req.body);
+  const parsed = SignPayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       error: 'Invalid negative sample',
       details: parsed.error.flatten(),
     });
   }
-  const gestureStr = gestureToString(parsed.data.gesture)!;
+  const signStr = signToString(parsed.data.sign)!;
   try {
     const record: NegativeSample = {
       id: genId(),
-      gesture: gestureStr,
+      sign: signStr,
       timestamp: Date.now(),
     };
     addNegativeSample(dbInstance, record);
@@ -682,13 +694,19 @@ app.post('/api/v1/negative-samples', auth, async (req: Request, res: Response) =
 
 app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) => {
   const SampleSchema = z.object({
-    gestureDefinitionId: z.string().min(1),
+    signId: z.string().min(1),
     profileId: z.string().optional(),
-    landmarkData: z
-      .array(LandmarkTupleSchema)
-      .refine((arr) => arr.length === 21 || arr.length === 42, {
-        message: 'landmarks must be 21 or 42 points of [x,y,z] within [0,1] for x,y',
-      }),
+    landmarkData: z.union([
+      z
+        .array(LandmarkTupleSchema)
+        .refine((arr) => arr.length === 21 || arr.length === 42 || arr.length === 543, {
+          message: 'landmarks must be 21, 42 or 543 points',
+        }),
+      z.array(FrameSchema).refine(
+        (frames) => frames.every(f => f.landmarks.length === 21 || f.landmarks.length === 42 || f.landmarks.length === 543),
+        { message: 'each frame must contain 21, 42 or 543 landmarks' }
+      ),
+    ]),
   });
   const BodySchema = z.object({
     samples: z.array(SampleSchema).optional(),
@@ -704,9 +722,9 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
   const samples: Sample[] = parsed.data.samples ?? [];
   const triggeredByBundles = parsed.data.trigger === 'bundles';
   const trainingSamples: TrainingSample[] = samples.map((sample) => ({
-    gestureDefinitionId: sample.gestureDefinitionId,
+    signId: sample.signId,
     profileId: sample.profileId ?? null,
-    landmarkData: sample.landmarkData as number[][],
+    landmarkData: sample.landmarkData,
   }));
 
   const { jobId, status, queueDepth, retryAfterMs } = startTrainingJob(
@@ -840,6 +858,107 @@ app.get(
   }
   },
 );
+
+// List available profile models and their status
+app.get('/api/models/profiles', auth, async (_req: Request, res: Response) => {
+  try {
+    const { profileCounts } = await collectLabelCounts();
+    interface ProfileInfo {
+      profileId: string;
+      modelAvailable: boolean;
+      signCount: number;
+      lastUpdated?: Date;
+    }
+    const profiles: ProfileInfo[] = [];
+    
+    const modelsDir = path.join(DATA_DIR, 'models');
+    let modelDirs: string[] = [];
+    try {
+      modelDirs = await fs.readdir(modelsDir);
+    } catch (e) {
+      // Models dir might not exist yet
+    }
+
+    for (const pid of modelDirs) {
+      if (pid === 'global' || !PROFILE_ID_PATTERN.test(pid)) continue;
+      
+      const modelPath = getMlpModelPath(pid);
+      let modelAvailable = false;
+      let lastUpdated: Date | undefined;
+      
+      try {
+        const stat = await fs.stat(modelPath);
+        modelAvailable = true;
+        lastUpdated = stat.mtime;
+      } catch (e) {
+        // Model not built yet
+      }
+
+      const counts = profileCounts.get(pid) || {};
+      const signCount = Object.values(counts).reduce((a, b) => a + b, 0);
+
+      profiles.push({
+        profileId: pid,
+        modelAvailable,
+        signCount,
+        ...(lastUpdated ? { lastUpdated } : {})
+      });
+    }
+
+    // Add profiles that have data but no model file yet
+    for (const [pid, counts] of profileCounts.entries()) {
+      if (!profiles.find(p => p.profileId === pid)) {
+        profiles.push({
+          profileId: pid,
+          modelAvailable: false,
+          signCount: Object.values(counts).reduce((a, b) => a + b, 0)
+        });
+      }
+    }
+
+    res.json(profiles);
+  } catch (error) {
+    console.error('Failed to list profile models:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get labels that have at least one sample for a profile
+app.get('/api/v1/dgs/trained-labels', auth, async (req: Request, res: Response) => {
+  try {
+    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    if (!profileId) {
+      return res.status(400).json({ error: 'profileId required' });
+    }
+
+    const { profileCounts } = await collectLabelCounts();
+    const counts = profileCounts.get(profileId) || {};
+    const trainedLabels = Object.keys(counts).filter(label => counts[label] > 0);
+
+    res.json({ profileId, trainedLabels });
+  } catch (error) {
+    console.error('Failed to get trained labels:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get normalization configuration
+app.get('/api/config/normalization', auth, async (_req: Request, res: Response) => {
+  try {
+    const configPath = path.join(DATA_DIR, 'config', 'normalization_config.json');
+    const raw = await fs.readFile(configPath, 'utf8');
+    res.json(JSON.parse(raw));
+  } catch (error) {
+    // Return defaults if config missing
+    res.json({
+      priority_factors: {
+        hands: 3.0,
+        pose: 0.4,
+        face: 0.1
+      }
+    });
+  }
+});
 
 // Add error handling middleware
 app.use(errorHandler);

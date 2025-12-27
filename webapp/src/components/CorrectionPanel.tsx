@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAppState } from '../hooks/useAppState';
 
-const AVAILABLE_GESTURES = [
+const AVAILABLE_SIGNS = [
   { id: 'alle', label: 'Alle' },
   { id: 'blau', label: 'Blau' },
   { id: 'essen', label: 'Essen' },
@@ -17,41 +17,41 @@ const AVAILABLE_GESTURES = [
 ];
 
 interface CorrectionPanelProps {
-  recognizedGesture: string | null;
-  onCorrection?: (originalGesture: string, correctedGesture: string) => void;
+  recognizedSign: string | null;
+  onCorrection?: (originalSign: string, correctedSign: string) => void;
   forceOpen?: boolean;
   onDismiss?: () => void;
 }
 
 /**
- * Panel for correcting misrecognized gestures.
+ * Panel for correcting misrecognized sign language.
  * Mirrors the CorrectionPanel from the Expo app.
  */
 export function CorrectionPanel({
-  recognizedGesture,
+  recognizedSign,
   onCorrection,
   forceOpen = false,
   onDismiss,
 }: CorrectionPanelProps) {
-  const { recordGesture } = useAppState();
+  const { recordSign } = useAppState();
   const [selectedCorrection, setSelectedCorrection] = useState<string | null>(null);
   const [showPanel, setShowPanel] = useState(false);
   const [correctionApplied, setCorrectionApplied] = useState(false);
   const panelOpen = forceOpen || showPanel;
 
-  const handleCorrectionSelect = useCallback((gestureId: string) => {
-    setSelectedCorrection(gestureId);
+  const handleCorrectionSelect = useCallback((signId: string) => {
+    setSelectedCorrection(signId);
   }, []);
 
   const handleApplyCorrection = useCallback(() => {
-    if (!selectedCorrection || !recognizedGesture) return;
+    if (!selectedCorrection || !recognizedSign) return;
     
-    // Record the corrected gesture
-    recordGesture(selectedCorrection);
+    // Record the corrected sign
+    recordSign(selectedCorrection);
     
     // Notify parent if callback provided
     if (onCorrection) {
-      onCorrection(recognizedGesture, selectedCorrection);
+      onCorrection(recognizedSign, selectedCorrection);
     }
     
     setCorrectionApplied(true);
@@ -62,7 +62,7 @@ export function CorrectionPanel({
     setTimeout(() => {
       setCorrectionApplied(false);
     }, 3000);
-  }, [selectedCorrection, recognizedGesture, recordGesture, onCorrection]);
+  }, [selectedCorrection, recognizedSign, recordSign, onCorrection]);
 
   const handleOpenPanel = useCallback(() => {
     if (forceOpen) return;
@@ -79,7 +79,7 @@ export function CorrectionPanel({
     setSelectedCorrection(null);
   }, [forceOpen, onDismiss]);
 
-  if (!recognizedGesture) {
+  if (!recognizedSign) {
     return (
       <div className="notice muted">
         <p>Warte auf erkannte Gebärde, um Korrektur anzubieten...</p>
@@ -100,7 +100,7 @@ export function CorrectionPanel({
     return (
       <div className="correction-trigger">
         <p className="muted">
-          Erkannt: <strong>{recognizedGesture}</strong>
+          Erkannt: <strong>{recognizedSign}</strong>
         </p>
         <button className="ghost" onClick={handleOpenPanel}>
           War das falsch? Korrigieren
@@ -120,15 +120,15 @@ export function CorrectionPanel({
       </div>
 
       <div className="gesture-options">
-        {AVAILABLE_GESTURES.map((gesture) => (
+        {AVAILABLE_SIGNS.map((sign) => (
           <button
-            key={gesture.id}
-            className={`gesture-option ${selectedCorrection === gesture.id ? 'selected' : ''}`}
-            onClick={() => handleCorrectionSelect(gesture.id)}
-            disabled={gesture.id === recognizedGesture}
+            key={sign.id}
+            className={`gesture-option ${selectedCorrection === sign.id ? 'selected' : ''}`}
+            onClick={() => handleCorrectionSelect(sign.id)}
+            disabled={sign.id === recognizedSign}
           >
-            {gesture.label}
-            {gesture.id === recognizedGesture && <span className="current-badge">Aktuell</span>}
+            {sign.label}
+            {sign.id === recognizedSign && <span className="current-badge">Aktuell</span>}
           </button>
         ))}
       </div>

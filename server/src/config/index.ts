@@ -42,7 +42,7 @@ export const config: ServerConfig = {
   apiLimit: getEnvVarAsNumber('API_LIMIT', 120),
   modelMetadataLimit: getEnvVarAsNumber('MODEL_METADATA_LIMIT', 10),
   mlpScript: getEnvVar('MLP_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
-  trainingTimeoutMs: getEnvVarAsNumber('TRAINING_JOB_TIMEOUT_MS', 300_000),
+  trainingTimeoutMs: getEnvVarAsNumber('TRAINING_JOB_TIMEOUT_MS', 600_000),
   backupSecret: getEnvVar('BACKUP_SECRET', 'default-secret-password'),
   trainScript: getEnvVar('TRAIN_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
   dbPath: getEnvVar('DB_PATH', path.join(SERVER_DIR, 'db.json')),

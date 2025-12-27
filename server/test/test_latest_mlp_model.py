@@ -1,8 +1,8 @@
-import time
-import urllib.request
-import urllib.error
-import shutil
 import hashlib
+import shutil
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest

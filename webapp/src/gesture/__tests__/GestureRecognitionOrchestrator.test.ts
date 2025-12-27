@@ -254,7 +254,6 @@ describe('GestureRecognitionOrchestrator', () => {
         'stability_analysis',
         'gesture_detection',
         'partial_gesture_analysis',
-        'emergency_gesture_check',
         'fallback_processing',
         'result_processing',
       ]);
@@ -365,17 +364,6 @@ describe('GestureRecognitionOrchestrator', () => {
 
       await expect((orchestrator as any).handleGestureResults(mockResults, Date.now())).resolves.toBeUndefined();
       executeSpy.mockRestore();
-    });
-
-    it('flushes immediately for emergency detections', async () => {
-      const emergencyResults = createMockGestureResults({
-        gestures: [[{ categoryName: 'Help', score: 0.6 }]],
-      });
-
-      await (orchestrator as any).handleGestureResults(emergencyResults, Date.now());
-
-      const gestureCall = queueSpy.mock.calls.find(([payload]) => payload.type === 'gesture');
-      expect(gestureCall?.[1]).toEqual({ flushImmediately: true });
     });
 
     it('adds frame captures for fallback payloads and flushes immediately', async () => {

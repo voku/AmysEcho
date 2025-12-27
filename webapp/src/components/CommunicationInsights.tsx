@@ -29,7 +29,7 @@ interface InsightData {
  * Shows patterns and insights about gesture usage.
  */
 export function CommunicationInsights() {
-  const { profileId, recentGestures } = useAppState();
+  const { profileId, recentSigns } = useAppState();
   const [insightData, setInsightData] = useState<InsightData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -93,7 +93,7 @@ export function CommunicationInsights() {
     };
 
     loadInsights();
-  }, [profileId, recentGestures]);
+  }, [profileId, recentSigns]);
 
   if (isLoading) {
     return (

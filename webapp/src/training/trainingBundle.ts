@@ -107,6 +107,7 @@ function buildMetadata(
     smoothing: landmarksMetadata.smoothing,
     ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),
     ...(payload.handFocus ? { handFocus: payload.handFocus } : {}),
+    ...(payload.variationData ? { variationData: payload.variationData } : {}),
     ...(Object.keys(recording).length > 0 ? { recording } : {}),
   };
 }

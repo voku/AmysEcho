@@ -21,13 +21,6 @@ describe('ErrorRecoveryManager', () => {
   });
 
   describe('getErrorInfo', () => {
-    it('identifies emergency errors as critical', () => {
-      const error = new Error('Emergency gesture failed');
-      const info = manager.getErrorInfo(error, 'emergency detection');
-      expect(info.severity).toBe('critical');
-      expect(info.code).toBe('EMERGENCY_ERROR');
-    });
-
     it('identifies network errors', () => {
       const error = new Error('Network request failed');
       const info = manager.getErrorInfo(error, 'fetch data');
@@ -86,17 +79,6 @@ describe('ErrorRecoveryManager', () => {
       }
 
       expect(manager.isCircuitBreakerOpen()).toBe(true);
-      expect(manager.isInEmergencyMode()).toBe(true);
-    });
-
-    it('sends emergency mode telemetry when circuit breaker opens', () => {
-      for (let i = 0; i < 5; i += 1) {
-        manager.recordFailure(new Error('MediaPipe crashed'), 'mediapipe processing');
-      }
-
-      const postMessage = (globalThis as any).window.ReactNativeWebView.postMessage;
-      const payloads = postMessage.mock.calls.map(([arg]: [string]) => JSON.parse(arg));
-      expect(payloads.some((p: any) => p.event === 'emergency_mode_activated')).toBe(true);
     });
 
     it('resets failure count outside failure window', () => {
@@ -157,7 +139,6 @@ describe('ErrorRecoveryManager', () => {
       const status = manager.getHealthStatus();
       expect(status.healthy).toBe(true);
       expect(status.fallbackActive).toBe(false);
-      expect(status.emergencyActive).toBe(false);
       expect(status.failureCount).toBe(0);
     });
   });
@@ -167,7 +148,6 @@ describe('ErrorRecoveryManager', () => {
       const status = manager.getHealthStatus();
       expect(status.healthy).toBe(true);
       expect(status.fallbackActive).toBe(false);
-      expect(status.emergencyActive).toBe(false);
     });
 
     it('reflects unhealthy state after failures', () => {

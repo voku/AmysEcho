@@ -21,9 +21,11 @@ The script will:
 
 import json
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
+
+import numpy as np
 
 # Configuration
 SCRIPT_DIR = Path(__file__).parent
@@ -92,32 +94,81 @@ def create_fallback_data():
     """Create minimal fallback data for testing if video processing fails"""
     print("Creating fallback sample data...")
 
-    # Basic gesture labels
-    gestures = ['alle', 'blau', 'rot', 'gelb', 'gruen', 'essen', 'trinken', 'satt', 'spielen', 'schwester', 'nochmal', 'fertig']
+    # Load default labels from config
+    labels_config = PROJECT_ROOT / "server" / "data" / "config" / "defaultBaselineLabels.json"
+    if labels_config.exists():
+        with open(labels_config) as f:
+            gestures = json.load(f)
+    else:
+        # Fallback if config missing
+        gestures = ['alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen', 'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken']
 
     # Create minimal landmark data (42 landmarks per hand, 2 hands = 84 total)
     samples = []
-    for gesture in gestures:
-        # Create synthetic but realistic landmark data
-        landmarks = []
-        for i in range(42):
-            # Generate somewhat realistic hand landmark positions
-            x = 0.3 + (i % 21) * 0.01 + (0.05 if i >= 21 else 0)  # Different base for each hand
-            y = 0.4 + (i // 21) * 0.1  # Different height for each hand
-            z = (i % 5) * 0.01  # Some depth variation
-            landmarks.append([x, y, z])
+    # Generate 50 samples per gesture to provide more robust training data
+    SAMPLES_PER_GESTURE = 50
+    # Temporal window size
+    WINDOW_SIZE = 30
 
-        samples.append({
-            "label": gesture,
-            "landmarks": landmarks
-        })
+    for gesture_idx, gesture in enumerate(gestures):
+        for sample_idx in range(SAMPLES_PER_GESTURE):
+            # Create a sequence of 30 frames for the temporal model
+            sequence_landmarks = []
+
+            # Randomized motion trajectory parameters
+            # Amy First: Simulate different speeds and slight variations in path
+            start_offset_x = np.random.uniform(-0.05, 0.05)
+            start_offset_y = np.random.uniform(-0.05, 0.05)
+
+            # Direction of motion varies per gesture
+            # Some move up, some move sideways, some are relatively static
+            motion_type = gesture_idx % 3
+            move_x = 0.1 if motion_type == 1 else 0.0
+            move_y = -0.1 if motion_type == 2 else 0.0
+
+            for frame_idx in range(WINDOW_SIZE):
+                t = frame_idx / (WINDOW_SIZE - 1)
+                landmarks = []
+
+                # Base motion pattern for this gesture + sample
+                gesture_seed = gesture_idx * 0.1
+                sample_seed = sample_idx * 0.01
+
+                # Apply trajectory
+                current_x_base = 0.3 + start_offset_x + (t * move_x)
+                current_y_base = 0.4 + start_offset_y + (t * move_y)
+
+                # 1. Hands (42 points)
+                for i in range(42):
+                    lx = current_x_base + (i % 21) * 0.01 + (0.05 if i >= 21 else 0) + gesture_seed + sample_seed + np.random.normal(0, 0.002)
+                    ly = current_y_base + (i // 21) * 0.1 + gesture_seed - sample_seed + np.random.normal(0, 0.002)
+                    lz = (i % 5) * 0.01 + (gesture_idx * 0.001) + np.random.normal(0, 0.001)
+                    landmarks.append([lx, ly, lz])
+
+                # 2. Pose (33 points)
+                for _i in range(33):
+                    landmarks.append([0.5 + np.random.normal(0, 0.01), 0.5 + np.random.normal(0, 0.01), 0.0])
+
+                # 3. Face (468 points)
+                for _i in range(468):
+                    landmarks.append([0.5 + np.random.normal(0, 0.005), 0.5 + np.random.normal(0, 0.005), 0.0])
+
+                sequence_landmarks.append(landmarks)
+
+            # In this script, we currently save one "averaged" or "representative" frame per sample
+            # for dgs_samples.json, as train_mlp.py handles the sliding window generation from there.
+            # However, providing diverse spatial data is key.
+            samples.append({
+                "label": gesture,
+                "landmarks": sequence_landmarks[WINDOW_SIZE // 2] # Use middle frame as representative
+            })
 
     # Save the fallback data
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(SAMPLES_FILE, 'w') as f:
         json.dump({"samples": samples}, f, indent=2)
 
-    print(f"✓ Created fallback data with {len(samples)} samples")
+    print(f"✓ Created fallback data with {len(samples)} samples ({len(gestures)} gestures)")
     return True
 
 def train_model():
@@ -175,33 +226,54 @@ def validate_model():
         return False
 
     try:
-        import numpy as np
-
         # Load the model
         with np.load(MODEL_FILE) as data:
             w1 = data['w1']
             b1 = data['b1']
             w2 = data['w2']
             b2 = data['b2']
+            w3 = data['w3']
+            b3 = data['b3']
             labels = data['labels']
+            arch = str(data.get('arch', 'unknown'))
+            window_size = int(data.get('window_size', 0))
+            input_dim = int(data.get('input_dim', 0))
 
-        print(f"✓ Model loaded successfully")
-        print(f"  - Input layer: {w1.shape[1]} -> {w1.shape[0]}")
-        print(f"  - Hidden layer: {w1.shape[0]} -> {w2.shape[0]}")
-        print(f"  - Output layer: {w2.shape[0]} -> {w2.shape[1]}")
-        print(f"  - Classes: {list(labels)}")
+        print("✓ Model loaded successfully")
+        print(f"  - Architecture: {arch}")
+        print(f"  - Window Size: {window_size}")
+        print(f"  - Input Dim: {input_dim}")
+        print(f"  - W1 shape: {w1.shape}")
+        print(f"  - W2 shape: {w2.shape}")
+        print(f"  - W3 shape: {w3.shape}")
+        print(f"  - Classes: {len(labels)} ({list(labels)[:5]}...)")
 
-        # Basic validation - check shapes are reasonable
-        assert w1.shape[0] == 126, f"Input size mismatch: {w1.shape[0]}"  # 42 landmarks * 3 coordinates
-        assert w1.shape[1] == 128, f"Hidden layer size mismatch: {w1.shape[1]}"
-        assert w2.shape[0] == 128, f"Hidden to output layer size mismatch: {w2.shape[0]}"
-        assert w2.shape[1] == len(labels), f"Output size mismatch: {w2.shape[1]} vs {len(labels)}"
+        # Basic validation for the new 3-layer temporal architecture
+        # Expecting input_dim = 48870 (1629 * 30)
+
+        # In the saved model, input_dim represents the total flattened input vector size
+        expected_input = input_dim
+        assert w1.shape[1] == expected_input, f"Input size mismatch: {w1.shape[1]} vs {expected_input}"
+        assert w3.shape[0] == len(labels), f"Output size mismatch: {w3.shape[0]} vs {len(labels)}"
+        assert arch == "mlp_3layer_window", f"Unexpected architecture: {arch}"
+        
+        # Validate bias shapes match their corresponding weight layers
+        assert b1.shape[0] == w1.shape[0], f"b1 shape mismatch: {b1.shape[0]} vs {w1.shape[0]}"
+        assert b2.shape[0] == w2.shape[0], f"b2 shape mismatch: {b2.shape[0]} vs {w2.shape[0]}"
+        assert b3.shape[0] == w3.shape[0], f"b3 shape mismatch: {b3.shape[0]} vs {w3.shape[0]}"
 
         print("✓ Model validation passed")
         return True
 
-    except Exception as e:
+    except (KeyError, ValueError, AssertionError) as e:
         print(f"✗ Model validation failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+    except Exception as e:
+        print(f"✗ Unexpected error during validation: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def main():

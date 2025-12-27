@@ -12,8 +12,11 @@ import {
   SERVER_DIR,
 } from '../constants/modelPaths.js';
 
-export const DEFAULT_MLP_INPUT_SIZE = 126;
-export const DEFAULT_MLP_HIDDEN_SIZE = 256;
+export const DEFAULT_MLP_INPUT_SIZE = 48870;
+export const DEFAULT_MLP_WINDOW_SIZE = 30;
+export const DEFAULT_MLP_FEATURE_SIZE = 1629;
+export const DEFAULT_MLP_LAYER1_SIZE = 512;
+export const DEFAULT_MLP_LAYER2_SIZE = 256;
 const FALLBACK_BASELINE_LABELS = [
   'alle',
   'blau',
@@ -149,7 +152,10 @@ async function writeZeroInitializedModel(
     labels: effectiveLabels,
     counts: effectiveCounts,
     inputSize: DEFAULT_MLP_INPUT_SIZE,
-    hiddenSize: DEFAULT_MLP_HIDDEN_SIZE,
+    windowSize: DEFAULT_MLP_WINDOW_SIZE,
+    featureSize: DEFAULT_MLP_FEATURE_SIZE,
+    layer1Size: DEFAULT_MLP_LAYER1_SIZE,
+    layer2Size: DEFAULT_MLP_LAYER2_SIZE,
   });
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await new Promise<void>((resolve, reject) => {
@@ -350,13 +356,15 @@ export async function sendBinaryModel(
       return;
     }
 
-    if (!buffer) {
-      buffer = await fs.readFile(filePath);
-    }
-
     res.setHeader('Content-Length', String(metadata.stat.size));
-    res.send(buffer);
-  } catch {
+    if (buffer) {
+      res.send(buffer);
+    } else {
+      const stream = fsSync.createReadStream(filePath);
+      stream.pipe(res);
+    }
+  } catch (error) {
+    console.error(`Failed to send binary model ${filePath}:`, error);
     res.status(404).json({ error: 'Model not found' });
   }
 }

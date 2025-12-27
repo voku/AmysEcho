@@ -127,7 +127,7 @@ function isDatasetSample(value: unknown): value is DatasetSample {
 }
 
 const BUNDLE_SAMPLE_PREFIX = 'bundle:';
-const MAX_FLATTENED_LANDMARK_POINTS = 42;
+const MAX_FLATTENED_LANDMARK_POINTS = 543;
 const MAX_HANDS = 2;
 const HAND_LANDMARKS_PER_HAND = 21;
 const MAX_POSE_POINTS = 33;
@@ -525,7 +525,6 @@ async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
 function normalizeFlattenedLandmarks(raw: unknown): number[][] {
   const points = normalizePointArray(raw, {
     maxPoints: MAX_FLATTENED_LANDMARK_POINTS,
-    padToLength: MAX_FLATTENED_LANDMARK_POINTS,
   });
   return points;
 }

@@ -1,7 +1,16 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
-import { prepareMultimodalForMLP } from './utils/landmarkNormalizer';
+import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
+import { enhancePredictionWithFeedback } from './performanceFeedback';
 
-export function installMlp() {
+export type ModelMetadata = {
+  window_size?: number;
+  input_dim?: number;
+  arch?: string;
+  feature_size?: number;
+  labels?: string[];
+};
+
+export function installMlp(customModelData?: string): Promise<boolean> {
   type Tensor = { data: Float32Array; shape: number[] };
   type Landmark = readonly [number, number, number];
   type Hand = ReadonlyArray<Landmark>;
@@ -12,14 +21,21 @@ export function installMlp() {
     b1: Tensor;
     w2: Tensor;
     b2: Tensor;
+    w3: Tensor;
+    b3: Tensor;
     labels: string[];
+    window_size?: number;
+    input_dim?: number;
   };
   const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
     void sendTelemetryEvent(event, data ?? {}).catch((err) => {
       console.warn(`Failed to send '${event}' telemetry event:`, err);
     });
   };
-  let mlp: MlpModel | null = null; // { w1,b1,w2,b2,labels }
+  let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
+  let WINDOW_SIZE = 30; // Default, will be updated from model metadata
+  let rollingBuffer: Float32Array[] = [];
+
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
     if (view.getUint8(0) !== 0x93) throw new Error('bad npy');
@@ -203,9 +219,13 @@ export function installMlp() {
       const b1b = npzFind(map, 'b1');
       const w2b = npzFind(map, 'w2');
       const b2b = npzFind(map, 'b2');
-      if (!w1b || !b1b || !w2b || !b2b) throw new Error('missing weights');
+      const w3b = npzFind(map, 'w3');
+      const b3b = npzFind(map, 'b3');
+      
+      if (!w1b || !b1b || !w2b || !b2b || !w3b || !b3b) throw new Error('missing weights for 3-layer model');
+      
       // Parse and validate model weights
-      let w1, b1, w2, b2, labels: string[] = [];
+      let w1, b1, w2, b2, w3, b3, labels: string[] = [];
 
        try {
          w1 = parseNPY(w1b);
@@ -243,6 +263,24 @@ export function installMlp() {
         throw new Error('Failed to parse b2 biases: ' + (e instanceof Error ? e.message : String(e)));
       }
 
+      try {
+        w3 = parseNPY(w3b);
+        if (!w3.data || w3.shape.length !== 2) {
+          throw new Error('Invalid w3 tensor: expected 2D array');
+        }
+      } catch (e) {
+        throw new Error('Failed to parse w3 weights: ' + (e instanceof Error ? e.message : String(e)));
+      }
+
+     try {
+       b3 = parseNPY(b3b);
+       if (!b3.data || b3.shape.length !== 1) {
+         throw new Error('Invalid b3 tensor: expected 1D array');
+       }
+     } catch (e) {
+       throw new Error('Failed to parse b3 biases: ' + (e instanceof Error ? e.message : String(e)));
+     }
+
       // Parse labels if available
       const lb = npzFind(map, 'labels');
       if (lb) {
@@ -259,29 +297,70 @@ export function installMlp() {
           labels = [];
         }
       }
+
+      // Parse metadata if available
+      let window_size: number | undefined;
+      let input_dim: number | undefined;
+      
+      const wsb = npzFind(map, 'window_size');
+      if (wsb) {
+        try {
+          const parsed = parseNPY(wsb);
+          window_size = Number(parsed.data[0]);
+        } catch (e) {
+          console.warn('Failed to parse window_size:', e);
+        }
+      }
+
+      const idb = npzFind(map, 'input_dim');
+      if (idb) {
+        try {
+          const parsed = parseNPY(idb);
+          input_dim = Number(parsed.data[0]);
+        } catch (e) {
+          console.warn('Failed to parse input_dim:', e);
+        }
+      }
+
       // Validate tensor dimensions for MLP compatibility
       const inputSize = w1.shape[1];
-      const hiddenSize = w1.shape[0];
-      const outputSize = w2.shape[0];
+      const layer1Size = w1.shape[0];
+      const layer2Size = w2.shape[0];
+      const outputSize = w3.shape[0];
 
-      if (b1.shape[0] !== hiddenSize) {
-        throw new Error(`Dimension mismatch: b1 has ${b1.shape[0]} elements but expected ${hiddenSize}`);
+      if (b1.shape[0] !== layer1Size) {
+        throw new Error(`Dimension mismatch: b1 has ${b1.shape[0]} but expected ${layer1Size}`);
       }
-      if (w2.shape[1] !== hiddenSize) {
-        throw new Error(`Dimension mismatch: w2 input size ${w2.shape[1]} doesn't match hidden size ${hiddenSize}`);
+      if (w2.shape[1] !== layer1Size) {
+        throw new Error(`Dimension mismatch: w2 input ${w2.shape[1]} doesn't match layer1 ${layer1Size}`);
       }
-      if (b2.shape[0] !== outputSize) {
-        throw new Error(`Dimension mismatch: b2 has ${b2.shape[0]} elements but expected ${outputSize}`);
+      if (b2.shape[0] !== layer2Size) {
+        throw new Error(`Dimension mismatch: b2 has ${b2.shape[0]} but expected ${layer2Size}`);
+      }
+      if (w3.shape[1] !== layer2Size) {
+        throw new Error(`Dimension mismatch: w3 input ${w3.shape[1]} doesn't match layer2 ${layer2Size}`);
+      }
+      if (b3.shape[0] !== outputSize) {
+        throw new Error(`Dimension mismatch: b3 has ${b3.shape[0]} but expected ${outputSize}`);
       }
 
-      console.log(`MLP model loaded successfully: ${inputSize} -> ${hiddenSize} -> ${outputSize} with ${labels.length} labels`);
+      // Update temporal window parameters from model metadata
+      WINDOW_SIZE = window_size || 30;
+      rollingBuffer = []; // Reset buffer with new window size
+      
+      console.log(`MLP model loaded: ${inputSize} -> ${layer1Size} -> ${layer2Size} -> ${outputSize} (${labels.length} labels)`);
+      console.log(`Temporal config: window_size=${WINDOW_SIZE}, input_dim=${input_dim || MULTIMODAL_FEATURES_SIZE}`);
 
       mlp = {
         w1: { data: Float32Array.from(w1.data as ArrayLike<number>), shape: w1.shape },
         b1: { data: Float32Array.from(b1.data as ArrayLike<number>), shape: b1.shape },
         w2: { data: Float32Array.from(w2.data as ArrayLike<number>), shape: w2.shape },
         b2: { data: Float32Array.from(b2.data as ArrayLike<number>), shape: b2.shape },
+        w3: { data: Float32Array.from(w3.data as ArrayLike<number>), shape: w3.shape },
+        b3: { data: Float32Array.from(b3.data as ArrayLike<number>), shape: b3.shape },
         labels,
+        ...(window_size !== undefined ? { window_size } : {}),
+        ...(input_dim !== undefined ? { input_dim } : {}),
       };
       return true;
     } catch (e: any) {
@@ -291,6 +370,7 @@ export function installMlp() {
       return false;
     }
   }
+  
   function relu(x: Float32Array) {
     for (let i = 0; i < x.length; i++) {
       const value = x[i] ?? 0;
@@ -336,124 +416,170 @@ export function installMlp() {
   }
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
-  function normalizeLandmarks(all: Hand[], handednesses: Handedness) {
-    const flat = new Float32Array(21 * 2 * 3);
-    function normHand(hand: Hand | null): Hand | null {
-      if (!hand || hand.length < 21) return null;
-      const wrist = hand[0];
-      if (!wrist) {
-        return null;
+  function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
+    const inputSize = mlp?.w1.shape[1] ?? 0;
+    const windowSize = mlp?.window_size ?? WINDOW_SIZE;
+    const featuresPerFrame = windowSize > 0 ? inputSize / windowSize : inputSize;
+    
+    const isMultimodalInModel = mlp && featuresPerFrame === MULTIMODAL_FEATURES_SIZE;
+    
+    let frameFeatures: Float32Array;
+    
+    if (isMultimodalInModel) {
+      // Convert Hand[] to number[][] format (42 points for left+right hands)
+      const leftHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === 'Left',
+      );
+      const rightHandIndex = handednesses?.findIndex(
+        (h) => h?.[0]?.categoryName === 'Right',
+      );
+      
+      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
+      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
+      
+      // Convert to number[][] format: [point0, point1, ...] where each point is [x,y,z]
+      const handsFlat: number[][] = [];
+      
+      // Add left hand (21 points)
+      for (let i = 0; i < 21; i++) {
+        const point = leftHand?.[i];
+        handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
       }
-      const [wx = 0, wy = 0, wz = 0] = wrist;
-      const centered = hand.map(
-        (p) => {
+      
+      // Add right hand (21 points)
+      for (let i = 0; i < 21; i++) {
+        const point = rightHand?.[i];
+        handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
+      }
+      
+      frameFeatures = prepareMultimodalForMLP(handsFlat, poseLandmarks, faceLandmarks);
+    } else {
+      // Use hand-only normalization (legacy)
+      const flat = new Float32Array(21 * 2 * 3);
+      function normHand(hand: Hand | null): Hand | null {
+        if (!hand || hand.length < 21) return null;
+        const wrist = hand[0];
+        if (!wrist) return null;
+        const [wx = 0, wy = 0, wzRaw = 0] = wrist;
+        const centered = hand.map((p) => {
           const [x = 0, y = 0, z = 0] = p ?? [0, 0, 0];
-          return [x - wx, y - wy, z - wz] as const;
-        },
-      );
-      const maxd = centered.reduce(
-        (currentMax, [x, y, z]) =>
-          Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
-        0,
-      );
-      if (maxd === 0) return null;
-      return centered.map(
-        ([x, y, z]) => [x / maxd, y / maxd, z / maxd] as const,
-      );
+          return [x - wx, y - wy, z - wzRaw] as const;
+        });
+        const maxd = centered.reduce(
+          (currentMax, [x, y, z]) => Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
+          0,
+        );
+        if (maxd === 0) return null;
+        return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd] as const);
+      }
+
+      const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Left');
+      const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Right');
+
+      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
+      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
+
+      const left = normHand(leftHand) ?? EMPTY_HAND;
+      const right = normHand(rightHand) ?? EMPTY_HAND;
+      const both = [...left, ...right];
+      let k = 0;
+      for (const p of both) {
+        const [px = 0, py = 0, pz = 0] = p ?? [0, 0, 0];
+        flat[k++] = px * HAND_PRIORITY_FACTOR; // Apply priority factor matching backend
+        flat[k++] = py * HAND_PRIORITY_FACTOR;
+        flat[k++] = pz * HAND_PRIORITY_FACTOR;
+      }
+      frameFeatures = flat;
     }
-
-    const leftHandIndex = handednesses?.findIndex(
-      (h) => h?.[0]?.categoryName === 'Left',
-    );
-    const rightHandIndex = handednesses?.findIndex(
-      (h) => h?.[0]?.categoryName === 'Right',
-    );
-
-    const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
-    const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
-
-    const left = normHand(leftHand) ?? EMPTY_HAND;
-    const right = normHand(rightHand) ?? EMPTY_HAND;
-    const both = [...left, ...right];
-    let k = 0;
-    for (const p of both) {
-      const [px = 0, py = 0, pz = 0] = p ?? [0, 0, 0];
-      flat[k++] = px;
-      flat[k++] = py;
-      flat[k++] = pz;
-    }
-    return flat;
+    return frameFeatures;
   }
+
   function mlpPredict(
     all: Hand[],
     handednesses: Handedness,
     poseLandmarks?: number[][],
     faceLandmarks?: number[][]
   ) {
+    const startTime = performance.now();
     try {
       if (!mlp) return null;
       
-      // Check if model expects multimodal input (258 features vs 126 hand-only)
-      const [rows1, cols1Expected] = mlp.w1.shape;
-      const isMultimodal = cols1Expected === 258;
+      // 1. Normalize current frame
+      const currentFrameVec = normalizeLandmarks(all, handednesses, poseLandmarks, faceLandmarks);
       
+      // 2. Manage rolling buffer
+      rollingBuffer.push(currentFrameVec);
+      if (rollingBuffer.length > WINDOW_SIZE) {
+        rollingBuffer.shift();
+      }
+      
+      // 3. Prepare input vector based on model expected input size
+      const [rows1, cols1Expected] = mlp.w1.shape;
+      if (rows1 === undefined || cols1Expected === undefined || rows1 === 0) {
+        throw new Error('Invalid w1 shape');
+      }
+
       let x: Float32Array;
-      if (isMultimodal && (poseLandmarks || faceLandmarks)) {
-        // Use multimodal normalization
-        // Convert Hand[] to number[][] format (42 points for left+right hands)
-        const leftHandIndex = handednesses?.findIndex(
-          (h) => h?.[0]?.categoryName === 'Left',
-        );
-        const rightHandIndex = handednesses?.findIndex(
-          (h) => h?.[0]?.categoryName === 'Right',
-        );
-        
-        const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
-        const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
-        
-        // Convert to number[][] format: [point0, point1, ...] where each point is [x,y,z]
-        const handsFlat: number[][] = [];
-        
-        // Add left hand (21 points)
-        for (let i = 0; i < 21; i++) {
-          const point = leftHand?.[i];
-          handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
+      const windowSize = mlp.window_size ?? WINDOW_SIZE;
+      const inputDim = currentFrameVec.length; // Use actual length of normalized features
+      
+      if (cols1Expected === windowSize * inputDim && windowSize > 1) {
+        // Temporal model
+        if (rollingBuffer.length < windowSize) {
+          // Pad with replicates of the last available frame at the end if buffer is not full
+          const last = rollingBuffer[rollingBuffer.length - 1]!;
+          const padded = new Float32Array(windowSize * inputDim);
+          // Add existing frames at the beginning
+          for (let i = 0; i < rollingBuffer.length; i++) {
+            padded.set(rollingBuffer[i]!, i * inputDim);
+          }
+          // Pad with replicates of the last frame at the end
+          for (let i = rollingBuffer.length; i < windowSize; i++) {
+            padded.set(last, i * inputDim);
+          }
+          x = padded;
+        } else {
+          x = new Float32Array(windowSize * inputDim);
+          for (let i = 0; i < windowSize; i++) {
+            x.set(rollingBuffer[i]!, i * inputDim);
+          }
         }
-        
-        // Add right hand (21 points)
-        for (let i = 0; i < 21; i++) {
-          const point = rightHand?.[i];
-          handsFlat.push(point ? [point[0], point[1], point[2]] : [0, 0, 0]);
-        }
-        
-        x = prepareMultimodalForMLP(handsFlat, poseLandmarks, faceLandmarks);
       } else {
-        // Use hand-only normalization
-        x = normalizeLandmarks(all, handednesses);
-        if (!x) return null;
+        // Static model or single-window model
+        x = currentFrameVec;
       }
       
       // Skip prediction if input is all zeros (no hands detected)
       if (x.every(v => v === 0)) return null;
+      
       const cols1 = x.length;
-      if (rows1 === undefined || cols1Expected === undefined || rows1 === 0) {
-        throw new Error('Invalid w1 shape');
-      }
-      if (cols1Expected !== cols1) throw new Error('Input dimension mismatch');
+      if (cols1Expected !== cols1) throw new Error(`Input dimension mismatch: expected ${cols1Expected}, got ${cols1}`);
+      
       const b1Shape = mlp.b1.shape[0];
       if (b1Shape === undefined || b1Shape !== rows1) throw new Error('b1 dimension mismatch');
+      
+      // Layer 1: Input -> 1024
       const z1 = affineMV(mlp.w1.data, rows1, cols1, x, mlp.b1.data);
       const a1 = relu(z1);
+      
+      // Layer 2: 1024 -> 512
       const [rows2Raw, cols2] = mlp.w2.shape;
       const rows2 = rows2Raw ?? 0;
-      if (cols2 === undefined || rows2 === 0) {
-        throw new Error('Invalid w2 shape');
-      }
-      if (cols2 !== a1.length) throw new Error('Hidden layer size mismatch');
-      const b2Shape = mlp.b2.shape[0];
-      if (b2Shape === undefined || b2Shape !== rows2) throw new Error('b2 dimension mismatch');
+      if (cols2 === undefined || rows2 === 0) throw new Error('Invalid w2 shape');
+      if (cols2 !== a1.length) throw new Error('Layer 2 input size mismatch');
+      
       const z2 = affineMV(mlp.w2.data, rows2, cols2, a1, mlp.b2.data);
-      const probs = softmax(z2);
+      const a2 = relu(z2);
+      
+      // Layer 3: 512 -> Output
+      const [rows3Raw, cols3] = mlp.w3.shape;
+      const rows3 = rows3Raw ?? 0;
+      if (cols3 === undefined || rows3 === 0) throw new Error('Invalid w3 shape');
+      if (cols3 !== a2.length) throw new Error('Layer 3 input size mismatch');
+      
+      const z3 = affineMV(mlp.w3.data, rows3, cols3, a2, mlp.b3.data);
+      const probs = softmax(z3);
+      
       let bestI = 0;
       let best = probs[0] ?? -Infinity;
       for (let i = 1; i < probs.length; i++) {
@@ -467,7 +593,12 @@ export function installMlp() {
         return null;
       }
       const label = mlp.labels?.[bestI] ?? String(bestI);
-      return { label, score: best };
+      const prediction = { label, score: best };
+      
+      // Record prediction for performance feedback
+      enhancePredictionWithFeedback(prediction, performance.now() - startTime);
+      
+      return prediction;
     } catch (e) {
       console.warn('MLP prediction failed:', e);
       return null;
@@ -521,4 +652,35 @@ export function installMlp() {
       forwardTelemetry('mlp_transfer_complete');
     }
   };
+
+  // Initial model loading orchestration
+  return (async () => {
+    // Try custom model data first (for profile models)
+    if (customModelData) {
+      if (await loadMlpFromB64(customModelData)) {
+        forwardTelemetry('mlp_custom_loaded', { size: customModelData.length });
+        return true;
+      }
+      console.warn('Failed to load provided custom model data');
+    }
+
+    // Try server fallback
+    try {
+      const modelUrl = '/api/models/current';
+      const response = await fetch(modelUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const serverB64 = await response.text();
+      if (await loadMlpFromB64(serverB64)) {
+        forwardTelemetry('mlp_server_loaded');
+        return true;
+      }
+    } catch (e) {
+      // Server fallback is optional, log but don't fail
+      console.info('Server model fallback not available or failed:', e instanceof Error ? e.message : String(e));
+      forwardTelemetry('mlp_server_failed', { error: String(e) });
+    }
+    return false;
+  })();
 }

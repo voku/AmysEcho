@@ -6,7 +6,7 @@ import { gestureMeaningService } from '../services/gestureMeaningService';
  * Mirrors the HistoryScreen from the Expo app.
  */
 export function SignLanguageHistory() {
-  const { recentGestures, lastRecognizedGesture } = useAppState();
+  const { recentSigns, lastRecognizedSign } = useAppState();
 
   const formatGestureLabel = (label: string): string => {
     // Try to get meaning from the service first (user-defined DGS vocabulary)
@@ -35,22 +35,22 @@ export function SignLanguageHistory() {
         </div>
       </div>
 
-      {lastRecognizedGesture && (
+      {lastRecognizedSign && (
         <div className="notice info">
-          <strong>Letzte Gebärde:</strong> {formatGestureLabel(lastRecognizedGesture)}
+          <strong>Letzte Gebärde:</strong> {formatGestureLabel(lastRecognizedSign)}
         </div>
       )}
 
-      {recentGestures.length === 0 ? (
+      {recentSigns.length === 0 ? (
         <div className="notice warning">
           <p>Noch keine Gebärden erkannt. Starte die Gebärdenerkennung, um den Verlauf zu füllen.</p>
         </div>
       ) : (
         <div className="history-list">
           <ul className="gesture-history">
-            {recentGestures.map((gesture, index) => (
-              <li key={`${gesture}-${index}`} className="history-item">
-                <span className="badge">{formatGestureLabel(gesture)}</span>
+            {recentSigns.map((sign, index) => (
+              <li key={`${sign}-${index}`} className="history-item">
+                <span className="badge">{formatGestureLabel(sign)}</span>
                 {index === 0 && <span className="timestamp">Zuletzt</span>}
               </li>
             ))}

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useAppState } from '../hooks/useAppState';
+import { useApiConfig } from '../hooks/useApiConfig';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
+import { apiRetryManager } from '../services/apiRetryManager';
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -30,9 +32,28 @@ function toTitleCase(value: string): string {
 
 export function SignLanguageRecorder() {
   const navigate = useNavigate();
+  const { apiBaseUrl } = useApiConfig();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [demoMode, setDemoMode] = useState(false);
+  const [hasTrainedSigns, setHasTrainedSigns] = useState<boolean | null>(() => {
+    try {
+      const cached = window.localStorage.getItem('webapp:has-trained-signs');
+      return cached ? cached === 'true' : null;
+    } catch {
+      return null;
+    }
+  });
+  const [trainedSignLabels, setTrainedSignLabels] = useState<string[]>(() => {
+    try {
+      const cached = window.localStorage.getItem('webapp:trained-sign-labels');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>(() => {
     try {
       const persisted = window.localStorage.getItem('cameraFacingMode');
@@ -61,31 +82,93 @@ export function SignLanguageRecorder() {
     lastSign,
     lastConfidence,
   } = useSignLanguageDetector(videoRef, overlayRef);
-  const { profileId, recordGesture } = useAppState();
+  const { profileId, recordSign } = useAppState();
   const { notice: modelNotice } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
 
-  // Auto-start camera when component mounts and camera is supported
+  // Check if profile has trained signs
   useEffect(() => {
-    if (cameraSupported && status === 'idle' && !hasAttemptedAutoStart.current) {
+    async function checkSigns() {
+      if (!profileId) {
+        setIsLoadingProfile(false);
+        return;
+      }
+      
+      try {
+        // We use the new trained-labels endpoint to get specific allowed labels
+        const response = await apiRetryManager.fetch(`${apiBaseUrl}/api/v1/dgs/trained-labels?profileId=${profileId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const labels = data.trainedLabels || [];
+          setTrainedSignLabels(labels);
+          const hasAny = labels.length > 0;
+          setHasTrainedSigns(hasAny);
+          
+          // Cache results
+          try {
+            window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(labels));
+            window.localStorage.setItem('webapp:has-trained-signs', String(hasAny));
+          } catch {
+            // ignore quota errors
+          }
+        } else {
+          // Endpoint failed; keep cached values to maintain consistent state
+          console.warn('trained-labels endpoint returned non-ok status; using cached data');
+        }
+      } catch (err) {
+        console.warn('Failed to check profile signs:', err);
+        // On network error, prefer the cached value if it exists
+        const cached = window.localStorage.getItem('webapp:has-trained-signs');
+        if (cached !== null) {
+          setHasTrainedSigns(cached === 'true');
+        } else {
+          // If no cache, default to false to be safe but allow Demo mode
+          setHasTrainedSigns(false);
+        }
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+
+    checkSigns();
+  }, [profileId, apiBaseUrl]);
+
+  // Auto-start camera when component mounts and camera is supported AND we have trained signs
+  useEffect(() => {
+    if (cameraSupported && status === 'idle' && !hasAttemptedAutoStart.current && hasTrainedSigns === true) {
       start().then((success) => {
         if (success) {
           hasAttemptedAutoStart.current = true;
         }
       });
     }
-  }, [cameraSupported, status, start]);
+  }, [cameraSupported, status, start, hasTrainedSigns]);
+
+  const normalizedTrainedSignLabels = useMemo(
+    () => new Set(trainedSignLabels.map(label => label.toLowerCase())),
+    [trainedSignLabels]
+  );
 
   useEffect(() => {
     if (lastSign) {
-      recordGesture(lastSign);
+      // Only record if it's a trained label (case-insensitive)
+      if (normalizedTrainedSignLabels.has(lastSign.toLowerCase())) {
+        recordSign(lastSign);
+      }
     }
-  }, [lastSign, recordGesture]);
+  }, [lastSign, recordSign, normalizedTrainedSignLabels]);
 
   const normalizedGesture = lastSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
-  const gestureMeaning = gestureKey ? gestureMeaningService.getMeaning(gestureKey) : undefined;
-  const gestureLabel = gestureKey
+  
+  // Filter prediction: only show if it's in the trained labels list
+  const isTrained = useMemo(() => {
+    if (!gestureKey) return false;
+    return normalizedTrainedSignLabels.has(gestureKey);
+  }, [gestureKey, normalizedTrainedSignLabels]);
+
+  const gestureMeaning = (gestureKey && isTrained) ? gestureMeaningService.getMeaning(gestureKey) : undefined;
+  const gestureLabel = (gestureKey && isTrained)
     ? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
@@ -154,6 +237,39 @@ export function SignLanguageRecorder() {
 
   const needsCameraStart = status === 'idle' || status === 'stopped' || status === 'error';
 
+  // Loading state
+  if (isLoadingProfile) {
+    return (
+      <section className="gesture-screen gesture-screen--loading">
+        <div className="gesture-screen__placeholder">Profil wird geladen…</div>
+      </section>
+    );
+  }
+
+  // Prompt to train if no signs found
+  if (hasTrainedSigns === false) {
+    return (
+      <section className="gesture-screen gesture-screen--empty">
+        <div className="gesture-screen__empty-card">
+          <span className="gesture-screen__empty-icon">🖐️</span>
+          <h2>Bringe mir deine Gebärden bei</h2>
+          <p>
+            Um die Gebärdenkamera zu nutzen, musst du mir zuerst mindestens eine Gebärde beibringen.
+            So kann ich deine Bewegungen besser verstehen.
+          </p>
+          <div className="gesture-screen__empty-actions">
+            <Link to="/training" className="primary button">
+              Jetzt Gebärde beibringen
+            </Link>
+            <button className="ghost button" onClick={() => { setHasTrainedSigns(true); setDemoMode(true); }}>
+              Trotzdem fortfahren (Demo)
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="gesture-screen">
       <div className="video-wrapper gesture-fullscreen">
@@ -199,7 +315,9 @@ export function SignLanguageRecorder() {
               )}
             </div>
           ) : (
-            <span className="gesture-screen__placeholder">Zeige eine Gebärde in die Kamera…</span>
+            <span className="gesture-screen__placeholder">
+              {demoMode ? 'Demo-Modus: Gestenerkennung deaktiviert' : 'Zeige eine Gebärde in die Kamera…'}
+            </span>
           )}
         </div>
 

@@ -8,7 +8,7 @@ import type { ApiClientConfig } from './apiClient';
 import { buildAuthHeaders } from './apiClient';
 
 export const correctionService = {
-  async logCorrection(gesture: string, config: ApiClientConfig): Promise<void> {
+  async logCorrection(sign: string, config: ApiClientConfig): Promise<void> {
     const apiUrl = config.apiBaseUrl;
     const token = config.apiToken;
 
@@ -19,15 +19,15 @@ export const correctionService = {
           'Content-Type': 'application/json',
           ...buildAuthHeaders(token),
         },
-        body: JSON.stringify({ gesture }),
+        body: JSON.stringify({ sign }),
       });
-      logger.debug('Correction logged:', gesture);
+      logger.debug('Correction logged:', sign);
     } catch (error) {
       logger.warn('Failed to log correction:', error);
     }
   },
 
-  async logNegativeSample(gesture: string, config: ApiClientConfig): Promise<void> {
+  async logNegativeSample(sign: string, config: ApiClientConfig): Promise<void> {
     const apiUrl = config.apiBaseUrl;
     const token = config.apiToken;
 
@@ -38,9 +38,9 @@ export const correctionService = {
           'Content-Type': 'application/json',
           ...buildAuthHeaders(token),
         },
-        body: JSON.stringify({ gesture }),
+        body: JSON.stringify({ sign }),
       });
-      logger.debug('Negative sample logged:', gesture);
+      logger.debug('Negative sample logged:', sign);
     } catch (error) {
       logger.warn('Failed to log negative sample:', error);
     }

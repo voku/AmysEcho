@@ -200,8 +200,8 @@ export function TrainingUploadWithRecording() {
   });
   const { upload, lastResult, state, trainingJob } = uploadState;
   const {
-    setPreferredGestureLabel,
-    preferredGestureLabel,
+    setPreferredSignLabel,
+    preferredSignLabel,
     profileId,
   } = useAppState();
   const modelInjection = useMlpModelInjection(profileId);
@@ -210,7 +210,7 @@ export function TrainingUploadWithRecording() {
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
   const [modelNotice, setModelNotice] = useState<string | null>(null);
-  const metadataReady = !!profileId && profileId.trim().length > 0 && preferredGestureLabel.trim().length > 0;
+  const metadataReady = !!profileId && profileId.trim().length > 0 && preferredSignLabel.trim().length > 0;
   const metadataError = metadataReady
     ? ''
     : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest.';
@@ -260,21 +260,21 @@ export function TrainingUploadWithRecording() {
 
   const handleLabelUpdate = useCallback(
     (value: string) => {
-      setPreferredGestureLabel(value);
+      setPreferredSignLabel(value);
     },
-    [setPreferredGestureLabel],
+    [setPreferredSignLabel],
   );
 
   useEffect(() => {
     // Sync URL params/symbols to label - only on mount or when URL changes
     const normalized = gestureParam?.trim() ?? '';
     const symbol = symbols.find((s) => s.id === symbolIdParam) ?? null;
-    if (symbol && preferredGestureLabel !== symbol.name) {
+    if (symbol && preferredSignLabel !== symbol.name) {
       setGestureFromLearning(symbol.name);
-      setPreferredGestureLabel(symbol.name);
-    } else if (!symbol && normalized && preferredGestureLabel !== normalized) {
+      setPreferredSignLabel(symbol.name);
+    } else if (!symbol && normalized && preferredSignLabel !== normalized) {
       setGestureFromLearning(normalized);
-      setPreferredGestureLabel(normalized);
+      setPreferredSignLabel(normalized);
     } else if (!symbol && !normalized) {
       setGestureFromLearning((prev) => (prev === null ? prev : null));
     }
@@ -332,7 +332,7 @@ export function TrainingUploadWithRecording() {
     [uploadState],
   );
 
-  const headlineLabel = selectedSymbol?.name ?? gestureFromLearning ?? (preferredGestureLabel || 'Neue Gebärde');
+  const headlineLabel = selectedSymbol?.name ?? gestureFromLearning ?? (preferredSignLabel || 'Neue Gebärde');
   const headlineSubtext = 'Nimm die Gebärde kurz auf und gib ihr einen Namen.';
 
   return (
@@ -376,7 +376,7 @@ export function TrainingUploadWithRecording() {
 
       <TrainingRecorder
         profileId={profileId || 'default'}
-        label={preferredGestureLabel}
+        label={preferredSignLabel}
         onRecordingComplete={handleRecordingComplete}
       />
 
@@ -387,7 +387,7 @@ export function TrainingUploadWithRecording() {
         </div>
         <div className="form-group">
           <label htmlFor="record-label">Gebärden-Name</label>
-          <input id="record-label" value={preferredGestureLabel || ''} onChange={(event) => handleLabelUpdate(event.target.value)} />
+          <input id="record-label" value={preferredSignLabel || ''} onChange={(event) => handleLabelUpdate(event.target.value)} />
         </div>
         {!metadataReady && <div className="notice error mt-sm">{metadataError}</div>}
       </div>

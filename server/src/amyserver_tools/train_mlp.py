@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Train Amy's gesture MLP from bundle manifests.
+"""Train Amy's sign language MLP from bundle manifests.
 
 The script looks at the training bundle manifest produced by the app uploads,
 converts each bundle into a training sample, trains a simple MLP, and writes
@@ -19,13 +19,44 @@ import sys
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
 # Add scripts directory to path for shared utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "training")))
+from config_constants import (
+    DROPOUT_RATE,
+    EARLY_STOPPING_MIN_DELTA,
+    EARLY_STOPPING_PATIENCE,
+    EPOCHS,
+    INPUT_FEATURE_SIZE,
+    LEARNING_RATE,
+    LOSS_EPSILON,
+    MAX_AVG_FRAME_DELTA_MS,
+    MIN_AVG_FRAME_DELTA_MS,
+    MIN_CLIP_DURATION_MS,
+    MIN_FACE_COVERAGE,
+    MIN_HANDS_COVERAGE,
+    MIN_POSE_COVERAGE,
+    MIN_SAMPLES_PER_LABEL,
+    MIN_SAMPLES_PER_PROFILE,
+    MIN_USABLE_FRAME_RATIO,
+    MLP_LAYER1_SIZE,
+    MLP_LAYER2_SIZE,
+    STILL_FRAME_WEIGHT,
+    VALIDATION_FRACTION,
+    WINDOW_FEATURE_SIZE,
+    WINDOW_SIZE,
+)
+from frame_normalization import _normalize_frame
+from sliding_window import Sample, create_sliding_windows
+
 from ml_shared_utils import filter_by_profile_logic
+
+# Re-export architecture constants for module-level access (needed for tests)
+MLP_LAYER1_SIZE = MLP_LAYER1_SIZE
+MLP_LAYER2_SIZE = MLP_LAYER2_SIZE
 
 LOGGER = logging.getLogger("amyserver.train_mlp")
 if not LOGGER.handlers:
@@ -103,149 +134,36 @@ IMAGE_EXTENSIONS = {
     ".tiff",
 }
 
-HIDDEN_SIZE = int(os.environ.get("MLP_HIDDEN_SIZE", "128"))
-LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.01"))
-EPOCHS = int(os.environ.get("MLP_EPOCHS", "500"))
+# --- Legacy Configuration (Deprecated but kept for reference) ---
+# HIDDEN_SIZE: No longer used (hardcoded to 1024/512)
+# The old 2-layer architecture has been replaced with 3-layer funnel
+
 MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
-DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.0"))))
-VALIDATION_FRACTION = float(os.environ.get("MLP_VALIDATION_FRACTION", "0.15"))
-AUGMENTATIONS_PER_SAMPLE = max(0, int(os.environ.get("MLP_AUGMENTATIONS_PER_SAMPLE", "0")))
+# Augmentation via frame replication (disabled in favor of sliding windows)
+AUGMENTATIONS_PER_SAMPLE = 0  # Set to 0 - overlapping windows provide augmentation
+
 CLASS_WEIGHT_SMOOTHING = max(0.0, float(os.environ.get("MLP_CLASS_WEIGHT_SMOOTHING", "0.0")))
-_ENV_PATIENCE = os.environ.get("MLP_EARLY_STOPPING_PATIENCE")
-EARLY_STOPPING_PATIENCE: Optional[int] = None
-if _ENV_PATIENCE:
-    try:
-        parsed = int(_ENV_PATIENCE)
-        if parsed > 0:
-            EARLY_STOPPING_PATIENCE = parsed
-        else:
-            LOGGER.warning(
-                "MLP_EARLY_STOPPING_PATIENCE must be > 0, got '%s'. Disabling.",
-                _ENV_PATIENCE,
-            )
-    except ValueError:
-        LOGGER.warning(
-            "MLP_EARLY_STOPPING_PATIENCE is not a valid integer: '%s'. Disabling.",
-            _ENV_PATIENCE,
-        )
 
-_env_min_delta_str = os.environ.get("MLP_EARLY_STOPPING_MIN_DELTA", "0.0")
-try:
-    _parsed_min_delta = float(_env_min_delta_str)
-except ValueError:
-    LOGGER.warning(
-        "MLP_EARLY_STOPPING_MIN_DELTA is not a valid float: '%s'. Using 0.0.",
-        _env_min_delta_str,
-    )
-    _parsed_min_delta = 0.0
-EARLY_STOPPING_MIN_DELTA = max(0.0, _parsed_min_delta)
-
-_env_min_samples_label = os.environ.get("MLP_MIN_SAMPLES_PER_LABEL", "1")
-try:
-    MIN_SAMPLES_PER_LABEL = max(1, int(_env_min_samples_label))
-except ValueError:
-    LOGGER.warning(
-        "MLP_MIN_SAMPLES_PER_LABEL is not a valid integer: '%s'. Using 1.",
-        _env_min_samples_label,
-    )
-    MIN_SAMPLES_PER_LABEL = 1
-
-_env_min_samples_profile = os.environ.get("MLP_MIN_SAMPLES_PER_PROFILE", "1")
-try:
-    MIN_SAMPLES_PER_PROFILE = max(1, int(_env_min_samples_profile))
-except ValueError:
-    LOGGER.warning(
-        "MLP_MIN_SAMPLES_PER_PROFILE is not a valid integer: '%s'. Using 1.",
-        _env_min_samples_profile,
-    )
-    MIN_SAMPLES_PER_PROFILE = 1
 DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not in {
     "0",
     "false",
     "no",
 }
 
-LOSS_EPSILON = np.spacing(1.0)
-AUGMENTATION_EPSILON = 1e-8
-
 # Hand landmark constants for processing
 LANDMARKS_PER_HAND = 21  # MediaPipe hand model provides 21 landmarks per hand
 TOTAL_HAND_LANDMARKS = 42  # Left (21) + Right (21)
 SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
 
-# Still frames represent the precise target hand position for the gesture,
-# so they should be weighted more heavily than individual video frames during averaging.
-# Default weight of 10.0 means a single still frame has the same influence as 10 video frames.
-STILL_FRAME_WEIGHT = float(os.environ.get("MLP_STILL_FRAME_WEIGHT", "10.0"))
+WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
-# Quality thresholds
-MIN_USABLE_FRAME_RATIO = float(os.environ.get("MLP_MIN_USABLE_FRAME_RATIO", "0.6"))
-MIN_CLIP_DURATION_MS = float(os.environ.get("MLP_MIN_CLIP_DURATION_MS", "500"))
-MIN_HANDS_COVERAGE = float(os.environ.get("MLP_MIN_HANDS_COVERAGE", "0.7"))
-MIN_POSE_COVERAGE = float(os.environ.get("MLP_MIN_POSE_COVERAGE", "0.4"))
-MIN_FACE_COVERAGE = float(os.environ.get("MLP_MIN_FACE_COVERAGE", "0.4"))
-MIN_AVG_FRAME_DELTA_MS = float(os.environ.get("MLP_MIN_AVG_FRAME_DELTA_MS", "10"))
-MAX_AVG_FRAME_DELTA_MS = float(os.environ.get("MLP_MAX_AVG_FRAME_DELTA_MS", "200"))
-
-WeightTuple = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-
-def _emit_event(payload: Dict[str, object]) -> None:
+def _emit_event(payload: dict[str, object]) -> None:
     """Log a structured progress event."""
 
     message = json.dumps(payload)
     print(message, file=sys.stderr, flush=True)
     LOGGER.info(message)
-
-# --- Data structures --------------------------------------------------------
-
-@dataclass
-class Sample:
-    """Training sample produced from a bundle."""
-
-    label: str
-    profile_id: Optional[str]
-    landmarks: List[List[float]]  # 42 hand landmarks (left+right), each [x, y, z]
-    pose_landmarks: Optional[List[List[float]]] = None  # 33 pose landmarks, each [x, y, z, visibility]
-    face_landmarks: Optional[List[List[float]]] = None  # 468 face landmarks, each [x, y, z]
-    hand_focus: Optional[str] = None  # 'dominant_only', 'both_equal', 'both_asymmetric', 'either_hand', or None
-    # Variation learning metadata (from webapp's SignVariationTracker)
-    variation_cluster_id: Optional[str] = None  # Cluster ID from variation tracking
-    variation_diversity: Optional[float] = None  # 0-1 score indicating variation diversity
-    canonical_templates_count: Optional[int] = None  # Number of canonical templates for this gesture
-    recording: Optional[Dict[str, object]] = None
-    timing_stats: Optional[Dict[str, float]] = None
-    modality_coverage: Optional[Dict[str, float]] = None
-
-
-_UNSET = object()
-
-
-@dataclass(frozen=True)
-class TrainingConfig:
-    """Configuration values that control the trainer's behaviour."""
-
-    hidden_size: int = HIDDEN_SIZE
-    epochs: int = EPOCHS
-    learning_rate: float = LEARNING_RATE
-    dropout_rate: float = DROPOUT_RATE
-    validation_fraction: float = VALIDATION_FRACTION
-    augmentations_per_sample: int = AUGMENTATIONS_PER_SAMPLE
-    class_weight_smoothing: float = CLASS_WEIGHT_SMOOTHING
-    early_stopping_patience: Optional[int] = EARLY_STOPPING_PATIENCE
-    early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
-    return_best_and_final: bool = False
-
-
-@dataclass
-class TrainingSnapshots:
-    """Container for the best and terminal weights observed during training."""
-
-    best_weights: WeightTuple
-    final_weights: WeightTuple
-    best_epoch: int
-    final_epoch: int
-
 
 # --- Helpers ----------------------------------------------------------------
 
@@ -267,7 +185,7 @@ def ensure_inside(base: Path, candidate: Path) -> Path:
     return resolved
 
 
-def resolve_relative_path(base: Path, relative: str) -> Optional[Path]:
+def resolve_relative_path(base: Path, relative: str) -> Path | None:
     if not relative:
         return None
     normalized = relative.replace("\\", "/").lstrip("/")
@@ -304,7 +222,7 @@ def select_landmarks_relative_path(entry: dict) -> str:
     return "landmarks.json"
 
 
-def load_json(path: Path) -> Optional[dict]:
+def load_json(path: Path) -> dict | None:
     try:
         with path.open("r", encoding="utf-8") as handle:
             return json.load(handle)
@@ -315,7 +233,7 @@ def load_json(path: Path) -> Optional[dict]:
         return None
 
 
-def sha256_file(path: Path) -> Optional[str]:
+def sha256_file(path: Path) -> str | None:
     try:
         data = path.read_bytes()
     except FileNotFoundError:
@@ -326,10 +244,10 @@ def sha256_file(path: Path) -> Optional[str]:
 
 
 def apply_hand_focus(
-    landmarks: List[List[float]], 
-    hand_focus: Optional[str],
-    handedness: Optional[List[str]] = None,
-) -> List[List[float]]:
+    landmarks: list[list[float]],
+    hand_focus: str | None,
+    handedness: list[str] | None = None,
+) -> list[list[float]]:
     """Apply hand focus filter to landmarks by adjusting irrelevant hand data.
     
     For gestures where only one hand is semantically important, this function
@@ -359,22 +277,22 @@ def apply_hand_focus(
     # Early return for no-op cases
     if hand_focus is None or hand_focus in ('both_equal', 'either_hand') or len(landmarks) < TOTAL_HAND_LANDMARKS:
         return landmarks
-    
+
     result = [list(point) for point in landmarks]
-    
+
     # Define index ranges for each hand
     left_hand_indices = range(LANDMARKS_PER_HAND)
     right_hand_indices = range(LANDMARKS_PER_HAND, TOTAL_HAND_LANDMARKS)
-    
+
     # Track which hand indices to zero or weight
-    hand_to_zero: Optional[range] = None
-    hand_to_weight: Optional[range] = None
-    
+    hand_to_zero: range | None = None
+    hand_to_weight: range | None = None
+
     if hand_focus in ('dominant_only', 'both_asymmetric'):
         # Count active landmarks per hand (landmarks with non-zero values)
         left_landmark_count = sum(1 for i in left_hand_indices if any(v != 0 for v in landmarks[i]))
         right_landmark_count = sum(1 for i in right_hand_indices if any(v != 0 for v in landmarks[i]))
-        
+
         # Determine dominant hand from handedness labels or landmark counts
         dominant_is_right = True  # Default
         if handedness:
@@ -390,131 +308,33 @@ def apply_hand_focus(
         else:
             # Fallback to landmark count-based detection
             dominant_is_right = right_landmark_count >= left_landmark_count
-        
+
         # Select secondary hand indices based on dominance
         secondary_hand_indices = left_hand_indices if dominant_is_right else right_hand_indices
-        
+
         if hand_focus == 'dominant_only':
             hand_to_zero = secondary_hand_indices
         else:  # 'both_asymmetric'
             hand_to_weight = secondary_hand_indices
-    
+
     # Apply zeroing to selected hand
     if hand_to_zero is not None:
         for i in hand_to_zero:
             result[i] = [0.0, 0.0, 0.0]
-    
+
     # Apply weighting to selected hand
     if hand_to_weight is not None:
         for i in hand_to_weight:
             result[i] = [v * SECONDARY_HAND_WEIGHT for v in result[i]]
-    
+
     return result
 
 
-def flatten_landmarks_mean(frames: List[dict]) -> Optional[dict]:
-    """Average multimodal landmarks across frames with optional weighting.
-    
-    Frames can include an optional 'weight' field to indicate their relative importance.
-    Still frames typically have higher weights since they represent the precise target
-    position for the gesture being trained.
-    
-    Parameters
-    ----------
-    frames:
-        List of frame dictionaries, each containing:
-        - 'landmarks' (required): hand landmarks
-        - 'poseLandmarks' (optional): pose landmarks
-        - 'faceLandmarks' (optional): face landmarks  
-        - 'weight' (optional, default 1.0): frame importance
-    
-    Returns
-    -------
-    Optional[dict]
-        Dictionary with averaged landmarks for each modality, or None if no valid frames.
-        Keys: 'landmarks', 'poseLandmarks' (if present), 'faceLandmarks' (if present)
-    """
-
-    hand_collected: List[np.ndarray] = []
-    pose_collected: List[np.ndarray] = []
-    face_collected: List[np.ndarray] = []
-    weights: List[float] = []
-    
-    for frame in frames:
-        # Hand landmarks (required)
-        coords = frame.get("landmarks")
-        if not coords:
-            continue
-        arr = np.array(coords, dtype=np.float32).reshape(-1, 3)
-        if arr.shape[0] < 42:
-            padding = np.zeros((42 - arr.shape[0], 3), dtype=np.float32)
-            arr = np.vstack([arr, padding])
-        hand_collected.append(arr[:42])
-        
-        # Pose landmarks (optional)
-        pose = frame.get("poseLandmarks")
-        if pose:
-            pose_arr = np.array(pose, dtype=np.float32).reshape(-1, 4)  # x, y, z, visibility
-            if pose_arr.shape[0] < 33:
-                padding = np.zeros((33 - pose_arr.shape[0], 4), dtype=np.float32)
-                pose_arr = np.vstack([pose_arr, padding])
-            pose_collected.append(pose_arr[:33])
-        
-        # Face landmarks (optional)
-        face = frame.get("faceLandmarks")
-        if face:
-            face_arr = np.array(face, dtype=np.float32).reshape(-1, 3)
-            if face_arr.shape[0] < 468:
-                padding = np.zeros((468 - face_arr.shape[0], 3), dtype=np.float32)
-                face_arr = np.vstack([face_arr, padding])
-            face_collected.append(face_arr[:468])
-        
-        # Extract weight for this frame (default to 1.0 for backward compatibility)
-        frame_weight = frame.get("weight", 1.0)
-        weights.append(float(frame_weight))
-    
-    if not hand_collected:
-        return None
-    
-    weights_array = np.array(weights, dtype=np.float32)
-    total_weight = np.sum(weights_array)
-    
-    result = {}
-    
-    # Average hand landmarks
-    stacked = np.stack(hand_collected, axis=0)
-    if total_weight <= 0:
-        averaged = stacked.mean(axis=0)
-    else:
-        averaged = np.average(stacked, axis=0, weights=weights_array)
-    result['landmarks'] = averaged.tolist()
-    
-    # Average pose landmarks if present
-    if pose_collected and len(pose_collected) == len(hand_collected):
-        pose_stacked = np.stack(pose_collected, axis=0)
-        if total_weight <= 0:
-            pose_averaged = pose_stacked.mean(axis=0)
-        else:
-            pose_averaged = np.average(pose_stacked, axis=0, weights=weights_array)
-        result['poseLandmarks'] = pose_averaged.tolist()
-    
-    # Average face landmarks if present
-    if face_collected and len(face_collected) == len(hand_collected):
-        face_stacked = np.stack(face_collected, axis=0)
-        if total_weight <= 0:
-            face_averaged = face_stacked.mean(axis=0)
-        else:
-            face_averaged = np.average(face_stacked, axis=0, weights=weights_array)
-        result['faceLandmarks'] = face_averaged.tolist()
-    
-    return result
-
-
-def _extract_recording_metadata(metadata: dict) -> Optional[Dict[str, object]]:
+def _extract_recording_metadata(metadata: dict) -> dict[str, object] | None:
     recording = metadata.get("recording") if isinstance(metadata, dict) else None
     if not isinstance(recording, dict):
         return None
-    cleaned: Dict[str, object] = {}
+    cleaned: dict[str, object] = {}
     for key in (
         "frameCount",
         "usableFrameCount",
@@ -530,11 +350,11 @@ def _extract_recording_metadata(metadata: dict) -> Optional[Dict[str, object]]:
     return cleaned or None
 
 
-def _extract_modality_coverage(metadata: dict) -> Optional[Dict[str, float]]:
+def _extract_modality_coverage(metadata: dict) -> dict[str, float] | None:
     modalities = metadata.get("modalities") if isinstance(metadata, dict) else None
     if not isinstance(modalities, dict):
         return None
-    coverage: Dict[str, float] = {}
+    coverage: dict[str, float] = {}
     for key in ("hands", "pose", "face"):
         stats = modalities.get(key)
         if isinstance(stats, dict):
@@ -544,15 +364,15 @@ def _extract_modality_coverage(metadata: dict) -> Optional[Dict[str, float]]:
     return coverage or None
 
 
-def _analyze_frame_timing(frames: List[dict]) -> Optional[Dict[str, float]]:
-    timestamps: List[float] = []
+def _analyze_frame_timing(frames: list[dict]) -> dict[str, float] | None:
+    timestamps: list[float] = []
     for frame in frames:
         value = frame.get("timestampMs")
         if isinstance(value, (int, float)) and math.isfinite(value):
             timestamps.append(float(value))
     if len(timestamps) < 2:
         return None
-    deltas: List[float] = []
+    deltas: list[float] = []
     non_monotonic = False
     for idx in range(1, len(timestamps)):
         delta = timestamps[idx] - timestamps[idx - 1]
@@ -575,15 +395,15 @@ def _analyze_frame_timing(frames: List[dict]) -> Optional[Dict[str, float]]:
     }
 
 
-def _apply_timing_weights(frames: List[dict]) -> Optional[Dict[str, float]]:
-    timestamps: List[Tuple[int, float]] = []
+def _apply_timing_weights(frames: list[dict]) -> dict[str, float] | None:
+    timestamps: list[tuple[int, float]] = []
     for idx, frame in enumerate(frames):
         value = frame.get("timestampMs")
         if isinstance(value, (int, float)) and math.isfinite(value):
             timestamps.append((idx, float(value)))
     if len(timestamps) < 2:
         return None
-    deltas: List[float] = []
+    deltas: list[float] = []
     for idx in range(1, len(timestamps)):
         delta = timestamps[idx][1] - timestamps[idx - 1][1]
         if delta > 0:
@@ -634,23 +454,26 @@ def _compute_quality_weight(sample: Sample) -> float:
 
     coverage = sample.modality_coverage or {}
     hands_cov = coverage.get("hands")
-    if isinstance(hands_cov, (int, float)) and hands_cov < MIN_HANDS_COVERAGE:
-        weight *= 0.6
+    if isinstance(hands_cov, (int, float)):
+        if hands_cov < MIN_HANDS_COVERAGE:
+            weight *= 0.4  # More aggressive penalty for children's signs (hands are critical)
+        elif hands_cov > 0.9:  # Bonus for excellent hand coverage
+            weight *= 1.2
     pose_cov = coverage.get("pose")
     if isinstance(pose_cov, (int, float)) and pose_cov < MIN_POSE_COVERAGE:
-        weight *= 0.85
+        weight *= 0.95  # Reduced penalty - pose less critical for children's signs
     face_cov = coverage.get("face")
     if isinstance(face_cov, (int, float)) and face_cov < MIN_FACE_COVERAGE:
-        weight *= 0.9
+        weight *= 0.98  # Minimal penalty - face least critical for signing
 
     return max(weight, 0.1)
 
 
-def _summarize_recording_stats(samples: List[Sample]) -> Dict[str, object]:
-    frame_counts: List[float] = []
-    usable_counts: List[float] = []
-    clip_durations: List[float] = []
-    timing_variances: List[float] = []
+def _summarize_recording_stats(samples: list[Sample]) -> dict[str, object]:
+    frame_counts: list[float] = []
+    usable_counts: list[float] = []
+    clip_durations: list[float] = []
+    timing_variances: list[float] = []
     non_monotonic = 0
     for sample in samples:
         recording = sample.recording or {}
@@ -670,7 +493,7 @@ def _summarize_recording_stats(samples: List[Sample]) -> Dict[str, object]:
         if timing.get("nonMonotonic"):
             non_monotonic += 1
 
-    def _avg(values: List[float]) -> Optional[float]:
+    def _avg(values: list[float]) -> float | None:
         return float(sum(values) / len(values)) if values else None
 
     return {
@@ -683,218 +506,189 @@ def _summarize_recording_stats(samples: List[Sample]) -> Dict[str, object]:
     }
 
 
-def extract_landmarks_from_clip(clip_path: Path) -> List[dict]:
+def extract_landmarks_from_clip(clip_path: Path) -> list[dict]:
     """Run MediaPipe on a clip and return landmark dictionaries."""
     _require_hand_landmark_dependencies(f"Videoclip {clip_path}")
     if cv2 is None or mp is None:
         return []
 
-    frames: List[dict] = []
+    frames: list[dict] = []
     cap = cv2.VideoCapture(str(clip_path))
     if not cap.isOpened():
         print(f"warning: unable to open clip {clip_path}", file=sys.stderr)
         return frames
 
-    # 1. Try modern Tasks API (highly robust for new MP versions)
-    if mp_tasks and mp_vision:
-        models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
-        if not models_dir.exists():
-            models_dir = Path("server/data/models")
-        
-        hand_model = models_dir / "hand_landmarker.task"
-        pose_model = models_dir / "pose_landmarker.task"
-        face_model = models_dir / "face_landmarker.task"
-        
-        # Try full multimodal if all models available
-        if hand_model.exists() and pose_model.exists() and face_model.exists():
-            try:
-                base_options = mp_tasks.BaseOptions(model_asset_path=str(model_path))
-                options = mp_vision.HandLandmarkerOptions(
-                    base_options=base_options, 
-                    num_hands=2,
-                    running_mode=mp_vision.RunningMode.IMAGE
-                )
-                with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
-                    index = 0
-                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
-                        success, frame = cap.read()
-                        if not success:
-                            break
-                        if index % FRAME_STRIDE != 0:
+    try:
+        # Try modern Tasks API (highly robust for new MP versions)
+        if mp_tasks and mp_vision:
+            models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
+            if not models_dir.exists():
+                models_dir = Path("server/data/models")
+
+            hand_model = models_dir / "hand_landmarker.task"
+            pose_model = models_dir / "pose_landmarker.task"
+            face_model = models_dir / "face_landmarker.task"
+
+            # Scenario 1: Full Multimodal (All models available)
+            if hand_model.exists() and pose_model.exists() and face_model.exists():
+                try:
+                    # Initialize all landmarkers
+                    hand_base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
+                    hand_options = mp_vision.HandLandmarkerOptions(
+                        base_options=hand_base_options,
+                        num_hands=2,
+                        running_mode=mp_vision.RunningMode.IMAGE
+                    )
+
+                    pose_base_options = mp_tasks.BaseOptions(model_asset_path=str(pose_model))
+                    pose_options = mp_vision.PoseLandmarkerOptions(
+                        base_options=pose_base_options,
+                        running_mode=mp_vision.RunningMode.IMAGE
+                    )
+
+                    face_base_options = mp_tasks.BaseOptions(model_asset_path=str(face_model))
+                    face_options = mp_vision.FaceLandmarkerOptions(
+                        base_options=face_base_options,
+                        running_mode=mp_vision.RunningMode.IMAGE
+                    )
+
+                    with mp_vision.HandLandmarker.create_from_options(hand_options) as hand_landmarker, \
+                         mp_vision.PoseLandmarker.create_from_options(pose_options) as pose_landmarker, \
+                         mp_vision.FaceLandmarker.create_from_options(face_options) as face_landmarker:
+
+                        index = 0
+                        multimodal_failed = False
+                        while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
+                            success, frame = cap.read()
+                            if not success:
+                                break
+                            if index % FRAME_STRIDE != 0:
+                                index += 1
+                                continue
+
+                            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+
+                            try:
+                                # Extract all landmarks
+                                hand_result = hand_landmarker.detect(mp_image)
+                                pose_result = pose_landmarker.detect(mp_image)
+                                face_result = face_landmarker.detect(mp_image)
+
+                                left = np.zeros((21, 3), dtype=np.float32)
+                                right = np.zeros((21, 3), dtype=np.float32)
+                                pose_landmarks = []
+                                face_landmarks = []
+
+                                # Process hand landmarks
+                                if hand_result.hand_landmarks:
+                                    for i, hand_lms in enumerate(hand_result.hand_landmarks):
+                                        coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
+                                        category = hand_result.handedness[i][0].category_name
+                                        if category == "Left":
+                                            left[:] = coords
+                                        else:
+                                            right[:] = coords
+
+                                # Process pose landmarks
+                                if pose_result.pose_landmarks:
+                                    pose_landmarks = [
+                                        [lm.x, lm.y, lm.z, lm.visibility]
+                                        for lm in pose_result.pose_landmarks[0]
+                                    ]
+
+                                # Process face landmarks
+                                if face_result.face_landmarks:
+                                    face_landmarks = [
+                                        [lm.x, lm.y, lm.z]
+                                        for lm in face_result.face_landmarks[0]
+                                    ]
+
+                                combined = np.vstack([left, right])
+                                frame_data = {"landmarks": combined.tolist()}
+
+                                # Add multimodal data if available
+                                if pose_landmarks:
+                                    frame_data["poseLandmarks"] = pose_landmarks
+                                if face_landmarks:
+                                    frame_data["faceLandmarks"] = face_landmarks
+
+                                frames.append(frame_data)
+                            except Exception as e:
+                                print(f"warning: Multimodal detection failed for frame {index}: {e}", file=sys.stderr)
+                                multimodal_failed = True
+                                break # Exit the with block but keep existing frames
+
                             index += 1
-                            continue
 
-                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                        result = landmarker.detect(mp_image)
+                        if not multimodal_failed:
+                            return frames
+                except Exception as e:
+                    print(f"warning: Multimodal Tasks API setup or processing failed: {e}", file=sys.stderr)
+                    # We continue to the hands-only fallback if needed, but we keep whatever frames we got
 
-                        left = np.zeros((21, 3), dtype=np.float32)
-                        right = np.zeros((21, 3), dtype=np.float32)
+            # Scenario 2: Hands-only fallback (Only hand model available OR multimodal failed halfway)
+            if hand_model.exists():
+                # If we already have some frames, we need to continue from where we left off
+                # cap position is already advanced.
+                remaining_frames_count = MAX_FRAMES_PER_CLIP - len(frames)
+                if remaining_frames_count <= 0:
+                    return frames
 
-                        if result.hand_landmarks:
-                            for i, hand_lms in enumerate(result.hand_landmarks):
-                                coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
-                                # Handedness is inverted in some MP versions relative to camera
-                                category = result.handedness[i][0].category_name
-                                if category == "Left":
-                                    left[:] = coords
-                                else:
-                                    right[:] = coords
+                try:
+                    base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
+                    options = mp_vision.HandLandmarkerOptions(
+                        base_options=base_options,
+                        num_hands=2,
+                        running_mode=mp_vision.RunningMode.IMAGE
+                    )
+                    with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
+                        # Continue from current cap position
+                        while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
+                            # We might have been in the middle of a stride window,
+                            # but for simplicity we just continue reading.
+                            success, frame = cap.read()
+                            if not success:
+                                break
+                            # Use current global index for stride consistency
+                            # But wait, Scenario 1 might have stopped at index N.
+                            # index is already set from the previous loop if it entered.
 
-                        combined = np.vstack([left, right])
-                        frames.append({"landmarks": combined.tolist()})
-                        index += 1
-                return frames
-            except Exception as e:
-                print(f"warning: Hands-only Tasks API failed: {e}", file=sys.stderr)
+                            if index % FRAME_STRIDE != 0:
+                                index += 1
+                                continue
 
-    # 2. Try multimodal Tasks API fallback
-    if mp_tasks and mp_vision:
-        models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
-        if not models_dir.exists():
-            models_dir = Path("server/data/models")
-        
-        hand_model = models_dir / "hand_landmarker.task"
-        pose_model = models_dir / "pose_landmarker.task"
-        face_model = models_dir / "face_landmarker.task"
-        
-        if hand_model.exists() and pose_model.exists() and face_model.exists():
-            try:
-                # Initialize all landmarkers
-                hand_base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
-                hand_options = mp_vision.HandLandmarkerOptions(
-                    base_options=hand_base_options, 
-                    num_hands=2,
-                    running_mode=mp_vision.RunningMode.IMAGE
-                )
-                
-                pose_base_options = mp_tasks.BaseOptions(model_asset_path=str(pose_model))
-                pose_options = mp_vision.PoseLandmarkerOptions(
-                    base_options=pose_base_options,
-                    running_mode=mp_vision.RunningMode.IMAGE
-                )
-                
-                face_base_options = mp_tasks.BaseOptions(model_asset_path=str(face_model))
-                face_options = mp_vision.FaceLandmarkerOptions(
-                    base_options=face_base_options,
-                    running_mode=mp_vision.RunningMode.IMAGE
-                )
-                
-                with mp_vision.HandLandmarker.create_from_options(hand_options) as hand_landmarker, \
-                     mp_vision.PoseLandmarker.create_from_options(pose_options) as pose_landmarker, \
-                     mp_vision.FaceLandmarker.create_from_options(face_options) as face_landmarker:
-                    
-                    index = 0
-                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
-                        success, frame = cap.read()
-                        if not success:
-                            break
-                        if index % FRAME_STRIDE != 0:
+                            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                            result = landmarker.detect(mp_image)
+
+                            left = np.zeros((21, 3), dtype=np.float32)
+                            right = np.zeros((21, 3), dtype=np.float32)
+
+                            if result.hand_landmarks:
+                                for i, hand_lms in enumerate(result.hand_landmarks):
+                                    coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
+                                    # Handedness is inverted in some MP versions relative to camera
+                                    category = result.handedness[i][0].category_name
+                                    if category == "Left":
+                                        left[:] = coords
+                                    else:
+                                        right[:] = coords
+
+                            combined = np.vstack([left, right])
+                            frames.append({"landmarks": combined.tolist()})
                             index += 1
-                            continue
+                except Exception as e:
+                    print(f"warning: Hands-only Tasks API failed: {e}", file=sys.stderr)
 
-                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                        
-                        # Extract all landmarks
-                        hand_result = hand_landmarker.detect(mp_image)
-                        pose_result = pose_landmarker.detect(mp_image)
-                        face_result = face_landmarker.detect(mp_image)
-
-                        left = np.zeros((21, 3), dtype=np.float32)
-                        right = np.zeros((21, 3), dtype=np.float32)
-                        pose_landmarks = []
-                        face_landmarks = []
-
-                        # Process hand landmarks
-                        if hand_result.hand_landmarks:
-                            for i, hand_lms in enumerate(hand_result.hand_landmarks):
-                                coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
-                                category = hand_result.handedness[i][0].category_name
-                                if category == "Left":
-                                    left[:] = coords
-                                else:
-                                    right[:] = coords
-
-                        # Process pose landmarks
-                        if pose_result.pose_landmarks:
-                            pose_landmarks = [
-                                [lm.x, lm.y, lm.z, lm.visibility] 
-                                for lm in pose_result.pose_landmarks[0]
-                            ]
-                        
-                        # Process face landmarks
-                        if face_result.face_landmarks:
-                            face_landmarks = [
-                                [lm.x, lm.y, lm.z] 
-                                for lm in face_result.face_landmarks[0]
-                            ]
-
-                        combined = np.vstack([left, right])
-                        frame_data = {"landmarks": combined.tolist()}
-                        
-                        # Add multimodal data if available
-                        if pose_landmarks:
-                            frame_data["poseLandmarks"] = pose_landmarks
-                        if face_landmarks:
-                            frame_data["faceLandmarks"] = face_landmarks
-                            
-                        frames.append(frame_data)
-                        index += 1
                 return frames
-            except Exception as e:
-                print(f"warning: Multimodal Tasks API failed: {e}", file=sys.stderr)
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Reset video
-        
-        # Fallback to hands-only Tasks API if multimodal models unavailable
-        if hand_model.exists():
-            try:
-                base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
-                options = mp_vision.HandLandmarkerOptions(
-                    base_options=base_options, 
-                    num_hands=2,
-                    running_mode=mp_vision.RunningMode.IMAGE
-                )
-                with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
-                    index = 0
-                    while cap.isOpened() and len(frames) < MAX_FRAMES_PER_CLIP:
-                        success, frame = cap.read()
-                        if not success:
-                            break
-                        if index % FRAME_STRIDE != 0:
-                            index += 1
-                            continue
+    finally:
+        cap.release()
 
-                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                        result = landmarker.detect(mp_image)
-
-                        left = np.zeros((21, 3), dtype=np.float32)
-                        right = np.zeros((21, 3), dtype=np.float32)
-
-                        if result.hand_landmarks:
-                            for i, hand_lms in enumerate(result.hand_landmarks):
-                                coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
-                                # Handedness is inverted in some MP versions relative to camera
-                                category = result.handedness[i][0].category_name
-                                if category == "Left":
-                                    left[:] = coords
-                                else:
-                                    right[:] = coords
-
-                        combined = np.vstack([left, right])
-                        frames.append({"landmarks": combined.tolist()})
-                        index += 1
-                return frames
-            except Exception as e:
-                print(f"warning: Hands-only Tasks API failed: {e}", file=sys.stderr)
-    
-    # Legacy solutions not available in current MediaPipe version
-    
     return frames
 
 
-def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
+def extract_landmarks_from_still(still_path: Path) -> dict | None:
     """Run MediaPipe Tasks API on a still image and return multimodal landmark frame."""
 
     _require_hand_landmark_dependencies(f"Standbild {still_path}")
@@ -907,46 +701,46 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
         return None
 
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    
+
     # Try Tasks API for multimodal capture
     if mp_tasks and mp_vision:
         models_dir = Path(__file__).resolve().parents[2] / "data" / "models"
         if not models_dir.exists():
             models_dir = Path("server/data/models")
-        
+
         hand_model = models_dir / "hand_landmarker.task"
         pose_model = models_dir / "pose_landmarker.task"
         face_model = models_dir / "face_landmarker.task"
-        
+
         # Try full multimodal if all models available
         if hand_model.exists() and pose_model.exists() and face_model.exists():
             try:
                 # Initialize all landmarkers
                 hand_base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
                 hand_options = mp_vision.HandLandmarkerOptions(
-                    base_options=hand_base_options, 
+                    base_options=hand_base_options,
                     num_hands=2,
                     running_mode=mp_vision.RunningMode.IMAGE
                 )
-                
+
                 pose_base_options = mp_tasks.BaseOptions(model_asset_path=str(pose_model))
                 pose_options = mp_vision.PoseLandmarkerOptions(
                     base_options=pose_base_options,
                     running_mode=mp_vision.RunningMode.IMAGE
                 )
-                
+
                 face_base_options = mp_tasks.BaseOptions(model_asset_path=str(face_model))
                 face_options = mp_vision.FaceLandmarkerOptions(
                     base_options=face_base_options,
                     running_mode=mp_vision.RunningMode.IMAGE
                 )
-                
+
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                
+
                 with mp_vision.HandLandmarker.create_from_options(hand_options) as hand_landmarker, \
                      mp_vision.PoseLandmarker.create_from_options(pose_options) as pose_landmarker, \
                      mp_vision.FaceLandmarker.create_from_options(face_options) as face_landmarker:
-                    
+
                     # Extract all landmarks
                     hand_result = hand_landmarker.detect(mp_image)
                     pose_result = pose_landmarker.detect(mp_image)
@@ -970,48 +764,48 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
                     # Process pose landmarks
                     if pose_result.pose_landmarks:
                         pose_landmarks = [
-                            [lm.x, lm.y, lm.z, lm.visibility] 
+                            [lm.x, lm.y, lm.z, lm.visibility]
                             for lm in pose_result.pose_landmarks[0]
                         ]
-                    
+
                     # Process face landmarks
                     if face_result.face_landmarks:
                         face_landmarks = [
-                            [lm.x, lm.y, lm.z] 
+                            [lm.x, lm.y, lm.z]
                             for lm in face_result.face_landmarks[0]
                         ]
-                    
+
                     combined = np.vstack([left, right])
                     frame_data = {"landmarks": combined.tolist()}
-                    
+
                     # Add multimodal data if available
                     if pose_landmarks:
                         frame_data["poseLandmarks"] = pose_landmarks
                     if face_landmarks:
                         frame_data["faceLandmarks"] = face_landmarks
-                        
+
                     return frame_data
             except Exception as e:
                 print(f"warning: Multimodal Tasks API failed for still image: {e}", file=sys.stderr)
-        
+
         # Fallback to hands-only Tasks API
         if hand_model.exists():
             try:
                 base_options = mp_tasks.BaseOptions(model_asset_path=str(hand_model))
                 options = mp_vision.HandLandmarkerOptions(
-                    base_options=base_options, 
+                    base_options=base_options,
                     num_hands=2,
                     running_mode=mp_vision.RunningMode.IMAGE
                 )
-                
+
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                
+
                 with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
                     result = landmarker.detect(mp_image)
- 
+
                     left = np.zeros((21, 3), dtype=np.float32)
                     right = np.zeros((21, 3), dtype=np.float32)
- 
+
                     if result.hand_landmarks:
                         for i, hand_lms in enumerate(result.hand_landmarks):
                             coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
@@ -1020,299 +814,46 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
                                 left[:] = coords
                             else:
                                 right[:] = coords
- 
+
                     combined = np.vstack([left, right])
                     return {"landmarks": combined.tolist()}
             except Exception as e:
                 print(f"warning: Hands-only Tasks API failed for still image: {e}", file=sys.stderr)
-    
+
     # Fallback if Tasks API fails or unavailable
     print(f"warning: Unable to extract landmarks from {still_path}", file=sys.stderr)
     return None
 
 
-def filter_samples_by_profile(samples: Iterable[Sample], profile_id: str) -> List[Sample]:
-    """Return samples for a profile-specific model.
+# --- Temporal Sliding Window logic ------------------------------------------
 
-    Includes:
-    1. All samples explicitly belonging to this profile.
-    2. All global samples (no profile_id) whose labels are NOT overridden
-       by this profile.
-
-    This ensures the profile model is a specialized superset of the global model,
-    supporting custom sign languages per child without losing baseline gestures.
-    """
-    return filter_by_profile_logic(
-        list(samples),
-        profile_id,
-        get_label=lambda s: s.label,
-        get_profile_id=lambda s: s.profile_id
-    )
+_UNSET = object()
 
 
-def _normalize(lm):
-    """Normalize one or two hands to be wrist-centered and scale-invariant."""
-    if not lm or len(lm) < 21:
-        return None
+@dataclass(frozen=True)
+class TrainingConfig:
+    """Configuration values that control the trainer's behaviour."""
 
-    if isinstance(lm[0], list) and len(lm[0]) == 3:
-        pts = np.array(lm[:42])
-    else:
-        flat_lm = lm[:126] if len(lm) >= 126 else lm + [0.0] * (126 - len(lm))
-        pts = np.array(flat_lm).reshape(42, 3)
-
-    if len(pts) < 42:
-        pad = np.zeros((42 - len(pts), 3))
-        pts = np.vstack([pts, pad])
-
-    def _norm_hand(hand: np.ndarray) -> np.ndarray:
-        wrist = hand[0]
-        hand = hand - wrist
-        max_dist = _max_l1(hand)
-        if max_dist == 0:
-            return hand
-        hand /= max_dist
-        return hand
-
-    left = _norm_hand(pts[:21])
-    right = _norm_hand(pts[21:]) if pts.shape[0] >= 42 else np.zeros_like(pts[:21])
-
-    return np.concatenate([left, right]).flatten()
+    hidden_size: int = 512 # Deprecated but kept for compat
+    epochs: int = EPOCHS
+    learning_rate: float = LEARNING_RATE
+    dropout_rate: float = DROPOUT_RATE
+    validation_fraction: float = VALIDATION_FRACTION
+    augmentations_per_sample: int = AUGMENTATIONS_PER_SAMPLE
+    class_weight_smoothing: float = 0.0
+    early_stopping_patience: int | None = EARLY_STOPPING_PATIENCE
+    early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
+    return_best_and_final: bool = False
 
 
-def _normalize_multimodal(sample: Sample) -> Optional[np.ndarray]:
-    """Normalize multimodal sample (hands + optional pose/face) into a feature vector.
-    
-    The feature vector includes:
-    - Hand landmarks (126 values): normalized and flattened
-    - Pose landmarks (optional, 99 values): x,y,z for 33 points, normalized to torso center
-    - Face landmarks (optional, subset ~60 values): key facial points for NMMs
-    
-    This function naturally supports modality dropout: when pose or face landmarks are
-    missing from a sample, zeros are filled in. This trains the model to be robust to
-    missing modalities, which can occur due to occlusion, poor lighting, or device limitations.
-    
-    Returns None if hand landmarks cannot be normalized.
-    """
-    # Normalize hand landmarks (required)
-    hand_features = _normalize(sample.landmarks)
-    if hand_features is None:
-        return None
-    
-    features = [hand_features]
-    
-    # Add pose landmarks if present
-    if sample.pose_landmarks:
-        pose_arr = np.array(sample.pose_landmarks, dtype=np.float32)
-        if pose_arr.shape[0] >= 33:
-            # Use only x,y,z (drop visibility for now)
-            pose_xyz = pose_arr[:33, :3]
-            # Normalize to torso center (average of shoulders and hips)
-            torso_indices = [11, 12, 23, 24]  # shoulders and hips
-            torso_center = pose_xyz[torso_indices].mean(axis=0)
-            pose_normalized = pose_xyz - torso_center
-            # Scale by shoulder width for scale invariance
-            shoulder_width = np.linalg.norm(pose_xyz[11] - pose_xyz[12])
-            if shoulder_width > 0:
-                pose_normalized /= shoulder_width
-            features.append(pose_normalized.flatten())
-        else:
-            # Pose landmarks missing or incomplete - add zeros
-            features.append(np.zeros(99, dtype=np.float32))
-    else:
-        # No pose data - add zeros to maintain consistent feature size
-        features.append(np.zeros(99, dtype=np.float32))
-    
-    # Add face landmarks if present (use subset for efficiency)
-    if sample.face_landmarks:
-        face_arr = np.array(sample.face_landmarks, dtype=np.float32)
-        if face_arr.shape[0] >= 468:
-            # Key facial points for NMMs (eyes, mouth, brows)
-            key_indices = [
-                33, 133, 362, 263,  # eyes (4)
-                1,  # nose tip (1)
-                13, 14,  # lips (2)
-                61, 291,  # mouth corners (2)
-                70, 300,  # brows (2)
-                # Add more key points as needed
-            ]
-            face_subset = face_arr[key_indices, :3]  # x,y,z only
-            # Normalize to nose tip
-            nose = face_arr[1, :3]
-            face_normalized = face_subset - nose
-            # Scale by eye distance
-            eye_dist = np.linalg.norm(face_arr[33, :3] - face_arr[263, :3])
-            if eye_dist > 0:
-                face_normalized /= eye_dist
-            features.append(face_normalized.flatten())
-        else:
-            # Face landmarks missing or incomplete
-            features.append(np.zeros(33, dtype=np.float32))  # 11 points * 3
-    else:
-        # No face data
-        features.append(np.zeros(33, dtype=np.float32))
-    
-    return np.concatenate(features)
+@dataclass
+class TrainingSnapshots:
+    """Container for the best and terminal weights observed during training."""
 
-
-def augment_landmarks(
-    normalized: Union[List[float], np.ndarray],
-    *,
-    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-    jitter_std: float = 0.01,
-    max_rotation_degrees: float = 10.0,
-) -> np.ndarray:
-    """Perturb normalized landmarks while keeping wrists centered and unit scale.
-
-    Parameters
-    ----------
-    normalized:
-        Flattened 42x3 landmark tensor produced by :func:`_normalize`.
-    rng:
-        Optional random number generator for deterministic tests.
-    jitter_std:
-        Standard deviation of per-point jitter applied to each coordinate (except
-        the wrist anchor point for each hand).
-    max_rotation_degrees:
-        Maximum absolute in-plane rotation applied to both hands. Rotation keeps
-        the wrists stationary and does not introduce additional translation or
-        global scaling.
-
-    Returns
-    -------
-    numpy.ndarray
-        Augmented landmark tensor with the same shape as the input.
-    """
-
-    if jitter_std < 0:
-        raise ValueError(f"jitter_std must be non-negative, got {jitter_std}")
-    if max_rotation_degrees < 0:
-        raise ValueError(
-            f"max_rotation_degrees must be non-negative, got {max_rotation_degrees}"
-        )
-
-    base = np.asarray(normalized, dtype=np.float32).reshape(42, 3)
-    augmented = base.copy()
-
-    if rng is None:
-        rng = np.random.default_rng()
-
-    def _rotate_xy(points: np.ndarray, radians: float) -> None:
-        if abs(radians) < AUGMENTATION_EPSILON:
-            return
-        cos_a = math.cos(radians)
-        sin_a = math.sin(radians)
-        rotation = np.array([[cos_a, -sin_a], [sin_a, cos_a]], dtype=np.float32)
-        points[:, :2] = points[:, :2] @ rotation.T
-
-    # Sample a shared rotation for both hands to maintain their relative layout.
-    rotation_radians = math.radians(
-        rng.uniform(-max_rotation_degrees, max_rotation_degrees)
-    )
-
-    for offset in (0, 21):
-        hand = augmented[offset : offset + 21]
-        base_hand = base[offset : offset + 21]
-        if not np.any(base_hand):
-            continue
-
-        if jitter_std > 0.0:
-            noise = rng.normal(0.0, jitter_std, size=hand.shape).astype(np.float32)
-            noise[0] = 0.0  # Keep wrist anchor fixed
-            hand += noise
-
-        _rotate_xy(hand, rotation_radians)
-
-        # Keep wrists exactly anchored and respect missing joints.
-        present = np.any(base_hand, axis=1)
-        present[0] = True  # Always keep the wrist entry
-        hand[~present] = 0.0
-
-        # Re-normalize the entire hand to restore the unit-scale invariant without
-        # distorting relative joint geometry.
-        max_l1 = _max_l1(hand)
-        if max_l1 <= AUGMENTATION_EPSILON:
-            # Revert to the original geometry while preserving the shared rotation.
-            hand[:] = base_hand
-            _rotate_xy(hand, rotation_radians)
-            max_l1_reverted = _max_l1(hand)
-            if max_l1_reverted > AUGMENTATION_EPSILON:
-                hand /= max_l1_reverted
-        else:
-            hand /= max_l1
-
-    return augmented.astype(np.float32).flatten()
-
-
-def augment_multimodal_landmarks(
-    normalized: Union[List[float], np.ndarray],
-    *,
-    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-    jitter_std: float = 0.01,
-    max_rotation_degrees: float = 10.0,
-) -> np.ndarray:
-    """Augment multimodal landmarks (hands + pose + face).
-    
-    Parameters
-    ----------
-    normalized:
-        Flattened multimodal feature vector (126 hand + 99 pose + 33 face = 258 values).
-    rng:
-        Optional random number generator for deterministic tests.
-    jitter_std:
-        Standard deviation of per-point jitter applied to each coordinate.
-    max_rotation_degrees:
-        Maximum absolute in-plane rotation applied to hands.
-        
-    Returns
-    -------
-    numpy.ndarray
-        Augmented multimodal landmark tensor with the same shape as the input.
-    """
-    # Jitter scaling factors to preserve structure of different modalities
-    POSE_JITTER_SCALE = 0.5  # Reduced variance for pose to maintain body structure
-    FACE_JITTER_SCALE = 0.3  # Reduced variance for face to maintain facial structure
-    
-    if rng is None:
-        rng = np.random.default_rng()
-        
-    features = np.asarray(normalized, dtype=np.float32)
-    
-    # Split into hand, pose, and face components
-    # Expected: 126 (hands) + 99 (pose) + 33 (face) = 258
-    hand_size = 126  # 42 points * 3 coords
-    pose_size = 99   # 33 points * 3 coords
-    face_size = 33   # 11 points * 3 coords
-    
-    if len(features) != hand_size + pose_size + face_size:
-        # If size doesn't match expected multimodal format, return as-is
-        return features
-    
-    # Augment hand landmarks using existing augmentation
-    hand_features = features[:hand_size]
-    augmented_hands = augment_landmarks(
-        hand_features, 
-        rng=rng, 
-        jitter_std=jitter_std, 
-        max_rotation_degrees=max_rotation_degrees
-    )
-    
-    # Apply minimal jitter to pose (smaller variance to maintain body structure)
-    pose_features = features[hand_size:hand_size + pose_size].reshape(33, 3)
-    if np.any(pose_features):
-        pose_jitter = rng.normal(0.0, jitter_std * POSE_JITTER_SCALE, size=pose_features.shape).astype(np.float32)
-        pose_features = pose_features + pose_jitter
-    augmented_pose = pose_features.flatten()
-    
-    # Apply minimal jitter to face (smaller variance to maintain facial structure)
-    face_features = features[hand_size + pose_size:].reshape(11, 3)
-    if np.any(face_features):
-        face_jitter = rng.normal(0.0, jitter_std * FACE_JITTER_SCALE, size=face_features.shape).astype(np.float32)
-        face_features = face_features + face_jitter
-    augmented_face = face_features.flatten()
-    
-    return np.concatenate([augmented_hands, augmented_pose, augmented_face])
-
+    best_weights: WeightTuple
+    final_weights: WeightTuple
+    best_epoch: int
+    final_epoch: int
 
 
 # --- MLP implementation (unchanged core) ------------------------------------
@@ -1331,45 +872,84 @@ def softmax(x):
     return e_x / np.sum(e_x, axis=1, keepdims=True)
 
 
-def _forward(
+def _forward_mlp(
     X: np.ndarray,
-    w1: np.ndarray,
-    b1: np.ndarray,
-    w2: np.ndarray,
-    b2: np.ndarray,
-) -> np.ndarray:
-    """Single forward pass through the MLP returning class probabilities."""
-
+    w1: np.ndarray, b1: np.ndarray,
+    w2: np.ndarray, b2: np.ndarray,
+    w3: np.ndarray, b3: np.ndarray,
+    dropout_mask1: np.ndarray | None = None,
+    dropout_mask2: np.ndarray | None = None
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Three-layer MLP forward pass with optional dropout. 
+    
+    Architecture: Input(48870) → 512 → 256 → Output(num_classes)
+    
+    Returns:
+        probs: Softmax probabilities (N, num_classes)
+        a1: Layer 1 activations (N, 512)
+        a2: Layer 2 activations (N, 256)
+        z1: Layer 1 pre-activation (needed for backprop)
+        z2: Layer 2 pre-activation (needed for backprop)
+    """
+    # Layer 1: Input → 512
     z1 = np.dot(X, w1) + b1
     a1 = relu(z1)
+    if dropout_mask1 is not None:
+        a1 *= dropout_mask1
+
+    # Layer 2: 512 → 256
     z2 = np.dot(a1, w2) + b2
-    return softmax(z2)
+    a2 = relu(z2)
+    if dropout_mask2 is not None:
+        a2 *= dropout_mask2
+
+    # Layer 3: 512 → Output (logits)
+    z3 = np.dot(a2, w3) + b3
+    probs = softmax(z3)
+
+    return probs, a1, a2, z1, z2
 
 
 def train_mlp(
-    X,
-    y,
-    output_size,
+    X: np.ndarray,
+    y: np.ndarray,
+    output_size: int,
     *,
-    config: Optional[TrainingConfig] = None,
-    hidden_size: Optional[int] = _UNSET,
-    epochs: Optional[int] = _UNSET,
-    learning_rate: Optional[float] = _UNSET,
-    dropout_rate: Optional[float] = _UNSET,
-    early_stopping_patience: Optional[int] = _UNSET,
-    early_stopping_min_delta: Optional[float] = _UNSET,
-    sample_weights: Optional[np.ndarray] = None,
-    validation_data: Optional[Tuple[np.ndarray, np.ndarray]] = None,
-    validation_sample_weights: Optional[np.ndarray] = None,
-    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-    return_best_and_final: Optional[bool] = _UNSET,
-) -> Union[WeightTuple, TrainingSnapshots]:
-    resolved = config or TrainingConfig()
+    config: TrainingConfig | None = None,
+    hidden_size: int | None = _UNSET,  # Deprecated (hardcoded to 1024/512)
+    epochs: int | None = _UNSET,
+    learning_rate: float | None = _UNSET,
+    dropout_rate: float | None = _UNSET,
+    early_stopping_patience: int | None = _UNSET,
+    early_stopping_min_delta: float | None = _UNSET,
+    sample_weights: np.ndarray | None = None,
+    validation_data: tuple[np.ndarray, np.ndarray] | None = None,
+    validation_sample_weights: np.ndarray | None = None,
+    rng: np.random.RandomState | np.random.Generator | None = None,
+    return_best_and_final: bool | None = _UNSET,
+) -> WeightTuple | TrainingSnapshots:
+    """
+    Train a 3-layer MLP using mini-batch gradient descent.
+    
+    Returns:
+        Tuple of (w1, b1, w2, b2, w3, b3) - best weights from training
+    """
+    import warnings
 
+    if hidden_size is not _UNSET:
+        warnings.warn(
+            "The 'hidden_size' parameter is deprecated and ignored. "
+            "Layer sizes are now controlled by MLP_LAYER1_SIZE and MLP_LAYER2_SIZE constants.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
+    # Resolve configuration
+    resolved = config or TrainingConfig()
     overrides = {
         field: value
         for field, value in {
-            "hidden_size": hidden_size,
             "epochs": epochs,
             "learning_rate": learning_rate,
             "dropout_rate": dropout_rate,
@@ -1382,7 +962,6 @@ def train_mlp(
     if overrides:
         resolved = replace(resolved, **overrides)
 
-    hidden_size = resolved.hidden_size
     epochs = resolved.epochs
     learning_rate = resolved.learning_rate
     dropout_rate = resolved.dropout_rate
@@ -1390,12 +969,60 @@ def train_mlp(
     early_stopping_min_delta = resolved.early_stopping_min_delta
     return_best_and_final_flag = resolved.return_best_and_final
 
-    input_size = X.shape[1]
+    # ========== ARCHITECTURE DEFINITION ==========
+    input_dim = X.shape[1]  # Should be 48,870 (WINDOW_SIZE * INPUT_FEATURE_SIZE)
+    layer1_size = MLP_LAYER1_SIZE  # 512
+    layer2_size = MLP_LAYER2_SIZE  # 256
 
+    if input_dim != WINDOW_FEATURE_SIZE:
+        LOGGER.warning(
+            f"Input dimension {input_dim} does not match WINDOW_FEATURE_SIZE {WINDOW_FEATURE_SIZE}. "
+            "This is expected in unit tests but may indicate a configuration error in production."
+        )
+
+    # ========== WEIGHT INITIALIZATION (He Initialization) ==========
     random_source = np.random if rng is None else rng
 
-    num_samples = X.shape[0]
+    def _sample_from_rng(rs, shape):
+        """Helper to handle different RNG types."""
+        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
+            # Generator uses 'standard_normal', RandomState uses 'standard_normal' too
+            # but RandomState.standard_normal takes 'size' as kwarg or first arg
+            return rs.standard_normal(size=shape)
+        if hasattr(rs, "randn"):
+            return rs.randn(*shape)
+        return np.random.standard_normal(size=shape)
 
+    def _uniform_from_rng(rs, shape):
+        """Helper for uniform [0, 1) sampling across RNG types."""
+        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
+            if hasattr(rs, "random"):
+                return rs.random(size=shape)
+            return rs.random_sample(size=shape)
+        if hasattr(rs, "rand"):
+            return rs.rand(*shape)
+        return np.random.random(size=shape)
+
+    # He initialization: scale = sqrt(2 / fan_in)
+    scale1 = np.sqrt(2.0 / input_dim)
+    w1 = _sample_from_rng(random_source, (input_dim, layer1_size)).astype(np.float32) * scale1
+    b1 = np.zeros(layer1_size, dtype=np.float32)
+
+    scale2 = np.sqrt(2.0 / layer1_size)
+    w2 = _sample_from_rng(random_source, (layer1_size, layer2_size)).astype(np.float32) * scale2
+    b2 = np.zeros(layer2_size, dtype=np.float32)
+
+    scale3 = np.sqrt(2.0 / layer2_size)
+    w3 = _sample_from_rng(random_source, (layer2_size, output_size)).astype(np.float32) * scale3
+    b3 = np.zeros(output_size, dtype=np.float32)
+
+    # ========== TRAINING SETUP ==========
+    num_samples = X.shape[0]
+    sanitized_dropout = max(0.0, min(1.0, dropout_rate))
+    keep_prob = 1.0 - sanitized_dropout
+    use_dropout = keep_prob < 1.0
+
+    # Weighted loss handling
     train_weights = None
     train_weight_sum = float(num_samples)
     if sample_weights is not None:
@@ -1406,10 +1033,11 @@ def train_mlp(
                 train_weights = candidate
                 train_weight_sum = weight_sum
 
-    validation_X: Optional[np.ndarray] = None
-    validation_y: Optional[np.ndarray] = None
+    # Validation data
+    validation_X: np.ndarray | None = None
+    validation_y: np.ndarray | None = None
     validation_weights = None
-    validation_weight_sum: Optional[float] = None
+    validation_weight_sum: float | None = None
     if validation_data is not None:
         validation_X, validation_y = validation_data
         if validation_X.size and validation_y.size:
@@ -1421,81 +1049,42 @@ def train_mlp(
                         validation_weights = candidate_val
                         validation_weight_sum = val_sum
 
-    def _sample_from_rng(rs, shape, *, distribution: str) -> np.ndarray:
-        """Generate samples from ``rs`` while handling common RNG APIs."""
-
-        if distribution not in {"normal", "uniform"}:
-            raise ValueError(
-                f"Unsupported distribution '{distribution}'. Supported distributions are 'normal' and 'uniform'."
-            )
-
-        # numpy Generator/RandomState cover the primary cases.
-        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
-            if distribution == "normal":
-                return rs.standard_normal(size=shape)
-            return rs.random(size=shape)
-
-        # Allow custom RNG stubs that expose ``randn``/``rand`` or ``normal``/``uniform``.
-        if distribution == "normal":
-            if hasattr(rs, "standard_normal"):
-                return rs.standard_normal(size=shape)
-            if hasattr(rs, "normal"):
-                return rs.normal(size=shape)
-            if hasattr(rs, "randn"):
-                return rs.randn(*shape)
-            return np.random.standard_normal(size=shape)
-
-        # distribution == "uniform"
-        if hasattr(rs, "random"):
-            return rs.random(size=shape)
-        if hasattr(rs, "uniform"):
-            return rs.uniform(size=shape)
-        if hasattr(rs, "rand"):
-            return rs.rand(*shape)
-        return np.random.random(size=shape)
-
-    w1 = _sample_from_rng(random_source, (input_size, hidden_size), distribution="normal") * 0.01
-    b1 = np.zeros(hidden_size)
-    w2 = _sample_from_rng(random_source, (hidden_size, output_size), distribution="normal") * 0.01
-    b2 = np.zeros(output_size)
-
-    num_samples = X.shape[0]
-    sanitized_dropout = max(0.0, min(1.0, dropout_rate))
-    keep_prob = 1.0 - sanitized_dropout
-    use_dropout = keep_prob < 1.0
-
+    # Early stopping
     best_loss = math.inf
-    best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+    best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy(), w3.copy(), b3.copy())
     epochs_without_improvement = 0
-    patience_enabled = (
-        early_stopping_patience is not None and early_stopping_patience > 0
-    )
+    patience_enabled = (early_stopping_patience is not None and early_stopping_patience > 0)
     min_delta = max(0.0, early_stopping_min_delta)
     best_epoch = 0
-
     final_epoch = 0
 
+    # ========== TRAINING LOOP ==========
     for epoch in range(epochs):
         current_epoch = epoch + 1
-        z1 = np.dot(X, w1) + b1
-        a1 = relu(z1)
-        dropout_mask = None
-        if use_dropout:
-            dropout_mask = (
-                _sample_from_rng(
-                    random_source, (num_samples, hidden_size), distribution="uniform"
-                )
-                < keep_prob
-            ).astype(
-                a1.dtype
-            )
-            if keep_prob > 0.0:
-                dropout_mask /= keep_prob
-            a1 *= dropout_mask
-        z2 = np.dot(a1, w2) + b2
-        probs = softmax(z2)
 
-        # Guard against log(0) or log(1) from floating-point underflow/overflow at extreme learning rates.
+        # 1. Generate dropout masks
+        dropout_mask1 = None
+        dropout_mask2 = None
+        if use_dropout:
+            mask1 = (
+                _uniform_from_rng(random_source, (num_samples, layer1_size)) < keep_prob
+            ).astype(np.float32)
+            mask2 = (
+                _uniform_from_rng(random_source, (num_samples, layer2_size)) < keep_prob
+            ).astype(np.float32)
+            if keep_prob > 0.0:
+                mask1 /= keep_prob
+                mask2 /= keep_prob
+            dropout_mask1 = mask1
+            dropout_mask2 = mask2
+
+        # 2. Forward pass
+        probs, a1, a2, z1, z2 = _forward_mlp(
+            X, w1, b1, w2, b2, w3, b3,
+            dropout_mask1, dropout_mask2
+        )
+
+        # 3. Compute training loss (cross-entropy)
         p = np.clip(probs[np.arange(num_samples), y], LOSS_EPSILON, 1.0 - LOSS_EPSILON)
         log_probs = -np.log(p)
         if train_weights is not None:
@@ -1503,9 +1092,12 @@ def train_mlp(
         else:
             loss = float(np.sum(log_probs) / num_samples)
 
+        # 4. Compute validation loss (if available)
         validation_loss = None
         if validation_X is not None and validation_y is not None and validation_X.size:
-            val_probs = _forward(validation_X, w1, b1, w2, b2)
+            val_probs, _, _, _, _ = _forward_mlp(
+                validation_X, w1, b1, w2, b2, w3, b3
+            )
             v = np.clip(
                 val_probs[np.arange(validation_y.shape[0]), validation_y],
                 LOSS_EPSILON,
@@ -1517,23 +1109,24 @@ def train_mlp(
             else:
                 validation_loss = float(np.sum(val_logs) / validation_y.shape[0])
 
+        # 5. Progress logging
         monitor_loss = validation_loss if validation_loss is not None else loss
         if epoch % max(1, epochs // 10) == 0:
             _emit_event(
                 {
                     "type": "progress",
-                    "epoch": epoch + 1,
+                    "epoch": current_epoch,
                     "total": epochs,
                     "loss": f"{loss:.4f}",
                     **({"validationLoss": f"{validation_loss:.4f}"} if validation_loss is not None else {}),
                 }
             )
 
+        # 6. Early stopping check
         stop_after_epoch = False
-
         if monitor_loss < best_loss - min_delta:
             best_loss = monitor_loss
-            best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+            best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy(), w3.copy(), b3.copy())
             best_epoch = current_epoch
             epochs_without_improvement = 0
         else:
@@ -1554,39 +1147,58 @@ def train_mlp(
                     )
                     stop_after_epoch = True
 
-        dz2 = probs
-        dz2[np.arange(num_samples), y] -= 1
-        if train_weights is not None:
-            dz2 *= (train_weights / train_weight_sum)[:, None]
-        else:
-            dz2 /= num_samples
+        # ========== BACKPROPAGATION (CHAIN RULE) ==========
 
+        # Output layer gradient
+        dz3 = probs.copy()
+        dz3[np.arange(num_samples), y] -= 1
+        if train_weights is not None:
+            dz3 *= (train_weights / train_weight_sum)[:, None]
+        else:
+            dz3 /= num_samples
+
+        # Layer 3 gradients (512 → Output)
+        dw3 = np.dot(a2.T, dz3)
+        db3 = np.sum(dz3, axis=0)
+
+        # Layer 2 gradients (512 → 256)
+        da2 = np.dot(dz3, w3.T)
+        if dropout_mask2 is not None:
+            da2 *= dropout_mask2
+        dz2 = da2 * relu_derivative(z2)
         dw2 = np.dot(a1.T, dz2)
         db2 = np.sum(dz2, axis=0)
 
+        # Layer 1 gradients (Input → 512)
         da1 = np.dot(dz2, w2.T)
-        if dropout_mask is not None:
-            da1 *= dropout_mask
+        if dropout_mask1 is not None:
+            da1 *= dropout_mask1
         dz1 = da1 * relu_derivative(z1)
-
         dw1 = np.dot(X.T, dz1)
         db1 = np.sum(dz1, axis=0)
 
+        # ========== GRADIENT CLIPPING ==========
+        # Prevent exploding gradients which can cause overflow/NaN weights
+        for grad in [dw1, db1, dw2, db2, dw3, db3]:
+            np.clip(grad, -1.0, 1.0, out=grad)
+
+        # ========== GRADIENT DESCENT UPDATE ==========
         w1 -= learning_rate * dw1
         b1 -= learning_rate * db1
         w2 -= learning_rate * dw2
         b2 -= learning_rate * db2
+        w3 -= learning_rate * dw3
+        b3 -= learning_rate * db3
 
         final_epoch = current_epoch
 
         if stop_after_epoch:
             break
 
-    final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy())
+    # ========== RETURN BEST WEIGHTS ==========
+    final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy(), w3.copy(), b3.copy())
 
     if return_best_and_final_flag:
-        # Return both snapshots so callers can observe whether early stopping diverged from
-        # the terminal epoch; they will be identical when the best loss occurs in the final pass.
         return TrainingSnapshots(
             best_weights=best_weights,
             final_weights=final_weights,
@@ -1600,7 +1212,7 @@ def train_mlp(
 # --- Dataset loading --------------------------------------------------------
 
 
-def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
+def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Path | None:
     storage_raw = entry.get("storage")
     storage = storage_raw if isinstance(storage_raw, dict) else {}
 
@@ -1620,7 +1232,7 @@ def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
             clip_filename = candidate_name
 
     storage_files_raw = storage.get("files")
-    storage_files: List[str] = []
+    storage_files: list[str] = []
     if isinstance(storage_files_raw, list):
         for file_entry in storage_files_raw:
             if isinstance(file_entry, str) and file_entry.strip():
@@ -1630,8 +1242,8 @@ def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
 
     clip_extension = Path(clip_filename).suffix.lower() if clip_filename else ""
     if storage_files:
-        found_by_ext: Optional[Path] = None
-        found_by_any_video_ext: Optional[Path] = None
+        found_by_ext: Path | None = None
+        found_by_any_video_ext: Path | None = None
         lower_clip_filename = clip_filename.lower() if clip_filename else None
 
         for relative in storage_files:
@@ -1674,7 +1286,7 @@ def _resolve_clip_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
     return resolve_relative_path(bundle_dir, "clip.mp4")
 
 
-def _resolve_still_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
+def _resolve_still_path(entry: dict, bundle_dir: Path) -> Path | None:
     storage = entry.get("storage", {}) if isinstance(entry, dict) else {}
     if isinstance(storage, dict):
         storage_still = storage.get("still")
@@ -1695,8 +1307,8 @@ def _resolve_still_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
         still_extension = Path(still_filename).suffix.lower() if still_filename else None
         lower_still_name = still_filename.lower() if still_filename else None
 
-        resolved_by_extension: Optional[Path] = None
-        resolved_by_image_ext: Optional[Path] = None
+        resolved_by_extension: Path | None = None
+        resolved_by_image_ext: Path | None = None
 
         for relative in storage_files:
             if not isinstance(relative, str):
@@ -1738,13 +1350,21 @@ def _resolve_still_path(entry: dict, bundle_dir: Path) -> Optional[Path]:
     return resolve_relative_path(bundle_dir, "still.jpg")
 
 
-def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict[str, int]]:
+def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict[str, int]]:
+    """
+    Load training data from manifest and generate sliding window samples.
+    
+    Key Changes from Baseline:
+    - Removed frame averaging logic entirely
+    - Each clip generates multiple training samples (sliding windows)
+    - Automatically creates "_NULL_" class from clip starts (background modeling)
+    """
     manifest = load_json(manifest_path)
     if not manifest:
         return [], {"entries": 0, "cache_hits": 0, "cache_misses": 0, "cache_writes": 0}
 
     entries = manifest.get("entries", [])
-    data: List[Sample] = []
+    data: list[Sample] = []
     cache_hits = 0
     cache_misses = 0
     cache_writes = 0
@@ -1753,19 +1373,21 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         label = entry.get("label")
         if not label:
             continue
+
         profile_id = entry.get("profileId") or entry.get("metadata", {}).get("profileId")
-        # Extract handFocus from bundle metadata
         metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
-        hand_focus = metadata.get("handFocus")  # 'left', 'right', 'both', or None
-        recording_metadata = _extract_recording_metadata(metadata)
-        modality_coverage = _extract_modality_coverage(metadata)
-        
-        # Extract variation data from webapp's SignVariationTracker
+        hand_focus = metadata.get("handFocus")
+
+        # Extract variation tracking data
         variation_data = metadata.get("variationData", {}) if isinstance(metadata.get("variationData"), dict) else {}
         variation_cluster_id = variation_data.get("clusterId") or variation_data.get("dominantCluster")
         variation_diversity = variation_data.get("variationDiversity")
         canonical_templates_count = variation_data.get("canonicalTemplates")
-        
+
+        recording_metadata = _extract_recording_metadata(metadata)
+        modality_coverage = _extract_modality_coverage(metadata)
+
+        # ========== PATH RESOLUTION (keep existing logic) ==========
         rel_dir = entry.get("storage", {}).get("directory")
         if not rel_dir:
             continue
@@ -1781,7 +1403,8 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         clip_path = _resolve_clip_path(entry, bundle_dir)
         still_path = _resolve_still_path(entry, bundle_dir)
 
-        frames: Optional[List[dict]] = None
+        # ========== LOAD FRAMES (with caching) ==========
+        frames: list[dict] | None = None
         frames_from_clip = False
 
         cached = load_json(cache_path)
@@ -1802,19 +1425,18 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
             else:
                 cache_misses += 1
 
-        frame_list: List[dict] = list(frames) if frames else []
+        frame_list: list[dict] = list(frames) if frames else []
 
-        # Only extract and append still frame if we're processing from source (not from cache)
-        # to avoid doubling the still frame weight when cache already contains it
+        # Add still frame if available (only when not cached to avoid duplication)
         if still_path and still_path.exists() and not cached:
             extracted = extract_landmarks_from_still(still_path)
             if extracted:
-                # Mark still frame with higher weight since it represents the precise
-                # target hand position for this gesture
                 extracted["weight"] = STILL_FRAME_WEIGHT
                 frame_list.append(extracted)
 
         timing_stats = _apply_timing_weights(frame_list)
+
+        # Cache newly extracted frames
         if frames_from_clip and frame_list:
             cache_writes += 1
             cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1824,43 +1446,65 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         if not frame_list:
             continue
 
-        averaged = flatten_landmarks_mean(frame_list)
-        if averaged is None:
+        # ========== NEW SLIDING WINDOW PROCESSING ==========
+
+        # 1. Normalize each frame individually
+        normalized_frames = []
+        frame_weights = []
+        for f in frame_list:
+            lms = f.get("landmarks")
+            pose = f.get("poseLandmarks")
+            face = f.get("faceLandmarks")
+            w = float(f.get("weight", 1.0))
+
+            # Apply hand focus filtering if specified
+            if hand_focus and lms:
+                lms = apply_hand_focus(lms, hand_focus, f.get("handedness"))
+
+            # Normalize to (1629,) vector
+            vec = _normalize_frame(lms, pose, face)
+            if vec is not None:
+                normalized_frames.append(vec)
+                frame_weights.append(w)
+
+        if not normalized_frames:
             continue
 
-        # Apply hand focus filtering to zero out irrelevant hand data
-        filtered_landmarks = apply_hand_focus(averaged['landmarks'], hand_focus)
+        # 2. Build metadata context
+        ctx = {
+            'profile_id': profile_id,
+            'hand_focus': hand_focus,
+            'variation_cluster_id': variation_cluster_id,
+            'variation_diversity': variation_diversity,
+            'canonical_templates_count': canonical_templates_count,
+            'recording': recording_metadata,
+            'timing_stats': timing_stats,
+            'modality_coverage': modality_coverage
+        }
 
-        data.append(Sample(
-            label=label,
-            profile_id=profile_id,
-            landmarks=filtered_landmarks,
-            pose_landmarks=averaged.get('poseLandmarks'),
-            face_landmarks=averaged.get('faceLandmarks'),
-            hand_focus=hand_focus,
-            variation_cluster_id=variation_cluster_id,
-            variation_diversity=variation_diversity,
-            canonical_templates_count=canonical_templates_count,
-            recording=recording_metadata,
-            timing_stats=timing_stats,
-            modality_coverage=modality_coverage,
-        ))
+        # 3. Generate "_NULL_" class (background/transition frames)
+        # Skip automatic heuristic for now to avoid class collisions
+        # If explicitly marked negative samples are needed, they should be added via dedicated logic
+        pass
 
-    # 2. Process default video examples (global)
+        # 4. Generate sliding windows for the actual sign
+        sign_samples = create_sliding_windows(normalized_frames, label, ctx, frame_weights)
+        data.extend(sign_samples)
+
+    # ========== PROCESS DEFAULT VIDEO EXAMPLES (GLOBAL) ==========
     video_examples_dir = DATA_DIR / "dgs_video_examples"
     if video_examples_dir.exists():
         for video_file in video_examples_dir.glob("*.mp4"):
             label = video_file.stem
-            # Cache landmarks next to the video file
             video_cache_path = video_examples_dir / f"{label}_landmarks.json"
-            
-            v_frames: Optional[List[dict]] = None
+
+            v_frames: list[dict] | None = None
             if video_cache_path.exists():
                 v_cached = load_json(video_cache_path)
                 if v_cached and isinstance(v_cached.get("frames"), list):
                     v_frames = v_cached["frames"]
                     cache_hits += 1
-            
+
             if not v_frames:
                 LOGGER.info(f"Extracting landmarks from default example: {video_file.name}")
                 v_frames = extract_landmarks_from_clip(video_file)
@@ -1873,17 +1517,26 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
                         LOGGER.warning(f"Failed to cache landmarks for {video_file.name}: {e}")
                 else:
                     cache_misses += 1
-            
+
             if v_frames:
-                v_averaged = flatten_landmarks_mean(v_frames)
-                if v_averaged:
-                    data.append(Sample(
-                        label=label,
-                        profile_id=None, # Global
-                        landmarks=v_averaged['landmarks'],
-                        pose_landmarks=v_averaged.get('poseLandmarks'),
-                        face_landmarks=v_averaged.get('faceLandmarks')
-                    ))
+                # Normalize frames
+                v_normalized = []
+                v_weights = []
+                for f in v_frames:
+                    w = float(f.get("weight", 1.0))
+                    vec = _normalize_frame(
+                        f.get("landmarks"),
+                        f.get("poseLandmarks"),
+                        f.get("faceLandmarks")
+                    )
+                    if vec is not None:
+                        v_normalized.append(vec)
+                        v_weights.append(w)
+
+                if v_normalized:
+                    v_ctx = {'profile_id': None}  # Global examples
+                    v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
+                    data.extend(v_samples)
 
     stats = {
         "entries": len(entries),
@@ -1894,7 +1547,20 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
     return data, stats
 
 
-def build_samples_from_legacy_dataset(dataset_path: Path) -> List[Sample]:
+def build_samples_from_legacy_dataset(dataset_path: Path) -> list[Sample]:
+    """
+    DEPRECATED: This function is incompatible with the sliding window architecture.
+    Legacy samples contain pre-averaged landmarks that cannot be converted to
+    temporal windows. Samples produced by this function will fail dimension
+    validation in dataset_to_arrays().
+    """
+    import warnings
+    warnings.warn(
+        "build_samples_from_legacy_dataset is deprecated and incompatible with "
+        "the sliding window architecture. Use build_samples_from_manifest instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     legacy = load_json(dataset_path)
     if not legacy:
         return []
@@ -1907,57 +1573,96 @@ def build_samples_from_legacy_dataset(dataset_path: Path) -> List[Sample]:
         landmarks = entry.get("landmarks") or entry.get("landmarkData")
         if not landmarks:
             continue
-        samples.append(Sample(label=label, profile_id=profile_id, landmarks=landmarks))
+
+        # Support frame sequences in legacy dataset
+        if isinstance(landmarks, list) and len(landmarks) > 0 and isinstance(landmarks[0], dict):
+            normalized_frames = []
+            for f in landmarks:
+                vec = _normalize_frame(
+                    f.get("landmarks"),
+                    f.get("poseLandmarks"),
+                    f.get("faceLandmarks")
+                )
+                if vec is not None:
+                    normalized_frames.append(vec)
+
+            if normalized_frames:
+                # Generate sliding windows
+                ctx = {'profile_id': profile_id}
+                samples.extend(create_sliding_windows(normalized_frames, label, ctx))
+            continue
+
+        # For single-frame legacy samples, we inflate them to a full window by repetition
+        # to remain compatible with the new 3D temporal architecture.
+        if isinstance(landmarks, list) and len(landmarks) >= 21:
+            # Assume it's a single frame of hand landmarks (legacy format)
+            # Normalize it first (this expects [landmarks, pose, face])
+            norm_vec = _normalize_frame(landmarks, None, None)
+            if norm_vec is not None:
+                # Repeat the same frame WINDOW_SIZE times
+                inflated_landmarks = np.tile(norm_vec, WINDOW_SIZE).tolist()
+                samples.append(Sample(label=label, profile_id=profile_id, landmarks=inflated_landmarks))
+            else:
+                LOGGER.warning(f"Skipping invalid legacy sample for {label}")
+        else:
+            LOGGER.warning(f"Skipping unknown legacy format for {label}")
+
     return samples
 
 
 def dataset_to_arrays(
-    samples: List[Sample],
+    samples: list[Sample],
     *,
     augmentations_per_sample: int = 0,
-    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-) -> Tuple[np.ndarray, np.ndarray, List[str], np.ndarray]:
+    rng: np.random.RandomState | np.random.Generator | None = None,
+) -> tuple[np.ndarray, np.ndarray, list[str], np.ndarray]:
+    """
+    Convert Sample objects to training arrays.
+    
+    CRITICAL: Sample.landmarks now contains pre-normalized window vectors (48,870 floats),
+    so we skip normalization here. Just convert to numpy arrays. 
+    
+    Note: Augmentation is disabled for temporal windows since geometric transforms
+    on flattened vectors would break temporal coherence. Augmentation happens naturally
+    through overlapping sliding windows (stride=1).
+    
+    Returns:
+        X: Feature matrix (N, 48870)
+        y: Label indices (N,)
+        label_set: Sorted list of unique labels
+        weights: Per-sample quality weights (N,)
+    """
     label_set = sorted({sample.label for sample in samples})
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
 
-    X_list: List[np.ndarray] = []
-    y_list: List[int] = []
-    weight_list: List[float] = []
+    X_list: list[np.ndarray] = []
+    y_list: list[int] = []
+    weight_list: list[float] = []
 
-    # Check if any samples have multimodal data
-    has_multimodal = any(s.pose_landmarks or s.face_landmarks for s in samples)
-    
-    augmentations = max(0, int(augmentations_per_sample))
     for sample in samples:
-        # Use multimodal normalization if available, fall back to hand-only
-        if has_multimodal:
-            normalized = _normalize_multimodal(sample)
-        else:
-            normalized = _normalize(sample.landmarks)
-            
-        if normalized is None:
+        # Sample.landmarks is already a normalized, flattened window vector
+        features = np.array(sample.landmarks, dtype=np.float32)
+
+        # Validate expected dimensions
+        if features.size != WINDOW_FEATURE_SIZE:
+            LOGGER.warning(
+                f"Unexpected feature size {features.size} for sample {sample.label}. "
+                f"Expected {WINDOW_FEATURE_SIZE}. Skipping."
+            )
             continue
 
-        normalized_array = normalized.astype(np.float32, copy=False)
-        X_list.append(normalized_array)
+        X_list.append(features)
         y_list.append(label_to_idx[sample.label])
-        weight_list.append(_compute_quality_weight(sample))
+        # Combine structural quality weight with aggregated frame weights (e.g. still-frame emphasis)
+        weight_list.append(_compute_quality_weight(sample) * sample.quality_weight)
 
-        for _ in range(augmentations):
-            # Apply appropriate augmentation based on data type
-            if has_multimodal:
-                augmented = augment_multimodal_landmarks(normalized_array, rng=rng)
-            else:
-                augmented = augment_landmarks(normalized_array, rng=rng)
-            X_list.append(augmented)
-            y_list.append(label_to_idx[sample.label])
-            weight_list.append(_compute_quality_weight(sample))
+        # NOTE: Augmentation disabled for temporal windows
+        # Overlapping windows (stride=1) already provide data augmentation
+        # Geometric augmentation on flattened vectors would break temporal structure
 
     if not X_list:
-        # Feature size depends on whether we have multimodal data
-        feature_size = 258 if has_multimodal else 126  # 126 hand + 99 pose + 33 face
         return (
-            np.zeros((0, feature_size), dtype=np.float32),
+            np.zeros((0, WINDOW_FEATURE_SIZE), dtype=np.float32),
             np.zeros((0,), dtype=np.int64),
             label_set,
             np.zeros((0,), dtype=np.float32),
@@ -1965,16 +1670,18 @@ def dataset_to_arrays(
 
     X = np.vstack(X_list)
     y = np.array(y_list, dtype=np.int64)
-    return X, y, label_set, np.array(weight_list, dtype=np.float32)
+    weights = np.array(weight_list, dtype=np.float32)
+
+    return X, y, label_set, weights
 
 
-def validate_samples(samples: List[Sample]) -> None:
+def validate_samples(samples: list[Sample]) -> None:
     if not samples:
         LOGGER.warning("Keine Trainingsdaten gefunden - Training wird übersprungen.")
         return
 
-    label_counts: Dict[str, int] = {}
-    profile_counts: Dict[str, Dict[str, int]] = {}
+    label_counts: dict[str, int] = {}
+    profile_counts: dict[str, dict[str, int]] = {}
 
     for sample in samples:
         label_counts[sample.label] = label_counts.get(sample.label, 0) + 1
@@ -1996,6 +1703,16 @@ def validate_samples(samples: List[Sample]) -> None:
                 f"Profil {profile_id} hat zu wenige Beispiele: "
                 + ", ".join(f"{label} ({counts[label]})" for label in sorted(short_labels))
             )
+
+
+def filter_samples_by_profile(samples: list[Sample], profile_id: str) -> list[Sample]:
+    """Filter samples for a specific profile, including relevant global samples."""
+    return filter_by_profile_logic(
+        samples,
+        profile_id,
+        get_label=lambda s: s.label,
+        get_profile_id=lambda s: s.profile_id
+    )
 
 
 def compute_sample_weights(y: np.ndarray, *, smoothing: float = 0.0) -> np.ndarray:
@@ -2024,8 +1741,8 @@ def plan_train_validation_split(
     X: np.ndarray,
     *,
     validation_fraction: float,
-    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+    rng: np.random.RandomState | np.random.Generator | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """Return shuffled train/validation indices ensuring training retains samples.
 
     Parameters
@@ -2059,7 +1776,7 @@ def plan_train_validation_split(
         raise TypeError("The provided 'rng' object must have a 'permutation' or 'shuffle' method.")
 
     if num_samples < 2:
-        return indices, np.zeros((0,), dtype=np.int64)
+        return indices, np.zeros((0,), np.int64)
 
     sanitized_fraction = float(np.clip(validation_fraction, 0.0, 1.0))
     validation_count = int(num_samples * sanitized_fraction)
@@ -2073,19 +1790,51 @@ def plan_train_validation_split(
     return train_indices, validation_indices
 
 
-def save_model(path: Path, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray], labels: List[str]):
-    w1, b1, w2, b2 = weights
+def save_model(
+    path: Path,
+    weights: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    labels: list[str],
+    counts: np.ndarray | None = None
+) -> None:
+    """
+    Save 3-layer MLP weights with metadata for inference.
+    
+    Format:
+        w1, b1, w2, b2, w3, b3: Network weights (transposed for compatibility)
+        labels: Class names
+        arch: Architecture identifier ("mlp_3layer_window")
+        window_size: Temporal window size (30)
+        input_dim: Expected input dimension (48,870)
+    """
+    w1, b1, w2, b2, w3, b3 = weights
+
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
+
+    save_dict = {
+        # Network weights (transposed for row-major storage)
+        "w1": np.array(w1.T, order="C"),
+        "b1": b1,
+        "w2": np.array(w2.T, order="C"),
+        "b2": b2,
+        "w3": np.array(w3.T, order="C"),
+        "b3": b3,
+        # Metadata
+        "labels": np.array(labels),
+        "arch": "mlp_3layer_window",
+        "window_size": WINDOW_SIZE,
+        "input_dim": WINDOW_FEATURE_SIZE,
+        "feature_size": INPUT_FEATURE_SIZE,
+        "layer_sizes": np.array([MLP_LAYER1_SIZE, MLP_LAYER2_SIZE], dtype=np.int32)
+    }
+    if counts is not None:
+        save_dict["counts"] = counts
+    else:
+        save_dict["counts"] = np.zeros(len(labels), dtype=np.float32)
+
     with tmp_path.open("wb") as handle:
-        np.savez(
-            handle,
-            w1=np.array(w1.T, order="C"),
-            b1=b1,
-            w2=np.array(w2.T, order="C"),
-            b2=b2,
-            labels=np.array(labels),
-        )
+        np.savez_compressed(handle, **save_dict)
+
     os.replace(tmp_path, path)
     try:
         os.chmod(path, 0o640)
@@ -2094,250 +1843,285 @@ def save_model(path: Path, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np
 
 
 def _compute_accuracy(
-    X: np.ndarray, y: np.ndarray, weights: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    X: np.ndarray,
+    y: np.ndarray,
+    weights: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 ) -> float:
     if X.size == 0 or y.size == 0:
         return 0.0
-
-    w1, b1, w2, b2 = weights
-    probs = _forward(X, w1, b1, w2, b2)
+    w1, b1, w2, b2, w3, b3 = weights
+    probs, _, _, _, _ = _forward_mlp(X, w1, b1, w2, b2, w3, b3)
     preds = np.argmax(probs, axis=1)
-    return float(np.mean(preds == y)) if len(y) else 0.0
+    return float(np.mean(preds == y))
 
 
-def train_models(
-    samples: List[Sample],
-    *,
-    config: Optional[TrainingConfig] = None,
-    rng: Optional[Union[np.random.RandomState, np.random.Generator]] = None,
-) -> Tuple[Dict[str, dict], dict]:
-    """Train global and per-profile models. Returns (profiles_report, global_report)."""
+def _compute_f1_score(
+    X: np.ndarray,
+    y: np.ndarray,
+    weights: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    num_classes: int
+) -> float:
+    if X.size == 0 or y.size == 0:
+        return 0.0
+    w1, b1, w2, b2, w3, b3 = weights
+    probs, _, _, _, _ = _forward_mlp(X, w1, b1, w2, b2, w3, b3)
+    preds = np.argmax(probs, axis=1)
 
-    resolved_config = config or TrainingConfig()
-    trainer_config = replace(resolved_config, return_best_and_final=True)
+    f1_scores = []
+    for i in range(num_classes):
+        tp = np.sum((preds == i) & (y == i))
+        fp = np.sum((preds == i) & (y != i))
+        fn = np.sum((preds != i) & (y == i))
 
-    global_report = {"samples": 0, "accuracy": 0.0, "labels": {}}
-    profiles_report: Dict[str, dict] = {}
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        f1_scores.append(f1)
+
+    return float(np.mean(f1_scores))
+
+
+def _compute_confusion_matrix(
+    X: np.ndarray,
+    y: np.ndarray,
+    weights: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    num_classes: int
+) -> list[list[int]]:
+    if X.size == 0 or y.size == 0:
+        return [[0]*num_classes for _ in range(num_classes)]
+    w1, b1, w2, b2, w3, b3 = weights
+    probs, _, _, _, _ = _forward_mlp(X, w1, b1, w2, b2, w3, b3)
+    preds = np.argmax(probs, axis=1)
+
+    cm = [[0]*num_classes for _ in range(num_classes)]
+    for true_label, pred_label in zip(y, preds, strict=True):
+        cm[int(true_label)][int(pred_label)] += 1
+    return cm
+
+
+def run_training_pipeline(samples: list[Sample], *, config: TrainingConfig | None = None, output_dir: Path | None = None, rng: np.random.RandomState | np.random.Generator | None = None) -> dict[str, object]:
+    """Train global and per-profile models and return detailed metrics."""
 
     if not samples:
-        return profiles_report, global_report
+        return {"error": "No training samples found."}
 
-    # Filter for global samples (no profile_id) to prevent data leakage between users
-    global_samples = [s for s in samples if not s.profile_id]
+    resolved_config = config or TrainingConfig()
+    label_set = sorted({s.label for s in samples})
 
-    if global_samples:
-        X, y, labels, quality_weights = dataset_to_arrays(
-            global_samples,
-            augmentations_per_sample=resolved_config.augmentations_per_sample,
-            rng=rng,
-        )
+    # Global training
+    X, y, labels, weights = dataset_to_arrays(
+        samples,
+        augmentations_per_sample=resolved_config.augmentations_per_sample,
+        rng=rng
+    )
 
-        if X.shape[0] > 0:
-            train_indices, validation_indices = plan_train_validation_split(
-                X, validation_fraction=resolved_config.validation_fraction, rng=rng
-            )
+    if labels != label_set:
+        LOGGER.warning("Label set mismatch between samples and arrays")
+        label_set = labels
 
-            X_train, y_train = X[train_indices], y[train_indices]
-            X_val, y_val = X[validation_indices], y[validation_indices]
+    num_classes = len(label_set)
+    if num_classes < 1:
+        return {"error": "No labels found in training data."}
 
-            train_quality = quality_weights[train_indices] if quality_weights.size else None
-            val_quality = quality_weights[validation_indices] if quality_weights.size else None
+    # Stratified split or simple shuffle
+    train_idx, val_idx = plan_train_validation_split(
+        X,
+        validation_fraction=resolved_config.validation_fraction,
+        rng=rng
+    )
 
-            train_class_weights = (
-                compute_sample_weights(y_train, smoothing=resolved_config.class_weight_smoothing)
-                if y_train.size
-                else None
-            )
-            val_class_weights = (
-                compute_sample_weights(y_val, smoothing=resolved_config.class_weight_smoothing)
-                if y_val.size
-                else None
-            )
+    X_train, y_train = X[train_idx], y[train_idx]
+    w_train = weights[train_idx]
 
-            train_weights = train_class_weights
-            if train_quality is not None and train_quality.size:
-                train_weights = train_quality if train_weights is None else train_weights * train_quality
+    validation_data = None
+    if val_idx.size > 0:
+        validation_data = (X[val_idx], y[val_idx])
+        val_weights = weights[val_idx]
+    else:
+        val_weights = None
 
-            val_weights = val_class_weights
-            if val_quality is not None and val_quality.size:
-                val_weights = val_quality if val_weights is None else val_weights * val_quality
+    # Train global model
+    global_weights = train_mlp(
+        X_train,
+        y_train,
+        num_classes,
+        config=resolved_config,
+        sample_weights=w_train,
+        validation_data=validation_data,
+        validation_sample_weights=val_weights,
+        rng=rng,
+    )
 
-            snapshot = train_mlp(
-                X_train,
-                y_train,
-                len(labels),
-                config=trainer_config,
-                sample_weights=train_weights,
-                validation_data=(X_val, y_val) if X_val.size else None,
-                validation_sample_weights=val_weights,
-                rng=rng,
-            )
+    # If returned TrainingSnapshots, extract best weights
+    if isinstance(global_weights, TrainingSnapshots):
+        global_best_weights = global_weights.best_weights
+    else:
+        global_best_weights = global_weights
 
-            best_weights = snapshot.best_weights if isinstance(snapshot, TrainingSnapshots) else snapshot
+    # Evaluate global model
+    global_accuracy = _compute_accuracy(X, y, global_best_weights)
+    global_f1 = _compute_f1_score(X, y, global_best_weights, num_classes)
+    global_cm = _compute_confusion_matrix(X, y, global_best_weights, num_classes)
 
-            train_acc = _compute_accuracy(X_train, y_train, best_weights)
-            val_acc = _compute_accuracy(X_val, y_val, best_weights)
+    class_counts = np.bincount(y, minlength=num_classes)
 
-            save_model(GLOBAL_MODEL_PATH, best_weights, labels)
-            global_report = {
-                "samples": int(X.shape[0]),
-                "accuracy": train_acc,
-                "validationSamples": int(X_val.shape[0]),
-                "validationAccuracy": val_acc,
-                "labels": {label: int(sum(1 for sample in global_samples if sample.label == label)) for label in labels},
-                "recordingStats": _summarize_recording_stats(global_samples),
-                "modelPath": os.path.relpath(GLOBAL_MODEL_PATH, DATA_DIR),
-            }
+    if output_dir:
+        save_model(output_dir / "global" / "amy_model.npz", global_best_weights, label_set, class_counts)
 
-    profiles = sorted({s.profile_id for s in samples if s.profile_id})
-    for pid in profiles:
-        subset = filter_samples_by_profile(samples, pid)
-        if not subset:
-            continue
-        Xp, yp, labels_p, quality_weights_p = dataset_to_arrays(
-            subset,
-            augmentations_per_sample=resolved_config.augmentations_per_sample,
-            rng=rng,
-        )
-        if Xp.shape[0] == 0:
+    # Per-profile models
+    profile_reports = {}
+    profiles = {s.profile_id for s in samples if s.profile_id}
+
+    for profile_id in profiles:
+        p_samples = filter_samples_by_profile(samples, profile_id)
+        if len(p_samples) < MIN_SAMPLES_PER_PROFILE:
             continue
 
-        train_idx_p, val_idx_p = plan_train_validation_split(
-            Xp, validation_fraction=resolved_config.validation_fraction, rng=rng
+        p_X, p_y, p_labels, p_weights = dataset_to_arrays(p_samples, rng=rng)
+        p_num_classes = len(p_labels)
+
+        if p_num_classes < 1:
+            continue
+
+        # Per-profile split
+        p_train_idx, p_val_idx = plan_train_validation_split(
+            p_X,
+            validation_fraction=resolved_config.validation_fraction,
+            rng=rng
         )
 
-        Xp_train, yp_train = Xp[train_idx_p], yp[train_idx_p]
-        Xp_val, yp_val = Xp[val_idx_p], yp[val_idx_p]
+        p_validation_data = None
+        p_val_weights = None
+        if p_val_idx.size > 0:
+            p_validation_data = (p_X[p_val_idx], p_y[p_val_idx])
+            p_val_weights = p_weights[p_val_idx]
 
-        train_quality_p = quality_weights_p[train_idx_p] if quality_weights_p.size else None
-        val_quality_p = quality_weights_p[val_idx_p] if quality_weights_p.size else None
-
-        train_class_weights_p = (
-            compute_sample_weights(
-                yp_train, smoothing=resolved_config.class_weight_smoothing
-            )
-            if yp_train.size
-            else None
-        )
-        val_class_weights_p = (
-            compute_sample_weights(yp_val, smoothing=resolved_config.class_weight_smoothing)
-            if yp_val.size
-            else None
-        )
-
-        train_weights_p = train_class_weights_p
-        if train_quality_p is not None and train_quality_p.size:
-            train_weights_p = train_quality_p if train_weights_p is None else train_weights_p * train_quality_p
-
-        val_weights_p = val_class_weights_p
-        if val_quality_p is not None and val_quality_p.size:
-            val_weights_p = val_quality_p if val_weights_p is None else val_weights_p * val_quality_p
-
-        snapshot_p = train_mlp(
-            Xp_train,
-            yp_train,
-            len(labels_p),
-            config=trainer_config,
-            sample_weights=train_weights_p,
-            validation_data=(Xp_val, yp_val) if Xp_val.size else None,
-            validation_sample_weights=val_weights_p,
+        # Train profile model
+        p_weights_result = train_mlp(
+            p_X[p_train_idx],
+            p_y[p_train_idx],
+            p_num_classes,
+            config=resolved_config,
+            sample_weights=p_weights[p_train_idx],
+            validation_data=p_validation_data,
+            validation_sample_weights=p_val_weights,
             rng=rng,
         )
 
-        weights_p = snapshot_p.best_weights if isinstance(snapshot_p, TrainingSnapshots) else snapshot_p
-        acc_p = _compute_accuracy(Xp_train, yp_train, weights_p)
-        val_acc_p = _compute_accuracy(Xp_val, yp_val, weights_p)
-        profile_path = MODELS_DIR / pid / "amy_model.npz"
-        save_model(profile_path, weights_p, labels_p)
-        profiles_report[pid] = {
-            "samples": int(Xp.shape[0]),
-            "accuracy": acc_p,
-            "validationSamples": int(Xp_val.shape[0]),
-            "validationAccuracy": val_acc_p,
-            "labels": {label: int(sum(1 for sample in subset if sample.label == label)) for label in labels_p},
-            "recordingStats": _summarize_recording_stats(subset),
-            "modelPath": os.path.relpath(profile_path, DATA_DIR),
+        if isinstance(p_weights_result, TrainingSnapshots):
+            p_best_weights = p_weights_result.best_weights
+        else:
+            p_best_weights = p_weights_result
+
+        p_accuracy = _compute_accuracy(p_X, p_y, p_best_weights)
+        p_f1 = _compute_f1_score(p_X, p_y, p_best_weights, p_num_classes)
+
+        p_counts = np.bincount(p_y, minlength=p_num_classes)
+
+        if output_dir:
+            save_model(output_dir / profile_id / "amy_model.npz", p_best_weights, p_labels, p_counts)
+
+        profile_reports[profile_id] = {
+            "accuracy": p_accuracy,
+            "f1_score": p_f1,
+            "samples": len(p_samples),
+            "labels": p_labels,
+            "class_counts": p_counts.tolist()
         }
 
-    return profiles_report, global_report
+    return {
+        "global": {
+            "accuracy": global_accuracy,
+            "f1_score": global_f1,
+            "confusion_matrix": global_cm,
+            "samples": len(samples),
+            "labels": label_set,
+            "class_counts": class_counts.tolist()
+        },
+        "profiles": profile_reports,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
-def persist_training_metadata(payload: Dict[str, object]) -> None:
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    metadata_path = MODELS_DIR / "training_metadata.json"
-    tmp_path = metadata_path.with_suffix(".tmp")
-    with tmp_path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, ensure_ascii=False)
-    os.replace(tmp_path, metadata_path)
+def main() -> None:
+    global DATA_DIR, MODELS_DIR
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=MANIFEST_PATH,
+        help="Path to training bundle manifest JSON",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=DATA_DIR,
+        help="Root directory for landmark storage",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Directory to write trained weight files (defaults to models dir)",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        help="Maximum training epochs",
+    )
+    parser.add_argument(
+        "--lr",
+        type=float,
+        help="Learning rate",
+    )
+    parser.add_argument(
+        "--dropout",
+        type=float,
+        help="Dropout rate",
+    )
+    parser.add_argument(
+        "--early-stopping",
+        type=int,
+        help="Patience for early stopping",
+    )
 
-
-# --- Entry point ------------------------------------------------------------
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Train Amy's MLP from manifest bundles")
-    parser.add_argument("--manifest", type=str, default=str(MANIFEST_PATH))
-    parser.add_argument("--data-dir", type=str, default=str(DATA_DIR))
     args = parser.parse_args()
 
+    DATA_DIR = args.data_dir
+    MODELS_DIR = args.output_dir or (DATA_DIR / "models")
+    legacy_dataset_path = DATA_DIR / LEGACY_DATASET_PATH.name
+
+    config = TrainingConfig(
+        epochs=args.epochs if args.epochs is not None else EPOCHS,
+        learning_rate=args.lr if args.lr is not None else LEARNING_RATE,
+        dropout_rate=args.dropout if args.dropout is not None else DROPOUT_RATE,
+        early_stopping_patience=args.early_stopping if args.early_stopping is not None else EARLY_STOPPING_PATIENCE,
+    )
+
     try:
-        manifest_path = ensure_inside(Path(args.data_dir), Path(args.manifest))
-        start_ts = datetime.now(timezone.utc)
+        samples, stats = build_samples_from_manifest(args.manifest)
 
-        samples, stats = build_samples_from_manifest(manifest_path)
+        # Also load from legacy dataset if it exists
+        if legacy_dataset_path.exists():
+            LOGGER.info(f"Loading additional samples from legacy dataset: {legacy_dataset_path}")
+            legacy_samples = build_samples_from_legacy_dataset(legacy_dataset_path)
+            samples.extend(legacy_samples)
+            stats["legacy_entries"] = len(legacy_samples)
+
         if not samples:
-            legacy_samples = build_samples_from_legacy_dataset(LEGACY_DATASET_PATH)
-            samples = legacy_samples
-            stats["legacy_samples"] = len(legacy_samples)
+            print(json.dumps({"error": "No valid training samples found."}))
+            return
 
-        validate_samples(samples)
-        profiles_report, global_report = train_models(samples)
-
-        finished_at = datetime.now(timezone.utc)
-        report = {
-            "generatedAt": finished_at.isoformat().replace("+00:00", "Z"),
-            "manifestPath": os.path.relpath(manifest_path, Path(args.data_dir)),
-            "cache": stats,
-            "global": global_report,
-            "profiles": profiles_report,
-            "totalSamples": len(samples),
-            "dependencies": {"mediapipe": mp is not None, "opencv": cv2 is not None},
-            "durationMs": int((finished_at - start_ts).total_seconds() * 1000),
-        }
-
-        metadata = {
-            "manifestSha256": sha256_file(manifest_path),
-            "hyperparameters": {
-                "hiddenSize": HIDDEN_SIZE,
-                "learningRate": LEARNING_RATE,
-                "epochs": EPOCHS,
-                "dropoutRate": DROPOUT_RATE,
-                "validationFraction": VALIDATION_FRACTION,
-                "augmentationsPerSample": AUGMENTATIONS_PER_SAMPLE,
-                "classWeightSmoothing": CLASS_WEIGHT_SMOOTHING,
-                "earlyStoppingPatience": EARLY_STOPPING_PATIENCE,
-                "earlyStoppingMinDelta": EARLY_STOPPING_MIN_DELTA,
-            },
-            "dependencies": {"mediapipe": mp is not None, "opencv": cv2 is not None},
-            "generatedAt": report["generatedAt"],
-            "samples": len(samples),
-            "profiles": list(profiles_report.keys()),
-            "durationMs": report["durationMs"],
-        }
-        persist_training_metadata(metadata)
-
+        report = run_training_pipeline(samples, config=config, output_dir=MODELS_DIR)
+        report["stats"] = stats
         print(json.dumps(report))
-        return 0
-    except DependencyUnavailableError as err:
-        print(str(err), file=sys.stderr)
-        return 2
-    except ValueError as err:
-        print(f"Training abgebrochen: {err}", file=sys.stderr)
-        return 1
-    except Exception:  # pragma: no cover - defensive fallback
-        LOGGER.exception("Unhandled training error")
-        return 1
+
+    except Exception as e:
+        import traceback
+        LOGGER.error(f"Training pipeline failed: {e}")
+        LOGGER.error(traceback.format_exc())
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

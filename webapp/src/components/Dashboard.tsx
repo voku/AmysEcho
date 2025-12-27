@@ -22,7 +22,7 @@ interface ServerInsights {
  * Shows analytics summary and insights for caregivers.
  */
 export function Dashboard() {
-  const { profileId, recentGestures } = useAppState();
+  const { profileId, recentSigns } = useAppState();
   const { apiBaseUrl, apiToken } = useApiConfig();
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [serverInsights, setServerInsights] = useState<ServerInsights | null>(null);
@@ -139,11 +139,11 @@ export function Dashboard() {
       {/* Recent Gestures */}
       <div className="dashboard-section">
         <h3>📊 Letzte Aktivität</h3>
-        {recentGestures.length > 0 ? (
+        {recentSigns.length > 0 ? (
           <div className="gesture-tags">
-            {recentGestures.map((gesture, index) => (
-              <span key={`${gesture}-${index}`} className="badge">
-                {gesture}
+            {recentSigns.map((sign, index) => (
+              <span key={`${sign}-${index}`} className="badge">
+                {sign}
               </span>
             ))}
           </div>
