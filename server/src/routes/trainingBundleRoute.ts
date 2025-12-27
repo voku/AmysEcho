@@ -78,6 +78,19 @@ interface TrainingBundleManifestFile {
   entries: TrainingBundleManifestEntry[];
 }
 
+interface IngestionMetrics {
+  totals: { received: number; rejected: number };
+  missingModalities: { hands: number; pose: number; face: number };
+  byProfile: Record<string, ProfileIngestionMetrics>;
+  updatedAt: string;
+}
+
+interface ProfileIngestionMetrics {
+  received: number;
+  rejected: number;
+  missingModalities: { hands: number; pose: number; face: number };
+}
+
 const trainingBundleUpload = express.raw({
   type: ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
   limit: '64mb',
@@ -121,6 +134,88 @@ const HandFocusSchema = z.enum([
   'both_asymmetric',  // Both hands, but weighted differently
   'either_hand',      // Works with either hand
 ]);
+
+const INGESTION_METRICS_PATH = path.join(TRAINING_DATASETS_DIR, 'ingestion_metrics.json');
+
+function createEmptyIngestionMetrics(): IngestionMetrics {
+  return {
+    totals: { received: 0, rejected: 0 },
+    missingModalities: { hands: 0, pose: 0, face: 0 },
+    byProfile: {},
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function ensureProfileMetrics(
+  metrics: IngestionMetrics,
+  profileKey: string,
+): ProfileIngestionMetrics {
+  if (!metrics.byProfile[profileKey]) {
+    metrics.byProfile[profileKey] = {
+      received: 0,
+      rejected: 0,
+      missingModalities: { hands: 0, pose: 0, face: 0 },
+    };
+  }
+  return metrics.byProfile[profileKey];
+}
+
+function incrementMissingModalities(
+  modalities: z.infer<typeof ModalitiesSchema> | undefined,
+  target: { hands: number; pose: number; face: number },
+): void {
+  const handsMissing = !modalities?.hands?.present;
+  const poseMissing = !modalities?.pose?.present;
+  const faceMissing = !modalities?.face?.present;
+  if (handsMissing) target.hands += 1;
+  if (poseMissing) target.pose += 1;
+  if (faceMissing) target.face += 1;
+}
+
+async function recordIngestionMetrics(options: {
+  profileKey: string;
+  rejected: boolean;
+  modalities?: z.infer<typeof ModalitiesSchema>;
+}): Promise<void> {
+  try {
+    await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
+    await withFileLock(INGESTION_METRICS_PATH, async () => {
+      let metrics = createEmptyIngestionMetrics();
+      try {
+        const raw = await fs.readFile(INGESTION_METRICS_PATH, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          metrics = parsed as IngestionMetrics;
+        }
+      } catch (error: any) {
+        if (error?.code !== 'ENOENT') {
+          logger.warn('Failed to read ingestion metrics; overwriting with fresh counters', {
+            error,
+          });
+        }
+      }
+
+      metrics.totals.received += 1;
+      if (options.rejected) {
+        metrics.totals.rejected += 1;
+      }
+      const profileMetrics = ensureProfileMetrics(metrics, options.profileKey);
+      profileMetrics.received += 1;
+      if (options.rejected) {
+        profileMetrics.rejected += 1;
+      }
+      if (options.modalities) {
+        incrementMissingModalities(options.modalities, metrics.missingModalities);
+        incrementMissingModalities(options.modalities, profileMetrics.missingModalities);
+      }
+      metrics.updatedAt = new Date().toISOString();
+
+      await atomicWriteJson(INGESTION_METRICS_PATH, metrics);
+    });
+  } catch (error) {
+    logger.warn('Failed to record ingestion metrics', { error });
+  }
+}
 
 const MetadataSchema = z
   .object({
@@ -467,7 +562,9 @@ export function registerTrainingBundleRoute(
 ): void {
   app.post('/api/v1/dgs/sample-bundles', auth, trainingBundleUpload, async (req: Request, res: Response) => {
     try {
+      const unknownProfileKey = 'unknown';
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        await recordIngestionMetrics({ profileKey: unknownProfileKey, rejected: true });
         return res.status(400).json({ error: 'ZIP payload required' });
       }
 
@@ -480,6 +577,7 @@ export function registerTrainingBundleRoute(
       } catch (error) {
         console.error('Invalid training bundle ZIP:', error);
         logger.warn('Rejected training bundle: invalid ZIP payload');
+        await recordIngestionMetrics({ profileKey: unknownProfileKey, rejected: true });
         return res.status(400).json({ error: 'Invalid training bundle ZIP' });
       }
 
@@ -493,6 +591,7 @@ export function registerTrainingBundleRoute(
       }
       if (!metadataEntry) {
         logger.warn('Rejected training bundle: metadata.json missing');
+        await recordIngestionMetrics({ profileKey: unknownProfileKey, rejected: true });
         return res.status(400).json({ error: 'metadata.json missing from bundle' });
       }
 
@@ -502,6 +601,7 @@ export function registerTrainingBundleRoute(
       } catch (error) {
         console.error('Failed to read metadata.json from bundle:', error);
         logger.warn('Rejected training bundle: metadata.json unreadable', { error });
+        await recordIngestionMetrics({ profileKey: unknownProfileKey, rejected: true });
         return res.status(400).json({ error: 'Failed to read metadata.json' });
       }
 
@@ -511,17 +611,20 @@ export function registerTrainingBundleRoute(
         const result = MetadataSchema.safeParse(metadata);
         if (!result.success) {
           logger.warn('Rejected training bundle: metadata.json validation failed', { details: result.error.flatten() });
+          await recordIngestionMetrics({ profileKey: unknownProfileKey, rejected: true });
           return res.status(400).json({ error: 'metadata.json validation failed', details: result.error.flatten() });
         }
         parsedMetadata = result.data;
       } catch (error) {
         console.error('metadata.json is not valid JSON:', error);
         logger.warn('Rejected training bundle: metadata.json invalid JSON', { error });
+        await recordIngestionMetrics({ profileKey: unknownProfileKey, rejected: true });
         return res.status(400).json({ error: 'metadata.json must be valid JSON' });
       }
 
       const label = parsedMetadata.label.trim();
       if (!label) {
+        await recordIngestionMetrics({ profileKey: unknownProfileKey, rejected: true });
         return res.status(400).json({ error: 'metadata.label is required' });
       }
 
@@ -529,8 +632,10 @@ export function registerTrainingBundleRoute(
         ? parsedMetadata.profileId.trim()
         : undefined;
       if (profileIdRaw && !PROFILE_ID_PATTERN.test(profileIdRaw)) {
+        await recordIngestionMetrics({ profileKey: unknownProfileKey, rejected: true });
         return res.status(400).json({ error: 'metadata.profileId is invalid' });
       }
+      const metricsProfileKey = profileIdRaw ?? 'unassigned';
 
       const bundleId = genId();
       const profileBucket = profileIdRaw ?? 'unassigned';
@@ -577,6 +682,7 @@ export function registerTrainingBundleRoute(
       } catch (error) {
         console.error('Failed to extract training bundle payload:', error);
         await cleanupBundleRoot(bundleRoot);
+        await recordIngestionMetrics({ profileKey: metricsProfileKey, rejected: true });
         return res.status(400).json({ error: 'Failed to extract training bundle' });
       }
 
@@ -605,6 +711,7 @@ export function registerTrainingBundleRoute(
           reason: error?.message ?? 'unknown',
         });
         await cleanupBundleRoot(bundleRoot);
+        await recordIngestionMetrics({ profileKey: metricsProfileKey, rejected: true });
         return res.status(400).json({
           error: 'landmarks.json missing or invalid',
           ...(error?.message ? { details: error.message } : {}),
@@ -675,6 +782,12 @@ export function registerTrainingBundleRoute(
         await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
       });
 
+      await recordIngestionMetrics({
+        profileKey: metricsProfileKey,
+        rejected: false,
+        modalities: mergedModalities,
+      });
+
       if (!mergedModalities.hands.present) {
         logger.warn('Training bundle missing required hand landmarks', {
           bundleId,
@@ -712,6 +825,7 @@ export function registerTrainingBundleRoute(
       res.status(202).json({ status: 'queued', id: bundleId, trainingJob });
     } catch (error) {
       console.error('Error saving training bundle:', error);
+      await recordIngestionMetrics({ profileKey: 'unknown', rejected: true });
       res.status(500).json({ error: 'Failed to save training bundle' });
     }
   });

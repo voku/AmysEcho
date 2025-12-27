@@ -24,7 +24,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Implement `/api/v1/dgs/sample-bundles` in `server/src/server.ts` that accepts multipart uploads. Save bundles under `data/uploads/<profileId>/<timestamp>/`, reject bundles missing `landmarks.json` with HTTP 400 after cleaning up, and register successful uploads in `data/datasets/training_manifest.json`.
 - [x] Write integration tests in `server/test/trainingBundles.test.ts` that POST a fixture zip and assert the manifest entry.
 - [ ] Mirror client bundle richness: validate that ingested samples persist pose/face landmarks, derived features (e.g., lip-pointing distance), smoothing metadata, and consent/license details into dataset manifests without dropping fields.
-- [ ] Add ingestion-level analytics: log counts of missing modalities, rejected bundles, and per-profile coverage so we can spot shaky cameras or poor lighting before training.
+- [x] Add ingestion-level analytics: log counts of missing modalities, rejected bundles, and per-profile coverage so we can spot shaky cameras or poor lighting before training.
 
 ## 4. Retrain the Sign Language Recognition Model with Bundle Data (`server/src/amyserver_tools`)
 - [x] Extend `train_mlp.py` to load from `training_manifest.json`, extracting landmarks either from `landmarks.json` or by running MediaPipe on the stored clip. Cache extracted landmarks back to `data/uploads/.../landmarks_cached.json`.

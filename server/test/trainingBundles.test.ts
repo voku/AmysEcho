@@ -40,6 +40,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let app: Express;
   let dataDir: string;
   let manifestPath: string;
+  let ingestionMetricsPath: string;
   type TriggerCall = { bundleId: string; profileId: string | null; label: string };
   type TriggerResult = { jobId: string; status: string; pollUrl?: string };
   let triggerCalls: TriggerCall[];
@@ -71,7 +72,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     }).accessToken;
     const mod = await import('../src/routes/trainingBundleRoute.js');
     const registerRoute: RegisterTrainingBundleRoute = mod.registerTrainingBundleRoute;
-    const { TRAINING_MANIFEST_PATH } = await import('../src/constants/modelPaths.js');
+    const { TRAINING_MANIFEST_PATH, TRAINING_DATASETS_DIR } = await import('../src/constants/modelPaths.js');
     app = express();
     let counter = 0;
     triggerCalls = [];
@@ -87,6 +88,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       },
     });
     manifestPath = TRAINING_MANIFEST_PATH;
+    ingestionMetricsPath = path.join(TRAINING_DATASETS_DIR, 'ingestion_metrics.json');
   });
 
   beforeEach(async () => {
@@ -218,6 +220,20 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const bundleZipPath = path.join(dataDir, entry.storage.bundle);
     const bundleStat = await fs.stat(bundleZipPath);
     expect(bundleStat.isFile()).toBe(true);
+
+    const metricsRaw = await fs.readFile(ingestionMetricsPath, 'utf8');
+    const metrics = JSON.parse(metricsRaw) as {
+      totals: { received: number; rejected: number };
+      missingModalities: { hands: number; pose: number; face: number };
+      byProfile: Record<string, { received: number; rejected: number; missingModalities: Record<string, number> }>;
+    };
+    expect(metrics.totals).toEqual({ received: 1, rejected: 0 });
+    expect(metrics.missingModalities).toEqual({ hands: 0, pose: 1, face: 1 });
+    expect(metrics.byProfile[metadata.profileId]).toEqual({
+      received: 1,
+      rejected: 0,
+      missingModalities: { hands: 0, pose: 1, face: 1 },
+    });
   });
 
   it('stores handFocus metadata when provided', async () => {
