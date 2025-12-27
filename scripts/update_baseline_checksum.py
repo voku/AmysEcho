@@ -2,6 +2,7 @@
 """Update the checksum file for the global baseline MLP artifact."""
 
 from __future__ import annotations
+
 import hashlib
 from pathlib import Path
 
