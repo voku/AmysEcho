@@ -72,6 +72,9 @@ const REQUIRE_BASELINE_ARTIFACT = ['1', 'true', 'yes'].includes(
   (process.env.MLP_REQUIRE_BASELINE ?? (process.env.NODE_ENV === 'production' ? '1' : '0')).toLowerCase(),
 );
 const EXPECTED_BASELINE_SHA = (process.env.MLP_BASELINE_SHA256 ?? '').toLowerCase();
+const TRAINING_METADATA_FILENAME = 'training_metadata.json';
+const MODALITY_KEYS = ['hands', 'pose', 'face'] as const;
+type ModalityKey = (typeof MODALITY_KEYS)[number];
 
 async function assertBaselineIntegrity(): Promise<void> {
   if (!EXPECTED_BASELINE_SHA) {
@@ -245,6 +248,83 @@ export async function writeMinimalMlpModel(
   }
 }
 
+type TrainingMetadata = {
+  version?: string;
+  modalities?: ModalityKey[];
+  modalityCounts?: Partial<Record<ModalityKey, number>>;
+};
+
+function normalizeModalityCounts(raw: unknown): Partial<Record<ModalityKey, number>> | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const record = raw as Record<string, unknown>;
+  const counts: Partial<Record<ModalityKey, number>> = {};
+  for (const key of MODALITY_KEYS) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+      counts[key] = value;
+    }
+  }
+  return Object.keys(counts).length > 0 ? counts : null;
+}
+
+function readTrainingMetadata(filePath: string): TrainingMetadata | null {
+  const metadataPath = path.join(path.dirname(filePath), TRAINING_METADATA_FILENAME);
+  try {
+    const raw = fsSync.readFileSync(metadataPath, 'utf8');
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const version = typeof parsed.version === 'string' ? parsed.version : undefined;
+    const modalities = Array.isArray(parsed.modalities)
+      ? parsed.modalities.filter((entry): entry is ModalityKey => MODALITY_KEYS.includes(entry as ModalityKey))
+      : undefined;
+    const modalityCounts =
+      normalizeModalityCounts(parsed.modality_counts) ?? normalizeModalityCounts(parsed.modalityCounts) ?? undefined;
+    if (!version && (!modalities || modalities.length === 0) && !modalityCounts) {
+      return null;
+    }
+    return { version, modalities, modalityCounts };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return null;
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console -- Metadata read failures should not break model downloads.
+      console.warn(
+        `[mlpModelArtifacts] Failed to read training metadata at ${metadataPath}:`,
+        error,
+      );
+    }
+    return null;
+  }
+}
+
+function formatModalities(modalities: Partial<Record<ModalityKey, number>> | null): string | null {
+  if (!modalities) {
+    return null;
+  }
+  const entries = MODALITY_KEYS
+    .map((key) => [key, modalities[key]] as const)
+    .filter((pair): pair is [ModalityKey, number] => typeof pair[1] === 'number' && pair[1] > 0);
+  if (entries.length === 0) {
+    return null;
+  }
+  return entries.map(([key]) => key).join(',');
+}
+
+function formatModalityCounts(modalities: Partial<Record<ModalityKey, number>> | null): string | null {
+  if (!modalities) {
+    return null;
+  }
+  const entries = MODALITY_KEYS
+    .map((key) => [key, modalities[key]] as const)
+    .filter((pair): pair is [ModalityKey, number] => typeof pair[1] === 'number');
+  if (entries.length === 0) {
+    return null;
+  }
+  return JSON.stringify(Object.fromEntries(entries));
+}
+
 export type ModelResponseMetadata = {
   stat: Stats;
   sha256: string;
@@ -298,6 +378,23 @@ export function applyModelResponseHeaders(
   res.setHeader('X-Model-Source', profileId ? 'profile' : 'global');
   if (profileId) {
     res.setHeader('X-Model-Profile', profileId);
+  }
+  const trainingMetadata = readTrainingMetadata(filePath);
+  if (trainingMetadata) {
+    if (trainingMetadata.version) {
+      res.setHeader('X-Training-Version', trainingMetadata.version);
+    }
+    const modalitiesHeader =
+      trainingMetadata.modalities && trainingMetadata.modalities.length > 0
+        ? trainingMetadata.modalities.join(',')
+        : formatModalities(trainingMetadata.modalityCounts ?? null);
+    if (modalitiesHeader) {
+      res.setHeader('X-Training-Modalities', modalitiesHeader);
+    }
+    const modalityCountsHeader = formatModalityCounts(trainingMetadata.modalityCounts ?? null);
+    if (modalityCountsHeader) {
+      res.setHeader('X-Training-Modalities-Counts', modalityCountsHeader);
+    }
   }
   res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
 }

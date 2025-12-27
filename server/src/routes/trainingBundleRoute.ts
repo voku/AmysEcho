@@ -92,6 +92,10 @@ const trainingBundleUpload = express.raw({
   limit: '64mb',
 });
 
+const MODALITY_KEYS = ['hands', 'pose', 'face'] as const;
+type ModalityKey = (typeof MODALITY_KEYS)[number];
+const INGESTION_METRICS_PATH = path.join(TRAINING_DATASETS_DIR, 'ingestion_metrics.json');
+
 const SmoothingSchema = z
   .object({
     method: z.string().optional(),
@@ -158,6 +162,23 @@ const MetadataSchema = z
     handFocus: HandFocusSchema.optional(),
   })
 .passthrough();
+
+type IngestionMetrics = {
+  updatedAt: string;
+  totals: {
+    uploads: number;
+    rejected: number;
+    missingModalities: Record<ModalityKey, number>;
+  };
+  profiles: Record<
+    string,
+    {
+      uploads: number;
+      rejected: number;
+      missingModalities: Record<ModalityKey, number>;
+    }
+  >;
+};
 
 const LandmarkFrameSchema = z
   .object({
@@ -241,6 +262,117 @@ function isPathInside(target: string, root: string): boolean {
   const normalizedRoot = root.endsWith(path.sep) ? root : `${root}${path.sep}`;
   const resolved = path.resolve(target);
   return resolved === root || resolved.startsWith(normalizedRoot);
+}
+
+function createEmptyModalities(): Record<ModalityKey, number> {
+  return { hands: 0, pose: 0, face: 0 };
+}
+
+function createEmptyIngestionMetrics(): IngestionMetrics {
+  return {
+    updatedAt: new Date().toISOString(),
+    totals: { uploads: 0, rejected: 0, missingModalities: createEmptyModalities() },
+    profiles: {},
+  };
+}
+
+function normalizeModalities(raw: unknown): Record<ModalityKey, number> {
+  const base = createEmptyModalities();
+  if (!raw || typeof raw !== 'object') {
+    return base;
+  }
+  const record = raw as Record<string, unknown>;
+  for (const key of MODALITY_KEYS) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+      base[key] = value;
+    }
+  }
+  return base;
+}
+
+function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
+  if (!raw || typeof raw !== 'object') {
+    return createEmptyIngestionMetrics();
+  }
+  const record = raw as Record<string, unknown>;
+  const totalsRaw = record.totals as Record<string, unknown> | undefined;
+  const profilesRaw = record.profiles as Record<string, unknown> | undefined;
+  const metrics: IngestionMetrics = {
+    updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date().toISOString(),
+    totals: {
+      uploads: typeof totalsRaw?.uploads === 'number' ? totalsRaw.uploads : 0,
+      rejected: typeof totalsRaw?.rejected === 'number' ? totalsRaw.rejected : 0,
+      missingModalities: normalizeModalities(totalsRaw?.missingModalities),
+    },
+    profiles: {},
+  };
+
+  if (profilesRaw && typeof profilesRaw === 'object') {
+    for (const [profileId, profileValue] of Object.entries(profilesRaw)) {
+      if (!profileValue || typeof profileValue !== 'object') {
+        continue;
+      }
+      const profileRecord = profileValue as Record<string, unknown>;
+      metrics.profiles[profileId] = {
+        uploads: typeof profileRecord.uploads === 'number' ? profileRecord.uploads : 0,
+        rejected: typeof profileRecord.rejected === 'number' ? profileRecord.rejected : 0,
+        missingModalities: normalizeModalities(profileRecord.missingModalities),
+      };
+    }
+  }
+
+  return metrics;
+}
+
+async function recordIngestionMetrics(update: {
+  profileId: string | null;
+  status: 'accepted' | 'rejected';
+  missingModalities?: ModalityKey[];
+}): Promise<void> {
+  try {
+    await ensureDataDir();
+    await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
+    await withFileLock(INGESTION_METRICS_PATH, async () => {
+      let metrics = createEmptyIngestionMetrics();
+      try {
+        const raw = await fs.readFile(INGESTION_METRICS_PATH, 'utf8');
+        metrics = normalizeIngestionMetrics(JSON.parse(raw));
+      } catch (error: any) {
+        if (error?.code !== 'ENOENT') {
+          logger.warn('Failed to read ingestion metrics; reinitializing', { error });
+        }
+      }
+
+      const profileKey = update.profileId ?? 'unassigned';
+      const profileMetrics = metrics.profiles[profileKey] ?? {
+        uploads: 0,
+        rejected: 0,
+        missingModalities: createEmptyModalities(),
+      };
+
+      if (update.status === 'accepted') {
+        metrics.totals.uploads += 1;
+        profileMetrics.uploads += 1;
+      } else {
+        metrics.totals.rejected += 1;
+        profileMetrics.rejected += 1;
+      }
+
+      if (update.missingModalities) {
+        for (const modality of update.missingModalities) {
+          metrics.totals.missingModalities[modality] += 1;
+          profileMetrics.missingModalities[modality] += 1;
+        }
+      }
+
+      metrics.updatedAt = new Date().toISOString();
+      metrics.profiles[profileKey] = profileMetrics;
+      await atomicWriteJson(INGESTION_METRICS_PATH, metrics);
+    });
+  } catch (error) {
+    logger.warn('Failed to update ingestion metrics', { error });
+  }
 }
 
 function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
@@ -508,6 +640,12 @@ export function registerTrainingBundleRoute(
   deps: TrainingBundleRouteDeps = {},
 ): void {
   app.post('/api/v1/dgs/sample-bundles', auth, trainingBundleUpload, async (req: Request, res: Response) => {
+    let metricsProfileId: string | null = null;
+    let metricsRecorded = false;
+    const recordMetrics = async (update: { status: 'accepted' | 'rejected'; missingModalities?: ModalityKey[] }) => {
+      metricsRecorded = true;
+      await recordIngestionMetrics({ profileId: metricsProfileId, ...update });
+    };
     try {
       if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
         return res.status(400).json({ error: 'ZIP payload required' });
@@ -570,7 +708,9 @@ export function registerTrainingBundleRoute(
       const profileIdRaw = isNonEmptyString(parsedMetadata.profileId)
         ? parsedMetadata.profileId.trim()
         : undefined;
+      metricsProfileId = profileIdRaw && PROFILE_ID_PATTERN.test(profileIdRaw) ? profileIdRaw : null;
       if (profileIdRaw && !PROFILE_ID_PATTERN.test(profileIdRaw)) {
+        await recordMetrics({ status: 'rejected' });
         return res.status(400).json({ error: 'metadata.profileId is invalid' });
       }
 
@@ -626,6 +766,7 @@ export function registerTrainingBundleRoute(
       const stillFilename = normalizeClipFilename(parsedMetadata.stillFilename);
       const recordingError = validateRecordingMetadata(parsedMetadata.recording, clipFilename);
       if (recordingError) {
+        await recordMetrics({ status: 'rejected' });
         return res.status(400).json({ error: recordingError });
       }
 
@@ -652,6 +793,7 @@ export function registerTrainingBundleRoute(
           reason: error?.message ?? 'unknown',
         });
         await cleanupBundleRoot(bundleRoot);
+        await recordMetrics({ status: 'rejected' });
         return res.status(400).json({
           error: 'landmarks.json missing or invalid',
           ...(error?.message ? { details: error.message } : {}),
@@ -723,8 +865,7 @@ export function registerTrainingBundleRoute(
       });
 
       // Analytics: Log missing modalities for monitoring data quality
-      const modalities: Array<keyof typeof mergedModalities> = ['hands', 'pose', 'face'];
-      const missingModalities = modalities.filter(modality => {
+      const missingModalities = MODALITY_KEYS.filter((modality) => {
         const isMissing = !mergedModalities[modality].present;
         if (isMissing && modality === 'hands') {
           logger.warn('Training bundle missing required hand landmarks', {
@@ -756,6 +897,8 @@ export function registerTrainingBundleRoute(
         modalities: mergedModalities,
       });
 
+      await recordMetrics({ status: 'accepted', missingModalities });
+
       let trainingJob: TriggerTrainingJobResult | null = null;
       if (deps.triggerTrainingJob) {
         try {
@@ -778,6 +921,9 @@ export function registerTrainingBundleRoute(
       res.status(202).json({ status: 'queued', id: bundleId, trainingJob });
     } catch (error) {
       console.error('Error saving training bundle:', error);
+      if (metricsProfileId && !metricsRecorded) {
+        await recordMetrics({ status: 'rejected' });
+      }
       res.status(500).json({ error: 'Failed to save training bundle' });
     }
   });

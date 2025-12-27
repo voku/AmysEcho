@@ -158,6 +158,9 @@ SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestur
 
 WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
+MODALITY_KEYS = ("hands", "pose", "face")
+TRAINING_METADATA_FILENAME = "training_metadata.json"
+
 def _emit_event(payload: dict[str, object]) -> None:
     """Log a structured progress event."""
 
@@ -355,13 +358,58 @@ def _extract_modality_coverage(metadata: dict) -> dict[str, float] | None:
     if not isinstance(modalities, dict):
         return None
     coverage: dict[str, float] = {}
-    for key in ("hands", "pose", "face"):
+    for key in MODALITY_KEYS:
         stats = modalities.get(key)
         if isinstance(stats, dict):
             raw = stats.get("coverage")
             if isinstance(raw, (int, float)) and math.isfinite(raw):
                 coverage[key] = float(raw)
     return coverage or None
+
+
+def _summarize_frame_modalities(frames: list[dict]) -> tuple[dict[str, int], dict[str, float]]:
+    counts = {key: 0 for key in MODALITY_KEYS}
+    total_frames = len(frames)
+    for frame in frames:
+        landmarks = frame.get("landmarks")
+        pose_landmarks = frame.get("poseLandmarks")
+        face_landmarks = frame.get("faceLandmarks")
+        if isinstance(landmarks, list) and len(landmarks) > 0:
+            counts["hands"] += 1
+        if isinstance(pose_landmarks, list) and len(pose_landmarks) > 0:
+            counts["pose"] += 1
+        if isinstance(face_landmarks, list) and len(face_landmarks) > 0:
+            counts["face"] += 1
+    coverage = {
+        key: (counts[key] / total_frames if total_frames > 0 else 0.0)
+        for key in MODALITY_KEYS
+    }
+    return counts, coverage
+
+
+def _resolve_modality_coverage(
+    explicit: dict[str, float] | None,
+    fallback_coverage: dict[str, float],
+) -> dict[str, float] | None:
+    if explicit:
+        return explicit
+    if any(value > 0 for value in fallback_coverage.values()):
+        return fallback_coverage
+    return None
+
+
+def _infer_modality_presence(
+    coverage: dict[str, float] | None,
+    frame_counts: dict[str, int],
+) -> dict[str, bool]:
+    presence: dict[str, bool] = {}
+    for key in MODALITY_KEYS:
+        value = coverage.get(key) if coverage else None
+        if isinstance(value, (int, float)) and value > 0:
+            presence[key] = True
+        else:
+            presence[key] = frame_counts.get(key, 0) > 0
+    return presence
 
 
 def _analyze_frame_timing(frames: list[dict]) -> dict[str, float] | None:
@@ -1368,6 +1416,8 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
     cache_hits = 0
     cache_misses = 0
     cache_writes = 0
+    modality_counts = {key: 0 for key in MODALITY_KEYS}
+    modality_sample_total = 0
 
     for entry in entries:
         label = entry.get("label")
@@ -1435,6 +1485,9 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
                 frame_list.append(extracted)
 
         timing_stats = _apply_timing_weights(frame_list)
+        frame_modality_counts, frame_modality_coverage = _summarize_frame_modalities(frame_list)
+        modality_coverage = _resolve_modality_coverage(modality_coverage, frame_modality_coverage)
+        modality_presence = _infer_modality_presence(modality_coverage, frame_modality_counts)
 
         # Cache newly extracted frames
         if frames_from_clip and frame_list:
@@ -1490,6 +1543,11 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
         # 4. Generate sliding windows for the actual sign
         sign_samples = create_sliding_windows(normalized_frames, label, ctx, frame_weights)
         data.extend(sign_samples)
+        if sign_samples:
+            modality_sample_total += len(sign_samples)
+            for key in MODALITY_KEYS:
+                if modality_presence.get(key):
+                    modality_counts[key] += len(sign_samples)
 
     # ========== PROCESS DEFAULT VIDEO EXAMPLES (GLOBAL) ==========
     video_examples_dir = DATA_DIR / "dgs_video_examples"
@@ -1534,15 +1592,27 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
                         v_weights.append(w)
 
                 if v_normalized:
-                    v_ctx = {'profile_id': None}  # Global examples
+                    v_frame_counts, v_frame_coverage = _summarize_frame_modalities(v_frames)
+                    v_presence = _infer_modality_presence(v_frame_coverage, v_frame_counts)
+                    v_ctx = {
+                        'profile_id': None,
+                        'modality_coverage': v_frame_coverage,
+                    }  # Global examples
                     v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
                     data.extend(v_samples)
+                    if v_samples:
+                        modality_sample_total += len(v_samples)
+                        for key in MODALITY_KEYS:
+                            if v_presence.get(key):
+                                modality_counts[key] += len(v_samples)
 
     stats = {
         "entries": len(entries),
         "cache_hits": cache_hits,
         "cache_misses": cache_misses,
         "cache_writes": cache_writes,
+        "modality_counts": modality_counts,
+        "modality_sample_total": modality_sample_total,
     }
     return data, stats
 
@@ -1842,6 +1912,38 @@ def save_model(
         pass
 
 
+def _summarize_modality_counts(samples: list[Sample]) -> dict[str, int]:
+    counts = {key: 0 for key in MODALITY_KEYS}
+    for sample in samples:
+        coverage = sample.modality_coverage or {}
+        for key in MODALITY_KEYS:
+            value = coverage.get(key)
+            if isinstance(value, (int, float)) and value > 0:
+                counts[key] += 1
+    return counts
+
+
+def _write_training_metadata(model_dir: Path, version: str, samples: list[Sample]) -> None:
+    counts = _summarize_modality_counts(samples)
+    modalities = [key for key in MODALITY_KEYS if counts[key] > 0]
+    payload = {
+        "version": version,
+        "modalities": modalities,
+        "modality_counts": counts,
+        "sample_count": len(samples),
+    }
+    path = model_dir / TRAINING_METADATA_FILENAME
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    model_dir.mkdir(parents=True, exist_ok=True)
+    with tmp_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+    os.replace(tmp_path, path)
+    try:
+        os.chmod(path, 0o640)
+    except OSError:
+        pass
+
+
 def _compute_accuracy(
     X: np.ndarray,
     y: np.ndarray,
@@ -1907,6 +2009,7 @@ def run_training_pipeline(samples: list[Sample], *, config: TrainingConfig | Non
 
     resolved_config = config or TrainingConfig()
     label_set = sorted({s.label for s in samples})
+    training_version = datetime.now(timezone.utc).isoformat()
 
     # Global training
     X, y, labels, weights = dataset_to_arrays(
@@ -1966,7 +2069,9 @@ def run_training_pipeline(samples: list[Sample], *, config: TrainingConfig | Non
     class_counts = np.bincount(y, minlength=num_classes)
 
     if output_dir:
-        save_model(output_dir / "global" / "amy_model.npz", global_best_weights, label_set, class_counts)
+        global_dir = output_dir / "global"
+        save_model(global_dir / "amy_model.npz", global_best_weights, label_set, class_counts)
+        _write_training_metadata(global_dir, training_version, samples)
 
     # Per-profile models
     profile_reports = {}
@@ -2019,7 +2124,9 @@ def run_training_pipeline(samples: list[Sample], *, config: TrainingConfig | Non
         p_counts = np.bincount(p_y, minlength=p_num_classes)
 
         if output_dir:
-            save_model(output_dir / profile_id / "amy_model.npz", p_best_weights, p_labels, p_counts)
+            profile_dir = output_dir / profile_id
+            save_model(profile_dir / "amy_model.npz", p_best_weights, p_labels, p_counts)
+            _write_training_metadata(profile_dir, training_version, p_samples)
 
         profile_reports[profile_id] = {
             "accuracy": p_accuracy,
@@ -2039,7 +2146,7 @@ def run_training_pipeline(samples: list[Sample], *, config: TrainingConfig | Non
             "class_counts": class_counts.tolist()
         },
         "profiles": profile_reports,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": training_version
     }
 
 
