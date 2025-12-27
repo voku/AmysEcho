@@ -49,7 +49,7 @@ test('POST /train-model invalid sample items', async () => {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${TEST_TOKEN}`,
     },
-    body: JSON.stringify({ samples: [{ gestureDefinitionId: 123, landmarkData: {} }] }),
+    body: JSON.stringify({ samples: [{ signId: 123, landmarkData: {} }] }),
   });
   assert.strictEqual(res.status, 400);
   const body = await res.json();
@@ -59,7 +59,7 @@ test('POST /train-model invalid sample items', async () => {
 
 test('POST /train-model processes samples and returns model', async () => {
   const sample = {
-    gestureDefinitionId: 'g1',
+    signId: 'g1',
     landmarkData: Array.from({ length: 42 }, (_, i) => [i * 0.01, 0.1, 0.1]),
     profileId: 'p1',
   };

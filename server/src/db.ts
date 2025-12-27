@@ -1,7 +1,7 @@
 import {
   SymbolRecord,
-  GestureDefinition,
-  GestureTrainingData,
+  SignDefinition,
+  SignTrainingData,
   InteractionLog,
   Profile,
   LearningAnalytics,
@@ -18,8 +18,8 @@ import { randomBytes } from 'crypto';
 
 export interface Database {
   symbols: SymbolRecord[];
-  gestureDefinitions: GestureDefinition[];
-  gestureTrainingData: GestureTrainingData[];
+  signDefinitions: SignDefinition[];
+  signTrainingData: SignTrainingData[];
   interactionLogs: InteractionLog[];
   profiles: Profile[];
   vocabularySets: VocabularySet[];
@@ -33,8 +33,8 @@ export interface Database {
 
 export const createDatabase = (): Database => ({
   symbols: [],
-  gestureDefinitions: [],
-  gestureTrainingData: [],
+  signDefinitions: [],
+  signTrainingData: [],
   interactionLogs: [],
   profiles: [],
   vocabularySets: [],
@@ -50,18 +50,18 @@ export const addSymbol = (db: Database, symbol: SymbolRecord): void => {
   db.symbols.push(symbol);
 };
 
-export const addGestureDefinition = (
+export const addSignDefinition = (
   db: Database,
-  def: GestureDefinition,
+  def: SignDefinition,
 ): void => {
-  db.gestureDefinitions.push(def);
+  db.signDefinitions.push(def);
 };
 
-export const addGestureTrainingData = (
+export const addSignTrainingData = (
   db: Database,
-  data: GestureTrainingData,
+  data: SignTrainingData,
 ): void => {
-  db.gestureTrainingData.push(data);
+  db.signTrainingData.push(data);
 };
 
 export const addInteractionLog = (
@@ -144,26 +144,26 @@ export const removeSymbol = (db: Database, id: string): void => {
   removeById(db.symbols, id);
 };
 
-export const updateGestureDefinition = (
+export const updateSignDefinition = (
   db: Database,
-  def: GestureDefinition,
+  def: SignDefinition,
 ): void => {
-  updateById(db.gestureDefinitions, def);
+  updateById(db.signDefinitions, def);
 };
 
-export const removeGestureDefinition = (db: Database, id: string): void => {
-  removeById(db.gestureDefinitions, id);
+export const removeSignDefinition = (db: Database, id: string): void => {
+  removeById(db.signDefinitions, id);
 };
 
-export const updateGestureTrainingData = (
+export const updateSignTrainingData = (
   db: Database,
-  data: GestureTrainingData,
+  data: SignTrainingData,
 ): void => {
-  updateById(db.gestureTrainingData, data);
+  updateById(db.signTrainingData, data);
 };
 
-export const removeGestureTrainingData = (db: Database, id: string): void => {
-  removeById(db.gestureTrainingData, id);
+export const removeSignTrainingData = (db: Database, id: string): void => {
+  removeById(db.signTrainingData, id);
 };
 
 export const updateInteractionLog = (
@@ -226,15 +226,15 @@ export const removeLearningAnalytics = (db: Database, id: string): void => {
 export const getSymbolById = (db: Database, id: string): SymbolRecord | undefined =>
   db.symbols.find((s) => s.id === id);
 
-export const getGestureDefinitionById = (
+export const getSignDefinitionById = (
   db: Database,
   id: string,
-): GestureDefinition | undefined => db.gestureDefinitions.find((g) => g.id === id);
+): SignDefinition | undefined => db.signDefinitions.find((g) => g.id === id);
 
-export const getGestureTrainingDataById = (
+export const getSignTrainingDataById = (
   db: Database,
   id: string,
-): GestureTrainingData | undefined => db.gestureTrainingData.find((d) => d.id === id);
+): SignTrainingData | undefined => db.signTrainingData.find((d) => d.id === id);
 
 export const getInteractionLogById = (
   db: Database,
@@ -347,27 +347,27 @@ export const deleteProfileData = async (
 
 export const logCorrection = (
   db: Database,
-  predictedGestureId: string,
-  correctedGestureId: string,
+  predictedSignId: string,
+  correctedSignId: string,
   landmarkData: unknown,
 ): void => {
-  const training: GestureTrainingData = {
+  const training: SignTrainingData = {
     id: generateId(),
-    gestureDefinitionId: correctedGestureId,
+    signId: correctedSignId,
     landmarkData,
     source: 'HIP_3',
     syncStatus: 'pending',
     approved: false,
   };
-  addGestureTrainingData(db, training);
+  addSignTrainingData(db, training);
 
   const log: InteractionLog = {
     id: generateId(),
-    gestureDefinitionId: predictedGestureId,
+    signId: predictedSignId,
     wasSuccessful: false,
     confidenceScore: 0,
     timestamp: Date.now(),
-    caregiverOverrideId: correctedGestureId,
+    caregiverOverrideId: correctedSignId,
     processedBy: 'local',
   };
   addInteractionLog(db, log);

@@ -6,7 +6,7 @@ import { spawn } from 'child_process';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
-import { registerCustomGesturesRoute } from './routes/customGesturesRoute.js';
+import { registerCustomSignsRoute } from './routes/customSignsRoute.js';
 import { registerGdprRoutes } from './routes/gdprRoutes.js';
 import { createLatestMlpModelHandler } from './routes/latestMlpModelRoute.js';
 import { registerAuthRoutes } from './routes/authRoutes.js';
@@ -196,7 +196,7 @@ const FrameSchema = z.object({
 });
 
 type TrainingSample = {
-  gestureDefinitionId: string;
+  signId: string;
   profileId?: string | null;
   landmarkData: number[][] | z.infer<typeof FrameSchema>[];
 };
@@ -368,7 +368,7 @@ async function runTrainingWorkflow(
 
   const toAdd = samples.map((s) => ({
     id: genId(),
-    label: s.gestureDefinitionId,
+    label: s.signId,
     profileId: s.profileId ?? undefined,
     landmarks: s.landmarkData,
     ts: Date.now(),
@@ -541,7 +541,7 @@ registerTrainingBundleRoute(app, genId, {
   },
 });
 
-registerCustomGesturesRoute(app);
+registerCustomSignsRoute(app);
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
@@ -622,7 +622,7 @@ app.post('/api/v1/crash-reports', auth, async (req: Request, res: Response) => {
   }
 });
 
-const gestureToString = (g: unknown): string | null => {
+const signToString = (g: unknown): string | null => {
   if (typeof g === 'string') return g;
   if (g && typeof g === 'object') {
     const { left, right } = g as { left?: unknown; right?: unknown };
@@ -633,8 +633,8 @@ const gestureToString = (g: unknown): string | null => {
   return null;
 };
 
-const GesturePayloadSchema = z.object({
-  gesture: z.union([
+const SignPayloadSchema = z.object({
+  sign: z.union([
     z.string().min(1),
     z.object({ left: z.string().min(1), right: z.string().min(1) }),
   ]),
@@ -642,19 +642,19 @@ const GesturePayloadSchema = z.object({
 
 app.post('/api/v1/corrections', auth, async (req: Request, res: Response) => {
 
-  const parsed = GesturePayloadSchema.safeParse(req.body);
+  const parsed = SignPayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res
       .status(400)
       .json({ error: 'Invalid correction', details: parsed.error.flatten() });
   }
-  const gestureStr = gestureToString(parsed.data.gesture)!;
+  const signStr = signToString(parsed.data.sign)!;
   try {
-    logCorrection(dbInstance, 'unknown', gestureStr, null);
+    logCorrection(dbInstance, 'unknown', signStr, null);
     const record: Correction = {
       id: genId(),
-      predictedGesture: 'unknown',
-      actualGesture: gestureStr,
+      predictedSign: 'unknown',
+      actualSign: signStr,
       confidence: 0,
       timestamp: Date.now(),
       isSynced: false,
@@ -669,18 +669,18 @@ app.post('/api/v1/corrections', auth, async (req: Request, res: Response) => {
 });
 
 app.post('/api/v1/negative-samples', auth, async (req: Request, res: Response) => {
-  const parsed = GesturePayloadSchema.safeParse(req.body);
+  const parsed = SignPayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       error: 'Invalid negative sample',
       details: parsed.error.flatten(),
     });
   }
-  const gestureStr = gestureToString(parsed.data.gesture)!;
+  const signStr = signToString(parsed.data.sign)!;
   try {
     const record: NegativeSample = {
       id: genId(),
-      gesture: gestureStr,
+      sign: signStr,
       timestamp: Date.now(),
     };
     addNegativeSample(dbInstance, record);
@@ -694,7 +694,7 @@ app.post('/api/v1/negative-samples', auth, async (req: Request, res: Response) =
 
 app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) => {
   const SampleSchema = z.object({
-    gestureDefinitionId: z.string().min(1),
+    signId: z.string().min(1),
     profileId: z.string().optional(),
     landmarkData: z.union([
       z
@@ -722,7 +722,7 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
   const samples: Sample[] = parsed.data.samples ?? [];
   const triggeredByBundles = parsed.data.trigger === 'bundles';
   const trainingSamples: TrainingSample[] = samples.map((sample) => ({
-    gestureDefinitionId: sample.gestureDefinitionId,
+    signId: sample.signId,
     profileId: sample.profileId ?? null,
     landmarkData: sample.landmarkData,
   }));
@@ -866,7 +866,7 @@ app.get('/api/models/profiles', auth, async (_req: Request, res: Response) => {
     interface ProfileInfo {
       profileId: string;
       modelAvailable: boolean;
-      gestureCount: number;
+      signCount: number;
       lastUpdated?: Date;
     }
     const profiles: ProfileInfo[] = [];
@@ -895,12 +895,12 @@ app.get('/api/models/profiles', auth, async (_req: Request, res: Response) => {
       }
 
       const counts = profileCounts.get(pid) || {};
-      const gestureCount = Object.values(counts).reduce((a, b) => a + b, 0);
+      const signCount = Object.values(counts).reduce((a, b) => a + b, 0);
 
       profiles.push({
         profileId: pid,
         modelAvailable,
-        gestureCount,
+        signCount,
         ...(lastUpdated ? { lastUpdated } : {})
       });
     }
@@ -911,7 +911,7 @@ app.get('/api/models/profiles', auth, async (_req: Request, res: Response) => {
         profiles.push({
           profileId: pid,
           modelAvailable: false,
-          gestureCount: Object.values(counts).reduce((a, b) => a + b, 0)
+          signCount: Object.values(counts).reduce((a, b) => a + b, 0)
         });
       }
     }

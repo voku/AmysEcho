@@ -5,14 +5,14 @@ import express, { type Express } from 'express';
 import request from 'supertest';
 import { AuthService } from '../src/services/authService.js';
 
-describe('custom gestures route', () => {
+describe('custom signs route', () => {
   let app: Express;
   let dataDir: string;
-  let gesturesPath: string;
+  let signsPath: string;
   let accessToken: string;
 
   beforeAll(async () => {
-    dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-gestures-'));
+    dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-signs-'));
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     jest.resetModules();
     accessToken = AuthService.generateTokens({
@@ -22,11 +22,11 @@ describe('custom gestures route', () => {
     }).accessToken;
     app = express();
     app.use(express.json());
-    const mod = await import('../src/routes/customGesturesRoute.js');
-    const registerCustomGesturesRoute = mod.registerCustomGesturesRoute;
+    const mod = await import('../src/routes/customSignsRoute.js');
+    const registerCustomSignsRoute = mod.registerCustomSignsRoute;
     const { TRAINING_DATASETS_DIR } = await import('../src/constants/modelPaths.js');
-    registerCustomGesturesRoute(app);
-    gesturesPath = path.join(TRAINING_DATASETS_DIR, 'custom_gestures.json');
+    registerCustomSignsRoute(app);
+    signsPath = path.join(TRAINING_DATASETS_DIR, 'custom_signs.json');
   });
 
   afterAll(async () => {
@@ -37,12 +37,12 @@ describe('custom gestures route', () => {
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true }).catch(() => {});
     await fs.mkdir(dataDir, { recursive: true });
-    await fs.rm(path.dirname(gesturesPath), { recursive: true, force: true }).catch(() => {});
+    await fs.rm(path.dirname(signsPath), { recursive: true, force: true }).catch(() => {});
   });
 
-  it('stores a new custom gesture and persists metadata', async () => {
+  it('stores a new custom sign and persists metadata', async () => {
     const response = await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' })
       .expect(201);
@@ -50,54 +50,54 @@ describe('custom gestures route', () => {
     expect(response.body).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' });
     expect(typeof response.body.createdAt).toBe('string');
 
-    const raw = await fs.readFile(gesturesPath, 'utf8');
+    const raw = await fs.readFile(signsPath, 'utf8');
     const stored = JSON.parse(raw);
-    expect(stored.gestures).toHaveLength(1);
-    expect(stored.gestures[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' });
+    expect(stored.signs).toHaveLength(1);
+    expect(stored.signs[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' });
   });
 
-  it('updates an existing gesture instead of duplicating entries', async () => {
+  it('updates an existing sign instead of duplicating entries', async () => {
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' })
       .expect(201);
 
     const response = await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'hilfe', label: 'Hilfe jetzt', emoji: null })
       .expect(200);
 
     expect(response.body).toMatchObject({ id: 'hilfe', label: 'Hilfe jetzt', emoji: null });
 
-    const raw = await fs.readFile(gesturesPath, 'utf8');
+    const raw = await fs.readFile(signsPath, 'utf8');
     const stored = JSON.parse(raw);
-    expect(stored.gestures).toHaveLength(1);
-    expect(stored.gestures[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe jetzt', emoji: null });
+    expect(stored.signs).toHaveLength(1);
+    expect(stored.signs[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe jetzt', emoji: null });
   });
 
-  it('lists stored gestures via GET with profileId filter', async () => {
+  it('lists stored signs via GET with profileId filter', async () => {
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'hilfe', label: 'Hilfe zeigen', profileId: 'profile-test' })
       .expect(201);
 
     const response = await request(app)
-      .get('/api/v1/dgs/gestures?profileId=profile-test')
+      .get('/api/v1/dgs/signs?profileId=profile-test')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expect(Array.isArray(response.body.gestures)).toBe(true);
-    expect(response.body.gestures).toHaveLength(1);
-    expect(response.body.gestures[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', profileId: 'profile-test' });
+    expect(Array.isArray(response.body.signs)).toBe(true);
+    expect(response.body.signs).toHaveLength(1);
+    expect(response.body.signs[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', profileId: 'profile-test' });
   });
 
-  it('accepts ASCII-slugified German gesture IDs', async () => {
+  it('accepts ASCII-slugified German sign IDs', async () => {
     // Test German umlauts converted to ASCII
     const response1 = await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'aerger_zeigen', label: 'Ärger zeigen', emoji: '😠' })
       .expect(201);
@@ -106,7 +106,7 @@ describe('custom gestures route', () => {
 
     // Test ß converted to ss
     const response2 = await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'fuss_wackeln', label: 'Fuß wackeln', emoji: '🦶' })
       .expect(201);
@@ -114,112 +114,112 @@ describe('custom gestures route', () => {
     expect(response2.body).toMatchObject({ id: 'fuss_wackeln', label: 'Fuß wackeln', emoji: '🦶' });
 
     // Verify both are stored
-    const raw = await fs.readFile(gesturesPath, 'utf8');
+    const raw = await fs.readFile(signsPath, 'utf8');
     const stored = JSON.parse(raw);
-    expect(stored.gestures).toHaveLength(2);
+    expect(stored.signs).toHaveLength(2);
   });
 
-  it('rejects non-ASCII gesture IDs with Unicode characters', async () => {
+  it('rejects non-ASCII sign IDs with Unicode characters', async () => {
     // This should fail because the ID contains ä (not slugified)
     const response = await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'ärger_zeigen', label: 'Ärger zeigen', emoji: '😠' })
       .expect(400);
 
-    expect(response.body.error).toBe('invalid gesture payload');
+    expect(response.body.error).toBe('invalid sign payload');
   });
 
-  it('stores gestures with profileId for per-kid isolation', async () => {
-    // Add gesture for profile A
+  it('stores signs with profileId for per-kid isolation', async () => {
+    // Add sign for profile A
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'mein_zeichen', label: 'Mein Zeichen', profileId: 'profile-a', emoji: '👋' })
       .expect(201);
 
-    // Add gesture for profile B
+    // Add sign for profile B
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'dein_zeichen', label: 'Dein Zeichen', profileId: 'profile-b', emoji: '🤚' })
       .expect(201);
 
     // Verify both are stored
-    const raw = await fs.readFile(gesturesPath, 'utf8');
+    const raw = await fs.readFile(signsPath, 'utf8');
     const stored = JSON.parse(raw);
-    expect(stored.gestures).toHaveLength(2);
-    expect(stored.gestures[0]).toMatchObject({ id: 'mein_zeichen', profileId: 'profile-a' });
-    expect(stored.gestures[1]).toMatchObject({ id: 'dein_zeichen', profileId: 'profile-b' });
+    expect(stored.signs).toHaveLength(2);
+    expect(stored.signs[0]).toMatchObject({ id: 'mein_zeichen', profileId: 'profile-a' });
+    expect(stored.signs[1]).toMatchObject({ id: 'dein_zeichen', profileId: 'profile-b' });
   });
 
-  it('filters gestures by profileId when listing', async () => {
-    // Add gestures for different profiles
+  it('filters signs by profileId when listing', async () => {
+    // Add signs for different profiles
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'gesture_a', label: 'Gesture A', profileId: 'profile-a' })
+      .send({ id: 'sign_a', label: 'Sign A', profileId: 'profile-a' })
       .expect(201);
 
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'gesture_b', label: 'Gesture B', profileId: 'profile-b' })
+      .send({ id: 'sign_b', label: 'Sign B', profileId: 'profile-b' })
       .expect(201);
 
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'gesture_shared', label: 'Shared Gesture' })
+      .send({ id: 'sign_shared', label: 'Shared Sign' })
       .expect(201);
 
-    // Get all gestures without profileId - should return empty array for data isolation
+    // Get all signs without profileId - should return empty array for data isolation
     const allResponse = await request(app)
-      .get('/api/v1/dgs/gestures')
+      .get('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expect(allResponse.body.gestures).toHaveLength(0);
+    expect(allResponse.body.signs).toHaveLength(0);
 
-    // Get gestures for profile A
+    // Get signs for profile A
     const profileAResponse = await request(app)
-      .get('/api/v1/dgs/gestures?profileId=profile-a')
+      .get('/api/v1/dgs/signs?profileId=profile-a')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expect(profileAResponse.body.gestures).toHaveLength(1);
-    expect(profileAResponse.body.gestures[0]).toMatchObject({ id: 'gesture_a', profileId: 'profile-a' });
+    expect(profileAResponse.body.signs).toHaveLength(1);
+    expect(profileAResponse.body.signs[0]).toMatchObject({ id: 'sign_a', profileId: 'profile-a' });
 
-    // Get gestures for profile B
+    // Get signs for profile B
     const profileBResponse = await request(app)
-      .get('/api/v1/dgs/gestures?profileId=profile-b')
+      .get('/api/v1/dgs/signs?profileId=profile-b')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expect(profileBResponse.body.gestures).toHaveLength(1);
-    expect(profileBResponse.body.gestures[0]).toMatchObject({ id: 'gesture_b', profileId: 'profile-b' });
+    expect(profileBResponse.body.signs).toHaveLength(1);
+    expect(profileBResponse.body.signs[0]).toMatchObject({ id: 'sign_b', profileId: 'profile-b' });
   });
 
-  it('allows same gesture ID for different profiles', async () => {
-    // Profile A creates "help" gesture
+  it('allows same sign ID for different profiles', async () => {
+    // Profile A creates "help" sign
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'help', label: 'Help from A', profileId: 'profile-a' })
       .expect(201);
 
-    // Profile B creates "help" gesture (same ID, different profile)
+    // Profile B creates "help" sign (same ID, different profile)
     await request(app)
-      .post('/api/v1/dgs/gestures')
+      .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ id: 'help', label: 'Help from B', profileId: 'profile-b' })
       .expect(201);
 
     // Both should be stored
-    const raw = await fs.readFile(gesturesPath, 'utf8');
+    const raw = await fs.readFile(signsPath, 'utf8');
     const stored = JSON.parse(raw);
-    expect(stored.gestures).toHaveLength(2);
-    expect(stored.gestures[0]).toMatchObject({ id: 'help', label: 'Help from A', profileId: 'profile-a' });
-    expect(stored.gestures[1]).toMatchObject({ id: 'help', label: 'Help from B', profileId: 'profile-b' });
+    expect(stored.signs).toHaveLength(2);
+    expect(stored.signs[0]).toMatchObject({ id: 'help', label: 'Help from A', profileId: 'profile-a' });
+    expect(stored.signs[1]).toMatchObject({ id: 'help', label: 'Help from B', profileId: 'profile-b' });
   });
 });

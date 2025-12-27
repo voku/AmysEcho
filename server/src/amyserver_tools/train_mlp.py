@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Train Amy's gesture MLP from bundle manifests.
+"""Train Amy's sign language MLP from bundle manifests.
 
 The script looks at the training bundle manifest produced by the app uploads,
 converts each bundle into a training sample, trains a simple MLP, and writes

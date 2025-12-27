@@ -7,16 +7,16 @@ import { ensureDataDir, TRAINING_DATASETS_DIR } from '../constants/modelPaths.js
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
 
-const CUSTOM_GESTURES_PATH = path.join(TRAINING_DATASETS_DIR, 'custom_gestures.json');
+const CUSTOM_SIGNS_PATH = path.join(TRAINING_DATASETS_DIR, 'custom_signs.json');
 
-const GestureRequestSchema = z.object({
+const SignRequestSchema = z.object({
   id: z
     .string()
     .min(2)
     .max(64)
     .regex(/^[a-z0-9][a-z0-9_-]+$/i, 'id must contain only letters, numbers, _ or -'),
   label: z.string().min(2).max(120),
-  profileId: z.string().optional(), // Associate gesture with specific profile/kid
+  profileId: z.string().optional(), // Associate sign with specific profile/kid
   emoji: z
     .union([z.string(), z.null()])
     .optional()
@@ -29,8 +29,8 @@ const GestureRequestSchema = z.object({
     }),
 });
 
-const GestureStoreSchema = z.object({
-  gestures: z.array(
+const SignStoreSchema = z.object({
+  signs: z.array(
     z.object({
       id: z.string(),
       label: z.string(),
@@ -42,15 +42,15 @@ const GestureStoreSchema = z.object({
   ),
 });
 
-type GestureStore = z.infer<typeof GestureStoreSchema>;
+type SignStore = z.infer<typeof SignStoreSchema>;
 
-async function readStore(): Promise<GestureStore> {
+async function readStore(): Promise<SignStore> {
   await ensureDataDir();
   await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
   try {
-    const raw = await fs.readFile(CUSTOM_GESTURES_PATH, 'utf8');
+    const raw = await fs.readFile(CUSTOM_SIGNS_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    const result = GestureStoreSchema.safeParse(parsed);
+    const result = SignStoreSchema.safeParse(parsed);
     if (result.success) {
       return result.data;
     }
@@ -60,15 +60,15 @@ async function readStore(): Promise<GestureStore> {
       throw error;
     }
   }
-  return { gestures: [] };
+  return { signs: [] };
 }
 
-async function writeStore(store: GestureStore): Promise<void> {
-  await fs.mkdir(path.dirname(CUSTOM_GESTURES_PATH), { recursive: true });
-  await atomicWriteJson(CUSTOM_GESTURES_PATH, store);
+async function writeStore(store: SignStore): Promise<void> {
+  await fs.mkdir(path.dirname(CUSTOM_SIGNS_PATH), { recursive: true });
+  await atomicWriteJson(CUSTOM_SIGNS_PATH, store);
 }
 
-function normalizeGestureId(id: string): string {
+function normalizeSignId(id: string): string {
   return id.trim().toLowerCase();
 }
 
@@ -76,42 +76,42 @@ function normalizeLabel(label: string): string {
   return label.trim();
 }
 
-export function registerCustomGesturesRoute(app: Express): void {
-  app.get('/api/v1/dgs/gestures', auth, async (req: Request, res: Response) => {
+export function registerCustomSignsRoute(app: Express): void {
+  app.get('/api/v1/dgs/signs', auth, async (req: Request, res: Response) => {
     try {
       const store = await readStore();
       const { profileId } = req.query;
       
-      // Only return gestures for the specified profile to ensure data isolation
+      // Only return signs for the specified profile to ensure data isolation
       // If no profileId is provided, return empty array to prevent cross-profile data leakage
-      let gestures: typeof store.gestures = [];
+      let signs: typeof store.signs = [];
       if (typeof profileId === 'string' && profileId.trim().length > 0) {
-        gestures = store.gestures.filter(g => g.profileId === profileId);
+        signs = store.signs.filter(g => g.profileId === profileId);
       }
       
-      return res.json({ gestures });
+      return res.json({ signs });
     } catch (error) {
-      console.error('Failed to load custom gestures', error);
-      return res.status(500).json({ error: 'Failed to load custom gestures' });
+      console.error('Failed to load custom signs', error);
+      return res.status(500).json({ error: 'Failed to load custom signs' });
     }
   });
 
-  app.post('/api/v1/dgs/gestures', auth, async (req: Request, res: Response) => {
-    const parsed = GestureRequestSchema.safeParse(req.body);
+  app.post('/api/v1/dgs/signs', auth, async (req: Request, res: Response) => {
+    const parsed = SignRequestSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'invalid gesture payload', details: parsed.error.flatten() });
+      return res.status(400).json({ error: 'invalid sign payload', details: parsed.error.flatten() });
     }
 
     const { id, label, profileId, emoji } = parsed.data;
-    const normalizedId = normalizeGestureId(id);
+    const normalizedId = normalizeSignId(id);
     const normalizedLabel = normalizeLabel(label);
     const normalizedEmoji = typeof emoji === 'string' && emoji.trim().length > 0 ? emoji.trim() : null;
 
     try {
-      const result = await withFileLock(CUSTOM_GESTURES_PATH, async () => {
+      const result = await withFileLock(CUSTOM_SIGNS_PATH, async () => {
         const store = await readStore();
-        // Find existing gesture with same id AND profileId (if provided)
-        const existing = store.gestures.find((g) => 
+        // Find existing sign with same id AND profileId (if provided)
+        const existing = store.signs.find((g) => 
           g.id === normalizedId && 
           (profileId ? g.profileId === profileId : !g.profileId)
         );
@@ -121,9 +121,9 @@ export function registerCustomGesturesRoute(app: Express): void {
           existing.emoji = normalizedEmoji;
           existing.updatedAt = now;
           await writeStore(store);
-          return { gesture: existing, created: false };
+          return { sign: existing, created: false };
         }
-        const newGesture = {
+        const newSign = {
           id: normalizedId,
           label: normalizedLabel,
           profileId,
@@ -131,15 +131,15 @@ export function registerCustomGesturesRoute(app: Express): void {
           createdAt: now,
           updatedAt: now,
         };
-        store.gestures.push(newGesture);
+        store.signs.push(newSign);
         await writeStore(store);
-        return { gesture: newGesture, created: true };
+        return { sign: newSign, created: true };
       });
 
-      return res.status(result.created ? 201 : 200).json(result.gesture);
+      return res.status(result.created ? 201 : 200).json(result.sign);
     } catch (error) {
-      console.error('Failed to persist custom gesture', error);
-      return res.status(500).json({ error: 'Failed to store custom gesture' });
+      console.error('Failed to persist custom sign', error);
+      return res.status(500).json({ error: 'Failed to store custom sign' });
     }
   });
 }

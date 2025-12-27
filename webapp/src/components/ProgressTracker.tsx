@@ -75,32 +75,32 @@ function saveProgressToStorage(profileId: string, data: ProgressData): void {
  * Shows gesture usage statistics and learning progress.
  */
 export function ProgressTracker() {
-  const { profileId, recentGestures } = useAppState();
+  const { profileId, recentSigns } = useAppState();
   const [progressData, setProgressData] = useState<ProgressData>(() => 
     loadProgressFromStorage(profileId || 'default')
   );
 
   // Update progress when gestures are recognized
   useEffect(() => {
-    if (recentGestures.length === 0 || !profileId) return;
+    if (recentSigns.length === 0 || !profileId) return;
 
     setProgressData((prev) => {
       const statsMap = new Map<string, GestureStats>(
         prev.gestureStats.map((s) => [s.label, s])
       );
 
-      // Update stats for recent gestures
-      recentGestures.forEach((gesture) => {
-        const existing = statsMap.get(gesture);
+      // Update stats for recent signs
+      recentSigns.forEach((sign) => {
+        const existing = statsMap.get(sign);
         if (existing) {
-          statsMap.set(gesture, {
+          statsMap.set(sign, {
             ...existing,
             count: existing.count + 1,
             lastUsed: new Date().toISOString(),
           });
         } else {
-          statsMap.set(gesture, {
-            label: gesture,
+          statsMap.set(sign, {
+            label: sign,
             count: 1,
             lastUsed: new Date().toISOString(),
           });
@@ -118,7 +118,7 @@ export function ProgressTracker() {
       saveProgressToStorage(profileId, newData);
       return newData;
     });
-  }, [recentGestures, profileId]);
+  }, [recentSigns, profileId]);
 
   // Track session on mount
   useEffect(() => {

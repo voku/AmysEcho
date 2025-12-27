@@ -5,11 +5,11 @@ type AppStateContextValue = {
   profileUuid: string | null;
   profileId: string | null;
   displayName: string | null;
-  preferredGestureLabel: string;
-  lastRecognizedGesture: string | null;
-  recentGestures: string[];
-  setPreferredGestureLabel: (value: string) => void;
-  recordGesture: (gesture: string) => void;
+  preferredSignLabel: string;
+  lastRecognizedSign: string | null;
+  recentSigns: string[];
+  setPreferredSignLabel: (value: string) => void;
+  recordSign: (sign: string) => void;
   refreshFromRegistry: () => Promise<void>;
 };
 
@@ -21,9 +21,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [profileUuid, setProfileUuid] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [preferredGestureLabel, setPreferredGestureLabel] = useState('HILFE');
-  const [lastRecognizedGesture, setLastRecognizedGesture] = useState<string | null>(null);
-  const [recentGestures, setRecentGestures] = useState<string[]>([]);
+  const [preferredSignLabel, setPreferredSignLabel] = useState('HILFE');
+  const [lastRecognizedSign, setLastRecognizedSign] = useState<string | null>(null);
+  const [recentSigns, setRecentSigns] = useState<string[]>([]);
 
   // Initialize profile registry and load active profile on mount
   useEffect(() => {
@@ -42,18 +42,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     };
     init();
   }, []);
-  const recordGesture = useCallback((gesture: string) => {
-    const normalized = gesture.trim();
+  const recordSign = useCallback((sign: string) => {
+    const normalized = sign.trim();
     if (!normalized) return;
     
-    setLastRecognizedGesture(normalized);
-    setRecentGestures((prev) => {
+    setLastRecognizedSign(normalized);
+    setRecentSigns((prev) => {
       const existing = prev.filter((entry) => entry !== normalized);
       return [normalized, ...existing].slice(0, 5);
     });
     
     // Set as preferred if not already set
-    setPreferredGestureLabel((prev) => prev || normalized);
+    setPreferredSignLabel((prev) => prev || normalized);
   }, []);
 
   const refreshFromRegistry = useCallback(async () => {
@@ -74,14 +74,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       profileUuid,
       profileId,
       displayName,
-      preferredGestureLabel,
-      lastRecognizedGesture,
-      recentGestures,
-      setPreferredGestureLabel,
-      recordGesture,
+      preferredSignLabel,
+      lastRecognizedSign,
+      recentSigns,
+      setPreferredSignLabel,
+      recordSign,
       refreshFromRegistry,
     }),
-    [profileUuid, profileId, displayName, preferredGestureLabel, lastRecognizedGesture, recentGestures, recordGesture, refreshFromRegistry],
+    [profileUuid, profileId, displayName, preferredSignLabel, lastRecognizedSign, recentSigns, recordSign, refreshFromRegistry],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

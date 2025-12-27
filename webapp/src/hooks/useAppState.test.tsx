@@ -26,7 +26,7 @@ describe('useAppState', () => {
     expect(result.current.profileUuid).toBeNull();
     expect(result.current.profileId).toBeNull();
     expect(result.current.displayName).toBeNull();
-    expect(result.current.preferredGestureLabel).toBe('HILFE');
+    expect(result.current.preferredSignLabel).toBe('HILFE');
   });
 
   it('loads active profile on mount', async () => {
@@ -57,13 +57,13 @@ describe('useAppState', () => {
     const { result } = renderHook(() => useAppState(), { wrapper: AppStateProvider });
 
     act(() => {
-      ['EINS', 'ZWEI', 'DREI', 'VIER', 'FÜNF', 'SECHS', 'VIER'].forEach((gesture) => {
-        result.current.recordGesture(gesture);
+      ['EINS', 'ZWEI', 'DREI', 'VIER', 'FÜNF', 'SECHS', 'VIER'].forEach((sign) => {
+        result.current.recordSign(sign);
       });
     });
 
-    expect(result.current.recentGestures).toEqual(['VIER', 'SECHS', 'FÜNF', 'DREI', 'ZWEI']);
-    expect(result.current.lastRecognizedGesture).toBe('VIER');
+    expect(result.current.recentSigns).toEqual(['VIER', 'SECHS', 'FÜNF', 'DREI', 'ZWEI']);
+    expect(result.current.lastRecognizedSign).toBe('VIER');
   });
 
   it('refreshes from registry', async () => {

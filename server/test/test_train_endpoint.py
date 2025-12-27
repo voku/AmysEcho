@@ -160,7 +160,7 @@ def test_train_endpoint():
 
         samples = [
             {
-                "gestureDefinitionId": "g1",
+                "signId": "g1",
                 "landmarkData": landmarks_sequence,
             }
         ]
@@ -285,7 +285,7 @@ def test_train_endpoint_returns_queue_metadata():
             })
         samples = [
             {
-                "gestureDefinitionId": "g1",
+                "signId": "g1",
                 "profileId": "p1",
                 "landmarkData": landmarks_sequence,
             }
@@ -333,7 +333,7 @@ def test_train_requests_are_serialized():
             })
         samples = [
             {
-                "gestureDefinitionId": "g1",
+                "signId": "g1",
                 "profileId": "p1",
                 "landmarkData": landmarks_sequence,
             }
@@ -397,7 +397,7 @@ def test_train_model_rejects_out_of_range_landmarks():
                 {
                     "samples": [
                         {
-                            "gestureDefinitionId": "g1",
+                            "signId": "g1",
                             "landmarkData": invalid_landmarks,
                         }
                     ]
