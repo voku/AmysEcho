@@ -4,7 +4,6 @@ Configuration Constants for AmysEcho Temporal Sliding Window Pipeline
 """
 
 import os
-
 from pathlib import Path
 
 # ============================================================================
@@ -50,16 +49,29 @@ WINDOW_STRIDE = int(os.environ.get("MLP_WINDOW_STRIDE", "1"))
 # MLP ARCHITECTURE - 3-LAYER FUNNEL
 # ============================================================================
 
-MLP_LAYER1_SIZE = int(os.environ.get("MLP_LAYER1_SIZE", "1024"))
-MLP_LAYER2_SIZE = int(os.environ.get("MLP_LAYER2_SIZE", "512"))
+MLP_LAYER1_SIZE = int(os.environ.get("MLP_LAYER1_SIZE", "512"))
+MLP_LAYER2_SIZE = int(os.environ.get("MLP_LAYER2_SIZE", "256"))
 
 # ============================================================================
 # MODALITY PRIORITY WEIGHTING
 # ============================================================================
 
-HAND_PRIORITY_FACTOR = float(os.environ.get("MLP_HAND_PRIORITY", "3.0"))
-POSE_PRIORITY_FACTOR = float(os.environ.get("MLP_POSE_PRIORITY", "0.4"))
-FACE_PRIORITY_FACTOR = float(os.environ.get("MLP_FACE_PRIORITY", "0.1"))
+def load_normalization_config():
+    config_path = DATA_DIR / "config" / "normalization_config.json"
+    if config_path.exists():
+        import json
+        try:
+            with open(config_path) as f:
+                return json.load(f).get("priority_factors", {})
+        except Exception:
+            pass
+    return {}
+
+NORM_CONFIG = load_normalization_config()
+
+HAND_PRIORITY_FACTOR = float(os.environ.get("MLP_HAND_PRIORITY", NORM_CONFIG.get("hands", 3.0)))
+POSE_PRIORITY_FACTOR = float(os.environ.get("MLP_POSE_PRIORITY", NORM_CONFIG.get("pose", 0.4)))
+FACE_PRIORITY_FACTOR = float(os.environ.get("MLP_FACE_PRIORITY", NORM_CONFIG.get("face", 0.1)))
 
 # ============================================================================
 # TRAINING HYPERPARAMETERS

@@ -1,18 +1,17 @@
-import time
-import urllib.request
-import urllib.error
-import subprocess
-import os
 import json
+import os
 import shutil
+import subprocess
 import tempfile
+import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pytest
-
 from conftest import create_access_token
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
@@ -158,7 +157,7 @@ def test_train_endpoint():
                 "poseLandmarks": [[0.5, 0.5, 0.5, 1.0] for _ in range(33)],
                 "faceLandmarks": [[0.5, 0.5, 0.5] for _ in range(468)],
             })
-            
+
         samples = [
             {
                 "gestureDefinitionId": "g1",

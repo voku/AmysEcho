@@ -1,5 +1,7 @@
-import numpy as np
 import sys
+
+import numpy as np
+
 
 def check_model(path):
     print(f"Checking model: {path}")
@@ -11,16 +13,16 @@ def check_model(path):
                     print(f"  {key}: {data[key]}")
                 else:
                     print(f"  {key}: MISSING")
-            
+
             for key in ['w1', 'b1', 'w2', 'b2', 'w3', 'b3']:
                 if key in data:
                     print(f"  {key} shape: {data[key].shape}")
                 else:
                     print(f"  {key}: MISSING")
-            
+
             if 'labels' in data:
                 print(f"  labels: {data['labels']}")
-    except (FileNotFoundError, ValueError, IOError) as e:
+    except (OSError, FileNotFoundError, ValueError) as e:
         print(f"Error checking model: {e}")
     except Exception as e:
         print(f"Unexpected error: {e}")

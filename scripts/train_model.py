@@ -19,19 +19,20 @@ python scripts/train_model.py --k-fold 5
 import argparse
 import json
 import os
-import sys
-import subprocess
 import shutil
+import subprocess
+import sys
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any
+
 import numpy as np
-import random
+
 from ml_shared_utils import filter_by_profile_logic
 
 # Try importing sklearn for advanced validation
 try:
-    from sklearn.model_selection import train_test_split, StratifiedKFold
-    from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score
+    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+    from sklearn.model_selection import StratifiedKFold, train_test_split
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -63,8 +64,8 @@ def _normalize(lm):
     pts = np.array(lm).reshape(-1, 3)
 
     num_pts = len(pts)
-    
-    def _norm_geometric(points: np.ndarray, ref_idx: int, scale_indices: Tuple[int, int]) -> np.ndarray:
+
+    def _norm_geometric(points: np.ndarray, ref_idx: int, scale_indices: tuple[int, int]) -> np.ndarray:
         # Handle invalid ref_idx gracefully
         if len(points) <= ref_idx:
             ref = np.zeros(3)  # Use zero vector if ref_idx out of bounds
@@ -82,16 +83,16 @@ def _normalize(lm):
     if num_pts >= 42:
         hand_left = pts[0:21]
         hand_right = pts[21:42]
-        
+
         # Center each hand on its wrist (landmark 0)
         hand_left = hand_left - hand_left[0]
         max_l = np.max(np.abs(hand_left))
         if max_l > 0: hand_left /= max_l
-        
+
         hand_right = hand_right - hand_right[0]
         max_r = np.max(np.abs(hand_right))
         if max_r > 0: hand_right /= max_r
-        
+
         # Apply Hand Priority Factor
         hands_norm = np.concatenate([hand_left, hand_right]) * HAND_PRIORITY_FACTOR
     else:
@@ -103,7 +104,7 @@ def _normalize(lm):
     if num_pts >= 42 + 33:
         pose = pts[42:42+33]
         pose_norm = _norm_geometric(pose, 0, (11, 12)) * POSE_PRIORITY_FACTOR
-    
+
     # 3. Face (Indices 75-542)
     face_norm = np.zeros((468, 3))
     if num_pts >= 42 + 33 + 468:
@@ -116,7 +117,7 @@ def _normalize(lm):
         pose_norm.flatten(),
         face_norm.flatten()
     ])
-        
+
     return result
 
 
@@ -202,7 +203,7 @@ class MLP:
             if verbose and (epoch + 1) % 100 == 0:
                 print(json.dumps({"type": "progress", "current": epoch + 1, "total": epochs, "loss": f"{loss:.4f}"}), flush=True)
 
-def augment_sample(sample: Dict[str, Any], num_augmentations: int = 3) -> List[Dict[str, Any]]:
+def augment_sample(sample: dict[str, Any], num_augmentations: int = 3) -> list[dict[str, Any]]:
     augmented = [sample]
     landmarks = np.array(sample["landmarks"])
     for _ in range(num_augmentations):
@@ -211,10 +212,10 @@ def augment_sample(sample: Dict[str, Any], num_augmentations: int = 3) -> List[D
         augmented.append({"label": sample["label"], "landmarks": augmented_landmarks.tolist()})
     return augmented
 
-def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float, profile_id_filter: Optional[str] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, int], np.ndarray, np.ndarray]:
-    with open(manifest_file, "r") as f:
+def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float, profile_id_filter: str | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int], np.ndarray, np.ndarray]:
+    with open(manifest_file) as f:
         manifest = json.load(f)
-    
+
     all_entries = manifest.get("entries", [])
     if profile_id_filter is None:
         selected_entries = [e for e in all_entries if not e.get("profileId")]
@@ -229,10 +230,10 @@ def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float
         if not lm_file: continue
         landmarks_path = data_dir / entry["storage"]["directory"] / lm_file
         if not landmarks_path.exists(): continue
-            
-        with open(landmarks_path, "r") as f:
+
+        with open(landmarks_path) as f:
             landmark_data = json.load(f)
-        
+
         label = entry.get("label")
         for frame in landmark_data.get("frames", []):
             landmarks = frame["landmarks"]
@@ -257,7 +258,7 @@ def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float
     for sample in samples:
         label = sample.get("label")
         lm = sample.get("landmarks")
-        
+
         # Flatten logic
         flat_lm = []
         if isinstance(lm[0], list):
@@ -277,7 +278,7 @@ def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float
 
     X = np.array(X_raw)
     y = np.array(y_raw)
-    
+
     # Stratified Split
     if SKLEARN_AVAILABLE:
         try:
@@ -300,28 +301,28 @@ def evaluate_detailed(mlp, X, y, label_to_idx, title="Evaluation"):
     probs = mlp.forward(X)
     preds = np.argmax(probs, axis=1)
     acc = float(np.mean(preds == y))
-    
+
     print(f"\n--- {title} ---")
     print(f"Accuracy: {acc:.2%}")
-    
+
     if SKLEARN_AVAILABLE:
         labels = sorted(label_to_idx.keys(), key=lambda k: label_to_idx[k])
         target_names = labels
-        
+
         print("\nClassification Report:")
         print(classification_report(y, preds, target_names=target_names, zero_division=0))
-        
+
         print("\nConfusion Matrix:")
         cm = confusion_matrix(y, preds)
         print(cm)
-        
+
         # Multimodal Check
         input_dim = X.shape[1]
         if input_dim > 126: # 42 * 3
             print(f"\n[INFO] Input dimension {input_dim} suggests MULTIMODAL data usage (Hands + X).")
         else:
             print(f"\n[INFO] Input dimension {input_dim} suggests HANDS-ONLY data.")
-            
+
     return acc
 
 def run_cross_validation(X, y, label_to_idx, args, k=5):
@@ -332,18 +333,18 @@ def run_cross_validation(X, y, label_to_idx, args, k=5):
     print(f"\n=== Running {k}-Fold Cross-Validation ===")
     skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
     scores = []
-    
+
     for i, (train_index, test_index) in enumerate(skf.split(X, y)):
         X_train_fold, X_test_fold = X[train_index], X[test_index]
         y_train_fold, y_test_fold = y[train_index], y[test_index]
-        
+
         mlp = MLP(X.shape[1], args.hidden_size, len(label_to_idx), args.hidden_size_2)
         mlp.train(X_train_fold, y_train_fold, args.epochs, args.learning_rate)
-        
+
         acc = evaluate_model(mlp, X_test_fold, y_test_fold)
         scores.append(acc)
         print(f"Fold {i+1}/{k}: {acc:.2%}")
-        
+
     print(f"\nAverage Accuracy: {np.mean(scores):.2%} (+/- {np.std(scores):.2%})")
 
 def evaluate_model(mlp, X, y):
@@ -356,11 +357,11 @@ def deploy_model(model_path: str, _app_assets_dir: str) -> bool:
     baseline_dir = os.path.join("server", "data", "models", "global")
     os.makedirs(baseline_dir, exist_ok=True)
     baseline_model = os.path.join(baseline_dir, "amy_model.npz")
-    
+
     try:
         shutil.copy2(model_path, baseline_model)
         print(f"Copied model to {baseline_model}")
-        
+
         # Rebuild WebView bundle
         app_dir = os.path.abspath("app")
         result = subprocess.run(["npm", "run", "build:webview"], cwd=app_dir, capture_output=True, text=True)
@@ -394,14 +395,14 @@ def main():
         X_train, y_train, X_test, y_test, label_to_idx, X_full, y_full = prepare_data(
             args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=None
         )
-        
+
         if args.k_fold > 1:
             run_cross_validation(X_full, y_full, label_to_idx, args, k=args.k_fold)
-            
+
         mlp = MLP(X_train.shape[1], args.hidden_size, len(label_to_idx), args.hidden_size_2)
         mlp.train(X_train, y_train, args.epochs, args.learning_rate, verbose=True)
         evaluate_detailed(mlp, X_test, y_test, label_to_idx, title="Global Test Set Evaluation")
-        
+
         # Save Global Model
         labels = sorted(label_to_idx.keys())
         os.makedirs(os.path.dirname(args.output_model), exist_ok=True)
@@ -440,22 +441,22 @@ def main():
             deploy_model(args.output_model, "app/assets")
 
         # 2. Train Per-Profile Models
-        with open(args.manifest, "r") as f:
+        with open(args.manifest) as f:
             manifest = json.load(f)
-        
+
         profile_ids = sorted({e.get("profileId") for e in manifest.get("entries", []) if e.get("profileId")})
-        
+
         for profile_id in profile_ids:
             print(f"\n=== Training Model for Profile: {profile_id} ===")
             try:
                 X_train_p, y_train_p, X_test_p, y_test_p, label_to_idx_p, X_full_p, y_full_p = prepare_data(
                     args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=profile_id
                 )
-                
+
                 mlp_p = MLP(X_train_p.shape[1], args.hidden_size, len(label_to_idx_p), args.hidden_size_2)
                 mlp_p.train(X_train_p, y_train_p, args.epochs, args.learning_rate, verbose=True)
                 evaluate_detailed(mlp_p, X_test_p, y_test_p, label_to_idx_p, title=f"Profile {profile_id} Evaluation")
-                
+
                 # Save Profile Model
                 profile_model_path = os.path.join(os.path.dirname(args.output_model), f"amy_model_{profile_id}.npz")
                 labels_p = sorted(label_to_idx_p.keys())
@@ -486,7 +487,7 @@ def main():
                         }
                     np.savez(f, **weights_p)
                 print(f"Profile model saved to {profile_model_path}")
-                
+
             except Exception as pe:
                 print(f"Warning: Failed to train model for profile {profile_id}: {pe}")
 
@@ -499,4 +500,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-    

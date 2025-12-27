@@ -32,11 +32,11 @@ export class BatteryMonitor {
     try {
       // Use navigator.getBattery() if available (older API)
       if ('getBattery' in navigator) {
-        const battery = await (navigator as any).getBattery();
+        const battery = await (navigator as unknown as { getBattery(): Promise<{ level: number }> }).getBattery();
         this.batteryLevel = battery.level;
       } else if ('battery' in navigator) {
         // Fallback for some mobile browsers
-        this.batteryLevel = (navigator as any).battery.level;
+        this.batteryLevel = (navigator as unknown as { battery: { level: number } }).battery.level;
       } else {
         // Fallback: assume adequate battery if we can't detect
         this.batteryLevel = 0.5;

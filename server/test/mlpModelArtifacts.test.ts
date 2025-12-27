@@ -65,12 +65,14 @@ describe('writeMinimalMlpModel', () => {
     const result = spawnSync('python3', ['-c', script, destination], { encoding: 'utf8' });
     expect(result.status).toBe(0);
     const parsed = JSON.parse(result.stdout) as { keys: string[]; shapes: Record<string, number[]> };
-    expect(parsed.keys).toEqual(['b1', 'b2', 'counts', 'labels', 'w1', 'w2']);
+    expect(parsed.keys).toEqual(['arch', 'b1', 'b2', 'b3', 'counts', 'feature_size', 'input_dim', 'labels', 'w1', 'w2', 'w3', 'window_size']);
     expect(parsed.shapes['w1'][0]).toBeGreaterThan(0);
     expect(parsed.shapes['w1'][1]).toBeGreaterThan(0);
     expect(parsed.shapes['b1'][0]).toBe(parsed.shapes['w1'][0]);
     expect(parsed.shapes['w2'][1]).toBe(parsed.shapes['w1'][0]);
     expect(parsed.shapes['b2'][0]).toBe(parsed.shapes['w2'][0]);
+    expect(parsed.shapes['w3'][1]).toBe(parsed.shapes['w2'][0]);
+    expect(parsed.shapes['b3'][0]).toBe(parsed.shapes['w3'][0]);
 
     expect(logMessages.some((message) => message.includes('seeded MLP from baseline'))).toBe(true);
   });

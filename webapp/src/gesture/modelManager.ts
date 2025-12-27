@@ -7,6 +7,7 @@
 
 import { installMlp } from './installMlp';
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
+import { updatePriorityFactors } from './utils/landmarkNormalizer';
 
 export interface ProfileModelInfo {
   profileId: string;
@@ -119,10 +120,31 @@ class ModelManager {
   }
 
   /**
+   * Load normalization configuration from server
+   */
+  async loadNormalizationConfig(): Promise<void> {
+    try {
+      const response = await fetch('/api/config/normalization');
+      if (response.ok) {
+        const config = await response.json();
+        if (config.priority_factors) {
+          updatePriorityFactors(config.priority_factors);
+          console.log('🔧 Normalization priority factors updated:', config.priority_factors);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load normalization config:', error);
+    }
+  }
+
+  /**
    * Switch between global and profile models based on availability and config
    */
   async selectBestModel(profileId: string): Promise<{ loaded: boolean; usingProfile: boolean }> {
     
+    // Ensure normalization config is loaded
+    await this.loadNormalizationConfig();
+
     // Always ensure global model is loaded as fallback
     if (!this.globalModelLoaded) {
       const globalLoaded = await this.loadGlobalModel();

@@ -4,7 +4,7 @@ This module provides consistent data preparation and filtering logic
 used by both the server training pipeline and local scripts.
 """
 
-from typing import Iterable, List, Optional, TypeVar, Protocol
+from typing import Protocol, TypeVar
 
 T = TypeVar("T")
 
@@ -13,9 +13,9 @@ class ProfileSample(Protocol):
     @property
     def label(self) -> str: ...
     @property
-    def profile_id(self) -> Optional[str]: ...
+    def profile_id(self) -> str | None: ...
 
-def filter_by_profile_logic(items: List[T], profile_id: str, get_label, get_profile_id) -> List[T]:
+def filter_by_profile_logic(items: list[T], profile_id: str, get_label, get_profile_id) -> list[T]:
     """
     Generic logic to filter samples for a profile-specific model.
     Includes:

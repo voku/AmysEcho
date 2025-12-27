@@ -2,8 +2,6 @@ import importlib
 import json
 from pathlib import Path
 
-import pytest
-
 
 def test_build_samples_from_manifest_uses_video_extension(monkeypatch, tmp_path):
     data_dir = tmp_path / "data"
@@ -183,7 +181,7 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
     # Check that we have HALLO samples
     sign_samples = [s for s in samples if s.label == "HALLO"]
     assert sign_samples
-    
+
     # Verify cache write happened (it should when frames come from clip)
     assert stats["cache_writes"] == 1
 
@@ -243,7 +241,7 @@ def test_still_frames_are_included_in_samples(monkeypatch, tmp_path):
     assert len(samples) >= 1
     sign_samples = [s for s in samples if s.label == "TEST"]
     assert sign_samples
-    
+
     # In the new sliding window logic, if we have 1 clip frame + 1 still frame,
     # the window (size 30) will be filled by repeating the last frame (still frame).
     # So the landmark values should eventually be dominated by still frame values.

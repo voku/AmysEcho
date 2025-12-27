@@ -60,7 +60,7 @@ def main() -> int:
     input_size = int(payload.get("inputSize", 48870))
     layer1_size = int(payload.get("layer1Size", payload.get("hiddenSize", 1024)))
     layer2_size = int(payload.get("layer2Size", 512))
-    
+
     if input_size <= 0 or layer1_size <= 0 or layer2_size <= 0:
         print(
             f"inputSize and layer sizes must be positive (got {input_size}, {layer1_size}, {layer2_size})",
@@ -83,11 +83,11 @@ def main() -> int:
 
     os.makedirs(os.path.dirname(destination) or ".", exist_ok=True)
     tmp_path = f"{destination}.tmp"
-    
+
     save_dict = {
-        "labels": labels_arr, 
-        "counts": counts_arr, 
-        "w1": w1, "b1": b1, 
+        "labels": labels_arr,
+        "counts": counts_arr,
+        "w1": w1, "b1": b1,
         "w2": w2, "b2": b2,
         "w3": w3, "b3": b3,
         "arch": "mlp_3layer_window",
@@ -95,7 +95,7 @@ def main() -> int:
         "input_dim": input_size,
         "feature_size": 1629
     }
-    
+
     with open(tmp_path, "wb") as handle:
         np.savez(handle, **save_dict)
         handle.flush()

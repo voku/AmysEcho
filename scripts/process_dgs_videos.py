@@ -15,13 +15,14 @@ The script will:
 4. Save the data for training.
 """
 
-import cv2
-import numpy as np
+import argparse
 import json
 import os
-import argparse
 import sys
-from typing import List, Dict, Any, Optional
+from typing import Any
+
+import cv2
+import numpy as np
 
 try:
     import mediapipe as mp
@@ -34,12 +35,12 @@ except ImportError:
 class DGSVideoProcessor:
     def __init__(self, models_dir: str, confidence: float = 0.5):
         self.confidence = confidence
-        
+
         # Paths
         self.hand_model = os.path.join(models_dir, "hand_landmarker.task")
         self.pose_model = os.path.join(models_dir, "pose_landmarker.task")
         self.face_model = os.path.join(models_dir, "face_landmarker.task")
-        
+
         # Verify models exist
         for m in [self.hand_model, self.pose_model, self.face_model]:
             if not os.path.exists(m):
@@ -57,7 +58,7 @@ class DGSVideoProcessor:
             running_mode=mp_vision.RunningMode.IMAGE
         )
         self.detector_hand = mp_vision.HandLandmarker.create_from_options(options_hand)
-        
+
         # 2. Pose
         base_options_pose = mp_tasks.BaseOptions(model_asset_path=self.pose_model)
         options_pose = mp_vision.PoseLandmarkerOptions(
@@ -82,23 +83,23 @@ class DGSVideoProcessor:
         )
         self.detector_face = mp_vision.FaceLandmarker.create_from_options(options_face)
 
-    def extract_frame(self, frame: np.ndarray) -> Optional[List[List[float]]]:
+    def extract_frame(self, frame: np.ndarray) -> list[list[float]] | None:
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
         # --- HANDS (42 points) ---
         hand_result = self.detector_hand.detect(mp_image)
         hands_data = [[0.0, 0.0, 0.0] for _ in range(42)]
-        
+
         if len(hand_result.hand_landmarks) != len(hand_result.handedness):
             print(f"Warning: MediaPipe returned mismatched hands/handedness lengths: {len(hand_result.hand_landmarks)} vs {len(hand_result.handedness)}")
 
         left_done, right_done = False, False
         for hand_landmarks, handedness in zip(hand_result.hand_landmarks, hand_result.handedness, strict=True):
             label = handedness[0].category_name
-            
+
             coords = [[lm.x, lm.y, lm.z] for lm in hand_landmarks]
-            
+
             if label == 'Left' and not left_done:
                 for j in range(min(21, len(coords))):
                     hands_data[j] = coords[j]
@@ -127,47 +128,47 @@ class DGSVideoProcessor:
         # --- FUSION ---
         # Structure: Hands (42) + Pose (33) + Face (468) = 543 points
         full_vector = hands_data + pose_data + face_data
-        
+
         # Check integrity - if everything is zero, return None to skip frame
         # Optimization: Just check first point of each modality
         h_active = any(c != 0 for c in hands_data[0]) or any(c != 0 for c in hands_data[21])
         p_active = any(c != 0 for c in pose_data[0])
         f_active = any(c != 0 for c in face_data[0])
-        
+
         if not (h_active or p_active or f_active):
             return None
 
         return full_vector
 
-    def process_video(self, video_path: str, gesture_name: str, max_frames: int, frame_skip: int) -> List[Dict[str, Any]]:
+    def process_video(self, video_path: str, gesture_name: str, max_frames: int, frame_skip: int) -> list[dict[str, Any]]:
         video_name = os.path.basename(video_path)
         print(f"Processing {video_name} (gesture: {gesture_name})...")
-        
+
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             print(f"Error: Cannot open video file {video_path}")
             return []
-            
+
         # Get video info
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = cap.get(cv2.CAP_PROP_FPS)
         print(f"  Video info: {total_frames} total frames, {fps:.2f} FPS")
-        
+
         samples = []
         frame_count = 0
         processed_frames = 0
         successful_extractions = 0
-        
+
         while frame_count < max_frames:
             ret, frame = cap.read()
-            if not ret: 
+            if not ret:
                 print(f"  Reached end of video at frame {frame_count}")
                 break
-                
+
             frame_count += 1
             if frame_count % frame_skip != 0:
                 continue
-            
+
             processed_frames += 1
             landmarks = self.extract_frame(frame)
             if landmarks:
@@ -178,17 +179,17 @@ class DGSVideoProcessor:
                     "frame_number": frame_count,
                     "video_source": video_name
                 })
-        
+
         cap.release()
-        
+
         print(f"  Completed: {successful_extractions}/{processed_frames} frames successfully processed")
         return samples
 
-    def load_video_gesture_mapping(self, manifest_path: Optional[str] = None) -> Dict[str, str]:
+    def load_video_gesture_mapping(self, manifest_path: str | None = None) -> dict[str, str]:
         """Load video-to-gesture mapping from manifest or use fallback mapping"""
         if manifest_path and os.path.exists(manifest_path):
             try:
-                with open(manifest_path, 'r', encoding='utf-8') as f:
+                with open(manifest_path, encoding='utf-8') as f:
                     manifest_data = json.load(f)
                     mapping = {}
                     for gesture_info in manifest_data.get('gestures', []):
@@ -200,7 +201,7 @@ class DGSVideoProcessor:
                     return mapping
             except Exception as e:
                 print(f"Warning: Failed to load manifest {manifest_path}: {e}")
-        
+
         # Fallback mapping (hardcoded for backward compatibility)
         return {
             'alle.mp4': 'alle', 'blau.mp4': 'blau', 'rot.mp4': 'rot',
@@ -209,12 +210,12 @@ class DGSVideoProcessor:
             'schwester.mp4': 'schwester', 'nochmal.mp4': 'nochmal', 'fertig.mp4': 'fertig'
         }
 
-    def process_directory(self, videos_dir: str, max_frames: int, frame_skip: int, manifest_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    def process_directory(self, videos_dir: str, max_frames: int, frame_skip: int, manifest_path: str | None = None) -> list[dict[str, Any]]:
         # Validate directory exists first
         if not os.path.exists(videos_dir):
             print(f"Error: Videos directory {videos_dir} does not exist")
             return []
-        
+
         if not os.path.isdir(videos_dir):
             print(f"Error: {videos_dir} is not a directory")
             return []
@@ -222,7 +223,7 @@ class DGSVideoProcessor:
         all_samples = []
         # Load mapping from manifest or use fallback
         video_gesture_map = self.load_video_gesture_mapping(manifest_path)
-        
+
         try:
             files = [f for f in os.listdir(videos_dir) if f.endswith('.mp4')]
             if not files:
@@ -231,9 +232,9 @@ class DGSVideoProcessor:
         except OSError as e:
             print(f"Error: Cannot read directory {videos_dir}: {e}")
             return []
-        
+
         successful_frames = 0
-        
+
         for f in files:
             label = video_gesture_map.get(f)
             if label:
@@ -241,29 +242,29 @@ class DGSVideoProcessor:
                 if not os.path.exists(path):
                     print(f"Warning: Video file {path} does not exist, skipping")
                     continue
-                    
+
                 video_samples = self.process_video(path, label, max_frames, frame_skip)
                 all_samples.extend(video_samples)
                 successful_frames += len(video_samples)
             else:
                 print(f"Skipping {f} (unknown label)")
-                
+
         print(f"Processed {len(files)} videos, extracted {successful_frames} landmark frames")
         return all_samples
 
-def save_output(samples: List[Dict[str, Any]], output_path: str, split_output: bool, videos_dir: str):
+def save_output(samples: list[dict[str, Any]], output_path: str, split_output: bool, videos_dir: str):
     # Bulk save
     if output_path:
         try:
             output_dir = os.path.dirname(output_path)
             if output_dir and not os.path.exists(output_dir):
                 os.makedirs(output_dir, exist_ok=True)
-                
+
             data = {"samples": [{"label": s["label"], "landmarks": s["landmarks"]} for s in samples]}
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f)
             print(f"Saved bulk data to {output_path}")
-        except (OSError, IOError) as e:
+        except OSError as e:
             print(f"Error: Failed to write bulk output to {output_path}: {e}")
 
     # Split save (for training manifest)
@@ -275,7 +276,7 @@ def save_output(samples: List[Dict[str, Any]], output_path: str, split_output: b
                 if src not in grouped:
                     grouped[src] = []
                 grouped[src].append(s)
-        
+
         for src, group in grouped.items():
             gesture = os.path.splitext(src)[0]
             out_file = os.path.join(videos_dir, f"{gesture}_landmarks.json")
@@ -284,7 +285,7 @@ def save_output(samples: List[Dict[str, Any]], output_path: str, split_output: b
                 with open(out_file, 'w', encoding='utf-8') as f:
                     json.dump({"frames": frames}, f)
                 print(f"Updated {out_file}")
-            except (OSError, IOError) as e:
+            except OSError as e:
                 print(f"Error: Failed to write {out_file}: {e}")
 
 def main():
@@ -311,7 +312,7 @@ def main():
         # Validate models directory first
         if not os.path.exists(args.models_dir):
             raise FileNotFoundError(f"Models directory does not exist: {args.models_dir}")
-        
+
         processor = DGSVideoProcessor(args.models_dir, args.confidence)
         samples = processor.process_directory(args.videos_dir, args.max_frames, args.frame_skip, args.manifest)
 
@@ -321,7 +322,7 @@ def main():
         else:
             print("Error: No samples were extracted from the videos.")
             sys.exit(1)
-            
+
     except FileNotFoundError as e:
         print(f"Fatal Error: {e}")
         sys.exit(1)

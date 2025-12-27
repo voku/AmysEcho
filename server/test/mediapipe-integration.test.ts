@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import AdmZip from 'adm-zip';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel';
 
 describe('MediaPipe Integration Tests', () => {
   const testBundlesDir = path.join(__dirname, '../test-bundles');
@@ -9,6 +10,8 @@ describe('MediaPipe Integration Tests', () => {
   beforeEach(async () => {
     // Ensure test bundles directory exists
     await fs.mkdir(testBundlesDir, { recursive: true });
+    // Ensure baseline model exists
+    await ensureBaselineModelFixture();
   });
 
   afterEach(async () => {
@@ -158,28 +161,19 @@ describe('MediaPipe Integration Tests', () => {
       const manifestContent = await fs.readFile(manifestPath, 'utf8');
       const manifest = JSON.parse(manifestContent);
       
-      expect(manifest).toHaveProperty('entries');
-      expect(manifest.entries).toBeInstanceOf(Array);
-      expect(manifest.entries).toHaveLength(12);
+      expect(manifest).toHaveProperty('gestures');
+      expect(manifest.gestures).toBeInstanceOf(Array);
+      expect(manifest.gestures).toHaveLength(12);
       
       // Check that all entries have required structure
-      manifest.entries.forEach((entry: any) => {
+      manifest.gestures.forEach((entry: any) => {
         expect(entry).toHaveProperty('label');
-        expect(entry).toHaveProperty('id');
-        expect(entry).toHaveProperty('storage');
-        expect(entry).toHaveProperty('metadata');
-        
-        expect(entry.storage).toHaveProperty('type');
-        expect(entry.storage.type).toBe('file');
-        expect(entry.storage).toHaveProperty('clip');
-        
-        expect(entry.metadata).toHaveProperty('clipFilename');
-        expect(entry.metadata).toHaveProperty('profileId');
-        expect(entry.metadata.profileId).toBe('global');
+        expect(entry).toHaveProperty('video');
+        expect(entry.video).toMatch(/\.mp4$/);
       });
       
       // Check for German labels
-      const labels = manifest.entries.map((e: any) => e.label);
+      const labels = manifest.gestures.map((e: any) => e.label);
       const expectedLabels = [
         'alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen',
         'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken'

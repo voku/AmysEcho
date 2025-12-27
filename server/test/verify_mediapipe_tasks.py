@@ -1,8 +1,14 @@
 
 try:
     import mediapipe as mp
-    from mediapipe.tasks.python.vision import HandLandmarker, PoseLandmarker, FaceLandmarker
-    from mediapipe.tasks.python.vision import HandLandmarkerOptions, PoseLandmarkerOptions, FaceLandmarkerOptions
+    from mediapipe.tasks.python.vision import (
+        FaceLandmarker,
+        FaceLandmarkerOptions,
+        HandLandmarker,
+        HandLandmarkerOptions,
+        PoseLandmarker,
+        PoseLandmarkerOptions,
+    )
     print("✅ All MediaPipe Task classes found.")
 except ImportError as e:
     print(f"❌ ImportError: {e}")

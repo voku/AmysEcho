@@ -933,6 +933,24 @@ app.get('/api/v1/dgs/trained-labels', auth, async (req: Request, res: Response) 
   }
 });
 
+// Get normalization configuration
+app.get('/api/config/normalization', async (_req: Request, res: Response) => {
+  try {
+    const configPath = path.join(DATA_DIR, 'config', 'normalization_config.json');
+    const raw = await fs.readFile(configPath, 'utf8');
+    res.json(JSON.parse(raw));
+  } catch (error) {
+    // Return defaults if config missing
+    res.json({
+      priority_factors: {
+        hands: 3.0,
+        pose: 0.4,
+        face: 0.1
+      }
+    });
+  }
+});
+
 // Add error handling middleware
 app.use(errorHandler);
 

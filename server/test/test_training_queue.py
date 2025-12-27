@@ -1,9 +1,10 @@
+import json
 import os
 import subprocess
 import time
-import json
-import urllib.request
 import urllib.error
+import urllib.request
+
 from conftest import create_access_token
 
 SERVER_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

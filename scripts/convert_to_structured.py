@@ -3,9 +3,9 @@
 Convert flat landmark data back to structured format
 """
 
-import json
-import os
 import argparse
+import json
+
 
 def convert_flat_to_structured(landmarks):
     """Convert flat array to list of [x,y,z] points"""
@@ -24,7 +24,7 @@ def convert_training_data(input_file, output_file):
     print(f"Converting {input_file} to structured landmark format...")
 
     # Load data
-    with open(input_file, 'r') as f:
+    with open(input_file) as f:
         data = json.load(f)
 
     converted_samples = []

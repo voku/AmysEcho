@@ -105,7 +105,7 @@ export function SignLanguageRecorder() {
           try {
             window.localStorage.setItem('webapp:trained-labels', JSON.stringify(labels));
             window.localStorage.setItem('webapp:has-trained-gestures', String(hasAny));
-          } catch (e) {
+          } catch {
             // ignore quota errors
           }
         } else {
@@ -114,19 +114,17 @@ export function SignLanguageRecorder() {
           const currentProfile = profiles.find(p => p.profileId === profileId);
           setHasTrainedGestures((currentProfile?.gestureCount ?? 0) > 0);
         }
-      } catch (err) {
-        console.warn('Failed to check profile gestures:', err);
-        // If we have cached data, don't override it with true on network error
-        if (hasTrainedGestures === null) {
-          setHasTrainedGestures(true);
-        }
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    }
-    
-    checkGestures();
-  }, [profileId, hasTrainedGestures]);
+            } catch (err) {
+              console.warn('Failed to check profile gestures:', err);
+              // If we have cached data, don't override it with true on network error
+              setHasTrainedGestures(prev => prev === null ? true : prev);
+            } finally {
+              setIsLoadingProfile(false);
+            }
+          }
+          
+          checkGestures();
+        }, [profileId]);
 
   // Auto-start camera when component mounts and camera is supported AND we have trained gestures
   useEffect(() => {
@@ -139,15 +137,19 @@ export function SignLanguageRecorder() {
     }
   }, [cameraSupported, status, start, hasTrainedGestures]);
 
+  const normalizedTrainedLabels = useMemo(
+    () => new Set(trainedLabels.map(label => label.toLowerCase())),
+    [trainedLabels]
+  );
+
   useEffect(() => {
     if (lastSign) {
       // Only record if it's a trained label (case-insensitive)
-      const normalizedSign = lastSign.toLowerCase();
-      if (trainedLabels.some(label => label.toLowerCase() === normalizedSign)) {
+      if (normalizedTrainedLabels.has(lastSign.toLowerCase())) {
         recordGesture(lastSign);
       }
     }
-  }, [lastSign, recordGesture, trainedLabels]);
+  }, [lastSign, recordGesture, normalizedTrainedLabels]);
 
   const normalizedGesture = lastSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
@@ -155,8 +157,8 @@ export function SignLanguageRecorder() {
   // Filter prediction: only show if it's in the trained labels list
   const isTrained = useMemo(() => {
     if (!gestureKey) return false;
-    return trainedLabels.some(l => l.toLowerCase() === gestureKey);
-  }, [gestureKey, trainedLabels]);
+    return normalizedTrainedLabels.has(gestureKey);
+  }, [gestureKey, normalizedTrainedLabels]);
 
   const gestureMeaning = (gestureKey && isTrained) ? gestureMeaningService.getMeaning(gestureKey) : undefined;
   const gestureLabel = (gestureKey && isTrained)

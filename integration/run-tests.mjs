@@ -46,7 +46,10 @@ const tsxArgs = ['--test', ...nodeFlags, 'test/api.test.js', 'test/training-flow
 const child = spawn(tsxPath, tsxArgs, {
   cwd: __dirname,
   stdio: 'inherit',
-  env: process.env,
+  env: {
+    ...process.env,
+    NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --max-old-space-size=4096`
+  },
   shell: false
 });
 

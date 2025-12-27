@@ -15,8 +15,8 @@ Instructions:
 4.  The script will generate a 'dgs_alphabet_training_data.json' file in the 'docs'
     directory, which can then be posted to the server.
 """
-import json
 import csv
+import json
 import os
 
 # The number of landmarks per hand in MediaPipe
@@ -44,12 +44,12 @@ def process_csv_to_json(input_csv_path, output_json_path):
         return
 
     all_samples = []
-    
+
     print(f"INFO: Reading and processing '{input_csv_path}'...")
 
-    with open(input_csv_path, 'r', newline='') as csvfile:
+    with open(input_csv_path, newline='') as csvfile:
         reader = csv.reader(csvfile)
-        header = next(reader)  # Skip the header row
+        next(reader)  # Skip the header row
 
         for row in reader:
             label = row[0]
@@ -85,7 +85,7 @@ def process_csv_to_json(input_csv_path, output_json_path):
             json.dump(output_payload, f, indent=2)
         print(f"SUCCESS: Converted {len(all_samples)} samples.")
         print(f"         Training data saved to '{output_json_path}'")
-    except IOError as e:
+    except OSError as e:
         print(f"ERROR: Could not write to output file '{output_json_path}'. Reason: {e}")
 
 def main():

@@ -17,8 +17,9 @@ Amy First Impact:
 - Based on latest 2024 research for children with special needs
 """
 
+from typing import Any
+
 import numpy as np
-from typing import Dict, List, Any, Optional
 
 
 class PrivacyPreservingAugmenter:
@@ -33,12 +34,12 @@ class PrivacyPreservingAugmenter:
     
     Based on diffusion model principles but simplified for production use.
     """
-    
+
     def __init__(
         self,
         noise_level: float = 0.05,
         preserve_semantics: bool = True,
-        random_seed: Optional[int] = None
+        random_seed: int | None = None
     ):
         """
         Initialize the privacy-preserving augmenter.
@@ -51,10 +52,10 @@ class PrivacyPreservingAugmenter:
         self.noise_level = noise_level
         self.preserve_semantics = preserve_semantics
         self.random_seed = random_seed
-        
+
         # Use a RandomState instance for reproducibility
         self.rng = np.random.RandomState(random_seed)
-    
+
     def augment(self, landmarks: np.ndarray) -> np.ndarray:
         """
         Augment gesture landmarks with privacy-preserving noise.
@@ -67,12 +68,12 @@ class PrivacyPreservingAugmenter:
         """
         # Create a copy to avoid modifying original
         augmented = landmarks.copy()
-        
+
         # Add temporally correlated Gaussian noise for privacy
         # This preserves temporal structure better than independent noise
         # Scale by 0.4 to keep mean perturbation within noise_level
         base_noise = self.rng.normal(0, self.noise_level * 0.4, landmarks.shape)
-        
+
         # Add temporal correlation to preserve gesture flow
         if len(landmarks) > 1:
             # Smooth the noise itself to create temporal correlation
@@ -84,18 +85,18 @@ class PrivacyPreservingAugmenter:
             noise = smoothed_noise
         else:
             noise = base_noise
-        
+
         augmented += noise.astype(landmarks.dtype)
-        
+
         if self.preserve_semantics:
             # Apply temporal smoothing to maintain gesture flow
             augmented = self._smooth_temporal(augmented)
-            
+
             # Ensure anatomical constraints
             augmented = self._apply_anatomical_constraints(augmented)
-        
+
         return augmented
-    
+
     def _smooth_temporal(self, landmarks: np.ndarray, window_size: int = 3) -> np.ndarray:
         """
         Apply temporal smoothing to maintain gesture flow.
@@ -104,9 +105,9 @@ class PrivacyPreservingAugmenter:
         """
         if len(landmarks) < 3:
             return landmarks
-        
+
         smoothed = landmarks.copy()
-        
+
         # Lightweight smoothing - only blend with immediate neighbors
         # This preserves noise for privacy while reducing jitter
         alpha = 0.85  # Higher weight for current frame to preserve privacy and semantics
@@ -116,9 +117,9 @@ class PrivacyPreservingAugmenter:
                 alpha * landmarks[i] +
                 (1 - alpha) * 0.5 * (landmarks[i-1] + landmarks[i+1])
             )
-        
+
         return smoothed
-    
+
     def _apply_anatomical_constraints(self, landmarks: np.ndarray) -> np.ndarray:
         """
         Ensure augmented landmarks maintain anatomical realism.
@@ -129,10 +130,10 @@ class PrivacyPreservingAugmenter:
         # Clip to reasonable range (assuming normalized coordinates)
         # Slightly wider range to allow for natural variation
         landmarks = np.clip(landmarks, -0.1, 1.1)
-        
+
         return landmarks
-    
-    def augment_batch(self, landmarks: np.ndarray, num_variations: int = 3) -> List[np.ndarray]:
+
+    def augment_batch(self, landmarks: np.ndarray, num_variations: int = 3) -> list[np.ndarray]:
         """
         Generate multiple augmented variations of a gesture.
         
@@ -144,7 +145,7 @@ class PrivacyPreservingAugmenter:
             List of augmented landmarks arrays
         """
         variations = []
-        
+
         for i in range(num_variations):
             # Each variation gets its own RNG state
             if self.random_seed is not None:
@@ -156,12 +157,12 @@ class PrivacyPreservingAugmenter:
                 self.rng = old_rng
             else:
                 variation = self.augment(landmarks)
-            
+
             variations.append(variation)
-        
+
         return variations
-    
-    def augment_with_metadata(self, landmarks: np.ndarray) -> Dict[str, Any]:
+
+    def augment_with_metadata(self, landmarks: np.ndarray) -> dict[str, Any]:
         """
         Augment landmarks and return with metadata for transparency.
         
@@ -174,7 +175,7 @@ class PrivacyPreservingAugmenter:
             Dictionary with augmented landmarks and metadata
         """
         augmented = self.augment(landmarks)
-        
+
         metadata = {
             'noise_level': self.noise_level,
             'method': 'privacy_preserving',
@@ -183,7 +184,7 @@ class PrivacyPreservingAugmenter:
             'augmented_shape': augmented.shape,
             'mean_perturbation': float(np.mean(np.abs(landmarks - augmented))),
         }
-        
+
         return {
             'augmented_landmarks': augmented,
             'metadata': metadata

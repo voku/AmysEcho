@@ -6,11 +6,12 @@ Convert DGS samples to the normalized training format consumed by the MLP traine
 import json
 import sys
 
+
 def convert_dgs_to_training(dgs_file, output_file):
     """Convert DGS samples JSON to training data format"""
 
     # Load DGS samples
-    with open(dgs_file, 'r') as f:
+    with open(dgs_file) as f:
         dgs_data = json.load(f)
 
     # Convert to training format

@@ -11,14 +11,15 @@ This script simulates a complete end-to-end interaction:
 6. Verifying the model recognizes the new gesture.
 """
 
+import copy
 import json
 import os
-import sys
-import numpy as np
-from pathlib import Path
 import subprocess
+import sys
 from datetime import datetime
-import copy
+from pathlib import Path
+
+import numpy as np
 
 # Configuration
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -33,15 +34,15 @@ def generate_gesture_sequence(label, num_frames=40):
     frames = []
     # Use label to slightly vary the motion pattern
     label_hash = sum(ord(c) for c in label) % 10 / 10.0
-    
+
     for i in range(num_frames):
         t = i / (num_frames - 1) if num_frames > 1 else 0.0
-        
+
         # Simulate hand moving towards mouth/chest based on label
         hand_x = 0.5 + (0.1 * label_hash)
         hand_y = 0.6 - t * (0.3 + 0.1 * label_hash)  # Moving up
         hand_z = 0.1
-        
+
         # 42 hand landmarks
         hand_lms = []
         for lm_idx in range(42):
@@ -50,17 +51,17 @@ def generate_gesture_sequence(label, num_frames=40):
             ly = hand_y + (lm_idx // 21) * 0.01 + np.random.normal(0, 0.01)
             lz = hand_z + np.random.normal(0, 0.005)
             hand_lms.append([lx, ly, lz])
-            
+
         # 33 pose landmarks (torso/head)
         pose_lms = []
         for _ in range(33):
             pose_lms.append([0.5 + np.random.normal(0, 0.01), 0.3 + np.random.normal(0, 0.01), 0.0, 0.99])
-            
+
         # 468 face landmarks
         face_lms = []
         for _ in range(468):
             face_lms.append([0.5 + np.random.normal(0, 0.005), 0.3 + np.random.normal(0, 0.005), 0.05])
-            
+
         frames.append({
             "timestampMs": i * 33,
             "landmarks": hand_lms,
@@ -72,14 +73,14 @@ def generate_gesture_sequence(label, num_frames=40):
 
 def setup_test_interaction():
     print(f"🚀 Starting Real-World Test Interaction for Profile: {PROFILE_ID}")
-    
+
     if MANIFEST_PATH.exists():
-        with open(MANIFEST_PATH, "r") as f:
+        with open(MANIFEST_PATH) as f:
             manifest = json.load(f)
         # Filter out previous synthetic entries for this test profile to prevent unbounded growth
         if "entries" in manifest:
             manifest["entries"] = [
-                e for e in manifest["entries"] 
+                e for e in manifest["entries"]
                 if e.get("profileId") != PROFILE_ID
             ]
     else:
@@ -90,13 +91,13 @@ def setup_test_interaction():
         bundle_id = f"test_bundle_{label.lower()}_{int(datetime.now().timestamp())}"
         bundle_dir = UPLOADS_DIR / PROFILE_ID / bundle_id
         bundle_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # 2. Generate and Save Landmarks
         frames = generate_gesture_sequence(label)
         landmarks_file = bundle_dir / "landmarks.json"
         with open(landmarks_file, "w") as f:
             json.dump({"frames": frames}, f, indent=2)
-        
+
         # 3. Create Metadata
         metadata = {
             "profileId": PROFILE_ID,
@@ -115,7 +116,7 @@ def setup_test_interaction():
         }
         with open(bundle_dir / "metadata.json", "w") as f:
             json.dump(metadata, f, indent=2)
-            
+
         # 4. Update Manifest
         manifest_entry = {
             "id": bundle_id,
@@ -127,7 +128,7 @@ def setup_test_interaction():
             },
             "metadata": metadata
         }
-        
+
         # Add 5 copies of each gesture to ensure enough samples for training.
         # This duplication is intentional for the simulator to provide enough samples
         # for the training pipeline to complete successfully in a test environment.
@@ -135,29 +136,29 @@ def setup_test_interaction():
             entry = copy.deepcopy(manifest_entry)
             entry["id"] = f"{bundle_id}_{i}"
             manifest["entries"].append(entry)
-        
+
     # Ensure datasets directory exists
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    
+
     with open(MANIFEST_PATH, "w") as f:
         json.dump(manifest, f, indent=2)
-        
+
     print(f"✅ Created training bundles and updated manifest at {MANIFEST_PATH}")
 
 def run_training():
     print(f"🧠 Running training for profile {PROFILE_ID}...")
-    
+
     trainer_script = PROJECT_ROOT / "server" / "src" / "amyserver_tools" / "train_mlp.py"
-    
+
     env = os.environ.copy()
     env["MLP_DATA_DIR"] = str(PROJECT_ROOT / "server" / "data")
     env["MLP_MANIFEST_PATH"] = str(MANIFEST_PATH)
     env["MLP_EPOCHS"] = "50"  # Fast training for test
-    
+
     cmd = [sys.executable, str(trainer_script), "--manifest", str(MANIFEST_PATH), "--data-dir", str(DATA_DIR)]
-    
+
     result = subprocess.run(cmd, env=env, capture_output=True, text=True)
-    
+
     if result.returncode == 0:
         print("✅ Training completed successfully!")
         try:
@@ -177,7 +178,7 @@ def verify_model():
     model_path = DATA_DIR / "models" / PROFILE_ID / "amy_model.npz"
     if model_path.exists():
         print(f"✅ Verified: Profile-specific model created at {model_path}")
-        
+
         # Load and check labels
         data = np.load(model_path, allow_pickle=True)
         labels = data["labels"]

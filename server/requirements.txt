@@ -5,3 +5,12 @@ opencv-python
 pillow
 PyJWT~=2.9
 scikit-learn
+ruff
+mypy
+types-Pillow
+types-setuptools
+types-requests
+# Stub packages for type checking
+pandas-stubs
+
+

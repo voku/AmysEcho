@@ -6,9 +6,9 @@ This script converts the landmark data from our video processing
 (from list of [x,y,z] points) to the flat format expected by the MLP training script.
 """
 
-import json
-import os
 import argparse
+import json
+
 
 def convert_landmarks_to_flat(landmarks):
     """Convert list of [x,y,z] points to flat array"""
@@ -22,7 +22,7 @@ def convert_training_data(input_file, output_file):
     print(f"Converting {input_file} to flat landmark format...")
 
     # Load data
-    with open(input_file, 'r') as f:
+    with open(input_file) as f:
         data = json.load(f)
 
     converted_samples = []

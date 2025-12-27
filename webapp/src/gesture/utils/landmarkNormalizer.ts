@@ -94,9 +94,18 @@ export const MULTIMODAL_FEATURES_SIZE = HAND_FEATURES_SIZE + POSE_FEATURES_SIZE 
 
 // Density-Balanced Priority factors (Hands > Pose > Face)
 // This prevents the 1404 face features from drowning out the 126 hand features.
-export const HAND_PRIORITY_FACTOR = 3.0;
-export const POSE_PRIORITY_FACTOR = 0.4;
-export const FACE_PRIORITY_FACTOR = 0.1;
+export let HAND_PRIORITY_FACTOR = 3.0;
+export let POSE_PRIORITY_FACTOR = 0.4;
+export let FACE_PRIORITY_FACTOR = 0.1;
+
+/**
+ * Update priority factors from external config.
+ */
+export function updatePriorityFactors(factors: { hands?: number; pose?: number; face?: number }): void {
+  if (typeof factors.hands === 'number') HAND_PRIORITY_FACTOR = factors.hands;
+  if (typeof factors.pose === 'number') POSE_PRIORITY_FACTOR = factors.pose;
+  if (typeof factors.face === 'number') FACE_PRIORITY_FACTOR = factors.face;
+}
 
 /**
  * Get normalized landmark data ready for MLP classification.

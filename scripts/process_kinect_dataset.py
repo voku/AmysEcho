@@ -16,8 +16,8 @@ Usage:
     `python process_kinect_dataset.py <path_to_dataset_file> <output_json_path>`
 """
 import json
-import sys
 import os
+import sys
 
 # The number of landmarks per hand in MediaPipe
 MEDIAPIPE_HAND_LANDMARKS = 21
@@ -148,7 +148,7 @@ def main(input_file, output_file):
         with open(output_file, 'w') as f:
             json.dump(output_payload, f, indent=2)
         print(f"SUCCESS: Converted data saved to {output_file}")
-    except IOError as e:
+    except OSError as e:
         print(f"ERROR: Could not write to output file {output_file}. Reason: {e}")
 
 
@@ -158,10 +158,8 @@ if __name__ == '__main__':
         # Create a dummy input file for demonstration purposes
         DUMMY_INPUT = "dummy_kinect_data.csv"
         with open(DUMMY_INPUT, "w") as f:
-            f.write("gesture_label,joint_0_x,joint_0_y,joint_0_z,...
-")
-            f.write("hello,0.5,0.5,-0.1,...
-")
+            f.write("gesture_label,joint_0_x,joint_0_y,joint_0_z,...\n")
+            f.write("hello,0.5,0.5,-0.1,...\n")
         print(f"INFO: A dummy input file '{DUMMY_INPUT}' has been created.")
         print("INFO: Please replace it with your actual dataset file.")
         sys.exit(1)

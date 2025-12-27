@@ -2,12 +2,14 @@
 """Create synthetic gesture data with realistic hand movements"""
 
 import json
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+
 
 def create_synthetic_gesture_data():
     """Create synthetic gesture data with realistic hand movements"""
-    
+
     # Define German gestures with realistic hand patterns
     gestures = {
         "HALLO": [
@@ -36,50 +38,50 @@ def create_synthetic_gesture_data():
              for i in range(15)
         ]
     }
-    
+
     data_dir = Path(__file__).parent / "data"
     data_dir.mkdir(exist_ok=True)
-    
+
     samples = []
-    
+
     for gesture_name, frames_data in gestures.items():
         sample = {
             "path": f"synthetic_{gesture_name.lower()}.mp4",
             "label": gesture_name.lower(),
             "frames": []
         }
-        
+
         # Create landmark data for each frame
         for frame_data in frames_data:
             landmarks = np.array(frame_data, dtype=np.float32)
             sample["frames"].append({
                 "landmarks": landmarks.tolist()
             })
-        
+
         samples.append(sample)
         print(f"✓ Created {gesture_name}: {len(frames_data)} frames with realistic hand movements")
-    
+
     # Save synthetic dataset
     output_file = data_dir / "synthetic_gestures.json"
     with open(output_file, 'w') as f:
         json.dump(samples, f, indent=2)
-    
+
     print(f"\n✅ Created synthetic dataset: {output_file}")
     print(f"Total gestures: {len(samples)}")
-    
+
     total_frames = sum(len(s['frames']) for s in samples)
     print(f"Total frames: {total_frames}")
-    
+
     return output_file
 
 def create_synthetic_manifest(samples_file):
     """Create training manifest from synthetic dataset"""
-    
-    with open(samples_file, 'r') as f:
+
+    with open(samples_file) as f:
         samples = json.load(f)
-    
+
     manifest_entries = []
-    
+
     for i, sample in enumerate(samples):
         entry = {
             "label": sample['label'].upper(),
@@ -96,34 +98,34 @@ def create_synthetic_manifest(samples_file):
             }
         }
         manifest_entries.append(entry)
-    
+
     manifest = {"entries": manifest_entries}
-    
+
     manifest_file = Path(__file__).parent / "data" / "synthetic_manifest.json"
     with open(manifest_file, 'w') as f:
         json.dump(manifest, f, indent=2)
-    
+
     print(f"✅ Created synthetic manifest: {manifest_file}")
     return manifest_file
 
 def main():
     """Create synthetic training data with realistic gestures"""
-    
+
     print("🎯 Creating synthetic gesture data with realistic hand movements...")
-    
+
     # Create synthetic landmark data
     samples_file = create_synthetic_gesture_data()
-    
+
     # Create manifest
     manifest_file = create_synthetic_manifest(samples_file)
-    
+
     print("\n🎉 Synthetic dataset creation complete!")
     print("📊 Dataset summary:")
     print("   - Gestures: HALLO, BITTE, DANKE, JA, NEIN (5 German gestures)")
     print("   - Realistic hand movements with proper temporal variation")
     print("   - Non-zero landmark coordinates for training")
     print("   - Ready for MLP training with actual gesture patterns")
-    
+
     return samples_file, manifest_file
 
 if __name__ == "__main__":

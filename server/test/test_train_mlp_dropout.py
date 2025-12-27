@@ -155,7 +155,7 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
     scale1 = np.sqrt(2.0 / X.shape[1])
     scale2 = np.sqrt(2.0 / MLP_LAYER1_SIZE)
     scale3 = np.sqrt(2.0 / MLP_LAYER2_SIZE)
-    
+
     expected_w1 = np.ones((X.shape[1], MLP_LAYER1_SIZE), dtype=np.float32) * scale1
     expected_w2 = np.ones((MLP_LAYER1_SIZE, MLP_LAYER2_SIZE), dtype=np.float32) * scale2
     expected_w3 = np.ones((MLP_LAYER2_SIZE, 2), dtype=np.float32) * scale3
