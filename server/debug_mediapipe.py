@@ -42,38 +42,38 @@ try:
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     print(f"Video info: {width}x{height}, {fps} FPS, {frame_count} frames")
 
-    # Read frames with stride
-    for frame_num in range(0, min(100, frame_count), 10):
-        # Set frame position
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
-        success, frame = cap.read()
-        if not success:
-            break
+    # Check if model exists
+    model_path = Path(__file__).parent / "data" / "models" / "hand_landmarker.task"
+    print(f"Hand model exists: {model_path.exists()}")
 
-        print(f"\n--- Frame {frame_num} ---")
-        print(f"Frame shape: {frame.shape}")
+    if not model_path.exists():
+        print("Hand model not found!")
+        sys.exit(1)
 
-        # Convert to RGB
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # Try MediaPipe detection
+    try:
+        base_options = mp_tasks.BaseOptions(model_asset_path=str(model_path))
+        options = mp_vision.HandLandmarkerOptions(
+            base_options=base_options,
+            num_hands=2,
+            running_mode=mp_vision.RunningMode.IMAGE
+        )
 
-        # Check if model exists
-        model_path = Path(__file__).parent / "data" / "models" / "hand_landmarker.task"
-        print(f"Hand model exists: {model_path.exists()}")
+        with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
+            # Read frames with stride
+            for frame_num in range(0, min(100, frame_count), 10):
+                # Set frame position
+                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
+                success, frame = cap.read()
+                if not success:
+                    break
 
-        if not model_path.exists():
-            print("Hand model not found!")
-            continue
+                print(f"\n--- Frame {frame_num} ---")
+                print(f"Frame shape: {frame.shape}")
 
-        # Try MediaPipe detection
-        try:
-            base_options = mp_tasks.BaseOptions(model_asset_path=str(model_path))
-            options = mp_vision.HandLandmarkerOptions(
-                base_options=base_options,
-                num_hands=2,
-                running_mode=mp_vision.RunningMode.IMAGE
-            )
+                # Convert to RGB
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            with mp_vision.HandLandmarker.create_from_options(options) as landmarker:
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
                 result = landmarker.detect(mp_image)
 
@@ -103,11 +103,11 @@ try:
                 else:
                     print("No hands detected")
 
-        except Exception as e:
-            print(f"Error in MediaPipe detection: {e}")
-            import traceback
-            traceback.print_exc()
-            break
+    except Exception as e:
+        print(f"Error in MediaPipe detection: {e}")
+        import traceback
+        traceback.print_exc()
+
 
     cap.release()
     print("\nDebug complete.")

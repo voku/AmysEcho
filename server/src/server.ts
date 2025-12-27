@@ -702,7 +702,10 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
         .refine((arr) => arr.length === 21 || arr.length === 42 || arr.length === 543, {
           message: 'landmarks must be 21, 42 or 543 points',
         }),
-      z.array(FrameSchema),
+      z.array(FrameSchema).refine(
+        (frames) => frames.every(f => f.landmarks.length === 21 || f.landmarks.length === 42 || f.landmarks.length === 543),
+        { message: 'each frame must contain 21, 42 or 543 landmarks' }
+      ),
     ]),
   });
   const BodySchema = z.object({
@@ -860,7 +863,13 @@ app.get(
 app.get('/api/models/profiles', auth, async (_req: Request, res: Response) => {
   try {
     const { profileCounts } = await collectLabelCounts();
-    const profiles: Array<{ profileId: string; modelAvailable: boolean; gestureCount: number }> = [];
+    interface ProfileInfo {
+      profileId: string;
+      modelAvailable: boolean;
+      gestureCount: number;
+      lastUpdated?: Date;
+    }
+    const profiles: ProfileInfo[] = [];
     
     const modelsDir = path.join(DATA_DIR, 'models');
     let modelDirs: string[] = [];
@@ -893,7 +902,7 @@ app.get('/api/models/profiles', auth, async (_req: Request, res: Response) => {
         modelAvailable,
         gestureCount,
         ...(lastUpdated ? { lastUpdated } : {})
-      } as any);
+      });
     }
 
     // Add profiles that have data but no model file yet

@@ -1161,7 +1161,7 @@ def train_mlp(
         dw3 = np.dot(a2.T, dz3)
         db3 = np.sum(dz3, axis=0)
 
-        # Layer 2 gradients (1024 → 512)
+        # Layer 2 gradients (512 → 256)
         da2 = np.dot(dz3, w3.T)
         if dropout_mask2 is not None:
             da2 *= dropout_mask2
@@ -1169,7 +1169,7 @@ def train_mlp(
         dw2 = np.dot(a1.T, dz2)
         db2 = np.sum(dz2, axis=0)
 
-        # Layer 1 gradients (Input → 1024)
+        # Layer 1 gradients (Input → 512)
         da1 = np.dot(dz2, w2.T)
         if dropout_mask1 is not None:
             da1 *= dropout_mask1

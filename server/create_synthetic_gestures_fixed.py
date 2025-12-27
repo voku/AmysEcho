@@ -23,7 +23,7 @@ def main():
         ],
         "JA": [
             # Thumbs up
-            [(0.35, 0.25 + i*0.008, 0.1 + np.cos(i*0.1)*0.008, 0.0) for i in range(25)]
+            [(0.35, 0.25 + i*0.008, 0.1 + np.cos(i*0.1)*0.008) for i in range(25)]
         ],
         "NEIN": [
             # Hand shaking motion

@@ -53,6 +53,13 @@ mkdir -p server/data/models server/data/dgs_video_examples
 dd if=/dev/zero of=server/data/models/hand_landmarker.task bs=1M count=2 2>/dev/null
 dd if=/dev/zero of=server/data/models/pose_landmarker.task bs=1M count=2 2>/dev/null
 dd if=/dev/zero of=server/data/models/face_landmarker.task bs=1M count=2 2>/dev/null
+# Verify dummy models were created
+for model in hand_landmarker.task pose_landmarker.task face_landmarker.task; do
+  if [ ! -s "server/data/models/$model" ]; then
+    echo "Error: Failed to create $model" >&2
+    exit 1
+  fi
+done
 labels=('alle' 'blau' 'essen' 'fertig' 'gelb' 'gruen' 'nochmal' 'rot' 'satt' 'schwester' 'spielen' 'trinken')
 for label in "${labels[@]}"; do
   touch "server/data/dgs_video_examples/${label}.mp4"

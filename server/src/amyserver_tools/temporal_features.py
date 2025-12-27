@@ -28,7 +28,7 @@ class MultiScaleTemporalExtractor:
         >>> print(features.shape)  # (time_steps, fused_features)
     """
 
-    def __init__(self, scales: list[int] = None):
+    def __init__(self, scales: list[int] | None = None):
         """
         Initialize the multi-scale temporal extractor.
         

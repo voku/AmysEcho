@@ -215,7 +215,7 @@ def test_train_endpoint():
     except Exception as e:
         if proc and proc.stderr:
             print("Server Stderr:", proc.stderr.read())
-        raise e
+        raise
     finally:
         stop_server(proc)
 

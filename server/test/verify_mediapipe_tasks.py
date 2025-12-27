@@ -1,4 +1,3 @@
-
 try:
     import mediapipe as mp
     from mediapipe.tasks.python.vision import (

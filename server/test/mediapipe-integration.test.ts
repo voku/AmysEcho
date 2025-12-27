@@ -80,8 +80,8 @@ describe('MediaPipe Integration Tests', () => {
       };
 
       const zip = new AdmZip();
-      zip.addFile('metadata.json', JSON.stringify(bundleData));
-      zip.addFile('landmarks.json', JSON.stringify(landmarks));
+      zip.addFile('metadata.json', Buffer.from(JSON.stringify(bundleData)));
+      zip.addFile('landmarks.json', Buffer.from(JSON.stringify(landmarks)));
       
       const bundlePath = path.join(testBundlesDir, 'test-multimodal-bundle.zip');
       zip.writeZip(bundlePath);
@@ -108,8 +108,8 @@ describe('MediaPipe Integration Tests', () => {
       };
 
       const zip = new AdmZip();
-      zip.addFile('metadata.json', JSON.stringify(bundleData));
-      zip.addFile('landmarks.json', JSON.stringify(landmarks));
+      zip.addFile('metadata.json', Buffer.from(JSON.stringify(bundleData)));
+      zip.addFile('landmarks.json', Buffer.from(JSON.stringify(landmarks)));
       
       const bundlePath = path.join(testBundlesDir, 'test-hands-only-bundle.zip');
       zip.writeZip(bundlePath);
@@ -165,15 +165,20 @@ describe('MediaPipe Integration Tests', () => {
       expect(manifest.gestures).toBeInstanceOf(Array);
       expect(manifest.gestures).toHaveLength(12);
       
+      interface DgsManifestEntry {
+        label: string;
+        video: string;
+      }
+
       // Check that all entries have required structure
-      manifest.gestures.forEach((entry: any) => {
+      manifest.gestures.forEach((entry: DgsManifestEntry) => {
         expect(entry).toHaveProperty('label');
         expect(entry).toHaveProperty('video');
         expect(entry.video).toMatch(/\.mp4$/);
       });
       
       // Check for German labels
-      const labels = manifest.gestures.map((e: any) => e.label);
+      const labels = manifest.gestures.map((e: DgsManifestEntry) => e.label);
       const expectedLabels = [
         'alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen',
         'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken'

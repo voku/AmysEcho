@@ -114,17 +114,17 @@ export function SignLanguageRecorder() {
           const currentProfile = profiles.find(p => p.profileId === profileId);
           setHasTrainedGestures((currentProfile?.gestureCount ?? 0) > 0);
         }
-            } catch (err) {
-              console.warn('Failed to check profile gestures:', err);
-              // If we have cached data, don't override it with true on network error
-              setHasTrainedGestures(prev => prev === null ? true : prev);
-            } finally {
-              setIsLoadingProfile(false);
-            }
-          }
-          
-          checkGestures();
-        }, [profileId]);
+      } catch (err) {
+        console.warn('Failed to check profile gestures:', err);
+        // If we have cached data, don't override it with true on network error
+        setHasTrainedGestures(prev => prev === null ? true : prev);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+
+    checkGestures();
+  }, [profileId]);
 
   // Auto-start camera when component mounts and camera is supported AND we have trained gestures
   useEffect(() => {

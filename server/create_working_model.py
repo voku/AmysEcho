@@ -9,7 +9,6 @@ def create_working_model():
     # Create simple but realistic training data
     training_data = {
         'global': {
-            'weights': [np.random.randn(42 * 3, 126) * 0.1 for _ in range(100)],  # MLP architecture
             'labels': ['HALLO', 'BITTE', 'DANKE', 'JA', 'NEIN'],
             'samples': []
         }
@@ -17,7 +16,7 @@ def create_working_model():
 
     print('🎯 Creating working model with non-zero landmarks...')
 
-    for gesture_idx, gesture in enumerate(training_data['global']['labels']):
+    for _gesture_idx, gesture in enumerate(training_data['global']['labels']):
         print(f'  Adding {gesture} gesture with realistic landmarks...')
 
         # Generate 30 frames with realistic hand movements

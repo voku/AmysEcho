@@ -98,7 +98,7 @@ def main():
     LOGGER.info(f"Generated {len(all_samples)} samples (temporal windows).")
 
     # 3. Prepare Arrays
-    X, y, labels, weights = dataset_to_arrays(all_samples)
+    X, y, labels, _weights = dataset_to_arrays(all_samples)
 
     # 4. Train/Val Split
     num_samples = X.shape[0]
