@@ -13,18 +13,24 @@ import numpy as np
 def create_working_model():
     """Create working model from synthetic data to fix zero landmarks issue"""
 
+    # Project default labels for baseline
+    default_labels = [
+        'alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen',
+        'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken'
+    ]
+
     # Create simple but realistic training data
     training_data = {
         'global': {
-            'labels': ['HALLO', 'BITTE', 'DANKE', 'JA', 'NEIN'],
+            'labels': default_labels,
             'samples': []
         }
     }
 
-    print('🎯 Creating working model with non-zero landmarks...')
+    print('🎯 Creating working model with non-zero landmarks for Sign Language recognition...')
 
-    for _gesture_idx, gesture in enumerate(training_data['global']['labels']):
-        print(f'  Adding {gesture} gesture with realistic multimodal landmarks...')
+    for _gesture_idx, label in enumerate(training_data['global']['labels']):
+        print(f'  Adding {label} sign with realistic multimodal landmarks...')
 
         # Generate 30 frames with realistic movement trajectories
         gesture_frames = []
@@ -84,18 +90,18 @@ def create_working_model():
             })
 
         sample = {
-            'path': f'training_{gesture.lower()}.mp4',
-            'label': gesture.lower(),
+            'path': f'training_{label.lower()}.mp4',
+            'label': label.lower(),
             'frames': gesture_frames
         }
 
         training_data['global']['samples'].append(sample)
 
     # Save working model
-    # Architecture: 48870 -> 512 -> 256 -> 5
+    # Architecture: 48870 -> 512 -> 256 -> num_classes
     input_dim = 1629 * 30
     h1, h2 = 512, 256
-    output_size = 5
+    output_size = len(default_labels)
 
     w1 = np.random.randn(input_dim, h1).astype(np.float32) * 0.01
     b1 = np.zeros(h1).astype(np.float32)
@@ -119,7 +125,7 @@ def create_working_model():
     )
 
     print(f'✅ Fixed model saved: {model_path}')
-    print(f'  Gestures: {labels}')
+    print(f'  Sign Language: {labels}')
     print('✅ MediaPipe landmarks issue fixed!')
     print('📋 Root cause: DGS videos contained no visible hands')
     print('🛠️  Solution: Trained model with realistic synthetic hand movements')

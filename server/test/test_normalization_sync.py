@@ -12,8 +12,8 @@ import numpy as np
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent / "training"))
-from frame_normalization import _normalize_frame
 from config_constants import INPUT_FEATURE_SIZE
+from frame_normalization import _normalize_frame
 
 
 def test_normalization_sync():
@@ -91,12 +91,10 @@ console.log(JSON.stringify(Array.from(result)));
             max_diff = np.max(diff)
             print(f"❌ Normalization mismatch! Max difference: {max_diff}")
             
-            # Identify which part mismatched (Constants from landmarkNormalizer.ts)
-            hand_size = 126
-            pose_size = 99
-            
-            hand_end = hand_size
-            pose_end = hand_end + pose_size
+            # Identify which part mismatched (Constants from config_constants.py)
+            # hand_size = 126, pose_size = 99
+            hand_end = 126
+            pose_end = hand_end + 99
             
             if not np.allclose(py_result[:hand_end], js_result[:hand_end], atol=1e-5):
                 print("  -> Mismatch in HANDS")

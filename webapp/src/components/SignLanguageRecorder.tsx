@@ -6,7 +6,6 @@ import { useApiConfig } from '../hooks/useApiConfig';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
-import { modelManager } from '../gesture/modelManager';
 import { apiRetryManager } from '../services/apiRetryManager';
 
 function formatStatusLabel(status: string): string {
