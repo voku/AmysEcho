@@ -856,6 +856,83 @@ app.get(
   },
 );
 
+// List available profile models and their status
+app.get('/api/models/profiles', auth, async (_req: Request, res: Response) => {
+  try {
+    const { profileCounts } = await collectLabelCounts();
+    const profiles: Array<{ profileId: string; modelAvailable: boolean; gestureCount: number }> = [];
+    
+    const modelsDir = path.join(DATA_DIR, 'models');
+    let modelDirs: string[] = [];
+    try {
+      modelDirs = await fs.readdir(modelsDir);
+    } catch (e) {
+      // Models dir might not exist yet
+    }
+
+    for (const pid of modelDirs) {
+      if (pid === 'global' || !PROFILE_ID_PATTERN.test(pid)) continue;
+      
+      const modelPath = getMlpModelPath(pid);
+      let modelAvailable = false;
+      let lastUpdated: Date | undefined;
+      
+      try {
+        const stat = await fs.stat(modelPath);
+        modelAvailable = true;
+        lastUpdated = stat.mtime;
+      } catch (e) {
+        // Model not built yet
+      }
+
+      const counts = profileCounts.get(pid) || {};
+      const gestureCount = Object.values(counts).reduce((a, b) => a + b, 0);
+
+      profiles.push({
+        profileId: pid,
+        modelAvailable,
+        gestureCount,
+        ...(lastUpdated ? { lastUpdated } : {})
+      } as any);
+    }
+
+    // Add profiles that have data but no model file yet
+    for (const [pid, counts] of profileCounts.entries()) {
+      if (!profiles.find(p => p.profileId === pid)) {
+        profiles.push({
+          profileId: pid,
+          modelAvailable: false,
+          gestureCount: Object.values(counts).reduce((a, b) => a + b, 0)
+        });
+      }
+    }
+
+    res.json(profiles);
+  } catch (error) {
+    console.error('Failed to list profile models:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get labels that have at least one sample for a profile
+app.get('/api/v1/dgs/trained-labels', auth, async (req: Request, res: Response) => {
+  try {
+    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+    if (!profileId) {
+      return res.status(400).json({ error: 'profileId required' });
+    }
+
+    const { profileCounts } = await collectLabelCounts();
+    const counts = profileCounts.get(profileId) || {};
+    const trainedLabels = Object.keys(counts).filter(label => counts[label] > 0);
+
+    res.json({ profileId, trainedLabels });
+  } catch (error) {
+    console.error('Failed to get trained labels:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Add error handling middleware
 app.use(errorHandler);
 

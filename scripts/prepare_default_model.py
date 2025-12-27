@@ -92,33 +92,47 @@ def create_fallback_data():
     """Create minimal fallback data for testing if video processing fails"""
     print("Creating fallback sample data...")
 
-    # Basic gesture labels
-    gestures = ['alle', 'blau', 'rot', 'gelb', 'gruen', 'essen', 'trinken', 'satt', 'spielen', 'schwester', 'nochmal', 'fertig']
+    # Load default labels from config
+    labels_config = PROJECT_ROOT / "server" / "data" / "config" / "defaultBaselineLabels.json"
+    if labels_config.exists():
+        with open(labels_config, 'r') as f:
+            gestures = json.load(f)
+    else:
+        # Fallback if config missing
+        gestures = ['alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen', 'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken']
 
     # Create minimal landmark data (42 landmarks per hand, 2 hands = 84 total)
     samples = []
+    # Generate 50 samples per gesture to provide more robust training data
+    SAMPLES_PER_GESTURE = 50
+    
     for gesture_idx, gesture in enumerate(gestures):
-        # Create synthetic but realistic landmark data
-        landmarks = []
-        for i in range(42):
-            # Generate somewhat realistic hand landmark positions
-            # Add variation based on gesture_idx so every gesture has unique data
-            x = 0.3 + (i % 21) * 0.01 + (0.05 if i >= 21 else 0) + (gesture_idx * 0.005)
-            y = 0.4 + (i // 21) * 0.1 + (gesture_idx * 0.005)
-            z = (i % 5) * 0.01 + (gesture_idx * 0.001)
-            landmarks.append([x, y, z])
+        for sample_idx in range(SAMPLES_PER_GESTURE):
+            # Create synthetic but realistic landmark data
+            landmarks = []
+            # Base motion pattern for this gesture
+            gesture_seed = gesture_idx * 0.1
+            sample_seed = sample_idx * 0.01
+            
+            for i in range(42):
+                # Generate somewhat realistic hand landmark positions
+                # Incorporate both gesture and sample seeds for uniqueness
+                x = 0.3 + (i % 21) * 0.01 + (0.05 if i >= 21 else 0) + gesture_seed + sample_seed
+                y = 0.4 + (i // 21) * 0.1 + gesture_seed - sample_seed
+                z = (i % 5) * 0.01 + (gesture_idx * 0.001)
+                landmarks.append([x, y, z])
 
-        samples.append({
-            "label": gesture,
-            "landmarks": landmarks
-        })
+            samples.append({
+                "label": gesture,
+                "landmarks": landmarks
+            })
 
     # Save the fallback data
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(SAMPLES_FILE, 'w') as f:
         json.dump({"samples": samples}, f, indent=2)
 
-    print(f"✓ Created fallback data with {len(samples)} samples")
+    print(f"✓ Created fallback data with {len(samples)} samples ({len(gestures)} gestures)")
     return True
 
 def train_model():

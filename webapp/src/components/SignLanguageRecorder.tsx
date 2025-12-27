@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useAppState } from '../hooks/useAppState';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
+import { modelManager } from '../gesture/modelManager';
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -33,6 +34,8 @@ export function SignLanguageRecorder() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [trainedLabels, setTrainedLabels] = useState<string[]>([]);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>(() => {
     try {
       const persisted = window.localStorage.getItem('cameraFacingMode');
@@ -65,27 +68,71 @@ export function SignLanguageRecorder() {
   const { notice: modelNotice } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
 
-  // Auto-start camera when component mounts and camera is supported
+  // Check if profile has trained gestures
   useEffect(() => {
-    if (cameraSupported && status === 'idle' && !hasAttemptedAutoStart.current) {
+    async function checkGestures() {
+      if (!profileId) {
+        setIsLoadingProfile(false);
+        return;
+      }
+      
+      try {
+        // We use the new trained-labels endpoint to get specific allowed labels
+        const response = await fetch(`/api/v1/dgs/trained-labels?profileId=${profileId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const labels = data.trainedLabels || [];
+          setTrainedLabels(labels);
+          setHasTrainedGestures(labels.length > 0);
+        } else {
+          // Fallback to model info if specific endpoint fails
+          const profiles = await modelManager.getAvailableProfileModels();
+          const currentProfile = profiles.find(p => p.profileId === profileId);
+          setHasTrainedGestures((currentProfile?.gestureCount ?? 0) > 0);
+        }
+      } catch (err) {
+        console.warn('Failed to check profile gestures:', err);
+        // Fallback to true to not block the user if API fails
+        setHasTrainedGestures(true);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+    
+    checkGestures();
+  }, [profileId]);
+
+  // Auto-start camera when component mounts and camera is supported AND we have trained gestures
+  useEffect(() => {
+    if (cameraSupported && status === 'idle' && !hasAttemptedAutoStart.current && hasTrainedGestures === true) {
       start().then((success) => {
         if (success) {
           hasAttemptedAutoStart.current = true;
         }
       });
     }
-  }, [cameraSupported, status, start]);
+  }, [cameraSupported, status, start, hasTrainedGestures]);
 
   useEffect(() => {
     if (lastSign) {
-      recordGesture(lastSign);
+      // Only record if it's a trained label
+      if (trainedLabels.includes(lastSign.toUpperCase()) || trainedLabels.includes(lastSign.toLowerCase())) {
+        recordGesture(lastSign);
+      }
     }
-  }, [lastSign, recordGesture]);
+  }, [lastSign, recordGesture, trainedLabels]);
 
   const normalizedGesture = lastSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
-  const gestureMeaning = gestureKey ? gestureMeaningService.getMeaning(gestureKey) : undefined;
-  const gestureLabel = gestureKey
+  
+  // Filter prediction: only show if it's in the trained labels list
+  const isTrained = useMemo(() => {
+    if (!gestureKey) return false;
+    return trainedLabels.some(l => l.toLowerCase() === gestureKey);
+  }, [gestureKey, trainedLabels]);
+
+  const gestureMeaning = (gestureKey && isTrained) ? gestureMeaningService.getMeaning(gestureKey) : undefined;
+  const gestureLabel = (gestureKey && isTrained)
     ? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
@@ -153,6 +200,39 @@ export function SignLanguageRecorder() {
   }, [navigate]);
 
   const needsCameraStart = status === 'idle' || status === 'stopped' || status === 'error';
+
+  // Loading state
+  if (isLoadingProfile) {
+    return (
+      <section className="gesture-screen gesture-screen--loading">
+        <div className="gesture-screen__placeholder">Profil wird geladen…</div>
+      </section>
+    );
+  }
+
+  // Prompt to train if no gestures found
+  if (hasTrainedGestures === false) {
+    return (
+      <section className="gesture-screen gesture-screen--empty">
+        <div className="gesture-screen__empty-card">
+          <span className="gesture-screen__empty-icon">🖐️</span>
+          <h2>Bringe mir deine Gebärden bei</h2>
+          <p>
+            Um die Gebärdenkamera zu nutzen, musst du mir zuerst mindestens eine Gebärde beibringen.
+            So kann ich deine Bewegungen besser verstehen.
+          </p>
+          <div className="gesture-screen__empty-actions">
+            <Link to="/training" className="primary button">
+              Jetzt Gebärde beibringen
+            </Link>
+            <button className="ghost button" onClick={() => setHasTrainedGestures(true)}>
+              Trotzdem fortfahren (Demo)
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="gesture-screen">
