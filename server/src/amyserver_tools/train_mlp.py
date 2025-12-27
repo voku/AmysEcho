@@ -370,16 +370,16 @@ def _extract_modality_coverage(metadata: dict) -> dict[str, float] | None:
 def _summarize_frame_modalities(frames: list[dict]) -> tuple[dict[str, int], dict[str, float]]:
     counts = {key: 0 for key in MODALITY_KEYS}
     total_frames = len(frames)
+    landmark_map = {
+        "hands": "landmarks",
+        "pose": "poseLandmarks",
+        "face": "faceLandmarks",
+    }
     for frame in frames:
-        landmarks = frame.get("landmarks")
-        pose_landmarks = frame.get("poseLandmarks")
-        face_landmarks = frame.get("faceLandmarks")
-        if isinstance(landmarks, list) and len(landmarks) > 0:
-            counts["hands"] += 1
-        if isinstance(pose_landmarks, list) and len(pose_landmarks) > 0:
-            counts["pose"] += 1
-        if isinstance(face_landmarks, list) and len(face_landmarks) > 0:
-            counts["face"] += 1
+        for key, frame_key in landmark_map.items():
+            landmarks = frame.get(frame_key)
+            if isinstance(landmarks, list) and len(landmarks) > 0:
+                counts[key] += 1
     coverage = {
         key: (counts[key] / total_frames if total_frames > 0 else 0.0)
         for key in MODALITY_KEYS
@@ -410,6 +410,20 @@ def _infer_modality_presence(
         else:
             presence[key] = frame_counts.get(key, 0) > 0
     return presence
+
+
+def _update_modality_totals(
+    samples: list[Sample],
+    presence: dict[str, bool],
+    modality_counts: dict[str, int],
+) -> int:
+    if not samples:
+        return 0
+    sample_count = len(samples)
+    for key in MODALITY_KEYS:
+        if presence.get(key):
+            modality_counts[key] += sample_count
+    return sample_count
 
 
 def _analyze_frame_timing(frames: list[dict]) -> dict[str, float] | None:
@@ -1543,11 +1557,11 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
         # 4. Generate sliding windows for the actual sign
         sign_samples = create_sliding_windows(normalized_frames, label, ctx, frame_weights)
         data.extend(sign_samples)
-        if sign_samples:
-            modality_sample_total += len(sign_samples)
-            for key in MODALITY_KEYS:
-                if modality_presence.get(key):
-                    modality_counts[key] += len(sign_samples)
+        modality_sample_total += _update_modality_totals(
+            sign_samples,
+            modality_presence,
+            modality_counts,
+        )
 
     # ========== PROCESS DEFAULT VIDEO EXAMPLES (GLOBAL) ==========
     video_examples_dir = DATA_DIR / "dgs_video_examples"
@@ -1600,11 +1614,11 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
                     }  # Global examples
                     v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
                     data.extend(v_samples)
-                    if v_samples:
-                        modality_sample_total += len(v_samples)
-                        for key in MODALITY_KEYS:
-                            if v_presence.get(key):
-                                modality_counts[key] += len(v_samples)
+                    modality_sample_total += _update_modality_totals(
+                        v_samples,
+                        v_presence,
+                        modality_counts,
+                    )
 
     stats = {
         "entries": len(entries),
