@@ -795,7 +795,7 @@ def extract_landmarks_from_still(still_path: Path) -> Optional[dict]:
                     if result.hand_landmarks:
                         for i, hand_lms in enumerate(result.hand_landmarks):
                             coords = np.array([[lm.x, lm.y, lm.z] for lm in hand_lms], dtype=np.float32)
-                            category = hand_result.handedness[i][0].category_name
+                            category = result.handedness[i][0].category_name
                             if category == "Left":
                                 left[:] = coords
                             else:

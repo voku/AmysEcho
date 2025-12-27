@@ -97,14 +97,15 @@ def create_fallback_data():
 
     # Create minimal landmark data (42 landmarks per hand, 2 hands = 84 total)
     samples = []
-    for gesture in gestures:
+    for gesture_idx, gesture in enumerate(gestures):
         # Create synthetic but realistic landmark data
         landmarks = []
         for i in range(42):
             # Generate somewhat realistic hand landmark positions
-            x = 0.3 + (i % 21) * 0.01 + (0.05 if i >= 21 else 0)  # Different base for each hand
-            y = 0.4 + (i // 21) * 0.1  # Different height for each hand
-            z = (i % 5) * 0.01  # Some depth variation
+            # Add variation based on gesture_idx so every gesture has unique data
+            x = 0.3 + (i % 21) * 0.01 + (0.05 if i >= 21 else 0) + (gesture_idx * 0.005)
+            y = 0.4 + (i // 21) * 0.1 + (gesture_idx * 0.005)
+            z = (i % 5) * 0.01 + (gesture_idx * 0.001)
             landmarks.append([x, y, z])
 
         samples.append({
