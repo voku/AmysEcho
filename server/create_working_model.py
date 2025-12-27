@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+"""
+Development-only script for pipeline testing with synthetic data.
+Generates a working baseline model from realistic synthetic multimodal landmarks.
+NOT suitable for production sign language recognition.
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -52,13 +59,13 @@ def create_working_model():
                 landmarks.append([lm_x, lm_y, lm_z])
             
             # 2. POSE: Static torso with subtle breathing movement
+            # NOTE: We use 3D coordinates (x, y, z) to match production 1629 feature size (no visibility)
             pose_landmarks = []
             for _ in range(33):
                 px = 0.5 + np.random.normal(0, 0.005)
                 py = 0.5 + 0.002 * np.sin(t * np.pi) # Breathing
                 pz = 0.0
-                vis = 0.9
-                pose_landmarks.append([px, py, pz, vis])
+                pose_landmarks.append([px, py, pz])
                 
             # 3. FACE: Static head with subtle blinking simulation
             face_landmarks = []
@@ -113,14 +120,6 @@ def create_working_model():
 
     print(f'✅ Fixed model saved: {model_path}')
     print(f'  Gestures: {labels}')
-
-    return model_path
-
-def train_and_save_model():
-    """Train model with synthetic data and save"""
-
-    model_path = create_working_model()
-
     print('✅ MediaPipe landmarks issue fixed!')
     print('📋 Root cause: DGS videos contained no visible hands')
     print('🛠️  Solution: Trained model with realistic synthetic hand movements')
@@ -128,5 +127,6 @@ def train_and_save_model():
 
     return model_path
 
+
 if __name__ == '__main__':
-    model_path = train_and_save_model()
+    create_working_model()

@@ -13,6 +13,7 @@ import numpy as np
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent / "training"))
 from frame_normalization import _normalize_frame
+from config_constants import INPUT_FEATURE_SIZE
 
 
 def test_normalization_sync():
@@ -55,7 +56,7 @@ console.log(JSON.stringify(Array.from(result)));
     try:
         # Check if tsx is available
         subprocess.run(["npx", "tsx", "--version"], check=True, capture_output=True)
-    except Exception:
+    except (subprocess.SubprocessError, FileNotFoundError, PermissionError):
         print("❌ 'tsx' not found. Skipping cross-language test. Please install 'tsx' or run in an environment with Node.js.")
         return
 
@@ -90,12 +91,18 @@ console.log(JSON.stringify(Array.from(result)));
             max_diff = np.max(diff)
             print(f"❌ Normalization mismatch! Max difference: {max_diff}")
             
-            # Identify which part mismatched
-            if not np.allclose(py_result[:126], js_result[:126], atol=1e-5):
+            # Identify which part mismatched (Constants from landmarkNormalizer.ts)
+            hand_size = 126
+            pose_size = 99
+            
+            hand_end = hand_size
+            pose_end = hand_end + pose_size
+            
+            if not np.allclose(py_result[:hand_end], js_result[:hand_end], atol=1e-5):
                 print("  -> Mismatch in HANDS")
-            if not np.allclose(py_result[126:126+99], js_result[126:126+99], atol=1e-5):
+            if not np.allclose(py_result[hand_end:pose_end], js_result[hand_end:pose_end], atol=1e-5):
                 print("  -> Mismatch in POSE")
-            if not np.allclose(py_result[126+99:], js_result[126+99:], atol=1e-5):
+            if not np.allclose(py_result[pose_end:], js_result[pose_end:], atol=1e-5):
                 print("  -> Mismatch in FACE")
                 
             sys.exit(1)

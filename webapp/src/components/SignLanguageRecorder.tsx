@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useAppState } from '../hooks/useAppState';
+import { useApiConfig } from '../hooks/useApiConfig';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
@@ -32,9 +33,11 @@ function toTitleCase(value: string): string {
 
 export function SignLanguageRecorder() {
   const navigate = useNavigate();
+  const { apiBaseUrl } = useApiConfig();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [demoMode, setDemoMode] = useState(false);
   const [hasTrainedGestures, setHasTrainedGestures] = useState<boolean | null>(() => {
     try {
       const cached = window.localStorage.getItem('webapp:has-trained-gestures');
@@ -94,7 +97,7 @@ export function SignLanguageRecorder() {
       
       try {
         // We use the new trained-labels endpoint to get specific allowed labels
-        const response = await apiRetryManager.fetch(`/api/v1/dgs/trained-labels?profileId=${profileId}`);
+        const response = await apiRetryManager.fetch(`${apiBaseUrl}/api/v1/dgs/trained-labels?profileId=${profileId}`);
         if (response.ok) {
           const data = await response.json();
           const labels = data.trainedLabels || [];
@@ -110,16 +113,8 @@ export function SignLanguageRecorder() {
             // ignore quota errors
           }
         } else {
-          // Fallback to model info if specific endpoint fails
-          const profiles = await modelManager.getAvailableProfileModels();
-          const currentProfile = profiles.find(p => p.profileId === profileId);
-          const hasAny = (currentProfile?.gestureCount ?? 0) > 0;
-          setHasTrainedGestures(hasAny);
-          
-          // Update cache if we got data from modelManager
-          try {
-            window.localStorage.setItem('webapp:has-trained-gestures', String(hasAny));
-          } catch { /* ignore */ }
+          // Endpoint failed; keep cached values to maintain consistent state
+          console.warn('trained-labels endpoint returned non-ok status; using cached data');
         }
       } catch (err) {
         console.warn('Failed to check profile gestures:', err);
@@ -137,7 +132,7 @@ export function SignLanguageRecorder() {
     }
 
     checkGestures();
-  }, [profileId]);
+  }, [profileId, apiBaseUrl]);
 
   // Auto-start camera when component mounts and camera is supported AND we have trained gestures
   useEffect(() => {
@@ -267,7 +262,7 @@ export function SignLanguageRecorder() {
             <Link to="/training" className="primary button">
               Jetzt Gebärde beibringen
             </Link>
-            <button className="ghost button" onClick={() => setHasTrainedGestures(true)}>
+            <button className="ghost button" onClick={() => { setHasTrainedGestures(true); setDemoMode(true); }}>
               Trotzdem fortfahren (Demo)
             </button>
           </div>
@@ -321,7 +316,9 @@ export function SignLanguageRecorder() {
               )}
             </div>
           ) : (
-            <span className="gesture-screen__placeholder">Zeige eine Gebärde in die Kamera…</span>
+            <span className="gesture-screen__placeholder">
+              {demoMode ? 'Demo-Modus: Gestenerkennung deaktiviert' : 'Zeige eine Gebärde in die Kamera…'}
+            </span>
           )}
         </div>
 
