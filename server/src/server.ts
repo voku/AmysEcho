@@ -943,7 +943,7 @@ app.get('/api/v1/dgs/trained-labels', auth, async (req: Request, res: Response) 
 });
 
 // Get normalization configuration
-app.get('/api/config/normalization', async (_req: Request, res: Response) => {
+app.get('/api/config/normalization', auth, async (_req: Request, res: Response) => {
   try {
     const configPath = path.join(DATA_DIR, 'config', 'normalization_config.json');
     const raw = await fs.readFile(configPath, 'utf8');

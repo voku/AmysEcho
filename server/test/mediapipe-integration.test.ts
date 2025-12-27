@@ -3,6 +3,7 @@ import AdmZip from 'adm-zip';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel';
+import { BASELINE_MLP_MODEL_PATH } from '../src/constants/modelPaths';
 
 describe('MediaPipe Integration Tests', () => {
   const testBundlesDir = path.join(__dirname, '../test-bundles');
@@ -192,7 +193,7 @@ describe('MediaPipe Integration Tests', () => {
 
   describe('Trained Model Validation', () => {
     it('should have trained default model', async () => {
-      const modelPath = path.join(__dirname, '../data/models/global/amy_model.npz');
+      const modelPath = BASELINE_MLP_MODEL_PATH;
       
       expect(await fs.access(modelPath).then(() => true).catch(() => false)).toBe(true);
       

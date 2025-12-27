@@ -116,8 +116,8 @@ export function SignLanguageRecorder() {
         }
       } catch (err) {
         console.warn('Failed to check profile gestures:', err);
-        // If we have cached data, don't override it with true on network error
-        setHasTrainedGestures(prev => prev === null ? true : prev);
+        // If we have cached data, keep it; otherwise default to false to show training prompt
+        setHasTrainedGestures(prev => prev === null ? false : prev);
       } finally {
         setIsLoadingProfile(false);
       }
