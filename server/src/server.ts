@@ -724,7 +724,7 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
   const trainingSamples: TrainingSample[] = samples.map((sample) => ({
     gestureDefinitionId: sample.gestureDefinitionId,
     profileId: sample.profileId ?? null,
-    landmarkData: sample.landmarkData as number[][],
+    landmarkData: sample.landmarkData,
   }));
 
   const { jobId, status, queueDepth, retryAfterMs } = startTrainingJob(

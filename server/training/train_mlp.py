@@ -101,8 +101,10 @@ def main():
     X, y, labels, _weights = dataset_to_arrays(all_samples)
 
     # 4. Train/Val Split
+    # Seed for reproducibility (can be made configurable)
+    rng = np.random.default_rng(seed=42)
     num_samples = X.shape[0]
-    indices = np.random.permutation(num_samples)
+    indices = rng.permutation(num_samples)
     val_size = int(num_samples * VALIDATION_FRACTION)
     train_idx, val_idx = indices[val_size:], indices[:val_size]
 
@@ -136,6 +138,4 @@ def main():
     LOGGER.info(f"Model saved to {GLOBAL_MODEL_PATH}")
 
 if __name__ == "__main__":
-    # We need to define some constants that were missing in config_constants but used here
-    # Actually, let's update config_constants with default paths if they are not there.
     main()

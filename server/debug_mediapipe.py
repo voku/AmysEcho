@@ -107,9 +107,9 @@ try:
         print(f"Error in MediaPipe detection: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        cap.release()
 
-
-    cap.release()
     print("\nDebug complete.")
 
 except ImportError as e:

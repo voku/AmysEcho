@@ -6,6 +6,7 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { modelManager } from '../gesture/modelManager';
+import { apiRetryManager } from '../services/apiRetryManager';
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -93,7 +94,7 @@ export function SignLanguageRecorder() {
       
       try {
         // We use the new trained-labels endpoint to get specific allowed labels
-        const response = await fetch(`/api/v1/dgs/trained-labels?profileId=${profileId}`);
+        const response = await apiRetryManager.fetch(`/api/v1/dgs/trained-labels?profileId=${profileId}`);
         if (response.ok) {
           const data = await response.json();
           const labels = data.trainedLabels || [];
