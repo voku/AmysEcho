@@ -1177,6 +1177,11 @@ def train_mlp(
         dw1 = np.dot(X.T, dz1)
         db1 = np.sum(dz1, axis=0)
 
+        # ========== GRADIENT CLIPPING ==========
+        # Prevent exploding gradients which can cause overflow/NaN weights
+        for grad in [dw1, db1, dw2, db2, dw3, db3]:
+            np.clip(grad, -1.0, 1.0, out=grad)
+
         # ========== GRADIENT DESCENT UPDATE ==========
         w1 -= learning_rate * dw1
         b1 -= learning_rate * db1
