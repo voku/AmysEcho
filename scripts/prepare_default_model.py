@@ -105,26 +105,53 @@ def create_fallback_data():
     samples = []
     # Generate 50 samples per gesture to provide more robust training data
     SAMPLES_PER_GESTURE = 50
+    # Temporal window size
+    WINDOW_SIZE = 30
     
     for gesture_idx, gesture in enumerate(gestures):
         for sample_idx in range(SAMPLES_PER_GESTURE):
-            # Create synthetic but realistic landmark data
-            landmarks = []
-            # Base motion pattern for this gesture
-            gesture_seed = gesture_idx * 0.1
-            sample_seed = sample_idx * 0.01
+            # Create a sequence of 30 frames for the temporal model
+            sequence_landmarks = []
             
-            for i in range(42):
-                # Generate somewhat realistic hand landmark positions
-                # Incorporate both gesture and sample seeds for uniqueness
-                x = 0.3 + (i % 21) * 0.01 + (0.05 if i >= 21 else 0) + gesture_seed + sample_seed
-                y = 0.4 + (i // 21) * 0.1 + gesture_seed - sample_seed
-                z = (i % 5) * 0.01 + (gesture_idx * 0.001)
-                landmarks.append([x, y, z])
+            # Randomized motion trajectory parameters
+            # Amy First: Simulate different speeds and slight variations in path
+            start_offset_x = np.random.uniform(-0.05, 0.05)
+            start_offset_y = np.random.uniform(-0.05, 0.05)
+            
+            # Direction of motion varies per gesture
+            # Some move up, some move sideways, some are relatively static
+            motion_type = gesture_idx % 3
+            move_x = 0.1 if motion_type == 1 else 0.0
+            move_y = -0.1 if motion_type == 2 else 0.0
+            
+            for frame_idx in range(WINDOW_SIZE):
+                t = frame_idx / (WINDOW_SIZE - 1)
+                landmarks = []
+                
+                # Base motion pattern for this gesture + sample
+                gesture_seed = gesture_idx * 0.1
+                sample_seed = sample_idx * 0.01
+                
+                # Apply trajectory
+                current_x_base = 0.3 + start_offset_x + (t * move_x)
+                current_y_base = 0.4 + start_offset_y + (t * move_y)
+                
+                for i in range(42):
+                    # Generate somewhat realistic hand landmark positions
+                    # Incorporate trajectory, seeds, and small frame noise
+                    lx = current_x_base + (i % 21) * 0.01 + (0.05 if i >= 21 else 0) + gesture_seed + sample_seed + np.random.normal(0, 0.002)
+                    ly = current_y_base + (i // 21) * 0.1 + gesture_seed - sample_seed + np.random.normal(0, 0.002)
+                    lz = (i % 5) * 0.01 + (gesture_idx * 0.001) + np.random.normal(0, 0.001)
+                    landmarks.append([lx, ly, lz])
+                
+                sequence_landmarks.append(landmarks)
 
+            # In this script, we currently save one "averaged" or "representative" frame per sample
+            # for dgs_samples.json, as train_mlp.py handles the sliding window generation from there.
+            # However, providing diverse spatial data is key.
             samples.append({
                 "label": gesture,
-                "landmarks": landmarks
+                "landmarks": sequence_landmarks[WINDOW_SIZE // 2] # Use middle frame as representative
             })
 
     # Save the fallback data

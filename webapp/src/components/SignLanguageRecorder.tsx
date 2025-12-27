@@ -34,7 +34,22 @@ export function SignLanguageRecorder() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
-  const [trainedLabels, setTrainedLabels] = useState<string[]>([]);
+  const [hasTrainedGestures, setHasTrainedGestures] = useState<boolean | null>(() => {
+    try {
+      const cached = window.localStorage.getItem('webapp:has-trained-gestures');
+      return cached ? cached === 'true' : null;
+    } catch {
+      return null;
+    }
+  });
+  const [trainedLabels, setTrainedLabels] = useState<string[]>(() => {
+    try {
+      const cached = window.localStorage.getItem('webapp:trained-labels');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>(() => {
     try {
@@ -83,7 +98,16 @@ export function SignLanguageRecorder() {
           const data = await response.json();
           const labels = data.trainedLabels || [];
           setTrainedLabels(labels);
-          setHasTrainedGestures(labels.length > 0);
+          const hasAny = labels.length > 0;
+          setHasTrainedGestures(hasAny);
+          
+          // Cache results
+          try {
+            window.localStorage.setItem('webapp:trained-labels', JSON.stringify(labels));
+            window.localStorage.setItem('webapp:has-trained-gestures', String(hasAny));
+          } catch (e) {
+            // ignore quota errors
+          }
         } else {
           // Fallback to model info if specific endpoint fails
           const profiles = await modelManager.getAvailableProfileModels();
@@ -92,15 +116,17 @@ export function SignLanguageRecorder() {
         }
       } catch (err) {
         console.warn('Failed to check profile gestures:', err);
-        // Fallback to true to not block the user if API fails
-        setHasTrainedGestures(true);
+        // If we have cached data, don't override it with true on network error
+        if (hasTrainedGestures === null) {
+          setHasTrainedGestures(true);
+        }
       } finally {
         setIsLoadingProfile(false);
       }
     }
     
     checkGestures();
-  }, [profileId]);
+  }, [profileId, hasTrainedGestures]);
 
   // Auto-start camera when component mounts and camera is supported AND we have trained gestures
   useEffect(() => {

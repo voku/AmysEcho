@@ -101,13 +101,6 @@ export class HapticFeedbackManager {
     },
 
     // Special events
-    emergency_detected: {
-      type: 'heavy',
-      intensity: 1.0,
-      duration: 150,
-      repeat: 3,
-      interval: 100
-    },
     combination_start: {
       type: 'medium',
       intensity: 0.6,
@@ -244,13 +237,6 @@ export class HapticFeedbackManager {
   }
 
   /**
-   * Trigger haptic for emergency gestures
-   */
-  onEmergencyGesture(gesture: string): void {
-    this.triggerHaptic('emergency_detected', { gesture, priority: 'critical' });
-  }
-
-  /**
    * Trigger haptic for gesture combinations
    */
   onCombinationEvent(event: 'start' | 'complete', combination: string): void {
@@ -353,11 +339,9 @@ export class HapticFeedbackManager {
    * Get priority level for haptic event
    */
   private getEventPriority(event: string): 'low' | 'medium' | 'high' | 'critical' {
-    const criticalEvents = ['emergency_detected'];
     const highEvents = ['gesture_recognized', 'high_confidence', 'combination_complete'];
     const mediumEvents = ['gesture_complete', 'gesture_start', 'hand_detected'];
 
-    if (criticalEvents.includes(event)) return 'critical';
     if (highEvents.includes(event)) return 'high';
     if (mediumEvents.includes(event)) return 'medium';
     return 'low';
