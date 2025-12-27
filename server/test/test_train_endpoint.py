@@ -56,9 +56,6 @@ def _load_default_labels() -> list[str]:
 
 
 DEFAULT_BASELINE_LABELS = _load_default_labels()
-BASELINE_MODEL_PATH = (SERVER_DIR / "data" / "amy_model.npz").resolve()
-
-
 def _parse_timestamp(value: Any) -> datetime:
     if isinstance(value, (int, float)):
         return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
@@ -73,9 +70,8 @@ def start_server():
     # Run the real training script but keep epochs low for test speed
     env.setdefault("MLP_SCRIPT", "src/amyserver_tools/train_mlp.py")
     env.setdefault("MLP_EPOCHS", "5")
-    data_dir = SERVER_DIR / "data"
-    if data_dir.exists():
-        shutil.rmtree(data_dir)
+    data_dir = Path(tempfile.mkdtemp(prefix="amy-test-data-"))
+    env["AMY_ECHO_DATA_DIR"] = str(data_dir)
     config_dir = data_dir / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
     (config_dir / "defaultBaselineLabels.json").write_text(
@@ -115,7 +111,7 @@ def start_server():
             if time.time() - start > 30:
                 raise RuntimeError("server did not start") from err
             time.sleep(0.5)
-    return proc, access_token
+    return proc, access_token, data_dir
 
 
 def stop_server(proc):
@@ -124,6 +120,12 @@ def stop_server(proc):
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
         proc.kill()
+
+
+def cleanup_data_dir(data_dir: Path | None) -> None:
+    if data_dir is None:
+        return
+    shutil.rmtree(data_dir, ignore_errors=True)
 
 
 def wait_for_training_completion(job_id: str, access_token: str, *, timeout: float = 180.0):
@@ -143,7 +145,7 @@ def wait_for_training_completion(job_id: str, access_token: str, *, timeout: flo
 
 
 def test_train_endpoint():
-    proc, access_token = start_server()
+    proc, access_token, data_dir = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
         # vary landmark coordinates slightly so normalization succeeds
@@ -186,7 +188,7 @@ def test_train_endpoint():
         assert report.get("global", {}).get("samples", 0) >= 1
 
         # verify MLP model files created
-        npz = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
+        npz = data_dir / "models" / "global" / "amy_model.npz"
         assert npz.exists()
         with np.load(npz, allow_pickle=False) as model:
             assert "labels" in model
@@ -218,25 +220,14 @@ def test_train_endpoint():
         raise
     finally:
         stop_server(proc)
+        cleanup_data_dir(data_dir)
 
 
 def test_train_endpoint_without_baseline_file():
-    # Stash the backup outside server/data so start_server() cleanup cannot remove it.
-    tmp_backup_root = Path(tempfile.mkdtemp(prefix="baseline_bak_"))
-    backup_path = tmp_backup_root / "amy_model.npz.bak"
-    baseline_was_present = BASELINE_MODEL_PATH.exists()
-    if baseline_was_present:
-        if backup_path.exists():
-            backup_path.unlink()
-        backup_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(BASELINE_MODEL_PATH), str(backup_path))
-
-    # We manipulate the on-disk artifact because the server runs in a separate
-    # process and reads the actual filesystem path. Mocking would not affect the
-    # child process, so we isolate by backing up and restoring the file.
     proc = None
+    data_dir: Path | None = None
     try:
-        proc, access_token = start_server()
+        proc, access_token, data_dir = start_server()
         url = f"http://localhost:{PORT}/train-model"
         payload = json.dumps({"samples": [], "trigger": "bundles"}).encode("utf-8")
         headers = {
@@ -252,7 +243,7 @@ def test_train_endpoint_without_baseline_file():
 
         final_info = wait_for_training_completion(job_id, access_token)
         assert final_info.get("status") == "completed"
-        global_model = SERVER_DIR / "data" / "models" / "global" / "amy_model.npz"
+        global_model = data_dir / "models" / "global" / "amy_model.npz"
         assert global_model.exists()
         with np.load(global_model, allow_pickle=False) as model:
             labels = model["labels"].tolist()
@@ -262,16 +253,11 @@ def test_train_endpoint_without_baseline_file():
     finally:
         if proc is not None:
             stop_server(proc)
-        if baseline_was_present and backup_path.exists():
-            BASELINE_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(backup_path), str(BASELINE_MODEL_PATH))
-        elif not baseline_was_present and BASELINE_MODEL_PATH.exists():
-            BASELINE_MODEL_PATH.unlink()
-        shutil.rmtree(tmp_backup_root, ignore_errors=True)
+        cleanup_data_dir(data_dir)
 
 
 def test_train_endpoint_returns_queue_metadata():
-    proc, access_token = start_server()
+    proc, access_token, data_dir = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
         landmarks_sequence = []
@@ -316,10 +302,11 @@ def test_train_endpoint_returns_queue_metadata():
         wait_for_training_completion(second_job_id, access_token)
     finally:
         stop_server(proc)
+        cleanup_data_dir(data_dir)
 
 
 def test_train_requests_are_serialized():
-    proc, access_token = start_server()
+    proc, access_token, data_dir = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
         landmarks_sequence = []
@@ -374,10 +361,11 @@ def test_train_requests_are_serialized():
         assert _parse_timestamp(final_second["startedAt"]) >= _parse_timestamp(final_first["endedAt"])
     finally:
         stop_server(proc)
+        cleanup_data_dir(data_dir)
 
 
 def test_train_model_rejects_out_of_range_landmarks():
-    proc, access_token = start_server()
+    proc, access_token, data_dir = start_server()
     try:
         url = f"http://localhost:{PORT}/train-model"
         headers = {
@@ -414,3 +402,4 @@ def test_train_model_rejects_out_of_range_landmarks():
             assert excinfo.value.code == 400
     finally:
         stop_server(proc)
+        cleanup_data_dir(data_dir)
