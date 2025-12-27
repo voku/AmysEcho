@@ -173,6 +173,35 @@ describe('GET /latest-mlp-model', () => {
     await expectValidModelResponse(response);
   });
 
+  it('adds training metadata headers when available', async () => {
+    const metadataPath = path.join(modelPaths.MLP_MODELS_DIR, 'training_metadata.json');
+    await fs.mkdir(path.dirname(metadataPath), { recursive: true });
+    await fs.writeFile(
+      metadataPath,
+      JSON.stringify({
+        generatedAt: '2025-01-01T00:00:00Z',
+        modalities: {
+          hands: 12,
+          pose: 7,
+          face: 3,
+          totalSamples: 12,
+        },
+      }),
+      'utf8',
+    );
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-training-version']).toBe('2025-01-01T00:00:00Z');
+    expect(response.headers['x-training-modalities']).toBe('hands,pose,face');
+    expect(response.headers['x-training-modalities-counts']).toBe('hands=12;pose=7;face=3;total=12');
+  });
+
   it('returns 304 for matching If-None-Match after a model upload', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });

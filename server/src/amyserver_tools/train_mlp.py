@@ -1321,6 +1321,12 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
     cache_hits = 0
     cache_misses = 0
     cache_writes = 0
+    modality_counts = {"hands": 0, "pose": 0, "face": 0}
+
+    def has_non_zero_landmarks(points: Optional[List[List[float]]]) -> bool:
+        if not points:
+            return False
+        return any(any(value != 0 for value in point) for point in points)
 
     for entry in entries:
         label = entry.get("label")
@@ -1400,13 +1406,22 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
 
         # Apply hand focus filtering to zero out irrelevant hand data
         filtered_landmarks = apply_hand_focus(averaged['landmarks'], hand_focus)
+        pose_landmarks = averaged.get('poseLandmarks')
+        face_landmarks = averaged.get('faceLandmarks')
+
+        if has_non_zero_landmarks(filtered_landmarks):
+            modality_counts["hands"] += 1
+        if has_non_zero_landmarks(pose_landmarks):
+            modality_counts["pose"] += 1
+        if has_non_zero_landmarks(face_landmarks):
+            modality_counts["face"] += 1
 
         data.append(Sample(
             label=label,
             profile_id=profile_id,
             landmarks=filtered_landmarks,
-            pose_landmarks=averaged.get('poseLandmarks'),
-            face_landmarks=averaged.get('faceLandmarks'),
+            pose_landmarks=pose_landmarks,
+            face_landmarks=face_landmarks,
             hand_focus=hand_focus,
             variation_cluster_id=variation_cluster_id,
             variation_diversity=variation_diversity,
@@ -1418,6 +1433,12 @@ def build_samples_from_manifest(manifest_path: Path) -> Tuple[List[Sample], Dict
         "cache_hits": cache_hits,
         "cache_misses": cache_misses,
         "cache_writes": cache_writes,
+        "modalities": {
+            "hands": modality_counts["hands"],
+            "pose": modality_counts["pose"],
+            "face": modality_counts["face"],
+            "totalSamples": len(data),
+        },
     }
     return data, stats
 
@@ -1818,6 +1839,7 @@ def main() -> int:
             "samples": len(samples),
             "profiles": list(profiles_report.keys()),
             "durationMs": report["durationMs"],
+            "modalities": stats.get("modalities", {}),
         }
         persist_training_metadata(metadata)
 
@@ -1836,4 +1858,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -69,6 +69,7 @@ const REQUIRE_BASELINE_ARTIFACT = ['1', 'true', 'yes'].includes(
   (process.env.MLP_REQUIRE_BASELINE ?? (process.env.NODE_ENV === 'production' ? '1' : '0')).toLowerCase(),
 );
 const EXPECTED_BASELINE_SHA = (process.env.MLP_BASELINE_SHA256 ?? '').toLowerCase();
+const TRAINING_METADATA_PATH = path.join(MLP_MODELS_DIR, 'training_metadata.json');
 
 async function assertBaselineIntegrity(): Promise<void> {
   if (!EXPECTED_BASELINE_SHA) {
@@ -249,6 +250,55 @@ export type PrecomputedModelPayload = ModelResponseMetadata & {
   buffer?: Buffer;
 };
 
+type TrainingMetadata = {
+  generatedAt?: string;
+  modalities?: {
+    hands?: number;
+    pose?: number;
+    face?: number;
+    totalSamples?: number;
+  };
+};
+
+function readTrainingMetadata(): TrainingMetadata | null {
+  if (!fsSync.existsSync(TRAINING_METADATA_PATH)) {
+    return null;
+  }
+  try {
+    const raw = fsSync.readFileSync(TRAINING_METADATA_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as TrainingMetadata;
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function formatModalities(modalities: TrainingMetadata['modalities']): {
+  list?: string;
+  counts?: string;
+} {
+  if (!modalities) {
+    return {};
+  }
+  const entries: Array<[string, number]> = [];
+  if (typeof modalities.hands === 'number') entries.push(['hands', modalities.hands]);
+  if (typeof modalities.pose === 'number') entries.push(['pose', modalities.pose]);
+  if (typeof modalities.face === 'number') entries.push(['face', modalities.face]);
+  const list = entries.filter(([, count]) => count > 0).map(([name]) => name).join(',');
+  const totalSamples = typeof modalities.totalSamples === 'number' ? modalities.totalSamples : undefined;
+  const counts = [
+    ...entries.map(([name, count]) => `${name}=${count}`),
+    ...(totalSamples !== undefined ? [`total=${totalSamples}`] : []),
+  ].join(';');
+  return {
+    ...(list ? { list } : {}),
+    ...(counts ? { counts } : {}),
+  };
+}
+
 function buildModelResponseMetadata(stat: Stats, buffer: Buffer): PrecomputedModelPayload {
   const sha256 = createHash('sha256').update(buffer).digest('hex');
   return {
@@ -292,6 +342,17 @@ export function applyModelResponseHeaders(
   res.setHeader('X-Model-Source', profileId ? 'profile' : 'global');
   if (profileId) {
     res.setHeader('X-Model-Profile', profileId);
+  }
+  const trainingMetadata = readTrainingMetadata();
+  if (trainingMetadata?.generatedAt) {
+    res.setHeader('X-Training-Version', trainingMetadata.generatedAt);
+  }
+  const modalityHeaders = formatModalities(trainingMetadata?.modalities);
+  if (modalityHeaders.list) {
+    res.setHeader('X-Training-Modalities', modalityHeaders.list);
+  }
+  if (modalityHeaders.counts) {
+    res.setHeader('X-Training-Modalities-Counts', modalityHeaders.counts);
   }
   res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
 }
