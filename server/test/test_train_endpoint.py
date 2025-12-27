@@ -145,8 +145,10 @@ def wait_for_training_completion(job_id: str, access_token: str, *, timeout: flo
 
 
 def test_train_endpoint():
-    proc, access_token, data_dir = start_server()
+    proc = None
+    data_dir: Path | None = None
     try:
+        proc, access_token, data_dir = start_server()
         url = f"http://localhost:{PORT}/train-model"
         # vary landmark coordinates slightly so normalization succeeds
         # Create 30 frames to fill a temporal window
@@ -219,7 +221,8 @@ def test_train_endpoint():
             print("Server Stderr:", proc.stderr.read())
         raise
     finally:
-        stop_server(proc)
+        if proc is not None:
+            stop_server(proc)
         cleanup_data_dir(data_dir)
 
 
@@ -257,8 +260,10 @@ def test_train_endpoint_without_baseline_file():
 
 
 def test_train_endpoint_returns_queue_metadata():
-    proc, access_token, data_dir = start_server()
+    proc = None
+    data_dir: Path | None = None
     try:
+        proc, access_token, data_dir = start_server()
         url = f"http://localhost:{PORT}/train-model"
         landmarks_sequence = []
         for f in range(30):
@@ -301,13 +306,16 @@ def test_train_endpoint_returns_queue_metadata():
         wait_for_training_completion(first_job_id, access_token)
         wait_for_training_completion(second_job_id, access_token)
     finally:
-        stop_server(proc)
+        if proc is not None:
+            stop_server(proc)
         cleanup_data_dir(data_dir)
 
 
 def test_train_requests_are_serialized():
-    proc, access_token, data_dir = start_server()
+    proc = None
+    data_dir: Path | None = None
     try:
+        proc, access_token, data_dir = start_server()
         url = f"http://localhost:{PORT}/train-model"
         landmarks_sequence = []
         for f in range(30):
@@ -360,13 +368,16 @@ def test_train_requests_are_serialized():
 
         assert _parse_timestamp(final_second["startedAt"]) >= _parse_timestamp(final_first["endedAt"])
     finally:
-        stop_server(proc)
+        if proc is not None:
+            stop_server(proc)
         cleanup_data_dir(data_dir)
 
 
 def test_train_model_rejects_out_of_range_landmarks():
-    proc, access_token, data_dir = start_server()
+    proc = None
+    data_dir: Path | None = None
     try:
+        proc, access_token, data_dir = start_server()
         url = f"http://localhost:{PORT}/train-model"
         headers = {
             **_make_auth_headers(access_token),
@@ -401,5 +412,6 @@ def test_train_model_rejects_out_of_range_landmarks():
 
             assert excinfo.value.code == 400
     finally:
-        stop_server(proc)
+        if proc is not None:
+            stop_server(proc)
         cleanup_data_dir(data_dir)
