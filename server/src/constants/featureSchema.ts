@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { SERVER_DIR } from './modelPaths.js';
 
 type FeatureSchema = {
+  version: number;
   coordinatesPerLandmark: number;
   landmarks: {
     hands: { perHand: number; totalHands: number; points: number };

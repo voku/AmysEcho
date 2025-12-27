@@ -205,6 +205,13 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function normalizeCapturedAt(value: unknown): string | null {
+  if (!isNonEmptyString(value)) {
+    return null;
+  }
+  return value.trim();
+}
+
 function normalizeClipFilename(value: unknown): string | null {
   if (!isNonEmptyString(value)) {
     return null;
@@ -773,7 +780,7 @@ export function registerTrainingBundleRoute(
       const sanitizedMetadata: TrainingBundleMetadata = {
         label,
         profileId: profileIdRaw ?? null,
-        capturedAt: isNonEmptyString(parsedMetadata.capturedAt) ? parsedMetadata.capturedAt : null,
+        capturedAt: normalizeCapturedAt(parsedMetadata.capturedAt),
         source: isNonEmptyString(parsedMetadata.source) ? parsedMetadata.source : null,
         clipFilename,
         stillFilename,

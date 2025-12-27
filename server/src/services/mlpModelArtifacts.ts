@@ -279,8 +279,7 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
     const modalities = Array.isArray(parsed.modalities)
       ? parsed.modalities.filter((entry): entry is ModalityKey => MODALITY_KEYS.includes(entry as ModalityKey))
       : undefined;
-    const modalityCounts =
-      normalizeModalityCounts(parsed.modality_counts) ?? normalizeModalityCounts(parsed.modalityCounts) ?? undefined;
+    const modalityCounts = normalizeModalityCounts(parsed.modality_counts) ?? undefined;
     if (!version && (!modalities || modalities.length === 0) && !modalityCounts) {
       return null;
     }
