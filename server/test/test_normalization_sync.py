@@ -31,6 +31,13 @@ def test_normalization_sync():
     if py_result is None:
         raise ValueError("Python normalization returned None")
     
+    # Validate result dimension
+    if py_result.shape[0] != INPUT_FEATURE_SIZE:
+        print(f"❌ Unexpected Python feature size: {py_result.shape[0]}, expected {INPUT_FEATURE_SIZE}")
+        sys.exit(1)
+    
+    py_result = py_result.astype(np.float32)
+    
     # 3. Run TypeScript normalization via a small Node.js script
     # We'll create a temporary JS script to run the normalization
     js_test_script = Path(__file__).parent / "tmp_norm_test.mjs"
@@ -56,8 +63,8 @@ console.log(JSON.stringify(Array.from(result)));
     try:
         # Check if tsx is available
         subprocess.run(["npx", "tsx", "--version"], check=True, capture_output=True)
-    except (subprocess.SubprocessError, FileNotFoundError, PermissionError):
-        print("❌ 'tsx' not found. Skipping cross-language test. Please install 'tsx' or run in an environment with Node.js.")
+    except (subprocess.SubprocessError, FileNotFoundError, PermissionError) as e:
+        print(f"❌ 'tsx' check failed: {e}. Skipping cross-language test. Please install 'tsx' or run in an environment with Node.js.")
         return
 
     with open(js_test_script, "w") as f:
@@ -91,8 +98,8 @@ console.log(JSON.stringify(Array.from(result)));
             max_diff = np.max(diff)
             print(f"❌ Normalization mismatch! Max difference: {max_diff}")
             
-            # Identify which part mismatched (Constants from config_constants.py)
-            # hand_size = 126, pose_size = 99
+            # Identify which part mismatched
+            # Feature sizes: HANDS=126 (42 landmarks × 3 coords), POSE=99 (33 landmarks × 3 coords), FACE=1404 (468 landmarks × 3 coords)
             hand_end = 126
             pose_end = hand_end + 99
             

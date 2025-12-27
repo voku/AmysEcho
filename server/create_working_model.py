@@ -13,6 +13,9 @@ import numpy as np
 def create_working_model():
     """Create working model from synthetic data to fix zero landmarks issue"""
 
+    # Set seed for reproducible synthetic data
+    np.random.seed(42)
+
     # Project default labels for baseline
     default_labels = [
         'alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen',
@@ -29,7 +32,7 @@ def create_working_model():
 
     print('🎯 Creating working model with non-zero landmarks for Sign Language recognition...')
 
-    for _gesture_idx, label in enumerate(training_data['global']['labels']):
+    for _gesture_idx, label in enumerate(default_labels):
         print(f'  Adding {label} sign with realistic multimodal landmarks...')
 
         # Generate 30 frames with realistic movement trajectories
@@ -110,13 +113,14 @@ def create_working_model():
     w3 = np.random.randn(h2, output_size).astype(np.float32) * 0.01
     b3 = np.zeros(output_size).astype(np.float32)
     
-    labels = np.array(training_data['global']['labels'])
+    labels = np.array(default_labels)
 
     model_path = Path(__file__).parent / 'data' / 'models' / 'global' / 'amy_model.npz'
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # CRITICAL: Production model loader expects transposed weights (w.T)
     np.savez_compressed(model_path,
-        w1=w1, b1=b1, w2=w2, b2=b2, w3=w3, b3=b3,
+        w1=w1.T, b1=b1, w2=w2.T, b2=b2, w3=w3.T, b3=b3,
         labels=labels,
         arch="mlp_3layer_window",
         window_size=30,

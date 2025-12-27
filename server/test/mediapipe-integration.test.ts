@@ -3,7 +3,7 @@ import AdmZip from 'adm-zip';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel.js';
-import { BASELINE_MLP_MODEL_PATH } from '../src/constants/modelPaths';
+import { BASELINE_MLP_MODEL_PATH } from '../src/constants/modelPaths.js';
 
 describe('MediaPipe Integration Tests', () => {
   const testBundlesDir = path.join(__dirname, '../test-bundles');
