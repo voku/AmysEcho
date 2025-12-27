@@ -11,10 +11,11 @@ import {
   MLP_MODELS_DIR,
   SERVER_DIR,
 } from '../constants/modelPaths.js';
+import { MULTIMODAL_FEATURE_SIZE, WINDOW_SIZE } from '../constants/featureSchema.js';
 
-export const DEFAULT_MLP_INPUT_SIZE = 48870;
-export const DEFAULT_MLP_WINDOW_SIZE = 30;
-export const DEFAULT_MLP_FEATURE_SIZE = 1629;
+export const DEFAULT_MLP_INPUT_SIZE = MULTIMODAL_FEATURE_SIZE * WINDOW_SIZE;
+export const DEFAULT_MLP_WINDOW_SIZE = WINDOW_SIZE;
+export const DEFAULT_MLP_FEATURE_SIZE = MULTIMODAL_FEATURE_SIZE;
 export const DEFAULT_MLP_LAYER1_SIZE = 512;
 export const DEFAULT_MLP_LAYER2_SIZE = 256;
 const FALLBACK_BASELINE_LABELS = [

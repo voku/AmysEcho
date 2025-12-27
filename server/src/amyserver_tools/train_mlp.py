@@ -49,6 +49,7 @@ from config_constants import (
     WINDOW_FEATURE_SIZE,
     WINDOW_SIZE,
 )
+from feature_schema import TOTAL_HAND_LANDMARKS
 from frame_normalization import _normalize_frame
 from sliding_window import Sample, create_sliding_windows
 
@@ -152,8 +153,7 @@ DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not
 }
 
 # Hand landmark constants for processing
-LANDMARKS_PER_HAND = 21  # MediaPipe hand model provides 21 landmarks per hand
-TOTAL_HAND_LANDMARKS = 42  # Left (21) + Right (21)
+LANDMARKS_PER_HAND = TOTAL_HAND_LANDMARKS // 2
 SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
 
 WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
@@ -906,6 +906,7 @@ class TrainingConfig:
     early_stopping_patience: int | None = EARLY_STOPPING_PATIENCE
     early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
     return_best_and_final: bool = False
+    random_seed: int | None = None
 
 
 @dataclass
@@ -1937,7 +1938,12 @@ def _summarize_modality_counts(samples: list[Sample]) -> dict[str, int]:
     return counts
 
 
-def _write_training_metadata(model_dir: Path, version: str, samples: list[Sample]) -> None:
+def _write_training_metadata(
+    model_dir: Path,
+    version: str,
+    samples: list[Sample],
+    metadata_context: dict[str, object],
+) -> None:
     counts = _summarize_modality_counts(samples)
     modalities = [key for key in MODALITY_KEYS if counts[key] > 0]
     payload = {
@@ -1945,6 +1951,7 @@ def _write_training_metadata(model_dir: Path, version: str, samples: list[Sample
         "modalities": modalities,
         "modality_counts": counts,
         "sample_count": len(samples),
+        **metadata_context,
     }
     path = model_dir / TRAINING_METADATA_FILENAME
     tmp_path = path.with_suffix(path.suffix + ".tmp")
@@ -1956,6 +1963,34 @@ def _write_training_metadata(model_dir: Path, version: str, samples: list[Sample
         os.chmod(path, 0o640)
     except OSError:
         pass
+
+
+def _hash_training_sources(paths: list[Path]) -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for path in paths:
+        if not path.exists():
+            continue
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        hashes[str(path)] = digest
+    return hashes
+
+
+def _build_config_snapshot(config: TrainingConfig) -> dict[str, object]:
+    return {
+        "epochs": config.epochs,
+        "learning_rate": config.learning_rate,
+        "dropout_rate": config.dropout_rate,
+        "validation_fraction": config.validation_fraction,
+        "augmentations_per_sample": config.augmentations_per_sample,
+        "class_weight_smoothing": config.class_weight_smoothing,
+        "early_stopping_patience": config.early_stopping_patience,
+        "early_stopping_min_delta": config.early_stopping_min_delta,
+        "window_size": WINDOW_SIZE,
+        "input_feature_size": INPUT_FEATURE_SIZE,
+        "window_feature_size": WINDOW_FEATURE_SIZE,
+        "layer_sizes": [MLP_LAYER1_SIZE, MLP_LAYER2_SIZE],
+        "random_seed": config.random_seed,
+    }
 
 
 def _compute_accuracy(
@@ -2015,7 +2050,14 @@ def _compute_confusion_matrix(
     return cm
 
 
-def run_training_pipeline(samples: list[Sample], *, config: TrainingConfig | None = None, output_dir: Path | None = None, rng: np.random.RandomState | np.random.Generator | None = None) -> dict[str, object]:
+def run_training_pipeline(
+    samples: list[Sample],
+    *,
+    config: TrainingConfig | None = None,
+    output_dir: Path | None = None,
+    rng: np.random.RandomState | np.random.Generator | None = None,
+    metadata_context: dict[str, object] | None = None,
+) -> dict[str, object]:
     """Train global and per-profile models and return detailed metrics."""
 
     if not samples:
@@ -2082,10 +2124,11 @@ def run_training_pipeline(samples: list[Sample], *, config: TrainingConfig | Non
 
     class_counts = np.bincount(y, minlength=num_classes)
 
+    metadata_payload = metadata_context or {}
     if output_dir:
         global_dir = output_dir / "global"
         save_model(global_dir / "amy_model.npz", global_best_weights, label_set, class_counts)
-        _write_training_metadata(global_dir, training_version, samples)
+        _write_training_metadata(global_dir, training_version, samples, metadata_payload)
 
     # Per-profile models
     profile_reports = {}
@@ -2140,7 +2183,7 @@ def run_training_pipeline(samples: list[Sample], *, config: TrainingConfig | Non
         if output_dir:
             profile_dir = output_dir / profile_id
             save_model(profile_dir / "amy_model.npz", p_best_weights, p_labels, p_counts)
-            _write_training_metadata(profile_dir, training_version, p_samples)
+            _write_training_metadata(profile_dir, training_version, p_samples, metadata_payload)
 
         profile_reports[profile_id] = {
             "accuracy": p_accuracy,
@@ -2204,6 +2247,11 @@ def main() -> None:
         type=int,
         help="Patience for early stopping",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="Random seed for deterministic training",
+    )
 
     args = parser.parse_args()
 
@@ -2211,11 +2259,21 @@ def main() -> None:
     MODELS_DIR = args.output_dir or (DATA_DIR / "models")
     legacy_dataset_path = DATA_DIR / LEGACY_DATASET_PATH.name
 
+    seed_value = args.seed
+    if seed_value is None:
+        env_seed = os.environ.get("MLP_RANDOM_SEED")
+        if env_seed:
+            try:
+                seed_value = int(env_seed)
+            except ValueError:
+                raise ValueError("MLP_RANDOM_SEED must be an integer") from None
+
     config = TrainingConfig(
         epochs=args.epochs if args.epochs is not None else EPOCHS,
         learning_rate=args.lr if args.lr is not None else LEARNING_RATE,
         dropout_rate=args.dropout if args.dropout is not None else DROPOUT_RATE,
         early_stopping_patience=args.early_stopping if args.early_stopping is not None else EARLY_STOPPING_PATIENCE,
+        random_seed=seed_value,
     )
 
     try:
@@ -2232,7 +2290,24 @@ def main() -> None:
             print(json.dumps({"error": "No valid training samples found."}))
             return
 
-        report = run_training_pipeline(samples, config=config, output_dir=MODELS_DIR)
+        rng = None
+        if config.random_seed is not None:
+            rng = np.random.RandomState(config.random_seed)
+
+        training_sources = _hash_training_sources([args.manifest, legacy_dataset_path])
+        metadata_context = {
+            "training_sources": training_sources,
+            "config_snapshot": _build_config_snapshot(config),
+            "stats": stats,
+        }
+
+        report = run_training_pipeline(
+            samples,
+            config=config,
+            output_dir=MODELS_DIR,
+            rng=rng,
+            metadata_context=metadata_context,
+        )
         report["stats"] = stats
         print(json.dumps(report))
 

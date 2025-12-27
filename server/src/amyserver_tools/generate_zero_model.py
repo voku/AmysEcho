@@ -10,6 +10,13 @@ from typing import Any
 
 import numpy as np
 
+try:
+    from feature_schema import INPUT_FEATURE_SIZE, WINDOW_FEATURE_SIZE, DEFAULT_WINDOW_SIZE
+except Exception:
+    INPUT_FEATURE_SIZE = 1629
+    WINDOW_FEATURE_SIZE = 48870
+    DEFAULT_WINDOW_SIZE = 30
+
 
 def _ensure_label_list(value: Any) -> list[str]:
     if isinstance(value, list):
@@ -57,9 +64,9 @@ def main() -> int:
     counts = _ensure_counts_list(payload.get("counts"), len(labels))
 
     # Support both legacy 'hiddenSize' and new 'layer1Size'/'layer2Size'
-    input_size = int(payload.get("inputSize", 48870))
-    window_size = int(payload.get("windowSize", 30))
-    feature_size = int(payload.get("featureSize", 1629))
+    input_size = int(payload.get("inputSize", WINDOW_FEATURE_SIZE))
+    window_size = int(payload.get("windowSize", DEFAULT_WINDOW_SIZE))
+    feature_size = int(payload.get("featureSize", INPUT_FEATURE_SIZE))
     layer1_size = int(payload.get("layer1Size", payload.get("hiddenSize", 1024)))
     layer2_size = int(payload.get("layer2Size", 512))
 

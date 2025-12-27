@@ -5,6 +5,11 @@ import { createHash, randomBytes } from 'crypto';
 import { spawn } from 'child_process';
 import config from './config/index.js';
 import { withFileLock } from './utils/fileLock.js';
+import {
+  HAND_LANDMARKS_PER_HAND,
+  TOTAL_HAND_LANDMARKS,
+  MULTIMODAL_LANDMARKS,
+} from './constants/featureSchema.js';
 import { registerTrainingBundleRoute } from './routes/trainingBundleRoute.js';
 import { registerCustomSignsRoute } from './routes/customSignsRoute.js';
 import { registerGdprRoutes } from './routes/gdprRoutes.js';
@@ -362,6 +367,7 @@ async function runTrainingWorkflow(
   samples: TrainingSample[],
   triggeredByBundles: boolean,
 ): Promise<void> {
+  const workflowStartMs = Date.now();
   await ensureDataDir();
   await logTraining(`job ${id}: data dir ready at ${DATA_DIR}`);
   const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
@@ -393,9 +399,11 @@ async function runTrainingWorkflow(
   }
 
   let bundleFrames = 0;
+  let latestCapturedAt: string | undefined;
   try {
     const result = await ingestTrainingBundlesIntoDataset();
     bundleFrames = result.appended;
+    latestCapturedAt = result.latestCapturedAt;
     if (bundleFrames > 0) {
       await logTraining(`job ${id}: ingested ${bundleFrames} frames from training bundles`);
     }
@@ -443,7 +451,8 @@ async function runTrainingWorkflow(
     DATA_DIR,
   ];
 
-    const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+  const trainStartMs = Date.now();
+  const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
       const proc = spawn('python3', scriptArgs, {
         cwd: serverRoot,
       });
@@ -481,6 +490,7 @@ async function runTrainingWorkflow(
     });
   });
 
+  const trainDurationMs = Date.now() - trainStartMs;
   if (runReport.stderr.trim().length > 0) {
     await logTraining(`job ${id}: train_mlp stderr ${runReport.stderr.trim()}`);
   }
@@ -499,9 +509,31 @@ async function runTrainingWorkflow(
   job.progress = 100;
   job.status = 'completed';
   job.endedAt = Date.now();
+  const captureToTrainMs = latestCapturedAt
+    ? Date.now() - Date.parse(latestCapturedAt)
+    : null;
+  if (captureToTrainMs && captureToTrainMs > config.trainingSlaMs) {
+    logger.warn('Training SLA exceeded (capture-to-train)', {
+      jobId: id,
+      captureToTrainMs,
+      slaMs: config.trainingSlaMs,
+    });
+  }
+  if (trainDurationMs > config.trainingSlaMs) {
+    logger.warn('Training SLA exceeded (training duration)', {
+      jobId: id,
+      trainDurationMs,
+      slaMs: config.trainingSlaMs,
+    });
+    throw new Error(`Training überschreitet das SLA (${trainDurationMs}ms > ${config.trainingSlaMs}ms)`);
+  }
   job.metrics = {
     accuracy: (parsedReport as any)?.global?.accuracy ?? 0,
     samples: (parsedReport as any)?.global?.samples ?? 0,
+    bundleFrames,
+    trainingDurationMs: trainDurationMs,
+    captureToTrainMs,
+    workflowDurationMs: Date.now() - workflowStartMs,
   };
   job.report = parsedReport;
   job.message = 'Dein Modell ist jetzt aktualisiert';
@@ -554,7 +586,9 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
         .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
         .refine(
           (pts: [number, number, number][]) =>
-            pts.length === 21 || pts.length === 42 || pts.length === 543,
+            pts.length === HAND_LANDMARKS_PER_HAND ||
+            pts.length === TOTAL_HAND_LANDMARKS ||
+            pts.length === MULTIMODAL_LANDMARKS,
           'landmarks must be 21, 42 or 543 points',
         )
         .refine(
@@ -699,12 +733,24 @@ app.post('/train-model', auth, apiLimiter, async (req: Request, res: Response) =
     landmarkData: z.union([
       z
         .array(LandmarkTupleSchema)
-        .refine((arr) => arr.length === 21 || arr.length === 42 || arr.length === 543, {
-          message: 'landmarks must be 21, 42 or 543 points',
-        }),
+        .refine(
+          (arr) =>
+            arr.length === HAND_LANDMARKS_PER_HAND ||
+            arr.length === TOTAL_HAND_LANDMARKS ||
+            arr.length === MULTIMODAL_LANDMARKS,
+          {
+            message: 'landmarks must be 21, 42 or 543 points',
+          },
+        ),
       z.array(FrameSchema).refine(
-        (frames) => frames.every(f => f.landmarks.length === 21 || f.landmarks.length === 42 || f.landmarks.length === 543),
-        { message: 'each frame must contain 21, 42 or 543 landmarks' }
+        (frames) =>
+          frames.every(
+            (f) =>
+              f.landmarks.length === HAND_LANDMARKS_PER_HAND ||
+              f.landmarks.length === TOTAL_HAND_LANDMARKS ||
+              f.landmarks.length === MULTIMODAL_LANDMARKS,
+          ),
+        { message: 'each frame must contain 21, 42 or 543 landmarks' },
       ),
     ]),
   });

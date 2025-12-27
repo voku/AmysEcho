@@ -1,3 +1,13 @@
+import {
+  FACE_FEATURES_SIZE,
+  FACE_LANDMARKS,
+  HAND_FEATURES_SIZE,
+  HAND_LANDMARKS_PER_HAND,
+  MULTIMODAL_FEATURES_SIZE,
+  POSE_FEATURES_SIZE,
+  POSE_LANDMARKS,
+} from './featureSchema';
+
 /**
  * Landmark Normalizer - Amy First
  *
@@ -77,9 +87,9 @@ export function convertToPoints(landmarks: number[][]): Point[] {
 }
 
 // MediaPipe Landmark Constants
-export const MEDIAPIPE_HAND_LANDMARKS = 21;  // Landmarks per hand
-export const MEDIAPIPE_POSE_LANDMARKS = 33;  // Pose landmarks  
-export const MEDIAPIPE_FACE_LANDMARKS = 468; // Face mesh landmarks
+export const MEDIAPIPE_HAND_LANDMARKS = HAND_LANDMARKS_PER_HAND; // Landmarks per hand
+export const MEDIAPIPE_POSE_LANDMARKS = POSE_LANDMARKS; // Pose landmarks
+export const MEDIAPIPE_FACE_LANDMARKS = FACE_LANDMARKS; // Face mesh landmarks
 
 // Hand Landmark Indices
 export const MEDIAPIPE_FACE_NOSE_TIP = 1;        // Nose tip landmark
@@ -87,10 +97,7 @@ export const MEDIAPIPE_FACE_LEFT_EYE = 33;       // Left eye center
 export const MEDIAPIPE_FACE_RIGHT_EYE = 263;     // Right eye center
 
 // Feature Vector Sizes
-export const HAND_FEATURES_SIZE = MEDIAPIPE_HAND_LANDMARKS * 3 * 2; // 2 hands × 21 landmarks × 3 coords = 126
-export const POSE_FEATURES_SIZE = MEDIAPIPE_POSE_LANDMARKS * 3;   // 33 landmarks × 3 coords = 99
-export const FACE_FEATURES_SIZE = MEDIAPIPE_FACE_LANDMARKS * 3;  // 468 landmarks × 3 coords = 1404
-export const MULTIMODAL_FEATURES_SIZE = HAND_FEATURES_SIZE + POSE_FEATURES_SIZE + FACE_FEATURES_SIZE; // 1629
+export { HAND_FEATURES_SIZE, POSE_FEATURES_SIZE, FACE_FEATURES_SIZE, MULTIMODAL_FEATURES_SIZE };
 
 // Density-Balanced Priority factors (Hands > Pose > Face)
 // This prevents the 1404 face features from drowning out the 126 hand features.

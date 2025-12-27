@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "coordinatesPerLandmark": 3,
+  "landmarks": {
+    "hands": {
+      "perHand": 21,
+      "totalHands": 2,
+      "points": 42
+    },
+    "pose": {
+      "points": 33
+    },
+    "face": {
+      "points": 468
+    }
+  },
+  "features": {
+    "hand": 126,
+    "pose": 99,
+    "face": 1404,
+    "multimodal": 1629
+  },
+  "windowSize": 30,
+  "windowFeatureSize": 48870
+}
