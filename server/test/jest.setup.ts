@@ -35,7 +35,11 @@ if (process.env.TEST_LOGS_VERBOSE !== '1') {
       typeof msg === 'string' &&
       (msg.includes('Vision validation error') ||
         msg.includes('Failed to parse vision response') ||
-        msg.includes('LLM suggestion error'))
+        msg.includes('LLM suggestion error') ||
+        msg.includes('Invalid landmarks.json in training bundle') ||
+        msg.includes('Failed to extract training bundle payload') ||
+        msg.includes('Error saving training bundle') ||
+        msg.includes('Failed to load database, creating a new one.'))
     )
       return;
     originalError(...args);
