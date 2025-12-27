@@ -6,11 +6,9 @@ import {
   DEFAULT_MLP_LAYER1_SIZE,
   DEFAULT_MLP_LAYER2_SIZE,
   DEFAULT_MLP_INPUT_SIZE,
+  DEFAULT_MLP_WINDOW_SIZE,
+  DEFAULT_MLP_FEATURE_SIZE,
 } from '../../src/services/mlpModelArtifacts.js';
-import {
-  WINDOW_SIZE,
-  INPUT_FEATURE_SIZE,
-} from '../../training/config_constants.js';
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
@@ -51,7 +49,7 @@ os.makedirs(os.path.dirname(dest) or '.', exist_ok=True)
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(dest) or '.', suffix='.tmp')
 try:
     with os.fdopen(fd, 'wb') as fh:
-        np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2, w3=w3, b3=b3, arch='mlp_3layer_window', window_size=${WINDOW_SIZE}, input_dim=input_size, feature_size=${INPUT_FEATURE_SIZE})
+        np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2, w3=w3, b3=b3, arch='mlp_3layer_window', window_size=${DEFAULT_MLP_WINDOW_SIZE}, input_dim=input_size, feature_size=${DEFAULT_MLP_FEATURE_SIZE})
     os.replace(tmp, dest)
 finally:
     if os.path.exists(tmp):

@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { SignLanguageRecorder } from './SignLanguageRecorder';
 import { AppStateProvider } from '../hooks/useAppState';
+import { ApiConfigProvider } from '../hooks/useApiConfig';
 
 // Mock the hooks that have external dependencies
 vi.mock('../hooks/useSignLanguageDetector', () => ({
@@ -27,7 +28,9 @@ vi.mock('../hooks/useMlpModelInjection', () => ({
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <MemoryRouter>
-      <AppStateProvider>{ui}</AppStateProvider>
+      <ApiConfigProvider>
+        <AppStateProvider>{ui}</AppStateProvider>
+      </ApiConfigProvider>
     </MemoryRouter>,
   );
 };

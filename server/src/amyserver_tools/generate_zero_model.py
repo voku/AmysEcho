@@ -58,6 +58,8 @@ def main() -> int:
 
     # Support both legacy 'hiddenSize' and new 'layer1Size'/'layer2Size'
     input_size = int(payload.get("inputSize", 48870))
+    window_size = int(payload.get("windowSize", 30))
+    feature_size = int(payload.get("featureSize", 1629))
     layer1_size = int(payload.get("layer1Size", payload.get("hiddenSize", 1024)))
     layer2_size = int(payload.get("layer2Size", 512))
 
@@ -91,9 +93,9 @@ def main() -> int:
         "w2": w2, "b2": b2,
         "w3": w3, "b3": b3,
         "arch": "mlp_3layer_window",
-        "window_size": 30,
+        "window_size": window_size,
         "input_dim": input_size,
-        "feature_size": 1629
+        "feature_size": feature_size
     }
 
     with open(tmp_path, "wb") as handle:

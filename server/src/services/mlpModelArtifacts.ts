@@ -13,6 +13,8 @@ import {
 } from '../constants/modelPaths.js';
 
 export const DEFAULT_MLP_INPUT_SIZE = 48870;
+export const DEFAULT_MLP_WINDOW_SIZE = 30;
+export const DEFAULT_MLP_FEATURE_SIZE = 1629;
 export const DEFAULT_MLP_LAYER1_SIZE = 512;
 export const DEFAULT_MLP_LAYER2_SIZE = 256;
 const FALLBACK_BASELINE_LABELS = [
@@ -150,6 +152,8 @@ async function writeZeroInitializedModel(
     labels: effectiveLabels,
     counts: effectiveCounts,
     inputSize: DEFAULT_MLP_INPUT_SIZE,
+    windowSize: DEFAULT_MLP_WINDOW_SIZE,
+    featureSize: DEFAULT_MLP_FEATURE_SIZE,
     layer1Size: DEFAULT_MLP_LAYER1_SIZE,
     layer2Size: DEFAULT_MLP_LAYER2_SIZE,
   });
