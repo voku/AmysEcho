@@ -11,7 +11,7 @@ from typing import Any
 import numpy as np
 
 try:
-    from feature_schema import INPUT_FEATURE_SIZE, WINDOW_FEATURE_SIZE, DEFAULT_WINDOW_SIZE
+    from feature_schema import DEFAULT_WINDOW_SIZE, INPUT_FEATURE_SIZE, WINDOW_FEATURE_SIZE
 except Exception:
     INPUT_FEATURE_SIZE = 1629
     WINDOW_FEATURE_SIZE = 48870

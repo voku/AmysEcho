@@ -368,7 +368,7 @@ def _extract_modality_coverage(metadata: dict) -> dict[str, float] | None:
 
 
 def _summarize_frame_modalities(frames: list[dict]) -> tuple[dict[str, int], dict[str, float]]:
-    counts = {key: 0 for key in MODALITY_KEYS}
+    counts = dict.fromkeys(MODALITY_KEYS, 0)
     total_frames = len(frames)
     landmark_map = {
         "hands": "landmarks",
@@ -1431,7 +1431,7 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
     cache_hits = 0
     cache_misses = 0
     cache_writes = 0
-    modality_counts = {key: 0 for key in MODALITY_KEYS}
+    modality_counts = dict.fromkeys(MODALITY_KEYS, 0)
     modality_sample_total = 0
 
     for entry in entries:
@@ -1928,7 +1928,7 @@ def save_model(
 
 
 def _summarize_modality_counts(samples: list[Sample]) -> dict[str, int]:
-    counts = {key: 0 for key in MODALITY_KEYS}
+    counts = dict.fromkeys(MODALITY_KEYS, 0)
     for sample in samples:
         coverage = sample.modality_coverage or {}
         for key in MODALITY_KEYS:

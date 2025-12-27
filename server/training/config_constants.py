@@ -9,7 +9,6 @@ from pathlib import Path
 from feature_schema import (
     DEFAULT_WINDOW_SIZE,
     INPUT_FEATURE_SIZE,
-    WINDOW_FEATURE_SIZE,
 )
 
 # ============================================================================
