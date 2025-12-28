@@ -1,4 +1,5 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/dom';
+import { renderHook, act } from '@testing-library/react';
 import { useTrainingRecorder } from './useTrainingRecorder';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';

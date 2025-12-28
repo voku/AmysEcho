@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/dom';
+import { act, render } from '@testing-library/react';
 import { useEffect, useRef } from 'react';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { ApiConfigProvider, useApiConfig } from './hooks/useApiConfig';

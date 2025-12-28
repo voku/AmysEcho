@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/dom';
+import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TrainingQueueList } from './TrainingQueueList';
 import type { PersistedTrainingBundle } from '../training/trainingQueue';
