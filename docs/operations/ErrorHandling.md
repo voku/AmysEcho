@@ -22,15 +22,19 @@ try {
 
 The logger automatically filters output by build type and keeps the console consistent.
 
-## 3. Pass errors through callbacks
+## 3. Read error state from hooks
 
-Components such as `SignLanguageRecorder` read error state from hooks. The handler is invoked whenever the gesture pipeline reports a problem, allowing screens to react:
+Components such as `SignLanguageRecorder` read error state directly from hooks like `useSignLanguageDetector`. When the hook reports a problem, log it and update local state so the UI can react:
 
 ```tsx
-const handleError = (msg: string) => {
-  logger.warn('Gesture detector error:', msg);
-  setProcessingError(msg);
-};
+const { error } = useSignLanguageDetector(videoRef, overlayRef);
+
+useEffect(() => {
+  if (error) {
+    logger.warn('Gesture detector error:', error);
+    setProcessingError(error);
+  }
+}, [error]);
 ```
 
 ## 4. Display a friendly message

@@ -12,7 +12,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Extend the Training page to record both the landmark timeline and captured frames while recording is active.
 - [x] Persist the sample shape in the training queue (`webapp/src/training/trainingQueue.ts`). Use IndexedDB via OPFS for offline support.
 - [x] Harden multimodal capture for kids: verify pose/face/hand landmark availability across supported browsers/devices, and surface guidance when a modality drops (e.g., "Please keep face in frame").
-- [x] Add privacy-safe preview controls: allow caregivers to toggle raw video vs. skeleton-only while keeping overlay drawing for hands/pose/face visible.
+- [ ] Add privacy-safe preview controls: allow caregivers to toggle raw video vs. skeleton-only while keeping overlay drawing for hands/pose/face visible.
 
 ## 2. Package & Queue Upload Bundles (`webapp/src/training`)
 - [x] Create `uploadTrainingBundle` that builds a zip with `{metadata.json, landmarks.json, still.jpg}`.
@@ -60,6 +60,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [ ] Background model updates for custom signs.
 - [x] Offline queueing for uploads in the custom sign flow.
 - [ ] Training data quality metrics to decide when user-contributed data is ready for the global baseline.
+- [ ] Add privacy-safe preview toggle between raw video and skeleton-only while keeping overlay visible.
 
 ### Profile Identity & GDPR Follow-ups
 - [ ] Add profile registry database.
