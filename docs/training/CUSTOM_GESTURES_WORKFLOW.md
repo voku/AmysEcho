@@ -140,6 +140,5 @@ Custom sign language signs must:
 ## Related Documentation
 
 - [Video Recording Workflow](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
-- [Video Recording Workflow](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
 - [ML/LLM Integration](../research/ML_LLM_Integration.md)
 - [Sign Language Training Loop](../planning/TODO.md)

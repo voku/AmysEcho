@@ -132,9 +132,9 @@ interface MediaPipeGestureDetectorHandle {
 - `enqueuePersistedBundle` (`webapp/src/training/trainingQueue.ts`) speichert die `profileId` im Bundle-Metadatenobjekt sowie im Schlüssel (`trainingBundles:<profileId>:...`). Dadurch bleibt die Zuordnung erhalten, selbst wenn Amy später zu einem anderen Profil wechselt.
 - Der Upload-Prozess (`webapp/src/hooks/useTrainingUploader.ts`) nutzt ausschließlich die im Bundle gespeicherte `profileId`, sodass Samples immer dem ursprünglichen Kind zugeordnet bleiben.
 
-**QA-Checkliste**
+## QA-Checkliste
 
-**Manuelle Prüfungen**
+### Manuelle Prüfungen
 1. **Gestenaufnahme starten** – In der Webapp auf der Trainingsseite eine Geste aufzeichnen und bestätigen.
 2. **Bundle-Upload beobachten** – Sicherstellen, dass der Upload eine `queued`-Antwort erhält.
 3. **Bundle-Dateien prüfen** – Im Verzeichnis `data/uploads/<profil>/` sicherstellen, dass `bundle.zip` und extrahierte Assets vorliegen.
@@ -143,7 +143,7 @@ interface MediaPipeGestureDetectorHandle {
 6. **Manifest-Datei inspizieren** – `data/datasets/training_manifest.json` kontrollieren: neuer Eintrag mit korrekten Dateipfaden und aktualisiertem `metadata.validationSummary`.
 7. **Profil-Zuordnung bestätigen** – In `data/dgs_samples.json` prüfen, dass jede neue Probe `profileId` gesetzt hat und der `validationSummary.landmarksPath` auf die tatsächlich trainierte Datei zeigt.
 
-**Multimodale QA**
+### Multimodale QA
 - **Hände sind Pflicht, Gesicht optional**: Fehlende Hand-Landmarks werden als Warnung protokolliert. Gesicht und Pose bleiben optional, weil manche Gebärden keinen Bezug zum Gesicht haben.
 - **Smoothing beibehalten**: Die im Webapp-Smoothing verwendete Konfiguration bleibt in `metadata.smoothing` enthalten. Sie dient aktuell nur als Dokumentation und wird vom Trainingsskript nicht ausgewertet.
 - **Aufnahme-Metadaten & Zeitstempel**: `metadata.recording` (Frame-Zahlen, Clip-Dauer/-Größe, MIME-Typen) bleibt im Manifest erhalten. Frame-Zeitstempel (`timestampMs`) werden beim Ingest als `ts` in `dgs_samples.json` verwendet.
@@ -252,7 +252,7 @@ export async function fetchMlpModelWithFallback(params: {
 
 ## Complete Workflow Diagram
 
-```
+```text
 RECORDING (Webapp)
   TrainingRecorder + GestureRecognitionOrchestrator
   - MediaRecorder captures clip + still frame
@@ -308,7 +308,7 @@ MLP_EARLY_STOPPING_PATIENCE=50     # Early stopping
 ## File Locations
 
 ### Webapp
-```
+```text
 webapp/
 ├── src/
 │   ├── components/
@@ -330,7 +330,7 @@ webapp/
 ```
 
 ### Server
-```
+```text
 server/
 ├── src/
 │   ├── routes/

@@ -5,7 +5,7 @@ legacy React Native/WebView architecture and points to the canonical workflow do
 
 ## ✅ Current Integration Pipeline (Webapp + Server)
 
-**Capture → Bundle → Upload → Training → Distribution**
+## Capture → Bundle → Upload → Training → Distribution
 
 1. **Capture**: `webapp/src/components/TrainingRecorder.tsx` and
    `webapp/src/hooks/useTrainingRecorder.ts` record multimodal landmarks

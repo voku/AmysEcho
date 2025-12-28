@@ -377,7 +377,7 @@ setTimeout(() => {
 python scripts/prepare_default_model.py
 
 # Verify model
-ls -la server/data/dgs_model.npz
+ls -la server/data/models/global/amy_model.npz
 ```
 
 2. **Fix Performance Baselines**:
