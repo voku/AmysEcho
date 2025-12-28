@@ -178,34 +178,21 @@ interface ProfileRecord {
 - Maintain backward compatibility
 
 ### Phase 2: Profile Management API (Medium Priority)
-```
-POST   /api/v1/profiles              - Create profile
-GET    /api/v1/profiles              - List profiles
-GET    /api/v1/profiles/:uuid        - Get details
-PATCH  /api/v1/profiles/:uuid        - Update metadata
-DELETE /api/v1/profiles/:uuid        - Cascade delete
-```
+Tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups".
 
 ### Phase 3: Data Migration Tools (Medium Priority)
-```
-POST /api/v1/profiles/:uuid/migrate
-  - Merge two profiles
-  - Transfer training data
-  - Combine ML models
-```
+Tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups".
 
 ### Phase 4: Multi-Device Sync (Low Priority)
-- Cloud-based profile registry
-- Sync training bundles across devices
-- Conflict resolution for profile changes
+Tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups".
 
 ## Security & Privacy Implications
 
 ### GDPR Compliance
 
-**Right to Deletion** 📋 TODO
+**Right to Deletion** 📋 Planned
 - Current: Manual deletion required
-- Future: Implement cascade delete API
+- Future: Implement cascade delete API (tracked in `docs/TODO.md`)
 - Files to delete:
   - `data/uploads/{profileId}/`
   - `data/models/{profileId}/`
@@ -241,23 +228,8 @@ POST /api/v1/profiles/:uuid/migrate
 3. ✅ Add comprehensive documentation
 4. ✅ Add tests for new behavior
 
-### Short-Term (Next Sprint)
-1. 📋 Implement profile deletion endpoint with cascade
-2. 📋 Add profile metadata (age, creation date)
-3. 📋 Create admin tool to view all profiles
-4. 📋 Add data export with training bundles
-
-### Medium-Term (Next Quarter)
-1. 📋 Migrate to UUID-based system
-2. 📋 Implement profile management API
-3. 📋 Add profile merge/transfer tools
-4. 📋 Multi-device sync (if needed)
-
-### Long-Term (Future Releases)
-1. 📋 Cloud-based profile registry
-2. 📋 Multi-caregiver collaboration
-3. 📋 Advanced profile analytics
-4. 📋 Automated backup/restore
+### Follow-up Roadmap
+See [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups" for the consolidated backlog.
 
 ## Conclusion
 

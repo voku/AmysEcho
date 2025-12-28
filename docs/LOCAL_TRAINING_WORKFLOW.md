@@ -35,19 +35,10 @@ console.log('Bearer', token);
 
 ## 3. Trainings-Paket (Bundle) Struktur
 
-Ein Trainings-Upload ist ein ZIP-Archiv mit folgender Struktur:
-
-- `metadata.json`: Enthält Label und Profil-Informationen.
-- `landmarks.json`: Enthält die extrahierten MediaPipe-Landmarken für alle Modalitäten (Hands, Pose, Face).
-
-### Beispiel metadata.json
-```json
-{
-  "label": "HALLO",
-  "profileId": "mein-profil-1",
-  "capturedAt": "2025-12-23T17:00:00.000Z"
-}
-```
+Die ZIP-Struktur und das vollständige Upload-Flow-Diagramm sind in
+[`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+zusammengeführt. Für lokale Tests genügt es, dass `metadata.json` und
+`landmarks.json` enthalten sind (ggf. zusätzlich `still.jpg` und `clip.*`).
 
 ## 4. API Endpunkte
 
@@ -66,8 +57,7 @@ Ein Trainings-Upload ist ein ZIP-Archiv mit folgender Struktur:
 - Header: `Authorization: Bearer <token>`
 
 ## 5. Interner Prozess
-1. Der Server empfängt das ZIP und validiert die `metadata.json`.
-2. Das ZIP wird unter `server/data/uploads/<profile>/<bundleId>/bundle.zip` gespeichert.
-3. Ein Eintrag wird in der `training_manifest.json` erstellt.
-4. Der Python-Prozess `train_mlp.py` wird gestartet und verarbeitet die Daten aus dem Manifest.
-5. Nach Abschluss wird das Modell unter `server/data/models/<profile>/amy_model.npz` bereitgestellt.
+
+Siehe den Abschnitt "Model Training" in
+[`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+für den vollständigen Serverablauf vom Bundle bis zum Modell.

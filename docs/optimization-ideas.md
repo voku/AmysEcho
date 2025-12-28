@@ -4,9 +4,9 @@
 
 ## I. Performance & Efficiency
 
-1. **Optimize MediaPipe WebView Performance:** Explore OffscreenCanvas or WebGL optimizations to lower CPU usage and battery drain while maintaining full camera resolution and frame rate.
+1. **Optimize MediaPipe Performance:** Explore OffscreenCanvas or WebGL optimizations to lower CPU usage and battery drain while maintaining full camera resolution and frame rate.
 2. **Lightweight Landmark Transfer:** Compress or quantize landmark data before sending it to the server to minimize network bandwidth and improve remote classification latency.
-3. **WebView Message Batching:** Batch telemetry and gesture messages between the WebView and React Native to reduce bridge overhead and keep recognition responsive.
+3. **Batch Gesture Telemetry:** Batch telemetry and gesture messages within the webapp pipeline to reduce overhead and keep recognition responsive.
 4. **Batch Processing for Cloud ML:** For cloud-based ML inference, implement batch processing of gesture frames when network conditions allow, reducing API call overhead and improving throughput for continuous recognition.
 5. **Efficient Data Synchronization:** Optimize `syncService.ts` to use more efficient data synchronization algorithms (e.g., differential sync, compression) to reduce network usage and speed up data transfer for corrections and personalized models.
 6. **Database Query Optimization:** Analyze and optimize WatermelonDB queries, especially for frequently accessed data like gesture definitions, user profiles, and correction logs, to ensure fast retrieval and storage.
@@ -131,4 +131,3 @@
 8. **Personalized Feedback Mechanisms:** Develop more sophisticated personalized feedback mechanisms that adapt to Amy's learning style and preferences.
 9. **Real-time Performance Metrics Display:** Display real-time performance metrics (e.g., recognition accuracy, latency) for developers and advanced users.
 10. **Long-term Data Archiving and Analysis:** Implement a system for long-term archiving and advanced analysis of Amy's learning data to identify trends and insights over time.
-

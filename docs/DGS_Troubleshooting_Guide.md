@@ -14,15 +14,12 @@ npm test --prefix integration
 npm test --prefix integration -- --grep "health"
 
 # 2. Verify model file exists
-ls -la server/data/dgs_model.npz
+ls -la server/data/models/global/amy_model.npz
 
 # 3. Check server logs (if server is running)
-tail -f server/logs/dgs-integration.log
+tail -f server/data/training-debug.log
 
-# 4. Validate WebView bundle
-ls -la app/assets/gestureDetector.js
-
-# 5. Test API endpoints (if server is running)
+# 4. Test API endpoints (if server is running)
 curl -H "Authorization: Bearer demo-token" http://localhost:5000/model-metadata
 ```
 
@@ -144,23 +141,23 @@ def validate_model(model_path):
     except Exception as e:
         print(f'Model validation failed: {e}')
 
-validate_model('server/data/dgs_model.npz')
+validate_model('server/data/models/global/amy_model.npz')
 ```
 
-## WebView Integration Issues
+## Webapp Gesture Pipeline Issues
 
 ### Gesture Detection Not Working
 
 **Symptoms**:
 - Camera activates but no gestures detected
-- WebView console shows MediaPipe errors
-- App crashes when opening camera
+- Browser console shows MediaPipe errors
+- Webapp crashes when opening camera
 
 **Diagnostic Steps**:
 
-1. **Check WebView Console**:
+1. **Check Browser Console**:
 ```javascript
-// Add to WebView for debugging
+// Add for debugging
 console.log('MediaPipe version:', mp.version);
 console.log('Camera permissions:', navigator.permissions.query({name: 'camera'}));
 ```
@@ -176,13 +173,8 @@ console.log('Expected size:', 126 * 128 + 128 + 128 * 12 + 12);
 
 1. **Fix MediaPipe Loading**:
 ```javascript
-// Ensure proper MediaPipe initialization
-import * as mpHands from '@mediapipe/hands';
-import * as mpCamera from '@mediapipe/camera_utils';
-
-const hands = new mpHands.Hands({
-  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-});
+// Ensure MediaPipe assets are available in webapp/src/gesture
+// Rebuild if the vision bundle is outdated.
 ```
 
 2. **Handle Camera Permissions**:
@@ -200,16 +192,10 @@ async function requestCameraPermission() {
 }
 ```
 
-3. **Fix Model Injection**:
+3. **Verify Model Injection**:
 ```typescript
-// In React Native app
-const modelData = await fetchModelFromServer();
-const base64Model = btoa(String.fromCharCode(...new Uint8Array(modelData)));
-
-WebView.postMessage(JSON.stringify({
-  type: 'loadModel',
-  model: base64Model
-}));
+// In the webapp, useMlpModelInjection handles injection.
+// Check that window.__setMlpModelB64 is available and returns true.
 ```
 
 ### Performance Issues
@@ -232,7 +218,7 @@ console.log(`Processing time: ${endTime - startTime}ms`);
 
 2. **Check Memory Usage**:
 ```javascript
-// Monitor memory in WebView
+// Monitor memory in the browser
 if (performance.memory) {
   console.log('Memory usage:', {
     used: performance.memory.usedJSHeapSize,
@@ -537,27 +523,27 @@ When all else fails, perform a complete reset:
 ```bash
 # 1. Stop all services
 pkill -f "node.*server"
-pkill -f "react-native"
+pkill -f "vite"
 
 # 2. Clear caches and models
-rm -rf server/data/dgs_model.npz
-rm -rf app/node_modules/.cache
+rm -rf server/data/models/global/amy_model.npz
+rm -rf webapp/node_modules/.cache
 rm -rf server/node_modules/.cache
 
 # 3. Reinstall dependencies
-npm ci --prefix app
+npm ci --prefix webapp
 npm ci --prefix server
 npm ci --prefix integration
 
-# 4. Regenerate model
-python scripts/prepare_default_model.py
+# 4. Trigger training if needed
+curl -X POST http://localhost:5000/train-model \
+  -H "Authorization: Bearer demo-token" \
+  -H "Content-Type: application/json" \
+  -d '{"trigger":"bundles"}'
 
-# 5. Rebuild WebView
-npm run build:webview --prefix app
-
-# 6. Restart services
+# 5. Restart services
 npm start --prefix server &
-npm start --prefix app
+npm run dev --prefix webapp
 ```
 
 ### Debug Mode Activation
@@ -570,8 +556,7 @@ export DEBUG=dgs:*
 export NODE_ENV=development
 export DGS_LOG_LEVEL=debug
 
-# Enable WebView debugging
-WebView.setWebContentsDebuggingEnabled(true);
+# Use browser devtools for client debugging.
 ```
 
 ### Log Collection
@@ -583,7 +568,6 @@ Collect comprehensive logs for support:
 tar -czf debug_logs.tar.gz \
   server/logs/*.log \
   integration/test-output.log \
-  app/logs/ \
   /tmp/dgs_debug.log
 ```
 

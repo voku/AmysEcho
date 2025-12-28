@@ -1,17 +1,17 @@
 # Error Handling in Amy's Echo
 
-Amy's Echo aims to surface user-friendly messages while capturing technical details for developers. This document describes the standard pattern for dealing with errors in the mobile app.
+Amy's Echo aims to surface user-friendly messages while capturing technical details for developers. This document describes the standard pattern for dealing with errors in the webapp.
 
 ## 1. Global Error Boundary
 
-All screens are wrapped in `ChildErrorBoundary`, which catches unexpected crashes and shows a gentle "Let's try again" prompt with a retry button. Errors are logged via the crash reporting service so developers can investigate without exposing technical details to children.
+Routes are wrapped in `ChildErrorBoundary`, which catches unexpected crashes and shows a gentle retry prompt. Errors are logged so developers can investigate without exposing technical details to children.
 
 ## 2. Log with the shared logger
 
-Use the `logger` utility instead of `console.*` to record errors:
+Use the shared `logger` utility instead of `console.*` to record errors:
 
 ```ts
-import { logger } from '../utils/logger';
+import { logger } from '../services/logger';
 
 try {
   // ...
@@ -24,15 +24,13 @@ The logger automatically filters output by build type and keeps the console cons
 
 ## 3. Pass errors through callbacks
 
-Components such as `MediaPipeGestureDetector` accept an `onError` callback. The component invokes the callback whenever the WebView reports a problem, allowing screens to react:
+Components such as `SignLanguageRecorder` read error state from hooks. The handler is invoked whenever the gesture pipeline reports a problem, allowing screens to react:
 
 ```tsx
 const handleError = (msg: string) => {
   logger.warn('Gesture detector error:', msg);
   setProcessingError(msg);
 };
-
-<MediaPipeGestureDetector onGestureDetected={onGestureResult} onError={handleError} />
 ```
 
 ## 4. Display a friendly message

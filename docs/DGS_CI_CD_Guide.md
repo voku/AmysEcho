@@ -31,7 +31,7 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'app/webview/**'
+      - 'webapp/src/gesture/**'
       - 'server/src/**'
       - 'scripts/**'
       - 'integration/**'
@@ -39,7 +39,7 @@ on:
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'app/webview/**'
+      - 'webapp/src/gesture/**'
       - 'server/src/**'
       - 'scripts/**'
       - 'integration/**'
@@ -91,7 +91,7 @@ services:
 pip install -r server/requirements.txt
 
 # Node.js dependencies with workspace support
-npm ci --prefix app
+npm ci --prefix webapp
 npm ci --prefix server
 npm ci --prefix integration
 ```
@@ -105,13 +105,13 @@ npm ci --prefix integration
 
 **Type Checking**:
 ```bash
-npm run type-check --prefix app
+npm run type-check --prefix webapp
 npm run type-check --prefix server
 ```
 
 **Linting**:
 ```bash
-npm run lint --prefix app || true
+npm run lint --prefix webapp || true
 npm run lint --prefix server || true
 ```
 
@@ -119,12 +119,12 @@ npm run lint --prefix server || true
 
 ### 3. Build Process
 
-**WebView Bundle Generation**:
+**Webapp Build**:
 ```bash
-npm run build:webview --prefix app
+npm run build --prefix webapp
 ```
 
-**Purpose**: Creates the gesture detector bundle that includes DGS model integration.
+**Purpose**: Creates the production webapp bundle that includes the gesture detector pipeline.
 
 ### 4. Test Execution
 
@@ -172,7 +172,7 @@ NODE_ENV: test
 ```yaml
 - name: Run security audit
   run: |
-    npm audit --audit-level moderate --prefix app
+    npm audit --audit-level moderate --prefix webapp
     npm audit --audit-level moderate --prefix server
   continue-on-error: true
 ```
@@ -189,7 +189,7 @@ NODE_ENV: test
 
 **Dedicated Accessibility Testing**:
 The integration layer no longer keeps synthetic accessibility specs. Rely on
-the React Native app tests (`npm test --prefix app`) and the manual QA
+the webapp tests (`npm test --prefix webapp`) and the manual QA
 checklist in `docs/DeviceTesting.md` to verify:
 
 - Screen reader output for gesture feedback text and caregiver status badges
@@ -214,7 +214,7 @@ deploy-preview:
 
 **Build Process**:
 ```bash
-npm run build:webview --prefix app
+npm run build --prefix webapp
 npm run build --prefix server
 ```
 
@@ -302,7 +302,7 @@ npm test --prefix integration
 **Dependency Caching**:
 - **npm**: Node.js package cache across runs
 - **pip**: Python package cache for faster installs
-- **Build Artifacts**: Cache WebView bundles between runs
+- **Build Artifacts**: Cache webapp build artifacts between runs
 
 **Test Optimization**:
 - **Parallel Execution**: Matrix testing across multiple runners

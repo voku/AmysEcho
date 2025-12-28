@@ -1,6 +1,6 @@
 # Adding Comprehensive Tests for GestureComparison Component
 
-This document provides a step-by-step guide for adding comprehensive tests for the `GestureComparison` component, as outlined in the `TODO.md`.
+This document provides a step-by-step guide for adding comprehensive tests for the legacy `GestureComparison` component, as outlined in the `TODO.md`. The current webapp does not ship this component; if it is reintroduced, follow the guidance below and place tests alongside the webapp component.
 
 ## 1. Understanding the Component
 
@@ -8,12 +8,12 @@ The `GestureComparison` component is responsible for visually comparing a user's
 
 ## 2. Writing the Tests
 
-We will use React Native Testing Library to write our tests. This will allow us to render the component and interact with it as a user would.
+We will use React Testing Library to write our tests. This will allow us to render the component and interact with it as a user would.
 
 ### Implementation Steps
 
 1.  **Create a Test File:**
-    *   Create a new file: `app/test/components/GestureComparison.test.tsx`.
+    *   Create a new file: `webapp/src/components/GestureComparison.test.tsx`.
 
 2.  **Write Basic Rendering Tests:**
     *   Write a test that renders the component with mock props and ensures that it doesn't crash.
@@ -29,8 +29,8 @@ We will use React Native Testing Library to write our tests. This will allow us 
 
 ```typescript
 import React from 'react';
-import { render } from '@testing-library/react-native';
-import GestureComparison from '../../src/components/GestureComparison';
+import { render } from '@testing-library/react';
+import GestureComparison from './GestureComparison';
 
 describe('GestureComparison', () => {
   it('renders correctly', () => {

@@ -124,4 +124,4 @@ Return metadata for the requested model including file size and SHA-256 checksum
 ### Validation
 
 #### Validation endpoints
-The previous `/api/gesture/validate-vision` route has been retired. Validation now happens entirely on-device inside the MediaPipe WebView and does not require a network call.
+The previous `/api/gesture/validate-vision` route has been retired. Validation now happens entirely on-device in the webapp gesture pipeline and does not require a network call.

@@ -21,7 +21,7 @@ This document summarizes the repository in key areas with concrete file referenc
 ## 3. Training and Personalization
 - Sample collection UI in `webapp/src/components/TrainingUpload.tsx`
 - Training bundle queue in `webapp/src/training/trainingQueue.ts`
-- Upload logic in `webapp/src/training/uploadTrainingBundle.ts`
+- Upload logic in `webapp/src/training/trainingBundle.ts`
 - Server maintains personalized MLP bundles in `server/src/server.ts`, persisting data under `server/data/models/`
 
 ## 4. Model Integration

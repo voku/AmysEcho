@@ -4,7 +4,7 @@ This document describes the current implementation of automated content generati
 
 ## Overview
 
-Automated content generation is primarily implemented through the `AdaptiveLearningService` located in `app/src/services/adaptiveLearningService.ts`. This service creates personalized learning experiences based on Amy's performance and progress.
+Automated content generation is primarily implemented through the `AdaptiveLearningService` located in `webapp/src/services/adaptiveLearningService.ts`. This service creates personalized learning experiences based on Amy's performance and progress.
 
 ## Key Features
 

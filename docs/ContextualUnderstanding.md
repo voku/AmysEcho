@@ -1,114 +1,65 @@
 # Contextual Understanding Implementation
 
-This document describes the current implementation of contextual understanding features in Amy's Echo.
+This document describes how contextual understanding is implemented in the current webapp codebase.
 
 ## Overview
 
-Contextual understanding is implemented through the `ContextAwareRecognitionService` located in `app/src/services/contextAwareRecognitionService.ts`. This service enhances gesture recognition by considering various contextual factors to improve accuracy and provide more natural communication.
+Context is handled by a set of focused services rather than a single monolithic context engine:
+
+- **Gesture suggestions**: `webapp/src/services/gestureSuggester.ts`
+- **Adaptive learning**: `webapp/src/services/adaptiveLearningService.ts`
+- **Active learning nudges**: `webapp/src/services/activeLearningService.ts`
+- **Feedback tuning**: `webapp/src/services/feedbackService.ts`
+- **History and sessions**: `webapp/src/services/gestureHistoryService.ts` and `webapp/src/services/engagementTracker.ts`
+
+These modules share lightweight context inputs (recent gestures, time-of-day, confidence) to adjust suggestions, practice prompts, and feedback.
 
 ## Key Features
 
 ### 1. Time-of-Day Awareness
 
-The service includes built-in time-of-day detection that adjusts gesture recognition based on the current time:
+- `gestureSuggester` receives the current hour (in minutes) and blends it into suggestion scoring.
+- `activeLearningService` takes `timeOfDay` in its context input to tune practice cadence.
+- `feedbackService` optionally adjusts haptic patterns based on `timeOfDay` to keep feedback gentle.
 
-- **Time Ranges:**
-  - Morning: 6am - 12pm
-  - Afternoon: 12pm - 5pm
-  - Evening: 5pm - 9pm
-  - Night: 9pm - 6am
+### 2. History-Based Suggestions
 
-- **Implementation:** The `getTimeOfDay()` method calculates the current time period and stores it with each gesture recognition event.
+- `gestureHistoryService` persists recent successful signs for each profile.
+- `gestureSuggester` uses the recent history list to prioritize familiar gestures when confidence is low.
 
-- **Usage:** Patterns are learned per time-of-day, allowing the system to recognize that Amy might prefer certain gestures at specific times (e.g., "good morning" in the morning).
+### 3. Session Context
 
-### 2. Sequence Prediction
+- `engagementTracker` tracks session lengths and usage cadence.
+- `adaptiveLearningService` logs practice sessions so the system can tailor repetition and rest windows.
 
-The service tracks gesture sequences and predicts likely next gestures:
+## Data Structures in Use
 
-- **Sequence Learning:** Records the previous gesture for each recognition event
-- **Probability Calculation:** Builds transition probabilities between gestures
-- **Prediction:** Provides up to 3 predicted next gestures with confidence scores
+`gestureSuggester` exposes a concrete context shape used when generating suggestions:
 
-### 3. Frequency-Based Adjustments
-
-- **Favorite Gestures:** Identifies and boosts confidence for Amy's most frequently used gestures
-- **Time-of-Day Preferences:** Learns which gestures Amy prefers at different times
-- **Adaptive Boosting:** Applies confidence multipliers based on learned patterns
-
-### 4. Session Context
-
-- **Session Duration Tracking:** Monitors how long Amy has been using the app
-- **Fatigue Detection:** Adjusts confidence based on session length (slight reduction if session >30 minutes)
-- **Confidence Trends:** Tracks whether Amy's performance is improving, stable, or declining
-
-### 5. Location-Based Context
-
-- **Supported Locations:** `home`, `school`, `playground`, `other`
-- **Programmatic Setting:** Services can call `contextAwareRecognitionService.setLocation()` to adjust the active context.
-- **Pattern Learning:** Gesture patterns are stored per location and time-of-day
-- **Contextual Boosting:** Gestures frequently used at the current location receive higher confidence
-
-## Data Structures
-
-### GestureContext
 ```typescript
-interface GestureContext {
-  gesture: string;
+export interface GestureContext {
+  recentGestures: string[];
+  timeOfDay: number;
   confidence: number;
-  timestamp: number;
-  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
-  dayOfWeek: number;
-  location: 'home' | 'school' | 'playground' | 'other';
-  previousGesture?: string;
-  sessionDuration: number;
+  landmarks?: number[][][];
+  handedness?: string[];
 }
 ```
 
-### RecognitionPattern
-```typescript
-interface RecognitionPattern {
-  gesture: string;
-  timeOfDay: string;
-  location: 'home' | 'school' | 'playground' | 'other';
-  averageConfidence: number;
-  frequency: number;
-  lastUsed: number;
-  commonSequences: Array<{
-    nextGesture: string;
-    probability: number;
-    confidence: number;
-  }>;
-}
-```
-
-## Usage
-
-The service is used throughout the app via the singleton instance:
+## Usage Example
 
 ```typescript
-import { contextAwareRecognitionService } from '../services/contextAwareRecognitionService';
+import { gestureSuggester } from '../services/gestureSuggester';
 
-// Record a gesture for pattern learning
-contextAwareRecognitionService.recordGesture(gesture, confidence, previousGesture);
-
-// Set the current location (home, school, playground, other)
-contextAwareRecognitionService.setLocation('home');
-
-// Get context-adjusted confidence
-const adjustment = contextAwareRecognitionService.getContextAdjustment(gesture, baseConfidence);
-const adjustedConfidence = baseConfidence * adjustment.confidenceMultiplier;
-
-// Get predicted next gestures
-const predictions = contextAwareRecognitionService.getPredictedGestures(currentGesture);
+const suggestions = gestureSuggester.getSuggestions(lastGesture, {
+  recentGestures,
+  timeOfDay: new Date().getHours() * 60,
+  confidence: lastConfidence,
+  landmarks,
+  handedness,
+});
 ```
-
-## Integration Points
-
-- **RecognitionScreen:** Records gestures and applies context adjustments
-- **Adaptive Learning Service:** Uses context data for personalized learning
-- **Analytics:** Provides insights into time-of-day patterns and sequences
 
 ## Future Enhancements
 
-Future work may integrate automatic location detection using `expo-location` to remove the need for manual selection and to support additional environments.
+Additional context signals (like caregiver-selected environments) can be added by extending the `GestureContext` and feeding them into `gestureSuggester` and `adaptiveLearningService`. Any new context should remain privacy-safe and lightweight so the recognition loop stays fast.

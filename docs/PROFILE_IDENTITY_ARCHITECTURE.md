@@ -356,20 +356,7 @@ POST /api/v1/profiles/:uuid/migrate
 
 ## Technical Debt
 
-### High Priority
-- [ ] Add profile registry database
-- [ ] Implement profile deletion endpoint
-- [ ] Add profile export with all associated data
-
-### Medium Priority
-- [ ] Migrate to UUID-based system
-- [ ] Add profile metadata storage
-- [ ] Implement profile merge/transfer
-
-### Low Priority
-- [ ] Multi-device profile sync
-- [ ] Profile sharing between caregivers
-- [ ] Profile backup/restore automation
+Roadmap items for profile identity are tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups" to keep a single consolidated list.
 
 ## Conclusion
 
@@ -380,5 +367,5 @@ The current profile identity architecture provides **stable, immutable profile i
 ---
 
 **Document Version:** 1.0  
-**Last Updated:** 2025-12-22  
+**Last Updated:** 2025-12-28  
 **Status:** Implemented in PR #841

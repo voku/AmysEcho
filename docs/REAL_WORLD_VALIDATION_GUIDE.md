@@ -6,7 +6,7 @@ This guide provides a comprehensive framework for validating the enhanced gestur
 ## Pre-Validation Preparation
 
 ### 1. System Readiness Checklist
-- [ ] WebView bundle built and deployed (`npm run build:webview --prefix app`)
+- [ ] Webapp bundle built and deployed (`npm run build --prefix webapp`)
 - [ ] All integration tests passing
 - [ ] Performance monitoring enabled
 - [ ] Emergency gesture system activated
@@ -207,7 +207,7 @@ interface ValidationMetrics {
 ### If System Fails During Testing
 1. Immediately switch to backup communication method
 2. Note the failure conditions
-3. Restart the app and retry
+3. Restart the webapp and retry
 4. If persistent, use alternative gesture detection
 
 ### If Amy Becomes Frustrated
@@ -237,8 +237,8 @@ interface ValidationMetrics {
 - [ ] External battery pack
 
 ### Software
-- [ ] Latest Amy's Echo app installed
-- [ ] WebView bundle updated
+- [ ] Latest Amy's Echo webapp deployed
+- [ ] Webapp bundle updated
 - [ ] Performance monitoring enabled
 - [ ] Logging configured
 

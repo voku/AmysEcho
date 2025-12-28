@@ -36,5 +36,4 @@ Output:
 
 Notes
 - This is a lightweight, dependency-free evaluator — it does not run models; instead it consumes local probabilities and optional remote decisions for quick comparison and reporting.
-- For end-to-end on-device validation, use the Android performance and device testing protocols in `app/test/amyAndroidPerformance.test.ts` and `docs/GestureRecognitionTesting.md`.
-
+- For end-to-end validation, use `docs/DeviceTesting.md` and `docs/GestureRecognitionTesting.md`.

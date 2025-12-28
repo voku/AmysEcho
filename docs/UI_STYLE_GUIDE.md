@@ -21,7 +21,7 @@ This guide is a living document. Please update it with any new patterns or compo
 
 ## 3. Color Palette
 
-All values originate in `app/src/constants/colors.ts` and are re-exported for components via `COLORS` in `app/src/constants/ui.ts`.
+All values originate in `webapp/src/constants/colors.ts` and are re-exported for components via `COLORS` in `webapp/src/constants/ui.ts`.
 
 | Color Token            | Hex Code  | Usage                                                           |
 | ---------------------- | --------- | --------------------------------------------------------------- |
@@ -68,7 +68,7 @@ Layouts should be center-aligned when possible to create a sense of balance and 
 
 ## 6. Components
 
-Reusable components are located in `app/src/components/`. They should be built with accessibility and the style guide in mind.
+Reusable components are located in `webapp/src/components/`. They should be built with accessibility and the style guide in mind.
 
 ### AmyLoopTimeline
 
@@ -207,9 +207,10 @@ const styles = StyleSheet.create({
 
 ## 7. Animations & Feedback
 
-Animations should be gentle and meaningful. We use the `Animated` API from React Native.
+Animations should be gentle and meaningful. Use CSS transitions or Web Animations
+in the webapp, keeping durations short and easing smooth.
 
-*   **Fade-in/Fade-out:** Use a duration of `300ms` with an `Easing.inOut(Easing.ease)` function.
+*   **Fade-in/Fade-out:** Use a duration of `300ms` with an `ease-in-out` function.
 *   **Pulse Effect:** For successful recognition, a gentle pulse animation can be used. The scale should not exceed `1.05`.
 
 ## 8. Interaction Strings
@@ -229,6 +230,6 @@ The language used in the app should be simple, encouraging, and always in German
 
 ## 10. Code & File Conventions
 
-*   Use TypeScript (strict) and React Native functional components.
-*   Keep styles near components; export shared constants from `app/src/constants/`.
+*   Use TypeScript (strict) and React functional components.
+*   Keep styles near components; export shared constants from `webapp/src/constants/`.
 *   Name files and components with PascalCase; use camelCase for variables and style keys.

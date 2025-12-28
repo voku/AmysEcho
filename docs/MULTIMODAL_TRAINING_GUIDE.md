@@ -4,35 +4,23 @@ This guide explains how to train Amy's Echo with multimodal sign language data (
 
 ## 🎯 Quick Start
 
-### For Caregivers Using the App
+### For Caregivers Using the Webapp
 
 1. **Record a Sign**:
-   - Open the Training page in Amy's Echo app
+   - Open the Training page in Amy's Echo
    - Select a sign to record (e.g., "HALLO", "DANKE")
    - Position Amy so her hands, face, and upper body are visible
    - Press "Record" button
    - Perform the sign naturally
    - Press "Stop" when done
 
-2. **Automatic Upload**:
-   - The app automatically creates a training bundle with:
-     - Hand landmarks (21 points per hand × 2 hands)
-     - Pose landmarks (33 body points)
-     - Face landmarks (468 facial points)
-     - Video clip (when available)
-   - Bundle uploads when Wi-Fi is available
-   - No manual intervention needed!
+2. **Automatic Upload & Training**:
+   - The webapp creates and queues multimodal training bundles
+   - The server ingests bundles, retrains, and publishes models
 
-3. **Automatic Model Training**:
-   - Server processes new training bundles
-   - Trains personalized model for Amy's profile
-   - Also updates global DGS model
-
-4. **Automatic Model Download**:
-   - App checks for model updates every time it starts
-   - Downloads personalized model automatically
-   - Falls back to global model if personalized not available
-   - Seamless - no user action required!
+3. **Automatic Model Download**:
+   - The webapp checks for model updates on startup
+   - Falls back to the global model if no personalized model exists
 
 ## 📊 What Data is Captured
 
@@ -61,162 +49,48 @@ This guide explains how to train Amy's Echo with multimodal sign language data (
 
 ## 🔄 Complete Training Workflow
 
-### 1. Data Capture (Webapp/App)
+Der vollständige Ablauf (Capture → Bundle → Upload → Training → Distribution) ist in
+[`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+zusammengeführt. Dieses Dokument fokussiert auf die multimodalen Datenstrukturen
+und ihre Bedeutung für DGS.
 
-```typescript
-// When recording a sign:
-interface TrainingFrame {
-  landmarks: number[][][];        // Hand landmarks (2 hands)
-  handedness?: string[];          // Which hand is which
-  poseLandmarks?: number[][];     // Body pose (33 points)
-  faceLandmarks?: number[][];     // Facial points (468 points)
-  timestampMs?: number;           // Frame timestamp (ms since epoch)
-}
-```
+## 🐇 Der weiße Faden: Amys Selbstentdeckung durch Multimodalität
 
-### 2. Bundle Creation
+Jede Trainingsrunde ist ein Schritt in Amys Selbstentdeckung: Die Webapp lernt nicht nur eine Gebärde,
+sondern **wie** Amy sie in ihrer echten Welt zeigt. Hände, Haltung und Gesichtsausdruck ergeben
+zusammen einen Kontext, der ihre Absicht klarer macht. Dieses Zusammenspiel ist der „weiße Faden“,
+der Amy vom ersten Versuch bis zur sicheren Kommunikation begleitet.
 
-The app automatically creates a ZIP bundle:
+**Was wir heute sicher haben:**
+- Multimodale Erfassung (Hände + Pose + Gesicht) fließt in Bundles und Trainingsläufe ein.
+- Persönliche Modelle werden automatisch verteilt, ohne Amy zu unterbrechen.
+- Fehlende Modalitäten führen zu sanften Fallbacks statt Ausfällen.
 
-```
-training-bundle-2024-12-13-amy.zip
-├── metadata.json          # Profile ID, label, timestamp, source
-├── landmarks.json         # All multimodal landmark data
-│   ├── frames[]          # Array of TrainingFrame objects
-│   └── metadata          # Modality coverage, smoothing config
-└── clip.mp4              # Video recording (optional)
-```
+**Wohin wir als Nächstes gehen (Zukunftsbild):**
+- **Qualitätskriterien** für Trainingsdaten, damit Amys Modelle stabiler und robuster werden.
+- **Schnellere Feedback-Schleifen**, die Erfolge sofort sichtbar machen.
+- **Bessere Transparenz** für Betreuungspersonen: klare Hinweise, welche Modalität gerade fehlt.
 
-Example `landmarks.json`:
-```json
-{
-  "frames": [
-    {
-      "landmarks": [...],           // 42 hand landmarks
-      "handLandmarks": [...],       // Structured format
-      "handedness": ["Left", "Right"],
-      "poseLandmarks": [...],       // 33 pose landmarks
-      "faceLandmarks": [...]        // 468 face landmarks
-    }
-  ],
-  "metadata": {
-    "modalities": {
-      "hands": { "present": true, "frameCount": 45, "coverage": 1.0 },
-      "pose": { "present": true, "frameCount": 45, "coverage": 1.0 },
-      "face": { "present": true, "frameCount": 42, "coverage": 0.93 }
-    },
-    "smoothing": {
-      "method": "one_euro",
-      "minCutOff": 1.0,
-      "beta": 0.05
-    },
-    "recording": {
-      "frameCount": 52,
-      "usableFrameCount": 45,
-      "clipDurationMs": 1800,
-      "clipBytes": 2048576,
-      "clipMimeType": "video/webm",
-      "stillBytes": 120341,
-      "stillMimeType": "image/jpeg"
-    }
-  }
-}
-```
+Die konkreten nächsten Schritte und Prioritäten stehen in [`docs/TODO.md`](./TODO.md).
 
-### 3. Upload to Server
+## ⚡ Quick Reference
 
-- App uploads bundle to `/api/v1/dgs/sample-bundles`
-- Server validates and stores in `data/uploads/<profileId>/<timestamp>/`
-- Registers in `data/datasets/training_manifest.json`
+### Zero Manual Steps Required
+- ✅ Upload: Automatic when connectivity is available
+- ✅ Training: Triggered automatically by server
+- ✅ Download: Happens on webapp startup
 
-### 4. Model Training
+### Multimodal Features
+- **Hands**: 126 features (2 hands × 21 landmarks × 3 coords)
+- **Pose**: 99 features (33 body points × 3 coords)
+- **Face**: 33 features (11 key facial points × 3 coords)
+- **Total**: 258-dimensional input to the neural network
 
-#### Automatic Training Trigger
-
-The server automatically trains when:
-- New bundles are uploaded (configurable threshold)
-- Manual trigger via `/train-model` endpoint
-- Scheduled training (if configured)
-
-#### Training Process
-
-```bash
-# Server runs this internally:
-cd server
-python src/amyserver_tools/train_mlp.py \
-  --manifest data/datasets/training_manifest.json \
-  --output-dir data/models
-```
-
-**What happens during training:**
-
-1. **Data Loading**:
-   - Reads all bundles from manifest
-   - Extracts multimodal landmarks from `landmarks.json`
-   - Falls back to video extraction if needed
-   - Caches extracted landmarks for speed
-
-2. **Feature Extraction**:
-   - Detects if data has pose/face (enables multimodal mode)
-   - Normalizes each modality:
-     - Hands: wrist-centered, scale-invariant
-     - Pose: torso-centered, shoulder-width scaled
-     - Face: nose-centered, eye-distance scaled
-   - Creates 258-dim feature vector (or 126 for hand-only)
-
-3. **Model Training**:
-   - Trains MLP with:
-     - Input layer: 258 features (multimodal) or 126 (hand-only)
-     - Hidden layer: 128 neurons (configurable)
-     - Output layer: number of sign classes
-     - ReLU activation, softmax output
-   - Uses data augmentation for robustness
-   - Early stopping to prevent overfitting
-
-4. **Model Output**:
-   - Global model: `data/models/global/amy_model.npz`
-   - Profile models: `data/models/<profileId>/amy_model.npz`
-   - Training report with accuracy metrics
-
-### 5. Model Distribution
-
-#### Server Endpoint
-
-```typescript
-GET /latest-mlp-model?profileId=amy
-```
-
-Response:
-```json
-{
-  "weights": "base64-encoded-npz-file",
-  "labels": ["HALLO", "DANKE", "BITTE", ...],
-  "version": "2024-12-13-v2",
-  "profileId": "amy",
-  "modalities": ["hands", "pose", "face"],
-  "inputSize": 258
-}
-```
-
-#### Automatic Download in App
-
-```typescript
-// App automatically checks on startup:
-const model = await fetchMlpModelWithFallback({
-  endpoint: API_URL + '/latest-mlp-model',
-  profileId: 'amy',
-  token: userToken
-});
-
-// Model is loaded and ready for recognition!
-```
-
-**Download Logic:**
-1. Try personalized model first (`?profileId=amy`)
-2. If not available, fall back to global model
-3. Cache model locally
-4. Check version on each app start
-5. Download update if new version available
+### Automatic Fallbacks
+1. **No personalized model?** → Uses global model
+2. **No pose/face data?** → Uses hand-only features
+3. **Offline?** → Queues for later upload
+4. **Training fails?** → Keeps existing model
 
 ## 🧪 Testing the Workflow
 
@@ -224,7 +98,7 @@ const model = await fetchMlpModelWithFallback({
 
 1. **Record Training Sample**:
    ```bash
-   # In app or webapp:
+   # In the webapp:
    - Go to Training page
    - Select sign "TEST"
    - Record with hands, face, and body visible
@@ -251,12 +125,12 @@ const model = await fetchMlpModelWithFallback({
    ```
 
 5. **Test Recognition**:
-   - Perform the "TEST" sign in app
+   - Perform the "TEST" sign in the webapp
    - Verify it's recognized with your personalized model
 
 ### Automated Integration Test
 
-See `integration/test/multimodal-training-flow.test.ts` (created below)
+Siehe die vorhandenen Integrationstests im `integration/`-Ordner.
 
 ## 🎓 Training Best Practices
 
@@ -271,7 +145,7 @@ See `integration/test/multimodal-training-flow.test.ts` (created below)
 
 ### Data Quality Indicators
 
-The system tracks:
+Das System erfasst:
 - **Modality coverage**: % of frames with each modality
 - **Landmark stability**: Smoothness of landmark tracks
 - **Missing data**: Alerts if modalities frequently missing
@@ -355,7 +229,7 @@ After training, check the report:
 
 ### Recognition Metrics
 
-The app tracks:
+Die Webapp erfasst:
 - Recognition confidence scores
 - Fallback to global model frequency
 - Model version in use
@@ -388,9 +262,9 @@ python server/src/amyserver_tools/train_mlp.py \
 ## ✅ Success Checklist
 
 - [ ] Can record signs with hands, face, and body visible
-- [ ] Bundles upload successfully (check Wi-Fi)
+- [ ] Bundles upload successfully (check connectivity)
 - [ ] Training completes without errors
-- [ ] Personalized model downloads to app
+- [ ] Personalized model downloads to the webapp
 - [ ] Signs are recognized with good confidence (>0.7)
 - [ ] Multimodal features improve accuracy vs hand-only
 

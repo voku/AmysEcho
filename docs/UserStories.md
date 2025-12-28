@@ -1,6 +1,6 @@
 # User Stories and Screen Flows
 
-This document outlines the main user stories for Amy's Echo and how the screens in `app/src/screens` connect to fulfil them. Each section highlights an existing workflow in the current codebase.
+This document outlines the main user stories for Amy's Echo and how the webapp routes and components connect to fulfil them. Each section highlights an existing workflow in the current codebase.
 
 Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen-Schleife. Die gleichnamigen Tabs sind die einzigen Einträge der unteren Navigation; alle weiteren Bereiche (Familie, Einstellungen, Admin, Hilfe) werden über `WorkflowSupportLinks` oder kontextuelle Aktionen geöffnet.
 
@@ -61,6 +61,6 @@ Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen-Sch
   2. Analytics are loaded from local storage and uploaded to the server when online.
 
 ## Screen Linking Overview
-- `RootNavigator` definiert den Stack mit **Hero**, dem drei-Tab-Navigator (`Kamera`, `Verlauf`, `Lernen`) und allen sekundären Bereichen wie **Parent**, **Admin**, **ProfileManager** oder **Help**.
+- `webapp/src/App.tsx` definiert die Routen für **Kamera**, **Verlauf** und **Lernen** sowie sekundäre Bereiche wie **Admin**, **Profile** und **Help**.
 - `WorkflowStageHeader` stellt auf den Tabs das passende Wording sowie Navigation zum vorigen/nächsten Schritt der Schleife bereit.
-- `WorkflowSupportLinks` bündelt Familien-, Einstellungs-, Admin- und Hilfseinträge und führt über das Parental-Gate zu **Parent**, **ProfileManager**, **Admin** oder **Help**.
+- `WorkflowSupportLinks` bündelt Familien-, Einstellungs-, Admin- und Hilfseinträge und führt über das Parental-Gate zu den jeweiligen Bereichen.

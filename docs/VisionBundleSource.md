@@ -1,6 +1,6 @@
 # MediaPipe Vision Bundle Source
 
-The WebView build checks in a local copy of the MediaPipe Tasks vision bundle because Expo cannot fetch external scripts while offline. To stay aligned with the Definition of Done, we record the bundle’s origin, version, and checksum here.
+The webapp checks in a local copy of the MediaPipe Tasks vision bundle to avoid external CDN dependencies and to support offline usage. To stay aligned with the Definition of Done, we record the bundle’s origin, version, and checksum here.
 
 - **Source:** `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/vision_bundle.js`
 - **Last synchronized:** 16 October 2025

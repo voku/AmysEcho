@@ -1,22 +1,17 @@
 # Deployment Guide
 
-This guide explains how to deploy both the mobile app and the backend server.
+This guide explains how to deploy both the webapp and the backend server.
 
-## Mobile App (EAS Build)
+## Webapp
 1. Install dependencies:
    ```bash
-   npm install
-   npm install --prefix app
+   npm install --prefix webapp
    ```
-2. Configure Expo Application Services:
-   - Ensure you are logged in: `npx eas login`
-   - Update `app.json` or `app.config.js` with your bundle identifiers and splash assets.
-3. Kick off a build:
+2. Build the webapp:
    ```bash
-   npm run build:android   # or: npm run build:ios
+   npm run build --prefix webapp
    ```
-   The command triggers an [EAS build](https://docs.expo.dev/build/introduction/). The terminal prints a URL where you can monitor progress.
-4. After completion, download the artifact from the provided link and distribute it to testers or the app stores.
+3. Deploy the contents of `webapp/dist` to your hosting provider.
 
 ## Backend Server
 1. Install dependencies and build:
@@ -25,7 +20,7 @@ This guide explains how to deploy both the mobile app and the backend server.
    pip install -r server/requirements.txt
    npm run build --prefix server
    ```
-2. MediaPipe runtime and model are loaded by the mobile app from public CDNs; no server download step is required.
+2. MediaPipe assets are bundled in the webapp; no server-side download step is required.
 3. Start the server (set `JWT_SECRET`/`JWT_REFRESH_SECRET` in your environment or `.env` file—startup fails if they are missing):
    ```bash
    node server/dist/server.js
@@ -51,4 +46,4 @@ This guide explains how to deploy both the mobile app and the backend server.
   ```
 - Monitor progress via `GET /api/v1/train-status/<jobId>` and redeploy the resulting NPZ files if you are distributing the server statically.
 
-With these steps the app and server are ready for production deployment.
+With these steps the webapp and server are ready for production deployment.

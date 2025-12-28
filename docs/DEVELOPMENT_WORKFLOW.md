@@ -52,13 +52,13 @@
 
 ### File Structure
 ```
-app/src/
+webapp/src/
 ├── services/           # Business logic, Amy-first services
 ├── components/         # Reusable UI components
-├── screens/           # Screen components
-├── constants/         # App constants
-├── utils/            # Utility functions
-└── types/            # TypeScript definitions
+├── gesture/            # Gesture recognition pipeline
+├── constants/          # Webapp constants
+├── utils/              # Utility functions
+└── types/              # TypeScript definitions
 ```
 
 ### Naming Conventions
@@ -92,11 +92,11 @@ function activatePendingModel(): Promise<boolean> {
 
 ### Test File Structure
 ```
-app/test/
-├── communication/     # Core communication functionality
-├── reliability/      # Error handling and recovery
-├── performance/      # Battery, network, memory tests
-└── accessibility/    # Cognitive load and usability tests
+webapp/src/
+├── components/*.test.tsx     # Component tests
+├── hooks/*.test.tsx          # Hook tests
+├── gesture/__tests__/*       # Gesture pipeline tests
+└── training/*.test.ts        # Training bundle + queue tests
 ```
 
 ### Test Naming

@@ -1,10 +1,10 @@
-# App/Server Integration Guide
+# Webapp/Server Integration Guide
 
-This guide explains how to verify end-to-end communication between the Amy's Echo app and the backend server.
+This guide explains how to verify end-to-end communication between the Amy's Echo webapp and the backend server.
 
 ## Prerequisites
 - Node.js and npm installed
-- Expo development environment
+- Webapp development environment
 - Valid JWT access token from `/api/v1/auth/login` (see step 1)
 
 ## Steps
@@ -22,12 +22,12 @@ This guide explains how to verify end-to-end communication between the Amy's Ech
      -H "Content-Type: application/json" \
      -d '{"username":"demo","password":"super-secret"}' | jq -r '.tokens.accessToken')
    ```
-3. **Start the app**
+3. **Start the webapp**
    ```bash
-   ./scripts/dev-run.sh
+   npm run dev --prefix webapp
    ```
 4. **Send training data**
-   In the app open "Teach New Gesture", record a sample, and submit it.
+   In the webapp open the Training page, record a sample, and submit it.
    The server console should log the upload.
 5. **Check training status**
    ```bash
@@ -36,10 +36,10 @@ This guide explains how to verify end-to-end communication between the Amy's Ech
 6. **Download the model**
    After training reaches 100%:
    ```bash
-   curl -H "Authorization: Bearer ${ACCESS_TOKEN}" -o dgs_model.npz \
+   curl -H "Authorization: Bearer ${ACCESS_TOKEN}" -o amy_model.npz \
      http://localhost:5000/latest-mlp-model
    ```
-7. **Refresh the app**
-   Reload the app or trigger a refresh so the new model is used.
+7. **Refresh the webapp**
+   Reload the webapp or trigger a refresh so the new model is used.
 
 Completing these steps confirms that authentication, data flow, and model download work end to end.

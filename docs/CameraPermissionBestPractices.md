@@ -1,36 +1,14 @@
 # Camera Permission Best Practices
 
-To keep gesture detection secure and transparent:
+To keep gesture detection secure and transparent in the webapp:
 
-- Verify the origin of each permission request before granting access to restricted resources. Android's `PermissionRequest` API exposes the requesting origin so hosts can make informed decisions.
-- Grant only the resources you explicitly need. Restricting grants prevents accidental exposure when additional resources are requested.
-- Configure the WebView to automatically grant previously approved requests only when they originate from the same host. Otherwise, prompt the user. (iOS only via `mediaCapturePermissionGrantType`)
+- Serve the webapp over HTTPS so browsers allow camera access.
+- Request camera permissions only when the user starts recording or recognition.
+- Keep the UI clear about why the camera is needed and how the feed is used.
+- Provide an obvious stop/pause control to disable the camera instantly.
 
 These practices reduce the risk of unauthorized camera use while keeping the user in control.
 
-### Android
-
-Use `onPermissionRequest` to validate both origin and requested resources before granting camera access:
-
-```tsx
-onPermissionRequest={(e) => {
-  const { origin, resources, grant, deny } = e.nativeEvent;
-  let requestOrigin: string;
-  try {
-    requestOrigin = new URL(origin).origin;
-  } catch {
-    deny();
-    return;
-  }
-  if (requestOrigin === 'https://camera.local' && resources.includes('VIDEO_CAPTURE')) {
-    grant(['VIDEO_CAPTURE']);
-  } else {
-    deny();
-  }
-}}
-```
-
 ## References
 
-- [Android `PermissionRequest` API](https://developer.android.com/reference/android/webkit/PermissionRequest)
-- [React Native WebView `mediaCapturePermissionGrantType` property](https://github.com/react-native-webview/react-native-webview/blob/master/docs/Reference.md#mediacapturepermissiongranttype)
+- [MediaDevices.getUserMedia()](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)

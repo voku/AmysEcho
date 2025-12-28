@@ -3,7 +3,7 @@
 ## 🎯 Testing Mission
 **Ensure Amy's communication works reliably, especially when she needs it most.**
 
-> ℹ️ **Historischer Kontext:** Die frühere React-Native/Expo-App (`app/`) wurde aus dem Repository entfernt. App-spezifische Hinweise oder Beispiele in diesem Dokument dienen nur noch als Referenz und sind nicht mehr Teil des aktiven Test-Setups.
+> ℹ️ **Hinweis:** Dieses Dokument bezieht sich auf das aktuelle Webapp-Test-Setup.
 
 ## 📊 Test Coverage Goals
 
@@ -67,7 +67,7 @@ describe('Gesture History Service', () => {
 #### Automatic Recovery Tests
 ```typescript
 describe('Automatic Recovery System', () => {
-  it('should recover from WebView crashes without user intervention', async () => {
+  it('should recover from gesture pipeline crashes without user intervention', async () => {
     // Test automatic error recovery
   });
 
@@ -249,8 +249,8 @@ npm test -- --testPathPattern="(communication|emergency)" --passWithNoTests
 npm run lint:amy-first
 ```
 
-> ℹ️ **Schneller Fokuslauf:** Verwende `npm test -- <relativer/pfad/zur/datei.test.tsx>` innerhalb des `app/`-Ordners, um gezielt
-> eine einzelne Testdatei mit dem optimierten Runner auszuführen.
+> ℹ️ **Schneller Fokuslauf:** Verwende `npm test -- <relativer/pfad/zur/datei.test.tsx>` innerhalb des `webapp/`-Ordners, um gezielt
+> eine einzelne Testdatei auszuführen.
 
 ## 📊 Test Reporting
 
@@ -277,7 +277,7 @@ export const generateAmyFirstReport = (coverageData) => {
 
 ### Dashboard Integration
 ```typescript
-// app/src/components/TestDashboard.tsx
+// webapp/src/components/TestDashboard.tsx (example)
 export const TestDashboard = () => {
   const [testResults, setTestResults] = useState(null);
 

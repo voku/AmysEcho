@@ -18,14 +18,14 @@ verifies:
   the timeout expires and returns the progress payload expected by the app.
 - **Model distribution** – `GET /model-version` and
   `GET /latest-mlp-model?profileId=` return the binary `.npz` contents and the
-  accompanying metadata so the WebView cache stays consistent.
+  accompanying metadata so the webapp cache stays consistent.
 - **Bundle ingestion** – `POST /api/v1/dgs/sample-bundles` accepts the same zip
-  structure that the React Native app uploads and automatically schedules a new
-  training job.
+  structure that the webapp uploads and automatically schedules a new training
+  job.
 
 Because the test hits the compiled server, it also exercises the Python trainer
-(`server/src/amyserver_tools/train_mlp.py`), the filesystem layout under
-`server/data`, and the AsyncStorage caches in `app/src/services/dgsModelClient.ts`.
+(`server/src/amyserver_tools/train_mlp.py`) and the filesystem layout under
+`server/data`.
 
 ### Server Unit & Integration Tests
 
@@ -41,28 +41,25 @@ before the end-to-end test runs:
 - `server/test/test_train_endpoint.py` covers the Python job runner and mirrors
   the exact CLI arguments the integration test uses.
 
-### App Tests
+### Webapp Tests
 
-The React Native suite focuses on the caregiver UI that surfaces DGS-specific
-features:
+Webapp suites cover UI and bundle creation behavior:
 
-- `app/test/components/GestureMeaningDisplay.test.tsx` verifies the "DGS-Video
-  verfügbar" banner, gesture descriptions, and localized copy.
-- `app/test/services/trainingSync.test.ts` ensures the bundle upload logic
-  writes the same metadata shape that the server ingests.
-- `app/test/MediaPipeGestureDetector.test.tsx` validates the on-device fallback
-  when the WebView cannot deliver a new model immediately.
+- `webapp/src/components/TrainingRecorder.test.tsx` covers training capture UI.
+- `webapp/src/training/trainingBundle.test.ts` validates ZIP payloads and metadata.
+- `webapp/src/gesture/__tests__/GestureRecognitionOrchestrator.test.ts` covers
+  clip capture and overlay flows.
 
 ## Running Tests Locally
 
 ```bash
 # Install dependencies once
-npm ci --prefix app
 npm ci --prefix server
+npm ci --prefix webapp
 npm ci --prefix integration
 
-# App + server unit tests
-npm test --prefix app
+# Webapp + server unit tests
+npm test --prefix webapp
 npm test --prefix server
 
 # Full DGS integration loop (starts the real server build)
@@ -93,10 +90,10 @@ Useful log markers:
 Automated coverage keeps the pipeline stable, but Amy-first UX checks still
 happen manually:
 
-- Follow `docs/DeviceTesting.md` to confirm the "DGS-Video anzeigen" toggle,
-  audio prompts, and offline flows behave on a physical device.
-- Verify the caregiver admin tools per `docs/REAL_WORLD_VALIDATION_GUIDE.md`
-  whenever a new model ships.
+- Follow the checklist in `docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md` to
+  verify capture → upload → training → download end-to-end.
+- Verify caregiver workflows per `docs/REAL_WORLD_VALIDATION_GUIDE.md` whenever
+  a new model ships.
 
 Keep this guide updated whenever a new automated suite is introduced so the team
 knows exactly which behaviors are enforced by code and which ones still require
