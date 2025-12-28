@@ -1,5 +1,10 @@
 import { OneEuroFilter3D } from './OneEuroFilter';
 import { NormalizedMediaPipeResult } from './mapMediaPipeResults';
+import {
+  FACE_LANDMARKS,
+  HAND_LANDMARKS_PER_HAND,
+  POSE_LANDMARKS,
+} from './featureSchema';
 
 const DEFAULT_LANDMARK_CONFIG = {
   minCutOff: 1.2,
@@ -8,9 +13,9 @@ const DEFAULT_LANDMARK_CONFIG = {
 };
 
 const MAX_HANDS = 2;
-const MAX_HAND_POINTS = 21;
-const MAX_POSE_POINTS = 33;
-const MAX_FACE_POINTS = 468;
+const MAX_HAND_POINTS = HAND_LANDMARKS_PER_HAND;
+const MAX_POSE_POINTS = POSE_LANDMARKS;
+const MAX_FACE_POINTS = FACE_LANDMARKS;
 
 type FilterBank = OneEuroFilter3D[];
 

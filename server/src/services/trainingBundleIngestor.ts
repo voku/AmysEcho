@@ -2,6 +2,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { z } from 'zod';
 import { ensureDataDir, DATA_DIR, TRAINING_MANIFEST_PATH } from '../constants/modelPaths.js';
+import { POSE_LANDMARKS, FACE_LANDMARKS } from '../constants/featureSchema.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
 import { logger } from './logger.js';
@@ -130,10 +131,10 @@ const BUNDLE_SAMPLE_PREFIX = 'bundle:';
 const MAX_FLATTENED_LANDMARK_POINTS = 543;
 const MAX_HANDS = 2;
 const HAND_LANDMARKS_PER_HAND = 21;
-const MAX_POSE_POINTS = 33;
+const MAX_POSE_POINTS = POSE_LANDMARKS;
 // MediaPipe Face Mesh provides 468 landmarks. We capture and process all of them,
 // but only render a subset (8 key points) in OverlayRenderer for performance.
-const MAX_FACE_POINTS = 468;
+const MAX_FACE_POINTS = FACE_LANDMARKS;
 
 function normalizeRelativePath(relativePath: string): string | null {
   if (typeof relativePath !== 'string') {
@@ -635,7 +636,10 @@ function buildDatasetSample(
   return sample;
 }
 
-export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: number }> {
+export async function ingestTrainingBundlesIntoDataset(): Promise<{
+  appended: number;
+  latestCapturedAt?: string;
+}> {
   await ensureDataDir();
   const manifestEntries = await loadManifest();
   if (manifestEntries.length === 0) {
@@ -695,8 +699,18 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: nu
     }
 
     let appended = 0;
+    let latestCapturedAt: string | undefined;
 
     for (const entry of manifestEntries) {
+      const capturedAt = entry.capturedAt ?? entry.metadata?.capturedAt ?? null;
+      if (typeof capturedAt === 'string') {
+        const capturedMs = Date.parse(capturedAt);
+        if (!Number.isNaN(capturedMs)) {
+          if (!latestCapturedAt || capturedMs > Date.parse(latestCapturedAt)) {
+            latestCapturedAt = capturedAt;
+          }
+        }
+      }
       const frames = await readLandmarks(entry).catch((error) => {
         logger.warn('Failed to read landmarks for training bundle', {
           error,
@@ -720,10 +734,10 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{ appended: nu
       if (datasetReset) {
         await atomicWriteJson(dataPath, dataset);
       }
-      return { appended: 0 };
+      return { appended: 0, latestCapturedAt };
     }
 
     await atomicWriteJson(dataPath, dataset);
-    return { appended };
+    return { appended, latestCapturedAt };
   });
 }

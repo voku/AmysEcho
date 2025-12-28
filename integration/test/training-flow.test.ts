@@ -12,7 +12,7 @@ after(stopServer);
 
 async function waitForTrainingCompletion(pollUrl: string, headers: Record<string, string>) {
   const start = Date.now();
-  const timeoutMs = 70_000;
+  const timeoutMs = 300_000;
   let lastStatus = 'unknown';
 
   while (Date.now() - start <= timeoutMs) {

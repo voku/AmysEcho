@@ -6,6 +6,11 @@ Configuration Constants for AmysEcho Temporal Sliding Window Pipeline
 import os
 from pathlib import Path
 
+from feature_schema import (
+    DEFAULT_WINDOW_SIZE,
+    INPUT_FEATURE_SIZE,
+)
+
 # ============================================================================
 # PATH CONFIGURATION
 # ============================================================================
@@ -33,13 +38,11 @@ GLOBAL_MODEL_PATH = MODELS_DIR / "global" / "amy_model.npz"
 # Number of consecutive frames per training sample
 # Why 30? Sign language gestures typically last 0.5-2 seconds
 # At 30fps: 30 frames = 1 second (captures complete gesture)
-WINDOW_SIZE = int(os.environ.get("MLP_WINDOW_SIZE", "30"))
+WINDOW_SIZE = int(os.environ.get("MLP_WINDOW_SIZE", str(DEFAULT_WINDOW_SIZE)))
 
 # Input feature size per frame (multimodal)
-INPUT_FEATURE_SIZE = 1629  # 126 (Hands) + 99 (Pose) + 1404 (Face)
-
 # Total feature size per training sample (temporal window flattened)
-WINDOW_FEATURE_SIZE = INPUT_FEATURE_SIZE * WINDOW_SIZE  # 48,870 features
+WINDOW_FEATURE_SIZE = INPUT_FEATURE_SIZE * WINDOW_SIZE
 
 # Window stride for overlapping samples
 # Stride=1 means maximum overlap (generates most training samples)

@@ -8,6 +8,7 @@ export interface ServerConfig {
   modelMetadataLimit: number;
   mlpScript: string;
   trainingTimeoutMs: number;
+  trainingSlaMs: number;
   backupSecret: string;
   trainScript: string;
   dbPath: string;
@@ -43,6 +44,7 @@ export const config: ServerConfig = {
   modelMetadataLimit: getEnvVarAsNumber('MODEL_METADATA_LIMIT', 10),
   mlpScript: getEnvVar('MLP_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
   trainingTimeoutMs: getEnvVarAsNumber('TRAINING_JOB_TIMEOUT_MS', 600_000),
+  trainingSlaMs: getEnvVarAsNumber('TRAINING_JOB_SLA_MS', 120_000),
   backupSecret: getEnvVar('BACKUP_SECRET', 'default-secret-password'),
   trainScript: getEnvVar('TRAIN_SCRIPT', path.join(SRC_DIR, 'amyserver_tools', 'train_mlp.py')),
   dbPath: getEnvVar('DB_PATH', path.join(SERVER_DIR, 'db.json')),

@@ -232,6 +232,29 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const bundleZipPath = path.join(dataDir, entry.storage.bundle);
     const bundleStat = await fs.stat(bundleZipPath);
     expect(bundleStat.isFile()).toBe(true);
+
+    const metricsRaw = await fs.readFile(
+      path.join(dataDir, 'datasets', 'ingestion_metrics.json'),
+      'utf8',
+    );
+    const metrics = JSON.parse(metricsRaw) as {
+      totals: {
+        uploads: number;
+        rejected: number;
+        missingModalities: { hands: number; pose: number; face: number };
+      };
+      profiles: Record<string, {
+        uploads: number;
+        rejected: number;
+        missingModalities: { hands: number; pose: number; face: number };
+      }>;
+    };
+    expect(metrics.totals.uploads).toBe(1);
+    expect(metrics.totals.rejected).toBe(0);
+    expect(metrics.totals.missingModalities).toEqual({ hands: 0, pose: 1, face: 1 });
+    expect(metrics.profiles[metadata.profileId].uploads).toBe(1);
+    expect(metrics.profiles[metadata.profileId].rejected).toBe(0);
+    expect(metrics.profiles[metadata.profileId].missingModalities).toEqual({ hands: 0, pose: 1, face: 1 });
   });
 
   it('stores handFocus metadata when provided', async () => {
@@ -368,6 +391,23 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     if (bucketEntries) {
       expect(bucketEntries).toHaveLength(0);
     }
+
+    const metricsRaw = await fs.readFile(
+      path.join(dataDir, 'datasets', 'ingestion_metrics.json'),
+      'utf8',
+    );
+    const metrics = JSON.parse(metricsRaw) as {
+      totals: {
+        uploads: number;
+        rejected: number;
+        missingModalities: { hands: number; pose: number; face: number };
+      };
+      profiles: Record<string, { uploads: number; rejected: number }>;
+    };
+    expect(metrics.totals.uploads).toBe(0);
+    expect(metrics.totals.rejected).toBe(1);
+    expect(metrics.profiles[metadata.profileId!].uploads).toBe(0);
+    expect(metrics.profiles[metadata.profileId!].rejected).toBe(1);
   });
 
   it('rejects unauthenticated upload', async () => {
