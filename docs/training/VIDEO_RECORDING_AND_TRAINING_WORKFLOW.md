@@ -32,6 +32,10 @@ This document summarizes the current implementation status for video recording, 
   - `webapp/src/components/TrainingRecorder.tsx`
   - `webapp/src/components/SignLanguageRecorder.tsx`
 
+**UX Notes**:
+- The Training recorder now mirrors the recognition screen with a full-screen camera view. Primary recording controls live below the preview, while detailed recording stats and still-frame tools sit in a separate details panel underneath.
+- Advanced diagnostics (landmark stream + detector status) are tucked into a collapsible “Technische Details” section to keep the main flow focused.
+
 **Key Methods**:
 ```typescript
 interface MediaPipeGestureDetectorHandle {
