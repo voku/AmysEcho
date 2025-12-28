@@ -785,7 +785,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
         <fieldset className="form-group mt-sm">
           <legend>Relevante Hand für diese Gebärde</legend>
-          <div className="radio-group">
+          <div className="radio-group" role="radiogroup">
             <label className={`radio-label${handFocus === 'both_equal' ? ' selected' : ''}`}>
               <input
                 type="radio"
