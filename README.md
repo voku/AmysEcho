@@ -110,7 +110,7 @@ Commands use `--prefix` and should be run from the repository root.
 
 For deploying the server to production:
 
-- **Quick Start**: See [QUICKSTART_SERVER.md](QUICKSTART_SERVER.md) for a 5-minute Docker deployment
+- **Quick Start**: See [docs/deployment/QUICKSTART_SERVER.md](docs/deployment/QUICKSTART_SERVER.md) for a 5-minute Docker deployment
 - **Complete Guide**: See [docs/deployment/SERVER_DEPLOYMENT.md](docs/deployment/SERVER_DEPLOYMENT.md) for comprehensive deployment options including Docker, systemd, nginx, SSL, monitoring, and backups
 
 ### Webapp Deployment

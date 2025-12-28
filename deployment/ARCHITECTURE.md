@@ -334,6 +334,6 @@ For production deployments requiring high availability:
 ---
 
 For deployment instructions, see:
-- **Quick Start**: [QUICKSTART_SERVER.md](../QUICKSTART_SERVER.md)
+- **Quick Start**: [docs/deployment/QUICKSTART_SERVER.md](../docs/deployment/QUICKSTART_SERVER.md)
 - **Complete Guide**: [docs/deployment/SERVER_DEPLOYMENT.md](../docs/deployment/SERVER_DEPLOYMENT.md)
 - **Checklist**: [deployment/DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)

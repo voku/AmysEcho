@@ -6,7 +6,7 @@ This package provides everything you need to deploy the Amy's Echo server to you
 
 ### Documentation
 
-1. **[QUICKSTART_SERVER.md](../QUICKSTART_SERVER.md)** - 5-minute deployment guide
+1. **[docs/deployment/QUICKSTART_SERVER.md](../docs/deployment/QUICKSTART_SERVER.md)** - 5-minute deployment guide
    - Quick Docker setup
    - Basic configuration
    - Health check verification
