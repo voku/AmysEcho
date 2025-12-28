@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-SERVER_DIR = Path(__file__).resolve().parents[1]
+from conftest import resolve_data_dir
 
 
 def get_global_mlp_model_path(data_dir: Path) -> Path:
@@ -30,7 +30,7 @@ def fetch_latest_mlp_model(base_url, profile_id=None, extra_headers=None, auth_h
 
 @pytest.fixture
 def missing_data_dir():
-    data_dir = SERVER_DIR / "data"
+    data_dir = resolve_data_dir()
     backup_dir = None
     if data_dir.exists():
         backup_dir = data_dir.with_name(
@@ -45,7 +45,7 @@ def missing_data_dir():
 
 @pytest.fixture
 def model_file():
-    data_dir = SERVER_DIR / "data"
+    data_dir = resolve_data_dir()
     backup_dir = None
     if data_dir.exists():
         backup_dir = data_dir.with_name(
@@ -67,7 +67,7 @@ def model_file():
 
 @pytest.fixture
 def global_model_file():
-    data_dir = SERVER_DIR / "data"
+    data_dir = resolve_data_dir()
     backup_dir = None
     if data_dir.exists():
         backup_dir = data_dir.with_name(

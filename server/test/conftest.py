@@ -1,6 +1,8 @@
 import os
+import shutil
 import socket
 import subprocess
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -13,7 +15,26 @@ import numpy as np
 import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
-BASELINE_PATH = SERVER_DIR / "data" / "amy_model.npz"
+
+
+def resolve_data_dir() -> Path:
+    data_dir = os.environ.get("AMY_ECHO_DATA_DIR") or os.environ.get("AMY_DATA_DIR")
+    return Path(data_dir) if data_dir else (SERVER_DIR / "data")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def data_dir_env():
+    original = os.environ.get("AMY_ECHO_DATA_DIR")
+    temp_dir = Path(tempfile.mkdtemp(prefix="amy-echo-data-"))
+    os.environ["AMY_ECHO_DATA_DIR"] = str(temp_dir)
+    try:
+        yield temp_dir
+    finally:
+        if original is not None:
+            os.environ["AMY_ECHO_DATA_DIR"] = original
+        else:
+            os.environ.pop("AMY_ECHO_DATA_DIR", None)
+        shutil.rmtree(temp_dir, ignore_errors=True)
 DEFAULT_INPUT_SIZE = 126
 DEFAULT_HIDDEN_SIZE = 256
 
@@ -26,10 +47,11 @@ class ServerContext:
 
 
 def ensure_baseline_model() -> None:
-    if BASELINE_PATH.exists():
+    baseline_path = resolve_data_dir() / "amy_model.npz"
+    if baseline_path.exists():
         return
 
-    BASELINE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    baseline_path.parent.mkdir(parents=True, exist_ok=True)
 
     labels = np.array(["baseline"], dtype="<U64")
     counts = np.zeros(labels.shape[0], dtype=np.float32)
@@ -40,10 +62,10 @@ def ensure_baseline_model() -> None:
     w2 = np.zeros((labels.shape[0], hidden), dtype=np.float32)
     b2 = np.zeros((labels.shape[0],), dtype=np.float32)
 
-    tmp_path = BASELINE_PATH.with_suffix(".tmp")
+    tmp_path = baseline_path.with_suffix(".tmp")
     with tmp_path.open("wb") as handle:
         np.savez(handle, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2)
-    tmp_path.replace(BASELINE_PATH)
+    tmp_path.replace(baseline_path)
 
 
 def _get_free_port() -> int:

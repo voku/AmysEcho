@@ -64,6 +64,11 @@ interface TrainingBundleMetadata {
   smoothing?: Record<string, unknown>;
   handedness?: { labels?: string[]; frameCount?: number };
   handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand';
+  variationData?: {
+    clusterId?: string;
+    variationDiversity?: number;
+    canonicalTemplates?: number;
+  };
 }
 
 interface TrainingBundleManifestEntry {
@@ -147,6 +152,14 @@ const HandFocusSchema = z.enum([
   'either_hand',      // Works with either hand
 ]);
 
+const VariationDataSchema = z
+  .object({
+    clusterId: z.string().optional(),
+    variationDiversity: z.number().optional(),
+    canonicalTemplates: z.number().optional(),
+  })
+  .passthrough();
+
 const MetadataSchema = z
   .object({
     label: z.string().min(1),
@@ -160,6 +173,7 @@ const MetadataSchema = z
     handedness: HandednessSchema.optional(),
     recording: RecordingSchema.optional(),
     handFocus: HandFocusSchema.optional(),
+    variationData: VariationDataSchema.optional(),
   })
 .passthrough();
 
@@ -224,6 +238,30 @@ function normalizeClipFilename(value: unknown): string | null {
     return null;
   }
   return trimmed;
+}
+
+function normalizeVariationData(raw: unknown): TrainingBundleMetadata['variationData'] | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+  const candidate = raw as Record<string, unknown>;
+  const clusterId = typeof candidate.clusterId === 'string' ? candidate.clusterId.trim() : undefined;
+  const variationDiversity =
+    typeof candidate.variationDiversity === 'number' && Number.isFinite(candidate.variationDiversity)
+      ? candidate.variationDiversity
+      : undefined;
+  const canonicalTemplates =
+    typeof candidate.canonicalTemplates === 'number' && Number.isFinite(candidate.canonicalTemplates)
+      ? candidate.canonicalTemplates
+      : undefined;
+  if (!clusterId && variationDiversity === undefined && canonicalTemplates === undefined) {
+    return undefined;
+  }
+  return {
+    ...(clusterId ? { clusterId } : {}),
+    ...(variationDiversity !== undefined ? { variationDiversity } : {}),
+    ...(canonicalTemplates !== undefined ? { canonicalTemplates } : {}),
+  };
 }
 
 function validateRecordingMetadata(
@@ -777,6 +815,7 @@ export function registerTrainingBundleRoute(
         return res.status(400).json({ error: recordingError });
       }
 
+      const variationData = normalizeVariationData(parsedMetadata.variationData);
       const sanitizedMetadata: TrainingBundleMetadata = {
         label,
         profileId: profileIdRaw ?? null,
@@ -786,6 +825,7 @@ export function registerTrainingBundleRoute(
         stillFilename,
         ...(parsedMetadata.recording ? { recording: parsedMetadata.recording } : {}),
         ...(parsedMetadata.handFocus ? { handFocus: parsedMetadata.handFocus } : {}),
+        ...(variationData ? { variationData } : {}),
       };
 
       const files = Array.from(new Set(storedFiles));
