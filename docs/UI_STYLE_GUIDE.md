@@ -111,6 +111,15 @@ Die Web-Gebärdenkamera nutzt ein Vollbild-Layout, damit Hände und Oberkörper 
 * **Unteres Steuerdock:** Erkennungs-Banner, die drei Hauptaktionen sowie optionales „Kamera starten“, falls die Erkennung pausiert ist.
 * **Korrekturfläche:** „Alternativen“ öffnet die Korrektur direkt im Dock, damit Amy im gleichen Fokus bleibt.
 
+### Leerer Zustand – Gebärdenkamera
+
+Wenn noch keine Gebärden trainiert wurden, zeigen wir eine ruhige Einstiegsfläche, die sofort den nächsten Schritt anbietet:
+
+* **Zentrierte Karte:** Sanfte `surface`-Fläche mit `borderRadius: 16px`, gut lesbar auf dem dunklen Hintergrund.
+* **Zwei klare Aktionen:** Primär „Jetzt Gebärde beibringen“, sekundär „Trotzdem fortfahren (Demo)“.
+* **Kurzer Text:** Zwei Sätze, die erklären, warum das Training nötig ist und dass der Demo-Modus optional bleibt.
+* **Responsives Layout:** Aktionen stapeln sich auf Mobile; ab ~720 px nebeneinander.
+
 ### Selbstentdeckungs-Ribbon
 
 Sobald eine Geste sicher erkannt wurde, blendet das Overlay ein zentriertes Ribbon ein:

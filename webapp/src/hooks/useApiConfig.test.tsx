@@ -1,4 +1,5 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/dom';
+import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { ApiConfigProvider, useApiConfig, resolveFallbackApiBase, resolvePollUrl, CURRENT_STORAGE_VERSION } from './useApiConfig';

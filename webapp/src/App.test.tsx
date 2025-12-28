@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/dom';
+import { act, render } from '@testing-library/react';
 import { useEffect, useRef } from 'react';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { ApiConfigProvider, useApiConfig } from './hooks/useApiConfig';
@@ -112,7 +113,7 @@ describe('LoginScreen', () => {
     fireEvent.change(screen.getByLabelText(/Passwort/i), { target: { value: 'geheim' } });
     const submitButton = screen
       .getAllByRole('button', { name: 'Anmelden' })
-      .find((button) => button.getAttribute('type') === 'submit');
+      .find((button: HTMLElement) => button.getAttribute('type') === 'submit');
     if (!submitButton) {
       throw new Error('Submit-Button nicht gefunden');
     }
