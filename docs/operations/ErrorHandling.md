@@ -1,6 +1,6 @@
 # Error Handling in Amy's Echo
 
-Amy's Echo aims to surface user-friendly messages while capturing technical details for developers. This document describes the standard pattern for dealing with errors in the webapp.
+Amy's Echo aims to surface user-friendly messages while capturing technical details for developers. This document describes the standard pattern for handling errors in the webapp.
 
 ## 1. Global Error Boundary
 
@@ -24,7 +24,7 @@ The logger automatically filters output by build type and keeps the console cons
 
 ## 3. Read error state from hooks
 
-Components such as `SignLanguageRecorder` read error state directly from hooks like `useSignLanguageDetector`. When the hook reports a problem, log it and update local state so the UI can react:
+Components such as `SignLanguageRecorder` read error state directly from hooks like `useSignLanguageDetector`. When the hook reports a problem, log it and let the UI react to the hook state:
 
 ```tsx
 const { error } = useSignLanguageDetector(videoRef, overlayRef);
@@ -32,23 +32,20 @@ const { error } = useSignLanguageDetector(videoRef, overlayRef);
 useEffect(() => {
   if (error) {
     logger.warn('Gesture detector error:', error);
-    setProcessingError(error);
   }
 }, [error]);
 ```
 
 ## 4. Display a friendly message
 
-Use the shared `ErrorMessage` component to surface problems to the user. It respects accessibility settings and can be reused on any screen.
+Render the hook error directly in the UI. The `SignLanguageRecorder` screen uses the gesture error string in the inline error block:
 
 ```tsx
-import ErrorMessage from '../components/ErrorMessage';
-
-<ErrorMessage message={processingError} />
+{error && <div className="gesture-screen__meta-error">{error}</div>}
 ```
 
 ## 5. Reset when recovered
 
-Clear the error state when the operation succeeds so the UI returns to normal. In gesture recognition, `onGestureResult` resets the `processingError` state when a frame is processed successfully.
+The hook clears its own error state when the pipeline recovers, so the UI automatically returns to normal when `error` becomes empty.
 
 Following this pattern keeps technical information in logs while presenting clear, concise messages to Amy and caregivers.
