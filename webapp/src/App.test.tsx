@@ -113,7 +113,7 @@ describe('LoginScreen', () => {
     fireEvent.change(screen.getByLabelText(/Passwort/i), { target: { value: 'geheim' } });
     const submitButton = screen
       .getAllByRole('button', { name: 'Anmelden' })
-      .find((button) => button.getAttribute('type') === 'submit');
+      .find((button: HTMLElement) => button.getAttribute('type') === 'submit');
     if (!submitButton) {
       throw new Error('Submit-Button nicht gefunden');
     }
