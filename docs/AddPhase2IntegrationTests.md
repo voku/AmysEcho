@@ -20,7 +20,8 @@ We will use React Testing Library with Vitest for the webapp to write our tests.
 ### Implementation Steps
 
 1.  **Create a Test File:**
-    *   Create a new file: `webapp/src/services/__tests__/phase2Integration.test.tsx`.
+    *   Create a new file under `webapp/src/` so it matches the Vitest include pattern (for example, `webapp/src/components/Phase2.integration.test.tsx`).
+    *   Keep the filename ending in `.test.ts` or `.test.tsx` so the webapp test runner picks it up.
 
 2.  **Write Test Cases for Each Interaction:**
     *   For each key interaction, write a test case that simulates a real-world scenario.
@@ -39,11 +40,11 @@ We will use React Testing Library with Vitest for the webapp to write our tests.
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
-import { SignLanguageRecorder } from '../../components/SignLanguageRecorder';
+import { SignLanguageRecorder } from './SignLanguageRecorder';
 
 // Mock the services
-vi.mock('../adaptiveLearningService');
-vi.mock('../personalizedConfidenceService');
+vi.mock('../services/adaptiveLearningService');
+vi.mock('../services/personalizedConfidenceService');
 
 describe('Phase 2 Integration', () => {
   it('should adjust confidence thresholds based on performance', () => {
