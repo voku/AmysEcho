@@ -253,15 +253,25 @@ export function SignLanguageRecorder() {
         <div className="gesture-screen__empty-card">
           <span className="gesture-screen__empty-icon">🖐️</span>
           <h2>Bringe mir deine Gebärden bei</h2>
-          <p>
+          <p className="gesture-screen__empty-body">
             Um die Gebärdenkamera zu nutzen, musst du mir zuerst mindestens eine Gebärde beibringen.
-            So kann ich deine Bewegungen besser verstehen.
+            So kann ich deine Bewegungen zuverlässig verstehen.
+          </p>
+          <p className="gesture-screen__empty-body">
+            Du kannst direkt starten oder im Demo-Modus weitergehen.
           </p>
           <div className="gesture-screen__empty-actions">
-            <Link to="/training" className="primary button">
+            <Link to="/training" className="primary-button">
               Jetzt Gebärde beibringen
             </Link>
-            <button className="ghost button" onClick={() => { setHasTrainedSigns(true); setDemoMode(true); }}>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => {
+                setHasTrainedSigns(true);
+                setDemoMode(true);
+              }}
+            >
               Trotzdem fortfahren (Demo)
             </button>
           </div>

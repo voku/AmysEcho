@@ -395,7 +395,11 @@ body {
    Buttons (matching app button styles)
    ========================================================================== */
 
-button {
+button,
+.primary-button,
+.secondary-button,
+.danger-button,
+.ghost-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -411,6 +415,7 @@ button {
   transition: all 0.2s ease;
   min-height: 48px;
   min-width: 120px;
+  text-decoration: none;
 }
 
 button:hover {
@@ -758,6 +763,88 @@ p {
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
+}
+
+.gesture-screen--empty,
+.gesture-screen--loading {
+  min-height: clamp(360px, 70vh, 920px);
+  justify-content: center;
+  align-items: center;
+  padding: calc(var(--space-2xl) + var(--space-lg)) var(--space-xl);
+  background: var(--color-background);
+}
+
+.gesture-screen--loading {
+  background: var(--color-neutral);
+}
+
+.gesture-screen__empty-card {
+  width: min(560px, 100%);
+  display: grid;
+  gap: var(--space-lg);
+  padding: var(--space-2xl);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  color: var(--color-text);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.gesture-screen__empty-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.gesture-screen__empty-card h2 {
+  color: var(--color-text);
+}
+
+.gesture-screen__empty-body {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.gesture-screen__empty-actions {
+  display: grid;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.gesture-screen__empty-actions .primary-button,
+.gesture-screen__empty-actions button {
+  width: 100%;
+  min-width: 0;
+}
+
+.gesture-screen__empty-actions .primary-button {
+  justify-self: stretch;
+}
+
+.gesture-screen__empty-actions button {
+  border-color: var(--color-outline);
+}
+
+.gesture-screen__empty-actions button.ghost:hover {
+  background: var(--color-surface-muted);
+}
+
+.gesture-screen__empty-actions button.ghost:focus-visible {
+  outline-color: var(--color-action-secondary-bg);
+}
+
+.gesture-screen__empty-actions button.ghost {
+  color: var(--color-text);
+}
+
+.gesture-screen__empty-actions button.ghost:active {
+  transform: translateY(1px);
+}
+
+@media (min-width: 720px) {
+  .gesture-screen__empty-actions {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
 }
 
 .gesture-fullscreen {
