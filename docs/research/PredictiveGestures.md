@@ -65,4 +65,4 @@ const suggestions = gestureSuggester.getSuggestions(lastGesture, {
 
 ## Future Enhancements
 
-If sequence prediction is reintroduced, it should build on `GestureHistoryService` and keep the inference loop fast enough to avoid delaying Amy’s feedback. Track roadmap items in `docs/TODO.md`.
+If sequence prediction is reintroduced, it should build on `GestureHistoryService` and keep the inference loop fast enough to avoid delaying Amy’s feedback. Track roadmap items in `docs/planning/TODO.md`.

@@ -16,6 +16,6 @@ multimodal training pipeline in the webapp.
 
 ## Canonical References
 
-- [`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
-- [`docs/ML_LLM_Integration.md`](./ML_LLM_Integration.md)
-- [`docs/MULTIMODAL_TRAINING_GUIDE.md`](./MULTIMODAL_TRAINING_GUIDE.md)
+- [`docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+- [`docs/research/ML_LLM_Integration.md`](../research/ML_LLM_Integration.md)
+- [`docs/training/MULTIMODAL_TRAINING_GUIDE.md`](../training/MULTIMODAL_TRAINING_GUIDE.md)

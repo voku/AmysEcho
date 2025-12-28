@@ -2,7 +2,7 @@
 
 This document records the major architectural choices made for Amy's Echo.
 
-**Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
+**Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/planning/TODO.md` file serves as a living document for ongoing improvements.
 
 ## Hybrid-First Recognition
 - **Decision**: Use an offline-first gesture recognition pipeline with optional server training.

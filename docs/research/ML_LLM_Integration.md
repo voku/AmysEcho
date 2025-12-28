@@ -47,7 +47,7 @@ Camera → MediaPipe (hand landmarks) → MLP inference (DGS recognition) → Re
 - **Model distribution**: automatic download when new version available
 
 ## 🎯 Sign Language Training Quality
-Roadmap items for training data quality gates are consolidated in [`docs/TODO.md`](./TODO.md).
+Roadmap items for training data quality gates are consolidated in [`docs/planning/TODO.md`](../planning/TODO.md).
 
 ## 📝 Developer Notes
 - No API keys are required for sign language recognition. Ensure `VITE_API_URL` points at your server when testing uploads.

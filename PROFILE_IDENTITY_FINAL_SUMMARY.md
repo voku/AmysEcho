@@ -29,8 +29,8 @@
 | `webapp/src/hooks/useAppState.test.tsx` | Tests | Added 2 tests for displayName behavior |
 | `webapp/src/components/Settings.tsx` | UI | Separated readonly profileId from editable displayName |
 | `webapp/src/components/Onboarding.tsx` | UI | Generate stable profileId, set displayName |
-| `docs/PROFILE_IDENTITY_ARCHITECTURE.md` | Docs | Full technical architecture (9.6KB) |
-| `docs/PROFILE_IDENTITY_FIX_SUMMARY.md` | Docs | Blind spot analysis results (9.2KB) |
+| `docs/architecture/PROFILE_IDENTITY_ARCHITECTURE.md` | Docs | Full technical architecture (9.6KB) |
+| `docs/architecture/PROFILE_IDENTITY_FIX_SUMMARY.md` | Docs | Blind spot analysis results (9.2KB) |
 
 ### ✅ Test Results
 - **Webapp:** 813 tests pass ✅

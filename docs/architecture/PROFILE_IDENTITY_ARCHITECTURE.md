@@ -356,7 +356,7 @@ POST /api/v1/profiles/:uuid/migrate
 
 ## Technical Debt
 
-Roadmap items for profile identity are tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups" to keep a single consolidated list.
+Roadmap items for profile identity are tracked in [`docs/planning/TODO.md`](../planning/TODO.md) under "Profile Identity & GDPR Follow-ups" to keep a single consolidated list.
 
 ## Conclusion
 

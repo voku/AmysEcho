@@ -282,7 +282,7 @@ DOWNLOAD (Webapp)
 ## Test Coverage
 
 Current server test coverage and pass status are tracked in:
-- `docs/Test_Coverage_Report_Server.md`
+- `docs/testing/Test_Coverage_Report_Server.md`
 
 ---
 
@@ -363,4 +363,4 @@ server/
 
 **Alle Kernfunktionen sind implementiert.**
 
-Das Aufzeichnen, Bündeln, Hochladen, Trainieren und Aktualisieren der Modelle ist vollständig in der Webapp integriert. Prüfe den aktuellen Teststatus in den Test-Coverage-Berichten und führe die Test-Suites gemäß `docs/TESTING_STRATEGY.md` aus, bevor du Änderungen ausrollst.
+Das Aufzeichnen, Bündeln, Hochladen, Trainieren und Aktualisieren der Modelle ist vollständig in der Webapp integriert. Prüfe den aktuellen Teststatus in den Test-Coverage-Berichten und führe die Test-Suites gemäß `docs/testing/TESTING_STRATEGY.md` aus, bevor du Änderungen ausrollst.

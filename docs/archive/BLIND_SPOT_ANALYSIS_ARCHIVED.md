@@ -102,7 +102,7 @@ This document provides a comprehensive analysis of gaps between the React Native
 
 ### ✅ Screen Components (19/19 migrated)
 
-All app screens have webapp equivalents. See `docs/MIGRATION_COMPARISON.md`.
+All app screens have webapp equivalents. See `docs/architecture/migration/MIGRATION_COMPARISON.md`.
 
 ### ✅ UI Components Added
 

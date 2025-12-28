@@ -90,9 +90,9 @@ Useful log markers:
 Automated coverage keeps the pipeline stable, but Amy-first UX checks still
 happen manually:
 
-- Follow the checklist in `docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md` to
+- Follow the checklist in `docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md` to
   verify capture → upload → training → download end-to-end.
-- Verify caregiver workflows per `docs/REAL_WORLD_VALIDATION_GUIDE.md` whenever
+- Verify caregiver workflows per `docs/testing/REAL_WORLD_VALIDATION_GUIDE.md` whenever
   a new model ships.
 
 Keep this guide updated whenever a new automated suite is introduced so the team

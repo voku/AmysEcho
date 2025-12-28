@@ -21,7 +21,7 @@ legacy React Native/WebView architecture and points to the canonical workflow do
 
 ## API Endpoints (Server)
 
-See [`docs/API.md`](./API.md) for full payload specs.
+See [`docs/integration/API.md`](../integration/API.md) for full payload specs.
 
 - `POST /api/v1/dgs/sample-bundles` — upload training bundles
 - `POST /train-model` — trigger training
@@ -30,9 +30,9 @@ See [`docs/API.md`](./API.md) for full payload specs.
 
 ## Canonical Workflow Docs
 
-- [`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
-- [`docs/ML_LLM_Integration.md`](./ML_LLM_Integration.md)
-- [`docs/MULTIMODAL_TRAINING_GUIDE.md`](./MULTIMODAL_TRAINING_GUIDE.md)
+- [`docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+- [`docs/research/ML_LLM_Integration.md`](../research/ML_LLM_Integration.md)
+- [`docs/training/MULTIMODAL_TRAINING_GUIDE.md`](../training/MULTIMODAL_TRAINING_GUIDE.md)
 
 ## Testing
 
@@ -42,4 +42,4 @@ Integration suites live under `integration/`:
 npm test --prefix integration
 ```
 
-For broader testing guidance, see [`docs/TESTING_STRATEGY.md`](./TESTING_STRATEGY.md).
+For broader testing guidance, see [`docs/testing/TESTING_STRATEGY.md`](../testing/TESTING_STRATEGY.md).

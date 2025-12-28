@@ -36,7 +36,7 @@ console.log('Bearer', token);
 ## 3. Trainings-Paket (Bundle) Struktur
 
 Die ZIP-Struktur und das vollständige Upload-Flow-Diagramm sind in
-[`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+[`docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
 zusammengeführt. Für lokale Tests genügt es, dass `metadata.json` und
 `landmarks.json` enthalten sind (ggf. zusätzlich `still.jpg` und `clip.*`).
 
@@ -59,5 +59,5 @@ zusammengeführt. Für lokale Tests genügt es, dass `metadata.json` und
 ## 5. Interner Prozess
 
 Siehe den Abschnitt "Model Training" in
-[`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+[`docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
 für den vollständigen Serverablauf vom Bundle bis zum Modell.

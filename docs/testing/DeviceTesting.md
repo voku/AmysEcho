@@ -2,7 +2,7 @@
 
 This guide covers device validation for the browser-based webapp.
 For end-to-end validation, also follow the checklist in
-[`docs/REAL_WORLD_VALIDATION_GUIDE.md`](./REAL_WORLD_VALIDATION_GUIDE.md).
+[`docs/testing/REAL_WORLD_VALIDATION_GUIDE.md`](./REAL_WORLD_VALIDATION_GUIDE.md).
 
 ### Prereqs
 - A device with a modern browser that supports `getUserMedia`.

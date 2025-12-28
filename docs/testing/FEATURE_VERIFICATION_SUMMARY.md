@@ -5,7 +5,7 @@
 **Status**: ✅ Implemented in the webapp + server pipeline
 
 This summary reflects the current webapp-based DGS flow. The legacy React Native
-implementation has been removed from the repository; see `docs/APP_ARCHIVE.md`
+implementation has been removed from the repository; see `docs/architecture/migration/APP_ARCHIVE.md`
 for historical context.
 
 ## Verified Feature Areas
@@ -31,5 +31,5 @@ for historical context.
 
 ## Canonical Workflow
 
-See `docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md` for the end-to-end flow and
+See `docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md` for the end-to-end flow and
 QA checklist.

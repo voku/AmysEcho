@@ -1,8 +1,8 @@
 # Gesture Recognition Testing (Webapp)
 
 This guide focuses on validating gesture recognition in the browser-based webapp.
-For full end-to-end checks, see `docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`
-and `docs/DeviceTesting.md`.
+For full end-to-end checks, see `docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`
+and `docs/testing/DeviceTesting.md`.
 
 ## Quick Checks
 

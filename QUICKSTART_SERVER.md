@@ -2,7 +2,7 @@
 
 This guide gets your Amy's Echo server running in **5 minutes**.
 
-For complete deployment documentation, see **[docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md)**.
+For complete deployment documentation, see **[docs/deployment/SERVER_DEPLOYMENT.md](docs/deployment/SERVER_DEPLOYMENT.md)**.
 
 ## Prerequisites
 
@@ -220,7 +220,7 @@ docker-compose exec amysecho-server pip3 list
 
 ## Manual Deployment (Without Docker)
 
-If you prefer not to use Docker, see the complete manual deployment instructions in **[docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md#manual-deployment-with-systemd)**.
+If you prefer not to use Docker, see the complete manual deployment instructions in **[docs/deployment/SERVER_DEPLOYMENT.md](docs/deployment/SERVER_DEPLOYMENT.md#manual-deployment-with-systemd)**.
 
 ## Configuration Reference
 
@@ -245,7 +245,7 @@ If you prefer not to use Docker, see the complete manual deployment instructions
 
 ## Support
 
-- 📚 **Full Documentation**: [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md)
+- 📚 **Full Documentation**: [docs/deployment/SERVER_DEPLOYMENT.md](docs/deployment/SERVER_DEPLOYMENT.md)
 - 🐛 **Issues**: https://github.com/voku/AmysEcho/issues
 - 💬 **Discussions**: https://github.com/voku/AmysEcho/discussions
 

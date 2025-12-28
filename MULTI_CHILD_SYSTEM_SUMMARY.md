@@ -412,7 +412,7 @@ await addProfile(profile);
 - `webapp/src/services/profileRegistry.ts` - Secure profile registry service
 - `webapp/src/services/profileRegistry.test.ts` - Comprehensive unit tests
 - `webapp/src/components/ProfileManager.tsx` - Multi-child profile UI
-- `docs/PROFILE_IDENTITY_ARCHITECTURE.md` - Technical architecture documentation
+- `docs/architecture/PROFILE_IDENTITY_ARCHITECTURE.md` - Technical architecture documentation
 
 ### Modified Files
 - `webapp/src/hooks/useAppState.tsx` - Added profile registry integration

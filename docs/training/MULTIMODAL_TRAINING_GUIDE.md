@@ -50,7 +50,7 @@ This guide explains how to train Amy's Echo with multimodal sign language data (
 ## 🔄 Complete Training Workflow
 
 Der vollständige Ablauf (Capture → Bundle → Upload → Training → Distribution) ist in
-[`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+[`docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
 zusammengeführt. Dieses Dokument fokussiert auf die multimodalen Datenstrukturen
 und ihre Bedeutung für DGS.
 
@@ -71,7 +71,7 @@ der Amy vom ersten Versuch bis zur sicheren Kommunikation begleitet.
 - **Schnellere Feedback-Schleifen**, die Erfolge sofort sichtbar machen.
 - **Bessere Transparenz** für Betreuungspersonen: klare Hinweise, welche Modalität gerade fehlt.
 
-Die konkreten nächsten Schritte und Prioritäten stehen in [`docs/TODO.md`](./TODO.md).
+Die konkreten nächsten Schritte und Prioritäten stehen in [`docs/planning/TODO.md`](../planning/TODO.md).
 
 ## ⚡ Quick Reference
 
@@ -270,10 +270,10 @@ python server/src/amyserver_tools/train_mlp.py \
 
 ## 📚 Related Documentation
 
-- [Video Recording Workflow](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
-- [API Documentation](./API.md)
-- [Testing Strategy](./TESTING_STRATEGY.md)
-- [Development Workflow](./DEVELOPMENT_WORKFLOW.md)
+- [Video Recording Workflow](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+- [API Documentation](../integration/API.md)
+- [Testing Strategy](../testing/TESTING_STRATEGY.md)
+- [Development Workflow](../workflows/DEVELOPMENT_WORKFLOW.md)
 
 ---
 

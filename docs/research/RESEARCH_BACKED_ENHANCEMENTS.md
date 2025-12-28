@@ -275,9 +275,9 @@ npm test -- EnhancedGestureRecognizer.test.ts
 
 ## Related Documentation
 
-- `docs/SIGN_VARIATION_LEARNING.md` - Variation clustering and adaptation
-- `docs/MULTIMODAL_TRAINING_GUIDE.md` - Multimodal training workflow
-- `docs/TODO.md` - Project roadmap
+- `docs/training/SIGN_VARIATION_LEARNING.md` - Variation clustering and adaptation
+- `docs/training/MULTIMODAL_TRAINING_GUIDE.md` - Multimodal training workflow
+- `docs/planning/TODO.md` - Project roadmap
 - `webapp/src/gesture/utils/TemporalGestureAnalyzer.ts` - Existing temporal analysis
 
 ## German UI Integration

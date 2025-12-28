@@ -6,7 +6,7 @@ This report details potential blind spots, logic errors, and areas for improveme
 
 **Status: Resolved (Historical - refers to archived mobile app)**
 
-Note: This audit refers to the archived React Native app. See `docs/APP_ARCHIVE.md` for details.
+Note: This audit refers to the archived React Native app. See `docs/architecture/migration/APP_ARCHIVE.md` for details.
 
 All issues identified in the previous audit have been addressed:
 

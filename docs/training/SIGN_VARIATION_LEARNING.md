@@ -317,9 +317,9 @@ If recommendTraining is always false:
 
 ## Related Documentation
 
-- `docs/TODO.md` - Overall project roadmap
-- `docs/ML_LLM_Integration.md` - ML training pipeline
-- `docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md` - Training workflow
+- `docs/planning/TODO.md` - Overall project roadmap
+- `docs/research/ML_LLM_Integration.md` - ML training pipeline
+- `docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md` - Training workflow
 - `webapp/src/services/activeLearningService.ts` - Active learning for weak areas
 - `webapp/src/gesture/utils/PersonalizedThresholdManager.ts` - Dynamic thresholds
 

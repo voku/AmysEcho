@@ -2,7 +2,7 @@
 
 Thanks for your interest in improving Amy's Echo! This project supports one child, so every contribution must be made with care.
 
-**Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
+**Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/planning/TODO.md` file serves as a living document for ongoing improvements.
 
 ## Getting Started
 - Read `AGENTS.md` for workflow and `spec/AmysEcho.md` for the project requirements.
@@ -20,7 +20,7 @@ Thanks for your interest in improving Amy's Echo! This project supports one chil
    npm test --prefix integration
    ```
    Or run `./scripts/full-check.sh` from the repo root to execute all of the above checks.
-3. Update `docs/TODO.md` when completing a task from the action plan.
+3. Update `docs/planning/TODO.md` when completing a task from the action plan.
 4. Submit a pull request with a clear description of the change and its motivation.
 
 ## Code Style

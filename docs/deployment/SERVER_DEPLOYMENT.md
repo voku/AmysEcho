@@ -1133,7 +1133,7 @@ sudo systemctl restart amysecho
 
 1. **Configure the webapp** to point to your server:
    - Set `VITE_API_URL=https://your-domain.com` when building the webapp
-   - See `docs/DEPLOYMENT.md` for webapp deployment
+   - See `docs/deployment/DEPLOYMENT.md` for webapp deployment
 
 2. **Test the full workflow:**
    - Record a gesture in the webapp

@@ -2,14 +2,14 @@
 
 Scope: All files under `server/`.
 
-**Project Status:** All major features for the server have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
+**Project Status:** All major features for the server have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/planning/TODO.md` file serves as a living document for ongoing improvements.
 
 ## AI Assistant Workflow
 
 **IMPORTANT**: AI assistants must follow this step-by-step approach:
 
 ### 1. Discovery Phase (ALWAYS do this first)
-- **Read the `docs/TODO.md` or task description completely** to understand the current priorities.
+- **Read the `docs/planning/TODO.md` or task description completely** to understand the current priorities.
 - **Review the existing documentation** in the `docs/` directory to understand the project's architecture and features.
 - **Examine the existing codebase structure** using `find` or `ls` commands.
 - **Study similar existing files** - look for patterns, naming conventions, and architectural decisions.
@@ -39,7 +39,7 @@ Scope: All files under `server/`.
 
 ## General Workflow
 
-1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
+1. **Study the task**: read `docs/planning/TODO.md`, issue description, or requirements completely.
 2. **Explore codebase**: understand the current state and patterns.
 3. **Understand existing code**: look at similar files and tests to follow established patterns.
    - Server: services in `server/src/services/*`, tools in `server/src/tools/*`, tests in `server/test/*`.

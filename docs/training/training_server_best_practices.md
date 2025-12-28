@@ -1,6 +1,6 @@
 # Server-Side Gesture Model Training Best Practices
 
-This memo distills training-focused guidance for the Amy's Echo MLP trainer (`server/src/amyserver_tools/train_mlp.py`). It complements `docs/TODO.md` and the existing training loop by tightening reliability, observability, and reproducibility.
+This memo distills training-focused guidance for the Amy's Echo MLP trainer (`server/src/amyserver_tools/train_mlp.py`). It complements `docs/planning/TODO.md` and the existing training loop by tightening reliability, observability, and reproducibility.
 
 ## 1. Data & Preprocessing Discipline
 - **Immutable bundle storage**: Keep uploads under `data/uploads/<profileId>/<timestamp>/` read-only post-ingest to avoid label drift.

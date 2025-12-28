@@ -9,7 +9,7 @@ Die frühere React-Native/Expo-App unter `app/` diente nur noch als Referenz, na
 
 ## Was tun bei Bedarf?
 - **Historie einsehen**: Hole die letzte Version über die Git-Historie (z.B. `git checkout <commit> -- app`).
-- **Artefakte vergleichen**: Die Mapping-Dokumente (z.B. `docs/MIGRATION_COMPARISON.md`) bleiben als historische Referenz bestehen.
+- **Artefakte vergleichen**: Die Mapping-Dokumente (z.B. `docs/architecture/migration/MIGRATION_COMPARISON.md`) bleiben als historische Referenz bestehen.
 - **Neustart planen**: Falls erneut eine mobile App benötigt wird, kann die Webapp-Logik als Quelle dienen.
 
 ## Hinweis zur Dokumentation
@@ -19,4 +19,4 @@ Viele Dokumente im `docs/` Verzeichnis enthalten noch Verweise auf `app/src/` od
 - `webapp/src/gesture/` - Gestenerkennungs-Pipeline (ehemals `app/webview/`)
 - `webapp/src/services/` - Dienste (ehemals `app/src/services/`)
 
-Siehe `docs/MIGRATION_COMPARISON.md` für eine vollständige Zuordnung.
+Siehe `docs/architecture/migration/MIGRATION_COMPARISON.md` für eine vollständige Zuordnung.

@@ -89,7 +89,7 @@ Sign IDs are automatically normalized to be server-compatible:
 5. **Quality Validation**: No automated quality checks yet for determining if training data is good enough for the global model
 
 ## Future Improvements
-Tracked in [`docs/TODO.md`](./TODO.md) under "Custom Sign Workflow Enhancements".
+Tracked in [`docs/planning/TODO.md`](../planning/TODO.md) under "Custom Sign Workflow Enhancements".
 
 ## API Endpoints
 
@@ -139,7 +139,7 @@ Custom sign language signs must:
 
 ## Related Documentation
 
-- [Video Recording Workflow](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
-- [Video Recording Workflow](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
-- [ML/LLM Integration](./ML_LLM_Integration.md)
-- [Sign Language Training Loop](./TODO.md)
+- [Video Recording Workflow](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+- [Video Recording Workflow](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md)
+- [ML/LLM Integration](../research/ML_LLM_Integration.md)
+- [Sign Language Training Loop](../planning/TODO.md)

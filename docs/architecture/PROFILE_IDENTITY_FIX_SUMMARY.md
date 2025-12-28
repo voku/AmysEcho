@@ -178,13 +178,13 @@ interface ProfileRecord {
 - Maintain backward compatibility
 
 ### Phase 2: Profile Management API (Medium Priority)
-Tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups".
+Tracked in [`docs/planning/TODO.md`](../planning/TODO.md) under "Profile Identity & GDPR Follow-ups".
 
 ### Phase 3: Data Migration Tools (Medium Priority)
-Tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups".
+Tracked in [`docs/planning/TODO.md`](../planning/TODO.md) under "Profile Identity & GDPR Follow-ups".
 
 ### Phase 4: Multi-Device Sync (Low Priority)
-Tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups".
+Tracked in [`docs/planning/TODO.md`](../planning/TODO.md) under "Profile Identity & GDPR Follow-ups".
 
 ## Security & Privacy Implications
 
@@ -192,7 +192,7 @@ Tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups
 
 **Right to Deletion** 📋 Planned
 - Current: Manual deletion required
-- Future: Implement cascade delete API (tracked in `docs/TODO.md`)
+- Future: Implement cascade delete API (tracked in `docs/planning/TODO.md`)
 - Files to delete:
   - `data/uploads/{profileId}/`
   - `data/models/{profileId}/`
@@ -229,7 +229,7 @@ Tracked in [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups
 4. ✅ Add tests for new behavior
 
 ### Follow-up Roadmap
-See [`docs/TODO.md`](./TODO.md) under "Profile Identity & GDPR Follow-ups" for the consolidated backlog.
+See [`docs/planning/TODO.md`](../planning/TODO.md) under "Profile Identity & GDPR Follow-ups" for the consolidated backlog.
 
 ## Conclusion
 

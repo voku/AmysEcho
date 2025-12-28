@@ -19,4 +19,4 @@ pip install -r server/requirements.txt
 
 ## Next steps
 
-Launch the webapp with `npm run dev --prefix webapp`. For details on the recognition pipeline, see [`docs/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](./VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md).
+Launch the webapp with `npm run dev --prefix webapp`. For details on the recognition pipeline, see [`docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`](../training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md).

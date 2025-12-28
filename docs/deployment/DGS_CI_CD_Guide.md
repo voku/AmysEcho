@@ -190,7 +190,7 @@ NODE_ENV: test
 **Dedicated Accessibility Testing**:
 The integration layer no longer keeps synthetic accessibility specs. Rely on
 the webapp tests (`npm test --prefix webapp`) and the manual QA
-checklist in `docs/DeviceTesting.md` to verify:
+checklist in `docs/testing/DeviceTesting.md` to verify:
 
 - Screen reader output for gesture feedback text and caregiver status badges
   (VoiceOver/TalkBack announce German strings and confidence values).
