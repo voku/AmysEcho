@@ -416,7 +416,6 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           } catch {
             // localStorage might be disabled
           }
-          (window as any).__facingMode = facingMode;
           setFacingMode(facingMode);
         }
       }
@@ -784,9 +783,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           <p className="muted small">Detektorstatus: {detectorStatusLabel} · {recordingStatusLabel}</p>
         </details>
 
-        <div className="form-group mt-sm">
-          <label htmlFor="hand-focus">Relevante Hand für diese Gebärde</label>
-          <div className="radio-group" role="radiogroup" aria-label="Handauswahl">
+        <fieldset className="form-group mt-sm">
+          <legend>Relevante Hand für diese Gebärde</legend>
+          <div className="radio-group">
             <label className={`radio-label${handFocus === 'both_equal' ? ' selected' : ''}`}>
               <input
                 type="radio"
@@ -836,7 +835,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           <p className="muted small">
             Wähle, welche Hand für diese Gebärde wichtig ist. Bei einigen Gebärden (z.B. „Papa") zählt nur die Haupthand – die andere kann Rauschen erzeugen.
           </p>
-        </div>
+        </fieldset>
 
         <div className="form-group mt-sm">
           <label htmlFor="manual-still">Eigenes Referenzbild hochladen (optional)</label>
