@@ -15,12 +15,12 @@ Key interactions to test:
 
 ## 2. Writing the Tests
 
-We will use React Testing Library for the webapp to write our tests. Mock external dependencies (camera permissions, network uploads, etc.) so the suites remain deterministic.
+We will use React Testing Library with Vitest for the webapp to write our tests. Mock external dependencies (camera permissions, network uploads, etc.) so the suites remain deterministic.
 
 ### Implementation Steps
 
 1.  **Create a Test File:**
-    *   Create a new file: `webapp/src/integration/Phase2.integration.test.tsx`.
+    *   Create a new file: `webapp/src/services/__tests__/phase2Integration.test.tsx`.
 
 2.  **Write Test Cases for Each Interaction:**
     *   For each key interaction, write a test case that simulates a real-world scenario.
@@ -30,7 +30,7 @@ We will use React Testing Library for the webapp to write our tests. Mock extern
         3.  Verify that the `PersonalizedConfidenceService` adjusts the confidence thresholds accordingly.
 
 3.  **Use Mocks for External Dependencies:**
-    *   Use Jest's mocking capabilities to mock any external dependencies.
+    *   Use Vitest's mocking capabilities to mock any external dependencies.
     *   This will ensure that your tests are fast, reliable, and independent of external services.
 
 ### Example Test
@@ -38,11 +38,12 @@ We will use React Testing Library for the webapp to write our tests. Mock extern
 ```typescript
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react';
+import { vi } from 'vitest';
 import { SignLanguageRecorder } from '../../components/SignLanguageRecorder';
 
 // Mock the services
-jest.mock('../../services/adaptiveLearningService');
-jest.mock('../../services/personalizedConfidenceService');
+vi.mock('../adaptiveLearningService');
+vi.mock('../personalizedConfidenceService');
 
 describe('Phase 2 Integration', () => {
   it('should adjust confidence thresholds based on performance', () => {
