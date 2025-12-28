@@ -24,7 +24,15 @@ The logger automatically filters output by build type and keeps the console cons
 
 ## 3. Read error state from hooks
 
-Components such as `SignLanguageRecorder` read error state directly from hooks like `useSignLanguageDetector`. When the hook reports a problem, log it and let the UI react to the hook state:
+Components such as `SignLanguageRecorder` read error state directly from hooks like `useSignLanguageDetector` and render it inline:
+
+```tsx
+const { error } = useSignLanguageDetector(videoRef, overlayRef);
+
+{error && <div className="gesture-screen__meta-error">{error}</div>}
+```
+
+If you want to log errors in a component, you can optionally add a `useEffect` logger. (Note: `SignLanguageRecorder` does not use this pattern.)
 
 ```tsx
 const { error } = useSignLanguageDetector(videoRef, overlayRef);
