@@ -410,13 +410,13 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
           );
         }
         // Revert facing mode if switch failed
-        try {
-          window.localStorage.setItem('cameraFacingMode', facingMode);
-        } catch {
-          // localStorage might be disabled
-        }
-        (window as any).__facingMode = facingMode;
         if (isMountedRef.current) {
+          try {
+            window.localStorage.setItem('cameraFacingMode', facingMode);
+          } catch {
+            // localStorage might be disabled
+          }
+          (window as any).__facingMode = facingMode;
           setFacingMode(facingMode);
         }
       }
