@@ -193,4 +193,4 @@ Additional deployment-specific notes:
 
 Once all items are checked, your server is production-ready! 🚀
 
-For support, see [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md) or open an issue at https://github.com/voku/AmysEcho/issues
+For support, see [docs/deployment/SERVER_DEPLOYMENT.md](../docs/deployment/SERVER_DEPLOYMENT.md) or open an issue at https://github.com/voku/AmysEcho/issues

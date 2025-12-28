@@ -15,12 +15,12 @@
     - `src/utils/` utility functions
   - `server/` Node/TypeScript API plus Python training tools in `server/src/amyserver_tools/`.
   - `integration/` end-to-end tests that exercise the full training loop.
-  - Docs live in `docs/` (start with `docs/TODO.md` for current priorities).
+  - Docs live in `docs/` (start with `docs/planning/TODO.md` for current priorities).
 
 ### Additional Resources
-- **Development Workflow**: See `docs/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
-- **Testing Strategy**: See `docs/TESTING_STRATEGY.md` for comprehensive testing guidelines
-- **Current Status**: See `docs/TODO.md` for up-to-date implementation status
+- **Development Workflow**: See `docs/workflows/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
+- **Testing Strategy**: See `docs/testing/TESTING_STRATEGY.md` for comprehensive testing guidelines
+- **Current Status**: See `docs/planning/TODO.md` for up-to-date implementation status
 
 ## 🚨 AMY FIRST DEVELOPMENT PRINCIPLES
 
@@ -48,7 +48,7 @@
 **IMPORTANT**: Follow this step-by-step approach:
 
 ### 1. Discovery Phase (ALWAYS do this first)
-- **Read the `docs/TODO.md` or task description completely** to understand the current priorities.
+- **Read the `docs/planning/TODO.md` or task description completely** to understand the current priorities.
 - **Review the existing documentation** in the `docs/` directory to understand the project's architecture and features.
 - **Examine the existing codebase structure** using `find` or `ls` commands.
 - **Study similar existing files** - look for patterns, naming conventions, and architectural decisions.
@@ -147,7 +147,7 @@ Before starting implementation, consider:
 - **Need for human oversight** – automated checks cannot replace human judgment. Ensure final review and real-world testing.
 
 ## Quick pre-PR checklist
-- [ ] I read `docs/TODO.md` and aligned the change with current priorities.
+- [ ] I read `docs/planning/TODO.md` and aligned the change with current priorities.
 - [ ] I followed Amy First principles and used German for all user-visible text.
 - [ ] I updated or added tests and ran the relevant commands above.
 - [ ] I updated documentation where behavior changed.

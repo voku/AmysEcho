@@ -6,13 +6,13 @@ This package provides everything you need to deploy the Amy's Echo server to you
 
 ### Documentation
 
-1. **[QUICKSTART_SERVER.md](../QUICKSTART_SERVER.md)** - 5-minute deployment guide
+1. **[docs/deployment/QUICKSTART_SERVER.md](../docs/deployment/QUICKSTART_SERVER.md)** - 5-minute deployment guide
    - Quick Docker setup
    - Basic configuration
    - Health check verification
    - Perfect for getting started
 
-2. **[docs/SERVER_DEPLOYMENT.md](../docs/SERVER_DEPLOYMENT.md)** - Comprehensive deployment guide (21KB)
+2. **[docs/deployment/SERVER_DEPLOYMENT.md](../docs/deployment/SERVER_DEPLOYMENT.md)** - Comprehensive deployment guide (21KB)
    - Docker deployment (recommended)
    - Manual deployment with systemd
    - Production configuration
@@ -111,7 +111,7 @@ sudo systemctl reload nginx
 
 ### Path 3: Manual systemd (Full Control - 30 minutes)
 
-Follow the complete guide in [docs/SERVER_DEPLOYMENT.md](../docs/SERVER_DEPLOYMENT.md#manual-deployment-with-systemd)
+Follow the complete guide in [docs/deployment/SERVER_DEPLOYMENT.md](../docs/deployment/SERVER_DEPLOYMENT.md#manual-deployment-with-systemd)
 
 **Use when:** You need fine-grained control or cannot use Docker
 
@@ -295,11 +295,11 @@ Check Python dependencies: `pip3 install -r server/requirements.txt`
 ### Cannot Connect
 Check firewall: `sudo ufw status` and allow necessary ports
 
-See [docs/SERVER_DEPLOYMENT.md#troubleshooting](../docs/SERVER_DEPLOYMENT.md#troubleshooting) for detailed troubleshooting.
+See [docs/deployment/SERVER_DEPLOYMENT.md#troubleshooting](../docs/deployment/SERVER_DEPLOYMENT.md#troubleshooting) for detailed troubleshooting.
 
 ## 📞 Getting Help
 
-1. Check [docs/SERVER_DEPLOYMENT.md](../docs/SERVER_DEPLOYMENT.md) for detailed documentation
+1. Check [docs/deployment/SERVER_DEPLOYMENT.md](../docs/deployment/SERVER_DEPLOYMENT.md) for detailed documentation
 2. Review [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) to ensure all steps completed
 3. Check logs for specific error messages
 4. Open an issue: https://github.com/voku/AmysEcho/issues
@@ -319,4 +319,4 @@ Every deployment brings communication closer to children who need it. Thank you 
 
 ---
 
-**Questions?** See the comprehensive guide: [docs/SERVER_DEPLOYMENT.md](../docs/SERVER_DEPLOYMENT.md)
+**Questions?** See the comprehensive guide: [docs/deployment/SERVER_DEPLOYMENT.md](../docs/deployment/SERVER_DEPLOYMENT.md)

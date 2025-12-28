@@ -2,7 +2,7 @@
 
 Scope: All files under `webapp/`.
 
-**Project Status:** All major features for the webapp have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
+**Project Status:** All major features for the webapp have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/planning/TODO.md` file serves as a living document for ongoing improvements.
 
 ## Tech Stack
 
@@ -20,7 +20,7 @@ Scope: All files under `webapp/`.
 **IMPORTANT**: AI assistants must follow this step-by-step approach:
 
 ### 1. Discovery Phase (ALWAYS do this first)
-- **Read the `docs/TODO.md` or task description completely** to understand the current priorities.
+- **Read the `docs/planning/TODO.md` or task description completely** to understand the current priorities.
 - **Review the existing documentation** in the `docs/` directory to understand the project's architecture and features.
 - **Examine the existing codebase structure** using `find` or `ls` commands.
 - **Study similar existing files** - look for patterns, naming conventions, and architectural decisions.
@@ -50,7 +50,7 @@ Scope: All files under `webapp/`.
 
 ## General Workflow
 
-1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
+1. **Study the task**: read `docs/planning/TODO.md`, issue description, or requirements completely.
 2. **Explore codebase**: understand the current state and patterns.
 3. **Understand existing code**: look at similar files and tests to follow established patterns.
    - Components: `webapp/src/components/*`
@@ -269,7 +269,7 @@ Before starting implementation, consider:
 ## Additional Resources
 
 - **Root AGENTS.md**: General repository guidelines and Amy First principles
-- **Development Workflow**: See `docs/DEVELOPMENT_WORKFLOW.md`
-- **Testing Strategy**: See `docs/TESTING_STRATEGY.md`
-- **Current Status**: See `docs/TODO.md`
+- **Development Workflow**: See `docs/workflows/DEVELOPMENT_WORKFLOW.md`
+- **Testing Strategy**: See `docs/testing/TESTING_STRATEGY.md`
+- **Current Status**: See `docs/planning/TODO.md`
 - **Webapp README**: See `webapp/README.md` for German feature documentation

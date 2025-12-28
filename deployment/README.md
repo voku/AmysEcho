@@ -17,7 +17,7 @@ This directory contains configuration files and scripts for deploying Amy's Echo
 
 ## Quick Start
 
-For complete deployment instructions, see **[docs/SERVER_DEPLOYMENT.md](../docs/SERVER_DEPLOYMENT.md)**.
+For complete deployment instructions, see **[docs/deployment/SERVER_DEPLOYMENT.md](../docs/deployment/SERVER_DEPLOYMENT.md)**.
 
 ### Using Docker (Recommended)
 
@@ -93,4 +93,4 @@ Update nginx configuration with the certificate paths.
 
 ## Support
 
-For issues or questions, see the [Troubleshooting section](../docs/SERVER_DEPLOYMENT.md#troubleshooting) in the deployment guide.
+For issues or questions, see the [Troubleshooting section](../docs/deployment/SERVER_DEPLOYMENT.md#troubleshooting) in the deployment guide.

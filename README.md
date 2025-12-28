@@ -14,15 +14,14 @@ All app UI text and error messages are written in German to match Amy's language
 
 ## 📚 Documentation
 
-- [Codebase overview](docs/CodebaseOverview.md)
-- [User stories](docs/UserStories.md)
-- [Caregiver guide](docs/CaregiverGuide.md)
-- [Build & test instructions](docs/BUILD_AND_TEST.md)
-- [Android in WSL2 guide](docs/AndroidWSL2.md)
-- [Gesture recognition best practices](docs/GESTURE_RECOGNITION_BEST_PRACTICES.md)
-- [Real-world validation guide](docs/REAL_WORLD_VALIDATION_GUIDE.md)
-- [Project roadmap](docs/TODO.md)
-- [Project milestones](docs/ProjectMilestones.md) – Stabilization, Accuracy, UX improvements
+- [Codebase overview](docs/architecture/CodebaseOverview.md)
+- [User stories](docs/guides/UserStories.md)
+- [Caregiver guide](docs/guides/CaregiverGuide.md)
+- [Build & test instructions](docs/workflows/BUILD_AND_TEST.md)
+- [Gesture recognition best practices](docs/testing/GestureRecognitionTesting.md)
+- [Real-world validation guide](docs/testing/REAL_WORLD_VALIDATION_GUIDE.md)
+- [Project roadmap](docs/planning/TODO.md)
+- [Project milestones](docs/planning/ProjectMilestones.md) – Stabilization, Accuracy, UX improvements
 
 ---
 
@@ -111,14 +110,14 @@ Commands use `--prefix` and should be run from the repository root.
 
 For deploying the server to production:
 
-- **Quick Start**: See [QUICKSTART_SERVER.md](QUICKSTART_SERVER.md) for a 5-minute Docker deployment
-- **Complete Guide**: See [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md) for comprehensive deployment options including Docker, systemd, nginx, SSL, monitoring, and backups
+- **Quick Start**: See [docs/deployment/QUICKSTART_SERVER.md](docs/deployment/QUICKSTART_SERVER.md) for a 5-minute Docker deployment
+- **Complete Guide**: See [docs/deployment/SERVER_DEPLOYMENT.md](docs/deployment/SERVER_DEPLOYMENT.md) for comprehensive deployment options including Docker, systemd, nginx, SSL, monitoring, and backups
 
 ### Webapp Deployment
 
 For deploying the webapp:
 
-- See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for GitHub Pages and static hosting deployment
+- See [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) for GitHub Pages and static hosting deployment
 
 ### Run notes
 
@@ -142,7 +141,7 @@ For deploying the webapp:
    - Use Recognition page; when it's wrong, correct it; the webapp uploads the sample for that child.
    - Recognition runs locally in browser; as training samples accumulate, personalized MLP weights improve confidence.
 
-See [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) for full details.
+See [docs/workflows/BUILD_AND_TEST.md](docs/workflows/BUILD_AND_TEST.md) for full details.
 
 ---
 
@@ -194,13 +193,13 @@ Fallbacks are not optional. The system must **always** respond — even when unc
 
 ## Project Status
 
-All major features for Phase 1, 2 and 3 have been implemented. The project is now in the optimization and production readiness phase. Development tasks are tracked in [`docs/TODO.md`](docs/TODO.md), which now serves as a living document for ongoing improvements and bug fixes.
+All major features for Phase 1, 2 and 3 have been implemented. The project is now in the optimization and production readiness phase. Development tasks are tracked in [`docs/planning/TODO.md`](docs/planning/TODO.md), which now serves as a living document for ongoing improvements and bug fixes.
 
 The repository now focuses on the core gesture recognition loop: recording high-quality samples, uploading them to the server, training personalized models, and serving those models back to the browser client. Auxiliary caregiver portals, analytics dashboards, and dialog services have been removed so local development only requires the upload, training, and model-serving endpoints exposed by the Node server.
 
 ### Archivierte mobile App (`app/`)
 
-Die frühere React-Native/Expo-App diente nur noch als Referenz, nachdem alle relevanten DGS-Funktionen in die Browser-Webapp migriert wurden. Um Wartungs- und CI-Aufwand zu reduzieren, wurde der `app/`-Ordner aus dem Repository entfernt. Bei Bedarf lässt sich der Stand über die Git-Historie wiederherstellen; Details finden sich in [`docs/APP_ARCHIVE.md`](docs/APP_ARCHIVE.md).
+Die frühere React-Native/Expo-App diente nur noch als Referenz, nachdem alle relevanten DGS-Funktionen in die Browser-Webapp migriert wurden. Um Wartungs- und CI-Aufwand zu reduzieren, wurde der `app/`-Ordner aus dem Repository entfernt. Bei Bedarf lässt sich der Stand über die Git-Historie wiederherstellen; Details finden sich in [`docs/architecture/migration/APP_ARCHIVE.md`](docs/architecture/migration/APP_ARCHIVE.md).
 
 ## ▶️ Running the Web Application
 
@@ -242,7 +241,7 @@ The production build is output to `webapp/dist/` and can be deployed to any stat
 
    You can also execute `./scripts/full-check.sh` from the repo root to run all checks at once.
 
-For more detailed build and testing instructions, see [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md).
+For more detailed build and testing instructions, see [docs/workflows/BUILD_AND_TEST.md](docs/workflows/BUILD_AND_TEST.md).
 
 ---
 

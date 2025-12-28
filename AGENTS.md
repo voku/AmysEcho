@@ -5,9 +5,9 @@ Amy's Echo is a multimodal communication platform for non-verbal children. This 
 For guidelines specific to the server, see the `AGENTS.md` file within the `server/` directory. Paths in this document are relative to the repository root unless noted otherwise.
 
 ### Additional Resources
-- **Development Workflow**: See `docs/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
-- **Testing Strategy**: See `docs/TESTING_STRATEGY.md` for comprehensive testing guidelines
-- **Current Status**: See `docs/TODO.md` for up-to-date implementation status (now accurately reflects reality)
+- **Development Workflow**: See `docs/workflows/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
+- **Testing Strategy**: See `docs/testing/TESTING_STRATEGY.md` for comprehensive testing guidelines
+- **Current Status**: See `docs/planning/TODO.md` for up-to-date implementation status (now accurately reflects reality)
 
 ## 🚨 AMY FIRST DEVELOPMENT PRINCIPLES
 
@@ -32,14 +32,14 @@ For guidelines specific to the server, see the `AGENTS.md` file within the `serv
 
 ## Project Status
 
-This project is in a mature state. All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/TODO.md` file serves as a living document for ongoing improvements.
+This project is in a mature state. All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/planning/TODO.md` file serves as a living document for ongoing improvements.
 
 ## AI Assistant Workflow
 
 **IMPORTANT**: AI assistants must follow this step-by-step approach:
 
 ### 1. Discovery Phase (ALWAYS do this first)
-- **Read the `docs/TODO.md` or task description completely** to understand the current priorities.
+- **Read the `docs/planning/TODO.md` or task description completely** to understand the current priorities.
 - **Review the existing documentation** in the `docs/` directory to understand the project's architecture and features.
 - **Examine the existing codebase structure** using `find` or `ls` commands.
 - **Study similar existing files** - look for patterns, naming conventions, and architectural decisions.
@@ -184,7 +184,7 @@ function calculateGestureConfidenceWithContext(
 
 ## General Workflow
 
-1. **Study the task**: read `docs/TODO.md`, issue description, or requirements completely.
+1. **Study the task**: read `docs/planning/TODO.md`, issue description, or requirements completely.
 2. **Explore codebase**: understand the current state and patterns.
 3. **Understand existing code**: look at similar files and tests to follow established patterns.
    - Webapp: `webapp/src/components/*`, hooks in `webapp/src/hooks/`, tests alongside source files.
