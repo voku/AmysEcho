@@ -519,20 +519,27 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : detectorRunning
     ? 'Noch keine verwertbaren Frames empfangen'
     : 'Kamera noch nicht gestartet';
-  const bannerMessage =
-    photoMode === 'previewing'
-      ? 'Vorschau aktiv. Positioniere dich für das Foto.'
-      : photoMode === 'captured'
-      ? 'Foto aufgenommen. Bestätige oder nimm ein neues auf.'
-      : isRecording
-      ? 'Aufnahme läuft. Tippe auf „Aufnahme stoppen“, wenn du fertig bist.'
-      : hasRecording
-      ? 'Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.'
-      : showDetectorStart
-      ? 'Starte die Kamera, um eine Gebärde aufzunehmen.'
-      : detectorRunning
-      ? 'Zeige die Gebärde gut sichtbar vor der Kamera.'
-      : 'Kamera ist pausiert. Starte sie, um aufzunehmen.';
+  const bannerMessage = useMemo(() => {
+    if (photoMode === 'previewing') {
+      return 'Vorschau aktiv. Positioniere dich für das Foto.';
+    }
+    if (photoMode === 'captured') {
+      return 'Foto aufgenommen. Bestätige oder nimm ein neues auf.';
+    }
+    if (isRecording) {
+      return 'Aufnahme läuft. Tippe auf „Aufnahme stoppen“, wenn du fertig bist.';
+    }
+    if (hasRecording) {
+      return 'Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.';
+    }
+    if (showDetectorStart) {
+      return 'Starte die Kamera, um eine Gebärde aufzunehmen.';
+    }
+    if (detectorRunning) {
+      return 'Zeige die Gebärde gut sichtbar vor der Kamera.';
+    }
+    return 'Kamera ist pausiert. Starte sie, um aufzunehmen.';
+  }, [photoMode, isRecording, hasRecording, showDetectorStart, detectorRunning]);
 
   return (
     <section className="training-recorder">

@@ -215,7 +215,6 @@ export function TrainingUploadWithRecording() {
     ? ''
     : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest.';
   const [searchParams] = useSearchParams();
-  const [gestureFromLearning, setGestureFromLearning] = useState<string | null>(null);
   const gestureParam = searchParams.get('gesture');
   const symbolIdParam = searchParams.get('symbolId');
   const prevMetadataReadyRef = useRef(metadataReady);
@@ -266,13 +265,9 @@ export function TrainingUploadWithRecording() {
     const normalized = gestureParam?.trim() ?? '';
     const symbol = symbols.find((s) => s.id === symbolIdParam) ?? null;
     if (symbol && preferredSignLabel !== symbol.name) {
-      setGestureFromLearning(symbol.name);
       setPreferredSignLabel(symbol.name);
     } else if (!symbol && normalized && preferredSignLabel !== normalized) {
-      setGestureFromLearning(normalized);
       setPreferredSignLabel(normalized);
-    } else if (!symbol && !normalized) {
-      setGestureFromLearning((prev) => (prev === null ? prev : null));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredGestureLabel or symbols change
   }, [gestureParam, symbolIdParam]);

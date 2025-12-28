@@ -1439,6 +1439,20 @@ p {
   cursor: pointer;
   font-weight: 600;
   list-style: none;
+  display: flex;
+  align-items: center;
+}
+
+.training-recorder__technical summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: var(--space-sm);
+  transition: transform 0.2s ease;
+  font-size: 0.8em;
+}
+
+.training-recorder__technical[open] summary::before {
+  transform: rotate(90deg);
 }
 
 .training-recorder__technical summary::-webkit-details-marker {
