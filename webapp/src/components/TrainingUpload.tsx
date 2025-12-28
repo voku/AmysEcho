@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTrainingUploader } from '../hooks/useTrainingUploader';
 import type {
@@ -218,10 +218,6 @@ export function TrainingUploadWithRecording() {
   const [gestureFromLearning, setGestureFromLearning] = useState<string | null>(null);
   const gestureParam = searchParams.get('gesture');
   const symbolIdParam = searchParams.get('symbolId');
-  const selectedSymbol = useMemo(
-    () => symbols.find((symbol) => symbol.id === symbolIdParam) ?? null,
-    [symbolIdParam, symbols],
-  );
   const prevMetadataReadyRef = useRef(metadataReady);
 
   useEffect(() => {
@@ -332,9 +328,6 @@ export function TrainingUploadWithRecording() {
     [uploadState],
   );
 
-  const headlineLabel = selectedSymbol?.name ?? gestureFromLearning ?? (preferredSignLabel || 'Neue Gebärde');
-  const headlineSubtext = 'Nimm die Gebärde kurz auf und gib ihr einen Namen.';
-
   return (
     <>
       {symbolSyncError && (
@@ -356,21 +349,6 @@ export function TrainingUploadWithRecording() {
           <p className="muted small mt-xs">Gebärden-Uploads und Trainings-Sync laufen unabhängig davon weiter.</p>
         </div>
       )}
-
-      <div className="card training-header mb-md">
-        <div>
-          <p className="eyebrow">Aufnahme</p>
-          <h2 className="training-headline">Gebärde aufzeichnen: {headlineLabel}</h2>
-          <p className="muted small">{headlineSubtext}</p>
-        </div>
-        {selectedSymbol?.imageUrl && (
-          <img
-            src={selectedSymbol.imageUrl}
-            alt={selectedSymbol.name}
-            className="symbol-thumb headline-symbol-thumb"
-          />
-        )}
-      </div>
 
       {modelNotice && <div className="notice success compact mb-md">{modelNotice}</div>}
 
