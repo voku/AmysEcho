@@ -927,7 +927,7 @@ export function registerTrainingBundleRoute(
 
       res.status(202).json({ status: 'queued', id: bundleId, trainingJob });
     } catch (error) {
-      console.error('Error saving training bundle:', error);
+      logger.error('Error saving training bundle', { error });
       if (metricsProfileId && !metricsRecorded) {
         await recordMetrics({ status: 'rejected' });
       }
