@@ -811,14 +811,9 @@ p {
   width: 100%;
 }
 
-.gesture-screen__empty-actions .primary-button,
-.gesture-screen__empty-actions button {
+.gesture-screen__empty-actions > * {
   width: 100%;
   min-width: 0;
-}
-
-.gesture-screen__empty-actions .primary-button {
-  justify-self: stretch;
 }
 
 .gesture-screen__empty-actions button {

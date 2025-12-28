@@ -261,7 +261,7 @@ export function SignLanguageRecorder() {
             Du kannst direkt starten oder im Demo-Modus weitergehen.
           </p>
           <div className="gesture-screen__empty-actions">
-            <Link to="/training" className="primary-button">
+            <Link to="/beibringen" className="primary-button">
               Jetzt Gebärde beibringen
             </Link>
             <button
