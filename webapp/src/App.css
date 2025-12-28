@@ -1403,6 +1403,52 @@ p {
   border: 1px solid var(--color-overlay-border);
 }
 
+.training-recorder {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.training-recorder__screen {
+  margin: 0;
+}
+
+.training-recorder__actions {
+  flex-wrap: wrap;
+}
+
+.training-recorder__notice-grid {
+  margin-top: var(--space-sm);
+}
+
+.training-recorder__notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.training-recorder__technical {
+  border: 1px solid var(--color-overlay-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-overlay-surface-muted);
+  color: var(--color-overlay-text);
+}
+
+.training-recorder__technical summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.training-recorder__technical summary::-webkit-details-marker {
+  display: none;
+}
+
+.training-recorder__technical[open] summary {
+  margin-bottom: var(--space-sm);
+}
+
 /* ==========================================================================
    Recording Indicator
    ========================================================================== */

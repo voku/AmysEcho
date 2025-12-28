@@ -507,361 +507,357 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : hasRecording
     ? 'Aufnahme bereit'
     : 'Keine Aufnahme aktiv';
+  const recordingStatusPill = isRecording
+    ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})`
+    : hasRecording
+    ? 'Aufnahme bereit'
+    : null;
+  const photoStatusPill =
+    photoMode === 'previewing' ? 'Fotovorschau aktiv' : photoMode === 'captured' ? 'Foto aufgenommen' : null;
   const framesLine = framesCaptured > 0
     ? `${framesCaptured} Frames erfasst`
     : detectorRunning
     ? 'Noch keine verwertbaren Frames empfangen'
     : 'Kamera noch nicht gestartet';
+  const bannerMessage =
+    photoMode === 'previewing'
+      ? 'Vorschau aktiv. Positioniere dich für das Foto.'
+      : photoMode === 'captured'
+      ? 'Foto aufgenommen. Bestätige oder nimm ein neues auf.'
+      : isRecording
+      ? 'Aufnahme läuft. Tippe auf „Aufnahme stoppen“, wenn du fertig bist.'
+      : hasRecording
+      ? 'Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.'
+      : showDetectorStart
+      ? 'Starte die Kamera, um eine Gebärde aufzunehmen.'
+      : detectorRunning
+      ? 'Zeige die Gebärde gut sichtbar vor der Kamera.'
+      : 'Kamera ist pausiert. Starte sie, um aufzunehmen.';
 
   return (
-    <section className="card">
-      <div className="card-header">
-        <div>
-          <p className="eyebrow">Aufnahme</p>
-          <h2>Gebärde aufzeichnen</h2>
-          <p className="muted">
-            Nimm deine Gebärde mit der Kamera auf. Die Handbewegungen werden automatisch erkannt und gespeichert.
-          </p>
-        </div>
-      </div>
+    <section className="training-recorder">
+      <div className="gesture-screen training-recorder__screen">
+        <div className="video-wrapper gesture-fullscreen">
+          <video
+            ref={videoRef}
+            className={`video${isMirroredPreview ? ' mirrored' : ''}`}
+            playsInline
+            muted
+            autoPlay
+          />
+          <canvas
+            ref={overlayRef}
+            className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
+            data-testid="overlay-canvas"
+            aria-hidden={!showOverlay}
+          />
+          <div className="video-veil" aria-hidden="true" />
 
-      <div className="detector-shell">
-        <div className="video-column">
-          <div className="video-wrapper">
-            <video
-              ref={videoRef}
-              className={`video${isMirroredPreview ? ' mirrored' : ''}`}
-              playsInline
-              muted
-              autoPlay
-            />
-            <canvas
-              ref={overlayRef}
-              className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
-              data-testid="overlay-canvas"
-              aria-hidden={!showOverlay}
-            />
-            <div className="video-veil" aria-hidden="true" />
-
-            <div className="video-hud">
-              <div className="hud-row">
-                <div
-                  className="status-chip"
-                  data-testid="status-chip"
-                  data-state={
-                    photoMode === 'previewing'
-                      ? 'running'
-                      : photoMode === 'captured'
-                      ? 'success'
-                      : isRecording
-                      ? 'running'
-                      : hasRecording
-                      ? 'success'
-                      : detectorStatusTone
-                  }
-                >
-                  {photoMode === 'previewing'
-                    ? 'Fotovorschau aktiv'
-                    : photoMode === 'captured'
-                    ? 'Foto aufgenommen'
-                    : isRecording
-                    ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})`
-                    : hasRecording
-                    ? 'Aufnahme bereit'
-                    : detectorStatusLabel}
-                </div>
-                <div className="hud-actions">
-                  {photoMode === 'idle' && (
-                    <>
-                      {showDetectorStart && (
-                        <button
-                          className="primary"
-                          onClick={startCamera}
-                          disabled={!cameraSupported || detectorStartDisabled}
-                        >
-                          {detectorStartLabel}
-                        </button>
-                      )}
-                      {!isRecording && !hasRecording && (
-                        <>
-                          <button
-                            className="primary"
-                            onClick={handleStartRecording}
-                            disabled={!metadataReady || status === 'initializing'}
-                          >
-                            Aufnahme starten
-                          </button>
-                          <button
-                            className="secondary"
-                            onClick={handleStartPhotoPreview}
-                            disabled={!cameraSupported || !metadataReady}
-                          >
-                            Foto mit Kamera
-                          </button>
-                        </>
-                      )}
-                      {isRecording && (
-                        <button className="primary" onClick={handleStopRecording}>
-                          Aufnahme stoppen
-                        </button>
-                      )}
-                      {hasRecording && (
-                        <>
-                          <button className="primary" onClick={handleSaveRecording} disabled={uploadDisabled}>
-                            Aufnahme verwenden
-                          </button>
-                          <button className="ghost" onClick={handleDiscardRecording}>
-                            Verwerfen
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
-                  {photoMode === 'previewing' && (
-                    <>
-                      <button className="primary" onClick={handleCapturePhoto}>
-                        Foto aufnehmen
-                      </button>
-                      <button className="ghost" onClick={handleCancelPhoto}>
-                        Abbrechen
-                      </button>
-                    </>
-                  )}
-                  {photoMode === 'captured' && (
-                    <>
-                      <button className="primary" onClick={handleConfirmPhoto}>
-                        Foto verwenden
-                      </button>
-                      <button className="secondary" onClick={handleCapturePhoto}>
-                        Erneut aufnehmen
-                      </button>
-                      <button className="ghost" onClick={handleCancelPhoto}>
-                        Verwerfen
-                      </button>
-                    </>
-                  )}
-                </div>
+          <div className="gesture-screen__hud">
+            <div className="gesture-screen__status">
+              <div className="gesture-screen__status-pill" data-testid="status-chip" data-state={detectorStatusTone}>
+                <span className="gesture-screen__status-dot" />
+                <span>{detectorStatusLabel}</span>
               </div>
-
-              <div className="hud-row meta">
-                <div className="hud-meta">
-                  <p className="muted no-margin">
-                    Profil: <strong>{profileId || '–'}</strong>
-                  </p>
-                  <p className="muted no-margin">
-                    Gebärde: <strong>{displayedLabel}</strong>
-                  </p>
-                  <p className="muted small no-margin">{framesLine}</p>
-                </div>
-                <div className="hud-controls">
-                  <button
-                    className="ghost-inline"
-                    onClick={handleSwitchCamera}
-                    disabled={!cameraSupported}
-                    title={facingMode === 'user' ? 'Zur Rückkamera wechseln' : 'Zur Frontkamera wechseln'}
-                  >
-                    {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
-                  </button>
-                  <div className="toggle ghost-inline">
-                    <input
-                      id="overlay-toggle"
-                      type="checkbox"
-                      checked={showOverlay}
-                      onChange={(event) => setShowOverlay(event.target.checked)}
-                    />
-                    <label htmlFor="overlay-toggle">Overlay anzeigen</label>
-                  </div>
-                </div>
-              </div>
+              {photoStatusPill && <span className="gesture-screen__pill">{photoStatusPill}</span>}
+              {recordingStatusPill && <span className="gesture-screen__pill">{recordingStatusPill}</span>}
+            </div>
+            <div className="gesture-screen__status-meta">
+              <p>
+                Profil <strong>{profileId || '–'}</strong> · Gebärde <strong>{displayedLabel}</strong>
+              </p>
+              <p>{framesLine}</p>
             </div>
           </div>
-
-          <div className="notice-grid" aria-live="polite" role="status">
-            {!detectorRunning && (
-              <p className="muted small no-margin">
-                Detektor ist nicht gestartet – Frames werden erst gezählt, wenn die Kamera läuft.
-              </p>
-            )}
-
-            {!cameraSupported && (
-              <div className="notice warning compact">
-                <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
-              </div>
-            )}
-
-            {cameraError && <div className="notice error compact">{cameraError}</div>}
-
-            {detectorInactiveNotice && (
-              <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>
-                <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
-                {detectorInactiveNotice}
-              </div>
-            )}
-
-            {detectorStartFeedback && (
-              <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>{detectorStartFeedback}</div>
-            )}
-
-            {modalityNotices.length > 0 && (
-              <div className="notice warning compact">
-                <strong>Hinweis zur Erkennung:</strong>
-                <ul>
-                  {modalityNotices.map((message) => (
-                    <li key={message}>{message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {needsStillConfirmation && (
-              <div className="notice info compact">
-                <p className="no-margin">
-                  Kein Referenzbild ausgewählt. Möchtest du das letzte Videoframe als Referenz nutzen?
-                </p>
-                <div className="hud-actions">
-                  <button className="primary" type="button" onClick={handleConfirmAutoStill}>
-                    Ja, Frame verwenden
-                  </button>
-                  <button className="ghost" type="button" onClick={handleCancelAutoStill}>
-                    Abbrechen
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
-        <div className="panel">
-          <div className="panel-row">
-            <div>
-              <p className="eyebrow">Aufnahmedetails</p>
-              <p className="muted small">Detektor: {detectorStatusLabel}</p>
-              <p className="muted small">Aufnahmestatus: {recordingStatusLabel}</p>
-              <p className="muted small">Clip: {clipStatus}</p>
-              {recordedData.clipDurationMs > 0 && (
-                <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
-              )}
-              {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
-              {!metadataReady && <div className="notice error">{metadataError}</div>}
-              <div className="notice info spaced">
-                <strong>Landmark-Stream</strong>{' '}
-                {latestHandCount > 0
-                  ? `${latestHandCount} Hand${latestHandCount > 1 ? 'e' : ''} · ${latestPointCount} Punkte`
-                  : 'Noch keine Landmarken empfangen'}
-                {lastFrameReceivedAt && (
+        <div className="gesture-screen__controls">
+          <div className="gesture-screen__banner">
+            <span>{bannerMessage}</span>
+          </div>
+
+          {showDetectorStart && (
+            <button
+              className="gesture-screen__start"
+              onClick={startCamera}
+              disabled={!cameraSupported || detectorStartDisabled}
+            >
+              {detectorStartLabel}
+            </button>
+          )}
+
+          <div className="gesture-screen__actions training-recorder__actions">
+            {photoMode === 'idle' && (
+              <>
+                {!isRecording && !hasRecording && (
                   <>
-                    {' '}
-                    · Letzter Batch um {new Date(lastFrameReceivedAt).toLocaleTimeString()}
+                    <button
+                      className="gesture-screen__action gesture-screen__action--confirm"
+                      onClick={handleStartRecording}
+                      disabled={!metadataReady || status === 'initializing'}
+                    >
+                      Aufnahme starten
+                    </button>
+                    <button
+                      className="gesture-screen__action gesture-screen__action--alt"
+                      onClick={handleStartPhotoPreview}
+                      disabled={!cameraSupported || !metadataReady}
+                    >
+                      Foto mit Kamera
+                    </button>
                   </>
                 )}
-                {previewHandedness.length > 0 && (
-                  <p className="muted small">
-                    Händigkeit:{' '}
-                    {previewHandedness
-                      .map((value) => (value === 'Left' ? 'links' : value === 'Right' ? 'rechts' : value))
-                      .join(', ')}
-                  </p>
+                {isRecording && (
+                  <button className="gesture-screen__action gesture-screen__action--confirm" onClick={handleStopRecording}>
+                    Aufnahme stoppen
+                  </button>
                 )}
-              </div>
-              <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
-                {clipLimitNotice}
-              </div>
-            </div>
-          </div>
-
-          <div className="controls">
-            {hasRecording && (
+                {hasRecording && (
+                  <>
+                    <button
+                      className="gesture-screen__action gesture-screen__action--confirm"
+                      onClick={handleSaveRecording}
+                      disabled={uploadDisabled}
+                    >
+                      Aufnahme verwenden
+                    </button>
+                    <button className="gesture-screen__action gesture-screen__action--alt" onClick={handleDiscardRecording}>
+                      Verwerfen
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+            {photoMode === 'previewing' && (
               <>
-                <button className="ghost" onClick={handleSaveLandmarkJson}>
-                  Landmarks speichern
+                <button className="gesture-screen__action gesture-screen__action--confirm" onClick={handleCapturePhoto}>
+                  Foto aufnehmen
                 </button>
-                {uploadDisabledReason && <p className="muted small">{uploadDisabledReason}</p>}
+                <button className="gesture-screen__action gesture-screen__action--alt" onClick={handleCancelPhoto}>
+                  Abbrechen
+                </button>
+              </>
+            )}
+            {photoMode === 'captured' && (
+              <>
+                <button className="gesture-screen__action gesture-screen__action--confirm" onClick={handleConfirmPhoto}>
+                  Foto verwenden
+                </button>
+                <button className="gesture-screen__action gesture-screen__action--learn" onClick={handleCapturePhoto}>
+                  Erneut aufnehmen
+                </button>
+                <button className="gesture-screen__action gesture-screen__action--alt" onClick={handleCancelPhoto}>
+                  Verwerfen
+                </button>
               </>
             )}
           </div>
 
-          <div className="form-group mt-sm">
-            <label htmlFor="hand-focus">Relevante Hand für diese Gebärde</label>
-            <div className="radio-group" role="radiogroup" aria-label="Handauswahl">
-              <label className={`radio-label${handFocus === 'both_equal' ? ' selected' : ''}`}>
+          <div className="gesture-screen__meta">
+            <div className="gesture-screen__meta-actions">
+              <button
+                className="ghost-inline"
+                onClick={handleSwitchCamera}
+                disabled={!cameraSupported}
+                title={facingMode === 'user' ? 'Zur Rückkamera wechseln' : 'Zur Frontkamera wechseln'}
+              >
+                {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
+              </button>
+              <label className="toggle ghost-inline" htmlFor="overlay-toggle">
                 <input
-                  type="radio"
-                  name="hand-focus"
-                  value="both_equal"
-                  checked={handFocus === 'both_equal'}
-                  onChange={() => setHandFocus('both_equal')}
+                  id="overlay-toggle"
+                  type="checkbox"
+                  checked={showOverlay}
+                  onChange={(event) => setShowOverlay(event.target.checked)}
                 />
-                <span>Beide Hände gleich</span>
-              </label>
-              <label className={`radio-label${handFocus === 'dominant_only' ? ' selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="hand-focus"
-                  value="dominant_only"
-                  checked={handFocus === 'dominant_only'}
-                  onChange={() => setHandFocus('dominant_only')}
-                />
-                <span>Nur Haupthand</span>
-              </label>
-              <label className={`radio-label${handFocus === 'both_asymmetric' ? ' selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="hand-focus"
-                  value="both_asymmetric"
-                  checked={handFocus === 'both_asymmetric'}
-                  onChange={() => setHandFocus('both_asymmetric')}
-                />
-                <span>Beide unterschiedlich</span>
-              </label>
-              <label className={`radio-label${handFocus === 'either_hand' ? ' selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="hand-focus"
-                  value="either_hand"
-                  checked={handFocus === 'either_hand'}
-                  onChange={() => setHandFocus('either_hand')}
-                />
-                <span>Egal welche Hand</span>
+                <span>Overlay anzeigen</span>
               </label>
             </div>
-            {handFocusSuggestion && (
-              <div className={`notice ${handFocusSuggestion.confidence === 'high' ? 'info' : 'warning'} compact mt-sm`}>
-                <strong>Automatische Erkennung:</strong> {handFocusSuggestion.reason}
-              </div>
+
+            <div className="notice-grid training-recorder__notice-grid" aria-live="polite" role="status">
+              {!cameraSupported && (
+                <div className="notice warning compact">
+                  <strong>Kamera nicht verfügbar.</strong> Bitte erlaube den Kamerazugriff oder nutze ein Gerät mit Webcam.
+                </div>
+              )}
+
+              {cameraError && <div className="notice error compact">{cameraError}</div>}
+
+              {detectorInactiveNotice && (
+                <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>
+                  <strong>{detectorRunning ? 'Detektor aktiv, noch keine Erkennung' : 'Detektor pausiert.'}</strong>{' '}
+                  {detectorInactiveNotice}
+                </div>
+              )}
+
+              {detectorStartFeedback && (
+                <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>{detectorStartFeedback}</div>
+              )}
+
+              {modalityNotices.length > 0 && (
+                <div className="notice warning compact">
+                  <strong>Hinweis zur Erkennung:</strong>
+                  <ul>
+                    {modalityNotices.map((message) => (
+                      <li key={message}>{message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {needsStillConfirmation && (
+                <div className="notice info compact">
+                  <p className="no-margin">
+                    Kein Referenzbild ausgewählt. Möchtest du das letzte Videoframe als Referenz nutzen?
+                  </p>
+                  <div className="training-recorder__notice-actions">
+                    <button className="primary" type="button" onClick={handleConfirmAutoStill}>
+                      Ja, Frame verwenden
+                    </button>
+                    <button className="ghost" type="button" onClick={handleCancelAutoStill}>
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel training-recorder__details">
+        <div className="panel-row">
+          <div>
+            <p className="eyebrow">Aufnahmedetails</p>
+            <p className="muted small">Clip: {clipStatus}</p>
+            {recordedData.clipDurationMs > 0 && (
+              <p className="muted small">Dauer: {(recordedData.clipDurationMs / 1000).toFixed(1)}s</p>
             )}
-            <p className="muted small">
-              Wähle, welche Hand für diese Gebärde wichtig ist. Bei einigen Gebärden (z.B. „Papa") zählt nur die Haupthand – die andere kann Rauschen erzeugen.
-            </p>
-          </div>
-
-          <div className="form-group mt-sm">
-            <label htmlFor="manual-still">Eigenes Referenzbild hochladen (optional)</label>
-            <div className="file-input">
-              <input
-                id="manual-still"
-                type="file"
-                accept="image/*"
-                onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
-              />
-              <p className="muted small">
-                {manualStillFile?.name || 'Wähle ein Bild aus deinen Dateien aus.'}
-              </p>
+            {recordedData.clipError && <div className="notice error">{recordedData.clipError}</div>}
+            {!metadataReady && <div className="notice error">{metadataError}</div>}
+            <div className={`notice ${clipLimitExceeded ? 'warning' : 'info'} spaced`}>
+              {clipLimitNotice}
             </div>
-            <p className="muted small">
-              Nutze "Foto mit Kamera" im Videobereich oder lade eine Datei hoch. Falls nichts ausgewählt ist, wirst du beim Abschluss gefragt, ob du das letzte Videoframe nutzen möchtest.
-            </p>
           </div>
+        </div>
 
-          {(recordedData.stillImage || manualStillPreviewUrl) && (
-            <div className="still-preview">
-              <p className="eyebrow">Vorschau</p>
-              <img
-                src={manualStillPreviewUrl ?? recordedData.stillImage ?? undefined}
-                alt={manualStillPreviewUrl ? 'Hochgeladenes Referenzbild' : 'Aufgenommene Gebärde'}
-              />
-            </div>
+        <div className="controls">
+          {hasRecording && (
+            <>
+              <button className="ghost" onClick={handleSaveLandmarkJson}>
+                Landmarks speichern
+              </button>
+              {uploadDisabledReason && <p className="muted small">{uploadDisabledReason}</p>}
+            </>
           )}
         </div>
+
+        <details className="training-recorder__technical">
+          <summary>Technische Details anzeigen</summary>
+          <div className="notice info spaced">
+            <strong>Landmark-Stream</strong>{' '}
+            {latestHandCount > 0
+              ? `${latestHandCount} Hand${latestHandCount > 1 ? 'e' : ''} · ${latestPointCount} Punkte`
+              : 'Noch keine Landmarken empfangen'}
+            {lastFrameReceivedAt && (
+              <>
+                {' '}
+                · Letzter Batch um {new Date(lastFrameReceivedAt).toLocaleTimeString()}
+              </>
+            )}
+            {previewHandedness.length > 0 && (
+              <p className="muted small">
+                Händigkeit:{' '}
+                {previewHandedness
+                  .map((value) => (value === 'Left' ? 'links' : value === 'Right' ? 'rechts' : value))
+                  .join(', ')}
+              </p>
+            )}
+          </div>
+          <p className="muted small">Detektorstatus: {detectorStatusLabel} · {recordingStatusLabel}</p>
+        </details>
+
+        <div className="form-group mt-sm">
+          <label htmlFor="hand-focus">Relevante Hand für diese Gebärde</label>
+          <div className="radio-group" role="radiogroup" aria-label="Handauswahl">
+            <label className={`radio-label${handFocus === 'both_equal' ? ' selected' : ''}`}>
+              <input
+                type="radio"
+                name="hand-focus"
+                value="both_equal"
+                checked={handFocus === 'both_equal'}
+                onChange={() => setHandFocus('both_equal')}
+              />
+              <span>Beide Hände gleich</span>
+            </label>
+            <label className={`radio-label${handFocus === 'dominant_only' ? ' selected' : ''}`}>
+              <input
+                type="radio"
+                name="hand-focus"
+                value="dominant_only"
+                checked={handFocus === 'dominant_only'}
+                onChange={() => setHandFocus('dominant_only')}
+              />
+              <span>Nur Haupthand</span>
+            </label>
+            <label className={`radio-label${handFocus === 'both_asymmetric' ? ' selected' : ''}`}>
+              <input
+                type="radio"
+                name="hand-focus"
+                value="both_asymmetric"
+                checked={handFocus === 'both_asymmetric'}
+                onChange={() => setHandFocus('both_asymmetric')}
+              />
+              <span>Beide unterschiedlich</span>
+            </label>
+            <label className={`radio-label${handFocus === 'either_hand' ? ' selected' : ''}`}>
+              <input
+                type="radio"
+                name="hand-focus"
+                value="either_hand"
+                checked={handFocus === 'either_hand'}
+                onChange={() => setHandFocus('either_hand')}
+              />
+              <span>Egal welche Hand</span>
+            </label>
+          </div>
+          {handFocusSuggestion && (
+            <div className={`notice ${handFocusSuggestion.confidence === 'high' ? 'info' : 'warning'} compact mt-sm`}>
+              <strong>Automatische Erkennung:</strong> {handFocusSuggestion.reason}
+            </div>
+          )}
+          <p className="muted small">
+            Wähle, welche Hand für diese Gebärde wichtig ist. Bei einigen Gebärden (z.B. „Papa") zählt nur die Haupthand – die andere kann Rauschen erzeugen.
+          </p>
+        </div>
+
+        <div className="form-group mt-sm">
+          <label htmlFor="manual-still">Eigenes Referenzbild hochladen (optional)</label>
+          <div className="file-input">
+            <input
+              id="manual-still"
+              type="file"
+              accept="image/*"
+              onChange={(event) => handleManualStillChange(event.target.files?.[0] ?? null)}
+            />
+            <p className="muted small">
+              {manualStillFile?.name || 'Wähle ein Bild aus deinen Dateien aus.'}
+            </p>
+          </div>
+          <p className="muted small">
+            Nutze "Foto mit Kamera" im Videobereich oder lade eine Datei hoch. Falls nichts ausgewählt ist, wirst du beim Abschluss gefragt, ob du das letzte Videoframe nutzen möchtest.
+          </p>
+        </div>
+
+        {(recordedData.stillImage || manualStillPreviewUrl) && (
+          <div className="still-preview">
+            <p className="eyebrow">Vorschau</p>
+            <img
+              src={manualStillPreviewUrl ?? recordedData.stillImage ?? undefined}
+              alt={manualStillPreviewUrl ? 'Hochgeladenes Referenzbild' : 'Aufgenommene Gebärde'}
+            />
+          </div>
+        )}
       </div>
     </section>
   );
