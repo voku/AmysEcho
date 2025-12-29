@@ -7,12 +7,17 @@ import { useApiConfig } from './useApiConfig';
 
 export type ModelInjectionStatus = 'idle' | 'loading' | 'ready' | 'error';
 
-export function useMlpModelInjection(profileId: string | null) {
+export function useMlpModelInjection(
+  profileId: string | null,
+  options: { autoRefreshMs?: number } = {},
+) {
   const { modelEndpoint, apiToken, refreshAccessToken } = useApiConfig();
   const [status, setStatus] = useState<ModelInjectionStatus>('idle');
   const [notice, setNotice] = useState<string | null>(null);
   const [lastMeta, setLastMeta] = useState<MlpModelMeta | null>(null);
   const lastSignatureRef = useRef<string | null>(null);
+  const refreshInFlightRef = useRef(false);
+  const autoRefreshMs = options.autoRefreshMs ?? 60000;
 
   const ensureRuntimeReady = useCallback(() => {
     if (!window.fflate) {
@@ -42,9 +47,14 @@ export function useMlpModelInjection(profileId: string | null) {
   }, []);
 
   const refreshModel = useCallback(async () => {
+    if (refreshInFlightRef.current) {
+      return null;
+    }
+    refreshInFlightRef.current = true;
     if (!profileId) {
       setStatus('idle');
       setNotice('Kein Profil aktiv, Standardmodell wird verwendet.');
+      refreshInFlightRef.current = false;
       return null;
     }
     
@@ -83,6 +93,7 @@ export function useMlpModelInjection(profileId: string | null) {
       const reason = error instanceof Error ? error.message : String(error);
       setStatus('error');
       setNotice(reason);
+      refreshInFlightRef.current = false;
       return null;
     }
 
@@ -91,6 +102,7 @@ export function useMlpModelInjection(profileId: string | null) {
       // Kein Fehler anzeigen, nur protokollieren und weitermachen
       setStatus('idle');
       console.info('[MLP] Kein personalisiertes Modell verfügbar – MediaPipe-Standard wird verwendet');
+      refreshInFlightRef.current = false;
       return null;
     }
 
@@ -111,11 +123,13 @@ export function useMlpModelInjection(profileId: string | null) {
       if (isNewModel) {
         setNotice('Modell aktualisiert');
       }
+      refreshInFlightRef.current = false;
       return result;
     }
 
     setStatus('error');
     setNotice('Modell konnte nicht in die Laufzeit geladen werden.');
+    refreshInFlightRef.current = false;
     return null;
   }, [
     apiToken,
@@ -130,6 +144,17 @@ export function useMlpModelInjection(profileId: string | null) {
   useEffect(() => {
     refreshModel();
   }, [refreshModel]);
+
+  useEffect(() => {
+    if (!profileId || autoRefreshMs <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        return;
+      }
+      refreshModel();
+    }, autoRefreshMs);
+    return () => window.clearInterval(timer);
+  }, [autoRefreshMs, profileId, refreshModel]);
 
   return useMemo(
     () => ({ status, notice, refreshModel, lastMeta }),
