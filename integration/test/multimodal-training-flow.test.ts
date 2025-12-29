@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { test, before, after } from 'node:test';
 
@@ -11,6 +12,8 @@ import { TEST_TOKEN, isLiveServer, serverHeaders, serverBaseUrl, startServer, st
 
 before(startServer);
 after(stopServer);
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function waitForTrainingCompletion(pollUrl: string, headers: Record<string, string>) {
   const start = Date.now();
@@ -46,7 +49,10 @@ async function waitForTrainingCompletion(pollUrl: string, headers: Record<string
 }
 
 async function readTrainingManifest() {
-  const manifestPath = join(process.cwd(), '..', 'server', 'data', 'datasets', 'training_manifest.json');
+  const configuredDataDir = process.env.AMY_ECHO_DATA_DIR ?? process.env.AMY_DATA_DIR;
+  const manifestPath = configuredDataDir
+    ? join(configuredDataDir, 'datasets', 'training_manifest.json')
+    : join(__dirname, '..', '..', 'server', 'data', 'datasets', 'training_manifest.json');
   const raw = await fs.readFile(manifestPath, 'utf8');
   return JSON.parse(raw) as { entries?: Array<Record<string, any>> };
 }
@@ -55,11 +61,18 @@ async function waitForTrainingManifestEntries(profileId: string, labels: string[
   const timeoutMs = 15_000;
   const start = Date.now();
   while (Date.now() - start <= timeoutMs) {
-    const manifest = await readTrainingManifest().catch(() => null);
-    if (manifest?.entries?.length) {
-      const matches = manifest.entries.filter((entry) => entry.profileId === profileId && labels.includes(entry.label));
-      if (matches.length >= labels.length) {
-        return matches;
+    try {
+      const manifest = await readTrainingManifest();
+      if (manifest?.entries?.length) {
+        const matches = manifest.entries.filter((entry) => entry.profileId === profileId && labels.includes(entry.label));
+        const foundLabels = new Set(matches.map((entry) => entry.label));
+        if (labels.every((label) => foundLabels.has(label))) {
+          return matches;
+        }
+      }
+    } catch (error: any) {
+      if (error?.code !== 'ENOENT') {
+        assert.fail(`Failed to read or parse training manifest: ${error?.message ?? error}`);
       }
     }
     await delay(500);
@@ -166,12 +179,11 @@ test('Complete multimodal training and model distribution workflow', async () =>
     for (const entry of manifestEntries) {
       assert.ok(entry?.metadata?.validationSummary?.landmarksPath, 'manifest entry should include landmarks path');
       const modalities = entry?.metadata?.modalities;
-      assert.ok(modalities?.hands?.present, 'hand modalities should be present');
-      assert.ok(modalities?.pose?.present, 'pose modalities should be present');
-      assert.ok(modalities?.face?.present, 'face modalities should be present');
-      assert.ok(modalities?.hands?.coverage > 0, 'hand coverage should be above zero');
-      assert.ok(modalities?.pose?.coverage > 0, 'pose coverage should be above zero');
-      assert.ok(modalities?.face?.coverage > 0, 'face coverage should be above zero');
+      assert.ok(modalities, 'modalities object should be present in metadata');
+      for (const modality of ['hands', 'pose', 'face'] as const) {
+        assert.ok(modalities[modality]?.present, `modalities.${modality}.present should be true`);
+        assert.ok(modalities[modality]?.coverage > 0, `modalities.${modality}.coverage should be greater than 0`);
+      }
     }
     console.log('  ✓ Multimodal preview metadata persisted to training manifest');
   }
