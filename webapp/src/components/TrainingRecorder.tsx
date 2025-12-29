@@ -27,6 +27,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const isMountedRef = useRef(true);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [showRawVideo, setShowRawVideo] = useState(true);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingStartTimeRef = useRef<number | null>(null);
   const [manualStillFile, setManualStillFile] = useState<File | null>(null);
@@ -546,7 +547,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         <div className="video-wrapper gesture-fullscreen">
           <video
             ref={videoRef}
-            className={`video${isMirroredPreview ? ' mirrored' : ''}`}
+            className={`video${isMirroredPreview ? ' mirrored' : ''}${showRawVideo ? '' : ' video-hidden'}`}
+            data-testid="training-video"
             playsInline
             muted
             autoPlay
@@ -557,7 +559,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
             data-testid="overlay-canvas"
             aria-hidden={!showOverlay}
           />
-          <div className="video-veil" aria-hidden="true" />
+          <div className={`video-veil${showRawVideo ? '' : ' video-veil-hidden'}`} aria-hidden="true" />
 
           <div className="gesture-screen__hud">
             <div className="gesture-screen__status">
@@ -677,6 +679,15 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                   onChange={(event) => setShowOverlay(event.target.checked)}
                 />
                 <span>Overlay anzeigen</span>
+              </label>
+              <label className="toggle ghost-inline" htmlFor="raw-video-toggle">
+                <input
+                  id="raw-video-toggle"
+                  type="checkbox"
+                  checked={showRawVideo}
+                  onChange={(event) => setShowRawVideo(event.target.checked)}
+                />
+                <span>Rohvideo anzeigen</span>
               </label>
             </div>
 
