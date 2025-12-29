@@ -86,7 +86,7 @@ Sign IDs are automatically normalized to be server-compatible:
 2. **Requires Network**: Model updates require server connection for training and distribution
 3. **Manual Process**: Each step must be completed by the caregiver
 4. **Limited Status UI**: Status is tracked in storage, but the UI does not yet surface each phase clearly
-5. **Quality Validation**: No automated quality checks yet for determining if training data is good enough for the global model
+5. **Quality Validation**: Training bundles pass through the ingestion quality gate before frames are promoted into `data/dgs_samples.json`. The gate enforces minimum frame counts, hand coverage, and jitter thresholds (see `server/src/constants/trainingQuality.ts`) so only stable samples contribute to the global model.
 
 ## Future Improvements
 Tracked in [`docs/planning/TODO.md`](../planning/TODO.md) under "Custom Sign Workflow Enhancements".

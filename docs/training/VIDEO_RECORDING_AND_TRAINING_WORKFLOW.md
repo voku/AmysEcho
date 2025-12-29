@@ -94,6 +94,14 @@ interface MediaPipeGestureDetectorHandle {
 - Endpoint: `POST /api/v1/dgs/sample-bundles`
 - Accepts: ZIP bundles up to 64MB
 - Validates that `landmarks.json` exists, parses it, requires at least one frame, and records a `validationSummary` (frame count + file path) inside `manifestEntry.metadata`. Invalid bundles are rejected with HTTP 400 and the partially extracted directory is removed to avoid orphaned files.
+- During ingestion into `data/dgs_samples.json`, the server applies a quality gate before frames are promoted from `training_manifest.json`:
+  - **Minimum frames per sign**: `MIN_SIGN_SAMPLE_FRAMES = 8`
+  - **Required hand coverage**: `MIN_HAND_FRAME_COVERAGE = 0.7`
+  - **Jitter thresholds (average per-frame delta)**:
+    - Hands: `MAX_HAND_JITTER = 0.2`
+    - Pose: `MAX_POSE_JITTER = 0.15`
+    - Face: `MAX_FACE_JITTER = 0.12`
+  - Bundles that fail are skipped and logged with reasons. Thresholds live in `server/src/constants/trainingQuality.ts`.
 - Returns: Bundle ID and training job status
 
 **Bundle Format**:
@@ -146,7 +154,8 @@ interface MediaPipeGestureDetectorHandle {
 4. **Videoclip abspielen** – Den abgelegten Clip (`*.mp4`/`*.webm`) lokal öffnen und prüfen, dass die Aufnahme vollständig ist.
 5. **Landmarks-Datei validieren** – `landmarks.json` öffnen, JSON parse (mindestens ein Frame vorhanden) und bestätigen, dass die Daten mit den Logs übereinstimmen.
 6. **Manifest-Datei inspizieren** – `data/datasets/training_manifest.json` kontrollieren: neuer Eintrag mit korrekten Dateipfaden und aktualisiertem `metadata.validationSummary`.
-7. **Profil-Zuordnung bestätigen** – In `data/dgs_samples.json` prüfen, dass jede neue Probe `profileId` gesetzt hat und der `validationSummary.landmarksPath` auf die tatsächlich trainierte Datei zeigt.
+7. **Qualitäts-Gate prüfen** – In den Server-Logs sicherstellen, dass keine Warnungen wie `Training bundle rejected by quality gate` erscheinen, oder die Gründe nachvollziehen (Frame-Anzahl, Hand-Coverage, Jitter).
+8. **Profil-Zuordnung bestätigen** – In `data/dgs_samples.json` prüfen, dass jede neue Probe `profileId` gesetzt hat und der `validationSummary.landmarksPath` auf die tatsächlich trainierte Datei zeigt.
 
 ### Multimodale QA
 - **Hände sind Pflicht, Gesicht optional**: Fehlende Hand-Landmarks werden als Warnung protokolliert. Gesicht und Pose bleiben optional, weil manche Gebärden keinen Bezug zum Gesicht haben.
