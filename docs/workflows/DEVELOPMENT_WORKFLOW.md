@@ -175,6 +175,27 @@ describe('GestureHistoryService', () => {
 - **Testing**: Prioritize communication reliability tests
 - **Performance**: Optimize for Amy's usage patterns
 
+## 📸 Webapp Screenshots (Documentation Standard)
+
+When UI changes need a screenshot, follow this flow and document it directly in the relevant `docs/` file.
+
+### Step-by-step
+1. **Start the dev server** (repo root):
+   ```bash
+   npm run dev --prefix webapp -- --host 0.0.0.0 --port 5173
+   ```
+2. **Open demo mode**: `http://localhost:5173/AmysEcho/` → click **"Ohne Anmeldung fortfahren (Demo)"**.
+3. **Open learning**: click **"Lernen entdecken"**.
+4. **Start training**: choose a sign in the learning list and click **"Trainieren"**.
+5. **Capture the screenshot**: full-page so the context is visible.
+
+### Example (training view)
+- **Save file as**: `docs/training/screenshots/training-preview-toggle.png`
+- **Reference in docs** (Markdown):
+  ```md
+  ![Training view with raw/skeleton toggle](./screenshots/training-preview-toggle.png)
+  ```
+
 ## 🎯 Remember: Amy's Communication Is Sacred
 
 Every decision, every line of code, every optimization must serve one purpose: **enhancing Amy's ability to communicate with her family and caregivers**.

@@ -633,6 +633,11 @@ p {
   transform: scaleX(-1);
 }
 
+.video-hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
 .overlay {
   position: absolute;
   inset: 0;
@@ -653,6 +658,11 @@ p {
   background: linear-gradient(180deg, rgba(8, 32, 35, 0.65) 0%, rgba(8, 32, 35, 0.25) 40%, rgba(8, 32, 35, 0.75) 100%);
   z-index: var(--z-veil);
   pointer-events: none;
+}
+
+.video-veil-hidden {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .video-hud {

@@ -113,6 +113,19 @@ describe('TrainingRecorder', () => {
     expect(overlay).toHaveClass('overlay-hidden');
   });
 
+  it('toggles between raw video and skeleton view', async () => {
+    const user = userEvent.setup();
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    const video = screen.getByTestId('training-video');
+    expect(video).not.toHaveClass('video-hidden');
+
+    const toggle = screen.getByLabelText('Rohvideo anzeigen');
+    await user.click(toggle);
+
+    expect(video).toHaveClass('video-hidden');
+  });
+
   it('deaktiviert den Start bei laufender Initialisierung', () => {
     gestureState.status = 'initializing';
     render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
