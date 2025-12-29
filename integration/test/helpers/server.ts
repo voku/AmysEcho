@@ -47,7 +47,7 @@ function buildLandmarks(count = 42) {
 }
 
 export function buildTestTrainingBundleZipBuffer({
-  profileId = 'p-integration',
+  profileId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   label = 'HALLO',
 } = {}) {
   const metadata = {
@@ -87,8 +87,8 @@ async function cleanServerArtifacts() {
   const dbPath = join(serverDir, 'db.json');
   await fs.rm(dbPath, { force: true }).catch(() => {});
   // Only delete generated model files, not tracked baseline files
-  await fs.rm(join(serverDir, 'data', 'models', 'p1'), { recursive: true, force: true }).catch(() => {});
-  await fs.rm(join(serverDir, 'data', 'models', 'p-integration'), { recursive: true, force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data', 'models', '11111111-1111-4111-8111-111111111111'), { recursive: true, force: true }).catch(() => {});
+  await fs.rm(join(serverDir, 'data', 'models', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'), { recursive: true, force: true }).catch(() => {});
   await fs.rm(join(serverDir, 'data', 'datasets'), { recursive: true, force: true }).catch(() => {});
 }
 
@@ -97,7 +97,8 @@ async function waitForServerReady(baseUrl: string, headers: Record<string, strin
   const timeoutMs = 30_000;
   while (Date.now() - start < timeoutMs) {
     try {
-      const res = await fetch(`${baseUrl}/model-version`, { headers });
+      // Check a route that is only registered after database initialization
+      const res = await fetch(`${baseUrl}/api/v1/profiles`, { headers });
       if (res.ok || res.status === 401 || res.status === 403) {
         return;
       }
@@ -232,6 +233,25 @@ export async function stopServer() {
   refCount = Math.max(0, refCount - 1);
   // Keep the server alive across all test files
   // The process exit handler will clean it up when the test runner fully exits
+}
+
+export async function createProfile(profile: { id?: string; displayName: string }) {
+  const res = await fetch(`${serverBaseUrl()}/api/v1/profiles`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${TEST_TOKEN}`,
+    },
+    body: JSON.stringify(profile),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    console.error(`Failed to create profile: ${res.status}`, body);
+    throw new Error(`Failed to create profile: ${res.status} ${JSON.stringify(body)}`);
+  }
+  const data = await res.json();
+  console.log(`Created test profile: ${data.profile?.id} (${data.profile?.displayName})`);
+  return data;
 }
 
 export function serverHeaders(extra = {}) {

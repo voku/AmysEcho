@@ -33,7 +33,7 @@ import {
 import {
   PROFILE_BACKUPS_DIR,
 } from '../constants/profileRegistryPaths.js';
-import { TRAINING_UPLOADS_DIR, MLP_MODELS_DIR } from '../constants/modelPaths.js';
+import { TRAINING_UPLOADS_DIR, MLP_MODELS_DIR, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
 
 type ProfileRouteDeps = {
   authMiddleware: (req: Request, res: Response, next: NextFunction) => void;
@@ -47,6 +47,7 @@ type ProfileRouteDeps = {
 };
 
 const ProfileCreateSchema = z.object({
+  id: z.string().regex(PROFILE_ID_PATTERN).optional(),
   displayName: z.string().trim().min(1),
   metadata: z
     .object({
@@ -198,6 +199,7 @@ export function registerProfileRoutes(app: Express, deps: ProfileRouteDeps): voi
 
     try {
       const profile = ensureProfileRecord(registry, {
+        id: parsed.data.id,
         displayName: parsed.data.displayName,
         metadata: parsed.data.metadata,
       });

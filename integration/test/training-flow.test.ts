@@ -5,9 +5,12 @@ import { test, before, after } from 'node:test';
 import { createTrainingZip, uploadTrainingZip } from '../../webapp/src/training/trainingBundle.ts';
 import { triggerTrainingJob } from '../../webapp/src/training/trainingJob.ts';
 import type { TrainingFrame } from '../../webapp/src/training/types.ts';
-import { TEST_TOKEN, serverHeaders, serverBaseUrl, startServer, stopServer } from './helpers/server.ts';
+import { TEST_TOKEN, serverHeaders, serverBaseUrl, startServer, stopServer, createProfile } from './helpers/server.ts';
 
-before(startServer);
+before(async () => {
+  await startServer();
+  await createProfile({ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', displayName: 'Integration Test Profile' });
+});
 after(stopServer);
 
 async function waitForTrainingCompletion(pollUrl: string, headers: Record<string, string>) {
@@ -70,7 +73,7 @@ test('webapp training helpers integrate with live server', async () => {
 
   const payload = {
     label: 'HALLO',
-    profileId: 'p-integration',
+    profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     frames,
     capturedAt: '2024-05-28T12:03:11Z',
     source: 'web://integration-test',

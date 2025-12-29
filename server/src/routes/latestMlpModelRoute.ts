@@ -55,7 +55,7 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
       const profileId = resolved.profileId ?? undefined;
 
       if (rawProfileId && !profileId) {
-        return res.status(404).json({ error: 'Profil nicht gefunden.' });
+        await deps.logTraining(`latest-mlp-model profile ${rawProfileId} not found in registry, falling back to global`);
       }
       if (profileId && !deps.isProfileAuthorized(req, profileId)) {
         return res.status(403).json({ error: 'Zugriff verweigert.' });

@@ -8,9 +8,14 @@ import { test, before, after } from 'node:test';
 import { createTrainingZip, uploadTrainingZip } from '../../webapp/src/training/trainingBundle.ts';
 import { triggerTrainingJob } from '../../webapp/src/training/trainingJob.ts';
 import type { TrainingFrame } from '../../webapp/src/training/types.ts';
-import { TEST_TOKEN, isLiveServer, serverHeaders, serverBaseUrl, startServer, stopServer } from './helpers/server.ts';
+import { TEST_TOKEN, isLiveServer, serverHeaders, serverBaseUrl, startServer, stopServer, createProfile } from './helpers/server.ts';
 
-before(startServer);
+before(async () => {
+  await startServer();
+  await createProfile({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', displayName: 'Multimodal Test Profile' });
+  await createProfile({ id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', displayName: 'Metadata Test Profile' });
+  await createProfile({ id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', displayName: 'Hand-Only Test Profile' });
+});
 after(stopServer);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -95,7 +100,7 @@ async function waitForTrainingManifestEntries(profileId: string, labels: string[
  */
 test('Complete multimodal training and model distribution workflow', async () => {
   const baseUrl = serverBaseUrl();
-  const profileId = 'p-multimodal-test';
+  const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   
   console.log('\n=== Step 1: Create Multimodal Training Samples ===');
   
@@ -245,10 +250,11 @@ test('Complete multimodal training and model distribution workflow', async () =>
   console.log('\n=== Step 6: Test Model Distribution - Non-Existent Profile ===');
   
   // Test fallback for non-existent profile - still needs X-Profile-Id header for auth check
-  const nonExistentUrl = `${baseUrl}/latest-mlp-model?profileId=does-not-exist`;
+  const nonExistentProfileId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const nonExistentUrl = `${baseUrl}/latest-mlp-model?profileId=${nonExistentProfileId}`;
   const fallbackHeaders = {
     ...headers,
-    'X-Profile-Id': 'does-not-exist',
+    'X-Profile-Id': nonExistentProfileId,
   };
   const fallbackRes = await fetch(nonExistentUrl, { headers: fallbackHeaders });
   assert.strictEqual(fallbackRes.status, 200, 'Fallback should return global model');
@@ -289,7 +295,7 @@ test('Multimodal metadata is preserved in training bundles', async () => {
 
   const payload = {
     label: 'METADATA_TEST',
-    profileId: 'p-metadata-test',
+    profileId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
     frames,
     capturedAt: new Date().toISOString(),
     source: 'test://metadata',
@@ -329,7 +335,7 @@ test('Backward compatibility: Hand-only training still works', async () => {
 
   const payload = {
     label: 'HAND_ONLY_TEST',
-    profileId: 'p-hand-only-test',
+    profileId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
     frames: framesHandOnly,
     capturedAt: new Date().toISOString(),
     source: 'test://hand-only',

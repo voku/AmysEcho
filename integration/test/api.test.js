@@ -13,6 +13,7 @@ import {
   serverHeaders,
   startServer,
   stopServer,
+  createProfile,
 } from './helpers/server.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -22,10 +23,14 @@ const baseUrl = serverBaseUrl();
 const liveServer = isLiveServer();
 const localOnlyTest = liveServer ? test.skip : test;
 
-const TEST_PROFILE_ID = 'p-integration';
+const TEST_PROFILE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const TEST_LABEL = 'HALLO';
 
-before(startServer);
+before(async () => {
+  await startServer();
+  await createProfile({ id: TEST_PROFILE_ID, displayName: 'Integration Test Profile' });
+  await createProfile({ id: '11111111-1111-4111-8111-111111111111', displayName: 'P1 Profile' });
+});
 after(stopServer);
 
 test('POST /train-model invalid payload', async () => {
@@ -61,7 +66,7 @@ test('POST /train-model processes samples and returns model', async () => {
   const sample = {
     signId: 'g1',
     landmarkData: Array.from({ length: 42 }, (_, i) => [i * 0.01, 0.1, 0.1]),
-    profileId: 'p1',
+    profileId: '11111111-1111-4111-8111-111111111111',
   };
   const res = await fetch(`${baseUrl}/train-model`, {
     method: 'POST',
@@ -102,7 +107,7 @@ test('POST /train-model processes samples and returns model', async () => {
     console.log('Skipping latest-mlp-model check - unexpected status:', mlpRes.status);
   }
 
-  const profileRes = await fetch(`${baseUrl}/api/v1/dgs/model?profileId=p1`, { headers });
+  const profileRes = await fetch(`${baseUrl}/api/v1/dgs/model?profileId=11111111-1111-4111-8111-111111111111`, { headers });
   assert.strictEqual(profileRes.status, 404);
 
   process.env.EXPO_PUBLIC_API_URL = baseUrl;
@@ -114,7 +119,7 @@ test('POST /train-model processes samples and returns model', async () => {
   if (fetchMlpModel) {
     let b64 = null;
     try {
-      b64 = await fetchMlpModel('p1');
+      b64 = await fetchMlpModel('11111111-1111-4111-8111-111111111111');
     } catch {}
     if (!(typeof b64 === 'string' && b64.length > 0)) {
       console.log('Skipping webapp MLP b64 length check - model not available');
@@ -135,7 +140,7 @@ test('GET /model-version returns version and path', async () => {
 });
 
 localOnlyTest('GET /latest-mlp-model serves file and client caches it', async () => {
-  const modelDir = join(serverDir, 'data', 'models', 'p1');
+  const modelDir = join(serverDir, 'data', 'models', '11111111-1111-4111-8111-111111111111');
   await fs.mkdir(modelDir, { recursive: true });
   const buf = Buffer.from('mlp-model');
   const modelPath = join(modelDir, 'amy_model.npz');
@@ -145,8 +150,8 @@ localOnlyTest('GET /latest-mlp-model serves file and client caches it', async ()
     let status = 0;
     let out = Buffer.alloc(0);
     for (let i = 0; i < 3; i++) {
-      const res = await fetch(`${baseUrl}/latest-mlp-model?profileId=p1`, {
-        headers: serverHeaders({ 'X-Profile-Id': 'p1' }),
+      const res = await fetch(`${baseUrl}/latest-mlp-model?profileId=11111111-1111-4111-8111-111111111111`, {
+        headers: serverHeaders({ 'X-Profile-Id': '11111111-1111-4111-8111-111111111111' }),
       });
       status = res.status;
       if (status === 200) {
@@ -187,12 +192,12 @@ localOnlyTest('GET /latest-mlp-model serves file and client caches it', async ()
     let b64 = null;
     try {
       const { fetchMlpModel, getCachedMlpModel } = await import('../../webapp/src/gesture/modelClient.ts');
-      b64 = await fetchMlpModel('p1').catch(() => null);
+      b64 = await fetchMlpModel('11111111-1111-4111-8111-111111111111').catch(() => null);
       if (!(typeof b64 === 'string' && b64.length > 0)) {
         console.log('Skipping webapp MLP fetch check - model not available');
         return;
       }
-      const cached = await getCachedMlpModel('p1');
+      const cached = await getCachedMlpModel('11111111-1111-4111-8111-111111111111');
       assert.strictEqual(cached, b64);
       assert.strictEqual(Buffer.from(b64, 'base64').toString('base64'), canonicalBase64);
     } catch (e) {

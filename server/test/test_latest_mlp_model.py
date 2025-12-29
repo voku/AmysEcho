@@ -1,4 +1,5 @@
 import hashlib
+import json
 import shutil
 import time
 import urllib.error
@@ -26,6 +27,14 @@ def fetch_latest_mlp_model(base_url, profile_id=None, extra_headers=None, auth_h
             return resp.getcode()
     except urllib.error.HTTPError as e:
         return e.code
+
+def create_profile(base_url, auth_header, profile_id, display_name):
+    url = f"{base_url}/api/v1/profiles"
+    data = json.dumps({"id": profile_id, "displayName": display_name}).encode("utf-8")
+    headers = {**auth_header, "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        assert resp.getcode() == 201
 
 @pytest.fixture
 def missing_data_dir():
@@ -97,6 +106,7 @@ def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_
     assert seeded_path.stat().st_size > 0
 
 def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_server, base_url, auth_header):
+    create_profile(base_url, auth_header, "11111111-1111-4111-8111-111111111111", "Test Profile")
     status = fetch_latest_mlp_model(
         base_url,
         profile_id="11111111-1111-4111-8111-111111111111",
@@ -107,6 +117,7 @@ def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_s
 
 
 def test_latest_mlp_model_sets_headers(model_file, running_server, base_url, auth_header):
+    create_profile(base_url, auth_header, "11111111-1111-4111-8111-111111111111", "Test Profile")
     url = f"{base_url}/latest-mlp-model?profileId=11111111-1111-4111-8111-111111111111"
     headers = {**auth_header, "x-profile-id": "11111111-1111-4111-8111-111111111111"}
     req = urllib.request.Request(url, headers=headers)
