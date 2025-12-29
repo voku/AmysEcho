@@ -287,6 +287,7 @@ describe('useMlpModelInjection', () => {
   });
 
   it('aktualisiert das Modell im Hintergrund in festem Intervall', async () => {
+    vi.useFakeTimers();
     const fetchMock = vi
       .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
       .mockResolvedValue(
@@ -302,18 +303,28 @@ describe('useMlpModelInjection', () => {
 
     vi.stubGlobal('fetch', fetchMock as any);
 
-    const { result } = renderHook(() => useMlpModelInjection('amy', { autoRefreshMs: 25 }));
+    try {
+      const { result, unmount } = renderHook(() => useMlpModelInjection('amy', { autoRefreshMs: 25 }));
 
-    await waitFor(() => {
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
-    });
+      await act(async () => {
+        await Promise.resolve();
+      });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 60));
-    });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(result.current.status).toBe('ready');
 
-    await waitFor(() => {
-      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2);
-    });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50);
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
