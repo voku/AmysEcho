@@ -1,5 +1,5 @@
 import { waitFor } from '@testing-library/dom';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { useMlpModelInjection } from './useMlpModelInjection';
 
@@ -283,6 +283,37 @@ describe('useMlpModelInjection', () => {
     await waitFor(() => {
       expect(result.current.status).toBe('error');
       expect(result.current.notice).toContain('Sitzung abgelaufen');
+    });
+  });
+
+  it('aktualisiert das Modell im Hintergrund in festem Intervall', async () => {
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValue(
+        new Response(new Uint8Array([8, 8, 8]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-10',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+          },
+        }),
+      );
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const { result } = renderHook(() => useMlpModelInjection('amy', { autoRefreshMs: 25 }));
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
   });
 });
