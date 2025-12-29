@@ -149,18 +149,28 @@ interface MediaPipeGestureDetectorHandle {
 
 ### Manuelle Prüfungen
 1. **Gestenaufnahme starten** – In der Webapp auf der Trainingsseite eine Geste aufzeichnen und bestätigen.
-2. **Bundle-Upload beobachten** – Sicherstellen, dass der Upload eine `queued`-Antwort erhält.
-3. **Bundle-Dateien prüfen** – Im Verzeichnis `data/uploads/<profil>/` sicherstellen, dass `bundle.zip` und extrahierte Assets vorliegen.
-4. **Videoclip abspielen** – Den abgelegten Clip (`*.mp4`/`*.webm`) lokal öffnen und prüfen, dass die Aufnahme vollständig ist.
-5. **Landmarks-Datei validieren** – `landmarks.json` öffnen, JSON parse (mindestens ein Frame vorhanden) und bestätigen, dass die Daten mit den Logs übereinstimmen.
-6. **Manifest-Datei inspizieren** – `data/datasets/training_manifest.json` kontrollieren: neuer Eintrag mit korrekten Dateipfaden und aktualisiertem `metadata.validationSummary`.
-7. **Qualitäts-Gate prüfen** – In den Server-Logs sicherstellen, dass keine Warnungen wie `Training bundle rejected by quality gate` erscheinen, oder die Gründe nachvollziehen (Frame-Anzahl, Hand-Coverage, Jitter).
-8. **Profil-Zuordnung bestätigen** – In `data/dgs_samples.json` prüfen, dass jede neue Probe `profileId` gesetzt hat und der `validationSummary.landmarksPath` auf die tatsächlich trainierte Datei zeigt.
+2. **Overlay-Vorschau prüfen (Hände/Pose/Gesicht)** – Während die Kamera läuft sicherstellen, dass alle drei Overlays sichtbar sind und stabil auf dem Live-Bild liegen (Handpunkte, Körper-Skelett, Gesichtspunkte).
+3. **Hinweistexte bei fehlenden Modalitäten prüfen** – Eine Modalität gezielt aus dem Bild nehmen (z. B. Hände aus dem Frame), dann prüfen, dass die UI die erwarteten Hinweise anzeigt (siehe Liste unten).
+4. **Bundle-Upload beobachten** – Sicherstellen, dass der Upload eine `queued`-Antwort erhält.
+5. **Bundle-Dateien prüfen** – Im Verzeichnis `data/uploads/<profil>/` sicherstellen, dass `bundle.zip` und extrahierte Assets vorliegen.
+6. **Videoclip abspielen** – Den abgelegten Clip (`*.mp4`/`*.webm`) lokal öffnen und prüfen, dass die Aufnahme vollständig ist.
+7. **Landmarks-Datei validieren** – `landmarks.json` öffnen, JSON parse (mindestens ein Frame vorhanden) und bestätigen, dass die Daten mit den Logs übereinstimmen.
+8. **Manifest-Datei inspizieren** – `data/datasets/training_manifest.json` kontrollieren: neuer Eintrag mit korrekten Dateipfaden und aktualisiertem `metadata.validationSummary`.
+9. **Qualitäts-Gate prüfen** – In den Server-Logs sicherstellen, dass keine Warnungen wie `Training bundle rejected by quality gate` erscheinen, oder die Gründe nachvollziehen (Frame-Anzahl, Hand-Coverage, Jitter).
+10. **Profil-Zuordnung bestätigen** – In `data/dgs_samples.json` prüfen, dass jede neue Probe `profileId` gesetzt hat und der `validationSummary.landmarksPath` auf die tatsächlich trainierte Datei zeigt.
+11. **Modell-Download prüfen** – Nach erfolgreichem Training `GET /latest-mlp-model?profileId=<profil>` aufrufen und sicherstellen, dass das Modell heruntergeladen wird.
 
 ### Multimodale QA
 - **Hände sind Pflicht, Gesicht optional**: Fehlende Hand-Landmarks werden als Warnung protokolliert. Gesicht und Pose bleiben optional, weil manche Gebärden keinen Bezug zum Gesicht haben.
 - **Smoothing beibehalten**: Die im Webapp-Smoothing verwendete Konfiguration bleibt in `metadata.smoothing` enthalten. Sie dient aktuell nur als Dokumentation und wird vom Trainingsskript nicht ausgewertet.
 - **Aufnahme-Metadaten & Zeitstempel**: `metadata.recording` (Frame-Zahlen, Clip-Dauer/-Größe, MIME-Typen) bleibt im Manifest erhalten. Frame-Zeitstempel (`timestampMs`) werden beim Ingest als `ts` in `dgs_samples.json` verwendet.
+
+### Erwartete UI-Hinweise (Deutsch)
+Die folgenden Hinweise müssen erscheinen, wenn die jeweilige Modalität fehlt:
+- **Hände fehlen:** `Bitte halte beide Hände sichtbar im Kamerabild.`
+- **Pose fehlt:** `Bitte halte deinen Oberkörper im Bild, damit Pose-Landmarks erkannt werden.`
+- **Gesicht fehlt:** `Bitte halte dein Gesicht im Bild, damit Gesichts-Landmarks erkannt werden.`
+
 
 ---
 
