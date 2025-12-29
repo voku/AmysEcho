@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { auth } from '../middleware/auth.js';
-import { ensureDataDir, TRAINING_DATASETS_DIR } from '../constants/modelPaths.js';
+import { ensureDataDir, TRAINING_DATASETS_DIR, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
 
@@ -76,7 +76,11 @@ function normalizeLabel(label: string): string {
   return label.trim();
 }
 
-export function registerCustomSignsRoute(app: Express): void {
+type CustomSignsDeps = {
+  resolveProfileId?: (profileId: string | null) => Promise<{ profileId: string | null }>;
+};
+
+export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {}): void {
   app.get('/api/v1/dgs/signs', auth, async (req: Request, res: Response) => {
     try {
       const store = await readStore();
@@ -86,34 +90,52 @@ export function registerCustomSignsRoute(app: Express): void {
       // If no profileId is provided, return empty array to prevent cross-profile data leakage
       let signs: typeof store.signs = [];
       if (typeof profileId === 'string' && profileId.trim().length > 0) {
-        signs = store.signs.filter(g => g.profileId === profileId);
+        if (!PROFILE_ID_PATTERN.test(profileId)) {
+          return res.status(400).json({ error: 'Ungültige Profil-ID.' });
+        }
+        const resolved = deps.resolveProfileId
+          ? await deps.resolveProfileId(profileId)
+          : { profileId };
+        if (!resolved.profileId) {
+          return res.status(404).json({ error: 'Profil nicht gefunden.' });
+        }
+        signs = store.signs.filter(g => g.profileId === resolved.profileId);
       }
       
       return res.json({ signs });
     } catch (error) {
       console.error('Failed to load custom signs', error);
-      return res.status(500).json({ error: 'Failed to load custom signs' });
+      return res.status(500).json({ error: 'Benutzerdefinierte Zeichen konnten nicht geladen werden.' });
     }
   });
 
   app.post('/api/v1/dgs/signs', auth, async (req: Request, res: Response) => {
     const parsed = SignRequestSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: 'invalid sign payload', details: parsed.error.flatten() });
+      return res.status(400).json({ error: 'Ungültige Zeichen-Daten.', details: parsed.error.flatten() });
     }
 
     const { id, label, profileId, emoji } = parsed.data;
+    if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
+      return res.status(400).json({ error: 'Ungültige Profil-ID.' });
+    }
     const normalizedId = normalizeSignId(id);
     const normalizedLabel = normalizeLabel(label);
     const normalizedEmoji = typeof emoji === 'string' && emoji.trim().length > 0 ? emoji.trim() : null;
 
     try {
+      const resolved = deps.resolveProfileId
+        ? await deps.resolveProfileId(profileId ?? null)
+        : { profileId: profileId ?? null };
+      if (profileId && !resolved.profileId) {
+        return res.status(404).json({ error: 'Profil nicht gefunden.' });
+      }
       const result = await withFileLock(CUSTOM_SIGNS_PATH, async () => {
         const store = await readStore();
         // Find existing sign with same id AND profileId (if provided)
         const existing = store.signs.find((g) => 
           g.id === normalizedId && 
-          (profileId ? g.profileId === profileId : !g.profileId)
+          (resolved.profileId ? g.profileId === resolved.profileId : !g.profileId)
         );
         const now = new Date().toISOString();
         if (existing) {
@@ -126,7 +148,7 @@ export function registerCustomSignsRoute(app: Express): void {
         const newSign = {
           id: normalizedId,
           label: normalizedLabel,
-          profileId,
+          profileId: resolved.profileId ?? undefined,
           emoji: normalizedEmoji,
           createdAt: now,
           updatedAt: now,
@@ -139,7 +161,7 @@ export function registerCustomSignsRoute(app: Express): void {
       return res.status(result.created ? 201 : 200).json(result.sign);
     } catch (error) {
       console.error('Failed to persist custom sign', error);
-      return res.status(500).json({ error: 'Failed to store custom sign' });
+      return res.status(500).json({ error: 'Benutzerdefiniertes Zeichen konnte nicht gespeichert werden.' });
     }
   });
 }

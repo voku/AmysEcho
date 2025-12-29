@@ -10,11 +10,19 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import warnings
+
 import jwt
 import numpy as np
 import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
+
+warnings.filterwarnings(
+    "ignore",
+    message="The 'hidden_size' parameter is deprecated and ignored.*",
+    category=DeprecationWarning,
+)
 
 
 def resolve_data_dir() -> Path:

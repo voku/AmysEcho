@@ -46,8 +46,12 @@ The performance budget for the gesture recognition pipeline is as follows:
 These are target values and should be validated in real browser environments.
 
 ## 7. Data Privacy & Profile Management
-- `GET /api/v1/profiles/:id/export` returns a profile's stored data as JSON
-- `DELETE /api/v1/profiles/:id` removes a profile and associated usage/correction records to honor caregiver deletion requests
+- Profile registry data is stored under `server/data/profiles/profile_registry.json` and keyed by UUIDs with legacy IDs preserved for lookup.
+- `GET /api/v1/profiles/:id/export` returns a ZIP bundle with all profile training data, models, and metadata for GDPR exports.
+- `DELETE /api/v1/profiles/:id` removes a profile with cascade cleanup across usage stats, corrections, training bundles, models, and manifests.
+- `POST /api/v1/profiles/:id/merge` merges or transfers profile data between UUIDs for caregiver-driven consolidation.
+- `POST /api/v1/profiles/:id/sync-token` + `POST /api/v1/profiles/sync` enable multi-device sync by exchanging a one-time token.
+- `POST /api/v1/profiles/:id/share` and `/api/v1/profiles/share/accept` handle caregiver sharing workflows.
 
 ## 8. Integration Tests
 - Integration tests in `integration/` verify the full training loop

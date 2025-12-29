@@ -78,20 +78,21 @@ describe('custom signs route', () => {
   });
 
   it('lists stored signs via GET with profileId filter', async () => {
+    const profileId = '11111111-1111-4111-8111-111111111111';
     await request(app)
       .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'hilfe', label: 'Hilfe zeigen', profileId: 'profile-test' })
+      .send({ id: 'hilfe', label: 'Hilfe zeigen', profileId })
       .expect(201);
 
     const response = await request(app)
-      .get('/api/v1/dgs/signs?profileId=profile-test')
+      .get(`/api/v1/dgs/signs?profileId=${profileId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(Array.isArray(response.body.signs)).toBe(true);
     expect(response.body.signs).toHaveLength(1);
-    expect(response.body.signs[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', profileId: 'profile-test' });
+    expect(response.body.signs[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', profileId });
   });
 
   it('accepts ASCII-slugified German sign IDs', async () => {
@@ -127,7 +128,7 @@ describe('custom signs route', () => {
       .send({ id: 'ärger_zeigen', label: 'Ärger zeigen', emoji: '😠' })
       .expect(400);
 
-    expect(response.body.error).toBe('invalid sign payload');
+    expect(response.body.error).toBe('Ungültige Zeichen-Daten.');
   });
 
   it('stores signs with profileId for per-kid isolation', async () => {
@@ -135,22 +136,22 @@ describe('custom signs route', () => {
     await request(app)
       .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'mein_zeichen', label: 'Mein Zeichen', profileId: 'profile-a', emoji: '👋' })
+      .send({ id: 'mein_zeichen', label: 'Mein Zeichen', profileId: '22222222-2222-4222-8222-222222222222', emoji: '👋' })
       .expect(201);
 
     // Add sign for profile B
     await request(app)
       .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'dein_zeichen', label: 'Dein Zeichen', profileId: 'profile-b', emoji: '🤚' })
+      .send({ id: 'dein_zeichen', label: 'Dein Zeichen', profileId: '33333333-3333-4333-8333-333333333333', emoji: '🤚' })
       .expect(201);
 
     // Verify both are stored
     const raw = await fs.readFile(signsPath, 'utf8');
     const stored = JSON.parse(raw);
     expect(stored.signs).toHaveLength(2);
-    expect(stored.signs[0]).toMatchObject({ id: 'mein_zeichen', profileId: 'profile-a' });
-    expect(stored.signs[1]).toMatchObject({ id: 'dein_zeichen', profileId: 'profile-b' });
+    expect(stored.signs[0]).toMatchObject({ id: 'mein_zeichen', profileId: '22222222-2222-4222-8222-222222222222' });
+    expect(stored.signs[1]).toMatchObject({ id: 'dein_zeichen', profileId: '33333333-3333-4333-8333-333333333333' });
   });
 
   it('filters signs by profileId when listing', async () => {
@@ -158,13 +159,13 @@ describe('custom signs route', () => {
     await request(app)
       .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'sign_a', label: 'Sign A', profileId: 'profile-a' })
+      .send({ id: 'sign_a', label: 'Sign A', profileId: '22222222-2222-4222-8222-222222222222' })
       .expect(201);
 
     await request(app)
       .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'sign_b', label: 'Sign B', profileId: 'profile-b' })
+      .send({ id: 'sign_b', label: 'Sign B', profileId: '33333333-3333-4333-8333-333333333333' })
       .expect(201);
 
     await request(app)
@@ -183,21 +184,21 @@ describe('custom signs route', () => {
 
     // Get signs for profile A
     const profileAResponse = await request(app)
-      .get('/api/v1/dgs/signs?profileId=profile-a')
+      .get('/api/v1/dgs/signs?profileId=22222222-2222-4222-8222-222222222222')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(profileAResponse.body.signs).toHaveLength(1);
-    expect(profileAResponse.body.signs[0]).toMatchObject({ id: 'sign_a', profileId: 'profile-a' });
+    expect(profileAResponse.body.signs[0]).toMatchObject({ id: 'sign_a', profileId: '22222222-2222-4222-8222-222222222222' });
 
     // Get signs for profile B
     const profileBResponse = await request(app)
-      .get('/api/v1/dgs/signs?profileId=profile-b')
+      .get('/api/v1/dgs/signs?profileId=33333333-3333-4333-8333-333333333333')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(profileBResponse.body.signs).toHaveLength(1);
-    expect(profileBResponse.body.signs[0]).toMatchObject({ id: 'sign_b', profileId: 'profile-b' });
+    expect(profileBResponse.body.signs[0]).toMatchObject({ id: 'sign_b', profileId: '33333333-3333-4333-8333-333333333333' });
   });
 
   it('allows same sign ID for different profiles', async () => {
@@ -205,21 +206,21 @@ describe('custom signs route', () => {
     await request(app)
       .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'help', label: 'Help from A', profileId: 'profile-a' })
+      .send({ id: 'help', label: 'Help from A', profileId: '22222222-2222-4222-8222-222222222222' })
       .expect(201);
 
     // Profile B creates "help" sign (same ID, different profile)
     await request(app)
       .post('/api/v1/dgs/signs')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ id: 'help', label: 'Help from B', profileId: 'profile-b' })
+      .send({ id: 'help', label: 'Help from B', profileId: '33333333-3333-4333-8333-333333333333' })
       .expect(201);
 
     // Both should be stored
     const raw = await fs.readFile(signsPath, 'utf8');
     const stored = JSON.parse(raw);
     expect(stored.signs).toHaveLength(2);
-    expect(stored.signs[0]).toMatchObject({ id: 'help', label: 'Help from A', profileId: 'profile-a' });
-    expect(stored.signs[1]).toMatchObject({ id: 'help', label: 'Help from B', profileId: 'profile-b' });
+    expect(stored.signs[0]).toMatchObject({ id: 'help', label: 'Help from A', profileId: '22222222-2222-4222-8222-222222222222' });
+    expect(stored.signs[1]).toMatchObject({ id: 'help', label: 'Help from B', profileId: '33333333-3333-4333-8333-333333333333' });
   });
 });

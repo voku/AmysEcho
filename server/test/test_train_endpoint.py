@@ -207,10 +207,10 @@ def test_train_endpoint():
             assert len(buf) > 0
 
         mlp_prof_req = urllib.request.Request(
-            f"http://localhost:{port}/latest-mlp-model?profileId=p1",
+            f"http://localhost:{port}/latest-mlp-model?profileId=11111111-1111-4111-8111-111111111111",
             headers={
                 **_make_auth_headers(access_token),
-                "x-profile-id": "p1",
+                "x-profile-id": "11111111-1111-4111-8111-111111111111",
             },
         )
         with urllib.request.urlopen(mlp_prof_req, timeout=10) as mlp_presp:
@@ -277,7 +277,7 @@ def test_train_endpoint_returns_queue_metadata():
         samples = [
             {
                 "signId": "g1",
-                "profileId": "p1",
+                "profileId": "11111111-1111-4111-8111-111111111111",
                 "landmarkData": landmarks_sequence,
             }
         ]
@@ -329,7 +329,7 @@ def test_train_requests_are_serialized():
         samples = [
             {
                 "signId": "g1",
-                "profileId": "p1",
+                "profileId": "11111111-1111-4111-8111-111111111111",
                 "landmarkData": landmarks_sequence,
             }
         ]

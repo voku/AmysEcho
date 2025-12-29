@@ -47,9 +47,18 @@ export interface InteractionLog {
   processedBy: ProcessedBy;
 }
 
+export interface ProfileMetadata {
+  ageYears?: number;
+  birthDate?: string;
+  primaryLanguage?: string;
+  notes?: string;
+}
+
 export interface Profile {
   id: string;
-  name: string; // Added name property
+  displayName: string;
+  createdAt: string;
+  metadata?: ProfileMetadata;
   consentDataUpload: boolean;
   consentHelpMeGetSmarter: boolean;
   vocabularySetId: string;
@@ -111,4 +120,3 @@ export interface NegativeSample {
   sign: string;
   timestamp: number;
 }
-

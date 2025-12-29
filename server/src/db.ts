@@ -14,7 +14,7 @@ import {
 } from './types.js';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 
 export interface Database {
   symbols: SymbolRecord[];
@@ -379,8 +379,9 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 
   if (db.profiles.length === 0) {
     const profile: Profile = {
-      id: 'default',
-      name: 'Default Profile',
+      id: randomUUID(),
+      displayName: 'Standardprofil',
+      createdAt: new Date().toISOString(),
       consentDataUpload: false,
       consentHelpMeGetSmarter: false,
       vocabularySetId: 'basic',

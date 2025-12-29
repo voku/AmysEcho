@@ -1,42 +1,66 @@
 import type { Express, Request, Response, NextFunction } from 'express';
 import type { Database } from '../db.js';
+import type { ProfileRegistry } from '../services/profileRegistry.js';
+import { findProfileRecord } from '../services/profileRegistry.js';
+import { buildProfileExportArchive, deleteProfileTrainingData } from '../services/profileDataService.js';
+import { saveDatabase } from '../db.js';
 
 type GdprDependencies = {
   authMiddleware: (req: Request, res: Response, next: NextFunction) => void;
   db: Database;
   dbFilePath: string;
-  getProfileData: (db: Database, profileId: string) => {
-    profile: unknown;
-    usageStats: unknown[];
-    corrections: unknown[];
-  };
-  deleteProfileData: (db: Database, profileId: string, filePath: string) => Promise<void>;
+  registry: ProfileRegistry;
+  registryPath: string;
+  saveRegistry: (registryPath: string, registry: ProfileRegistry) => Promise<void>;
   withFileLock: <T>(filePath: string, callback: () => Promise<T>) => Promise<T>;
   logError: (message: string, metadata?: Record<string, unknown>) => void;
 };
 
 export function registerGdprRoutes(app: Express, deps: GdprDependencies): void {
-  const { authMiddleware, db, dbFilePath, getProfileData, deleteProfileData, withFileLock, logError } = deps;
+  const { authMiddleware, db, dbFilePath, registry, registryPath, saveRegistry, withFileLock, logError } = deps;
 
-  app.get('/api/v1/profiles/:id/export', authMiddleware, (req: Request, res: Response) => {
+  app.get('/api/v1/profiles/:id/export', authMiddleware, async (req: Request, res: Response) => {
     const { id } = req.params;
-    const data = getProfileData(db, id);
-    if (!data.profile) {
-      res.status(404).json({ error: 'Profile not found' });
+    const profile = findProfileRecord(registry, id);
+    if (!profile) {
+      res.status(404).json({ error: 'Profil nicht gefunden.' });
       return;
     }
-    res.json(data);
+    try {
+      const { buffer, checksum } = await buildProfileExportArchive(profile.id, registry, db);
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="profile_${profile.id}_export.zip"`);
+      res.setHeader('X-Profile-Checksum', checksum);
+      res.status(200).send(buffer);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logError('Profile export failed', { error: message, profileId: profile.id });
+      res.status(500).json({ error: 'Profil-Export fehlgeschlagen.' });
+    }
   });
 
   app.delete('/api/v1/profiles/:id', authMiddleware, async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
-      await withFileLock(dbFilePath, async () => deleteProfileData(db, id, dbFilePath));
+      const profile = findProfileRecord(registry, id);
+      if (!profile) {
+        res.status(404).json({ error: 'Profil nicht gefunden.' });
+        return;
+      }
+      await withFileLock(dbFilePath, async () => {
+        db.profiles = db.profiles.filter((p) => p.id !== profile.id);
+        db.usageStats = db.usageStats.filter((u) => u.profileId !== profile.id);
+        db.corrections = db.corrections.filter((c) => c.profileId !== profile.id);
+        await saveDatabase(db, dbFilePath);
+      });
+      await deleteProfileTrainingData(profile.id);
+      registry.profiles = registry.profiles.filter((p) => p.id !== profile.id);
+      await withFileLock(registryPath, async () => saveRegistry(registryPath, registry));
       res.json({ status: 'deleted' });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logError('Profile deletion failed', { error: message, profileId: id });
-      res.status(500).json({ error: 'Profile deletion failed' });
+      res.status(500).json({ error: 'Profil konnte nicht gelöscht werden.' });
     }
   });
 }

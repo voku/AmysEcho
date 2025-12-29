@@ -8,7 +8,7 @@ import { DATA_DIR, TRAINING_MANIFEST_PATH } from '../../src/constants/modelPaths
 
 describe('System Stress & Stability Integration', () => {
   let accessToken: string;
-  const profiles = ['amy-stress-1', 'caregiver-stress-2'];
+  let profiles: string[] = [];
   const gestures = ['ESSEN', 'TRINKEN'];
 
   beforeAll(async () => {
@@ -18,6 +18,18 @@ describe('System Stress & Stability Integration', () => {
       username: 'stress',
       role: 'admin',
     }).accessToken;
+
+    const profileResponses = await Promise.all([
+      request(app)
+        .post('/api/v1/profiles')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ displayName: 'Amy Stress 1' }),
+      request(app)
+        .post('/api/v1/profiles')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ displayName: 'Caregiver Stress 2' }),
+    ]);
+    profiles = profileResponses.map((response) => response.body.profile.id);
 
     // Ensure clean state
     if (fs.existsSync(TRAINING_MANIFEST_PATH)) {
