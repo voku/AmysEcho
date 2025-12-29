@@ -1,11 +1,13 @@
 import assert from 'node:assert';
+import { promises as fs } from 'node:fs';
+import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { test, before, after } from 'node:test';
 
 import { createTrainingZip, uploadTrainingZip } from '../../webapp/src/training/trainingBundle.ts';
 import { triggerTrainingJob } from '../../webapp/src/training/trainingJob.ts';
 import type { TrainingFrame } from '../../webapp/src/training/types.ts';
-import { TEST_TOKEN, serverHeaders, serverBaseUrl, startServer, stopServer } from './helpers/server.ts';
+import { TEST_TOKEN, isLiveServer, serverHeaders, serverBaseUrl, startServer, stopServer } from './helpers/server.ts';
 
 before(startServer);
 after(stopServer);
@@ -41,6 +43,29 @@ async function waitForTrainingCompletion(pollUrl: string, headers: Record<string
   }
 
   assert.fail(`training job did not complete before timeout (last status: ${lastStatus})`);
+}
+
+async function readTrainingManifest() {
+  const manifestPath = join(process.cwd(), '..', 'server', 'data', 'datasets', 'training_manifest.json');
+  const raw = await fs.readFile(manifestPath, 'utf8');
+  return JSON.parse(raw) as { entries?: Array<Record<string, any>> };
+}
+
+async function waitForTrainingManifestEntries(profileId: string, labels: string[]) {
+  const timeoutMs = 15_000;
+  const start = Date.now();
+  while (Date.now() - start <= timeoutMs) {
+    const manifest = await readTrainingManifest().catch(() => null);
+    if (manifest?.entries?.length) {
+      const matches = manifest.entries.filter((entry) => entry.profileId === profileId && labels.includes(entry.label));
+      if (matches.length >= labels.length) {
+        return matches;
+      }
+    }
+    await delay(500);
+  }
+
+  assert.fail('training manifest was not populated with multimodal entries in time');
 }
 
 /**
@@ -134,6 +159,22 @@ test('Complete multimodal training and model distribution workflow', async () =>
   }
 
   console.log(`\n✓ Step 1 Complete: Created and uploaded ${signs.length} multimodal training bundles`);
+
+  if (!isLiveServer()) {
+    console.log('\n=== Step 1b: Verify Preview Modalities Persisted ===');
+    const manifestEntries = await waitForTrainingManifestEntries(profileId, signs);
+    for (const entry of manifestEntries) {
+      assert.ok(entry?.metadata?.validationSummary?.landmarksPath, 'manifest entry should include landmarks path');
+      const modalities = entry?.metadata?.modalities;
+      assert.ok(modalities?.hands?.present, 'hand modalities should be present');
+      assert.ok(modalities?.pose?.present, 'pose modalities should be present');
+      assert.ok(modalities?.face?.present, 'face modalities should be present');
+      assert.ok(modalities?.hands?.coverage > 0, 'hand coverage should be above zero');
+      assert.ok(modalities?.pose?.coverage > 0, 'pose coverage should be above zero');
+      assert.ok(modalities?.face?.coverage > 0, 'face coverage should be above zero');
+    }
+    console.log('  ✓ Multimodal preview metadata persisted to training manifest');
+  }
 
   console.log('\n=== Step 2: Trigger Model Training ===');
   
