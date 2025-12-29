@@ -442,7 +442,7 @@ export async function setupDatabase(filePath: string): Promise<Database> {
   }
 
   if (db.usageStats.length === 0 && db.symbols.length > 0) {
-    const defaultProfileId = db.profiles[0]?.id ?? 'default';
+    const defaultProfileId = db.profiles[0].id;
     for (const sym of db.symbols) {
       db.usageStats.push({
         id: generateId(),

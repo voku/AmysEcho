@@ -308,7 +308,14 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
     const migration = await migrateProfileIds(db, PROFILE_REGISTRY_PATH);
     profileRegistry = migration.registry;
     app.locals.profileRegistry = profileRegistry;
-    if (profileRegistry.profiles.length === 0) {
+    if (profileRegistry.profiles.length === 0 && db.profiles.length > 0) {
+      // Reuse the default profile created by setupDatabase
+      const defaultProfile = db.profiles[0];
+      ensureProfileRecord(profileRegistry, {
+        id: defaultProfile.id,
+        displayName: defaultProfile.displayName || 'Standardprofil',
+      });
+    } else if (profileRegistry.profiles.length === 0) {
       ensureProfileRecord(profileRegistry, {
         displayName: 'Standardprofil',
       });
@@ -386,23 +393,32 @@ async function runProfileBackupCycle(): Promise<void> {
   if (!profileRegistry) return;
   const intervalMs = config.profileBackupIntervalHours * 60 * 60 * 1000;
   const now = Date.now();
+
+  const latestBackups = new Map<string, number>();
+  for (const backup of profileRegistry.backups) {
+    const backupTime = new Date(backup.createdAt).getTime();
+    const existingTime = latestBackups.get(backup.profileId) ?? 0;
+    if (backupTime > existingTime) {
+      latestBackups.set(backup.profileId, backupTime);
+    }
+  }
+
   for (const profile of profileRegistry.profiles) {
-    const lastBackup = profileRegistry.backups
-      .filter((backup) => backup.profileId === profile.id)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-    const lastBackupTime = lastBackup ? new Date(lastBackup.createdAt).getTime() : 0;
+    const lastBackupTime = latestBackups.get(profile.id) ?? 0;
     if (now - lastBackupTime < intervalMs) {
       continue;
     }
     try {
       const backup = await writeProfileBackup(profile.id, profileRegistry, dbInstance);
+      const createdAt = new Date().toISOString();
       profileRegistry.backups.push({
         profileId: profile.id,
-        createdAt: new Date().toISOString(),
+        createdAt,
         path: backup.path,
         sizeBytes: backup.sizeBytes,
         checksum: backup.checksum,
       });
+      latestBackups.set(profile.id, new Date(createdAt).getTime()); // Keep map up-to-date
       await withFileLock(PROFILE_REGISTRY_PATH, async () =>
         saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
       );

@@ -17,12 +17,6 @@ import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 
-warnings.filterwarnings(
-    "ignore",
-    message="The 'hidden_size' parameter is deprecated and ignored.*",
-    category=DeprecationWarning,
-)
-
 
 def resolve_data_dir() -> Path:
     data_dir = os.environ.get("AMY_ECHO_DATA_DIR") or os.environ.get("AMY_DATA_DIR")

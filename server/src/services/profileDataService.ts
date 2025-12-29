@@ -252,39 +252,39 @@ export async function restoreProfileFromArchive(
   }
   const payload = JSON.parse(profileEntry.getData().toString('utf8')) as ProfileExportPayload;
 
-  db.profiles = db.profiles.filter((p) => p.id !== profileId);
+  // Prepare data updates (do not mutate db yet)
+  const newProfiles = db.profiles.filter((p) => p.id !== profileId);
   if (payload.dbProfile) {
-    db.profiles.push({ ...payload.dbProfile, id: profileId });
+    newProfiles.push({ ...payload.dbProfile, id: profileId });
   }
 
-  db.usageStats = db.usageStats.filter((u) => u.profileId !== profileId);
-  db.usageStats.push(
+  const newUsageStats = [
+    ...db.usageStats.filter((u) => u.profileId !== profileId),
     ...payload.usageStats.map((stat) => ({ ...stat, profileId })),
-  );
+  ];
 
-  db.corrections = db.corrections.filter((c) => c.profileId !== profileId);
-  db.corrections.push(
+  const newCorrections = [
+    ...db.corrections.filter((c) => c.profileId !== profileId),
     ...payload.corrections.map((corr) => ({ ...corr, profileId })),
-  );
+  ];
 
   const existingManifest = await loadTrainingManifest();
   const manifestEntries = existingManifest.entries.filter((entry) => entry.profileId !== profileId);
-  await saveTrainingManifest({ entries: [...manifestEntries, ...payload.trainingManifest.entries] });
+  const newManifest = { entries: [...manifestEntries, ...payload.trainingManifest.entries] };
 
   const existingSamples = await loadDgsSamples();
   const sampleEntries = existingSamples.samples.filter((sample) => sample.profileId !== profileId);
-  await saveDgsSamples({ samples: [...sampleEntries, ...payload.dgsSamples.samples] });
+  const newSamples = { samples: [...sampleEntries, ...payload.dgsSamples.samples] };
 
   const existingSigns = await loadCustomSigns();
   const restoredCustomSigns = payload.customSigns ?? { signs: [] };
   const remainingSigns = existingSigns.signs.filter((sign) => sign.profileId !== profileId);
-  await saveCustomSigns({ signs: [...remainingSigns, ...restoredCustomSigns.signs] });
+  const newSigns = { signs: [...remainingSigns, ...restoredCustomSigns.signs] };
 
   const uploadsDir = path.join(TRAINING_UPLOADS_DIR, profileId);
   const modelsDir = path.join(MLP_MODELS_DIR, profileId);
-  await fs.rm(uploadsDir, { recursive: true, force: true });
-  await fs.rm(modelsDir, { recursive: true, force: true });
 
+  // Validate archive entries before any file system mutation
   const uploadsEntries = zip.getEntries().filter((entry) => entry.entryName.startsWith('uploads/'));
   for (const entry of uploadsEntries) {
     const relative = entry.entryName.replace(/^uploads\//, '');
@@ -295,8 +295,6 @@ export async function restoreProfileFromArchive(
     if (!dest.startsWith(uploadsDir + path.sep) && dest !== uploadsDir) {
       throw new Error(`Path escape detected: ${entry.entryName}`);
     }
-    await ensureDir(path.dirname(dest));
-    await fs.writeFile(dest, entry.getData());
   }
 
   const modelsEntries = zip.getEntries().filter((entry) => entry.entryName.startsWith('models/'));
@@ -309,7 +307,33 @@ export async function restoreProfileFromArchive(
     if (!dest.startsWith(modelsDir + path.sep) && dest !== modelsDir) {
       throw new Error(`Path escape detected: ${entry.entryName}`);
     }
+  }
+
+  // File system operations
+  await fs.rm(uploadsDir, { recursive: true, force: true });
+  await fs.rm(modelsDir, { recursive: true, force: true });
+
+  for (const entry of uploadsEntries) {
+    const relative = entry.entryName.replace(/^uploads\//, '');
+    const dest = path.join(uploadsDir, relative);
     await ensureDir(path.dirname(dest));
     await fs.writeFile(dest, entry.getData());
   }
+
+  for (const entry of modelsEntries) {
+    const relative = entry.entryName.replace(/^models\//, '');
+    const dest = path.join(modelsDir, relative);
+    await ensureDir(path.dirname(dest));
+    await fs.writeFile(dest, entry.getData());
+  }
+
+  // Persist manifest updates
+  await saveTrainingManifest(newManifest);
+  await saveDgsSamples(newSamples);
+  await saveCustomSigns(newSigns);
+
+  // Final step: update in-memory database
+  db.profiles = newProfiles;
+  db.usageStats = newUsageStats;
+  db.corrections = newCorrections;
 }
