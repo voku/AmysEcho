@@ -12,10 +12,9 @@ from typing import Any
 
 import numpy as np
 import pytest
-from conftest import create_access_token
+from conftest import _get_free_port, create_access_token
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
-PORT = "5056"
 
 
 def _make_auth_headers(access_token: str) -> dict[str, str]:
@@ -66,7 +65,8 @@ def start_server():
     env = os.environ.copy()
     env.setdefault("JWT_SECRET", "test-jwt-secret")
     env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
-    env.setdefault("PORT", PORT)
+    port = str(_get_free_port())
+    env["PORT"] = port
     # Run the real training script but keep epochs low for test speed
     env.setdefault("MLP_SCRIPT", "src/amyserver_tools/train_mlp.py")
     env.setdefault("MLP_EPOCHS", "5")
@@ -97,7 +97,7 @@ def start_server():
     # wait for server up
     headers = _make_auth_headers(access_token)
     req = urllib.request.Request(
-        f"http://localhost:{PORT}/model-version", headers=headers
+        f"http://localhost:{port}/model-version", headers=headers
     )
     start = time.time()
     while True:
@@ -111,7 +111,7 @@ def start_server():
             if time.time() - start > 30:
                 raise RuntimeError("server did not start") from err
             time.sleep(0.5)
-    return proc, access_token, data_dir
+    return proc, access_token, data_dir, port
 
 
 def stop_server(proc):
@@ -128,8 +128,8 @@ def cleanup_data_dir(data_dir: Path | None) -> None:
     shutil.rmtree(data_dir, ignore_errors=True)
 
 
-def wait_for_training_completion(job_id: str, access_token: str, *, timeout: float = 180.0):
-    status_url = f"http://localhost:{PORT}/api/v1/train-status/{job_id}"
+def wait_for_training_completion(job_id: str, access_token: str, port: str, *, timeout: float = 180.0):
+    status_url = f"http://localhost:{port}/api/v1/train-status/{job_id}"
     headers = _make_auth_headers(access_token)
     start = time.time()
     while True:
@@ -148,8 +148,8 @@ def test_train_endpoint():
     proc = None
     data_dir: Path | None = None
     try:
-        proc, access_token, data_dir = start_server()
-        url = f"http://localhost:{PORT}/train-model"
+        proc, access_token, data_dir, port = start_server()
+        url = f"http://localhost:{port}/train-model"
         # vary landmark coordinates slightly so normalization succeeds
         # Create 30 frames to fill a temporal window
         landmarks_sequence = []
@@ -181,7 +181,7 @@ def test_train_endpoint():
             assert resp_data["status"] in ("running", "queued")
             assert resp_data.get("pollUrl") == f"/api/v1/train-status/{job_id}"
 
-        final_info = wait_for_training_completion(job_id, access_token)
+        final_info = wait_for_training_completion(job_id, access_token, port)
         assert final_info.get("status") == "completed"
         assert "metrics" in final_info
         assert "accuracy" in final_info["metrics"]
@@ -198,7 +198,7 @@ def test_train_endpoint():
 
         # ensure MLP model downloadable
         mlp_req = urllib.request.Request(
-            f"http://localhost:{PORT}/latest-mlp-model",
+            f"http://localhost:{port}/latest-mlp-model",
             headers=_make_auth_headers(access_token),
         )
         with urllib.request.urlopen(mlp_req, timeout=10) as mlp_resp:
@@ -207,7 +207,7 @@ def test_train_endpoint():
             assert len(buf) > 0
 
         mlp_prof_req = urllib.request.Request(
-            f"http://localhost:{PORT}/latest-mlp-model?profileId=p1",
+            f"http://localhost:{port}/latest-mlp-model?profileId=p1",
             headers={
                 **_make_auth_headers(access_token),
                 "x-profile-id": "p1",
@@ -230,8 +230,8 @@ def test_train_endpoint_without_baseline_file():
     proc = None
     data_dir: Path | None = None
     try:
-        proc, access_token, data_dir = start_server()
-        url = f"http://localhost:{PORT}/train-model"
+        proc, access_token, data_dir, port = start_server()
+        url = f"http://localhost:{port}/train-model"
         payload = json.dumps({"samples": [], "trigger": "bundles"}).encode("utf-8")
         headers = {
             **_make_auth_headers(access_token),
@@ -244,7 +244,7 @@ def test_train_endpoint_without_baseline_file():
             job_id = resp_data["jobId"]
             assert resp_data["status"] in ("running", "queued")
 
-        final_info = wait_for_training_completion(job_id, access_token)
+        final_info = wait_for_training_completion(job_id, access_token, port)
         assert final_info.get("status") == "completed"
         global_model = data_dir / "models" / "global" / "amy_model.npz"
         assert global_model.exists()
@@ -263,8 +263,8 @@ def test_train_endpoint_returns_queue_metadata():
     proc = None
     data_dir: Path | None = None
     try:
-        proc, access_token, data_dir = start_server()
-        url = f"http://localhost:{PORT}/train-model"
+        proc, access_token, data_dir, port = start_server()
+        url = f"http://localhost:{port}/train-model"
         landmarks_sequence = []
         for f in range(30):
             frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
@@ -303,8 +303,8 @@ def test_train_endpoint_returns_queue_metadata():
             retry_after = resp_second.headers.get("Retry-After")
             assert retry_after is not None
 
-        wait_for_training_completion(first_job_id, access_token)
-        wait_for_training_completion(second_job_id, access_token)
+        wait_for_training_completion(first_job_id, access_token, port)
+        wait_for_training_completion(second_job_id, access_token, port)
     finally:
         if proc is not None:
             stop_server(proc)
@@ -315,8 +315,8 @@ def test_train_requests_are_serialized():
     proc = None
     data_dir: Path | None = None
     try:
-        proc, access_token, data_dir = start_server()
-        url = f"http://localhost:{PORT}/train-model"
+        proc, access_token, data_dir, port = start_server()
+        url = f"http://localhost:{port}/train-model"
         landmarks_sequence = []
         for f in range(30):
             frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
@@ -353,8 +353,8 @@ def test_train_requests_are_serialized():
         assert first_data["status"] in ("running", "queued")
         assert second_data["status"] == "queued"
 
-        final_first = wait_for_training_completion(job1, access_token)
-        final_second = wait_for_training_completion(job2, access_token)
+        final_first = wait_for_training_completion(job1, access_token, port)
+        final_second = wait_for_training_completion(job2, access_token, port)
 
         if final_first.get("status") == "failed":
             print("First Job Failed:", json.dumps(final_first, indent=2))
@@ -377,8 +377,8 @@ def test_train_model_rejects_out_of_range_landmarks():
     proc = None
     data_dir: Path | None = None
     try:
-        proc, access_token, data_dir = start_server()
-        url = f"http://localhost:{PORT}/train-model"
+        proc, access_token, data_dir, port = start_server()
+        url = f"http://localhost:{port}/train-model"
         headers = {
             **_make_auth_headers(access_token),
             "Content-Type": "application/json",

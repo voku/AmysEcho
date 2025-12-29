@@ -1,3 +1,7 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
 jest.mock('../src/services/logger.js', () => {
   const mockLogger = {
     error: jest.fn(),
@@ -26,6 +30,22 @@ jest.mock('../src/services/logger.js', () => {
 
 process.env.JWT_SECRET ??= 'test-jwt-secret';
 process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret';
+const originalDataDir = process.env.AMY_ECHO_DATA_DIR;
+const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'amy-echo-tests-'));
+process.env.AMY_ECHO_DATA_DIR = tempDataDir;
+
+afterAll(async () => {
+  try {
+    await fs.promises.rm(tempDataDir, { recursive: true, force: true });
+  } catch (error) {
+    console.warn('Failed to remove test data directory', error);
+  }
+  if (originalDataDir) {
+    process.env.AMY_ECHO_DATA_DIR = originalDataDir;
+  } else {
+    delete process.env.AMY_ECHO_DATA_DIR;
+  }
+});
 
 const originalError = console.error;
 if (process.env.TEST_LOGS_VERBOSE !== '1') {

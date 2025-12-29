@@ -322,12 +322,34 @@ function hasAnyNonZeroHandLandmarks(hands: number[][][]): boolean {
   return hands.some((hand) => hasAnyNonZeroPoint(hand));
 }
 
+function normalizeModalityPresence(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (value && typeof value === 'object') {
+    const candidate = value as Record<string, unknown>;
+    const present = candidate.present;
+    if (typeof present === 'boolean') {
+      return present;
+    }
+    const coverage = candidate.coverage;
+    if (typeof coverage === 'number' && Number.isFinite(coverage)) {
+      return coverage > 0;
+    }
+    const frameCount = candidate.frameCount;
+    if (typeof frameCount === 'number' && Number.isFinite(frameCount)) {
+      return frameCount > 0;
+    }
+  }
+  return undefined;
+}
+
 function normalizeModalities(raw: unknown): CaptureMetadata['modalities'] {
   if (!raw || typeof raw !== 'object') return undefined;
   const candidate = raw as Record<string, unknown>;
-  const hands = typeof candidate.hands === 'boolean' ? candidate.hands : undefined;
-  const pose = typeof candidate.pose === 'boolean' ? candidate.pose : undefined;
-  const face = typeof candidate.face === 'boolean' ? candidate.face : undefined;
+  const hands = normalizeModalityPresence(candidate.hands);
+  const pose = normalizeModalityPresence(candidate.pose);
+  const face = normalizeModalityPresence(candidate.face);
   if (hands === undefined && pose === undefined && face === undefined) {
     return undefined;
   }

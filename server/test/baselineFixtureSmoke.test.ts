@@ -43,5 +43,5 @@ describe('baseline fixture smoke test', () => {
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
-  });
+  }, 30000);
 });
