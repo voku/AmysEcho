@@ -35,6 +35,8 @@ def data_dir_env():
         else:
             os.environ.pop("AMY_ECHO_DATA_DIR", None)
         shutil.rmtree(temp_dir, ignore_errors=True)
+
+
 DEFAULT_INPUT_SIZE = 126
 DEFAULT_HIDDEN_SIZE = 256
 

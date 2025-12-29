@@ -1,7 +1,6 @@
 import json
 import os
 import shutil
-import socket
 import subprocess
 import tempfile
 import time
@@ -13,15 +12,9 @@ from typing import Any
 
 import numpy as np
 import pytest
-from conftest import create_access_token
+from conftest import _get_free_port, create_access_token
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
-
-
-def _get_free_port() -> str:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return str(s.getsockname()[1])
 
 
 def _make_auth_headers(access_token: str) -> dict[str, str]:
@@ -72,7 +65,7 @@ def start_server():
     env = os.environ.copy()
     env.setdefault("JWT_SECRET", "test-jwt-secret")
     env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
-    port = _get_free_port()
+    port = str(_get_free_port())
     env["PORT"] = port
     # Run the real training script but keep epochs low for test speed
     env.setdefault("MLP_SCRIPT", "src/amyserver_tools/train_mlp.py")

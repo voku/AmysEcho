@@ -66,6 +66,7 @@ interface TrainingBundleMetadata {
   handFocus?: 'dominant_only' | 'both_equal' | 'both_asymmetric' | 'either_hand';
   variationData?: {
     clusterId?: string;
+    dominantCluster?: string;
     variationDiversity?: number;
     canonicalTemplates?: number;
   };
@@ -155,6 +156,7 @@ const HandFocusSchema = z.enum([
 const VariationDataSchema = z
   .object({
     clusterId: z.string().optional(),
+    dominantCluster: z.string().optional(),
     variationDiversity: z.number().optional(),
     canonicalTemplates: z.number().optional(),
   })
@@ -245,23 +247,31 @@ function normalizeVariationData(raw: unknown): TrainingBundleMetadata['variation
     return undefined;
   }
   const candidate = raw as Record<string, unknown>;
-  const clusterId = typeof candidate.clusterId === 'string' ? candidate.clusterId.trim() : undefined;
-  const variationDiversity =
-    typeof candidate.variationDiversity === 'number' && Number.isFinite(candidate.variationDiversity)
-      ? candidate.variationDiversity
-      : undefined;
-  const canonicalTemplates =
-    typeof candidate.canonicalTemplates === 'number' && Number.isFinite(candidate.canonicalTemplates)
-      ? candidate.canonicalTemplates
-      : undefined;
-  if (!clusterId && variationDiversity === undefined && canonicalTemplates === undefined) {
-    return undefined;
+  const result: Partial<TrainingBundleMetadata['variationData']> = {};
+
+  if (typeof candidate.clusterId === 'string') {
+    const trimmedId = candidate.clusterId.trim();
+    if (trimmedId) {
+      result.clusterId = trimmedId;
+    }
   }
-  return {
-    ...(clusterId ? { clusterId } : {}),
-    ...(variationDiversity !== undefined ? { variationDiversity } : {}),
-    ...(canonicalTemplates !== undefined ? { canonicalTemplates } : {}),
-  };
+
+  if (typeof candidate.dominantCluster === 'string') {
+    const trimmedCluster = candidate.dominantCluster.trim();
+    if (trimmedCluster) {
+      result.dominantCluster = trimmedCluster;
+    }
+  }
+
+  if (typeof candidate.variationDiversity === 'number' && Number.isFinite(candidate.variationDiversity)) {
+    result.variationDiversity = candidate.variationDiversity;
+  }
+
+  if (typeof candidate.canonicalTemplates === 'number' && Number.isFinite(candidate.canonicalTemplates)) {
+    result.canonicalTemplates = candidate.canonicalTemplates;
+  }
+
+  return Object.keys(result).length > 0 ? (result as TrainingBundleMetadata['variationData']) : undefined;
 }
 
 function validateRecordingMetadata(
