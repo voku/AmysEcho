@@ -175,25 +175,25 @@ describe('GestureHistoryService', () => {
 - **Testing**: Prioritize communication reliability tests
 - **Performance**: Optimize for Amy's usage patterns
 
-## 📸 Webapp-Screenshots (Dokumentations-Standard)
+## 📸 Webapp Screenshots (Documentation Standard)
 
-Wenn UI-Änderungen einen Screenshot brauchen, nutze diesen Ablauf und dokumentiere ihn direkt in der passenden `docs/`-Datei.
+When UI changes need a screenshot, follow this flow and document it directly in the relevant `docs/` file.
 
-### Schritt-für-Schritt
-1. **Dev-Server starten** (Repo-Root):
+### Step-by-step
+1. **Start the dev server** (repo root):
    ```bash
    npm run dev --prefix webapp -- --host 0.0.0.0 --port 5173
    ```
-2. **Demo-Modus öffnen**: `http://localhost:5173/AmysEcho/` → Button **„Ohne Anmeldung fortfahren (Demo)“**.
-3. **Lernen öffnen**: Button **„Lernen entdecken“**.
-4. **Training starten**: In der Lernliste einen Eintrag wählen und **„Trainieren“** klicken.
-5. **Screenshot aufnehmen**: Vollbild, damit der Kontext sichtbar ist.
+2. **Open demo mode**: `http://localhost:5173/AmysEcho/` → click **"Ohne Anmeldung fortfahren (Demo)"**.
+3. **Open learning**: click **"Lernen entdecken"**.
+4. **Start training**: choose a sign in the learning list and click **"Trainieren"**.
+5. **Capture the screenshot**: full-page so the context is visible.
 
-### Beispiel (Training-Ansicht)
-- **Datei speichern unter**: `docs/training/screenshots/training-preview-toggle.png`
-- **Im Dokument referenzieren** (Markdown):
+### Example (training view)
+- **Save file as**: `docs/training/screenshots/training-preview-toggle.png`
+- **Reference in docs** (Markdown):
   ```md
-  ![Training-Ansicht mit Rohvideo/Skelett-Umschalter](./screenshots/training-preview-toggle.png)
+  ![Training view with raw/skeleton toggle](./screenshots/training-preview-toggle.png)
   ```
 
 ## 🎯 Remember: Amy's Communication Is Sacred

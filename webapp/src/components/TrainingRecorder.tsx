@@ -547,7 +547,9 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
         <div className="video-wrapper gesture-fullscreen">
           <video
             ref={videoRef}
-            className={`video${isMirroredPreview ? ' mirrored' : ''}${showRawVideo ? '' : ' video-hidden'}`}
+            className={['video', isMirroredPreview && 'mirrored', !showRawVideo && 'video-hidden']
+              .filter(Boolean)
+              .join(' ')}
             data-testid="training-video"
             playsInline
             muted
@@ -559,7 +561,10 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
             data-testid="overlay-canvas"
             aria-hidden={!showOverlay}
           />
-          <div className={`video-veil${showRawVideo ? '' : ' video-veil-hidden'}`} aria-hidden="true" />
+          <div
+            className={['video-veil', !showRawVideo && 'video-veil-hidden'].filter(Boolean).join(' ')}
+            aria-hidden="true"
+          />
 
           <div className="gesture-screen__hud">
             <div className="gesture-screen__status">

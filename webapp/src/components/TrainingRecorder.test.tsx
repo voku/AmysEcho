@@ -113,7 +113,7 @@ describe('TrainingRecorder', () => {
     expect(overlay).toHaveClass('overlay-hidden');
   });
 
-  it('schaltet zwischen Rohvideo und Skeleton-Ansicht um', async () => {
+  it('toggles between raw video and skeleton view', async () => {
     const user = userEvent.setup();
     render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
 
