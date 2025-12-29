@@ -3,6 +3,13 @@ import { promises as fs } from 'fs';
 import { z } from 'zod';
 import { ensureDataDir, DATA_DIR, TRAINING_MANIFEST_PATH } from '../constants/modelPaths.js';
 import { POSE_LANDMARKS, FACE_LANDMARKS } from '../constants/featureSchema.js';
+import {
+  MAX_FACE_JITTER,
+  MAX_HAND_JITTER,
+  MAX_POSE_JITTER,
+  MIN_HAND_FRAME_COVERAGE,
+  MIN_SIGN_SAMPLE_FRAMES,
+} from '../constants/trainingQuality.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
 import { logger } from './logger.js';
@@ -87,6 +94,16 @@ interface DatasetSample {
 
 interface DatasetFile {
   samples: DatasetSample[];
+}
+
+interface QualityMetrics {
+  frameCount: number;
+  handCoverage: number;
+  poseCoverage: number;
+  faceCoverage: number;
+  handJitter?: number;
+  poseJitter?: number;
+  faceJitter?: number;
 }
 
 interface CaptureMetadata {
@@ -552,6 +569,117 @@ function normalizeFlattenedLandmarks(raw: unknown): number[][] {
   return points;
 }
 
+function flattenHandPoints(handLandmarks?: number[][][]): number[][] {
+  if (!handLandmarks || handLandmarks.length === 0) {
+    return [];
+  }
+  return handLandmarks.flatMap((hand) => hand);
+}
+
+function countFramesWithPoints(
+  frames: NormalizedFrameData[],
+  getPoints: (frame: NormalizedFrameData) => number[][],
+): number {
+  return frames.reduce((count, frame) => (getPoints(frame).length > 0 ? count + 1 : count), 0);
+}
+
+function extractHandPoints(frame: NormalizedFrameData): number[][] {
+  const flattenedHands = flattenHandPoints(frame.handLandmarks);
+  if (flattenedHands.length > 0 && hasAnyNonZeroHandLandmarks(frame.handLandmarks)) {
+    return flattenedHands;
+  }
+  const totalPoints = frame.landmarks.length;
+  if (totalPoints === HAND_LANDMARKS_PER_HAND || totalPoints === MAX_HANDS * HAND_LANDMARKS_PER_HAND) {
+    return frame.landmarks;
+  }
+  return [];
+}
+
+function computeAverageJitter(
+  frames: NormalizedFrameData[],
+  getPoints: (frame: NormalizedFrameData) => number[][],
+): number | null {
+  if (frames.length < 2) {
+    return null;
+  }
+  const deltas: number[] = [];
+  for (let i = 1; i < frames.length; i += 1) {
+    const prevPoints = getPoints(frames[i - 1]);
+    const nextPoints = getPoints(frames[i]);
+    if (prevPoints.length === 0 || nextPoints.length === 0) {
+      continue;
+    }
+    if (prevPoints.length !== nextPoints.length) {
+      continue;
+    }
+    let sumOfDistances = 0;
+    for (let idx = 0; idx < prevPoints.length; idx += 1) {
+      const prev = prevPoints[idx];
+      const next = nextPoints[idx];
+      const dx = next[0] - prev[0];
+      const dy = next[1] - prev[1];
+      const dz = next[2] - prev[2];
+      sumOfDistances += Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+    }
+    deltas.push(sumOfDistances / prevPoints.length);
+  }
+  if (deltas.length === 0) {
+    return null;
+  }
+  const total = deltas.reduce((acc, value) => acc + value, 0);
+  return total / deltas.length;
+}
+
+function evaluateBundleQuality(frames: NormalizedFrameData[]): {
+  accepted: boolean;
+  reasons: string[];
+  metrics: QualityMetrics;
+} {
+  const frameCount = frames.length;
+  const handFrames = countFramesWithPoints(frames, extractHandPoints);
+  const poseFrames = countFramesWithPoints(frames, (frame) => frame.poseLandmarks ?? []);
+  const faceFrames = countFramesWithPoints(frames, (frame) => frame.faceLandmarks ?? []);
+  const handCoverage = frameCount > 0 ? handFrames / frameCount : 0;
+  const poseCoverage = frameCount > 0 ? poseFrames / frameCount : 0;
+  const faceCoverage = frameCount > 0 ? faceFrames / frameCount : 0;
+  const handJitter = computeAverageJitter(frames, extractHandPoints);
+  const poseJitter = computeAverageJitter(frames, (frame) => frame.poseLandmarks ?? []);
+  const faceJitter = computeAverageJitter(frames, (frame) => frame.faceLandmarks ?? []);
+
+  const metrics: QualityMetrics = {
+    frameCount,
+    handCoverage,
+    poseCoverage,
+    faceCoverage,
+    ...(handJitter !== null ? { handJitter } : {}),
+    ...(poseJitter !== null ? { poseJitter } : {}),
+    ...(faceJitter !== null ? { faceJitter } : {}),
+  };
+
+  const reasons: string[] = [];
+  if (frameCount < MIN_SIGN_SAMPLE_FRAMES) {
+    reasons.push(`frameCount ${frameCount} < ${MIN_SIGN_SAMPLE_FRAMES}`);
+  }
+  if (handCoverage < MIN_HAND_FRAME_COVERAGE) {
+    reasons.push(`handCoverage ${handCoverage.toFixed(2)} < ${MIN_HAND_FRAME_COVERAGE}`);
+  }
+  if (handJitter !== null && handJitter > MAX_HAND_JITTER) {
+    reasons.push(`handJitter ${handJitter.toFixed(3)} > ${MAX_HAND_JITTER}`);
+  }
+  if (poseJitter !== null && poseJitter > MAX_POSE_JITTER) {
+    reasons.push(`poseJitter ${poseJitter.toFixed(3)} > ${MAX_POSE_JITTER}`);
+  }
+  if (faceJitter !== null && faceJitter > MAX_FACE_JITTER) {
+    reasons.push(`faceJitter ${faceJitter.toFixed(3)} > ${MAX_FACE_JITTER}`);
+  }
+
+  return {
+    accepted: reasons.length === 0,
+    reasons,
+    metrics,
+  };
+}
+
 async function readLandmarks(entry: TrainingBundleManifestEntry): Promise<NormalizedFrameData[]> {
   if (!entry.storage || typeof entry.storage.directory !== 'string') {
     return [];
@@ -724,6 +852,25 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
     let latestCapturedAt: string | undefined;
 
     for (const entry of manifestEntries) {
+      const frames = await readLandmarks(entry).catch((error) => {
+        logger.warn('Failed to read landmarks for training bundle', {
+          error: error instanceof Error ? error.message : String(error),
+          bundleId: entry.id,
+        });
+        return [] as NormalizedFrameData[];
+      });
+      if (frames.length === 0) continue;
+      const quality = evaluateBundleQuality(frames);
+      if (!quality.accepted) {
+        logger.warn('Training bundle rejected by quality gate', {
+          bundleId: entry.id,
+          profileId: entry.profileId ?? null,
+          label: entry.label,
+          reasons: quality.reasons,
+          metrics: quality.metrics,
+        });
+        continue;
+      }
       const capturedAt = entry.capturedAt ?? entry.metadata?.capturedAt ?? null;
       if (typeof capturedAt === 'string') {
         const capturedMs = Date.parse(capturedAt);
@@ -733,14 +880,6 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
           }
         }
       }
-      const frames = await readLandmarks(entry).catch((error) => {
-        logger.warn('Failed to read landmarks for training bundle', {
-          error,
-          bundleId: entry.id,
-        });
-        return [] as NormalizedFrameData[];
-      });
-      if (frames.length === 0) continue;
       frames.forEach((frameData, index) => {
         const key = `${entry.id}:${index}`;
         if (existingKeys.has(key)) {

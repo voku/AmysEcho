@@ -1,6 +1,10 @@
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
+import {
+  MAX_HAND_JITTER,
+  MIN_SIGN_SAMPLE_FRAMES,
+} from '../src/constants/trainingQuality.js';
 
 let ingestTrainingBundlesIntoDataset: (
   typeof import('../src/services/trainingBundleIngestor.js')
@@ -45,6 +49,12 @@ function buildLandmarkFrame(seed: number): LandmarkFrame {
   };
 }
 
+function buildConstantLandmarkFrame(value: number): LandmarkFrame {
+  return {
+    landmarks: Array.from({ length: 42 }, () => [value, value, value]),
+  };
+}
+
 describe('ingestTrainingBundlesIntoDataset', () => {
   let tempDir: string;
 
@@ -71,12 +81,12 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     await writeBundleFixture('bundle-1');
 
     const firstRun = await ingestTrainingBundlesIntoDataset();
-    expect(firstRun.appended).toBe(2);
+    expect(firstRun.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
     const datasetPath = resolveDataPath('dgs_samples.json');
     const datasetRaw = await fs.readFile(datasetPath, 'utf8');
     const dataset = JSON.parse(datasetRaw) as { samples: any[] };
-    expect(dataset.samples).toHaveLength(2);
+    expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
     expect(dataset.samples[0]).toMatchObject({
       label: 'HALLO',
       profileId: 'p-123',
@@ -92,13 +102,13 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(dataset.samples[0].landmarks).toHaveLength(42);
     expect(dataset.samples[1].landmarks).toHaveLength(42);
     expect(dataset.samples[0].landmarks[0]).toEqual([0, 0, 0]);
-    expect(dataset.samples[1].landmarks[1]).toEqual([0.05, 0.06, 0.07]);
+    expect(dataset.samples[1].landmarks[1]).toEqual([0.02, 0.03, 0.04]);
 
     const secondRun = await ingestTrainingBundlesIntoDataset();
     expect(secondRun.appended).toBe(0);
 
     const datasetAfter = JSON.parse(await fs.readFile(datasetPath, 'utf8')) as { samples: any[] };
-    expect(datasetAfter.samples).toHaveLength(2);
+    expect(datasetAfter.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
   });
 
   it('ignores corrupted manifest files instead of throwing', async () => {
@@ -117,16 +127,18 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     await fs.writeFile(datasetPath, '{invalid json');
 
     const result = await ingestTrainingBundlesIntoDataset();
-    expect(result.appended).toBe(2);
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
     const datasetRaw = await fs.readFile(datasetPath, 'utf8');
     const dataset = JSON.parse(datasetRaw) as { samples: any[] };
-    expect(dataset.samples).toHaveLength(2);
+    expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
   });
 
   it('prefers validationSummary.landmarksPath when selecting landmarks data', async () => {
     const frames: LandmarksPayload = {
-      frames: [buildLandmarkFrame(0.11), buildLandmarkFrame(0.21)],
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) =>
+        buildLandmarkFrame(0.11 + idx * 0.01),
+      ),
     };
 
     await writeBundleFixture('bundle-prefers-summary', {
@@ -141,12 +153,12 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     });
 
     const result = await ingestTrainingBundlesIntoDataset();
-    expect(result.appended).toBe(2);
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
     const datasetPath = resolveDataPath('dgs_samples.json');
     const datasetRaw = await fs.readFile(datasetPath, 'utf8');
     const dataset = JSON.parse(datasetRaw) as { samples: any[] };
-    expect(dataset.samples).toHaveLength(2);
+    expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
     expect(dataset.samples[0].landmarks[0][0]).toBeCloseTo(0.11, 6);
     expect(dataset.samples[0].landmarks[0][1]).toBeCloseTo(0.12, 6);
     expect(dataset.samples[0].landmarks[0][2]).toBeCloseTo(0.13, 6);
@@ -154,7 +166,9 @@ describe('ingestTrainingBundlesIntoDataset', () => {
 
   it('falls back to basename matching when validation summary is missing', async () => {
     const frames: LandmarksPayload = {
-      frames: [buildLandmarkFrame(0.21)],
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) =>
+        buildLandmarkFrame(0.21 + idx * 0.01),
+      ),
     };
 
     await writeBundleFixture('bundle-no-summary', {
@@ -170,53 +184,84 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     });
 
     const result = await ingestTrainingBundlesIntoDataset();
-    expect(result.appended).toBe(1);
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
     const datasetPath = resolveDataPath('dgs_samples.json');
     const datasetRaw = await fs.readFile(datasetPath, 'utf8');
     const dataset = JSON.parse(datasetRaw) as { samples: any[] };
-    expect(dataset.samples).toHaveLength(1);
+    expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
     expect(dataset.samples[0].landmarks[0][0]).toBeCloseTo(0.21, 6);
     expect(dataset.samples[0].landmarks[0][1]).toBeCloseTo(0.22, 6);
     expect(dataset.samples[0].landmarks[0][2]).toBeCloseTo(0.23, 6);
   });
 
+  it('skips bundles that do not meet the minimum frame count', async () => {
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES - 1 }, (_, idx) =>
+        buildLandmarkFrame(0.15 + idx * 0.01),
+      ),
+    };
+
+    await writeBundleFixture('bundle-too-few-frames', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    await expect(fs.readFile(datasetPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('skips bundles with excessive hand jitter', async () => {
+    const jitterValue = Math.min(1, MAX_HAND_JITTER + 0.5);
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) =>
+        buildConstantLandmarkFrame(idx % 2 === 0 ? 0 : jitterValue),
+      ),
+    };
+
+    await writeBundleFixture('bundle-jittery', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    await expect(fs.readFile(datasetPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('persists multimodal landmarks and handedness', async () => {
     const frames: LandmarksPayload = {
-      frames: [
-        {
-          handLandmarks: [
-            [
-              [0.1, 0.2, 0.3],
-              [0.4, 0.5, 0.6],
-            ],
-            [
-              [0.7, 0.8, 0.9],
-            ],
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, () => ({
+        handLandmarks: [
+          [
+            [0.1, 0.2, 0.3],
+            [0.4, 0.5, 0.6],
           ],
-          poseLandmarks: [
-            [0.11, 0.22, 0.33],
-            ['x' as unknown as number, 0.44, 0.55],
-            [0.66, 0.77, 0.88],
+          [
+            [0.7, 0.8, 0.9],
           ],
-          faceLandmarks: [
-            [0.9, 0.8, 0.7],
-            [Infinity as number, 0.6, 0.5],
-          ],
-          handedness: ['Right', 'Left', 123 as unknown as string],
-        },
-      ],
+        ],
+        poseLandmarks: [
+          [0.11, 0.22, 0.33],
+          ['x' as unknown as number, 0.44, 0.55],
+          [0.66, 0.77, 0.88],
+        ],
+        faceLandmarks: [
+          [0.9, 0.8, 0.7],
+          [Infinity as number, 0.6, 0.5],
+        ],
+        handedness: ['Right', 'Left', 123 as unknown as string],
+      })),
     };
 
     await writeBundleFixture('bundle-multimodal', { frames });
 
     const result = await ingestTrainingBundlesIntoDataset();
-    expect(result.appended).toBe(1);
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
     const datasetPath = resolveDataPath('dgs_samples.json');
     const datasetRaw = await fs.readFile(datasetPath, 'utf8');
     const dataset = JSON.parse(datasetRaw) as { samples: any[] };
-    expect(dataset.samples).toHaveLength(1);
+    expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
     const sample = dataset.samples[0];
 
     expect(sample.landmarks).toHaveLength(42);
@@ -239,17 +284,15 @@ describe('ingestTrainingBundlesIntoDataset', () => {
         modalities: { hands: true, pose: true, face: false },
         smoothing: { method: 'one_euro', minCutOff: 1.2, beta: 0.01 },
       },
-      frames: [
-        {
-          landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.01, idx * 0.02, idx * 0.03]),
-        },
-      ],
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, () => ({
+        landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.01, idx * 0.02, idx * 0.03]),
+      })),
     };
 
     await writeBundleFixture('bundle-metadata', { frames });
 
     const result = await ingestTrainingBundlesIntoDataset();
-    expect(result.appended).toBe(1);
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
     const datasetPath = resolveDataPath('dgs_samples.json');
     const datasetRaw = await fs.readFile(datasetPath, 'utf8');
@@ -264,16 +307,10 @@ describe('ingestTrainingBundlesIntoDataset', () => {
 
   it('prefers per-frame timestamps and includes recording metadata', async () => {
     const frames: LandmarksPayload = {
-      frames: [
-        {
-          ...buildLandmarkFrame(0.3),
-          timestampMs: 1716897791000,
-        },
-        {
-          ...buildLandmarkFrame(0.31),
-          timestampMs: 1716897791100,
-        },
-      ],
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        ...buildLandmarkFrame(0.3 + idx * 0.01),
+        timestampMs: 1716897791000 + idx * 100,
+      })),
     };
 
     await writeBundleFixture('bundle-timestamps', {
@@ -290,7 +327,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     });
 
     const result = await ingestTrainingBundlesIntoDataset();
-    expect(result.appended).toBe(2);
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
     const datasetPath = resolveDataPath('dgs_samples.json');
     const datasetRaw = await fs.readFile(datasetPath, 'utf8');
@@ -322,10 +359,13 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     await fs.mkdir(path.join(bundleRoot, 'bundle'), { recursive: true });
 
     const defaultFrames: LandmarksPayload = {
-      frames: [
-        { landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.01, idx * 0.02, idx * 0.03]) },
-        { landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.05, idx * 0.06, idx * 0.07]) },
-      ],
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, frameIdx) => ({
+        landmarks: Array.from({ length: 42 }, (_, idx) => [
+          idx * 0.01 + frameIdx * 0.01,
+          idx * 0.02 + frameIdx * 0.01,
+          idx * 0.03 + frameIdx * 0.01,
+        ]),
+      })),
     };
     const frames = options.frames ?? defaultFrames;
     const normalizedLandmarksRelative = (options.landmarksRelativePath ?? 'bundle/landmarks.json')
