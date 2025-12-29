@@ -45,7 +45,7 @@ When a child's caregiver updates a profile name (e.g., "Amy" → "Amy-Marie"), t
 ### Storage Mapping
 
 #### Frontend (Webapp)
-```
+```javascript
 localStorage['webapp:app-state'] = {
   profileId: "11111111-1111-4111-8111-111111111111",           // Used in all API calls
   displayName: "Amy Marie",   // Displayed in UI
@@ -56,7 +56,7 @@ localStorage['webapp:app-state'] = {
 #### Backend (Server)
 
 **Training Bundles:**
-```
+```text
 data/uploads/{profileId}/{bundleId}/
   bundle.zip
   landmarks.json
@@ -64,7 +64,7 @@ data/uploads/{profileId}/{bundleId}/
 ```
 
 **ML Models:**
-```
+```text
 data/models/{profileId}/amy_model.npz
 ```
 
@@ -85,7 +85,7 @@ data/models/{profileId}/amy_model.npz
 ## Data Flow
 
 ### Profile Creation
-```
+```text
 User enters name: "Amy Marie"
   ↓
 Generate stable ID: "11111111-1111-4111-8111-111111111111"
@@ -96,7 +96,7 @@ Store both:
 ```
 
 ### Training Bundle Upload
-```
+```text
 Webapp prepares bundle
   ↓
 metadata.json includes: { profileId: "11111111-1111-4111-8111-111111111111", ... }
@@ -109,7 +109,7 @@ Model saved as: data/models/11111111-1111-4111-8111-111111111111/amy_model.npz
 ```
 
 ### Display Name Change
-```
+```text
 User changes "Amy Marie" → "Amy M."
   ↓
 Update only displayName in localStorage
@@ -208,7 +208,7 @@ if (!PROFILE_ID_PATTERN.test(profileId)) {
 
 **Backend:**
 ```typescript
-export const PROFILE_ID_PATTERN = /^[a-z0-9-]+$/;
+export const PROFILE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
   return res.status(400).json({ 
     error: 'metadata.profileId is invalid' 
@@ -235,7 +235,7 @@ if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
    - UUIDs are now canonical profile IDs and used for all storage paths
 
 ### Profile Management API
-```
+```text
 POST   /api/v1/profiles              - Create profile
 GET    /api/v1/profiles              - List profiles
 GET    /api/v1/profiles/:uuid        - Get profile details

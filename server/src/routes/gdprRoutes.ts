@@ -1,9 +1,12 @@
 import type { Express, Request, Response, NextFunction } from 'express';
+import { promises as fs } from 'fs';
+import path from 'path';
 import type { Database } from '../db.js';
 import type { ProfileRegistry } from '../services/profileRegistry.js';
 import { findProfileRecord } from '../services/profileRegistry.js';
 import { buildProfileExportArchive, deleteProfileTrainingData } from '../services/profileDataService.js';
 import { saveDatabase } from '../db.js';
+import { PROFILE_BACKUPS_DIR } from '../constants/profileRegistryPaths.js';
 
 type GdprDependencies = {
   authMiddleware: (req: Request, res: Response, next: NextFunction) => void;
@@ -54,8 +57,15 @@ export function registerGdprRoutes(app: Express, deps: GdprDependencies): void {
         await saveDatabase(db, dbFilePath);
       });
       await deleteProfileTrainingData(profile.id);
-      registry.profiles = registry.profiles.filter((p) => p.id !== profile.id);
-      await withFileLock(registryPath, async () => saveRegistry(registryPath, registry));
+      
+      const backupDir = path.join(PROFILE_BACKUPS_DIR, profile.id);
+      await fs.rm(backupDir, { recursive: true, force: true });
+
+      await withFileLock(registryPath, async () => {
+        registry.profiles = registry.profiles.filter((p) => p.id !== profile.id);
+        registry.backups = registry.backups.filter((b) => b.profileId !== profile.id);
+        await saveRegistry(registryPath, registry);
+      });
       res.json({ status: 'deleted' });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

@@ -9,7 +9,7 @@ import type {
 
 type LatestMlpModelDeps = {
   getMlpModelPath: (profileId?: string) => string;
-  resolveProfileId?: (profileId?: string) => { profileId?: string | null };
+  resolveProfileId: (profileId?: string) => Promise<{ profileId?: string | null }>;
   seedBaselineModel: (
     filePath: string,
     messages: BaselineSeedMessages,
@@ -51,8 +51,12 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
   return async function latestMlpModelHandler(req: Request, res: Response) {
     try {
       const rawProfileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-      const resolved = deps.resolveProfileId ? deps.resolveProfileId(rawProfileId) : undefined;
-      const profileId = resolved?.profileId ?? rawProfileId;
+      const resolved = await deps.resolveProfileId(rawProfileId);
+      const profileId = resolved.profileId ?? undefined;
+
+      if (rawProfileId && !profileId) {
+        return res.status(404).json({ error: 'Profil nicht gefunden.' });
+      }
       if (profileId && !deps.isProfileAuthorized(req, profileId)) {
         return res.status(403).json({ error: 'Zugriff verweigert.' });
       }

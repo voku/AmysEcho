@@ -308,9 +308,11 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
     const migration = await migrateProfileIds(db, PROFILE_REGISTRY_PATH);
     profileRegistry = migration.registry;
     app.locals.profileRegistry = profileRegistry;
-    ensureProfileRecord(profileRegistry, {
-      displayName: 'Standardprofil',
-    });
+    if (profileRegistry.profiles.length === 0) {
+      ensureProfileRecord(profileRegistry, {
+        displayName: 'Standardprofil',
+      });
+    }
     await withFileLock(PROFILE_REGISTRY_PATH, async () =>
       saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
     );
@@ -646,6 +648,7 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
   applyModelHeaders: applyModelResponseHeaders,
   logTraining,
   isProfileAuthorized,
+  resolveProfileId: resolveProfileIdForLookup,
 });
 app.get('/latest-mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
 app.get('/api/v1/dgs/mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);

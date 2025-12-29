@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
 import type { Database } from '../db.js';
 import { saveDatabase } from '../db.js';
 import {
@@ -29,6 +30,9 @@ import {
   loadCustomSigns,
   saveCustomSigns,
 } from '../services/profileDataService.js';
+import {
+  PROFILE_BACKUPS_DIR,
+} from '../constants/profileRegistryPaths.js';
 import { TRAINING_UPLOADS_DIR, MLP_MODELS_DIR } from '../constants/modelPaths.js';
 
 type ProfileRouteDeps = {
@@ -174,6 +178,13 @@ async function mergeProfileData(
 
 export function registerProfileRoutes(app: Express, deps: ProfileRouteDeps): void {
   const { authMiddleware, db, dbFilePath, registry, registryPath, withFileLock, saveRegistry, logError } = deps;
+
+  const backupRestoreRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // limit each IP to 20 backup/restore requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
   app.get('/api/v1/profiles', authMiddleware, (_req, res) => {
     res.json({ profiles: registry.profiles });
@@ -425,7 +436,7 @@ export function registerProfileRoutes(app: Express, deps: ProfileRouteDeps): voi
     return res.json({ backups });
   });
 
-  app.post('/api/v1/profiles/:id/restore', authMiddleware, async (req, res) => {
+  app.post('/api/v1/profiles/:id/restore', authMiddleware, backupRestoreRateLimiter, async (req, res) => {
     const parsed = BackupRestoreSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'Backup-Pfad fehlt.' });
@@ -435,7 +446,18 @@ export function registerProfileRoutes(app: Express, deps: ProfileRouteDeps): voi
       return res.status(404).json({ error: 'Profil nicht gefunden.' });
     }
     try {
-      const buffer = await fs.readFile(parsed.data.backupPath);
+      const backupDir = path.resolve(PROFILE_BACKUPS_DIR, profile.id);
+      const safeBackupPath = path.resolve(backupDir, path.basename(parsed.data.backupPath));
+
+      if (!safeBackupPath.startsWith(backupDir)) {
+        logError('Path traversal attempt detected in profile restore', {
+          profileId: profile.id,
+          requestedPath: parsed.data.backupPath,
+        });
+        return res.status(400).json({ error: 'Ungültiger Backup-Pfad.' });
+      }
+
+      const buffer = await fs.readFile(safeBackupPath);
       await restoreProfileFromArchive(profile.id, buffer, db);
       await withFileLock(dbFilePath, async () => saveDatabase(db, dbFilePath));
       return res.json({ status: 'restored', profileId: profile.id });

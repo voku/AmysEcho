@@ -191,7 +191,9 @@ export async function buildProfileExportArchive(
     const uploadFiles = await listFilesRecursive(uploadsDir);
     for (const file of uploadFiles) {
       const relative = path.relative(uploadsDir, file);
-      zip.addLocalFile(file, path.join('uploads', relative));
+      // Ensure forward slashes for zip compatibility across OS
+      const zipPath = path.join('uploads', relative).split(path.sep).join('/');
+      zip.addLocalFile(file, path.dirname(zipPath));
     }
   }
 
@@ -199,7 +201,9 @@ export async function buildProfileExportArchive(
     const modelFiles = await listFilesRecursive(modelsDir);
     for (const file of modelFiles) {
       const relative = path.relative(modelsDir, file);
-      zip.addLocalFile(file, path.join('models', relative));
+      // Ensure forward slashes for zip compatibility across OS
+      const zipPath = path.join('models', relative).split(path.sep).join('/');
+      zip.addLocalFile(file, path.dirname(zipPath));
     }
   }
 
@@ -284,7 +288,13 @@ export async function restoreProfileFromArchive(
   const uploadsEntries = zip.getEntries().filter((entry) => entry.entryName.startsWith('uploads/'));
   for (const entry of uploadsEntries) {
     const relative = entry.entryName.replace(/^uploads\//, '');
+    if (relative.includes('..') || path.isAbsolute(relative)) {
+      throw new Error(`Invalid path in archive: ${entry.entryName}`);
+    }
     const dest = path.join(uploadsDir, relative);
+    if (!dest.startsWith(uploadsDir + path.sep) && dest !== uploadsDir) {
+      throw new Error(`Path escape detected: ${entry.entryName}`);
+    }
     await ensureDir(path.dirname(dest));
     await fs.writeFile(dest, entry.getData());
   }
@@ -292,7 +302,13 @@ export async function restoreProfileFromArchive(
   const modelsEntries = zip.getEntries().filter((entry) => entry.entryName.startsWith('models/'));
   for (const entry of modelsEntries) {
     const relative = entry.entryName.replace(/^models\//, '');
+    if (relative.includes('..') || path.isAbsolute(relative)) {
+      throw new Error(`Invalid path in archive: ${entry.entryName}`);
+    }
     const dest = path.join(modelsDir, relative);
+    if (!dest.startsWith(modelsDir + path.sep) && dest !== modelsDir) {
+      throw new Error(`Path escape detected: ${entry.entryName}`);
+    }
     await ensureDir(path.dirname(dest));
     await fs.writeFile(dest, entry.getData());
   }

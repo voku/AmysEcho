@@ -152,6 +152,7 @@ describe('GET /latest-mlp-model', () => {
       applyModelHeaders: artifacts.applyModelResponseHeaders,
       logTraining,
       isProfileAuthorized: authUtils.isProfileAuthorized,
+      resolveProfileId: async (pid) => ({ profileId: pid || null }),
     });
 
     app.get('/latest-mlp-model', authMiddleware, handler);
