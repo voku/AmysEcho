@@ -612,20 +612,16 @@ function computeAverageJitter(
     if (prevPoints.length !== nextPoints.length) {
       continue;
     }
-    let sum = 0;
-    let count = 0;
+    let sumOfDistances = 0;
     for (let idx = 0; idx < prevPoints.length; idx += 1) {
       const prev = prevPoints[idx];
       const next = nextPoints[idx];
       const dx = next[0] - prev[0];
       const dy = next[1] - prev[1];
       const dz = next[2] - prev[2];
-      sum += Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-      count += 1;
+      sumOfDistances += Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
     }
-    if (count > 0) {
-      deltas.push(sum / count);
-    }
+    deltas.push(sumOfDistances / prevPoints.length);
   }
   if (deltas.length === 0) {
     return null;
@@ -858,7 +854,7 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
     for (const entry of manifestEntries) {
       const frames = await readLandmarks(entry).catch((error) => {
         logger.warn('Failed to read landmarks for training bundle', {
-          error,
+          error: error instanceof Error ? error.message : String(error),
           bundleId: entry.id,
         });
         return [] as NormalizedFrameData[];
