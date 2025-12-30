@@ -316,6 +316,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
         displayName: defaultProfile.displayName || 'Standardprofil',
       });
     } else if (profileRegistry.profiles.length === 0) {
+      // Safety net: should not run since setupDatabase creates a default profile
       ensureProfileRecord(profileRegistry, {
         displayName: 'Standardprofil',
       });

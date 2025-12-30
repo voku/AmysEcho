@@ -442,6 +442,7 @@ export async function setupDatabase(filePath: string): Promise<Database> {
   }
 
   if (db.usageStats.length === 0 && db.symbols.length > 0) {
+    // Defensive check: setupDatabase should have created a profile above if none existed
     if (db.profiles.length === 0) {
       throw new Error('Cannot seed usage stats: no profiles exist');
     }
