@@ -1,5 +1,5 @@
 {
-  "version": "2025-12-30T11:48:41.272493+00:00",
+  "version": "2025-12-30T20:18:08.027643+00:00",
   "modalities": [
     "hands",
     "pose",
@@ -12,8 +12,8 @@
   },
   "sample_count": 3,
   "training_sources": {
-    "/home/lars/PhpstormProjects/AmysEcho/server/data/datasets/training_manifest.json": "854d014343f94075e7cf95534a8819175b35e24159a52fda8518137c9297aede",
-    "/home/lars/PhpstormProjects/AmysEcho/server/data/dgs_samples.json": "1a60f2a44cbab8925e57bac7b30e91e70f6b695a76070cd753c4b236f5d37aa4"
+    "datasets/training_manifest.json": "827912c12051fb30810b232a4c32cdca7ff1644298612108ed62682f2ef14ea0",
+    "dgs_samples.json": "62000919c52af4959dbd420135b19b65fb21fb3c4098640afc388fe637fd869d"
   },
   "config_snapshot": {
     "epochs": 1,
@@ -35,8 +35,8 @@
   },
   "stats": {
     "entries": 3,
-    "cache_hits": 0,
-    "cache_misses": 3,
+    "cache_hits": 12,
+    "cache_misses": 15,
     "cache_writes": 0,
     "modality_counts": {
       "hands": 3,
@@ -44,6 +44,6 @@
       "face": 3
     },
     "modality_sample_total": 3,
-    "legacy_entries": 36
+    "legacy_entries": 37
   }
 }

@@ -1,5 +1,5 @@
 {
-  "version": "2025-12-30T11:49:49.993495+00:00",
+  "version": "2025-12-30T20:19:18.683954+00:00",
   "modalities": [],
   "modality_counts": {
     "hands": 0,
@@ -8,8 +8,8 @@
   },
   "sample_count": 1,
   "training_sources": {
-    "/home/lars/PhpstormProjects/AmysEcho/server/data/datasets/training_manifest.json": "8c21ae5741da0295029d26ee783300ca13d36a3679a0daa7d917e5eea0beaeb5",
-    "/home/lars/PhpstormProjects/AmysEcho/server/data/dgs_samples.json": "1a60f2a44cbab8925e57bac7b30e91e70f6b695a76070cd753c4b236f5d37aa4"
+    "datasets/training_manifest.json": "090517c8d19d5010a7cbfa66cc37b266ee5f2f19fb8783981505b3930b9caa9d",
+    "dgs_samples.json": "62000919c52af4959dbd420135b19b65fb21fb3c4098640afc388fe637fd869d"
   },
   "config_snapshot": {
     "epochs": 1,
@@ -31,8 +31,8 @@
   },
   "stats": {
     "entries": 1,
-    "cache_hits": 0,
-    "cache_misses": 1,
+    "cache_hits": 12,
+    "cache_misses": 13,
     "cache_writes": 0,
     "modality_counts": {
       "hands": 1,
@@ -40,6 +40,6 @@
       "face": 0
     },
     "modality_sample_total": 1,
-    "legacy_entries": 36
+    "legacy_entries": 37
   }
 }

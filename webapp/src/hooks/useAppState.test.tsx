@@ -26,7 +26,8 @@ describe('useAppState', () => {
     expect(result.current.profileUuid).toBeNull();
     expect(result.current.profileId).toBeNull();
     expect(result.current.displayName).toBeNull();
-    expect(result.current.preferredSignLabel).toBe('HILFE');
+    expect(result.current.preferredSignId).toBe('hilfe');
+    expect(result.current.preferredSignName).toBe('HILFE');
   });
 
   it('loads active profile on mount', async () => {

@@ -190,12 +190,12 @@ function TrainingResultCard({ result, trainingJob }: { result: UploadTrainingBun
 
 function SymbolSelector({
   symbols,
-  selectedLabel,
+  selectedId,
   onSelect,
 }: {
   symbols: SymbolDefinition[];
-  selectedLabel: string;
-  onSelect: (label: string) => void;
+  selectedId: string;
+  onSelect: (id: string, name: string) => void;
 }) {
   const [search, setSearch] = useState('');
   
@@ -207,6 +207,8 @@ function SymbolSelector({
       s.id.toLowerCase().includes(term)
     );
   }, [symbols, search]);
+
+  const selectedSymbol = symbols.find(s => s.id === selectedId);
 
   return (
     <div className="symbol-selector mt-md">
@@ -246,8 +248,8 @@ function SymbolSelector({
                   category: symbol.category,
                   ...(symbol.color && { color: symbol.color })
                 }}
-                onPress={() => onSelect(symbol.name)}
-                highContrast={selectedLabel === symbol.name}
+                onPress={() => onSelect(symbol.id, symbol.name)}
+                highContrast={selectedId === symbol.id}
               />
             ))}
           </div>
@@ -256,7 +258,7 @@ function SymbolSelector({
             <p>Keine passende Gebärde gefunden.</p>
             <button 
               className="primary mt-sm"
-              onClick={() => onSelect(search)}
+              onClick={() => onSelect(search.toLowerCase(), search)}
             >
               "{search}" als neue Gebärde verwenden
             </button>
@@ -264,9 +266,9 @@ function SymbolSelector({
         )}
       </div>
       
-      {selectedLabel && (
+      {selectedSymbol && (
         <div className="selected-indicator mt-sm">
-          Ausgewählt: <strong>{selectedLabel}</strong>
+          Ausgewählt: <strong>{selectedSymbol.name}</strong>
         </div>
       )}
     </div>
@@ -286,8 +288,8 @@ export function TrainingUploadWithRecording() {
   });
   const { upload, lastResult, state, trainingJob } = uploadState;
   const {
-    setPreferredSignLabel,
-    preferredSignLabel,
+    setPreferredSign,
+    preferredSignId,
     profileId,
   } = useAppState();
   const modelInjection = useMlpModelInjection(profileId);
@@ -296,7 +298,7 @@ export function TrainingUploadWithRecording() {
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
   const [modelNotice, setModelNotice] = useState<string | null>(null);
-  const metadataReady = !!profileId && profileId.trim().length > 0 && preferredSignLabel.trim().length > 0;
+  const metadataReady = !!profileId && profileId.trim().length > 0 && preferredSignId.trim().length > 0;
   const metadataError = metadataReady
     ? ''
     : 'Bitte wähle eine Gebärde aus, bevor du eine Aufnahme startest.';
@@ -340,20 +342,25 @@ export function TrainingUploadWithRecording() {
   }, [modelInjection, uploadState.lastResult, uploadState.trainingJob]);
 
   const handleLabelUpdate = useCallback(
-    (value: string) => {
-      setPreferredSignLabel(value);
+    (id: string, name: string) => {
+      setPreferredSign(id, name);
     },
-    [setPreferredSignLabel],
+    [setPreferredSign],
   );
 
   useEffect(() => {
     // Sync URL params/symbols to label - only on mount or when URL changes
-    const normalized = gestureParam?.trim() ?? '';
+    const normalizedName = gestureParam?.trim() ?? '';
     const symbol = symbols.find((s) => s.id === symbolIdParam) ?? null;
-    if (symbol && preferredSignLabel !== symbol.name) {
-      setPreferredSignLabel(symbol.name);
-    } else if (!symbol && normalized && preferredSignLabel !== normalized) {
-      setPreferredSignLabel(normalized);
+    if (symbol) {
+      if (preferredSignId !== symbol.id) {
+        setPreferredSign(symbol.id, symbol.name);
+      }
+    } else if (normalizedName) {
+      const normalizedId = normalizedName.toLowerCase();
+      if (preferredSignId !== normalizedId) {
+        setPreferredSign(normalizedId, normalizedName);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredGestureLabel or symbols change
   }, [gestureParam, symbolIdParam]);
@@ -435,7 +442,7 @@ export function TrainingUploadWithRecording() {
 
       <TrainingRecorder
         profileId={profileId || 'default'}
-        label={preferredSignLabel}
+        label={preferredSignId}
         onRecordingComplete={handleRecordingComplete}
       />
 
@@ -446,7 +453,7 @@ export function TrainingUploadWithRecording() {
         </div>
         <SymbolSelector 
           symbols={symbols} 
-          selectedLabel={preferredSignLabel}
+          selectedId={preferredSignId}
           onSelect={handleLabelUpdate}
         />
         {!metadataReady && <div className="notice error mt-sm">{metadataError}</div>}

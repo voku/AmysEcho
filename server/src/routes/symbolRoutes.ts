@@ -59,7 +59,7 @@ function normalizeSymbolPayload(body: unknown) {
 }
 
 function toClientSymbol(symbol: SymbolRecord, sampleCountsByLabel: Record<string, number>) {
-  const count = sampleCountsByLabel[symbol.name.trim()] || 0;
+  const count = sampleCountsByLabel[symbol.id] || 0;
   const isReady = count >= MIN_SAMPLES_FOR_READY;
   
   let status: 'registered' | 'training' | 'ready' = 'registered';

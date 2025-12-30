@@ -1971,16 +1971,13 @@ def _hash_training_sources(paths: list[Path], base_path: Path | None = None) -> 
         if not path.exists():
             continue
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        
+
         # Use relative path if base_path is provided and path is under it
-        try:
-            if base_path and path.is_absolute() and path.is_relative_to(base_path):
-                key = str(path.relative_to(base_path))
-            else:
-                key = path.name # Fallback to filename if not relative to base
-        except (ValueError, AttributeError):
-            key = path.name
-            
+        if base_path and path.resolve().is_relative_to(base_path.resolve()):
+            key = str(path.relative_to(base_path))
+        else:
+            key = path.name  # Fallback to filename if not relative to base
+
         hashes[key] = digest
     return hashes
 

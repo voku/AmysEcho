@@ -5,10 +5,11 @@ type AppStateContextValue = {
   profileUuid: string | null;
   profileId: string | null;
   displayName: string | null;
-  preferredSignLabel: string;
+  preferredSignId: string;
+  preferredSignName: string;
   lastRecognizedSign: string | null;
   recentSigns: string[];
-  setPreferredSignLabel: (value: string) => void;
+  setPreferredSign: (id: string, name: string) => void;
   recordSign: (sign: string) => void;
   refreshFromRegistry: () => Promise<void>;
 };
@@ -21,7 +22,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [profileUuid, setProfileUuid] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [preferredSignLabel, setPreferredSignLabel] = useState('HILFE');
+  const [preferredSignId, setPreferredSignId] = useState('hilfe');
+  const [preferredSignName, setPreferredSignName] = useState('HILFE');
   const [lastRecognizedSign, setLastRecognizedSign] = useState<string | null>(null);
   const [recentSigns, setRecentSigns] = useState<string[]>([]);
 
@@ -52,8 +54,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       return [normalized, ...existing].slice(0, 5);
     });
     
-    // Set as preferred if not already set
-    setPreferredSignLabel((prev) => prev || normalized);
+    // Set as preferred if not already set - fallback to using name as ID for recognized signs
+    if (!preferredSignId) {
+      setPreferredSignId(normalized.toLowerCase());
+      setPreferredSignName(normalized);
+    }
+  }, [preferredSignId]);
+
+  const setPreferredSign = useCallback((id: string, name: string) => {
+    setPreferredSignId(id);
+    setPreferredSignName(name);
   }, []);
 
   const refreshFromRegistry = useCallback(async () => {
@@ -74,14 +84,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       profileUuid,
       profileId,
       displayName,
-      preferredSignLabel,
+      preferredSignId,
+      preferredSignName,
       lastRecognizedSign,
       recentSigns,
-      setPreferredSignLabel,
+      setPreferredSign,
       recordSign,
       refreshFromRegistry,
     }),
-    [profileUuid, profileId, displayName, preferredSignLabel, lastRecognizedSign, recentSigns, recordSign, refreshFromRegistry],
+    [profileUuid, profileId, displayName, preferredSignId, preferredSignName, lastRecognizedSign, recentSigns, setPreferredSign, recordSign, refreshFromRegistry],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

@@ -143,8 +143,8 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
       const signs: CustomSignResponse[] = store.signs
         .filter(g => g.profileId === resolved.profileId)
         .map(sign => {
-          // Matching by sign.label (display name) because that's what the webapp sends during upload
-          const count = sampleCountsByLabel[sign.label.trim()] || 0;
+          // Matching by sign.id because that's the unique stable identifier
+          const count = sampleCountsByLabel[sign.id] || 0;
           const isReady = count >= MIN_SAMPLES_FOR_READY;
           
           let status: 'registered' | 'training' | 'ready' = 'registered';
@@ -224,7 +224,7 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
         deps.triggerTrainingJob({
           bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
           profileId: result.sign.profileId ?? null,
-          label: result.sign.label, // Use label (display name) for training
+          label: result.sign.id, // Use the unique ID for training
         });
       }
 

@@ -1,0 +1,16 @@
+{
+  "gestures": [
+    {"label": "alle", "video": "alle.mp4"},
+    {"label": "blau", "video": "blau.mp4"},
+    {"label": "essen", "video": "essen.mp4"},
+    {"label": "fertig", "video": "fertig.mp4"},
+    {"label": "gelb", "video": "gelb.mp4"},
+    {"label": "gruen", "video": "gruen.mp4"},
+    {"label": "nochmal", "video": "nochmal.mp4"},
+    {"label": "rot", "video": "rot.mp4"},
+    {"label": "satt", "video": "satt.mp4"},
+    {"label": "schwester", "video": "schwester.mp4"},
+    {"label": "spielen", "video": "spielen.mp4"},
+    {"label": "trinken", "video": "trinken.mp4"}
+  ]
+}

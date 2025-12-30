@@ -6,18 +6,18 @@ import { useMessage } from '../context/MessageContext';
 const MIN_SAMPLES_FOR_READY = 5;
 
 const BASELINE_GESTURES: SymbolDefinition[] = [
-  { id: 'alle', name: 'Alle', emoji: '👐', category: 'basic' },
-  { id: 'blau', name: 'Blau', emoji: '🔵', category: 'color' },
-  { id: 'essen', name: 'Essen', emoji: '🍽️', category: 'food' },
-  { id: 'fertig', name: 'Fertig', emoji: '✅', category: 'basic' },
-  { id: 'gelb', name: 'Gelb', emoji: '🟡', category: 'color' },
-  { id: 'gruen', name: 'Grün', emoji: '🟢', category: 'color' },
-  { id: 'nochmal', name: 'Nochmal', emoji: '🔄', category: 'basic' },
-  { id: 'rot', name: 'Rot', emoji: '🔴', category: 'color' },
-  { id: 'satt', name: 'Satt', emoji: '😊', category: 'food' },
-  { id: 'schwester', name: 'Schwester', emoji: '👧', category: 'person' },
-  { id: 'spielen', name: 'Spielen', emoji: '🎮', category: 'action' },
-  { id: 'trinken', name: 'Trinken', emoji: '🥤', category: 'food' },
+  { id: 'alle', name: 'Alle', emoji: '👥', color: '#94a3b8', category: 'person' },
+  { id: 'blau', name: 'Blau', emoji: '🔵', color: '#3b82f6', category: 'color' },
+  { id: 'essen', name: 'Essen', emoji: '🍽️', color: '#f59e0b', category: 'food' },
+  { id: 'fertig', name: 'Fertig', emoji: '✅', color: '#10b981', category: 'action' },
+  { id: 'gelb', name: 'Gelb', emoji: '🟡', color: '#fbbf24', category: 'color' },
+  { id: 'gruen', name: 'Grün', emoji: '🟢', color: '#22c55e', category: 'color' },
+  { id: 'nochmal', name: 'Nochmal', emoji: '🔁', color: '#6366f1', category: 'action' },
+  { id: 'rot', name: 'Rot', emoji: '🔴', color: '#ef4444', category: 'color' },
+  { id: 'satt', name: 'Satt', emoji: '😋', color: '#8b5cf6', category: 'food' },
+  { id: 'schwester', name: 'Schwester', emoji: '👧', color: '#ec4899', category: 'person' },
+  { id: 'spielen', name: 'Spielen', emoji: '🧸', color: '#f43f5e', category: 'action' },
+  { id: 'trinken', name: 'Trinken', emoji: '🥤', color: '#0ea5e9', category: 'food' },
 ];
 
 /**
