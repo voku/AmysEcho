@@ -12,7 +12,8 @@
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "type-check": "tsc -p tsconfig.app.json --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deps-snapshot": "npm ls --all --json --silent --legacy-peer-deps > ../docs/deps/webapp-deps.json"
   },
   "dependencies": {
     "fflate": "^0.8.2",

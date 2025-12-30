@@ -10,19 +10,7 @@ import { TRAINING_MANIFEST_PATH, PROFILE_ID_PATTERN } from '../constants/modelPa
 import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { SymbolRecord, ManifestEntry } from '../types.js';
-
-async function loadManifestEntries(): Promise<ManifestEntry[]> {
-  try {
-    const manifestRaw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
-    const manifest = JSON.parse(manifestRaw);
-    return Array.isArray(manifest?.entries) ? manifest.entries : [];
-  } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.error('Failed to load or parse training manifest:', err);
-    }
-    return [];
-  }
-}
+import { loadManifestEntries } from '../utils/manifestUtils.js';
 
 const SymbolPayloadSchema = z.object({
   id: z
@@ -89,6 +77,11 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
     try {
       const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
       
+      if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
+        res.status(400).json({ error: 'Ungültige Profil-ID.' });
+        return;
+      }
+
       const manifestEntries = await loadManifestEntries();
 
       // Separate global and profile-specific symbols

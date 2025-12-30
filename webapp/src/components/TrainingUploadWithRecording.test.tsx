@@ -104,14 +104,10 @@ describe('TrainingUploadWithRecording', () => {
     renderWithProviders();
 
     // The preferredSignId defaults to 'hilfe', so we need to clear it or select nothing.
-    // In our case, clearing the search input doesn't clear the selectedId in the state.
-    // We need to wait for the initialization to finish.
     
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
 
     expect(uploadMock).not.toHaveBeenCalled();
-    // Initially help is selected, so it won't block if we don't clear it.
-    // Wait, the default is 'HILFE'.
   }, TEST_TIMEOUT);
 
   it('übermittelt Aufnahmen nur mit gefüllter Profil-ID und Label', async () => {

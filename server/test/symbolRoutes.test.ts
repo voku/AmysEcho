@@ -66,8 +66,9 @@ describe('symbol routes', () => {
   });
 
   it('GET /api/v1/symbols with profileId still returns default labels', async () => {
+    const validUuid = '11111111-1111-4111-8111-111111111111';
     const res = await request(app)
-      .get('/api/v1/symbols?profileId=some-profile')
+      .get(`/api/v1/symbols?profileId=${validUuid}`)
       .expect(200);
 
     expect(res.body.symbols.length).toBe(12);

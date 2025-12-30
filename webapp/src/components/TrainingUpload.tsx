@@ -362,7 +362,7 @@ export function TrainingUploadWithRecording() {
         setPreferredSign(normalizedId, normalizedName);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredGestureLabel or symbols change
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredSignId or symbols change
   }, [gestureParam, symbolIdParam]);
 
   const handleRecordingComplete = useCallback(

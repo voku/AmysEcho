@@ -8,6 +8,7 @@ import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
 import { ManifestEntry } from '../types.js';
+import { loadManifestEntries } from '../utils/manifestUtils.js';
 
 const CUSTOM_SIGNS_PATH = path.join(TRAINING_DATASETS_DIR, 'custom_signs.json');
 
@@ -101,17 +102,7 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
       const { profileId } = req.query;
       
       // Load manifest to compute sample counts
-      let manifestEntries: ManifestEntry[] = [];
-      try {
-        const manifestRaw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
-        const manifest = JSON.parse(manifestRaw);
-        manifestEntries = Array.isArray(manifest?.entries) ? manifest.entries : [];
-      } catch (err: unknown) {
-        // Fallback if manifest doesn't exist yet, but log other errors.
-        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-          console.error('Failed to load or parse training manifest:', err);
-        }
-      }
+      const manifestEntries = await loadManifestEntries();
 
       // Only return signs for the specified profile to ensure data isolation
       if (typeof profileId !== 'string' || profileId.trim().length === 0) {
