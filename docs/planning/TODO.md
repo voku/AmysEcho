@@ -54,21 +54,21 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 
 ### Custom Sign Workflow Enhancements
 - [ ] Add visual status indicators (registered, training, ready).
-- [ ] Auto-trigger model training after custom sign registration.
+- [x] Auto-trigger model training after custom sign registration.
 - [ ] Show pending signs that need more training samples.
-- [ ] Add sign readiness percentage based on sample count and quality.
+- [x] Add sign readiness percentage based on sample count and quality.
 - [ ] Background model updates for custom signs.
 - [x] Offline queueing for uploads in the custom sign flow.
 - [ ] Training data quality metrics to decide when user-contributed data is ready for the global baseline.
 - [ ] Add privacy-safe preview toggle between raw video and skeleton-only while keeping overlay visible.
 
 ### Profile Identity & GDPR Follow-ups
-- [ ] Add profile registry database.
-- [ ] Implement profile deletion endpoint with cascade cleanup.
-- [ ] Add profile export with all associated training data.
-- [ ] Migrate to UUID-based profile IDs.
-- [ ] Add profile metadata storage (age, creation date, etc.).
-- [ ] Implement profile merge/transfer tooling.
-- [ ] Multi-device profile sync.
-- [ ] Profile sharing between caregivers.
-- [ ] Profile backup/restore automation.
+- [x] Add profile registry database.
+- [x] Implement profile deletion endpoint with cascade cleanup.
+- [x] Add profile export with all associated training data.
+- [x] Migrate to UUID-based profile IDs.
+- [x] Add profile metadata storage (age, creation date, etc.).
+- [x] Implement profile merge/transfer tooling.
+- [x] Multi-device profile sync.
+- [x] Profile sharing between caregivers.
+- [x] Profile backup/restore automation.
