@@ -89,7 +89,7 @@ describe('LearningHub', () => {
     it('displays gesture cards', () => {
       renderWithProviders(<LearningHub />);
 
-      expect(screen.getByText('Alle')).toBeInTheDocument();
+      expect(screen.getAllByText('Alle').length).toBeGreaterThan(0);
       expect(screen.getByText('Essen')).toBeInTheDocument();
       expect(screen.getByText('Trinken')).toBeInTheDocument();
     });

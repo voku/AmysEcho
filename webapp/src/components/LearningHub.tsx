@@ -37,6 +37,7 @@ export function LearningHub() {
   const [savingSymbol, setSavingSymbol] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -47,14 +48,38 @@ export function LearningHub() {
 
   const navigate = useNavigate();
 
+  const categoryLabels: Record<string, string> = {
+    all: 'Alle',
+    color: 'Farben',
+    food: 'Essen & Trinken',
+    action: 'Aktionen',
+    person: 'Personen',
+    custom: 'Eigene',
+    basic: 'Basis',
+  };
+
+  const categories = useMemo(() => {
+    const uniqueCats = Array.from(new Set(symbols.map(s => s.category || 'custom')));
+    return ['all', ...uniqueCats];
+  }, [symbols]);
+
   const filteredSymbols = useMemo(() => {
+    let result = symbols;
+    
+    if (selectedCategory && selectedCategory !== 'all') {
+      result = result.filter(s => (s.category || 'custom') === selectedCategory);
+    }
+
     const term = searchTerm.toLowerCase().trim();
-    if (!term) return symbols;
-    return symbols.filter(s => 
-      s.name.toLowerCase().includes(term) || 
-      s.category.toLowerCase().includes(term)
-    );
-  }, [symbols, searchTerm]);
+    if (term) {
+      result = result.filter(s => 
+        s.name.toLowerCase().includes(term) || 
+        (s.category && s.category.toLowerCase().includes(term))
+      );
+    }
+    
+    return result;
+  }, [symbols, searchTerm, selectedCategory]);
 
   const stats = useMemo(() => {
     const readyCount = symbols.filter(s => s.isReady).length;
@@ -217,6 +242,21 @@ export function LearningHub() {
             ➕ Neue Gebärde
           </button>
         </div>
+      </div>
+
+      <div className="category-filters mb-lg">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            className={`filter-pill ${selectedCategory === cat || (cat === 'all' && !selectedCategory) ? 'active' : ''}`}
+            onClick={() => setSelectedCategory(cat === 'all' ? null : cat)}
+          >
+            {categoryLabels[cat] || cat}
+            <span className="cat-count">
+              ({cat === 'all' ? symbols.length : symbols.filter(s => (s.category || 'custom') === cat).length})
+            </span>
+          </button>
+        ))}
       </div>
 
       {syncError && <div className="notice warning mb-md">Gebärden konnten nicht geladen werden: {syncError}</div>}

@@ -2108,6 +2108,48 @@ p {
   gap: var(--space-sm);
 }
 
+.category-filters {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-sm);
+}
+
+.filter-pill {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-overlay-border);
+  background: var(--color-overlay-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: auto;
+  min-width: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-pill:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+.filter-pill.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.cat-count {
+  font-size: 0.85em;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
 .gesture-readiness-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
