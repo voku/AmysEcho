@@ -364,7 +364,7 @@ databaseReady
     logger.warn('Profile backup automation skipped', { error: String(error) });
   });
 
-async function resolveProfileIdForLookup(
+async function resolveProfileId(
   value?: string | null,
 ): Promise<{ profileId: string | null }> {
   if (!profileRegistry || !value) {
@@ -373,20 +373,6 @@ async function resolveProfileIdForLookup(
   const trimmed = value.trim();
   const exists = profileRegistry.profiles.some((profile) => profile.id === trimmed);
   return { profileId: exists ? trimmed : null };
-}
-
-async function ensureProfileIdForStorage(
-  value?: string | null,
-): Promise<{ profileId: string | null }> {
-  if (!profileRegistry || !value) {
-    return { profileId: value ?? null };
-  }
-  const trimmed = value.trim();
-  const exists = profileRegistry.profiles.some((profile) => profile.id === trimmed);
-  if (!exists) {
-    return { profileId: null };
-  }
-  return { profileId: trimmed };
 }
 
 async function runProfileBackupCycle(): Promise<void> {
@@ -664,7 +650,7 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
   applyModelHeaders: applyModelResponseHeaders,
   logTraining,
   isProfileAuthorized,
-  resolveProfileId: resolveProfileIdForLookup,
+  resolveProfileId: resolveProfileId,
 });
 app.get('/latest-mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
 app.get('/api/v1/dgs/mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
@@ -688,10 +674,10 @@ registerTrainingBundleRoute(app, genId, {
       return null;
     }
   },
-  resolveProfileId: ensureProfileIdForStorage,
+  resolveProfileId: resolveProfileId,
 });
 
-registerCustomSignsRoute(app, { resolveProfileId: resolveProfileIdForLookup });
+registerCustomSignsRoute(app, { resolveProfileId: resolveProfileId });
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
@@ -725,10 +711,13 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
     if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
       return res.status(400).json({ error: 'Ungültige Profil-ID.' });
     }
-    const resolvedProfile = await ensureProfileIdForStorage(profileId ?? null);
+    const resolvedProfile = await resolveProfileId(profileId ?? null);
     const resolvedProfileId = resolvedProfile.profileId ?? undefined;
     if (profileId && !resolvedProfileId) {
       return res.status(404).json({ error: 'Profil nicht gefunden.' });
+    }
+    if (resolvedProfileId && !isProfileAuthorized(req, resolvedProfileId)) {
+      return res.status(403).json({ error: 'Zugriff verweigert.' });
     }
     console.log(`Received DGS sample: label=${label}, profileId=${resolvedProfileId}, landmarks length=${landmarks.length}`);
     const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
