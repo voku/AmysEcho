@@ -3,11 +3,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { auth } from '../middleware/auth.js';
-import { ensureDataDir, TRAINING_DATASETS_DIR, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
+import { ensureDataDir, TRAINING_DATASETS_DIR, TRAINING_MANIFEST_PATH, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
 
 const CUSTOM_SIGNS_PATH = path.join(TRAINING_DATASETS_DIR, 'custom_signs.json');
+const MIN_SAMPLES_FOR_READY = 5;
 
 const SignRequestSchema = z.object({
   id: z
@@ -43,6 +44,19 @@ const SignStoreSchema = z.object({
 });
 
 type SignStore = z.infer<typeof SignStoreSchema>;
+type CustomSign = SignStore['signs'][number];
+
+interface ManifestEntry {
+  label: string;
+  profileId?: string | null;
+}
+
+interface CustomSignResponse extends CustomSign {
+  sampleCount: number;
+  samplesNeeded: number;
+  isReady: boolean;
+  status: 'registered' | 'training' | 'ready';
+}
 
 async function readStore(): Promise<SignStore> {
   await ensureDataDir();
@@ -54,9 +68,8 @@ async function readStore(): Promise<SignStore> {
     if (result.success) {
       return result.data;
     }
-  } catch (error: unknown) {
-    const isEnoent = typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 'ENOENT';
-    if (!isEnoent) {
+  } catch (error: any) {
+    if (error?.code !== 'ENOENT') {
       throw error;
     }
   }
@@ -92,40 +105,67 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
       const { profileId } = req.query;
       
       // Load manifest to compute sample counts
-      let manifestEntries: any[] = [];
+      let manifestEntries: ManifestEntry[] = [];
       try {
-        const manifestRaw = await fs.readFile(path.join(TRAINING_DATASETS_DIR, 'training_manifest.json'), 'utf8');
+        const manifestRaw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
         const manifest = JSON.parse(manifestRaw);
         manifestEntries = Array.isArray(manifest?.entries) ? manifest.entries : [];
-      } catch (err) {
-        // Fallback if manifest doesn't exist yet
+      } catch (err: any) {
+        // Fallback if manifest doesn't exist yet, but log other errors.
+        if (err.code !== 'ENOENT') {
+          console.error('Failed to load or parse training manifest:', err);
+        }
       }
 
       // Only return signs for the specified profile to ensure data isolation
-      // If no profileId is provided, return empty array to prevent cross-profile data leakage
-      let signs: any[] = [];
-      if (typeof profileId === 'string' && profileId.trim().length > 0) {
-        if (!PROFILE_ID_PATTERN.test(profileId)) {
-          return res.status(400).json({ error: 'Ungültige Profil-ID.' });
-        }
-        const resolved = deps.resolveProfileId
-          ? await deps.resolveProfileId(profileId)
-          : { profileId };
-        if (!resolved.profileId) {
-          return res.status(404).json({ error: 'Profil nicht gefunden.' });
-        }
-        
-        signs = store.signs
-          .filter(g => g.profileId === resolved.profileId)
-          .map(sign => {
-            const count = manifestEntries.filter(e => e.label === sign.id && e.profileId === sign.profileId).length;
-            return {
-              ...sign,
-              sampleCount: count,
-              isReady: count >= 5 // Heuristic: 5 samples needed for basic personalization
-            };
-          });
+      if (typeof profileId !== 'string' || profileId.trim().length === 0) {
+        return res.json({ signs: [] });
       }
+
+      if (!PROFILE_ID_PATTERN.test(profileId)) {
+        return res.status(400).json({ error: 'Ungültige Profil-ID.' });
+      }
+
+      const resolved = deps.resolveProfileId
+        ? await deps.resolveProfileId(profileId)
+        : { profileId };
+
+      if (!resolved.profileId) {
+        return res.status(404).json({ error: 'Profil nicht gefunden.' });
+      }
+
+      // Optimize sample count calculation: O(N+M)
+      const profileManifestEntries = manifestEntries.filter(e => e.profileId === resolved.profileId);
+      const sampleCountsByLabel = profileManifestEntries.reduce((acc, entry) => {
+        if (entry.label) {
+          const label = entry.label.trim();
+          acc[label] = (acc[label] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const signs: CustomSignResponse[] = store.signs
+        .filter(g => g.profileId === resolved.profileId)
+        .map(sign => {
+          // Matching by sign.label (display name) because that's what the webapp sends during upload
+          const count = sampleCountsByLabel[sign.label.trim()] || 0;
+          const isReady = count >= MIN_SAMPLES_FOR_READY;
+          
+          let status: 'registered' | 'training' | 'ready' = 'registered';
+          if (isReady) {
+            status = 'ready';
+          } else if (count > 0) {
+            status = 'training';
+          }
+
+          return {
+            ...sign,
+            sampleCount: count,
+            samplesNeeded: Math.max(0, MIN_SAMPLES_FOR_READY - count),
+            isReady,
+            status
+          };
+        });
       
       return res.json({ signs });
     } catch (error) {
@@ -188,7 +228,7 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
         deps.triggerTrainingJob({
           bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
           profileId: result.sign.profileId ?? null,
-          label: result.sign.id,
+          label: result.sign.label, // Use label (display name) for training
         });
       }
 

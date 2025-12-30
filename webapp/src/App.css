@@ -1948,6 +1948,77 @@ p {
   margin: var(--space-xs) 0 0;
 }
 
+/* ==========================================================================
+   Symbol Selector
+   ========================================================================== */
+
+.symbol-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding-right: 40px !important;
+}
+
+.clear-button {
+  position: absolute;
+  right: 8px;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: var(--color-surface-muted) !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted) !important;
+}
+
+.clear-button:hover {
+  background: var(--color-overlay-border) !important;
+}
+
+.symbol-grid-scrollable {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  background: var(--color-overlay-surface-muted);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-overlay-border);
+}
+
+.symbol-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-sm);
+}
+
+.symbol-grid button {
+  width: 100%;
+  margin: 0 !important;
+}
+
+.selected-indicator {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-chip-success-bg);
+  border: 1px solid var(--color-chip-success-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-caption);
+}
+
 .progress-section {
   margin: var(--space-xl) 0;
 }
