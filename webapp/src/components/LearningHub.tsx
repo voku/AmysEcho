@@ -36,6 +36,7 @@ export function LearningHub() {
   const [modalOpen, setModalOpen] = useState(false);
   const [savingSymbol, setSavingSymbol] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -43,19 +44,28 @@ export function LearningHub() {
     imageUrl: '',
     imageDataUrl: '',
   });
-  const gestures = useMemo(() => {
-    if (symbols.length > 0) {
-      return symbols.map((symbol) => ({
-        id: symbol.id,
-        label: symbol.name,
-        emoji: symbol.imageUrl ? '🖼️' : '🧩',
-        description: symbol.category,
-        imageUrl: symbol.imageUrl,
-      }));
-    }
-    return BASELINE_GESTURES;
-  }, [symbols]);
+
   const navigate = useNavigate();
+
+  const filteredSymbols = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return symbols;
+    return symbols.filter(s => 
+      s.name.toLowerCase().includes(term) || 
+      s.category.toLowerCase().includes(term)
+    );
+  }, [symbols, searchTerm]);
+
+  const stats = useMemo(() => {
+    const readyCount = symbols.filter(s => s.isReady).length;
+    const trainingCount = symbols.filter(s => s.status === 'training').length;
+    return {
+      total: symbols.length,
+      ready: readyCount,
+      training: trainingCount,
+      progress: symbols.length > 0 ? Math.round((readyCount / symbols.length) * 100) : 0
+    };
+  }, [symbols]);
 
   const handleOpenModal = () => {
     setFormData({ id: '', name: '', category: 'custom', imageUrl: '', imageDataUrl: '' });
@@ -157,110 +167,142 @@ export function LearningHub() {
   };
 
   return (
-    <section className="card">
+    <section className="card learning-hub">
       <div className="card-header">
         <div>
-          <p className="eyebrow">Lernen</p>
-          <h2>Gebärden trainieren</h2>
+          <p className="eyebrow">Lern-Zentrum</p>
+          <h2>Deine Gebärden</h2>
           <p className="muted">
-            Wähle eine Gebärde aus, um Trainingsbeispiele aufzunehmen. 
-            Je mehr Beispiele, desto besser die Erkennung.
+            Hier siehst du alle Gebärden, die Amy lernen kann. 
+            Nimm Beispiele auf, um die Erkennung für jedes Wort zu verbessern.
           </p>
         </div>
       </div>
 
-      {/* Quick stats */}
-      <div className="learning-stats">
-        <div className="stat-item">
-          <span className="stat-number">{gestures.length}</span>
-          <span className="stat-label">Verfügbare Gebärden</span>
+      {/* Summary stats */}
+      <div className="learning-summary mt-md mb-lg">
+        <div className="summary-card">
+          <div className="summary-content">
+            <span className="summary-value">{stats.ready} / {stats.total}</span>
+            <span className="summary-label">Bereite Gebärden</span>
+          </div>
+          <div className="summary-progress-bar">
+            <div className="progress-fill" style={{ width: `${stats.progress}%` }}></div>
+          </div>
         </div>
-        <div className="stat-item">
-          <span className="stat-number">~5</span>
-          <span className="stat-label">Beispiele empfohlen</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-number">~1 Min</span>
-          <span className="stat-label">Pro Gebärde</span>
+        <div className="summary-card">
+          <div className="summary-content">
+            <span className="summary-value">{stats.training}</span>
+            <span className="summary-label">In Training</span>
+          </div>
         </div>
       </div>
 
-      <div className="action-row mb-sm">
-        <button className="secondary-button" onClick={refresh} disabled={loading}>
-          Jetzt synchronisieren
-        </button>
-        {loading && <span className="muted small">Aktualisiere…</span>}
-      </div>
-      {syncError && <div className="notice warning">Gebärden konnten nicht geladen werden: {syncError}</div>}
-      {!syncError && symbols.length === 0 && (
-        <div className="notice info">
-          Wir laden die Gebärdensammlung vom Server. Du kannst trotzdem schon eigene Gebärden hinzufügen und sofort trainieren.
+      <div className="learning-controls mb-md">
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Gebärden filtern..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          {searchTerm && <button className="clear-search" onClick={() => setSearchTerm('')}>✕</button>}
         </div>
-      )}
+        <div className="action-buttons">
+          <button className="secondary-button" onClick={refresh} disabled={loading}>
+            {loading ? 'Aktualisiere…' : '🔄 Synchronisieren'}
+          </button>
+          <button className="primary-button" onClick={handleOpenModal}>
+            ➕ Neue Gebärde
+          </button>
+        </div>
+      </div>
 
-      {/* Gesture list */}
-      <div className="gesture-learning-list">
-        {gestures.map((gesture) => (
-          <div key={gesture.id} className="gesture-learning-card">
-            <div className="gesture-info">
-              {gesture.imageUrl ? (
-                <img src={gesture.imageUrl} alt={gesture.label} className="gesture-image-large" />
-              ) : (
-                <span className="gesture-emoji-large">{gesture.emoji}</span>
-              )}
-              <div className="gesture-details">
-                <h3>{gesture.label}</h3>
-                <p className="muted small">{gesture.description || 'Benutzerdefinierte Kategorie'}</p>
-                <p className="muted small">Empfohlen: 5 Beispiele · ca. 1 Minute</p>
+      {syncError && <div className="notice warning mb-md">Gebärden konnten nicht geladen werden: {syncError}</div>}
+
+      {/* Gesture grid */}
+      <div className="gesture-readiness-grid">
+        {filteredSymbols.map((gesture) => (
+          <div key={gesture.id} className="readiness-card" data-status={gesture.status}>
+            <div className="readiness-card-header">
+              <div className="gesture-visual">
+                {gesture.imageUrl ? (
+                  <img src={gesture.imageUrl} alt={gesture.name} className="gesture-thumb" />
+                ) : (
+                  <span className="gesture-emoji">{gesture.emoji || '🧩'}</span>
+                )}
+              </div>
+              <div className="status-indicator">
+                <span className={`status-dot ${gesture.status}`}></span>
+                <span className="status-text">
+                  {gesture.status === 'ready' ? 'Bereit' : 
+                   gesture.status === 'training' ? 'In Arbeit' : 'Neu'}
+                </span>
               </div>
             </div>
-            <div className="gesture-actions">
+            
+            <div className="readiness-card-body">
+              <h3>{gesture.name}</h3>
+              <p className="category-tag">{gesture.category}</p>
+              
+              <div className="sample-progress mt-sm">
+                <div className="sample-count-line">
+                  <span>{gesture.sampleCount || 0} Beispiele</span>
+                  {gesture.samplesNeeded! > 0 && (
+                    <span className="needed">+{gesture.samplesNeeded} nötig</span>
+                  )}
+                </div>
+                <div className="mini-progress-bar">
+                  <div 
+                    className="mini-progress-fill" 
+                    style={{ width: `${Math.min(100, ((gesture.sampleCount || 0) / 5) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="readiness-card-actions">
               <button
-                className="train-button"
-                onClick={() => handleTrainGesture(gesture.id, gesture.label)}
+                className="train-action-button"
+                onClick={() => handleTrainGesture(gesture.id, gesture.name)}
               >
-                Trainieren
+                {gesture.sampleCount! > 0 ? 'Mehr aufnehmen' : 'Starten'}
               </button>
-              {symbols.length > 0 && (
-                <button className="secondary-button" onClick={() => handleEditSymbol({
-                  id: gesture.id,
-                  name: gesture.label,
-                  category: gesture.description,
-                  imageUrl: gesture.imageUrl ?? null,
-                })}>
-                  Anpassen
-                </button>
-              )}
+              <button 
+                className="edit-icon-button" 
+                onClick={() => handleEditSymbol(gesture)}
+                title="Bearbeiten"
+              >
+                ⚙️
+              </button>
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Add custom gesture */}
-      <div className="custom-gesture-section">
-        <h3>➕ Eigene Gebärde hinzufügen</h3>
-        <p className="muted">
-          Du kannst auch eigene Gebärden erstellen und trainieren. Bild, ID und Kategorie werden direkt mit dem Server synchronisiert.
-        </p>
-        <div className="action-row">
-          <button className="primary-button" onClick={handleOpenModal}>
-            Neue Gebärde speichern
-          </button>
-          <Link to="/training" className="add-gesture-button">
-            Sofort Training starten
-          </Link>
-        </div>
+        {filteredSymbols.length === 0 && !loading && (
+          <div className="empty-results notice info">
+            <p>Keine Gebärden gefunden, die auf "{searchTerm}" passen.</p>
+          </div>
+        )}
       </div>
 
       {/* Tips */}
-      <div className="learning-tips">
+      <div className="learning-tips mt-xl">
         <h3>💡 Tipps für effektives Training</h3>
-        <ul>
-          <li>Nimm Beispiele aus verschiedenen Winkeln auf</li>
-          <li>Variiere die Geschwindigkeit leicht</li>
-          <li>Trainiere bei unterschiedlichen Lichtverhältnissen</li>
-          <li>Lade regelmäßig neue Beispiele hoch</li>
-        </ul>
+        <div className="tips-grid">
+          <div className="tip-item">
+            <strong>Winkel variieren</strong>
+            <p>Nimm Beispiele von vorne, leicht seitlich oder von oben auf.</p>
+          </div>
+          <div className="tip-item">
+            <strong>Licht nutzen</strong>
+            <p>Gute Beleuchtung verbessert die Erkennung deiner Hände enorm.</p>
+          </div>
+          <div className="tip-item">
+            <strong>Hintergrund</strong>
+            <p>Ein ruhiger Hintergrund hilft Amy, sich auf deine Hände zu konzentrieren.</p>
+          </div>
+        </div>
       </div>
 
       {modalOpen && (
@@ -274,24 +316,10 @@ export function LearningHub() {
           }}
         >
           <div className="modal-content">
-            <h3 id="symbol-modal-title">Gebärde für das Lernen speichern</h3>
-            <p className="muted">Sobald du speicherst, steht die Gebärde auf der Lern- und Trainingsseite bereit.</p>
+            <h3 id="symbol-modal-title">{formData.id ? 'Gebärde bearbeiten' : 'Neue Gebärde hinzufügen'}</h3>
+            <p className="muted">Sobald du speicherst, kannst du sofort mit dem Training beginnen.</p>
 
-            <div className="form-group">
-              <label htmlFor="symbol-id">Gebärden-ID</label>
-              <input
-                id="symbol-id"
-                type="text"
-                value={formData.id}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, id: e.target.value }))
-                }
-                placeholder="z. B. trinken-wasser"
-              />
-              <p className="muted small">Wird auch für die Server-Synchronisierung genutzt.</p>
-            </div>
-
-            <div className="form-group">
+            <div className="form-group mt-md">
               <label htmlFor="symbol-name">Bezeichnung</label>
               <input
                 id="symbol-name"
@@ -300,62 +328,53 @@ export function LearningHub() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
-                placeholder="Titel für die Gebärde"
+                placeholder="z.B. Apfel, Durst, Mama..."
               />
             </div>
 
             <div className="form-group">
               <label htmlFor="symbol-category">Kategorie</label>
-              <input
+              <select
                 id="symbol-category"
-                type="text"
                 value={formData.category}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, category: e.target.value }))
                 }
-                placeholder="z. B. custom, basic, emotion"
-              />
+              >
+                <option value="custom">Benutzerdefiniert</option>
+                <option value="basic">Grundlagen</option>
+                <option value="food">Essen & Trinken</option>
+                <option value="emotion">Gefühle</option>
+                <option value="action">Aktionen</option>
+                <option value="person">Personen</option>
+              </select>
             </div>
 
             <div className="form-group">
-              <label htmlFor="symbol-image-url">Bild-URL (optional)</label>
-              <input
-                id="symbol-image-url"
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    imageUrl: e.target.value,
-                    imageDataUrl: '',
-                  }))
-                }
-                placeholder="https://.../symbol.png"
-              />
-              <p className="muted small">Du kannst die Gebärde auch ohne Bild speichern.</p>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="symbol-image-upload">Bild hochladen (optional)</label>
-              <input
-                id="symbol-image-upload"
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
-              />
-              <p className="muted small">Wir verwenden ein Platzhalter-Icon, falls kein Bild hinterlegt ist.</p>
-            </div>
-
-            {imagePreview && (
-              <div className="preview-row">
-                <p className="muted small">Vorschau</p>
-                <img src={imagePreview} alt={formData.name || 'Gebärde'} className="symbol-thumb" />
+              <label htmlFor="symbol-image-upload">Vorschaubild</label>
+              <div className="image-upload-zone">
+                <input
+                  id="symbol-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
+                  className="hidden-file-input"
+                />
+                <label htmlFor="symbol-image-upload" className="upload-label">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Vorschau" className="upload-preview" />
+                  ) : (
+                    <div className="upload-placeholder">
+                      <span>📸 Foto auswählen</span>
+                    </div>
+                  )}
+                </label>
               </div>
-            )}
+            </div>
 
-            <div className="modal-actions">
+            <div className="modal-actions mt-lg">
               <button className="primary-button" onClick={handleSaveSymbol} disabled={savingSymbol || !formData.name.trim()}>
-                {savingSymbol ? 'Speichert…' : 'Speichern'}
+                {savingSymbol ? 'Wird gespeichert…' : 'Speichern'}
               </button>
               <button className="secondary-button" onClick={handleCloseModal}>
                 Abbrechen
@@ -367,3 +386,4 @@ export function LearningHub() {
     </section>
   );
 }
+
