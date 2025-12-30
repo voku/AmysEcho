@@ -78,6 +78,11 @@ function normalizeLabel(label: string): string {
 
 type CustomSignsDeps = {
   resolveProfileId?: (profileId: string | null) => Promise<{ profileId: string | null }>;
+  triggerTrainingJob?: (context: {
+    bundleId: string;
+    profileId: string | null;
+    label: string;
+  }) => void;
 };
 
 export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {}): void {
@@ -86,9 +91,19 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
       const store = await readStore();
       const { profileId } = req.query;
       
+      // Load manifest to compute sample counts
+      let manifestEntries: any[] = [];
+      try {
+        const manifestRaw = await fs.readFile(path.join(TRAINING_DATASETS_DIR, 'training_manifest.json'), 'utf8');
+        const manifest = JSON.parse(manifestRaw);
+        manifestEntries = Array.isArray(manifest?.entries) ? manifest.entries : [];
+      } catch (err) {
+        // Fallback if manifest doesn't exist yet
+      }
+
       // Only return signs for the specified profile to ensure data isolation
       // If no profileId is provided, return empty array to prevent cross-profile data leakage
-      let signs: typeof store.signs = [];
+      let signs: any[] = [];
       if (typeof profileId === 'string' && profileId.trim().length > 0) {
         if (!PROFILE_ID_PATTERN.test(profileId)) {
           return res.status(400).json({ error: 'Ungültige Profil-ID.' });
@@ -99,7 +114,17 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
         if (!resolved.profileId) {
           return res.status(404).json({ error: 'Profil nicht gefunden.' });
         }
-        signs = store.signs.filter(g => g.profileId === resolved.profileId);
+        
+        signs = store.signs
+          .filter(g => g.profileId === resolved.profileId)
+          .map(sign => {
+            const count = manifestEntries.filter(e => e.label === sign.id && e.profileId === sign.profileId).length;
+            return {
+              ...sign,
+              sampleCount: count,
+              isReady: count >= 5 // Heuristic: 5 samples needed for basic personalization
+            };
+          });
       }
       
       return res.json({ signs });
@@ -157,6 +182,15 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
         await writeStore(store);
         return { sign: newSign, created: true };
       });
+
+      // Auto-trigger model training after custom sign registration
+      if (deps.triggerTrainingJob) {
+        deps.triggerTrainingJob({
+          bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
+          profileId: result.sign.profileId ?? null,
+          label: result.sign.id,
+        });
+      }
 
       return res.status(result.created ? 201 : 200).json(result.sign);
     } catch (error) {

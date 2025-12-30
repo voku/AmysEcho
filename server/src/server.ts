@@ -655,11 +655,11 @@ app.get('/latest-mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
 app.get('/api/v1/dgs/mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
 
 registerTrainingBundleRoute(app, genId, {
-  triggerTrainingJob: ({ bundleId }) => {
+  triggerTrainingJob: ({ bundleId, profileId, label }) => {
     try {
       const { jobId, status, queueDepth, retryAfterMs } = startTrainingJob([], 'bundles');
       void logTraining(
-        `job ${jobId}: scheduled automatically from bundle ${bundleId} (status=${status})`,
+        `job ${jobId}: scheduled automatically from bundle ${bundleId} (status=${status}, profile=${profileId}, label=${label})`,
       );
       return {
         jobId,
@@ -676,7 +676,19 @@ registerTrainingBundleRoute(app, genId, {
   resolveProfileId: resolveProfileId,
 });
 
-registerCustomSignsRoute(app, { resolveProfileId: resolveProfileId });
+registerCustomSignsRoute(app, {
+  resolveProfileId: resolveProfileId,
+  triggerTrainingJob: ({ bundleId, profileId, label }) => {
+    try {
+      const { jobId, status } = startTrainingJob([], 'bundles');
+      void logTraining(
+        `job ${jobId}: scheduled automatically from sign registration ${bundleId} (status=${status}, profile=${profileId}, label=${label})`,
+      );
+    } catch (error) {
+      console.error('Failed to schedule training after sign registration:', error);
+    }
+  }
+});
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
