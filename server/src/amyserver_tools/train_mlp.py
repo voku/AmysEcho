@@ -1965,13 +1965,23 @@ def _write_training_metadata(
         pass
 
 
-def _hash_training_sources(paths: list[Path]) -> dict[str, str]:
+def _hash_training_sources(paths: list[Path], base_path: Path | None = None) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in paths:
         if not path.exists():
             continue
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        hashes[str(path)] = digest
+        
+        # Use relative path if base_path is provided and path is under it
+        try:
+            if base_path and path.is_absolute() and path.is_relative_to(base_path):
+                key = str(path.relative_to(base_path))
+            else:
+                key = path.name # Fallback to filename if not relative to base
+        except (ValueError, AttributeError):
+            key = path.name
+            
+        hashes[key] = digest
     return hashes
 
 
@@ -2294,7 +2304,7 @@ def main() -> None:
         if config.random_seed is not None:
             rng = np.random.RandomState(config.random_seed)
 
-        training_sources = _hash_training_sources([args.manifest, legacy_dataset_path])
+        training_sources = _hash_training_sources([args.manifest, legacy_dataset_path], base_path=DATA_DIR)
         metadata_context = {
             "training_sources": training_sources,
             "config_snapshot": _build_config_snapshot(config),

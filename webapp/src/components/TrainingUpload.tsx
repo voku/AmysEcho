@@ -244,7 +244,7 @@ function SymbolSelector({
                   name: symbol.name,
                   emoji: symbol.emoji || '🧩',
                   category: symbol.category,
-                  color: symbol.color || undefined
+                  ...(symbol.color && { color: symbol.color })
                 }}
                 onPress={() => onSelect(symbol.name)}
                 highContrast={selectedLabel === symbol.name}
