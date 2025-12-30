@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
 import type { Database } from '../db.js';
 import type { ProfileRegistry } from '../services/profileRegistry.js';
 import { findProfileRecord } from '../services/profileRegistry.js';
@@ -22,7 +23,15 @@ type GdprDependencies = {
 export function registerGdprRoutes(app: Express, deps: GdprDependencies): void {
   const { authMiddleware, db, dbFilePath, registry, registryPath, saveRegistry, withFileLock, logError } = deps;
 
-  app.get('/api/v1/profiles/:id/export', authMiddleware, async (req: Request, res: Response) => {
+  const gdprRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // limit each IP to 10 GDPR-related requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.' },
+  });
+
+  app.get('/api/v1/profiles/:id/export', authMiddleware, gdprRateLimiter, async (req: Request, res: Response) => {
     const { id } = req.params;
     const profile = findProfileRecord(registry, id);
     if (!profile) {
@@ -42,7 +51,7 @@ export function registerGdprRoutes(app: Express, deps: GdprDependencies): void {
     }
   });
 
-  app.delete('/api/v1/profiles/:id', authMiddleware, async (req: Request, res: Response) => {
+  app.delete('/api/v1/profiles/:id', authMiddleware, gdprRateLimiter, async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
       const profile = findProfileRecord(registry, id);
