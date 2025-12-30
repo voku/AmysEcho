@@ -1,4 +1,5 @@
 import hashlib
+import json
 import shutil
 import time
 import urllib.error
@@ -27,6 +28,14 @@ def fetch_latest_mlp_model(base_url, profile_id=None, extra_headers=None, auth_h
     except urllib.error.HTTPError as e:
         return e.code
 
+def create_profile(base_url, auth_header, profile_id, display_name):
+    url = f"{base_url}/api/v1/profiles"
+    data = json.dumps({"id": profile_id, "displayName": display_name}).encode("utf-8")
+    headers = {**auth_header, "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        assert resp.getcode() == 201
+
 @pytest.fixture
 def missing_data_dir():
     data_dir = resolve_data_dir()
@@ -52,7 +61,7 @@ def model_file():
         )
         shutil.move(str(data_dir), str(backup_dir))
     data_dir.mkdir()
-    model_path = data_dir / "models" / "p1" / "amy_model.npz"
+    model_path = data_dir / "models" / "11111111-1111-4111-8111-111111111111" / "amy_model.npz"
     model_path.parent.mkdir(parents=True, exist_ok=True)
     model_path.write_bytes(b"placeholder")
     try:
@@ -86,7 +95,7 @@ def global_model_file():
             shutil.move(str(backup_dir), str(data_dir))
 
 def test_latest_mlp_model_requires_authorization(model_file, running_server, base_url):
-    status = fetch_latest_mlp_model(base_url, profile_id="p1")
+    status = fetch_latest_mlp_model(base_url, profile_id="11111111-1111-4111-8111-111111111111")
     assert status == 401
 
 def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_server, base_url, auth_header):
@@ -97,15 +106,20 @@ def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_
     assert seeded_path.stat().st_size > 0
 
 def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_server, base_url, auth_header):
+    create_profile(base_url, auth_header, "11111111-1111-4111-8111-111111111111", "Test Profile")
     status = fetch_latest_mlp_model(
-        base_url, profile_id="p1", extra_headers={"x-profile-id": "p1"}, auth_header=auth_header
+        base_url,
+        profile_id="11111111-1111-4111-8111-111111111111",
+        extra_headers={"x-profile-id": "11111111-1111-4111-8111-111111111111"},
+        auth_header=auth_header,
     )
     assert status == 200
 
 
 def test_latest_mlp_model_sets_headers(model_file, running_server, base_url, auth_header):
-    url = f"{base_url}/latest-mlp-model?profileId=p1"
-    headers = {**auth_header, "x-profile-id": "p1"}
+    create_profile(base_url, auth_header, "11111111-1111-4111-8111-111111111111", "Test Profile")
+    url = f"{base_url}/latest-mlp-model?profileId=11111111-1111-4111-8111-111111111111"
+    headers = {**auth_header, "x-profile-id": "11111111-1111-4111-8111-111111111111"}
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=5) as resp:
         assert resp.getcode() == 200

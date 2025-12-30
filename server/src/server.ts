@@ -16,6 +16,7 @@ import { registerGdprRoutes } from './routes/gdprRoutes.js';
 import { createLatestMlpModelHandler } from './routes/latestMlpModelRoute.js';
 import { registerAuthRoutes } from './routes/authRoutes.js';
 import { registerSymbolRoutes } from './routes/symbolRoutes.js';
+import { registerProfileRoutes } from './routes/profileRoutes.js';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import {
@@ -27,14 +28,13 @@ import {
   TRAINING_MANIFEST_PATH,
 } from './constants/modelPaths.js';
 import { DB_FILE_PATH } from './constants/dbPaths.js';
+import { PROFILE_REGISTRY_PATH } from './constants/profileRegistryPaths.js';
 import {
   setupDatabase,
   Database,
   addNegativeSample,
   logCorrection,
   saveDatabase,
-  getProfileData,
-  deleteProfileData,
 } from './db.js';
 import { auth } from './middleware/auth.js';
 import {
@@ -48,6 +48,13 @@ import { ingestTrainingBundlesIntoDataset } from './services/trainingBundleInges
 import { appendCrashReports, CrashReport } from './services/crashService.js';
 import { isProfileAuthorized } from './utils/profileAuthorization.js';
 import { Correction, NegativeSample } from './types.js';
+import { migrateProfileIds } from './services/profileMigration.js';
+import {
+  saveProfileRegistry,
+  ensureProfileRecord,
+  ProfileRegistry,
+} from './services/profileRegistry.js';
+import { writeProfileBackup } from './services/profileDataService.js';
 
 export const app = express();
 
@@ -293,17 +300,46 @@ const genId = () =>
 
 // Initialize database before starting server
 let dbInstance: Database;
+let profileRegistry: ProfileRegistry;
 export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
-  .then((db) => {
+  .then(async (db) => {
     dbInstance = db;
     app.locals.dbInstance = db;
+    const migration = await migrateProfileIds(db, PROFILE_REGISTRY_PATH);
+    profileRegistry = migration.registry;
+    app.locals.profileRegistry = profileRegistry;
+    if (profileRegistry.profiles.length === 0 && db.profiles.length > 0) {
+      // Reuse the default profile created by setupDatabase
+      const defaultProfile = db.profiles[0];
+      ensureProfileRecord(profileRegistry, {
+        id: defaultProfile.id,
+        displayName: defaultProfile.displayName || 'Standardprofil',
+      });
+    } else if (profileRegistry.profiles.length === 0) {
+      // Invariant violation: setupDatabase should have ensured at least one profile exists in the DB.
+      throw new Error(`Profile initialization failed: registry is empty and no database profiles were found to sync from (DB profiles: ${db.profiles.length})`);
+    }
+    await withFileLock(PROFILE_REGISTRY_PATH, async () =>
+      saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
+    );
     registerGdprRoutes(app, {
       authMiddleware: auth,
       db,
       dbFilePath: DB_FILE_PATH,
-      getProfileData,
-      deleteProfileData,
+      registry: profileRegistry,
+      registryPath: PROFILE_REGISTRY_PATH,
+      saveRegistry: saveProfileRegistry,
       withFileLock,
+      logError: (message, meta) => logger.error(message, meta),
+    });
+    registerProfileRoutes(app, {
+      authMiddleware: auth,
+      db,
+      dbFilePath: DB_FILE_PATH,
+      registry: profileRegistry,
+      registryPath: PROFILE_REGISTRY_PATH,
+      withFileLock,
+      saveRegistry: saveProfileRegistry,
       logError: (message, meta) => logger.error(message, meta),
     });
     registerAuthRoutes(app, { db, dbFilePath: DB_FILE_PATH, withFileLock });
@@ -314,6 +350,71 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
     console.error('Database setup failed:', err);
     throw err;
   });
+
+databaseReady
+  .then(() => {
+    void runProfileBackupCycle();
+    const timer = setInterval(() => {
+      void runProfileBackupCycle();
+    }, config.profileBackupIntervalHours * 60 * 60 * 1000);
+    timer.unref();
+  })
+  .catch((error) => {
+    logger.warn('Profile backup automation skipped', { error: String(error) });
+  });
+
+async function resolveProfileId(
+  value?: string | null,
+): Promise<{ profileId: string | null }> {
+  if (!profileRegistry || !value) {
+    return { profileId: value ?? null };
+  }
+  const trimmed = value.trim();
+  const exists = profileRegistry.profiles.some((profile) => profile.id === trimmed);
+  return { profileId: exists ? trimmed : null };
+}
+
+async function runProfileBackupCycle(): Promise<void> {
+  if (!profileRegistry) return;
+  const intervalMs = config.profileBackupIntervalHours * 60 * 60 * 1000;
+  const now = Date.now();
+
+  const latestBackups = new Map<string, number>();
+  for (const backup of profileRegistry.backups) {
+    const backupTime = new Date(backup.createdAt).getTime();
+    const existingTime = latestBackups.get(backup.profileId) ?? 0;
+    if (backupTime > existingTime) {
+      latestBackups.set(backup.profileId, backupTime);
+    }
+  }
+
+  for (const profile of profileRegistry.profiles) {
+    const lastBackupTime = latestBackups.get(profile.id) ?? 0;
+    if (now - lastBackupTime < intervalMs) {
+      continue;
+    }
+    try {
+      const backup = await writeProfileBackup(profile.id, profileRegistry, dbInstance);
+      const createdAt = new Date().toISOString();
+      profileRegistry.backups.push({
+        profileId: profile.id,
+        createdAt,
+        path: backup.path,
+        sizeBytes: backup.sizeBytes,
+        checksum: backup.checksum,
+      });
+      latestBackups.set(profile.id, new Date(createdAt).getTime()); // Keep map up-to-date
+      await withFileLock(PROFILE_REGISTRY_PATH, async () =>
+        saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
+      );
+    } catch (error) {
+      logger.warn('Profile backup automation failed', {
+        profileId: profile.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+}
 
 function startTrainingJob(
   samples: TrainingSample[],
@@ -548,6 +649,7 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
   applyModelHeaders: applyModelResponseHeaders,
   logTraining,
   isProfileAuthorized,
+  resolveProfileId: resolveProfileId,
 });
 app.get('/latest-mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
 app.get('/api/v1/dgs/mlp-model', auth, modelMetadataLimiter, latestMlpModelHandler);
@@ -571,9 +673,10 @@ registerTrainingBundleRoute(app, genId, {
       return null;
     }
   },
+  resolveProfileId: resolveProfileId,
 });
 
-registerCustomSignsRoute(app);
+registerCustomSignsRoute(app, { resolveProfileId: resolveProfileId });
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
 app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
@@ -601,13 +704,21 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
     if (!parsed.success) {
       return res
         .status(400)
-        .json({ error: 'label and landmarks (21, 42 oder 543 × [x,y,z]) required', details: parsed.error.flatten() });
+        .json({ error: 'Label und gültige Landmarken (21, 42 oder 543 × [x,y,z]) erforderlich.', details: parsed.error.flatten() });
     }
     const { label, profileId, landmarks } = parsed.data;
     if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
-      return res.status(400).json({ error: 'Invalid profileId' });
+      return res.status(400).json({ error: 'Ungültige Profil-ID.' });
     }
-    console.log(`Received DGS sample: label=${label}, profileId=${profileId}, landmarks length=${landmarks.length}`);
+    const resolvedProfile = await resolveProfileId(profileId ?? null);
+    const resolvedProfileId = resolvedProfile.profileId ?? undefined;
+    if (profileId && !resolvedProfileId) {
+      return res.status(404).json({ error: 'Profil nicht gefunden.' });
+    }
+    if (resolvedProfileId && !isProfileAuthorized(req, resolvedProfileId)) {
+      return res.status(403).json({ error: 'Zugriff verweigert.' });
+    }
+    console.log(`Received DGS sample: label=${label}, profileId=${resolvedProfileId}, landmarks length=${landmarks.length}`);
     const dataPath = path.join(DATA_DIR, 'dgs_samples.json');
     await withFileLock(dataPath, async () => {
       let data: any = { samples: [] };
@@ -618,7 +729,7 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
       } catch (err: any) {
         if (err?.code !== 'ENOENT') throw err;
       }
-      data.samples.push({ id: genId(), label, profileId, landmarks, ts: Date.now() });
+      data.samples.push({ id: genId(), label, profileId: resolvedProfileId, landmarks, ts: Date.now() });
       const tmp = `${dataPath}.tmp`;
       await fs.writeFile(tmp, JSON.stringify(data, null, 2));
       await fs.rename(tmp, dataPath);
@@ -626,7 +737,7 @@ app.post('/api/v1/dgs/samples', auth, async (req: Request, res: Response) => {
     res.json({ status: 'ok' });
   } catch (error) {
     console.error('Error saving DGS sample:', error);
-    res.status(500).json({ error: 'Failed to save sample' });
+    res.status(500).json({ error: 'Beispiel konnte nicht gespeichert werden.' });
   }
 });
 

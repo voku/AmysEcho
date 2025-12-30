@@ -23,7 +23,7 @@ When a child's caregiver updates a profile name (e.g., "Amy" → "Amy-Marie"), t
 
 ```typescript
 {
-  profileId: "amy-2024-12-22",      // IMMUTABLE - stable identifier
+  profileId: "11111111-1111-4111-8111-111111111111",      // IMMUTABLE - stable identifier
   displayName: "Amy Marie"           // MUTABLE - user-friendly name
 }
 ```
@@ -31,9 +31,9 @@ When a child's caregiver updates a profile name (e.g., "Amy" → "Amy-Marie"), t
 #### 1. Profile ID (`profileId`)
 - **Immutable**: Set once at profile creation, never changes
 - **Internal Use**: All data storage uses this ID
-- **Format**: `[a-z0-9-]+` (lowercase alphanumeric + hyphens)
-- **Examples**: `"amy"`, `"max-1"`, `"emma-2024"`
-- **Purpose**: Stable reference for all backend data
+- **Format**: UUID v4
+- **Examples**: `"11111111-1111-4111-8111-111111111111"`
+- **Purpose**: Stable reference for all backend data with global uniqueness
 
 #### 2. Display Name (`displayName`)
 - **Mutable**: Can be changed anytime without data loss
@@ -45,9 +45,9 @@ When a child's caregiver updates a profile name (e.g., "Amy" → "Amy-Marie"), t
 ### Storage Mapping
 
 #### Frontend (Webapp)
-```
+```javascript
 localStorage['webapp:app-state'] = {
-  profileId: "amy",           // Used in all API calls
+  profileId: "11111111-1111-4111-8111-111111111111",           // Used in all API calls
   displayName: "Amy Marie",   // Displayed in UI
   ...
 }
@@ -56,7 +56,7 @@ localStorage['webapp:app-state'] = {
 #### Backend (Server)
 
 **Training Bundles:**
-```
+```text
 data/uploads/{profileId}/{bundleId}/
   bundle.zip
   landmarks.json
@@ -64,7 +64,7 @@ data/uploads/{profileId}/{bundleId}/
 ```
 
 **ML Models:**
-```
+```text
 data/models/{profileId}/amy_model.npz
 ```
 
@@ -74,7 +74,7 @@ data/models/{profileId}/amy_model.npz
   "samples": [
     {
       "id": "bundle:123:frame:0",
-      "profileId": "amy",
+      "profileId": "11111111-1111-4111-8111-111111111111",
       "label": "HALLO",
       ...
     }
@@ -85,36 +85,36 @@ data/models/{profileId}/amy_model.npz
 ## Data Flow
 
 ### Profile Creation
-```
+```text
 User enters name: "Amy Marie"
   ↓
-Generate stable ID: "amy-marie"
+Generate stable ID: "11111111-1111-4111-8111-111111111111"
   ↓
 Store both:
-  - profileId: "amy-marie" (backend key)
+  - profileId: "11111111-1111-4111-8111-111111111111" (backend key)
   - displayName: "Amy Marie" (UI label)
 ```
 
 ### Training Bundle Upload
-```
+```text
 Webapp prepares bundle
   ↓
-metadata.json includes: { profileId: "amy-marie", ... }
+metadata.json includes: { profileId: "11111111-1111-4111-8111-111111111111", ... }
   ↓
-Server stores under: data/uploads/amy-marie/{bundleId}/
+Server stores under: data/uploads/11111111-1111-4111-8111-111111111111/{bundleId}/
   ↓
 Trainer reads profileId from samples
   ↓
-Model saved as: data/models/amy-marie/amy_model.npz
+Model saved as: data/models/11111111-1111-4111-8111-111111111111/amy_model.npz
 ```
 
 ### Display Name Change
-```
+```text
 User changes "Amy Marie" → "Amy M."
   ↓
 Update only displayName in localStorage
   ↓
-profileId remains "amy-marie"
+profileId remains "11111111-1111-4111-8111-111111111111"
   ↓
 All backend data unchanged
   ↓
@@ -147,9 +147,9 @@ function useAppState() {
 - Displays warning about profileId immutability
 
 #### Onboarding
-- Generates profileId from sanitized input
+- Generates profileId as UUID v4
 - Sets both profileId and displayName
-- Ensures profileId follows naming rules
+- Ensures profileId follows UUID format
 
 ### Backend Services
 
@@ -200,7 +200,7 @@ model_path = MODELS_DIR / profile_id / "amy_model.npz"
 
 **Frontend:**
 ```typescript
-const PROFILE_ID_PATTERN = /^[a-z0-9-]+$/;
+const PROFILE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 if (!PROFILE_ID_PATTERN.test(profileId)) {
   throw new Error('Invalid profileId format');
 }
@@ -208,7 +208,7 @@ if (!PROFILE_ID_PATTERN.test(profileId)) {
 
 **Backend:**
 ```typescript
-export const PROFILE_ID_PATTERN = /^[a-z0-9-]+$/;
+export const PROFILE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
   return res.status(400).json({ 
     error: 'metadata.profileId is invalid' 
@@ -216,66 +216,34 @@ if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
 }
 ```
 
-## Known Limitations & Future Work
+## Current Capabilities
 
-### Current Limitations
+### Implemented Profile Management
 
-1. **No Profile Registry Database**
-   - Profiles are implicit (created on first use)
-   - No centralized profile list
-   - No metadata (creation date, child age, etc.)
+1. **Profile Registry Database**
+   - Stored under `server/data/profiles/profile_registry.json`
+   - UUID-based primary keys
+   - Metadata stored alongside each profile (age, creation date, notes)
 
-2. **No Profile Deletion**
-   - Cannot delete profile and all associated data
-   - Manual cleanup required for server data
+2. **Profile Deletion**
+   - Cascade cleanup across training bundles, manifests, models, and analytics
 
-3. **No Profile Transfer**
-   - Cannot merge two profiles
-   - Cannot migrate data between profileIds
+3. **Profile Transfer & Merge**
+   - Merge or transfer data between profiles via `/api/v1/profiles/:id/merge`
 
-4. **No UUID System**
-   - ProfileId is user-influenced (based on input)
-   - Potential collisions if multiple caregivers create similar names
-   - Not globally unique
+4. **UUID Identity System**
+   - UUIDs are now canonical profile IDs and used for all storage paths
 
-### Future Enhancements
-
-#### Phase 1: Profile Registry (Recommended)
-```typescript
-interface ProfileRecord {
-  uuid: string;              // UUID v4
-  profileId: string;         // Current identifier
-  displayName: string;       // User-friendly name
-  createdAt: string;         // ISO timestamp
-  metadata?: {
-    childAge?: number;
-    primaryLanguage?: string;
-    notes?: string;
-  };
-}
-```
-
-Benefits:
-- True stable UUIDs
-- Profile metadata storage
-- Centralized profile management
-- Future-proof for multi-device sync
-
-#### Phase 2: Profile Management API
-```
+### Profile Management API
+```text
 POST   /api/v1/profiles              - Create profile
 GET    /api/v1/profiles              - List profiles
 GET    /api/v1/profiles/:uuid        - Get profile details
 PATCH  /api/v1/profiles/:uuid        - Update displayName/metadata
 DELETE /api/v1/profiles/:uuid        - Delete profile + cascade data
-```
-
-#### Phase 3: Data Migration Tools
-```
-POST /api/v1/profiles/:uuid/migrate
-  - Merge two profiles
-  - Transfer training data
-  - Combine models
+POST   /api/v1/profiles/:uuid/merge  - Merge/transfer profile data
+POST   /api/v1/profiles/:uuid/share  - Create caregiver share token
+POST   /api/v1/profiles/sync         - Sync via one-time token
 ```
 
 ## Testing Strategy
@@ -285,7 +253,7 @@ POST /api/v1/profiles/:uuid/migrate
 **Frontend:**
 - `useAppState.test.tsx`: displayName set/get
 - `Settings.test.tsx`: profileId readonly, displayName editable
-- `Onboarding.test.tsx`: profileId generation from input
+- `Onboarding.test.tsx`: profileId generation via UUID
 
 **Backend:**
 - Profile ID validation in bundle upload

@@ -152,6 +152,7 @@ describe('GET /latest-mlp-model', () => {
       applyModelHeaders: artifacts.applyModelResponseHeaders,
       logTraining,
       isProfileAuthorized: authUtils.isProfileAuthorized,
+      resolveProfileId: async (pid) => ({ profileId: pid || null }),
     });
 
     app.get('/latest-mlp-model', authMiddleware, handler);
@@ -253,7 +254,7 @@ describe('GET /latest-mlp-model', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404);
 
-      expect(response.body).toEqual({ error: 'Model not found' });
+      expect(response.body).toEqual({ error: 'Modell nicht gefunden.' });
       await expect(fs.stat(modelPaths.getMlpModelPath())).rejects.toHaveProperty('code', 'ENOENT');
     } finally {
       copySpy.mockRestore();
@@ -268,7 +269,7 @@ describe('GET /latest-mlp-model', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(404);
 
-    expect(response.body).toEqual({ error: 'Model not found' });
+    expect(response.body).toEqual({ error: 'Modell nicht gefunden.' });
   });
 
   it('serves the same NPZ payload from the legacy /api/v1/dgs/mlp-model endpoint', async () => {
@@ -291,7 +292,7 @@ describe('GET /latest-mlp-model', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404);
 
-      expect(response.body).toEqual({ error: 'Model not found' });
+      expect(response.body).toEqual({ error: 'Modell nicht gefunden.' });
       await expect(fs.stat(modelPaths.getMlpModelPath())).rejects.toHaveProperty('code', 'ENOENT');
     } finally {
       copySpy.mockRestore();
@@ -299,24 +300,25 @@ describe('GET /latest-mlp-model', () => {
   });
 
   it('requires matching X-Profile-Id for profiled requests', async () => {
-    const profileModelPath = modelPaths.getMlpModelPath('p1');
+    const profileId = '11111111-1111-4111-8111-111111111111';
+    const profileModelPath = modelPaths.getMlpModelPath(profileId);
     await fs.mkdir(path.dirname(profileModelPath), { recursive: true });
     await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, profileModelPath);
 
     await request(app)
-      .get('/latest-mlp-model?profileId=p1')
+      .get(`/latest-mlp-model?profileId=${profileId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(403);
 
     await request(app)
-      .get('/latest-mlp-model?profileId=p1')
+      .get(`/latest-mlp-model?profileId=${profileId}`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .set('X-Profile-Id', 'p1')
+      .set('X-Profile-Id', profileId)
       .buffer(true)
       .maxResponseSize(200 * 1024 * 1024)
       .parse(binaryParser)
       .expect(200)
       .expect('X-Model-Source', 'profile')
-      .expect('X-Model-Profile', 'p1');
+      .expect('X-Model-Profile', profileId);
   });
 });

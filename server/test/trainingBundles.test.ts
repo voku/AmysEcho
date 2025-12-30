@@ -49,6 +49,10 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let triggerCalls: TriggerCall[];
   let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
   let accessToken: string;
+  const resolveProfileId = async (profileId: string | null) => ({
+    profileId,
+  });
+  const getResolvedProfileId = (profileId?: string | null) => profileId ?? null;
   async function getBucketEntries(bucket: string): Promise<string[] | null> {
     if (!dataDir) {
       return null;
@@ -89,6 +93,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         const jobId = `job-${triggerCalls.length}`;
         return { jobId, status: 'queued', pollUrl: `/api/v1/train-status/${jobId}` };
       },
+      resolveProfileId,
     });
     manifestPath = TRAINING_MANIFEST_PATH;
   });
@@ -108,7 +113,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
   it('stores manifest entry for zipped training bundle and strips unknown metadata fields', async () => {
     const metadata = {
-      profileId: 'p-test-123',
+      profileId: '11111111-1111-4111-8111-111111111111',
       label: 'HILFE',
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
@@ -171,8 +176,9 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       pollUrl: '/api/v1/train-status/job-1',
     });
 
+    const resolvedProfileId = getResolvedProfileId(metadata.profileId);
     expect(triggerCalls).toEqual([
-      { bundleId: response.body.id, profileId: metadata.profileId, label: metadata.label },
+      { bundleId: response.body.id, profileId: resolvedProfileId, label: metadata.label },
     ]);
 
     const manifestRaw = await fs.readFile(manifestPath, 'utf8');
@@ -190,7 +196,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(manifest.entries.length).toBe(1);
     const entry = manifest.entries[0];
     expect(entry.id).toBe(response.body.id);
-    expect(entry.profileId).toBe(metadata.profileId);
+    expect(entry.profileId).toBe(resolvedProfileId);
     expect(entry.label).toBe(metadata.label);
     expect(entry.storage.files).toEqual(
       expect.arrayContaining([
@@ -204,7 +210,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(entry.storage.still).toBe('bundle/still.jpg');
     expect(entry.metadata).toEqual({
       label: metadata.label,
-      profileId: metadata.profileId,
+      profileId: resolvedProfileId,
       capturedAt: metadata.capturedAt,
       source: metadata.source,
       clipFilename: metadata.clipFilename,
@@ -252,14 +258,14 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(metrics.totals.uploads).toBe(1);
     expect(metrics.totals.rejected).toBe(0);
     expect(metrics.totals.missingModalities).toEqual({ hands: 0, pose: 1, face: 1 });
-    expect(metrics.profiles[metadata.profileId].uploads).toBe(1);
-    expect(metrics.profiles[metadata.profileId].rejected).toBe(0);
-    expect(metrics.profiles[metadata.profileId].missingModalities).toEqual({ hands: 0, pose: 1, face: 1 });
+    expect(metrics.profiles[resolvedProfileId!].uploads).toBe(1);
+    expect(metrics.profiles[resolvedProfileId!].rejected).toBe(0);
+    expect(metrics.profiles[resolvedProfileId!].missingModalities).toEqual({ hands: 0, pose: 1, face: 1 });
   });
 
   it('stores handFocus metadata when provided', async () => {
     const metadata = {
-      profileId: 'p-focus-test',
+      profileId: '22222222-2222-4222-8222-222222222222',
       label: 'PAPA',
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
@@ -305,7 +311,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     triggerOverride = () => null;
     const metadata = {
       label: 'SPASS',
-      profileId: 'p-legacy',
+      profileId: '33333333-3333-4333-8333-333333333333',
       clipFilename: 'clip.webm',
       stillFilename: 'still.jpg',
     };
@@ -359,7 +365,8 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   });
 
   it('rejects bundles whose landmarks.json has no frames and cleans up bundle directory', async () => {
-    const metadata = { label: 'HILFE', profileId: 'p-test-42' };
+    const metadata = { label: 'HILFE', profileId: '44444444-4444-4444-8444-444444444444' };
+    const resolvedProfileId = getResolvedProfileId(metadata.profileId);
     const zip = new AdmZip();
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
     zip.addFile(
@@ -387,7 +394,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(response.body.error).toBe('landmarks.json missing or invalid');
     await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
 
-    const bucketEntries = await getBucketEntries(metadata.profileId!);
+    const bucketEntries = await getBucketEntries(resolvedProfileId!);
     if (bucketEntries) {
       expect(bucketEntries).toHaveLength(0);
     }
@@ -406,8 +413,8 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     };
     expect(metrics.totals.uploads).toBe(0);
     expect(metrics.totals.rejected).toBe(1);
-    expect(metrics.profiles[metadata.profileId!].uploads).toBe(0);
-    expect(metrics.profiles[metadata.profileId!].rejected).toBe(1);
+    expect(metrics.profiles[resolvedProfileId!].uploads).toBe(0);
+    expect(metrics.profiles[resolvedProfileId!].rejected).toBe(1);
   });
 
   it('rejects unauthenticated upload', async () => {
@@ -464,7 +471,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     await fs.writeFile(manifestPath, corrupted, 'utf8');
 
     const metadata = {
-      profileId: 'p-test-123',
+      profileId: '11111111-1111-4111-8111-111111111111',
       label: 'HILFE',
     };
     const zip = new AdmZip();

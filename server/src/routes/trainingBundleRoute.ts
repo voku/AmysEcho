@@ -38,6 +38,9 @@ interface TrainingBundleRouteDeps {
   triggerTrainingJob?: (
     context: TrainingJobTriggerContext,
   ) => TriggerTrainingJobResult | null | undefined;
+  resolveProfileId?: (
+    profileId: string | null,
+  ) => Promise<{ profileId: string | null }>;
 }
 
 interface TrainingBundleMetadata {
@@ -763,14 +766,22 @@ export function registerTrainingBundleRoute(
       const profileIdRaw = isNonEmptyString(parsedMetadata.profileId)
         ? parsedMetadata.profileId.trim()
         : undefined;
-      metricsProfileId = profileIdRaw && PROFILE_ID_PATTERN.test(profileIdRaw) ? profileIdRaw : null;
       if (profileIdRaw && !PROFILE_ID_PATTERN.test(profileIdRaw)) {
         await recordMetrics({ status: 'rejected' });
-        return res.status(400).json({ error: 'metadata.profileId is invalid' });
+        return res.status(400).json({ error: 'metadata.profileId ist ungültig.' });
       }
+      const resolvedProfile = deps.resolveProfileId
+        ? await deps.resolveProfileId(profileIdRaw ?? null)
+        : { profileId: profileIdRaw ?? null };
+      const resolvedProfileId = resolvedProfile.profileId ?? null;
+      if (profileIdRaw && !resolvedProfileId) {
+        await recordMetrics({ status: 'rejected' });
+        return res.status(404).json({ error: 'Profil nicht gefunden.' });
+      }
+      metricsProfileId = resolvedProfileId ?? null;
 
       const bundleId = genId();
-      const profileBucket = profileIdRaw ?? 'unassigned';
+      const profileBucket = resolvedProfileId ?? 'unassigned';
       const bundleRoot = path.join(TRAINING_UPLOADS_DIR, profileBucket, bundleId);
       await fs.mkdir(bundleRoot, { recursive: true });
 
@@ -828,7 +839,7 @@ export function registerTrainingBundleRoute(
       const variationData = normalizeVariationData(parsedMetadata.variationData);
       const sanitizedMetadata: TrainingBundleMetadata = {
         label,
-        profileId: profileIdRaw ?? null,
+        profileId: resolvedProfileId ?? null,
         capturedAt: normalizeCapturedAt(parsedMetadata.capturedAt),
         source: isNonEmptyString(parsedMetadata.source) ? parsedMetadata.source : null,
         clipFilename,
@@ -846,7 +857,7 @@ export function registerTrainingBundleRoute(
       } catch (error: any) {
         console.error('Invalid landmarks.json in training bundle:', error);
         logger.warn('Rejected training bundle: landmarks invalid', {
-          profileId: profileIdRaw ?? null,
+          profileId: resolvedProfileId ?? null,
           reason: error?.message ?? 'unknown',
         });
         await cleanupBundleRoot(bundleRoot);
@@ -887,7 +898,7 @@ export function registerTrainingBundleRoute(
 
       const manifestEntry: TrainingBundleManifestEntry = {
         id: bundleId,
-        profileId: profileIdRaw ?? null,
+        profileId: resolvedProfileId ?? null,
         label,
         capturedAt: sanitizedMetadata.capturedAt,
         source: sanitizedMetadata.source,
@@ -925,11 +936,11 @@ export function registerTrainingBundleRoute(
       const missingModalities = MODALITY_KEYS.filter((modality) => {
         const isMissing = !mergedModalities[modality].present;
         if (isMissing && modality === 'hands') {
-          logger.warn('Training bundle missing required hand landmarks', {
-            bundleId,
-            profileId: profileIdRaw ?? null,
-            coverage: mergedModalities,
-          });
+        logger.warn('Training bundle missing required hand landmarks', {
+          bundleId,
+          profileId: resolvedProfileId ?? null,
+          coverage: mergedModalities,
+        });
         }
         return isMissing;
       });
@@ -937,7 +948,7 @@ export function registerTrainingBundleRoute(
       if (missingModalities.length > 0) {
         logger.info('Training bundle with incomplete multimodal data', {
           bundleId,
-          profileId: profileIdRaw ?? null,
+          profileId: resolvedProfileId ?? null,
           missingModalities,
           coverage: {
             hands: mergedModalities.hands.coverage,
@@ -949,7 +960,7 @@ export function registerTrainingBundleRoute(
 
       logger.info('Training bundle stored', {
         bundleId,
-        profileId: profileIdRaw ?? null,
+        profileId: resolvedProfileId ?? null,
         frameCount: landmarksValidation.frameCount,
         modalities: mergedModalities,
       });
@@ -961,7 +972,7 @@ export function registerTrainingBundleRoute(
         try {
           const maybe = deps.triggerTrainingJob({
             bundleId,
-            profileId: profileIdRaw ?? null,
+            profileId: resolvedProfileId ?? null,
             label,
           });
           if (maybe && typeof maybe === 'object') {

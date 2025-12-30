@@ -59,7 +59,8 @@ if (process.env.TEST_LOGS_VERBOSE !== '1') {
         msg.includes('Invalid landmarks.json in training bundle') ||
         msg.includes('Failed to extract training bundle payload') ||
         msg.includes('Error saving training bundle') ||
-        msg.includes('Failed to load database, creating a new one.'))
+        msg.includes('Failed to load database, creating a new one.') ||
+        msg.includes('Failed to prepare early MLP model:'))
     )
       return;
     originalError(...args);
@@ -70,7 +71,15 @@ const originalWarn = console.warn;
 if (process.env.TEST_LOGS_VERBOSE !== '1') {
   console.warn = (...args: any[]) => {
     const msg = args[0];
-    if (typeof msg === 'string' && msg.includes('Cloud classification failed')) return;
+    if (typeof msg === 'string') {
+      if (
+        msg.includes('Cloud classification failed') ||
+        msg.includes('Failed to remove test data directory') ||
+        msg.includes('[mediapipe-integration] Missing')
+      ) {
+        return;
+      }
+    }
     originalWarn(...args);
   };
 }

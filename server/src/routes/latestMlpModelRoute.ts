@@ -9,6 +9,7 @@ import type {
 
 type LatestMlpModelDeps = {
   getMlpModelPath: (profileId?: string) => string;
+  resolveProfileId: (profileId?: string) => Promise<{ profileId?: string | null }>;
   seedBaselineModel: (
     filePath: string,
     messages: BaselineSeedMessages,
@@ -49,9 +50,15 @@ async function loadModelForResponse(filePath: string): Promise<PrecomputedModelP
 export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
   return async function latestMlpModelHandler(req: Request, res: Response) {
     try {
-      const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+      const rawProfileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+      const resolved = await deps.resolveProfileId(rawProfileId);
+      const profileId = resolved.profileId ?? undefined;
+
+      if (rawProfileId && !profileId) {
+        await deps.logTraining(`latest-mlp-model profile ${rawProfileId} not found in registry, falling back to global`);
+      }
       if (profileId && !deps.isProfileAuthorized(req, profileId)) {
-        return res.status(403).json({ error: 'Forbidden' });
+        return res.status(403).json({ error: 'Zugriff verweigert.' });
       }
 
       const profiledPath = deps.getMlpModelPath(profileId);
@@ -90,7 +97,7 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 
       if (!chosen) {
         await deps.logTraining(`latest-mlp-model missing profile=${profileId ?? 'global'}`);
-        return res.status(404).json({ error: 'Model not found' });
+        return res.status(404).json({ error: 'Modell nicht gefunden.' });
       }
 
       const downloadName = profileId ? `dgs_model_${profileId}.npz` : 'amy_model.npz';
@@ -113,7 +120,7 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
       await deps.sendBinaryModel(res, chosen, downloadName, { precomputed });
     } catch (error) {
       await deps.logTraining(`latest-mlp-model handler error: ${String(error)}`);
-      res.status(500).json({ error: 'Failed to load MLP model' });
+      res.status(500).json({ error: 'Modell konnte nicht geladen werden.' });
     }
   };
 }

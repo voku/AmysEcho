@@ -14,7 +14,7 @@ import {
 } from './types.js';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 
 export interface Database {
   symbols: SymbolRecord[];
@@ -379,8 +379,9 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 
   if (db.profiles.length === 0) {
     const profile: Profile = {
-      id: 'default',
-      name: 'Default Profile',
+      id: randomUUID(),
+      displayName: 'Standardprofil',
+      createdAt: new Date().toISOString(),
       consentDataUpload: false,
       consentHelpMeGetSmarter: false,
       vocabularySetId: 'basic',
@@ -441,11 +442,16 @@ export async function setupDatabase(filePath: string): Promise<Database> {
   }
 
   if (db.usageStats.length === 0 && db.symbols.length > 0) {
+    // Defensive check: setupDatabase should have created a profile above if none existed
+    if (db.profiles.length === 0) {
+      throw new Error('Cannot seed usage stats: no profiles exist');
+    }
+    const defaultProfileId = db.profiles[0].id;
     for (const sym of db.symbols) {
       db.usageStats.push({
         id: generateId(),
         symbolId: sym.id,
-        profileId: 'default',
+        profileId: defaultProfileId,
         count: 0,
       });
     }

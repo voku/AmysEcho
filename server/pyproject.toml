@@ -21,3 +21,6 @@ packages = { find = { where = ["src"], include = ["amyserver_tools*"] } }
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+filterwarnings = [
+    "ignore:The 'hidden_size' parameter is deprecated and ignored.*:DeprecationWarning",
+]
