@@ -316,10 +316,8 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
         displayName: defaultProfile.displayName || 'Standardprofil',
       });
     } else if (profileRegistry.profiles.length === 0) {
-      // Safety net: should not run since setupDatabase creates a default profile
-      ensureProfileRecord(profileRegistry, {
-        displayName: 'Standardprofil',
-      });
+      // Invariant violation: setupDatabase should have ensured at least one profile exists in the DB.
+      throw new Error(`Profile initialization failed: registry is empty and no database profiles were found to sync from (DB profiles: ${db.profiles.length})`);
     }
     await withFileLock(PROFILE_REGISTRY_PATH, async () =>
       saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
