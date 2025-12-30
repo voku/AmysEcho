@@ -11,7 +11,8 @@ import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { TrainingQueueList } from './TrainingQueueList';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
-import { useSymbolStore } from '../context/SymbolStore';
+import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
+import { SymbolButton } from './SymbolButton';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -192,7 +193,7 @@ function SymbolSelector({
   selectedLabel,
   onSelect,
 }: {
-  symbols: any[];
+  symbols: SymbolDefinition[];
   selectedLabel: string;
   onSelect: (label: string) => void;
 }) {
@@ -241,9 +242,9 @@ function SymbolSelector({
                 symbol={{
                   id: symbol.id,
                   name: symbol.name,
-                  emoji: (symbol as any).emoji || '🧩',
+                  emoji: symbol.emoji || '🧩',
                   category: symbol.category,
-                  color: (symbol as any).color
+                  color: symbol.color || undefined
                 }}
                 onPress={() => onSelect(symbol.name)}
                 highContrast={selectedLabel === symbol.name}

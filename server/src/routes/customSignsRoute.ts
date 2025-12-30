@@ -4,11 +4,12 @@ import path from 'path';
 import { z } from 'zod';
 import { auth } from '../middleware/auth.js';
 import { ensureDataDir, TRAINING_DATASETS_DIR, TRAINING_MANIFEST_PATH, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
+import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
+import { ManifestEntry } from '../types.js';
 
 const CUSTOM_SIGNS_PATH = path.join(TRAINING_DATASETS_DIR, 'custom_signs.json');
-const MIN_SAMPLES_FOR_READY = 5;
 
 const SignRequestSchema = z.object({
   id: z
@@ -46,11 +47,6 @@ const SignStoreSchema = z.object({
 type SignStore = z.infer<typeof SignStoreSchema>;
 type CustomSign = SignStore['signs'][number];
 
-interface ManifestEntry {
-  label: string;
-  profileId?: string | null;
-}
-
 interface CustomSignResponse extends CustomSign {
   sampleCount: number;
   samplesNeeded: number;
@@ -68,8 +64,8 @@ async function readStore(): Promise<SignStore> {
     if (result.success) {
       return result.data;
     }
-  } catch (error: any) {
-    if (error?.code !== 'ENOENT') {
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       throw error;
     }
   }
@@ -110,9 +106,9 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
         const manifestRaw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
         const manifest = JSON.parse(manifestRaw);
         manifestEntries = Array.isArray(manifest?.entries) ? manifest.entries : [];
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Fallback if manifest doesn't exist yet, but log other errors.
-        if (err.code !== 'ENOENT') {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
           console.error('Failed to load or parse training manifest:', err);
         }
       }

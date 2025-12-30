@@ -1,29 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { useMessage } from '../context/MessageContext';
 
-interface GestureItem {
-  id: string;
-  label: string;
-  emoji: string;
-  description: string;
-  imageUrl?: string | null;
-}
+const MIN_SAMPLES_FOR_READY = 5;
 
-const BASELINE_GESTURES: GestureItem[] = [
-  { id: 'alle', label: 'Alle', emoji: '👐', description: 'Zeigt mit beiden Händen' },
-  { id: 'blau', label: 'Blau', emoji: '🔵', description: 'Farbe Blau zeigen' },
-  { id: 'essen', label: 'Essen', emoji: '🍽️', description: 'Hand zum Mund führen' },
-  { id: 'fertig', label: 'Fertig', emoji: '✅', description: 'Abschließende Gebärde' },
-  { id: 'gelb', label: 'Gelb', emoji: '🟡', description: 'Farbe Gelb zeigen' },
-  { id: 'gruen', label: 'Grün', emoji: '🟢', description: 'Farbe Grün zeigen' },
-  { id: 'nochmal', label: 'Nochmal', emoji: '🔄', description: 'Wiederholung zeigen' },
-  { id: 'rot', label: 'Rot', emoji: '🔴', description: 'Farbe Rot zeigen' },
-  { id: 'satt', label: 'Satt', emoji: '😊', description: 'Zeigt Sättigung' },
-  { id: 'schwester', label: 'Schwester', emoji: '👧', description: 'Schwester zeigen' },
-  { id: 'spielen', label: 'Spielen', emoji: '🎮', description: 'Spielerische Bewegung' },
-  { id: 'trinken', label: 'Trinken', emoji: '🥤', description: 'Trinkbewegung' },
+const BASELINE_GESTURES: SymbolDefinition[] = [
+  { id: 'alle', name: 'Alle', emoji: '👐', category: 'basic' },
+  { id: 'blau', name: 'Blau', emoji: '🔵', category: 'color' },
+  { id: 'essen', name: 'Essen', emoji: '🍽️', category: 'food' },
+  { id: 'fertig', name: 'Fertig', emoji: '✅', category: 'basic' },
+  { id: 'gelb', name: 'Gelb', emoji: '🟡', category: 'color' },
+  { id: 'gruen', name: 'Grün', emoji: '🟢', category: 'color' },
+  { id: 'nochmal', name: 'Nochmal', emoji: '🔄', category: 'basic' },
+  { id: 'rot', name: 'Rot', emoji: '🔴', category: 'color' },
+  { id: 'satt', name: 'Satt', emoji: '😊', category: 'food' },
+  { id: 'schwester', name: 'Schwester', emoji: '👧', category: 'person' },
+  { id: 'spielen', name: 'Spielen', emoji: '🎮', category: 'action' },
+  { id: 'trinken', name: 'Trinken', emoji: '🥤', category: 'food' },
 ];
 
 /**
@@ -48,6 +42,10 @@ export function LearningHub() {
 
   const navigate = useNavigate();
 
+  const activeSymbols = useMemo(() => {
+    return symbols.length > 0 ? symbols : BASELINE_GESTURES;
+  }, [symbols]);
+
   const categoryLabels: Record<string, string> = {
     all: 'Alle',
     color: 'Farben',
@@ -59,12 +57,12 @@ export function LearningHub() {
   };
 
   const categories = useMemo(() => {
-    const uniqueCats = Array.from(new Set(symbols.map(s => s.category || 'custom')));
+    const uniqueCats = Array.from(new Set(activeSymbols.map(s => s.category || 'custom')));
     return ['all', ...uniqueCats];
-  }, [symbols]);
+  }, [activeSymbols]);
 
   const filteredSymbols = useMemo(() => {
-    let result = symbols;
+    let result = activeSymbols;
     
     if (selectedCategory && selectedCategory !== 'all') {
       result = result.filter(s => (s.category || 'custom') === selectedCategory);
@@ -79,18 +77,18 @@ export function LearningHub() {
     }
     
     return result;
-  }, [symbols, searchTerm, selectedCategory]);
+  }, [activeSymbols, searchTerm, selectedCategory]);
 
   const stats = useMemo(() => {
-    const readyCount = symbols.filter(s => s.isReady).length;
-    const trainingCount = symbols.filter(s => s.status === 'training').length;
+    const readyCount = activeSymbols.filter(s => s.isReady).length;
+    const trainingCount = activeSymbols.filter(s => s.status === 'training').length;
     return {
-      total: symbols.length,
+      total: activeSymbols.length,
       ready: readyCount,
       training: trainingCount,
-      progress: symbols.length > 0 ? Math.round((readyCount / symbols.length) * 100) : 0
+      progress: activeSymbols.length > 0 ? Math.round((readyCount / activeSymbols.length) * 100) : 0
     };
-  }, [symbols]);
+  }, [activeSymbols]);
 
   const handleOpenModal = () => {
     setFormData({ id: '', name: '', category: 'custom', imageUrl: '', imageDataUrl: '' });
@@ -253,7 +251,7 @@ export function LearningHub() {
           >
             {categoryLabels[cat] || cat}
             <span className="cat-count">
-              ({cat === 'all' ? symbols.length : symbols.filter(s => (s.category || 'custom') === cat).length})
+              ({cat === 'all' ? activeSymbols.length : activeSymbols.filter(s => (s.category || 'custom') === cat).length})
             </span>
           </button>
         ))}
@@ -289,14 +287,14 @@ export function LearningHub() {
               <div className="sample-progress mt-sm">
                 <div className="sample-count-line">
                   <span>{gesture.sampleCount || 0} Beispiele</span>
-                  {gesture.samplesNeeded! > 0 && (
+                  {(gesture.samplesNeeded ?? 0) > 0 && (
                     <span className="needed">+{gesture.samplesNeeded} nötig</span>
                   )}
                 </div>
                 <div className="mini-progress-bar">
                   <div 
                     className="mini-progress-fill" 
-                    style={{ width: `${Math.min(100, ((gesture.sampleCount || 0) / 5) * 100)}%` }}
+                    style={{ width: `${Math.min(100, ((gesture.sampleCount || 0) / MIN_SAMPLES_FOR_READY) * 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -307,7 +305,7 @@ export function LearningHub() {
                 className="train-action-button"
                 onClick={() => handleTrainGesture(gesture.id, gesture.name)}
               >
-                {gesture.sampleCount! > 0 ? 'Mehr aufnehmen' : 'Starten'}
+                {(gesture.sampleCount ?? 0) > 0 ? 'Mehr aufnehmen' : 'Starten'}
               </button>
               <button 
                 className="edit-icon-button" 

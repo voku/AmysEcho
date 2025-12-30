@@ -1969,25 +1969,25 @@ p {
   padding-right: 40px !important;
 }
 
-.clear-button {
+.search-input-wrapper .clear-button {
   position: absolute;
   right: 8px;
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  background: var(--color-surface-muted) !important;
-  border: none !important;
+  width: 32px;
+  height: 32px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--color-surface-muted);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted) !important;
+  color: var(--color-text-muted);
 }
 
-.clear-button:hover {
-  background: var(--color-overlay-border) !important;
+.search-input-wrapper .clear-button:hover {
+  background: var(--color-overlay-border);
 }
 
 .symbol-grid-scrollable {

@@ -7,10 +7,22 @@ import type { Database } from '../db.js';
 import { saveDatabase } from '../db.js';
 import { DB_FILE_PATH } from '../constants/dbPaths.js';
 import { TRAINING_MANIFEST_PATH, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
+import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
-import { SymbolRecord } from '../types.js';
+import { SymbolRecord, ManifestEntry } from '../types.js';
 
-const MIN_SAMPLES_FOR_READY = 5;
+async function loadManifestEntries(): Promise<ManifestEntry[]> {
+  try {
+    const manifestRaw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
+    const manifest = JSON.parse(manifestRaw);
+    return Array.isArray(manifest?.entries) ? manifest.entries : [];
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.error('Failed to load or parse training manifest:', err);
+    }
+    return [];
+  }
+}
 
 const SymbolPayloadSchema = z.object({
   id: z
@@ -28,11 +40,6 @@ const SymbolPayloadSchema = z.object({
     .optional(),
   profileId: z.string().optional(),
 });
-
-interface ManifestEntry {
-  label: string;
-  profileId?: string | null;
-}
 
 function normalizeSymbolPayload(body: unknown) {
   const parsed = SymbolPayloadSchema.safeParse(body);
@@ -82,17 +89,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
     try {
       const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
       
-      // Load manifest to compute sample counts
-      let manifestEntries: ManifestEntry[] = [];
-      try {
-        const manifestRaw = await fs.readFile(TRAINING_MANIFEST_PATH, 'utf8');
-        const manifest = JSON.parse(manifestRaw);
-        manifestEntries = Array.isArray(manifest?.entries) ? manifest.entries : [];
-      } catch (err: any) {
-        if (err.code !== 'ENOENT') {
-          console.error('Failed to load or parse training manifest:', err);
-        }
-      }
+      const manifestEntries = await loadManifestEntries();
 
       // Separate global and profile-specific symbols
       const globalSymbols = db.symbols.filter((s) => !s.profileId);
@@ -103,8 +100,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
       // Optimize sample count calculation
       const profileManifestEntries = profileId 
         ? manifestEntries.filter(e => e.profileId === profileId)
-        : manifestEntries.filter(e => !e.profileId); // Show global counts if no profile requested? 
-                                                     // Actually, usually we request symbols for a kid.
+        : manifestEntries.filter(e => !e.profileId);
 
       const sampleCountsByLabel = profileManifestEntries.reduce((acc, entry) => {
         if (entry.label) {
@@ -133,14 +129,30 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
   const persistAndRespond = async (
     updater: () => { symbol: SymbolRecord; created: boolean } | null,
     res: Response,
+    profileId?: string,
   ): Promise<void> => {
     const result = updater();
     if (!result) {
       res.status(404).json({ error: 'Symbol nicht gefunden oder Zugriff verweigert' });
       return;
     }
+
+    // Load manifest entries to provide accurate sample counts in the response
+    const manifestEntries = await loadManifestEntries();
+    const profileManifestEntries = profileId 
+      ? manifestEntries.filter(e => e.profileId === profileId)
+      : manifestEntries.filter(e => !e.profileId);
+
+    const sampleCountsByLabel = profileManifestEntries.reduce((acc, entry) => {
+      if (entry.label) {
+        const label = entry.label.trim();
+        acc[label] = (acc[label] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
     await withFileLock(DB_FILE_PATH, async () => saveDatabase(db, DB_FILE_PATH));
-    res.status(result.created ? 201 : 200).json(toClientSymbol(result.symbol, {}));
+    res.status(result.created ? 201 : 200).json(toClientSymbol(result.symbol, sampleCountsByLabel));
   };
 
   const middlewares = rateLimiter ? [auth, rateLimiter] : [auth];
@@ -194,7 +206,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
       }
       db.symbols.push(next);
       return { symbol: next, created: true };
-    }, res);
+    }, res, normalized.data.profileId);
   });
 
   app.put('/api/v1/symbols/:id', ...middlewares, async (req: Request, res: Response) => {
@@ -236,7 +248,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
         imageUrl: normalized.data.imageUrl ?? existing.imageUrl,
       });
       return { symbol: existing, created: false };
-    }, res);
+    }, res, normalized.data.profileId);
   });
 
   app.delete('/api/v1/symbols/:id', ...middlewares, async (req: Request, res: Response) => {

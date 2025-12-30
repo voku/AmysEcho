@@ -47,6 +47,11 @@ export interface InteractionLog {
   processedBy: ProcessedBy;
 }
 
+export interface ManifestEntry {
+  label: string;
+  profileId?: string | null;
+}
+
 export interface ProfileMetadata {
   ageYears?: number;
   birthDate?: string;

@@ -1,0 +1,45 @@
+{
+  "version": "2025-12-30T11:49:49.993495+00:00",
+  "modalities": [],
+  "modality_counts": {
+    "hands": 0,
+    "pose": 0,
+    "face": 0
+  },
+  "sample_count": 3,
+  "training_sources": {
+    "/home/lars/PhpstormProjects/AmysEcho/server/data/datasets/training_manifest.json": "8c21ae5741da0295029d26ee783300ca13d36a3679a0daa7d917e5eea0beaeb5",
+    "/home/lars/PhpstormProjects/AmysEcho/server/data/dgs_samples.json": "1a60f2a44cbab8925e57bac7b30e91e70f6b695a76070cd753c4b236f5d37aa4"
+  },
+  "config_snapshot": {
+    "epochs": 1,
+    "learning_rate": 0.005,
+    "dropout_rate": 0.3,
+    "validation_fraction": 0.15,
+    "augmentations_per_sample": 0,
+    "class_weight_smoothing": 0.0,
+    "early_stopping_patience": 10,
+    "early_stopping_min_delta": 0.001,
+    "window_size": 30,
+    "input_feature_size": 1629,
+    "window_feature_size": 48870,
+    "layer_sizes": [
+      512,
+      256
+    ],
+    "random_seed": null
+  },
+  "stats": {
+    "entries": 1,
+    "cache_hits": 0,
+    "cache_misses": 1,
+    "cache_writes": 0,
+    "modality_counts": {
+      "hands": 1,
+      "pose": 0,
+      "face": 0
+    },
+    "modality_sample_total": 1,
+    "legacy_entries": 36
+  }
+}
