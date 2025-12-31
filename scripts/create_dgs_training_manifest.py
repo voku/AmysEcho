@@ -10,9 +10,9 @@ def get_label_from_filename(filename):
     # Remove _landmarks.json
     name = filename.replace("_landmarks.json", "")
     
-    # Remove variant suffix _0, _1, etc.
-    # Regex to match _\d+$ at the end of the string
-    label = re.sub(r'_\d+$', '', name)
+    # The label is the first part before any underscore
+    # e.g. "alle_main_alle" -> "alle", "blau_0" -> "blau"
+    label = name.split("_")[0]
     return label
 
 def main():

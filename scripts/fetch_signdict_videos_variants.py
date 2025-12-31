@@ -7,20 +7,20 @@ from pathlib import Path
 import time
 import sys
 
-# Support both direct labels and mapped search terms
+# Significantly expanded search terms for broad discovery
 TARGET_LABELS = {
-    "alle": "alle",
-    "blau": "blau",
-    "essen": "essen",
-    "fertig": "fertig",
-    "gelb": "gelb",
-    "gruen": "grün",
-    "nochmal": "nochmal",
-    "rot": "rot",
-    "satt": "satt",
-    "schwester": "schwester",
-    "spielen": "spielen",
-    "trinken": "trinken"
+    "alle": ["alle", "alles", "jeder", "gesamt", "beide", "sämtliche"],
+    "blau": ["blau", "hellblau", "dunkelblau", "türkis"],
+    "essen": ["essen", "speise", "mahlzeit", "nahrung", "frühstück", "mittagessen", "abendessen", "hunger", "kauen"],
+    "fertig": ["fertig", "beendet", "schluss", "ende", "vorbei", "aus", "erledigt"],
+    "gelb": ["gelb", "zitronengelb", "goldgelb"],
+    "gruen": ["grün", "hellgrün", "dunkelgrün", "lindgrün"],
+    "nochmal": ["nochmal", "wiederholen", "noch mal", "erneut", "noch einmal", "zugabe"],
+    "rot": ["rot", "hellrot", "dunkelrot", "rosa", "pink"],
+    "satt": ["satt", "genug", "voll", "ausreichend", "zufrieden"],
+    "schwester": ["schwester", "geschwister", "krankenschwester"],
+    "spielen": ["spielen", "spiel", "zocken", "spielplatz", "spielzeug", "mitspielen"],
+    "trinken": ["trinken", "getränk", "durst", "wasser", "milch", "saft", "tee", "kaffee", "limonade"]
 }
 
 DATA_DIR = Path("server/data/dgs_video_examples")
@@ -121,65 +121,66 @@ def update_manifest(label, video_files):
 def main():
     ensure_dirs()
     
-    for label, search_term in TARGET_LABELS.items():
-        print(f"\nProcessing {label} (search: '{search_term}')...")
-        
-        # 1. Search
-        search_url = f"{BASE_URL}/search?q={urllib.parse.quote(search_term)}"
-        search_html = fetch_url(search_url)
-        if not search_html: continue
-        
-        # 2. Find Entry Page
-        # Check if we were redirected to an entry page directly? (SignDict sometimes does this)
-        # But here we search.
-        # If the search result has an og:video:url it might be a direct hit, but usually search results are a list.
-        
-        entry_url = find_entry_url(search_html)
-        if not entry_url:
-            # Check if search page IS the entry page (direct redirect)
-            if find_video_url_direct(search_html):
-                print("  Search redirected directly to entry.")
-                # We need the current URL to find variants relative to it, but fetch_url returns content.
-                # We can just assume search_html IS the entry_html
-                entry_html = search_html
-            else:
-                print(f"  No entry found for {label}")
-                continue
-        else:
-            print(f"  Found entry URL: {entry_url}")
-            entry_html = fetch_url(entry_url)
-            if not entry_html: continue
-
-        # 3. Process Main Video + Variants
+    for label, search_terms in TARGET_LABELS.items():
+        print(f"\n=== Processing label: {label} ===")
         video_files = []
         
-        # Main video on the page
-        main_vid_url = find_video_url_direct(entry_html)
-        if main_vid_url:
-            fname = download_video(label, main_vid_url, 0)
-            if fname: video_files.append(fname)
-        
-        # Variant videos
-        variant_links = find_variant_links(entry_html)
-        print(f"  Found {len(variant_links)} variants.")
-        
-        for i, v_link in enumerate(variant_links):
-            # i+1 because 0 is main
-            v_html = fetch_url(v_link)
-            if v_html:
-                v_url = find_video_url_direct(v_html)
-                if v_url:
-                    fname = download_video(label, v_url, i + 1)
-                    if fname: video_files.append(fname)
-            time.sleep(0.5)
+        # Load existing from manifest if we want to accumulate across terms
+        manifest = load_manifest()
+        existing_entry = next((g for g in manifest["gestures"] if g["label"] == label), None)
+        if existing_entry:
+            video_files = existing_entry.get("videos", [])
+
+        for search_term in search_terms:
+            print(f"  Searching for: '{search_term}'...")
+            
+            # 1. Search
+            search_url = f"{BASE_URL}/search?q={urllib.parse.quote(search_term)}"
+            search_html = fetch_url(search_url)
+            if not search_html: continue
+            
+            # 2. Find Entry Page
+            entry_url = find_entry_url(search_html)
+            if not entry_url:
+                if find_video_url_direct(search_html):
+                    print("    Search redirected directly to entry.")
+                    entry_html = search_html
+                else:
+                    print(f"    No entry found for '{search_term}'")
+                    continue
+            else:
+                print(f"    Found entry URL: {entry_url}")
+                entry_html = fetch_url(entry_url)
+                if not entry_html: continue
+
+            # 3. Process Main Video + Variants
+            # Use search_term hash or index to avoid filename collisions if downloading many
+            term_id = search_term.replace(" ", "_")
+            
+            main_vid_url = find_video_url_direct(entry_html)
+            if main_vid_url:
+                fname = download_video(label, main_vid_url, f"main_{term_id}")
+                if fname and fname not in video_files: video_files.append(fname)
+            
+            variant_links = find_variant_links(entry_html)
+            print(f"    Found {len(variant_links)} variants.")
+            
+            for i, v_link in enumerate(variant_links):
+                v_html = fetch_url(v_link)
+                if v_html:
+                    v_url = find_video_url_direct(v_html)
+                    if v_url:
+                        fname = download_video(label, v_url, f"var_{term_id}_{i}")
+                        if fname and fname not in video_files: video_files.append(fname)
+                time.sleep(0.5)
+            
+            time.sleep(1)
 
         if video_files:
             update_manifest(label, video_files)
-            print(f"  Updated manifest for {label} with {len(video_files)} videos.")
+            print(f"  Final manifest update for {label} with {len(video_files)} unique videos.")
         else:
             print(f"  No videos found for {label}")
-            
-        time.sleep(1)
 
 if __name__ == "__main__":
     main()
