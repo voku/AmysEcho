@@ -43,9 +43,9 @@ except ImportError:
 # modalities (like Face with 1404 features) from drowning out the low-dimensional
 # but highly critical modalities (like Hands with 126 features) during MLP training.
 # Ratio: Hands receive 3x boost, Body context 0.4x, Facial expressions 0.1x.
-HAND_PRIORITY_FACTOR = 3.0
-POSE_PRIORITY_FACTOR = 0.4
-FACE_PRIORITY_FACTOR = 0.1
+HAND_PRIORITY_FACTOR = 1.0
+POSE_PRIORITY_FACTOR = 1.0
+FACE_PRIORITY_FACTOR = 0.5
 
 # --- Normalization (must match recognizer) ---
 def _normalize(lm):

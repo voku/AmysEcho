@@ -1,8 +1,10 @@
 {
   "version": "2025-12-30T20:19:18.683954+00:00",
-  "modalities": [],
+  "modalities": [
+    "hands"
+  ],
   "modality_counts": {
-    "hands": 0,
+    "hands": 1,
     "pose": 0,
     "face": 0
   },
