@@ -15,7 +15,7 @@ TARGET_LABELS = {
     "fertig": "fertig",
     "gelb": "gelb",
     "gruen": "grün",
-    "nochmal": "noch mal",
+    "nochmal": "nochmal",
     "rot": "rot",
     "satt": "satt",
     "schwester": "schwester",

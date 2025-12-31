@@ -1,10 +1,6 @@
 {
   "gestures": [
     {
-      "label": "nochmal",
-      "video": "nochmal.mp4"
-    },
-    {
       "label": "alle",
       "videos": [
         "alle_0.mp4",
@@ -56,6 +52,14 @@
         "gruen_1.mp4",
         "gruen_2.mp4",
         "gruen_3.mp4"
+      ]
+    },
+    {
+      "label": "nochmal",
+      "videos": [
+        "nochmal_0.mp4",
+        "nochmal_1.mp4",
+        "nochmal_2.mp4"
       ]
     },
     {
