@@ -1,52 +1,105 @@
 {
   "gestures": [
     {
-      "label": "alle",
-      "video": "alle.mp4"
-    },
-    {
-      "label": "blau",
-      "video": "blau.mp4"
-    },
-    {
-      "label": "essen",
-      "video": "essen.mp4"
-    },
-    {
-      "label": "fertig",
-      "video": "fertig.mp4"
-    },
-    {
-      "label": "gelb",
-      "video": "gelb.mp4"
-    },
-    {
-      "label": "gruen",
-      "video": "gruen.mp4"
-    },
-    {
       "label": "nochmal",
       "video": "nochmal.mp4"
     },
     {
+      "label": "alle",
+      "videos": [
+        "alle_0.mp4",
+        "alle_1.mp4"
+      ]
+    },
+    {
+      "label": "blau",
+      "videos": [
+        "blau_0.mp4",
+        "blau_1.mp4",
+        "blau_2.mp4",
+        "blau_3.mp4",
+        "blau_4.mp4"
+      ]
+    },
+    {
+      "label": "essen",
+      "videos": [
+        "essen_0.mp4",
+        "essen_1.mp4",
+        "essen_2.mp4",
+        "essen_3.mp4"
+      ]
+    },
+    {
+      "label": "fertig",
+      "videos": [
+        "fertig_0.mp4",
+        "fertig_1.mp4",
+        "fertig_2.mp4",
+        "fertig_3.mp4"
+      ]
+    },
+    {
+      "label": "gelb",
+      "videos": [
+        "gelb_0.mp4",
+        "gelb_1.mp4",
+        "gelb_2.mp4",
+        "gelb_3.mp4",
+        "gelb_4.mp4"
+      ]
+    },
+    {
+      "label": "gruen",
+      "videos": [
+        "gruen_0.mp4",
+        "gruen_1.mp4",
+        "gruen_2.mp4",
+        "gruen_3.mp4"
+      ]
+    },
+    {
       "label": "rot",
-      "video": "rot.mp4"
+      "videos": [
+        "rot_0.mp4",
+        "rot_1.mp4",
+        "rot_2.mp4",
+        "rot_3.mp4",
+        "rot_4.mp4"
+      ]
     },
     {
       "label": "satt",
-      "video": "satt.mp4"
+      "videos": [
+        "satt_0.mp4",
+        "satt_1.mp4",
+        "satt_2.mp4",
+        "satt_3.mp4"
+      ]
     },
     {
       "label": "schwester",
-      "video": "schwester.mp4"
+      "videos": [
+        "schwester_0.mp4",
+        "schwester_1.mp4",
+        "schwester_2.mp4"
+      ]
     },
     {
       "label": "spielen",
-      "video": "spielen.mp4"
+      "videos": [
+        "spielen_0.mp4",
+        "spielen_1.mp4"
+      ]
     },
     {
       "label": "trinken",
-      "video": "trinken.mp4"
+      "videos": [
+        "trinken_0.mp4",
+        "trinken_1.mp4",
+        "trinken_2.mp4",
+        "trinken_3.mp4"
+      ]
     }
   ]
 }

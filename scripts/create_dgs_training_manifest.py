@@ -1,16 +1,29 @@
 import json
+import re
 from pathlib import Path
 
 DGS_DIR = Path("server/data/dgs_video_examples")
 OUTPUT_MANIFEST = Path("server/data/datasets/training_manifest.json")
 
+# Map filenames back to labels using the logic: label_variant.json or label.json
+def get_label_from_filename(filename):
+    # Remove _landmarks.json
+    name = filename.replace("_landmarks.json", "")
+    
+    # Remove variant suffix _0, _1, etc.
+    # Regex to match _\d+$ at the end of the string
+    label = re.sub(r'_\d+$', '', name)
+    return label
+
 def main():
     entries = []
     
     # Iterate over all _landmarks.json files in DGS_DIR
-    for lm_file in DGS_DIR.glob("*_landmarks.json"):
-        # label is filename without _landmarks.json
-        label = lm_file.name.replace("_landmarks.json", "")
+    files = list(DGS_DIR.glob("*_landmarks.json"))
+    print(f"Found {len(files)} landmark files.")
+    
+    for lm_file in files:
+        label = get_label_from_filename(lm_file.name)
         
         entry = {
             "label": label,
