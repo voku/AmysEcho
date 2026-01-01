@@ -101,13 +101,14 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
         return acc;
       }, {} as Record<string, number>);
 
-      // Names of symbols defined by the profile
-      const profileSymbolNames = new Set(profileSymbols.map(s => s.name.toLowerCase()));
+      // IDs of symbols defined by the profile - use ID-based filtering for proper isolation
+      const profileSymbolIds = new Set(profileSymbols.map(s => s.id));
 
-      // Return profile symbols + global symbols that are NOT overridden by name
+      // Return profile symbols + global symbols that are NOT overridden by ID
+      // This ensures each symbol has a unique ID and users can copy/modify defaults
       const symbols = [
         ...profileSymbols,
-        ...globalSymbols.filter(gs => !profileSymbolNames.has(gs.name.toLowerCase()))
+        ...globalSymbols.filter(gs => !profileSymbolIds.has(gs.id))
       ].map(s => toClientSymbol(s, sampleCountsByLabel));
 
       res.json({ symbols });

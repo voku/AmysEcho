@@ -97,8 +97,17 @@ export function LearningHub() {
   };
 
   const handleEditSymbol = (symbol: SymbolDefinition) => {
+    // If editing a global symbol (no profileId), generate a new unique ID for the profile copy
+    // This ensures users can customize defaults without collision
+    const isGlobalSymbol = !symbol.profileId;
+    const symbolId = isGlobalSymbol
+      ? (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? `symbol_${crypto.randomUUID()}`
+          : `symbol_${Date.now()}`)
+      : symbol.id;
+    
     setFormData({
-      id: symbol.id,
+      id: symbolId,
       name: symbol.name,
       category: symbol.category,
       imageUrl: symbol.imageUrl ?? '',

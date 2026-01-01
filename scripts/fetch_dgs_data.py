@@ -56,7 +56,7 @@ def download_video(label: str, url: str) -> Path | None:
     except subprocess.CalledProcessError as e:
         print(f"Failed to download {label} via yt-dlp: {e}")
         return None
-    except (OSError, FileNotFoundError) as e:
+    except OSError as e:
         print(f"Failed to download {label} (yt-dlp not found or file error): {e}")
         return None
 
@@ -102,7 +102,7 @@ def main():
         ], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error during bulk processing: {e}")
-    except (OSError, FileNotFoundError) as e:
+    except OSError as e:
         print(f"Error during bulk processing (command not found): {e}")
 
 if __name__ == "__main__":
