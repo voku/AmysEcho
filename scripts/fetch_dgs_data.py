@@ -3,8 +3,6 @@ import subprocess
 from pathlib import Path
 
 # Mapping labels to known SignDict IDs or keywords for search
-# Note: In a real scenario, we might crawl or use an API if available.
-# Since we need to be autonomous, we'll try to use predictable SignDict URLs or YouTube search.
 SEARCH_MAP = {
     "alle": "https://dw-dgs.de/static/videos/alle.mp4",
     "blau": "https://dw-dgs.de/static/videos/blau.mp4",
@@ -39,7 +37,6 @@ def download_video(label: str, url: str) -> Path | None:
     print(f"Downloading video for {label} from {url}...")
     try:
         # Try downloading using yt-dlp
-        # Using a more generic command that works for most platforms
         subprocess.run([
             "yt-dlp", 
             "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
@@ -54,10 +51,10 @@ def download_video(label: str, url: str) -> Path | None:
         print(f"Failed to download {label} (yt-dlp not found or file error): {e}")
         return None
 
-def update_dgs_manifest(label: str):
-    """
-    Updates the dgs_manifest.json used by process_dgs_videos.py
-    """
+def main():
+    ensure_dirs()
+    
+    # Load manifest once
     manifest = {"gestures": []}
     if MANIFEST_PATH.exists():
         try:
@@ -68,21 +65,22 @@ def update_dgs_manifest(label: str):
     
     if "gestures" not in manifest:
         manifest["gestures"] = []
-        
-    entry = {"label": label, "video": f"{label}.mp4"}
-    if not any(e["label"] == label for e in manifest["gestures"]):
-        manifest["gestures"].append(entry)
-        
-    with open(MANIFEST_PATH, "w") as f:
-        json.dump(manifest, f, indent=2)
-
-def main():
-    ensure_dirs()
+    
+    updated = False
     for label, url in SEARCH_MAP.items():
         video_path = download_video(label, url)
         if video_path and video_path.exists():
-            update_dgs_manifest(label)
+            entry = {"label": label, "video": f"{label}.mp4"}
+            if not any(e["label"] == label for e in manifest["gestures"]):
+                manifest["gestures"].append(entry)
+                updated = True
     
+    # Write manifest once
+    if updated:
+        with open(MANIFEST_PATH, "w") as f:
+            json.dump(manifest, f, indent=2)
+        print(f"Updated manifest at {MANIFEST_PATH}")
+
     # Run the processor on the entire directory once
     print("Starting bulk processing of DGS videos...")
     try:

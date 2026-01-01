@@ -136,6 +136,7 @@ async function actuallyStartServer(attempt = 1) {
       MLP_MIN_SAMPLES_PER_LABEL: '1',
       MLP_MIN_SAMPLES_PER_PROFILE: '1',
       MLP_REQUIRE_MEDIAPIPE: '0',
+      AMY_SKIP_DGS_EXAMPLES: 'true',
       API_LIMIT: '1000', // Increase rate limit for integration tests
       MODEL_METADATA_LIMIT: '1000', // Increase model metadata rate limit for integration tests
       NODE_ENV: 'test', // Set environment to test mode
@@ -182,12 +183,12 @@ async function actuallyStartServer(attempt = 1) {
     // Handle termination signals to ensure cleanup on CI failures
     process.on('SIGTERM', () => {
       cleanup();
-      process.exit(0);
+      process.exit(143); // 128 + 15 (SIGTERM)
     });
     
     process.on('SIGINT', () => {
       cleanup();
-      process.exit(0);
+      process.exit(130); // 128 + 2 (SIGINT)
     });
   }
 

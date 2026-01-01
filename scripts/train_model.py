@@ -267,6 +267,8 @@ def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float
             for f in window_frames:
                 lm = f["landmarks"]
                 flat_lm = [c for p in lm for c in p] if isinstance(lm[0], list) else lm
+                if not any(flat_lm):
+                    print(f"Warning: Found all-zero landmarks for label '{label}' in {landmarks_path.name}", file=sys.stderr)
                 norm_lm = _normalize(flat_lm)
                 if norm_lm is None:
                     valid_window = False

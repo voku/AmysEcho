@@ -552,6 +552,10 @@ async function runTrainingWorkflow(
     DATA_DIR,
   ];
 
+  if (process.env.AMY_SKIP_DGS_EXAMPLES === 'true') {
+    scriptArgs.push('--skip-examples');
+  }
+
   const trainStartMs = Date.now();
   const runReport = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
       const proc = spawn('python3', scriptArgs, {

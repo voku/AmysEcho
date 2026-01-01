@@ -148,52 +148,30 @@ describe('MediaPipe Integration Tests', () => {
     it('should have proper DGS video examples', async () => {
       const videoDir = path.join(__dirname, '../data/dgs_video_examples');
       
-      // Check that all expected video files exist
-      const expectedVideos = [
-        'alle.mp4', 'blau.mp4', 'essen.mp4', 'fertig.mp4',
-        'gelb.mp4', 'gruen.mp4', 'nochmal.mp4', 'rot.mp4',
-        'satt.mp4', 'schwester.mp4', 'spielen.mp4', 'trinken.mp4'
-      ];
-
       if (await shouldSkipFixtureCheck([videoDir], 'DGS video directory')) {
         return;
       }
-      const missingVideos = [];
-      for (const video of expectedVideos) {
-        const videoPath = path.join(videoDir, video);
-        if (!(await pathExists(videoPath))) {
-          missingVideos.push(video);
-        }
-      }
-      if (missingVideos.length > 0) {
-        console.warn(`[mediapipe-integration] Missing DGS videos: ${missingVideos.join(', ')}`);
-        return;
-      }
+
+      const files = await fs.readdir(videoDir);
+      const mp4Files = files.filter(f => f.endsWith('.mp4'));
+      
+      expect(mp4Files.length).toBeGreaterThanOrEqual(12);
     });
 
     it('should have corresponding landmark files', async () => {
       const videoDir = path.join(__dirname, '../data/dgs_video_examples');
       
-      // Check that all landmark files exist
-      const expectedLandmarks = [
-        'alle_landmarks.json', 'blau_landmarks.json', 'essen_landmarks.json', 'fertig_landmarks.json',
-        'gelb_landmarks.json', 'gruen_landmarks.json', 'nochmal_landmarks.json', 'rot_landmarks.json',
-        'satt_landmarks.json', 'schwester_landmarks.json', 'spielen_landmarks.json', 'trinken_landmarks.json'
-      ];
-
       if (await shouldSkipFixtureCheck([videoDir], 'DGS landmark directory')) {
         return;
       }
-      const missingLandmarks = [];
-      for (const landmarks of expectedLandmarks) {
-        const landmarksPath = path.join(videoDir, landmarks);
-        if (!(await pathExists(landmarksPath))) {
-          missingLandmarks.push(landmarks);
-        }
-      }
-      if (missingLandmarks.length > 0) {
-        console.warn(`[mediapipe-integration] Missing DGS landmarks: ${missingLandmarks.join(', ')}`);
-        return;
+
+      const files = await fs.readdir(videoDir);
+      const mp4Files = files.filter(f => f.endsWith('.mp4'));
+      
+      for (const video of mp4Files) {
+        const gesture = video.replace('.mp4', '');
+        const landmarksPath = path.join(videoDir, `${gesture}_landmarks.json`);
+        expect(await pathExists(landmarksPath)).toBe(true);
       }
     });
 
@@ -209,18 +187,24 @@ describe('MediaPipe Integration Tests', () => {
       
       expect(manifest).toHaveProperty('gestures');
       expect(manifest.gestures).toBeInstanceOf(Array);
-      expect(manifest.gestures).toHaveLength(12);
+      expect(manifest.gestures.length).toBeGreaterThanOrEqual(12);
       
       interface DgsManifestEntry {
         label: string;
-        video: string;
+        video?: string;
+        videos?: string[];
       }
 
       // Check that all entries have required structure
       manifest.gestures.forEach((entry: DgsManifestEntry) => {
         expect(entry).toHaveProperty('label');
-        expect(entry).toHaveProperty('video');
-        expect(entry.video).toMatch(/\.mp4$/);
+        if (entry.videos) {
+          expect(entry.videos).toBeInstanceOf(Array);
+          entry.videos.forEach(v => expect(v).toMatch(/\.mp4$/));
+        } else {
+          expect(entry).toHaveProperty('video');
+          expect(entry.video).toMatch(/\.mp4$/);
+        }
       });
       
       // Check for German labels
