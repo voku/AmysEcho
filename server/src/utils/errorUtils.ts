@@ -272,7 +272,7 @@ export function createHttpError(
  * Express.js error handler middleware factory
  */
 export function createErrorHandler(logContext?: string) {
-  return (error: Error, req: any, res: any, next: any) => {
+  return (error: Error, req: any, res: any, _next: any) => {
     const context = logContext || 'HTTP request';
     const errorMessage = error.message || 'Internal server error';
 

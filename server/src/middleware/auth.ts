@@ -27,7 +27,7 @@ export function auth(req: express.Request, res: express.Response, next: express.
   next();
 }
 
-export function optionalAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+export function optionalAuth(req: express.Request, _res: express.Response, next: express.NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (authHeader && authHeader.startsWith('Bearer ')) {

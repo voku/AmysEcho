@@ -9,21 +9,23 @@ exclude = [
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "RUF", # ruff-specific rules
 ]
 ignore = [
-    "E501", # line too long
-    "E701", # multiple statements on one line (colon)
-    "B007", # unused loop control variable
-    "W291", # trailing whitespace
-    "W293", # blank line contains whitespace
-    "B905", # zip() without strict
+    "E501",   # line too long
+    "E701",   # multiple statements on one line (colon)
+    "B007",   # unused loop control variable
+    "W291",   # trailing whitespace
+    "W293",   # blank line contains whitespace
+    "B905",   # zip() without strict
+    "RUF003", # ambiguous unicode character (intentional in comments)
 ]
 
 [tool.ruff.lint.isort]

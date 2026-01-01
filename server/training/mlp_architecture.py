@@ -293,7 +293,7 @@ def test_mlp():
     config = TrainingConfig(epochs=20, learning_rate=0.01, dropout_rate=0.0)
     weights = train_mlp(X, y, output_size=3, config=config)
 
-    w1, b1, w2, b2, w3, b3 = weights
+    w1, _b1, w2, _b2, w3, _b3 = weights
     assert w1.shape == (WINDOW_FEATURE_SIZE, MLP_LAYER1_SIZE)
     assert w2.shape == (MLP_LAYER1_SIZE, MLP_LAYER2_SIZE)
     assert w3.shape == (MLP_LAYER2_SIZE, 3)

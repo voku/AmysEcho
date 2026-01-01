@@ -236,7 +236,7 @@ def test_still_frames_are_included_in_samples(monkeypatch, tmp_path):
     monkeypatch.setattr(module, "extract_landmarks_from_clip", lambda _path: [clip_frame])
     monkeypatch.setattr(module, "extract_landmarks_from_still", lambda _path: still_frame)
 
-    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH)
+    samples, _stats = module.build_samples_from_manifest(module.MANIFEST_PATH)
 
     assert len(samples) >= 1
     sign_samples = [s for s in samples if s.label == "TEST"]

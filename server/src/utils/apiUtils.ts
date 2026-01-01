@@ -4,7 +4,7 @@
  */
 
 import { logger } from '../services/logger.js';
-import { withErrorHandling, withRetry, handleApiError, isRetryableError } from './errorUtils.js';
+import { withRetry, handleApiError, isRetryableError } from './errorUtils.js';
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
