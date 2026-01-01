@@ -39,8 +39,11 @@ def fetch_url(url):
         )
         with urllib.request.urlopen(req) as response:
             return response.read().decode('utf-8')
-    except Exception as e:
-        print(f"Error fetching {url}: {e}")
+    except urllib.error.URLError as e:
+        print(f"Error fetching {url} (URL error): {e}")
+        return None
+    except UnicodeDecodeError as e:
+        print(f"Error fetching {url} (decode error): {e}")
         return None
 
 def find_entry_url(search_html):
@@ -53,15 +56,18 @@ def find_entry_url(search_html):
 def find_video_url_direct(html):
     # 1. Open Graph secure url
     match = re.search(r'<meta property="og:video:secure_url" content="([^"]+)">', html)
-    if match: return match.group(1)
+    if match:
+        return match.group(1)
     
     # 2. Open Graph url
     match = re.search(r'<meta property="og:video:url" content="([^"]+)">', html)
-    if match: return match.group(1)
+    if match:
+        return match.group(1)
     
     # 3. Video tag src
     match = re.search(r'<video[^>]+src="([^"]+)"', html)
-    if match: return match.group(1)
+    if match:
+        return match.group(1)
     
     return None
 
@@ -90,8 +96,11 @@ def download_video(label, video_url, index):
         urllib.request.urlretrieve(video_url, output_path)
         print(f"  Downloaded {filename}")
         return str(filename)
-    except Exception as e:
-        print(f"  Failed to download {filename}: {e}")
+    except urllib.error.URLError as e:
+        print(f"  Failed to download {filename} (URL error): {e}")
+        return None
+    except OSError as e:
+        print(f"  Failed to download {filename} (file error): {e}")
         return None
 
 def load_manifest():
@@ -137,7 +146,8 @@ def main():
             # 1. Search
             search_url = f"{BASE_URL}/search?q={urllib.parse.quote(search_term)}"
             search_html = fetch_url(search_url)
-            if not search_html: continue
+            if not search_html:
+                continue
             
             # 2. Find Entry Page
             entry_url = find_entry_url(search_html)
@@ -151,7 +161,8 @@ def main():
             else:
                 print(f"    Found entry URL: {entry_url}")
                 entry_html = fetch_url(entry_url)
-                if not entry_html: continue
+                if not entry_html:
+                    continue
 
             # 3. Process Main Video + Variants
             # Use search_term hash or index to avoid filename collisions if downloading many
@@ -160,7 +171,8 @@ def main():
             main_vid_url = find_video_url_direct(entry_html)
             if main_vid_url:
                 fname = download_video(label, main_vid_url, f"main_{term_id}")
-                if fname and fname not in video_files: video_files.append(fname)
+                if fname and fname not in video_files:
+                    video_files.append(fname)
             
             variant_links = find_variant_links(entry_html)
             print(f"    Found {len(variant_links)} variants.")
@@ -171,7 +183,8 @@ def main():
                     v_url = find_video_url_direct(v_html)
                     if v_url:
                         fname = download_video(label, v_url, f"var_{term_id}_{i}")
-                        if fname and fname not in video_files: video_files.append(fname)
+                        if fname and fname not in video_files:
+                            video_files.append(fname)
                 time.sleep(0.5)
             
             time.sleep(1)

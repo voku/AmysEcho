@@ -97,8 +97,17 @@ export function LearningHub() {
   };
 
   const handleEditSymbol = (symbol: SymbolDefinition) => {
+    // If editing a global symbol (no profileId), generate a new unique ID for the profile copy
+    // This ensures users can customize defaults without collision
+    const isGlobalSymbol = !symbol.profileId;
+    const symbolId = isGlobalSymbol
+      ? (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? `symbol_${crypto.randomUUID()}`
+          : `symbol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+      : symbol.id;
+    
     setFormData({
-      id: symbol.id,
+      id: symbolId,
       name: symbol.name,
       category: symbol.category,
       imageUrl: symbol.imageUrl ?? '',
@@ -165,9 +174,9 @@ export function LearningHub() {
     setSavingSymbol(true);
     const id =
       formData.id.trim() ||
-      (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? `symbol_${crypto.randomUUID()}`
-        : `symbol_${Date.now()}`);
+        : `symbol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
     try {
       await saveSymbol({
         id,

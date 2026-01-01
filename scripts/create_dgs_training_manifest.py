@@ -1,5 +1,4 @@
 import json
-import re
 from pathlib import Path
 
 DGS_DIR = Path("server/data/dgs_video_examples")
@@ -19,7 +18,8 @@ def main():
     entries = []
     
     # Iterate over all _landmarks.json files in DGS_DIR
-    files = list(DGS_DIR.glob("*_landmarks.json"))
+    # Sort files for deterministic selection
+    files = sorted(DGS_DIR.glob("*_landmarks.json"))
     print(f"Found {len(files)} landmark files.")
     
     # Balance data: limit entries per label
@@ -36,6 +36,9 @@ def main():
         
         label_counts[label] = count + 1
         
+        # NOTE: storage.files is an array to support future multi-file entries
+        # (e.g., multiple camera angles or temporal segments), even though
+        # currently each entry contains only a single landmark file.
         entry = {
             "label": label,
             "profileId": None, # Global model

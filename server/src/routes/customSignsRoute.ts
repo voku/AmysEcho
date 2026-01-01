@@ -3,11 +3,10 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { auth } from '../middleware/auth.js';
-import { ensureDataDir, TRAINING_DATASETS_DIR, TRAINING_MANIFEST_PATH, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
+import { ensureDataDir, TRAINING_DATASETS_DIR, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
 import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
-import { ManifestEntry } from '../types.js';
 import { loadManifestEntries } from '../utils/manifestUtils.js';
 
 const CUSTOM_SIGNS_PATH = path.join(TRAINING_DATASETS_DIR, 'custom_signs.json');
@@ -155,7 +154,7 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
         });
       
       return res.json({ signs });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to load custom signs', error);
       return res.status(500).json({ error: 'Benutzerdefinierte Zeichen konnten nicht geladen werden.' });
     }
@@ -220,7 +219,7 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
       }
 
       return res.status(result.created ? 201 : 200).json(result.sign);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to persist custom sign', error);
       return res.status(500).json({ error: 'Benutzerdefiniertes Zeichen konnte nicht gespeichert werden.' });
     }

@@ -1,15 +1,13 @@
 import type { Express, Request, Response, RequestHandler } from 'express';
 import { z } from 'zod';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { auth } from '../middleware/auth.js';
 import type { Database } from '../db.js';
 import { saveDatabase } from '../db.js';
 import { DB_FILE_PATH } from '../constants/dbPaths.js';
-import { TRAINING_MANIFEST_PATH, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
+import { PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
 import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
-import { SymbolRecord, ManifestEntry } from '../types.js';
+import { SymbolRecord } from '../types.js';
 import { loadManifestEntries } from '../utils/manifestUtils.js';
 
 const SymbolPayloadSchema = z.object({
@@ -103,17 +101,18 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
         return acc;
       }, {} as Record<string, number>);
 
-      // Names of symbols defined by the profile
-      const profileSymbolNames = new Set(profileSymbols.map(s => s.name.toLowerCase()));
+      // IDs of symbols defined by the profile - use ID-based filtering for proper isolation
+      const profileSymbolIds = new Set(profileSymbols.map(s => s.id));
 
-      // Return profile symbols + global symbols that are NOT overridden by name
+      // Return profile symbols + global symbols that are NOT overridden by ID
+      // This ensures each symbol has a unique ID and users can copy/modify defaults
       const symbols = [
         ...profileSymbols,
-        ...globalSymbols.filter(gs => !profileSymbolNames.has(gs.name.toLowerCase()))
+        ...globalSymbols.filter(gs => !profileSymbolIds.has(gs.id))
       ].map(s => toClientSymbol(s, sampleCountsByLabel));
 
       res.json({ symbols });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to load symbols', error);
       res.status(500).json({ error: 'Symbole konnten nicht geladen werden.' });
     }
