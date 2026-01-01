@@ -48,6 +48,11 @@ HAND_PRIORITY_FACTOR = 3.0
 POSE_PRIORITY_FACTOR = 0.4
 FACE_PRIORITY_FACTOR = 0.1
 
+# Single frame feature vector size (42 hands × 3 × 1 + 33 pose × 3 × 1 + 468 face × 3 × 1 = 1629)
+# This represents the total dimensionality of one frame's multimodal landmark data
+# after normalization and priority scaling.
+SINGLE_FRAME_FEATURE_SIZE = 1629
+
 # --- Normalization (must match recognizer) ---
 def _normalize(lm):
     """
@@ -119,12 +124,12 @@ def _normalize(lm):
         face_norm.flatten()
     ])
 
-    if len(result) < 1629:
-        print(f"Warning: Padding landmark data from {len(result)} to 1629 features. This should not happen with valid data.")
-        result = np.pad(result, (0, 1629 - len(result)))
-    elif len(result) > 1629:
-        print(f"Warning: Truncating landmark data from {len(result)} to 1629 features. This should not happen with valid data.")
-        result = result[:1629]
+    if len(result) < SINGLE_FRAME_FEATURE_SIZE:
+        print(f"Warning: Padding landmark data from {len(result)} to {SINGLE_FRAME_FEATURE_SIZE} features. This should not happen with valid data.")
+        result = np.pad(result, (0, SINGLE_FRAME_FEATURE_SIZE - len(result)))
+    elif len(result) > SINGLE_FRAME_FEATURE_SIZE:
+        print(f"Warning: Truncating landmark data from {len(result)} to {SINGLE_FRAME_FEATURE_SIZE} features. This should not happen with valid data.")
+        result = result[:SINGLE_FRAME_FEATURE_SIZE]
 
     return result
 
@@ -424,7 +429,7 @@ def main():
                     'labels': labels,
                     'window_size': args.window_size,
                     'input_dim': X_train.shape[1],
-                    'feature_size': 1629, # Single frame feature size
+                    'feature_size': SINGLE_FRAME_FEATURE_SIZE, # Single frame feature size
                     'arch': 'mlp_multimodal_static'
                 }
             else:
@@ -436,7 +441,7 @@ def main():
                     'labels': labels,
                     'window_size': args.window_size,
                     'input_dim': X_train.shape[1],
-                    'feature_size': 1629,
+                    'feature_size': SINGLE_FRAME_FEATURE_SIZE,
                     'arch': 'mlp_multimodal_static'
                 }
             np.savez(f, **weights)
