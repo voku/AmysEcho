@@ -1,0 +1,885 @@
+{
+  "version": "1.0",
+  "entries": [
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_var_trinken_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "spielen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "spielen_main_spielzeug_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_var_mittagessen_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_main_vorbei_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_var_kaffee_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_var_pink_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_main_hunger_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "schwester",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "schwester_var_geschwister_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_main_schluss_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_main_wasser_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_var_durst_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_main_kaffee_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_var_wasser_3_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_var_trinken_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_var_hunger_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "alle",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "alle_var_jeder_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "nochmal",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "nochmal_var_nochmal_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_main_fertig_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "schwester",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "schwester_var_schwester_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_main_mittagessen_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_main_genug_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gelb",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gelb_var_gelb_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "blau",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "blau_var_blau_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "spielen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "spielen_main_spielplatz_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_main_ende_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_var_abendessen_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_var_getr\u00e4nk_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gruen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gruen_var_gr\u00fcn_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_main_pink_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "alle",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "alle_var_alles_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_var_satt_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "spielen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "spielen_var_spielplatz_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_main_satt_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gruen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gruen_var_gr\u00fcn_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "nochmal",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "nochmal_var_wiederholen_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_var_hunger_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_var_wasser_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "nochmal",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "nochmal_var_nochmal_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "spielen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "spielen_var_spielzeug_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gelb",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gelb_var_gelb_3_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_var_satt_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_var_mittagessen_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "trinken",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "trinken_var_durst_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_main_fr\u00fchst\u00fcck_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_var_genug_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_var_mittagessen_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "essen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "essen_main_essen_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_var_rosa_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gelb",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gelb_var_gelb_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_var_rot_3_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "schwester",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "schwester_main_geschwister_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_main_voll_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gelb",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gelb_main_gelb_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_var_fertig_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_var_ende_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_main_rosa_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "spielen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "spielen_var_spiel_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_var_fertig_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "blau",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "blau_main_blau_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "alle",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "alle_var_alle_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_var_genug_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_var_rosa_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_main_rot_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "alle",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "alle_main_alle_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "schwester",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "schwester_main_schwester_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_var_fertig_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "spielen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "spielen_main_spiel_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_var_satt_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_var_rot_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "schwester",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "schwester_var_schwester_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_var_vorbei_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "satt",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "satt_var_voll_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "nochmal",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "nochmal_var_wiederholen_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "spielen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "spielen_main_spielen_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "fertig",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "fertig_var_schluss_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gruen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gruen_var_gr\u00fcn_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "alle",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "alle_main_jeder_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "nochmal",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "nochmal_main_nochmal_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "spielen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "spielen_var_spielen_0_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "blau",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "blau_var_blau_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gelb",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gelb_var_gelb_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_var_rot_2_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "alle",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "alle_main_alles_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "blau",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "blau_var_blau_1_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "gruen",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "gruen_main_gr\u00fcn_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "nochmal",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "nochmal_main_wiederholen_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "blau",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "blau_var_blau_3_landmarks.json"
+        ]
+      }
+    },
+    {
+      "label": "rot",
+      "profileId": null,
+      "storage": {
+        "directory": "dgs_video_examples",
+        "files": [
+          "rot_var_rot_1_landmarks.json"
+        ]
+      }
+    }
+  ]
+}

@@ -42,10 +42,10 @@ except ImportError:
 # These factors were determined empirically to prevent the high-dimensional
 # modalities (like Face with 1404 features) from drowning out the low-dimensional
 # but highly critical modalities (like Hands with 126 features) during MLP training.
-# Ratio: Hands receive 3x boost, Body context 0.4x, Facial expressions 0.1x.
-HAND_PRIORITY_FACTOR = 1.0
+# Ratio: Hands receive 5x boost, Body context 1.0x, Facial expressions 0.1x.
+HAND_PRIORITY_FACTOR = 5.0
 POSE_PRIORITY_FACTOR = 1.0
-FACE_PRIORITY_FACTOR = 0.5
+FACE_PRIORITY_FACTOR = 0.1
 
 # --- Normalization (must match recognizer) ---
 def _normalize(lm):
@@ -117,6 +117,11 @@ def _normalize(lm):
         pose_norm.flatten(),
         face_norm.flatten()
     ])
+
+    if len(result) < 1629:
+        result = np.pad(result, (0, 1629 - len(result)))
+    elif len(result) > 1629:
+        result = result[:1629]
 
     return result
 
@@ -212,7 +217,7 @@ def augment_sample(sample: dict[str, Any], num_augmentations: int = 3) -> list[d
         augmented.append({"label": sample["label"], "landmarks": augmented_landmarks.tolist()})
     return augmented
 
-def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float, profile_id_filter: str | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int], np.ndarray, np.ndarray]:
+def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float, profile_id_filter: str | None = None, window_size: int = 5) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int], np.ndarray, np.ndarray]:
     with open(manifest_file) as f:
         manifest = json.load(f)
 
@@ -222,8 +227,11 @@ def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float
     else:
         selected_entries = filter_by_profile_logic(all_entries, profile_id_filter, lambda e: e.get("label"), lambda e: e.get("profileId"))
 
-    samples = []
     data_dir = Path(manifest_file).resolve().parent.parent
+    
+    X_raw, y_raw = [], []
+    label_to_idx = {}
+    idx_counter = 0
 
     for entry in selected_entries:
         lm_file = next((f for f in entry["storage"]["files"] if f.endswith("landmarks.json")), None)
@@ -235,56 +243,53 @@ def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float
             landmark_data = json.load(f)
 
         label = entry.get("label")
-        for frame in landmark_data.get("frames", []):
-            landmarks = frame["landmarks"]
-            # Zero-check
-            flat_check = [c for p in landmarks for c in p] if isinstance(landmarks[0], list) else landmarks
-            if flat_check and all(v == 0 for v in flat_check):
-                 print(f"Warning: Found all-zero landmarks for label '{label}' in {lm_file}", file=sys.stderr)
-            samples.append({"label": label, "landmarks": landmarks})
-
-    if not samples: raise ValueError("No valid samples found.")
-
-    if augmentation_factor > 1:
-        augmented_samples = []
-        for sample in samples:
-            augmented_samples.extend(augment_sample(sample, augmentation_factor - 1))
-        samples = augmented_samples
-
-    X_raw, y_raw = [], []
-    label_to_idx = {}
-    idx_counter = 0
-
-    for sample in samples:
-        label = sample.get("label")
-        lm = sample.get("landmarks")
-
-        # Flatten logic
-        flat_lm = []
-        if isinstance(lm[0], list):
-             flat_lm = [c for p in lm for c in p]
-        else:
-             flat_lm = lm
-
-        normalized_lm = _normalize(flat_lm)
-        if normalized_lm is None: continue
-
         if label not in label_to_idx:
             label_to_idx[label] = idx_counter
             idx_counter += 1
+            
+        frames = landmark_data.get("frames", [])
+        if len(frames) < window_size: continue
+        
+        # Process frames into windows
+        for i in range(len(frames) - window_size + 1):
+            window_frames = frames[i:i+window_size]
+            window_landmarks = []
+            
+            valid_window = True
+            for f in window_frames:
+                lm = f["landmarks"]
+                flat_lm = [c for p in lm for c in p] if isinstance(lm[0], list) else lm
+                norm_lm = _normalize(flat_lm)
+                if norm_lm is None:
+                    valid_window = False
+                    break
+                window_landmarks.append(norm_lm)
+            
+            if valid_window:
+                # Flatten the whole window: [f1_data, f2_data, ...]
+                X_raw.append(np.concatenate(window_landmarks))
+                y_raw.append(label_to_idx[label])
 
-        X_raw.append(normalized_lm)
-        y_raw.append(label_to_idx[label])
+    if not X_raw: raise ValueError("No valid samples found.")
 
     X = np.array(X_raw)
     y = np.array(y_raw)
+    
+    # Augmentation (simple noise on the whole window)
+    if augmentation_factor > 1:
+        X_aug, y_aug = [X], [y]
+        for _ in range(augmentation_factor - 1):
+            noise = np.random.normal(0, 0.005, X.shape)
+            X_aug.append(np.clip(X + noise, -2.0, 2.0))
+            y_aug.append(y)
+        X = np.concatenate(X_aug)
+        y = np.concatenate(y_aug)
 
     # Stratified Split
     if SKLEARN_AVAILABLE:
         try:
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_split, stratify=y, random_state=42)
         except ValueError:
-            # Fallback if some class has too few samples for stratification
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_split, random_state=42)
     else:
         np.random.seed(42)
@@ -379,21 +384,22 @@ def main():
     parser = argparse.ArgumentParser(description="Train and evaluate the gesture recognition model with multimodal support and advanced validation.")
     parser.add_argument('--manifest', default='server/data/datasets/training_manifest.json')
     parser.add_argument('--output-model', default='data/amy_model.npz')
-    parser.add_argument('--epochs', type=int, default=500)
-    parser.add_argument('--hidden-size', type=int, default=128)
-    parser.add_argument('--hidden-size-2', type=int, default=0)
+    parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument('--hidden-size', type=int, default=512)
+    parser.add_argument('--hidden-size-2', type=int, default=256)
     parser.add_argument('--learning-rate', type=float, default=0.01)
-    parser.add_argument('--augmentation-factor', type=int, default=4)
+    parser.add_argument('--augmentation-factor', type=int, default=2)
     parser.add_argument('--test-split', type=float, default=0.2)
     parser.add_argument('--k-fold', type=int, default=0, help='Run K-Fold Cross Validation (e.g. 5)')
+    parser.add_argument('--window-size', type=int, default=5, help='Number of frames per window')
     parser.add_argument('--skip-deploy', action='store_true')
     args = parser.parse_args()
 
     try:
         # 1. Train Global Model
-        print("\n=== Training Global Model ===")
+        print(f"\n=== Training Global Model (Window Size: {args.window_size}) ===")
         X_train, y_train, X_test, y_test, label_to_idx, X_full, y_full = prepare_data(
-            args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=None
+            args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=None, window_size=args.window_size
         )
 
         if args.k_fold > 1:
@@ -413,25 +419,21 @@ def main():
                     'w2': mlp.w2.T, 'b2': mlp.b2,
                     'w3': mlp.w3.T, 'b3': mlp.b3,
                     'labels': labels,
-                    'window_size': 1,
+                    'window_size': args.window_size,
                     'input_dim': X_train.shape[1],
-                    'feature_size': X_train.shape[1],
+                    'feature_size': 1629, # Single frame feature size
                     'arch': 'mlp_multimodal_static'
                 }
             else:
-                # 2-layer model: Pad with identity for 3-layer inference
-                # JS Layer 1: Input -> Hidden (Original Layer 1)
-                # JS Layer 2: Hidden -> Hidden (Identity)
-                # JS Layer 3: Hidden -> Output (Original Layer 2)
                 h_size = mlp.w1.shape[1]
                 weights = {
                     'w1': mlp.w1.T, 'b1': mlp.b1,
                     'w2': np.eye(h_size, dtype=np.float32), 'b2': np.zeros(h_size, dtype=np.float32),
                     'w3': mlp.w2.T, 'b3': mlp.b2,
                     'labels': labels,
-                    'window_size': 1,
+                    'window_size': args.window_size,
                     'input_dim': X_train.shape[1],
-                    'feature_size': X_train.shape[1],
+                    'feature_size': 1629,
                     'arch': 'mlp_multimodal_static'
                 }
             np.savez(f, **weights)
@@ -447,10 +449,10 @@ def main():
         profile_ids = sorted({e.get("profileId") for e in manifest.get("entries", []) if e.get("profileId")})
 
         for profile_id in profile_ids:
-            print(f"\n=== Training Model for Profile: {profile_id} ===")
+            print(f"\n=== Training Model for Profile: {profile_id} (Window Size: {args.window_size}) ===")
             try:
                 X_train_p, y_train_p, X_test_p, y_test_p, label_to_idx_p, X_full_p, y_full_p = prepare_data(
-                    args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=profile_id
+                    args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=profile_id, window_size=args.window_size
                 )
 
                 mlp_p = MLP(X_train_p.shape[1], args.hidden_size, len(label_to_idx_p), args.hidden_size_2)
@@ -467,22 +469,21 @@ def main():
                             'w2': mlp_p.w2.T, 'b2': mlp_p.b2,
                             'w3': mlp_p.w3.T, 'b3': mlp_p.b3,
                             'labels': labels_p,
-                            'window_size': 1,
+                            'window_size': args.window_size,
                             'input_dim': X_train_p.shape[1],
-                            'feature_size': X_train_p.shape[1],
+                            'feature_size': 1629,
                             'arch': 'mlp_multimodal_static'
                         }
                     else:
-                        # 2-layer model: Pad with identity for 3-layer inference
                         h_size_p = mlp_p.w1.shape[1]
                         weights_p = {
                             'w1': mlp_p.w1.T, 'b1': mlp_p.b1,
                             'w2': np.eye(h_size_p, dtype=np.float32), 'b2': np.zeros(h_size_p, dtype=np.float32),
                             'w3': mlp_p.w2.T, 'b3': mlp_p.b2,
                             'labels': labels_p,
-                            'window_size': 1,
+                            'window_size': args.window_size,
                             'input_dim': X_train_p.shape[1],
-                            'feature_size': X_train_p.shape[1],
+                            'feature_size': 1629,
                             'arch': 'mlp_multimodal_static'
                         }
                     np.savez(f, **weights_p)

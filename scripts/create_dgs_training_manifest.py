@@ -22,8 +22,19 @@ def main():
     files = list(DGS_DIR.glob("*_landmarks.json"))
     print(f"Found {len(files)} landmark files.")
     
+    # Balance data: limit entries per label
+    label_counts = {}
+    MAX_PER_LABEL = 10
+    
     for lm_file in files:
         label = get_label_from_filename(lm_file.name)
+        
+        # Increment count for label
+        count = label_counts.get(label, 0)
+        if count >= MAX_PER_LABEL:
+            continue
+        
+        label_counts[label] = count + 1
         
         entry = {
             "label": label,
@@ -34,6 +45,11 @@ def main():
             }
         }
         entries.append(entry)
+    
+    # Print summary of counts
+    print("Label distribution in manifest:")
+    for lbl, cnt in sorted(label_counts.items()):
+        print(f"  {lbl}: {cnt}")
         
     manifest = {
         "version": "1.0",

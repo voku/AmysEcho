@@ -7,20 +7,20 @@ from pathlib import Path
 import time
 import sys
 
-# Significantly expanded search terms for broad discovery
+# Refined search terms to remove linguistic noise
 TARGET_LABELS = {
-    "alle": ["alle", "alles", "jeder", "gesamt", "beide", "sämtliche"],
-    "blau": ["blau", "hellblau", "dunkelblau", "türkis"],
-    "essen": ["essen", "speise", "mahlzeit", "nahrung", "frühstück", "mittagessen", "abendessen", "hunger", "kauen"],
-    "fertig": ["fertig", "beendet", "schluss", "ende", "vorbei", "aus", "erledigt"],
-    "gelb": ["gelb", "zitronengelb", "goldgelb"],
-    "gruen": ["grün", "hellgrün", "dunkelgrün", "lindgrün"],
-    "nochmal": ["nochmal", "wiederholen", "noch mal", "erneut", "noch einmal", "zugabe"],
-    "rot": ["rot", "hellrot", "dunkelrot", "rosa", "pink"],
-    "satt": ["satt", "genug", "voll", "ausreichend", "zufrieden"],
-    "schwester": ["schwester", "geschwister", "krankenschwester"],
-    "spielen": ["spielen", "spiel", "zocken", "spielplatz", "spielzeug", "mitspielen"],
-    "trinken": ["trinken", "getränk", "durst", "wasser", "milch", "saft", "tee", "kaffee", "limonade"]
+    "alle": ["alle", "alles", "jeder"],
+    "blau": ["blau"],
+    "essen": ["essen", "mahlzeit", "frühstück", "mittagessen", "abendessen", "hunger"],
+    "fertig": ["fertig", "beendet", "schluss", "ende", "vorbei"],
+    "gelb": ["gelb"],
+    "gruen": ["grün"],
+    "nochmal": ["nochmal", "wiederholen", "noch mal", "erneut"],
+    "rot": ["rot", "rosa", "pink"],
+    "satt": ["satt", "genug", "voll"],
+    "schwester": ["schwester", "geschwister"],
+    "spielen": ["spielen", "spiel", "spielplatz", "spielzeug"],
+    "trinken": ["trinken", "getränk", "durst", "wasser", "milch", "saft", "tee", "kaffee"]
 }
 
 DATA_DIR = Path("server/data/dgs_video_examples")
