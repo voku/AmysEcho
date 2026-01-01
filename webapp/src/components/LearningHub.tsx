@@ -101,9 +101,9 @@ export function LearningHub() {
     // This ensures users can customize defaults without collision
     const isGlobalSymbol = !symbol.profileId;
     const symbolId = isGlobalSymbol
-      ? (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
           ? `symbol_${crypto.randomUUID()}`
-          : `symbol_${Date.now()}`)
+          : `symbol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
       : symbol.id;
     
     setFormData({
@@ -174,9 +174,9 @@ export function LearningHub() {
     setSavingSymbol(true);
     const id =
       formData.id.trim() ||
-      (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? `symbol_${crypto.randomUUID()}`
-        : `symbol_${Date.now()}`);
+        : `symbol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
     try {
       await saveSymbol({
         id,
