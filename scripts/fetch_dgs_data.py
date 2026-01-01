@@ -48,7 +48,7 @@ def download_video(label: str, url: str) -> Path | None:
         ], check=True, capture_output=True)
         return output_path
     except subprocess.CalledProcessError as e:
-        print(f"Failed to download {label} via yt-dlp: {e}")
+        print(f"Failed to download {label} via yt-dlp: {e}. Stderr: {e.stderr.decode(errors='ignore') if e.stderr else 'N/A'}")
         return None
     except OSError as e:
         print(f"Failed to download {label} (yt-dlp not found or file error): {e}")
@@ -58,14 +58,13 @@ def update_dgs_manifest(label: str):
     """
     Updates the dgs_manifest.json used by process_dgs_videos.py
     """
-    manifest_path = Path("server/data/dgs_manifest.json")
     manifest = {"gestures": []}
-    if manifest_path.exists():
+    if MANIFEST_PATH.exists():
         try:
-            with open(manifest_path) as f:
+            with open(MANIFEST_PATH) as f:
                 manifest = json.load(f)
         except (json.JSONDecodeError, OSError) as e:
-            print(f"Warning: Could not read or parse manifest file at {manifest_path}. A new manifest will be created. Error: {e}")
+            print(f"Warning: Could not read or parse manifest file at {MANIFEST_PATH}. A new manifest will be created. Error: {e}")
     
     if "gestures" not in manifest:
         manifest["gestures"] = []
@@ -74,7 +73,7 @@ def update_dgs_manifest(label: str):
     if not any(e["label"] == label for e in manifest["gestures"]):
         manifest["gestures"].append(entry)
         
-    with open(manifest_path, "w") as f:
+    with open(MANIFEST_PATH, "w") as f:
         json.dump(manifest, f, indent=2)
 
 def main():
@@ -91,7 +90,7 @@ def main():
             "python3", "scripts/process_dgs_videos.py",
             "--videos-dir", str(DATA_DIR),
             "--split-output",
-            "--manifest", "server/data/dgs_manifest.json",
+            "--manifest", str(MANIFEST_PATH),
             "--max-frames", "150"
         ], check=True)
     except subprocess.CalledProcessError as e:

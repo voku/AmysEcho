@@ -53,11 +53,23 @@ const child = spawn(tsxPath, tsxArgs, {
   shell: false
 });
 
+// Set a global timeout to prevent hanging (15 minutes)
+const globalTimeout = setTimeout(() => {
+  console.error('Integration tests timed out after 15 minutes. Killing test process...');
+  child.kill('SIGTERM');
+  setTimeout(() => {
+    child.kill('SIGKILL');
+    process.exit(1);
+  }, 5000);
+}, 15 * 60 * 1000);
+
 child.on('exit', code => {
+  clearTimeout(globalTimeout);
   process.exit(code ?? 0);
 });
 
 child.on('error', error => {
+  clearTimeout(globalTimeout);
   console.error('Failed to launch integration tests:', error);
   process.exit(1);
 });

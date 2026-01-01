@@ -479,7 +479,7 @@ def main():
                             'labels': labels_p,
                             'window_size': args.window_size,
                             'input_dim': X_train_p.shape[1],
-                            'feature_size': 1629,
+                            'feature_size': SINGLE_FRAME_FEATURE_SIZE,
                             'arch': 'mlp_multimodal_static'
                         }
                     else:
@@ -491,7 +491,7 @@ def main():
                             'labels': labels_p,
                             'window_size': args.window_size,
                             'input_dim': X_train_p.shape[1],
-                            'feature_size': 1629,
+                            'feature_size': SINGLE_FRAME_FEATURE_SIZE,
                             'arch': 'mlp_multimodal_static'
                         }
                     np.savez(f, **weights_p)

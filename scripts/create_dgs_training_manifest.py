@@ -7,7 +7,7 @@ OUTPUT_MANIFEST = Path("server/data/datasets/training_manifest.json")
 # Map filenames back to labels using the logic: label_variant.json or label.json
 def get_label_from_filename(filename):
     # Remove _landmarks.json
-    name = filename.replace("_landmarks.json", "")
+    name = filename.removesuffix("_landmarks.json")
     
     # The label is the first part before any underscore
     # e.g. "alle_main_alle" -> "alle", "blau_0" -> "blau"
