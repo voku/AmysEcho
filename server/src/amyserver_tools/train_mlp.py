@@ -68,8 +68,8 @@ LOGGER.setLevel(logging.INFO)
 LOGGER.propagate = False
 
 try:  # Optional heavy dependencies – we degrade gracefully when absent
-    import cv2  # type: ignore
-    import mediapipe as mp  # type: ignore
+    import cv2
+    import mediapipe as mp
     try:
         from mediapipe.tasks import python as mp_tasks
         from mediapipe.tasks.python import vision as mp_vision
@@ -1413,7 +1413,7 @@ def _resolve_still_path(entry: dict, bundle_dir: Path) -> Path | None:
     return resolve_relative_path(bundle_dir, "still.jpg")
 
 
-def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict[str, int]]:
+def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, int]]:
     """
     Load training data from manifest and generate sliding window samples.
     
@@ -1565,61 +1565,67 @@ def build_samples_from_manifest(manifest_path: Path) -> tuple[list[Sample], dict
         )
 
     # ========== PROCESS DEFAULT VIDEO EXAMPLES (GLOBAL) ==========
-    video_examples_dir = DATA_DIR / "dgs_video_examples"
-    if video_examples_dir.exists():
-        for video_file in video_examples_dir.glob("*.mp4"):
-            label = video_file.stem
-            video_cache_path = video_examples_dir / f"{label}_landmarks.json"
+    if not skip_examples:
+        video_examples_dir = DATA_DIR / "dgs_video_examples"
+        if video_examples_dir.exists():
+            for video_file in video_examples_dir.glob("*.mp4"):
+                label = video_file.stem
+                video_cache_path = video_examples_dir / f"{label}_landmarks.json"
 
-            v_frames: list[dict] | None = None
-            if video_cache_path.exists():
-                v_cached = load_json(video_cache_path)
-                if v_cached and isinstance(v_cached.get("frames"), list):
-                    v_frames = v_cached["frames"]
-                    cache_hits += 1
+                v_frames: list[dict] | None = None
+                if video_cache_path.exists():
+                    v_cached = load_json(video_cache_path)
+                    if v_cached and isinstance(v_cached.get("frames"), list):
+                        v_frames = v_cached["frames"]
+                        cache_hits += 1
 
-            if not v_frames:
-                LOGGER.info(f"Extracting landmarks from default example: {video_file.name}")
-                v_frames = extract_landmarks_from_clip(video_file)
+                if not v_frames:
+                    # If dependencies are missing, we can't extract new landmarks
+                    if cv2 is None or mp is None:
+                        LOGGER.warning(f"MediaPipe unavailable, skipping extraction for {video_file.name}")
+                        continue
+                        
+                    LOGGER.info(f"Extracting landmarks from default example: {video_file.name}")
+                    v_frames = extract_landmarks_from_clip(video_file)
+                    if v_frames:
+                        cache_writes += 1
+                        try:
+                            with video_cache_path.open("w", encoding="utf-8") as handle:
+                                json.dump({"frames": v_frames}, handle, indent=2)
+                        except Exception as e:
+                            LOGGER.warning(f"Failed to cache landmarks for {video_file.name}: {e}")
+                    else:
+                        cache_misses += 1
+
                 if v_frames:
-                    cache_writes += 1
-                    try:
-                        with video_cache_path.open("w", encoding="utf-8") as handle:
-                            json.dump({"frames": v_frames}, handle, indent=2)
-                    except Exception as e:
-                        LOGGER.warning(f"Failed to cache landmarks for {video_file.name}: {e}")
-                else:
-                    cache_misses += 1
+                    # Normalize frames
+                    v_normalized = []
+                    v_weights = []
+                    for f in v_frames:
+                        w = float(f.get("weight", 1.0))
+                        vec = _normalize_frame(
+                            f.get("landmarks"),
+                            f.get("poseLandmarks"),
+                            f.get("faceLandmarks")
+                        )
+                        if vec is not None:
+                            v_normalized.append(vec)
+                            v_weights.append(w)
 
-            if v_frames:
-                # Normalize frames
-                v_normalized = []
-                v_weights = []
-                for f in v_frames:
-                    w = float(f.get("weight", 1.0))
-                    vec = _normalize_frame(
-                        f.get("landmarks"),
-                        f.get("poseLandmarks"),
-                        f.get("faceLandmarks")
-                    )
-                    if vec is not None:
-                        v_normalized.append(vec)
-                        v_weights.append(w)
-
-                if v_normalized:
-                    v_frame_counts, v_frame_coverage = _summarize_frame_modalities(v_frames)
-                    v_presence = _infer_modality_presence(v_frame_coverage, v_frame_counts)
-                    v_ctx = {
-                        'profile_id': None,
-                        'modality_coverage': v_frame_coverage,
-                    }  # Global examples
-                    v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
-                    data.extend(v_samples)
-                    modality_sample_total += _update_modality_totals(
-                        v_samples,
-                        v_presence,
-                        modality_counts,
-                    )
+                    if v_normalized:
+                        v_frame_counts, v_frame_coverage = _summarize_frame_modalities(v_frames)
+                        v_presence = _infer_modality_presence(v_frame_coverage, v_frame_counts)
+                        v_ctx = {
+                            'profile_id': None,
+                            'modality_coverage': v_frame_coverage,
+                        }  # Global examples
+                        v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
+                        data.extend(v_samples)
+                        modality_sample_total += _update_modality_totals(
+                            v_samples,
+                            v_presence,
+                            modality_counts,
+                        )
 
     stats = {
         "entries": len(entries),
@@ -1965,13 +1971,24 @@ def _write_training_metadata(
         pass
 
 
-def _hash_training_sources(paths: list[Path]) -> dict[str, str]:
+def _hash_training_sources(paths: list[Path], base_path: Path | None = None) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in paths:
         if not path.exists():
             continue
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        hashes[str(path)] = digest
+
+        # Use relative path if base_path is provided and path is under it
+        try:
+            if base_path:
+                path.resolve().relative_to(base_path.resolve())
+                key = str(path.relative_to(base_path))
+            else:
+                key = path.name
+        except (ValueError, AttributeError):
+            key = path.name
+
+        hashes[key] = digest
     return hashes
 
 
@@ -2233,6 +2250,11 @@ def main() -> None:
         help="Maximum training epochs",
     )
     parser.add_argument(
+        "--skip-examples",
+        action="store_true",
+        help="Skip loading default DGS video examples from data directory",
+    )
+    parser.add_argument(
         "--lr",
         type=float,
         help="Learning rate",
@@ -2277,7 +2299,7 @@ def main() -> None:
     )
 
     try:
-        samples, stats = build_samples_from_manifest(args.manifest)
+        samples, stats = build_samples_from_manifest(args.manifest, skip_examples=args.skip_examples)
 
         # Also load from legacy dataset if it exists
         if legacy_dataset_path.exists():
@@ -2294,7 +2316,7 @@ def main() -> None:
         if config.random_seed is not None:
             rng = np.random.RandomState(config.random_seed)
 
-        training_sources = _hash_training_sources([args.manifest, legacy_dataset_path])
+        training_sources = _hash_training_sources([args.manifest, legacy_dataset_path], base_path=DATA_DIR)
         metadata_context = {
             "training_sources": training_sources,
             "config_snapshot": _build_config_snapshot(config),

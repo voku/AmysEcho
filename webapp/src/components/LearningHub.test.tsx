@@ -17,14 +17,20 @@ const mockSaveSymbol = vi.fn().mockResolvedValue({
   imageUrl: null,
 });
 
-const showToastMock = vi.fn();
+const mockShowToast = vi.fn();
+
+const mockSymbols = [
+  { id: 'alle', name: 'Alle', category: 'basic', emoji: '👐', sampleCount: 0, samplesNeeded: 5, isReady: false, status: 'registered' },
+  { id: 'essen', name: 'Essen', category: 'food', emoji: '🍽️', sampleCount: 2, samplesNeeded: 3, isReady: false, status: 'training' },
+  { id: 'trinken', name: 'Trinken', category: 'food', emoji: '🥤', sampleCount: 5, samplesNeeded: 0, isReady: true, status: 'ready' },
+];
 
 vi.mock('../context/SymbolStore', async () => {
   const actual = await vi.importActual('../context/SymbolStore');
   return {
     ...actual,
     useSymbolStore: () => ({
-      symbols: [],
+      symbols: mockSymbols,
       refresh: vi.fn(),
       syncError: null,
       loading: false,
@@ -37,7 +43,7 @@ vi.mock('../context/MessageContext', async () => {
   const actual = await vi.importActual('../context/MessageContext');
   return {
     ...actual,
-    useMessage: () => ({ showToast: showToastMock }),
+    useMessage: () => ({ showToast: mockShowToast }),
     MessageProvider: ({ children }: { children: ReactElement }) => <>{children}</>,
   };
 });
@@ -63,7 +69,7 @@ describe('LearningHub', () => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ symbols: [] }),
+      json: async () => ({ symbols: mockSymbols }),
     }));
   });
 
@@ -76,14 +82,14 @@ describe('LearningHub', () => {
     it('renders the learning hub section', () => {
       renderWithProviders(<LearningHub />);
 
-      expect(screen.getByText('Gebärden trainieren')).toBeInTheDocument();
-      expect(screen.getByText('Lernen')).toBeInTheDocument();
+      expect(screen.getByText('Deine Gebärden')).toBeInTheDocument();
+      expect(screen.getByText('Lern-Zentrum')).toBeInTheDocument();
     });
 
     it('displays gesture cards', () => {
       renderWithProviders(<LearningHub />);
 
-      expect(screen.getByText('Alle')).toBeInTheDocument();
+      expect(screen.getAllByText('Alle').length).toBeGreaterThan(0);
       expect(screen.getByText('Essen')).toBeInTheDocument();
       expect(screen.getByText('Trinken')).toBeInTheDocument();
     });
@@ -96,25 +102,25 @@ describe('LearningHub', () => {
   });
 
   describe('modal open/close behavior', () => {
-    it('opens modal when "Neue Gebärde speichern" is clicked', async () => {
+    it('opens modal when "➕ Neue Gebärde" is clicked', async () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
-      expect(screen.getByText('Gebärde für das Lernen speichern')).toBeInTheDocument();
+      expect(screen.getByText('Neue Gebärde hinzufügen')).toBeInTheDocument();
     });
 
     it('closes modal when "Abbrechen" is clicked', async () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
-      expect(screen.getByText('Gebärde für das Lernen speichern')).toBeInTheDocument();
+      await user.click(screen.getByText('➕ Neue Gebärde'));
+      expect(screen.getByText('Neue Gebärde hinzufügen')).toBeInTheDocument();
 
       await user.click(screen.getByText('Abbrechen'));
       await waitFor(() => {
-        expect(screen.queryByText('Gebärde für das Lernen speichern')).not.toBeInTheDocument();
+        expect(screen.queryByText('Neue Gebärde hinzufügen')).not.toBeInTheDocument();
       });
     });
 
@@ -122,14 +128,14 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
-      expect(screen.getByText('Gebärde für das Lernen speichern')).toBeInTheDocument();
+      await user.click(screen.getByText('➕ Neue Gebärde'));
+      expect(screen.getByText('Neue Gebärde hinzufügen')).toBeInTheDocument();
 
       const overlay = screen.getByRole('dialog');
       fireEvent.click(overlay, { target: overlay });
 
       await waitFor(() => {
-        expect(screen.queryByText('Gebärde für das Lernen speichern')).not.toBeInTheDocument();
+        expect(screen.queryByText('Neue Gebärde hinzufügen')).not.toBeInTheDocument();
       });
     });
 
@@ -137,12 +143,12 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
-      expect(screen.getByText('Gebärde für das Lernen speichern')).toBeInTheDocument();
+      await user.click(screen.getByText('➕ Neue Gebärde'));
+      expect(screen.getByText('Neue Gebärde hinzufügen')).toBeInTheDocument();
 
       await user.keyboard('{Escape}');
       await waitFor(() => {
-        expect(screen.queryByText('Gebärde für das Lernen speichern')).not.toBeInTheDocument();
+        expect(screen.queryByText('Neue Gebärde hinzufügen')).not.toBeInTheDocument();
       });
     });
   });
@@ -152,7 +158,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
       const saveButton = screen.getByRole('button', { name: 'Speichern' });
       expect(saveButton).toBeDisabled();
@@ -162,7 +168,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
       await user.type(nameInput, 'Meine Gebärde');
@@ -177,7 +183,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
       const modal = screen.getByRole('dialog');
       expect(modal).toHaveAttribute('aria-modal', 'true');
@@ -188,13 +194,11 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
-      expect(screen.getByLabelText('Gebärden-ID')).toBeInTheDocument();
       expect(screen.getByLabelText('Bezeichnung')).toBeInTheDocument();
       expect(screen.getByLabelText('Kategorie')).toBeInTheDocument();
-      expect(screen.getByLabelText('Bild-URL (optional)')).toBeInTheDocument();
-      expect(screen.getByLabelText('Bild hochladen (optional)')).toBeInTheDocument();
+      expect(screen.getByLabelText('Vorschaubild')).toBeInTheDocument();
     });
   });
 
@@ -203,7 +207,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
       await user.type(nameInput, 'Test Gebärde');
@@ -216,7 +220,7 @@ describe('LearningHub', () => {
       });
 
       await waitFor(() => {
-        expect(screen.queryByText('Symbol für das Lernen speichern')).not.toBeInTheDocument();
+        expect(screen.queryByText('Neue Gebärde hinzufügen')).not.toBeInTheDocument();
       });
     });
 
@@ -226,7 +230,7 @@ describe('LearningHub', () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
       await user.type(nameInput, 'Test Gebärde');
@@ -234,14 +238,14 @@ describe('LearningHub', () => {
       const saveButton = screen.getByRole('button', { name: 'Speichern' });
       await user.click(saveButton);
 
-      expect(screen.getByText('Speichert…')).toBeInTheDocument();
+      expect(screen.getByText('Wird gespeichert…')).toBeInTheDocument();
     });
 
     it('allows saving without providing an image', async () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
       const nameInput = screen.getByLabelText('Bezeichnung');
       await user.type(nameInput, 'Ohne Bild');
@@ -274,41 +278,41 @@ describe('LearningHub', () => {
 
     afterEach(() => {
       vi.unstubAllGlobals();
-      showToastMock.mockReset();
+      mockShowToast.mockReset();
     });
 
     it('rejects files larger than 8MB', async () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
-      const fileInput = screen.getByLabelText('Bild hochladen (optional)');
+      const fileInput = screen.getByLabelText('Vorschaubild');
       const largeFile = new File([new Uint8Array(9 * 1024 * 1024)], 'large.png', {
         type: 'image/png',
       });
 
       await user.upload(fileInput, largeFile);
 
-      expect(showToastMock).toHaveBeenCalledWith(
+      expect(mockShowToast).toHaveBeenCalledWith(
         expect.objectContaining({ tone: 'error', message: expect.stringContaining('8 MB') }),
       );
-      expect(screen.queryByAltText('Gebärde')).not.toBeInTheDocument();
+      expect(screen.queryByAltText('Vorschau')).not.toBeInTheDocument();
     });
 
     it('accepts valid image uploads and shows a preview', async () => {
       const user = userEvent.setup();
       renderWithProviders(<LearningHub />);
 
-      await user.click(screen.getByText('Neue Gebärde speichern'));
+      await user.click(screen.getByText('➕ Neue Gebärde'));
 
-      const fileInput = screen.getByLabelText('Bild hochladen (optional)');
+      const fileInput = screen.getByLabelText('Vorschaubild');
       const validFile = new File([new Uint8Array(10)], 'small.png', { type: 'image/png' });
 
       await user.upload(fileInput, validFile);
 
-      expect(showToastMock).not.toHaveBeenCalled();
-      expect(await screen.findByAltText('Gebärde')).toBeInTheDocument();
+      expect(mockShowToast).not.toHaveBeenCalled();
+      expect(await screen.findByAltText('Vorschau')).toBeInTheDocument();
     });
   });
 });

@@ -164,7 +164,7 @@ def test_data_pipeline():
     print(f"  ✓ Clip processing ({null_count} NULL + {sign_count} sign)")
 
     # Test 2: Convert to arrays
-    X, y, labels, weights = dataset_to_arrays(samples)
+    X, _y, labels, _weights = dataset_to_arrays(samples)
 
     assert X.shape == (33, WINDOW_FEATURE_SIZE)
     assert len(labels) == 2  # TEST and _NULL_

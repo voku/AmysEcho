@@ -19,6 +19,12 @@ export interface SymbolDefinition {
   category: string;
   imageUrl?: string | null | undefined;
   imageDataUrl?: string | null | undefined;
+  emoji?: string | null | undefined;
+  color?: string | null | undefined;
+  sampleCount?: number;
+  samplesNeeded?: number;
+  isReady?: boolean;
+  status?: 'registered' | 'training' | 'ready';
   pending?: boolean | undefined;
   profileId?: string | undefined;
 }

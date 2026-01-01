@@ -87,7 +87,7 @@ def test_training_preserves_variation_metadata(monkeypatch, tmp_path):
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
     # Build samples from manifest
-    samples, stats = module.build_samples_from_manifest(manifest_path)
+    samples, _stats = module.build_samples_from_manifest(manifest_path)
 
     assert len(samples) > 0, "Should create samples from variation data"
     assert samples[0].label == "HELLO"
@@ -170,11 +170,11 @@ def test_variation_diversity_affects_training_weight(monkeypatch, tmp_path):
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
     # Build samples
-    samples, stats = module.build_samples_from_manifest(manifest_path)
+    samples, _stats = module.build_samples_from_manifest(manifest_path)
 
     # The high-diversity sample should have metadata indicating it needs
     # special handling during training (this will fail until we implement it)
-    high_div_sample = [s for s in samples if "high_div" in str(getattr(s, "variation_cluster_id", ""))][0] if samples else None
+    high_div_sample = next((s for s in samples if "high_div" in str(getattr(s, "variation_cluster_id", ""))), None) if samples else None
 
     # This assertion will FAIL - we need to add variation_cluster_id to Sample
     assert high_div_sample is not None, "Should preserve cluster ID in sample"
@@ -243,7 +243,7 @@ def test_canonical_templates_used_for_augmentation(monkeypatch, tmp_path):
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-    samples, stats = module.build_samples_from_manifest(manifest_path)
+    samples, _stats = module.build_samples_from_manifest(manifest_path)
 
     # With 3 canonical templates, we should get augmented samples
     # (this might fail initially if augmentation isn't implemented)
@@ -328,7 +328,7 @@ def test_per_profile_models_learn_from_variations(monkeypatch, tmp_path):
 
         # The per-profile model should be created
         # (actual training might be skipped in CI without mediapipe)
-        profile_model_path = models_dir / profile_id / "amy_model.npz"
+        _profile_model_path = models_dir / profile_id / "amy_model.npz"
 
         # We're mainly testing that the pipeline handles variation metadata
         # without crashing and preserves it through to model training

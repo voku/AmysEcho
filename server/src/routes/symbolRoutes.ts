@@ -4,8 +4,11 @@ import { auth } from '../middleware/auth.js';
 import type { Database } from '../db.js';
 import { saveDatabase } from '../db.js';
 import { DB_FILE_PATH } from '../constants/dbPaths.js';
+import { PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
+import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { SymbolRecord } from '../types.js';
+import { loadManifestEntries } from '../utils/manifestUtils.js';
 
 const SymbolPayloadSchema = z.object({
   id: z
@@ -41,49 +44,107 @@ function normalizeSymbolPayload(body: unknown) {
   return { success: true as const, data: { ...rest, imageUrl: finalImage } };
 }
 
-function toClientSymbol(symbol: SymbolRecord) {
+function toClientSymbol(symbol: SymbolRecord, sampleCountsByLabel: Record<string, number>) {
+  const count = sampleCountsByLabel[symbol.id] || 0;
+  const isReady = count >= MIN_SAMPLES_FOR_READY;
+  
+  let status: 'registered' | 'training' | 'ready' = 'registered';
+  if (isReady) {
+    status = 'ready';
+  } else if (count > 0) {
+    status = 'training';
+  }
+
   return {
     id: symbol.id,
     name: symbol.name,
     category: symbol.category ?? 'custom',
     imageUrl: symbol.imageUrl ?? null,
     profileId: symbol.profileId,
+    emoji: symbol.emoji,
+    color: symbol.color,
+    sampleCount: count,
+    samplesNeeded: Math.max(0, MIN_SAMPLES_FOR_READY - count),
+    isReady,
+    status
   };
 }
 
 export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: RequestHandler): void {
   app.get('/api/v1/symbols', async (req: Request, res: Response) => {
-    const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
-    
-    // Separate global and profile-specific symbols
-    const globalSymbols = db.symbols.filter((s) => !s.profileId);
-    const profileSymbols = profileId 
-      ? db.symbols.filter((s) => s.profileId === profileId)
-      : [];
+    try {
+      const profileId = typeof req.query.profileId === 'string' ? req.query.profileId : undefined;
+      
+      if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
+        res.status(400).json({ error: 'Ungültige Profil-ID.' });
+        return;
+      }
 
-    // Names of symbols defined by the profile
-    const profileSymbolNames = new Set(profileSymbols.map(s => s.name.toLowerCase()));
+      const manifestEntries = await loadManifestEntries();
 
-    // Return profile symbols + global symbols that are NOT overridden by name
-    const symbols = [
-      ...profileSymbols,
-      ...globalSymbols.filter(gs => !profileSymbolNames.has(gs.name.toLowerCase()))
-    ].map(toClientSymbol);
+      // Separate global and profile-specific symbols
+      const globalSymbols = db.symbols.filter((s) => !s.profileId);
+      const profileSymbols = profileId 
+        ? db.symbols.filter((s) => s.profileId === profileId)
+        : [];
 
-    res.json({ symbols });
+      // Optimize sample count calculation
+      const profileManifestEntries = profileId 
+        ? manifestEntries.filter(e => e.profileId === profileId)
+        : manifestEntries.filter(e => !e.profileId);
+
+      const sampleCountsByLabel = profileManifestEntries.reduce((acc, entry) => {
+        if (entry.label) {
+          const label = entry.label.trim();
+          acc[label] = (acc[label] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      // IDs of symbols defined by the profile - use ID-based filtering for proper isolation
+      const profileSymbolIds = new Set(profileSymbols.map(s => s.id));
+
+      // Return profile symbols + global symbols that are NOT overridden by ID
+      // This ensures each symbol has a unique ID and users can copy/modify defaults
+      const symbols = [
+        ...profileSymbols,
+        ...globalSymbols.filter(gs => !profileSymbolIds.has(gs.id))
+      ].map(s => toClientSymbol(s, sampleCountsByLabel));
+
+      res.json({ symbols });
+    } catch (error: unknown) {
+      console.error('Failed to load symbols', error);
+      res.status(500).json({ error: 'Symbole konnten nicht geladen werden.' });
+    }
   });
 
   const persistAndRespond = async (
     updater: () => { symbol: SymbolRecord; created: boolean } | null,
     res: Response,
+    profileId?: string,
   ): Promise<void> => {
     const result = updater();
     if (!result) {
       res.status(404).json({ error: 'Symbol nicht gefunden oder Zugriff verweigert' });
       return;
     }
+
+    // Load manifest entries to provide accurate sample counts in the response
+    const manifestEntries = await loadManifestEntries();
+    const profileManifestEntries = profileId 
+      ? manifestEntries.filter(e => e.profileId === profileId)
+      : manifestEntries.filter(e => !e.profileId);
+
+    const sampleCountsByLabel = profileManifestEntries.reduce((acc, entry) => {
+      if (entry.label) {
+        const label = entry.label.trim();
+        acc[label] = (acc[label] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
     await withFileLock(DB_FILE_PATH, async () => saveDatabase(db, DB_FILE_PATH));
-    res.status(result.created ? 201 : 200).json(toClientSymbol(result.symbol));
+    res.status(result.created ? 201 : 200).json(toClientSymbol(result.symbol, sampleCountsByLabel));
   };
 
   const middlewares = rateLimiter ? [auth, rateLimiter] : [auth];
@@ -137,7 +198,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
       }
       db.symbols.push(next);
       return { symbol: next, created: true };
-    }, res);
+    }, res, normalized.data.profileId);
   });
 
   app.put('/api/v1/symbols/:id', ...middlewares, async (req: Request, res: Response) => {
@@ -179,7 +240,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
         imageUrl: normalized.data.imageUrl ?? existing.imageUrl,
       });
       return { symbol: existing, created: false };
-    }, res);
+    }, res, normalized.data.profileId);
   });
 
   app.delete('/api/v1/symbols/:id', ...middlewares, async (req: Request, res: Response) => {

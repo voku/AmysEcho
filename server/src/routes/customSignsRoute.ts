@@ -4,8 +4,10 @@ import path from 'path';
 import { z } from 'zod';
 import { auth } from '../middleware/auth.js';
 import { ensureDataDir, TRAINING_DATASETS_DIR, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
+import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
 import { atomicWriteJson } from '../utils/atomicFs.js';
+import { loadManifestEntries } from '../utils/manifestUtils.js';
 
 const CUSTOM_SIGNS_PATH = path.join(TRAINING_DATASETS_DIR, 'custom_signs.json');
 
@@ -43,6 +45,14 @@ const SignStoreSchema = z.object({
 });
 
 type SignStore = z.infer<typeof SignStoreSchema>;
+type CustomSign = SignStore['signs'][number];
+
+interface CustomSignResponse extends CustomSign {
+  sampleCount: number;
+  samplesNeeded: number;
+  isReady: boolean;
+  status: 'registered' | 'training' | 'ready';
+}
 
 async function readStore(): Promise<SignStore> {
   await ensureDataDir();
@@ -55,8 +65,7 @@ async function readStore(): Promise<SignStore> {
       return result.data;
     }
   } catch (error: unknown) {
-    const isEnoent = typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 'ENOENT';
-    if (!isEnoent) {
+    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       throw error;
     }
   }
@@ -92,43 +101,60 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
       const { profileId } = req.query;
       
       // Load manifest to compute sample counts
-      let manifestEntries: any[] = [];
-      try {
-        const manifestRaw = await fs.readFile(path.join(TRAINING_DATASETS_DIR, 'training_manifest.json'), 'utf8');
-        const manifest = JSON.parse(manifestRaw);
-        manifestEntries = Array.isArray(manifest?.entries) ? manifest.entries : [];
-      } catch (err) {
-        // Fallback if manifest doesn't exist yet
-      }
+      const manifestEntries = await loadManifestEntries();
 
       // Only return signs for the specified profile to ensure data isolation
-      // If no profileId is provided, return empty array to prevent cross-profile data leakage
-      let signs: any[] = [];
-      if (typeof profileId === 'string' && profileId.trim().length > 0) {
-        if (!PROFILE_ID_PATTERN.test(profileId)) {
-          return res.status(400).json({ error: 'Ungültige Profil-ID.' });
-        }
-        const resolved = deps.resolveProfileId
-          ? await deps.resolveProfileId(profileId)
-          : { profileId };
-        if (!resolved.profileId) {
-          return res.status(404).json({ error: 'Profil nicht gefunden.' });
-        }
-        
-        signs = store.signs
-          .filter(g => g.profileId === resolved.profileId)
-          .map(sign => {
-            const count = manifestEntries.filter(e => e.label === sign.id && e.profileId === sign.profileId).length;
-            return {
-              ...sign,
-              sampleCount: count,
-              isReady: count >= 5 // Heuristic: 5 samples needed for basic personalization
-            };
-          });
+      if (typeof profileId !== 'string' || profileId.trim().length === 0) {
+        return res.json({ signs: [] });
       }
+
+      if (!PROFILE_ID_PATTERN.test(profileId)) {
+        return res.status(400).json({ error: 'Ungültige Profil-ID.' });
+      }
+
+      const resolved = deps.resolveProfileId
+        ? await deps.resolveProfileId(profileId)
+        : { profileId };
+
+      if (!resolved.profileId) {
+        return res.status(404).json({ error: 'Profil nicht gefunden.' });
+      }
+
+      // Optimize sample count calculation: O(N+M)
+      const profileManifestEntries = manifestEntries.filter(e => e.profileId === resolved.profileId);
+      const sampleCountsByLabel = profileManifestEntries.reduce((acc, entry) => {
+        if (entry.label) {
+          const label = entry.label.trim();
+          acc[label] = (acc[label] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const signs: CustomSignResponse[] = store.signs
+        .filter(g => g.profileId === resolved.profileId)
+        .map(sign => {
+          // Matching by sign.id because that's the unique stable identifier
+          const count = sampleCountsByLabel[sign.id] || 0;
+          const isReady = count >= MIN_SAMPLES_FOR_READY;
+          
+          let status: 'registered' | 'training' | 'ready' = 'registered';
+          if (isReady) {
+            status = 'ready';
+          } else if (count > 0) {
+            status = 'training';
+          }
+
+          return {
+            ...sign,
+            sampleCount: count,
+            samplesNeeded: Math.max(0, MIN_SAMPLES_FOR_READY - count),
+            isReady,
+            status
+          };
+        });
       
       return res.json({ signs });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to load custom signs', error);
       return res.status(500).json({ error: 'Benutzerdefinierte Zeichen konnten nicht geladen werden.' });
     }
@@ -188,12 +214,12 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
         deps.triggerTrainingJob({
           bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
           profileId: result.sign.profileId ?? null,
-          label: result.sign.id,
+          label: result.sign.id, // Use the unique ID for training
         });
       }
 
       return res.status(result.created ? 201 : 200).json(result.sign);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to persist custom sign', error);
       return res.status(500).json({ error: 'Benutzerdefiniertes Zeichen konnte nicht gespeichert werden.' });
     }

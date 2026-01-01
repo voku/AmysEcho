@@ -1,6 +1,7 @@
 # vendor stuff
 node_modules
 server/**/__pycache__/
+scripts/__pycache__/
 .venv
 venv/
 
@@ -47,3 +48,4 @@ webapp/coverage/
 .gemini/
 gha-creds-*.json
 webapp/README.md.bak
+server/data/backups/

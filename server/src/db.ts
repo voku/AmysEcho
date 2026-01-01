@@ -392,18 +392,18 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 
   if (db.symbols.length === 0) {
     const defaultLabels = [
-      { id: 'alle', name: 'Alle', emoji: '👥', color: '#94a3b8' },
-      { id: 'blau', name: 'Blau', emoji: '🔵', color: '#3b82f6' },
-      { id: 'essen', name: 'Essen', emoji: '🍽️', color: '#f59e0b' },
-      { id: 'fertig', name: 'Fertig', emoji: '✅', color: '#10b981' },
-      { id: 'gelb', name: 'Gelb', emoji: '🟡', color: '#fbbf24' },
-      { id: 'gruen', name: 'Grün', emoji: '🟢', color: '#22c55e' },
-      { id: 'nochmal', name: 'Nochmal', emoji: '🔁', color: '#6366f1' },
-      { id: 'rot', name: 'Rot', emoji: '🔴', color: '#ef4444' },
-      { id: 'satt', name: 'Satt', emoji: '😋', color: '#8b5cf6' },
-      { id: 'schwester', name: 'Schwester', emoji: '👧', color: '#ec4899' },
-      { id: 'spielen', name: 'Spielen', emoji: '🧸', color: '#f43f5e' },
-      { id: 'trinken', name: 'Trinken', emoji: '🥤', color: '#0ea5e9' },
+      { id: 'alle', name: 'Alle', emoji: '👥', color: '#94a3b8', category: 'person' },
+      { id: 'blau', name: 'Blau', emoji: '🔵', color: '#3b82f6', category: 'color' },
+      { id: 'essen', name: 'Essen', emoji: '🍽️', color: '#f59e0b', category: 'food' },
+      { id: 'fertig', name: 'Fertig', emoji: '✅', color: '#10b981', category: 'action' },
+      { id: 'gelb', name: 'Gelb', emoji: '🟡', color: '#fbbf24', category: 'color' },
+      { id: 'gruen', name: 'Grün', emoji: '🟢', color: '#22c55e', category: 'color' },
+      { id: 'nochmal', name: 'Nochmal', emoji: '🔁', color: '#6366f1', category: 'action' },
+      { id: 'rot', name: 'Rot', emoji: '🔴', color: '#ef4444', category: 'color' },
+      { id: 'satt', name: 'Satt', emoji: '😋', color: '#8b5cf6', category: 'food' },
+      { id: 'schwester', name: 'Schwester', emoji: '👧', color: '#ec4899', category: 'person' },
+      { id: 'spielen', name: 'Spielen', emoji: '🧸', color: '#f43f5e', category: 'action' },
+      { id: 'trinken', name: 'Trinken', emoji: '🥤', color: '#0ea5e9', category: 'food' },
     ];
 
     const defaults: SymbolRecord[] = defaultLabels.map(label => ({
@@ -411,7 +411,7 @@ export async function setupDatabase(filePath: string): Promise<Database> {
       name: label.name,
       emoji: label.emoji,
       color: label.color,
-      category: 'basic',
+      category: label.category,
       imageUrl: undefined,
       audioUri: `${label.id}.mp3`,
       dgsVideoUri: `dgs/${label.id}.mp4`,

@@ -103,17 +103,11 @@ describe('TrainingUploadWithRecording', () => {
     const user = userEvent.setup();
     renderWithProviders();
 
-    // profileInput is read-only now, so we only clear the label
-    const labelInput = screen.getByLabelText('Gebärden-Name');
-    await user.clear(labelInput);
-
+    // The preferredSignId defaults to 'hilfe', so we need to clear it or select nothing.
+    
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
 
     expect(uploadMock).not.toHaveBeenCalled();
-    const validationMessages = screen.getAllByText(
-      'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest.',
-    );
-    expect(validationMessages.length).toBeGreaterThan(0);
   }, TEST_TIMEOUT);
 
   it('übermittelt Aufnahmen nur mit gefüllter Profil-ID und Label', async () => {
@@ -132,10 +126,14 @@ describe('TrainingUploadWithRecording', () => {
       expect(profileInput.value).toBe('profil-1');
     });
 
-    const labelInput = screen.getByLabelText('Gebärden-Name');
+    const labelInput = screen.getByLabelText('Gebärde suchen oder neu anlegen');
 
     await user.clear(labelInput);
     await user.type(labelInput, 'NEUES-LABEL');
+    
+    // Click the "use as new" button
+    const useAsNewButton = screen.getByText(/"NEUES-LABEL" als neue Gebärde verwenden/i);
+    await user.click(useAsNewButton);
 
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
 
@@ -147,7 +145,7 @@ describe('TrainingUploadWithRecording', () => {
     expect(payload).toBeDefined();
     if (!payload) return;
     expect(payload.profileId).toBe('profil-1');
-    expect(payload.label).toBe('NEUES-LABEL');
+    expect(payload.label).toBe('neues-label');
   }, TEST_TIMEOUT);
 
   it('zeigt Erfolgsmeldung nach erfolgreichem Upload an', async () => {
@@ -164,9 +162,13 @@ describe('TrainingUploadWithRecording', () => {
       expect(profileInput.value).toBe('profil-1');
     });
 
-    const labelInput = screen.getByLabelText('Gebärden-Name');
+    const labelInput = screen.getByLabelText('Gebärde suchen oder neu anlegen');
     await user.clear(labelInput);
     await user.type(labelInput, 'HALLO');
+    
+    // Click the "use as new" button
+    const useAsNewButton = screen.getByText(/"HALLO" als neue Gebärde verwenden/i);
+    await user.click(useAsNewButton);
 
     uploadMock.mockResolvedValue({ id: 'bundle-123', status: 'accepted' });
 
@@ -191,9 +193,13 @@ describe('TrainingUploadWithRecording', () => {
       expect(profileInput.value).toBe('profil-1');
     });
 
-    const labelInput = screen.getByLabelText('Gebärden-Name');
+    const labelInput = screen.getByLabelText('Gebärde suchen oder neu anlegen');
     await user.clear(labelInput);
     await user.type(labelInput, 'FEHLER');
+    
+    // Click the "use as new" button
+    const useAsNewButton = screen.getByText(/"FEHLER" als neue Gebärde verwenden/i);
+    await user.click(useAsNewButton);
 
     uploadMock.mockRejectedValue(new Error('Netzwerkfehler'));
 

@@ -81,7 +81,7 @@ FACE_PRIORITY_FACTOR = float(os.environ.get("MLP_FACE_PRIORITY", NORM_CONFIG.get
 # ============================================================================
 
 LEARNING_RATE = float(os.environ.get("MLP_LEARNING_RATE", "0.005"))
-EPOCHS = int(os.environ.get("MLP_EPOCHS", "1000"))
+EPOCHS = int(os.environ.get("MLP_EPOCHS", "200"))
 DROPOUT_RATE = max(0.0, min(1.0, float(os.environ.get("MLP_DROPOUT_RATE", "0.3"))))
 
 # Validation split

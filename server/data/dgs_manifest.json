@@ -1,0 +1,247 @@
+{
+  "gestures": [
+    {
+      "label": "alle",
+      "videos": [
+        "alle_0.mp4",
+        "alle_1.mp4",
+        "alle_main_alle.mp4",
+        "alle_var_alle_0.mp4",
+        "alle_main_alles.mp4",
+        "alle_var_alles_0.mp4",
+        "alle_main_jeder.mp4",
+        "alle_var_jeder_0.mp4",
+        "alle_main_gesamt.mp4",
+        "alle_var_gesamt_0.mp4",
+        "alle_main_beide.mp4",
+        "alle_var_beide_0.mp4"
+      ]
+    },
+    {
+      "label": "blau",
+      "videos": [
+        "blau_0.mp4",
+        "blau_1.mp4",
+        "blau_2.mp4",
+        "blau_3.mp4",
+        "blau_4.mp4",
+        "blau_main_blau.mp4",
+        "blau_var_blau_0.mp4",
+        "blau_var_blau_1.mp4",
+        "blau_var_blau_2.mp4",
+        "blau_var_blau_3.mp4"
+      ]
+    },
+    {
+      "label": "essen",
+      "videos": [
+        "essen_0.mp4",
+        "essen_1.mp4",
+        "essen_2.mp4",
+        "essen_3.mp4",
+        "essen_main_essen.mp4",
+        "essen_var_essen_0.mp4",
+        "essen_var_essen_1.mp4",
+        "essen_var_essen_2.mp4",
+        "essen_main_speise.mp4",
+        "essen_var_speise_0.mp4",
+        "essen_main_nahrung.mp4",
+        "essen_var_nahrung_0.mp4",
+        "essen_main_fr\u00fchst\u00fcck.mp4",
+        "essen_var_fr\u00fchst\u00fcck_0.mp4",
+        "essen_main_mittagessen.mp4",
+        "essen_var_mittagessen_0.mp4",
+        "essen_var_mittagessen_1.mp4",
+        "essen_var_mittagessen_2.mp4",
+        "essen_main_abendessen.mp4",
+        "essen_var_abendessen_0.mp4",
+        "essen_main_hunger.mp4",
+        "essen_var_hunger_0.mp4",
+        "essen_var_hunger_1.mp4",
+        "essen_var_hunger_2.mp4",
+        "essen_main_kauen.mp4",
+        "essen_var_kauen_0.mp4",
+        "essen_var_kauen_1.mp4",
+        "essen_var_kauen_2.mp4"
+      ]
+    },
+    {
+      "label": "fertig",
+      "videos": [
+        "fertig_0.mp4",
+        "fertig_1.mp4",
+        "fertig_2.mp4",
+        "fertig_3.mp4",
+        "fertig_main_fertig.mp4",
+        "fertig_var_fertig_0.mp4",
+        "fertig_var_fertig_1.mp4",
+        "fertig_var_fertig_2.mp4",
+        "fertig_main_schluss.mp4",
+        "fertig_var_schluss_0.mp4",
+        "fertig_main_ende.mp4",
+        "fertig_var_ende_0.mp4",
+        "fertig_main_vorbei.mp4",
+        "fertig_var_vorbei_0.mp4",
+        "fertig_main_aus.mp4",
+        "fertig_var_aus_0.mp4",
+        "fertig_var_aus_1.mp4"
+      ]
+    },
+    {
+      "label": "gelb",
+      "videos": [
+        "gelb_0.mp4",
+        "gelb_1.mp4",
+        "gelb_2.mp4",
+        "gelb_3.mp4",
+        "gelb_4.mp4",
+        "gelb_main_gelb.mp4",
+        "gelb_var_gelb_0.mp4",
+        "gelb_var_gelb_1.mp4",
+        "gelb_var_gelb_2.mp4",
+        "gelb_var_gelb_3.mp4"
+      ]
+    },
+    {
+      "label": "gruen",
+      "videos": [
+        "gruen_0.mp4",
+        "gruen_1.mp4",
+        "gruen_2.mp4",
+        "gruen_3.mp4",
+        "gruen_main_gr\u00fcn.mp4",
+        "gruen_var_gr\u00fcn_0.mp4",
+        "gruen_var_gr\u00fcn_1.mp4",
+        "gruen_var_gr\u00fcn_2.mp4"
+      ]
+    },
+    {
+      "label": "nochmal",
+      "videos": [
+        "nochmal_0.mp4",
+        "nochmal_1.mp4",
+        "nochmal_2.mp4",
+        "nochmal_main_nochmal.mp4",
+        "nochmal_var_nochmal_0.mp4",
+        "nochmal_var_nochmal_1.mp4",
+        "nochmal_main_wiederholen.mp4",
+        "nochmal_var_wiederholen_0.mp4",
+        "nochmal_var_wiederholen_1.mp4"
+      ]
+    },
+    {
+      "label": "rot",
+      "videos": [
+        "rot_0.mp4",
+        "rot_1.mp4",
+        "rot_2.mp4",
+        "rot_3.mp4",
+        "rot_4.mp4",
+        "rot_main_rot.mp4",
+        "rot_var_rot_0.mp4",
+        "rot_var_rot_1.mp4",
+        "rot_var_rot_2.mp4",
+        "rot_var_rot_3.mp4",
+        "rot_main_rosa.mp4",
+        "rot_var_rosa_0.mp4",
+        "rot_var_rosa_1.mp4",
+        "rot_main_pink.mp4",
+        "rot_var_pink_0.mp4"
+      ]
+    },
+    {
+      "label": "satt",
+      "videos": [
+        "satt_0.mp4",
+        "satt_1.mp4",
+        "satt_2.mp4",
+        "satt_3.mp4",
+        "satt_main_satt.mp4",
+        "satt_var_satt_0.mp4",
+        "satt_var_satt_1.mp4",
+        "satt_var_satt_2.mp4",
+        "satt_main_genug.mp4",
+        "satt_var_genug_0.mp4",
+        "satt_var_genug_1.mp4",
+        "satt_main_voll.mp4",
+        "satt_var_voll_0.mp4",
+        "satt_main_zufrieden.mp4",
+        "satt_var_zufrieden_0.mp4",
+        "satt_var_zufrieden_1.mp4"
+      ]
+    },
+    {
+      "label": "schwester",
+      "videos": [
+        "schwester_0.mp4",
+        "schwester_1.mp4",
+        "schwester_2.mp4",
+        "schwester_main_schwester.mp4",
+        "schwester_var_schwester_0.mp4",
+        "schwester_var_schwester_1.mp4",
+        "schwester_main_geschwister.mp4",
+        "schwester_var_geschwister_0.mp4",
+        "schwester_main_krankenschwester.mp4",
+        "schwester_var_krankenschwester_0.mp4",
+        "schwester_var_krankenschwester_1.mp4",
+        "schwester_var_krankenschwester_2.mp4"
+      ]
+    },
+    {
+      "label": "spielen",
+      "videos": [
+        "spielen_0.mp4",
+        "spielen_1.mp4",
+        "spielen_main_spielen.mp4",
+        "spielen_var_spielen_0.mp4",
+        "spielen_main_spiel.mp4",
+        "spielen_var_spiel_0.mp4",
+        "spielen_main_spielplatz.mp4",
+        "spielen_var_spielplatz_0.mp4",
+        "spielen_main_spielzeug.mp4",
+        "spielen_var_spielzeug_0.mp4"
+      ]
+    },
+    {
+      "label": "trinken",
+      "videos": [
+        "trinken_0.mp4",
+        "trinken_1.mp4",
+        "trinken_2.mp4",
+        "trinken_3.mp4",
+        "trinken_main_trinken.mp4",
+        "trinken_var_trinken_0.mp4",
+        "trinken_var_trinken_1.mp4",
+        "trinken_var_trinken_2.mp4",
+        "trinken_main_getr\u00e4nk.mp4",
+        "trinken_var_getr\u00e4nk_0.mp4",
+        "trinken_main_durst.mp4",
+        "trinken_var_durst_0.mp4",
+        "trinken_var_durst_1.mp4",
+        "trinken_main_wasser.mp4",
+        "trinken_var_wasser_0.mp4",
+        "trinken_var_wasser_1.mp4",
+        "trinken_var_wasser_2.mp4",
+        "trinken_var_wasser_3.mp4",
+        "trinken_main_milch.mp4",
+        "trinken_var_milch_0.mp4",
+        "trinken_var_milch_1.mp4",
+        "trinken_var_milch_2.mp4",
+        "trinken_main_saft.mp4",
+        "trinken_var_saft_0.mp4",
+        "trinken_var_saft_1.mp4",
+        "trinken_var_saft_2.mp4",
+        "trinken_main_tee.mp4",
+        "trinken_var_tee_0.mp4",
+        "trinken_var_tee_1.mp4",
+        "trinken_var_tee_2.mp4",
+        "trinken_main_kaffee.mp4",
+        "trinken_var_kaffee_0.mp4",
+        "trinken_var_kaffee_1.mp4",
+        "trinken_var_kaffee_2.mp4",
+        "trinken_main_limonade.mp4",
+        "trinken_var_limonade_0.mp4"
+      ]
+    }
+  ]
+}

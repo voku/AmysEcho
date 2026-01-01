@@ -97,7 +97,8 @@ run_step "Install Python dependencies" pip install ${PIP_FLAGS} -r server/requir
 
 # Run Python static analysis
 run_step "Lint Python" ruff check .
-run_step "Type-check Python" mypy .
+run_step "Type-check Python (server)" mypy server/
+run_step "Type-check Python (scripts)" sh -c 'cd scripts && mypy .'
 
 # Run type check and run server tests
 run_step "Type-check server" npm run type-check --prefix server

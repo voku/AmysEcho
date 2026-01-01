@@ -186,29 +186,34 @@ class DGSVideoProcessor:
         return samples
 
     def load_video_gesture_mapping(self, manifest_path: str | None = None) -> dict[str, str]:
-        """Load video-to-gesture mapping from manifest or use fallback mapping"""
+        """Load video-to-gesture mapping from manifest"""
         if manifest_path and os.path.exists(manifest_path):
             try:
                 with open(manifest_path, encoding='utf-8') as f:
                     manifest_data = json.load(f)
                     mapping = {}
                     for gesture_info in manifest_data.get('gestures', []):
-                        video_file = gesture_info.get('video')
                         label = gesture_info.get('label')
-                        if video_file and label:
-                            mapping[video_file] = label
-                    print(f"Loaded {len(mapping)} gesture mappings from {manifest_path}")
+                        videos = gesture_info.get('videos', [])
+                        
+                        # Handle old single-video format for backward compatibility
+                        single_video = gesture_info.get('video')
+                        if single_video:
+                            mapping[single_video] = label
+                            
+                        # Handle new multi-video format
+                        if isinstance(videos, list):
+                            for v in videos:
+                                mapping[v] = label
+                                
+                    print(f"Loaded {len(mapping)} video mappings for {len(manifest_data.get('gestures', []))} gestures from {manifest_path}")
                     return mapping
-            except Exception as e:
+            except json.JSONDecodeError as e:
+                print(f"Warning: Failed to parse manifest {manifest_path}: {e}")
+            except OSError as e:
                 print(f"Warning: Failed to load manifest {manifest_path}: {e}")
 
-        # Fallback mapping (hardcoded for backward compatibility)
-        return {
-            'alle.mp4': 'alle', 'blau.mp4': 'blau', 'rot.mp4': 'rot',
-            'gelb.mp4': 'gelb', 'gruen.mp4': 'gruen', 'essen.mp4': 'essen',
-            'trinken.mp4': 'trinken', 'satt.mp4': 'satt', 'spielen.mp4': 'spielen',
-            'schwester.mp4': 'schwester', 'nochmal.mp4': 'nochmal', 'fertig.mp4': 'fertig'
-        }
+        return {}
 
     def process_directory(self, videos_dir: str, max_frames: int, frame_skip: int, manifest_path: str | None = None) -> list[dict[str, Any]]:
         # Validate directory exists first

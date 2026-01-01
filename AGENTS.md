@@ -134,6 +134,23 @@ LLMs process code differently than humans:
    const recent = filterRecent(items, 60000);
    ```
 
+### Python Script Guidelines
+
+1. **Import Sorting**
+   - Use `isort` conventions: Standard library first, then third-party libraries, then local imports.
+   - Separate groups with a blank line.
+   - **Why?** Consistent ordering reduces cognitive load when scanning dependencies and minimizes merge conflicts.
+
+2. **File Formatting**
+   - Ensure all Python files end with a single trailing newline.
+   - Use 4 spaces for indentation.
+   - **Why?** Adhering to standard POSIX and Python conventions prevents linting errors and ensures compatibility with various tools.
+
+3. **Shared Utilities**
+   - **Check `scripts/dgs_common.py`** before implementing DGS-related functionality.
+   - Extract common patterns (downloading, scraping, manifest handling) to shared modules.
+   - **Why?** Centralizing logic like User-Agent headers, error handling, and file paths prevents drift and bugs across multiple scripts.
+
 ### Examples
 
 **❌ Over-abstracted (harder for LLMs)**:

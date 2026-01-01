@@ -53,14 +53,15 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 ## Additional Roadmap Items (Consolidated)
 
 ### Custom Sign Workflow Enhancements
-- [ ] Add visual status indicators (registered, training, ready).
+- [x] Add visual status indicators (registered, training, ready).
 - [x] Auto-trigger model training after custom sign registration.
-- [ ] Show pending signs that need more training samples.
+- [x] Show pending signs that need more training samples.
 - [x] Add sign readiness percentage based on sample count and quality.
 - [ ] Background model updates for custom signs.
 - [x] Offline queueing for uploads in the custom sign flow.
 - [ ] Training data quality metrics to decide when user-contributed data is ready for the global baseline.
 - [ ] Add privacy-safe preview toggle between raw video and skeleton-only while keeping overlay visible.
+- [x] Add search in the training screen for the labels.
 
 ### Profile Identity & GDPR Follow-ups
 - [x] Add profile registry database.

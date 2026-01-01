@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTrainingUploader } from '../hooks/useTrainingUploader';
 import type {
@@ -11,7 +11,8 @@ import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { TrainingQueueList } from './TrainingQueueList';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
-import { useSymbolStore } from '../context/SymbolStore';
+import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
+import { SymbolButton } from './SymbolButton';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -187,6 +188,93 @@ function TrainingResultCard({ result, trainingJob }: { result: UploadTrainingBun
   );
 }
 
+function SymbolSelector({
+  symbols,
+  selectedId,
+  onSelect,
+}: {
+  symbols: SymbolDefinition[];
+  selectedId: string;
+  onSelect: (id: string, name: string) => void;
+}) {
+  const [search, setSearch] = useState('');
+  
+  const filteredSymbols = useMemo(() => {
+    const term = search.toLowerCase().trim();
+    if (!term) return symbols;
+    return symbols.filter(s => 
+      s.name.toLowerCase().includes(term) || 
+      s.id.toLowerCase().includes(term)
+    );
+  }, [symbols, search]);
+
+  const selectedSymbol = symbols.find(s => s.id === selectedId);
+
+  return (
+    <div className="symbol-selector mt-md">
+      <div className="form-group">
+        <label htmlFor="symbol-search">Gebärde suchen oder neu anlegen</label>
+        <div className="search-input-wrapper">
+          <input
+            id="symbol-search"
+            type="text"
+            placeholder="z.B. Essen, Trinken..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input"
+          />
+          {search && (
+            <button 
+              className="clear-button" 
+              onClick={() => setSearch('')}
+              title="Suche löschen"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="symbol-grid-scrollable">
+        {filteredSymbols.length > 0 ? (
+          <div className="symbol-grid">
+            {filteredSymbols.map((symbol) => (
+              <SymbolButton
+                key={symbol.id}
+                symbol={{
+                  id: symbol.id,
+                  name: symbol.name,
+                  emoji: symbol.emoji || '🧩',
+                  category: symbol.category,
+                  ...(symbol.color && { color: symbol.color })
+                }}
+                onPress={() => onSelect(symbol.id, symbol.name)}
+                highContrast={selectedId === symbol.id}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="notice info">
+            <p>Keine passende Gebärde gefunden.</p>
+            <button 
+              className="primary mt-sm"
+              onClick={() => onSelect(search.toLowerCase(), search)}
+            >
+              "{search}" als neue Gebärde verwenden
+            </button>
+          </div>
+        )}
+      </div>
+      
+      {selectedSymbol && (
+        <div className="selected-indicator mt-sm">
+          Ausgewählt: <strong>{selectedSymbol.name}</strong>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Wrapper component with recording-first experience
 export function TrainingUploadWithRecording() {
   const { apiBaseUrl, apiToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
@@ -200,8 +288,8 @@ export function TrainingUploadWithRecording() {
   });
   const { upload, lastResult, state, trainingJob } = uploadState;
   const {
-    setPreferredSignLabel,
-    preferredSignLabel,
+    setPreferredSign,
+    preferredSignId,
     profileId,
   } = useAppState();
   const modelInjection = useMlpModelInjection(profileId);
@@ -210,10 +298,10 @@ export function TrainingUploadWithRecording() {
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
   const [modelNotice, setModelNotice] = useState<string | null>(null);
-  const metadataReady = !!profileId && profileId.trim().length > 0 && preferredSignLabel.trim().length > 0;
+  const metadataReady = !!profileId && profileId.trim().length > 0 && preferredSignId.trim().length > 0;
   const metadataError = metadataReady
     ? ''
-    : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest.';
+    : 'Bitte wähle eine Gebärde aus, bevor du eine Aufnahme startest.';
   const [searchParams] = useSearchParams();
   const gestureParam = searchParams.get('gesture');
   const symbolIdParam = searchParams.get('symbolId');
@@ -254,23 +342,30 @@ export function TrainingUploadWithRecording() {
   }, [modelInjection, uploadState.lastResult, uploadState.trainingJob]);
 
   const handleLabelUpdate = useCallback(
-    (value: string) => {
-      setPreferredSignLabel(value);
+    (id: string, name: string) => {
+      setPreferredSign(id, name);
     },
-    [setPreferredSignLabel],
+    [setPreferredSign],
   );
 
   useEffect(() => {
-    // Sync URL params/symbols to label - only on mount or when URL changes
-    const normalized = gestureParam?.trim() ?? '';
+    // Sync URL params/symbols to label - only on mount or when URL/symbols change
+    // We include symbols to handle the case where symbols load after mount
+    const normalizedName = gestureParam?.trim() ?? '';
     const symbol = symbols.find((s) => s.id === symbolIdParam) ?? null;
-    if (symbol && preferredSignLabel !== symbol.name) {
-      setPreferredSignLabel(symbol.name);
-    } else if (!symbol && normalized && preferredSignLabel !== normalized) {
-      setPreferredSignLabel(normalized);
+    if (symbol) {
+      if (preferredSignId !== symbol.id) {
+        setPreferredSign(symbol.id, symbol.name);
+      }
+    } else if (normalizedName) {
+      const normalizedId = normalizedName.toLowerCase();
+      if (preferredSignId !== normalizedId) {
+        setPreferredSign(normalizedId, normalizedName);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredGestureLabel or symbols change
-  }, [gestureParam, symbolIdParam]);
+    // preferredSignId and setPreferredSign excluded to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gestureParam, symbolIdParam, symbols]);
 
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
@@ -349,7 +444,7 @@ export function TrainingUploadWithRecording() {
 
       <TrainingRecorder
         profileId={profileId || 'default'}
-        label={preferredSignLabel}
+        label={preferredSignId}
         onRecordingComplete={handleRecordingComplete}
       />
 
@@ -358,10 +453,11 @@ export function TrainingUploadWithRecording() {
           <label htmlFor="record-profile">Profil-ID</label>
           <input id="record-profile" value={profileId || ''} readOnly />
         </div>
-        <div className="form-group">
-          <label htmlFor="record-label">Gebärden-Name</label>
-          <input id="record-label" value={preferredSignLabel || ''} onChange={(event) => handleLabelUpdate(event.target.value)} />
-        </div>
+        <SymbolSelector 
+          symbols={symbols} 
+          selectedId={preferredSignId}
+          onSelect={handleLabelUpdate}
+        />
         {!metadataReady && <div className="notice error mt-sm">{metadataError}</div>}
       </div>
 
