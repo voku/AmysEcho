@@ -3,9 +3,10 @@
 
 import json
 import re
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
+
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://signdict.org"

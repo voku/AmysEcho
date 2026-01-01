@@ -3,10 +3,17 @@
 
 import time
 import urllib.parse
+
 from scripts.dgs_common import (
-    BASE_URL, ensure_dirs, fetch_url, find_entry_url, 
-    find_video_url_direct, find_variant_links, download_video, 
-    load_manifest, save_manifest
+    BASE_URL,
+    download_video,
+    ensure_dirs,
+    fetch_url,
+    find_entry_url,
+    find_variant_links,
+    find_video_url_direct,
+    load_manifest,
+    save_manifest,
 )
 
 # Refined search terms to remove linguistic noise
