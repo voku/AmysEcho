@@ -31,7 +31,7 @@ from ml_shared_utils import filter_by_profile_logic
 
 # Try importing sklearn for advanced validation
 try:
-    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+    from sklearn.metrics import classification_report, confusion_matrix
     from sklearn.model_selection import StratifiedKFold, train_test_split
     SKLEARN_AVAILABLE = True
 except ImportError:

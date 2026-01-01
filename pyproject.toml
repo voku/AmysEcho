@@ -5,7 +5,6 @@ exclude = [
     "venv",
     ".venv",
     "node_modules",
-    "scripts",
 ]
 
 [tool.ruff.lint]
@@ -42,14 +41,17 @@ ignore_missing_imports = true
 follow_imports = "silent"
 no_implicit_optional = true
 strict_equality = true
+# Configure mypy to handle scripts as importable modules for server code
+# Note: Run mypy separately on server/ and scripts/ to avoid "source file found twice" error
+# while maintaining full type coverage (scripts/ is imported by server via sys.path manipulation)
+mypy_path = "scripts"
+namespace_packages = true
+explicit_package_bases = true
 disable_error_code = ["attr-defined", "arg-type", "var-annotated", "union-attr", "operator", "assignment", "index", "return-value", "no-any-return", "import-untyped"]
-# Note: scripts/ contains standalone utilities not imported by server/src code
-# Excluded to prevent "source file found twice" error (as both module and script)
 exclude = [
     "venv",
     ".venv",
     "node_modules",
-    "scripts",
 ]
 
 
