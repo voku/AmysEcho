@@ -49,9 +49,9 @@ def start_server():
             with urllib.request.urlopen(req, timeout=2) as resp:
                 if resp.getcode() == 200:
                     break
-        except Exception:
+        except (urllib.error.URLError, ConnectionRefusedError, TimeoutError) as err:
             if time.time() - start > 30:
-                raise RuntimeError("server did not start in time")
+                raise RuntimeError("server did not start in time") from err
             time.sleep(0.5)
     return proc
 

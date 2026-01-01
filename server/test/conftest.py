@@ -137,9 +137,9 @@ def start_server() -> ServerContext:
                 raise RuntimeError("server did not start in time") from err
             time.sleep(0.5)
             continue
-        except (TimeoutError, urllib.error.URLError, ConnectionRefusedError):
+        except (TimeoutError, urllib.error.URLError, ConnectionRefusedError) as err:
             if time.time() - start > 30:
-                raise RuntimeError("server did not start in time")
+                raise RuntimeError("server did not start in time") from err
             time.sleep(0.5)
     return ServerContext(process=proc, access_token=access_token, base_url=base_url)
 

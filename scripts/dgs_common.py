@@ -2,7 +2,6 @@
 """Shared utilities for DGS fetching scripts."""
 
 import json
-import re
 import urllib.error
 import urllib.request
 from pathlib import Path

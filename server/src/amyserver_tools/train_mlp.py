@@ -68,8 +68,8 @@ LOGGER.setLevel(logging.INFO)
 LOGGER.propagate = False
 
 try:  # Optional heavy dependencies – we degrade gracefully when absent
-    import cv2  # type: ignore
-    import mediapipe as mp  # type: ignore
+    import cv2
+    import mediapipe as mp
     try:
         from mediapipe.tasks import python as mp_tasks
         from mediapipe.tasks.python import vision as mp_vision

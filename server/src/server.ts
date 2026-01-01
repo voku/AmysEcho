@@ -78,7 +78,7 @@ app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true, limit: '8mb' }));
 
 // Centralized error handling middleware
-const errorHandler = (error: any, req: Request, res: Response, next: Function) => {
+const errorHandler = (error: any, req: Request, res: Response, _next: Function) => {
   const statusCode = error.statusCode || 500;
   const message = error.message || 'Internal server error';
 
@@ -169,7 +169,7 @@ async function logTraining(message: string): Promise<void> {
 app.use('/api', apiLimiter);
 
 // API Versioning middleware
-app.use('/api/v1', (req: Request, res: Response, next: Function) => {
+app.use('/api/v1', (_req: Request, res: Response, next: Function) => {
   res.setHeader('X-API-Version', '1.0.0');
   next();
 });
