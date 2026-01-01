@@ -53,11 +53,14 @@ def download_video(label: str, url: str) -> Path | None:
             url
         ], check=True, capture_output=True)
         return output_path
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         print(f"Failed to download {label} via yt-dlp: {e}")
         return None
+    except (OSError, FileNotFoundError) as e:
+        print(f"Failed to download {label} (yt-dlp not found or file error): {e}")
+        return None
 
-def update_dgs_manifest(label: str, video_path: Path):
+def update_dgs_manifest(label: str):
     """
     Updates the dgs_manifest.json used by process_dgs_videos.py
     """
@@ -85,7 +88,7 @@ def main():
     for label, url in SEARCH_MAP.items():
         video_path = download_video(label, url)
         if video_path and video_path.exists():
-            update_dgs_manifest(label, video_path)
+            update_dgs_manifest(label)
     
     # Run the processor on the entire directory once
     print("Starting bulk processing of DGS videos...")
@@ -97,8 +100,10 @@ def main():
             "--manifest", "server/data/dgs_manifest.json",
             "--max-frames", "150"
         ], check=True)
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         print(f"Error during bulk processing: {e}")
+    except (OSError, FileNotFoundError) as e:
+        print(f"Error during bulk processing (command not found): {e}")
 
 if __name__ == "__main__":
     main()

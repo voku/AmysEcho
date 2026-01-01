@@ -42,9 +42,10 @@ except ImportError:
 # These factors were determined empirically to prevent the high-dimensional
 # modalities (like Face with 1404 features) from drowning out the low-dimensional
 # but highly critical modalities (like Hands with 126 features) during MLP training.
-# Ratio: Hands receive 5x boost, Body context 1.0x, Facial expressions 0.1x.
-HAND_PRIORITY_FACTOR = 5.0
-POSE_PRIORITY_FACTOR = 1.0
+# CRITICAL: These values must match webapp/src/gesture/utils/landmarkNormalizer.ts
+# to ensure training and inference use the same feature weights.
+HAND_PRIORITY_FACTOR = 3.0
+POSE_PRIORITY_FACTOR = 0.4
 FACE_PRIORITY_FACTOR = 0.1
 
 # --- Normalization (must match recognizer) ---
@@ -119,8 +120,10 @@ def _normalize(lm):
     ])
 
     if len(result) < 1629:
+        print(f"Warning: Padding landmark data from {len(result)} to 1629 features. This should not happen with valid data.")
         result = np.pad(result, (0, 1629 - len(result)))
     elif len(result) > 1629:
+        print(f"Warning: Truncating landmark data from {len(result)} to 1629 features. This should not happen with valid data.")
         result = result[:1629]
 
     return result
@@ -451,7 +454,7 @@ def main():
         for profile_id in profile_ids:
             print(f"\n=== Training Model for Profile: {profile_id} (Window Size: {args.window_size}) ===")
             try:
-                X_train_p, y_train_p, X_test_p, y_test_p, label_to_idx_p, X_full_p, y_full_p = prepare_data(
+                X_train_p, y_train_p, X_test_p, y_test_p, label_to_idx_p, _X_full_p, _y_full_p = prepare_data(
                     args.manifest, args.augmentation_factor, args.test_split, profile_id_filter=profile_id, window_size=args.window_size
                 )
 

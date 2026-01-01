@@ -113,7 +113,7 @@ export function registerSymbolRoutes(app: Express, db: Database, rateLimiter?: R
       ].map(s => toClientSymbol(s, sampleCountsByLabel));
 
       res.json({ symbols });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to load symbols', error);
       res.status(500).json({ error: 'Symbole konnten nicht geladen werden.' });
     }

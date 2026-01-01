@@ -51,8 +51,11 @@ def download_video(label, video_url):
         urllib.request.urlretrieve(video_url, output_path)
         print(f"Downloaded {label}")
         return output_path
-    except Exception as e:
-        print(f"Failed to download {label}: {e}")
+    except urllib.error.URLError as e:
+        print(f"Failed to download {label} (URL error): {e}")
+        return None
+    except OSError as e:
+        print(f"Failed to download {label} (file error): {e}")
         return None
 
 def update_manifest(label):
@@ -97,8 +100,10 @@ def main():
             
             time.sleep(1) # Be nice to the server
             
-        except Exception as e:
-            print(f"Error processing {label}: {e}")
+        except urllib.error.URLError as e:
+            print(f"Error processing {label} (URL error): {e}")
+        except OSError as e:
+            print(f"Error processing {label} (file error): {e}")
 
 if __name__ == "__main__":
     main()

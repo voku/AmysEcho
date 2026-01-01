@@ -155,7 +155,7 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
         });
       
       return res.json({ signs });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to load custom signs', error);
       return res.status(500).json({ error: 'Benutzerdefinierte Zeichen konnten nicht geladen werden.' });
     }
@@ -220,7 +220,7 @@ export function registerCustomSignsRoute(app: Express, deps: CustomSignsDeps = {
       }
 
       return res.status(result.created ? 201 : 200).json(result.sign);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to persist custom sign', error);
       return res.status(500).json({ error: 'Benutzerdefiniertes Zeichen konnte nicht gespeichert werden.' });
     }

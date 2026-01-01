@@ -208,7 +208,9 @@ class DGSVideoProcessor:
                                 
                     print(f"Loaded {len(mapping)} video mappings for {len(manifest_data.get('gestures', []))} gestures from {manifest_path}")
                     return mapping
-            except Exception as e:
+            except json.JSONDecodeError as e:
+                print(f"Warning: Failed to parse manifest {manifest_path}: {e}")
+            except OSError as e:
                 print(f"Warning: Failed to load manifest {manifest_path}: {e}")
 
         return {}

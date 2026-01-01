@@ -1,5 +1,4 @@
 import json
-import re
 from pathlib import Path
 
 DGS_DIR = Path("server/data/dgs_video_examples")

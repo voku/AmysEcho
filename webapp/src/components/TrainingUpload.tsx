@@ -349,7 +349,8 @@ export function TrainingUploadWithRecording() {
   );
 
   useEffect(() => {
-    // Sync URL params/symbols to label - only on mount or when URL changes
+    // Sync URL params/symbols to label - only on mount or when URL/symbols change
+    // We include symbols to handle the case where symbols load after mount
     const normalizedName = gestureParam?.trim() ?? '';
     const symbol = symbols.find((s) => s.id === symbolIdParam) ?? null;
     if (symbol) {
@@ -362,8 +363,9 @@ export function TrainingUploadWithRecording() {
         setPreferredSign(normalizedId, normalizedName);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run when URL params change, not when preferredSignId or symbols change
-  }, [gestureParam, symbolIdParam]);
+    // preferredSignId and setPreferredSign excluded to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gestureParam, symbolIdParam, symbols]);
 
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
