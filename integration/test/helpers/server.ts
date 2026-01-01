@@ -161,8 +161,7 @@ async function actuallyStartServer(attempt = 1) {
   if (!globalThis.__serverCleanupRegistered) {
     globalThis.__serverCleanupRegistered = true;
     
-    // Use beforeExit to allow all test files to complete before cleanup
-    process.on('beforeExit', () => {
+    const cleanup = () => {
       if (proc && !isLiveServer()) {
         try {
           proc.kill('SIGTERM');
@@ -172,6 +171,23 @@ async function actuallyStartServer(attempt = 1) {
           // Process may already be dead
         }
       }
+    };
+    
+    // Use beforeExit to allow all test files to complete before cleanup
+    process.on('beforeExit', cleanup);
+    
+    // Also handle exit event (fires when process is about to exit)
+    process.on('exit', cleanup);
+    
+    // Handle termination signals to ensure cleanup on CI failures
+    process.on('SIGTERM', () => {
+      cleanup();
+      process.exit(0);
+    });
+    
+    process.on('SIGINT', () => {
+      cleanup();
+      process.exit(0);
     });
   }
 
