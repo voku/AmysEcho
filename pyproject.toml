@@ -43,6 +43,8 @@ follow_imports = "silent"
 no_implicit_optional = true
 strict_equality = true
 disable_error_code = ["attr-defined", "arg-type", "var-annotated", "union-attr", "operator", "assignment", "index", "return-value", "no-any-return", "import-untyped"]
+# Note: scripts/ contains standalone utilities not imported by server/src code
+# Excluded to prevent "source file found twice" error (as both module and script)
 exclude = [
     "venv",
     ".venv",
