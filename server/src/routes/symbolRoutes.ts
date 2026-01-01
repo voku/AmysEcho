@@ -1,15 +1,13 @@
 import type { Express, Request, Response, RequestHandler } from 'express';
 import { z } from 'zod';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { auth } from '../middleware/auth.js';
 import type { Database } from '../db.js';
 import { saveDatabase } from '../db.js';
 import { DB_FILE_PATH } from '../constants/dbPaths.js';
-import { TRAINING_MANIFEST_PATH, PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
+import { PROFILE_ID_PATTERN } from '../constants/modelPaths.js';
 import { MIN_SAMPLES_FOR_READY } from '../constants/training.js';
 import { withFileLock } from '../utils/fileLock.js';
-import { SymbolRecord, ManifestEntry } from '../types.js';
+import { SymbolRecord } from '../types.js';
 import { loadManifestEntries } from '../utils/manifestUtils.js';
 
 const SymbolPayloadSchema = z.object({

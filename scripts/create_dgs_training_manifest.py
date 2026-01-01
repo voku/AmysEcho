@@ -22,6 +22,9 @@ def main():
     print(f"Found {len(files)} landmark files.")
     
     # Balance data: limit entries per label
+    # NOTE: Selection is non-deterministic as it depends on filesystem glob() ordering.
+    # This is acceptable for quick dataset creation, but for reproducible results,
+    # consider sorting files explicitly before processing.
     label_counts = {}
     MAX_PER_LABEL = 10
     
@@ -35,6 +38,9 @@ def main():
         
         label_counts[label] = count + 1
         
+        # NOTE: storage.files is an array to support future multi-file entries
+        # (e.g., multiple camera angles or temporal segments), even though
+        # currently each entry contains only a single landmark file.
         entry = {
             "label": label,
             "profileId": None, # Global model
