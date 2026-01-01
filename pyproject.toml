@@ -1,6 +1,12 @@
 [tool.ruff]
 target-version = "py310"
 line-length = 100
+exclude = [
+    "venv",
+    ".venv",
+    "node_modules",
+    "scripts",
+]
 
 [tool.ruff.lint]
 select = [
@@ -16,12 +22,9 @@ ignore = [
     "E501", # line too long
     "E701", # multiple statements on one line (colon)
     "B007", # unused loop control variable
-    "F401", # unused import
     "W291", # trailing whitespace
     "W293", # blank line contains whitespace
     "B905", # zip() without strict
-    "B904", # raise ... from err
-    "F841", # unused local variable
 ]
 
 [tool.ruff.lint.isort]
@@ -31,10 +34,14 @@ known-first-party = ["amyserver_tools", "ml_shared_utils"]
 python_version = "3.10"
 warn_return_any = false
 warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
 disallow_untyped_defs = false
-check_untyped_defs = false
+check_untyped_defs = true
 ignore_missing_imports = true
 follow_imports = "silent"
+no_implicit_optional = true
+strict_equality = true
 disable_error_code = ["attr-defined", "arg-type", "var-annotated", "union-attr", "operator", "assignment", "index", "return-value", "no-any-return", "import-untyped"]
 exclude = [
     "venv",

@@ -328,7 +328,7 @@ def test_per_profile_models_learn_from_variations(monkeypatch, tmp_path):
 
         # The per-profile model should be created
         # (actual training might be skipped in CI without mediapipe)
-        profile_model_path = models_dir / profile_id / "amy_model.npz"
+        _profile_model_path = models_dir / profile_id / "amy_model.npz"
 
         # We're mainly testing that the pipeline handles variation metadata
         # without crashing and preserves it through to model training
