@@ -1,5 +1,4 @@
 import json
-import os
 import re
 import time
 import urllib.parse
@@ -107,8 +106,8 @@ def load_manifest():
         with open(MANIFEST_PATH) as f:
             try:
                 return json.load(f)
-            except (json.JSONDecodeError, OSError):
-                pass
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"Warning: Could not parse manifest at {MANIFEST_PATH}: {e}")
     return {"gestures": []}
 
 def update_manifest(label, video_files):
