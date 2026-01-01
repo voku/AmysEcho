@@ -18,13 +18,11 @@ def main():
     entries = []
     
     # Iterate over all _landmarks.json files in DGS_DIR
-    files = list(DGS_DIR.glob("*_landmarks.json"))
+    # Sort files for deterministic selection
+    files = sorted(DGS_DIR.glob("*_landmarks.json"))
     print(f"Found {len(files)} landmark files.")
     
     # Balance data: limit entries per label
-    # NOTE: Selection is non-deterministic as it depends on filesystem glob() ordering.
-    # This is acceptable for quick dataset creation, but for reproducible results,
-    # consider sorting files explicitly before processing.
     label_counts = {}
     MAX_PER_LABEL = 10
     
