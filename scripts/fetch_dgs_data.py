@@ -2,12 +2,6 @@ import json
 import subprocess
 from pathlib import Path
 
-# Target baseline labels from LearningHub.tsx
-TARGET_LABELS = [
-    "alle", "blau", "essen", "fertig", "gelb", "gruen", 
-    "nochmal", "rot", "satt", "schwester", "spielen", "trinken"
-]
-
 # Mapping labels to known SignDict IDs or keywords for search
 # Note: In a real scenario, we might crawl or use an API if available.
 # Since we need to be autonomous, we'll try to use predictable SignDict URLs or YouTube search.
@@ -70,8 +64,8 @@ def update_dgs_manifest(label: str):
         try:
             with open(manifest_path) as f:
                 manifest = json.load(f)
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Warning: Could not read or parse manifest file at {manifest_path}. A new manifest will be created. Error: {e}")
     
     if "gestures" not in manifest:
         manifest["gestures"] = []
