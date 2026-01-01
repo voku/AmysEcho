@@ -32,11 +32,6 @@ export default [
       'react/jsx-uses-react': 'off',
       'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-      '@typescript-eslint/prefer-optional-chain': 'warn',
-      '@typescript-eslint/no-unnecessary-condition': 'warn',
     },
   },
   {
