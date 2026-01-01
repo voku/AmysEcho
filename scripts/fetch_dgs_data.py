@@ -1,8 +1,6 @@
-import os
 import json
 import subprocess
 from pathlib import Path
-from typing import Dict, List
 
 # Target baseline labels from LearningHub.tsx
 TARGET_LABELS = [
@@ -34,7 +32,7 @@ MANIFEST_PATH = Path("server/data/dgs_manifest.json")
 def ensure_dirs():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-def download_video(label: str, url: str) -> Path:
+def download_video(label: str, url: str) -> Path | None:
     """
     Downloads a video for a given label. 
     Uses yt-dlp if it's a video platform, or direct download.
@@ -67,9 +65,9 @@ def update_dgs_manifest(label: str, video_path: Path):
     manifest = {"gestures": []}
     if manifest_path.exists():
         try:
-            with open(manifest_path, "r") as f:
+            with open(manifest_path) as f:
                 manifest = json.load(f)
-        except:
+        except (json.JSONDecodeError, OSError):
             pass
     
     if "gestures" not in manifest:

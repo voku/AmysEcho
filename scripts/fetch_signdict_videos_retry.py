@@ -1,10 +1,10 @@
+import json
 import os
 import re
-import json
-import urllib.request
-import urllib.parse
-from pathlib import Path
 import time
+import urllib.parse
+import urllib.request
+from pathlib import Path
 
 TARGET_LABELS = {
     "fertig": "fertig",
@@ -66,7 +66,7 @@ def download_video(label, video_url):
 def update_manifest(label):
     manifest = {"gestures": []}
     if MANIFEST_PATH.exists():
-        with open(MANIFEST_PATH, "r") as f:
+        with open(MANIFEST_PATH) as f:
             try:
                 manifest = json.load(f)
             except json.JSONDecodeError:

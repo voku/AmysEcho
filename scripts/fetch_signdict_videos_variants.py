@@ -1,11 +1,11 @@
+import json
 import os
 import re
-import json
-import urllib.request
-import urllib.parse
-from pathlib import Path
-import time
 import sys
+import time
+import urllib.parse
+import urllib.request
+from pathlib import Path
 
 # Refined search terms to remove linguistic noise
 TARGET_LABELS = {
@@ -73,7 +73,7 @@ def find_variant_links(html):
     links += re.findall(r'<a href="([^"]+)" aria-label="Diese Variante wählen">', html)
     
     # Make unique and absolute
-    return list(set([BASE_URL + l for l in links]))
+    return list({BASE_URL + link for link in links})
 
 def download_video(label, video_url, index):
     filename = f"{label}_{index}.mp4"
@@ -96,10 +96,10 @@ def download_video(label, video_url, index):
 
 def load_manifest():
     if MANIFEST_PATH.exists():
-        with open(MANIFEST_PATH, "r") as f:
+        with open(MANIFEST_PATH) as f:
             try:
                 return json.load(f)
-            except:
+            except (json.JSONDecodeError, OSError):
                 pass
     return {"gestures": []}
 
