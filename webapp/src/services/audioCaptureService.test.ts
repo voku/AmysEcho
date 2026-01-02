@@ -177,7 +177,7 @@ describe('AudioCaptureService', () => {
       const result = await audioService.stopRecording();
       
       expect(result.audioFile).toBeTruthy();
-      expect(result.audioFile?.name).toContain('audio.');
+      expect(result.audioFile?.name).toMatch(/^audio_\d+\./);
       expect(result.audioError).toBeNull();
       expect(audioService.isRecording()).toBe(false);
     });

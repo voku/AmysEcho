@@ -245,7 +245,9 @@ export class AudioCaptureService {
       extension = 'wav';
     }
 
-    const audioFile = new File([blob], `audio.${extension}`, { type: mimeType });
+    // Use timestamp to ensure unique filenames
+    const timestamp = Date.now();
+    const audioFile = new File([blob], `audio_${timestamp}.${extension}`, { type: mimeType });
     
     // Clean up
     this.audioChunks = [];
