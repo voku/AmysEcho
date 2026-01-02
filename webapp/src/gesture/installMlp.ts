@@ -513,7 +513,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       const AUDIO_FEATURE_SIZE = 13;
       const inputSize = mlp.w1.shape[1];
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
-      const expectedFeatureSize = windowSize > 0 && inputSize ? inputSize / windowSize : inputSize ?? 0;
+      const expectedFeatureSize = windowSize > 0 && inputSize ? inputSize / windowSize : (inputSize ?? 0);
       const isMultimodalModel = expectedFeatureSize === (MULTIMODAL_FEATURES_SIZE + AUDIO_FEATURE_SIZE);
       
       if (isMultimodalModel) {
