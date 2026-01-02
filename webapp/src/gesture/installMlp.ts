@@ -498,30 +498,52 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     all: Hand[],
     handednesses: Handedness,
     poseLandmarks?: number[][],
-    faceLandmarks?: number[][]
+    faceLandmarks?: number[][],
+    audioFeatures?: Float32Array
   ) {
     const startTime = performance.now();
     try {
       if (!mlp) return null;
       
-      // 1. Normalize current frame
+      // 1. Normalize current frame (visual features)
       const currentFrameVec = normalizeLandmarks(all, handednesses, poseLandmarks, faceLandmarks);
       
-      // 2. Manage rolling buffer
-      rollingBuffer.push(currentFrameVec);
+      // 2. Add audio features if model supports multimodal input
+      let currentFrameWithAudio = currentFrameVec;
+      const AUDIO_FEATURE_SIZE = 13;
+      const inputSize = mlp.w1.shape[1];
+      const windowSize = mlp.window_size ?? WINDOW_SIZE;
+      const expectedFeatureSize = windowSize > 0 ? inputSize / windowSize : inputSize;
+      const isMultimodalModel = expectedFeatureSize === (MULTIMODAL_FEATURES_SIZE + AUDIO_FEATURE_SIZE);
+      
+      if (isMultimodalModel) {
+        // Model expects multimodal input (visual + audio)
+        const audioToAdd = audioFeatures && audioFeatures.length === AUDIO_FEATURE_SIZE
+          ? audioFeatures
+          : new Float32Array(AUDIO_FEATURE_SIZE); // Zero-padding if no audio
+        
+        // Concatenate visual + audio features
+        currentFrameWithAudio = new Float32Array(currentFrameVec.length + AUDIO_FEATURE_SIZE);
+        currentFrameWithAudio.set(currentFrameVec, 0);
+        currentFrameWithAudio.set(audioToAdd, currentFrameVec.length);
+      }
+      
+      const featuresToUse = currentFrameWithAudio;
+      
+      // 3. Manage rolling buffer (with audio features if multimodal)
+      rollingBuffer.push(featuresToUse);
       if (rollingBuffer.length > WINDOW_SIZE) {
         rollingBuffer.shift();
       }
       
-      // 3. Prepare input vector based on model expected input size
+      // 4. Prepare input vector based on model expected input size
       const [rows1, cols1Expected] = mlp.w1.shape;
       if (rows1 === undefined || cols1Expected === undefined || rows1 === 0) {
         throw new Error('Invalid w1 shape');
       }
 
       let x: Float32Array;
-      const windowSize = mlp.window_size ?? WINDOW_SIZE;
-      const inputDim = currentFrameVec.length; // Use actual length of normalized features
+      const inputDim = featuresToUse.length; // Use actual length of features (visual or visual+audio)
       
       if (cols1Expected === windowSize * inputDim && windowSize > 1) {
         // Temporal model
