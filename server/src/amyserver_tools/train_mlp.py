@@ -1554,6 +1554,33 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
 
         clip_path = _resolve_clip_path(entry, bundle_dir)
         still_path = _resolve_still_path(entry, bundle_dir)
+        audio_path = _resolve_audio_path(entry, bundle_dir)
+
+        # ========== LOAD AUDIO FEATURES (if available) ==========
+        audio_features_dict: dict | None = None
+        audio_metadata_dict: dict | None = None
+        if audio_path and audio_path.exists():
+            try:
+                from audio_preprocessing import preprocess_audio_for_training, check_audio_dependencies
+                if check_audio_dependencies():
+                    audio_result = preprocess_audio_for_training(
+                        audio_path,
+                        target_duration_frames=None,  # Will align later if needed
+                        feature_type='mfcc'  # Use MFCC for now
+                    )
+                    if audio_result.get('features') and not audio_result.get('error'):
+                        audio_features_dict = audio_result['features']
+                        audio_metadata_dict = {
+                            'duration_ms': audio_result.get('duration_ms', 0),
+                            'has_speech': audio_result.get('has_speech', False),
+                            'energy': audio_result.get('energy', 0.0),
+                            'sample_rate': audio_result.get('sample_rate', 16000),
+                        }
+                        LOGGER.info(f"Loaded audio features for {label}: {audio_metadata_dict}")
+                    elif audio_result.get('error'):
+                        LOGGER.warning(f"Audio preprocessing failed for {label}: {audio_result['error']}")
+            except Exception as e:
+                LOGGER.warning(f"Failed to process audio for {label}: {e}")
 
         # ========== LOAD FRAMES (with caching) ==========
         frames: list[dict] | None = None
@@ -1634,7 +1661,9 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
             'canonical_templates_count': canonical_templates_count,
             'recording': recording_metadata,
             'timing_stats': timing_stats,
-            'modality_coverage': modality_coverage
+            'modality_coverage': modality_coverage,
+            'audio_features': audio_features_dict,
+            'audio_metadata': audio_metadata_dict,
         }
 
         # 3. Generate "_NULL_" class (background/transition frames)
