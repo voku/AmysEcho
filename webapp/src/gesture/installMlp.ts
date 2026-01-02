@@ -532,7 +532,10 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       // Flatten visual features from all frames in window
       const visualFeatures = new Float32Array(rollingBuffer.length * MULTIMODAL_FEATURES_SIZE);
       for (let i = 0; i < rollingBuffer.length; i++) {
-        visualFeatures.set(rollingBuffer[i], i * MULTIMODAL_FEATURES_SIZE);
+        const frame = rollingBuffer[i];
+        if (frame) {
+          visualFeatures.set(frame, i * MULTIMODAL_FEATURES_SIZE);
+        }
       }
       
       // Add audio features ONCE per window if multimodal model
