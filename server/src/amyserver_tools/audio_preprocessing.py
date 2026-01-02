@@ -7,9 +7,9 @@ supporting Amy's learning progression whether she's using gestures, speech, or b
 """
 
 import logging
-import os
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+from typing import Any, Optional
+
 import numpy as np
 
 LOGGER = logging.getLogger("amyserver.audio_preprocessing")
@@ -54,7 +54,7 @@ def check_audio_dependencies() -> bool:
 def load_audio_file(
     file_path: Path,
     target_sr: int = DEFAULT_SAMPLE_RATE,
-) -> Tuple[np.ndarray, int]:
+) -> tuple[np.ndarray, int]:
     """
     Load an audio file and resample to target sample rate.
     
@@ -195,7 +195,7 @@ def detect_speech_activity(
     audio_data: np.ndarray,
     sample_rate: int,
     energy_threshold: float = MIN_AUDIO_ENERGY_THRESHOLD,
-) -> Tuple[bool, float]:
+) -> tuple[bool, float]:
     """
     Detect if audio contains speech activity.
     
@@ -225,7 +225,7 @@ def preprocess_audio_for_training(
     target_duration_frames: Optional[int] = None,
     target_sr: int = DEFAULT_SAMPLE_RATE,
     feature_type: str = "mfcc",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Complete preprocessing pipeline for audio training data.
     
@@ -382,8 +382,8 @@ def align_audio_features(
 
 
 def compute_audio_feature_statistics(
-    audio_features: Dict[str, np.ndarray]
-) -> Dict[str, Any]:
+    audio_features: dict[str, np.ndarray]
+) -> dict[str, Any]:
     """
     Compute statistics over audio features for quality assessment.
     
