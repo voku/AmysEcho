@@ -141,7 +141,7 @@ export class LiveAudioRecognitionService {
     if (this.audioSource) {
       try {
         this.audioSource.disconnect();
-      } catch (e) {
+      } catch {
         // Ignore disconnect errors
       }
       this.audioSource = null;

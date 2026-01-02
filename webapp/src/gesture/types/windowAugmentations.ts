@@ -15,6 +15,7 @@ export interface GestureWindowAugmentations {
     handednesses: unknown,
     poseLandmarks?: number[][],
     faceLandmarks?: number[][],
+    audioFeatures?: Float32Array
   ) => MLPPrediction | null;
   __tapToStart?: string;
   __recognizerInitFailed?: string;
