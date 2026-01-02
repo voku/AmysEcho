@@ -12,3 +12,6 @@ types-setuptools
 types-requests
 # Stub packages for type checking
 pandas-stubs
+# Audio processing for multimodal recognition
+librosa>=0.10.0
+soundfile>=0.12.0
