@@ -61,6 +61,19 @@ export class MFCCExtractor {
   }
 
   /**
+   * Create and connect a MediaStream source from this extractor's AudioContext
+   * This ensures the source is from the same AudioContext as the analyser
+   */
+  connectMediaStream(stream: MediaStream): MediaStreamAudioSourceNode {
+    if (!this.audioContext || !this.analyser) {
+      throw new Error('MFCC extractor not initialized');
+    }
+    const source = this.audioContext.createMediaStreamSource(stream);
+    source.connect(this.analyser);
+    return source;
+  }
+
+  /**
    * Extract MFCC features from current audio buffer
    * Returns 13 coefficients averaged over recent audio
    */

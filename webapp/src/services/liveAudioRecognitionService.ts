@@ -26,7 +26,6 @@ export class LiveAudioRecognitionService {
   private mfccExtractor: MFCCExtractor | null = null;
   private audioSource: MediaStreamAudioSourceNode | null = null;
   private isActive = false;
-  private audioContext: AudioContext | null = null;
 
   /**
    * Start capturing audio and extracting features
@@ -65,13 +64,9 @@ export class LiveAudioRecognitionService {
         return false;
       }
 
-      // Create audio context and connect stream
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: config.sampleRate ?? 16000
-      });
-
-      this.audioSource = this.audioContext.createMediaStreamSource(this.audioStream);
-      this.mfccExtractor.connectSource(this.audioSource);
+      // Connect audio stream to MFCC extractor
+      // This uses the extractor's own AudioContext to avoid creating duplicates
+      this.audioSource = this.mfccExtractor.connectMediaStream(this.audioStream);
 
       this.isActive = true;
       console.log('Live audio recognition started');
@@ -147,13 +142,7 @@ export class LiveAudioRecognitionService {
       this.audioSource = null;
     }
 
-    if (this.audioContext) {
-      if (this.audioContext.state !== 'closed') {
-        this.audioContext.close().catch(console.error);
-      }
-      this.audioContext = null;
-    }
-
+    // The MFCC extractor manages its own AudioContext
     if (this.mfccExtractor) {
       this.mfccExtractor.dispose();
       this.mfccExtractor = null;
