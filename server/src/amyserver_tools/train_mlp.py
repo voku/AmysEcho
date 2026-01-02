@@ -7,6 +7,8 @@ converts each bundle into a training sample, trains a simple MLP, and writes
 updated weight files for the global as well as per-profile models. A structured
 training report is printed to stdout so callers (the Express server) can relay
 status back to the app.
+
+Amy First: Now supports multimodal training with audio + visual features!
 """
 
 import argparse
@@ -144,6 +146,11 @@ AUDIO_EXTENSIONS = {
     ".wav",
     ".aac",
 }
+
+# Multimodal Feature Configuration
+# Amy First: Fixed-size audio representation for consistent MLP input
+AUDIO_FEATURE_SIZE = 13  # MFCC coefficients (averaged over time)
+MULTIMODAL_FEATURE_SIZE = WINDOW_FEATURE_SIZE + AUDIO_FEATURE_SIZE  # 48,870 + 13 = 48,883
 
 # --- Legacy Configuration (Deprecated but kept for reference) ---
 # HIDDEN_SIZE: No longer used (hardcoded to 1024/512)
@@ -1043,13 +1050,14 @@ def train_mlp(
     return_best_and_final_flag = resolved.return_best_and_final
 
     # ========== ARCHITECTURE DEFINITION ==========
-    input_dim = X.shape[1]  # Should be 48,870 (WINDOW_SIZE * INPUT_FEATURE_SIZE)
+    input_dim = X.shape[1]  # 48,870 (visual) or 48,883 (multimodal)
     layer1_size = MLP_LAYER1_SIZE  # 512
     layer2_size = MLP_LAYER2_SIZE  # 256
 
-    if input_dim != WINDOW_FEATURE_SIZE:
+    if input_dim != WINDOW_FEATURE_SIZE and input_dim != MULTIMODAL_FEATURE_SIZE:
         LOGGER.warning(
-            f"Input dimension {input_dim} does not match WINDOW_FEATURE_SIZE {WINDOW_FEATURE_SIZE}. "
+            f"Input dimension {input_dim} does not match WINDOW_FEATURE_SIZE {WINDOW_FEATURE_SIZE} "
+            f"or MULTIMODAL_FEATURE_SIZE {MULTIMODAL_FEATURE_SIZE}. "
             "This is expected in unit tests but may indicate a configuration error in production."
         )
 
@@ -1817,14 +1825,59 @@ def build_samples_from_legacy_dataset(dataset_path: Path) -> list[Sample]:
     return samples
 
 
+def _prepare_audio_features(audio_features_list: list[float] | None) -> np.ndarray:
+    """
+    Convert variable-length audio features to fixed-size representation.
+    
+    Amy First: Ensures consistent dimensions for multimodal training.
+    Uses mean pooling over time to create a fixed-size audio vector.
+    
+    Args:
+        audio_features_list: Flattened MFCC features (13 × n_frames) or None
+        
+    Returns:
+        Fixed-size audio feature vector (13,) - zeros if no audio
+    """
+    if not audio_features_list or len(audio_features_list) == 0:
+        # No audio: return zero vector
+        return np.zeros(AUDIO_FEATURE_SIZE, dtype=np.float32)
+    
+    # Reshape from flattened to (13, n_frames) assuming MFCC with 13 coefficients
+    audio_array = np.array(audio_features_list, dtype=np.float32)
+    
+    # If already the right size, return as-is
+    if len(audio_array) == AUDIO_FEATURE_SIZE:
+        return audio_array
+    
+    # Reshape to (13, n_frames) and average over time dimension
+    try:
+        n_frames = len(audio_array) // AUDIO_FEATURE_SIZE
+        if n_frames > 0:
+            reshaped = audio_array[:n_frames * AUDIO_FEATURE_SIZE].reshape(AUDIO_FEATURE_SIZE, n_frames)
+            # Average over time (axis=1)
+            audio_fixed = np.mean(reshaped, axis=1)
+            return audio_fixed.astype(np.float32)
+        else:
+            # Too few features, pad with zeros
+            padded = np.zeros(AUDIO_FEATURE_SIZE, dtype=np.float32)
+            padded[:len(audio_array)] = audio_array[:AUDIO_FEATURE_SIZE]
+            return padded
+    except Exception as e:
+        LOGGER.warning(f"Failed to reshape audio features: {e}. Using zero padding.")
+        return np.zeros(AUDIO_FEATURE_SIZE, dtype=np.float32)
+
+
 def dataset_to_arrays(
     samples: list[Sample],
     *,
     augmentations_per_sample: int = 0,
     rng: np.random.RandomState | np.random.Generator | None = None,
+    use_multimodal: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, list[str], np.ndarray]:
     """
     Convert Sample objects to training arrays.
+    
+    Amy First: Now supports multimodal training with audio + visual features!
     
     CRITICAL: Sample.landmarks now contains pre-normalized window vectors (48,870 floats),
     so we skip normalization here. Just convert to numpy arrays. 
@@ -1833,8 +1886,14 @@ def dataset_to_arrays(
     on flattened vectors would break temporal coherence. Augmentation happens naturally
     through overlapping sliding windows (stride=1).
     
+    Args:
+        samples: List of training samples
+        augmentations_per_sample: Deprecated (always 0)
+        rng: Random number generator (not used)
+        use_multimodal: If True, concatenate audio features with visual features
+    
     Returns:
-        X: Feature matrix (N, 48870)
+        X: Feature matrix (N, 48870) or (N, 48883) if multimodal
         y: Label indices (N,)
         label_set: Sorted list of unique labels
         weights: Per-sample quality weights (N,)
@@ -1845,6 +1904,7 @@ def dataset_to_arrays(
     X_list: list[np.ndarray] = []
     y_list: list[int] = []
     weight_list: list[float] = []
+    has_any_audio = any(sample.audio_features for sample in samples)
 
     for sample in samples:
         # Sample.landmarks is already a normalized, flattened window vector
@@ -1858,6 +1918,21 @@ def dataset_to_arrays(
             )
             continue
 
+        # Amy First: Multimodal fusion - combine audio + visual features
+        if use_multimodal and has_any_audio:
+            # Prepare fixed-size audio features (zeros if no audio for this sample)
+            audio_features_fixed = _prepare_audio_features(sample.audio_features)
+            
+            # Concatenate: [visual_features | audio_features]
+            features = np.concatenate([features, audio_features_fixed])
+            
+            if sample.audio_features:
+                LOGGER.debug(
+                    f"Multimodal sample {sample.label}: "
+                    f"visual={WINDOW_FEATURE_SIZE}, audio={AUDIO_FEATURE_SIZE}, "
+                    f"total={features.size}"
+                )
+
         X_list.append(features)
         y_list.append(label_to_idx[sample.label])
         # Combine structural quality weight with aggregated frame weights (e.g. still-frame emphasis)
@@ -1868,8 +1943,9 @@ def dataset_to_arrays(
         # Geometric augmentation on flattened vectors would break temporal structure
 
     if not X_list:
+        feature_dim = MULTIMODAL_FEATURE_SIZE if (use_multimodal and has_any_audio) else WINDOW_FEATURE_SIZE
         return (
-            np.zeros((0, WINDOW_FEATURE_SIZE), dtype=np.float32),
+            np.zeros((0, feature_dim), dtype=np.float32),
             np.zeros((0,), dtype=np.int64),
             label_set,
             np.zeros((0,), dtype=np.float32),
