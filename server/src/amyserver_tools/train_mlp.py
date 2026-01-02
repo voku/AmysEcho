@@ -135,6 +135,16 @@ IMAGE_EXTENSIONS = {
     ".tiff",
 }
 
+AUDIO_EXTENSIONS = {
+    ".webm",
+    ".opus",
+    ".ogg",
+    ".mp3",
+    ".m4a",
+    ".wav",
+    ".aac",
+}
+
 # --- Legacy Configuration (Deprecated but kept for reference) ---
 # HIDDEN_SIZE: No longer used (hardcoded to 1024/512)
 # The old 2-layer architecture has been replaced with 3-layer funnel
@@ -1411,6 +1421,83 @@ def _resolve_still_path(entry: dict, bundle_dir: Path) -> Path | None:
                 return resolved
 
     return resolve_relative_path(bundle_dir, "still.jpg")
+
+
+def _resolve_audio_path(entry: dict, bundle_dir: Path) -> Path | None:
+    """
+    Resolve audio file path from training bundle entry.
+    
+    Amy First: Enables multimodal recognition by locating audio files
+    containing verbal utterances (e.g., Amy saying "Iila" for purple).
+    """
+    storage = entry.get("storage", {}) if isinstance(entry, dict) else {}
+    if isinstance(storage, dict):
+        # Try storage.audio first
+        storage_audio = storage.get("audio")
+        if isinstance(storage_audio, str):
+            resolved = resolve_relative_path(bundle_dir, storage_audio)
+            if resolved is not None:
+                return resolved
+
+        # Try to find audio in storage.files
+        storage_files = storage.get("files") or []
+        metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
+        audio_filename_raw = metadata.get("audioFilename")
+        audio_filename = None
+        if isinstance(audio_filename_raw, str):
+            audio_filename = audio_filename_raw.strip()
+            if not audio_filename:
+                audio_filename = None
+
+        audio_extension = Path(audio_filename).suffix.lower() if audio_filename else None
+        lower_audio_name = audio_filename.lower() if audio_filename else None
+
+        resolved_by_extension: Path | None = None
+        resolved_by_audio_ext: Path | None = None
+
+        for relative in storage_files:
+            if not isinstance(relative, str):
+                continue
+            base_name = relative.split("/")[-1]
+            if not base_name:
+                continue
+            candidate = resolve_relative_path(bundle_dir, relative)
+            if candidate is None:
+                continue
+
+            lower_base = base_name.lower()
+            # Exact match on filename
+            if lower_audio_name and lower_base == lower_audio_name:
+                return candidate
+
+            # Match by extension from metadata
+            if (
+                resolved_by_extension is None
+                and audio_extension
+                and lower_base.endswith(audio_extension)
+            ):
+                resolved_by_extension = candidate
+
+            # Match any audio extension
+            if (
+                resolved_by_audio_ext is None
+                and Path(relative).suffix.lower() in AUDIO_EXTENSIONS
+            ):
+                resolved_by_audio_ext = candidate
+
+        if resolved_by_extension is not None:
+            return resolved_by_extension
+        if resolved_by_audio_ext is not None:
+            return resolved_by_audio_ext
+
+        # Try by filename from metadata
+        if audio_filename:
+            resolved = resolve_relative_path(bundle_dir, audio_filename)
+            if resolved is not None:
+                return resolved
+
+    # No audio file found - this is OK, audio is optional
+    return None
 
 
 def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, int]]:
