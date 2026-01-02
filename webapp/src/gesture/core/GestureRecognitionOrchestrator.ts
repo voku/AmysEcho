@@ -32,6 +32,7 @@ import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { MultimodalSmoother } from '../utils/MultimodalSmoother';
 import { SignVariationTracker, type GestureLandmarks } from '../../services/signVariationTracker';
+import { LiveAudioRecognitionService } from '../../services/liveAudioRecognitionService';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
@@ -123,6 +124,7 @@ export class GestureRecognitionOrchestrator {
   private handStabilityAssistant!: HandStabilityAssistant;
   private batteryMonitor!: BatteryMonitor;
   private config: GestureDetectorConfig;
+  private liveAudioService: LiveAudioRecognitionService;
 
   private isInitialized = false;
   private isRunning = false;
@@ -151,6 +153,7 @@ export class GestureRecognitionOrchestrator {
     this.config = loadConfig();
     this.multimodalSmoother = new MultimodalSmoother();
     this.variationTracker = new SignVariationTracker();
+    this.liveAudioService = new LiveAudioRecognitionService();
 
     this.createGestureDetector =
       dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
@@ -236,6 +239,7 @@ export class GestureRecognitionOrchestrator {
     if (this.isRunning) return;
 
     await this.gestureDetector?.start();
+    await this.liveAudioService.start();
     this.isRunning = true;
   }
 
@@ -251,6 +255,7 @@ export class GestureRecognitionOrchestrator {
     this.frameBuffer = [];
 
     await this.gestureDetector?.stop();
+    this.liveAudioService.stop();
     // Force a fresh initialization on the next start so MediaPipe reloads and getUserMedia runs again.
     // Without this reset, restarting after a stop could leave the camera stream detached even though
     // the orchestrator reported a running state.
@@ -271,6 +276,9 @@ export class GestureRecognitionOrchestrator {
       const normalized = mapMediaPipeResult(results);
       this.collectFrameForBatch(normalized);
       const smoothed = this.multimodalSmoother.smooth(normalized, timestamp);
+      
+      // Extract audio features for multimodal recognition
+      const audioData = this.liveAudioService.extractFeatures();
 
       const context: ProcessingContext = {
         landmarks: smoothed.landmarks,
@@ -280,7 +288,8 @@ export class GestureRecognitionOrchestrator {
         rawResults: results,
         rawLandmarks: smoothed.landmarks,
         handednesses: smoothed.handednesses,
-        normalizedResults: smoothed
+        normalizedResults: smoothed,
+        audioFeatures: audioData.mfcc
       };
 
       // Execute processing pipeline
@@ -1419,7 +1428,8 @@ export class GestureDetectionStep implements ProcessingStep {
           context.rawLandmarks ?? context.landmarks ?? [],
           handednessesForMlp,
           context.poseLandmarks,
-          context.faceLandmarks
+          context.faceLandmarks,
+          context.audioFeatures
         );
         gestureDebugLog('mlp', 'MLP prediction result', () => ({
           label: mlpResult?.label,

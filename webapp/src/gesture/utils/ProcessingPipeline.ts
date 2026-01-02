@@ -20,6 +20,7 @@ export interface ProcessingContext {
   normalizedResults?: NormalizedMediaPipeResult;
   poseLandmarks?: number[][];
   faceLandmarks?: number[][];
+  audioFeatures?: Float32Array;
 }
 
 export interface ProcessingResult {
