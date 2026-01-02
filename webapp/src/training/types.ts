@@ -40,6 +40,12 @@ export interface TrainingBundlePayload {
   };
   clipFile?: File | null;
   stillFile?: File | null;
+  /**
+   * Audio file captured during gesture recording.
+   * Amy First: Enables multimodal recognition by capturing verbal utterances
+   * (e.g., "Iila" for purple) alongside sign language gestures.
+   */
+  audioFile?: File | null;
   recording?: {
     frameCount?: number;
     usableFrameCount?: number;
@@ -48,6 +54,12 @@ export interface TrainingBundlePayload {
     clipMimeType?: string;
     stillBytes?: number;
     stillMimeType?: string;
+    /**
+     * Audio recording metadata
+     */
+    audioDurationMs?: number;
+    audioBytes?: number;
+    audioMimeType?: string;
   };
   /**
    * Specifies which hand(s) are semantically important for this gesture.
