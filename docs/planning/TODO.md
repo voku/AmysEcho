@@ -52,6 +52,22 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 
 ## Additional Roadmap Items (Consolidated)
 
+### Multimodal Audio + Gesture Recognition
+- [x] Add audio capture service for recording speech during gesture capture
+- [x] Integrate audio recording with training recorder (captures audio alongside video)
+- [x] Update training bundle types to include audio files
+- [x] Extend training bundle creation to package audio files in ZIP bundles
+- [x] Update server-side bundle ingestion to handle audio files
+- [x] Modify training manifest to track audio data
+- [x] Add comprehensive unit tests for audio capture service (16 tests)
+- [ ] Create audio preprocessing utilities for format normalization
+- [ ] Update Python training tools to accept and process audio data
+- [ ] Implement multimodal (audio + gesture) recognition in MLP trainer
+- [ ] Add integration tests for complete audio+gesture training flow
+- [ ] Document audio capture settings and troubleshooting
+
+**Context:** Enable Amy to say words (e.g., "Iila" for purple) while signing, creating a richer multimodal recognition system that combines verbal utterances with sign language gestures.
+
 ### Custom Sign Workflow Enhancements
 - [x] Add visual status indicators (registered, training, ready).
 - [x] Auto-trigger model training after custom sign registration.
