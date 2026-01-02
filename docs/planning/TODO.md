@@ -53,6 +53,8 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 ## Additional Roadmap Items (Consolidated)
 
 ### Multimodal Audio + Gesture Recognition
+
+#### Training Pipeline ✅ COMPLETE
 - [x] Add audio capture service for recording speech during gesture capture
 - [x] Integrate audio recording with training recorder (captures audio alongside video)
 - [x] Update training bundle types to include audio files
@@ -63,15 +65,29 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Create audio preprocessing utilities for format normalization
 - [x] Update Python training tools to accept and process audio data
 - [x] Audio features extracted and attached to training samples
-- [x] Add integration tests for complete audio+gesture training flow (4 tests in audio-integration.test.ts)
+- [x] Add integration tests for complete audio+gesture training flow (4 tests)
 - [x] Implement multimodal fusion layer (concatenate audio + visual features)
 - [x] Add zero-padding for samples without audio to maintain consistent dimensions
 - [x] Update MLP input layer to handle combined feature dimensions
 - [x] Document audio capture settings and troubleshooting
 
+#### Live Recognition Pipeline 🚧 FOUNDATION READY
+- [x] Create browser-based MFCC extraction service (Web Audio API)
+- [x] Implement live audio recognition service for real-time capture
+- [x] Extend `mlpPredict()` to accept audio features parameter
+- [x] Add audio fusion logic in `installMlp.ts`
+- [x] Create integration guide (`docs/LIVE_AUDIO_INTEGRATION_GUIDE.md`)
+- [ ] Integrate live audio service with `GestureRecognitionOrchestrator`
+- [ ] Wire up audio extraction in `handleGestureResults()`
+- [ ] Pass audio features to MLP in `GestureDetectionStep`
+- [ ] Add unit tests for live multimodal recognition
+- [ ] End-to-end validation with multimodal model
+
 **Context:** Enable Amy to say words (e.g., "Iila" for purple) while signing, creating a richer multimodal recognition system that combines verbal utterances with sign language gestures.
 
-**Current Status:** ✅ **COMPLETE** - Full multimodal fusion layer implemented! Audio features are now combined with visual features for unified MLP training. The system automatically uses multimodal input (48,883 dims) when audio is present, or visual-only (48,870 dims) when not. Zero-padding ensures consistent dimensions across all samples.
+**Training Status:** ✅ **COMPLETE** - Full multimodal fusion layer implemented! Audio features are now combined with visual features for unified MLP training. The system automatically uses multimodal input (48,883 dims) when audio is present, or visual-only (48,870 dims) when not. Zero-padding ensures consistent dimensions across all samples.
+
+**Live Recognition Status:** 🚧 **FOUNDATION READY** - Browser-based MFCC extraction and live audio service implemented. MLP prediction logic updated to accept audio. Integration with orchestrator pending (5 small changes identified in `docs/LIVE_AUDIO_INTEGRATION_GUIDE.md`). Estimated effort: 2-3 hours for developer familiar with codebase.
 
 ### Custom Sign Workflow Enhancements
 - [x] Add visual status indicators (registered, training, ready).
