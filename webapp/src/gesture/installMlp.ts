@@ -517,7 +517,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       
       // 3. Manage rolling buffer (visual features only - audio added later per window)
       rollingBuffer.push(currentFrameVec);
-      if (rollingBuffer.length > WINDOW_SIZE) {
+      if (rollingBuffer.length > windowSize) {
         rollingBuffer.shift();
       }
       
@@ -529,14 +529,18 @@ export function installMlp(customModelData?: string): Promise<boolean> {
 
       let x: Float32Array;
       
-      // Flatten visual features from all frames in window
-      const visualFeatures = new Float32Array(rollingBuffer.length * MULTIMODAL_FEATURES_SIZE);
+      // Determine actual feature size per frame from current frame
+      const featureSizePerFrame = currentFrameVec.length;
+      
+      // Flatten visual features from all frames in window (use model's windowSize)
+      const visualFeatures = new Float32Array(windowSize * featureSizePerFrame);
       for (let i = 0; i < rollingBuffer.length; i++) {
         const frame = rollingBuffer[i];
         if (frame) {
-          visualFeatures.set(frame, i * MULTIMODAL_FEATURES_SIZE);
+          visualFeatures.set(frame, i * featureSizePerFrame);
         }
       }
+      // Note: If rollingBuffer.length < windowSize, remaining positions stay zero (initial padding)
       
       // Add audio features ONCE per window if multimodal model
       // This matches server training: [visual_window | audio] not [visual+audio] per frame
@@ -562,8 +566,8 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         throw new Error(`Input dimension mismatch: expected ${cols1Expected}, got ${inputDim}`);
       }
       
-      // Skip prediction if input is all zeros (no hands detected)
-      if (x.every(v => v === 0)) return null;
+      // Skip prediction if current frame has no hands (check last frame in buffer, not padding)
+      if (currentFrameVec.every(v => v === 0)) return null;
       
       const cols1 = x.length;
       
