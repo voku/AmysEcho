@@ -63,10 +63,10 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Create audio preprocessing utilities for format normalization
 - [x] Update Python training tools to accept and process audio data
 - [x] Audio features extracted and attached to training samples
+- [x] Add integration tests for complete audio+gesture training flow (4 tests in audio-integration.test.ts)
 - [ ] Implement multimodal fusion layer (concatenate audio + visual features)
 - [ ] Add zero-padding for samples without audio to maintain consistent dimensions
 - [ ] Update MLP input layer to handle combined feature dimensions
-- [ ] Add integration tests for complete audio+gesture training flow
 - [x] Document audio capture settings and troubleshooting
 
 **Context:** Enable Amy to say words (e.g., "Iila" for purple) while signing, creating a richer multimodal recognition system that combines verbal utterances with sign language gestures.
