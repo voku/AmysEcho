@@ -1569,7 +1569,11 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         audio_metadata_dict: dict | None = None
         if audio_path and audio_path.exists():
             try:
-                from audio_preprocessing import preprocess_audio_for_training, check_audio_dependencies
+                from amyserver_tools.audio_preprocessing import (
+                    check_audio_dependencies,
+                    preprocess_audio_for_training,
+                )
+
                 if check_audio_dependencies():
                     audio_result = preprocess_audio_for_training(
                         audio_path,
@@ -1833,7 +1837,7 @@ def _prepare_audio_features(audio_features_list: list[float] | None) -> np.ndarr
     Uses mean pooling over time to create a fixed-size audio vector.
     
     Args:
-        audio_features_list: Flattened MFCC features (13 × n_frames) or None
+        audio_features_list: Flattened MFCC features (13 x n_frames) or None
         
     Returns:
         Fixed-size audio feature vector (13,) - zeros if no audio

@@ -8,7 +8,7 @@ supporting Amy's learning progression whether she's using gestures, speech, or b
 
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -90,7 +90,7 @@ def load_audio_file(
         return audio_data, sr
         
     except Exception as e:
-        raise AudioPreprocessingError(f"Failed to load audio: {e}")
+        raise AudioPreprocessingError(f"Failed to load audio: {e}") from e
 
 
 def extract_mfcc_features(
@@ -138,7 +138,7 @@ def extract_mfcc_features(
         return mfccs
         
     except Exception as e:
-        raise AudioPreprocessingError(f"Failed to extract MFCCs: {e}")
+        raise AudioPreprocessingError(f"Failed to extract MFCCs: {e}") from e
 
 
 def extract_mel_spectrogram(
@@ -188,7 +188,7 @@ def extract_mel_spectrogram(
         return mel_spec_db
         
     except Exception as e:
-        raise AudioPreprocessingError(f"Failed to extract mel spectrogram: {e}")
+        raise AudioPreprocessingError(f"Failed to extract mel spectrogram: {e}") from e
 
 
 def detect_speech_activity(
@@ -222,7 +222,7 @@ def detect_speech_activity(
 
 def preprocess_audio_for_training(
     audio_file_path: Path,
-    target_duration_frames: Optional[int] = None,
+    target_duration_frames: int | None = None,
     target_sr: int = DEFAULT_SAMPLE_RATE,
     feature_type: str = "mfcc",
 ) -> dict[str, Any]:
@@ -346,7 +346,7 @@ def align_audio_features(
     if not AUDIO_LIBS_AVAILABLE:
         raise AudioPreprocessingError("Audio libraries not available")
         
-    n_features, n_frames = features.shape
+    _n_features, n_frames = features.shape
     
     if n_frames == target_frames:
         return features
@@ -431,7 +431,7 @@ if __name__ == "__main__":
         print(f"  Energy: {result['energy']:.4f}")
         
         if result['features']:
-            print(f"\nFeatures:")
+            print("\nFeatures:")
             stats = compute_audio_feature_statistics(result['features'])
             for feat_type, feat_stats in stats.items():
                 print(f"  {feat_type}: {feat_stats['shape']}")
