@@ -512,8 +512,10 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       const AUDIO_FEATURE_SIZE = 13;
       const inputSize = mlp.w1.shape[1];
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
-      const expectedFeatureSize = windowSize > 0 && inputSize ? inputSize / windowSize : (inputSize ?? 0);
-      const isMultimodalModel = expectedFeatureSize === (MULTIMODAL_FEATURES_SIZE + AUDIO_FEATURE_SIZE);
+      // Check if input size matches: (window_size × visual_features) + audio_features
+      const expectedVisualSize = windowSize * MULTIMODAL_FEATURES_SIZE;
+      const expectedMultimodalSize = expectedVisualSize + AUDIO_FEATURE_SIZE;
+      const isMultimodalModel = inputSize === expectedMultimodalSize;
       
       // 3. Manage rolling buffer (visual features only - audio added later per window)
       rollingBuffer.push(currentFrameVec);
