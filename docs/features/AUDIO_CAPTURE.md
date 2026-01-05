@@ -178,22 +178,24 @@ Das System funktioniert weiterhin ohne Audio-Berechtigung - nur Video und Landma
 npm test --prefix webapp -- audioCaptureService.test.ts
 ```
 
-## Zukünftige Erweiterungen
+## Zukünftige Erweiterungen (Optional - Außerhalb des aktuellen Umfangs)
 
-1. **Audio-Preprocessing:**
-   - Format-Normalisierung (alles zu Opus konvertieren)
-   - Audio-Segmentierung (Stille entfernen)
-   - Lautstärke-Normalisierung
+Die Kernfunktionalität ist vollständig implementiert. Diese Erweiterungen sind optional für zukünftige Überlegungen:
 
-2. **Multimodales Training:**
-   - Python-Trainer erweitern für Audio-Verarbeitung
-   - Audio-Features extrahieren (MFCC, Spektrogramme)
-   - Multimodales MLP-Modell (Audio + Landmarks)
+1. **Erweiterte Audio-Metriken:**
+   - SNR-Berechnung (Signal-to-Noise Ratio)
+   - Adaptive Schwellenwerte basierend auf Umgebung
+   - Echtzeit-Qualitätsüberwachung
 
-3. **Integration Tests:**
-   - End-to-End Test für Audio+Video+Landmarks
-   - Validierung der Bundle-Erstellung mit Audio
-   - Server-seitige Audio-Ingestion testen
+2. **Audio-Datenaugmentation:**
+   - Zeit-Streckung (Time stretching)
+   - Tonhöhenverschiebung (Pitch shifting)  
+   - Rausch-Injektion für robusteres Training
+
+3. **Speech-to-Text Integration:**
+   - Transkription von Amy's Äußerungen
+   - Text-basierte Suche ermöglichen
+   - Aussprache-Feedback
 
 ## Troubleshooting
 

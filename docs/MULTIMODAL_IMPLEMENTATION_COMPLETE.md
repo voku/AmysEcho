@@ -347,39 +347,27 @@ DEFAULT_HOP_LENGTH = 512        # Frame shift (~32ms at 16kHz)
 DEFAULT_WIN_LENGTH = 2048       # FFT window
 ```
 
-## Next Steps (Optional Enhancements)
+## Next Steps (Future Enhancements - Optional)
 
-While the infrastructure is **complete and production-ready**, these enhancements could further improve the system:
+While the infrastructure is **complete and production-ready**, these are optional enhancements for future consideration:
 
-### 1. Multimodal Fusion Layer
-**Status:** Infrastructure ready, not yet implemented  
-**What:** Concatenate audio + visual features for unified MLP input  
-**Why:** Enable model to learn correlations between gesture and speech  
-**Effort:** Medium (update MLP input layer, handle dimension differences)
-
-### 2. Audio-Only Training Path
-**Status:** Infrastructure ready, not yet implemented  
-**What:** Train models using only audio features (for speech-only scenarios)  
-**Why:** Support Amy when she can speak but doesn't know signs  
-**Effort:** Low (separate training path, reuse existing MLP)
-
-### 3. Speech-to-Text Integration
-**Status:** Not started  
+### 1. Speech-to-Text Integration
+**Status:** Not started (beyond current scope)  
 **What:** Transcribe Amy's utterances to text  
 **Why:** Enable text-based search, pronunciation feedback  
 **Effort:** Medium (integrate Whisper or similar ASR model)
 
-### 4. Audio Data Augmentation
-**Status:** Not started  
+### 2. Audio Data Augmentation
+**Status:** Not started (beyond current scope)  
 **What:** Time stretching, pitch shifting, noise injection  
 **Why:** Improve model robustness to variations  
 **Effort:** Low (librosa has built-in augmentation functions)
 
-### 5. Real-Time Audio Recognition
-**Status:** Not started  
-**What:** Detect Amy's speech during live recognition  
-**Why:** Enable multimodal recognition in real-time (not just training)  
-**Effort:** High (requires integration with gesture detector)
+### 3. Advanced Audio Metrics
+**Status:** Not started (beyond current scope)  
+**What:** SNR calculation, adaptive thresholds  
+**Why:** Better audio quality assessment  
+**Effort:** Low (enhancement of existing validation)
 
 ## Documentation
 

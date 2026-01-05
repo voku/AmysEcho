@@ -27,6 +27,18 @@ import numpy as np
 # Add scripts directory to path for shared utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "training")))
+
+# Import audio preprocessing at module level (performance)
+try:
+    from amyserver_tools.audio_preprocessing import (
+        check_audio_dependencies,
+        preprocess_audio_for_training,
+    )
+    AUDIO_PREPROCESSING_AVAILABLE = True
+except ImportError:
+    check_audio_dependencies = None
+    preprocess_audio_for_training = None
+    AUDIO_PREPROCESSING_AVAILABLE = False
 from config_constants import (
     DROPOUT_RATE,
     EARLY_STOPPING_MIN_DELTA,
@@ -1569,12 +1581,12 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         audio_metadata_dict: dict | None = None
         if audio_path and audio_path.exists():
             try:
-                from amyserver_tools.audio_preprocessing import (
-                    check_audio_dependencies,
-                    preprocess_audio_for_training,
-                )
-
-                if check_audio_dependencies():
+                if not AUDIO_PREPROCESSING_AVAILABLE:
+                    LOGGER.warning(
+                        "Audio preprocessing module not available, skipping audio for label='%s', profile='%s'",
+                        label, profile_id
+                    )
+                elif check_audio_dependencies():
                     audio_result = preprocess_audio_for_training(
                         audio_path,
                         target_duration_frames=None,  # Will align later if needed

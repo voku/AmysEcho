@@ -12,6 +12,14 @@ from typing import Any
 
 import numpy as np
 
+# Import scipy at module level for performance
+try:
+    from scipy import signal as scipy_signal
+    SCIPY_AVAILABLE = True
+except ImportError:
+    scipy_signal = None
+    SCIPY_AVAILABLE = False
+
 LOGGER = logging.getLogger("amyserver.audio_preprocessing")
 
 # Audio feature configuration
@@ -359,8 +367,11 @@ def align_audio_features(
         # Ensure exact target length (time_stretch may be slightly off)
         if aligned.shape[1] != target_frames:
             # Resample to exact length
-            from scipy import signal
-            aligned = signal.resample(aligned, target_frames, axis=1)
+            if not SCIPY_AVAILABLE:
+                raise AudioPreprocessingError(
+                    "scipy is required for audio resampling but is not installed"
+                ) from None
+            aligned = scipy_signal.resample(aligned, target_frames, axis=1)
             
         LOGGER.debug(
             f"Aligned audio features: {n_frames} -> {target_frames} frames"
