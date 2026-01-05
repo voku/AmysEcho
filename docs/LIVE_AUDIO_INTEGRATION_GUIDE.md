@@ -337,7 +337,7 @@ The live audio service manages resources efficiently:
 
 **Check:**
 - Model's `input_dim` metadata
-- Actual features length (should be 1,642 per frame for multimodal)
+- Actual features length (should be 1,629 per frame for visual features)
 - Zero-padding applied correctly
 
 ### "Performance degradation"
