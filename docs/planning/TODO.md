@@ -80,8 +80,8 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Integrate live audio service with `GestureRecognitionOrchestrator`
 - [x] Wire up audio extraction in `handleGestureResults()`
 - [x] Pass audio features to MLP in `GestureDetectionStep`
-- [ ] Add unit tests for live multimodal recognition
-- [ ] End-to-end validation with multimodal model
+- [x] Add unit tests for live multimodal recognition
+- [x] End-to-end validation with multimodal model
 
 **Context:** Enable Amy to say words (e.g., "Iila" for purple) while signing, creating a richer multimodal recognition system that combines verbal utterances with sign language gestures.
 
