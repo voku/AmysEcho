@@ -106,8 +106,25 @@ export class LiveAudioRecognitionService {
         };
       }
 
-      // Check if audio has actual content (not all zeros)
-      const hasAudio = result.mfcc.some(v => Math.abs(v) > 0.001);
+      // Check if audio has actual content with improved quality validation
+      // 1. Check for non-zero values
+      const hasNonZero = result.mfcc.some(v => Math.abs(v) > 0.001);
+      
+      // 2. Calculate RMS energy (root mean square)
+      const rms = Math.sqrt(
+        result.mfcc.reduce((sum, v) => sum + v * v, 0) / result.mfcc.length
+      );
+      const minEnergyThreshold = 0.01;
+      const hasEnergy = rms > minEnergyThreshold;
+      
+      // 3. Check variance (speech has pattern, noise is uniform)
+      const mean = result.mfcc.reduce((sum, v) => sum + v, 0) / result.mfcc.length;
+      const variance = result.mfcc.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / result.mfcc.length;
+      const minVarianceThreshold = 0.001;
+      const hasPattern = variance > minVarianceThreshold;
+      
+      // Audio is valid if it has non-zero values, sufficient energy, AND pattern
+      const hasAudio = hasNonZero && hasEnergy && hasPattern;
 
       return {
         mfcc: result.mfcc,
