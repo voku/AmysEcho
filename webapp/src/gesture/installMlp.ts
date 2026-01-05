@@ -534,31 +534,42 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       // Determine actual feature size per frame from current frame
       const featureSizePerFrame = currentFrameVec.length;
       
-      // Flatten visual features from all frames in window (use model's windowSize)
-      const visualFeatures = new Float32Array(windowSize * featureSizePerFrame);
-      for (let i = 0; i < rollingBuffer.length; i++) {
-        const frame = rollingBuffer[i];
-        if (frame) {
-          visualFeatures.set(frame, i * featureSizePerFrame);
-        }
-      }
-      // Note: If rollingBuffer.length < windowSize, remaining positions stay zero (initial padding)
+      // Check if this is a temporal model or static model
+      // Use actual feature size instead of MULTIMODAL_FEATURES_SIZE constant for flexibility
+      const actualExpectedVisualSize = windowSize * featureSizePerFrame;
+      const actualExpectedMultimodalSize = actualExpectedVisualSize + AUDIO_FEATURE_SIZE;
+      const isTemporal = cols1Expected === actualExpectedVisualSize || cols1Expected === actualExpectedMultimodalSize;
       
-      // Add audio features ONCE per window if multimodal model
-      // This matches server training: [visual_window | audio] not [visual+audio] per frame
-      if (isMultimodalModel) {
-        const audioToAdd = audioFeatures && audioFeatures.length === AUDIO_FEATURE_SIZE
-          ? audioFeatures
-          : new Float32Array(AUDIO_FEATURE_SIZE); // Zero-padding if no audio
+      if (isTemporal && windowSize > 1) {
+        // Temporal model: flatten rolling buffer
+        const visualFeatures = new Float32Array(windowSize * featureSizePerFrame);
+        for (let i = 0; i < rollingBuffer.length; i++) {
+          const frame = rollingBuffer[i];
+          if (frame) {
+            visualFeatures.set(frame, i * featureSizePerFrame);
+          }
+        }
+        // Note: If rollingBuffer.length < windowSize, remaining positions stay zero (initial padding)
         
-        // Concatenate: [flattened_visual_features | audio_features]
-        const multimodalFeatures = new Float32Array(visualFeatures.length + AUDIO_FEATURE_SIZE);
-        multimodalFeatures.set(visualFeatures, 0);
-        multimodalFeatures.set(audioToAdd, visualFeatures.length);
-        
-        x = multimodalFeatures;
+        // Add audio features ONCE per window if multimodal model
+        // This matches server training: [visual_window | audio] not [visual+audio] per frame
+        if (isMultimodalModel) {
+          const audioToAdd = audioFeatures && audioFeatures.length === AUDIO_FEATURE_SIZE
+            ? audioFeatures
+            : new Float32Array(AUDIO_FEATURE_SIZE); // Zero-padding if no audio
+          
+          // Concatenate: [flattened_visual_features | audio_features]
+          const multimodalFeatures = new Float32Array(visualFeatures.length + AUDIO_FEATURE_SIZE);
+          multimodalFeatures.set(visualFeatures, 0);
+          multimodalFeatures.set(audioToAdd, visualFeatures.length);
+          
+          x = multimodalFeatures;
+        } else {
+          x = visualFeatures;
+        }
       } else {
-        x = visualFeatures;
+        // Static model or single-frame model: use current frame only
+        x = currentFrameVec;
       }
       
       const inputDim = x.length;
