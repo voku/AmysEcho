@@ -7,6 +7,8 @@ converts each bundle into a training sample, trains a simple MLP, and writes
 updated weight files for the global as well as per-profile models. A structured
 training report is printed to stdout so callers (the Express server) can relay
 status back to the app.
+
+Amy First: Now supports multimodal training with audio + visual features!
 """
 
 import argparse
@@ -25,6 +27,18 @@ import numpy as np
 # Add scripts directory to path for shared utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "training")))
+
+# Import audio preprocessing at module level (performance)
+try:
+    from amyserver_tools.audio_preprocessing import (
+        check_audio_dependencies,
+        preprocess_audio_for_training,
+    )
+    AUDIO_PREPROCESSING_AVAILABLE = True
+except ImportError:
+    check_audio_dependencies = None
+    preprocess_audio_for_training = None
+    AUDIO_PREPROCESSING_AVAILABLE = False
 from config_constants import (
     DROPOUT_RATE,
     EARLY_STOPPING_MIN_DELTA,
@@ -134,6 +148,21 @@ IMAGE_EXTENSIONS = {
     ".tif",
     ".tiff",
 }
+
+AUDIO_EXTENSIONS = {
+    ".webm",
+    ".opus",
+    ".ogg",
+    ".mp3",
+    ".m4a",
+    ".wav",
+    ".aac",
+}
+
+# Multimodal Feature Configuration
+# Amy First: Fixed-size audio representation for consistent MLP input
+AUDIO_FEATURE_SIZE = 13  # MFCC coefficients (averaged over time)
+MULTIMODAL_FEATURE_SIZE = WINDOW_FEATURE_SIZE + AUDIO_FEATURE_SIZE  # 48,870 + 13 = 48,883
 
 # --- Legacy Configuration (Deprecated but kept for reference) ---
 # HIDDEN_SIZE: No longer used (hardcoded to 1024/512)
@@ -1033,13 +1062,14 @@ def train_mlp(
     return_best_and_final_flag = resolved.return_best_and_final
 
     # ========== ARCHITECTURE DEFINITION ==========
-    input_dim = X.shape[1]  # Should be 48,870 (WINDOW_SIZE * INPUT_FEATURE_SIZE)
+    input_dim = X.shape[1]  # 48,870 (visual) or 48,883 (multimodal)
     layer1_size = MLP_LAYER1_SIZE  # 512
     layer2_size = MLP_LAYER2_SIZE  # 256
 
-    if input_dim != WINDOW_FEATURE_SIZE:
+    if input_dim != WINDOW_FEATURE_SIZE and input_dim != MULTIMODAL_FEATURE_SIZE:
         LOGGER.warning(
-            f"Input dimension {input_dim} does not match WINDOW_FEATURE_SIZE {WINDOW_FEATURE_SIZE}. "
+            f"Input dimension {input_dim} does not match WINDOW_FEATURE_SIZE {WINDOW_FEATURE_SIZE} "
+            f"or MULTIMODAL_FEATURE_SIZE {MULTIMODAL_FEATURE_SIZE}. "
             "This is expected in unit tests but may indicate a configuration error in production."
         )
 
@@ -1413,6 +1443,83 @@ def _resolve_still_path(entry: dict, bundle_dir: Path) -> Path | None:
     return resolve_relative_path(bundle_dir, "still.jpg")
 
 
+def _resolve_audio_path(entry: dict, bundle_dir: Path) -> Path | None:
+    """
+    Resolve audio file path from training bundle entry.
+    
+    Amy First: Enables multimodal recognition by locating audio files
+    containing verbal utterances (e.g., Amy saying "Iila" for purple).
+    """
+    storage = entry.get("storage", {}) if isinstance(entry, dict) else {}
+    if isinstance(storage, dict):
+        # Try storage.audio first
+        storage_audio = storage.get("audio")
+        if isinstance(storage_audio, str):
+            resolved = resolve_relative_path(bundle_dir, storage_audio)
+            if resolved is not None:
+                return resolved
+
+        # Try to find audio in storage.files
+        storage_files = storage.get("files") or []
+        metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
+        audio_filename_raw = metadata.get("audioFilename")
+        audio_filename = None
+        if isinstance(audio_filename_raw, str):
+            audio_filename = audio_filename_raw.strip()
+            if not audio_filename:
+                audio_filename = None
+
+        audio_extension = Path(audio_filename).suffix.lower() if audio_filename else None
+        lower_audio_name = audio_filename.lower() if audio_filename else None
+
+        resolved_by_extension: Path | None = None
+        resolved_by_audio_ext: Path | None = None
+
+        for relative in storage_files:
+            if not isinstance(relative, str):
+                continue
+            base_name = relative.split("/")[-1]
+            if not base_name:
+                continue
+            candidate = resolve_relative_path(bundle_dir, relative)
+            if candidate is None:
+                continue
+
+            lower_base = base_name.lower()
+            # Exact match on filename
+            if lower_audio_name and lower_base == lower_audio_name:
+                return candidate
+
+            # Match by extension from metadata
+            if (
+                resolved_by_extension is None
+                and audio_extension
+                and lower_base.endswith(audio_extension)
+            ):
+                resolved_by_extension = candidate
+
+            # Match any audio extension
+            if (
+                resolved_by_audio_ext is None
+                and Path(relative).suffix.lower() in AUDIO_EXTENSIONS
+            ):
+                resolved_by_audio_ext = candidate
+
+        if resolved_by_extension is not None:
+            return resolved_by_extension
+        if resolved_by_audio_ext is not None:
+            return resolved_by_audio_ext
+
+        # Try by filename from metadata
+        if audio_filename:
+            resolved = resolve_relative_path(bundle_dir, audio_filename)
+            if resolved is not None:
+                return resolved
+
+    # No audio file found - this is OK, audio is optional
+    return None
+
+
 def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, int]]:
     """
     Load training data from manifest and generate sliding window samples.
@@ -1467,6 +1574,37 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
 
         clip_path = _resolve_clip_path(entry, bundle_dir)
         still_path = _resolve_still_path(entry, bundle_dir)
+        audio_path = _resolve_audio_path(entry, bundle_dir)
+
+        # ========== LOAD AUDIO FEATURES (if available) ==========
+        audio_features_dict: dict | None = None
+        audio_metadata_dict: dict | None = None
+        if audio_path and audio_path.exists():
+            try:
+                if not AUDIO_PREPROCESSING_AVAILABLE:
+                    LOGGER.warning(
+                        "Audio preprocessing module not available, skipping audio for label='%s', profile='%s'",
+                        label, profile_id
+                    )
+                elif check_audio_dependencies():
+                    audio_result = preprocess_audio_for_training(
+                        audio_path,
+                        target_duration_frames=None,  # Will align later if needed
+                        feature_type='mfcc'  # Use MFCC for now
+                    )
+                    if audio_result.get('features') and not audio_result.get('error'):
+                        audio_features_dict = audio_result['features']
+                        audio_metadata_dict = {
+                            'duration_ms': audio_result.get('duration_ms', 0),
+                            'has_speech': audio_result.get('has_speech', False),
+                            'energy': audio_result.get('energy', 0.0),
+                            'sample_rate': audio_result.get('sample_rate', 16000),
+                        }
+                        LOGGER.info(f"Loaded audio features for {label}: {audio_metadata_dict}")
+                    elif audio_result.get('error'):
+                        LOGGER.warning(f"Audio preprocessing failed for {label}: {audio_result['error']}")
+            except Exception as e:
+                LOGGER.warning(f"Failed to process audio for {label}: {e}")
 
         # ========== LOAD FRAMES (with caching) ==========
         frames: list[dict] | None = None
@@ -1547,7 +1685,9 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
             'canonical_templates_count': canonical_templates_count,
             'recording': recording_metadata,
             'timing_stats': timing_stats,
-            'modality_coverage': modality_coverage
+            'modality_coverage': modality_coverage,
+            'audio_features': audio_features_dict,
+            'audio_metadata': audio_metadata_dict,
         }
 
         # 3. Generate "_NULL_" class (background/transition frames)
@@ -1701,14 +1841,59 @@ def build_samples_from_legacy_dataset(dataset_path: Path) -> list[Sample]:
     return samples
 
 
+def _prepare_audio_features(audio_features_list: list[float] | None) -> np.ndarray:
+    """
+    Convert variable-length audio features to fixed-size representation.
+    
+    Amy First: Ensures consistent dimensions for multimodal training.
+    Uses mean pooling over time to create a fixed-size audio vector.
+    
+    Args:
+        audio_features_list: Flattened MFCC features (13 x n_frames) or None
+        
+    Returns:
+        Fixed-size audio feature vector (13,) - zeros if no audio
+    """
+    if not audio_features_list or len(audio_features_list) == 0:
+        # No audio: return zero vector
+        return np.zeros(AUDIO_FEATURE_SIZE, dtype=np.float32)
+    
+    # Reshape from flattened to (13, n_frames) assuming MFCC with 13 coefficients
+    audio_array = np.array(audio_features_list, dtype=np.float32)
+    
+    # If already the right size, return as-is
+    if len(audio_array) == AUDIO_FEATURE_SIZE:
+        return audio_array
+    
+    # Reshape to (13, n_frames) and average over time dimension
+    try:
+        n_frames = len(audio_array) // AUDIO_FEATURE_SIZE
+        if n_frames > 0:
+            reshaped = audio_array[:n_frames * AUDIO_FEATURE_SIZE].reshape(AUDIO_FEATURE_SIZE, n_frames)
+            # Average over time (axis=1)
+            audio_fixed = np.mean(reshaped, axis=1)
+            return audio_fixed.astype(np.float32)
+        else:
+            # Too few features, pad with zeros
+            padded = np.zeros(AUDIO_FEATURE_SIZE, dtype=np.float32)
+            padded[:len(audio_array)] = audio_array[:AUDIO_FEATURE_SIZE]
+            return padded
+    except Exception as e:
+        LOGGER.warning(f"Failed to reshape audio features: {e}. Using zero padding.")
+        return np.zeros(AUDIO_FEATURE_SIZE, dtype=np.float32)
+
+
 def dataset_to_arrays(
     samples: list[Sample],
     *,
     augmentations_per_sample: int = 0,
     rng: np.random.RandomState | np.random.Generator | None = None,
+    use_multimodal: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, list[str], np.ndarray]:
     """
     Convert Sample objects to training arrays.
+    
+    Amy First: Now supports multimodal training with audio + visual features!
     
     CRITICAL: Sample.landmarks now contains pre-normalized window vectors (48,870 floats),
     so we skip normalization here. Just convert to numpy arrays. 
@@ -1717,8 +1902,14 @@ def dataset_to_arrays(
     on flattened vectors would break temporal coherence. Augmentation happens naturally
     through overlapping sliding windows (stride=1).
     
+    Args:
+        samples: List of training samples
+        augmentations_per_sample: Deprecated (always 0)
+        rng: Random number generator (not used)
+        use_multimodal: If True, concatenate audio features with visual features
+    
     Returns:
-        X: Feature matrix (N, 48870)
+        X: Feature matrix (N, 48870) or (N, 48883) if multimodal
         y: Label indices (N,)
         label_set: Sorted list of unique labels
         weights: Per-sample quality weights (N,)
@@ -1729,6 +1920,7 @@ def dataset_to_arrays(
     X_list: list[np.ndarray] = []
     y_list: list[int] = []
     weight_list: list[float] = []
+    has_any_audio = any(sample.audio_features for sample in samples)
 
     for sample in samples:
         # Sample.landmarks is already a normalized, flattened window vector
@@ -1742,6 +1934,21 @@ def dataset_to_arrays(
             )
             continue
 
+        # Amy First: Multimodal fusion - combine audio + visual features
+        if use_multimodal and has_any_audio:
+            # Prepare fixed-size audio features (zeros if no audio for this sample)
+            audio_features_fixed = _prepare_audio_features(sample.audio_features)
+            
+            # Concatenate: [visual_features | audio_features]
+            features = np.concatenate([features, audio_features_fixed])
+            
+            if sample.audio_features:
+                LOGGER.debug(
+                    f"Multimodal sample {sample.label}: "
+                    f"visual={WINDOW_FEATURE_SIZE}, audio={AUDIO_FEATURE_SIZE}, "
+                    f"total={features.size}"
+                )
+
         X_list.append(features)
         y_list.append(label_to_idx[sample.label])
         # Combine structural quality weight with aggregated frame weights (e.g. still-frame emphasis)
@@ -1752,8 +1959,9 @@ def dataset_to_arrays(
         # Geometric augmentation on flattened vectors would break temporal structure
 
     if not X_list:
+        feature_dim = MULTIMODAL_FEATURE_SIZE if (use_multimodal and has_any_audio) else WINDOW_FEATURE_SIZE
         return (
-            np.zeros((0, WINDOW_FEATURE_SIZE), dtype=np.float32),
+            np.zeros((0, feature_dim), dtype=np.float32),
             np.zeros((0,), dtype=np.int64),
             label_set,
             np.zeros((0,), dtype=np.float32),

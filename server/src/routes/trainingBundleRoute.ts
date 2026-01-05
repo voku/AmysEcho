@@ -50,6 +50,11 @@ interface TrainingBundleMetadata {
   source: string | null;
   clipFilename: string | null;
   stillFilename: string | null;
+  /**
+   * Audio filename for multimodal recognition
+   * Amy First: Captures verbal utterances alongside gestures
+   */
+  audioFilename?: string | null;
   recording?: {
     frameCount?: number;
     usableFrameCount?: number;
@@ -58,6 +63,12 @@ interface TrainingBundleMetadata {
     clipMimeType?: string;
     stillBytes?: number;
     stillMimeType?: string;
+    /**
+     * Audio recording metadata
+     */
+    audioDurationMs?: number;
+    audioBytes?: number;
+    audioMimeType?: string;
   };
   validationSummary?: {
     frameCount: number;
@@ -146,6 +157,9 @@ const RecordingSchema = z
     clipMimeType: z.string().optional(),
     stillBytes: z.number().int().nonnegative().optional(),
     stillMimeType: z.string().optional(),
+    audioDurationMs: z.number().int().nonnegative().optional(),
+    audioBytes: z.number().int().nonnegative().optional(),
+    audioMimeType: z.string().optional(),
   })
   .passthrough();
 
@@ -173,6 +187,7 @@ const MetadataSchema = z
     source: z.string().optional(),
     clipFilename: z.string().optional(),
     stillFilename: z.string().optional(),
+    audioFilename: z.string().optional(),
     modalities: ModalitiesSchema.optional(),
     smoothing: SmoothingSchema.optional(),
     handedness: HandednessSchema.optional(),
@@ -618,10 +633,16 @@ async function validateLandmarksFile(
 
 const VIDEO_FILE_EXTENSIONS = ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'];
 const IMAGE_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
+const AUDIO_FILE_EXTENSIONS = ['.webm', '.opus', '.ogg', '.mp3', '.m4a', '.wav', '.aac'];
 
 function hasVideoExtension(fileName: string): boolean {
   const lower = fileName.toLowerCase();
   return VIDEO_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+function hasAudioExtension(fileName: string): boolean {
+  const lower = fileName.toLowerCase();
+  return AUDIO_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
 function findClipRelativePath(files: string[], clipFilename: string | null): string | null {
@@ -690,6 +711,45 @@ function findStillRelativePath(files: string[], stillFilename: string | null): s
   }
 
   return stillPathByMetadata ?? stillPathByAny;
+}
+
+/**
+ * Find audio file in bundle
+ * Amy First: Supports multimodal recognition by locating verbal utterance recordings
+ */
+function findAudioRelativePath(files: string[], audioFilename: string | null): string | null {
+  let audioPathByMetadata: string | null = null;
+  let audioPathByAny: string | null = null;
+
+  const metadataExtension =
+    audioFilename && audioFilename.includes('.')
+      ? audioFilename.substring(audioFilename.lastIndexOf('.')).toLowerCase()
+      : null;
+
+  for (const fileName of files) {
+    const normalized = fileName.replace(/\\/g, '/');
+    const baseName = normalized.split('/').pop() ?? '';
+    if (!baseName) {
+      continue;
+    }
+
+    if (audioFilename && baseName === audioFilename) {
+      return fileName;
+    }
+
+    const lower = baseName.toLowerCase();
+
+    if (!audioPathByMetadata && metadataExtension && lower.endsWith(metadataExtension)) {
+      audioPathByMetadata = fileName;
+      continue;
+    }
+
+    if (!audioPathByAny && hasAudioExtension(baseName)) {
+      audioPathByAny = fileName;
+    }
+  }
+
+  return audioPathByMetadata ?? audioPathByAny;
 }
 
 export function registerTrainingBundleRoute(
@@ -870,6 +930,7 @@ export function registerTrainingBundleRoute(
 
       const clipRelativePath = findClipRelativePath(files, clipFilename);
       const stillRelativePath = findStillRelativePath(files, stillFilename);
+      const audioRelativePath = findAudioRelativePath(files, parsedMetadata.audioFilename ?? null);
 
       const mergedModalities = mergeModalities(
         parsedMetadata.modalities ?? landmarksValidation.metadata?.modalities,
@@ -908,6 +969,7 @@ export function registerTrainingBundleRoute(
           files,
           ...(clipRelativePath ? { clip: clipRelativePath } : {}),
           ...(stillRelativePath ? { still: stillRelativePath } : {}),
+          ...(audioRelativePath ? { audio: audioRelativePath } : {}),
         },
         metadata: metadataWithSummary,
         receivedAt: new Date().toISOString(),

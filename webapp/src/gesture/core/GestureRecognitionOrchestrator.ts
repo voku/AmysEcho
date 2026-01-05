@@ -32,6 +32,7 @@ import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { MultimodalSmoother } from '../utils/MultimodalSmoother';
 import { SignVariationTracker, type GestureLandmarks } from '../../services/signVariationTracker';
+import { LiveAudioRecognitionService } from '../../services/liveAudioRecognitionService';
 
 const FALLBACK_CONFIDENCE_THRESHOLD =
   typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
@@ -48,6 +49,7 @@ interface GestureMessagePayload {
   handednesses: string[];
   timestamp: number;
   isFallback?: boolean;
+  audioOnly?: boolean;
   systemHealth: ReturnType<ErrorRecoveryManager['getHealthStatus']>;
   processingTime: number;
   stepsExecuted: string[];
@@ -123,6 +125,7 @@ export class GestureRecognitionOrchestrator {
   private handStabilityAssistant!: HandStabilityAssistant;
   private batteryMonitor!: BatteryMonitor;
   private config: GestureDetectorConfig;
+  private liveAudioService: LiveAudioRecognitionService;
 
   private isInitialized = false;
   private isRunning = false;
@@ -151,6 +154,7 @@ export class GestureRecognitionOrchestrator {
     this.config = loadConfig();
     this.multimodalSmoother = new MultimodalSmoother();
     this.variationTracker = new SignVariationTracker();
+    this.liveAudioService = new LiveAudioRecognitionService();
 
     this.createGestureDetector =
       dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
@@ -236,6 +240,7 @@ export class GestureRecognitionOrchestrator {
     if (this.isRunning) return;
 
     await this.gestureDetector?.start();
+    await this.liveAudioService.start();
     this.isRunning = true;
   }
 
@@ -251,6 +256,7 @@ export class GestureRecognitionOrchestrator {
     this.frameBuffer = [];
 
     await this.gestureDetector?.stop();
+    this.liveAudioService.stop();
     // Force a fresh initialization on the next start so MediaPipe reloads and getUserMedia runs again.
     // Without this reset, restarting after a stop could leave the camera stream detached even though
     // the orchestrator reported a running state.
@@ -271,6 +277,9 @@ export class GestureRecognitionOrchestrator {
       const normalized = mapMediaPipeResult(results);
       this.collectFrameForBatch(normalized);
       const smoothed = this.multimodalSmoother.smooth(normalized, timestamp);
+      
+      // Extract audio features for multimodal recognition
+      const audioData = this.liveAudioService.extractFeatures();
 
       const context: ProcessingContext = {
         landmarks: smoothed.landmarks,
@@ -280,7 +289,8 @@ export class GestureRecognitionOrchestrator {
         rawResults: results,
         rawLandmarks: smoothed.landmarks,
         handednesses: smoothed.handednesses,
-        normalizedResults: smoothed
+        normalizedResults: smoothed,
+        audioFeatures: audioData.mfcc
       };
 
       // Execute processing pipeline
@@ -1111,6 +1121,7 @@ export class GestureRecognitionOrchestrator {
         handednesses: handednessLabels,
         timestamp: processingResult.timestamp ?? Date.now(),
         isFallback: processingResult.isFallback ?? false,
+        audioOnly: processingResult.metadata?.audioOnly ?? false,
         systemHealth: this.errorRecoveryManager.getHealthStatus(),
         processingTime: processingResult.processingTime,
         stepsExecuted: processingResult.stepsExecuted,
@@ -1374,8 +1385,9 @@ export class GestureDetectionStep implements ProcessingStep {
 
     let selectedGesture: string | null = null;
     let selectedConfidence = 0;
-    let detectionMethod: 'mediapipe' | 'mlp' | 'none' = 'none';
+    let detectionMethod: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none' = 'none';
     let twoHandMetadata: TwoHandGesture | null = null;
+    let audioOnlyDetection = false;
 
     // Determine best MediaPipe gesture candidate
     if (perHand.length > 0) {
@@ -1399,6 +1411,53 @@ export class GestureDetectionStep implements ProcessingStep {
       }
     }
 
+    // Check for audio-only detection when no visual landmarks are present
+    // This enables Amy to communicate via speech when she's not signing
+    const hasVisualLandmarks = (context.landmarks ?? []).some(hand => hand.length > 0);
+    const hasAudioFeatures = context.audioFeatures && context.audioFeatures.some(v => Math.abs(v) > 0.001);
+    
+    if (!hasVisualLandmarks && hasAudioFeatures && typeof window.__mlpPredict === 'function') {
+      gestureDebugLog('audio', 'Audio-only detection attempted', () => ({
+        hasAudioFeatures: !!hasAudioFeatures,
+        audioFeaturesLength: context.audioFeatures?.length,
+      }), { sampleIntervalMs: 2000 });
+      
+      try {
+        // Call MLP with zero-padded visual landmarks but real audio features
+        // This allows detection based purely on audio (Amy speaking without signing)
+        const emptyLandmarks: number[][][] = [];
+        const emptyHandedness: any[] = [];
+        const mlpAudioResult = window.__mlpPredict(
+          emptyLandmarks,
+          emptyHandedness,
+          undefined,
+          undefined,
+          context.audioFeatures
+        );
+        
+        if (mlpAudioResult && typeof mlpAudioResult.score === 'number') {
+          const audioThreshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+          
+          if (mlpAudioResult.label !== MLP_NULL_LABEL && mlpAudioResult.score >= audioThreshold) {
+            gestureDebugLog('audio', 'Audio-only detection successful', () => ({
+              label: mlpAudioResult.label,
+              score: mlpAudioResult.score,
+              threshold: audioThreshold,
+            }), { sampleIntervalMs: 1000 });
+            
+            selectedGesture = this.normalizeLabel(mlpAudioResult.label);
+            selectedConfidence = mlpAudioResult.score;
+            detectionMethod = 'mlp_audio_only';
+            audioOnlyDetection = true;
+          }
+        }
+      } catch (error) {
+        gestureDebugLog('audio', 'Audio-only detection failed', () => ({
+          error: String(error),
+        }), { sampleIntervalMs: 5000 });
+      }
+    }
+
     // Invoke custom MLP if available and better than MediaPipe result
     let mlpMetadata: { label: string; score: number } | null = null;
     gestureDebugLog('mlp', 'Checking MLP availability', () => ({
@@ -1419,7 +1478,8 @@ export class GestureDetectionStep implements ProcessingStep {
           context.rawLandmarks ?? context.landmarks ?? [],
           handednessesForMlp,
           context.poseLandmarks,
-          context.faceLandmarks
+          context.faceLandmarks,
+          context.audioFeatures
         );
         gestureDebugLog('mlp', 'MLP prediction result', () => ({
           label: mlpResult?.label,
@@ -1499,7 +1559,8 @@ export class GestureDetectionStep implements ProcessingStep {
         perHand: perHand.map(({ hand, label, score }) => ({ hand, label, score })),
         handednesses,
         mlp: mlpMetadata,
-        twoHand: twoHandMetadata
+        twoHand: twoHandMetadata,
+        audioOnly: audioOnlyDetection
       }
     };
   }

@@ -131,7 +131,8 @@ describe('GestureDetectionStep', () => {
       landmarks,
       context.rawResults?.handednesses,
       undefined, // poseLandmarks
-      undefined  // faceLandmarks
+      undefined, // faceLandmarks
+      undefined  // audioFeatures
     );
     expect(result.gesture).toBe('wave');
     expect(result.metadata?.mlp).toEqual({ label: 'Wave', score: 0.9 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import type { TrainingFrame } from '../training/types';
+import { AudioCaptureService, type AudioRecordingResult } from '../services/audioCaptureService';
 
 export type RecordingState = 'idle' | 'recording';
 
@@ -25,6 +26,14 @@ interface RecordedData {
   clipSizeBytes: number;
   clipDurationMs: number;
   clipError: string | null;
+  /**
+   * Audio file recorded during gesture capture
+   * Amy First: Contains verbal utterances for multimodal recognition
+   */
+  audioFile: File | null;
+  audioSizeBytes: number;
+  audioDurationMs: number;
+  audioError: string | null;
 }
 
 export interface TrainingRecorderResult {
@@ -91,6 +100,10 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
   const [clipSizeBytes, setClipSizeBytes] = useState(0);
   const [clipDurationMs, setClipDurationMs] = useState(0);
   const [clipError, setClipError] = useState<string | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioSizeBytes, setAudioSizeBytes] = useState(0);
+  const [audioDurationMs, setAudioDurationMs] = useState(0);
+  const [audioError, setAudioError] = useState<string | null>(null);
   const [previewLandmarks, setPreviewLandmarks] = useState<number[][][]>([]);
   const [previewHandedness, setPreviewHandedness] = useState<string[]>([]);
   const [previewPoseLandmarks, setPreviewPoseLandmarks] = useState<number[][]>([]);
@@ -99,6 +112,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
   const isRecordingRef = useRef(false);
   const clipRecorderRef = useRef<MediaRecorder | null>(null);
   const clipChunksRef = useRef<Blob[]>([]);
+  const audioServiceRef = useRef<AudioCaptureService | null>(null);
   const clipStartRef = useRef<number | null>(null);
 
   const clipLimitExceeded = useMemo(() => clipSizeBytes > MAX_CLIP_BYTES, [clipSizeBytes]);
@@ -238,8 +252,24 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     setClipSizeBytes(0);
     setClipDurationMs(0);
     setClipError(null);
+    setAudioFile(null);
+    setAudioSizeBytes(0);
+    setAudioDurationMs(0);
+    setAudioError(null);
     clipChunksRef.current = [];
     clipStartRef.current = Date.now();
+
+    // Start audio recording
+    // Amy First: Capture verbal utterances alongside gestures for multimodal recognition
+    if (!audioServiceRef.current) {
+      audioServiceRef.current = new AudioCaptureService();
+    }
+    audioServiceRef.current.startRecording().catch((error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Audio-Aufnahme fehlgeschlagen';
+      setAudioError(errorMessage);
+      console.warn('Audio recording failed to start:', error);
+      // Continue with video recording even if audio fails
+    });
 
     const stream = resolveRecordingStream(videoRef?.current ?? null);
     if (!stream || typeof window.MediaRecorder === 'undefined') {
@@ -295,6 +325,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
 
   const stopRecording = useCallback(() => {
     isRecordingRef.current = false;
+    
+    // Stop video recording
     if (clipRecorderRef.current && clipRecorderRef.current.state === 'recording') {
       try {
         clipRecorderRef.current.stop();
@@ -302,6 +334,26 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
         console.warn('Fehler beim Stoppen der Videoaufnahme', error);
       }
     }
+    
+    // Stop audio recording
+    // Amy First: Finalize audio capture alongside video
+    if (audioServiceRef.current && audioServiceRef.current.isRecording()) {
+      audioServiceRef.current.stopRecording().then((result: AudioRecordingResult) => {
+        if (result.audioFile) {
+          setAudioFile(result.audioFile);
+          setAudioSizeBytes(result.audioSizeBytes);
+          setAudioDurationMs(result.audioDurationMs);
+        }
+        if (result.audioError) {
+          setAudioError(result.audioError);
+        }
+      }).catch((error) => {
+        const errorMessage = error instanceof Error ? error.message : 'Audio-Stopp fehlgeschlagen';
+        setAudioError(errorMessage);
+        console.warn('Failed to stop audio recording:', error);
+      });
+    }
+    
     // Transition directly to idle - frame processing is synchronous via event listener
     setState('idle');
   }, []);
@@ -309,6 +361,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
   const resetRecording = useCallback(() => {
     setState('idle');
     isRecordingRef.current = false;
+    
+    // Clean up video recorder
     if (clipRecorderRef.current) {
       clipRecorderRef.current.ondataavailable = null;
       clipRecorderRef.current.onstop = null;
@@ -322,6 +376,13 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
       }
       clipRecorderRef.current = null;
     }
+    
+    // Clean up audio recorder
+    if (audioServiceRef.current) {
+      audioServiceRef.current.cancelRecording();
+      audioServiceRef.current = null;
+    }
+    
     setRecordedFrames([]);
     setStillImage(null);
     setFramesCaptured(0);
@@ -334,6 +395,10 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     setClipSizeBytes(0);
     setClipDurationMs(0);
     setClipError(null);
+    setAudioFile(null);
+    setAudioSizeBytes(0);
+    setAudioDurationMs(0);
+    setAudioError(null);
     clipChunksRef.current = [];
     clipStartRef.current = null;
   }, []);
@@ -346,6 +411,10 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     clipSizeBytes,
     clipDurationMs,
     clipError,
+    audioFile,
+    audioSizeBytes,
+    audioDurationMs,
+    audioError,
   };
 
   return {

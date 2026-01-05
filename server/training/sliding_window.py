@@ -14,6 +14,9 @@ from config_constants import INPUT_FEATURE_SIZE, WINDOW_SIZE, WINDOW_STRIDE
 class Sample:
     """
     Training sample produced from a temporal window of frames.
+    
+    Amy First: Supports multimodal recognition with optional audio features
+    for Amy's three learning scenarios (gesture-only, speech-only, or both).
     """
     label: str
     profile_id: str | None
@@ -28,6 +31,10 @@ class Sample:
     timing_stats: dict[str, float] | None = None
     modality_coverage: dict[str, float] | None = None
     quality_weight: float = 1.0
+    # Audio features for multimodal recognition
+    audio_features: list[float] | None = None  # Flattened audio features (MFCC, mel spectrogram)
+    audio_metadata: dict[str, Any] | None = None  # Audio quality, duration, etc.
+
 
 
 def create_sliding_windows(
@@ -102,7 +109,25 @@ def create_sliding_windows(
         window_weight = float(np.mean(weights_arr[start_idx:end_idx]))
 
         # ====================================================================
-        # STEP 3: CREATE SAMPLE OBJECT
+        # STEP 3: PREPARE AUDIO FEATURES (if available)
+        # ====================================================================
+        
+        audio_features_list: list[float] | None = None
+        audio_metadata: dict[str, Any] | None = None
+        
+        if context.get('audio_features'):
+            audio_features_dict = context['audio_features']
+            # For now, use MFCC features
+            if 'mfcc' in audio_features_dict:
+                mfcc_array = audio_features_dict['mfcc']
+                # Flatten MFCC features to a list
+                if isinstance(mfcc_array, np.ndarray):
+                    audio_features_list = mfcc_array.flatten().tolist()
+                    
+            audio_metadata = context.get('audio_metadata')
+
+        # ====================================================================
+        # STEP 4: CREATE SAMPLE OBJECT
         # ====================================================================
 
         samples.append(Sample(
@@ -118,7 +143,9 @@ def create_sliding_windows(
             recording=context.get('recording'),
             timing_stats=context.get('timing_stats'),
             modality_coverage=context.get('modality_coverage'),
-            quality_weight=window_weight
+            quality_weight=window_weight,
+            audio_features=audio_features_list,
+            audio_metadata=audio_metadata
         ))
 
     return samples
