@@ -2,7 +2,7 @@
 
 This document outlines the main user stories for Amy's Echo and how the webapp routes and components connect to fulfil them. Each section highlights an existing workflow in the current codebase.
 
-Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen-Schleife. Die gleichnamigen Tabs sind die einzigen Einträge der unteren Navigation; alle weiteren Bereiche (Familie, Einstellungen, Admin, Hilfe) werden über `WorkflowSupportLinks` oder kontextuelle Aktionen geöffnet.
+Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen-Schleife. Die gleichnamigen Tabs sind die einzigen Einträge der unteren Navigation; auf großen Displays erscheint sie als kompaktes Dock, damit der Inhalt im Fokus bleibt. Alle weiteren Bereiche (Familie, Einstellungen, Admin, Hilfe) werden über `WorkflowSupportLinks` oder kontextuelle Aktionen geöffnet.
 
 ## 1. Onboarding & Profile Creation (HIP&nbsp;1)
 - **Story**: As a caregiver, I want to set up the profile and preferences for Amy’s Echo the first time we open the app.

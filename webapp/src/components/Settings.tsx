@@ -72,11 +72,11 @@ export function Settings() {
       <div className="settings-section">
         <h3>Datenverwaltung</h3>
         <p className="muted">Exportiere oder lösche deine lokalen Daten.</p>
-        <div className="controls">
-          <button className="ghost" onClick={handleExportData}>
+        <div className="controls settings-actions">
+          <button className="secondary-button" onClick={handleExportData}>
             Daten exportieren
           </button>
-          <button className="ghost danger" onClick={handleClearData}>
+          <button className="danger-button" onClick={handleClearData}>
             Alle Daten löschen
           </button>
         </div>
