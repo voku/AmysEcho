@@ -321,44 +321,44 @@ function BottomNav() {
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
         end
       >
-        <span className="nav-icon">🖐️</span>
-        <span className="nav-label">Kamera</span>
+        <span className="bottom-nav-icon">🖐️</span>
+        <span className="bottom-nav-label">Kamera</span>
       </NavLink>
       <NavLink
         to="/verlauf"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
       >
-        <span className="nav-icon">🗂️</span>
-        <span className="nav-label">Verlauf</span>
+        <span className="bottom-nav-icon">🗂️</span>
+        <span className="bottom-nav-label">Verlauf</span>
       </NavLink>
       <NavLink
         to="/lernen"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
       >
-        <span className="nav-icon">🧠</span>
-        <span className="nav-label">Lernen</span>
+        <span className="bottom-nav-icon">🧠</span>
+        <span className="bottom-nav-label">Lernen</span>
       </NavLink>
       <NavLink
         to="/einstellungen"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
       >
-        <span className="nav-icon">⚙️</span>
-        <span className="nav-label">Einstellungen</span>
+        <span className="bottom-nav-icon">⚙️</span>
+        <span className="bottom-nav-label">Einstellungen</span>
       </NavLink>
       <NavLink
         to="/hilfe"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
       >
-        <span className="nav-icon">❓</span>
-        <span className="nav-label">Hilfe</span>
+        <span className="bottom-nav-icon">❓</span>
+        <span className="bottom-nav-label">Hilfe</span>
       </NavLink>
       <NavLink
         to="/betreuung"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
         title="Betreuungsbereich"
       >
-        <span className="nav-icon">🤝</span>
-        <span className="nav-label">Betreuung</span>
+        <span className="bottom-nav-icon">🤝</span>
+        <span className="bottom-nav-label">Betreuung</span>
       </NavLink>
     </nav>
   );
