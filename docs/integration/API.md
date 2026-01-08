@@ -52,7 +52,7 @@ Request a password reset code and confirm it with a new password:
 }
 ```
 
-The server always returns `202` and never exposes the reset code directly. Clients should prompt the caregiver to check their email.
+The server always returns HTTP status `202 Accepted` and never exposes the reset code directly. Clients should prompt the caregiver to check their email.
 
 #### POST /api/v1/auth/password-reset/confirm
 

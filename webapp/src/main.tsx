@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
+import { App } from './App.tsx';
 import { AppStateProvider } from './hooks/useAppState';
 import { ApiConfigProvider } from './hooks/useApiConfig';
 import { MessageProvider } from './context/MessageContext';

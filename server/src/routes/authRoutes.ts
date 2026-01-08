@@ -99,10 +99,20 @@ export const createPasswordResetLimiter = () =>
     message: { error: 'Zu viele Passwort-Reset-Anfragen. Bitte später erneut versuchen.' },
   });
 
+export const createEmailVerificationLimiter = () =>
+  rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Zu viele Anfragen. Bitte versuche es später erneut.' },
+  });
+
 export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
   const authLimiter = createAuthLimiter();
   const refreshLimiter = createRefreshLimiter();
   const passwordResetLimiter = createPasswordResetLimiter();
+  const emailVerificationLimiter = createEmailVerificationLimiter();
 
   app.post('/api/v1/auth/register', authLimiter, async (req, res) => {
     const parsed = RegistrationSchema.safeParse(req.body);
@@ -151,7 +161,7 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
       });
 
       if (!createdUser) {
-        return res.status(409).json({ error: 'Benutzername ist bereits vergeben.' });
+        return res.status(409).json({ error: 'Benutzername oder E-Mail-Adresse ist bereits vergeben.' });
       }
 
       await deps.emailService.sendVerificationEmail({
@@ -320,7 +330,7 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps) {
     }
   });
 
-  app.post('/api/v1/auth/verify-email/request', passwordResetLimiter, async (req, res) => {
+  app.post('/api/v1/auth/verify-email/request', emailVerificationLimiter, async (req, res) => {
     const parsed = PasswordResetRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'E-Mail-Adresse wird benötigt.' });

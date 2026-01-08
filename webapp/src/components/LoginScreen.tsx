@@ -3,10 +3,14 @@ import { useApiConfig } from '../hooks/useApiConfig';
 import { useAppState } from '../hooks/useAppState';
 import { addProfile, createProfile, listProfiles, setActiveProfile } from '../services/profileRegistry';
 
+interface LoginScreenProps {
+  onComplete: () => void;
+}
+
 // ========================================
 // Auth/Login Screen - Erster Schritt
 // ========================================
-export function LoginScreen({ onComplete }: { onComplete: () => void }) {
+export function LoginScreen({ onComplete }: LoginScreenProps) {
   const { apiBaseUrl, setTokens, setPersistToken } = useApiConfig();
   const { refreshFromRegistry } = useAppState();
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'reset' | 'verify'>('login');
@@ -114,6 +118,7 @@ export function LoginScreen({ onComplete }: { onComplete: () => void }) {
               profileId: usernameId,
             });
             await addProfile(newProfile);
+            await setActiveProfile(newProfile.uuid);
           } else {
             await setActiveProfile(existing.uuid);
           }
