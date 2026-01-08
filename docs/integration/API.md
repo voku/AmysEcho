@@ -6,7 +6,7 @@ Amy's Echo now ships with a minimal backend focused on the gesture training loop
 
 Every request must include an `Authorization` header carrying a JWT **access token** issued by `/api/v1/auth/login` or `/api/v1/auth/register`:
 
-```
+```text
 Authorization: Bearer <access_token>
 ```
 
