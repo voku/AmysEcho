@@ -211,6 +211,12 @@ function calculateGestureConfidenceWithContext(
 6. **Use German for all user-facing text and any error messages that Amy sees in the app. Developer-facing logs, console output, and internal identifiers can remain in English.**
 7. **Update the documentation** to reflect your changes. This includes the `docs/` directory and any relevant `README.md` files.
 
+## Webapp Structure Guidance
+
+- Keep `webapp/src/App.tsx` focused on routing and high-level app composition.
+- Large UI flows (auth, settings, dashboards) should live in `webapp/src/components/` with colocated tests.
+- If `App.tsx` is growing beyond routing/state orchestration, move UI into dedicated components.
+
 ## Testing Rules
 
 - Never skip or comment out existing tests. Update them when behavior changes.

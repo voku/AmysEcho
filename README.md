@@ -259,8 +259,9 @@ npm run build --prefix server
 
 - Uses `PORT=5000` by default and requires `JWT_SECRET`/`JWT_REFRESH_SECRET` for auth.
 - Stores the latest MLP model at `server/data/models/global/amy_model.npz` once training completes.
-- Neue Zugänge können per `POST /api/v1/auth/register` erstellt und per `POST /api/v1/auth/login` angemeldet werden. Die
-  Endpunkte geben JWTs zurück. Passwort-Anforderungen: 6-128 Zeichen,
+- Neue Zugänge können per `POST /api/v1/auth/register` (mit E-Mail-Adresse) erstellt werden.
+  Vor der Anmeldung muss die E-Mail-Adresse bestätigt werden. Die Anmeldung erfolgt über
+  `POST /api/v1/auth/login` und liefert JWTs zurück. Passwort-Anforderungen: 6-128 Zeichen,
   Nutzername: 3-50 Zeichen.
 
 2) Start the webapp (Terminal B)

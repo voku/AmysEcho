@@ -57,6 +57,7 @@ This checks dependencies and runs all tests to ensure everything works. Skip thi
 ## 6. Anmeldung und Tokens
 1. Melde dich im Web- oder Mobil-Client über den Login-Screen mit deinem Nutzerkonto an.
 2. Die App speichert das erhaltene Zugangstoken automatisch und nutzt es für Serveranfragen.
+3. Für eine Registrierung benötigst du Nutzername, E-Mail-Adresse und Passwort.
 
 ## 7. Need Help?
 If you run into problems during setup or usage, consult the [Troubleshooting Guide](Troubleshooting.md) for common fixes.

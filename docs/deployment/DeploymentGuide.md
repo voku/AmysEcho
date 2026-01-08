@@ -25,13 +25,32 @@ This guide explains how to deploy both the webapp and the backend server.
    ```bash
    node server/dist/server.js
    ```
-4. Create a caregiver account on first boot (if needed):
+4. Configure sendmail (default) or SMTP for verification emails (required for registration/login):
+   ```bash
+   MAIL_TRANSPORT=sendmail
+   SENDMAIL_PATH=/usr/sbin/sendmail
+   SMTP_FROM=no-reply@example.com
+   APP_BASE_URL=https://your-webapp-host
+   ```
+
+   For SMTP instead:
+   ```bash
+   MAIL_TRANSPORT=smtp
+   SMTP_HOST=smtp.example.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your-user
+   SMTP_PASS=your-pass
+   SMTP_FROM=no-reply@example.com
+   APP_BASE_URL=https://your-webapp-host
+   ```
+5. Create a caregiver account on first boot (if needed):
    ```bash
    curl -X POST http://<server-host>:5000/api/v1/auth/register \
      -H "Content-Type: application/json" \
-     -d '{"username":"your-user","password":"your-password"}'
+     -d '{"username":"your-user","email":"your-user@example.com","password":"your-password"}'
    ```
-5. Reverse proxy or containerize the service as needed for your environment.
+6. Reverse proxy or containerize the service as needed for your environment.
 
 ## Updating Models
 - Trigger a new training run when fresh samples are available. Obtain an access token via `/api/v1/auth/login` first and pass it as a Bearer token to `/train-model`:

@@ -78,10 +78,29 @@ The server is now running at `http://localhost:5000`. You can:
 Use these REST calls to create users and manage sessions while developing locally:
 
 ```bash
+# Sendmail config (default) for registration/verification emails
+export MAIL_TRANSPORT=sendmail
+export SENDMAIL_PATH=/usr/sbin/sendmail
+export SMTP_FROM=no-reply@amysecho.local
+export APP_BASE_URL=http://localhost:5173
+
+# For SMTP instead:
+# export MAIL_TRANSPORT=smtp
+# export SMTP_HOST=localhost
+# export SMTP_PORT=1025
+# export SMTP_SECURE=false
+# export SMTP_USER=your-user
+# export SMTP_PASS=your-pass
+
 # Register a caregiver (stores the user in db.json)
 curl -X POST http://localhost:5000/api/v1/auth/register \
   -H 'Content-Type: application/json' \
-  -d '{"username":"amy","password":"super-secure-password"}'
+  -d '{"username":"amy","email":"amy@example.com","password":"super-secure-password"}'
+
+# Confirm the email address before logging in (use the code from the email)
+# curl -X POST http://localhost:5000/api/v1/auth/verify-email/confirm \
+#   -H 'Content-Type: application/json' \
+#   -d '{"email":"amy@example.com","verificationToken":"<code>"}'
 
 # Log in an existing user and get access/refresh tokens
 curl -X POST http://localhost:5000/api/v1/auth/login \

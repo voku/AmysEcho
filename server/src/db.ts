@@ -116,6 +116,14 @@ export const findUserByUsername = (
   return db.users.find((u) => u.username === normalized);
 };
 
+export const findUserByEmail = (
+  db: Database,
+  email: string,
+): StoredUser | undefined => {
+  const normalized = email.trim().toLowerCase();
+  return db.users.find((u) => u.email === normalized);
+};
+
 export const findUserById = (db: Database, id: string): StoredUser | undefined =>
   db.users.find((user) => user.id === id);
 
@@ -286,6 +294,15 @@ export const loadDatabase = async (filePath: string): Promise<Database> => {
       .map((user) => ({
         ...user,
         username: user.username.trim().toLowerCase(),
+        email: typeof user.email === 'string' ? user.email.trim().toLowerCase() : '',
+        displayName: typeof user.displayName === 'string' ? user.displayName : undefined,
+        emailVerifiedAt: typeof user.emailVerifiedAt === 'number' ? user.emailVerifiedAt : undefined,
+        emailVerificationTokenHash:
+          typeof user.emailVerificationTokenHash === 'string' ? user.emailVerificationTokenHash : undefined,
+        emailVerificationExpiresAt:
+          typeof user.emailVerificationExpiresAt === 'number' ? user.emailVerificationExpiresAt : undefined,
+        emailVerificationSentAt:
+          typeof user.emailVerificationSentAt === 'number' ? user.emailVerificationSentAt : undefined,
       }));
     return base;
   } catch (error) {

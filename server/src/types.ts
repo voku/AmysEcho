@@ -104,9 +104,18 @@ export type UserRole = 'admin' | 'caregiver' | 'user';
 export interface StoredUser {
   id: string;
   username: string;
+  email: string;
   passwordHash: string;
+  displayName?: string;
   role: UserRole;
   createdAt: number;
+  emailVerifiedAt?: number;
+  emailVerificationTokenHash?: string;
+  emailVerificationExpiresAt?: number;
+  emailVerificationSentAt?: number;
+  passwordResetTokenHash?: string;
+  passwordResetExpiresAt?: number;
+  passwordResetRequestedAt?: number;
 }
 
 

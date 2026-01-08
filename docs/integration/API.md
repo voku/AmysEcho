@@ -12,6 +12,135 @@ Authorization: Bearer <access_token>
 
 Refresh expired access tokens by calling `/api/v1/auth/refresh` with the `refreshToken` from the login response. Static API tokens are no longer accepted.
 
+### Registration
+
+Create a caregiver account with username, email, and password:
+
+#### POST /api/v1/auth/register
+
+**Body**
+```json
+{
+  "username": "amy",
+  "email": "amy@example.com",
+  "password": "super-secure-password"
+}
+```
+
+**Response**
+```json
+{
+  "message": "Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse."
+}
+```
+
+### Password Reset
+
+Request a password reset code and confirm it with a new password:
+
+#### POST /api/v1/auth/password-reset/request
+
+**Body**
+```json
+{ "email": "amy@example.com" }
+```
+
+**Response**
+```json
+{
+  "message": "Wenn ein Konto existiert, wurde eine E-Mail mit einem Reset-Code gesendet."
+}
+```
+
+The server always returns `202` and never exposes the reset code directly. Clients should prompt the caregiver to check their email.
+
+#### POST /api/v1/auth/password-reset/confirm
+
+**Body**
+```json
+{
+  "email": "amy@example.com",
+  "resetToken": "<reset-code>",
+  "password": "new-secure-password"
+}
+```
+
+**Response**
+```json
+{ "message": "Passwort wurde aktualisiert." }
+```
+
+### E-Mail-Bestätigung
+
+#### POST /api/v1/auth/verify-email/request
+
+**Body**
+```json
+{ "email": "amy@example.com" }
+```
+
+**Response**
+```json
+{
+  "message": "Wenn ein Konto existiert, wurde eine E-Mail mit einem Bestätigungscode gesendet."
+}
+```
+
+#### POST /api/v1/auth/verify-email/confirm
+
+**Body**
+```json
+{
+  "email": "amy@example.com",
+  "verificationToken": "<verification-code>"
+}
+```
+
+**Response**
+```json
+{ "message": "E-Mail-Adresse wurde bestätigt. Du kannst dich jetzt anmelden." }
+```
+
+### Benutzerkonto
+
+Alle Endpunkte erfordern einen gültigen Zugriffstoken. Nur bestätigte Konten dürfen Änderungen vornehmen.
+
+#### PUT /api/user/profile
+
+**Body**
+```json
+{
+  "displayName": "Amy"
+}
+```
+
+**Response**
+```json
+{
+  "user": {
+    "id": "user-1",
+    "username": "amy",
+    "email": "amy@example.com",
+    "displayName": "Amy"
+  }
+}
+```
+
+#### PUT /api/user/password
+
+**Body**
+```json
+{
+  "currentPassword": "old-password",
+  "newPassword": "new-password"
+}
+```
+
+**Response**
+```json
+{ "message": "Passwort wurde aktualisiert." }
+```
+
 ## Rate Limiting
 
 Two rate limiters protect the service:

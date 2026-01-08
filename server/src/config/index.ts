@@ -18,6 +18,15 @@ export interface ServerConfig {
   gestureTaskUrl: string;
   jwtSecret: string;
   jwtRefreshSecret: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpFrom: string;
+  appBaseUrl: string;
+  mailTransport: 'sendmail' | 'smtp';
+  sendmailPath: string;
 }
 
 function getEnvVar(name: string, defaultValue?: string): string {
@@ -55,6 +64,15 @@ export const config: ServerConfig = {
   gestureTaskUrl: getEnvVar('GESTURE_TASK_URL', 'https://api.github.com/repos/sst/dgs/contents/tasks'),
   jwtSecret: getEnvVar('JWT_SECRET'),
   jwtRefreshSecret: getEnvVar('JWT_REFRESH_SECRET'),
+  smtpHost: getEnvVar('SMTP_HOST', 'localhost'),
+  smtpPort: getEnvVarAsNumber('SMTP_PORT', 1025),
+  smtpSecure: getEnvVar('SMTP_SECURE', 'false') === 'true',
+  smtpUser: process.env.SMTP_USER,
+  smtpPass: process.env.SMTP_PASS,
+  smtpFrom: getEnvVar('SMTP_FROM', 'no-reply@amysecho.local'),
+  appBaseUrl: getEnvVar('APP_BASE_URL', 'http://localhost:5173'),
+  mailTransport: (process.env.MAIL_TRANSPORT as 'sendmail' | 'smtp' | undefined) ?? 'sendmail',
+  sendmailPath: getEnvVar('SENDMAIL_PATH', '/usr/sbin/sendmail'),
 };
 
 export default config;

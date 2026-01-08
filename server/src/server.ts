@@ -15,6 +15,8 @@ import { registerCustomSignsRoute } from './routes/customSignsRoute.js';
 import { registerGdprRoutes } from './routes/gdprRoutes.js';
 import { createLatestMlpModelHandler } from './routes/latestMlpModelRoute.js';
 import { registerAuthRoutes } from './routes/authRoutes.js';
+import { registerUserRoutes } from './routes/userRoutes.js';
+import { createEmailService } from './services/emailService.js';
 import { registerSymbolRoutes } from './routes/symbolRoutes.js';
 import { registerProfileRoutes } from './routes/profileRoutes.js';
 import { z } from 'zod';
@@ -342,7 +344,9 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
       saveRegistry: saveProfileRegistry,
       logError: (message, meta) => logger.error(message, meta),
     });
-    registerAuthRoutes(app, { db, dbFilePath: DB_FILE_PATH, withFileLock });
+    const emailService = createEmailService();
+    registerAuthRoutes(app, { db, dbFilePath: DB_FILE_PATH, withFileLock, emailService });
+    registerUserRoutes(app, { db, dbFilePath: DB_FILE_PATH, authMiddleware: auth });
     registerSymbolRoutes(app, db, apiLimiter);
     return db;
   })
