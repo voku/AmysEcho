@@ -29,6 +29,10 @@ export const PasswordResetConfirmSchema = z.object({
   password: z.string().min(6).max(128),
 });
 
+export const EmailVerificationRequestSchema = z.object({
+  email: z.string().trim().email().max(254),
+});
+
 export const EmailVerificationConfirmSchema = z.object({
   email: z.string().trim().email().max(254),
   verificationToken: z.string().min(1),

@@ -79,17 +79,14 @@ export async function handlePasswordResetConfirm(req: Request, res: Response, de
       const expiresAt = userToUpdate.passwordResetExpiresAt ?? 0;
       const now = Date.now();
       
-      if (!resetHash || expiresAt < now) {
+      if (!resetHash || expiresAt < now || !isTokenMatch(resetToken, resetHash)) {
+        // If a token was present, clear it to prevent reuse or further attempts
         if (resetHash) {
           userToUpdate.passwordResetTokenHash = undefined;
           userToUpdate.passwordResetExpiresAt = undefined;
           userToUpdate.passwordResetRequestedAt = undefined;
           await saveDatabase(deps.db, deps.dbFilePath);
         }
-        return null;
-      }
-
-      if (!isTokenMatch(resetToken, resetHash)) {
         return null;
       }
 

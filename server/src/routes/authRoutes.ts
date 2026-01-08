@@ -56,7 +56,7 @@ export function registerAuthRoutes(app: express.Express, deps: AuthRouteDeps): v
     await handleEmailVerificationRequest(req, res, deps);
   });
 
-  app.post('/api/v1/auth/verify-email/confirm', passwordResetLimiter, async (req, res) => {
+  app.post('/api/v1/auth/verify-email/confirm', emailVerificationLimiter, async (req, res) => {
     await handleEmailVerificationConfirm(req, res, deps);
   });
 }

@@ -34,18 +34,18 @@ export async function handleRegistration(req: Request, res: Response, deps: Auth
   const verificationExpiresAt = Date.now() + EMAIL_VERIFICATION_TTL_MS;
 
   try {
-    const existingUser = findUserByUsername(deps.db, username);
-    if (existingUser) {
-      return res.status(409).json({ error: 'Benutzername ist bereits vergeben.' });
-    }
-    const existingEmail = findUserByEmail(deps.db, email);
-    if (existingEmail) {
-      return res.status(409).json({ error: 'E-Mail-Adresse ist bereits vergeben.' });
-    }
-    
     const passwordHash = await AuthService.hashPassword(password);
-    const createdUser = await deps.withFileLock(deps.dbFilePath, async () => {
-      if (findUserByUsername(deps.db, username) || findUserByEmail(deps.db, email)) return null;
+    const result = await deps.withFileLock(deps.dbFilePath, async () => {
+      const existingUsername = findUserByUsername(deps.db, username);
+      const existingEmail = findUserByEmail(deps.db, email);
+      
+      if (existingUsername) {
+        return { error: 'username' };
+      }
+      if (existingEmail) {
+        return { error: 'email' };
+      }
+      
       const user: StoredUser = {
         id: randomUUID(),
         username,
@@ -62,22 +62,28 @@ export async function handleRegistration(req: Request, res: Response, deps: Auth
       // Seed symbols for the user's primary profile (using userId as profileId for now as per current app patterns)
       seedProfileSymbols(deps.db, user.id);
       await saveDatabase(deps.db, deps.dbFilePath);
-      return user;
+      return { user };
     });
 
-    if (!createdUser) {
+    if ('error' in result) {
+      if (result.error === 'username') {
+        return res.status(409).json({ error: 'Benutzername ist bereits vergeben.' });
+      }
+      if (result.error === 'email') {
+        return res.status(409).json({ error: 'E-Mail-Adresse ist bereits vergeben.' });
+      }
       return res.status(409).json({ error: 'Benutzername oder E-Mail-Adresse ist bereits vergeben.' });
     }
 
     await deps.emailService.sendVerificationEmail({
-      email: createdUser.email,
-      username: createdUser.username,
+      email: result.user.email,
+      username: result.user.username,
       token: verificationToken,
     });
 
     logger.info('User registered (verification required)', {
-      userId: createdUser.id,
-      username: createdUser.username,
+      userId: result.user.id,
+      username: result.user.username,
     });
     
     return res.status(201).json({

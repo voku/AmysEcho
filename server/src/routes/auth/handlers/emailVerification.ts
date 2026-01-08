@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto';
 import { type Request, type Response } from 'express';
 import { findUserByEmail, saveDatabase } from '../../../db.js';
 import logger from '../../../services/logger.js';
-import { EmailVerificationConfirmSchema, normalizeEmail, PasswordResetRequestSchema } from '../schemas.js';
+import { EmailVerificationConfirmSchema, EmailVerificationRequestSchema, normalizeEmail } from '../schemas.js';
 import { EMAIL_VERIFICATION_TTL_MS, hashToken, isTokenMatch } from '../tokenUtils.js';
 import { type AuthRouteDeps } from '../types.js';
 
@@ -15,7 +15,7 @@ export async function handleEmailVerificationRequest(
   res: Response,
   deps: AuthRouteDeps,
 ): Promise<Response> {
-  const parsed = PasswordResetRequestSchema.safeParse(req.body);
+  const parsed = EmailVerificationRequestSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'E-Mail-Adresse wird benötigt.' });
   }
@@ -84,17 +84,14 @@ export async function handleEmailVerificationConfirm(
       const expiresAt = userToUpdate.emailVerificationExpiresAt ?? 0;
       const now = Date.now();
       
-      if (!verificationHash || expiresAt < now) {
+      if (!verificationHash || expiresAt < now || !isTokenMatch(verificationToken, verificationHash)) {
+        // If a token was present, clear it to prevent reuse or further attempts
         if (verificationHash) {
           userToUpdate.emailVerificationTokenHash = undefined;
           userToUpdate.emailVerificationExpiresAt = undefined;
           userToUpdate.emailVerificationSentAt = undefined;
           await saveDatabase(deps.db, deps.dbFilePath);
         }
-        return null;
-      }
-
-      if (!isTokenMatch(verificationToken, verificationHash)) {
         return null;
       }
 
