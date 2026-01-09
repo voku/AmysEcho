@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { useAppState } from '../hooks/useAppState';
 import { addProfile, createProfile, listProfiles, setActiveProfile } from '../services/profileRegistry';
@@ -21,6 +21,16 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
   const [verificationToken, setVerificationToken] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const timeoutRef = useRef<number | undefined>(undefined);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== undefined) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const resetAuthState = useCallback((nextMode: typeof authMode) => {
     setAuthMode(nextMode);
@@ -130,7 +140,7 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
         // Refresh the app state to pick up the active profile.
         await refreshFromRegistry();
         setMessage('Erfolgreich! Weiter geht\'s…');
-        setTimeout(onComplete, 500);
+        timeoutRef.current = window.setTimeout(onComplete, 500);
       } else {
         setMessage('Antwort ohne Token erhalten.');
       }
