@@ -8,6 +8,11 @@ export const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000; // 15 minutes
 export const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
+ * Token generation constants
+ */
+export const TOKEN_BYTE_LENGTH = 24; // 24 bytes = 48 hex characters
+
+/**
  * Hash a token using SHA-256
  * @param token - The plain text token to hash
  * @returns The hex-encoded hash

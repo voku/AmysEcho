@@ -18,31 +18,59 @@ export interface EmailService {
 	}) => Promise<void>;
 }
 
+/**
+ * Sanitize username by removing control characters and newlines
+ */
+function sanitizeUsername(username: string): string {
+	return username.replace(CONTROL_CHARS_RE, "").trim();
+}
+
+/**
+ * Build email with token-based verification link
+ */
+function buildTokenEmail(params: {
+	email: string;
+	username: string;
+	token: string;
+	subject: string;
+	urlPath: string;
+	tokenLabel: string;
+	actionDescription: string;
+}): { to: string; subject: string; text: string } {
+	const { email, username, token, subject, urlPath, tokenLabel, actionDescription } = params;
+	const safeUsername = sanitizeUsername(username);
+
+	const link = `${config.appBaseUrl}${urlPath}?email=${encodeURIComponent(
+		email,
+	)}&token=${encodeURIComponent(token)}`;
+
+	return {
+		to: email,
+		subject,
+		text: [
+			`Hallo ${safeUsername},`,
+			"",
+			actionDescription,
+			`${tokenLabel}: ${token}`,
+			`Oder klicke auf diesen Link: ${link}`,
+			"",
+			"Wenn du diese Anfrage nicht gestellt hast, kannst du diese Nachricht ignorieren.",
+		].join("\n"),
+	};
+}
+
 function buildVerificationEmail(params: {
 	email: string;
 	username: string;
 	token: string;
 }) {
-	const { email, token } = params;
-	// Sanitize username: remove control characters and newlines
-	const safeUsername = params.username.replace(CONTROL_CHARS_RE, "").trim();
-
-	const verifyLink = `${config.appBaseUrl}/verify-email?email=${encodeURIComponent(
-		email,
-	)}&token=${encodeURIComponent(token)}`;
-	return {
-		to: email,
+	return buildTokenEmail({
+		...params,
 		subject: "Bitte bestätige deine E-Mail-Adresse",
-		text: [
-			`Hallo ${safeUsername},`,
-			"",
-			"bitte bestätige deine E-Mail-Adresse, um Amy's Echo zu nutzen.",
-			`Dein Bestätigungscode: ${token}`,
-			`Oder klicke auf diesen Link: ${verifyLink}`,
-			"",
-			"Wenn du diese Anfrage nicht gestellt hast, kannst du diese Nachricht ignorieren.",
-		].join("\n"),
-	};
+		urlPath: "/verify-email",
+		tokenLabel: "Dein Bestätigungscode",
+		actionDescription: "bitte bestätige deine E-Mail-Adresse, um Amy's Echo zu nutzen.",
+	});
 }
 
 function buildResetEmail(params: {
@@ -50,26 +78,13 @@ function buildResetEmail(params: {
 	username: string;
 	token: string;
 }) {
-	const { email, token } = params;
-	// Sanitize username: remove control characters and newlines
-	const safeUsername = params.username.replace(CONTROL_CHARS_RE, "").trim();
-
-	const resetLink = `${config.appBaseUrl}/reset-password?email=${encodeURIComponent(
-		email,
-	)}&token=${encodeURIComponent(token)}`;
-	return {
-		to: email,
+	return buildTokenEmail({
+		...params,
 		subject: "Passwort zurücksetzen",
-		text: [
-			`Hallo ${safeUsername},`,
-			"",
-			"du hast einen Passwort-Reset angefordert.",
-			`Dein Reset-Code: ${token}`,
-			`Oder klicke auf diesen Link: ${resetLink}`,
-			"",
-			"Wenn du diese Anfrage nicht gestellt hast, kannst du diese Nachricht ignorieren.",
-		].join("\n"),
-	};
+		urlPath: "/reset-password",
+		tokenLabel: "Dein Reset-Code",
+		actionDescription: "du hast einen Passwort-Reset angefordert.",
+	});
 }
 
 export function createEmailService(): EmailService {

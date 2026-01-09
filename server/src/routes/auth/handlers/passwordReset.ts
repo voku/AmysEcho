@@ -13,6 +13,7 @@ import {
 	isTokenMatch,
 	PASSWORD_RESET_TTL_MS,
 	clearPasswordResetToken,
+	TOKEN_BYTE_LENGTH,
 } from "../tokenUtils.js";
 import type { AuthRouteDeps } from "../types.js";
 
@@ -33,7 +34,7 @@ export async function handlePasswordResetRequest(
 	const email = normalizeEmail(parsed.data.email);
 
 	// Perform crypto operations regardless of user existence to ensure consistent timing
-	const resetToken = randomBytes(24).toString("hex");
+	const resetToken = randomBytes(TOKEN_BYTE_LENGTH).toString("hex");
 	const resetTokenHash = hashToken(resetToken);
 	const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
 

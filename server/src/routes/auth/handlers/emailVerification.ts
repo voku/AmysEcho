@@ -12,6 +12,7 @@ import {
 	hashToken,
 	isTokenMatch,
 	clearEmailVerificationToken,
+	TOKEN_BYTE_LENGTH,
 } from "../tokenUtils.js";
 import type { AuthRouteDeps } from "../types.js";
 
@@ -32,7 +33,7 @@ export async function handleEmailVerificationRequest(
 	const email = normalizeEmail(parsed.data.email);
 
 	// Perform crypto operations regardless of user existence to ensure consistent timing
-	const verificationToken = randomBytes(24).toString("hex");
+	const verificationToken = randomBytes(TOKEN_BYTE_LENGTH).toString("hex");
 	const verificationTokenHash = hashToken(verificationToken);
 	const verificationExpiresAt = Date.now() + EMAIL_VERIFICATION_TTL_MS;
 
