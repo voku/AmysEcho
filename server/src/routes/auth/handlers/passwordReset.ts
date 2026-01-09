@@ -58,8 +58,9 @@ export async function handlePasswordResetRequest(req: Request, res: Response, de
     return res.status(202).json({
       message: 'Wenn ein Konto existiert, wurde eine E-Mail mit einem Reset-Code gesendet.',
     });
-  } catch (error: any) {
-    logger.error('Password reset request failed', { error: error?.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Password reset request failed', { error: message });
     return res.status(500).json({ error: 'Passwort-Reset fehlgeschlagen.' });
   }
 }
@@ -116,8 +117,9 @@ export async function handlePasswordResetConfirm(req: Request, res: Response, de
     logger.info('Password reset confirmed', { userId: updatedUser.id, username: updatedUser.username });
     
     return res.json({ message: 'Passwort wurde aktualisiert.' });
-  } catch (error: any) {
-    logger.error('Password reset confirmation failed', { error: error?.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Password reset confirmation failed', { error: message });
     return res.status(500).json({ error: 'Passwort-Reset fehlgeschlagen.' });
   }
 }

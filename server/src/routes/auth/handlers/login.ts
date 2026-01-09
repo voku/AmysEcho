@@ -37,8 +37,9 @@ export async function handleLogin(req: Request, res: Response, deps: AuthRouteDe
     logger.info('User login', { userId: publicUser.id, username: publicUser.username });
     
     return res.json({ user: publicUser, tokens });
-  } catch (error: any) {
-    logger.error('Login failed', { error: error?.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Login failed', { error: message });
     return res.status(500).json({ error: 'Anmeldung fehlgeschlagen.' });
   }
 }

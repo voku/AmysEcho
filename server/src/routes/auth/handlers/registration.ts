@@ -87,8 +87,9 @@ export async function handleRegistration(req: Request, res: Response, deps: Auth
     return res.status(201).json({
       message: 'Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.',
     });
-  } catch (error: any) {
-    logger.error('Registration failed', { error: error?.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Registration failed', { error: message });
     return res.status(500).json({ error: 'Registrierung fehlgeschlagen. E-Mail konnte nicht gesendet werden.' });
   }
 }

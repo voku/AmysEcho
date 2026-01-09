@@ -53,8 +53,9 @@ export async function handleEmailVerificationRequest(
     return res.status(202).json({
       message: 'Wenn ein Konto existiert, wurde eine E-Mail mit einem Bestätigungscode gesendet.',
     });
-  } catch (error: any) {
-    logger.error('Email verification request failed', { error: error?.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Email verification request failed', { error: message });
     return res.status(500).json({ error: 'E-Mail-Bestätigung fehlgeschlagen.' });
   }
 }
@@ -115,8 +116,9 @@ export async function handleEmailVerificationConfirm(
     logger.info('Email verified', { userId: verifiedUser.id, username: verifiedUser.username });
     
     return res.json({ message: 'E-Mail-Adresse wurde bestätigt. Du kannst dich jetzt anmelden.' });
-  } catch (error: any) {
-    logger.error('Email verification failed', { error: error?.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Email verification failed', { error: message });
     return res.status(500).json({ error: 'E-Mail-Bestätigung fehlgeschlagen.' });
   }
 }

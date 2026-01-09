@@ -27,8 +27,9 @@ export async function handleRefreshToken(req: Request, res: Response, deps: Auth
     logger.info('Tokens refreshed', { userId: refreshed.user.id, username: refreshed.user.username });
     
     return res.json(refreshed);
-  } catch (error: any) {
-    logger.error('Token refresh failed', { error: error?.message });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Token refresh failed', { error: message });
     return res.status(500).json({ error: 'Token-Aktualisierung fehlgeschlagen.' });
   }
 }
