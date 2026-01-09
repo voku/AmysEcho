@@ -132,6 +132,14 @@ const modelMetadataLimiter = rateLimit({
 	legacyHeaders: false,
 });
 
+const trainingLimiter = rateLimit({
+	windowMs: 60 * 1000,
+	max: 5, // Training operations are expensive, limit to 5 per minute
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: "Zu viele Trainingsanfragen. Bitte versuche es später erneut.",
+});
+
 const healthLimiter = rateLimit({
 	windowMs: 1000,
 	max: 100,
@@ -977,7 +985,7 @@ app.post(
 app.post(
 	"/train-model",
 	auth,
-	apiLimiter,
+	trainingLimiter,
 	async (req: Request, res: Response) => {
 		const SampleSchema = z.object({
 			signId: z.string().min(1),
