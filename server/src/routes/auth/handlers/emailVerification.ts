@@ -11,6 +11,7 @@ import {
 	EMAIL_VERIFICATION_TTL_MS,
 	hashToken,
 	isTokenMatch,
+	clearEmailVerificationToken,
 } from "../tokenUtils.js";
 import type { AuthRouteDeps } from "../types.js";
 
@@ -102,18 +103,11 @@ export async function handleEmailVerificationConfirm(
 			const expiresAt = userToUpdate.emailVerificationExpiresAt ?? 0;
 			const now = Date.now();
 
-			// Helper function to clear verification token fields
-			const clearToken = () => {
-				userToUpdate.emailVerificationTokenHash = undefined;
-				userToUpdate.emailVerificationExpiresAt = undefined;
-				userToUpdate.emailVerificationSentAt = undefined;
-			};
-
 			// Only clear if token is missing or expired
 			if (!verificationHash) return null;
 
 			if (expiresAt < now) {
-				clearToken();
+				clearEmailVerificationToken(userToUpdate);
 				await saveDatabase(deps.db, deps.dbFilePath);
 				return null;
 			}
@@ -125,7 +119,7 @@ export async function handleEmailVerificationConfirm(
 
 			// Success path - now clear the token
 			userToUpdate.emailVerifiedAt = Date.now();
-			clearToken();
+			clearEmailVerificationToken(userToUpdate);
 			await saveDatabase(deps.db, deps.dbFilePath);
 
 			return { id: userToUpdate.id, username: userToUpdate.username };

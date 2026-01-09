@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "crypto";
+import type { StoredUser } from "../../types.js";
 
 /**
  * Time-to-live constants for authentication tokens
@@ -31,4 +32,24 @@ export const isTokenMatch = (token: string, expectedHash: string): boolean => {
 	}
 
 	return timingSafeEqual(tokenBuffer, expectedBuffer);
+};
+
+/**
+ * Clear email verification token fields from a user object
+ * @param user - The user object to update
+ */
+export const clearEmailVerificationToken = (user: StoredUser): void => {
+	user.emailVerificationTokenHash = undefined;
+	user.emailVerificationExpiresAt = undefined;
+	user.emailVerificationSentAt = undefined;
+};
+
+/**
+ * Clear password reset token fields from a user object
+ * @param user - The user object to update
+ */
+export const clearPasswordResetToken = (user: StoredUser): void => {
+	user.passwordResetTokenHash = undefined;
+	user.passwordResetExpiresAt = undefined;
+	user.passwordResetRequestedAt = undefined;
 };
