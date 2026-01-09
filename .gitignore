@@ -53,4 +53,3 @@ server/data/backups/
 # Test artifacts from full-check
 server/data/datasets/ingestion_metrics.json
 server/data/models/[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*/
-server/data/dgs_manifest.json
