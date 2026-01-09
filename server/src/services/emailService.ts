@@ -8,7 +8,12 @@ export interface EmailService {
 }
 
 function buildVerificationEmail(params: { email: string; username: string; token: string }) {
-  const { email, username, token } = params;
+  const { email, token } = params;
+  // Sanitize username: remove control characters and newlines
+  const safeUsername = params.username
+    .replace(/[\r\n\t\x00-\x1F\x7F]/g, '')
+    .trim();
+  
   const verifyLink = `${config.appBaseUrl}/verify-email?email=${encodeURIComponent(
     email,
   )}&token=${encodeURIComponent(token)}`;
@@ -16,7 +21,7 @@ function buildVerificationEmail(params: { email: string; username: string; token
     to: email,
     subject: 'Bitte bestätige deine E-Mail-Adresse',
     text: [
-      `Hallo ${username},`,
+      `Hallo ${safeUsername},`,
       '',
       'bitte bestätige deine E-Mail-Adresse, um Amy\'s Echo zu nutzen.',
       `Dein Bestätigungscode: ${token}`,
@@ -28,7 +33,12 @@ function buildVerificationEmail(params: { email: string; username: string; token
 }
 
 function buildResetEmail(params: { email: string; username: string; token: string }) {
-  const { email, username, token } = params;
+  const { email, token } = params;
+  // Sanitize username: remove control characters and newlines
+  const safeUsername = params.username
+    .replace(/[\r\n\t\x00-\x1F\x7F]/g, '')
+    .trim();
+  
   const resetLink = `${config.appBaseUrl}/reset-password?email=${encodeURIComponent(
     email,
   )}&token=${encodeURIComponent(token)}`;
@@ -36,7 +46,7 @@ function buildResetEmail(params: { email: string; username: string; token: strin
     to: email,
     subject: 'Passwort zurücksetzen',
     text: [
-      `Hallo ${username},`,
+      `Hallo ${safeUsername},`,
       '',
       'du hast einen Passwort-Reset angefordert.',
       `Dein Reset-Code: ${token}`,
@@ -64,20 +74,34 @@ export function createEmailService(): EmailService {
 
   return {
     async sendVerificationEmail(params) {
-      const email = buildVerificationEmail(params);
-      await transporter.sendMail({
-        from: config.smtpFrom,
-        ...email,
-      });
-      logger.info('Verification email sent', { email: params.email });
+      try {
+        const email = buildVerificationEmail(params);
+        await transporter.sendMail({
+          from: config.smtpFrom,
+          ...email,
+        });
+        logger.info('Verification email sent');
+      } catch (error) {
+        logger.error('Failed to send verification email', { 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+        throw new Error('Email delivery failed');
+      }
     },
     async sendPasswordResetEmail(params) {
-      const email = buildResetEmail(params);
-      await transporter.sendMail({
-        from: config.smtpFrom,
-        ...email,
-      });
-      logger.info('Password reset email sent', { email: params.email });
+      try {
+        const email = buildResetEmail(params);
+        await transporter.sendMail({
+          from: config.smtpFrom,
+          ...email,
+        });
+        logger.info('Password reset email sent');
+      } catch (error) {
+        logger.error('Failed to send password reset email', { 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+        throw new Error('Email delivery failed');
+      }
     },
   };
 }

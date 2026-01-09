@@ -97,6 +97,8 @@ curl -X POST http://localhost:5000/api/v1/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"username":"amy","email":"amy@example.com","password":"super-secure-password"}'
 
+# **Note:** Email verification is required before first login. Check the email inbox for the verification link.
+
 # Confirm the email address before logging in (use the code from the email)
 # curl -X POST http://localhost:5000/api/v1/auth/verify-email/confirm \
 #   -H 'Content-Type: application/json' \

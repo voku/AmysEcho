@@ -1,10 +1,14 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+interface HeroScreenProps {
+  onStart: () => void;
+}
+
 // ========================================
 // Hero/Welcome Screen - Nach Login
 // ========================================
-export function HeroScreen({ onStart }: { onStart: () => void }) {
+export function HeroScreen({ onStart }: HeroScreenProps) {
   const navigate = useNavigate();
 
   const handleStartCamera = useCallback(() => {

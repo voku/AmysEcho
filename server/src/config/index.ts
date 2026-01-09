@@ -71,7 +71,12 @@ export const config: ServerConfig = {
   smtpPass: process.env.SMTP_PASS,
   smtpFrom: getEnvVar('SMTP_FROM', 'no-reply@amysecho.local'),
   appBaseUrl: getEnvVar('APP_BASE_URL', 'http://localhost:5173'),
-  mailTransport: (process.env.MAIL_TRANSPORT as 'sendmail' | 'smtp' | undefined) ?? 'sendmail',
+  mailTransport: (() => {
+    const transport = process.env.MAIL_TRANSPORT;
+    if (!transport) return 'sendmail';
+    if (transport === 'sendmail' || transport === 'smtp') return transport;
+    throw new Error(`MAIL_TRANSPORT must be 'sendmail' or 'smtp', got '${transport}'`);
+  })(),
   sendmailPath: getEnvVar('SENDMAIL_PATH', '/usr/sbin/sendmail'),
 };
 

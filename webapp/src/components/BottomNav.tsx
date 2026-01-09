@@ -105,6 +105,7 @@ export function BottomNav() {
       <NavLink
         to="/"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Kamera"
         end
       >
         <span className="bottom-nav-icon">🖐️</span>
@@ -113,6 +114,7 @@ export function BottomNav() {
       <NavLink
         to="/verlauf"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Verlauf"
       >
         <span className="bottom-nav-icon">🗂️</span>
         <span className="bottom-nav-label">Verlauf</span>
@@ -120,6 +122,7 @@ export function BottomNav() {
       <NavLink
         to="/lernen"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Lernen"
       >
         <span className="bottom-nav-icon">🧠</span>
         <span className="bottom-nav-label">Lernen</span>
@@ -127,6 +130,7 @@ export function BottomNav() {
       <NavLink
         to="/einstellungen"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Einstellungen"
       >
         <span className="bottom-nav-icon">⚙️</span>
         <span className="bottom-nav-label">Einstellungen</span>
@@ -134,6 +138,7 @@ export function BottomNav() {
       <NavLink
         to="/hilfe"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Hilfe"
       >
         <span className="bottom-nav-icon">❓</span>
         <span className="bottom-nav-label">Hilfe</span>

@@ -16,7 +16,7 @@ export function ChangePasswordForm() {
         setMessage('Bitte melde dich an, um dein Passwort zu ändern.');
         return;
       }
-      if (!currentPassword || !newPassword) {
+      if (!currentPassword || !newPassword || !confirmPassword) {
         setMessage('Bitte fülle alle Passwortfelder aus.');
         return;
       }
