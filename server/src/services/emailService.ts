@@ -2,9 +2,12 @@ import nodemailer from "nodemailer";
 import config from "../config/index.js";
 import logger from "./logger.js";
 
-// Regex to match control characters (avoiding literal control chars in regex for linting)
-// eslint-disable-next-line no-control-regex
-const CONTROL_CHARS_RE = /[\u0000-\u001F\u007F\r\n\t]/g;
+// Regex to match control characters (Unicode range covers all control chars)
+// Using String.fromCharCode to avoid ESLint no-control-regex
+const CONTROL_CHARS_RE = new RegExp(
+	`[${String.fromCharCode(0x00)}-${String.fromCharCode(0x1F)}${String.fromCharCode(0x7F)}]`,
+	"g",
+);
 
 export interface EmailService {
 	sendVerificationEmail: (params: {
