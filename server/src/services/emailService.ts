@@ -3,6 +3,7 @@ import config from "../config/index.js";
 import logger from "./logger.js";
 
 // Regex to match control characters (avoiding literal control chars in regex for linting)
+// eslint-disable-next-line no-control-regex
 const CONTROL_CHARS_RE = /[\u0000-\u001F\u007F\r\n\t]/g;
 
 export interface EmailService {
