@@ -2,12 +2,16 @@ import nodemailer from "nodemailer";
 import config from "../config/index.js";
 import logger from "./logger.js";
 
-// Regex to match control characters (Unicode range covers all control chars)
-// Using String.fromCharCode to avoid ESLint no-control-regex
-const CONTROL_CHARS_RE = new RegExp(
-	`[${String.fromCharCode(0x00)}-${String.fromCharCode(0x1F)}${String.fromCharCode(0x7F)}]`,
-	"g",
-);
+// Regex to match control characters (all chars 0x00-0x1F and 0x7F)
+// Built at runtime to avoid ESLint no-control-regex
+const CONTROL_CHARS_RE = (() => {
+	// Match all control characters: 0x00-0x1F (including \r\n\t) and 0x7F (DEL)
+	const chars = Array.from({ length: 32 }, (_, i) => String.fromCharCode(i))
+		.concat(String.fromCharCode(0x7F))
+		.map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) // Escape special regex chars
+		.join("|");
+	return new RegExp(chars, "g");
+})();
 
 export interface EmailService {
 	sendVerificationEmail: (params: {
