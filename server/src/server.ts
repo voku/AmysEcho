@@ -132,6 +132,14 @@ const modelMetadataLimiter = rateLimit({
 	legacyHeaders: false,
 });
 
+const trainingLimiter = rateLimit({
+	windowMs: 60 * 1000,
+	max: 5, // Training operations are expensive, limit to 5 per minute
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: "Zu viele Trainingsanfragen. Bitte versuche es später erneut.",
+});
+
 const healthLimiter = rateLimit({
 	windowMs: 1000,
 	max: 100,
@@ -777,7 +785,7 @@ registerCustomSignsRoute(app, {
 });
 
 // Add a labeled DGS sample (landmarks normalized [0..1])
-app.post("/api/v1/dgs/samples", auth, async (req: Request, res: Response) => {
+app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Response) => {
 	try {
 		const Body = z.object({
 			label: z.string().min(1),
@@ -863,7 +871,7 @@ app.post("/api/v1/dgs/samples", auth, async (req: Request, res: Response) => {
 });
 
 // Crash report ingestion
-app.post("/api/v1/crash-reports", auth, async (req: Request, res: Response) => {
+app.post("/api/v1/crash-reports", auth, apiLimiter, async (req: Request, res: Response) => {
 	try {
 		const payload = Array.isArray(req.body) ? req.body : [req.body];
 		const valid: CrashReport[] = [];
@@ -915,7 +923,7 @@ const SignPayloadSchema = z.object({
 	]),
 });
 
-app.post("/api/v1/corrections", auth, async (req: Request, res: Response) => {
+app.post("/api/v1/corrections", auth, apiLimiter, async (req: Request, res: Response) => {
 	const parsed = SignPayloadSchema.safeParse(req.body);
 	if (!parsed.success) {
 		return res
@@ -977,7 +985,7 @@ app.post(
 app.post(
 	"/train-model",
 	auth,
-	apiLimiter,
+	trainingLimiter,
 	async (req: Request, res: Response) => {
 		const SampleSchema = z.object({
 			signId: z.string().min(1),
@@ -1081,7 +1089,7 @@ app.get(
 );
 
 // Query video training job status
-app.get("/api/v1/training-status/:id", auth, (req: Request, res: Response) => {
+app.get("/api/v1/training-status/:id", auth, apiLimiter, (req: Request, res: Response) => {
 	const id = req.params.id;
 	const result = buildTrainingStatusResponse(trainingJobs, id);
 	res.status(result.status).json(result.body);
@@ -1178,7 +1186,7 @@ app.get(
 );
 
 // List available profile models and their status
-app.get("/api/models/profiles", auth, async (_req: Request, res: Response) => {
+app.get("/api/models/profiles", auth, modelMetadataLimiter, async (_req: Request, res: Response) => {
 	try {
 		const { profileCounts } = await collectLabelCounts();
 		interface ProfileInfo {

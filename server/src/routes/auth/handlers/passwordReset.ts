@@ -12,6 +12,8 @@ import {
 	hashToken,
 	isTokenMatch,
 	PASSWORD_RESET_TTL_MS,
+	clearPasswordResetToken,
+	TOKEN_BYTE_LENGTH,
 } from "../tokenUtils.js";
 import type { AuthRouteDeps } from "../types.js";
 
@@ -32,7 +34,7 @@ export async function handlePasswordResetRequest(
 	const email = normalizeEmail(parsed.data.email);
 
 	// Perform crypto operations regardless of user existence to ensure consistent timing
-	const resetToken = randomBytes(24).toString("hex");
+	const resetToken = randomBytes(TOKEN_BYTE_LENGTH).toString("hex");
 	const resetTokenHash = hashToken(resetToken);
 	const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
 
@@ -109,18 +111,11 @@ export async function handlePasswordResetConfirm(
 			const expiresAt = userToUpdate.passwordResetExpiresAt ?? 0;
 			const now = Date.now();
 
-			// Helper function to clear password reset token fields
-			const clearToken = () => {
-				userToUpdate.passwordResetTokenHash = undefined;
-				userToUpdate.passwordResetExpiresAt = undefined;
-				userToUpdate.passwordResetRequestedAt = undefined;
-			};
-
 			// Only clear if token is missing or expired
 			if (!resetHash) return null;
 
 			if (expiresAt < now) {
-				clearToken();
+				clearPasswordResetToken(userToUpdate);
 				await saveDatabase(deps.db, deps.dbFilePath);
 				return null;
 			}
@@ -132,7 +127,7 @@ export async function handlePasswordResetConfirm(
 
 			// Success path - now clear the token
 			userToUpdate.passwordHash = await AuthService.hashPassword(password);
-			clearToken();
+			clearPasswordResetToken(userToUpdate);
 			await saveDatabase(deps.db, deps.dbFilePath);
 
 			return { id: userToUpdate.id, username: userToUpdate.username };

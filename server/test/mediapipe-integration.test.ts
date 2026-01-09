@@ -190,6 +190,7 @@ describe('MediaPipe Integration Tests', () => {
       expect(manifest.gestures.length).toBeGreaterThanOrEqual(12);
       
       interface DgsManifestEntry {
+        id: string;
         label: string;
         video?: string;
         videos?: string[];
@@ -197,6 +198,7 @@ describe('MediaPipe Integration Tests', () => {
 
       // Check that all entries have required structure
       manifest.gestures.forEach((entry: DgsManifestEntry) => {
+        expect(entry).toHaveProperty('id');
         expect(entry).toHaveProperty('label');
         if (entry.videos) {
           expect(entry.videos).toBeInstanceOf(Array);
