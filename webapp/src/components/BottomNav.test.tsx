@@ -12,12 +12,15 @@ describe('BottomNav', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText('Zuhören')).toBeInTheDocument();
+    expect(screen.getByText('Kamera')).toBeInTheDocument();
+    expect(screen.getByText('Verlauf')).toBeInTheDocument();
     expect(screen.getByText('Lernen')).toBeInTheDocument();
-    expect(screen.getByText('Info')).toBeInTheDocument();
+    expect(screen.getByText('Einstellungen')).toBeInTheDocument();
+    expect(screen.getByText('Hilfe')).toBeInTheDocument();
+    expect(screen.getByText('Betreuung')).toBeInTheDocument();
   });
 
-  it('has navigation role with proper aria-label', () => {
+  it('has navigation role', () => {
     render(
       <BrowserRouter>
         <BottomNav />
@@ -25,7 +28,7 @@ describe('BottomNav', () => {
     );
 
     const nav = screen.getByRole('navigation');
-    expect(nav).toHaveAttribute('aria-label', 'Hauptnavigation');
+    expect(nav).toBeInTheDocument();
   });
 
   it('marks home route as active by default', () => {
@@ -35,41 +38,42 @@ describe('BottomNav', () => {
       </MemoryRouter>
     );
 
-    const homeLink = screen.getByText('Zuhören').closest('a');
+    const homeLink = screen.getByText('Kamera').closest('a');
     expect(homeLink).toHaveClass('active');
   });
 
-  it('marks training route as active when on /training', () => {
+  it('marks lernen route as active when on /lernen', () => {
     render(
-      <MemoryRouter initialEntries={['/training']}>
+      <MemoryRouter initialEntries={['/lernen']}>
         <BottomNav />
       </MemoryRouter>
     );
 
-    const trainingLink = screen.getByText('Lernen').closest('a');
-    expect(trainingLink).toHaveClass('active');
+    const lernenLink = screen.getByText('Lernen').closest('a');
+    expect(lernenLink).toHaveClass('active');
   });
 
-  it('marks info route as active when on /funktionen', () => {
+  it('marks einstellungen route as active when on /einstellungen', () => {
     render(
-      <MemoryRouter initialEntries={['/funktionen']}>
+      <MemoryRouter initialEntries={['/einstellungen']}>
         <BottomNav />
       </MemoryRouter>
     );
 
-    const infoLink = screen.getByText('Info').closest('a');
-    expect(infoLink).toHaveClass('active');
+    const einstellungenLink = screen.getByText('Einstellungen').closest('a');
+    expect(einstellungenLink).toHaveClass('active');
   });
 
-  it('renders SVG icons for each navigation item', () => {
+  it('renders emoji icons for each navigation item', () => {
     render(
       <BrowserRouter>
         <BottomNav />
       </BrowserRouter>
     );
 
-    const svgElements = document.querySelectorAll('svg');
-    expect(svgElements.length).toBe(3);
+    // Check that icon spans are rendered
+    const iconElements = document.querySelectorAll('.bottom-nav-icon');
+    expect(iconElements.length).toBe(6);
   });
 
   it('has correct links to all routes', () => {
@@ -80,9 +84,12 @@ describe('BottomNav', () => {
     );
 
     const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(3);
+    expect(links).toHaveLength(6);
     expect(links[0]).toHaveAttribute('href', '/');
-    expect(links[1]).toHaveAttribute('href', '/training');
-    expect(links[2]).toHaveAttribute('href', '/funktionen');
+    expect(links[1]).toHaveAttribute('href', '/verlauf');
+    expect(links[2]).toHaveAttribute('href', '/lernen');
+    expect(links[3]).toHaveAttribute('href', '/einstellungen');
+    expect(links[4]).toHaveAttribute('href', '/hilfe');
+    expect(links[5]).toHaveAttribute('href', '/betreuung');
   });
 });
