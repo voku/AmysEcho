@@ -18,36 +18,43 @@ export async function handlePasswordResetRequest(req: Request, res: Response, de
   }
 
   const email = normalizeEmail(parsed.data.email);
-  const user = findUserByEmail(deps.db, email);
-  
-  if (!user || !user.emailVerifiedAt) {
-    return res.status(202).json({
-      message: 'Wenn ein Konto existiert, wurde eine E-Mail mit einem Reset-Code gesendet.',
-    });
-  }
 
+  // Perform crypto operations regardless of user existence to ensure consistent timing
   const resetToken = randomBytes(24).toString('hex');
   const resetTokenHash = hashToken(resetToken);
   const expiresAt = Date.now() + PASSWORD_RESET_TTL_MS;
 
   try {
+    let userForEmail: { id: string; email: string; username: string } | undefined;
+
     await deps.withFileLock(deps.dbFilePath, async () => {
       const userToUpdate = findUserByEmail(deps.db, email);
-      if (!userToUpdate) return;
-      userToUpdate.passwordResetTokenHash = resetTokenHash;
-      userToUpdate.passwordResetExpiresAt = expiresAt;
-      userToUpdate.passwordResetRequestedAt = Date.now();
-      await saveDatabase(deps.db, deps.dbFilePath);
+      if (userToUpdate && userToUpdate.emailVerifiedAt) {
+        userToUpdate.passwordResetTokenHash = resetTokenHash;
+        userToUpdate.passwordResetExpiresAt = expiresAt;
+        userToUpdate.passwordResetRequestedAt = Date.now();
+        await saveDatabase(deps.db, deps.dbFilePath);
+        userForEmail = { 
+          id: userToUpdate.id, 
+          email: userToUpdate.email, 
+          username: userToUpdate.username 
+        };
+      }
     });
 
-    await deps.emailService.sendPasswordResetEmail({
-      email: user.email,
-      username: user.username,
-      token: resetToken,
-    });
+    if (userForEmail) {
+      await deps.emailService.sendPasswordResetEmail({
+        email: userForEmail.email,
+        username: userForEmail.username,
+        token: resetToken,
+      });
 
-    logger.info('Password reset requested', { userId: user.id, username: user.username });
-    
+      logger.info('Password reset requested', { 
+        userId: userForEmail.id, 
+        username: userForEmail.username 
+      });
+    }
+
     return res.status(202).json({
       message: 'Wenn ein Konto existiert, wurde eine E-Mail mit einem Reset-Code gesendet.',
     });
@@ -78,22 +85,25 @@ export async function handlePasswordResetConfirm(req: Request, res: Response, de
       const resetHash = userToUpdate.passwordResetTokenHash;
       const expiresAt = userToUpdate.passwordResetExpiresAt ?? 0;
       const now = Date.now();
-      
+
+      // Helper function to clear password reset token fields
+      const clearToken = () => {
+        userToUpdate.passwordResetTokenHash = undefined;
+        userToUpdate.passwordResetExpiresAt = undefined;
+        userToUpdate.passwordResetRequestedAt = undefined;
+      };
+
       if (!resetHash || expiresAt < now || !isTokenMatch(resetToken, resetHash)) {
         // If a token was present, clear it to prevent reuse or further attempts
         if (resetHash) {
-          userToUpdate.passwordResetTokenHash = undefined;
-          userToUpdate.passwordResetExpiresAt = undefined;
-          userToUpdate.passwordResetRequestedAt = undefined;
+          clearToken();
           await saveDatabase(deps.db, deps.dbFilePath);
         }
         return null;
       }
 
       userToUpdate.passwordHash = await AuthService.hashPassword(password);
-      userToUpdate.passwordResetTokenHash = undefined;
-      userToUpdate.passwordResetExpiresAt = undefined;
-      userToUpdate.passwordResetRequestedAt = undefined;
+      clearToken();
       await saveDatabase(deps.db, deps.dbFilePath);
       
       return { id: userToUpdate.id, username: userToUpdate.username };

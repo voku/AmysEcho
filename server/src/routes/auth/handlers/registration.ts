@@ -69,10 +69,8 @@ export async function handleRegistration(req: Request, res: Response, deps: Auth
       if (result.error === 'username') {
         return res.status(409).json({ error: 'Benutzername ist bereits vergeben.' });
       }
-      if (result.error === 'email') {
-        return res.status(409).json({ error: 'E-Mail-Adresse ist bereits vergeben.' });
-      }
-      return res.status(409).json({ error: 'Benutzername oder E-Mail-Adresse ist bereits vergeben.' });
+      // At this point, the only other error is 'email'
+      return res.status(409).json({ error: 'E-Mail-Adresse ist bereits vergeben.' });
     }
 
     await deps.emailService.sendVerificationEmail({

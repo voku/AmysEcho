@@ -21,33 +21,34 @@ export async function handleEmailVerificationRequest(
   }
 
   const email = normalizeEmail(parsed.data.email);
-  const user = findUserByEmail(deps.db, email);
-  
-  if (!user || user.emailVerifiedAt) {
-    return res.status(202).json({
-      message: 'Wenn ein Konto existiert, wurde eine E-Mail mit einem Bestätigungscode gesendet.',
-    });
-  }
 
+  // Perform crypto operations regardless of user existence to ensure consistent timing
   const verificationToken = randomBytes(24).toString('hex');
   const verificationTokenHash = hashToken(verificationToken);
   const verificationExpiresAt = Date.now() + EMAIL_VERIFICATION_TTL_MS;
 
   try {
+    let userForEmail: { email: string; username: string } | undefined;
+
     await deps.withFileLock(deps.dbFilePath, async () => {
       const userToUpdate = findUserByEmail(deps.db, email);
-      if (!userToUpdate || userToUpdate.emailVerifiedAt) return;
-      userToUpdate.emailVerificationTokenHash = verificationTokenHash;
-      userToUpdate.emailVerificationExpiresAt = verificationExpiresAt;
-      userToUpdate.emailVerificationSentAt = Date.now();
-      await saveDatabase(deps.db, deps.dbFilePath);
+      // Only proceed to update DB if user exists and needs verification
+      if (userToUpdate && !userToUpdate.emailVerifiedAt) {
+        userToUpdate.emailVerificationTokenHash = verificationTokenHash;
+        userToUpdate.emailVerificationExpiresAt = verificationExpiresAt;
+        userToUpdate.emailVerificationSentAt = Date.now();
+        await saveDatabase(deps.db, deps.dbFilePath);
+        userForEmail = { email: userToUpdate.email, username: userToUpdate.username };
+      }
     });
 
-    await deps.emailService.sendVerificationEmail({
-      email: user.email,
-      username: user.username,
-      token: verificationToken,
-    });
+    if (userForEmail) {
+      await deps.emailService.sendVerificationEmail({
+        email: userForEmail.email,
+        username: userForEmail.username,
+        token: verificationToken,
+      });
+    }
 
     return res.status(202).json({
       message: 'Wenn ein Konto existiert, wurde eine E-Mail mit einem Bestätigungscode gesendet.',
@@ -83,22 +84,25 @@ export async function handleEmailVerificationConfirm(
       const verificationHash = userToUpdate.emailVerificationTokenHash;
       const expiresAt = userToUpdate.emailVerificationExpiresAt ?? 0;
       const now = Date.now();
-      
+
+      // Helper function to clear verification token fields
+      const clearToken = () => {
+        userToUpdate.emailVerificationTokenHash = undefined;
+        userToUpdate.emailVerificationExpiresAt = undefined;
+        userToUpdate.emailVerificationSentAt = undefined;
+      };
+
       if (!verificationHash || expiresAt < now || !isTokenMatch(verificationToken, verificationHash)) {
         // If a token was present, clear it to prevent reuse or further attempts
         if (verificationHash) {
-          userToUpdate.emailVerificationTokenHash = undefined;
-          userToUpdate.emailVerificationExpiresAt = undefined;
-          userToUpdate.emailVerificationSentAt = undefined;
+          clearToken();
           await saveDatabase(deps.db, deps.dbFilePath);
         }
         return null;
       }
 
       userToUpdate.emailVerifiedAt = Date.now();
-      userToUpdate.emailVerificationTokenHash = undefined;
-      userToUpdate.emailVerificationExpiresAt = undefined;
-      userToUpdate.emailVerificationSentAt = undefined;
+      clearToken();
       await saveDatabase(deps.db, deps.dbFilePath);
       
       return { id: userToUpdate.id, username: userToUpdate.username };
