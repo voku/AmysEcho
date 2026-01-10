@@ -50,7 +50,7 @@ describe('auth routes', () => {
       .send({ username: 'amy', email: 'amy2@example.com', password: 'another-password' })
       .expect(409);
 
-    expect(response.body.error).toBe('Benutzername ist bereits vergeben.');
+    expect(response.body.error).toBe('Benutzername oder E-Mail-Adresse bereits vergeben.');
   });
 
   it('rejects duplicate email registrations', async () => {
@@ -64,7 +64,7 @@ describe('auth routes', () => {
       .send({ username: 'amy-two', email: 'amy@example.com', password: 'another-password' })
       .expect(409);
 
-    expect(response.body.error).toBe('E-Mail-Adresse ist bereits vergeben.');
+    expect(response.body.error).toBe('Benutzername oder E-Mail-Adresse bereits vergeben.');
   });
 
   it('registers a new user and persists the hashed password', async () => {

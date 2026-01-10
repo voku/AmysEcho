@@ -77,15 +77,10 @@ export async function handleRegistration(
 		});
 
 		if ("error" in result) {
-			if (result.error === "username") {
-				return res
-					.status(409)
-					.json({ error: "Benutzername ist bereits vergeben." });
-			}
-			// At this point, the only other error is 'email'
+			// Generic error to prevent user enumeration via different messages
 			return res
 				.status(409)
-				.json({ error: "E-Mail-Adresse ist bereits vergeben." });
+				.json({ error: "Benutzername oder E-Mail-Adresse bereits vergeben." });
 		}
 
 		// Wrap email send in try-catch
