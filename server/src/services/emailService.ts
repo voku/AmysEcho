@@ -2,18 +2,9 @@ import nodemailer from "nodemailer";
 import config from "../config/index.js";
 import logger from "./logger.js";
 
-// Regex to match control characters (all chars 0x00-0x1F and 0x7F)
-// Built at runtime to avoid ESLint no-control-regex error
-// Note: Cannot use simpler [\\x00-\\x1F\\x7F] pattern as ESLint flags it
-// This creates alternation groups which is less efficient but avoids linting errors
-const CONTROL_CHARS_RE = (() => {
-	// Match all control characters: 0x00-0x1F (including \r\n\t) and 0x7F (DEL)
-	const chars = Array.from({ length: 32 }, (_, i) => String.fromCharCode(i))
-		.concat(String.fromCharCode(0x7F))
-		.map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) // Escape special regex chars
-		.join("|");
-	return new RegExp(chars, "g");
-})();
+// Regex to match control characters using Unicode ranges
+// Matches: 0x00-0x1F (including \r\n\t) and 0x7F (DEL)
+const CONTROL_CHARS_RE = /[\u0000-\u001F\u007F]/g;
 
 export interface EmailService {
 	sendVerificationEmail: (params: {
