@@ -16,7 +16,10 @@ This guide explains how to verify end-to-end communication between the Amy's Ech
    ```bash
    curl -X POST http://localhost:5000/api/v1/auth/register \
      -H "Content-Type: application/json" \
-     -d '{"username":"demo","password":"super-secret"}'
+     -d '{"username":"demo","email":"demo@example.com","password":"super-secret"}'
+
+   # Check the verification email and confirm it before logging in
+   # (POST /api/v1/auth/verify-email/confirm with the code from the email)
 
    ACCESS_TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
      -H "Content-Type: application/json" \

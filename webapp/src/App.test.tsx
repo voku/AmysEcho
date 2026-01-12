@@ -4,7 +4,8 @@ import { useEffect, useRef } from 'react';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { ApiConfigProvider, useApiConfig } from './hooks/useApiConfig';
 import { AppStateProvider, useAppState } from './hooks/useAppState';
-import { useAppStatus, LoginScreen } from './App';
+import { useAppStatus } from './hooks/useAppStatus';
+import { LoginScreen } from './components/LoginScreen';
 
 type HarnessHandles = { expire: () => void };
 
@@ -128,5 +129,101 @@ describe('LoginScreen', () => {
     const debug = screen.getByTestId('login-debug');
     expect(debug.dataset['refresh']).toBe('refresh-xyz');
     expect(debug.dataset['persist']).toBe('true');
+  });
+
+  it('fordert einen Reset-Code an und bestätigt das neue Passwort', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: 'Wenn ein Konto existiert, wurde eine E-Mail mit einem Reset-Code gesendet.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: 'Passwort wurde aktualisiert.' }),
+      });
+    global.fetch = fetchMock as any;
+
+    render(
+      <ApiConfigProvider>
+        <AppStateProvider>
+          <LoginScreen onComplete={vi.fn()} />
+        </AppStateProvider>
+      </ApiConfigProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Passwort vergessen?' }));
+    fireEvent.change(screen.getByLabelText(/E-Mail-Adresse/i), { target: { value: 'amy@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Reset-Code anfordern' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/auth/password-reset/request'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    await waitFor(() => {
+      expect((screen.getByLabelText(/Reset-Code/i) as HTMLInputElement).value).toBe('');
+    });
+
+    fireEvent.change(screen.getByLabelText(/Reset-Code/i), { target: { value: 'reset-123' } });
+    fireEvent.change(screen.getByLabelText(/Neues Passwort/i), { target: { value: 'neues-passwort' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Passwort speichern' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/auth/password-reset/confirm'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    await screen.findByText('Passwort wurde aktualisiert. Bitte melde dich neu an.');
+  });
+
+  it('fordert eine E-Mail-Bestätigung nach der Registrierung an', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: 'Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.',
+      }),
+    });
+    global.fetch = fetchMock as any;
+
+    const onComplete = vi.fn();
+
+    function DebugPanel() {
+      const { apiToken } = useApiConfig();
+      return <div data-testid="register-debug" data-token={apiToken} />;
+    }
+
+    render(
+      <ApiConfigProvider>
+        <AppStateProvider>
+          <LoginScreen onComplete={onComplete} />
+          <DebugPanel />
+        </AppStateProvider>
+      </ApiConfigProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrieren' }));
+    fireEvent.change(screen.getByLabelText(/Nutzername/i), { target: { value: 'amy' } });
+    fireEvent.change(screen.getByLabelText(/E-Mail-Adresse/i), { target: { value: 'amy@example.com' } });
+    fireEvent.change(screen.getByLabelText(/^Passwort$/i), { target: { value: 'geheim' } });
+
+    const submitButton = screen
+      .getAllByRole('button', { name: 'Registrieren' })
+      .find((button: HTMLElement) => button.getAttribute('type') === 'submit');
+    if (!submitButton) {
+      throw new Error('Submit-Button nicht gefunden');
+    }
+    fireEvent.click(submitButton);
+
+    await screen.findByText('Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.');
+
+    const debug = screen.getByTestId('register-debug');
+    expect(debug.dataset['token']).toBe('');
   });
 });

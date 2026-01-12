@@ -67,18 +67,18 @@ for label in "${labels[@]}"; do
 done
 echo '{
   "gestures": [
-    {"label": "alle", "video": "alle.mp4"},
-    {"label": "blau", "video": "blau.mp4"},
-    {"label": "essen", "video": "essen.mp4"},
-    {"label": "fertig", "video": "fertig.mp4"},
-    {"label": "gelb", "video": "gelb.mp4"},
-    {"label": "gruen", "video": "gruen.mp4"},
-    {"label": "nochmal", "video": "nochmal.mp4"},
-    {"label": "rot", "video": "rot.mp4"},
-    {"label": "satt", "video": "satt.mp4"},
-    {"label": "schwester", "video": "schwester.mp4"},
-    {"label": "spielen", "video": "spielen.mp4"},
-    {"label": "trinken", "video": "trinken.mp4"}
+    {"id": "alle", "label": "alle", "video": "alle.mp4"},
+    {"id": "blau", "label": "blau", "video": "blau.mp4"},
+    {"id": "essen", "label": "essen", "video": "essen.mp4"},
+    {"id": "fertig", "label": "fertig", "video": "fertig.mp4"},
+    {"id": "gelb", "label": "gelb", "video": "gelb.mp4"},
+    {"id": "gruen", "label": "gruen", "video": "gruen.mp4"},
+    {"id": "nochmal", "label": "nochmal", "video": "nochmal.mp4"},
+    {"id": "rot", "label": "rot", "video": "rot.mp4"},
+    {"id": "satt", "label": "satt", "video": "satt.mp4"},
+    {"id": "schwester", "label": "schwester", "video": "schwester.mp4"},
+    {"id": "spielen", "label": "spielen", "video": "spielen.mp4"},
+    {"id": "trinken", "label": "trinken", "video": "trinken.mp4"}
   ]
 }' > server/data/dgs_manifest.json
 

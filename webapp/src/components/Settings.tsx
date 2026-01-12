@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
+import { UserSettings } from './UserSettings';
 
 /**
  * Settings component
@@ -43,6 +44,8 @@ export function Settings() {
           </p>
         </div>
       </div>
+
+      <UserSettings />
 
       {/* Profile Management */}
       <div className="settings-section">
