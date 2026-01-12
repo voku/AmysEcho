@@ -70,7 +70,7 @@ def main():
     for label, url in SEARCH_MAP.items():
         video_path = download_video(label, url)
         if video_path and video_path.exists():
-            entry = {"label": label, "video": f"{label}.mp4"}
+            entry = {"id": label, "label": label, "video": f"{label}.mp4"}
             if not any(e["label"] == label for e in manifest["gestures"]):
                 manifest["gestures"].append(entry)
                 updated = True
