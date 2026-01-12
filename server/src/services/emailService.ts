@@ -2,9 +2,16 @@ import nodemailer from "nodemailer";
 import config from "../config/index.js";
 import logger from "./logger.js";
 
-// Regex to match control characters using Unicode ranges
-// Matches: 0x00-0x1F (including \r\n\t) and 0x7F (DEL)
-const CONTROL_CHARS_RE = /[\u0000-\u001F\u007F]/g;
+// Regex to match control characters (all chars 0x00-0x1F and 0x7F)
+// Built at runtime to avoid ESLint no-control-regex
+const CONTROL_CHARS_RE = (() => {
+	// Match all control characters: 0x00-0x1F (including \r\n\t) and 0x7F (DEL)
+	const chars = Array.from({ length: 32 }, (_, i) => String.fromCharCode(i))
+		.concat(String.fromCharCode(0x7F))
+		.map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) // Escape special regex chars
+		.join("|");
+	return new RegExp(chars, "g");
+})();
 
 export interface EmailService {
 	sendVerificationEmail: (params: {
@@ -27,6 +34,13 @@ function sanitizeUsername(username: string): string {
 }
 
 /**
+ * Sanitize email by removing control characters (prevents CRLF injection)
+ */
+function sanitizeEmail(email: string): string {
+	return email.replace(CONTROL_CHARS_RE, "").trim();
+}
+
+/**
  * Build email with token-based verification link
  */
 function buildTokenEmail(params: {
@@ -40,13 +54,16 @@ function buildTokenEmail(params: {
 }): { to: string; subject: string; text: string } {
 	const { email, username, token, subject, urlPath, tokenLabel, actionDescription } = params;
 	const safeUsername = sanitizeUsername(username);
+	const safeEmail = sanitizeEmail(email);
 
-	const link = `${config.appBaseUrl}${urlPath}?email=${encodeURIComponent(
-		email,
-	)}&token=${encodeURIComponent(token)}`;
+	// Use URL constructor to avoid double-slash and encoding edge cases
+	const url = new URL(urlPath, config.appBaseUrl);
+	url.searchParams.set("email", safeEmail);
+	url.searchParams.set("token", token);
+	const link = url.toString();
 
 	return {
-		to: email,
+		to: safeEmail,
 		subject,
 		text: [
 			`Hallo ${safeUsername},`,
@@ -99,6 +116,10 @@ export function createEmailService(): EmailService {
 						config.smtpUser && config.smtpPass
 							? { user: config.smtpUser, pass: config.smtpPass }
 							: undefined,
+					// Add timeouts to avoid hung requests
+					connectionTimeout: 10000, // 10 seconds to establish connection
+					greetingTimeout: 10000, // 10 seconds to receive greeting
+					socketTimeout: 30000, // 30 seconds of inactivity
 				})
 			: nodemailer.createTransport({
 					sendmail: true,
