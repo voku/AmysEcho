@@ -3,17 +3,27 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 
 import {
+  DEFAULT_MLP_FEATURE_SIZE,
   DEFAULT_MLP_LAYER1_SIZE,
   DEFAULT_MLP_LAYER2_SIZE,
-  DEFAULT_MLP_INPUT_SIZE,
   DEFAULT_MLP_WINDOW_SIZE,
-  DEFAULT_MLP_FEATURE_SIZE,
 } from '../../src/services/mlpModelArtifacts.js';
+
+const MIN_FIXTURE_SIZE_BYTES = Number.parseInt(
+  process.env.AMY_ECHO_TEST_MLP_MIN_SIZE ?? '100000',
+  10,
+);
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
     const stat = await fs.stat(filePath);
-    return stat.isFile();
+    if (!stat.isFile()) {
+      return false;
+    }
+    if (Number.isFinite(MIN_FIXTURE_SIZE_BYTES) && MIN_FIXTURE_SIZE_BYTES > 0) {
+      return stat.size >= MIN_FIXTURE_SIZE_BYTES;
+    }
+    return true;
   } catch {
     return false;
   }
@@ -30,15 +40,41 @@ export async function ensureBaselineModelFixture(explicitPath?: string): Promise
     return;
   }
 
+  const windowSize = Math.max(
+    1,
+    Number.parseInt(process.env.AMY_ECHO_TEST_MLP_WINDOW_SIZE ?? '', 10) ||
+      Math.min(DEFAULT_MLP_WINDOW_SIZE, 2),
+  );
+  const featureSize = Math.max(
+    1,
+    Number.parseInt(process.env.AMY_ECHO_TEST_MLP_FEATURE_SIZE ?? '', 10) ||
+      Math.min(DEFAULT_MLP_FEATURE_SIZE, 96),
+  );
+  const inputSize = Math.max(
+    1,
+    Number.parseInt(process.env.AMY_ECHO_TEST_MLP_INPUT_SIZE ?? '', 10) ||
+      featureSize * windowSize,
+  );
+  const layer1 = Math.max(
+    1,
+    Number.parseInt(process.env.AMY_ECHO_TEST_MLP_LAYER1_SIZE ?? '', 10) ||
+      Math.min(DEFAULT_MLP_LAYER1_SIZE, 128),
+  );
+  const layer2 = Math.max(
+    1,
+    Number.parseInt(process.env.AMY_ECHO_TEST_MLP_LAYER2_SIZE ?? '', 10) ||
+      Math.min(DEFAULT_MLP_LAYER2_SIZE, 64),
+  );
+
   await fs.mkdir(path.dirname(baselinePath), { recursive: true });
 
   const script = `import numpy as np, os, sys, tempfile
 dest = sys.argv[1]
 labels = np.array(['baseline'], dtype='<U64')
 counts = np.zeros((labels.shape[0],), dtype=np.float32)
-layer1 = ${DEFAULT_MLP_LAYER1_SIZE}
-layer2 = ${DEFAULT_MLP_LAYER2_SIZE}
-input_size = ${DEFAULT_MLP_INPUT_SIZE}
+layer1 = ${layer1}
+layer2 = ${layer2}
+input_size = ${inputSize}
 w1 = np.zeros((layer1, input_size), dtype=np.float32)
 b1 = np.zeros((layer1,), dtype=np.float32)
 w2 = np.zeros((layer2, layer1), dtype=np.float32)
@@ -49,7 +85,7 @@ os.makedirs(os.path.dirname(dest) or '.', exist_ok=True)
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(dest) or '.', suffix='.tmp')
 try:
     with os.fdopen(fd, 'wb') as fh:
-        np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2, w3=w3, b3=b3, arch='mlp_3layer_window', window_size=${DEFAULT_MLP_WINDOW_SIZE}, input_dim=input_size, feature_size=${DEFAULT_MLP_FEATURE_SIZE})
+        np.savez(fh, labels=labels, counts=counts, w1=w1, b1=b1, w2=w2, b2=b2, w3=w3, b3=b3, arch='mlp_3layer_window', window_size=${windowSize}, input_dim=input_size, feature_size=${featureSize})
     os.replace(tmp, dest)
 finally:
     if os.path.exists(tmp):

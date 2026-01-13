@@ -194,6 +194,42 @@ describe('TrainingRecorder', () => {
     expect(switchButtonAfter).toBeInTheDocument();
   });
 
+  it('zeigt die Banner-Message für laufende Aufnahmen', () => {
+    trainingState.state = 'recording';
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(
+      screen.getByText('Aufnahme läuft. Tippe auf „Aufnahme stoppen“, wenn du fertig bist.'),
+    ).toBeInTheDocument();
+  });
+
+  it('zeigt die Banner-Message für vorhandene Aufnahmen', () => {
+    trainingState.recordedData.frames = [{}];
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(
+      screen.getByText('Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.'),
+    ).toBeInTheDocument();
+  });
+
+  it('zeigt die Banner-Message wenn die Kamera läuft', () => {
+    gestureState.status = 'running';
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByText('Zeige die Gebärde gut sichtbar vor der Kamera.')).toBeInTheDocument();
+  });
+
+  it('zeigt die Banner-Message wenn die Kamera noch nicht gestartet ist', () => {
+    gestureState.status = 'idle';
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByText('Starte die Kamera, um eine Gebärde aufzunehmen.')).toBeInTheDocument();
+  });
+
   it('behält das manuell gewählte Foto beim Start der Aufnahme bei', async () => {
     const user = userEvent.setup();
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:manual-still');
