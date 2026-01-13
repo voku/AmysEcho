@@ -15,7 +15,7 @@ This document summarizes the repository in key areas with concrete file referenc
 - `webapp/src/gesture/` contains the gesture detection and classification code
 - MediaPipe hand tracking is loaded from CDN and runs in the browser
 - The MLP classifier uses cached weights fetched from the server
-- Gesture detection is orchestrated by `GestureRecognitionOrchestrator.ts`
+- Gesture detection is orchestrated by `GestureRecognitionOrchestrator.ts`, with pipeline steps defined in `webapp/src/gesture/core/ProcessingSteps.ts` for testable, focused units.
 - Landmark stabilization and handedness normalization ensure consistent results
 
 ## 3. Training and Personalization
