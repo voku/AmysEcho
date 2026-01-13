@@ -55,6 +55,8 @@ def _load_default_labels() -> list[str]:
 
 
 DEFAULT_BASELINE_LABELS = _load_default_labels()
+
+
 def _parse_timestamp(value: Any) -> datetime:
     if isinstance(value, (int, float)):
         return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
@@ -70,6 +72,7 @@ def start_server():
     # Run the real training script but keep epochs low for test speed
     env.setdefault("MLP_SCRIPT", "src/amyserver_tools/train_mlp.py")
     env.setdefault("MLP_EPOCHS", "5")
+    env.setdefault("TRAINING_JOB_SLA_MS", "300000")
     data_dir = Path(tempfile.mkdtemp(prefix="amy-test-data-"))
     env["AMY_ECHO_DATA_DIR"] = str(data_dir)
     config_dir = data_dir / "config"

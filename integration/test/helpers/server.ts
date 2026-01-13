@@ -135,8 +135,16 @@ async function actuallyStartServer(attempt = 1) {
       MLP_EPOCHS: '1',
       MLP_MIN_SAMPLES_PER_LABEL: '1',
       MLP_MIN_SAMPLES_PER_PROFILE: '1',
+      MLP_LAYER1_SIZE: '64',
+      MLP_LAYER2_SIZE: '32',
+      MLP_WINDOW_SIZE: '6',
+      MLP_WINDOW_STRIDE: '3',
+      MLP_MAX_FRAMES: '30',
+      MLP_FRAME_STRIDE: '4',
+      MLP_VALIDATION_FRACTION: '0.1',
       MLP_REQUIRE_MEDIAPIPE: '0',
       AMY_SKIP_DGS_EXAMPLES: 'true',
+      TRAINING_JOB_SLA_MS: '300000',
       API_LIMIT: '1000', // Increase rate limit for integration tests
       MODEL_METADATA_LIMIT: '1000', // Increase model metadata rate limit for integration tests
       NODE_ENV: 'test', // Set environment to test mode

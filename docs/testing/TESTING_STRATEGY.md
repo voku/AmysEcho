@@ -198,6 +198,13 @@ export const simulateNetworkFailure = () => {
 };
 ```
 
+### Training Recorder UI State
+The training recorder UI contains complex banner/status logic that is shared between the live
+recording screen and follow-up review states. Keep the derived text logic inside
+`webapp/src/components/trainingRecorderUtils.ts` and cover it with unit tests in
+`webapp/src/components/trainingRecorderUtils.test.ts` to guard against regressions when
+refactoring the `TrainingRecorder` component.
+
 ### Test Data
 ```typescript
 // test/fixtures/commonGestures.ts

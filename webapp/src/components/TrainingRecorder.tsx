@@ -3,23 +3,21 @@ import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
 import type { TrainingBundlePayload, HandFocus } from '../training/types';
 import { framesHaveHandLandmarks, suggestHandFocus } from '../training/handUtils';
+import {
+  formatBytes,
+  getDetectorStartLabel,
+  getDetectorStatusLabel,
+  getDetectorStatusTone,
+  getPhotoStatusPill,
+  getRecordingStatusLabel,
+  getRecordingStatusPill,
+  getTrainingRecorderBannerMessage,
+} from './trainingRecorderUtils';
 
 export interface TrainingRecorderProps {
   profileId: string;
   label: string;
   onRecordingComplete: (payload: TrainingBundlePayload) => void;
-}
-
-function formatRecordingTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 MB';
-  const mb = bytes / (1024 * 1024);
-  return `${mb.toFixed(1)} MB`;
 }
 
 export function TrainingRecorder({ profileId, label, onRecordingComplete }: TrainingRecorderProps) {
@@ -491,55 +489,29 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     : '';
   const showDetectorStart = !isRecording && status !== 'running';
   const detectorStartDisabled = status === 'initializing';
-  const detectorStartLabel = status === 'error' ? 'Kamera erneut versuchen' : status === 'initializing' ? 'Startet…' : 'Kamera starten';
+  const detectorStartLabel = getDetectorStartLabel(status);
   const displayedLabel = label.trim() || 'Keine Gebärdenauswahl vorhanden';
-  const detectorStatusLabel =
-    status === 'running'
-      ? 'Detektor gestartet'
-      : status === 'initializing'
-      ? 'Detektor startet…'
-      : status === 'error'
-      ? 'Detektorfehler'
-      : 'Detektor pausiert';
-  const detectorStatusTone = status === 'running' ? 'running' : status === 'error' ? 'error' : 'idle';
-  const recordingStatusLabel = isRecording
-    ? 'Aufnahme läuft'
-    : hasRecording
-    ? 'Aufnahme bereit'
-    : 'Keine Aufnahme aktiv';
-  const recordingStatusPill = isRecording
-    ? `Aufnahme läuft (${formatRecordingTime(recordingDuration)})`
-    : hasRecording
-    ? 'Aufnahme bereit'
-    : null;
-  const photoStatusPill =
-    photoMode === 'previewing' ? 'Fotovorschau aktiv' : photoMode === 'captured' ? 'Foto aufgenommen' : null;
+  const detectorStatusLabel = getDetectorStatusLabel(status);
+  const detectorStatusTone = getDetectorStatusTone(status);
+  const recordingStatusLabel = getRecordingStatusLabel({ isRecording, hasRecording });
+  const recordingStatusPill = getRecordingStatusPill({ isRecording, hasRecording, recordingDuration });
+  const photoStatusPill = getPhotoStatusPill(photoMode);
   const framesLine = framesCaptured > 0
     ? `${framesCaptured} Frames erfasst`
     : detectorRunning
     ? 'Noch keine verwertbaren Frames empfangen'
     : 'Kamera noch nicht gestartet';
-  const bannerMessage = useMemo(() => {
-    if (photoMode === 'previewing') {
-      return 'Vorschau aktiv. Positioniere dich für das Foto.';
-    }
-    if (photoMode === 'captured') {
-      return 'Foto aufgenommen. Bestätige oder nimm ein neues auf.';
-    }
-    if (isRecording) {
-      return 'Aufnahme läuft. Tippe auf „Aufnahme stoppen“, wenn du fertig bist.';
-    }
-    if (hasRecording) {
-      return 'Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.';
-    }
-    if (showDetectorStart) {
-      return 'Starte die Kamera, um eine Gebärde aufzunehmen.';
-    }
-    if (detectorRunning) {
-      return 'Zeige die Gebärde gut sichtbar vor der Kamera.';
-    }
-    return 'Kamera ist pausiert. Starte sie, um aufzunehmen.';
-  }, [photoMode, isRecording, hasRecording, showDetectorStart, detectorRunning]);
+  const bannerMessage = useMemo(
+    () =>
+      getTrainingRecorderBannerMessage({
+        photoMode,
+        isRecording,
+        hasRecording,
+        showDetectorStart,
+        detectorRunning,
+      }),
+    [photoMode, isRecording, hasRecording, showDetectorStart, detectorRunning],
+  );
 
   return (
     <section className="training-recorder">

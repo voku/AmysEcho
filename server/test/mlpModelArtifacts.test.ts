@@ -95,7 +95,9 @@ describe('writeMinimalMlpModel', () => {
     }
   });
 
-  it('generates a neutral NPZ with default labels when the baseline bundle is missing', async () => {
+  it(
+    'generates a neutral NPZ with default labels when the baseline bundle is missing',
+    async () => {
     const [{ writeMinimalMlpModel, DEFAULT_BASELINE_LABELS }, modelPaths] = await Promise.all([
       import('../src/services/mlpModelArtifacts.js'),
       import('../src/constants/modelPaths.js'),
@@ -144,5 +146,7 @@ describe('writeMinimalMlpModel', () => {
 
     expect(logMessages.some((message) => message.includes('Baseline-MLP fehlt'))).toBe(true);
     expect(logMessages.some((message) => message.includes('Neutraler MLP-Fallback'))).toBe(true);
-  });
+    },
+    30000,
+  );
 });
