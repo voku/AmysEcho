@@ -62,7 +62,16 @@ export function getDetectorStatusLabel(status: SignLanguageStatus): string {
 }
 
 export function getDetectorStatusTone(status: SignLanguageStatus): 'running' | 'error' | 'idle' {
-  return status === 'running' ? 'running' : status === 'error' ? 'error' : 'idle';
+  switch (status) {
+    case 'running':
+      return 'running';
+    case 'error':
+      return 'error';
+    case 'idle':
+    case 'initializing':
+    case 'stopped':
+      return 'idle';
+  }
 }
 
 export function getDetectorStartLabel(status: SignLanguageStatus): string {
@@ -110,5 +119,12 @@ export function getRecordingStatusPill({
 }
 
 export function getPhotoStatusPill(photoMode: PhotoMode): string | null {
-  return photoMode === 'previewing' ? 'Fotovorschau aktiv' : photoMode === 'captured' ? 'Foto aufgenommen' : null;
+  switch (photoMode) {
+    case 'previewing':
+      return 'Fotovorschau aktiv';
+    case 'captured':
+      return 'Foto aufgenommen';
+    case 'idle':
+      return null;
+  }
 }

@@ -83,6 +83,16 @@ describe('trainingRecorderUtils', () => {
         detectorRunning: true,
       }),
     ).toBe('Zeige die Gebärde gut sichtbar vor der Kamera.');
+
+    expect(
+      getTrainingRecorderBannerMessage({
+        photoMode: 'idle',
+        isRecording: false,
+        hasRecording: false,
+        showDetectorStart: false,
+        detectorRunning: false,
+      }),
+    ).toBe('Kamera ist pausiert. Starte sie, um aufzunehmen.');
   });
 
   it('liefert Statuslabels und Pills konsistent', () => {
