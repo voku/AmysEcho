@@ -32,6 +32,7 @@ export interface ProcessingResult {
   skippedSteps: string[];
   timestamp?: number;
   systemHealth?: Record<string, unknown>;
+  rawLandmarks?: number[][][];
   preprocessing?: {
     sizeNormalized?: boolean;
     tremorCompensated?: boolean;
@@ -145,7 +146,11 @@ export class ProcessingPipeline {
         if (stepResult.landmarks) {
           currentLandmarks = stepResult.landmarks;
         }
-        if (stepResult.gesture && stepResult.confidence > currentConfidence) {
+        if (
+          stepResult.gesture &&
+          typeof stepResult.confidence === 'number' &&
+          stepResult.confidence > currentConfidence
+        ) {
           detectedGesture = stepResult.gesture;
           currentConfidence = stepResult.confidence;
         }
@@ -329,9 +334,4 @@ export interface ProcessingStep {
 /**
  * Result of a processing step
  */
-export interface ProcessingStepResult {
-  gesture?: string;
-  confidence: number;
-  landmarks?: number[][][];
-  metadata?: any;
-}
+export type ProcessingStepResult = Partial<ProcessingResult>;

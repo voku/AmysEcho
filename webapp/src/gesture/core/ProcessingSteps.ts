@@ -2,16 +2,83 @@ import { GestureDetectorConfig } from '../config/GestureConfig';
 import { GestureSizeNormalizer, PartialGestureDetector } from '../gestureProcessing';
 import { FallbackGestureDetector } from './FallbackGestureDetector';
 import { HandStabilityAssistant } from './HandStabilityAssistant';
-import { TwoHandGesture } from '../types/MediaPipeTypes';
+import { HandednessCategory, TwoHandGesture } from '../types/MediaPipeTypes';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { ErrorRecoveryManager } from '../utils/ErrorRecoveryManager';
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
 import { OptimizedTremorCompensator } from '../utils/OptimizedTremorCompensator';
-import { ProcessingContext, ProcessingStep } from '../utils/ProcessingPipeline';
+import {
+  ProcessingContext,
+  ProcessingResult,
+  ProcessingStep,
+} from '../utils/ProcessingPipeline';
 
 export const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 export const MLP_NULL_LABEL = '_NULL_';
+
+interface LandmarkPreprocessingResult {
+  landmarks: number[][][];
+  rawLandmarks?: number[][][];
+  preprocessing: NonNullable<ProcessingResult['preprocessing']>;
+}
+
+interface StabilityAnalysisResult {
+  stability: NonNullable<ProcessingResult['stability']>;
+  feedback?: string;
+}
+
+interface MediaPipeSelection {
+  gesture: string | null;
+  confidence: number;
+  method: 'mediapipe' | 'none';
+  twoHandMetadata: TwoHandGesture | null;
+  perHand: Array<{ hand: string; label: string; score: number }>;
+  handednesses: string[];
+}
+
+interface AudioOnlySelection {
+  gesture: string;
+  confidence: number;
+}
+
+interface MlpSelection {
+  gesture: string | null;
+  confidence: number;
+  method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none';
+  mlpMetadata: { label: string; score: number } | null;
+  twoHandMetadata: TwoHandGesture | null;
+}
+
+interface GestureDetectionResult {
+  gesture: string | null;
+  confidence: number;
+  landmarks: number[][][];
+  metadata: NonNullable<ProcessingResult['metadata']>;
+}
+
+interface PartialGestureResult {
+  isPartial: boolean;
+  completion: number;
+  confidence: number;
+  feedback: string;
+  gesture: string;
+}
+
+interface PartialGestureAnalysisResult {
+  partial: PartialGestureResult | null;
+}
+
+type FallbackValue = Exclude<ProcessingResult['fallback'], undefined>;
+
+interface FallbackProcessingResult {
+  fallback?: FallbackValue;
+  isUsingFallback?: boolean;
+}
+
+interface ResultProcessingResult {
+  finalResult: NonNullable<ProcessingResult['finalResult']>;
+}
 
 /**
  * Processing step for landmark preprocessing
@@ -25,9 +92,15 @@ export class LandmarkPreprocessingStep implements ProcessingStep {
     private tremorCompensator: OptimizedTremorCompensator
   ) {}
 
-  async execute(context: ProcessingContext): Promise<any> {
+  async execute(context: ProcessingContext): Promise<LandmarkPreprocessingResult> {
     if (!context.landmarks || context.landmarks.length === 0) {
-      return { landmarks: context.landmarks };
+      return {
+        landmarks: context.landmarks,
+        preprocessing: {
+          sizeNormalized: false,
+          tremorCompensated: false,
+        },
+      };
     }
 
     // Apply size normalization
@@ -56,7 +129,7 @@ export class StabilityAnalysisStep implements ProcessingStep {
 
   constructor(private stabilityAssistant: HandStabilityAssistant) {}
 
-  async execute(context: ProcessingContext): Promise<any> {
+  async execute(context: ProcessingContext): Promise<StabilityAnalysisResult> {
     if (!context.landmarks || context.landmarks.length === 0) {
       return { stability: { isStable: false, score: 0 } };
     }
@@ -64,7 +137,10 @@ export class StabilityAnalysisStep implements ProcessingStep {
     const stability = this.stabilityAssistant.analyzeStability(context.landmarks);
 
     return {
-      stability,
+      stability: {
+        isStable: stability.isStable,
+        score: stability.stabilityScore,
+      },
       feedback: stability.feedback
     };
   }
@@ -79,7 +155,7 @@ export class GestureDetectionStep implements ProcessingStep {
 
   constructor(private config: GestureDetectorConfig) {}
 
-  async execute(context: ProcessingContext): Promise<any> {
+  async execute(context: ProcessingContext): Promise<GestureDetectionResult> {
     gestureDebugLog('detection', 'GestureDetectionStep executing', () => ({
       skipExpensive: context.skipExpensiveSteps,
     }), { sampleIntervalMs: 5000 });
@@ -92,6 +168,57 @@ export class GestureDetectionStep implements ProcessingStep {
         ? rawHandednesses
         : handednesses.map(hand => [{ categoryName: hand as 'Left' | 'Right' }]);
 
+    const mediaPipeSelection = this.detectWithMediaPipe(normalized, handednesses);
+    let selectedGesture = mediaPipeSelection.gesture;
+    let selectedConfidence = mediaPipeSelection.confidence;
+    let detectionMethod: MlpSelection['method'] = mediaPipeSelection.method;
+    let twoHandMetadata = mediaPipeSelection.twoHandMetadata;
+    let audioOnlyDetection = false;
+
+    // Check for audio-only detection when no visual landmarks are present
+    // This enables Amy to communicate via speech when she's not signing
+    const audioOnlySelection = this.detectAudioOnly(context);
+    if (audioOnlySelection) {
+      selectedGesture = audioOnlySelection.gesture;
+      selectedConfidence = audioOnlySelection.confidence;
+      detectionMethod = 'mlp_audio_only';
+      twoHandMetadata = null;
+      audioOnlyDetection = true;
+    }
+
+    const mlpSelection = this.applyMlpDetection(
+      context,
+      handednessesForMlp,
+      selectedGesture,
+      selectedConfidence,
+      detectionMethod,
+      twoHandMetadata
+    );
+
+    selectedGesture = mlpSelection.gesture;
+    selectedConfidence = mlpSelection.confidence;
+    detectionMethod = mlpSelection.method;
+    twoHandMetadata = mlpSelection.twoHandMetadata;
+
+    return {
+      gesture: selectedGesture,
+      confidence: selectedConfidence,
+      landmarks: context.landmarks,
+      metadata: {
+        method: detectionMethod,
+        perHand: mediaPipeSelection.perHand.map(({ hand, label, score }) => ({ hand, label, score })),
+        handednesses: mediaPipeSelection.handednesses,
+        mlp: mlpSelection.mlpMetadata,
+        twoHand: twoHandMetadata,
+        audioOnly: audioOnlyDetection
+      }
+    };
+  }
+
+  private detectWithMediaPipe(
+    normalized: NormalizedMediaPipeResult,
+    handednesses: string[]
+  ): MediaPipeSelection {
     const perHand = this.extractPerHandDetections(normalized);
     gestureDebugLog('detection', 'Per hand detections', () => ({
       count: perHand.length,
@@ -100,34 +227,37 @@ export class GestureDetectionStep implements ProcessingStep {
 
     let selectedGesture: string | null = null;
     let selectedConfidence = 0;
-    let detectionMethod: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none' = 'none';
     let twoHandMetadata: TwoHandGesture | null = null;
-    let audioOnlyDetection = false;
 
-    // Determine best MediaPipe gesture candidate
     if (perHand.length > 0) {
       for (const candidate of perHand) {
         if (candidate.score > selectedConfidence) {
           selectedGesture = this.normalizeLabel(candidate.label);
           selectedConfidence = candidate.score;
-          detectionMethod = 'mediapipe';
         }
       }
 
-      // Attempt to form a two-hand gesture when both hands detected
       if (perHand.length >= 2) {
         const twoHandCandidate = this.resolveTwoHandGesture(perHand);
         if (twoHandCandidate) {
           selectedGesture = this.formatTwoHandGesture(twoHandCandidate.gesture);
           selectedConfidence = twoHandCandidate.score;
-          detectionMethod = 'mediapipe';
           twoHandMetadata = twoHandCandidate.gesture;
         }
       }
     }
 
-    // Check for audio-only detection when no visual landmarks are present
-    // This enables Amy to communicate via speech when she's not signing
+    return {
+      gesture: selectedGesture,
+      confidence: selectedConfidence,
+      method: perHand.length > 0 ? 'mediapipe' : 'none',
+      twoHandMetadata,
+      perHand,
+      handednesses,
+    };
+  }
+
+  private detectAudioOnly(context: ProcessingContext): AudioOnlySelection | null {
     const hasVisualLandmarks = (context.landmarks ?? []).some(hand => hand.length > 0);
     const hasAudioFeatures = context.audioFeatures && context.audioFeatures.some(v => Math.abs(v) > 0.001);
 
@@ -141,7 +271,7 @@ export class GestureDetectionStep implements ProcessingStep {
         // Call MLP with zero-padded visual landmarks but real audio features
         // This allows detection based purely on audio (Amy speaking without signing)
         const emptyLandmarks: number[][][] = [];
-        const emptyHandedness: any[] = [];
+        const emptyHandedness: HandednessCategory[][] = [];
         const mlpAudioResult = window.__mlpPredict(
           emptyLandmarks,
           emptyHandedness,
@@ -160,10 +290,13 @@ export class GestureDetectionStep implements ProcessingStep {
               threshold: audioThreshold,
             }), { sampleIntervalMs: 1000 });
 
-            selectedGesture = this.normalizeLabel(mlpAudioResult.label);
-            selectedConfidence = mlpAudioResult.score;
-            detectionMethod = 'mlp_audio_only';
-            audioOnlyDetection = true;
+            const normalizedLabel = this.normalizeLabel(mlpAudioResult.label);
+            if (normalizedLabel) {
+              return {
+                gesture: normalizedLabel,
+                confidence: mlpAudioResult.score,
+              };
+            }
           }
         }
       } catch (error) {
@@ -173,8 +306,23 @@ export class GestureDetectionStep implements ProcessingStep {
       }
     }
 
-    // Invoke custom MLP if available and better than MediaPipe result
+    return null;
+  }
+
+  private applyMlpDetection(
+    context: ProcessingContext,
+    handednessesForMlp: HandednessCategory[][],
+    selectedGesture: string | null,
+    selectedConfidence: number,
+    detectionMethod: MlpSelection['method'],
+    twoHandMetadata: TwoHandGesture | null,
+  ): MlpSelection {
     let mlpMetadata: { label: string; score: number } | null = null;
+    let resolvedGesture = selectedGesture;
+    let resolvedConfidence = selectedConfidence;
+    let resolvedMethod = detectionMethod;
+    let resolvedTwoHand = twoHandMetadata;
+
     gestureDebugLog('mlp', 'Checking MLP availability', () => ({
       available: typeof window.__mlpPredict === 'function',
     }), { sampleIntervalMs: 10000 });
@@ -209,29 +357,29 @@ export class GestureDetectionStep implements ProcessingStep {
             selectedConfidence,
           }), { sampleIntervalMs: 3000 });
           // Calculate confidence margin - require higher confidence to override mediapipe
-          const isMediaPipeConfident = selectedConfidence > 0.3;
+          const isMediaPipeConfident = resolvedConfidence > 0.3;
           const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
 
           if (mlpResult.label === MLP_NULL_LABEL) {
             gestureDebugLog('mlp', `Ignoring background noise (${MLP_NULL_LABEL})`, undefined, { sampleIntervalMs: 2000 });
           } else if (mlpResult.score >= threshold &&
-              (selectedGesture === null ||
-               selectedGesture === 'none' ||
-               mlpResult.score >= (selectedConfidence + confidenceMargin))) {
+              (resolvedGesture === null ||
+               resolvedGesture === 'none' ||
+               mlpResult.score >= (resolvedConfidence + confidenceMargin))) {
             gestureDebugLog('mlp', 'MLP gesture selected', () => ({
               label: mlpResult.label,
               score: mlpResult.score,
               margin: confidenceMargin,
             }), { sampleIntervalMs: 2000 });
-            selectedGesture = this.normalizeLabel(mlpResult.label);
-            selectedConfidence = mlpResult.score;
-            detectionMethod = 'mlp';
-            twoHandMetadata = null;
+            resolvedGesture = this.normalizeLabel(mlpResult.label);
+            resolvedConfidence = mlpResult.score;
+            resolvedMethod = 'mlp';
+            resolvedTwoHand = null;
           } else {
             gestureDebugLog('mlp', 'MLP gesture not selected', () => ({
               score: mlpResult.score,
               threshold,
-              selectedConfidence,
+              selectedConfidence: resolvedConfidence,
               margin: confidenceMargin,
             }), { sampleIntervalMs: 3000 });
           }
@@ -266,17 +414,11 @@ export class GestureDetectionStep implements ProcessingStep {
     }
 
     return {
-      gesture: selectedGesture,
-      confidence: selectedConfidence,
-      landmarks: context.landmarks,
-      metadata: {
-        method: detectionMethod,
-        perHand: perHand.map(({ hand, label, score }) => ({ hand, label, score })),
-        handednesses,
-        mlp: mlpMetadata,
-        twoHand: twoHandMetadata,
-        audioOnly: audioOnlyDetection
-      }
+      gesture: resolvedGesture,
+      confidence: resolvedConfidence,
+      method: resolvedMethod,
+      mlpMetadata,
+      twoHandMetadata: resolvedTwoHand,
     };
   }
 
@@ -368,14 +510,14 @@ export class PartialGestureAnalysisStep implements ProcessingStep {
 
   constructor(private partialDetector: PartialGestureDetector) {}
 
-  async execute(context: ProcessingContext): Promise<any> {
+  async execute(context: ProcessingContext): Promise<PartialGestureAnalysisResult> {
     if (!context.landmarks || context.landmarks.length === 0) {
       return { partial: null };
     }
 
     // Analyze common gestures for partial completion
     const commonGestures = ['thumbs_up', 'open_palm', 'fist', 'point'];
-    let bestPartial: any = null;
+    let bestPartial: PartialGestureResult | null = null;
 
     for (const gesture of commonGestures) {
       const partial = this.partialDetector.analyzePartialCompletion(context.landmarks, gesture);
@@ -400,7 +542,7 @@ export class FallbackProcessingStep implements ProcessingStep {
     private errorRecoveryManager: ErrorRecoveryManager
   ) {}
 
-  async execute(context: ProcessingContext): Promise<any> {
+  async execute(context: ProcessingContext): Promise<FallbackProcessingResult> {
     if (!this.errorRecoveryManager.isInFallbackMode()) {
       return { fallback: null };
     }
@@ -425,7 +567,7 @@ export class ResultProcessingStep implements ProcessingStep {
   name = 'result_processing';
   isExpensive = false;
 
-  async execute(context: ProcessingContext): Promise<any> {
+  async execute(context: ProcessingContext): Promise<ResultProcessingResult> {
     // Final result processing and validation
     return {
       finalResult: {

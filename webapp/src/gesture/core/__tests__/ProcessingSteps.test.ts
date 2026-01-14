@@ -53,7 +53,7 @@ describe('Processing steps', () => {
   it('returns stability feedback when landmarks are present', async () => {
     const analyzeStability = vi.fn().mockReturnValue({
       isStable: true,
-      score: 0.88,
+      stabilityScore: 0.88,
       feedback: 'steady',
     });
     const step = new StabilityAnalysisStep({ analyzeStability } as any);
@@ -65,7 +65,6 @@ describe('Processing steps', () => {
       stability: {
         isStable: true,
         score: 0.88,
-        feedback: 'steady',
       },
       feedback: 'steady',
     });
