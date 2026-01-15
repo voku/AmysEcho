@@ -9,7 +9,7 @@
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "24.10.4",
+    "@types/node": "24.10.9",
     "adm-zip": "^0.5.16",
     "tsx": "^4.21.0",
     "typescript": "5.9.3"
