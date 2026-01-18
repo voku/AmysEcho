@@ -9,6 +9,7 @@ import { Dashboard } from './Dashboard';
 import { FeatureAvailability } from './FeatureAvailability';
 import { Help } from './Help';
 import { LearningHub } from './LearningHub';
+import { MetacomBoard } from './MetacomBoard';
 import { ParentalGate } from './ParentalGate';
 import { ProfileManager } from './ProfileManager';
 import { ProfileSelect } from './ProfileSelect';
@@ -32,6 +33,7 @@ export function MainAppContent() {
           <Route path="/" element={<SignLanguageRecorder />} />
           <Route path="/verlauf" element={<SignLanguageHistory />} />
           <Route path="/lernen" element={<LearningHub />} />
+          <Route path="/tafel" element={<MetacomBoard />} />
           <Route path="/training" element={<TrainingUploadWithRecording />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/erkenntnisse" element={<CommunicationInsights />} />
