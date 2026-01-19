@@ -98,7 +98,6 @@ function buildOrderPositions(
 
 function mapOpenBoardButtons(
   buttons: OpenBoardButton[],
-  rows: number,
   columns: number,
   boardId: string,
   validDestinations: Set<string>,
@@ -109,13 +108,14 @@ function mapOpenBoardButtons(
     .map((button, index) => {
       const buttonId = button.id ?? `${boardId}-button-${index}`;
       const orderPosition = orderPositions.get(String(buttonId));
-      const position = Number.isInteger(orderPosition)
-        ? orderPosition
-        : Number.isInteger(button.position)
-          ? button.position
-          : Number.isInteger(button.row) && Number.isInteger(button.col)
-            ? (button.row ?? 0) * columns + (button.col ?? 0)
-            : index;
+      let position = index;
+      if (Number.isInteger(orderPosition)) {
+        position = orderPosition;
+      } else if (Number.isInteger(button.position)) {
+        position = button.position;
+      } else if (Number.isInteger(button.row) && Number.isInteger(button.col)) {
+        position = (button.row ?? 0) * columns + (button.col ?? 0);
+      }
       const label = button.label?.trim() || button.vocalization?.trim() || 'Symbol';
       const destination = extractButtonActionDestination(button);
       if (destination && validDestinations.has(destination)) {
@@ -167,7 +167,7 @@ function parseOpenBoard(
     label,
     rows,
     columns,
-    cells: mapOpenBoardButtons(buttons, rows, columns, id, validDestinations, orderPositions),
+    cells: mapOpenBoardButtons(buttons, columns, id, validDestinations, orderPositions),
   };
 }
 
@@ -254,7 +254,7 @@ function validateBundle(bundle: MetacomBundle): void {
   bundle.boards.forEach(validateBoard);
   const boardIds = new Set(bundle.boards.map((board) => board.id));
   if (!boardIds.has('start')) {
-    throw new Error('Metacom-Bundle benötigt ein Start-Board mit der ID "start".');
+    console.warn('Metacom bundle has no start board; falling back to the first board.');
   }
 
   for (const board of bundle.boards) {
@@ -297,7 +297,7 @@ export function loadMetacomBoards(): Record<string, MetacomBoardDefinition> {
     const bundle = parseMetacomBundle(raw);
     return buildBoardRecord(bundle.boards);
   } catch (error) {
-    console.warn('Metacom-Bundle konnte nicht geladen werden', error);
+    console.warn('Failed to load Metacom bundle', error);
     return METACOM_BOARDS;
   }
 }

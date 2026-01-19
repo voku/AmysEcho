@@ -11,6 +11,41 @@ import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { backupService } from '../services/backupService';
 import { clearMetacomBundle, storeMetacomBundle } from '../services/metacomBundleService';
 
+const METACOM_TEMPLATE = {
+  version: '1.0',
+  boards: [
+    {
+      id: 'start',
+      label: 'Starttafel',
+      rows: 2,
+      columns: 2,
+      cells: [
+        { id: 'metacom_ja', label: 'Ja', emoji: '👍', position: 0, type: 'symbol' },
+        { id: 'metacom_nein', label: 'Nein', emoji: '👎', position: 1, type: 'symbol' },
+        {
+          id: 'metacom_board_essen',
+          label: 'Essen',
+          emoji: '🍎',
+          position: 2,
+          type: 'board',
+          targetBoardId: 'essen',
+        },
+        { id: 'metacom_hilfe', label: 'Hilfe', emoji: '🆘', position: 3, type: 'symbol' },
+      ],
+    },
+    {
+      id: 'essen',
+      label: 'Essen',
+      rows: 1,
+      columns: 2,
+      cells: [
+        { id: 'metacom_apfel', label: 'Apfel', emoji: '🍎', position: 0, type: 'symbol' },
+        { id: 'metacom_brot', label: 'Brot', emoji: '🍞', position: 1, type: 'symbol' },
+      ],
+    },
+  ],
+};
+
 export const Admin: React.FC = () => {
   const { apiBaseUrl, apiToken } = useApiConfig();
   const { showToast, showConfirmDialog } = useMessage();
@@ -139,7 +174,11 @@ export const Admin: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        storeMetacomBundle(e.target?.result as string);
+        const content = e.target?.result;
+        if (typeof content !== 'string') {
+          throw new Error('Die Datei konnte nicht als Text gelesen werden.');
+        }
+        storeMetacomBundle(content);
         showToast({ message: 'Metacom-Bundle importiert', tone: 'success' });
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'Unbekannter Fehler';
@@ -157,41 +196,7 @@ export const Admin: React.FC = () => {
   };
 
   const handleDownloadMetacomTemplate = () => {
-    const template = {
-      version: '1.0',
-      boards: [
-        {
-          id: 'start',
-          label: 'Starttafel',
-          rows: 2,
-          columns: 2,
-          cells: [
-            { id: 'metacom_ja', label: 'Ja', emoji: '👍', position: 0, type: 'symbol' },
-            { id: 'metacom_nein', label: 'Nein', emoji: '👎', position: 1, type: 'symbol' },
-            {
-              id: 'metacom_board_essen',
-              label: 'Essen',
-              emoji: '🍎',
-              position: 2,
-              type: 'board',
-              targetBoardId: 'essen',
-            },
-            { id: 'metacom_hilfe', label: 'Hilfe', emoji: '🆘', position: 3, type: 'symbol' },
-          ],
-        },
-        {
-          id: 'essen',
-          label: 'Essen',
-          rows: 1,
-          columns: 2,
-          cells: [
-            { id: 'metacom_apfel', label: 'Apfel', emoji: '🍎', position: 0, type: 'symbol' },
-            { id: 'metacom_brot', label: 'Brot', emoji: '🍞', position: 1, type: 'symbol' },
-          ],
-        },
-      ],
-    };
-    const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(METACOM_TEMPLATE, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;

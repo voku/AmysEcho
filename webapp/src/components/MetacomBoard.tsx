@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSymbolStore } from '../context/SymbolStore';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
@@ -12,9 +12,9 @@ function getBoard(
   boardId: string,
   boards: Record<string, MetacomBoardDefinition>,
 ): MetacomBoardDefinition {
-  const fallback = boards[START_BOARD_ID];
+  const fallback = boards[START_BOARD_ID] ?? Object.values(boards)[0];
   if (!fallback) {
-    throw new Error('Metacom start board missing');
+    throw new Error('Metacom-Starttafel fehlt.');
   }
   return boards[boardId] ?? fallback;
 }
@@ -29,6 +29,16 @@ export function MetacomBoard() {
 
   const currentBoardId = boardHistory[boardHistory.length - 1] ?? START_BOARD_ID;
   const board = getBoard(currentBoardId, boards);
+  const fallbackBoardId = useMemo(
+    () => boards[START_BOARD_ID]?.id ?? Object.values(boards)[0]?.id ?? START_BOARD_ID,
+    [boards]
+  );
+
+  useEffect(() => {
+    if (!boards[currentBoardId]) {
+      setBoardHistory([fallbackBoardId]);
+    }
+  }, [boards, currentBoardId, fallbackBoardId]);
 
   const symbolLookup = useMemo(
     () => new Map(symbols.map((symbol) => [symbol.id, symbol])),
@@ -96,7 +106,7 @@ export function MetacomBoard() {
   const handleUseAsGesture = useCallback(() => {
     if (!lastSymbolSelection) return;
     const gestureParam = encodeURIComponent(lastSymbolSelection.label);
-    const symbolIdParam = encodeURIComponent(lastSymbolSelection.id);
+    const symbolIdParam = encodeURIComponent(lastSymbolSelection.symbolId ?? lastSymbolSelection.id);
     navigate(`/training?gesture=${gestureParam}&symbolId=${symbolIdParam}`);
   }, [lastSymbolSelection, navigate]);
 

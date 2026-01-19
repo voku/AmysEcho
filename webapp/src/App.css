@@ -4916,7 +4916,7 @@ p {
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-lg);
-  background: var(--color-surface-soft);
+  background: var(--color-surface-muted);
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
@@ -4947,7 +4947,7 @@ p {
 }
 
 .metacom-cell-empty {
-  background: var(--color-surface-soft);
+  background: var(--color-surface-muted);
   border-radius: var(--radius-md);
   border: 1px dashed rgba(0, 0, 0, 0.08);
   min-height: 96px;

@@ -1,5 +1,4 @@
-import { fireEvent, screen } from '@testing-library/dom';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
