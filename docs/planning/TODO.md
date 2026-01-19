@@ -100,6 +100,13 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [ ] Add privacy-safe preview toggle between raw video and skeleton-only while keeping overlay visible.
 - [x] Add search in the training screen for the labels.
 
+### Metacom Integration
+- [x] Define Metacom board schema and starter fixtures in the webapp.
+- [x] Build an import pipeline for Metacom symbol/board bundles.
+- [x] Build stable grid UI with Metacom categories, colors, and German labels.
+- [ ] Add migration strategy for existing boards with safe fallback behavior.
+- [x] Validate licensing constraints and document approved symbol sets (Import durch Nutzer, keine mitgelieferten Symbole).
+
 ### Profile Identity & GDPR Follow-ups
 - [x] Add profile registry database.
 - [x] Implement profile deletion endpoint with cascade cleanup.

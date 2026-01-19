@@ -11,6 +11,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { TrainingQueueList } from './TrainingQueueList';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
+import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { SymbolButton } from './SymbolButton';
 
@@ -294,6 +295,25 @@ export function TrainingUploadWithRecording() {
   } = useAppState();
   const modelInjection = useMlpModelInjection(profileId);
   const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
+  const { symbols: metacomSymbols } = useMetacomBundle();
+  const combinedSymbols = useMemo(() => {
+    const merged = new Map<string, SymbolDefinition>();
+    for (const symbol of symbols) {
+      merged.set(symbol.id, symbol);
+    }
+    for (const symbol of metacomSymbols) {
+      if (!merged.has(symbol.id)) {
+        merged.set(symbol.id, {
+          id: symbol.id,
+          name: symbol.label,
+          category: symbol.category ?? 'metacom',
+          emoji: symbol.emoji,
+          color: symbol.color,
+        });
+      }
+    }
+    return Array.from(merged.values());
+  }, [metacomSymbols, symbols]);
   const lastJobStatusRef = useRef<string | null>(null);
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
@@ -352,7 +372,7 @@ export function TrainingUploadWithRecording() {
     // Sync URL params/symbols to label - only on mount or when URL/symbols change
     // We include symbols to handle the case where symbols load after mount
     const normalizedName = gestureParam?.trim() ?? '';
-    const symbol = symbols.find((s) => s.id === symbolIdParam) ?? null;
+    const symbol = combinedSymbols.find((s) => s.id === symbolIdParam) ?? null;
     if (symbol) {
       if (preferredSignId !== symbol.id) {
         setPreferredSign(symbol.id, symbol.name);
@@ -365,7 +385,7 @@ export function TrainingUploadWithRecording() {
     }
     // preferredSignId and setPreferredSign excluded to prevent infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gestureParam, symbolIdParam, symbols]);
+  }, [combinedSymbols, gestureParam, symbolIdParam]);
 
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
@@ -454,7 +474,7 @@ export function TrainingUploadWithRecording() {
           <input id="record-profile" value={profileId || ''} readOnly />
         </div>
         <SymbolSelector 
-          symbols={symbols} 
+          symbols={combinedSymbols} 
           selectedId={preferredSignId}
           onSelect={handleLabelUpdate}
         />

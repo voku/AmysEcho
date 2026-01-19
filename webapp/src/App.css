@@ -4891,3 +4891,80 @@ p {
 .radio-label.selected input[type="radio"] {
   accent-color: var(--color-action-primary-text);
 }
+
+/* ========================================================================== 
+   Metacom Board
+   ========================================================================== */
+
+.metacom-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.metacom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.metacom-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.metacom-status-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.metacom-status-text {
+  font-size: var(--font-size-body-lg);
+}
+
+.metacom-grid {
+  --metacom-columns: 4;
+  display: grid;
+  grid-template-columns: repeat(var(--metacom-columns), minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.metacom-cell {
+  display: flex;
+}
+
+.metacom-cell button {
+  width: 100%;
+  margin: 0;
+}
+
+.metacom-cell-empty {
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(0, 0, 0, 0.08);
+  min-height: 96px;
+}
+
+@media (max-width: 720px) {
+  .metacom-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .metacom-status {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .metacom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

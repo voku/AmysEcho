@@ -9,6 +9,42 @@ import { useApiConfig } from '../hooks/useApiConfig';
 import { useMessage } from '../context/MessageContext';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { backupService } from '../services/backupService';
+import { clearMetacomBundle, storeMetacomBundle } from '../services/metacomBundleService';
+
+const METACOM_TEMPLATE = {
+  version: '1.0',
+  boards: [
+    {
+      id: 'start',
+      label: 'Starttafel',
+      rows: 2,
+      columns: 2,
+      cells: [
+        { id: 'metacom_ja', label: 'Ja', emoji: '👍', position: 0, type: 'symbol' },
+        { id: 'metacom_nein', label: 'Nein', emoji: '👎', position: 1, type: 'symbol' },
+        {
+          id: 'metacom_board_essen',
+          label: 'Essen',
+          emoji: '🍎',
+          position: 2,
+          type: 'board',
+          targetBoardId: 'essen',
+        },
+        { id: 'metacom_hilfe', label: 'Hilfe', emoji: '🆘', position: 3, type: 'symbol' },
+      ],
+    },
+    {
+      id: 'essen',
+      label: 'Essen',
+      rows: 1,
+      columns: 2,
+      cells: [
+        { id: 'metacom_apfel', label: 'Apfel', emoji: '🍎', position: 0, type: 'symbol' },
+        { id: 'metacom_brot', label: 'Brot', emoji: '🍞', position: 1, type: 'symbol' },
+      ],
+    },
+  ],
+};
 
 export const Admin: React.FC = () => {
   const { apiBaseUrl, apiToken } = useApiConfig();
@@ -129,6 +165,47 @@ export const Admin: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleImportMetacomBundle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result;
+        if (typeof content !== 'string') {
+          throw new Error('Die Datei konnte nicht als Text gelesen werden.');
+        }
+        storeMetacomBundle(content);
+        showToast({ message: 'Metacom-Bundle importiert', tone: 'success' });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'Unbekannter Fehler';
+        showToast({ message: `Metacom-Import fehlgeschlagen: ${reason}`, tone: 'error' });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClearMetacomBundle = async () => {
+    const confirmed = await showConfirmDialog('Metacom-Import zurücksetzen?');
+    if (!confirmed) return;
+    clearMetacomBundle();
+    showToast({ message: 'Metacom-Import zurückgesetzt', tone: 'success' });
+  };
+
+  const handleDownloadMetacomTemplate = () => {
+    const blob = new Blob([JSON.stringify(METACOM_TEMPLATE, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'metacom-template.json';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    showToast({ message: 'Metacom-Vorlage heruntergeladen', tone: 'success' });
   };
 
   const handleExportData = () => {
@@ -321,6 +398,30 @@ export const Admin: React.FC = () => {
             <input type="file" accept=".json" onChange={handleImportSymbols} hidden />
           </label>
           <p className="muted">Lädt ein zuvor gespeichertes Symbol-Set wieder ein</p>
+        </div>
+
+        <div className="action-group">
+          <label className="file-input-label">
+            <span className="secondary-button">Metacom-Boards importieren</span>
+            <input type="file" accept=".json,.obf" onChange={handleImportMetacomBundle} hidden />
+          </label>
+          <p className="muted">
+            Lädt Metacom-Bundles oder Open-Board-Format-Dateien und ersetzt die lokale Tafel
+          </p>
+        </div>
+
+        <div className="action-group">
+          <button className="secondary-button" onClick={handleDownloadMetacomTemplate}>
+            Metacom-Vorlage herunterladen
+          </button>
+          <p className="muted">Lädt eine einfache JSON-Vorlage zum Ausfüllen herunter</p>
+        </div>
+
+        <div className="action-group">
+          <button className="secondary-button" onClick={handleClearMetacomBundle}>
+            Metacom-Import zurücksetzen
+          </button>
+          <p className="muted">Stellt die Standard-Starttafel wieder her</p>
         </div>
 
         <div className="action-group">

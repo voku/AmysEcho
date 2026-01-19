@@ -128,6 +128,14 @@ export function BottomNav() {
         <span className="bottom-nav-label">Lernen</span>
       </NavLink>
       <NavLink
+        to="/tafel"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Tafel"
+      >
+        <span className="bottom-nav-icon">🗣️</span>
+        <span className="bottom-nav-label">Tafel</span>
+      </NavLink>
+      <NavLink
         to="/einstellungen"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
         title="Einstellungen"

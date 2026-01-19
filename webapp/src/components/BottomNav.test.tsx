@@ -15,6 +15,7 @@ describe('BottomNav', () => {
     expect(screen.getByText('Kamera')).toBeInTheDocument();
     expect(screen.getByText('Verlauf')).toBeInTheDocument();
     expect(screen.getByText('Lernen')).toBeInTheDocument();
+    expect(screen.getByText('Tafel')).toBeInTheDocument();
     expect(screen.getByText('Einstellungen')).toBeInTheDocument();
     expect(screen.getByText('Hilfe')).toBeInTheDocument();
     expect(screen.getByText('Betreuung')).toBeInTheDocument();
@@ -53,6 +54,17 @@ describe('BottomNav', () => {
     expect(lernenLink).toHaveClass('active');
   });
 
+  it('marks tafel route as active when on /tafel', () => {
+    render(
+      <MemoryRouter initialEntries={['/tafel']}>
+        <BottomNav />
+      </MemoryRouter>
+    );
+
+    const tafelLink = screen.getByText('Tafel').closest('a');
+    expect(tafelLink).toHaveClass('active');
+  });
+
   it('marks einstellungen route as active when on /einstellungen', () => {
     render(
       <MemoryRouter initialEntries={['/einstellungen']}>
@@ -73,7 +85,7 @@ describe('BottomNav', () => {
 
     // Check that icon spans are rendered
     const iconElements = document.querySelectorAll('.bottom-nav-icon');
-    expect(iconElements.length).toBe(6);
+    expect(iconElements.length).toBe(7);
   });
 
   it('has correct links to all routes', () => {
@@ -84,12 +96,13 @@ describe('BottomNav', () => {
     );
 
     const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(6);
+    expect(links).toHaveLength(7);
     expect(links[0]).toHaveAttribute('href', '/');
     expect(links[1]).toHaveAttribute('href', '/verlauf');
     expect(links[2]).toHaveAttribute('href', '/lernen');
-    expect(links[3]).toHaveAttribute('href', '/einstellungen');
-    expect(links[4]).toHaveAttribute('href', '/hilfe');
-    expect(links[5]).toHaveAttribute('href', '/betreuung');
+    expect(links[3]).toHaveAttribute('href', '/tafel');
+    expect(links[4]).toHaveAttribute('href', '/einstellungen');
+    expect(links[5]).toHaveAttribute('href', '/hilfe');
+    expect(links[6]).toHaveAttribute('href', '/betreuung');
   });
 });
