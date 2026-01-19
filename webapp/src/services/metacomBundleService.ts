@@ -68,8 +68,14 @@ function isOpenBoardFormat(value: unknown): value is OpenBoardFormat {
 function extractButtonActionDestination(button: OpenBoardButton): string | null {
   const actions = button.actions ?? [];
   for (const action of actions) {
-    const type = action.type ?? action.action ?? '';
-    if (type === 'navigate' || type === 'open-board' || type === 'open_board' || type === 'switch_board') {
+    const rawType = action.type ?? action.action ?? '';
+    const normalizedType = rawType.toLowerCase().replace(/_/g, '-');
+    if (
+      normalizedType === 'navigate'
+      || normalizedType === 'open-board'
+      || normalizedType === 'openboard'
+      || normalizedType === 'switch-board'
+    ) {
       const destination = action.destination ?? action.board_id;
       if (destination) {
         return String(destination);
@@ -109,7 +115,6 @@ function mapOpenBoardButtons(
   orderPositions: Map<string, number>,
 ): MetacomCell[] {
   return buttons
-    .filter((button) => !button.hidden)
     .map((button, index) => {
       const buttonId = button.id ?? `${boardId}-button-${index}`;
       const orderPosition = orderPositions.get(String(buttonId));
@@ -131,6 +136,10 @@ function mapOpenBoardButtons(
           position = row * columns + col;
         }
       }
+      if (button.hidden) {
+        return null;
+      }
+
       const label = button.label?.trim() || button.vocalization?.trim() || 'Symbol';
       const destination = extractButtonActionDestination(button);
       const color = button.background_color;
@@ -157,7 +166,8 @@ function mapOpenBoardButtons(
         ...(color && { color }),
       };
       return cell;
-    });
+    })
+    .filter((cell): cell is MetacomCell => Boolean(cell));
 }
 
 function parseOpenBoard(
