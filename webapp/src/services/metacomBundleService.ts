@@ -108,37 +108,49 @@ function mapOpenBoardButtons(
     .map((button, index) => {
       const buttonId = button.id ?? `${boardId}-button-${index}`;
       const orderPosition = orderPositions.get(String(buttonId));
-      let position = index;
-      if (Number.isInteger(orderPosition)) {
+      let position: number = index;
+      if (typeof orderPosition === 'number' && Number.isInteger(orderPosition)) {
         position = orderPosition;
-      } else if (Number.isInteger(button.position)) {
-        position = button.position;
-      } else if (Number.isInteger(button.row) && Number.isInteger(button.col)) {
-        position = (button.row ?? 0) * columns + (button.col ?? 0);
+      } else {
+        const buttonPosition = button.position;
+        const row = button.row;
+        const col = button.col;
+        if (typeof buttonPosition === 'number' && Number.isInteger(buttonPosition)) {
+          position = buttonPosition;
+        } else if (
+          typeof row === 'number'
+          && typeof col === 'number'
+          && Number.isInteger(row)
+          && Number.isInteger(col)
+        ) {
+          position = row * columns + col;
+        }
       }
       const label = button.label?.trim() || button.vocalization?.trim() || 'Symbol';
       const destination = extractButtonActionDestination(button);
+      const color = button.background_color;
       if (destination && validDestinations.has(destination)) {
-        return {
+        const baseCell: MetacomCell = {
           id: String(buttonId),
           label,
           emoji: '🧭',
           position,
           type: 'board',
           targetBoardId: destination,
-          color: button.background_color,
         };
+        return color ? { ...baseCell, color } : baseCell;
       }
 
-      return {
+      const baseCell: MetacomCell = {
         id: String(buttonId),
         label,
         emoji: '🧩',
         position,
         type: 'symbol',
-        speech: button.vocalization ?? undefined,
-        color: button.background_color,
       };
+      const speech = button.vocalization;
+      const cellWithSpeech = speech ? { ...baseCell, speech } : baseCell;
+      return color ? { ...cellWithSpeech, color } : cellWithSpeech;
     });
 }
 
