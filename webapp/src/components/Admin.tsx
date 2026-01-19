@@ -201,7 +201,9 @@ export const Admin: React.FC = () => {
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = 'metacom-template.json';
+    document.body.appendChild(anchor);
     anchor.click();
+    document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
     showToast({ message: 'Metacom-Vorlage heruntergeladen', tone: 'success' });
   };

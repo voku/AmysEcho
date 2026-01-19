@@ -1,4 +1,9 @@
-import type { MetacomBoardDefinition, MetacomCell } from '../types/metacom';
+import type {
+  MetacomBoardCell,
+  MetacomBoardDefinition,
+  MetacomCell,
+  MetacomSymbolCell,
+} from '../types/metacom';
 import { METACOM_BOARDS } from '../constants/metacomBoards';
 
 const METACOM_BUNDLE_STORAGE_KEY = 'amysecho_metacom_bundle';
@@ -130,27 +135,28 @@ function mapOpenBoardButtons(
       const destination = extractButtonActionDestination(button);
       const color = button.background_color;
       if (destination && validDestinations.has(destination)) {
-        const baseCell: MetacomCell = {
+        const cell: MetacomBoardCell = {
           id: String(buttonId),
           label,
           emoji: '🧭',
           position,
           type: 'board',
           targetBoardId: destination,
+          ...(color && { color }),
         };
-        return color ? { ...baseCell, color } : baseCell;
+        return cell;
       }
 
-      const baseCell: MetacomCell = {
+      const cell: MetacomSymbolCell = {
         id: String(buttonId),
         label,
         emoji: '🧩',
         position,
         type: 'symbol',
+        ...(button.vocalization && { speech: button.vocalization }),
+        ...(color && { color }),
       };
-      const speech = button.vocalization;
-      const cellWithSpeech = speech ? { ...baseCell, speech } : baseCell;
-      return color ? { ...cellWithSpeech, color } : cellWithSpeech;
+      return cell;
     });
 }
 
