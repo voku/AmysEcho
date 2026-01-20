@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractNonManualFeatures } from '../nonManualFeatures';
+import { extractNonManualFeatures } from './nonManualFeatures';
 
 describe('extractNonManualFeatures', () => {
   it('returns null when no pose or face landmarks are available', () => {

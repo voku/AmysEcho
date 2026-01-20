@@ -24,3 +24,14 @@ Track and alert on:
 - `trainToDownloadMs`
 - `streamLatencyP50/P95`
 - `payloadSizeAvg`
+
+## Validation Strategy
+
+- Validate budgets during staging runs using the integration test suite plus manual QA from `docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`.
+- Record at least 10 end-to-end runs per device tier before promoting changes.
+
+## Alert Thresholds
+
+- Alert if `streamLatencyP95 > 400 ms` for 5 minutes.
+- Alert if `payloadSizeAvg > 45 KB` for 5 minutes.
+- Alert if `captureToUploadMs > 20 s` for 3 consecutive runs.

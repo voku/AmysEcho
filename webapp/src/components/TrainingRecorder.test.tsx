@@ -225,6 +225,16 @@ describe('TrainingRecorder', () => {
     expect(screen.getByText(/Nimm etwas länger auf/)).toBeInTheDocument();
   });
 
+  it('zeigt Qualitätswarnung bei fehlender Bewegung', () => {
+    const stillFrame = { landmarks: [[[0.1, 0.2, 0]]], handedness: ['Left'] };
+    trainingState.recordedData.frames = Array.from({ length: 15 }, () => stillFrame);
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByText(/Qualitätscheck/)).toBeInTheDocument();
+    expect(screen.getByText(/Bewege Finger und Hand deutlich/)).toBeInTheDocument();
+  });
+
   it('zeigt die Banner-Message wenn die Kamera läuft', () => {
     gestureState.status = 'running';
 

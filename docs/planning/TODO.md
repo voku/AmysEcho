@@ -120,7 +120,6 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [ ] Background model updates for custom signs.
 - [x] Offline queueing for uploads in the custom sign flow.
 - [ ] Training data quality metrics to decide when user-contributed data is ready for the global baseline.
-- [x] Add privacy-safe preview toggle between raw video and skeleton-only while keeping overlay visible.
 - [x] Add search in the training screen for the labels.
 
 ### Metacom Integration

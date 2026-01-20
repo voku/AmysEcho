@@ -162,6 +162,7 @@ export interface PartialFeedbackMessage extends WebViewMessage {
 // Union type for all messages
 export type WebViewMessagePayload =
   | GestureMessage
+  | LandmarkStreamPayload
   | ErrorMessage
   | TelemetryMessage
   | StabilityFeedbackMessage

@@ -87,6 +87,7 @@ describe('SignLanguageRecorder', () => {
 
     const rawToggle = screen.getByLabelText('Rohvideo') as HTMLInputElement;
     const videoElement = document.querySelector('video');
+    expect(videoElement).toBeInTheDocument();
     expect(rawToggle.checked).toBe(true);
     expect(videoElement).not.toHaveClass('video-hidden');
 

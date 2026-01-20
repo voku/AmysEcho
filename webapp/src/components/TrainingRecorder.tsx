@@ -478,9 +478,16 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     if (recordedData.frames.length === 0) {
       return null;
     }
-    const sequence = recordedData.frames.map((frame) =>
-      Array.isArray(frame.landmarks) ? frame.landmarks : [],
-    );
+    const sequence = recordedData.frames.map((frame) => {
+      const candidate = (frame as { handLandmarks?: number[][][] }).handLandmarks;
+      if (Array.isArray(candidate)) {
+        return candidate;
+      }
+      if (Array.isArray(frame.landmarks)) {
+        return frame.landmarks;
+      }
+      return [];
+    });
     return validateLandmarkSequence(sequence);
   }, [recordedData.frames]);
   const clipStatus = recordedData.clipFile

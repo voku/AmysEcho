@@ -1124,7 +1124,15 @@ export class GestureRecognitionOrchestrator {
         return [];
       }
 
-      return hand.map((point) => (Array.isArray(point) && point.length > 0 ? 1 : 0));
+      // HandLandmark entries do not include a visibility field, so we treat
+      // a point as visible only when x/y/z coordinates are finite numbers.
+      return hand.map((point) => {
+        if (!Array.isArray(point) || point.length < 3) {
+          return 0;
+        }
+        const [x, y, z] = point;
+        return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) ? 1 : 0;
+      });
     });
   }
 

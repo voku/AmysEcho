@@ -1,3 +1,5 @@
+import { type Point, distance } from './landmarkNormalizer';
+
 export type NonManualFeatures = {
   headYaw: number | null;
   headPitch: number | null;
@@ -6,8 +8,6 @@ export type NonManualFeatures = {
   eyebrowRaiseRight: number | null;
   source: 'face' | 'pose' | 'mixed';
 };
-
-type Point = [number, number, number];
 
 const FACE_NOSE_TIP = 1;
 const FACE_LEFT_EYE = 33;
@@ -35,12 +35,6 @@ function getPoint(landmarks: number[][], index: number): Point | null {
   return [x, y, z];
 }
 
-function distance(a: Point, b: Point): number {
-  const dx = a[0] - b[0];
-  const dy = a[1] - b[1];
-  const dz = a[2] - b[2];
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
-}
 
 function average(a: Point, b: Point): Point {
   return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];

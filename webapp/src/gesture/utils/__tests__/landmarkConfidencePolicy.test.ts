@@ -1,4 +1,8 @@
-import { assessLandmarkConfidence } from '../landmarkConfidencePolicy';
+import {
+  assessLandmarkConfidence,
+  MIN_VISIBLE_POINTS_PER_HAND,
+  MIN_VISIBLE_RATIO_PER_HAND,
+} from '../landmarkConfidencePolicy';
 
 describe('assessLandmarkConfidence', () => {
   it('returns false when no landmarks are present', () => {
@@ -20,6 +24,22 @@ describe('assessLandmarkConfidence', () => {
     expect(result.shouldStream).toBe(true);
     expect(result.visibleHands).toBe(1);
     expect(result.totalHands).toBe(1);
+  });
+
+  it('streams when visibility is exactly on the threshold', () => {
+    const landmarks = [
+      Array.from({ length: 21 }, () => [0.1, 0.2, 0.0]),
+    ];
+    const minVisiblePoints = MIN_VISIBLE_POINTS_PER_HAND;
+    const minVisibleRatio = MIN_VISIBLE_RATIO_PER_HAND;
+    const visibleCount = Math.max(minVisiblePoints, Math.ceil(21 * minVisibleRatio));
+    const visibility = [
+      Array.from({ length: 21 }, (_, index) => (index < visibleCount ? 1 : 0)),
+    ];
+
+    const result = assessLandmarkConfidence(landmarks, visibility);
+    expect(result.shouldStream).toBe(true);
+    expect(result.visibleHands).toBe(1);
   });
 
   it('skips when all hands fall below the visibility threshold', () => {

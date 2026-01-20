@@ -6,27 +6,27 @@ This document describes the normalization applied to live and training landmarks
 
 Hand size normalization runs inside the gesture processing pipeline to reduce scale drift between frames. The normalizer keeps a per-hand reference size and scales new frames relative to that reference.
 
-**Reference size**
+### Reference size
 
 - Measure the Euclidean distance between the wrist (index `0`) and the middle finger tip (index `12`).
 
-```
+```text
 handSize = sqrt((x12 - x0)^2 + (y12 - y0)^2 + (z12 - z0)^2)
 ```
 
-**Size ratio**
+### Size ratio
 
-```
+```text
 sizeRatio = handSize / referenceSize
 ```
 
 If `|sizeRatio - 1| <= tolerance`, the hand is left unchanged. Otherwise the ratio is clamped to the configured scale bounds before applying normalization.
 
-**Normalization formula**
+### Normalization formula
 
 For every point `p = (x, y, z)` in the hand, using `w = (wx, wy, wz)` for the wrist position:
 
-```
+```text
 normalized = w + (p - w) / clampedRatio
 ```
 
@@ -38,15 +38,15 @@ Unit tests live in `webapp/src/gesture/__tests__/GestureProcessing.test.ts` and 
 
 When preparing features for the MLP, each hand is translated to the wrist and scaled so the maximum L1-ish extent is `1`.
 
-**Translation**
+### Translation
 
-```
+```text
 translated = point - wrist
 ```
 
-**Scale**
+### Scale
 
-```
+```text
 scale = max(|x| + |y| + |z|) over translated points
 normalized = translated / max(scale, 1)
 ```
@@ -57,17 +57,17 @@ This ensures the full hand fits in a consistent normalized volume. See `webapp/s
 
 Pose landmarks are normalized for MLP input by centering on the torso and scaling by shoulder width.
 
-**Torso center**
+### Torso center
 
 Use the average of left/right shoulders (indices 11, 12) and left/right hips (indices 23, 24):
 
-```
+```text
 center = (LShoulder + RShoulder + LHip + RHip) / 4
 ```
 
-**Scale**
+### Scale
 
-```
+```text
 shoulderWidth = distance(LShoulder, RShoulder)
 normalized = (point - center) / max(shoulderWidth, 1)
 ```
@@ -78,7 +78,7 @@ This yields body-relative coordinates that are stable across camera distance. Co
 
 Face landmarks are normalized by centering on the nose tip (index `1`) and scaling by the distance between eyes (indices `33` and `263`).
 
-```
+```text
 center = noseTip
 scale = distance(leftEye, rightEye)
 normalized = (point - center) / max(scale, 1)

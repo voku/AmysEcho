@@ -5,7 +5,7 @@ export const LandmarkStreamSchema = z
     type: z.literal("landmarks"),
     schemaVersion: z.number().int().min(1),
     timestamp: z.number(),
-    landmarks: z.array(z.array(z.array(z.number()))),
+    landmarks: z.array(z.array(z.array(z.number()).length(3))),
     visibility: z.array(z.array(z.number())),
     handednesses: z.array(z.string()),
     handedness: z.array(z.string()).optional(),
