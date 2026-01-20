@@ -145,7 +145,7 @@ describe('TrainingRecorder', () => {
     const user = userEvent.setup();
     trainingState.recordedData = {
       ...trainingState.recordedData,
-      frames: [{}],
+      frames: [{ landmarks: [[[0.1, 0.2, 0]]], handedness: ['Left'] }],
       stillImage: 'data:image/jpeg;base64,abc',
     };
 
@@ -205,13 +205,34 @@ describe('TrainingRecorder', () => {
   });
 
   it('zeigt die Banner-Message für vorhandene Aufnahmen', () => {
-    trainingState.recordedData.frames = [{}];
+    trainingState.recordedData.frames = [{ landmarks: [[[0.1, 0.2, 0]]], handedness: ['Left'] }];
 
     render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
 
     expect(
       screen.getByText('Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.'),
     ).toBeInTheDocument();
+  });
+
+  it('zeigt Qualitätswarnungen für kurze oder instabile Aufnahmen', () => {
+    trainingState.recordedData.frames = [
+      { landmarks: [[[0.1, 0.2, 0]]], handedness: ['Left'] },
+    ];
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByText(/Qualitätscheck/)).toBeInTheDocument();
+    expect(screen.getByText(/Nimm etwas länger auf/)).toBeInTheDocument();
+  });
+
+  it('zeigt Qualitätswarnung bei fehlender Bewegung', () => {
+    const stillFrame = { landmarks: [[[0.1, 0.2, 0]]], handedness: ['Left'] };
+    trainingState.recordedData.frames = Array.from({ length: 15 }, () => stillFrame);
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByText(/Qualitätscheck/)).toBeInTheDocument();
+    expect(screen.getByText(/Bewege Finger und Hand deutlich/)).toBeInTheDocument();
   });
 
   it('zeigt die Banner-Message wenn die Kamera läuft', () => {

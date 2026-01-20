@@ -5,6 +5,29 @@
 - [ ] **Finalize quality gates for user-generated training data:** define per-sign minimums, jitter thresholds for hand/pose/face stability, and review steps before promoting caregiver uploads into the global baseline.
 - [ ] Close the multimodal feedback loop in production: validate that camera overlay previews (hands + pose + face) match what the server ingests, confirm smoothing/feature metadata is preserved through training, and add an E2E checklist for “record → preview → upload → train → download personalized model”.
 
+## MediaPipe Blind-Spot Follow-ups (Client, Server, Data, Infra)
+
+### Client (app)
+- [x] Define a **landmark confidence policy**: thresholds for visibility, minimum frames per window, and how to handle dropped frames (e.g., interpolate vs. discard).
+- [x] Implement **landmark normalization** (hand size, body-relative coordinates) with a documented formula and unit tests.
+- [x] Prototype **Holistic vs. Hands-only** performance on target devices and document FPS/thermal impact.
+- [x] Add **non-manual feature extraction** from Face Mesh and Pose (e.g., eyebrow raise, head pitch/yaw, mouth openness) and measure incremental accuracy lift.
+- [x] Define a **client payload schema** for streamed landmarks (JSON or protobuf) including timestamps, handedness, visibility, and schema version.
+
+### Server
+- [x] Specify **windowing strategy** (window length, stride) and alignment method (CTC vs. seq2seq) for gesture + language modeling.
+- [x] Implement **temporal smoothing** and jitter reduction for incoming landmark sequences.
+- [x] Add **re-init logic** when landmark confidence drops (request a keyframe or reset state).
+- [x] Define **response format** including per-token timestamps, confidence scores, and error codes.
+
+### Data & evaluation
+- [x] Identify or build a **sign-language dataset** that includes non-manual markers; document label format and split strategy.
+- [x] Define **evaluation metrics** (WER, gloss accuracy, latency, FPS) and add a baseline report template.
+
+### Infra & monitoring
+- [x] Add **bandwidth/latency budgets** and validate end-to-end streaming limits in staging.
+- [x] Instrument **server inference latency** and **client capture FPS** with logging/metrics dashboards.
+
 We have MediaPipe capture working in the webapp and a Python MLP trainer on the server. The training flow enables new caregiver recordings to refresh the sign language recognition model (globally and per profile) with automatic model distribution.
 
 ## 1. Capture Sign Language Samples in the Webapp (`webapp/`)
@@ -12,7 +35,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Extend the Training page to record both the landmark timeline and captured frames while recording is active.
 - [x] Persist the sample shape in the training queue (`webapp/src/training/trainingQueue.ts`). Use IndexedDB via OPFS for offline support.
 - [x] Harden multimodal capture for kids: verify pose/face/hand landmark availability across supported browsers/devices, and surface guidance when a modality drops (e.g., "Please keep face in frame").
-- [ ] Add privacy-safe preview controls: allow caregivers to toggle raw video vs. skeleton-only while keeping overlay drawing for hands/pose/face visible.
+- [x] Add privacy-safe preview controls: allow caregivers to toggle raw video vs. skeleton-only while keeping overlay drawing for hands/pose/face visible.
 
 ## 2. Package & Queue Upload Bundles (`webapp/src/training`)
 - [x] Create `uploadTrainingBundle` that builds a zip with `{metadata.json, landmarks.json, still.jpg}`.
@@ -44,7 +67,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Add end-to-end tests: one in `integration/` that records a fake sign, uploads it, triggers `/train-model`, downloads the new weights, and asserts the model file checksum changes.
 - [x] Document the flow in `docs/` with a sequence diagram (capture → bundle → training → distribution).
 - [x] Create a manual QA checklist covering "record sign", "bundle files present", "training job succeeds", "personalized model downloaded".
-- [ ] Extend manual and automated QA for multimodal overlays: include steps/screenshots showing landmark previews (hand/pose/face), expected German guidance when modalities are missing, and the end-to-end path from preview to personalized model download.
+- [x] Extend manual and automated QA for multimodal overlays: include steps/screenshots showing landmark previews (hand/pose/face), expected German guidance when modalities are missing, and the end-to-end path from preview to personalized model download.
 - [ ] Track latency and reliability: add metrics collection for capture → upload → training → download timings, and publish a weekly dashboard to ensure the full cycle stays within the kid-friendly budget (<50 ms/frame inference, fast uploads on spotty connections).
 
 ---
@@ -97,7 +120,6 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [ ] Background model updates for custom signs.
 - [x] Offline queueing for uploads in the custom sign flow.
 - [ ] Training data quality metrics to decide when user-contributed data is ready for the global baseline.
-- [ ] Add privacy-safe preview toggle between raw video and skeleton-only while keeping overlay visible.
 - [x] Add search in the training screen for the labels.
 
 ### Metacom Integration

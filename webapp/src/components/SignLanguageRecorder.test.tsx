@@ -64,6 +64,14 @@ describe('SignLanguageRecorder', () => {
     expect(overlayToggle).toBeChecked();
   });
 
+  it('shows raw video toggle checkbox', () => {
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const rawToggle = screen.getByLabelText('Rohvideo');
+    expect(rawToggle).toBeInTheDocument();
+    expect(rawToggle).toBeChecked();
+  });
+
   it('toggles overlay visibility when checkbox is clicked', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
@@ -72,6 +80,20 @@ describe('SignLanguageRecorder', () => {
 
     fireEvent.click(overlayToggle);
     expect(overlayToggle.checked).toBe(false);
+  });
+
+  it('toggles raw video visibility when checkbox is clicked', () => {
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const rawToggle = screen.getByLabelText('Rohvideo') as HTMLInputElement;
+    const videoElement = document.querySelector('video');
+    expect(videoElement).toBeInTheDocument();
+    expect(rawToggle.checked).toBe(true);
+    expect(videoElement).not.toHaveClass('video-hidden');
+
+    fireEvent.click(rawToggle);
+    expect(rawToggle.checked).toBe(false);
+    expect(videoElement).toHaveClass('video-hidden');
   });
 
   it('shows placeholder when no gesture detected', () => {

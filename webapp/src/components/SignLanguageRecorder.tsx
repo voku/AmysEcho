@@ -36,6 +36,7 @@ export function SignLanguageRecorder() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [showRawVideo, setShowRawVideo] = useState(true);
   const [demoMode, setDemoMode] = useState(false);
   const [hasTrainedSigns, setHasTrainedSigns] = useState<boolean | null>(() => {
     try {
@@ -285,7 +286,9 @@ export function SignLanguageRecorder() {
       <div className="video-wrapper gesture-fullscreen">
         <video
           ref={videoRef}
-          className={`video${isMirroredPreview ? ' mirrored' : ''}`}
+          className={['video', isMirroredPreview && 'mirrored', !showRawVideo && 'video-hidden']
+            .filter(Boolean)
+            .join(' ')}
           playsInline
           muted
           autoPlay
@@ -295,7 +298,7 @@ export function SignLanguageRecorder() {
           className={`overlay${showOverlay ? '' : ' overlay-hidden'}`}
           aria-hidden={!showOverlay}
         />
-        <div className="video-veil" aria-hidden="true" />
+        <div className={['video-veil', !showRawVideo && 'video-veil-hidden'].filter(Boolean).join(' ')} aria-hidden="true" />
 
         <div className="gesture-screen__hud">
           <div className="gesture-screen__status">
@@ -375,6 +378,15 @@ export function SignLanguageRecorder() {
                 onChange={(event) => setShowOverlay(event.target.checked)}
               />
               <span>Overlay</span>
+            </label>
+            <label className="toggle ghost-inline" htmlFor="raw-video-toggle">
+              <input
+                id="raw-video-toggle"
+                type="checkbox"
+                checked={showRawVideo}
+                onChange={(event) => setShowRawVideo(event.target.checked)}
+              />
+              <span>Rohvideo</span>
             </label>
           </div>
 

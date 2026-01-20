@@ -1,5 +1,7 @@
 import { zipSync } from 'fflate';
+import { extractNonManualFeatures } from '../gesture/utils/nonManualFeatures';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks, framesHaveHandLandmarks } from './handUtils';
+import { validateLandmarkSequence } from './trainingValidator';
 import { fetchWithRetry, HttpError } from '../utils/http';
 import type {
   TrainingBundlePayload,
@@ -23,6 +25,7 @@ type TimelineFrame = {
   handLandmarks: number[][][];
   poseLandmarks: number[][];
   faceLandmarks: number[][];
+  nonManualFeatures?: ReturnType<typeof extractNonManualFeatures>;
   timestampMs?: number;
 };
 
@@ -31,6 +34,7 @@ type LandmarksMetadata = {
     hands: { present: boolean; frameCount: number; coverage: number };
     pose: { present: boolean; frameCount: number; coverage: number };
     face: { present: boolean; frameCount: number; coverage: number };
+    nonManual: { present: boolean; frameCount: number; coverage: number };
   };
   smoothing: {
     method: string;
@@ -41,6 +45,14 @@ type LandmarksMetadata = {
   handedness?: { labels: string[]; frameCount: number };
 };
 
+type ValidationSummary = {
+  frameCount: number;
+  issues: string[];
+  suggestions: string[];
+  qualityScore: number;
+  confidence: number;
+};
+
 export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
   return frames
     .filter((frame) => frameHasAnyLandmarks(frame))
@@ -48,6 +60,7 @@ export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
       const handedness = Array.isArray(frame.handedness)
         ? frame.handedness.filter((entry) => typeof entry === 'string')
         : [];
+      const nonManualFeatures = extractNonManualFeatures(frame.poseLandmarks, frame.faceLandmarks);
       return {
         handedness: handedness.map((entry) => String(entry)),
         landmarks: flattenHandsWithHandedness(frame.landmarks, handedness),
@@ -62,6 +75,7 @@ export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
         faceLandmarks: Array.isArray(frame.faceLandmarks)
           ? frame.faceLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
           : [],
+        ...(nonManualFeatures ? { nonManualFeatures } : {}),
         ...(typeof frame.timestampMs === 'number' && Number.isFinite(frame.timestampMs)
           ? { timestampMs: frame.timestampMs }
           : {}),
@@ -81,6 +95,7 @@ function buildMetadata(
   stillFilename: string | null,
   audioFilename: string | null,
   landmarksMetadata: LandmarksMetadata,
+  validationSummary: ValidationSummary | null,
   frames: TimelineFrame[],
 ) {
   const clipBytes = payload.recording?.clipBytes ?? payload.clipFile?.size;
@@ -114,10 +129,27 @@ function buildMetadata(
     ...(audioFilename ? { audioFilename } : {}),
     modalities: landmarksMetadata.modalities,
     smoothing: landmarksMetadata.smoothing,
+    ...(validationSummary ? { validationSummary } : {}),
     ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),
     ...(payload.handFocus ? { handFocus: payload.handFocus } : {}),
     ...(payload.variationData ? { variationData: payload.variationData } : {}),
     ...(Object.keys(recording).length > 0 ? { recording } : {}),
+  };
+}
+
+function buildValidationSummary(frames: TrainingFrame[]): ValidationSummary | null {
+  if (!Array.isArray(frames) || frames.length === 0) {
+    return null;
+  }
+
+  const sequence = frames.map((frame) => (Array.isArray(frame.landmarks) ? frame.landmarks : []));
+  const result = validateLandmarkSequence(sequence);
+  return {
+    frameCount: frames.length,
+    issues: result.issues,
+    suggestions: result.suggestions,
+    qualityScore: result.qualityScore,
+    confidence: result.confidence,
   };
 }
 
@@ -131,6 +163,7 @@ function buildLandmarksMetadata(frames: TimelineFrame[], payload: TrainingBundle
   let handsFrameCount = 0;
   let poseFrameCount = 0;
   let faceFrameCount = 0;
+  let nonManualFrameCount = 0;
   let handednessFrameCount = 0;
   const handednessLabels = new Set<string>();
 
@@ -143,6 +176,9 @@ function buildLandmarksMetadata(frames: TimelineFrame[], payload: TrainingBundle
     }
     if (frame.faceLandmarks && frame.faceLandmarks.length > 0) {
       faceFrameCount++;
+    }
+    if (frame.nonManualFeatures && Object.values(frame.nonManualFeatures).some((value) => value !== null && value !== undefined)) {
+      nonManualFrameCount++;
     }
     if (frame.handedness && frame.handedness.length > 0) {
       handednessFrameCount++;
@@ -165,6 +201,11 @@ function buildLandmarksMetadata(frames: TimelineFrame[], payload: TrainingBundle
       present: faceFrameCount > 0,
       frameCount: faceFrameCount,
       coverage: totalFrames > 0 ? faceFrameCount / totalFrames : 0,
+    },
+    nonManual: {
+      present: nonManualFrameCount > 0,
+      frameCount: nonManualFrameCount,
+      coverage: totalFrames > 0 ? nonManualFrameCount / totalFrames : 0,
     },
   };
 
@@ -269,7 +310,16 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const audioFilename = payload.audioFile ? `audio.${extractExtensionFromFile(payload.audioFile, 'webm')}` : null;
   const frames = buildFrameTimeline(payload.frames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
-  const metadata = buildMetadata(payload, clipFilename, stillFilename, audioFilename, landmarksMetadata, frames);
+  const validationSummary = buildValidationSummary(payload.frames);
+  const metadata = buildMetadata(
+    payload,
+    clipFilename,
+    stillFilename,
+    audioFilename,
+    landmarksMetadata,
+    validationSummary,
+    frames,
+  );
 
   const metadataContent = JSON.stringify(metadata, null, 2);
   const landmarksContent = JSON.stringify({ frames, metadata: landmarksMetadata }, null, 2);

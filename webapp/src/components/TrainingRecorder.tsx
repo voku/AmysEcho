@@ -3,6 +3,7 @@ import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
 import type { TrainingBundlePayload, HandFocus } from '../training/types';
 import { framesHaveHandLandmarks, suggestHandFocus } from '../training/handUtils';
+import { validateLandmarkSequence } from '../training/trainingValidator';
 import {
   formatBytes,
   getDetectorStartLabel,
@@ -473,6 +474,22 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
   const isRecording = state === 'recording';
   const hasRecording = state === 'idle' && recordedData.frames.length > 0;
+  const validationResult = useMemo(() => {
+    if (recordedData.frames.length === 0) {
+      return null;
+    }
+    const sequence = recordedData.frames.map((frame) => {
+      const candidate = (frame as { handLandmarks?: number[][][] }).handLandmarks;
+      if (Array.isArray(candidate)) {
+        return candidate;
+      }
+      if (Array.isArray(frame.landmarks)) {
+        return frame.landmarks;
+      }
+      return [];
+    });
+    return validateLandmarkSequence(sequence);
+  }, [recordedData.frames]);
   const clipStatus = recordedData.clipFile
     ? `${recordedData.clipFile.name} (${formatBytes(recordedData.clipFile.size)})`
     : `${formatBytes(recordedData.clipSizeBytes)} aufgenommen`;
@@ -696,6 +713,19 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                       <li key={message}>{message}</li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {hasRecording && validationResult && (
+                <div className={`notice ${validationResult.ok ? 'info' : 'warning'} compact`}>
+                  <strong>Qualitätscheck:</strong> {validationResult.qualityScore}/100
+                  {!validationResult.ok && validationResult.suggestions.length > 0 && (
+                    <ul>
+                      {validationResult.suggestions.map((suggestion) => (
+                        <li key={suggestion}>{suggestion}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
 
