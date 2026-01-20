@@ -165,6 +165,23 @@ interface MediaPipeGestureDetectorHandle {
 - **Smoothing beibehalten**: Die im Webapp-Smoothing verwendete Konfiguration bleibt in `metadata.smoothing` enthalten. Sie dient aktuell nur als Dokumentation und wird vom Trainingsskript nicht ausgewertet.
 - **Aufnahme-Metadaten & Zeitstempel**: `metadata.recording` (Frame-Zahlen, Clip-Dauer/-Größe, MIME-Typen) bleibt im Manifest erhalten. Frame-Zeitstempel (`timestampMs`) werden beim Ingest als `ts` in `dgs_samples.json` verwendet.
 
+### Multimodale Overlay-Prüfung (mit Screenshots)
+1. **Training-Seite öffnen** – `/training` laden und sicherstellen, dass Kamera + Overlay laufen.
+2. **Overlay-Screenshot aufnehmen** – Screenshot mit sichtbaren Hand-, Pose- und Gesichts-Landmarks speichern (z. B. `docs/screenshots/training-overlay-all-modalities.png`).
+3. **Modalitäten einzeln ausblenden** – Hände, Oberkörper oder Gesicht aus dem Bild nehmen und prüfen, dass die UI die korrekten Hinweise zeigt.
+4. **Hinweis-Screenshots aufnehmen** – Je ein Screenshot für:
+   - fehlende Hände (`docs/screenshots/training-overlay-missing-hands.png`)
+   - fehlende Pose (`docs/screenshots/training-overlay-missing-pose.png`)
+   - fehlendes Gesicht (`docs/screenshots/training-overlay-missing-face.png`)
+5. **Overlay vs. Rohvideo** – Rohvideo ausblenden, Overlay aktiv lassen, prüfen dass Landmark-Punkte weiterhin sichtbar sind.
+
+### End-to-End-Check (Preview → Upload → Training → Download)
+1. **Preview prüfen** – Im Training-Recorder kurz aufnehmen, Overlay-Sichtbarkeit bestätigen.
+2. **Upload starten** – Aufnahme verwenden und Upload auslösen (Status `queued`).
+3. **Training triggern** – `/train-model` starten (manuell oder automatisch), bis Status `completed`.
+4. **Modell laden** – `GET /latest-mlp-model?profileId=<profil>` abrufen, sicherstellen, dass ein neuer Download erfolgt.
+5. **Ergebnis prüfen** – Im Recorder prüfen, ob die neue Modellversion geladen wird und die Erkennung stabil bleibt.
+
 ### Erwartete UI-Hinweise (Deutsch)
 Die folgenden Hinweise müssen erscheinen, wenn die jeweilige Modalität fehlt:
 - **Hände fehlen:** `Bitte halte beide Hände sichtbar im Kamerabild.`

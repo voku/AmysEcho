@@ -20,6 +20,8 @@ import { HandStabilityAssistant } from '../core/HandStabilityAssistant';
 import { BatteryMonitor } from '../core/BatteryMonitor';
 import { loadConfig, GestureDetectorConfig } from '../config/GestureConfig';
 import {
+  LANDMARK_STREAM_SCHEMA_VERSION,
+  type LandmarkStreamPayload,
   MediaPipeGestureResult,
   TwoHandGesture,
 } from '../types/MediaPipeTypes';
@@ -32,6 +34,7 @@ import { gestureDebugLog } from '../utils/DebugLogger';
 import { MultimodalSmoother } from '../utils/MultimodalSmoother';
 import { SignVariationTracker, type GestureLandmarks } from '../../services/signVariationTracker';
 import { LiveAudioRecognitionService } from '../../services/liveAudioRecognitionService';
+import { assessLandmarkConfidence } from '../utils/landmarkConfidencePolicy';
 import {
   FallbackProcessingStep,
   GestureDetectionStep,
@@ -1092,13 +1095,37 @@ export class GestureRecognitionOrchestrator {
    * Send gesture result to React Native
    */
   private sendLandmarks(landmarks: number[][][], handedness: string[], timestamp: number): void {
-    const payload = {
+    const visibility = this.buildLandmarkVisibility(landmarks);
+    const assessment = assessLandmarkConfidence(landmarks, visibility);
+    if (!assessment.shouldStream) {
+      gestureDebugLog('landmarks', 'Skipping low-confidence landmarks', () => assessment, { sampleIntervalMs: 1000 });
+      return;
+    }
+
+    const payload: LandmarkStreamPayload = {
       type: 'landmarks',
+      schemaVersion: LANDMARK_STREAM_SCHEMA_VERSION,
       landmarks,
+      visibility,
+      handednesses: handedness,
       handedness,
       timestamp,
     };
     messageBatcher.queueMessage(payload, {});
+  }
+
+  private buildLandmarkVisibility(landmarks: number[][][]): number[][] {
+    if (!Array.isArray(landmarks)) {
+      return [];
+    }
+
+    return landmarks.map((hand) => {
+      if (!Array.isArray(hand)) {
+        return [];
+      }
+
+      return hand.map((point) => (Array.isArray(point) && point.length > 0 ? 1 : 0));
+    });
   }
 
   private sendGestureResult(

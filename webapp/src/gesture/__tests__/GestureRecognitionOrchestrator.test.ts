@@ -392,6 +392,15 @@ describe('GestureRecognitionOrchestrator', () => {
       await (orchestrator as any).handleGestureResults(mockResults, current);
       const firstLandmarkCalls = queueSpy.mock.calls.filter(([payload]) => payload.type === 'landmarks');
       expect(firstLandmarkCalls.length).toBeGreaterThan(0);
+      const firstPayload = firstLandmarkCalls[0]?.[0];
+      expect(firstPayload).toEqual(
+        expect.objectContaining({
+          schemaVersion: 1,
+          visibility: expect.any(Array),
+          handednesses: expect.any(Array),
+        }),
+      );
+      expect(firstPayload.visibility?.length).toBe((firstPayload.landmarks as number[][][]).length);
 
       current += 125;
       await (orchestrator as any).handleGestureResults(mockResults, current);

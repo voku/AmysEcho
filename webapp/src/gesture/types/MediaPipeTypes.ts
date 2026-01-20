@@ -81,6 +81,7 @@ export interface TwoHandGesture {
 // WebView Message Types
 export type WebViewMessageType =
   | 'gesture'
+  | 'landmarks'
   | 'error'
   | 'warn'
   | 'telemetry'
@@ -110,6 +111,18 @@ export interface GestureMessage extends WebViewMessage {
   handednesses?: string[];
   emergency?: boolean;
   timestamp?: number;
+}
+
+export const LANDMARK_STREAM_SCHEMA_VERSION = 1;
+
+export interface LandmarkStreamPayload extends WebViewMessage {
+  type: 'landmarks';
+  schemaVersion: number;
+  timestamp: number;
+  landmarks: number[][][];
+  visibility: number[][];
+  handednesses: string[];
+  handedness?: string[];
 }
 
 export interface ErrorMessage extends WebViewMessage {

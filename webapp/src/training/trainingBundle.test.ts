@@ -3,6 +3,30 @@ import { unzipSync, strFromU8 } from 'fflate';
 import { createTrainingZip, normalizeTrainingJobStatus, uploadTrainingBundle } from './trainingBundle';
 import type { TrainingBundlePayload } from './types';
 
+const basePoseLandmarks = () => {
+  const pose = Array.from({ length: 33 }, () => [0, 0, 0, 0.9]);
+  pose[0] = [0.5, 0.6, 0.1, 0.9];
+  pose[1] = [0.4, 0.2, -0.1, 0.8];
+  pose[11] = [0.4, 0.2, -0.1, 0.8];
+  pose[12] = [0.6, 0.2, -0.1, 0.8];
+  return pose;
+};
+
+const baseFaceLandmarks = () => {
+  const face = Array.from({ length: 468 }, () => [0, 0, 0]);
+  face[0] = [0.25, 0.75, 0.05];
+  face[1] = [0.5, 0.5, 0.0];
+  face[13] = [0.5, 0.54, 0.0];
+  face[14] = [0.5, 0.58, 0.0];
+  face[33] = [0.4, 0.5, 0.0];
+  face[105] = [0.4, 0.42, 0.0];
+  face[159] = [0.4, 0.48, 0.0];
+  face[263] = [0.6, 0.5, 0.0];
+  face[334] = [0.6, 0.42, 0.0];
+  face[386] = [0.6, 0.48, 0.0];
+  return face;
+};
+
 const basePayload: TrainingBundlePayload = {
   profileId: 'p1',
   label: 'HILFE',
@@ -21,14 +45,8 @@ const basePayload: TrainingBundlePayload = {
         [],
       ],
       handedness: ['Left'],
-      poseLandmarks: [
-        [0.5, 0.6, 0.1, 0.9],
-        [0.4, 0.2, -0.1, 0.8],
-      ],
-      faceLandmarks: [
-        [0.25, 0.75, 0.05],
-        [0.26, 0.76, 0.04],
-      ],
+      poseLandmarks: basePoseLandmarks(),
+      faceLandmarks: baseFaceLandmarks(),
     },
   ],
 };
@@ -59,9 +77,15 @@ describe('createTrainingZip', () => {
         handLandmarks: number[][][];
         poseLandmarks: number[][];
         faceLandmarks: number[][];
+        nonManualFeatures?: Record<string, number | null>;
       }>;
       metadata: {
-        modalities: Record<string, unknown>;
+        modalities: {
+          hands: { present: boolean; frameCount: number; coverage: number };
+          pose: { present: boolean; frameCount: number; coverage: number };
+          face: { present: boolean; frameCount: number; coverage: number };
+          nonManual: { present: boolean; frameCount: number; coverage: number };
+        };
         smoothing: Record<string, number | string>;
         handedness?: { labels: string[]; frameCount: number };
       };
@@ -79,11 +103,13 @@ describe('createTrainingZip', () => {
       if (firstFrame.faceLandmarks && firstFrame.faceLandmarks[0]) {
         expect(firstFrame.faceLandmarks[0]).toEqual([0.25, 0.75, 0.05]);
       }
+      expect(firstFrame.nonManualFeatures).toBeDefined();
     }
     expect(landmarks.metadata.modalities).toEqual({
       hands: { present: true, frameCount: 1, coverage: 1 },
       pose: { present: true, frameCount: 1, coverage: 1 },
       face: { present: true, frameCount: 1, coverage: 1 },
+      nonManual: { present: true, frameCount: 1, coverage: 1 },
     });
     expect(landmarks.metadata.smoothing).toMatchObject({ method: 'stability', minCutOff: 0.9, beta: 0.05, dCutOff: 1.1 });
     expect(landmarks.metadata.handedness).toEqual({ labels: ['Left'], frameCount: 1 });
@@ -91,6 +117,13 @@ describe('createTrainingZip', () => {
       modalities: landmarks.metadata.modalities,
       smoothing: landmarks.metadata.smoothing,
       handedness: landmarks.metadata.handedness,
+      validationSummary: expect.objectContaining({
+        frameCount: 1,
+        qualityScore: expect.any(Number),
+        confidence: expect.any(Number),
+        issues: expect.any(Array),
+        suggestions: expect.any(Array),
+      }),
     });
     expect(entries['clip.mp4']).toBeDefined();
   });
@@ -183,14 +216,18 @@ describe('createTrainingZip', () => {
         {
           landmarks: [[[0.1, 0.2, 0.3]], [[0.4, 0.5, 0.6]]],
           handedness: ['Left', 'Right'],
-          poseLandmarks: [[0.5, 0.6, 0.1, 0.9], [0.4, 0.2, -0.1, 0.8]],
-          faceLandmarks: [[0.25, 0.75, 0.05], [0.26, 0.76, 0.04]],
+          poseLandmarks: basePoseLandmarks(),
+          faceLandmarks: baseFaceLandmarks(),
         },
         {
           landmarks: [[[0.11, 0.21, 0.31]], []],
           handedness: ['Left'],
-          poseLandmarks: [[0.51, 0.61, 0.11, 0.91]],
-          faceLandmarks: [[0.27, 0.77, 0.06]],
+          poseLandmarks: basePoseLandmarks().map((point, index) =>
+            index === 0 ? [0.51, 0.61, 0.11, 0.91] : point,
+          ),
+          faceLandmarks: baseFaceLandmarks().map((point, index) =>
+            index === 0 ? [0.27, 0.77, 0.06] : point,
+          ),
         },
         {
           landmarks: [[], [[0.41, 0.51, 0.61]]],
@@ -217,6 +254,7 @@ describe('createTrainingZip', () => {
           hands: { present: boolean; frameCount: number; coverage: number };
           pose: { present: boolean; frameCount: number; coverage: number };
           face: { present: boolean; frameCount: number; coverage: number };
+          nonManual: { present: boolean; frameCount: number; coverage: number };
         };
         smoothing: Record<string, number | string>;
         handedness?: { labels: string[]; frameCount: number };
@@ -231,9 +269,9 @@ describe('createTrainingZip', () => {
       expect(f0.handLandmarks).toHaveLength(2);
       expect(f0.handLandmarks[0]?.[0]).toEqual([0.1, 0.2, 0.3]);
       expect(f0.handLandmarks[1]?.[0]).toEqual([0.4, 0.5, 0.6]);
-      expect(f0.poseLandmarks).toHaveLength(2);
+      expect(f0.poseLandmarks).toHaveLength(33);
       expect(f0.poseLandmarks[0]).toEqual([0.5, 0.6, 0.1, 0.9]);
-      expect(f0.faceLandmarks).toHaveLength(2);
+      expect(f0.faceLandmarks).toHaveLength(468);
       if (f0.faceLandmarks && f0.faceLandmarks[0]) {
         expect(f0.faceLandmarks[0]).toEqual([0.25, 0.75, 0.05]);
       }
@@ -245,9 +283,9 @@ describe('createTrainingZip', () => {
       expect(f1.handedness).toEqual(['Left']);
       expect(f1.handLandmarks).toHaveLength(2);
       expect(f1.handLandmarks[0]?.[0]).toEqual([0.11, 0.21, 0.31]);
-      expect(f1.poseLandmarks).toHaveLength(1);
+      expect(f1.poseLandmarks).toHaveLength(33);
       expect(f1.poseLandmarks[0]).toEqual([0.51, 0.61, 0.11, 0.91]);
-      expect(f1.faceLandmarks).toHaveLength(1);
+      expect(f1.faceLandmarks).toHaveLength(468);
       if (f1.faceLandmarks && f1.faceLandmarks[0]) {
         expect(f1.faceLandmarks[0]).toEqual([0.27, 0.77, 0.06]);
       }
@@ -267,6 +305,7 @@ describe('createTrainingZip', () => {
     expect(landmarks.metadata.modalities.hands).toEqual({ present: true, frameCount: 3, coverage: 1 });
     expect(landmarks.metadata.modalities.pose).toEqual({ present: true, frameCount: 2, coverage: 2/3 });
     expect(landmarks.metadata.modalities.face).toEqual({ present: true, frameCount: 2, coverage: 2/3 });
+    expect(landmarks.metadata.modalities.nonManual).toEqual({ present: true, frameCount: 2, coverage: 2/3 });
     expect(landmarks.metadata.handedness).toEqual({ labels: ['Left', 'Right'], frameCount: 3 });
   });
 
