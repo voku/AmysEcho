@@ -20,7 +20,8 @@ vi.mock('../hooks/useApiConfig', () => ({
   useApiConfig: () => ({ 
     apiBaseUrl: 'http://localhost', 
     apiToken: 'token', 
-    refreshAccessToken: refreshAccessTokenMock 
+    refreshAccessToken: refreshAccessTokenMock,
+    clearApiToken: vi.fn(),
   }),
 }));
 

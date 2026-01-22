@@ -991,6 +991,12 @@ p {
   background: var(--color-action-secondary-bg);
   color: var(--color-action-secondary-text);
   box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.gesture-screen__start:hover:not(:disabled) {
+  background: var(--color-action-secondary-pressed);
+  transform: none;
 }
 
 .gesture-screen__actions {
@@ -1007,6 +1013,11 @@ p {
   min-height: 54px;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.gesture-screen__action:hover:not(:disabled) {
+  transform: none;
 }
 
 .gesture-screen__action:disabled {
@@ -1020,6 +1031,10 @@ p {
   color: var(--color-camera-confirm-text);
 }
 
+.gesture-screen__action--confirm:hover:not(:disabled) {
+  background: var(--color-camera-confirm-pressed);
+}
+
 .gesture-screen__action--confirm:active:not(:disabled) {
   background: var(--color-camera-confirm-pressed);
 }
@@ -1029,6 +1044,10 @@ p {
   color: var(--color-camera-learn-text);
 }
 
+.gesture-screen__action--learn:hover:not(:disabled) {
+  background: var(--color-camera-learn-pressed);
+}
+
 .gesture-screen__action--learn:active:not(:disabled) {
   background: var(--color-camera-learn-pressed);
 }
@@ -1036,6 +1055,10 @@ p {
 .gesture-screen__action--alt {
   background: var(--color-camera-alt-bg);
   color: var(--color-camera-alt-text);
+}
+
+.gesture-screen__action--alt:hover:not(:disabled) {
+  background: var(--color-camera-alt-pressed);
 }
 
 .gesture-screen__action--alt:active:not(:disabled) {
@@ -1054,6 +1077,12 @@ p {
   flex-wrap: wrap;
   gap: var(--space-sm);
   align-items: center;
+}
+
+.gesture-screen__meta-actions .ghost-inline:hover:not(:disabled) {
+  background: var(--color-gesture-overlay-light);
+  border-color: var(--color-gesture-border-light);
+  transform: none;
 }
 
 .gesture-screen__meta-note,
