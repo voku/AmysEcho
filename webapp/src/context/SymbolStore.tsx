@@ -199,7 +199,11 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           }
           clearApiToken();
           if (typeof window !== 'undefined') {
-            window.localStorage.setItem(AUTH_COMPLETE_KEY, 'false');
+            try {
+              window.localStorage.setItem(AUTH_COMPLETE_KEY, 'false');
+            } catch {
+              // ignore storage errors
+            }
           }
           setSyncError(SESSION_EXPIRED_MESSAGE);
           if (!options?.silent) {
@@ -210,7 +214,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    [clearApiToken, refreshAccessToken, showToast],
+    [refreshAccessToken, clearApiToken, showToast],
   );
 
   const flushPending = useCallback(async () => {
