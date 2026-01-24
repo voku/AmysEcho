@@ -128,36 +128,12 @@ export function BottomNav() {
         <span className="bottom-nav-label">Lernen</span>
       </NavLink>
       <NavLink
-        to="/tafel"
+        to="/symbole"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Tafel"
+        title="Symbole"
       >
         <span className="bottom-nav-icon">🗣️</span>
-        <span className="bottom-nav-label">Tafel</span>
-      </NavLink>
-      <NavLink
-        to="/einstellungen"
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Einstellungen"
-      >
-        <span className="bottom-nav-icon">⚙️</span>
-        <span className="bottom-nav-label">Einstellungen</span>
-      </NavLink>
-      <NavLink
-        to="/hilfe"
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Hilfe"
-      >
-        <span className="bottom-nav-icon">❓</span>
-        <span className="bottom-nav-label">Hilfe</span>
-      </NavLink>
-      <NavLink
-        to="/betreuung"
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Betreuungsbereich"
-      >
-        <span className="bottom-nav-icon">🤝</span>
-        <span className="bottom-nav-label">Betreuung</span>
+        <span className="bottom-nav-label">Symbole</span>
       </NavLink>
     </nav>
   );

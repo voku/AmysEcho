@@ -406,7 +406,7 @@ export const Admin: React.FC = () => {
             <input type="file" accept=".json,.obf" onChange={handleImportMetacomBundle} hidden />
           </label>
           <p className="muted">
-            Lädt Metacom-Bundles oder Open-Board-Format-Dateien und ersetzt die lokale Tafel
+            Lädt Metacom-Bundles oder Open-Board-Format-Dateien und ersetzt die lokale Symboltafel
           </p>
         </div>
 

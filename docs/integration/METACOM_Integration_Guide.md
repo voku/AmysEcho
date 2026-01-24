@@ -13,7 +13,7 @@ It complements the detailed implementation plan in
 
 ## Status
 - **Planning**: Complete (see the plan document).
-- **Implementation**: Initial webapp board view is available (`/tafel`) with a starter Metacom layout and admin import for Metacom bundles.
+- **Implementation**: Initial webapp board view is available (`/symbole`) with a starter Metacom layout and admin import for Metacom bundles.
 - **Licensing**: Symbols are provided by users via import; no bundled symbol sets are shipped.
 - **Help**: A JSON template is available for download in the admin area.
 
