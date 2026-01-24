@@ -339,6 +339,7 @@ export function SignLanguageRecorder() {
             className="gesture-screen__start"
             onClick={handleStart}
             disabled={!cameraSupported}
+            title="Kamera starten"
           >
             Kamera starten
           </button>
@@ -349,12 +350,14 @@ export function SignLanguageRecorder() {
             className="gesture-screen__action gesture-screen__action--confirm"
             onClick={handleConfirm}
             disabled={!gestureLabel}
+            title="Gebärde aussprechen"
           >
             Aussprechen
           </button>
           <button
             className="gesture-screen__action gesture-screen__action--learn"
             onClick={handleLearn}
+            title="Zum Lernen wechseln"
           >
             Lernen
           </button>
@@ -370,7 +373,10 @@ export function SignLanguageRecorder() {
             >
               {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
             </button>
-            <label className="toggle ghost-inline">
+            <label
+              className="toggle ghost-inline"
+              title={showOverlay ? 'Overlay ausblenden' : 'Overlay anzeigen'}
+            >
               <input
                 id="overlay-toggle"
                 type="checkbox"
@@ -379,7 +385,11 @@ export function SignLanguageRecorder() {
               />
               <span>Overlay</span>
             </label>
-            <label className="toggle ghost-inline" htmlFor="raw-video-toggle">
+            <label
+              className="toggle ghost-inline"
+              htmlFor="raw-video-toggle"
+              title={showRawVideo ? 'Rohvideo ausblenden' : 'Rohvideo anzeigen'}
+            >
               <input
                 id="raw-video-toggle"
                 type="checkbox"

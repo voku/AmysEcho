@@ -120,8 +120,10 @@ function mergePendingSymbols(symbols: SymbolDefinition[], pending: SymbolDefinit
   return Array.from(mergedMap.values());
 }
 
+const AUTH_COMPLETE_KEY = 'webapp:auth-complete';
+
 export function SymbolStoreProvider({ children }: { children: ReactNode }) {
-  const { apiBaseUrl, apiToken, refreshAccessToken } = useApiConfig();
+  const { apiBaseUrl, apiToken, refreshAccessToken, clearApiToken } = useApiConfig();
   const { profileId } = useAppState();
   const { showToast } = useMessage();
   
@@ -195,6 +197,14 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           } catch (refreshError) {
             console.warn('Token refresh failed', refreshError);
           }
+          clearApiToken();
+          if (typeof window !== 'undefined') {
+            try {
+              window.localStorage.setItem(AUTH_COMPLETE_KEY, 'false');
+            } catch {
+              // ignore storage errors
+            }
+          }
           setSyncError(SESSION_EXPIRED_MESSAGE);
           if (!options?.silent) {
             showToast({ message: SESSION_EXPIRED_MESSAGE, tone: 'error' });
@@ -204,7 +214,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    [refreshAccessToken, showToast],
+    [refreshAccessToken, clearApiToken, showToast],
   );
 
   const flushPending = useCallback(async () => {
