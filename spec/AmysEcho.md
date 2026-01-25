@@ -173,7 +173,7 @@ The system’s memory is a diary of attempts to understand. Everything stored mu
       * **C – Hinweislabel:** Zentriert über der Aktionsleiste, Text „Hand im Rahmen halten“, Weiß, mittlere Stärke.
       * **D – Erkennungsbanner:** Cremefarbene (≈#E5E0CF) abgerundete Box, horizontal zentriert, zeigt erkannten Text (z. B. „Hallo“) in dunklem Türkis (#002C2C), große Semibold-Schrift.
       * **E – Aktionsbutton-Reihe:** Drei gleichmäßig verteilte Pillen-Buttons: „Stimmt“ (primär), „Lernen“ (sekundär), „Alternativen“ (tertiär). Höhe 48–56 dp, Abstände 12–16 dp, konsistente Typografie.
-      * **F – Bottom-Navigation:** Feste Leiste mit dunkel-türkisem Hintergrund (#1A3A3A), Tabs: 📷 Kamera (aktiv), 🕒 History, 🎓 Lernen. Symbole + Labels in Weiß, aktive Registerkarte heller hervorgehoben, obere Ecken ~20 dp.
+      * **F – Bottom-Navigation:** Feste Leiste mit dunkel-türkisem Hintergrund (#1A3A3A), Tabs: 📷 Kamera (aktiv), 🕒 History, 🎓 Lernen, 🗣️ Symbole. Symbole + Labels in Weiß, aktive Registerkarte heller hervorgehoben, obere Ecken ~20 dp.
    3. **Farb-Tokens**
       * `primary` #146C6E – primäre UI-Elemente (Status-Kapsel, Button „Stimmt“).
       * `accent` #E5E0CF – Bannerhintergründe, sekundäre Buttons.

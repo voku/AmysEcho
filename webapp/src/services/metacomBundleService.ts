@@ -181,7 +181,7 @@ function parseOpenBoard(
   if (!isPositiveInteger(rows) || !isPositiveInteger(columns)) {
     throw new Error('Open-Board-Format benötigt gültige Rasterwerte.');
   }
-  const label = board.name?.trim() || `Tafel ${index + 1}`;
+  const label = board.name?.trim() || `Symboltafel ${index + 1}`;
   const id = forcedId ?? (board.id?.trim() || slugify(label) || `board-${index + 1}`);
   const buttons = board.buttons ?? [];
   if (buttons.length === 0) {

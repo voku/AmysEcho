@@ -7,6 +7,7 @@ import { CaregiverReport } from './CaregiverReport';
 import { CommunicationInsights } from './CommunicationInsights';
 import { Dashboard } from './Dashboard';
 import { FeatureAvailability } from './FeatureAvailability';
+import { FloatingSupportButton } from './FloatingSupportButton';
 import { Help } from './Help';
 import { LearningHub } from './LearningHub';
 import { MetacomBoard } from './MetacomBoard';
@@ -16,6 +17,7 @@ import { ProfileSelect } from './ProfileSelect';
 import { ProgressChart } from './ProgressChart';
 import { ProgressTracker } from './ProgressTracker';
 import { Settings } from './Settings';
+import { SettingsOverview } from './SettingsOverview';
 import { SignLanguageHistory } from './SignLanguageHistory';
 import { SignLanguageRecorder } from './SignLanguageRecorder';
 import { SignLanguageTutorial } from './SignLanguageTutorial';
@@ -33,13 +35,15 @@ export function MainAppContent() {
           <Route path="/" element={<SignLanguageRecorder />} />
           <Route path="/verlauf" element={<SignLanguageHistory />} />
           <Route path="/lernen" element={<LearningHub />} />
-          <Route path="/tafel" element={<MetacomBoard />} />
+          <Route path="/symbole" element={<MetacomBoard />} />
+          <Route path="/tafel" element={<Navigate to="/symbole" replace />} />
           <Route path="/training" element={<TrainingUploadWithRecording />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/erkenntnisse" element={<CommunicationInsights />} />
           <Route path="/fortschritt" element={<ProgressTracker />} />
           <Route path="/fortschritt-detail" element={<ProgressChart />} />
           <Route path="/einstellungen" element={<Settings />} />
+          <Route path="/uebersicht" element={<SettingsOverview />} />
           <Route path="/hilfe" element={<Help />} />
           <Route path="/tutorial" element={<SignLanguageTutorial />} />
           <Route path="/ueber" element={<AboutAmysEcho />} />
@@ -54,6 +58,7 @@ export function MainAppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <FloatingSupportButton />
       <BottomNav />
     </>
   );

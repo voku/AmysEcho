@@ -6,6 +6,9 @@ import { ApiConfigProvider, useApiConfig } from './hooks/useApiConfig';
 import { AppStateProvider, useAppState } from './hooks/useAppState';
 import { useAppStatus } from './hooks/useAppStatus';
 import { LoginScreen } from './components/LoginScreen';
+import { App } from './App';
+import { MessageProvider } from './context/MessageContext';
+import { SymbolStoreProvider } from './context/SymbolStore';
 
 type HarnessHandles = { expire: () => void };
 
@@ -225,5 +228,26 @@ describe('LoginScreen', () => {
 
     const debug = screen.getByTestId('register-debug');
     expect(debug.dataset['token']).toBe('');
+  });
+
+  it('führt Demo-Login zur Hero-Ansicht und zur Gebärdenkamera', async () => {
+    render(
+      <MessageProvider>
+        <ApiConfigProvider>
+          <AppStateProvider>
+            <SymbolStoreProvider>
+              <App />
+            </SymbolStoreProvider>
+          </AppStateProvider>
+        </ApiConfigProvider>
+      </MessageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ohne Anmeldung fortfahren (Demo)' }));
+
+    await screen.findByRole('button', { name: '🖐️ Zur Gebärdenkamera' });
+    fireEvent.click(screen.getByRole('button', { name: '🖐️ Zur Gebärdenkamera' }));
+
+    await screen.findByText('Zeige eine Gebärde in die Kamera…');
   });
 });
