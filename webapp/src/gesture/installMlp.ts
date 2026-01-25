@@ -1,5 +1,10 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
-import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
+import {
+  prepareMultimodalForMLP,
+  MULTIMODAL_FEATURES_SIZE,
+  HAND_FEATURES_SIZE,
+  HAND_PRIORITY_FACTOR,
+} from './utils/landmarkNormalizer';
 import { enhancePredictionWithFeedback } from './performanceFeedback';
 
 export type ModelMetadata = {
@@ -441,6 +446,10 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     if (inputSize === expectedVisualSize + DEFAULT_AUDIO_FEATURE_SIZE) {
       return DEFAULT_AUDIO_FEATURE_SIZE;
     }
+    const expectedHandOnlySize = windowSize * HAND_FEATURES_SIZE;
+    if (inputSize === expectedHandOnlySize + DEFAULT_AUDIO_FEATURE_SIZE) {
+      return DEFAULT_AUDIO_FEATURE_SIZE;
+    }
     return 0;
   }
 
@@ -539,13 +548,11 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       const currentFrameVec = normalizeLandmarks(all, handednesses, poseLandmarks, faceLandmarks);
       
       // 2. Determine if model expects multimodal input
-      const inputSize = mlp.w1.shape[1];
+      const inputSize = mlp.w1.shape[1] ?? 0;
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
       const audioFeatureSize = resolveAudioFeatureSize(inputSize, windowSize, mlp.audio_feature_size);
-      // Check if input size matches: (window_size × visual_features) + audio_features
-      const expectedVisualSize = windowSize * MULTIMODAL_FEATURES_SIZE;
-      const expectedMultimodalSize = expectedVisualSize + audioFeatureSize;
-      const isMultimodalModel = audioFeatureSize > 0 && inputSize === expectedMultimodalSize;
+      // A model is considered multimodal (with audio) if it has audio features.
+      const isMultimodalModel = audioFeatureSize > 0;
       
       // 3. Manage rolling buffer (visual features only - audio added later per window)
       rollingBuffer.push(currentFrameVec);
