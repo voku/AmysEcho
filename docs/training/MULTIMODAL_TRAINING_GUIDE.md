@@ -46,6 +46,17 @@ This guide explains how to train Amy's Echo with multimodal sign language data (
 ### Total Feature Vector
 - **Hand-only models**: 126 features (backward compatible)
 - **Multimodal models**: 258 features (126 hands + 99 pose + 33 face)
+- **Audio-augmented models**: Multimodal window features plus fixed-size MFCC audio summary
+
+### Model Metadata (Server → Webapp)
+Für die Synchronisierung zwischen Training und Laufzeit enthält jede Modell-Datei Metadaten:
+- `input_dim`: Gesamtdimension der Eingabe (Fenster + Audio, falls vorhanden)
+- `window_size`: Zeitfenstergröße für die Sequenz
+- `feature_size`: Visuelle Features pro Frame (ohne Audio)
+- `audio_feature_size`: Audio-Zusatzdimensionen pro Fenster (0, wenn kein Audio)
+
+Die Webapp liest diese Felder beim Laden eines Modells und nutzt sie, um Audio-Features korrekt
+anzuhängen, falls das Modell Audio enthält.
 
 ## 🔄 Complete Training Workflow
 
