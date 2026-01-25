@@ -37,6 +37,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
   let WINDOW_SIZE = 30; // Default, will be updated from model metadata
   let rollingBuffer: Float32Array[] = [];
+  const DEFAULT_AUDIO_FEATURE_SIZE = 13;
 
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -432,10 +433,21 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   }
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
+  function resolveAudioFeatureSize(inputSize: number, windowSize: number, metadataAudioFeatureSize?: number) {
+    if (metadataAudioFeatureSize !== undefined) {
+      return Math.max(0, metadataAudioFeatureSize);
+    }
+    const expectedVisualSize = windowSize * MULTIMODAL_FEATURES_SIZE;
+    if (inputSize === expectedVisualSize + DEFAULT_AUDIO_FEATURE_SIZE) {
+      return DEFAULT_AUDIO_FEATURE_SIZE;
+    }
+    return 0;
+  }
+
   function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
     const inputSize = mlp?.w1.shape[1] ?? 0;
     const windowSize = mlp?.window_size ?? WINDOW_SIZE;
-    const audioFeatureSize = mlp?.audio_feature_size && mlp.audio_feature_size > 0 ? mlp.audio_feature_size : 0;
+    const audioFeatureSize = resolveAudioFeatureSize(inputSize, windowSize, mlp?.audio_feature_size);
     const visualInputSize = Math.max(0, inputSize - audioFeatureSize);
     const featuresPerFrame = windowSize > 0 ? visualInputSize / windowSize : visualInputSize;
     
@@ -527,17 +539,13 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       const currentFrameVec = normalizeLandmarks(all, handednesses, poseLandmarks, faceLandmarks);
       
       // 2. Determine if model expects multimodal input
-      const DEFAULT_AUDIO_FEATURE_SIZE = 13;
-      const audioFeatureSize =
-        mlp.audio_feature_size && mlp.audio_feature_size > 0
-          ? mlp.audio_feature_size
-          : DEFAULT_AUDIO_FEATURE_SIZE;
       const inputSize = mlp.w1.shape[1];
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
+      const audioFeatureSize = resolveAudioFeatureSize(inputSize, windowSize, mlp.audio_feature_size);
       // Check if input size matches: (window_size × visual_features) + audio_features
       const expectedVisualSize = windowSize * MULTIMODAL_FEATURES_SIZE;
       const expectedMultimodalSize = expectedVisualSize + audioFeatureSize;
-      const isMultimodalModel = inputSize === expectedMultimodalSize;
+      const isMultimodalModel = audioFeatureSize > 0 && inputSize === expectedMultimodalSize;
       
       // 3. Manage rolling buffer (visual features only - audio added later per window)
       rollingBuffer.push(currentFrameVec);

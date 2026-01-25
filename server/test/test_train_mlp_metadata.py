@@ -29,3 +29,4 @@ def test_save_model_writes_audio_feature_size(monkeypatch, tmp_path):
     assert int(data["audio_feature_size"].item()) == 2
     assert int(data["window_size"].item()) == 2
     assert int(data["feature_size"].item()) == 2
+

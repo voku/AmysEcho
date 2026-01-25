@@ -2103,7 +2103,7 @@ def save_model(
         labels: Class names
         arch: Architecture identifier ("mlp_3layer_window")
         window_size: Temporal window size (30)
-        input_dim: Expected input dimension (48,870)
+        input_dim: Expected input dimension (derived from weights)
     """
     w1, b1, w2, b2, w3, b3 = weights
     input_dim = int(w1.shape[0])
@@ -2125,10 +2125,10 @@ def save_model(
         # Metadata
         "labels": np.array(labels),
         "arch": "mlp_3layer_window",
-        "window_size": WINDOW_SIZE,
-        "input_dim": input_dim,
-        "feature_size": INPUT_FEATURE_SIZE,
-        "audio_feature_size": audio_feature_size,
+        "window_size": np.int32(WINDOW_SIZE),
+        "input_dim": np.int32(input_dim),
+        "feature_size": np.int32(INPUT_FEATURE_SIZE),
+        "audio_feature_size": np.int32(audio_feature_size),
         "layer_sizes": np.array([layer1_size, layer2_size], dtype=np.int32),
     }
     if counts is not None:
