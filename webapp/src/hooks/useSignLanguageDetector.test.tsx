@@ -11,6 +11,7 @@ function createStubOrchestrator() {
     start: vi.fn().mockResolvedValue(undefined),
     stop: vi.fn().mockResolvedValue(undefined),
     cleanup: vi.fn().mockResolvedValue(undefined),
+    setAudioMuted: vi.fn().mockResolvedValue(undefined),
   } as unknown as GestureRecognitionOrchestrator;
 }
 
@@ -32,6 +33,7 @@ describe('useSignLanguageDetector', () => {
     });
 
     expect(orchestrator.initialize).toHaveBeenCalled();
+    expect(orchestrator.setAudioMuted).toHaveBeenCalledWith(false);
     expect(orchestrator.start).toHaveBeenCalled();
 
     await act(async () => {
@@ -39,6 +41,29 @@ describe('useSignLanguageDetector', () => {
     });
 
     expect(orchestrator.stop).toHaveBeenCalled();
+  });
+
+  it('schaltet die Audioerkennung stumm', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    act(() => {
+      result.current.toggleAudioMuted();
+    });
+
+    expect(result.current.audioMuted).toBe(true);
+    expect(orchestrator.setAudioMuted).toHaveBeenLastCalledWith(true);
   });
 
   it('fasst Bridge-Meldungen zusammen und merkt sich Gesten', async () => {

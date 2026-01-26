@@ -7,6 +7,7 @@ export type ModelMetadata = {
   input_dim?: number;
   arch?: string;
   feature_size?: number;
+  audio_feature_size?: number;
   labels?: string[];
 };
 
@@ -26,6 +27,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     labels: string[];
     window_size?: number;
     input_dim?: number;
+    audio_feature_size?: number;
   };
   const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
     void sendTelemetryEvent(event, data ?? {}).catch((err) => {
@@ -301,6 +303,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       // Parse metadata if available
       let window_size: number | undefined;
       let input_dim: number | undefined;
+      let audio_feature_size: number | undefined;
       
       const wsb = npzFind(map, 'window_size');
       if (wsb) {
@@ -319,6 +322,16 @@ export function installMlp(customModelData?: string): Promise<boolean> {
           input_dim = Number(parsed.data[0]);
         } catch (e) {
           console.warn('Failed to parse input_dim:', e);
+        }
+      }
+
+      const afb = npzFind(map, 'audio_feature_size');
+      if (afb) {
+        try {
+          const parsed = parseNPY(afb);
+          audio_feature_size = Number(parsed.data[0]);
+        } catch (e) {
+          console.warn('Failed to parse audio_feature_size:', e);
         }
       }
 
@@ -349,7 +362,9 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       rollingBuffer = []; // Reset buffer with new window size
       
       console.log(`MLP model loaded: ${inputSize} -> ${layer1Size} -> ${layer2Size} -> ${outputSize} (${labels.length} labels)`);
-      console.log(`Temporal config: window_size=${WINDOW_SIZE}, input_dim=${input_dim || MULTIMODAL_FEATURES_SIZE}`);
+      console.log(
+        `Temporal config: window_size=${WINDOW_SIZE}, input_dim=${input_dim || MULTIMODAL_FEATURES_SIZE}`,
+      );
 
       mlp = {
         w1: { data: Float32Array.from(w1.data as ArrayLike<number>), shape: w1.shape },
@@ -361,6 +376,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         labels,
         ...(window_size !== undefined ? { window_size } : {}),
         ...(input_dim !== undefined ? { input_dim } : {}),
+        ...(audio_feature_size !== undefined ? { audio_feature_size } : {}),
       };
       return true;
     } catch (e: any) {
@@ -416,10 +432,16 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   }
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
+  function resolveAudioFeatureSize(metadataAudioFeatureSize?: number) {
+    return metadataAudioFeatureSize !== undefined ? Math.max(0, metadataAudioFeatureSize) : 0;
+  }
+
   function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
     const inputSize = mlp?.w1.shape[1] ?? 0;
     const windowSize = mlp?.window_size ?? WINDOW_SIZE;
-    const featuresPerFrame = windowSize > 0 ? inputSize / windowSize : inputSize;
+    const audioFeatureSize = resolveAudioFeatureSize(mlp?.audio_feature_size);
+    const visualInputSize = Math.max(0, inputSize - audioFeatureSize);
+    const featuresPerFrame = windowSize > 0 ? visualInputSize / windowSize : visualInputSize;
     
     const isMultimodalInModel = mlp && featuresPerFrame === MULTIMODAL_FEATURES_SIZE;
     
@@ -509,13 +531,10 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       const currentFrameVec = normalizeLandmarks(all, handednesses, poseLandmarks, faceLandmarks);
       
       // 2. Determine if model expects multimodal input
-      const AUDIO_FEATURE_SIZE = 13;
-      const inputSize = mlp.w1.shape[1];
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
-      // Check if input size matches: (window_size × visual_features) + audio_features
-      const expectedVisualSize = windowSize * MULTIMODAL_FEATURES_SIZE;
-      const expectedMultimodalSize = expectedVisualSize + AUDIO_FEATURE_SIZE;
-      const isMultimodalModel = inputSize === expectedMultimodalSize;
+      const audioFeatureSize = resolveAudioFeatureSize(mlp.audio_feature_size);
+      // A model is considered multimodal (with audio) if it has audio features.
+      const isMultimodalModel = audioFeatureSize > 0;
       
       // 3. Manage rolling buffer (visual features only - audio added later per window)
       rollingBuffer.push(currentFrameVec);
@@ -537,11 +556,11 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       // Check if this is a temporal model or static model
       // Use actual feature size instead of MULTIMODAL_FEATURES_SIZE constant for flexibility
       const actualExpectedVisualSize = windowSize * featureSizePerFrame;
-      const actualExpectedMultimodalSize = actualExpectedVisualSize + AUDIO_FEATURE_SIZE;
+      const actualExpectedMultimodalSize = actualExpectedVisualSize + audioFeatureSize;
       const isTemporal = cols1Expected === actualExpectedVisualSize || cols1Expected === actualExpectedMultimodalSize;
       
-      if (isTemporal && windowSize > 1) {
-        // Temporal model: flatten rolling buffer
+      if (isTemporal) {
+        // Temporal model: flatten rolling buffer (window_size can be 1)
         const visualFeatures = new Float32Array(windowSize * featureSizePerFrame);
         for (let i = 0; i < rollingBuffer.length; i++) {
           const frame = rollingBuffer[i];
@@ -550,25 +569,25 @@ export function installMlp(customModelData?: string): Promise<boolean> {
           }
         }
         // Note: If rollingBuffer.length < windowSize, remaining positions stay zero (initial padding)
-        
+
         // Add audio features ONCE per window if multimodal model
         // This matches server training: [visual_window | audio] not [visual+audio] per frame
         if (isMultimodalModel) {
-          const audioToAdd = audioFeatures && audioFeatures.length === AUDIO_FEATURE_SIZE
+          const audioToAdd = audioFeatures && audioFeatures.length === audioFeatureSize
             ? audioFeatures
-            : new Float32Array(AUDIO_FEATURE_SIZE); // Zero-padding if no audio
-          
+            : new Float32Array(audioFeatureSize); // Zero-padding if no audio
+
           // Concatenate: [flattened_visual_features | audio_features]
-          const multimodalFeatures = new Float32Array(visualFeatures.length + AUDIO_FEATURE_SIZE);
+          const multimodalFeatures = new Float32Array(visualFeatures.length + audioFeatureSize);
           multimodalFeatures.set(visualFeatures, 0);
           multimodalFeatures.set(audioToAdd, visualFeatures.length);
-          
+
           x = multimodalFeatures;
         } else {
           x = visualFeatures;
         }
       } else {
-        // Static model or single-frame model: use current frame only
+        // Static model: use current frame only
         x = currentFrameVec;
       }
       

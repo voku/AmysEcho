@@ -1,6 +1,6 @@
 # Codebase Overview
 
-This document summarizes the repository in key areas with concrete file references. See `spec/AmysEcho.md` for the full project specification and `docs/planning/TODO.md` for the implementation checklist. For build and test instructions, see `docs/workflows/BUILD_AND_TEST.md`.
+This document summarizes the repository in key areas with concrete file references. See `docs/architecture/SYSTEM_ARCHITECTURE_MAP.md` for a subsystem-level architecture map, `spec/AmysEcho.md` for the full project specification, and `docs/planning/TODO.md` for the implementation checklist. For build and test instructions, see `docs/workflows/BUILD_AND_TEST.md`.
 
 **Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/planning/TODO.md` file serves as a living document for ongoing improvements.
 

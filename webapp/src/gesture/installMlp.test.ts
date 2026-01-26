@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { unzip, zipSync, strToU8 } from 'fflate';
 import { installMlp } from './installMlp';
+import { MULTIMODAL_FEATURES_SIZE } from './utils/featureSchema';
 
 describe('installMlp', () => {
   const TEST_HAND = Array.from({ length: 21 }, (_, i) =>
@@ -56,7 +57,15 @@ describe('installMlp', () => {
     return buf;
   }
 
-  function create3LayerZipB64(inputDim: number, layer1: number, layer2: number, output: number, labels: string[]) {
+  function create3LayerZipB64(
+    inputDim: number,
+    layer1: number,
+    layer2: number,
+    output: number,
+    labels: string[],
+    options: { windowSize?: number; audioFeatureSize?: number } = {},
+  ) {
+    const windowSize = options.windowSize ?? 1;
     const w1 = new Float32Array(layer1 * inputDim).fill(0.1);
     const b1 = new Float32Array(layer1).fill(0);
     const w2 = new Float32Array(layer2 * layer1).fill(0.1);
@@ -64,7 +73,7 @@ describe('installMlp', () => {
     const w3 = new Float32Array(output * layer2).fill(0.1);
     const b3 = new Float32Array(output).fill(0);
     
-    const zip = zipSync({
+    const zipEntries: Record<string, Uint8Array> = {
       'w1.npy': createMockNpy(w1, [layer1, inputDim]),
       'b1.npy': createMockNpy(b1, [layer1]),
       'w2.npy': createMockNpy(w2, [layer2, layer1]),
@@ -72,9 +81,18 @@ describe('installMlp', () => {
       'w3.npy': createMockNpy(w3, [output, layer2]),
       'b3.npy': createMockNpy(b3, [output]),
       'labels.npy': createMockNpy(labels, [labels.length]),
-      'window_size.npy': createMockNpy(new Float32Array([1]), [1]),
+      'window_size.npy': createMockNpy(new Float32Array([windowSize]), [1]),
       'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1])
-    });
+    };
+
+    if (options.audioFeatureSize !== undefined) {
+      zipEntries['audio_feature_size.npy'] = createMockNpy(
+        new Float32Array([options.audioFeatureSize]),
+        [1],
+      );
+    }
+
+    const zip = zipSync(zipEntries);
     
     return Buffer.from(zip).toString('base64');
   }
@@ -332,6 +350,38 @@ describe('installMlp', () => {
 
       expect(res).not.toBeNull();
       expect(res?.label).toBe('multimodal');
+    });
+
+    it('nutzt die Audio-Feature-Größe aus dem Modell', async () => {
+      const audioFeatureSize = 7;
+      const richHand = Array.from({ length: 21 }, (_, i) => [
+        0.1 + i * 0.01,
+        0.2 + i * 0.01,
+        0.3 + i * 0.01,
+      ]) as number[][];
+      const audioModelB64 = create3LayerZipB64(
+        MULTIMODAL_FEATURES_SIZE + audioFeatureSize,
+        10,
+        5,
+        1,
+        ['audio'],
+        { audioFeatureSize },
+      );
+      const ok = await window.__setMlpModelB64!(audioModelB64);
+      expect(ok).toBe(true);
+
+      const audioFeatures = new Float32Array(audioFeatureSize).fill(0.2);
+      const pose = createPoseLandmarks();
+      const res = window.__mlpPredict!(
+        [richHand],
+        [[{ categoryName: 'Left' }]],
+        pose,
+        undefined,
+        audioFeatures,
+      );
+
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('audio');
     });
 
     it('verwendet hand-only Normalisierung für hand-only Modell', async () => {

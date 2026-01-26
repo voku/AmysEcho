@@ -82,6 +82,8 @@ export function SignLanguageRecorder() {
     error,
     lastSign,
     lastConfidence,
+    audioMuted,
+    toggleAudioMuted,
   } = useSignLanguageDetector(videoRef, overlayRef);
   const { profileId, recordSign } = useAppState();
   const { notice: modelNotice } = useMlpModelInjection(profileId);
@@ -175,6 +177,7 @@ export function SignLanguageRecorder() {
   const gestureSpeech = gestureKey
     ? gestureMeaning?.audioText ?? gestureLabel ?? normalizedGesture
     : '';
+  const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
 
   const handleStart = async () => {
     await start();
@@ -373,6 +376,14 @@ export function SignLanguageRecorder() {
             >
               {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
             </button>
+            <button
+              className="ghost-inline"
+              onClick={toggleAudioMuted}
+              type="button"
+              title={audioMuted ? 'Audioaufnahme wieder einschalten' : 'Audioaufnahme stummschalten'}
+            >
+              {audioToggleLabel}
+            </button>
             <label
               className="toggle ghost-inline"
               title={showOverlay ? 'Overlay ausblenden' : 'Overlay anzeigen'}
@@ -402,6 +413,11 @@ export function SignLanguageRecorder() {
 
           {cameraSwitchFeedback && (
             <div className="gesture-screen__meta-note">{cameraSwitchFeedback}</div>
+          )}
+          {audioMuted && (
+            <div className="gesture-screen__meta-note">
+              <strong>Audio stummgeschaltet.</strong> So stören Umgebungsgeräusche die Erkennung nicht.
+            </div>
           )}
           {!cameraSupported && (
             <div className="gesture-screen__meta-warning">

@@ -15,6 +15,7 @@ All app UI text and error messages are written in German to match Amy's language
 ## 📚 Documentation
 
 - [Codebase overview](docs/architecture/CodebaseOverview.md)
+- [System architecture map](docs/architecture/SYSTEM_ARCHITECTURE_MAP.md)
 - [User stories](docs/guides/UserStories.md)
 - [Caregiver guide](docs/guides/CaregiverGuide.md)
 - [Build & test instructions](docs/workflows/BUILD_AND_TEST.md)

@@ -2093,7 +2093,7 @@ def save_model(
     path: Path,
     weights: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     labels: list[str],
-    counts: np.ndarray | None = None
+    counts: np.ndarray | None = None,
 ) -> None:
     """
     Save 3-layer MLP weights with metadata for inference.
@@ -2103,9 +2103,16 @@ def save_model(
         labels: Class names
         arch: Architecture identifier ("mlp_3layer_window")
         window_size: Temporal window size (30)
-        input_dim: Expected input dimension (48,870)
+        input_dim: Expected input dimension (derived from weights)
+        feature_size: Per-frame feature dimension
+        audio_feature_size: Audio feature vector length (0 for visual-only)
+        layer_sizes: [layer1_size, layer2_size] derived from weights
     """
     w1, b1, w2, b2, w3, b3 = weights
+    input_dim = int(w1.shape[0])
+    layer1_size = int(w1.shape[1])
+    layer2_size = int(w2.shape[1])
+    audio_feature_size = max(0, input_dim - WINDOW_FEATURE_SIZE)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
@@ -2121,10 +2128,11 @@ def save_model(
         # Metadata
         "labels": np.array(labels),
         "arch": "mlp_3layer_window",
-        "window_size": WINDOW_SIZE,
-        "input_dim": WINDOW_FEATURE_SIZE,
-        "feature_size": INPUT_FEATURE_SIZE,
-        "layer_sizes": np.array([MLP_LAYER1_SIZE, MLP_LAYER2_SIZE], dtype=np.int32)
+        "window_size": np.int32(WINDOW_SIZE),
+        "input_dim": np.int32(input_dim),
+        "feature_size": np.int32(INPUT_FEATURE_SIZE),
+        "audio_feature_size": np.int32(audio_feature_size),
+        "layer_sizes": np.array([layer1_size, layer2_size], dtype=np.int32),
     }
     if counts is not None:
         save_dict["counts"] = counts
@@ -2139,6 +2147,17 @@ def save_model(
         os.chmod(path, 0o640)
     except OSError:
         pass
+
+    checksum = sha256_file(path)
+    if checksum:
+        checksum_path = path.with_suffix(f"{path.suffix}.sha256")
+        checksum_tmp = checksum_path.with_suffix(checksum_path.suffix + ".tmp")
+        checksum_tmp.write_text(f"{checksum}\n", encoding="utf-8")
+        os.replace(checksum_tmp, checksum_path)
+        try:
+            os.chmod(checksum_path, 0o640)
+        except OSError:
+            pass
 
 
 def _summarize_modality_counts(samples: list[Sample]) -> dict[str, int]:

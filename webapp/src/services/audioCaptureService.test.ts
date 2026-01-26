@@ -198,7 +198,7 @@ describe('AudioCaptureService', () => {
       const result = await audioService.stopRecording();
       
       expect(result.audioFile).toBeNull();
-      expect(result.audioError).toBe('No active recording');
+      expect(result.audioError).toBe('Keine aktive Aufnahme');
     });
   });
 

@@ -146,6 +146,7 @@ export class GestureRecognitionOrchestrator {
   private multimodalSmoother: MultimodalSmoother;
   private variationTracker: SignVariationTracker;
   private variationCleanupCounter = 0;
+  private audioMuted = false;
   private readonly VARIATION_CLEANUP_INTERVAL = 100; // Run cleanup every 100 gestures
 
   private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
@@ -247,7 +248,9 @@ export class GestureRecognitionOrchestrator {
     if (this.isRunning) return;
 
     await this.gestureDetector?.start();
-    await this.liveAudioService.start();
+    if (!this.audioMuted) {
+      await this.liveAudioService.start();
+    }
     this.isRunning = true;
   }
 
@@ -268,6 +271,20 @@ export class GestureRecognitionOrchestrator {
     // Without this reset, restarting after a stop could leave the camera stream detached even though
     // the orchestrator reported a running state.
     this.resetLifecycleState();
+  }
+
+  /**
+   * Toggle live audio capture for multimodal recognition.
+   */
+  async setAudioMuted(muted: boolean): Promise<void> {
+    this.audioMuted = muted;
+    if (muted) {
+      this.liveAudioService.stop();
+      return;
+    }
+    if (this.isRunning && !this.liveAudioService.isRunning()) {
+      await this.liveAudioService.start();
+    }
   }
 
   /**

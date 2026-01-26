@@ -96,96 +96,16 @@ describe('useTrainingUploader', () => {
       expect(uploadResult).toBeNull();
     });
 
-    expect(result.current.error).toContain(SESSION_EXPIRED_MESSAGE);
-    expect(result.current.state).toBe('error');
-    const queued = await listQueuedBundles();
-    expect(queued.length).toBe(0);
+    await waitFor(() => {
+      expect(result.current.error).toContain(SESSION_EXPIRED_MESSAGE);
+      expect(result.current.state).toBe('error');
+    });
+    await waitFor(async () => {
+      const queued = await listQueuedBundles();
+      expect(queued.length).toBe(0);
+    });
   });
 
-  // React 19 incompatible: Converted to integration test.
-  // See: integration/test/training-uploader-polling.test.ts - "upload with default options and polling works end-to-end"
-  // React 19's strict effect lifecycle prevents setTimeout-based polling from executing in unit tests.
-  it.skip('verwendet Default-Optionen für Uploads und Polling', async () => {
-    const fetchSpy = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          id: 'bundle-12',
-          status: 'queued',
-          trainingJob: { jobId: 'job-12', status: 'running', pollUrl: '/jobs/12' },
-        }),
-      })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'completed' }) });
-    (globalThis as any).fetch = fetchSpy;
-
-    const { result } = renderHook(() =>
-      useTrainingUploader({
-        defaultOptions: { endpoint: 'https://api.example.com/api/v1/dgs/sample-bundles', apiBase: 'https://api.example.com' },
-        pollIntervalMs: 5,
-      }),
-    );
-
-    await act(async () => {
-      await result.current.upload(payload);
-    });
-
-    await waitFor(
-      () => {
-        expect(fetchSpy.mock.calls[0]?.[0]).toBe('https://api.example.com/api/v1/dgs/sample-bundles');
-        expect(fetchSpy.mock.calls[1]?.[0]).toBe('https://api.example.com/jobs/12');
-      },
-      { timeout: 10000 },
-    );
-  }, 15000);
-
-  // React 19 incompatible: Converted to integration test.
-  // See: integration/test/training-uploader-polling.test.ts - "trigger training job manually when upload has no job info"
-  // React 19's strict effect lifecycle prevents setTimeout-based polling from executing in unit tests.
-  it.skip('triggert einen Trainingsjob, wenn der Upload keine Job-Info liefert', async () => {
-    const fetchSpy = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'bundle-200', status: 'queued' }) })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ job: { id: 'job-200', status: 'running', pollUrl: '/jobs/200' } }),
-      })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'completed' }) });
-    (globalThis as any).fetch = fetchSpy;
-
-    const { result } = renderHook(() =>
-      useTrainingUploader({
-        defaultOptions: {
-          endpoint: 'https://api.example.com/api/v1/dgs/sample-bundles',
-          apiBase: 'https://api.example.com',
-          token: 'secret',
-        },
-        pollIntervalMs: 5,
-      }),
-    );
-
-    await act(async () => {
-      await result.current.upload(payload);
-    });
-
-    await waitFor(
-      () => {
-        expect(fetchSpy.mock.calls[1]?.[0]).toBe('https://api.example.com/train-model');
-      },
-      { timeout: 10000 },
-    );
-
-    await waitFor(() => expect(result.current.trainingJob?.jobId).toBe('job-200'), { timeout: 10000 });
-    await waitFor(
-      () => {
-        const pollCall = fetchSpy.mock.calls.find((call) => String(call[0]).includes('/jobs/200'));
-        expect(pollCall?.[0]).toBe('https://api.example.com/jobs/200');
-      },
-      { timeout: 10000 },
-    );
-  }, 15000);
 
   it('legt fehlgeschlagene Uploads in die Warteschlange', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
@@ -198,77 +118,16 @@ describe('useTrainingUploader', () => {
       const uploadResult = await result.current.upload(payload, { endpoint: 'https://example.invalid' });
       expect(uploadResult).toBeNull();
     });
-    const queued = await listQueuedBundles();
-    expect(queued.length).toBe(1);
-    expect(result.current.state).toBe('queued');
-    expect(result.current.error).toMatch(/gespeichert/);
+    await waitFor(() => {
+      expect(result.current.state).toBe('queued');
+      expect(result.current.error).toMatch(/gespeichert/);
+    });
+    await waitFor(async () => {
+      const queued = await listQueuedBundles();
+      expect(queued.length).toBe(1);
+    });
   });
 
-  // React 19 incompatible: Converted to integration test.
-  // See: integration/test/training-uploader-polling.test.ts - "bundles can be queued and synced manually"
-  // React 19's strict effect lifecycle prevents setTimeout-based polling from executing in unit tests.
-  it.skip('legt Bundles offline ab und synchronisiert sie manuell', async () => {
-    Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
-    const { result } = renderHook(() =>
-      useTrainingUploader({ defaultOptions: { endpoint: 'https://example.invalid' } }),
-    );
-
-    await act(async () => {
-      await result.current.upload(payload, { endpoint: 'https://offline.invalid' });
-    });
-
-    expect(result.current.state).toBe('queued');
-    const queuedAfter = await listQueuedBundles();
-    expect(queuedAfter.length).toBe(1);
-
-    Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
-    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'bundle-99' }) });
-    (globalThis as any).fetch = fetchSpy;
-
-    await act(async () => {
-      const { uploaded, remaining } = await result.current.syncQueued({ endpoint: 'https://example.invalid' });
-      expect(uploaded).toBe(1);
-      expect(remaining).toBe(0);
-    });
-
-    const queuedAfterSync = await listQueuedBundles();
-    expect(queuedAfterSync.length).toBe(0);
-  }, 15000);
-
-  // React 19 incompatible: Converted to integration test.
-  // See: integration/test/training-uploader-polling.test.ts - "automatic sync uploads and processes bundles"
-  // React 19's strict effect lifecycle prevents setTimeout-based polling from executing in unit tests.
-  it.skip('synchronisiert gespeicherte Bundles automatisch, wenn online', async () => {
-    await enqueuePersistedBundle({
-      profileId: 'demo',
-      label: 'HILFE',
-      capturedAt: '2024-01-01T00:00:00.000Z',
-      source: 'web://mediapipe',
-      framesCount: 1,
-      zip: new TextEncoder().encode('demo-zip'),
-    });
-
-    const fetchSpy = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ id: 'bundle-auto' }),
-    });
-    (globalThis as any).fetch = fetchSpy;
-
-    const { result } = renderHook(() =>
-      useTrainingUploader({ defaultOptions: { endpoint: 'https://example.invalid' } }),
-    );
-
-    await waitFor(
-      async () => {
-        expect(fetchSpy).toHaveBeenCalled();
-        expect(result.current.syncing).toBe(false);
-        const remaining = await listQueuedBundles();
-        expect(remaining.length).toBe(0);
-      },
-      { timeout: 10000 },
-    );
-  }, 15000);
 
   it('pollt den Trainingsjob bis zum Abschluss', async () => {
     const fetchSpy = vi
@@ -388,8 +247,10 @@ describe('useTrainingUploader', () => {
       useTrainingUploader({ defaultOptions: { endpoint: 'https://example.invalid' } }),
     );
 
-    await waitFor(() => expect(result.current.queuedBundles.length).toBe(1));
-    expect(result.current.queuedBundles[0]?.status).toBe('failed');
+    await waitFor(() => {
+      expect(result.current.queuedBundles.length).toBe(1);
+      expect(result.current.queuedBundles[0]?.status).toBe('failed');
+    });
 
     let resultSync!: { uploaded: number; remaining: number };
     await act(async () => {
@@ -399,9 +260,11 @@ describe('useTrainingUploader', () => {
     expect(resultSync.uploaded).toBe(0);
     expect(resultSync.remaining).toBe(1);
     expect(fetchSpy).not.toHaveBeenCalled();
-    const queuedAfter = await listQueuedBundles();
-    expect(queuedAfter.length).toBe(1);
-    expect(queuedAfter[0]?.status).toBe('failed');
+    await waitFor(async () => {
+      const queuedAfter = await listQueuedBundles();
+      expect(queuedAfter.length).toBe(1);
+      expect(queuedAfter[0]?.status).toBe('failed');
+    });
   });
 
   it('listet gespeicherte Bundles und erlaubt das Löschen', async () => {
