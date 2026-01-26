@@ -249,7 +249,7 @@ export function useSignLanguageDetector(
       setStatus('error');
       return false;
     }
-  }, [ensureOrchestrator]);
+  }, [audioMuted, ensureOrchestrator]);
 
   const stop = useCallback(async () => {
     if (!orchestratorRef.current) {
