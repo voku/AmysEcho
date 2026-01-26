@@ -32,6 +32,10 @@ This document provides a step-by-step guide for completing the live audio infere
 - Visual-only models: 48,870 dims
 - Multimodal models: 48,870 + 13 = **48,883 dims**
 
+## Localization Note
+
+Any user-facing audio capture errors (for example, when starting/stopping recording or when no audio data was recorded) must be shown in German so caregivers and Amy see consistent guidance in the app UI.
+
 ## Integration Steps
 
 ### Step 1: Import the Live Audio Service

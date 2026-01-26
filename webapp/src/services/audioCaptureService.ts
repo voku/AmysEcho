@@ -138,7 +138,7 @@ export class AudioCaptureService {
       // Handle errors
       this.mediaRecorder.onerror = (event: Event) => {
         const error = (event as { error?: unknown }).error;
-        const errorMessage = error instanceof Error ? error.message : 'Audio recording error';
+        const errorMessage = error instanceof Error ? error.message : 'Audio-Aufnahmefehler';
         logger.error('Audio recording error:', errorMessage);
         
         const result: AudioRecordingResult = {
@@ -159,7 +159,7 @@ export class AudioCaptureService {
       this.mediaRecorder.start(1000);
       logger.info('Audio recording started');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start audio recording';
+      const errorMessage = error instanceof Error ? error.message : 'Audioaufnahme konnte nicht gestartet werden';
       logger.error('Failed to start audio recording:', error);
       throw new Error(errorMessage);
     }
@@ -175,7 +175,7 @@ export class AudioCaptureService {
         audioFile: null,
         audioSizeBytes: 0,
         audioDurationMs: 0,
-        audioError: 'No active recording',
+        audioError: 'Keine aktive Aufnahme',
         mimeType: null,
       };
     }
@@ -189,11 +189,11 @@ export class AudioCaptureService {
         audioFile: null,
         audioSizeBytes: 0,
         audioDurationMs: 0,
-        audioError: 'Recording promise not initialized',
+        audioError: 'Audioaufnahme nicht initialisiert',
         mimeType: null,
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to stop audio recording';
+      const errorMessage = error instanceof Error ? error.message : 'Audioaufnahme konnte nicht gestoppt werden';
       logger.error('Failed to stop audio recording:', error);
       return {
         audioFile: null,
@@ -224,7 +224,7 @@ export class AudioCaptureService {
         audioFile: null,
         audioSizeBytes: 0,
         audioDurationMs: durationMs,
-        audioError: 'No audio data recorded',
+        audioError: 'Keine Audiodaten aufgenommen',
         mimeType: null,
       };
     }
