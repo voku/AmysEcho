@@ -1,10 +1,5 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
-import {
-  prepareMultimodalForMLP,
-  MULTIMODAL_FEATURES_SIZE,
-  HAND_FEATURES_SIZE,
-  HAND_PRIORITY_FACTOR,
-} from './utils/landmarkNormalizer';
+import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
 import { enhancePredictionWithFeedback } from './performanceFeedback';
 
 export type ModelMetadata = {
@@ -42,7 +37,6 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
   let WINDOW_SIZE = 30; // Default, will be updated from model metadata
   let rollingBuffer: Float32Array[] = [];
-  const DEFAULT_AUDIO_FEATURE_SIZE = 13;
 
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -439,18 +433,9 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
   function resolveAudioFeatureSize(inputSize: number, windowSize: number, metadataAudioFeatureSize?: number) {
-    if (metadataAudioFeatureSize !== undefined) {
-      return Math.max(0, metadataAudioFeatureSize);
-    }
-    const expectedVisualSize = windowSize * MULTIMODAL_FEATURES_SIZE;
-    if (inputSize === expectedVisualSize + DEFAULT_AUDIO_FEATURE_SIZE) {
-      return DEFAULT_AUDIO_FEATURE_SIZE;
-    }
-    const expectedHandOnlySize = windowSize * HAND_FEATURES_SIZE;
-    if (inputSize === expectedHandOnlySize + DEFAULT_AUDIO_FEATURE_SIZE) {
-      return DEFAULT_AUDIO_FEATURE_SIZE;
-    }
-    return 0;
+    void inputSize;
+    void windowSize;
+    return metadataAudioFeatureSize !== undefined ? Math.max(0, metadataAudioFeatureSize) : 0;
   }
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
