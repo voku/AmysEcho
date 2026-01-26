@@ -531,7 +531,6 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       const currentFrameVec = normalizeLandmarks(all, handednesses, poseLandmarks, faceLandmarks);
       
       // 2. Determine if model expects multimodal input
-      const inputSize = mlp.w1.shape[1] ?? 0;
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
       const audioFeatureSize = resolveAudioFeatureSize(mlp.audio_feature_size);
       // A model is considered multimodal (with audio) if it has audio features.
