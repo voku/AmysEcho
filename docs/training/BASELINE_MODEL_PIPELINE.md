@@ -33,10 +33,10 @@ deterministic way so the checksum can be validated in CI and production.
      - `config_snapshot` → training config + feature schema sizes
      - `stats` → build/sample statistics (including modality counts)
 
-4. **Update checksum**
-   ```bash
-   python3 scripts/update_baseline_checksum.py
-   ```
+4. **Write checksum**
+   `train_mlp.py` writes `server/data/models/global/amy_model.npz.sha256` alongside
+   the output model. Use `scripts/update_baseline_checksum.py` only when you need
+   to refresh an existing baseline without running the trainer.
 
 5. **Verify checksum**
    The CI test `server/test/baselineModelChecksum.test.ts` ensures the checksum

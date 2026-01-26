@@ -2145,6 +2145,15 @@ def save_model(
     except OSError:
         pass
 
+    checksum = sha256_file(path)
+    if checksum:
+        checksum_path = path.with_suffix(f"{path.suffix}.sha256")
+        checksum_path.write_text(f"{checksum}\n", encoding="utf-8")
+        try:
+            os.chmod(checksum_path, 0o640)
+        except OSError:
+            pass
+
 
 def _summarize_modality_counts(samples: list[Sample]) -> dict[str, int]:
     counts = dict.fromkeys(MODALITY_KEYS, 0)
