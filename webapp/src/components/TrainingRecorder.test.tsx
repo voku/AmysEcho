@@ -68,6 +68,8 @@ vi.mock('../hooks/useSignLanguageDetector', () => ({
     start: startMock,
     stop: vi.fn(),
     cleanup: vi.fn(),
+    audioMuted: false,
+    toggleAudioMuted: vi.fn(),
     status: gestureState.status,
     error: null,
     lastSign: null,
