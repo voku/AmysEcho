@@ -432,16 +432,14 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   }
   const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
 
-  function resolveAudioFeatureSize(inputSize: number, windowSize: number, metadataAudioFeatureSize?: number) {
-    void inputSize;
-    void windowSize;
+  function resolveAudioFeatureSize(metadataAudioFeatureSize?: number) {
     return metadataAudioFeatureSize !== undefined ? Math.max(0, metadataAudioFeatureSize) : 0;
   }
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
     const inputSize = mlp?.w1.shape[1] ?? 0;
     const windowSize = mlp?.window_size ?? WINDOW_SIZE;
-    const audioFeatureSize = resolveAudioFeatureSize(inputSize, windowSize, mlp?.audio_feature_size);
+    const audioFeatureSize = resolveAudioFeatureSize(mlp?.audio_feature_size);
     const visualInputSize = Math.max(0, inputSize - audioFeatureSize);
     const featuresPerFrame = windowSize > 0 ? visualInputSize / windowSize : visualInputSize;
     
@@ -535,7 +533,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       // 2. Determine if model expects multimodal input
       const inputSize = mlp.w1.shape[1] ?? 0;
       const windowSize = mlp.window_size ?? WINDOW_SIZE;
-      const audioFeatureSize = resolveAudioFeatureSize(inputSize, windowSize, mlp.audio_feature_size);
+      const audioFeatureSize = resolveAudioFeatureSize(mlp.audio_feature_size);
       // A model is considered multimodal (with audio) if it has audio features.
       const isMultimodalModel = audioFeatureSize > 0;
       

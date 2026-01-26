@@ -2104,6 +2104,9 @@ def save_model(
         arch: Architecture identifier ("mlp_3layer_window")
         window_size: Temporal window size (30)
         input_dim: Expected input dimension (derived from weights)
+        feature_size: Per-frame feature dimension
+        audio_feature_size: Audio feature vector length (0 for visual-only)
+        layer_sizes: [layer1_size, layer2_size] derived from weights
     """
     w1, b1, w2, b2, w3, b3 = weights
     input_dim = int(w1.shape[0])
@@ -2148,7 +2151,9 @@ def save_model(
     checksum = sha256_file(path)
     if checksum:
         checksum_path = path.with_suffix(f"{path.suffix}.sha256")
-        checksum_path.write_text(f"{checksum}\n", encoding="utf-8")
+        checksum_tmp = checksum_path.with_suffix(checksum_path.suffix + ".tmp")
+        checksum_tmp.write_text(f"{checksum}\n", encoding="utf-8")
+        os.replace(checksum_tmp, checksum_path)
         try:
             os.chmod(checksum_path, 0o640)
         except OSError:

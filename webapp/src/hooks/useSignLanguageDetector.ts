@@ -117,6 +117,7 @@ export function useSignLanguageDetector(
   const [lastConfidence, setLastConfidence] = useState<number | null>(null);
   const [messageLog, setMessageLog] = useState<SignLanguageMessage[]>([]);
   const [audioMuted, setAudioMuted] = useState(false);
+  const audioMutedRef = useRef(false);
   const orchestratorRef = useRef<GestureRecognitionOrchestrator | null>(null);
   const handStabilizerRef = useRef<HandLandmarkStabilizer>(
     createHandLandmarkStabilizer({ ttlMs: 250, maxHands: 2 }),
@@ -213,19 +214,17 @@ export function useSignLanguageDetector(
     const orchestrator = orchestratorFactory(video, overlay);
     orchestratorRef.current = orchestrator;
     await orchestrator.initialize();
-    await orchestrator.setAudioMuted(audioMuted);
+    await orchestrator.setAudioMuted(audioMutedRef.current);
     return orchestrator;
-  }, [audioMuted, videoRef, overlayRef, orchestratorFactory]);
+  }, [videoRef, overlayRef, orchestratorFactory]);
 
-  const applyAudioMuted = useCallback(
-    async (muted: boolean) => {
-      setAudioMuted(muted);
-      if (orchestratorRef.current) {
-        await orchestratorRef.current.setAudioMuted(muted);
-      }
-    },
-    [],
-  );
+  const applyAudioMuted = useCallback(async (muted: boolean) => {
+    audioMutedRef.current = muted;
+    setAudioMuted(muted);
+    if (orchestratorRef.current) {
+      await orchestratorRef.current.setAudioMuted(muted);
+    }
+  }, []);
 
   const toggleAudioMuted = useCallback(() => {
     void applyAudioMuted(!audioMuted);
@@ -236,7 +235,7 @@ export function useSignLanguageDetector(
       setStatus('initializing');
       setError(null);
       const orchestrator = await ensureOrchestrator();
-      await orchestrator.setAudioMuted(audioMuted);
+      await orchestrator.setAudioMuted(audioMutedRef.current);
       await orchestrator.start();
       if ('vibrate' in navigator) {
         navigator.vibrate?.(30);
@@ -249,7 +248,7 @@ export function useSignLanguageDetector(
       setStatus('error');
       return false;
     }
-  }, [audioMuted, ensureOrchestrator]);
+  }, [ensureOrchestrator]);
 
   const stop = useCallback(async () => {
     if (!orchestratorRef.current) {
