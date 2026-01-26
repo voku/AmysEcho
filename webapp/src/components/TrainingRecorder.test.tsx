@@ -22,6 +22,8 @@ type TrainingState = {
   startRecording: ReturnType<typeof vi.fn>;
   stopRecording: ReturnType<typeof vi.fn>;
   resetRecording: ReturnType<typeof vi.fn>;
+  audioMuted: boolean;
+  toggleAudioMuted: ReturnType<typeof vi.fn>;
   framesCaptured: number;
   clipLimitExceeded: boolean;
   maxClipBytes: number;
@@ -46,6 +48,8 @@ const createTrainingState = (): TrainingState => ({
   startRecording: vi.fn(),
   stopRecording: vi.fn(),
   resetRecording: vi.fn(),
+  audioMuted: false,
+  toggleAudioMuted: vi.fn(),
   framesCaptured: 0,
   clipLimitExceeded: false,
   maxClipBytes: 1024 * 1024,
@@ -177,6 +181,16 @@ describe('TrainingRecorder', () => {
 
     const switchButton = screen.getByRole('button', { name: /Rückkamera|Frontkamera/ });
     expect(switchButton).toBeInTheDocument();
+  });
+
+  it('schaltet die Audioaufnahme stumm', async () => {
+    const user = userEvent.setup();
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    const muteButton = screen.getByRole('button', { name: '🔇 Audio stumm' });
+    await user.click(muteButton);
+
+    expect(trainingState.toggleAudioMuted).toHaveBeenCalledTimes(1);
   });
 
   it('wechselt zwischen Front- und Rückkamera', async () => {

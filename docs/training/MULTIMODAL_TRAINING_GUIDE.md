@@ -10,6 +10,7 @@ This guide explains how to train Amy's Echo with multimodal sign language data (
    - Open the Training page in Amy's Echo
    - Select a sign to record (e.g., "HALLO", "DANKE")
    - Position Amy so her hands, face, and upper body are visible
+   - Optional: Schalte Audio stumm, wenn Umgebungsgeräusche die Erkennung stören
    - Press "Record" button
    - Perform the sign naturally
    - Press "Stop" when done

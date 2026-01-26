@@ -19,6 +19,12 @@ describe('useTrainingRecorder', () => {
   let OriginalMediaRecorder: typeof MediaRecorder | undefined;
   let OriginalMediaStream: typeof MediaStream | undefined;
 
+  const muteAudio = (result: { current: { toggleAudioMuted: () => void } }) => {
+    act(() => {
+      result.current.toggleAudioMuted();
+    });
+  };
+
   beforeEach(() => {
     OriginalMediaRecorder = (window as any).MediaRecorder;
     OriginalMediaStream = (window as any).MediaStream;
@@ -38,6 +44,9 @@ describe('useTrainingRecorder', () => {
 
     expect(result.current.state).toBe('idle');
     expect(result.current.framesCaptured).toBe(0);
+    expect(result.current.audioMuted).toBe(false);
+
+    muteAudio(result);
 
     act(() => {
       result.current.startRecording();
@@ -52,8 +61,26 @@ describe('useTrainingRecorder', () => {
     expect(result.current.state).toBe('idle');
   });
 
+  it('schaltet die Audioaufnahme stumm und wieder aktiv', () => {
+    const { result } = renderHook(() => useTrainingRecorder());
+
+    act(() => {
+      result.current.toggleAudioMuted();
+    });
+
+    expect(result.current.audioMuted).toBe(true);
+
+    act(() => {
+      result.current.toggleAudioMuted();
+    });
+
+    expect(result.current.audioMuted).toBe(false);
+  });
+
   it('erfasst Frame-Batch-Nachrichten während der Aufnahme', async () => {
     const { result } = renderHook(() => useTrainingRecorder());
+
+    muteAudio(result);
 
     act(() => {
       result.current.startRecording();
@@ -103,6 +130,8 @@ describe('useTrainingRecorder', () => {
   it('wertet FRAME_BATCH-Meldungen aus gesture_batch aus', async () => {
     const { result } = renderHook(() => useTrainingRecorder());
 
+    muteAudio(result);
+
     act(() => {
       result.current.startRecording();
     });
@@ -139,6 +168,8 @@ describe('useTrainingRecorder', () => {
 
   it('setzt die Aufnahme zurück', () => {
     const { result } = renderHook(() => useTrainingRecorder());
+
+    muteAudio(result);
 
     act(() => {
       result.current.startRecording();
@@ -227,6 +258,8 @@ describe('useTrainingRecorder', () => {
 
     const { result } = renderHook(() => useTrainingRecorder({ current: video }));
 
+    muteAudio(result);
+
     act(() => {
       result.current.startRecording();
     });
@@ -285,6 +318,8 @@ describe('useTrainingRecorder', () => {
     (window as any).MediaRecorder = MockMediaRecorder as any;
 
     const { result } = renderHook(() => useTrainingRecorder({ current: video }));
+
+    muteAudio(result);
 
     act(() => {
       result.current.startRecording();

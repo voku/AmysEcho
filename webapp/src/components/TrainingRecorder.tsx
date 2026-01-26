@@ -77,6 +77,8 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     startRecording,
     stopRecording,
     resetRecording,
+    audioMuted,
+    toggleAudioMuted,
     framesCaptured,
     clipLimitExceeded,
     maxClipBytes,
@@ -513,6 +515,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
   const recordingStatusLabel = getRecordingStatusLabel({ isRecording, hasRecording });
   const recordingStatusPill = getRecordingStatusPill({ isRecording, hasRecording, recordingDuration });
   const photoStatusPill = getPhotoStatusPill(photoMode);
+  const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const framesLine = framesCaptured > 0
     ? `${framesCaptured} Frames erfasst`
     : detectorRunning
@@ -665,6 +668,14 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               >
                 {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
               </button>
+              <button
+                className="ghost-inline"
+                onClick={toggleAudioMuted}
+                type="button"
+                title={audioMuted ? 'Audioaufnahme wieder einschalten' : 'Audioaufnahme stummschalten'}
+              >
+                {audioToggleLabel}
+              </button>
               <label className="toggle ghost-inline" htmlFor="overlay-toggle">
                 <input
                   id="overlay-toggle"
@@ -693,6 +704,12 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
               )}
 
               {cameraError && <div className="notice error compact">{cameraError}</div>}
+
+              {audioMuted && (
+                <div className="notice info compact">
+                  <strong>Audio stummgeschaltet.</strong> So stören Umgebungsgeräusche die Erkennung nicht.
+                </div>
+              )}
 
               {detectorInactiveNotice && (
                 <div className={`notice ${detectorRunning ? 'info' : 'warning'} compact`}>
