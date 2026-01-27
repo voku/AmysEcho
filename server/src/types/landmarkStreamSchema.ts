@@ -8,7 +8,6 @@ export const LandmarkStreamSchema = z
     landmarks: z.array(z.array(z.array(z.number()).length(3))),
     visibility: z.array(z.array(z.number())),
     handednesses: z.array(z.string()),
-    handedness: z.array(z.string()).optional(),
   })
   .superRefine((value, ctx) => {
     if (value.visibility.length !== value.landmarks.length) {

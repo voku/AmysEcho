@@ -126,10 +126,6 @@ MANIFEST_PATH = Path(
 MODELS_DIR = Path(os.environ.get("MLP_MODELS_DIR", DATA_DIR / "models"))
 GLOBAL_MODEL_PATH = MODELS_DIR / "global" / "amy_model.npz"
 CACHE_FILENAME = "landmarks_cached.json"
-LEGACY_DATASET_PATH = Path(
-    os.environ.get("MLP_DATASET_PATH", DATA_DIR / "dgs_samples.json")
-)
-
 VIDEO_EXTENSIONS = {
     ".mp4",
     ".mov",
@@ -163,10 +159,6 @@ AUDIO_EXTENSIONS = {
 # Amy First: Fixed-size audio representation for consistent MLP input
 AUDIO_FEATURE_SIZE = 13  # MFCC coefficients (averaged over time)
 MULTIMODAL_FEATURE_SIZE = WINDOW_FEATURE_SIZE + AUDIO_FEATURE_SIZE  # 48,870 + 13 = 48,883
-
-# --- Legacy Configuration (Deprecated but kept for reference) ---
-# HIDDEN_SIZE: No longer used (hardcoded to 1024/512)
-# The old 2-layer architecture has been replaced with 3-layer funnel
 
 MAX_FRAMES_PER_CLIP = int(os.environ.get("MLP_MAX_FRAMES", "120"))
 FRAME_STRIDE = int(os.environ.get("MLP_FRAME_STRIDE", "2"))
@@ -1778,68 +1770,6 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     return data, stats
 
 
-def build_samples_from_legacy_dataset(dataset_path: Path) -> list[Sample]:
-    """
-    DEPRECATED: This function is incompatible with the sliding window architecture.
-    Legacy samples contain pre-averaged landmarks that cannot be converted to
-    temporal windows. Samples produced by this function will fail dimension
-    validation in dataset_to_arrays().
-    """
-    import warnings
-    warnings.warn(
-        "build_samples_from_legacy_dataset is deprecated and incompatible with "
-        "the sliding window architecture. Use build_samples_from_manifest instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    legacy = load_json(dataset_path)
-    if not legacy:
-        return []
-    samples = []
-    for entry in legacy.get("samples", []):
-        label = entry.get("label") or entry.get("gestureDefinitionId")
-        if not label:
-            continue
-        profile_id = entry.get("profileId")
-        landmarks = entry.get("landmarks") or entry.get("landmarkData")
-        if not landmarks:
-            continue
-
-        # Support frame sequences in legacy dataset
-        if isinstance(landmarks, list) and len(landmarks) > 0 and isinstance(landmarks[0], dict):
-            normalized_frames = []
-            for f in landmarks:
-                vec = _normalize_frame(
-                    f.get("landmarks"),
-                    f.get("poseLandmarks"),
-                    f.get("faceLandmarks")
-                )
-                if vec is not None:
-                    normalized_frames.append(vec)
-
-            if normalized_frames:
-                # Generate sliding windows
-                ctx = {'profile_id': profile_id}
-                samples.extend(create_sliding_windows(normalized_frames, label, ctx))
-            continue
-
-        # For single-frame legacy samples, we inflate them to a full window by repetition
-        # to remain compatible with the new 3D temporal architecture.
-        if isinstance(landmarks, list) and len(landmarks) >= 21:
-            # Assume it's a single frame of hand landmarks (legacy format)
-            # Normalize it first (this expects [landmarks, pose, face])
-            norm_vec = _normalize_frame(landmarks, None, None)
-            if norm_vec is not None:
-                # Repeat the same frame WINDOW_SIZE times
-                inflated_landmarks = np.tile(norm_vec, WINDOW_SIZE).tolist()
-                samples.append(Sample(label=label, profile_id=profile_id, landmarks=inflated_landmarks))
-            else:
-                LOGGER.warning(f"Skipping invalid legacy sample for {label}")
-        else:
-            LOGGER.warning(f"Skipping unknown legacy format for {label}")
-
-    return samples
-
 
 def _prepare_audio_features(audio_features_list: list[float] | None) -> np.ndarray:
     """
@@ -2506,8 +2436,6 @@ def main() -> None:
 
     DATA_DIR = args.data_dir
     MODELS_DIR = args.output_dir or (DATA_DIR / "models")
-    legacy_dataset_path = DATA_DIR / LEGACY_DATASET_PATH.name
-
     seed_value = args.seed
     if seed_value is None:
         env_seed = os.environ.get("MLP_RANDOM_SEED")
@@ -2528,13 +2456,6 @@ def main() -> None:
     try:
         samples, stats = build_samples_from_manifest(args.manifest, skip_examples=args.skip_examples)
 
-        # Also load from legacy dataset if it exists
-        if legacy_dataset_path.exists():
-            LOGGER.info(f"Loading additional samples from legacy dataset: {legacy_dataset_path}")
-            legacy_samples = build_samples_from_legacy_dataset(legacy_dataset_path)
-            samples.extend(legacy_samples)
-            stats["legacy_entries"] = len(legacy_samples)
-
         if not samples:
             print(json.dumps({"error": "No valid training samples found."}))
             return
@@ -2543,7 +2464,7 @@ def main() -> None:
         if config.random_seed is not None:
             rng = np.random.RandomState(config.random_seed)
 
-        training_sources = _hash_training_sources([args.manifest, legacy_dataset_path], base_path=DATA_DIR)
+        training_sources = _hash_training_sources([args.manifest], base_path=DATA_DIR)
         metadata_context = {
             "training_sources": training_sources,
             "config_snapshot": _build_config_snapshot(config),

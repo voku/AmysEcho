@@ -127,7 +127,7 @@ interface MediaPipeGestureDetectorHandle {
     "frames": [
       {
         "handLandmarks": [[/* left hand */], [/* right hand */]],
-        "landmarks": [/* flattened hands for backward-compat */],
+        "landmarks": [/* flattened hands */],
         "poseLandmarks": [/* optional body keypoints */],
         "faceLandmarks": [/* optional face mesh keypoints */],
         "timestampMs": 1716897791000

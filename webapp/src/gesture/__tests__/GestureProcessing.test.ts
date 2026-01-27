@@ -17,7 +17,7 @@ describe('GestureSizeNormalizer', () => {
       const tolerance = normalizer.getTolerance();
       expect(tolerance.tolerance).toBe(0.3);
       expect(tolerance.minScale).toBe(0.7);
-      expect(tolerance.maxScale).toBe(1.4);
+      expect(tolerance.maxScale).toBe(1.3);
     });
   });
 

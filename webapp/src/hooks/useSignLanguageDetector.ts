@@ -156,11 +156,10 @@ export function useSignLanguageDetector(
         const payload = parsed.payload as {
           gesture?: string;
           type?: string;
-          messages?: Array<{ gesture?: string; landmarks?: unknown; handednesses?: string[]; handedness?: string[] }>;
+          messages?: Array<{ gesture?: string; landmarks?: unknown; handednesses?: string[] }>;
           confidence?: number;
           landmarks?: unknown;
           handednesses?: string[];
-          handedness?: string[];
         };
         if (payload.gesture) {
           setLastSign(payload.gesture);
@@ -178,10 +177,7 @@ export function useSignLanguageDetector(
         if (landmarksCandidate && Array.isArray(landmarksCandidate)) {
           const handednessCandidate = Array.isArray(payload.handednesses)
             ? payload.handednesses
-            : Array.isArray(payload.handedness)
-            ? payload.handedness
-            : payload.messages?.find((msg) => Array.isArray(msg?.handednesses) || Array.isArray(msg?.handedness))
-                ?.handednesses ?? payload.messages?.find((msg) => Array.isArray(msg?.handedness))?.handedness ?? [];
+            : payload.messages?.find((msg) => Array.isArray(msg?.handednesses))?.handednesses ?? [];
 
           const stabilizer = handStabilizerRef.current;
           const normalizedHandedness = normalizeHandednessLabels(

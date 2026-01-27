@@ -16,8 +16,6 @@ import { sha256 } from 'js-sha256';
 const REGISTRY_STORAGE_KEY = 'webapp:profile-registry';
 const REGISTRY_VERSION = 1;
 
-// Legacy secret key for HMAC migration
-const LEGACY_SECRET_SEED = 'amys-echo-profile-integrity-v1';
 const SECRET_STORAGE_KEY = 'webapp:profile-registry-secret';
 
 /**
@@ -126,13 +124,9 @@ async function getRegistrySecret(): Promise<string> {
   try {
     const stored = localStorage.getItem(SECRET_STORAGE_KEY);
     if (stored) {
-      // Try to decrypt first
       const decrypted = await decryptRegistrySecret(stored);
       if (decrypted) return decrypted;
-      
-      // If decryption fails, it might be an unencrypted legacy secret 
-      // from the previous version. We return it as-is to allow migration.
-      return stored;
+      localStorage.removeItem(SECRET_STORAGE_KEY);
     }
 
     // Generate a fresh 256-bit random secret
@@ -150,16 +144,13 @@ async function getRegistrySecret(): Promise<string> {
         return secret;
       }
       
-      // If encryption fails, we do not store the random secret in clear text.
-      // We fall back to the stable LEGACY_SECRET_SEED to ensure stability across reloads.
-      return LEGACY_SECRET_SEED;
+      throw new Error('Registrierungsgeheimnis konnte nicht sicher gespeichert werden.');
     }
   } catch (error) {
     console.error('[Profile Registry] Failed to generate or retrieve registry secret:', error);
   }
   
-  // Last resort fallback (should ideally not be reached on modern browsers)
-  return LEGACY_SECRET_SEED;
+  throw new Error('Registrierungsgeheimnis konnte nicht erstellt werden.');
 }
 
 export interface ProfileMetadata {
@@ -276,13 +267,6 @@ async function verifySecurityToken(profile: Profile): Promise<boolean> {
   // 1. Try with the current device secret
   const expectedToken = await generateSecurityToken(profile.uuid, profile.profileId);
   if (expectedToken === profile.securityToken) return true;
-  
-  // 2. Fallback to legacy seed for migration
-  const legacyToken = await generateSecurityToken(profile.uuid, profile.profileId, LEGACY_SECRET_SEED);
-  if (legacyToken === profile.securityToken) {
-    console.log(`[Profile Registry] Migrating legacy token for profile ${profile.uuid} to new device secret.`);
-    return true;
-  }
   
   return false;
 }

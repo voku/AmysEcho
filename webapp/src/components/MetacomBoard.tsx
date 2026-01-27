@@ -12,11 +12,11 @@ function getBoard(
   boardId: string,
   boards: Record<string, MetacomBoardDefinition>,
 ): MetacomBoardDefinition {
-  const fallback = boards[START_BOARD_ID] ?? Object.values(boards)[0];
-  if (!fallback) {
+  const startBoard = boards[START_BOARD_ID];
+  if (!startBoard) {
     throw new Error('Metacom-Starttafel fehlt.');
   }
-  return boards[boardId] ?? fallback;
+  return boards[boardId] ?? startBoard;
 }
 
 export function MetacomBoard() {
@@ -29,10 +29,7 @@ export function MetacomBoard() {
 
   const currentBoardId = boardHistory[boardHistory.length - 1] ?? START_BOARD_ID;
   const board = getBoard(currentBoardId, boards);
-  const fallbackBoardId = useMemo(
-    () => boards[START_BOARD_ID]?.id ?? Object.values(boards)[0]?.id ?? START_BOARD_ID,
-    [boards]
-  );
+  const fallbackBoardId = useMemo(() => START_BOARD_ID, []);
 
   useEffect(() => {
     if (!boards[currentBoardId]) {

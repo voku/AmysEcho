@@ -46,7 +46,7 @@ The performance budget for the gesture recognition pipeline is as follows:
 These are target values and should be validated in real browser environments.
 
 ## 7. Data Privacy & Profile Management
-- Profile registry data is stored under `server/data/profiles/profile_registry.json` and keyed by UUIDs with legacy IDs preserved for lookup.
+- Profile registry data is stored under `server/data/profiles/profile_registry.json` and keyed by UUIDs.
 - `GET /api/v1/profiles/:id/export` returns a ZIP bundle with all profile training data, models, and metadata for GDPR exports.
 - `DELETE /api/v1/profiles/:id` removes a profile with cascade cleanup across usage stats, corrections, training bundles, models, and manifests.
 - `POST /api/v1/profiles/:id/merge` merges or transfers profile data between UUIDs for caregiver-driven consolidation.

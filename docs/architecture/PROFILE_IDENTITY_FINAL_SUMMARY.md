@@ -36,7 +36,7 @@
 - **Webapp:** 813 tests pass ✅
 - **Server:** 67 tests pass (10 pre-existing Python failures, unrelated) ✅
 - **TypeScript:** Compiles successfully ✅
-- **Backward Compatible:** Existing profiles work ✅
+- **UUID-only Profiles:** Registry expects UUID profile IDs ✅
 
 ## Your Questions Answered
 
@@ -165,7 +165,7 @@ Daten zu verlieren.
 ### Data Level
 - ✅ ProfileId **never modified** after creation
 - ✅ DisplayName changes **don't affect** storage
-- ✅ **Backward compatible** (existing profiles work)
+- ✅ UUID-only profile registry (legacy migrations removed)
 
 ### Code Level
 - ✅ **Type system** enforces separation

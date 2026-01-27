@@ -63,11 +63,10 @@ def main() -> int:
     labels = _ensure_label_list(payload.get("labels"))
     counts = _ensure_counts_list(payload.get("counts"), len(labels))
 
-    # Support both legacy 'hiddenSize' and new 'layer1Size'/'layer2Size'
     input_size = int(payload.get("inputSize", WINDOW_FEATURE_SIZE))
     window_size = int(payload.get("windowSize", DEFAULT_WINDOW_SIZE))
     feature_size = int(payload.get("featureSize", INPUT_FEATURE_SIZE))
-    layer1_size = int(payload.get("layer1Size", payload.get("hiddenSize", 1024)))
+    layer1_size = int(payload.get("layer1Size", 1024))
     layer2_size = int(payload.get("layer2Size", 512))
 
     if input_size <= 0 or layer1_size <= 0 or layer2_size <= 0:

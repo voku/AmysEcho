@@ -415,7 +415,6 @@ export class GestureSizeNormalizer {
   private static readonly DEFAULT_TOLERANCE = 0.3;
   private static readonly MIN_TOLERANCE = 0.1;
   private static readonly MAX_TOLERANCE = 1.0;
-  private static readonly DEFAULT_MAX_SCALE = 1.4;
 
   private tolerance: number = GestureSizeNormalizer.DEFAULT_TOLERANCE;
   private referenceHandSizes: Array<number | null> = [];
@@ -524,13 +523,8 @@ export class GestureSizeNormalizer {
     const tolerance = this.tolerance;
     const minScale = Math.max(0, 1 - tolerance);
 
-    const defaultMaxScale = GestureSizeNormalizer.DEFAULT_MAX_SCALE;
     const computedMax = 1 + tolerance;
-    const isDefaultTolerance = Math.abs(tolerance - GestureSizeNormalizer.DEFAULT_TOLERANCE) < 1e-6;
-    // Preserve the legacy maximum (1.4) when caregivers keep the default tolerance so existing
-    // trained samples continue to fit within the expected size window. Customized tolerances use
-    // the symmetric 1 ± tolerance range.
-    const maxScale = isDefaultTolerance ? Math.max(defaultMaxScale, computedMax) : computedMax;
+    const maxScale = computedMax;
 
     return {
       minScale,

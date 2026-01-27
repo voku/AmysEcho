@@ -41,16 +41,9 @@ type BundleParams = {
   zip: Uint8Array;
 };
 
-type LegacyBundle = {
-  key: string;
-  payload: PersistedTrainingBundle;
-  zip: Uint8Array;
-};
-
 const subscribers = new Set<() => void>();
 let broadcastChannel: BroadcastChannel | null = null;
 let dbPromise: Promise<IDBDatabase> | null = null;
-let migrationPromise: Promise<void> | null = null;
 let opfsRootPromise: Promise<FileSystemDirectoryHandle | null> | null = null;
 
 function notifyBundleChange() {
@@ -87,70 +80,10 @@ export function subscribeToBundleUpdates(callback: () => void): () => void {
   };
 }
 
-function base64ToBytes(encoded: string): Uint8Array {
-  const buffer = (globalThis as { Buffer?: { from: (value: string, encoding: string) => Uint8Array } }).Buffer;
-  if (buffer) {
-    return new Uint8Array(buffer.from(encoded, 'base64'));
-  }
-  const binary = atob(encoded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-function storage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage;
-  } catch (error) {
-    console.warn('LocalStorage nicht verfügbar', error);
-    return null;
-  }
-}
-
 function buildBundleKey(profileId: string): string {
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).slice(2, 8);
   return `${BUNDLE_KEY_PREFIX}${profileId}:${timestamp}:${random}`;
-}
-
-function parseLegacyBundle(key: string, raw: string | null): LegacyBundle | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<PersistedTrainingBundle> & { zipBase64?: string };
-    if (!parsed || typeof parsed !== 'object') return null;
-    if (typeof parsed.profileId !== 'string' || typeof parsed.label !== 'string') return null;
-    if (typeof parsed.zipBase64 !== 'string') return null;
-
-    const zip = base64ToBytes(parsed.zipBase64);
-    const base: PersistedTrainingBundle = {
-      key,
-      profileId: parsed.profileId,
-      label: parsed.label,
-      capturedAt: typeof parsed.capturedAt === 'string' ? parsed.capturedAt : new Date().toISOString(),
-      source: typeof parsed.source === 'string' ? parsed.source : 'web://mediapipe',
-      queuedAt: typeof parsed.queuedAt === 'string' ? parsed.queuedAt : new Date().toISOString(),
-      framesCount: typeof parsed.framesCount === 'number' ? parsed.framesCount : 0,
-      ...(typeof parsed.clipBytes === 'number' ? { clipBytes: parsed.clipBytes } : {}),
-      ...(typeof parsed.stillBytes === 'number' ? { stillBytes: parsed.stillBytes } : {}),
-      zipBytes: zip.byteLength,
-      storage: 'idb',
-      status: parsed.status === 'failed' || parsed.status === 'uploading' ? parsed.status : 'pending',
-      ...(typeof parsed.lastError === 'string' ? { lastError: parsed.lastError } : {}),
-      attempts: typeof parsed.attempts === 'number' ? parsed.attempts : 0,
-    };
-
-    return {
-      key,
-      payload: base,
-      zip,
-    };
-  } catch (error) {
-    console.warn('Fehler beim Lesen eines gespeicherten Bundles', error);
-    return null;
-  }
 }
 
 function getIndexedDb(): IDBFactory | null {
@@ -236,56 +169,9 @@ async function persistBundle(
   await txDone(tx);
 }
 
-async function migrateLegacyBundles(db: IDBDatabase): Promise<void> {
-  if (migrationPromise) {
-    await migrationPromise;
-    return;
-  }
-
-  migrationPromise = (async () => {
-    const store = storage();
-    if (!store) return;
-
-    const keys = Object.keys(store).filter((key) => key.startsWith(BUNDLE_KEY_PREFIX));
-    if (keys.length === 0) return;
-
-    for (const key of keys) {
-      const legacy = parseLegacyBundle(key, store.getItem(key));
-      if (!legacy) {
-        store.removeItem(key);
-        continue;
-      }
-
-      const opfsRoot = await getOpfsRoot();
-      const record: StoredTrainingBundle = {
-        ...legacy.payload,
-        storage: opfsRoot ? 'opfs' : 'idb',
-        zipBytes: legacy.zip.byteLength,
-        attempts: legacy.payload.attempts,
-      };
-
-      if (opfsRoot) {
-        const file = await opfsRoot.getFileHandle(key, { create: true });
-        const writable = await file.createWritable();
-        await writable.write(bufferFrom(legacy.zip));
-        await writable.close();
-        record.opfsPath = key;
-        await persistBundle(db, record);
-      } else {
-        await persistBundle(db, record, legacy.zip);
-      }
-
-      store.removeItem(key);
-    }
-  })();
-
-  await migrationPromise;
-}
-
 async function ensureStorage(): Promise<IDBDatabase> {
   try {
     const db = await openDb();
-    await migrateLegacyBundles(db);
     return db;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
@@ -439,7 +325,6 @@ export async function clearBundleStoreForTests(): Promise<void> {
     db.close();
     dbPromise = null;
   }
-  migrationPromise = null;
   opfsRootPromise = null;
   if (typeof indexedDB !== 'undefined') {
     await new Promise<void>((resolve, reject) => {
@@ -448,13 +333,4 @@ export async function clearBundleStoreForTests(): Promise<void> {
       request.onerror = () => reject(request.error ?? new Error('Konnte Testdatenbank nicht löschen'));
     });
   }
-  const store = storage();
-  if (store) {
-    for (const key of Object.keys(store)) {
-      if (key.startsWith(BUNDLE_KEY_PREFIX)) {
-        store.removeItem(key);
-      }
-    }
-  }
 }
-

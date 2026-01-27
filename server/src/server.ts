@@ -50,11 +50,12 @@ import {
 	writeMinimalMlpModel,
 } from "./services/mlpModelArtifacts.js";
 import { writeProfileBackup } from "./services/profileDataService.js";
-import { migrateProfileIds } from "./services/profileMigration.js";
 import {
 	ensureProfileRecord,
+	loadProfileRegistry,
 	type ProfileRegistry,
 	saveProfileRegistry,
+	UUID_REGEX,
 } from "./services/profileRegistry.js";
 import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleIngestor.js";
 import type { Correction, NegativeSample } from "./types.js";
@@ -338,25 +339,33 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 	.then(async (db) => {
 		dbInstance = db;
 		app.locals.dbInstance = db;
-		const migration = await migrateProfileIds(db, PROFILE_REGISTRY_PATH);
-		profileRegistry = migration.registry;
-		app.locals.profileRegistry = profileRegistry;
-		if (profileRegistry.profiles.length === 0 && db.profiles.length > 0) {
-			// Reuse the default profile created by setupDatabase
-			const defaultProfile = db.profiles[0];
+		profileRegistry = await loadProfileRegistry(PROFILE_REGISTRY_PATH);
+		let registryDirty = false;
+		for (const profile of db.profiles) {
+			if (!UUID_REGEX.test(profile.id)) {
+				throw new Error(`Ungültige Profil-ID in der Datenbank: ${profile.id}`);
+			}
+			const beforeCount = profileRegistry.profiles.length;
 			ensureProfileRecord(profileRegistry, {
-				id: defaultProfile.id,
-				displayName: defaultProfile.displayName || "Standardprofil",
+				id: profile.id,
+				displayName: profile.displayName || "Profil",
 			});
-		} else if (profileRegistry.profiles.length === 0) {
+			if (profileRegistry.profiles.length !== beforeCount) {
+				registryDirty = true;
+			}
+		}
+		app.locals.profileRegistry = profileRegistry;
+		if (profileRegistry.profiles.length === 0) {
 			// Invariant violation: setupDatabase should have ensured at least one profile exists in the DB.
 			throw new Error(
 				`Profile initialization failed: registry is empty and no database profiles were found to sync from (DB profiles: ${db.profiles.length})`,
 			);
 		}
-		await withFileLock(PROFILE_REGISTRY_PATH, async () =>
-			saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
-		);
+		if (registryDirty) {
+			await withFileLock(PROFILE_REGISTRY_PATH, async () =>
+				saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
+			);
+		}
 		registerGdprRoutes(app, {
 			authMiddleware: auth,
 			db,
@@ -735,12 +744,6 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
 	resolveProfileId: resolveProfileId,
 });
 app.get("/latest-mlp-model", auth, modelMetadataLimiter, latestMlpModelHandler);
-app.get(
-	"/api/v1/dgs/mlp-model",
-	auth,
-	modelMetadataLimiter,
-	latestMlpModelHandler,
-);
 
 registerTrainingBundleRoute(app, genId, {
 	triggerTrainingJob: ({ bundleId, profileId, label }) => {
