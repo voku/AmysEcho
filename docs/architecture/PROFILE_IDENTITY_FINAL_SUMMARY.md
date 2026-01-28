@@ -97,7 +97,7 @@ Backend still uses "11111111-1111-4111-8111-111111111111" for:
 ```
 
 ### Training Bundle Upload
-```
+```text
 Webapp creates bundle with metadata.profileId = "11111111-1111-4111-8111-111111111111"
   ↓
 Server stores under: data/uploads/11111111-1111-4111-8111-111111111111/{bundleId}/
