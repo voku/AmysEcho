@@ -59,10 +59,11 @@ export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
       ? frame.handedness.filter((entry) => typeof entry === 'string')
       : [];
     const nonManualFeatures = extractNonManualFeatures(frame.poseLandmarks, frame.faceLandmarks);
+    const rawLandmarks = Array.isArray(frame.landmarks) ? frame.landmarks : [];
     return {
       handedness: handedness.map((entry) => String(entry)),
-      landmarks: flattenHandsWithHandedness(frame.landmarks, handedness),
-      handLandmarks: frame.landmarks.map((hand) =>
+      landmarks: flattenHandsWithHandedness(rawLandmarks, handedness),
+      handLandmarks: rawLandmarks.map((hand) =>
         Array.isArray(hand)
           ? hand.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
           : [],
