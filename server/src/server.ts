@@ -1035,6 +1035,9 @@ app.post(
 		type Sample = z.infer<typeof SampleSchema>;
 		const samples: Sample[] = parsed.data.samples ?? [];
 		const triggeredByBundles = parsed.data.trigger === "bundles";
+		if (samples.length === 0 && !triggeredByBundles) {
+			return res.status(400).json({ error: "Samples array cannot be empty." });
+		}
 		const trainingSamples: TrainingSample[] = samples.map((sample) => ({
 			signId: sample.signId,
 			profileId: sample.profileId ?? null,
@@ -1087,7 +1090,7 @@ app.get(
 	auth,
 	healthLimiter,
 	(_req: Request, res: Response) => {
-		res.json({ status: "unknown" });
+		res.status(400).json({ error: "Training job id is required." });
 	},
 );
 

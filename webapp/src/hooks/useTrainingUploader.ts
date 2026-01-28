@@ -227,6 +227,7 @@ export function useTrainingUploader(
           }
           await removeQueuedBundle(bundle.key);
           uploaded += 1;
+          retryDelayRef.current = retryConfig.base;
         } catch (err) {
           const reason = err instanceof Error ? err.message : String(err);
           await markBundleFailed(bundle.key, reason);
@@ -429,7 +430,7 @@ export function useTrainingUploader(
             setLastQueuedKey(persisted.key);
             await refreshQueue();
             setState('queued');
-            setError('Offline – Bundle wurde zwischengespeichert.');
+            setError(null);
             return null;
           }
           const storageError = 'Offline – Bundle konnte nicht zwischengespeichert werden (kein Speicher).';
@@ -564,7 +565,6 @@ export function useTrainingUploader(
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         setTrainingJobError(reason);
-        return;
       }
 
       pollTimeoutRef.current = setTimeout(poll, pollIntervalMs);

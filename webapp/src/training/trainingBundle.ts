@@ -54,33 +54,31 @@ type ValidationSummary = {
 };
 
 export function buildFrameTimeline(frames: TrainingFrame[]): TimelineFrame[] {
-  return frames
-    .filter((frame) => frameHasAnyLandmarks(frame))
-    .map((frame) => {
-      const handedness = Array.isArray(frame.handedness)
-        ? frame.handedness.filter((entry) => typeof entry === 'string')
-        : [];
-      const nonManualFeatures = extractNonManualFeatures(frame.poseLandmarks, frame.faceLandmarks);
-      return {
-        handedness: handedness.map((entry) => String(entry)),
-        landmarks: flattenHandsWithHandedness(frame.landmarks, handedness),
-        handLandmarks: frame.landmarks.map((hand) =>
-          Array.isArray(hand)
-            ? hand.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
-            : [],
-        ),
-        poseLandmarks: Array.isArray(frame.poseLandmarks)
-          ? frame.poseLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
+  return frames.map((frame) => {
+    const handedness = Array.isArray(frame.handedness)
+      ? frame.handedness.filter((entry) => typeof entry === 'string')
+      : [];
+    const nonManualFeatures = extractNonManualFeatures(frame.poseLandmarks, frame.faceLandmarks);
+    return {
+      handedness: handedness.map((entry) => String(entry)),
+      landmarks: flattenHandsWithHandedness(frame.landmarks, handedness),
+      handLandmarks: frame.landmarks.map((hand) =>
+        Array.isArray(hand)
+          ? hand.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
           : [],
-        faceLandmarks: Array.isArray(frame.faceLandmarks)
-          ? frame.faceLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
-          : [],
-        ...(nonManualFeatures ? { nonManualFeatures } : {}),
-        ...(typeof frame.timestampMs === 'number' && Number.isFinite(frame.timestampMs)
-          ? { timestampMs: frame.timestampMs }
-          : {}),
-      };
-    });
+      ),
+      poseLandmarks: Array.isArray(frame.poseLandmarks)
+        ? frame.poseLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
+        : [],
+      faceLandmarks: Array.isArray(frame.faceLandmarks)
+        ? frame.faceLandmarks.map((point) => (Array.isArray(point) ? [...point] : [0, 0, 0]))
+        : [],
+      ...(nonManualFeatures ? { nonManualFeatures } : {}),
+      ...(typeof frame.timestampMs === 'number' && Number.isFinite(frame.timestampMs)
+        ? { timestampMs: frame.timestampMs }
+        : {}),
+    };
+  });
 }
 
 function extractExtensionFromFile(file: File | null | undefined, fallback: string): string {
@@ -308,9 +306,10 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const clipFilename = payload.clipFile ? `clip.${extractExtensionFromFile(payload.clipFile, 'mp4')}` : null;
   const stillFilename = payload.stillFile ? `still.${extractExtensionFromFile(payload.stillFile, 'jpg')}` : null;
   const audioFilename = payload.audioFile ? `audio.${extractExtensionFromFile(payload.audioFile, 'webm')}` : null;
-  const frames = buildFrameTimeline(payload.frames);
+  const usableFrames = payload.frames.filter((frame) => frameHasAnyLandmarks(frame));
+  const frames = buildFrameTimeline(usableFrames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
-  const validationSummary = buildValidationSummary(payload.frames);
+  const validationSummary = buildValidationSummary(usableFrames);
   const metadata = buildMetadata(
     payload,
     clipFilename,

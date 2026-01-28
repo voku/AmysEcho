@@ -45,12 +45,27 @@ const subscribers = new Set<() => void>();
 let broadcastChannel: BroadcastChannel | null = null;
 let dbPromise: Promise<IDBDatabase> | null = null;
 let opfsRootPromise: Promise<FileSystemDirectoryHandle | null> | null = null;
+let broadcastCleanupRegistered = false;
+
+function registerBroadcastCleanup() {
+  if (broadcastCleanupRegistered || typeof window === 'undefined') return;
+  broadcastCleanupRegistered = true;
+  const cleanup = () => {
+    if (broadcastChannel) {
+      broadcastChannel.close();
+      broadcastChannel = null;
+    }
+  };
+  window.addEventListener('pagehide', cleanup);
+  window.addEventListener('beforeunload', cleanup);
+}
 
 function notifyBundleChange() {
   if (typeof BroadcastChannel !== 'undefined') {
     try {
       if (!broadcastChannel) {
         broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL);
+        registerBroadcastCleanup();
       }
       broadcastChannel.postMessage({ type: 'changed' });
       return;
@@ -82,7 +97,10 @@ export function subscribeToBundleUpdates(callback: () => void): () => void {
 
 function buildBundleKey(profileId: string): string {
   const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).slice(2, 8);
+  const random =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2, 8);
   return `${BUNDLE_KEY_PREFIX}${profileId}:${timestamp}:${random}`;
 }
 
