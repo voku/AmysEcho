@@ -14,7 +14,7 @@
 
 ```typescript
 {
-  profileId: "amy",           // ← IMMUTABLE (backend storage key)
+  profileId: "11111111-1111-4111-8111-111111111111", // ← IMMUTABLE (backend storage key)
   displayName: "Amy Marie"    // ← MUTABLE (user-friendly label)
 }
 ```
@@ -75,7 +75,7 @@
 ```
 User enters: "Amy Marie"
   ↓
-Generate profileId: "amy-marie" (sanitized, immutable)
+Generate profileId: "11111111-1111-4111-8111-111111111111" (UUID, immutable)
   ↓
 Set displayName: "Amy Marie" (original, mutable)
   ↓
@@ -88,27 +88,27 @@ User changes displayName: "Amy Marie" → "Amy M."
   ↓
 Update only displayName field
   ↓
-profileId remains "amy-marie" (unchanged)
+profileId remains "11111111-1111-4111-8111-111111111111" (unchanged)
   ↓
-Backend still uses "amy-marie" for:
-  - Training bundle storage: data/uploads/amy-marie/
-  - Model storage: data/models/amy-marie/amy_model.npz
+Backend still uses "11111111-1111-4111-8111-111111111111" for:
+  - Training bundle storage: data/uploads/11111111-1111-4111-8111-111111111111/
+  - Model storage: data/models/11111111-1111-4111-8111-111111111111/amy_model.npz
   - Sample filtering in dgs_samples.json
 ```
 
 ### Training Bundle Upload
 ```
-Webapp creates bundle with metadata.profileId = "amy-marie"
+Webapp creates bundle with metadata.profileId = "11111111-1111-4111-8111-111111111111"
   ↓
-Server stores under: data/uploads/amy-marie/{bundleId}/
+Server stores under: data/uploads/11111111-1111-4111-8111-111111111111/{bundleId}/
   ↓
-Trainer reads samples with profileId = "amy-marie"
+Trainer reads samples with profileId = "11111111-1111-4111-8111-111111111111"
   ↓
-Model saved at: data/models/amy-marie/amy_model.npz
+Model saved at: data/models/11111111-1111-4111-8111-111111111111/amy_model.npz
   ↓
 User changes displayName to "Amy M." (profileId unchanged)
   ↓
-Next upload still uses profileId = "amy-marie"
+Next upload still uses profileId = "11111111-1111-4111-8111-111111111111"
   ↓
 ALL DATA REMAINS ACCESSIBLE ✅
 ```
@@ -123,7 +123,7 @@ ALL DATA REMAINS ACCESSIBLE ✅
 ### Settings Screen - After
 ```
 [Anzeigename] [Amy Marie             ] ← Editable, safe ✅
-[Profil-ID]   [amy                   ] ← Disabled, with warning ⚠️
+[Profil-ID]   [11111111-1111-4111-8111-111111111111] ← Disabled, with warning ⚠️
 
 ⚠️ Wichtig: Die Profil-ID ist dauerhaft und mit allen 
 Trainingsdaten, Modellen und aufgezeichneten Gebärden 

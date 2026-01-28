@@ -26,6 +26,21 @@ const localOnlyTest = liveServer ? test.skip : test;
 const TEST_PROFILE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const TEST_LABEL = 'HALLO';
 
+async function fetchWithRetry(url, options, { attempts = 3, delayMs = 500, errorMessage } = {}) {
+  let lastError = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fetch(url, options);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) {
+        await delay(delayMs);
+      }
+    }
+  }
+  throw lastError ?? new Error(errorMessage ?? `Request failed with no response: ${url}`);
+}
+
 before(async () => {
   await startServer();
   await createProfile({ id: TEST_PROFILE_ID, displayName: 'Integration Test Profile' });
@@ -68,27 +83,18 @@ test('POST /train-model processes samples and returns model', async () => {
     landmarkData: Array.from({ length: 42 }, (_, i) => [i * 0.01, 0.1, 0.1]),
     profileId: '11111111-1111-4111-8111-111111111111',
   };
-  let res = null;
-  let lastError = null;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      res = await fetch(`${baseUrl}/train-model`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${TEST_TOKEN}`,
-        },
-        body: JSON.stringify({ samples: [sample] }),
-      });
-      break;
-    } catch (error) {
-      lastError = error;
-      await delay(500);
-    }
-  }
-  if (!res) {
-    throw lastError ?? new Error('Training request failed with no response.');
-  }
+  const res = await fetchWithRetry(
+    `${baseUrl}/train-model`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TEST_TOKEN}`,
+      },
+      body: JSON.stringify({ samples: [sample] }),
+    },
+    { errorMessage: 'Training request failed with no response.' },
+  );
   assert.ok(res.status === 200 || res.status === 202);
   const payload = await res.json();
   const jobId = typeof payload.jobId === 'string' ? payload.jobId : undefined;
@@ -143,22 +149,11 @@ test('POST /train-model processes samples and returns model', async () => {
 });
 
 test('GET /model-version returns version and path', async () => {
-  let res = null;
-  let lastError = null;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      res = await fetch(`${baseUrl}/model-version`, {
-        headers: serverHeaders(),
-      });
-      break;
-    } catch (error) {
-      lastError = error;
-      await delay(500);
-    }
-  }
-  if (!res) {
-    throw lastError ?? new Error('Model-version request failed with no response.');
-  }
+  const res = await fetchWithRetry(
+    `${baseUrl}/model-version`,
+    { headers: serverHeaders() },
+    { errorMessage: 'Model-version request failed with no response.' },
+  );
   assert.strictEqual(res.status, 200);
   const data = await res.json();
   assert.ok(typeof data.version === 'string');

@@ -91,6 +91,9 @@ function normalizeMetadata(input?: Partial<ProfileMetadata>): ProfileMetadata {
 }
 
 function normalizeProfileRecord(record: ProfileRecord): ProfileRecord {
+	if (!UUID_REGEX.test(record.id)) {
+		throw new Error(`Ungültige Profil-ID im Registry-Eintrag: ${record.id}`);
+	}
 	return {
 		...record,
 		metadata: normalizeMetadata(record.metadata),

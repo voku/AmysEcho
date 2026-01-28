@@ -87,7 +87,11 @@ export function processFramesForUpload(
   profileId?: string,
 ): { gestureDefinitionId: string; landmarkData: number[][]; profileId?: string }[] {
   return frames
-    .filter((frame) => frameHasAnyLandmarks(frame))
+    .filter(
+      (frame) =>
+        Array.isArray(frame.landmarks) &&
+        frame.landmarks.some((hand) => Array.isArray(hand) && hand.length > 0),
+    )
     .map((frame) => ({
       gestureDefinitionId,
       landmarkData: flattenHandsWithHandedness(frame.landmarks, frame.handedness ?? []),

@@ -171,13 +171,16 @@ export function useSignLanguageDetector(
           }
         }
 
+        const messageWithLandmarks = payload.messages?.find((msg) =>
+          Array.isArray(msg?.landmarks),
+        );
         const landmarksCandidate = Array.isArray(payload.landmarks)
           ? (payload.landmarks as number[][][])
-          : payload.messages?.find((msg) => Array.isArray(msg?.landmarks))?.landmarks;
+          : messageWithLandmarks?.landmarks;
         if (landmarksCandidate && Array.isArray(landmarksCandidate)) {
           const handednessCandidate = Array.isArray(payload.handednesses)
             ? payload.handednesses
-            : payload.messages?.find((msg) => Array.isArray(msg?.handednesses))?.handednesses ?? [];
+            : messageWithLandmarks?.handednesses ?? [];
 
           const stabilizer = handStabilizerRef.current;
           const normalizedHandedness = normalizeHandednessLabels(
