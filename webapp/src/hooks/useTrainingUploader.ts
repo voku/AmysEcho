@@ -577,7 +577,7 @@ export function useTrainingUploader(
         pollErrorCountRef.current += 1;
         pollDelayRef.current = Math.min(pollDelayRef.current * 2, pollIntervalMs * 5);
         if (pollErrorCountRef.current >= maxPollErrors) {
-          return;
+          pollErrorCountRef.current = maxPollErrors;
         }
       }
 
