@@ -45,19 +45,20 @@ const subscribers = new Set<() => void>();
 let broadcastChannel: BroadcastChannel | null = null;
 let dbPromise: Promise<IDBDatabase> | null = null;
 let opfsRootPromise: Promise<FileSystemDirectoryHandle | null> | null = null;
-let broadcastCleanupRegistered = false;
+const cleanupBroadcastChannel = () => {
+  if (broadcastChannel) {
+    broadcastChannel.close();
+    broadcastChannel = null;
+  }
+};
 
 function registerBroadcastCleanup() {
-  if (broadcastCleanupRegistered || typeof window === 'undefined') return;
-  broadcastCleanupRegistered = true;
-  const cleanup = () => {
-    if (broadcastChannel) {
-      broadcastChannel.close();
-      broadcastChannel = null;
-    }
-  };
-  window.addEventListener('pagehide', cleanup);
-  window.addEventListener('beforeunload', cleanup);
+  if (typeof window === 'undefined') return;
+  // Ensure listeners are idempotent by removing before adding.
+  window.removeEventListener('pagehide', cleanupBroadcastChannel);
+  window.removeEventListener('beforeunload', cleanupBroadcastChannel);
+  window.addEventListener('pagehide', cleanupBroadcastChannel);
+  window.addEventListener('beforeunload', cleanupBroadcastChannel);
 }
 
 function notifyBundleChange() {
