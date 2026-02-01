@@ -66,22 +66,16 @@ Amy's Echo features a comprehensive gesture recognition system optimized for 22q
 - **Performance Monitoring**: Real-time latency and accuracy tracking
 - **Intelligent Fallback**: Local heuristics and personalized models validate uncertain gestures
 
-### Supported Gestures
-- 👊 **Faust** (Fist) - Basic closed hand
-- 👆 **Zeigefinger** (Point) - Index finger extended
-- 👍 **Daumen hoch** (Thumbs up) - Thumb raised
-- 🖐️ **Offene Hand** (Open palm) - All fingers extended
-- ✌️ **Peace** - Two fingers extended
-- ✋ **Vier Finger** - Four fingers extended
-- 🖕 **Mittelfinger** - Middle finger (alternative point)
-- 👌 **Drei Finger** - Three fingers extended
-- ⭕ **Kreis-Geste** - Thumb and index finger circle
-
 ### Amy First Principles
+
 ✅ **Zero interruption** - Communication never pauses
+
 ✅ **Zero confusion** - Clear German feedback always
+
 ✅ **Zero delay** - Instant response for all gestures
+
 ✅ **Zero failure** - Multiple fallback layers
+
 ✅ **Zero judgment** - Celebrates all attempts
 
 ---
