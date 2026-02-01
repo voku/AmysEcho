@@ -37,7 +37,6 @@ This document defines the client payload used to stream live landmark frames to 
 | `landmarks` | number[][][] | ✅ | Hand landmarks in `[hand][point][x,y,z]` order. Coordinates are normalized to `[0..1]` for x/y; z is model-relative. |
 | `visibility` | number[][] | ✅ | Visibility per hand landmark in `[hand][point]` order. Version 1 uses `1` for present points and `0` for missing points. |
 | `handednesses` | string[] | ✅ | Human-readable handedness labels (e.g., `Left`, `Right`). |
-| `handedness` | string[] | Optional | Backward-compatible alias for `handednesses`. New clients should send `handednesses`. |
 
 ## Notes
 

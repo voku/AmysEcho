@@ -171,7 +171,7 @@ echo ""
 echo "Step 6: Testing zero model generation..."
 print_info "Generating zero-initialized model..."
 TEST_MODEL_PATH="$SERVER_DIR/data/models/global/test_model.npz"
-echo '{"labels":["TEST1","TEST2"],"counts":[0,0],"inputSize":126,"hiddenSize":128}' | \
+echo '{"labels":["TEST1","TEST2"],"counts":[0,0],"inputSize":126,"layer1Size":128}' | \
     python3 "$SERVER_DIR/src/amyserver_tools/generate_zero_model.py" "$TEST_MODEL_PATH" 2>&1 || {
     print_error "Zero model generation failed"
     exit 1

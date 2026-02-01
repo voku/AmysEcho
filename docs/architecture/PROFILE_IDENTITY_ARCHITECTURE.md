@@ -189,12 +189,11 @@ model_path = MODELS_DIR / profile_id / "amy_model.npz"
 - No server endpoints to modify profileId
 - localStorage protects profileId field
 
-### 2. Migration Safety
+### 2. UUID-Only Registry
 
 **Existing Profiles:**
 - Profiles without displayName use profileId as display
-- Backward compatible with existing data
-- Graceful degradation
+- Registry expects UUID profile IDs (legacy migrations removed)
 
 ### 3. Data Validation
 

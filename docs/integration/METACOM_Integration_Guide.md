@@ -16,6 +16,7 @@ It complements the detailed implementation plan in
 - **Implementation**: Initial webapp board view is available (`/symbole`) with a starter Metacom layout and admin import for Metacom bundles.
 - **Licensing**: Symbols are provided by users via import; no bundled symbol sets are shipped.
 - **Help**: A JSON template is available for download in the admin area.
+- **Start board**: The Metacom integration expects a defined start board with the ID `start`. Imported board packages must include this start board.
 
 ## Related Docs
 - `docs/planning/METACOM_INTEGRATION_PLAN.md`

@@ -231,9 +231,6 @@ Fallback endpoint used when no job id is supplied. Always returns `{ "status": "
 #### GET /latest-mlp-model
 Download the latest trained model (NPZ). Accepts an optional `profileId` query parameter to fetch a personalized model.
 
-#### GET /api/v1/dgs/mlp-model
-Alias of `/latest-mlp-model` kept for backwards compatibility.
-
 #### GET /model-version
 Return the current model bundle version and the path used by the mobile client to request it.
 

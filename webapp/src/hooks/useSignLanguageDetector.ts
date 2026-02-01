@@ -156,11 +156,10 @@ export function useSignLanguageDetector(
         const payload = parsed.payload as {
           gesture?: string;
           type?: string;
-          messages?: Array<{ gesture?: string; landmarks?: unknown; handednesses?: string[]; handedness?: string[] }>;
+          messages?: Array<{ gesture?: string; landmarks?: unknown; handednesses?: string[] }>;
           confidence?: number;
           landmarks?: unknown;
           handednesses?: string[];
-          handedness?: string[];
         };
         if (payload.gesture) {
           setLastSign(payload.gesture);
@@ -172,16 +171,16 @@ export function useSignLanguageDetector(
           }
         }
 
+        const messageWithLandmarks = payload.messages?.find((msg) =>
+          Array.isArray(msg?.landmarks),
+        );
         const landmarksCandidate = Array.isArray(payload.landmarks)
           ? (payload.landmarks as number[][][])
-          : payload.messages?.find((msg) => Array.isArray(msg?.landmarks))?.landmarks;
+          : messageWithLandmarks?.landmarks;
         if (landmarksCandidate && Array.isArray(landmarksCandidate)) {
           const handednessCandidate = Array.isArray(payload.handednesses)
             ? payload.handednesses
-            : Array.isArray(payload.handedness)
-            ? payload.handedness
-            : payload.messages?.find((msg) => Array.isArray(msg?.handednesses) || Array.isArray(msg?.handedness))
-                ?.handednesses ?? payload.messages?.find((msg) => Array.isArray(msg?.handedness))?.handedness ?? [];
+            : messageWithLandmarks?.handednesses ?? [];
 
           const stabilizer = handStabilizerRef.current;
           const normalizedHandedness = normalizeHandednessLabels(

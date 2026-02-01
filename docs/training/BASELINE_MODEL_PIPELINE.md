@@ -10,7 +10,6 @@ deterministic way so the checksum can be validated in CI and production.
 
 ## Inputs
 - `server/data/datasets/training_manifest.json` (bundle manifest)
-- Optional legacy dataset `server/data/dgs_samples.json`
 - MLP configuration values in `server/training/config_constants.py`
 
 ## Deterministic Training Steps

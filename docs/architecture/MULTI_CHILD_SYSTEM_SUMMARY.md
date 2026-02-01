@@ -69,7 +69,6 @@ if (checksum_mismatch || token_invalid) {
 - `deleteProfile()` - Remove profile
 - `loadProfileRegistry()` - Load with integrity verification
 - `saveProfileRegistry()` - Save with checksum generation
-- `initializeProfileRegistry()` - Auto-migrate from legacy storage
 
 **Test Coverage:**
 - Profile creation with UUID generation
@@ -78,8 +77,6 @@ if (checksum_mismatch || token_invalid) {
 - Active profile management
 - Duplicate prevention
 - **Tampering detection** - validates checksum and tokens fail correctly
-- Legacy migration from single-profile system
-- Idempotent migration
 
 #### Phase 2: Multi-Child UI (Commit 95548d9)
 **File:** `webapp/src/components/ProfileManager.tsx` (9.6KB)
@@ -338,10 +335,9 @@ Each child's profile maintains completely separate:
    - Reject corrupted data
    - Verify integrity on load
 
-5. Migration
-   - Legacy single-profile migration
-   - Idempotent migration (no duplicates)
-   - Preserve existing profileId
+5. Profile registry persistence
+   - Registry entries are keyed by UUID profile IDs
+   - Registry stays in sync with stored profiles
 
 ### Integration Testing (Future)
 - End-to-end profile creation
@@ -350,61 +346,10 @@ Each child's profile maintains completely separate:
 - Model download with profile isolation
 - Multi-device scenarios
 
-## Backward Compatibility
+## Data Expectations
 
-### Legacy Migration
-
-**Automatic Migration:**
-```typescript
-// On app startup:
-await initializeProfileRegistry();
-
-// If no registry exists but legacy data found:
-const legacyState = localStorage.getItem('webapp:app-state');
-const { profileId, displayName } = JSON.parse(legacyState);
-
-// Create profile from legacy data:
-const profile = await createProfile({
-  displayName: displayName || profileId,
-  profileId: profileId,
-});
-
-// Add to registry:
-await addProfile(profile);
-
-// Legacy data preserved ✅
-```
-
-**What's Preserved:**
-- Existing `profileId` (backend compatibility)
-- Display name (if set)
-- All training data (stored under `profileId`)
-- All models (stored at `data/models/{profileId}/`)
-
-**What's Added:**
-- UUID for stable identity
-- Security token for tamper detection
-- Registry checksum for integrity
-- Profile metadata (age, avatar, etc.)
-
-### Coexistence
-
-**Old System (Single Profile):**
-- Still works if user doesn't navigate to `/profile`
-- `useAppState` continues to work as before
-- Legacy profileId used for all operations
-
-**New System (Multi Profile):**
-- Activated by visiting `/profile`
-- Auto-migrates on first visit
-- Adds security layer
-- Enables multi-child support
-
-**Transition:**
-- Seamless, automatic
-- No data loss
-- No user action required
-- Can switch back to legacy UI if needed
+- Profile registry entries use UUID profile IDs only.
+- Legacy single-profile auto-migration has been removed; existing data must already conform to the UUID-based registry model.
 
 ## Files Changed
 
@@ -530,7 +475,7 @@ await addProfile(profile);
 2. **Multi-Child:** Support for multiple children per household
 3. **Data Integrity:** Cryptographic verification
 4. **User Experience:** Simple, visual profile management
-5. **Backward Compatibility:** Auto-migration from legacy system
+5. **UUID Registry:** Profile entries stored with UUID IDs
 6. **Comprehensive Testing:** Full unit test coverage
 
 ### For Amy

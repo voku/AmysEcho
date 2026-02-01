@@ -156,7 +156,6 @@ describe('GET /latest-mlp-model', () => {
     });
 
     app.get('/latest-mlp-model', authMiddleware, handler);
-    app.get('/api/v1/dgs/mlp-model', authMiddleware, handler);
   });
 
   beforeEach(async () => {
@@ -270,33 +269,6 @@ describe('GET /latest-mlp-model', () => {
       .expect(404);
 
     expect(response.body).toEqual({ error: 'Modell nicht gefunden.' });
-  });
-
-  it('serves the same NPZ payload from the legacy /api/v1/dgs/mlp-model endpoint', async () => {
-    const response = await request(app)
-      .get('/api/v1/dgs/mlp-model')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .buffer(true)
-      .maxResponseSize(200 * 1024 * 1024)
-      .parse(binaryParser)
-      .expect(200);
-
-    await expectValidModelResponse(response);
-  });
-
-  it('returns 404 from the legacy endpoint when baseline seeding fails', async () => {
-    const copySpy = jest.spyOn(fs, 'copyFile').mockRejectedValue(new Error('missing baseline'));
-    try {
-      const response = await request(app)
-        .get('/api/v1/dgs/mlp-model')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(404);
-
-      expect(response.body).toEqual({ error: 'Modell nicht gefunden.' });
-      await expect(fs.stat(modelPaths.getMlpModelPath())).rejects.toHaveProperty('code', 'ENOENT');
-    } finally {
-      copySpy.mockRestore();
-    }
   });
 
   it('requires matching X-Profile-Id for profiled requests', async () => {

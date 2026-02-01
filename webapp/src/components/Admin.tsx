@@ -290,7 +290,7 @@ export const Admin: React.FC = () => {
 
   const handleDownloadModel = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/dgs/mlp-model`, {
+      const response = await fetch(`${apiBaseUrl}/latest-mlp-model`, {
         headers: { Authorization: `Bearer ${apiToken}` },
       });
       if (response.ok) {

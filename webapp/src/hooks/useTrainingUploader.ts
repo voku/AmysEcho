@@ -65,6 +65,9 @@ export function useTrainingUploader(
   const queuedCountRef = useRef(0);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryDelayRef = useRef(retryConfig.base);
+  const pollDelayRef = useRef(pollIntervalMs);
+  const pollErrorCountRef = useRef(0);
+  const maxPollErrors = 5;
 
   useEffect(() => {
     retryDelayRef.current = retryConfig.base;
@@ -227,6 +230,7 @@ export function useTrainingUploader(
           }
           await removeQueuedBundle(bundle.key);
           uploaded += 1;
+          retryDelayRef.current = retryConfig.base;
         } catch (err) {
           const reason = err instanceof Error ? err.message : String(err);
           await markBundleFailed(bundle.key, reason);
@@ -429,7 +433,7 @@ export function useTrainingUploader(
             setLastQueuedKey(persisted.key);
             await refreshQueue();
             setState('queued');
-            setError('Offline – Bundle wurde zwischengespeichert.');
+            setError(null);
             return null;
           }
           const storageError = 'Offline – Bundle konnte nicht zwischengespeichert werden (kein Speicher).';
@@ -504,6 +508,8 @@ export function useTrainingUploader(
     const pollUrl = trainingJob.pollUrl;
 
     let cancelled = false;
+    pollDelayRef.current = pollIntervalMs;
+    pollErrorCountRef.current = 0;
 
     const poll = async () => {
       if (cancelled) return;
@@ -540,6 +546,8 @@ export function useTrainingUploader(
           if (mergedJob?.status === 'completed' || mergedJob?.status === 'failed') {
             return;
           }
+          pollErrorCountRef.current = 0;
+          pollDelayRef.current = pollIntervalMs;
         } else {
           const statusOnly = normalizeTrainingJobStatus((body as { status?: string })?.status ?? '');
           if (statusOnly) {
@@ -559,15 +567,21 @@ export function useTrainingUploader(
               setTrainingJobError(null);
               return;
             }
+            pollErrorCountRef.current = 0;
+            pollDelayRef.current = pollIntervalMs;
           }
         }
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         setTrainingJobError(reason);
-        return;
+        pollErrorCountRef.current += 1;
+        pollDelayRef.current = Math.min(pollDelayRef.current * 2, pollIntervalMs * 5);
+        if (pollErrorCountRef.current >= maxPollErrors) {
+          pollErrorCountRef.current = maxPollErrors;
+        }
       }
 
-      pollTimeoutRef.current = setTimeout(poll, pollIntervalMs);
+      pollTimeoutRef.current = setTimeout(poll, pollDelayRef.current);
     };
 
     poll();
