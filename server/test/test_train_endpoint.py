@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import shutil
@@ -6,6 +7,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -55,6 +57,42 @@ def _load_default_labels() -> list[str]:
 
 
 DEFAULT_BASELINE_LABELS = _load_default_labels()
+
+
+def _create_training_bundle_zip(label: str, profile_id: str | None = None) -> bytes:
+    """Create a ZIP file containing a training bundle with proper structure."""
+    # Create 30 frames with landmarks for a realistic training sample
+    frames = []
+    for f in range(30):
+        frame = {
+            "timestampMs": f * 33,
+            "landmarks": [[(i + f) * 0.001, 0.1 + i * 0.001, 0.1] for i in range(42)],
+            "poseLandmarks": [[0.5, 0.5 + f * 0.001, 0.5, 1.0] for _ in range(33)],
+            "faceLandmarks": [[0.5, 0.5, 0.5] for _ in range(468)],
+        }
+        frames.append(frame)
+    
+    metadata: dict[str, Any] = {
+        "label": label,
+        "capturedAt": datetime.now(timezone.utc).isoformat(),
+        "source": "test://train_endpoint",
+    }
+    # Only include profileId if it's a non-empty string
+    if profile_id:
+        metadata["profileId"] = profile_id
+    
+    landmarks_data = {"frames": frames}
+    
+    # Create ZIP in memory
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("bundle/metadata.json", json.dumps(metadata, indent=2))
+        zf.writestr("bundle/landmarks.json", json.dumps(landmarks_data, indent=2))
+        # Add fake still/clip files (minimal content)
+        zf.writestr("bundle/still.jpg", b"fake-image-data")
+        zf.writestr("bundle/clip.webm", b"fake-video-data")
+    
+    return buffer.getvalue()
 
 
 def _parse_timestamp(value: Any) -> datetime:
@@ -152,37 +190,23 @@ def test_train_endpoint():
     data_dir: Path | None = None
     try:
         proc, access_token, data_dir, port = start_server()
-        url = f"http://localhost:{port}/train-model"
-        # vary landmark coordinates slightly so normalization succeeds
-        # Create 30 frames to fill a temporal window
-        landmarks_sequence = []
-        for f in range(30):
-            frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
-            landmarks_sequence.append({
-                "timestampMs": f * 33,
-                "landmarks": frame,
-                "poseLandmarks": [[0.5, 0.5, 0.5, 1.0] for _ in range(33)],
-                "faceLandmarks": [[0.5, 0.5, 0.5] for _ in range(468)],
-            })
-
-        samples = [
-            {
-                "signId": "g1",
-                "landmarkData": landmarks_sequence,
-            }
-        ]
-        data = json.dumps({"samples": samples}).encode("utf-8")
+        
+        # Upload a training bundle via the sample-bundles endpoint
+        bundle_zip = _create_training_bundle_zip("g1")
+        upload_url = f"http://localhost:{port}/api/v1/dgs/sample-bundles"
         headers = {
             **_make_auth_headers(access_token),
-            "Content-Type": "application/json",
+            "Content-Type": "application/zip",
         }
-        req = urllib.request.Request(url, data=data, headers=headers)
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        req = urllib.request.Request(upload_url, data=bundle_zip, headers=headers, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as resp:
             assert resp.getcode() == 202
             resp_data = json.loads(resp.read().decode())
-            job_id = resp_data["jobId"]
-            assert resp_data["status"] in ("running", "queued")
-            assert resp_data.get("pollUrl") == f"/api/v1/train-status/{job_id}"
+            assert resp_data.get("id")
+            training_job = resp_data.get("trainingJob")
+            assert training_job is not None
+            job_id = training_job["jobId"]
+            assert training_job["status"] in ("running", "queued")
 
         final_info = wait_for_training_completion(job_id, access_token, port)
         assert final_info.get("status") == "completed"
@@ -219,10 +243,6 @@ def test_train_endpoint():
         with urllib.request.urlopen(mlp_prof_req, timeout=10) as mlp_presp:
             assert mlp_presp.getcode() == 200
             buf = mlp_presp.read()
-    except Exception:
-        if proc and proc.stderr:
-            print("Server Stderr:", proc.stderr.read())
-        raise
     finally:
         if proc is not None:
             stop_server(proc)
