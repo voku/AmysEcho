@@ -1,5 +1,5 @@
 {
-  "version": "2025-12-30T20:18:08.027643+00:00",
+  "version": "2026-02-01T15:06:30.320018+00:00",
   "modalities": [
     "hands",
     "pose",
@@ -12,38 +12,36 @@
   },
   "sample_count": 3,
   "training_sources": {
-    "datasets/training_manifest.json": "827912c12051fb30810b232a4c32cdca7ff1644298612108ed62682f2ef14ea0",
-    "dgs_samples.json": "62000919c52af4959dbd420135b19b65fb21fb3c4098640afc388fe637fd869d"
+    "datasets/training_manifest.json": "c0bcbbe69955d9d4013f80cb10bb83ba9dff021be75034a33f8167308d88224f"
   },
   "config_snapshot": {
     "epochs": 1,
     "learning_rate": 0.005,
     "dropout_rate": 0.3,
-    "validation_fraction": 0.15,
+    "validation_fraction": 0.1,
     "augmentations_per_sample": 0,
     "class_weight_smoothing": 0.0,
     "early_stopping_patience": 10,
     "early_stopping_min_delta": 0.001,
-    "window_size": 30,
+    "window_size": 6,
     "input_feature_size": 1629,
-    "window_feature_size": 48870,
+    "window_feature_size": 9774,
     "layer_sizes": [
-      512,
-      256
+      64,
+      32
     ],
     "random_seed": null
   },
   "stats": {
     "entries": 3,
-    "cache_hits": 12,
-    "cache_misses": 15,
+    "cache_hits": 0,
+    "cache_misses": 3,
     "cache_writes": 0,
     "modality_counts": {
       "hands": 3,
       "pose": 3,
       "face": 3
     },
-    "modality_sample_total": 3,
-    "legacy_entries": 37
+    "modality_sample_total": 3
   }
 }
