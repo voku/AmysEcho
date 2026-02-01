@@ -243,12 +243,6 @@ def test_train_endpoint():
         with urllib.request.urlopen(mlp_prof_req, timeout=10) as mlp_presp:
             assert mlp_presp.getcode() == 200
             buf = mlp_presp.read()
-    except Exception:
-        if proc is not None:
-            # Stop the server first so stderr doesn't block
-            stop_server(proc)
-            proc = None  # Mark as stopped to skip finally block
-        raise
     finally:
         if proc is not None:
             stop_server(proc)
