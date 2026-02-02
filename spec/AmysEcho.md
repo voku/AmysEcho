@@ -136,7 +136,7 @@ The system will operate in two modes to provide the best possible experience.
 The system’s memory is a diary of attempts to understand. Everything stored must reinforce future recognition, track progress, or preserve caregiver corrections. All data is encrypted at rest on the device.
 
 4.2 Core Data Stores (Webapp + Server)
-  * Webapp IndexedDB (OPFS): trainingQueue with pending bundles `{metadata.json, landmarks.json, still.jpg, clip.webm, audio.webm}`, API/config preferences, and cache of the latest downloaded model headers.
+  * Webapp IndexedDB (OPFS): trainingQueue with pending bundles `{metadata.json, landmarks.json, still.jpg, clip.webm, audio.webm}`.
   * Server file storage: `data/uploads/<profileId>/<bundleId>/` for raw bundles and `data/datasets/training_manifest.json` tracking ingestion metadata and modality coverage.
   * Model artifacts: `data/models/global/amy_model.npz` plus per-profile weights under `data/models/<profileId>/`.
   * Interaction logs: captured client-side for UX tuning; uploaded corrections flow back into training bundles when consented.
@@ -262,7 +262,7 @@ This is the cloud-based loop for long-term, powerful model improvement.
 * Deployment: The updated cloud model is deployed. The app refreshes its cached MLP weights.
 
 6.3 Profile-Specific Models
-Each child profile maintains its own MLP weights on the server. Training data uploaded with a profileId updates that child's model, and the browser client passes this profileId (query + `X-Profile-Id` header) to `/latest-mlp-model` or `/model-metadata` to fetch the personalized artifact. If no profileId is provided, a shared fallback model is used.
+Each child profile maintains its own MLP weights on the server. Training data uploaded with a profileId updates that child's model, and the browser client passes this profileId (query + `X-Profile-Id` header) to `/latest-mlp-model` to fetch the personalized artifact. `/model-metadata` currently uses the query parameter only. If no profileId is provided, a shared fallback model is used.
 
 🧾 Chapter 7 – The Handoff: For Future Developers and LLMs
 “You’re not inheriting code. You’re inheriting trust.”
