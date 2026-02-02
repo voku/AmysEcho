@@ -28,8 +28,11 @@ jest.mock('../src/services/logger.js', () => {
   };
 });
 
+// Set required environment variables for tests
+// SECURITY: These are test-only values and should never be used in production
 process.env.JWT_SECRET ??= 'test-jwt-secret';
 process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret';
+process.env.BACKUP_SECRET ??= 'test-backup-secret-DO-NOT-USE-IN-PRODUCTION';
 const originalDataDir = process.env.AMY_ECHO_DATA_DIR;
 const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'amy-echo-tests-'));
 process.env.AMY_ECHO_DATA_DIR = tempDataDir;
