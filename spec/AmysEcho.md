@@ -96,14 +96,14 @@ The system will operate in two modes to provide the best possible experience.
 3.2 Component Stack
 | Layer | Technology/Library | Justification |
 |---|---|---|
-| Framework | React Native (CLI) | Required for native module integration (Camera, DB, ML). |
+| Framework | React + Vite (web) | Current production UI stack for the browser experience. |
 | Language | TypeScript (strict mode) | Enforces type safety, reducing runtime errors. |
-| Database | WatermelonDB with SQLite Adapter | High-performance, reactive, encrypted database with sync support. |
-| Camera | WebView getUserMedia (MediaPipe Tasks) | Expo-friendly camera capture inside WebView. |
+| Database | IndexedDB via OPFS | Durable offline storage for training bundles and settings. |
+| Camera | Browser getUserMedia + MediaPipe Tasks | Native in-browser capture with landmark extraction. |
 | ML Inference | MediaPipe Tasks Vision (JS/WASM) + Server Classifier | On-device landmark detection + server classification. |
-| Audio | expo-audio & expo-speech | Provides a robust API for both pre-recorded audio and TTS fallbacks. |
-| Video | expo-video | Provides a robust API for Video playing. |
-| UI/Animation | React Native Animated API | Sufficient for the required gentle animations; Skia is an optional enhancement. |
+| Audio | Web Audio API + Speech Synthesis | Browser-native recording and TTS fallbacks. |
+| Video | HTMLVideoElement | Used for live preview and recorded clips. |
+| UI/Animation | React UI + CSS transitions | Gentle, lightweight animations for web surfaces. |
 
 3.3 The Hybrid Perception Loop
  * See: WebView camera (getUserMedia) → MediaPipe Tasks Vision extracts landmarks on-device (WASM). When confident, emits gesture; otherwise proceeds to hybrid step.
@@ -135,13 +135,11 @@ The system will operate in two modes to provide the best possible experience.
 4.1 Philosophy of Memory
 The system’s memory is a diary of attempts to understand. Everything stored must reinforce future recognition, track progress, or preserve caregiver corrections. All data is encrypted at rest on the device.
 
-4.2 Core Tables (WatermelonDB Schema)
- * symbols: The vocabulary Amy knows (e.g., “drink”, “cookie”). Includes name, emoji, color, audioUri, and healthScore.
- * gesture_definitions: How each symbol is signed. Includes status, healthScore, and minConfidenceThreshold.
- * gesture_training_data: Raw examples from training and corrections. Includes landmarkData (JSON), source (HIP_2 or HIP_3), and sync_status.
- * interaction_logs: What happened during each recognition attempt. Includes wasSuccessful, confidenceScore, caregiverOverrideId, and processed_by (local or cloud).
- * profiles: Stores caregiver consents and preferences.
- * learning_analytics: Trends over time (successRate_7d, improvementTrend).
+4.2 Core Data Stores (Webapp + Server)
+  * Webapp IndexedDB (OPFS): trainingQueue with pending bundles `{metadata.json, landmarks.json, still.jpg, clip.webm, audio.webm}`, API/config preferences, and cache of the latest downloaded model headers.
+  * Server file storage: `data/uploads/<profileId>/<bundleId>/` for raw bundles and `data/datasets/training_manifest.json` tracking ingestion metadata and modality coverage.
+  * Model artifacts: `data/models/global/amy_model.npz` plus per-profile weights under `data/models/<profileId>/`.
+  * Interaction logs: captured client-side for UX tuning; uploaded corrections flow back into training bundles when consented.
 
 🟣 Chapter 5 – Interface & Experience: What Amy Feels
 “Design not for screens. Design for trust.”
@@ -264,7 +262,7 @@ This is the cloud-based loop for long-term, powerful model improvement.
 * Deployment: The updated cloud model is deployed. The app refreshes its cached MLP weights.
 
 6.3 Profile-Specific Models
-Each child profile maintains its own MLP weights on the server. Training data uploaded with a profileId updates that child's model, and the client passes this profileId to `/latest-mlp-model` or `/model-metadata` to fetch the personalized artifact. If no profileId is provided, a shared fallback model is used.
+Each child profile maintains its own MLP weights on the server. Training data uploaded with a profileId updates that child's model, and the browser client passes this profileId (query + `X-Profile-Id` header) to `/latest-mlp-model` or `/model-metadata` to fetch the personalized artifact. If no profileId is provided, a shared fallback model is used.
 
 🧾 Chapter 7 – The Handoff: For Future Developers and LLMs
 “You’re not inheriting code. You’re inheriting trust.”
