@@ -54,8 +54,8 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Produce both global (`data/models/global/amy_model.npz`) and per-profile weights (`data/models/<profileId>/amy_model.npz`).
 - [x] Emit a structured training report (JSON) that `/train-model` returns.
 - [x] Promote multimodal training: add pose/face inputs and non-manual features to the trainer, support modality dropout (natural via zero-filling), and implement multimodal data augmentation.
-- [ ] Benchmark accuracy vs. current hand-only MLP: collect metrics on multimodal vs. hand-only performance.
-- [ ] Provide a “kid starter” training preset: pre-load the trainer with core DGS glosses, class weights, and data splits that reflect the curated vocabulary.
+- [ ] Benchmark accuracy vs. current hand-only MLP: collect metrics on multimodal vs. hand-only performance. _Status gap: only live/recorded multimodal paths are implemented; no benchmark report exists in repo._
+- [ ] Provide a “kid starter” training preset: pre-load the trainer with core DGS glosses, class weights, and data splits that reflect the curated vocabulary. _Status gap: no preset artifacts or configs present._
 
 ## 5. Distribute Updated Sign Language Models Back to the Webapp
 - [x] Expand `server/src/server.ts`'s `/latest-mlp-model` handler to accept `?profileId=` and serve personalized bundles when available; fall back to the global model otherwise.
@@ -68,7 +68,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Document the flow in `docs/` with a sequence diagram (capture → bundle → training → distribution).
 - [x] Create a manual QA checklist covering "record sign", "bundle files present", "training job succeeds", "personalized model downloaded".
 - [x] Extend manual and automated QA for multimodal overlays: include steps/screenshots showing landmark previews (hand/pose/face), expected German guidance when modalities are missing, and the end-to-end path from preview to personalized model download.
-- [ ] Track latency and reliability: add metrics collection for capture → upload → training → download timings, and publish a weekly dashboard to ensure the full cycle stays within the kid-friendly budget (<50 ms/frame inference, fast uploads on spotty connections).
+- [ ] Track latency and reliability: add metrics collection for capture → upload → training → download timings, and publish a weekly dashboard to ensure the full cycle stays within the kid-friendly budget (<50 ms/frame inference, fast uploads on spotty connections). _Status gap: docs reference budgets but no implemented dashboards/metrics in code._
 
 ---
 **Status:** Core sign language training loop implemented. The system captures hand landmarks via MediaPipe, trains per-user and global MLP models for Deutsche Gebärdensprache (DGS) recognition, and automatically distributes updated models to all devices. Focus is now on optimization, production readiness, and establishing quality criteria for promoting user training data to the global baseline model.
