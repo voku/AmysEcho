@@ -416,6 +416,12 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 	const db = await loadDatabase(filePath);
 	let changed = false;
 
+	// Run migration to add userId to existing profiles
+	const migrationChanged = migrateProfileUserIds(db);
+	if (migrationChanged) {
+		changed = true;
+	}
+
 	if (db.profiles.length === 0) {
 		// Create a default profile with a synthetic userId for backward compatibility
 		// In production, profiles should only be created via user registration
@@ -599,18 +605,6 @@ export function migrateProfileUserIds(db: Database): boolean {
 			(profile as any).userId = matchingUser.id;
 			changed = true;
 			continue;
-		}
-		
-		// Try to find profile owner by checking symbols with matching profileId
-		const profileSymbol = db.symbols.find(s => s.profileId === profile.id);
-		if (profileSymbol) {
-			// Check if there's a user whose ID matches this profileId
-			const ownerUser = db.users.find(u => u.id === profile.id);
-			if (ownerUser) {
-				(profile as any).userId = ownerUser.id;
-				changed = true;
-				continue;
-			}
 		}
 		
 		// Default: assign to "system" for orphaned profiles
