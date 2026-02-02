@@ -24,6 +24,21 @@ def _make_auth_headers(access_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {access_token}"}
 
 
+def create_profile(port: str, access_token: str, profile_id: str, display_name: str):
+    """Create a profile via the API."""
+    url = f"http://localhost:{port}/api/v1/profiles"
+    data = json.dumps({"id": profile_id, "displayName": display_name}).encode("utf-8")
+    headers = {**_make_auth_headers(access_token), "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            assert resp.getcode() == 201
+    except urllib.error.HTTPError as e:
+        # Profile might already exist, that's okay
+        if e.code != 409 and e.code != 500:
+            raise
+
+
 # The JSON asset is the single source of truth for baseline gestures.
 # Keep loaders in App and Server in sync if the structure changes.
 DEFAULT_LABEL_FALLBACK = [
@@ -153,6 +168,10 @@ def start_server():
             if time.time() - start > 30:
                 raise RuntimeError("server did not start") from err
             time.sleep(0.5)
+    
+    # Create the profile that will be used in tests
+    create_profile(port, access_token, "11111111-1111-4111-8111-111111111111", "Test Profile")
+    
     return proc, access_token, data_dir, port
 
 
