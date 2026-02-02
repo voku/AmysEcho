@@ -99,6 +99,17 @@ export const addNegativeSample = (
 };
 
 export const addUser = (db: Database, user: StoredUser): void => {
+	// Security: Enforce username and email uniqueness at database layer
+	const existingUsername = findUserByUsername(db, user.username);
+	if (existingUsername) {
+		throw new Error("Username already exists");
+	}
+	
+	const existingEmail = findUserByEmail(db, user.email);
+	if (existingEmail) {
+		throw new Error("Email already exists");
+	}
+	
 	db.users.push(user);
 };
 
@@ -406,8 +417,11 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 	let changed = false;
 
 	if (db.profiles.length === 0) {
+		// Create a default profile with a synthetic userId for backward compatibility
+		// In production, profiles should only be created via user registration
 		const profile: Profile = {
 			id: randomUUID(),
+			userId: "system", // Synthetic user ID for the default profile
 			displayName: "Standardprofil",
 			createdAt: new Date().toISOString(),
 			consentDataUpload: false,
@@ -563,4 +577,46 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 	}
 
 	return db;
+}
+
+/**
+ * Migration: Add userId to profiles that don't have one
+ * Assigns each profile to a user based on matching IDs (userId === profileId pattern)
+ * or creates a default "system" user for orphaned profiles
+ */
+export function migrateProfileUserIds(db: Database): boolean {
+	let changed = false;
+	
+	for (const profile of db.profiles) {
+		// Skip if already has userId
+		if ("userId" in profile && profile.userId) {
+			continue;
+		}
+		
+		// Try to find a user with matching ID (legacy userId === profileId pattern)
+		const matchingUser = db.users.find(u => u.id === profile.id);
+		if (matchingUser) {
+			(profile as any).userId = matchingUser.id;
+			changed = true;
+			continue;
+		}
+		
+		// Try to find profile owner by checking symbols with matching profileId
+		const profileSymbol = db.symbols.find(s => s.profileId === profile.id);
+		if (profileSymbol) {
+			// Check if there's a user whose ID matches this profileId
+			const ownerUser = db.users.find(u => u.id === profile.id);
+			if (ownerUser) {
+				(profile as any).userId = ownerUser.id;
+				changed = true;
+				continue;
+			}
+		}
+		
+		// Default: assign to "system" for orphaned profiles
+		(profile as any).userId = "system";
+		changed = true;
+	}
+	
+	return changed;
 }

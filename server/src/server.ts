@@ -740,7 +740,8 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
 	sendBinaryModel,
 	applyModelHeaders: applyModelResponseHeaders,
 	logTraining,
-	isProfileAuthorized,
+	isProfileAuthorized: (req: Request, profileId: string) =>
+		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
 	resolveProfileId: resolveProfileId,
 });
 app.get("/latest-mlp-model", auth, modelMetadataLimiter, latestMlpModelHandler);
@@ -837,7 +838,7 @@ app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Resp
 		if (profileId && !resolvedProfileId) {
 			return res.status(404).json({ error: "Profil nicht gefunden." });
 		}
-		if (resolvedProfileId && !isProfileAuthorized(req, resolvedProfileId)) {
+		if (resolvedProfileId && !isProfileAuthorized(req, resolvedProfileId, dbInstance, profileRegistry)) {
 			return res.status(403).json({ error: "Zugriff verweigert." });
 		}
 		console.log(

@@ -227,6 +227,11 @@ export function registerProfileRoutes(
 				.json({ error: "Profilinformationen fehlen oder sind ungültig." });
 		}
 
+		// Ensure user is authenticated
+		if (!req.user?.id) {
+			return res.status(401).json({ error: "Authentifizierung erforderlich." });
+		}
+
 		try {
 			const profile = ensureProfileRecord(registry, {
 				id: parsed.data.id,
@@ -238,6 +243,7 @@ export function registerProfileRoutes(
 			if (!existingDbProfile) {
 				db.profiles.push({
 					id: profile.id,
+					userId: req.user.id, // Set owner to authenticated user
 					displayName: profile.displayName,
 					createdAt: profile.createdAt,
 					metadata: profile.metadata,

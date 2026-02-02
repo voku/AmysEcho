@@ -62,7 +62,9 @@ export const config: ServerConfig = {
 	),
 	trainingTimeoutMs: getEnvVarAsNumber("TRAINING_JOB_TIMEOUT_MS", 600_000),
 	trainingSlaMs: getEnvVarAsNumber("TRAINING_JOB_SLA_MS", 120_000),
-	backupSecret: getEnvVar("BACKUP_SECRET", "default-secret-password"),
+	// SECURITY: No default value for BACKUP_SECRET - must be explicitly configured
+	// to prevent using a known default password for backups
+	backupSecret: getEnvVar("BACKUP_SECRET"),
 	trainScript: getEnvVar(
 		"TRAIN_SCRIPT",
 		path.join(SRC_DIR, "amyserver_tools", "train_mlp.py"),
