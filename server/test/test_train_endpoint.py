@@ -105,6 +105,7 @@ def start_server():
     env = os.environ.copy()
     env.setdefault("JWT_SECRET", "test-jwt-secret")
     env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
+    env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
     port = str(_get_free_port())
     env["PORT"] = port
     # Run the real training script but keep epochs low for test speed
@@ -185,6 +186,16 @@ def wait_for_training_completion(job_id: str, access_token: str, port: str, *, t
         time.sleep(1)
 
 
+def create_profile(base_url: str, access_token: str, profile_id: str, display_name: str):
+    """Create a profile for testing profile-specific features."""
+    url = f"{base_url}/api/v1/profiles"
+    data = json.dumps({"id": profile_id, "displayName": display_name}).encode("utf-8")
+    headers = {**_make_auth_headers(access_token), "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        assert resp.getcode() == 201
+
+
 def test_train_endpoint():
     proc = None
     data_dir: Path | None = None
@@ -233,11 +244,15 @@ def test_train_endpoint():
             buf = mlp_resp.read()
             assert len(buf) > 0
 
+        # Test profile-specific model access - create profile first
+        test_profile_id = "11111111-1111-4111-8111-111111111111"
+        create_profile(f"http://localhost:{port}", access_token, test_profile_id, "Test Profile")
+        
         mlp_prof_req = urllib.request.Request(
-            f"http://localhost:{port}/latest-mlp-model?profileId=11111111-1111-4111-8111-111111111111",
+            f"http://localhost:{port}/latest-mlp-model?profileId={test_profile_id}",
             headers={
                 **_make_auth_headers(access_token),
-                "x-profile-id": "11111111-1111-4111-8111-111111111111",
+                "x-profile-id": test_profile_id,
             },
         )
         with urllib.request.urlopen(mlp_prof_req, timeout=10) as mlp_presp:

@@ -99,6 +99,7 @@ def start_server() -> ServerContext:
     env = os.environ.copy()
     env.setdefault("JWT_SECRET", "test-jwt-secret")
     env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
+    env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
     env.setdefault("PORT", PORT)
     env.setdefault("HOST", HOST)
     host = env.get("HOST", HOST)
