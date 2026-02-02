@@ -62,6 +62,7 @@ describe('Profile registry routes', () => {
     });
     db.profiles.push({
       id: source.id,
+      userId: 'profile-tester', // Set userId to match the test user
       displayName: source.displayName,
       createdAt: source.createdAt,
       consentDataUpload: false,
@@ -70,6 +71,7 @@ describe('Profile registry routes', () => {
     });
     db.profiles.push({
       id: target.id,
+      userId: 'profile-tester', // Set userId to match the test user
       displayName: target.displayName,
       createdAt: target.createdAt,
       consentDataUpload: false,
@@ -112,6 +114,8 @@ describe('Profile registry routes', () => {
           res.status(401).json({ error: 'Nicht autorisiert.' });
           return;
         }
+        // Set req.user to match the token
+        req.user = { id: 'profile-tester', username: 'profile-tester', role: 'caregiver' };
         next();
       },
       db,
