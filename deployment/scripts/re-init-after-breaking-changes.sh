@@ -24,7 +24,7 @@ LOG_FILE="${LOG_FILE:-/var/log/amysecho-reinit.log}"
 
 # Ensure script runs with elevated privileges
 if [ "$(id -u)" -ne 0 ]; then
-    echo "ERROR: Dieses Skript muss mit sudo ausgeführt werden."
+    echo "ERROR: This script must be run with sudo."
     exit 1
 fi
 
