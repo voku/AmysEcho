@@ -20,7 +20,23 @@ export interface CustomGesture {
   lastRecognizedAt?: string;
 }
 
+/**
+ * Event detail for background model update requests
+ */
+export interface BackgroundModelUpdateEvent {
+  gestureId: string;
+  profileId: string;
+  reason: 'samples_threshold' | 'status_change' | 'manual';
+  samplesCount: number;
+}
+
 const STORAGE_KEY = 'customGestures';
+
+/**
+ * Custom event name for requesting background model updates.
+ * Components can listen for this event to trigger model training.
+ */
+export const BACKGROUND_MODEL_UPDATE_EVENT = 'amysecho:background-model-update';
 
 /**
  * Manages custom DGS (Deutsche Gebärdensprache) signs.
@@ -34,6 +50,11 @@ const STORAGE_KEY = 'customGestures';
 class CustomGestureRegistry {
   private gestures: Map<string, CustomGesture> = new Map();
   private listeners: Set<() => void> = new Set();
+  private modelUpdateListeners: Set<(event: BackgroundModelUpdateEvent) => void> = new Set();
+  
+  // Thresholds for triggering background model updates
+  private readonly TRAINING_THRESHOLD = 3;  // Trigger training after 3 samples
+  private readonly ACTIVE_THRESHOLD = 10;   // Auto-activate after 10 samples
 
   constructor() {
     this.loadFromStorage();
@@ -70,6 +91,42 @@ class CustomGestureRegistry {
   subscribe(callback: () => void): () => void {
     this.listeners.add(callback);
     return () => this.listeners.delete(callback);
+  }
+
+  /**
+   * Subscribe to background model update requests.
+   * Called when a gesture reaches a training threshold or status changes.
+   */
+  onBackgroundModelUpdate(callback: (event: BackgroundModelUpdateEvent) => void): () => void {
+    this.modelUpdateListeners.add(callback);
+    return () => this.modelUpdateListeners.delete(callback);
+  }
+
+  /**
+   * Request a background model update for a specific gesture.
+   * This dispatches a custom DOM event that can be caught by training components.
+   */
+  private requestBackgroundModelUpdate(gesture: CustomGesture, reason: BackgroundModelUpdateEvent['reason']): void {
+    const event: BackgroundModelUpdateEvent = {
+      gestureId: gesture.id,
+      profileId: gesture.profileId,
+      reason,
+      samplesCount: gesture.trainingSamplesCount,
+    };
+
+    // Notify internal listeners
+    this.modelUpdateListeners.forEach(listener => {
+      try {
+        listener(event);
+      } catch (error) {
+        console.warn('[CustomGestureRegistry] Fehler in Model-Update-Listener:', error);
+      }
+    });
+
+    // Dispatch DOM event for external components
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(BACKGROUND_MODEL_UPDATE_EVENT, { detail: event }));
+    }
   }
 
   /**
@@ -144,24 +201,54 @@ class CustomGestureRegistry {
   /**
    * Increment training sample count for a DGS sign.
    * Automatically transitions sign status based on sample count:
-   * - 3+ samples: draft → training
+   * - 3+ samples: draft → training (triggers background model update)
    * - 10+ samples: training → active (ready for recognition)
    */
   incrementTrainingSamples(id: string): void {
     const gesture = this.gestures.get(id);
     if (gesture) {
+      const previousStatus = gesture.status;
+      const previousCount = gesture.trainingSamplesCount;
+      
       gesture.trainingSamplesCount += 1;
       gesture.updatedAt = new Date().toISOString();
       
-      // Auto-activate after 10 samples
-      if (gesture.trainingSamplesCount >= 10 && gesture.status === 'training') {
+      let statusChanged = false;
+      
+      // Auto-activate after threshold samples
+      if (gesture.trainingSamplesCount >= this.ACTIVE_THRESHOLD && gesture.status === 'training') {
         gesture.status = 'active';
-      } else if (gesture.trainingSamplesCount >= 3 && gesture.status === 'draft') {
+        statusChanged = true;
+      } else if (gesture.trainingSamplesCount >= this.TRAINING_THRESHOLD && gesture.status === 'draft') {
         gesture.status = 'training';
+        statusChanged = true;
       }
       
       this.saveToStorage();
       this.notify();
+      
+      // Request background model update when reaching training threshold or status changes
+      const reachedTrainingThreshold = previousCount < this.TRAINING_THRESHOLD && 
+                                        gesture.trainingSamplesCount >= this.TRAINING_THRESHOLD;
+      const reachedActiveThreshold = previousCount < this.ACTIVE_THRESHOLD && 
+                                      gesture.trainingSamplesCount >= this.ACTIVE_THRESHOLD;
+      
+      if (reachedTrainingThreshold || reachedActiveThreshold) {
+        this.requestBackgroundModelUpdate(gesture, 'samples_threshold');
+      } else if (statusChanged && previousStatus !== gesture.status) {
+        this.requestBackgroundModelUpdate(gesture, 'status_change');
+      }
+    }
+  }
+
+  /**
+   * Manually trigger a background model update for a gesture.
+   * Useful for caregivers who want to force a model refresh.
+   */
+  triggerModelUpdate(id: string): void {
+    const gesture = this.gestures.get(id);
+    if (gesture && gesture.trainingSamplesCount >= this.TRAINING_THRESHOLD) {
+      this.requestBackgroundModelUpdate(gesture, 'manual');
     }
   }
 
