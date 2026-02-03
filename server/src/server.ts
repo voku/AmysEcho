@@ -355,12 +355,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 			}
 		}
 		app.locals.profileRegistry = profileRegistry;
-		if (profileRegistry.profiles.length === 0) {
-			// Invariant violation: setupDatabase should have ensured at least one profile exists in the DB.
-			throw new Error(
-				`Profile initialization failed: registry is empty and no database profiles were found to sync from (DB profiles: ${db.profiles.length})`,
-			);
-		}
+		// Zero profiles is acceptable at startup - profiles are created via user registration
 		if (registryDirty) {
 			await withFileLock(PROFILE_REGISTRY_PATH, async () =>
 				saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
