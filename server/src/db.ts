@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
 import type {
@@ -416,27 +416,8 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 	const db = await loadDatabase(filePath);
 	let changed = false;
 
-	// Run migration to add userId to existing profiles
-	const migrationChanged = migrateProfileUserIds(db);
-	if (migrationChanged) {
-		changed = true;
-	}
-
-	if (db.profiles.length === 0) {
-		// Create a default profile with a synthetic userId for backward compatibility
-		// In production, profiles should only be created via user registration
-		const profile: Profile = {
-			id: randomUUID(),
-			userId: "system", // Synthetic user ID for the default profile
-			displayName: "Standardprofil",
-			createdAt: new Date().toISOString(),
-			consentDataUpload: false,
-			consentHelpMeGetSmarter: false,
-			vocabularySetId: "basic",
-		};
-		db.profiles.push(profile);
-		changed = true;
-	}
+	// Profiles are now created via user registration only
+	// No automatic profile creation or migration
 
 	if (db.symbols.length === 0) {
 		const defaultLabels = [
@@ -561,11 +542,9 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 		changed = true;
 	}
 
-	if (db.usageStats.length === 0 && db.symbols.length > 0) {
-		// Defensive check: setupDatabase should have created a profile above if none existed
-		if (db.profiles.length === 0) {
-			throw new Error("Cannot seed usage stats: no profiles exist");
-		}
+	if (db.usageStats.length === 0 && db.symbols.length > 0 && db.profiles.length > 0) {
+		// Only seed usage stats if profiles exist
+		// In production, profiles are created via user registration
 		const defaultProfileId = db.profiles[0].id;
 		for (const sym of db.symbols) {
 			db.usageStats.push({
@@ -590,27 +569,4 @@ export async function setupDatabase(filePath: string): Promise<Database> {
  * Assigns each profile to a user based on matching IDs (userId === profileId pattern)
  * or creates a default "system" user for orphaned profiles
  */
-export function migrateProfileUserIds(db: Database): boolean {
-	let changed = false;
-	
-	for (const profile of db.profiles) {
-		// Skip if already has userId
-		if ("userId" in profile && profile.userId) {
-			continue;
-		}
-		
-		// Try to find a user with matching ID (legacy userId === profileId pattern)
-		const matchingUser = db.users.find(u => u.id === profile.id);
-		if (matchingUser) {
-			(profile as any).userId = matchingUser.id;
-			changed = true;
-			continue;
-		}
-		
-		// Default: assign to "system" for orphaned profiles
-		(profile as any).userId = "system";
-		changed = true;
-	}
-	
-	return changed;
-}
+
