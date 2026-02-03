@@ -33,8 +33,16 @@ def create_profile(base_url, auth_header, profile_id, display_name):
     data = json.dumps({"id": profile_id, "displayName": display_name}).encode("utf-8")
     headers = {**auth_header, "Content-Type": "application/json"}
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        assert resp.getcode() == 201
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            assert resp.getcode() == 201
+    except urllib.error.HTTPError as e:
+        # Profile might already exist (409 Conflict), that's okay
+        if e.code == 409:
+            pass  # Profile already exists
+        else:
+            error_body = e.read().decode('utf-8') if e.fp else "No error body"
+            raise RuntimeError(f"Failed to create profile: {e.code} {e.msg}\nBody: {error_body}") from e
 
 @pytest.fixture
 def missing_data_dir():

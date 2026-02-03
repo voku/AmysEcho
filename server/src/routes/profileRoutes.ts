@@ -262,6 +262,10 @@ export function registerProfileRoutes(
 					consentHelpMeGetSmarter: false,
 					vocabularySetId: "basic",
 				});
+			} else {
+				// Update existing profile's userId to match current authenticated user
+				// This ensures tests and re-creations work correctly
+				existingDbProfile.userId = req.user.id;
 			}
 
 			await withFileLock(registryPath, async () =>
