@@ -117,7 +117,7 @@ test('POST /train-model processes samples and returns model', async () => {
     await delay(200);
   }
 
-  const mlpRes = await fetch(`${baseUrl}/latest-mlp-model`, { headers });
+  const mlpRes = await fetch(`${baseUrl}/api/v1/models/latest`, { headers });
   if (mlpRes.ok) {
     const mlpBuf = Buffer.from(await mlpRes.arrayBuffer());
     assert.ok(mlpBuf.length > 0, 'Model buffer should not be empty on success.');
@@ -148,19 +148,19 @@ test('POST /train-model processes samples and returns model', async () => {
   }
 });
 
-test('GET /model-version returns version and path', async () => {
+test('GET /api/v1/models/version returns version and path', async () => {
   const res = await fetchWithRetry(
-    `${baseUrl}/model-version`,
+    `${baseUrl}/api/v1/models/version`,
     { headers: serverHeaders() },
     { errorMessage: 'Model-version request failed with no response.' },
   );
   assert.strictEqual(res.status, 200);
   const data = await res.json();
   assert.ok(typeof data.version === 'string');
-  assert.strictEqual(data.modelPath, 'latest-mlp-model');
+  assert.strictEqual(data.modelPath, '/api/v1/models/latest');
 });
 
-localOnlyTest('GET /latest-mlp-model serves file and client caches it', async () => {
+localOnlyTest('GET /api/v1/models/latest serves file and client caches it', async () => {
   const modelDir = join(serverDir, 'data', 'models', '11111111-1111-4111-8111-111111111111');
   await fs.mkdir(modelDir, { recursive: true });
   const buf = Buffer.from('mlp-model');
@@ -171,7 +171,7 @@ localOnlyTest('GET /latest-mlp-model serves file and client caches it', async ()
     let status = 0;
     let out = Buffer.alloc(0);
     for (let i = 0; i < 3; i++) {
-      const res = await fetch(`${baseUrl}/latest-mlp-model?profileId=11111111-1111-4111-8111-111111111111`, {
+      const res = await fetch(`${baseUrl}/api/v1/models/latest?profileId=11111111-1111-4111-8111-111111111111`, {
         headers: serverHeaders({ 'X-Profile-Id': '11111111-1111-4111-8111-111111111111' }),
       });
       status = res.status;
@@ -282,7 +282,7 @@ test('POST /api/v1/dgs/sample-bundles auto-triggers training and updates model',
 
   assert.ok(completed, 'training job did not complete before timeout');
 
-  const modelRes = await fetch(`${baseUrl}/latest-mlp-model`, { headers });
+  const modelRes = await fetch(`${baseUrl}/api/v1/models/latest`, { headers });
   assert.strictEqual(modelRes.status, 200);
   const modelBuffer = Buffer.from(await modelRes.arrayBuffer());
   assert.ok(modelBuffer.length > 0);

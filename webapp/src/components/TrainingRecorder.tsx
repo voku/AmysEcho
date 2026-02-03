@@ -61,10 +61,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
     };
   }, []);
 
-  useEffect(() => {
-    (window as any).__facingMode = facingMode;
-    (window as any).__mirrorOverlay = isMirroredPreview;
-  }, [facingMode, isMirroredPreview]);
+  // No longer using window globals - configuration persisted via localStorage
 
   const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks, getVariationMetrics } = useSignLanguageDetector(
     videoRef,

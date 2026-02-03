@@ -14,8 +14,6 @@ beforeEach(() => {
   Object.keys(mockWindow).forEach((key) => delete mockWindow[key]);
   Object.assign(mockWindow, {
     __mlpThreshold: 0.35,
-    __fallbackThreshold: 0.25,
-    __facingMode: 'environment',
     __mirrorOverlay: false,
     __gestureSizeTolerance: 0.4,
     __amyIntensity: 'gentle',
@@ -31,8 +29,9 @@ describe('GestureConfig', () => {
       const config = loadConfig();
 
       expect(config.thresholds.mlpConfidence).toBe(0.35);
-      expect(config.thresholds.fallbackConfidence).toBe(0.25);
-      expect(config.camera.facingMode).toBe('environment');
+      // fallbackConfidence and facingMode no longer configurable via window globals
+      expect(config.thresholds.fallbackConfidence).toBe(0.3); // default value
+      expect(config.camera.facingMode).toBe('user'); // default value
       expect(config.camera.mirrorOverlay).toBe(false);
       expect(config.gestures.sizeTolerance).toBe(0.4);
     });

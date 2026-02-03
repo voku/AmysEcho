@@ -67,6 +67,23 @@ Use the update script to pull the latest code, install dependencies, rebuild, an
 sudo /opt/amysecho/app/deployment/scripts/update-server.sh
 ```
 
+### Breaking Changes
+
+If updating to a version with breaking changes (API route changes, auth model changes, etc.), use the re-initialization script instead:
+
+```bash
+sudo /opt/amysecho/app/deployment/scripts/re-init-after-breaking-changes.sh
+```
+
+This script will:
+- Create a backup before making changes
+- Apply database migrations if needed
+- Update all dependencies
+- Rebuild the application
+- Restart services and verify health
+
+See `docs/BREAKING_CHANGES.md` for details on what changed and why.
+
 ## Configuration Files
 
 ### Environment Variables

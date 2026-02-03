@@ -27,7 +27,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     const result = await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       token: 'abc',
       profileId: 'amy',
     });
@@ -53,7 +53,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     const result = await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       profileId: 'amy',
     });
 
@@ -76,7 +76,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     const result = await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       profileId: 'amy',
     });
 
@@ -99,7 +99,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     const result = await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
     });
 
     expect(result?.meta.source).toBe('global');
@@ -115,7 +115,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     const result = await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       profileId: 'amy',
     });
 
@@ -129,7 +129,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     const result = await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
     });
 
     expect(result).toBeNull();
@@ -165,7 +165,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       token: 'my-secret-token',
     });
 
@@ -183,7 +183,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       profileId: 'amy',
     });
 
@@ -201,7 +201,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       profileId: '  amy  ',
     });
 
@@ -219,7 +219,7 @@ describe('fetchMlpModelWithFallback', () => {
     vi.stubGlobal('fetch', fetchMock as any);
 
     await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       profileId: '   ',
     });
 
@@ -246,7 +246,7 @@ describe('fetchMlpModelWithFallback', () => {
     const unsub = onMlpModelUpdated(listener);
 
     await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
       profileId: 'amy',
     });
 
@@ -274,7 +274,7 @@ describe('fetchMlpModelWithFallback', () => {
     unsub(); // Unsubscribe immediately
 
     await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
     });
 
     expect(listener).not.toHaveBeenCalled();
@@ -298,7 +298,7 @@ describe('fetchMlpModelWithFallback', () => {
     const unsub2 = onMlpModelUpdated(normalListener);
 
     await fetchMlpModelWithFallback({
-      endpoint: 'https://api.example.com/latest-mlp-model',
+      endpoint: 'https://api.example.com/api/v1/models/latest',
     });
 
     // Normal listener should still be called even if error listener throws

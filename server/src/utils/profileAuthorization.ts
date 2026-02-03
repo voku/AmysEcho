@@ -53,21 +53,3 @@ export function isProfileAuthorized(
 	
 	return false;
 }
-
-/**
- * Legacy function for backward compatibility.
- * @deprecated Use isProfileAuthorized with db and registry parameters instead.
- */
-export function isProfileAuthorizedLegacy(req: Request, profileId: string): boolean {
-	const claimed = req.header("x-profile-id");
-
-	if (!profileId || typeof profileId !== "string" || profileId.trim() === "") {
-		return false;
-	}
-
-	if (typeof claimed !== "string" || claimed.trim().length === 0) {
-		return false;
-	}
-	const normalized = claimed.trim();
-	return normalized === profileId.trim();
-}

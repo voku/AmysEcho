@@ -8,7 +8,7 @@ let apiTokenMock = 'token-123';
 
 vi.mock('./useApiConfig', () => ({
   useApiConfig: () => ({
-    modelEndpoint: 'http://localhost:5000/latest-mlp-model',
+    modelEndpoint: 'http://localhost:5000/api/v1/models/latest',
     apiToken: apiTokenMock,
     refreshAccessToken: refreshAccessTokenMock,
   }),
@@ -215,7 +215,7 @@ describe('useMlpModelInjection', () => {
     const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
       (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
-      if (url.includes('/latest-mlp-model')) {
+      if (url.includes('/api/v1/models/latest')) {
         if (firstCall) {
           firstCall = false;
           return Promise.resolve(new Response('unauthorized', { status: 401 }));
@@ -266,7 +266,7 @@ describe('useMlpModelInjection', () => {
     const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
       (input: RequestInfo | URL) => {
         const url = typeof input === 'string' ? input : input.toString();
-        if (url.includes('/latest-mlp-model')) {
+        if (url.includes('/api/v1/models/latest')) {
           return Promise.resolve(new Response('unauthorized', { status: 401 }));
         }
         if (url.includes('/api/v1/auth/refresh')) {

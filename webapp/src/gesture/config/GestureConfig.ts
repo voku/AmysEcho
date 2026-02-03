@@ -150,19 +150,7 @@ export function loadConfig(): GestureDetectorConfig {
     };
   }
 
-  if (typeof window.__fallbackThreshold === 'number') {
-    windowOverrides.thresholds = {
-      ...(windowOverrides.thresholds ?? {}),
-      fallbackConfidence: window.__fallbackThreshold,
-    };
-  }
-
-  if (typeof window.__facingMode === 'string') {
-    windowOverrides.camera = {
-      ...(windowOverrides.camera ?? {}),
-      facingMode: window.__facingMode,
-    };
-  }
+  // Window overrides removed - configuration now uses localStorage only
 
   if (typeof window.__mirrorOverlay === 'boolean') {
     windowOverrides.camera = {

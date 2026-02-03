@@ -45,8 +45,8 @@ import {
   StabilityAnalysisStep,
 } from './ProcessingSteps';
 
-const FALLBACK_CONFIDENCE_THRESHOLD =
-  typeof window.__fallbackThreshold === 'number' ? window.__fallbackThreshold : 0.35;
+// Default fallback confidence threshold
+const FALLBACK_CONFIDENCE_THRESHOLD = 0.35;
 
 interface GestureMessagePayload {
   type: 'gesture';

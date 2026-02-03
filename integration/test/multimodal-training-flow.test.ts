@@ -216,7 +216,7 @@ test('Complete multimodal training and model distribution workflow', async () =>
   console.log('\n=== Step 4: Download Personalized Model ===');
   
   // Test personalized model download - requires X-Profile-Id header for authorization
-  const personalizedUrl = `${baseUrl}/latest-mlp-model?profileId=${profileId}`;
+  const personalizedUrl = `${baseUrl}/api/v1/models/latest?profileId=${profileId}`;
   const personalizedHeaders = {
     ...headers,
     'X-Profile-Id': profileId,
@@ -238,7 +238,7 @@ test('Complete multimodal training and model distribution workflow', async () =>
   console.log('\n=== Step 5: Test Model Distribution - Global Fallback ===');
   
   // Test that global model is available as fallback
-  const globalUrl = `${baseUrl}/latest-mlp-model`;
+  const globalUrl = `${baseUrl}/api/v1/models/latest`;
   const globalRes = await fetch(globalUrl, { headers });
   assert.strictEqual(globalRes.status, 200, 'Failed to download global model');
   
@@ -251,7 +251,7 @@ test('Complete multimodal training and model distribution workflow', async () =>
   
   // Test fallback for non-existent profile - still needs X-Profile-Id header for auth check
   const nonExistentProfileId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
-  const nonExistentUrl = `${baseUrl}/latest-mlp-model?profileId=${nonExistentProfileId}`;
+  const nonExistentUrl = `${baseUrl}/api/v1/models/latest?profileId=${nonExistentProfileId}`;
   const fallbackHeaders = {
     ...headers,
     'X-Profile-Id': nonExistentProfileId,

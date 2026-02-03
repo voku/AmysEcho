@@ -160,7 +160,7 @@ def start_server():
     # wait for server up
     headers = _make_auth_headers(access_token)
     req = urllib.request.Request(
-        f"http://localhost:{port}/model-version", headers=headers
+        f"http://localhost:{port}/api/v1/models/version", headers=headers
     )
     start = time.time()
     while True:
@@ -262,7 +262,7 @@ def test_train_endpoint():
 
         # ensure MLP model downloadable
         mlp_req = urllib.request.Request(
-            f"http://localhost:{port}/latest-mlp-model",
+            f"http://localhost:{port}/api/v1/models/latest",
             headers=_make_auth_headers(access_token),
         )
         with urllib.request.urlopen(mlp_req, timeout=10) as mlp_resp:

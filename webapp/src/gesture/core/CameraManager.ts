@@ -22,7 +22,7 @@ export class CameraManager {
    * Start camera stream
    */
   async startCamera(): Promise<void> {
-    // Check localStorage first, then window global, default to 'user'
+    // Check localStorage for facing mode, default to 'user'
     let facingMode: 'user' | 'environment' = 'user';
     try {
       const persisted = window.localStorage.getItem('cameraFacingMode');
@@ -32,12 +32,8 @@ export class CameraManager {
     } catch {
       // localStorage might be disabled
     }
-    // Fallback to window global for backward compatibility
-    if ((window as any).__facingMode) {
-      facingMode = (window as any).__facingMode;
-    }
     
-    const requestClipAudio = Boolean((window as any).__requestClipAudio);
+    const requestClipAudio = false; // Audio is handled by AudioCaptureService
 
     try {
       let stream: MediaStream;
