@@ -263,15 +263,19 @@ export function registerProfileRoutes(
 					vocabularySetId: "basic",
 				});
 			} else {
-				// Profile already exists - check if user owns it
-				if (existingDbProfile.userId !== req.user.id) {
-					// Cannot take over someone else's profile
+				// Profile already exists - check if user owns it or if it's a legacy profile
+				if (existingDbProfile.userId && existingDbProfile.userId !== req.user.id) {
+					// Profile belongs to another user - cannot take over
 					return res.status(403).json({ 
 						error: "Profil existiert bereits und gehört einem anderen Benutzer." 
 					});
 				}
-				// Profile exists and user owns it - this is fine (idempotent creation)
-				// No changes needed, just return success
+				// Either:
+				// 1. Profile has no userId (legacy/system profile) - update it
+				// 2. Profile belongs to current user - idempotent creation is fine
+				if (!existingDbProfile.userId || existingDbProfile.userId === "system") {
+					existingDbProfile.userId = req.user.id;
+				}
 			}
 
 			await withFileLock(registryPath, async () =>

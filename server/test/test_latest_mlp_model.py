@@ -37,9 +37,11 @@ def create_profile(base_url, auth_header, profile_id, display_name):
         with urllib.request.urlopen(req, timeout=5) as resp:
             assert resp.getcode() == 201
     except urllib.error.HTTPError as e:
-        # Profile might already exist (409 Conflict), that's okay
-        if e.code == 409:
-            pass  # Profile already exists
+        # Profile might already exist from another test - that's okay for test setup
+        # 409 = Conflict (profile already exists with same user)
+        # 403 = Forbidden (profile exists with different user, but we're just setting up test)
+        if e.code == 409 or e.code == 403:
+            pass  # Profile already exists, continue with test
         else:
             error_body = e.read().decode('utf-8') if e.fp else "No error body"
             raise RuntimeError(f"Failed to create profile: {e.code} {e.msg}\nBody: {error_body}") from e
@@ -69,7 +71,7 @@ def model_file():
         )
         shutil.move(str(data_dir), str(backup_dir))
     data_dir.mkdir()
-    model_path = data_dir / "models" / "11111111-1111-4111-8111-111111111111" / "amy_model.npz"
+    model_path = data_dir / "models" / "22222222-2222-4222-8222-222222222222" / "amy_model.npz"
     model_path.parent.mkdir(parents=True, exist_ok=True)
     model_path.write_bytes(b"placeholder")
     try:
@@ -103,7 +105,7 @@ def global_model_file():
             shutil.move(str(backup_dir), str(data_dir))
 
 def test_latest_mlp_model_requires_authorization(model_file, running_server, base_url):
-    status = fetch_latest_mlp_model(base_url, profile_id="11111111-1111-4111-8111-111111111111")
+    status = fetch_latest_mlp_model(base_url, profile_id="22222222-2222-4222-8222-222222222222")
     assert status == 401
 
 def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_server, base_url, auth_header):
@@ -114,20 +116,20 @@ def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_
     assert seeded_path.stat().st_size > 0
 
 def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_server, base_url, auth_header):
-    create_profile(base_url, auth_header, "11111111-1111-4111-8111-111111111111", "Test Profile")
+    create_profile(base_url, auth_header, "22222222-2222-4222-8222-222222222222", "Test Profile")
     status = fetch_latest_mlp_model(
         base_url,
-        profile_id="11111111-1111-4111-8111-111111111111",
-        extra_headers={"x-profile-id": "11111111-1111-4111-8111-111111111111"},
+        profile_id="22222222-2222-4222-8222-222222222222",
+        extra_headers={"x-profile-id": "22222222-2222-4222-8222-222222222222"},
         auth_header=auth_header,
     )
     assert status == 200
 
 
 def test_latest_mlp_model_sets_headers(model_file, running_server, base_url, auth_header):
-    create_profile(base_url, auth_header, "11111111-1111-4111-8111-111111111111", "Test Profile")
-    url = f"{base_url}/latest-mlp-model?profileId=11111111-1111-4111-8111-111111111111"
-    headers = {**auth_header, "x-profile-id": "11111111-1111-4111-8111-111111111111"}
+    create_profile(base_url, auth_header, "22222222-2222-4222-8222-222222222222", "Test Profile")
+    url = f"{base_url}/latest-mlp-model?profileId=22222222-2222-4222-8222-222222222222"
+    headers = {**auth_header, "x-profile-id": "22222222-2222-4222-8222-222222222222"}
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=5) as resp:
         assert resp.getcode() == 200
