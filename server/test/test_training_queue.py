@@ -41,7 +41,7 @@ def start_server():
     start = time.time()
     headers = {"Authorization": f"Bearer {ACCESS_TOKEN}"}
     req = urllib.request.Request(
-        f"http://localhost:{PORT}/model-version", headers=headers
+        f"http://localhost:{PORT}/api/v1/models/version", headers=headers
     )
     while True:
         if proc.poll() is not None:

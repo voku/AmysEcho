@@ -127,7 +127,7 @@ def start_server() -> ServerContext:
             raise RuntimeError("server failed to start")
         try:
             req = urllib.request.Request(
-                f"{base_url}/model-version",
+                f"{base_url}/api/v1/models/version",
                 headers={"Authorization": f"Bearer {access_token}"},
             )
             with urllib.request.urlopen(req, timeout=5) as resp:

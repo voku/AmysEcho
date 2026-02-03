@@ -15,7 +15,7 @@ def get_global_mlp_model_path(data_dir: Path) -> Path:
 
 
 def fetch_latest_mlp_model(base_url, profile_id=None, extra_headers=None, auth_header=None):
-    url = f"{base_url}/latest-mlp-model"
+    url = f"{base_url}/api/v1/models/latest"
     if profile_id:
         url += f"?profileId={profile_id}"
     headers = auth_header.copy() if auth_header else {}
@@ -128,7 +128,7 @@ def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_s
 
 def test_latest_mlp_model_sets_headers(model_file, running_server, base_url, auth_header):
     create_profile(base_url, auth_header, "22222222-2222-4222-8222-222222222222", "Test Profile")
-    url = f"{base_url}/latest-mlp-model?profileId=22222222-2222-4222-8222-222222222222"
+    url = f"{base_url}/api/v1/models/latest?profileId=22222222-2222-4222-8222-222222222222"
     headers = {**auth_header, "x-profile-id": "22222222-2222-4222-8222-222222222222"}
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=5) as resp:
@@ -146,7 +146,7 @@ def test_latest_mlp_model_sets_headers(model_file, running_server, base_url, aut
 
 
 def test_latest_mlp_model_public_caching(global_model_file, running_server, base_url, auth_header):
-    url = f"{base_url}/latest-mlp-model"
+    url = f"{base_url}/api/v1/models/latest"
     headers = auth_header
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=5) as resp:
