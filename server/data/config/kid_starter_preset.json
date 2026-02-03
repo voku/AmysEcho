@@ -1,0 +1,131 @@
+{
+  "$schema": "../../../docs/schemas/kid_starter_preset_schema.json",
+  "version": "1.0.0",
+  "name": "Amy's Kid Starter Preset",
+  "description": "Kuratiertes DGS-Vokabular für Kinder mit Fokus auf Alltagskommunikation",
+  "targetAudience": "non-verbal-children",
+  "vocabulary": {
+    "colors": {
+      "label": "Farben",
+      "emoji": "🎨",
+      "priority": 1,
+      "glosses": [
+        { "gloss": "rot", "emoji": "🔴", "frequency": "high" },
+        { "gloss": "blau", "emoji": "🔵", "frequency": "high" },
+        { "gloss": "gelb", "emoji": "🟡", "frequency": "high" },
+        { "gloss": "gruen", "emoji": "🟢", "frequency": "high" },
+        { "gloss": "lila", "emoji": "🟣", "frequency": "medium" },
+        { "gloss": "orange", "emoji": "🟠", "frequency": "medium" },
+        { "gloss": "schwarz", "emoji": "⚫", "frequency": "low" },
+        { "gloss": "weiss", "emoji": "⚪", "frequency": "low" }
+      ]
+    },
+    "food": {
+      "label": "Essen & Trinken",
+      "emoji": "🍎",
+      "priority": 1,
+      "glosses": [
+        { "gloss": "essen", "emoji": "🍽️", "frequency": "high" },
+        { "gloss": "trinken", "emoji": "🥤", "frequency": "high" },
+        { "gloss": "hunger", "emoji": "😋", "frequency": "high" },
+        { "gloss": "durst", "emoji": "💧", "frequency": "high" },
+        { "gloss": "satt", "emoji": "😊", "frequency": "medium" },
+        { "gloss": "apfel", "emoji": "🍎", "frequency": "medium" },
+        { "gloss": "banane", "emoji": "🍌", "frequency": "medium" },
+        { "gloss": "brot", "emoji": "🍞", "frequency": "medium" },
+        { "gloss": "wasser", "emoji": "💧", "frequency": "high" },
+        { "gloss": "milch", "emoji": "🥛", "frequency": "medium" }
+      ]
+    },
+    "caregiverPhrases": {
+      "label": "Bezugspersonen",
+      "emoji": "👨‍👩‍👧",
+      "priority": 1,
+      "glosses": [
+        { "gloss": "mama", "emoji": "👩", "frequency": "high" },
+        { "gloss": "papa", "emoji": "👨", "frequency": "high" },
+        { "gloss": "schwester", "emoji": "👧", "frequency": "medium" },
+        { "gloss": "bruder", "emoji": "👦", "frequency": "medium" },
+        { "gloss": "oma", "emoji": "👵", "frequency": "medium" },
+        { "gloss": "opa", "emoji": "👴", "frequency": "medium" },
+        { "gloss": "hilfe", "emoji": "🆘", "frequency": "high" },
+        { "gloss": "bitte", "emoji": "🙏", "frequency": "high" },
+        { "gloss": "danke", "emoji": "💕", "frequency": "high" }
+      ]
+    },
+    "activities": {
+      "label": "Aktivitäten",
+      "emoji": "🎮",
+      "priority": 2,
+      "glosses": [
+        { "gloss": "spielen", "emoji": "🎮", "frequency": "high" },
+        { "gloss": "schlafen", "emoji": "😴", "frequency": "high" },
+        { "gloss": "fertig", "emoji": "✅", "frequency": "high" },
+        { "gloss": "nochmal", "emoji": "🔁", "frequency": "high" },
+        { "gloss": "stopp", "emoji": "✋", "frequency": "high" },
+        { "gloss": "mehr", "emoji": "➕", "frequency": "high" },
+        { "gloss": "alle", "emoji": "👐", "frequency": "medium" }
+      ]
+    },
+    "emotions": {
+      "label": "Gefühle",
+      "emoji": "😊",
+      "priority": 2,
+      "glosses": [
+        { "gloss": "gluecklich", "emoji": "😊", "frequency": "high" },
+        { "gloss": "traurig", "emoji": "😢", "frequency": "high" },
+        { "gloss": "muede", "emoji": "😴", "frequency": "high" },
+        { "gloss": "wuetend", "emoji": "😠", "frequency": "medium" },
+        { "gloss": "angst", "emoji": "😨", "frequency": "medium" },
+        { "gloss": "liebe", "emoji": "❤️", "frequency": "high" }
+      ]
+    },
+    "basics": {
+      "label": "Grundlagen",
+      "emoji": "📚",
+      "priority": 1,
+      "glosses": [
+        { "gloss": "ja", "emoji": "✅", "frequency": "high" },
+        { "gloss": "nein", "emoji": "❌", "frequency": "high" },
+        { "gloss": "ich", "emoji": "👤", "frequency": "high" },
+        { "gloss": "du", "emoji": "👉", "frequency": "high" },
+        { "gloss": "wo", "emoji": "❓", "frequency": "medium" },
+        { "gloss": "was", "emoji": "❓", "frequency": "medium" }
+      ]
+    }
+  },
+  "trainingConfig": {
+    "minSamplesPerGloss": 5,
+    "targetSamplesPerGloss": 15,
+    "classWeights": {
+      "high": 1.0,
+      "medium": 1.2,
+      "low": 1.5
+    },
+    "dataSplits": {
+      "train": 0.7,
+      "validation": 0.15,
+      "test": 0.15
+    },
+    "augmentationSettings": {
+      "temporalJitter": true,
+      "spatialNoise": true,
+      "mirrorHands": false
+    }
+  },
+  "qualityGates": {
+    "minHandsCoverage": 0.7,
+    "minPoseCoverage": 0.4,
+    "minFaceCoverage": 0.4,
+    "minUsableFrameRatio": 0.6,
+    "minClipDurationMs": 500,
+    "maxJitterThreshold": 0.15,
+    "reviewRequiredForGlobal": true
+  },
+  "metadata": {
+    "createdAt": "2026-02-03",
+    "lastUpdated": "2026-02-03",
+    "maintainer": "Amy's Echo Team",
+    "notes": "Starter-Vokabular für die Deutsche Gebärdensprache (DGS) Erkennung bei Kindern. Basiert auf häufig genutzten Kommunikationsbedürfnissen nicht-sprechender Kinder."
+  }
+}

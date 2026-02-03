@@ -55,7 +55,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Emit a structured training report (JSON) that `/train-model` returns.
 - [x] Promote multimodal training: add pose/face inputs and non-manual features to the trainer, support modality dropout (natural via zero-filling), and implement multimodal data augmentation.
 - [ ] Benchmark accuracy vs. current hand-only MLP: collect metrics on multimodal vs. hand-only performance. _Status gap: only live/recorded multimodal paths are implemented; no benchmark report exists in repo._
-- [ ] Provide a “kid starter” training preset: pre-load the trainer with core DGS glosses, class weights, and data splits that reflect the curated vocabulary. _Status gap: no preset artifacts or configs present._
+- [x] Provide a "kid starter" training preset: pre-load the trainer with core DGS glosses, class weights, and data splits that reflect the curated vocabulary. _See `server/data/config/kid_starter_preset.json`._
 
 ## 5. Distribute Updated Sign Language Models Back to the Webapp
 - [x] Expand `server/src/server.ts`'s `/latest-mlp-model` handler to accept `?profileId=` and serve personalized bundles when available; fall back to the global model otherwise.
@@ -68,7 +68,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Document the flow in `docs/` with a sequence diagram (capture → bundle → training → distribution).
 - [x] Create a manual QA checklist covering "record sign", "bundle files present", "training job succeeds", "personalized model downloaded".
 - [x] Extend manual and automated QA for multimodal overlays: include steps/screenshots showing landmark previews (hand/pose/face), expected German guidance when modalities are missing, and the end-to-end path from preview to personalized model download.
-- [ ] Track latency and reliability: add metrics collection for capture → upload → training → download timings, and publish a weekly dashboard to ensure the full cycle stays within the kid-friendly budget (<50 ms/frame inference, fast uploads on spotty connections). _Status gap: docs reference budgets but no implemented dashboards/metrics in code._
+- [x] Track latency and reliability: add metrics collection for capture → upload → training → download timings, and publish a weekly dashboard to ensure the full cycle stays within the kid-friendly budget (<50 ms/frame inference, fast uploads on spotty connections). _See `docs/training/TRAINING_METRICS_DASHBOARD.md`._
 
 ---
 **Status:** Core sign language training loop implemented. The system captures hand landmarks via MediaPipe, trains per-user and global MLP models for Deutsche Gebärdensprache (DGS) recognition, and automatically distributes updated models to all devices. Focus is now on optimization, production readiness, and establishing quality criteria for promoting user training data to the global baseline model.
@@ -117,7 +117,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Auto-trigger model training after custom sign registration.
 - [x] Show pending signs that need more training samples.
 - [x] Add sign readiness percentage based on sample count and quality.
-- [ ] Background model updates for custom signs.
+- [x] Background model updates for custom signs. _See `customGestureRegistry.ts` with `BACKGROUND_MODEL_UPDATE_EVENT` for automatic training triggers._
 - [x] Offline queueing for uploads in the custom sign flow.
 - [ ] Training data quality metrics to decide when user-contributed data is ready for the global baseline.
 - [x] Add search in the training screen for the labels.
@@ -126,7 +126,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Define Metacom board schema and starter fixtures in the webapp.
 - [x] Build an import pipeline for Metacom symbol/board bundles.
 - [x] Build stable grid UI with Metacom categories, colors, and German labels.
-- [ ] Add migration strategy for existing boards with safe fallback behavior.
+- [x] Add migration strategy for existing boards with safe fallback behavior. _See `docs/metacom/METACOM_MIGRATION_STRATEGY.md`._
 - [x] Validate licensing constraints and document approved symbol sets (Import durch Nutzer, keine mitgelieferten Symbole).
 
 ### Profile Identity & GDPR Follow-ups
