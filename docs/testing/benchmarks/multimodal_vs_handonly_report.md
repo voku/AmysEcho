@@ -1,8 +1,8 @@
 # Benchmark Report: Multimodal vs Hand-only MLP
 
-This snapshot records a baseline comparison between multimodal and hand-only
-training using the current deterministic fixtures. It is intended as a **seed**
-report so follow-up device-specific benchmarks can be appended later.
+This snapshot records a baseline hand-only benchmark using the current
+deterministic fixtures. It is intended as a **seed** report; multimodal
+comparisons require a dataset with pose/face landmarks and are still pending.
 
 ## Run Metadata
 
@@ -16,11 +16,11 @@ report so follow-up device-specific benchmarks can be appended later.
 
 ## Metrics Summary
 
-| Metric | Multimodal | Hand-only | Notes |
+| Metric | Hand-only | Multimodal | Notes |
 | --- | --- | --- | --- |
-| Training accuracy | 33.3% | 33.3% | Integration test training metrics (single-class fixtures) |
-| Sample count | 3 | 3 | Integration test bundles (`multimodal-training-flow.test.ts`) |
-| Modalities present | Hands + Pose + Face | Hands | Multimodal integration fixtures include pose/face landmarks |
+| Training accuracy | 33.3% | N/A | Deterministic baseline run (single-class fixture) |
+| Sample count | 1 | N/A | Seed sample in `data/dgs_samples.json` |
+| Modalities present | Hands | N/A | Baseline seed contains hand landmarks only |
 | Bundle frames | N/A | N/A | Offline baseline does not use bundle frames |
 | Training duration | N/A | N/A | Not captured in deterministic snapshot |
 
@@ -28,10 +28,10 @@ report so follow-up device-specific benchmarks can be appended later.
 
 | Modality | Coverage | Notes |
 | --- | --- | --- |
-| Hands | 100% | Required for all fixtures |
-| Pose | 100% | Present in multimodal fixtures |
-| Face | 100% | Present in multimodal fixtures |
-| Non-manual (derived) | 100% | Derived from multimodal landmarks |
+| Hands | 100% | Present in deterministic seed |
+| Pose | 0% | Not present in seed |
+| Face | 0% | Not present in seed |
+| Non-manual (derived) | 0% | Not available without pose/face |
 
 ## Qualitative Review
 
@@ -41,7 +41,7 @@ report so follow-up device-specific benchmarks can be appended later.
 ## Recommendations
 
 - **Immediate fixes:**
-  - Capture real device benchmarks per `docs/training/HOLISTIC_VS_HANDS_BENCHMARK.md`.
+  - Capture multimodal benchmarks per `docs/training/HOLISTIC_VS_HANDS_BENCHMARK.md`.
 - **Next experiments:**
   - Add WER/Gloss accuracy measurements with caregiver-recorded samples.
   - Record thermal + FPS data on target tablets and phones.
