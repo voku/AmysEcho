@@ -139,3 +139,76 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Multi-device profile sync.
 - [x] Profile sharing between caregivers.
 - [x] Profile backup/restore automation.
+
+---
+
+## AI Blind Spot Analysis — Open Items (2026-02-03)
+
+The following items were identified during an AI blind spot analysis. They represent gaps found by cross-referencing security audits, testing strategy documentation, and recommended enhancements that were not previously tracked in this TODO.
+
+### Security Hardening (from Security Audit)
+_Reference: `docs/security/SECURITY_AUDIT_2026-02-02.md` and `docs/security/README.md`_
+
+- [ ] **HTTPS Enforcement**: Add middleware to reject non-HTTPS requests in production mode. Document HTTPS requirement for deployment.
+- [ ] **HSTS Headers**: Configure Strict-Transport-Security headers for production deployments.
+- [ ] **Audit Logging**: Implement audit logging for security-sensitive events (profile access, data deletion, authentication failures).
+- [ ] **Refresh Token Rotation**: Implement refresh token rotation to limit token reuse after compromise.
+- [ ] **Per-User Rate Limiting**: Extend rate limiting from IP-based to user-based for authenticated endpoints.
+- [ ] **2FA Support**: Add two-factor authentication for sensitive caregiver operations (profile deletion, data export).
+- [ ] **Database Migration**: Migrate from JSON file database to SQLite/PostgreSQL for production (JSON file unsuitable for concurrent access at scale).
+
+### Dependency Security
+_Reference: `npm audit` output showing 19 high severity vulnerabilities in server dependencies_
+
+- [ ] **Fix AWS SDK Vulnerabilities**: Update `@aws-sdk/*` packages to resolve 19 high severity vulnerabilities related to `fast-xml-parser` DoS issue.
+- [ ] **Add Dependency Scanning to CI**: Add automated `npm audit` or Snyk scanning to CI pipeline to catch vulnerabilities before deployment.
+
+### Testing Coverage Goals (from Testing Strategy)
+_Reference: `docs/testing/TESTING_STRATEGY.md` — P0/P1 items not yet implemented_
+
+#### Critical Communication Paths (P0)
+- [ ] **Emergency gesture detection tests**: Achieve 100% coverage for "hilfe" gesture detection within 50ms threshold.
+- [ ] **Gesture history & replay tests**: Full coverage for storing/replaying last 10 gestures with audio.
+- [ ] **Automatic recovery system tests**: Test that gesture pipeline recovers from crashes without user intervention.
+- [ ] **Zero-downtime model update tests**: Verify communication continues during model updates.
+- [ ] **Pre-cached responses tests**: Ensure offline mode uses cached responses correctly.
+
+#### Core Functionality (P1)
+- [ ] **Gesture recognition accuracy tests**: Achieve >90% test coverage for recognition accuracy.
+- [ ] **Error handling tests**: >85% coverage for error scenarios (network failures, camera errors, etc.).
+- [ ] **Performance under stress tests**: Test at 5% battery, 1% storage, and network flakiness.
+- [ ] **Accessibility feature tests**: >90% coverage for accessibility (screen readers, high contrast, motor accessibility).
+
+### Accessibility Testing
+_Reference: `docs/accessibility/contrast-audit.md` — contrast fixed, but comprehensive a11y testing missing_
+
+- [ ] **Screen Reader Testing**: Test full user flows with VoiceOver (iOS) and TalkBack (Android).
+- [ ] **Keyboard Navigation**: Verify all interactive elements are keyboard-accessible.
+- [ ] **Reduced Motion Support**: Respect `prefers-reduced-motion` for animations.
+- [ ] **Cognitive Accessibility Review**: Ensure all error messages and guidance are child-friendly and non-judgmental.
+
+### CI/CD Enhancements
+_Reference: `.github/workflows/ci.yml` — current CI runs tests but lacks security scanning_
+
+- [ ] **Add CodeQL Scanning Workflow**: Create dedicated workflow for CodeQL static analysis on PRs.
+- [ ] **Dependency Vulnerability Scanning**: Add `npm audit` or Dependabot integration to CI.
+- [ ] **Security Test Suite in CI**: Run `profileAuthorization.test.ts` and `securityVulnerabilities.test.ts` as blocking checks.
+
+### Production Readiness
+_Reference: Various audit documents and deployment guides_
+
+- [ ] **Health Check Endpoint Enhancement**: Add detailed health checks for database connectivity, model availability, and Python dependencies.
+- [ ] **Graceful Shutdown**: Implement graceful shutdown with request draining for zero-downtime deployments.
+- [ ] **Environment Variable Validation**: Add startup validation for all required environment variables with clear error messages.
+- [ ] **Production Logging**: Implement structured JSON logging for production with log levels (info, warn, error).
+
+### Documentation Gaps
+_Reference: Identified through cross-referencing docs with actual implementation_
+
+- [ ] **Deployment Runbook**: Create step-by-step production deployment runbook with pre/post checks.
+- [ ] **Incident Response Guide**: Document how to handle common incidents (database corruption, auth bypass attempts, model training failures).
+- [ ] **Performance Baseline Documentation**: Document expected performance metrics (inference latency, upload speed, training time) for SLA monitoring.
+
+---
+
+**Note:** This blind spot analysis was performed on 2026-02-03 by examining security audit reports, testing strategy documentation, CI workflows, and recommended enhancements from `docs/security/README.md`. Items should be prioritized based on production deployment timeline.
