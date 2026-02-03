@@ -21,6 +21,7 @@ export interface GestureWindowAugmentations {
   __recognizerInitFailed?: string;
   __predictionError?: string;
   __cameraError?: string;
+  __mirrorOverlay?: boolean;
   __mlpThreshold?: number;
   __gestureSizeTolerance?: number;
   __amyIntensity?: 'gentle' | 'normal' | 'strong';
