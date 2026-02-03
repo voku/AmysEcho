@@ -1,5 +1,5 @@
 {
-  "version": "2026-02-03T12:42:36.246054+00:00",
+  "version": "2026-02-03T20:07:37.779667+00:00",
   "modalities": [
     "hands"
   ],
@@ -10,7 +10,7 @@
   },
   "sample_count": 1,
   "training_sources": {
-    "datasets/training_manifest.json": "cc003fa057c66fead5dacb82ce3d105e63e01f8fa5afef8e399dedd1e8fa93a6"
+    "datasets/training_manifest.json": "122e36589282c7239322218f940fe1533a8ecc49dc78c8c661d1331223fe00cf"
   },
   "config_snapshot": {
     "epochs": 1,
