@@ -100,7 +100,7 @@ test('webapp training helpers integrate with live server', async () => {
   const headers = serverHeaders();
   await waitForTrainingCompletion(pollUrl, headers);
 
-  const modelRes = await fetch(`${baseUrl}/latest-mlp-model`, { headers });
+  const modelRes = await fetch(`${baseUrl}/api/v1/models/latest`, { headers });
   assert.strictEqual(modelRes.status, 200);
   const modelBuffer = Buffer.from(await modelRes.arrayBuffer());
   assert.ok(modelBuffer.length > 0);

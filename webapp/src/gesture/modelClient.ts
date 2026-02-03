@@ -167,7 +167,7 @@ export async function fetchMlpModelWithFallback({
  */
 export async function fetchMlpModel(profileId?: string): Promise<string | null> {
   const endpoint = process.env['EXPO_PUBLIC_API_URL']
-    ? `${process.env['EXPO_PUBLIC_API_URL']}/latest-mlp-model`
+    ? `${process.env['EXPO_PUBLIC_API_URL']}/api/v1/models/latest`
     : '';
   const token = process.env['EXPO_PUBLIC_API_TOKEN'] || undefined;
 
