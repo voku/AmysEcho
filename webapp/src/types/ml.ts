@@ -42,7 +42,6 @@ export interface DetailedGestureResult {
 export interface MLServiceConfig {
   confidenceThreshold?: number; // Minimum confidence for accepting a DGS sign (default: 0.7)
   processingTimeout?: number;
-  enableRemoteClassification?: boolean; // Whether to use server for classification (deprecated)
   remoteRetryMs?: number;
   smootherMinCutOff?: number; // One Euro Filter parameters for landmark smoothing
   smootherBeta?: number;

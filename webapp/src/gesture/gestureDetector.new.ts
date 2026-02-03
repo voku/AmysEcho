@@ -88,7 +88,8 @@ const recognizerInitFailed =
   window.__recognizerInitFailed || 'Erkennung konnte nicht gestartet werden: ';
 window.__predictionError = window.__predictionError || 'Vorhersagefehler: ';
 const cameraError = window.__cameraError || 'Kamerafehler: ';
-const facingMode = window.__facingMode || 'user';
+// Camera defaults to 'user' facing mode
+const facingMode = 'user';
 const mirrorOverlay = window.__mirrorOverlay === true;
 
 const container = document.createElement('div');

@@ -70,10 +70,7 @@ export function SignLanguageRecorder() {
     [],
   );
 
-  useEffect(() => {
-    (window as any).__facingMode = facingMode;
-    (window as any).__mirrorOverlay = isMirroredPreview;
-  }, [facingMode, isMirroredPreview]);
+  // No longer using window globals - configuration persisted via localStorage
 
   const {
     start,
@@ -224,7 +221,6 @@ export function SignLanguageRecorder() {
         } catch {
           // localStorage might be disabled
         }
-        (window as any).__facingMode = facingMode;
         setFacingMode(facingMode);
       }
     }

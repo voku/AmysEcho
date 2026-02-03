@@ -6,12 +6,6 @@
 declare global {
   interface Window {
     /**
-     * Custom fallback confidence threshold for gesture recognition
-     * Default: 0.35
-     */
-    __fallbackThreshold?: number;
-    
-    /**
      * Custom MLP (Multi-Layer Perceptron) confidence threshold for gesture recognition
      * Default: 0.05
      */
@@ -41,11 +35,6 @@ declare global {
      * Error message template for camera errors
      */
     __cameraError?: string;
-    
-    /**
-     * Camera facing mode ('user' for front camera, 'environment' for back camera)
-     */
-    __facingMode?: 'user' | 'environment';
     
     /**
      * Whether to mirror the camera overlay
