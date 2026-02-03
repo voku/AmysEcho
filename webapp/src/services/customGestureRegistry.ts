@@ -207,7 +207,6 @@ class CustomGestureRegistry {
   incrementTrainingSamples(id: string): void {
     const gesture = this.gestures.get(id);
     if (gesture) {
-      const previousStatus = gesture.status;
       const previousCount = gesture.trainingSamplesCount;
       
       gesture.trainingSamplesCount += 1;
@@ -235,7 +234,7 @@ class CustomGestureRegistry {
       
       if (reachedTrainingThreshold || reachedActiveThreshold) {
         this.requestBackgroundModelUpdate(gesture, 'samples_threshold');
-      } else if (statusChanged && previousStatus !== gesture.status) {
+      } else if (statusChanged) {
         this.requestBackgroundModelUpdate(gesture, 'status_change');
       }
     }
