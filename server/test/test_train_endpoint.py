@@ -32,11 +32,17 @@ def create_profile(port: str, access_token: str, profile_id: str, display_name: 
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:
-            assert resp.getcode() == 201
+            if resp.getcode() != 201:
+                raise RuntimeError(f"Failed to create profile: status {resp.getcode()}")
     except urllib.error.HTTPError as e:
-        # Profile might already exist, that's okay
-        if e.code != 409 and e.code != 500:
-            raise
+        # Profile might already exist (409 Conflict), that's okay
+        # But log other errors for debugging
+        if e.code == 409:
+            # Profile already exists, that's fine
+            pass
+        else:
+            error_body = e.read().decode('utf-8') if e.fp else "No error body"
+            raise RuntimeError(f"Failed to create profile: {e.code} {e.msg}\nBody: {error_body}") from e
 
 
 # The JSON asset is the single source of truth for baseline gestures.
