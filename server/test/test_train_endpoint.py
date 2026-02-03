@@ -178,6 +178,17 @@ def start_server():
     # Create the profile that will be used in tests
     create_profile(port, access_token, "11111111-1111-4111-8111-111111111111", "Test Profile")
     
+    # Verify profile was created by trying to fetch it
+    verify_url = f"http://localhost:{port}/api/v1/profiles/11111111-1111-4111-8111-111111111111"
+    verify_req = urllib.request.Request(verify_url, headers=headers)
+    try:
+        with urllib.request.urlopen(verify_req, timeout=5) as resp:
+            if resp.getcode() != 200:
+                raise RuntimeError(f"Profile verification failed: status {resp.getcode()}")
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode('utf-8') if e.fp else "No error body"
+        raise RuntimeError(f"Profile verification failed: {e.code} {e.msg}\nBody: {error_body}") from e
+    
     return proc, access_token, data_dir, port
 
 
