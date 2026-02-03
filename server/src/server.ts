@@ -744,7 +744,7 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
 		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
 	resolveProfileId: resolveProfileId,
 });
-app.get("/latest-mlp-model", auth, modelMetadataLimiter, latestMlpModelHandler);
+app.get("/api/v1/models/latest", auth, modelMetadataLimiter, latestMlpModelHandler);
 
 registerTrainingBundleRoute(app, genId, {
 	triggerTrainingJob: ({ bundleId, profileId, label }) => {
@@ -1111,14 +1111,14 @@ app.get("/api/v1/training-status/:id", auth, apiLimiter, (req: Request, res: Res
 });
 
 app.get(
-	"/model-version",
+	"/api/v1/models/version",
 	auth,
 	modelMetadataLimiter,
 	async (_req: Request, res: Response) => {
 		try {
 			const pkg = await readServerPackageJson();
 			const { version } = pkg;
-			res.json({ version, modelPath: "latest-mlp-model" });
+			res.json({ version, modelPath: "/api/v1/models/latest" });
 		} catch (err) {
 			console.error("Failed to read model version:", err);
 			res.status(500).json({ error: "Failed to read model version" });
@@ -1174,7 +1174,7 @@ async function resolveModelFile(
 
 // Model metadata: version, size, sha256
 app.get(
-	"/model-metadata",
+	"/api/v1/models/metadata",
 	auth,
 	modelMetadataLimiter,
 	async (req: Request, res: Response) => {
@@ -1313,7 +1313,7 @@ app.get(
 
 // Get normalization configuration
 app.get(
-	"/api/config/normalization",
+	"/api/v1/config/normalization",
 	auth,
 	async (_req: Request, res: Response) => {
 		try {
