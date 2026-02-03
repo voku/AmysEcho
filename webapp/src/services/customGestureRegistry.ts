@@ -207,8 +207,6 @@ class CustomGestureRegistry {
   incrementTrainingSamples(id: string): void {
     const gesture = this.gestures.get(id);
     if (gesture) {
-      const previousCount = gesture.trainingSamplesCount;
-      
       gesture.trainingSamplesCount += 1;
       gesture.updatedAt = new Date().toISOString();
       
@@ -226,16 +224,10 @@ class CustomGestureRegistry {
       this.saveToStorage();
       this.notify();
       
-      // Request background model update when reaching training threshold or status changes
-      const reachedTrainingThreshold = previousCount < this.TRAINING_THRESHOLD && 
-                                        gesture.trainingSamplesCount >= this.TRAINING_THRESHOLD;
-      const reachedActiveThreshold = previousCount < this.ACTIVE_THRESHOLD && 
-                                      gesture.trainingSamplesCount >= this.ACTIVE_THRESHOLD;
-      
-      if (reachedTrainingThreshold || reachedActiveThreshold) {
+      // Request background model update when the status changes due to meeting a sample threshold.
+      // Status changes only occur when crossing TRAINING_THRESHOLD (3) or ACTIVE_THRESHOLD (10).
+      if (statusChanged) {
         this.requestBackgroundModelUpdate(gesture, 'samples_threshold');
-      } else if (statusChanged) {
-        this.requestBackgroundModelUpdate(gesture, 'status_change');
       }
     }
   }
