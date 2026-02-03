@@ -1,9 +1,9 @@
 # Amy's Echo Sign Language Model — Training & Recognition
 
 ## Open Follow-ups
-- [ ] Ship a kid-focused, production-ready DGS baseline model: curate the starter vocabulary (colors, food, caregiver phrases), train a balanced multimodal model, and place the resulting `data/amy_model.npz` under `server/data/models/global/` with a recorded SHA256 checksum so deploys always carry working weights.
-- [ ] **Finalize quality gates for user-generated training data:** define per-sign minimums, jitter thresholds for hand/pose/face stability, and review steps before promoting caregiver uploads into the global baseline.
-- [ ] Close the multimodal feedback loop in production: validate that camera overlay previews (hands + pose + face) match what the server ingests, confirm smoothing/feature metadata is preserved through training, and add an E2E checklist for “record → preview → upload → train → download personalized model”.
+- [x] Ship a kid-focused, production-ready DGS baseline model: curate the starter vocabulary (colors, food, caregiver phrases), train a balanced multimodal model, and place the resulting `data/amy_model.npz` under `server/data/models/global/` with a recorded SHA256 checksum so deploys always carry working weights. (Baseline artifact + checksum committed, kid starter preset in `server/data/config/kid_starter_preset.json`.)
+- [x] **Finalize quality gates for user-generated training data:** define per-sign minimums, jitter thresholds for hand/pose/face stability, and review steps before promoting caregiver uploads into the global baseline. (Thresholds in `server/src/constants/trainingQuality.ts`, documented in `docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`.)
+- [x] Close the multimodal feedback loop in production: validate that camera overlay previews (hands + pose + face) match what the server ingests, confirm smoothing/feature metadata is preserved through training, and add an E2E checklist for “record → preview → upload → train → download personalized model”. (Checklist in `docs/operations/PRODUCTION_TRAINING_CHECKLIST.md`.)
 
 ## MediaPipe Blind-Spot Follow-ups (Client, Server, Data, Infra)
 
@@ -54,7 +54,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Produce both global (`data/models/global/amy_model.npz`) and per-profile weights (`data/models/<profileId>/amy_model.npz`).
 - [x] Emit a structured training report (JSON) that `/train-model` returns.
 - [x] Promote multimodal training: add pose/face inputs and non-manual features to the trainer, support modality dropout (natural via zero-filling), and implement multimodal data augmentation.
-- [ ] Benchmark accuracy vs. current hand-only MLP: collect metrics on multimodal vs. hand-only performance. _Status gap: only live/recorded multimodal paths are implemented; no benchmark report exists in repo._
+- [x] Benchmark accuracy vs. current hand-only MLP: collect metrics on multimodal vs. hand-only performance. _See `docs/testing/benchmarks/multimodal_vs_handonly_report.md` for the current benchmark snapshot._
 - [x] Provide a "kid starter" training preset: pre-load the trainer with core DGS glosses, class weights, and data splits that reflect the curated vocabulary. _See `server/data/config/kid_starter_preset.json`._
 
 ## 5. Distribute Updated Sign Language Models Back to the Webapp
@@ -119,7 +119,7 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Add sign readiness percentage based on sample count and quality.
 - [x] Background model updates for custom signs. _See `customGestureRegistry.ts` with `BACKGROUND_MODEL_UPDATE_EVENT` for automatic training triggers._
 - [x] Offline queueing for uploads in the custom sign flow.
-- [ ] Training data quality metrics to decide when user-contributed data is ready for the global baseline.
+- [x] Training data quality metrics to decide when user-contributed data is ready for the global baseline. _See `docs/training/GLOBAL_BASELINE_PROMOTION_POLICY.md`._
 - [x] Add search in the training screen for the labels.
 
 ### Metacom Integration
