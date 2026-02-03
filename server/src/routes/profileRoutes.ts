@@ -263,9 +263,15 @@ export function registerProfileRoutes(
 					vocabularySetId: "basic",
 				});
 			} else {
-				// Update existing profile's userId to match current authenticated user
-				// This ensures tests and re-creations work correctly
-				existingDbProfile.userId = req.user.id;
+				// Profile already exists - check if user owns it
+				if (existingDbProfile.userId !== req.user.id) {
+					// Cannot take over someone else's profile
+					return res.status(403).json({ 
+						error: "Profil existiert bereits und gehört einem anderen Benutzer." 
+					});
+				}
+				// Profile exists and user owns it - this is fine (idempotent creation)
+				// No changes needed, just return success
 			}
 
 			await withFileLock(registryPath, async () =>

@@ -1260,11 +1260,14 @@ app.get("/api/models/profiles", auth, modelMetadataLimiter, async (req: Request,
 		// Add profiles that have data but no model file yet
 		for (const [pid, counts] of profileCounts.entries()) {
 			if (!profiles.find((p) => p.profileId === pid)) {
-				profiles.push({
-					profileId: pid,
-					modelAvailable: false,
-					signCount: Object.values(counts).reduce((a, b) => a + b, 0),
-				});
+				// Only include if user has access to this profile
+				if (isProfileAuthorized(req, pid, dbInstance, profileRegistry)) {
+					profiles.push({
+						profileId: pid,
+						modelAvailable: false,
+						signCount: Object.values(counts).reduce((a, b) => a + b, 0),
+					});
+				}
 			}
 		}
 
