@@ -131,6 +131,7 @@ async function actuallyStartServer(attempt = 1) {
       PORT: TEST_PORT.toString(),
       JWT_SECRET,
       JWT_REFRESH_SECRET: 'integration-refresh-secret',
+      BACKUP_SECRET: 'integration-backup-secret-DO-NOT-USE-IN-PRODUCTION',
       MLP_SCRIPT: 'src/amyserver_tools/train_mlp.py',
       MLP_EPOCHS: '1',
       MLP_MIN_SAMPLES_PER_LABEL: '1',

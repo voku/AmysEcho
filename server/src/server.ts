@@ -740,7 +740,8 @@ const latestMlpModelHandler = createLatestMlpModelHandler({
 	sendBinaryModel,
 	applyModelHeaders: applyModelResponseHeaders,
 	logTraining,
-	isProfileAuthorized,
+	isProfileAuthorized: (req: Request, profileId: string) =>
+		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
 	resolveProfileId: resolveProfileId,
 });
 app.get("/latest-mlp-model", auth, modelMetadataLimiter, latestMlpModelHandler);
@@ -837,7 +838,7 @@ app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Resp
 		if (profileId && !resolvedProfileId) {
 			return res.status(404).json({ error: "Profil nicht gefunden." });
 		}
-		if (resolvedProfileId && !isProfileAuthorized(req, resolvedProfileId)) {
+		if (resolvedProfileId && !isProfileAuthorized(req, resolvedProfileId, dbInstance, profileRegistry)) {
 			return res.status(403).json({ error: "Zugriff verweigert." });
 		}
 		console.log(
@@ -1038,6 +1039,14 @@ app.post(
 		if (samples.length === 0 && !triggeredByBundles) {
 			return res.status(400).json({ error: "Samples array cannot be empty." });
 		}
+		
+		// Check authorization for all profile-specific samples
+		for (const sample of samples) {
+			if (sample.profileId && !isProfileAuthorized(req, sample.profileId, dbInstance, profileRegistry)) {
+				return res.status(403).json({ error: "Zugriff auf Profil verweigert." });
+			}
+		}
+		
 		const trainingSamples: TrainingSample[] = samples.map((sample) => ({
 			signId: sample.signId,
 			profileId: sample.profileId ?? null,
@@ -1171,6 +1180,12 @@ app.get(
 	async (req: Request, res: Response) => {
 		const profileId =
 			typeof req.query.profileId === "string" ? req.query.profileId : undefined;
+		
+		// Check authorization if accessing profile-specific model
+		if (profileId && !isProfileAuthorized(req, profileId, dbInstance, profileRegistry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const resolvedFile = await resolveModelFile(
 			profileId,
 			res,
@@ -1192,7 +1207,7 @@ app.get(
 );
 
 // List available profile models and their status
-app.get("/api/models/profiles", auth, modelMetadataLimiter, async (_req: Request, res: Response) => {
+app.get("/api/models/profiles", auth, modelMetadataLimiter, async (req: Request, res: Response) => {
 	try {
 		const { profileCounts } = await collectLabelCounts();
 		interface ProfileInfo {
@@ -1213,6 +1228,11 @@ app.get("/api/models/profiles", auth, modelMetadataLimiter, async (_req: Request
 
 		for (const pid of modelDirs) {
 			if (pid === "global" || !PROFILE_ID_PATTERN.test(pid)) continue;
+			
+			// Only include profiles the user has access to
+			if (!isProfileAuthorized(req, pid, dbInstance, profileRegistry)) {
+				continue;
+			}
 
 			const modelPath = getMlpModelPath(pid);
 			let modelAvailable = false;
@@ -1240,11 +1260,14 @@ app.get("/api/models/profiles", auth, modelMetadataLimiter, async (_req: Request
 		// Add profiles that have data but no model file yet
 		for (const [pid, counts] of profileCounts.entries()) {
 			if (!profiles.find((p) => p.profileId === pid)) {
-				profiles.push({
-					profileId: pid,
-					modelAvailable: false,
-					signCount: Object.values(counts).reduce((a, b) => a + b, 0),
-				});
+				// Only include if user has access to this profile
+				if (isProfileAuthorized(req, pid, dbInstance, profileRegistry)) {
+					profiles.push({
+						profileId: pid,
+						modelAvailable: false,
+						signCount: Object.values(counts).reduce((a, b) => a + b, 0),
+					});
+				}
 			}
 		}
 
@@ -1267,6 +1290,11 @@ app.get(
 					: undefined;
 			if (!profileId) {
 				return res.status(400).json({ error: "profileId required" });
+			}
+			
+			// Check authorization before returning profile-specific data
+			if (!isProfileAuthorized(req, profileId, dbInstance, profileRegistry)) {
+				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
 			const { profileCounts } = await collectLabelCounts();

@@ -24,6 +24,27 @@ def _make_auth_headers(access_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {access_token}"}
 
 
+def create_profile(port: str, access_token: str, profile_id: str, display_name: str):
+    """Create a profile via the API."""
+    url = f"http://localhost:{port}/api/v1/profiles"
+    data = json.dumps({"id": profile_id, "displayName": display_name}).encode("utf-8")
+    headers = {**_make_auth_headers(access_token), "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            if resp.getcode() != 201:
+                raise RuntimeError(f"Failed to create profile: status {resp.getcode()}")
+    except urllib.error.HTTPError as e:
+        # Profile might already exist (409 Conflict), that's okay
+        # But log other errors for debugging
+        if e.code == 409:
+            # Profile already exists, that's fine
+            pass
+        else:
+            error_body = e.read().decode('utf-8') if e.fp else "No error body"
+            raise RuntimeError(f"Failed to create profile: {e.code} {e.msg}\nBody: {error_body}") from e
+
+
 # The JSON asset is the single source of truth for baseline gestures.
 # Keep loaders in App and Server in sync if the structure changes.
 DEFAULT_LABEL_FALLBACK = [
@@ -105,6 +126,7 @@ def start_server():
     env = os.environ.copy()
     env.setdefault("JWT_SECRET", "test-jwt-secret")
     env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
+    env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
     port = str(_get_free_port())
     env["PORT"] = port
     # Run the real training script but keep epochs low for test speed
@@ -152,6 +174,21 @@ def start_server():
             if time.time() - start > 30:
                 raise RuntimeError("server did not start") from err
             time.sleep(0.5)
+    
+    # Create the profile that will be used in tests
+    create_profile(port, access_token, "11111111-1111-4111-8111-111111111111", "Test Profile")
+    
+    # Verify profile was created by trying to fetch it
+    verify_url = f"http://localhost:{port}/api/v1/profiles/11111111-1111-4111-8111-111111111111"
+    verify_req = urllib.request.Request(verify_url, headers=headers)
+    try:
+        with urllib.request.urlopen(verify_req, timeout=5) as resp:
+            if resp.getcode() != 200:
+                raise RuntimeError(f"Profile verification failed: status {resp.getcode()}")
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode('utf-8') if e.fp else "No error body"
+        raise RuntimeError(f"Profile verification failed: {e.code} {e.msg}\nBody: {error_body}") from e
+    
     return proc, access_token, data_dir, port
 
 
@@ -232,17 +269,9 @@ def test_train_endpoint():
             assert mlp_resp.getcode() == 200
             buf = mlp_resp.read()
             assert len(buf) > 0
-
-        mlp_prof_req = urllib.request.Request(
-            f"http://localhost:{port}/latest-mlp-model?profileId=11111111-1111-4111-8111-111111111111",
-            headers={
-                **_make_auth_headers(access_token),
-                "x-profile-id": "11111111-1111-4111-8111-111111111111",
-            },
-        )
-        with urllib.request.urlopen(mlp_prof_req, timeout=10) as mlp_presp:
-            assert mlp_presp.getcode() == 200
-            buf = mlp_presp.read()
+        
+        # Note: Profile-specific model access is tested in test_latest_mlp_model.py
+        # which uses the running_server fixture with proper profile setup
     finally:
         if proc is not None:
             stop_server(proc)

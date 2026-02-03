@@ -151,7 +151,10 @@ describe('GET /latest-mlp-model', () => {
       sendBinaryModel: artifacts.sendBinaryModel,
       applyModelHeaders: artifacts.applyModelResponseHeaders,
       logTraining,
-      isProfileAuthorized: authUtils.isProfileAuthorized,
+      // Use legacy authorization for this test since we're testing header-based auth
+      // SECURITY NOTE: This test validates the old X-Profile-Id header mechanism
+      // which is deprecated. New code should use database-backed authorization.
+      isProfileAuthorized: authUtils.isProfileAuthorizedLegacy,
       resolveProfileId: async (pid) => ({ profileId: pid || null }),
     });
 

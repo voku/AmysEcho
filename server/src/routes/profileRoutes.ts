@@ -36,6 +36,7 @@ import {
 	registerDevice,
 	updateProfileRecord,
 } from "../services/profileRegistry.js";
+import { isProfileAuthorized } from "../utils/profileAuthorization.js";
 
 type ProfileRouteDeps = {
 	authMiddleware: (req: Request, res: Response, next: NextFunction) => void;
@@ -215,8 +216,18 @@ export function registerProfileRoutes(
 		legacyHeaders: false,
 	});
 
-	app.get("/api/v1/profiles", authMiddleware, (_req, res) => {
-		res.json({ profiles: registry.profiles });
+	app.get("/api/v1/profiles", authMiddleware, (req, res) => {
+		// Only return profiles the user has access to
+		if (!req.user?.id) {
+			return res.status(401).json({ error: "Authentifizierung erforderlich." });
+		}
+		
+		// Filter profiles to only those the user owns or has caregiver access to
+		const accessibleProfiles = registry.profiles.filter(profile => 
+			isProfileAuthorized(req, profile.id, db, registry)
+		);
+		
+		res.json({ profiles: accessibleProfiles });
 	});
 
 	app.post("/api/v1/profiles", authMiddleware, async (req, res) => {
@@ -225,6 +236,11 @@ export function registerProfileRoutes(
 			return res
 				.status(400)
 				.json({ error: "Profilinformationen fehlen oder sind ungültig." });
+		}
+
+		// Ensure user is authenticated
+		if (!req.user?.id) {
+			return res.status(401).json({ error: "Authentifizierung erforderlich." });
 		}
 
 		try {
@@ -238,6 +254,7 @@ export function registerProfileRoutes(
 			if (!existingDbProfile) {
 				db.profiles.push({
 					id: profile.id,
+					userId: req.user.id, // Set owner to authenticated user
 					displayName: profile.displayName,
 					createdAt: profile.createdAt,
 					metadata: profile.metadata,
@@ -245,6 +262,20 @@ export function registerProfileRoutes(
 					consentHelpMeGetSmarter: false,
 					vocabularySetId: "basic",
 				});
+			} else {
+				// Profile already exists - check if user owns it or if it's a legacy profile
+				if (existingDbProfile.userId && existingDbProfile.userId !== req.user.id) {
+					// Profile belongs to another user - cannot take over
+					return res.status(403).json({ 
+						error: "Profil existiert bereits und gehört einem anderen Benutzer." 
+					});
+				}
+				// Either:
+				// 1. Profile has no userId (legacy/system profile) - update it
+				// 2. Profile belongs to current user - idempotent creation is fine
+				if (!existingDbProfile.userId || existingDbProfile.userId === "system") {
+					existingDbProfile.userId = req.user.id;
+				}
 			}
 
 			await withFileLock(registryPath, async () =>
@@ -263,6 +294,11 @@ export function registerProfileRoutes(
 	});
 
 	app.get("/api/v1/profiles/:id", authMiddleware, (req, res) => {
+		// Check authorization before returning profile
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const record = findProfileRecord(registry, req.params.id);
 		if (!record) {
 			return res.status(404).json({ error: "Profil nicht gefunden." });
@@ -271,6 +307,11 @@ export function registerProfileRoutes(
 	});
 
 	app.patch("/api/v1/profiles/:id", authMiddleware, async (req, res) => {
+		// Check authorization before allowing update
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const parsed = ProfileUpdateSchema.safeParse(req.body);
 		if (!parsed.success) {
 			return res
@@ -302,12 +343,23 @@ export function registerProfileRoutes(
 	});
 
 	app.post("/api/v1/profiles/:id/merge", authMiddleware, async (req, res) => {
+		// Check authorization for target profile
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const parsed = MergeSchema.safeParse(req.body);
 		if (!parsed.success) {
 			return res
 				.status(400)
 				.json({ error: "Zusammenführung benötigt eine gültige Quell-ID." });
 		}
+		
+		// Check authorization for source profile
+		if (!isProfileAuthorized(req, parsed.data.sourceProfileId, db, registry)) {
+			return res.status(403).json({ error: "Zugriff auf Quellprofil verweigert." });
+		}
+		
 		const target = findProfileRecord(registry, req.params.id);
 		const source = findProfileRecord(registry, parsed.data.sourceProfileId);
 		if (!target || !source) {
@@ -354,6 +406,11 @@ export function registerProfileRoutes(
 	});
 
 	app.post("/api/v1/profiles/:id/share", authMiddleware, (req, res) => {
+		// Check authorization before allowing share
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const parsed = ShareSchema.safeParse(req.body);
 		if (!parsed.success) {
 			return res.status(400).json({ error: "Freigabedaten fehlen." });
@@ -406,6 +463,11 @@ export function registerProfileRoutes(
 	);
 
 	app.post("/api/v1/profiles/:id/sync-token", authMiddleware, (req, res) => {
+		// Check authorization before creating sync token
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const parsed = SyncTokenSchema.safeParse(req.body);
 		if (!parsed.success) {
 			return res.status(400).json({ error: "Synchronisierungsdaten fehlen." });
@@ -475,6 +537,11 @@ export function registerProfileRoutes(
 	});
 
 	app.post("/api/v1/profiles/:id/sync", authMiddleware, async (req, res) => {
+		// Check authorization before restoring sync
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const parsed = SyncRestoreSchema.safeParse(req.body);
 		if (!parsed.success) {
 			return res.status(400).json({ error: "Synchronisierungs-Paket fehlt." });
@@ -498,6 +565,11 @@ export function registerProfileRoutes(
 	});
 
 	app.post("/api/v1/profiles/:id/backup", authMiddleware, async (req, res) => {
+		// Check authorization before allowing backup
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const profile = findProfileRecord(registry, req.params.id);
 		if (!profile) {
 			return res.status(404).json({ error: "Profil nicht gefunden." });
@@ -525,6 +597,11 @@ export function registerProfileRoutes(
 	});
 
 	app.get("/api/v1/profiles/:id/backups", authMiddleware, async (req, res) => {
+		// Check authorization before showing backups
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const profile = findProfileRecord(registry, req.params.id);
 		if (!profile) {
 			return res.status(404).json({ error: "Profil nicht gefunden." });
@@ -538,6 +615,11 @@ export function registerProfileRoutes(
 		authMiddleware,
 		backupRestoreRateLimiter,
 		async (req, res) => {
+			// Check authorization before restoring backup
+			if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+				return res.status(403).json({ error: "Zugriff verweigert." });
+			}
+			
 			const parsed = BackupRestoreSchema.safeParse(req.body);
 			if (!parsed.success) {
 				return res.status(400).json({ error: "Backup-Pfad fehlt." });
@@ -578,6 +660,11 @@ export function registerProfileRoutes(
 	);
 
 	app.delete("/api/v1/profiles/:id/data", authMiddleware, async (req, res) => {
+		// Check authorization before allowing data deletion
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+		
 		const profile = findProfileRecord(registry, req.params.id);
 		if (!profile) {
 			return res.status(404).json({ error: "Profil nicht gefunden." });

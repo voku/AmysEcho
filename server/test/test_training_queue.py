@@ -17,6 +17,7 @@ def start_server():
     env = os.environ.copy()
     env.setdefault("JWT_SECRET", "test-jwt-secret")
     env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
+    env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
     env.setdefault("PORT", PORT)
     global ACCESS_TOKEN
     ACCESS_TOKEN = create_access_token(env["JWT_SECRET"], user_id="queue-tester")

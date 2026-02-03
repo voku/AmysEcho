@@ -31,7 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_BASE_PATH: /AmysEcho/
-      VITE_API_URL: https://amysecho.moelleken.org
+      # SECURITY: Use GitHub secret for API URL to avoid exposing infrastructure details
+      # Set this in Repository Settings -> Secrets and variables -> Actions
+      # If not set, falls back to the public demo URL
+      VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://amysecho.moelleken.org' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6

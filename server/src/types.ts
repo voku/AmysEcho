@@ -61,6 +61,7 @@ export interface ProfileMetadata {
 
 export interface Profile {
 	id: string;
+	userId: string; // Owner of this profile (UUID from StoredUser)
 	displayName: string;
 	createdAt: string;
 	metadata?: ProfileMetadata;
