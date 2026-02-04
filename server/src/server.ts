@@ -59,6 +59,7 @@ import {
 	UUID_REGEX,
 } from "./services/profileRegistry.js";
 import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleIngestor.js";
+import { buildLabelManifest, getVideosForLabel, isValidLabel } from "./services/labelRegistry.js";
 import type { Correction, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
 import { isProfileAuthorized } from "./utils/profileAuthorization.js";
@@ -380,6 +381,43 @@ app.get("/health", healthHandler);
 
 app.use("/api/v1/health", healthLimiter);
 app.get("/api/v1/health", healthHandler);
+
+// ========== Label Registry Endpoint ==========
+// Amy First: Exposes the unified label registry for training data
+app.get("/api/v1/labels", async (_req: Request, res: Response) => {
+	try {
+		const manifest = await buildLabelManifest();
+		// Convert Map to plain object for JSON serialization
+		const variationsObject: Record<string, { mainVideo: string | null; variationVideos: string[]; allVideos: string[] }> = {};
+		for (const [key, value] of manifest.variations) {
+			variationsObject[key] = value;
+		}
+		res.json({
+			version: manifest.version,
+			labels: manifest.labels,
+			variations: variationsObject,
+			stats: manifest.stats,
+		});
+	} catch (error) {
+		console.error("Failed to load label manifest:", error);
+		res.status(500).json({ error: "Fehler beim Laden der Gebärden-Labels" });
+	}
+});
+
+app.get("/api/v1/labels/:labelId/videos", async (req: Request, res: Response) => {
+	const { labelId } = req.params;
+	if (!labelId) {
+		return res.status(400).json({ error: "Label-ID erforderlich" });
+	}
+	
+	const valid = await isValidLabel(labelId);
+	if (!valid) {
+		return res.status(404).json({ error: "Unbekanntes Label", labelId });
+	}
+	
+	const videos = await getVideosForLabel(labelId);
+	return res.json({ labelId: labelId.toLowerCase(), videos, count: videos.length });
+});
 
 async function processTrainingQueue(): Promise<void> {
 	if (isProcessingTrainingQueue) {
