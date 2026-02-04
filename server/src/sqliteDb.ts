@@ -1066,6 +1066,34 @@ export const findUserById = (
 	};
 };
 
+export const updateUser = (_db: Database, user: StoredUser): void => {
+	const sqlite = getDb();
+	const stmt = sqlite.prepare(`
+		UPDATE users
+		SET username = ?, email = ?, passwordHash = ?, displayName = ?, role = ?,
+		    createdAt = ?, emailVerifiedAt = ?, emailVerificationTokenHash = ?,
+		    emailVerificationExpiresAt = ?, emailVerificationSentAt = ?,
+		    passwordResetTokenHash = ?, passwordResetExpiresAt = ?, passwordResetRequestedAt = ?
+		WHERE id = ?
+	`);
+	stmt.run(
+		user.username.trim().toLowerCase(),
+		user.email.trim().toLowerCase(),
+		user.passwordHash,
+		user.displayName || null,
+		user.role,
+		user.createdAt,
+		user.emailVerifiedAt || null,
+		user.emailVerificationTokenHash || null,
+		user.emailVerificationExpiresAt || null,
+		user.emailVerificationSentAt || null,
+		user.passwordResetTokenHash || null,
+		user.passwordResetExpiresAt || null,
+		user.passwordResetRequestedAt || null,
+		user.id,
+	);
+};
+
 // Database I/O operations
 export const saveDatabase = async (
 	_db: Database,

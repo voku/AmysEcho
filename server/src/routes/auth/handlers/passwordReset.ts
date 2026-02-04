@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import type { Request, Response } from "express";
-import { findUserByEmail, saveDatabase } from "../../../db.js";
+import { findUserByEmail, saveDatabase, updateUser } from "../../../db.js";
 import { AuthService } from "../../../services/authService.js";
 import logger from "../../../services/logger.js";
 import {
@@ -49,6 +49,7 @@ export async function handlePasswordResetRequest(
 				userToUpdate.passwordResetTokenHash = resetTokenHash;
 				userToUpdate.passwordResetExpiresAt = expiresAt;
 				userToUpdate.passwordResetRequestedAt = Date.now();
+				updateUser(deps.db, userToUpdate);
 				await saveDatabase(deps.db, deps.dbFilePath);
 				userForEmail = {
 					id: userToUpdate.id,
@@ -116,6 +117,7 @@ export async function handlePasswordResetConfirm(
 
 			if (expiresAt < now) {
 				clearPasswordResetToken(userToUpdate);
+				updateUser(deps.db, userToUpdate);
 				await saveDatabase(deps.db, deps.dbFilePath);
 				return null;
 			}
@@ -128,6 +130,7 @@ export async function handlePasswordResetConfirm(
 			// Success path - now clear the token
 			userToUpdate.passwordHash = await AuthService.hashPassword(password);
 			clearPasswordResetToken(userToUpdate);
+			updateUser(deps.db, userToUpdate);
 			await saveDatabase(deps.db, deps.dbFilePath);
 
 			return { id: userToUpdate.id, username: userToUpdate.username };

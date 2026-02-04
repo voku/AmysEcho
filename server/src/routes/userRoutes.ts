@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
-import { type Database, findUserById, saveDatabase } from "../db.js";
+import { type Database, findUserById, saveDatabase, updateUser } from "../db.js";
 import { AuthService } from "../services/authService.js";
 import logger from "../services/logger.js";
 import type { StoredUser } from "../types.js";
@@ -74,6 +74,7 @@ export function registerUserRoutes(
 					if (typeof parsed.data.displayName === "string") {
 						user.displayName = parsed.data.displayName;
 					}
+					updateUser(deps.db, user);
 					await saveDatabase(deps.db, deps.dbFilePath);
 					return user;
 				});
@@ -139,6 +140,7 @@ export function registerUserRoutes(
 					user.passwordHash = await AuthService.hashPassword(
 						parsed.data.newPassword,
 					);
+					updateUser(deps.db, user);
 					await saveDatabase(deps.db, deps.dbFilePath);
 					return user;
 				});

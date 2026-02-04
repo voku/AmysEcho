@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import type { Request, Response } from "express";
-import { findUserByEmail, saveDatabase } from "../../../db.js";
+import { findUserByEmail, saveDatabase, updateUser } from "../../../db.js";
 import logger from "../../../services/logger.js";
 import {
 	EmailVerificationConfirmSchema,
@@ -47,6 +47,7 @@ export async function handleEmailVerificationRequest(
 				userToUpdate.emailVerificationTokenHash = verificationTokenHash;
 				userToUpdate.emailVerificationExpiresAt = verificationExpiresAt;
 				userToUpdate.emailVerificationSentAt = Date.now();
+				updateUser(deps.db, userToUpdate);
 				await saveDatabase(deps.db, deps.dbFilePath);
 				userForEmail = {
 					email: userToUpdate.email,
@@ -109,6 +110,7 @@ export async function handleEmailVerificationConfirm(
 
 			if (expiresAt < now) {
 				clearEmailVerificationToken(userToUpdate);
+				updateUser(deps.db, userToUpdate);
 				await saveDatabase(deps.db, deps.dbFilePath);
 				return null;
 			}
@@ -121,6 +123,7 @@ export async function handleEmailVerificationConfirm(
 			// Success path - now clear the token
 			userToUpdate.emailVerifiedAt = Date.now();
 			clearEmailVerificationToken(userToUpdate);
+			updateUser(deps.db, userToUpdate);
 			await saveDatabase(deps.db, deps.dbFilePath);
 
 			return { id: userToUpdate.id, username: userToUpdate.username };
