@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
-import { findUserByUsername } from "../../../db.js";
+import { findUserByUsername, updateUser } from "../../../db.js";
 import { AuthService } from "../../../services/authService.js";
+import auditLogger from "../../../services/auditLogger.js";
 import logger from "../../../services/logger.js";
 import { LoginSchema, normalizeUsername } from "../schemas.js";
 import type { AuthRouteDeps } from "../types.js";
@@ -30,10 +31,26 @@ export async function handleLogin(
 		const valid = await AuthService.verifyPassword(password, passwordHash);
 
 		if (!user || !valid) {
+			// Log failed login attempt
+			await auditLogger.logAuth("AUTH_LOGIN_FAILURE", {
+				username,
+				ip: req.ip,
+				userAgent: req.get("User-Agent"),
+				success: false,
+				details: { reason: !user ? "user_not_found" : "invalid_password" },
+			});
 			return res.status(401).json({ error: "Ungültige Zugangsdaten." });
 		}
 
 		if (!user.emailVerifiedAt) {
+			await auditLogger.logAuth("AUTH_LOGIN_FAILURE", {
+				userId: user.id,
+				username,
+				ip: req.ip,
+				userAgent: req.get("User-Agent"),
+				success: false,
+				details: { reason: "email_not_verified" },
+			});
 			return res
 				.status(403)
 				.json({
@@ -45,9 +62,26 @@ export async function handleLogin(
 		const publicUser = AuthService.toUser(user);
 		const tokens = AuthService.generateTokens(publicUser);
 
+		// Store the refresh token hash for rotation verification
+		user.refreshTokenHash = tokens.refreshTokenHash;
+		user.refreshTokenIssuedAt = Date.now();
+		updateUser(deps.db, user);
+
+		// Log successful login
+		await auditLogger.logAuth("AUTH_LOGIN_SUCCESS", {
+			userId: publicUser.id,
+			username,
+			ip: req.ip,
+			userAgent: req.get("User-Agent"),
+			success: true,
+		});
+
 		logger.info("User login", { userId: publicUser.id });
 
-		return res.json({ user: publicUser, tokens });
+		return res.json({
+			user: publicUser,
+			tokens: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken },
+		});
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		logger.error("Login failed", { error: message });

@@ -62,8 +62,14 @@ import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleInges
 import type { Correction, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
 import { isProfileAuthorized } from "./utils/profileAuthorization.js";
+import { httpsEnforcement, hstsHeaders } from "./middleware/httpsEnforcement.js";
 
 export const app = express();
+
+// Security middleware - must be first
+// HTTPS enforcement (production only) and HSTS headers
+app.use(httpsEnforcement);
+app.use(hstsHeaders);
 
 async function readServerPackageJson(): Promise<any> {
 	const candidates = [

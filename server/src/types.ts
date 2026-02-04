@@ -117,6 +117,10 @@ export interface StoredUser {
 	passwordResetTokenHash?: string;
 	passwordResetExpiresAt?: number;
 	passwordResetRequestedAt?: number;
+	/** Hash of the current valid refresh token (for rotation) */
+	refreshTokenHash?: string;
+	/** When the refresh token was issued */
+	refreshTokenIssuedAt?: number;
 }
 
 export interface Correction {

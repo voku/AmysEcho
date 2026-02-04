@@ -1,0 +1,79 @@
+import type { Request, Response, NextFunction } from "express";
+import config from "../config/index.js";
+import logger from "../services/logger.js";
+
+/**
+ * Middleware to enforce HTTPS in production.
+ * Rejects non-HTTPS requests with 403 Forbidden when NODE_ENV is "production".
+ * 
+ * Supports common reverse proxy headers:
+ * - X-Forwarded-Proto: Standard header set by most load balancers
+ * - X-Forwarded-Ssl: Used by some reverse proxies
+ * 
+ * Allows localhost requests in development/test environments.
+ */
+export function httpsEnforcement(
+	req: Request,
+	res: Response,
+	next: NextFunction,
+): void | Response {
+	// Skip enforcement in non-production environments
+	if (config.nodeEnv !== "production") {
+		return next();
+	}
+
+	// Check if request is secure
+	// Express sets req.secure based on the protocol
+	// Also check X-Forwarded-Proto for reverse proxy setups
+	const forwardedProto = req.headers["x-forwarded-proto"];
+	const forwardedSsl = req.headers["x-forwarded-ssl"];
+	
+	const isSecure =
+		req.secure ||
+		forwardedProto === "https" ||
+		forwardedSsl === "on";
+
+	if (!isSecure) {
+		logger.warn("HTTPS enforcement: Blocked non-HTTPS request", {
+			method: req.method,
+			path: req.path,
+			ip: req.ip,
+			forwardedProto,
+		});
+
+		return res.status(403).json({
+			error: "HTTPS erforderlich. Bitte verwenden Sie eine sichere Verbindung.",
+			code: "HTTPS_REQUIRED",
+		});
+	}
+
+	next();
+}
+
+/**
+ * Middleware to add HSTS (Strict-Transport-Security) headers.
+ * Only adds headers in production to avoid issues during development.
+ * 
+ * Configuration:
+ * - max-age: 1 year (31536000 seconds)
+ * - includeSubDomains: Applies to all subdomains
+ * - preload: Eligible for browser HSTS preload lists
+ */
+export function hstsHeaders(
+	_req: Request,
+	res: Response,
+	next: NextFunction,
+): void {
+	// Only add HSTS headers in production
+	if (config.nodeEnv === "production") {
+		// max-age=31536000 = 1 year
+		// includeSubDomains ensures all subdomains are also HTTPS-only
+		// preload allows inclusion in browser HSTS preload lists
+		res.setHeader(
+			"Strict-Transport-Security",
+			"max-age=31536000; includeSubDomains; preload"
+		);
+	}
+
+	next();
+}
