@@ -253,8 +253,10 @@ describe('High Contrast Mode', () => {
       await waitFor(() => {
         const stored = mockLocalStorage['amy_accessibility_settings'];
         expect(stored).toBeDefined();
-        const parsed = JSON.parse(stored);
-        expect(parsed.highContrast).toBe(true);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          expect(parsed.highContrast).toBe(true);
+        }
       });
     });
 
