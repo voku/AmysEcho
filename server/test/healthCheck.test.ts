@@ -138,4 +138,51 @@ describe("Health Check Endpoint", () => {
 			}
 		});
 	});
+
+	describe("Python Dependency Cache TTL", () => {
+		it("should return cached result on consecutive calls", async () => {
+			// Make first call
+			const response1 = await request(app).get("/health");
+			expect(response1.status).toBe(200);
+			const pythonStatus1 = response1.body.checks.pythonDependencies;
+
+			// Make second call immediately - should use cache
+			const response2 = await request(app).get("/health");
+			expect(response2.status).toBe(200);
+			const pythonStatus2 = response2.body.checks.pythonDependencies;
+
+			// Both calls should return the same status (from cache)
+			expect(pythonStatus2.status).toBe(pythonStatus1.status);
+		});
+
+		it("should return consistent health check structure across multiple calls", async () => {
+			const responses = await Promise.all([
+				request(app).get("/health"),
+				request(app).get("/health"),
+				request(app).get("/health"),
+			]);
+
+			for (const response of responses) {
+				expect(response.status).toBe(200);
+				expect(response.body).toHaveProperty("status");
+				expect(response.body).toHaveProperty("checks");
+				expect(response.body.checks).toHaveProperty("pythonDependencies");
+			}
+		});
+
+		it("should complete health check faster on cached calls", async () => {
+			// First call (may spawn Python process)
+			await request(app).get("/health");
+
+			// Second call (should use cache)
+			const startTime = Date.now();
+			const response = await request(app).get("/health");
+			const duration = Date.now() - startTime;
+
+			expect(response.status).toBe(200);
+			// Cached call should be very fast (no process spawn)
+			// We can't guarantee exact timing but should be under 500ms with cache
+			expect(duration).toBeLessThan(500);
+		});
+	});
 });
