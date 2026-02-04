@@ -177,7 +177,7 @@ _Reference: `npm audit` output showing 20 vulnerabilities in server dependencies
 - [x] ~~**Fix AWS SDK Vulnerabilities**~~: ❌ **FALSE POSITIVE** — AWS SDK is NOT directly used. The 19 high severity vulnerabilities from `@aws-sdk/*` are transitive dependencies of `@types/nodemailer` (TypeScript type definitions only). The actual nodemailer uses sendmail/SMTP transport, not AWS SES. These are dev-time type definitions that don't affect runtime. _Verified 2026-02-04 by checking `npm why @aws-sdk/client-sesv2` → comes from `@types/nodemailer@7.0.5`._
 - [x] **Fix diff/jsdiff Vulnerability**: ✅ **FIXED** — Updated `diff` package to resolve DoS vulnerability in parsePatch/applyPatch (GHSA-73rr-hh4g-fpgx). Fixed via `npm audit fix`. All server vulnerabilities resolved. _Fixed 2026-02-04._
 - [x] **Add Dependency Scanning to CI**: ✅ **IMPLEMENTED** — Added automated `npm audit` checks to CI pipeline for webapp, server, and integration packages with high severity threshold. _Implemented 2026-02-04._
-- [ ] **Consider Replacing @types/nodemailer**: The AWS SDK bloat from `@types/nodemailer` adds ~60+ packages for type definitions we don't fully use. Consider using minimal type definitions or contributing to DefinitelyTyped to make AWS SES types optional.
+- [x] **Consider Replacing @types/nodemailer**: ✅ **ANALYZED** — Documented 11MB AWS SDK bloat from `@types/nodemailer` (27 AWS packages + 1.3MB crypto). Amy's Echo only uses basic SMTP/sendmail, not AWS SES. Recommended creating minimal custom type definitions to remove bloat while maintaining type safety. Full analysis in `docs/deps/NODEMAILER_TYPES_BLOAT_ANALYSIS.md`. Decision pending on whether to implement Option 1 (custom types) or accept current state. _Analyzed 2026-02-04._
 
 ### Testing Coverage Goals (from Testing Strategy)
 _Reference: `docs/testing/TESTING_STRATEGY.md` — P0/P1 items not yet implemented_
@@ -196,7 +196,7 @@ _Reference: `docs/testing/TESTING_STRATEGY.md` — P0/P1 items not yet implement
 ### Accessibility Testing
 _Reference: `docs/accessibility/contrast-audit.md` — contrast fixed, automated tests needed_
 
-- [ ] **Automated Accessibility Tests**: Add automated tests for WCAG compliance (color contrast, ARIA labels, semantic HTML).
+- [x] **Automated Accessibility Tests**: ✅ **IMPLEMENTED** — Added comprehensive automated tests for WCAG 2.1 compliance in `webapp/src/components/accessibility.test.tsx` (25 tests). Tests cover ARIA labels, semantic HTML, color contrast validation, keyboard navigation, screen reader compatibility, and Amy First accessibility principles. All tests passing. _Implemented 2026-02-04._
 - [ ] **Focus Management Tests**: Automated tests for focus trapping in modals and proper focus order.
 - [ ] **High Contrast Mode Tests**: Automated visual regression tests for high contrast mode.
 
@@ -448,7 +448,7 @@ This analysis examines completed work through multiple lenses:
 - [x] **Run Full Integration Test Suite** - Confirmed apiIntegration changes work correctly, no regressions
 
 #### Short-term (Should Complete Soon)
-- [ ] **Manual Health Check Verification** - Start server, test /health endpoint behavior
+- [x] **Manual Health Check Verification**: ✅ **COMPLETE** — Started server, tested `/health` endpoint behavior. Verified degraded status reporting, Python dependency check caching, response structure, and status aggregation logic. Full verification report in `docs/verification/HEALTH_CHECK_VERIFICATION_REPORT.md`. _Verified 2026-02-04._
 - [x] **Update TODO.md with PR Review Section** - Added PR Review Response section documenting commits 9875104 and 7d80972
 - [x] **Cache Behavior Testing**: ✅ **IMPLEMENTED** — Added 3 tests in `server/test/healthCheck.test.ts` for Python dependency cache behavior: consecutive call caching, consistent structure across calls, and cache performance validation. _Implemented 2026-02-04._
 
