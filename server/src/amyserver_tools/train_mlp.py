@@ -267,6 +267,45 @@ def sha256_file(path: Path) -> str | None:
     return digest.hexdigest()
 
 
+def extract_base_label_from_video_filename(filename: str) -> str:
+    """Extract the base DGS label from a video filename.
+    
+    Video naming conventions:
+    - Base videos: '{label}.mp4' → label = '{label}'
+    - Main variations: '{label}_main_{term}.mp4' → label = '{label}'
+    - Variant variations: '{label}_var_{term}_{index}.mp4' → label = '{label}'
+    
+    This ensures all video variations are grouped under their canonical label
+    for proper training data association.
+    
+    Args:
+        filename: Video filename (with or without .mp4 extension)
+        
+    Returns:
+        Base label extracted from the filename
+        
+    Examples:
+        >>> extract_base_label_from_video_filename("alle.mp4")
+        'alle'
+        >>> extract_base_label_from_video_filename("alle_main_alle")
+        'alle'
+        >>> extract_base_label_from_video_filename("trinken_var_wasser_0.mp4")
+        'trinken'
+    """
+    # Remove extension if present
+    stem = filename.rsplit('.', 1)[0] if '.' in filename else filename
+    
+    # Check for _main_ or _var_ patterns (variation videos)
+    if '_main_' in stem or '_var_' in stem:
+        # Base label is everything before _main_ or _var_
+        for separator in ('_main_', '_var_'):
+            if separator in stem:
+                return stem.split(separator)[0]
+    
+    # For base videos, the stem IS the label
+    return stem
+
+
 def apply_hand_focus(
     landmarks: list[list[float]],
     hand_focus: str | None,
@@ -1701,8 +1740,13 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         video_examples_dir = DATA_DIR / "dgs_video_examples"
         if video_examples_dir.exists():
             for video_file in video_examples_dir.glob("*.mp4"):
-                label = video_file.stem
-                video_cache_path = video_examples_dir / f"{label}_landmarks.json"
+                # Extract base label from filename to handle variations properly
+                # e.g., "alle_main_alle.mp4" → "alle", "trinken_var_wasser_0.mp4" → "trinken"
+                raw_stem = video_file.stem
+                label = extract_base_label_from_video_filename(raw_stem)
+                
+                # Cache path still uses full filename to avoid collisions
+                video_cache_path = video_examples_dir / f"{raw_stem}_landmarks.json"
 
                 v_frames: list[dict] | None = None
                 if video_cache_path.exists():
@@ -1717,7 +1761,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                         LOGGER.warning(f"MediaPipe unavailable, skipping extraction for {video_file.name}")
                         continue
                         
-                    LOGGER.info(f"Extracting landmarks from default example: {video_file.name}")
+                    LOGGER.info(f"Extracting landmarks from default example: {video_file.name} (label: {label})")
                     v_frames = extract_landmarks_from_clip(video_file)
                     if v_frames:
                         cache_writes += 1
@@ -1750,6 +1794,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                         v_ctx = {
                             'profile_id': None,
                             'modality_coverage': v_frame_coverage,
+                            'video_source': raw_stem,  # Track original video for debugging
                         }  # Global examples
                         v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
                         data.extend(v_samples)
