@@ -7,7 +7,7 @@
       "overridden": false,
       "dependencies": {
         "@types/node": {
-          "version": "24.10.4"
+          "version": "24.10.9"
         }
       }
     },
@@ -22,13 +22,13 @@
           "overridden": false
         },
         "@types/node": {
-          "version": "24.10.4"
+          "version": "24.10.9"
         }
       }
     },
     "@types/node": {
-      "version": "24.10.4",
-      "resolved": "https://registry.npmjs.org/@types/node/-/node-24.10.4.tgz",
+      "version": "24.10.9",
+      "resolved": "https://registry.npmjs.org/@types/node/-/node-24.10.9.tgz",
       "overridden": false,
       "dependencies": {
         "undici-types": {
@@ -147,143 +147,39 @@
           "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.27.2.tgz",
           "overridden": false,
           "dependencies": {
-            "@esbuild/aix-ppc64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/android-arm": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/android-arm64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/android-x64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/darwin-arm64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/darwin-x64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/freebsd-arm64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/freebsd-x64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/linux-arm": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/linux-arm64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/linux-ia32": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/linux-loong64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/linux-mips64el": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/linux-ppc64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/linux-riscv64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/linux-s390x": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.27.2.tgz",
-              "overridden": false
-            },
+            "@esbuild/aix-ppc64": {},
+            "@esbuild/android-arm": {},
+            "@esbuild/android-arm64": {},
+            "@esbuild/android-x64": {},
+            "@esbuild/darwin-arm64": {},
+            "@esbuild/darwin-x64": {},
+            "@esbuild/freebsd-arm64": {},
+            "@esbuild/freebsd-x64": {},
+            "@esbuild/linux-arm": {},
+            "@esbuild/linux-arm64": {},
+            "@esbuild/linux-ia32": {},
+            "@esbuild/linux-loong64": {},
+            "@esbuild/linux-mips64el": {},
+            "@esbuild/linux-ppc64": {},
+            "@esbuild/linux-riscv64": {},
+            "@esbuild/linux-s390x": {},
             "@esbuild/linux-x64": {
               "version": "0.27.2",
               "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.27.2.tgz",
               "overridden": false
             },
-            "@esbuild/netbsd-arm64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/netbsd-x64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/openbsd-arm64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/openbsd-x64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/openharmony-arm64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/sunos-x64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/win32-arm64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/win32-ia32": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.27.2.tgz",
-              "overridden": false
-            },
-            "@esbuild/win32-x64": {
-              "version": "0.27.2",
-              "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.27.2.tgz",
-              "overridden": false
-            }
+            "@esbuild/netbsd-arm64": {},
+            "@esbuild/netbsd-x64": {},
+            "@esbuild/openbsd-arm64": {},
+            "@esbuild/openbsd-x64": {},
+            "@esbuild/openharmony-arm64": {},
+            "@esbuild/sunos-x64": {},
+            "@esbuild/win32-arm64": {},
+            "@esbuild/win32-ia32": {},
+            "@esbuild/win32-x64": {}
           }
         },
-        "fsevents": {
-          "version": "2.3.3",
-          "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
-          "overridden": false
-        },
+        "fsevents": {},
         "get-tsconfig": {
           "version": "4.13.0",
           "resolved": "https://registry.npmjs.org/get-tsconfig/-/get-tsconfig-4.13.0.tgz",
