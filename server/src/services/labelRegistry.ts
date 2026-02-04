@@ -62,6 +62,13 @@ SERVER_DIR,
 "dgs_manifest.json",
 );
 
+const LABEL_METADATA_PATH = path.join(
+	SERVER_DIR,
+	"data",
+	"config",
+	"labelMetadata.json",
+);
+
 /**
  * Load baseline labels from configuration
  */
@@ -164,13 +171,6 @@ labelsWithLandmarks: labelDefinitions.filter((l) => l.hasLandmarks).length,
 },
 };
 }
-
-const LABEL_METADATA_PATH = path.join(
-	SERVER_DIR,
-	"data",
-	"config",
-	"labelMetadata.json",
-);
 
 type LabelMetadataEntry = {
 	displayName: string;

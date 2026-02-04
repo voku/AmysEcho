@@ -410,8 +410,9 @@ app.get("/api/v1/labels/:labelId/videos", async (req: Request, res: Response) =>
 		return res.status(400).json({ error: "Label-ID erforderlich" });
 	}
 	
-	// Sanitize labelId: only allow lowercase letters, digits, and hyphens
-	// This prevents injection attacks and ensures consistent label format
+	// Sanitize labelId: only allow lowercase letters, digits, German umlauts (äöüß), and hyphens
+	// German umlauts are intentionally permitted for Deutsche Gebärdensprache (DGS) labels
+	// like "grün" (green). This prevents injection attacks while supporting German vocabulary.
 	const sanitizedLabelId = labelId.toLowerCase().replace(/[^a-z0-9äöüß-]/g, "");
 	if (sanitizedLabelId.length === 0 || sanitizedLabelId.length > 64) {
 		return res.status(400).json({ error: "Ungültige Label-ID", labelId });
