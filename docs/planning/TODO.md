@@ -175,8 +175,8 @@ _Reference: `docs/security/SECURITY_AUDIT_2026-02-02.md` and `docs/security/READ
 _Reference: `npm audit` output showing 20 vulnerabilities in server dependencies_
 
 - [x] ~~**Fix AWS SDK Vulnerabilities**~~: ❌ **FALSE POSITIVE** — AWS SDK is NOT directly used. The 19 high severity vulnerabilities from `@aws-sdk/*` are transitive dependencies of `@types/nodemailer` (TypeScript type definitions only). The actual nodemailer uses sendmail/SMTP transport, not AWS SES. These are dev-time type definitions that don't affect runtime. _Verified 2026-02-04 by checking `npm why @aws-sdk/client-sesv2` → comes from `@types/nodemailer@7.0.5`._
-- [ ] **Fix diff/jsdiff Vulnerability**: Update `diff` package (4.0.0-4.0.3) to resolve DoS vulnerability in parsePatch/applyPatch (GHSA-73rr-hh4g-fpgx). Can be fixed with `npm audit fix`.
-- [ ] **Add Dependency Scanning to CI**: Add automated `npm audit` or Snyk scanning to CI pipeline to catch vulnerabilities before deployment.
+- [x] **Fix diff/jsdiff Vulnerability**: ✅ **FIXED** — Updated `diff` package to resolve DoS vulnerability in parsePatch/applyPatch (GHSA-73rr-hh4g-fpgx). Fixed via `npm audit fix`. All server vulnerabilities resolved. _Fixed 2026-02-04._
+- [x] **Add Dependency Scanning to CI**: ✅ **IMPLEMENTED** — Added automated `npm audit` checks to CI pipeline for webapp, server, and integration packages with high severity threshold. _Implemented 2026-02-04._
 - [ ] **Consider Replacing @types/nodemailer**: The AWS SDK bloat from `@types/nodemailer` adds ~60+ packages for type definitions we don't fully use. Consider using minimal type definitions or contributing to DefinitelyTyped to make AWS SES types optional.
 
 ### Testing Coverage Goals (from Testing Strategy)
@@ -205,23 +205,23 @@ _Reference: `docs/accessibility/contrast-audit.md` — contrast fixed, automated
 ### CI/CD Enhancements
 _Reference: `.github/workflows/ci.yml` — current CI runs tests but lacks security scanning_
 
-- [ ] **Add CodeQL Scanning Workflow**: Create dedicated workflow for CodeQL static analysis on PRs.
-- [ ] **Dependency Vulnerability Scanning**: Add `npm audit` or Dependabot integration to CI.
-- [ ] **Security Test Suite in CI**: Run `profileAuthorization.test.ts` and `securityVulnerabilities.test.ts` as blocking checks.
+- [x] **Add CodeQL Scanning Workflow**: ✅ **IMPLEMENTED** — Created `.github/workflows/codeql.yml` with security-extended queries for JavaScript and Python. Runs on PRs, pushes to main, and weekly scheduled scans. _Implemented 2026-02-04._
+- [x] **Dependency Vulnerability Scanning**: ✅ **IMPLEMENTED** — Added `npm audit` checks to main CI workflow. See also "Add Dependency Scanning to CI" above. _Implemented 2026-02-04._
+- [x] **Security Test Suite in CI**: ✅ **VERIFIED** — `profileAuthorization.test.ts` and `securityVulnerabilities.test.ts` already run as part of main CI test suite via `full-check.sh`. _Verified 2026-02-04._
 
 ### Production Readiness
 _Reference: Various audit documents and deployment guides_
 
-- [ ] **Health Check Endpoint Enhancement**: Add detailed health checks for database connectivity, model availability, and Python dependencies.
-- [ ] **Production Logging**: Implement structured JSON logging for production with log levels (info, warn, error).
+- [x] **Health Check Endpoint Enhancement**: ✅ **IMPLEMENTED** — Enhanced `/health` and `/api/v1/health` endpoints with detailed checks for database connectivity, global model availability, Python dependencies (numpy, sklearn, mediapipe), and training manifest accessibility. Returns overall system status (ok/degraded) with timestamp and detailed check results. Added comprehensive test coverage. _Implemented 2026-02-04._
+- [x] **Production Logging**: ✅ **VERIFIED** — Structured JSON logging already implemented in `logger.ts`. Outputs JSON in production mode, human-readable in development. Supports log levels (ERROR, WARN, INFO, DEBUG), context tracking (userId, requestId, duration), and specialized logging methods for different operations (API requests, database ops, gesture processing, training, etc.). _Verified 2026-02-04._
 
 **Note:** Deployment management and environment validation tasks moved to Human Tasks section.
 
 ### Documentation Gaps
 _Reference: Identified through cross-referencing docs with actual implementation_
 
-- [ ] **API Documentation**: Expand API documentation with request/response examples and error codes.
-- [ ] **Architecture Decision Records**: Document key architectural decisions for future reference.
+- [x] **API Documentation**: ✅ **EXPANDED** — Comprehensive update to `docs/integration/API.md` with detailed request/response examples, HTTP status codes, error codes table, validation requirements, rate limiting details, and examples for all endpoints including authentication, profiles, samples, training, and model serving. _Updated 2026-02-04._
+- [x] **Architecture Decision Records**: ✅ **CREATED** — Created `docs/architecture/ADR.md` documenting 10 key architectural decisions: Hybrid-First Architecture, JWT Authentication, MLP for Gesture Recognition, MediaPipe Integration, IndexedDB Storage, JSON File Database, German-First UI, Multimodal Input, Rate Limiting Strategy, and CodeQL Security Scanning. Each ADR includes context, rationale, consequences, and alternatives considered. _Created 2026-02-04._
 
 **Note:** Deployment runbooks, incident response guides, and performance baseline documentation moved to Human Tasks section (require operational experience and production access).
 
