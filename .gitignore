@@ -20,6 +20,8 @@ app/ios/
 app/watermelon.db
 server/db.json
 server/db.sqlite
+server/db.sqlite-shm
+server/db.sqlite-wal
 server/*.migrated.backup
 server/*.test_backup
 
