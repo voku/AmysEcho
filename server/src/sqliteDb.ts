@@ -510,16 +510,18 @@ export function getUserById(id: string): StoredUser | undefined {
 
 export function getUserByUsername(username: string): StoredUser | undefined {
 	const normalized = username.trim().toLowerCase();
+	// Values are stored normalized (lowercase), so no COLLATE NOCASE needed
 	const row = getDb()
-		.prepare("SELECT * FROM users WHERE username = ? COLLATE NOCASE")
+		.prepare("SELECT * FROM users WHERE username = ?")
 		.get(normalized) as any;
 	return row ? rowToUser(row) : undefined;
 }
 
 export function getUserByEmail(email: string): StoredUser | undefined {
 	const normalized = email.trim().toLowerCase();
+	// Values are stored normalized (lowercase), so no COLLATE NOCASE needed
 	const row = getDb()
-		.prepare("SELECT * FROM users WHERE email = ? COLLATE NOCASE")
+		.prepare("SELECT * FROM users WHERE email = ?")
 		.get(normalized) as any;
 	return row ? rowToUser(row) : undefined;
 }

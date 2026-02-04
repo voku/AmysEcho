@@ -60,9 +60,6 @@ import {
 	deleteUsageStatById,
 	deleteVocabularySetById,
 	deleteVocabularySetSymbolById,
-	getUserByEmail as sqliteGetUserByEmail,
-	getUserById as sqliteGetUserById,
-	getUserByUsername as sqliteGetUserByUsername,
 } from "./sqliteDb.js";
 import { DB_SQLITE_PATH } from "./constants/dbPaths.js";
 
@@ -305,14 +302,8 @@ export const findUserByUsername = (
 	username: string,
 ): StoredUser | undefined => {
 	const normalized = username.trim().toLowerCase();
-	// Check in-memory first for compatibility
-	const inMemory = db.users.find((u) => u.username === normalized);
-	if (inMemory) return inMemory;
-	// Fall back to SQLite if initialized
-	if (sqliteInitialized) {
-		return sqliteGetUserByUsername(username);
-	}
-	return undefined;
+	// In-memory array is synced with SQLite, so just search there
+	return db.users.find((u) => u.username === normalized);
 };
 
 export const findUserByEmail = (
@@ -320,28 +311,16 @@ export const findUserByEmail = (
 	email: string,
 ): StoredUser | undefined => {
 	const normalized = email.trim().toLowerCase();
-	// Check in-memory first for compatibility
-	const inMemory = db.users.find((u) => u.email === normalized);
-	if (inMemory) return inMemory;
-	// Fall back to SQLite if initialized
-	if (sqliteInitialized) {
-		return sqliteGetUserByEmail(email);
-	}
-	return undefined;
+	// In-memory array is synced with SQLite, so just search there
+	return db.users.find((u) => u.email === normalized);
 };
 
 export const findUserById = (
 	db: Database,
 	id: string,
 ): StoredUser | undefined => {
-	// Check in-memory first for compatibility
-	const inMemory = db.users.find((user) => user.id === id);
-	if (inMemory) return inMemory;
-	// Fall back to SQLite if initialized
-	if (sqliteInitialized) {
-		return sqliteGetUserById(id);
-	}
-	return undefined;
+	// In-memory array is synced with SQLite, so just search there
+	return db.users.find((user) => user.id === id);
 };
 
 const updateById = <T extends { id: string }>(items: T[], record: T): void => {
