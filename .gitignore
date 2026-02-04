@@ -21,6 +21,7 @@ app/watermelon.db
 server/db.json
 server/db.sqlite
 server/*.migrated.backup
+server/*.test_backup
 
 # ide
 .idea
