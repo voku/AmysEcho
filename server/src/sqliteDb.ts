@@ -280,7 +280,7 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
 	try {
 		const data = await fs.readFile(jsonPath, "utf8");
 		jsonData = JSON.parse(data) as DatabaseType;
-	} catch (error) {
+	} catch {
 		// No JSON file to migrate from
 		return;
 	}
