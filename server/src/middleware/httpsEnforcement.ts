@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import config from "../config/index.js";
+import auditLogger from "../services/auditLogger.js";
 import logger from "../services/logger.js";
 
 // HSTS configuration constants
@@ -39,6 +40,14 @@ export function httpsEnforcement(
 		forwardedSsl === "on";
 
 	if (!isSecure) {
+		// Log to audit trail for security monitoring and compliance
+		auditLogger.logSecurityEvent("HTTPS_ENFORCEMENT_BLOCK", {
+			method: req.method,
+			path: req.path,
+			ip: req.ip,
+			details: { forwardedProto },
+		}).catch(() => { /* ignore audit logging errors */ });
+
 		logger.warn("HTTPS enforcement: Blocked non-HTTPS request", {
 			method: req.method,
 			path: req.path,
