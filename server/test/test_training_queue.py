@@ -92,19 +92,34 @@ def load_training_count():
 
 
 def backup_sqlite_db():
-    """Create a backup of the SQLite database file."""
+    """Create a backup of the SQLite database file and its WAL/SHM files."""
     backup_path = DB_SQLITE_PATH + '.test_backup'
     if os.path.exists(DB_SQLITE_PATH):
         shutil.copy2(DB_SQLITE_PATH, backup_path)
+        # Also backup WAL and SHM files if they exist (WAL mode)
+        for suffix in ['-shm', '-wal']:
+            original_path = DB_SQLITE_PATH + suffix
+            if os.path.exists(original_path):
+                shutil.copy2(original_path, backup_path + suffix)
         return backup_path
     return None
 
 
 def restore_sqlite_db(backup_path):
-    """Restore the SQLite database from backup."""
+    """Restore the SQLite database from backup and clean up WAL/SHM files."""
     if backup_path and os.path.exists(backup_path):
         shutil.copy2(backup_path, DB_SQLITE_PATH)
         os.remove(backup_path)
+        # Restore or remove WAL and SHM files
+        for suffix in ['-shm', '-wal']:
+            backup_suffixed_path = backup_path + suffix
+            original_path = DB_SQLITE_PATH + suffix
+            if os.path.exists(backup_suffixed_path):
+                shutil.copy2(backup_suffixed_path, original_path)
+                os.remove(backup_suffixed_path)
+            elif os.path.exists(original_path):
+                # Remove WAL/SHM if they weren't in backup but exist now
+                os.remove(original_path)
 
 
 def test_training_queue_increment_single():

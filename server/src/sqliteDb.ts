@@ -527,16 +527,7 @@ export function getUserByEmail(email: string): StoredUser | undefined {
 }
 
 export function insertUser(user: StoredUser): void {
-	// Check for duplicates
-	const existingUsername = getUserByUsername(user.username);
-	if (existingUsername) {
-		throw new Error("Username already exists");
-	}
-	const existingEmail = getUserByEmail(user.email);
-	if (existingEmail) {
-		throw new Error("Email already exists");
-	}
-
+	// Let database UNIQUE constraints handle duplicates - more atomic and reliable
 	getDb().prepare(`
 		INSERT INTO users (
 			id, username, email, passwordHash, displayName, role, createdAt,

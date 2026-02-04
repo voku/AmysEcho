@@ -84,6 +84,25 @@ let sqliteInitialized = false;
 // Current SQLite path for switching databases (tests)
 let currentSqlitePath: string = DB_SQLITE_PATH;
 
+/**
+ * Helper to execute SQLite insert, ignoring UNIQUE constraint violations
+ * for idempotent operations. Uses error code for robust detection.
+ */
+const insertIgnoringDuplicates = (insertFn: () => void): void => {
+	if (sqliteInitialized) {
+		try {
+			insertFn();
+		} catch (error) {
+			// Use error code for robust UNIQUE constraint detection
+			// better-sqlite3 sets code property on SqliteError
+			const sqliteError = error as { code?: string };
+			if (sqliteError.code !== "SQLITE_CONSTRAINT_UNIQUE") {
+				throw error;
+			}
+		}
+	}
+};
+
 export const createDatabase = (): Database => ({
 	symbols: [],
 	signDefinitions: [],
@@ -104,29 +123,12 @@ export const createDatabase = (): Database => ({
  */
 export const addSymbol = (db: Database, symbol: SymbolRecord): void => {
 	db.symbols.push(symbol);
-	if (sqliteInitialized) {
-		try {
-			insertSymbol(symbol);
-		} catch (error) {
-			// Ignore duplicate key errors for idempotent operations
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertSymbol(symbol));
 };
 
 export const addSignDefinition = (db: Database, def: SignDefinition): void => {
 	db.signDefinitions.push(def);
-	if (sqliteInitialized) {
-		try {
-			insertSignDefinition(def);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertSignDefinition(def));
 };
 
 export const addSignTrainingData = (
@@ -134,54 +136,22 @@ export const addSignTrainingData = (
 	data: SignTrainingData,
 ): void => {
 	db.signTrainingData.push(data);
-	if (sqliteInitialized) {
-		try {
-			insertSignTrainingData(data);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertSignTrainingData(data));
 };
 
 export const addInteractionLog = (db: Database, log: InteractionLog): void => {
 	db.interactionLogs.push(log);
-	if (sqliteInitialized) {
-		try {
-			insertInteractionLog(log);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertInteractionLog(log));
 };
 
 export const addProfile = (db: Database, profile: Profile): void => {
 	db.profiles.push(profile);
-	if (sqliteInitialized) {
-		try {
-			insertProfile(profile);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertProfile(profile));
 };
 
 export const addVocabularySet = (db: Database, set: VocabularySet): void => {
 	db.vocabularySets.push(set);
-	if (sqliteInitialized) {
-		try {
-			insertVocabularySet(set);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertVocabularySet(set));
 };
 
 export const addVocabularySetSymbol = (
@@ -189,28 +159,12 @@ export const addVocabularySetSymbol = (
 	link: VocabularySetSymbol,
 ): void => {
 	db.vocabularySetSymbols.push(link);
-	if (sqliteInitialized) {
-		try {
-			insertVocabularySetSymbol(link);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertVocabularySetSymbol(link));
 };
 
 export const addUsageStat = (db: Database, stat: UsageStat): void => {
 	db.usageStats.push(stat);
-	if (sqliteInitialized) {
-		try {
-			insertUsageStat(stat);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertUsageStat(stat));
 };
 
 export const addLearningAnalytics = (
@@ -218,15 +172,7 @@ export const addLearningAnalytics = (
 	la: LearningAnalytics,
 ): void => {
 	db.learningAnalytics.push(la);
-	if (sqliteInitialized) {
-		try {
-			insertLearningAnalytics(la);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertLearningAnalytics(la));
 };
 
 export const addNegativeSample = (
@@ -234,28 +180,12 @@ export const addNegativeSample = (
 	sample: NegativeSample,
 ): void => {
 	db.negativeSamples.push(sample);
-	if (sqliteInitialized) {
-		try {
-			insertNegativeSample(sample);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => insertNegativeSample(sample));
 };
 
 export const addCorrection = (db: Database, corr: Correction): void => {
 	db.corrections.push(corr);
-	if (sqliteInitialized) {
-		try {
-			sqliteInsertCorrection(corr);
-		} catch (error) {
-			if (!(error instanceof Error && error.message.includes("UNIQUE"))) {
-				throw error;
-			}
-		}
-	}
+	insertIgnoringDuplicates(() => sqliteInsertCorrection(corr));
 };
 
 export const addUser = (db: Database, user: StoredUser): void => {
