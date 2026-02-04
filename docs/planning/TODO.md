@@ -142,6 +142,20 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 
 ---
 
+## 🤖 IMPORTANT NOTE FOR AI AGENTS 🤖
+
+**This TODO file contains two types of tasks:**
+
+1. **Agent Tasks (marked with standard checkboxes)**: Tasks that AI agents can implement, test, and complete autonomously
+2. **Human Tasks (in dedicated section below)**: Tasks requiring human judgment, physical device testing, manual reviews, or deployment decisions
+
+**AI agents should:**
+- ✅ Work on agent tasks that involve code implementation, testing, documentation, and automation
+- ❌ Skip human tasks - these require manual intervention, physical testing, or human decision-making
+- 📋 Move completed agent tasks to the appropriate section when done
+
+---
+
 ## AI Blind Spot Analysis — Open Items (2026-02-03)
 
 The following items were identified during an AI blind spot analysis. They represent gaps found by cross-referencing security audits, testing strategy documentation, and recommended enhancements that were not previously tracked in this TODO.
@@ -154,8 +168,8 @@ _Reference: `docs/security/SECURITY_AUDIT_2026-02-02.md` and `docs/security/READ
 - [ ] **Audit Logging**: Implement audit logging for security-sensitive events (profile access, data deletion, authentication failures).
 - [ ] **Refresh Token Rotation**: Implement refresh token rotation to limit token reuse after compromise.
 - [ ] **Per-User Rate Limiting**: Extend rate limiting from IP-based to user-based for authenticated endpoints.
-- [ ] **2FA Support**: Add two-factor authentication for sensitive caregiver operations (profile deletion, data export).
-- [ ] **Database Migration**: Migrate from JSON file database to SQLite/PostgreSQL for production (JSON file unsuitable for concurrent access at scale).
+
+**Note:** Security decisions requiring human authorization (2FA support, database migration, HTTPS deployment configuration) moved to Human Tasks section.
 
 ### Dependency Security
 _Reference: `npm audit` output showing 20 vulnerabilities in server dependencies_
@@ -178,16 +192,15 @@ _Reference: `docs/testing/TESTING_STRATEGY.md` — P0/P1 items not yet implement
 #### Core Functionality (P1)
 - [ ] **Gesture recognition accuracy tests**: Achieve >90% test coverage for recognition accuracy.
 - [ ] **Error handling tests**: >85% coverage for error scenarios (network failures, camera errors, etc.).
-- [ ] **Performance under stress tests**: Test at 5% battery, 1% storage, and network flakiness.
-- [ ] **Accessibility feature tests**: >90% coverage for accessibility (screen readers, high contrast, motor accessibility).
 
 ### Accessibility Testing
-_Reference: `docs/accessibility/contrast-audit.md` — contrast fixed, but comprehensive a11y testing missing_
+_Reference: `docs/accessibility/contrast-audit.md` — contrast fixed, automated tests needed_
 
-- [ ] **Screen Reader Testing**: Test full user flows with VoiceOver (iOS) and TalkBack (Android).
-- [ ] **Keyboard Navigation**: Verify all interactive elements are keyboard-accessible.
-- [ ] **Reduced Motion Support**: Respect `prefers-reduced-motion` for animations.
-- [ ] **Cognitive Accessibility Review**: Ensure all error messages and guidance are child-friendly and non-judgmental.
+- [ ] **Automated Accessibility Tests**: Add automated tests for WCAG compliance (color contrast, ARIA labels, semantic HTML).
+- [ ] **Focus Management Tests**: Automated tests for focus trapping in modals and proper focus order.
+- [ ] **High Contrast Mode Tests**: Automated visual regression tests for high contrast mode.
+
+**Note:** Manual accessibility testing (screen readers, keyboard navigation, cognitive accessibility) moved to Human Tasks section.
 
 ### CI/CD Enhancements
 _Reference: `.github/workflows/ci.yml` — current CI runs tests but lacks security scanning_
@@ -200,17 +213,73 @@ _Reference: `.github/workflows/ci.yml` — current CI runs tests but lacks secur
 _Reference: Various audit documents and deployment guides_
 
 - [ ] **Health Check Endpoint Enhancement**: Add detailed health checks for database connectivity, model availability, and Python dependencies.
-- [ ] **Graceful Shutdown**: Implement graceful shutdown with request draining for zero-downtime deployments.
-- [ ] **Environment Variable Validation**: Add startup validation for all required environment variables with clear error messages.
 - [ ] **Production Logging**: Implement structured JSON logging for production with log levels (info, warn, error).
+
+**Note:** Deployment management and environment validation tasks moved to Human Tasks section.
 
 ### Documentation Gaps
 _Reference: Identified through cross-referencing docs with actual implementation_
 
-- [ ] **Deployment Runbook**: Create step-by-step production deployment runbook with pre/post checks.
-- [ ] **Incident Response Guide**: Document how to handle common incidents (database corruption, auth bypass attempts, model training failures).
-- [ ] **Performance Baseline Documentation**: Document expected performance metrics (inference latency, upload speed, training time) for SLA monitoring.
+- [ ] **API Documentation**: Expand API documentation with request/response examples and error codes.
+- [ ] **Architecture Decision Records**: Document key architectural decisions for future reference.
+
+**Note:** Deployment runbooks, incident response guides, and performance baseline documentation moved to Human Tasks section (require operational experience and production access).
 
 ---
 
 **Note:** This blind spot analysis was performed on 2026-02-03 by examining security audit reports, testing strategy documentation, CI workflows, and recommended enhancements from `docs/security/README.md`. Items should be prioritized based on production deployment timeline.
+
+---
+
+## 👥 HUMAN TASKS (Manual Intervention Required)
+
+**⚠️ AI AGENTS: DO NOT WORK ON THESE TASKS ⚠️**
+
+The following tasks require human judgment, physical device testing, manual reviews, or deployment decisions. These cannot be automated and must be completed by human contributors.
+
+### Manual Testing & Validation
+
+#### Accessibility Testing (Requires Physical Devices)
+- [ ] **Screen Reader Testing**: Test full user flows with VoiceOver (iOS) and TalkBack (Android) on physical devices
+- [ ] **Keyboard Navigation**: Manually verify all interactive elements are keyboard-accessible across browsers
+- [ ] **Cognitive Accessibility Review**: Ensure all error messages and guidance are child-friendly and non-judgmental (requires human judgment with target users)
+- [ ] **Reduced Motion Support**: Test `prefers-reduced-motion` behavior on actual devices with reduced motion settings enabled
+
+#### Device & Environment Testing
+- [ ] **Performance under stress tests**: Manually test at 5% battery, 1% storage, and network flakiness on physical devices
+- [ ] **Real-world device testing**: Test gesture recognition accuracy on target devices (tablets, phones) in real-world conditions
+- [ ] **Camera/lighting validation**: Test MediaPipe capture under various lighting conditions and camera angles
+- [ ] **Offline mode validation**: Manually verify communication continues when network is completely unavailable
+
+### Production Deployment & Operations
+
+#### Deployment Management (Requires Human Decision-Making)
+- [ ] **Deployment Runbook**: Create step-by-step production deployment runbook with pre/post checks (requires infrastructure knowledge)
+- [ ] **Incident Response Guide**: Document how to handle common incidents (requires operational experience and human judgment)
+- [ ] **Environment Variable Validation**: Review and validate all required environment variables for production (requires access to production secrets)
+- [ ] **Graceful Shutdown Testing**: Manually test graceful shutdown with request draining on staging environment before production rollout
+
+#### Security Decisions (Requires Human Authorization)
+- [ ] **2FA Support Decision**: Decide whether to implement two-factor authentication for caregiver operations (requires product/security review)
+- [ ] **Database Migration Decision**: Evaluate and decide on migration from JSON file database to SQLite/PostgreSQL (requires infrastructure planning)
+- [ ] **Audit Logging Review**: Define which security-sensitive events should be logged (requires security team input)
+- [ ] **HTTPS Deployment Configuration**: Configure HTTPS and HSTS headers on production infrastructure (requires DevOps access)
+
+### Documentation Review & Decisions
+
+#### Content Reviews (Requires Domain Expertise)
+- [ ] **Performance Baseline Documentation**: Document expected performance metrics based on real production data (requires production monitoring access)
+- [ ] **Training Quality Review**: Review real user-contributed training data quality before promoting to global baseline (requires human judgment)
+- [ ] **Metacom Licensing Validation**: Validate licensing constraints and document approved symbol sets (requires legal review)
+
+### Continuous Monitoring (Ongoing Human Tasks)
+
+#### Manual Checkpoints
+- [ ] **Weekly Manual QA**: Run manual QA checklist covering "record sign", "bundle files present", "training job succeeds", "personalized model downloaded" on staging environment
+- [ ] **Monthly Security Review**: Review `npm audit` output and security scan results, make decisions on which vulnerabilities to address
+- [ ] **Quarterly Accessibility Audit**: Conduct accessibility testing with actual users (children with communication needs and caregivers)
+- [ ] **Production Health Monitoring**: Monitor production dashboards for performance degradation, unusual patterns, or errors requiring human intervention
+
+---
+
+**Last Updated:** 2026-02-04
