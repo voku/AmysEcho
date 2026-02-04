@@ -90,12 +90,13 @@ describe('Accessibility: WCAG 2.1 Compliance', () => {
       const mockSymbol = {
         id: 'test-symbol',
         name: 'Hallo',
+        emoji: '👋',
         imageUrl: 'test.jpg',
         category: 'greeting',
         tags: []
       };
       
-      render(<SymbolButton symbol={mockSymbol} />);
+      render(<SymbolButton symbol={mockSymbol} onPress={() => {}} />);
       
       const button = screen.getByLabelText('Hallo');
       expect(button).toBeInTheDocument();
@@ -131,12 +132,13 @@ describe('Accessibility: WCAG 2.1 Compliance', () => {
       const mockSymbol = {
         id: 'test',
         name: 'Test',
+        emoji: '✓',
         imageUrl: 'test.jpg',
         category: 'test',
         tags: []
       };
       
-      render(<SymbolButton symbol={mockSymbol} />);
+      render(<SymbolButton symbol={mockSymbol} onPress={() => {}} />);
       
       const button = screen.getByRole('button');
       expect(button).toBeInTheDocument();
@@ -204,21 +206,19 @@ describe('Accessibility: WCAG 2.1 Compliance', () => {
       const mockSymbol = {
         id: 'test',
         name: 'Test',
+        emoji: '✓',
         imageUrl: 'test.jpg',
         category: 'test',
         tags: []
       };
       
-      render(<SymbolButton symbol={mockSymbol} />);
+      render(<SymbolButton symbol={mockSymbol} onPress={() => {}} />);
       
       const button = screen.getByRole('button');
       expect(button).toBeInTheDocument();
       
-      // Button should be focusable
-      const tabIndex = button.getAttribute('tabindex');
-      if (tabIndex) {
-        expect(parseInt(tabIndex)).toBeGreaterThanOrEqual(0);
-      }
+      // Button should be focusable with explicit tabindex="0"
+      expect(button).toHaveAttribute('tabindex', '0');
     });
   });
 
