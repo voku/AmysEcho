@@ -1370,12 +1370,10 @@ export const logCorrection = (
 };
 
 export async function setupDatabase(filePath: string): Promise<Database> {
-	// Initialize SQLite if not already initialized
-	// For tests, use a temporary SQLite path based on the file path
+	// Initialize SQLite - use a temporary SQLite path based on the file path
 	const sqlitePath = filePath.replace(/\.json$/, '.sqlite');
-	if (!db) {
-		await initializeDatabase(sqlitePath, filePath);
-	}
+	// Always initialize to ensure we're using the correct database for this path
+	await initializeDatabase(sqlitePath, filePath);
 	
 	const sqlite = getDb();
 
@@ -1561,5 +1559,5 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 		}
 	}
 
-	return loadDatabase(filePath);
+	return loadDatabase(sqlitePath);
 }
