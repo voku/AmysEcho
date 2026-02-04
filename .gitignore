@@ -18,6 +18,9 @@ app/ios/
 
 # db
 app/watermelon.db
+server/db.json
+server/db.sqlite
+server/*.migrated.backup
 
 # ide
 .idea
@@ -38,7 +41,6 @@ server/data/uploads/
 server/data/dgs_samples.json
 server/data/datasets/training_manifest.json
 server/data/models/training_metadata.json
-server/db.json
 # code coverage
 app/coverage/
 coverage/
