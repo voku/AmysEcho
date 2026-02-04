@@ -746,8 +746,8 @@ export const getProfileById = (_db: Database, id: string): Profile | undefined =
 		consentDataUpload: row.consentDataUpload === 1,
 		consentHelpMeGetSmarter: row.consentHelpMeGetSmarter === 1,
 		vocabularySetId: row.vocabularySetId,
-		largeText: row.largeText === 1 || undefined,
-		highContrast: row.highContrast === 1 || undefined,
+		largeText: row.largeText !== null ? row.largeText === 1 : undefined,
+		highContrast: row.highContrast !== null ? row.highContrast === 1 : undefined,
 	};
 };
 
@@ -1179,8 +1179,8 @@ export const loadDatabase = async (filePath: string): Promise<Database> => {
 			consentDataUpload: row.consentDataUpload === 1,
 			consentHelpMeGetSmarter: row.consentHelpMeGetSmarter === 1,
 			vocabularySetId: row.vocabularySetId,
-			largeText: row.largeText === 1 || undefined,
-			highContrast: row.highContrast === 1 || undefined,
+			largeText: row.largeText !== null ? row.largeText === 1 : undefined,
+			highContrast: row.highContrast !== null ? row.highContrast === 1 : undefined,
 		})),
 		vocabularySets: vocabularySets.map(row => ({
 			id: row.id,
@@ -1307,8 +1307,8 @@ export const getProfileData = (_db: Database, profileId: string) => {
 			consentDataUpload: profile.consentDataUpload === 1,
 			consentHelpMeGetSmarter: profile.consentHelpMeGetSmarter === 1,
 			vocabularySetId: profile.vocabularySetId,
-			largeText: profile.largeText === 1 || undefined,
-			highContrast: profile.highContrast === 1 || undefined,
+			largeText: profile.largeText !== null ? profile.largeText === 1 : undefined,
+			highContrast: profile.highContrast !== null ? profile.highContrast === 1 : undefined,
 		} : null,
 		usageStats: usageStats.map(row => ({
 			id: row.id,
