@@ -54,6 +54,7 @@ webapp/coverage/
 gha-creds-*.json
 webapp/README.md.bak
 server/data/backups/
+server/data/profiles/profile_registry.json
 
 # Test artifacts from full-check
 server/data/datasets/ingestion_metrics.json

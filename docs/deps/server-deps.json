@@ -1621,6 +1621,16 @@
         }
       }
     },
+    "@types/better-sqlite3": {
+      "version": "7.6.13",
+      "resolved": "https://registry.npmjs.org/@types/better-sqlite3/-/better-sqlite3-7.6.13.tgz",
+      "overridden": false,
+      "dependencies": {
+        "@types/node": {
+          "version": "24.10.9"
+        }
+      }
+    },
     "@types/express": {
       "version": "5.0.6",
       "resolved": "https://registry.npmjs.org/@types/express/-/express-5.0.6.tgz",
@@ -1909,8 +1919,8 @@
       "overridden": false,
       "dependencies": {
         "@aws-sdk/client-sesv2": {
-          "version": "3.966.0",
-          "resolved": "https://registry.npmjs.org/@aws-sdk/client-sesv2/-/client-sesv2-3.966.0.tgz",
+          "version": "3.982.0",
+          "resolved": "https://registry.npmjs.org/@aws-sdk/client-sesv2/-/client-sesv2-3.982.0.tgz",
           "overridden": false,
           "dependencies": {
             "@aws-crypto/sha256-browser": {
@@ -1937,7 +1947,7 @@
                   "overridden": false,
                   "dependencies": {
                     "@aws-sdk/types": {
-                      "version": "3.965.0"
+                      "version": "3.973.1"
                     },
                     "@smithy/util-utf8": {
                       "version": "2.3.0",
@@ -1975,11 +1985,11 @@
                   }
                 },
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@aws-sdk/util-locate-window": {
-                  "version": "3.965.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/util-locate-window/-/util-locate-window-3.965.0.tgz",
+                  "version": "3.965.4",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/util-locate-window/-/util-locate-window-3.965.4.tgz",
                   "overridden": false,
                   "dependencies": {
                     "tslib": {
@@ -2031,7 +2041,7 @@
                   "version": "5.2.0"
                 },
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2039,24 +2049,24 @@
               }
             },
             "@aws-sdk/core": {
-              "version": "3.966.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/core/-/core-3.966.0.tgz",
+              "version": "3.973.6",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/core/-/core-3.973.6.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@aws-sdk/xml-builder": {
-                  "version": "3.965.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/xml-builder/-/xml-builder-3.965.0.tgz",
+                  "version": "3.972.4",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/xml-builder/-/xml-builder-3.972.4.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "fast-xml-parser": {
-                      "version": "5.2.5",
-                      "resolved": "https://registry.npmjs.org/fast-xml-parser/-/fast-xml-parser-5.2.5.tgz",
+                      "version": "5.3.4",
+                      "resolved": "https://registry.npmjs.org/fast-xml-parser/-/fast-xml-parser-5.3.4.tgz",
                       "overridden": false,
                       "dependencies": {
                         "strnum": {
@@ -2072,18 +2082,18 @@
                   }
                 },
                 "@smithy/core": {
-                  "version": "3.20.1"
+                  "version": "3.22.1"
                 },
                 "@smithy/node-config-provider": {
-                  "version": "4.3.7"
+                  "version": "4.3.8"
                 },
                 "@smithy/property-provider": {
-                  "version": "4.2.7",
-                  "resolved": "https://registry.npmjs.org/@smithy/property-provider/-/property-provider-4.2.7.tgz",
+                  "version": "4.2.8",
+                  "resolved": "https://registry.npmjs.org/@smithy/property-provider/-/property-provider-4.2.8.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2091,11 +2101,11 @@
                   }
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/signature-v4": {
-                  "version": "5.3.7",
-                  "resolved": "https://registry.npmjs.org/@smithy/signature-v4/-/signature-v4-5.3.7.tgz",
+                  "version": "5.3.8",
+                  "resolved": "https://registry.npmjs.org/@smithy/signature-v4/-/signature-v4-5.3.8.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/is-array-buffer": {
@@ -2109,10 +2119,10 @@
                       }
                     },
                     "@smithy/protocol-http": {
-                      "version": "5.3.7"
+                      "version": "5.3.8"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "@smithy/util-hex-encoding": {
                       "version": "4.2.0",
@@ -2125,7 +2135,7 @@
                       }
                     },
                     "@smithy/util-middleware": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/util-uri-escape": {
                       "version": "4.2.0",
@@ -2146,16 +2156,16 @@
                   }
                 },
                 "@smithy/smithy-client": {
-                  "version": "4.10.3"
+                  "version": "4.11.2"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/util-base64": {
                   "version": "4.3.0"
                 },
                 "@smithy/util-middleware": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/util-utf8": {
                   "version": "4.2.0"
@@ -2166,26 +2176,26 @@
               }
             },
             "@aws-sdk/credential-provider-node": {
-              "version": "3.966.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-node/-/credential-provider-node-3.966.0.tgz",
+              "version": "3.972.5",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-node/-/credential-provider-node-3.972.5.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/credential-provider-env": {
-                  "version": "3.966.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-env/-/credential-provider-env-3.966.0.tgz",
+                  "version": "3.972.4",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-env/-/credential-provider-env-3.972.4.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@aws-sdk/core": {
-                      "version": "3.966.0"
+                      "version": "3.973.6"
                     },
                     "@aws-sdk/types": {
-                      "version": "3.965.0"
+                      "version": "3.973.1"
                     },
                     "@smithy/property-provider": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2193,36 +2203,36 @@
                   }
                 },
                 "@aws-sdk/credential-provider-http": {
-                  "version": "3.966.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-http/-/credential-provider-http-3.966.0.tgz",
+                  "version": "3.972.6",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-http/-/credential-provider-http-3.972.6.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@aws-sdk/core": {
-                      "version": "3.966.0"
+                      "version": "3.973.6"
                     },
                     "@aws-sdk/types": {
-                      "version": "3.965.0"
+                      "version": "3.973.1"
                     },
                     "@smithy/fetch-http-handler": {
-                      "version": "5.3.8"
+                      "version": "5.3.9"
                     },
                     "@smithy/node-http-handler": {
-                      "version": "4.4.7"
+                      "version": "4.4.9"
                     },
                     "@smithy/property-provider": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/protocol-http": {
-                      "version": "5.3.7"
+                      "version": "5.3.8"
                     },
                     "@smithy/smithy-client": {
-                      "version": "4.10.3"
+                      "version": "4.11.2"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "@smithy/util-stream": {
-                      "version": "4.5.8"
+                      "version": "4.5.11"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2230,44 +2240,44 @@
                   }
                 },
                 "@aws-sdk/credential-provider-ini": {
-                  "version": "3.966.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-ini/-/credential-provider-ini-3.966.0.tgz",
+                  "version": "3.972.4",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-ini/-/credential-provider-ini-3.972.4.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@aws-sdk/core": {
-                      "version": "3.966.0"
+                      "version": "3.973.6"
                     },
                     "@aws-sdk/credential-provider-env": {
-                      "version": "3.966.0"
+                      "version": "3.972.4"
                     },
                     "@aws-sdk/credential-provider-http": {
-                      "version": "3.966.0"
+                      "version": "3.972.6"
                     },
                     "@aws-sdk/credential-provider-login": {
-                      "version": "3.966.0",
-                      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-login/-/credential-provider-login-3.966.0.tgz",
+                      "version": "3.972.4",
+                      "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-login/-/credential-provider-login-3.972.4.tgz",
                       "overridden": false,
                       "dependencies": {
                         "@aws-sdk/core": {
-                          "version": "3.966.0"
+                          "version": "3.973.6"
                         },
                         "@aws-sdk/nested-clients": {
-                          "version": "3.966.0"
+                          "version": "3.982.0"
                         },
                         "@aws-sdk/types": {
-                          "version": "3.965.0"
+                          "version": "3.973.1"
                         },
                         "@smithy/property-provider": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/protocol-http": {
-                          "version": "5.3.7"
+                          "version": "5.3.8"
                         },
                         "@smithy/shared-ini-file-loader": {
-                          "version": "4.4.2"
+                          "version": "4.4.3"
                         },
                         "@smithy/types": {
-                          "version": "4.11.0"
+                          "version": "4.12.0"
                         },
                         "tslib": {
                           "version": "2.8.1"
@@ -2275,17 +2285,17 @@
                       }
                     },
                     "@aws-sdk/credential-provider-process": {
-                      "version": "3.966.0"
+                      "version": "3.972.4"
                     },
                     "@aws-sdk/credential-provider-sso": {
-                      "version": "3.966.0"
+                      "version": "3.972.4"
                     },
                     "@aws-sdk/credential-provider-web-identity": {
-                      "version": "3.966.0"
+                      "version": "3.972.4"
                     },
                     "@aws-sdk/nested-clients": {
-                      "version": "3.966.0",
-                      "resolved": "https://registry.npmjs.org/@aws-sdk/nested-clients/-/nested-clients-3.966.0.tgz",
+                      "version": "3.982.0",
+                      "resolved": "https://registry.npmjs.org/@aws-sdk/nested-clients/-/nested-clients-3.982.0.tgz",
                       "overridden": false,
                       "dependencies": {
                         "@aws-crypto/sha256-browser": {
@@ -2295,82 +2305,82 @@
                           "version": "5.2.0"
                         },
                         "@aws-sdk/core": {
-                          "version": "3.966.0"
+                          "version": "3.973.6"
                         },
                         "@aws-sdk/middleware-host-header": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/middleware-logger": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/middleware-recursion-detection": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/middleware-user-agent": {
-                          "version": "3.966.0"
+                          "version": "3.972.6"
                         },
                         "@aws-sdk/region-config-resolver": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/types": {
-                          "version": "3.965.0"
+                          "version": "3.973.1"
                         },
                         "@aws-sdk/util-endpoints": {
-                          "version": "3.965.0"
+                          "version": "3.982.0"
                         },
                         "@aws-sdk/util-user-agent-browser": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/util-user-agent-node": {
-                          "version": "3.966.0"
+                          "version": "3.972.4"
                         },
                         "@smithy/config-resolver": {
-                          "version": "4.4.5"
+                          "version": "4.4.6"
                         },
                         "@smithy/core": {
-                          "version": "3.20.1"
+                          "version": "3.22.1"
                         },
                         "@smithy/fetch-http-handler": {
-                          "version": "5.3.8"
+                          "version": "5.3.9"
                         },
                         "@smithy/hash-node": {
-                          "version": "4.2.7"
-                        },
-                        "@smithy/invalid-dependency": {
-                          "version": "4.2.7"
-                        },
-                        "@smithy/middleware-content-length": {
-                          "version": "4.2.7"
-                        },
-                        "@smithy/middleware-endpoint": {
-                          "version": "4.4.2"
-                        },
-                        "@smithy/middleware-retry": {
-                          "version": "4.4.18"
-                        },
-                        "@smithy/middleware-serde": {
                           "version": "4.2.8"
                         },
+                        "@smithy/invalid-dependency": {
+                          "version": "4.2.8"
+                        },
+                        "@smithy/middleware-content-length": {
+                          "version": "4.2.8"
+                        },
+                        "@smithy/middleware-endpoint": {
+                          "version": "4.4.13"
+                        },
+                        "@smithy/middleware-retry": {
+                          "version": "4.4.30"
+                        },
+                        "@smithy/middleware-serde": {
+                          "version": "4.2.9"
+                        },
                         "@smithy/middleware-stack": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/node-config-provider": {
-                          "version": "4.3.7"
+                          "version": "4.3.8"
                         },
                         "@smithy/node-http-handler": {
-                          "version": "4.4.7"
+                          "version": "4.4.9"
                         },
                         "@smithy/protocol-http": {
-                          "version": "5.3.7"
+                          "version": "5.3.8"
                         },
                         "@smithy/smithy-client": {
-                          "version": "4.10.3"
+                          "version": "4.11.2"
                         },
                         "@smithy/types": {
-                          "version": "4.11.0"
+                          "version": "4.12.0"
                         },
                         "@smithy/url-parser": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/util-base64": {
                           "version": "4.3.0"
@@ -2382,19 +2392,19 @@
                           "version": "4.2.1"
                         },
                         "@smithy/util-defaults-mode-browser": {
-                          "version": "4.3.17"
+                          "version": "4.3.29"
                         },
                         "@smithy/util-defaults-mode-node": {
-                          "version": "4.2.20"
+                          "version": "4.2.32"
                         },
                         "@smithy/util-endpoints": {
-                          "version": "3.2.7"
+                          "version": "3.2.8"
                         },
                         "@smithy/util-middleware": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/util-retry": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/util-utf8": {
                           "version": "4.2.0"
@@ -2405,19 +2415,19 @@
                       }
                     },
                     "@aws-sdk/types": {
-                      "version": "3.965.0"
+                      "version": "3.973.1"
                     },
                     "@smithy/credential-provider-imds": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/property-provider": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/shared-ini-file-loader": {
-                      "version": "4.4.2"
+                      "version": "4.4.3"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2425,24 +2435,24 @@
                   }
                 },
                 "@aws-sdk/credential-provider-process": {
-                  "version": "3.966.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-process/-/credential-provider-process-3.966.0.tgz",
+                  "version": "3.972.4",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-process/-/credential-provider-process-3.972.4.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@aws-sdk/core": {
-                      "version": "3.966.0"
+                      "version": "3.973.6"
                     },
                     "@aws-sdk/types": {
-                      "version": "3.965.0"
+                      "version": "3.973.1"
                     },
                     "@smithy/property-provider": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/shared-ini-file-loader": {
-                      "version": "4.4.2"
+                      "version": "4.4.3"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2450,13 +2460,13 @@
                   }
                 },
                 "@aws-sdk/credential-provider-sso": {
-                  "version": "3.966.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-sso/-/credential-provider-sso-3.966.0.tgz",
+                  "version": "3.972.4",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-sso/-/credential-provider-sso-3.972.4.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@aws-sdk/client-sso": {
-                      "version": "3.966.0",
-                      "resolved": "https://registry.npmjs.org/@aws-sdk/client-sso/-/client-sso-3.966.0.tgz",
+                      "version": "3.982.0",
+                      "resolved": "https://registry.npmjs.org/@aws-sdk/client-sso/-/client-sso-3.982.0.tgz",
                       "overridden": false,
                       "dependencies": {
                         "@aws-crypto/sha256-browser": {
@@ -2466,82 +2476,82 @@
                           "version": "5.2.0"
                         },
                         "@aws-sdk/core": {
-                          "version": "3.966.0"
+                          "version": "3.973.6"
                         },
                         "@aws-sdk/middleware-host-header": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/middleware-logger": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/middleware-recursion-detection": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/middleware-user-agent": {
-                          "version": "3.966.0"
+                          "version": "3.972.6"
                         },
                         "@aws-sdk/region-config-resolver": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/types": {
-                          "version": "3.965.0"
+                          "version": "3.973.1"
                         },
                         "@aws-sdk/util-endpoints": {
-                          "version": "3.965.0"
+                          "version": "3.982.0"
                         },
                         "@aws-sdk/util-user-agent-browser": {
-                          "version": "3.965.0"
+                          "version": "3.972.3"
                         },
                         "@aws-sdk/util-user-agent-node": {
-                          "version": "3.966.0"
+                          "version": "3.972.4"
                         },
                         "@smithy/config-resolver": {
-                          "version": "4.4.5"
+                          "version": "4.4.6"
                         },
                         "@smithy/core": {
-                          "version": "3.20.1"
+                          "version": "3.22.1"
                         },
                         "@smithy/fetch-http-handler": {
-                          "version": "5.3.8"
+                          "version": "5.3.9"
                         },
                         "@smithy/hash-node": {
-                          "version": "4.2.7"
-                        },
-                        "@smithy/invalid-dependency": {
-                          "version": "4.2.7"
-                        },
-                        "@smithy/middleware-content-length": {
-                          "version": "4.2.7"
-                        },
-                        "@smithy/middleware-endpoint": {
-                          "version": "4.4.2"
-                        },
-                        "@smithy/middleware-retry": {
-                          "version": "4.4.18"
-                        },
-                        "@smithy/middleware-serde": {
                           "version": "4.2.8"
                         },
+                        "@smithy/invalid-dependency": {
+                          "version": "4.2.8"
+                        },
+                        "@smithy/middleware-content-length": {
+                          "version": "4.2.8"
+                        },
+                        "@smithy/middleware-endpoint": {
+                          "version": "4.4.13"
+                        },
+                        "@smithy/middleware-retry": {
+                          "version": "4.4.30"
+                        },
+                        "@smithy/middleware-serde": {
+                          "version": "4.2.9"
+                        },
                         "@smithy/middleware-stack": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/node-config-provider": {
-                          "version": "4.3.7"
+                          "version": "4.3.8"
                         },
                         "@smithy/node-http-handler": {
-                          "version": "4.4.7"
+                          "version": "4.4.9"
                         },
                         "@smithy/protocol-http": {
-                          "version": "5.3.7"
+                          "version": "5.3.8"
                         },
                         "@smithy/smithy-client": {
-                          "version": "4.10.3"
+                          "version": "4.11.2"
                         },
                         "@smithy/types": {
-                          "version": "4.11.0"
+                          "version": "4.12.0"
                         },
                         "@smithy/url-parser": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/util-base64": {
                           "version": "4.3.0"
@@ -2553,19 +2563,19 @@
                           "version": "4.2.1"
                         },
                         "@smithy/util-defaults-mode-browser": {
-                          "version": "4.3.17"
+                          "version": "4.3.29"
                         },
                         "@smithy/util-defaults-mode-node": {
-                          "version": "4.2.20"
+                          "version": "4.2.32"
                         },
                         "@smithy/util-endpoints": {
-                          "version": "3.2.7"
+                          "version": "3.2.8"
                         },
                         "@smithy/util-middleware": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/util-retry": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/util-utf8": {
                           "version": "4.2.0"
@@ -2576,30 +2586,30 @@
                       }
                     },
                     "@aws-sdk/core": {
-                      "version": "3.966.0"
+                      "version": "3.973.6"
                     },
                     "@aws-sdk/token-providers": {
-                      "version": "3.966.0",
-                      "resolved": "https://registry.npmjs.org/@aws-sdk/token-providers/-/token-providers-3.966.0.tgz",
+                      "version": "3.982.0",
+                      "resolved": "https://registry.npmjs.org/@aws-sdk/token-providers/-/token-providers-3.982.0.tgz",
                       "overridden": false,
                       "dependencies": {
                         "@aws-sdk/core": {
-                          "version": "3.966.0"
+                          "version": "3.973.6"
                         },
                         "@aws-sdk/nested-clients": {
-                          "version": "3.966.0"
+                          "version": "3.982.0"
                         },
                         "@aws-sdk/types": {
-                          "version": "3.965.0"
+                          "version": "3.973.1"
                         },
                         "@smithy/property-provider": {
-                          "version": "4.2.7"
+                          "version": "4.2.8"
                         },
                         "@smithy/shared-ini-file-loader": {
-                          "version": "4.4.2"
+                          "version": "4.4.3"
                         },
                         "@smithy/types": {
-                          "version": "4.11.0"
+                          "version": "4.12.0"
                         },
                         "tslib": {
                           "version": "2.8.1"
@@ -2607,16 +2617,16 @@
                       }
                     },
                     "@aws-sdk/types": {
-                      "version": "3.965.0"
+                      "version": "3.973.1"
                     },
                     "@smithy/property-provider": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/shared-ini-file-loader": {
-                      "version": "4.4.2"
+                      "version": "4.4.3"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2624,27 +2634,27 @@
                   }
                 },
                 "@aws-sdk/credential-provider-web-identity": {
-                  "version": "3.966.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-web-identity/-/credential-provider-web-identity-3.966.0.tgz",
+                  "version": "3.972.4",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/credential-provider-web-identity/-/credential-provider-web-identity-3.972.4.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@aws-sdk/core": {
-                      "version": "3.966.0"
+                      "version": "3.973.6"
                     },
                     "@aws-sdk/nested-clients": {
-                      "version": "3.966.0"
+                      "version": "3.982.0"
                     },
                     "@aws-sdk/types": {
-                      "version": "3.965.0"
+                      "version": "3.973.1"
                     },
                     "@smithy/property-provider": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/shared-ini-file-loader": {
-                      "version": "4.4.2"
+                      "version": "4.4.3"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2652,24 +2662,24 @@
                   }
                 },
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@smithy/credential-provider-imds": {
-                  "version": "4.2.7",
-                  "resolved": "https://registry.npmjs.org/@smithy/credential-provider-imds/-/credential-provider-imds-4.2.7.tgz",
+                  "version": "4.2.8",
+                  "resolved": "https://registry.npmjs.org/@smithy/credential-provider-imds/-/credential-provider-imds-4.2.8.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/node-config-provider": {
-                      "version": "4.3.7"
+                      "version": "4.3.8"
                     },
                     "@smithy/property-provider": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "@smithy/url-parser": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2677,15 +2687,15 @@
                   }
                 },
                 "@smithy/property-provider": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/shared-ini-file-loader": {
-                  "version": "4.4.2",
-                  "resolved": "https://registry.npmjs.org/@smithy/shared-ini-file-loader/-/shared-ini-file-loader-4.4.2.tgz",
+                  "version": "4.4.3",
+                  "resolved": "https://registry.npmjs.org/@smithy/shared-ini-file-loader/-/shared-ini-file-loader-4.4.3.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -2693,7 +2703,7 @@
                   }
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2701,18 +2711,18 @@
               }
             },
             "@aws-sdk/middleware-host-header": {
-              "version": "3.965.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-host-header/-/middleware-host-header-3.965.0.tgz",
+              "version": "3.972.3",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-host-header/-/middleware-host-header-3.972.3.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2720,15 +2730,15 @@
               }
             },
             "@aws-sdk/middleware-logger": {
-              "version": "3.965.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-logger/-/middleware-logger-3.965.0.tgz",
+              "version": "3.972.3",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-logger/-/middleware-logger-3.972.3.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2736,23 +2746,23 @@
               }
             },
             "@aws-sdk/middleware-recursion-detection": {
-              "version": "3.965.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-recursion-detection/-/middleware-recursion-detection-3.965.0.tgz",
+              "version": "3.972.3",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-recursion-detection/-/middleware-recursion-detection-3.972.3.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@aws/lambda-invoke-store": {
-                  "version": "0.2.2",
-                  "resolved": "https://registry.npmjs.org/@aws/lambda-invoke-store/-/lambda-invoke-store-0.2.2.tgz",
+                  "version": "0.2.3",
+                  "resolved": "https://registry.npmjs.org/@aws/lambda-invoke-store/-/lambda-invoke-store-0.2.3.tgz",
                   "overridden": false
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2760,27 +2770,27 @@
               }
             },
             "@aws-sdk/middleware-user-agent": {
-              "version": "3.966.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-user-agent/-/middleware-user-agent-3.966.0.tgz",
+              "version": "3.972.6",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-user-agent/-/middleware-user-agent-3.972.6.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/core": {
-                  "version": "3.966.0"
+                  "version": "3.973.6"
                 },
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@aws-sdk/util-endpoints": {
-                  "version": "3.965.0"
+                  "version": "3.982.0"
                 },
                 "@smithy/core": {
-                  "version": "3.20.1"
+                  "version": "3.22.1"
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2788,21 +2798,21 @@
               }
             },
             "@aws-sdk/region-config-resolver": {
-              "version": "3.965.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/region-config-resolver/-/region-config-resolver-3.965.0.tgz",
+              "version": "3.972.3",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/region-config-resolver/-/region-config-resolver-3.972.3.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@smithy/config-resolver": {
-                  "version": "4.4.5"
+                  "version": "4.4.6"
                 },
                 "@smithy/node-config-provider": {
-                  "version": "4.3.7"
+                  "version": "4.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2810,67 +2820,24 @@
               }
             },
             "@aws-sdk/signature-v4-multi-region": {
-              "version": "3.966.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.966.0.tgz",
+              "version": "3.982.0",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.982.0.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/middleware-sdk-s3": {
-                  "version": "3.966.0",
-                  "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-sdk-s3/-/middleware-sdk-s3-3.966.0.tgz",
+                  "version": "3.972.6",
+                  "resolved": "https://registry.npmjs.org/@aws-sdk/middleware-sdk-s3/-/middleware-sdk-s3-3.972.6.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@aws-sdk/core": {
-                      "version": "3.966.0",
-                      "resolved": "https://registry.npmjs.org/@aws-sdk/core/-/core-3.966.0.tgz",
-                      "overridden": false,
-                      "dependencies": {
-                        "@aws-sdk/types": {
-                          "version": "3.965.0"
-                        },
-                        "@aws-sdk/xml-builder": {
-                          "version": "3.965.0"
-                        },
-                        "@smithy/core": {
-                          "version": "3.20.1"
-                        },
-                        "@smithy/node-config-provider": {
-                          "version": "4.3.7"
-                        },
-                        "@smithy/property-provider": {
-                          "version": "4.2.7"
-                        },
-                        "@smithy/protocol-http": {
-                          "version": "5.3.7"
-                        },
-                        "@smithy/signature-v4": {
-                          "version": "5.3.7"
-                        },
-                        "@smithy/smithy-client": {
-                          "version": "4.10.3"
-                        },
-                        "@smithy/types": {
-                          "version": "4.11.0"
-                        },
-                        "@smithy/util-base64": {
-                          "version": "4.3.0"
-                        },
-                        "@smithy/util-middleware": {
-                          "version": "4.2.7"
-                        },
-                        "@smithy/util-utf8": {
-                          "version": "4.2.0"
-                        },
-                        "tslib": {
-                          "version": "2.8.1"
-                        }
-                      }
+                      "version": "3.973.6"
                     },
                     "@aws-sdk/types": {
-                      "version": "3.965.0"
+                      "version": "3.973.1"
                     },
                     "@aws-sdk/util-arn-parser": {
-                      "version": "3.966.0",
-                      "resolved": "https://registry.npmjs.org/@aws-sdk/util-arn-parser/-/util-arn-parser-3.966.0.tgz",
+                      "version": "3.972.2",
+                      "resolved": "https://registry.npmjs.org/@aws-sdk/util-arn-parser/-/util-arn-parser-3.972.2.tgz",
                       "overridden": false,
                       "dependencies": {
                         "tslib": {
@@ -2879,31 +2846,31 @@
                       }
                     },
                     "@smithy/core": {
-                      "version": "3.20.1"
+                      "version": "3.22.1"
                     },
                     "@smithy/node-config-provider": {
-                      "version": "4.3.7"
+                      "version": "4.3.8"
                     },
                     "@smithy/protocol-http": {
-                      "version": "5.3.7"
+                      "version": "5.3.8"
                     },
                     "@smithy/signature-v4": {
-                      "version": "5.3.7"
+                      "version": "5.3.8"
                     },
                     "@smithy/smithy-client": {
-                      "version": "4.10.3"
+                      "version": "4.11.2"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "@smithy/util-config-provider": {
                       "version": "4.2.0"
                     },
                     "@smithy/util-middleware": {
-                      "version": "4.2.7"
+                      "version": "4.2.8"
                     },
                     "@smithy/util-stream": {
-                      "version": "4.5.8"
+                      "version": "4.5.11"
                     },
                     "@smithy/util-utf8": {
                       "version": "4.2.0"
@@ -2914,16 +2881,16 @@
                   }
                 },
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/signature-v4": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2931,12 +2898,12 @@
               }
             },
             "@aws-sdk/types": {
-              "version": "3.965.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/types/-/types-3.965.0.tgz",
+              "version": "3.973.1",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/types/-/types-3.973.1.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2944,21 +2911,21 @@
               }
             },
             "@aws-sdk/util-endpoints": {
-              "version": "3.965.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/util-endpoints/-/util-endpoints-3.965.0.tgz",
+              "version": "3.982.0",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/util-endpoints/-/util-endpoints-3.982.0.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/url-parser": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/util-endpoints": {
-                  "version": "3.2.7"
+                  "version": "3.2.8"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -2966,15 +2933,15 @@
               }
             },
             "@aws-sdk/util-user-agent-browser": {
-              "version": "3.965.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/util-user-agent-browser/-/util-user-agent-browser-3.965.0.tgz",
+              "version": "3.972.3",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/util-user-agent-browser/-/util-user-agent-browser-3.972.3.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "bowser": {
                   "version": "2.13.1",
@@ -2987,21 +2954,21 @@
               }
             },
             "@aws-sdk/util-user-agent-node": {
-              "version": "3.966.0",
-              "resolved": "https://registry.npmjs.org/@aws-sdk/util-user-agent-node/-/util-user-agent-node-3.966.0.tgz",
+              "version": "3.972.4",
+              "resolved": "https://registry.npmjs.org/@aws-sdk/util-user-agent-node/-/util-user-agent-node-3.972.4.tgz",
               "overridden": false,
               "dependencies": {
                 "@aws-sdk/middleware-user-agent": {
-                  "version": "3.966.0"
+                  "version": "3.972.6"
                 },
                 "@aws-sdk/types": {
-                  "version": "3.965.0"
+                  "version": "3.973.1"
                 },
                 "@smithy/node-config-provider": {
-                  "version": "4.3.7"
+                  "version": "4.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "aws-crt": {},
                 "tslib": {
@@ -3010,15 +2977,15 @@
               }
             },
             "@smithy/config-resolver": {
-              "version": "4.4.5",
-              "resolved": "https://registry.npmjs.org/@smithy/config-resolver/-/config-resolver-4.4.5.tgz",
+              "version": "4.4.6",
+              "resolved": "https://registry.npmjs.org/@smithy/config-resolver/-/config-resolver-4.4.6.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/node-config-provider": {
-                  "version": "4.3.7"
+                  "version": "4.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/util-config-provider": {
                   "version": "4.2.0",
@@ -3031,10 +2998,10 @@
                   }
                 },
                 "@smithy/util-endpoints": {
-                  "version": "3.2.7"
+                  "version": "3.2.8"
                 },
                 "@smithy/util-middleware": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3042,18 +3009,18 @@
               }
             },
             "@smithy/core": {
-              "version": "3.20.1",
-              "resolved": "https://registry.npmjs.org/@smithy/core/-/core-3.20.1.tgz",
+              "version": "3.22.1",
+              "resolved": "https://registry.npmjs.org/@smithy/core/-/core-3.22.1.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/middleware-serde": {
-                  "version": "4.2.8"
+                  "version": "4.2.9"
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/util-base64": {
                   "version": "4.3.0"
@@ -3062,21 +3029,21 @@
                   "version": "4.2.0"
                 },
                 "@smithy/util-middleware": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/util-stream": {
-                  "version": "4.5.8",
-                  "resolved": "https://registry.npmjs.org/@smithy/util-stream/-/util-stream-4.5.8.tgz",
+                  "version": "4.5.11",
+                  "resolved": "https://registry.npmjs.org/@smithy/util-stream/-/util-stream-4.5.11.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/fetch-http-handler": {
-                      "version": "5.3.8"
+                      "version": "5.3.9"
                     },
                     "@smithy/node-http-handler": {
-                      "version": "4.4.7"
+                      "version": "4.4.9"
                     },
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "@smithy/util-base64": {
                       "version": "4.3.0"
@@ -3114,20 +3081,20 @@
               }
             },
             "@smithy/fetch-http-handler": {
-              "version": "5.3.8",
-              "resolved": "https://registry.npmjs.org/@smithy/fetch-http-handler/-/fetch-http-handler-5.3.8.tgz",
+              "version": "5.3.9",
+              "resolved": "https://registry.npmjs.org/@smithy/fetch-http-handler/-/fetch-http-handler-5.3.9.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/querystring-builder": {
-                  "version": "4.2.7",
-                  "resolved": "https://registry.npmjs.org/@smithy/querystring-builder/-/querystring-builder-4.2.7.tgz",
+                  "version": "4.2.8",
+                  "resolved": "https://registry.npmjs.org/@smithy/querystring-builder/-/querystring-builder-4.2.8.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "@smithy/util-uri-escape": {
                       "version": "4.2.0"
@@ -3138,7 +3105,7 @@
                   }
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/util-base64": {
                   "version": "4.3.0"
@@ -3149,12 +3116,12 @@
               }
             },
             "@smithy/hash-node": {
-              "version": "4.2.7",
-              "resolved": "https://registry.npmjs.org/@smithy/hash-node/-/hash-node-4.2.7.tgz",
+              "version": "4.2.8",
+              "resolved": "https://registry.npmjs.org/@smithy/hash-node/-/hash-node-4.2.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/util-buffer-from": {
                   "version": "4.2.0",
@@ -3178,12 +3145,12 @@
               }
             },
             "@smithy/invalid-dependency": {
-              "version": "4.2.7",
-              "resolved": "https://registry.npmjs.org/@smithy/invalid-dependency/-/invalid-dependency-4.2.7.tgz",
+              "version": "4.2.8",
+              "resolved": "https://registry.npmjs.org/@smithy/invalid-dependency/-/invalid-dependency-4.2.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3191,15 +3158,15 @@
               }
             },
             "@smithy/middleware-content-length": {
-              "version": "4.2.7",
-              "resolved": "https://registry.npmjs.org/@smithy/middleware-content-length/-/middleware-content-length-4.2.7.tgz",
+              "version": "4.2.8",
+              "resolved": "https://registry.npmjs.org/@smithy/middleware-content-length/-/middleware-content-length-4.2.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3207,30 +3174,30 @@
               }
             },
             "@smithy/middleware-endpoint": {
-              "version": "4.4.2",
-              "resolved": "https://registry.npmjs.org/@smithy/middleware-endpoint/-/middleware-endpoint-4.4.2.tgz",
+              "version": "4.4.13",
+              "resolved": "https://registry.npmjs.org/@smithy/middleware-endpoint/-/middleware-endpoint-4.4.13.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/core": {
-                  "version": "3.20.1"
+                  "version": "3.22.1"
                 },
                 "@smithy/middleware-serde": {
-                  "version": "4.2.8"
+                  "version": "4.2.9"
                 },
                 "@smithy/node-config-provider": {
-                  "version": "4.3.7"
+                  "version": "4.3.8"
                 },
                 "@smithy/shared-ini-file-loader": {
-                  "version": "4.4.2"
+                  "version": "4.4.3"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/url-parser": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/util-middleware": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3238,37 +3205,37 @@
               }
             },
             "@smithy/middleware-retry": {
-              "version": "4.4.18",
-              "resolved": "https://registry.npmjs.org/@smithy/middleware-retry/-/middleware-retry-4.4.18.tgz",
+              "version": "4.4.30",
+              "resolved": "https://registry.npmjs.org/@smithy/middleware-retry/-/middleware-retry-4.4.30.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/node-config-provider": {
-                  "version": "4.3.7"
+                  "version": "4.3.8"
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/service-error-classification": {
-                  "version": "4.2.7",
-                  "resolved": "https://registry.npmjs.org/@smithy/service-error-classification/-/service-error-classification-4.2.7.tgz",
+                  "version": "4.2.8",
+                  "resolved": "https://registry.npmjs.org/@smithy/service-error-classification/-/service-error-classification-4.2.8.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     }
                   }
                 },
                 "@smithy/smithy-client": {
-                  "version": "4.10.3"
+                  "version": "4.11.2"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/util-middleware": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/util-retry": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/uuid": {
                   "version": "1.1.0"
@@ -3279,15 +3246,15 @@
               }
             },
             "@smithy/middleware-serde": {
-              "version": "4.2.8",
-              "resolved": "https://registry.npmjs.org/@smithy/middleware-serde/-/middleware-serde-4.2.8.tgz",
+              "version": "4.2.9",
+              "resolved": "https://registry.npmjs.org/@smithy/middleware-serde/-/middleware-serde-4.2.9.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3295,12 +3262,12 @@
               }
             },
             "@smithy/middleware-stack": {
-              "version": "4.2.7",
-              "resolved": "https://registry.npmjs.org/@smithy/middleware-stack/-/middleware-stack-4.2.7.tgz",
+              "version": "4.2.8",
+              "resolved": "https://registry.npmjs.org/@smithy/middleware-stack/-/middleware-stack-4.2.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3308,18 +3275,18 @@
               }
             },
             "@smithy/node-config-provider": {
-              "version": "4.3.7",
-              "resolved": "https://registry.npmjs.org/@smithy/node-config-provider/-/node-config-provider-4.3.7.tgz",
+              "version": "4.3.8",
+              "resolved": "https://registry.npmjs.org/@smithy/node-config-provider/-/node-config-provider-4.3.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/property-provider": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/shared-ini-file-loader": {
-                  "version": "4.4.2"
+                  "version": "4.4.3"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3327,17 +3294,17 @@
               }
             },
             "@smithy/node-http-handler": {
-              "version": "4.4.7",
-              "resolved": "https://registry.npmjs.org/@smithy/node-http-handler/-/node-http-handler-4.4.7.tgz",
+              "version": "4.4.9",
+              "resolved": "https://registry.npmjs.org/@smithy/node-http-handler/-/node-http-handler-4.4.9.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/abort-controller": {
-                  "version": "4.2.7",
-                  "resolved": "https://registry.npmjs.org/@smithy/abort-controller/-/abort-controller-4.2.7.tgz",
+                  "version": "4.2.8",
+                  "resolved": "https://registry.npmjs.org/@smithy/abort-controller/-/abort-controller-4.2.8.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -3345,13 +3312,13 @@
                   }
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/querystring-builder": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3359,12 +3326,12 @@
               }
             },
             "@smithy/protocol-http": {
-              "version": "5.3.7",
-              "resolved": "https://registry.npmjs.org/@smithy/protocol-http/-/protocol-http-5.3.7.tgz",
+              "version": "5.3.8",
+              "resolved": "https://registry.npmjs.org/@smithy/protocol-http/-/protocol-http-5.3.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3372,27 +3339,27 @@
               }
             },
             "@smithy/smithy-client": {
-              "version": "4.10.3",
-              "resolved": "https://registry.npmjs.org/@smithy/smithy-client/-/smithy-client-4.10.3.tgz",
+              "version": "4.11.2",
+              "resolved": "https://registry.npmjs.org/@smithy/smithy-client/-/smithy-client-4.11.2.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/core": {
-                  "version": "3.20.1"
+                  "version": "3.22.1"
                 },
                 "@smithy/middleware-endpoint": {
-                  "version": "4.4.2"
+                  "version": "4.4.13"
                 },
                 "@smithy/middleware-stack": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/protocol-http": {
-                  "version": "5.3.7"
+                  "version": "5.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "@smithy/util-stream": {
-                  "version": "4.5.8"
+                  "version": "4.5.11"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3400,8 +3367,8 @@
               }
             },
             "@smithy/types": {
-              "version": "4.11.0",
-              "resolved": "https://registry.npmjs.org/@smithy/types/-/types-4.11.0.tgz",
+              "version": "4.12.0",
+              "resolved": "https://registry.npmjs.org/@smithy/types/-/types-4.12.0.tgz",
               "overridden": false,
               "dependencies": {
                 "tslib": {
@@ -3410,17 +3377,17 @@
               }
             },
             "@smithy/url-parser": {
-              "version": "4.2.7",
-              "resolved": "https://registry.npmjs.org/@smithy/url-parser/-/url-parser-4.2.7.tgz",
+              "version": "4.2.8",
+              "resolved": "https://registry.npmjs.org/@smithy/url-parser/-/url-parser-4.2.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/querystring-parser": {
-                  "version": "4.2.7",
-                  "resolved": "https://registry.npmjs.org/@smithy/querystring-parser/-/querystring-parser-4.2.7.tgz",
+                  "version": "4.2.8",
+                  "resolved": "https://registry.npmjs.org/@smithy/querystring-parser/-/querystring-parser-4.2.8.tgz",
                   "overridden": false,
                   "dependencies": {
                     "@smithy/types": {
-                      "version": "4.11.0"
+                      "version": "4.12.0"
                     },
                     "tslib": {
                       "version": "2.8.1"
@@ -3428,7 +3395,7 @@
                   }
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3472,18 +3439,18 @@
               }
             },
             "@smithy/util-defaults-mode-browser": {
-              "version": "4.3.17",
-              "resolved": "https://registry.npmjs.org/@smithy/util-defaults-mode-browser/-/util-defaults-mode-browser-4.3.17.tgz",
+              "version": "4.3.29",
+              "resolved": "https://registry.npmjs.org/@smithy/util-defaults-mode-browser/-/util-defaults-mode-browser-4.3.29.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/property-provider": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/smithy-client": {
-                  "version": "4.10.3"
+                  "version": "4.11.2"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3491,27 +3458,27 @@
               }
             },
             "@smithy/util-defaults-mode-node": {
-              "version": "4.2.20",
-              "resolved": "https://registry.npmjs.org/@smithy/util-defaults-mode-node/-/util-defaults-mode-node-4.2.20.tgz",
+              "version": "4.2.32",
+              "resolved": "https://registry.npmjs.org/@smithy/util-defaults-mode-node/-/util-defaults-mode-node-4.2.32.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/config-resolver": {
-                  "version": "4.4.5"
+                  "version": "4.4.6"
                 },
                 "@smithy/credential-provider-imds": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/node-config-provider": {
-                  "version": "4.3.7"
+                  "version": "4.3.8"
                 },
                 "@smithy/property-provider": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/smithy-client": {
-                  "version": "4.10.3"
+                  "version": "4.11.2"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3519,15 +3486,15 @@
               }
             },
             "@smithy/util-endpoints": {
-              "version": "3.2.7",
-              "resolved": "https://registry.npmjs.org/@smithy/util-endpoints/-/util-endpoints-3.2.7.tgz",
+              "version": "3.2.8",
+              "resolved": "https://registry.npmjs.org/@smithy/util-endpoints/-/util-endpoints-3.2.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/node-config-provider": {
-                  "version": "4.3.7"
+                  "version": "4.3.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3535,12 +3502,12 @@
               }
             },
             "@smithy/util-middleware": {
-              "version": "4.2.7",
-              "resolved": "https://registry.npmjs.org/@smithy/util-middleware/-/util-middleware-4.2.7.tgz",
+              "version": "4.2.8",
+              "resolved": "https://registry.npmjs.org/@smithy/util-middleware/-/util-middleware-4.2.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -3548,15 +3515,15 @@
               }
             },
             "@smithy/util-retry": {
-              "version": "4.2.7",
-              "resolved": "https://registry.npmjs.org/@smithy/util-retry/-/util-retry-4.2.7.tgz",
+              "version": "4.2.8",
+              "resolved": "https://registry.npmjs.org/@smithy/util-retry/-/util-retry-4.2.8.tgz",
               "overridden": false,
               "dependencies": {
                 "@smithy/service-error-classification": {
-                  "version": "4.2.7"
+                  "version": "4.2.8"
                 },
                 "@smithy/types": {
-                  "version": "4.11.0"
+                  "version": "4.12.0"
                 },
                 "tslib": {
                   "version": "2.8.1"
@@ -4800,6 +4767,247 @@
           "version": "4.8.4",
           "resolved": "https://registry.npmjs.org/node-gyp-build/-/node-gyp-build-4.8.4.tgz",
           "overridden": false
+        }
+      }
+    },
+    "better-sqlite3": {
+      "version": "12.6.2",
+      "resolved": "https://registry.npmjs.org/better-sqlite3/-/better-sqlite3-12.6.2.tgz",
+      "overridden": false,
+      "dependencies": {
+        "bindings": {
+          "version": "1.5.0",
+          "resolved": "https://registry.npmjs.org/bindings/-/bindings-1.5.0.tgz",
+          "overridden": false,
+          "dependencies": {
+            "file-uri-to-path": {
+              "version": "1.0.0",
+              "resolved": "https://registry.npmjs.org/file-uri-to-path/-/file-uri-to-path-1.0.0.tgz",
+              "overridden": false
+            }
+          }
+        },
+        "prebuild-install": {
+          "version": "7.1.3",
+          "resolved": "https://registry.npmjs.org/prebuild-install/-/prebuild-install-7.1.3.tgz",
+          "overridden": false,
+          "dependencies": {
+            "detect-libc": {
+              "version": "2.1.2",
+              "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.1.2.tgz",
+              "overridden": false
+            },
+            "expand-template": {
+              "version": "2.0.3",
+              "resolved": "https://registry.npmjs.org/expand-template/-/expand-template-2.0.3.tgz",
+              "overridden": false
+            },
+            "github-from-package": {
+              "version": "0.0.0",
+              "resolved": "https://registry.npmjs.org/github-from-package/-/github-from-package-0.0.0.tgz",
+              "overridden": false
+            },
+            "minimist": {
+              "version": "1.2.8",
+              "resolved": "https://registry.npmjs.org/minimist/-/minimist-1.2.8.tgz",
+              "overridden": false
+            },
+            "mkdirp-classic": {
+              "version": "0.5.3",
+              "resolved": "https://registry.npmjs.org/mkdirp-classic/-/mkdirp-classic-0.5.3.tgz",
+              "overridden": false
+            },
+            "napi-build-utils": {
+              "version": "2.0.0",
+              "resolved": "https://registry.npmjs.org/napi-build-utils/-/napi-build-utils-2.0.0.tgz",
+              "overridden": false
+            },
+            "node-abi": {
+              "version": "3.87.0",
+              "resolved": "https://registry.npmjs.org/node-abi/-/node-abi-3.87.0.tgz",
+              "overridden": false,
+              "dependencies": {
+                "semver": {
+                  "version": "7.7.3",
+                  "resolved": "https://registry.npmjs.org/semver/-/semver-7.7.3.tgz",
+                  "overridden": false
+                }
+              }
+            },
+            "pump": {
+              "version": "3.0.3",
+              "resolved": "https://registry.npmjs.org/pump/-/pump-3.0.3.tgz",
+              "overridden": false,
+              "dependencies": {
+                "end-of-stream": {
+                  "version": "1.4.5",
+                  "resolved": "https://registry.npmjs.org/end-of-stream/-/end-of-stream-1.4.5.tgz",
+                  "overridden": false,
+                  "dependencies": {
+                    "once": {
+                      "version": "1.4.0"
+                    }
+                  }
+                },
+                "once": {
+                  "version": "1.4.0"
+                }
+              }
+            },
+            "rc": {
+              "version": "1.2.8",
+              "resolved": "https://registry.npmjs.org/rc/-/rc-1.2.8.tgz",
+              "overridden": false,
+              "dependencies": {
+                "deep-extend": {
+                  "version": "0.6.0",
+                  "resolved": "https://registry.npmjs.org/deep-extend/-/deep-extend-0.6.0.tgz",
+                  "overridden": false
+                },
+                "ini": {
+                  "version": "1.3.8",
+                  "resolved": "https://registry.npmjs.org/ini/-/ini-1.3.8.tgz",
+                  "overridden": false
+                },
+                "minimist": {
+                  "version": "1.2.8"
+                },
+                "strip-json-comments": {
+                  "version": "2.0.1",
+                  "resolved": "https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-2.0.1.tgz",
+                  "overridden": false
+                }
+              }
+            },
+            "simple-get": {
+              "version": "4.0.1",
+              "resolved": "https://registry.npmjs.org/simple-get/-/simple-get-4.0.1.tgz",
+              "overridden": false,
+              "dependencies": {
+                "decompress-response": {
+                  "version": "6.0.0",
+                  "resolved": "https://registry.npmjs.org/decompress-response/-/decompress-response-6.0.0.tgz",
+                  "overridden": false,
+                  "dependencies": {
+                    "mimic-response": {
+                      "version": "3.1.0",
+                      "resolved": "https://registry.npmjs.org/mimic-response/-/mimic-response-3.1.0.tgz",
+                      "overridden": false
+                    }
+                  }
+                },
+                "once": {
+                  "version": "1.4.0"
+                },
+                "simple-concat": {
+                  "version": "1.0.1",
+                  "resolved": "https://registry.npmjs.org/simple-concat/-/simple-concat-1.0.1.tgz",
+                  "overridden": false
+                }
+              }
+            },
+            "tar-fs": {
+              "version": "2.1.4",
+              "resolved": "https://registry.npmjs.org/tar-fs/-/tar-fs-2.1.4.tgz",
+              "overridden": false,
+              "dependencies": {
+                "chownr": {
+                  "version": "1.1.4",
+                  "resolved": "https://registry.npmjs.org/chownr/-/chownr-1.1.4.tgz",
+                  "overridden": false
+                },
+                "mkdirp-classic": {
+                  "version": "0.5.3"
+                },
+                "pump": {
+                  "version": "3.0.3"
+                },
+                "tar-stream": {
+                  "version": "2.2.0",
+                  "resolved": "https://registry.npmjs.org/tar-stream/-/tar-stream-2.2.0.tgz",
+                  "overridden": false,
+                  "dependencies": {
+                    "bl": {
+                      "version": "4.1.0",
+                      "resolved": "https://registry.npmjs.org/bl/-/bl-4.1.0.tgz",
+                      "overridden": false,
+                      "dependencies": {
+                        "buffer": {
+                          "version": "5.7.1",
+                          "resolved": "https://registry.npmjs.org/buffer/-/buffer-5.7.1.tgz",
+                          "overridden": false,
+                          "dependencies": {
+                            "base64-js": {
+                              "version": "1.5.1",
+                              "resolved": "https://registry.npmjs.org/base64-js/-/base64-js-1.5.1.tgz",
+                              "overridden": false
+                            },
+                            "ieee754": {
+                              "version": "1.2.1",
+                              "resolved": "https://registry.npmjs.org/ieee754/-/ieee754-1.2.1.tgz",
+                              "overridden": false
+                            }
+                          }
+                        },
+                        "inherits": {
+                          "version": "2.0.4"
+                        },
+                        "readable-stream": {
+                          "version": "3.6.2"
+                        }
+                      }
+                    },
+                    "end-of-stream": {
+                      "version": "1.4.5"
+                    },
+                    "fs-constants": {
+                      "version": "1.0.0",
+                      "resolved": "https://registry.npmjs.org/fs-constants/-/fs-constants-1.0.0.tgz",
+                      "overridden": false
+                    },
+                    "inherits": {
+                      "version": "2.0.4"
+                    },
+                    "readable-stream": {
+                      "version": "3.6.2",
+                      "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-3.6.2.tgz",
+                      "overridden": false,
+                      "dependencies": {
+                        "inherits": {
+                          "version": "2.0.4"
+                        },
+                        "string_decoder": {
+                          "version": "1.3.0",
+                          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.3.0.tgz",
+                          "overridden": false,
+                          "dependencies": {
+                            "safe-buffer": {
+                              "version": "5.2.1"
+                            }
+                          }
+                        },
+                        "util-deprecate": {
+                          "version": "1.0.2",
+                          "resolved": "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz",
+                          "overridden": false
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "tunnel-agent": {
+              "version": "0.6.0",
+              "resolved": "https://registry.npmjs.org/tunnel-agent/-/tunnel-agent-0.6.0.tgz",
+              "overridden": false,
+              "dependencies": {
+                "safe-buffer": {
+                  "version": "5.2.1"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -7627,8 +7835,8 @@
           "overridden": false
         },
         "diff": {
-          "version": "4.0.2",
-          "resolved": "https://registry.npmjs.org/diff/-/diff-4.0.2.tgz",
+          "version": "4.0.4",
+          "resolved": "https://registry.npmjs.org/diff/-/diff-4.0.4.tgz",
           "overridden": false
         },
         "make-error": {
