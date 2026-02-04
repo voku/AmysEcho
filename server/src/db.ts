@@ -1,6 +1,4 @@
 import { randomBytes } from "crypto";
-import { promises as fs } from "fs";
-import path from "path";
 import type {
 	Correction,
 	InteractionLog,
@@ -15,6 +13,55 @@ import type {
 	VocabularySet,
 	VocabularySetSymbol,
 } from "./types.js";
+import {
+	closeDatabase,
+	deleteProfileDataFromSqlite,
+	getAllCorrections,
+	getAllInteractionLogs,
+	getAllLearningAnalytics,
+	getAllNegativeSamples,
+	getAllProfiles,
+	getAllSignDefinitions,
+	getAllSignTrainingData,
+	getAllSymbols,
+	getAllUsageStats,
+	getAllUsers,
+	getAllVocabularySets,
+	getAllVocabularySetSymbols,
+	initializeDatabase,
+	insertCorrection as sqliteInsertCorrection,
+	insertInteractionLog,
+	insertLearningAnalytics,
+	insertNegativeSample,
+	insertProfile,
+	insertSignDefinition,
+	insertSignTrainingData,
+	insertSymbol,
+	insertUser,
+	insertUsageStat,
+	insertVocabularySet,
+	insertVocabularySetSymbol,
+	updateInteractionLogInDb,
+	updateLearningAnalyticsInDb,
+	updateProfileInDb,
+	updateSignDefinitionInDb,
+	updateSignTrainingDataInDb,
+	updateSymbolInDb,
+	updateUsageStatInDb,
+	updateUserInDb,
+	updateVocabularySetInDb,
+	updateVocabularySetSymbolInDb,
+	deleteInteractionLogById,
+	deleteLearningAnalyticsById,
+	deleteProfileById,
+	deleteSignDefinitionById,
+	deleteSignTrainingDataById,
+	deleteSymbolById,
+	deleteUsageStatById,
+	deleteVocabularySetById,
+	deleteVocabularySetSymbolById,
+} from "./sqliteDb.js";
+import { DB_SQLITE_PATH } from "./constants/dbPaths.js";
 
 export interface Database {
 	symbols: SymbolRecord[];
@@ -26,10 +73,35 @@ export interface Database {
 	vocabularySetSymbols: VocabularySetSymbol[];
 	usageStats: UsageStat[];
 	learningAnalytics: LearningAnalytics[];
-	corrections: Correction[]; // Added comment to force re-evaluation
+	corrections: Correction[];
 	negativeSamples: NegativeSample[];
 	users: StoredUser[];
 }
+
+// Track if SQLite is initialized
+let sqliteInitialized = false;
+
+// Current SQLite path for switching databases (tests)
+let currentSqlitePath: string = DB_SQLITE_PATH;
+
+/**
+ * Helper to execute SQLite insert, ignoring UNIQUE constraint violations
+ * for idempotent operations. Uses error code for robust detection.
+ */
+const insertIgnoringDuplicates = (insertFn: () => void): void => {
+	if (sqliteInitialized) {
+		try {
+			insertFn();
+		} catch (error) {
+			// Use error code for robust UNIQUE constraint detection
+			// better-sqlite3 sets code property on SqliteError
+			const sqliteError = error as { code?: string };
+			if (sqliteError.code !== "SQLITE_CONSTRAINT_UNIQUE") {
+				throw error;
+			}
+		}
+	}
+};
 
 export const createDatabase = (): Database => ({
 	symbols: [],
@@ -46,12 +118,17 @@ export const createDatabase = (): Database => ({
 	users: [],
 });
 
+/**
+ * Add a symbol to both the in-memory database and SQLite
+ */
 export const addSymbol = (db: Database, symbol: SymbolRecord): void => {
 	db.symbols.push(symbol);
+	insertIgnoringDuplicates(() => insertSymbol(symbol));
 };
 
 export const addSignDefinition = (db: Database, def: SignDefinition): void => {
 	db.signDefinitions.push(def);
+	insertIgnoringDuplicates(() => insertSignDefinition(def));
 };
 
 export const addSignTrainingData = (
@@ -59,18 +136,22 @@ export const addSignTrainingData = (
 	data: SignTrainingData,
 ): void => {
 	db.signTrainingData.push(data);
+	insertIgnoringDuplicates(() => insertSignTrainingData(data));
 };
 
 export const addInteractionLog = (db: Database, log: InteractionLog): void => {
 	db.interactionLogs.push(log);
+	insertIgnoringDuplicates(() => insertInteractionLog(log));
 };
 
 export const addProfile = (db: Database, profile: Profile): void => {
 	db.profiles.push(profile);
+	insertIgnoringDuplicates(() => insertProfile(profile));
 };
 
 export const addVocabularySet = (db: Database, set: VocabularySet): void => {
 	db.vocabularySets.push(set);
+	insertIgnoringDuplicates(() => insertVocabularySet(set));
 };
 
 export const addVocabularySetSymbol = (
@@ -78,10 +159,12 @@ export const addVocabularySetSymbol = (
 	link: VocabularySetSymbol,
 ): void => {
 	db.vocabularySetSymbols.push(link);
+	insertIgnoringDuplicates(() => insertVocabularySetSymbol(link));
 };
 
 export const addUsageStat = (db: Database, stat: UsageStat): void => {
 	db.usageStats.push(stat);
+	insertIgnoringDuplicates(() => insertUsageStat(stat));
 };
 
 export const addLearningAnalytics = (
@@ -89,6 +172,7 @@ export const addLearningAnalytics = (
 	la: LearningAnalytics,
 ): void => {
 	db.learningAnalytics.push(la);
+	insertIgnoringDuplicates(() => insertLearningAnalytics(la));
 };
 
 export const addNegativeSample = (
@@ -96,6 +180,12 @@ export const addNegativeSample = (
 	sample: NegativeSample,
 ): void => {
 	db.negativeSamples.push(sample);
+	insertIgnoringDuplicates(() => insertNegativeSample(sample));
+};
+
+export const addCorrection = (db: Database, corr: Correction): void => {
+	db.corrections.push(corr);
+	insertIgnoringDuplicates(() => sqliteInsertCorrection(corr));
 };
 
 export const addUser = (db: Database, user: StoredUser): void => {
@@ -104,13 +194,37 @@ export const addUser = (db: Database, user: StoredUser): void => {
 	if (existingUsername) {
 		throw new Error("Username already exists");
 	}
-	
+
 	const existingEmail = findUserByEmail(db, user.email);
 	if (existingEmail) {
 		throw new Error("Email already exists");
 	}
-	
-	db.users.push(user);
+
+	// Normalize username and email before storing
+	const normalizedUser = {
+		...user,
+		username: user.username.trim().toLowerCase(),
+		email: user.email.trim().toLowerCase(),
+	};
+
+	db.users.push(normalizedUser);
+	if (sqliteInitialized) {
+		insertUser(normalizedUser);
+	}
+};
+
+/**
+ * Update a user record in both in-memory database and SQLite
+ * Call this after modifying user properties to persist changes
+ */
+export const updateUser = (db: Database, user: StoredUser): void => {
+	const index = db.users.findIndex((u) => u.id === user.id);
+	if (index !== -1) {
+		db.users[index] = user;
+	}
+	if (sqliteInitialized) {
+		updateUserInDb(user);
+	}
 };
 
 export const findUserByUsername = (
@@ -118,6 +232,7 @@ export const findUserByUsername = (
 	username: string,
 ): StoredUser | undefined => {
 	const normalized = username.trim().toLowerCase();
+	// In-memory array is synced with SQLite, so just search there
 	return db.users.find((u) => u.username === normalized);
 };
 
@@ -126,13 +241,17 @@ export const findUserByEmail = (
 	email: string,
 ): StoredUser | undefined => {
 	const normalized = email.trim().toLowerCase();
+	// In-memory array is synced with SQLite, so just search there
 	return db.users.find((u) => u.email === normalized);
 };
 
 export const findUserById = (
 	db: Database,
 	id: string,
-): StoredUser | undefined => db.users.find((user) => user.id === id);
+): StoredUser | undefined => {
+	// In-memory array is synced with SQLite, so just search there
+	return db.users.find((user) => user.id === id);
+};
 
 const updateById = <T extends { id: string }>(items: T[], record: T): void => {
 	const index = items.findIndex((i) => i.id === record.id);
@@ -150,10 +269,16 @@ const removeById = <T extends { id: string }>(items: T[], id: string): void => {
 
 export const updateSymbol = (db: Database, symbol: SymbolRecord): void => {
 	updateById(db.symbols, symbol);
+	if (sqliteInitialized) {
+		updateSymbolInDb(symbol);
+	}
 };
 
 export const removeSymbol = (db: Database, id: string): void => {
 	removeById(db.symbols, id);
+	if (sqliteInitialized) {
+		deleteSymbolById(id);
+	}
 };
 
 export const updateSignDefinition = (
@@ -161,10 +286,16 @@ export const updateSignDefinition = (
 	def: SignDefinition,
 ): void => {
 	updateById(db.signDefinitions, def);
+	if (sqliteInitialized) {
+		updateSignDefinitionInDb(def);
+	}
 };
 
 export const removeSignDefinition = (db: Database, id: string): void => {
 	removeById(db.signDefinitions, id);
+	if (sqliteInitialized) {
+		deleteSignDefinitionById(id);
+	}
 };
 
 export const updateSignTrainingData = (
@@ -172,10 +303,16 @@ export const updateSignTrainingData = (
 	data: SignTrainingData,
 ): void => {
 	updateById(db.signTrainingData, data);
+	if (sqliteInitialized) {
+		updateSignTrainingDataInDb(data);
+	}
 };
 
 export const removeSignTrainingData = (db: Database, id: string): void => {
 	removeById(db.signTrainingData, id);
+	if (sqliteInitialized) {
+		deleteSignTrainingDataById(id);
+	}
 };
 
 export const updateInteractionLog = (
@@ -183,18 +320,30 @@ export const updateInteractionLog = (
 	log: InteractionLog,
 ): void => {
 	updateById(db.interactionLogs, log);
+	if (sqliteInitialized) {
+		updateInteractionLogInDb(log);
+	}
 };
 
 export const removeInteractionLog = (db: Database, id: string): void => {
 	removeById(db.interactionLogs, id);
+	if (sqliteInitialized) {
+		deleteInteractionLogById(id);
+	}
 };
 
 export const updateProfile = (db: Database, profile: Profile): void => {
 	updateById(db.profiles, profile);
+	if (sqliteInitialized) {
+		updateProfileInDb(profile);
+	}
 };
 
 export const updateVocabularySet = (db: Database, set: VocabularySet): void => {
 	updateById(db.vocabularySets, set);
+	if (sqliteInitialized) {
+		updateVocabularySetInDb(set);
+	}
 };
 
 export const updateVocabularySetSymbol = (
@@ -202,26 +351,44 @@ export const updateVocabularySetSymbol = (
 	link: VocabularySetSymbol,
 ): void => {
 	updateById(db.vocabularySetSymbols, link);
+	if (sqliteInitialized) {
+		updateVocabularySetSymbolInDb(link);
+	}
 };
 
 export const updateUsageStat = (db: Database, stat: UsageStat): void => {
 	updateById(db.usageStats, stat);
+	if (sqliteInitialized) {
+		updateUsageStatInDb(stat);
+	}
 };
 
 export const removeProfile = (db: Database, id: string): void => {
 	removeById(db.profiles, id);
+	if (sqliteInitialized) {
+		deleteProfileById(id);
+	}
 };
 
 export const removeVocabularySet = (db: Database, id: string): void => {
 	removeById(db.vocabularySets, id);
+	if (sqliteInitialized) {
+		deleteVocabularySetById(id);
+	}
 };
 
 export const removeVocabularySetSymbol = (db: Database, id: string): void => {
 	removeById(db.vocabularySetSymbols, id);
+	if (sqliteInitialized) {
+		deleteVocabularySetSymbolById(id);
+	}
 };
 
 export const removeUsageStat = (db: Database, id: string): void => {
 	removeById(db.usageStats, id);
+	if (sqliteInitialized) {
+		deleteUsageStatById(id);
+	}
 };
 
 export const updateLearningAnalytics = (
@@ -229,10 +396,16 @@ export const updateLearningAnalytics = (
 	la: LearningAnalytics,
 ): void => {
 	updateById(db.learningAnalytics, la);
+	if (sqliteInitialized) {
+		updateLearningAnalyticsInDb(la);
+	}
 };
 
 export const removeLearningAnalytics = (db: Database, id: string): void => {
 	removeById(db.learningAnalytics, id);
+	if (sqliteInitialized) {
+		deleteLearningAnalyticsById(id);
+	}
 };
 
 export const getSymbolById = (
@@ -280,57 +453,59 @@ export const getLearningAnalyticsById = (
 ): LearningAnalytics | undefined =>
 	db.learningAnalytics.find((l) => l.id === id);
 
+/**
+ * Save database to disk.
+ * With SQLite backend, this is a no-op as all operations are immediately persisted.
+ * Kept for API compatibility with existing code.
+ *
+ * @param db - The in-memory database instance (ignored with SQLite)
+ * @param filePath - The file path (ignored with SQLite, kept for compatibility)
+ */
 export const saveDatabase = async (
-	db: Database,
-	filePath: string,
+	_db: Database,
+	_filePath: string,
 ): Promise<void> => {
-	await fs.mkdir(path.dirname(filePath), { recursive: true });
-	await fs.writeFile(filePath, JSON.stringify(db, null, 2), "utf8");
+	// No-op: SQLite persists all changes immediately
+	// This function is kept for API compatibility with existing code
 };
 
+/**
+ * Load database from SQLite storage
+ * Initializes SQLite if not already done and loads all data into memory structure
+ *
+ * @param filePath - Path for backward compatibility (derives SQLite path from it)
+ * @returns Promise<Database> - The in-memory database populated from SQLite
+ */
 export const loadDatabase = async (filePath: string): Promise<Database> => {
-	try {
-		const data = await fs.readFile(filePath, "utf8");
-		const parsed = JSON.parse(data) as Partial<Database>;
-		const base = createDatabase();
-		Object.assign(base, parsed);
-		if (!Array.isArray(base.users)) {
-			base.users = [];
-		}
-		base.users = base.users
-			.filter(
-				(user): user is StoredUser & { username: string } =>
-					!!user && typeof user.username === "string",
-			)
-			.map((user) => ({
-				...user,
-				username: user.username.trim().toLowerCase(),
-				email:
-					typeof user.email === "string" ? user.email.trim().toLowerCase() : "",
-				displayName:
-					typeof user.displayName === "string" ? user.displayName : undefined,
-				emailVerifiedAt:
-					typeof user.emailVerifiedAt === "number"
-						? user.emailVerifiedAt
-						: undefined,
-				emailVerificationTokenHash:
-					typeof user.emailVerificationTokenHash === "string"
-						? user.emailVerificationTokenHash
-						: undefined,
-				emailVerificationExpiresAt:
-					typeof user.emailVerificationExpiresAt === "number"
-						? user.emailVerificationExpiresAt
-						: undefined,
-				emailVerificationSentAt:
-					typeof user.emailVerificationSentAt === "number"
-						? user.emailVerificationSentAt
-						: undefined,
-			}));
-		return base;
-	} catch (error) {
-		console.error("Failed to load database, creating a new one.", error);
-		return createDatabase();
+	// Derive SQLite path from the JSON path for test isolation
+	const sqlitePath = filePath.replace(/\.json$/, ".sqlite");
+
+	// If path changed, close existing connection
+	if (currentSqlitePath !== sqlitePath) {
+		closeDatabase();
+		sqliteInitialized = false;
+		currentSqlitePath = sqlitePath;
 	}
+
+	// Initialize SQLite (will migrate from JSON if exists)
+	await initializeDatabase(sqlitePath, filePath);
+	sqliteInitialized = true;
+
+	// Load all data from SQLite into memory structure
+	return {
+		symbols: getAllSymbols(),
+		signDefinitions: getAllSignDefinitions(),
+		signTrainingData: getAllSignTrainingData(),
+		interactionLogs: getAllInteractionLogs(),
+		profiles: getAllProfiles(),
+		vocabularySets: getAllVocabularySets(),
+		vocabularySetSymbols: getAllVocabularySetSymbols(),
+		usageStats: getAllUsageStats(),
+		learningAnalytics: getAllLearningAnalytics(),
+		corrections: getAllCorrections(),
+		negativeSamples: getAllNegativeSamples(),
+		users: getAllUsers(),
+	};
 };
 
 // Utility to create a cryptographically secure unique id
@@ -348,7 +523,8 @@ export const seedProfileSymbols = (db: Database, profileId: string): void => {
 				id: profileSymbolId, // Unique ID for profile symbol
 				profileId,
 			};
-			db.symbols.push(profileSymbol);
+			// Use addSymbol which handles both memory and SQLite
+			addSymbol(db, profileSymbol);
 		}
 	}
 };
@@ -356,15 +532,16 @@ export const seedProfileSymbols = (db: Database, profileId: string): void => {
 export const persistProfile = async (
 	db: Database,
 	profile: Profile,
-	filePath: string,
+	_filePath: string,
 ): Promise<void> => {
 	const existing = db.profiles.find((p) => p.id === profile.id);
 	if (existing) {
-		updateById(db.profiles, profile);
+		updateProfile(db, profile);
 	} else {
 		addProfile(db, profile);
 	}
-	await saveDatabase(db, filePath);
+	// saveDatabase is now a no-op with SQLite
+	await saveDatabase(db, _filePath);
 };
 
 export const getProfileData = (db: Database, profileId: string) => ({
@@ -373,15 +550,23 @@ export const getProfileData = (db: Database, profileId: string) => ({
 	corrections: db.corrections.filter((c) => c.profileId === profileId),
 });
 
+/**
+ * Delete all profile data from both in-memory database and SQLite
+ */
 export const deleteProfileData = async (
 	db: Database,
 	profileId: string,
-	filePath: string,
+	_filePath: string,
 ): Promise<void> => {
+	// Update in-memory arrays
 	db.profiles = db.profiles.filter((p) => p.id !== profileId);
 	db.usageStats = db.usageStats.filter((u) => u.profileId !== profileId);
 	db.corrections = db.corrections.filter((c) => c.profileId !== profileId);
-	await saveDatabase(db, filePath);
+
+	// Delete from SQLite
+	if (sqliteInitialized) {
+		deleteProfileDataFromSqlite(profileId);
+	}
 };
 
 export const logCorrection = (
@@ -414,7 +599,6 @@ export const logCorrection = (
 
 export async function setupDatabase(filePath: string): Promise<Database> {
 	const db = await loadDatabase(filePath);
-	let changed = false;
 
 	// Profiles are now created via user registration only
 	// No automatic profile creation or migration
@@ -507,39 +691,35 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 			},
 		];
 
-		const defaults: SymbolRecord[] = defaultLabels.map((label) => ({
-			id: label.id,
-			name: label.name,
-			emoji: label.emoji,
-			color: label.color,
-			category: label.category,
-			imageUrl: undefined,
-			audioUri: `${label.id}.mp3`,
-			dgsVideoUri: `dgs/${label.id}.mp4`,
-			healthScore: 1,
-		}));
-		db.symbols.push(...defaults);
-		changed = true;
+		for (const label of defaultLabels) {
+			const symbol: SymbolRecord = {
+				id: label.id,
+				name: label.name,
+				emoji: label.emoji,
+				color: label.color,
+				category: label.category,
+				imageUrl: undefined,
+				audioUri: `${label.id}.mp3`,
+				dgsVideoUri: `dgs/${label.id}.mp4`,
+				healthScore: 1,
+			};
+			addSymbol(db, symbol);
+		}
 	}
 
 	if (db.vocabularySets.length === 0) {
-		const sets: VocabularySet[] = [
-			{ id: "basic", name: "Basic" },
-			{ id: "animals", name: "Animals" },
-		];
-		db.vocabularySets.push(...sets);
-		changed = true;
+		addVocabularySet(db, { id: "basic", name: "Basic" });
+		addVocabularySet(db, { id: "animals", name: "Animals" });
 	}
 
 	if (db.vocabularySetSymbols.length === 0 && db.symbols.length > 0) {
 		for (const sym of db.symbols) {
-			db.vocabularySetSymbols.push({
+			addVocabularySetSymbol(db, {
 				id: generateId(),
 				vocabularySetId: "basic",
 				symbolId: sym.id,
 			});
 		}
-		changed = true;
 	}
 
 	if (db.usageStats.length === 0 && db.symbols.length > 0 && db.profiles.length > 0) {
@@ -547,18 +727,13 @@ export async function setupDatabase(filePath: string): Promise<Database> {
 		// In production, profiles are created via user registration
 		const defaultProfileId = db.profiles[0].id;
 		for (const sym of db.symbols) {
-			db.usageStats.push({
+			addUsageStat(db, {
 				id: generateId(),
 				symbolId: sym.id,
 				profileId: defaultProfileId,
 				count: 0,
 			});
 		}
-		changed = true;
-	}
-
-	if (changed) {
-		await saveDatabase(db, filePath);
 	}
 
 	return db;

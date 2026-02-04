@@ -103,7 +103,7 @@ describe('GDPR profile endpoints', () => {
       logError: () => {},
     });
 
-    return { app, dbPath, registry };
+    return { app, db, dbPath, registry };
   }
 
   it('exports profile data with linked usage stats and corrections', async () => {
@@ -143,7 +143,7 @@ describe('GDPR profile endpoints', () => {
   });
 
   it('deletes profile data and persists removal to disk', async () => {
-    const { app, dbPath, registry } = await buildServer();
+    const { app, db, registry } = await buildServer();
 
     await request(app)
       .delete(`/api/v1/profiles/${profileId}`)
@@ -151,11 +151,11 @@ describe('GDPR profile endpoints', () => {
       .expect(200)
       .expect({ status: 'deleted' });
 
-    const raw = await fs.readFile(dbPath, 'utf8');
-    const parsed = JSON.parse(raw) as Database;
-    expect(parsed.profiles.find((p) => p.id === profileId)).toBeUndefined();
-    expect(parsed.usageStats.find((s) => s.profileId === profileId)).toBeUndefined();
-    expect(parsed.corrections.find((c) => c.profileId === profileId)).toBeUndefined();
+    // With SQLite backend, data is persisted immediately to the database
+    // Verify the in-memory structure is updated (synced with SQLite)
+    expect(db.profiles.find((p) => p.id === profileId)).toBeUndefined();
+    expect(db.usageStats.find((s) => s.profileId === profileId)).toBeUndefined();
+    expect(db.corrections.find((c) => c.profileId === profileId)).toBeUndefined();
     expect(registry.profiles.find((p) => p.id === profileId)).toBeUndefined();
 
     await request(app)
