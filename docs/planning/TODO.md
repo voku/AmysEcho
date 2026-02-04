@@ -158,10 +158,12 @@ _Reference: `docs/security/SECURITY_AUDIT_2026-02-02.md` and `docs/security/READ
 - [ ] **Database Migration**: Migrate from JSON file database to SQLite/PostgreSQL for production (JSON file unsuitable for concurrent access at scale).
 
 ### Dependency Security
-_Reference: `npm audit` output showing 19 high severity vulnerabilities in server dependencies_
+_Reference: `npm audit` output showing 20 vulnerabilities in server dependencies_
 
-- [ ] **Fix AWS SDK Vulnerabilities**: Update `@aws-sdk/*` packages to resolve 19 high severity vulnerabilities related to `fast-xml-parser` DoS issue.
+- [x] ~~**Fix AWS SDK Vulnerabilities**~~: ❌ **FALSE POSITIVE** — AWS SDK is NOT directly used. The 19 high severity vulnerabilities from `@aws-sdk/*` are transitive dependencies of `@types/nodemailer` (TypeScript type definitions only). The actual nodemailer uses sendmail/SMTP transport, not AWS SES. These are dev-time type definitions that don't affect runtime. _Verified 2026-02-04 by checking `npm why @aws-sdk/client-sesv2` → comes from `@types/nodemailer@7.0.5`._
+- [ ] **Fix diff/jsdiff Vulnerability**: Update `diff` package (4.0.0-4.0.3) to resolve DoS vulnerability in parsePatch/applyPatch (GHSA-73rr-hh4g-fpgx). Can be fixed with `npm audit fix`.
 - [ ] **Add Dependency Scanning to CI**: Add automated `npm audit` or Snyk scanning to CI pipeline to catch vulnerabilities before deployment.
+- [ ] **Consider Replacing @types/nodemailer**: The AWS SDK bloat from `@types/nodemailer` adds ~60+ packages for type definitions we don't fully use. Consider using minimal type definitions or contributing to DefinitelyTyped to make AWS SES types optional.
 
 ### Testing Coverage Goals (from Testing Strategy)
 _Reference: `docs/testing/TESTING_STRATEGY.md` — P0/P1 items not yet implemented_
