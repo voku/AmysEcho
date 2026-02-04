@@ -196,7 +196,7 @@ _Reference: `docs/testing/TESTING_STRATEGY.md` — P0/P1 items not yet implement
 ### Accessibility Testing
 _Reference: `docs/accessibility/contrast-audit.md` — contrast fixed, automated tests needed_
 
-- [ ] **Automated Accessibility Tests**: Add automated tests for WCAG compliance (color contrast, ARIA labels, semantic HTML).
+- [x] **Automated Accessibility Tests**: ✅ **IMPLEMENTED** — Added comprehensive automated tests for WCAG 2.1 compliance in `webapp/src/components/accessibility.test.tsx` (25 tests). Tests cover ARIA labels, semantic HTML, color contrast validation, keyboard navigation, screen reader compatibility, and Amy First accessibility principles. All tests passing. _Implemented 2026-02-04._
 - [ ] **Focus Management Tests**: Automated tests for focus trapping in modals and proper focus order.
 - [ ] **High Contrast Mode Tests**: Automated visual regression tests for high contrast mode.
 
