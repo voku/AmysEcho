@@ -377,37 +377,48 @@ Implement tiered rate limiting:
 ## ADR-010: CodeQL for Static Security Analysis
 
 **Date:** 2026-02-04  
-**Status:** Implemented  
+**Status:** Implemented (Using GitHub Default Setup)  
+**Last Updated:** 2026-02-04 (Removed custom workflow)  
 **Decision Makers:** Security Team
 
 ### Context
 Need automated security vulnerability detection in TypeScript and Python code.
 
 ### Decision
-Use GitHub CodeQL scanning:
-- Weekly scheduled scans
-- PR-triggered scans
+Use GitHub's default CodeQL scanning (repository-level feature):
+- Automatic scanning on push and PR
 - Security-extended query suite
 - JavaScript and Python analysis
+- Managed by GitHub (no custom workflow needed)
 
 ### Rationale
 - **Proactive security**: Find vulnerabilities before deployment
 - **Industry standard**: Used by GitHub and major projects
-- **Low friction**: Integrates with GitHub workflow
+- **Low friction**: No workflow maintenance required
 - **Comprehensive**: Covers common CVEs and OWASP Top 10
+- **Automatic updates**: GitHub manages CodeQL updates
 
 ### Consequences
-- ✅ Automated vulnerability detection
+- ✅ Automated vulnerability detection without custom workflow
 - ✅ PR blocking for high-severity issues
-- ✅ Weekly monitoring for new vulnerabilities
+- ✅ Weekly monitoring for new vulnerabilities (GitHub's schedule)
+- ✅ Zero maintenance - GitHub handles updates
 - ⚠️ May produce false positives requiring triage
-- ⚠️ Adds ~5-10 minutes to CI pipeline
+- ⚠️ Less control over scan timing and Python version
+- ⚠️ Cannot use custom CodeQL queries beyond security-extended
 
 ### Implementation Notes
-- Runs on push to main and all PRs
-- Weekly scheduled scan on Mondays
-- Results visible in Security tab
-- Blocking CI check for high-severity findings
+- Default CodeQL setup enabled in repository settings (Settings → Code security and analysis)
+- Results visible in Security → Code scanning tab
+- ~~Custom workflow (`.github/workflows/codeql.yml`)~~ - REMOVED due to conflict with default setup
+- **Conflict Resolution**: Custom CodeQL workflows cannot coexist with default setup. Error: "CodeQL analyses from advanced configurations cannot be processed when the default setup is enabled"
+- **Trade-off Accepted**: Default setup provides sufficient security coverage with less maintenance
+
+### Migration Note
+If custom CodeQL configuration is needed in the future:
+1. Disable default CodeQL in Settings → Code security and analysis
+2. Create custom `.github/workflows/codeql.yml` workflow
+3. Configure specific Python versions, query suites, and schedules as needed
 
 ---
 

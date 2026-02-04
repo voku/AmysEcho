@@ -205,7 +205,7 @@ _Reference: `docs/accessibility/contrast-audit.md` — contrast fixed, automated
 ### CI/CD Enhancements
 _Reference: `.github/workflows/ci.yml` — current CI runs tests but lacks security scanning_
 
-- [x] **Add CodeQL Scanning Workflow**: ✅ **IMPLEMENTED** — Created `.github/workflows/codeql.yml` with security-extended queries for JavaScript and Python. Runs on PRs, pushes to main, and weekly scheduled scans. _Implemented 2026-02-04._
+- [x] ~~**Add CodeQL Scanning Workflow**~~: ❌ **REMOVED** — Custom CodeQL workflow conflicted with GitHub's default CodeQL setup (repository-level setting). GitHub's default setup already provides automated security scanning with security-extended queries. Custom workflow removed to avoid CI failures. _Repository uses GitHub's default CodeQL setup enabled in Settings → Code security and analysis._ _Removed 2026-02-04._
 - [x] **Dependency Vulnerability Scanning**: ✅ **IMPLEMENTED** — Added `npm audit` checks to main CI workflow. See also "Add Dependency Scanning to CI" above. _Implemented 2026-02-04._
 - [x] **Security Test Suite in CI**: ✅ **VERIFIED** — `profileAuthorization.test.ts` and `securityVulnerabilities.test.ts` already run as part of main CI test suite via `full-check.sh`. _Verified 2026-02-04._
 
@@ -355,7 +355,7 @@ This analysis examines completed work through multiple lenses:
 
 **Security Hardening:**
 - ✓ diff/jsdiff vulnerability fixed (verified via npm audit)
-- ✓ CodeQL workflow created and properly configured
+- ✓ ~~CodeQL workflow created~~ → Using GitHub's default CodeQL setup instead (repository setting)
 - ✓ npm audit integrated into CI pipeline
 - ✓ Health check bug fixed (degraded status now set correctly)
 - ✓ Python dependency check caching implemented
