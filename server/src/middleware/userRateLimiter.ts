@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import rateLimit, { type RateLimitRequestHandler, type Options } from "express-rate-limit";
 import auditLogger from "../services/auditLogger.js";
+// Import to ensure Express.Request augmentation is loaded
+import "../middleware/auth.js";
 
 /**
  * Key generator for user-based rate limiting.
@@ -13,9 +15,8 @@ import auditLogger from "../services/auditLogger.js";
  */
 function getUserKey(req: Request): string {
 	// Use user ID if authenticated
-	const user = (req as any).user;
-	if (user?.id) {
-		return `user:${user.id}`;
+	if (req.user?.id) {
+		return `user:${req.user.id}`;
 	}
 	
 	// Fall back to IP address for unauthenticated requests
@@ -72,9 +73,8 @@ export function createUserRateLimiter(
 		handler: (req: Request, res: Response, _next: NextFunction, optionsUsed: Options) => {
 			// Log rate limit event for security monitoring
 			if (!skipLogging) {
-				const user = (req as any).user;
 				auditLogger.logSecurityEvent("RATE_LIMIT_EXCEEDED", {
-					userId: user?.id,
+					userId: req.user?.id,
 					ip: req.ip,
 					method: req.method,
 					path: req.path,

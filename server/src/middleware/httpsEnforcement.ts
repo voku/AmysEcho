@@ -2,6 +2,11 @@ import type { Request, Response, NextFunction } from "express";
 import config from "../config/index.js";
 import logger from "../services/logger.js";
 
+// HSTS configuration constants
+const HSTS_MAX_AGE_SECONDS = 31536000; // 1 year
+const HSTS_INCLUDE_SUBDOMAINS = true;
+const HSTS_PRELOAD = true;
+
 /**
  * Middleware to enforce HTTPS in production.
  * Rejects non-HTTPS requests with 403 Forbidden when NODE_ENV is "production".
@@ -53,11 +58,6 @@ export function httpsEnforcement(
 /**
  * Middleware to add HSTS (Strict-Transport-Security) headers.
  * Only adds headers in production to avoid issues during development.
- * 
- * Configuration:
- * - max-age: 1 year (31536000 seconds)
- * - includeSubDomains: Applies to all subdomains
- * - preload: Eligible for browser HSTS preload lists
  */
 export function hstsHeaders(
 	_req: Request,
@@ -66,13 +66,12 @@ export function hstsHeaders(
 ): void {
 	// Only add HSTS headers in production
 	if (config.nodeEnv === "production") {
-		// max-age=31536000 = 1 year
-		// includeSubDomains ensures all subdomains are also HTTPS-only
-		// preload allows inclusion in browser HSTS preload lists
-		res.setHeader(
-			"Strict-Transport-Security",
-			"max-age=31536000; includeSubDomains; preload"
-		);
+		const directives = [
+			`max-age=${HSTS_MAX_AGE_SECONDS}`,
+			...(HSTS_INCLUDE_SUBDOMAINS ? ["includeSubDomains"] : []),
+			...(HSTS_PRELOAD ? ["preload"] : []),
+		];
+		res.setHeader("Strict-Transport-Security", directives.join("; "));
 	}
 
 	next();

@@ -27,14 +27,12 @@ describe('P0: Critical Communication Paths', () => {
       await gestureHistoryService.ready();
 
       const startTime = performance.now();
-      
       gestureHistoryService.addGesture({
         id: 'hilfe',
         label: 'Hilfe',
         emoji: '🆘',
         confidence: 0.95,
       });
-
       const processingTime = performance.now() - startTime;
       
       expect(processingTime).toBeLessThan(50);
@@ -73,8 +71,8 @@ describe('P0: Critical Communication Paths', () => {
 
       const totalTime = performance.now() - startTime;
       
-      // All three gestures should process in under 150ms (50ms each)
-      expect(totalTime).toBeLessThan(150);
+      // All three gestures are processed synchronously, should complete quickly
+      expect(totalTime).toBeLessThan(50);
     });
 
     it('should handle high-confidence emergency gestures', async () => {
@@ -323,8 +321,8 @@ describe('P0: Critical Communication Paths', () => {
 
       const totalTime = performance.now() - startTime;
 
-      // 50 gestures should process in under 1 second
-      expect(totalTime).toBeLessThan(1000);
+      // 50 synchronous gestures should process quickly (under 100ms total)
+      expect(totalTime).toBeLessThan(100);
     });
   });
 });

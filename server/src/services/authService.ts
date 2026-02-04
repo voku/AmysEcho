@@ -57,6 +57,14 @@ export class AuthService {
 	/**
 	 * Generate authentication tokens for a user.
 	 * Returns both tokens and the refresh token hash for storage.
+	 * 
+	 * The jti (JWT ID) claim is added to make each refresh token unique for hashing.
+	 * We don't validate jti separately because the hash comparison provides
+	 * equivalent protection: if an attacker tries to use a token after rotation,
+	 * the hash won't match regardless of jti. The hash is sufficient because:
+	 * 1. It includes the jti (token is hashed as a whole)
+	 * 2. It's stored and verified on each refresh
+	 * 3. Rotation invalidates the old hash, making old tokens unusable
 	 */
 	static generateTokens(user: User): AuthTokens & { refreshTokenHash: string } {
 		const accessToken = jwt.sign(

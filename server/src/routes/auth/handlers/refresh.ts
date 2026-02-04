@@ -48,11 +48,23 @@ export async function handleRefreshToken(
 
 		// Persist the new refresh token hash
 		const storedUser = findUserById(deps.db, result.user.id);
-		if (storedUser) {
-			storedUser.refreshTokenHash = result.newRefreshTokenHash;
-			storedUser.refreshTokenIssuedAt = Date.now();
-			updateUser(deps.db, storedUser);
+		if (!storedUser) {
+			// User was deleted between token validation and now
+			await auditLogger.logAuth("AUTH_TOKEN_REFRESH_FAILURE", {
+				userId: result.user.id,
+				ip: req.ip,
+				userAgent: req.get("User-Agent"),
+				success: false,
+				details: { reason: "user_deleted" },
+			});
+			return res
+				.status(401)
+				.json({ error: "Benutzer nicht gefunden. Bitte neu anmelden." });
 		}
+		
+		storedUser.refreshTokenHash = result.newRefreshTokenHash;
+		storedUser.refreshTokenIssuedAt = Date.now();
+		updateUser(deps.db, storedUser);
 
 		// Log successful token refresh
 		await auditLogger.logAuth("AUTH_TOKEN_REFRESH", {
