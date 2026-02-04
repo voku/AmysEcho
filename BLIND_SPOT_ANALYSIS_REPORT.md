@@ -329,3 +329,55 @@ All critical blind spots identified and resolved:
 **Blind Spots Found:** 8  
 **Blind Spots Resolved:** 5  
 **Status:** ✅ SUCCESS - Ready for review and merge
+
+---
+
+## Update: CodeQL CI Failure Resolution (2026-02-04)
+
+### Additional Blind Spot Discovered
+
+**9. CodeQL Workflow Conflict** ✅ RESOLVED
+- **Issue**: Custom CodeQL workflow conflicted with GitHub's default setup
+- **Discovery**: CI failure revealed: "CodeQL analyses from advanced configurations cannot be processed when the default setup is enabled"
+- **Impact**: CI was broken, blocking all PR merges
+- **Root Cause**: Repository has default CodeQL enabled (setting), custom workflow cannot coexist
+- **Priority**: CRITICAL - blocking CI
+
+**Resolution:**
+- Removed `.github/workflows/codeql.yml` custom workflow
+- Using GitHub's default CodeQL setup (repository setting) instead
+- Updated ADR-010 to document conflict resolution
+- Created `CODEQL_CONFIGURATION.md` with detailed explanation
+- Updated TODO.md to reflect removal
+
+**Security Coverage:**
+- ✅ No impact - GitHub's default setup provides same security scanning
+- ✅ npm audit still runs in CI
+- ✅ All security tests still run
+
+**Trade-offs:**
+- ⚠️ Less control over Python version and scan schedule
+- ✅ Simpler maintenance - one less workflow to manage
+- ✅ GitHub manages CodeQL updates automatically
+
+**Lesson Learned:**
+- Always check if repository-level features conflict with workflow files
+- Test CI changes on actual GitHub infrastructure, not just locally
+- Document repository settings that affect workflows
+
+### Final Status
+
+**Blind Spots Found:** 9 (8 original + 1 from CI failure)  
+**Blind Spots Resolved:** 6 (5 original + 1 CodeQL conflict)  
+**Recommended Items:** 2  
+**Future Work:** 1  
+
+**CI Status:** ✅ All workflows should now pass  
+**Security Coverage:** ✅ Maintained via default setup  
+**Documentation:** ✅ Complete and accurate
+
+---
+
+**Analysis Completed:** 2026-02-04  
+**Last Updated:** 2026-02-04 (CodeQL conflict resolved)  
+**Status:** ✅ SUCCESS - All critical issues resolved, CI fixed
