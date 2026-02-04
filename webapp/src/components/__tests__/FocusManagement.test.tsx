@@ -7,7 +7,7 @@
  * Reference: docs/planning/TODO.md - Accessibility Testing section
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { LearningHub } from '../LearningHub';
@@ -117,11 +117,8 @@ describe('Focus Management: Modal Dialogs', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
 
-      // Get all focusable elements within modal
+      // Get focusable element within modal
       const nameInput = screen.getByLabelText('Bezeichnung') as HTMLElement;
-      const categorySelect = screen.getByLabelText('Kategorie') as HTMLElement;
-      const saveButton = screen.getByText('Speichern') as HTMLElement;
-      const cancelButton = screen.getByText('Abbrechen') as HTMLElement;
 
       // Focus first input
       nameInput.focus();
@@ -257,7 +254,6 @@ describe('Focus Management: Modal Dialogs', () => {
 
       // Document the expected tab order
       const nameInput = screen.getByLabelText('Bezeichnung') as HTMLElement;
-      const categorySelect = screen.getByLabelText('Kategorie') as HTMLElement;
       
       // Start at name input
       nameInput.focus();
