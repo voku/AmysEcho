@@ -248,11 +248,123 @@ interface TrainingQueueEntry {
 const trainingQueue: TrainingQueueEntry[] = [];
 let isProcessingTrainingQueue = false;
 
-const healthHandler = (_req: Request, res: Response) => {
+// Cache for Python dependency check to avoid spawning process on every health check
+let pythonDepsCheckCache: {
+	status: "ok" | "error";
+	message: string;
+	timestamp: number;
+} | null = null;
+const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; message: string }> {
+	// Return cached result if still valid
+	if (pythonDepsCheckCache && Date.now() - pythonDepsCheckCache.timestamp < PYTHON_DEPS_CACHE_TTL_MS) {
+		return { status: pythonDepsCheckCache.status, message: pythonDepsCheckCache.message };
+	}
+
+	// Perform actual check
+	try {
+		await new Promise<void>((resolve, reject) => {
+			const proc = spawn("python3", ["-c", "import numpy, sklearn, mediapipe; print('ok')"]);
+			let stderr = "";
+			proc.stderr.on("data", (data) => { stderr += data; });
+			proc.on("close", (code) => {
+				if (code === 0) {
+					resolve();
+				} else {
+					reject(new Error(`Python check failed with code ${code}: ${stderr}`));
+				}
+			});
+			proc.on("error", reject);
+		});
+		
+		const result = {
+			status: "ok" as const,
+			message: "Required Python packages installed (numpy, sklearn, mediapipe)",
+		};
+		
+		// Update cache
+		pythonDepsCheckCache = { ...result, timestamp: Date.now() };
+		return result;
+	} catch (error: any) {
+		const result = {
+			status: "error" as const,
+			message: error.message,
+		};
+		
+		// Cache error result too, but with shorter TTL (don't retry on every request)
+		pythonDepsCheckCache = { ...result, timestamp: Date.now() };
+		return result;
+	}
+}
+
+const healthHandler = async (_req: Request, res: Response) => {
+	const checks: Record<string, { status: string; message?: string; details?: any }> = {};
+	let overallStatus = "ok";
+
+	// Check database connectivity
+	try {
+		const dbExists = await fs.access(DB_FILE_PATH).then(() => true).catch(() => false);
+		checks.database = {
+			status: dbExists ? "ok" : "warning",
+			message: dbExists ? "Database file accessible" : "Database file not found (will be created on first write)",
+		};
+	} catch (error: any) {
+		checks.database = {
+			status: "error",
+			message: error.message,
+		};
+		overallStatus = "degraded";
+	}
+
+	// Check global model availability
+	try {
+		const globalModelPath = getMlpModelPath();
+		const modelExists = await fs.access(globalModelPath).then(() => true).catch(() => false);
+		checks.globalModel = {
+			status: modelExists ? "ok" : "warning",
+			message: modelExists ? "Global model available" : "Global model not found (will be created on first training)",
+			details: { path: globalModelPath },
+		};
+	} catch (error: any) {
+		checks.globalModel = {
+			status: "error",
+			message: error.message,
+		};
+		overallStatus = "degraded";
+	}
+
+	// Check Python dependencies (with caching)
+	const pythonCheck = await checkPythonDependencies();
+	checks.pythonDependencies = {
+		status: pythonCheck.status,
+		message: pythonCheck.message,
+	};
+	if (pythonCheck.status === "error") {
+		overallStatus = "degraded";
+	}
+
+	// Check training manifest
+	try {
+		const manifestExists = await fs.access(TRAINING_MANIFEST_PATH).then(() => true).catch(() => false);
+		checks.trainingManifest = {
+			status: manifestExists ? "ok" : "warning",
+			message: manifestExists ? "Training manifest accessible" : "Training manifest not found (will be created on first bundle upload)",
+		};
+	} catch (error: any) {
+		checks.trainingManifest = {
+			status: "error",
+			message: error.message,
+		};
+		overallStatus = "degraded";
+	}
+
 	res.json({
-		status: "ok",
+		status: overallStatus,
 		uptime: process.uptime(),
 		pendingTrainingJobs: trainingQueue.length,
+		checks,
+		timestamp: new Date().toISOString(),
 	});
 };
 
