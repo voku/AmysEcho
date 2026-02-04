@@ -410,13 +410,20 @@ app.get("/api/v1/labels/:labelId/videos", async (req: Request, res: Response) =>
 		return res.status(400).json({ error: "Label-ID erforderlich" });
 	}
 	
-	const valid = await isValidLabel(labelId);
-	if (!valid) {
-		return res.status(404).json({ error: "Unbekanntes Label", labelId });
+	// Sanitize labelId: only allow lowercase letters, digits, and hyphens
+	// This prevents injection attacks and ensures consistent label format
+	const sanitizedLabelId = labelId.toLowerCase().replace(/[^a-z0-9äöüß-]/g, "");
+	if (sanitizedLabelId.length === 0 || sanitizedLabelId.length > 64) {
+		return res.status(400).json({ error: "Ungültige Label-ID", labelId });
 	}
 	
-	const videos = await getVideosForLabel(labelId);
-	return res.json({ labelId: labelId.toLowerCase(), videos, count: videos.length });
+	const valid = await isValidLabel(sanitizedLabelId);
+	if (!valid) {
+		return res.status(404).json({ error: "Unbekanntes Label", labelId: sanitizedLabelId });
+	}
+	
+	const videos = await getVideosForLabel(sanitizedLabelId);
+	return res.json({ labelId: sanitizedLabelId, videos, count: videos.length });
 });
 
 async function processTrainingQueue(): Promise<void> {

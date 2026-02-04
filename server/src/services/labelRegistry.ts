@@ -112,6 +112,9 @@ export async function buildLabelManifest(): Promise<LabelManifest> {
 const baselineLabels = await loadBaselineLabels();
 const dgsManifest = await loadDgsManifest();
 
+// Pre-load label metadata from config file
+await loadLabelMetadataConfig();
+
 // Label definitions with metadata
 const labelDefinitions: LabelDefinition[] = baselineLabels.map((id) => {
 const gestureEntry = dgsManifest?.gestures.find((g) => g.id === id);
@@ -162,36 +165,75 @@ labelsWithLandmarks: labelDefinitions.filter((l) => l.hasLandmarks).length,
 };
 }
 
-/**
- * Get metadata for a label ID
- */
-function getLabelMetadata(id: string): {
-displayName: string;
-emoji: string;
-category: string;
-color: string;
-} {
-const labelMap: Record<string, { displayName: string; emoji: string; category: string; color: string }> = {
-alle: { displayName: "Alle", emoji: "👥", category: "person", color: "#94a3b8" },
-blau: { displayName: "Blau", emoji: "🔵", category: "color", color: "#3b82f6" },
-essen: { displayName: "Essen", emoji: "🍽️", category: "food", color: "#f59e0b" },
-fertig: { displayName: "Fertig", emoji: "✅", category: "action", color: "#22c55e" },
-gelb: { displayName: "Gelb", emoji: "🟡", category: "color", color: "#facc15" },
-gruen: { displayName: "Grün", emoji: "🟢", category: "color", color: "#22c55e" },
-nochmal: { displayName: "Nochmal", emoji: "🔁", category: "action", color: "#8b5cf6" },
-rot: { displayName: "Rot", emoji: "🔴", category: "color", color: "#ef4444" },
-satt: { displayName: "Satt", emoji: "😊", category: "feeling", color: "#10b981" },
-schwester: { displayName: "Schwester", emoji: "👧", category: "person", color: "#ec4899" },
-spielen: { displayName: "Spielen", emoji: "🧸", category: "action", color: "#f43f5e" },
-trinken: { displayName: "Trinken", emoji: "🥤", category: "food", color: "#0ea5e9" },
+const LABEL_METADATA_PATH = path.join(
+	SERVER_DIR,
+	"data",
+	"config",
+	"labelMetadata.json",
+);
+
+type LabelMetadataEntry = {
+	displayName: string;
+	emoji: string;
+	category: string;
+	color: string;
 };
 
-return labelMap[id] ?? {
-displayName: id.charAt(0).toUpperCase() + id.slice(1),
-emoji: "❓",
-category: "other",
-color: "#6b7280",
+// Cached label metadata loaded from config file
+let cachedLabelMetadata: Record<string, LabelMetadataEntry> | null = null;
+
+/**
+ * Load label metadata from config file (with caching)
+ */
+async function loadLabelMetadataConfig(): Promise<Record<string, LabelMetadataEntry>> {
+	if (cachedLabelMetadata) {
+		return cachedLabelMetadata;
+	}
+	
+	try {
+		const content = await fs.readFile(LABEL_METADATA_PATH, "utf8");
+		const parsed = JSON.parse(content);
+		if (parsed.labels && typeof parsed.labels === "object") {
+			cachedLabelMetadata = parsed.labels as Record<string, LabelMetadataEntry>;
+			return cachedLabelMetadata;
+		}
+	} catch (error) {
+		console.warn("Failed to load label metadata config, using fallback:", error);
+	}
+	
+	// Fallback to hardcoded defaults if config file fails
+	return FALLBACK_LABEL_METADATA;
+}
+
+// Fallback metadata for when config file is unavailable
+const FALLBACK_LABEL_METADATA: Record<string, LabelMetadataEntry> = {
+	alle: { displayName: "Alle", emoji: "👥", category: "person", color: "#94a3b8" },
+	blau: { displayName: "Blau", emoji: "🔵", category: "color", color: "#3b82f6" },
+	essen: { displayName: "Essen", emoji: "🍽️", category: "food", color: "#f59e0b" },
+	fertig: { displayName: "Fertig", emoji: "✅", category: "action", color: "#22c55e" },
+	gelb: { displayName: "Gelb", emoji: "🟡", category: "color", color: "#facc15" },
+	gruen: { displayName: "Grün", emoji: "🟢", category: "color", color: "#22c55e" },
+	nochmal: { displayName: "Nochmal", emoji: "🔁", category: "action", color: "#8b5cf6" },
+	rot: { displayName: "Rot", emoji: "🔴", category: "color", color: "#ef4444" },
+	satt: { displayName: "Satt", emoji: "😊", category: "feeling", color: "#10b981" },
+	schwester: { displayName: "Schwester", emoji: "👧", category: "person", color: "#ec4899" },
+	spielen: { displayName: "Spielen", emoji: "🧸", category: "action", color: "#f43f5e" },
+	trinken: { displayName: "Trinken", emoji: "🥤", category: "food", color: "#0ea5e9" },
 };
+
+/**
+ * Get metadata for a label ID (sync version using cache or fallback)
+ */
+function getLabelMetadata(id: string): LabelMetadataEntry {
+	// Use cached metadata if available, otherwise use fallback
+	const metadata = cachedLabelMetadata ?? FALLBACK_LABEL_METADATA;
+	
+	return metadata[id] ?? {
+		displayName: id.charAt(0).toUpperCase() + id.slice(1),
+		emoji: "❓",
+		category: "other",
+		color: "#6b7280",
+	};
 }
 
 /**

@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "description": "Label metadata for DGS training labels",
+  "labels": {
+    "alle": { "displayName": "Alle", "emoji": "👥", "category": "person", "color": "#94a3b8" },
+    "blau": { "displayName": "Blau", "emoji": "🔵", "category": "color", "color": "#3b82f6" },
+    "essen": { "displayName": "Essen", "emoji": "🍽️", "category": "food", "color": "#f59e0b" },
+    "fertig": { "displayName": "Fertig", "emoji": "✅", "category": "action", "color": "#22c55e" },
+    "gelb": { "displayName": "Gelb", "emoji": "🟡", "category": "color", "color": "#facc15" },
+    "gruen": { "displayName": "Grün", "emoji": "🟢", "category": "color", "color": "#22c55e" },
+    "nochmal": { "displayName": "Nochmal", "emoji": "🔁", "category": "action", "color": "#8b5cf6" },
+    "rot": { "displayName": "Rot", "emoji": "🔴", "category": "color", "color": "#ef4444" },
+    "satt": { "displayName": "Satt", "emoji": "😊", "category": "feeling", "color": "#10b981" },
+    "schwester": { "displayName": "Schwester", "emoji": "👧", "category": "person", "color": "#ec4899" },
+    "spielen": { "displayName": "Spielen", "emoji": "🧸", "category": "action", "color": "#f43f5e" },
+    "trinken": { "displayName": "Trinken", "emoji": "🥤", "category": "food", "color": "#0ea5e9" }
+  }
+}
