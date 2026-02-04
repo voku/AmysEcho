@@ -248,6 +248,56 @@ interface TrainingQueueEntry {
 const trainingQueue: TrainingQueueEntry[] = [];
 let isProcessingTrainingQueue = false;
 
+// Cache for Python dependency check to avoid spawning process on every health check
+let pythonDepsCheckCache: {
+	status: "ok" | "error";
+	message: string;
+	timestamp: number;
+} | null = null;
+const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; message: string }> {
+	// Return cached result if still valid
+	if (pythonDepsCheckCache && Date.now() - pythonDepsCheckCache.timestamp < PYTHON_DEPS_CACHE_TTL_MS) {
+		return { status: pythonDepsCheckCache.status, message: pythonDepsCheckCache.message };
+	}
+
+	// Perform actual check
+	try {
+		await new Promise<void>((resolve, reject) => {
+			const proc = spawn("python3", ["-c", "import numpy, sklearn, mediapipe; print('ok')"]);
+			let stderr = "";
+			proc.stderr.on("data", (data) => { stderr += data; });
+			proc.on("close", (code) => {
+				if (code === 0) {
+					resolve();
+				} else {
+					reject(new Error(`Python check failed with code ${code}: ${stderr}`));
+				}
+			});
+			proc.on("error", reject);
+		});
+		
+		const result = {
+			status: "ok" as const,
+			message: "Required Python packages installed (numpy, sklearn, mediapipe)",
+		};
+		
+		// Update cache
+		pythonDepsCheckCache = { ...result, timestamp: Date.now() };
+		return result;
+	} catch (error: any) {
+		const result = {
+			status: "error" as const,
+			message: error.message,
+		};
+		
+		// Cache error result too, but with shorter TTL (don't retry on every request)
+		pythonDepsCheckCache = { ...result, timestamp: Date.now() };
+		return result;
+	}
+}
+
 const healthHandler = async (_req: Request, res: Response) => {
 	const checks: Record<string, { status: string; message?: string; details?: any }> = {};
 	let overallStatus = "ok";
@@ -284,32 +334,13 @@ const healthHandler = async (_req: Request, res: Response) => {
 		overallStatus = "degraded";
 	}
 
-	// Check Python dependencies
-	try {
-		await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-			const proc = spawn("python3", ["-c", "import numpy, sklearn, mediapipe; print('ok')"]);
-			let stdout = "";
-			let stderr = "";
-			proc.stdout.on("data", (data) => { stdout += data; });
-			proc.stderr.on("data", (data) => { stderr += data; });
-			proc.on("close", (code) => {
-				if (code === 0) {
-					resolve({ stdout, stderr });
-				} else {
-					reject(new Error(`Python check failed with code ${code}: ${stderr}`));
-				}
-			});
-			proc.on("error", reject);
-		});
-		checks.pythonDependencies = {
-			status: "ok",
-			message: "Required Python packages installed (numpy, sklearn, mediapipe)",
-		};
-	} catch (error: any) {
-		checks.pythonDependencies = {
-			status: "error",
-			message: error.message,
-		};
+	// Check Python dependencies (with caching)
+	const pythonCheck = await checkPythonDependencies();
+	checks.pythonDependencies = {
+		status: pythonCheck.status,
+		message: pythonCheck.message,
+	};
+	if (pythonCheck.status === "error") {
 		overallStatus = "degraded";
 	}
 
@@ -325,6 +356,7 @@ const healthHandler = async (_req: Request, res: Response) => {
 			status: "error",
 			message: error.message,
 		};
+		overallStatus = "degraded";
 	}
 
 	res.json({

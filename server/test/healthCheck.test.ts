@@ -99,4 +99,43 @@ describe("Health Check Endpoint", () => {
 			expect(Object.keys(response1.body.checks).sort()).toEqual(Object.keys(response2.body.checks).sort());
 		});
 	});
+
+	describe("Degraded status handling", () => {
+		it("should set overall status to 'degraded' when any check has error status", async () => {
+			const response = await request(app).get("/health");
+
+			expect(response.status).toBe(200);
+			
+			// If any check has error status, overall status should be degraded
+			const checks = response.body.checks;
+			const hasError = Object.values(checks).some(
+				(check: any) => check.status === "error"
+			);
+			
+			if (hasError) {
+				expect(response.body.status).toBe("degraded");
+			} else {
+				// If no errors, status should be "ok"
+				expect(["ok"]).toContain(response.body.status);
+			}
+		});
+
+		it("should include all required check fields even when degraded", async () => {
+			const response = await request(app).get("/health");
+
+			expect(response.status).toBe(200);
+			
+			// Verify all checks are present
+			expect(response.body.checks).toHaveProperty("database");
+			expect(response.body.checks).toHaveProperty("globalModel");
+			expect(response.body.checks).toHaveProperty("pythonDependencies");
+			expect(response.body.checks).toHaveProperty("trainingManifest");
+			
+			// Each check should have a status
+			for (const checkName of ["database", "globalModel", "pythonDependencies", "trainingManifest"]) {
+				expect(response.body.checks[checkName]).toHaveProperty("status");
+				expect(["ok", "warning", "error"]).toContain(response.body.checks[checkName].status);
+			}
+		});
+	});
 });

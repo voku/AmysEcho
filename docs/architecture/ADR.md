@@ -189,10 +189,11 @@ Use IndexedDB via OPFS (Origin Private File System):
 
 **Date:** 2024-11-01  
 **Status:** Implemented  
-**Decision Makers:** Backend Team
+**Decision Makers:** Backend Team  
+**Last Updated:** 2026-02-04 (Added production considerations)
 
 ### Context
-Need simple, deployable data storage for development and small deployments.
+Need simple, deployable data storage for development and small deployments. The system must support profile management, training samples, and corrections with reasonable concurrency for a small user base.
 
 ### Decision
 Use JSON file-based database with file locking:
@@ -205,23 +206,57 @@ Use JSON file-based database with file locking:
 - **Simple deployment**: No database server required
 - **Git-friendly**: Changes visible in version control
 - **Easy debugging**: Human-readable JSON format
-- **Sufficient scale**: Handles hundreds of users
+- **Low complexity**: Suitable for development and small-scale deployments
 - **Migration path**: Can migrate to SQL later without API changes
 
 ### Consequences
 - ✅ Zero-config deployment (works on any Node.js host)
 - ✅ Easy to debug and inspect
 - ✅ Version control friendly
-- ⚠️ File locking overhead on concurrent writes
-- ⚠️ Not suitable for thousands of concurrent users
-- ⚠️ Manual backup/restore procedures
+- ✅ Appropriate for development and small-scale production (single server, <10 concurrent users)
+- ⚠️ **File locking overhead on concurrent writes** - Can become bottleneck under load
+- ⚠️ **Not suitable for production at scale** - Concurrent write performance degrades significantly
+- ⚠️ **Data integrity risk** - While file locking provides atomicity, race conditions can occur if locking is not properly implemented across all I/O operations
+- ⚠️ **Manual backup/restore procedures**
+- ⚠️ **No ACID guarantees** - Unlike SQL databases, file-based storage lacks transaction support
+
+### Production Considerations (Added 2026-02-04)
+
+**For production deployments expecting more than occasional concurrent writes, SQLite is strongly recommended instead:**
+
+**Why SQLite is better for production:**
+- ✅ **ACID compliance**: True transaction support with rollback capability
+- ✅ **Battle-tested**: Used by billions of applications worldwide
+- ✅ **Better concurrency**: WAL mode supports concurrent readers and writers
+- ✅ **Same simplicity**: Still a single file, no server needed
+- ✅ **Data integrity**: Robust corruption recovery mechanisms
+- ✅ **Performance**: Significantly faster than JSON parsing for large datasets
+- ⚠️ Slightly more complex deployment (but minimal)
+
+**When JSON files are acceptable:**
+- Development environments
+- Single-user deployments
+- Read-heavy workloads with rare writes
+- Prototypes and proof-of-concepts
+- Systems with external write serialization (e.g., single-threaded queue)
+
+**When to migrate to SQLite:**
+- Multiple concurrent users writing data
+- Production deployments requiring reliability
+- Workloads with frequent writes (>10 writes/minute)
+- Systems requiring transaction support or rollback capability
+- Any scenario where data integrity is critical
 
 ### Migration Path
 When scale demands it:
-1. Implement database abstraction layer
-2. Add SQLite/PostgreSQL adapter
-3. Migrate data with zero-downtime script
-4. No API changes required
+1. Implement database abstraction layer (`DatabaseAdapter` interface)
+2. Add SQLite adapter implementing the same interface
+3. Create migration script to import JSON data into SQLite
+4. Deploy with zero-downtime: dual-write mode → cutover → retire JSON files
+5. No API changes required (abstraction layer maintains compatibility)
+
+### Implementation Notes
+The current implementation uses file locking via the `withFileLock` utility. All write operations must use this utility to prevent corruption. However, this is not a substitute for proper database transactions and should be considered a development convenience rather than a production-grade solution.
 
 ---
 
