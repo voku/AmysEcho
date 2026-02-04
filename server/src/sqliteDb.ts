@@ -1095,12 +1095,21 @@ export const updateUser = (_db: Database, user: StoredUser): void => {
 };
 
 // Database I/O operations
+/**
+ * Saves the database to disk.
+ * 
+ * **Note**: For SQLite implementation, this is a no-op as changes are auto-persisted.
+ * The function is maintained for API compatibility with the previous JSON-based implementation.
+ * 
+ * @param _db - Database object (unused in SQLite implementation)
+ * @param _filePath - File path (unused in SQLite implementation)
+ */
 export const saveDatabase = async (
 	_db: Database,
 	_filePath: string,
 ): Promise<void> => {
-	// No-op for SQLite - auto-persists
-	// Could optionally do a checkpoint here if needed
+	// No-op for SQLite - changes are auto-persisted to disk
+	// Kept for API compatibility with JSON-based implementation
 };
 
 export const loadDatabase = async (filePath: string): Promise<Database> => {

@@ -141,6 +141,7 @@ export function registerUserRoutes(
 						parsed.data.newPassword,
 					);
 					updateUser(deps.db, user);
+					// saveDatabase maintained for API compatibility (SQLite auto-persists)
 					await saveDatabase(deps.db, deps.dbFilePath);
 					return user;
 				});
