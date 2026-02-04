@@ -2,9 +2,23 @@
 
 # Amy's Echo
 
-A multimodal communication platform translating **Deutsche Gebärdensprache (DGS)** into speech and symbols for non-verbal children. Each child receives personalized gesture recognition trained from their own samples.
+**This repository contains the development work for my little girl — to help her be understood, to help her learn, and to help others understand her world.**
 
-**Built for Amy** — a four-year-old with 22q11 Deletion Syndrome who communicates in German Sign Language.
+Amy is four years old. She was born with **22q11 Deletion Syndrome** and communicates using **Deutsche Gebärdensprache (DGS)** — German Sign Language. Her gestures are expressive, her intent is clear — but most people around her don't understand what she's trying to say.
+
+This project turns those gestures into speech and symbols so she can be heard anywhere. Each child profile receives personalized gesture recognition trained from their own samples, making the system effective for 22q11 workflows in group settings like kindergartens.
+
+All app UI text and error messages are written in German to match Amy's language environment.
+
+---
+
+## 🎯 Purpose
+
+> Don't build for everyone. Build for one. But do it well enough that everyone could follow.
+
+Amy's Echo is a gesture recognition system designed to translate DGS into speech and symbols — in real time, offline if needed, and always with clarity and care.
+
+> **Turn Amy's gesture into understanding. Every time.**
 
 ---
 

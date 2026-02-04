@@ -6,10 +6,7 @@ import { vi } from 'vitest';
 
 import { GestureDetector } from './GestureDetector';
 import { MediaPipeComponents } from './MediaPipeLoader';
-import { CameraManager } from './CameraManager';
 import { OverlayRenderer } from './OverlayRenderer';
-import { ResourceManager } from '../utils/ResourceManager';
-import { HealthMonitor } from '../utils/HealthMonitor';
 import * as GestureConfig from '../config/GestureConfig';
 
 // Mock dependencies
@@ -190,7 +187,6 @@ describe('GestureDetector', () => {
       await detector.initialize();
 
       const overlayRenderer = (detector as any).overlayRenderer as OverlayRenderer;
-      const performanceOptimizer = (detector as any).performanceOptimizer;
       
       // Create hand landmarks and pose/face landmarks
       const handLandmarks = [[[0.1, 0.1, 0], [0.2, 0.2, 0]]];
