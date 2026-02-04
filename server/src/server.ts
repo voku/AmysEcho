@@ -22,6 +22,7 @@ import {
 } from "./constants/modelPaths.js";
 import { PROFILE_REGISTRY_PATH } from "./constants/profileRegistryPaths.js";
 import {
+	addCorrection,
 	addNegativeSample,
 	type Database,
 	logCorrection,
@@ -1052,7 +1053,8 @@ app.post("/api/v1/corrections", auth, apiLimiter, async (req: Request, res: Resp
 			timestamp: Date.now(),
 			isSynced: false,
 		};
-		dbInstance.corrections.push(record);
+		addCorrection(dbInstance, record);
+		// saveDatabase is now a no-op with SQLite, but kept for API compatibility
 		await withFileLock(DB_FILE_PATH, async () =>
 			saveDatabase(dbInstance, DB_FILE_PATH),
 		);
