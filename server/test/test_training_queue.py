@@ -81,7 +81,8 @@ def post_correction(payload):
 
 def load_training_count():
     """Load the count of training data entries from SQLite database."""
-    conn = sqlite3.connect(DB_SQLITE_PATH)
+    # Use timeout to prevent indefinite blocking if database is locked
+    conn = sqlite3.connect(DB_SQLITE_PATH, timeout=10.0)
     try:
         cursor = conn.execute("SELECT COUNT(*) FROM signTrainingData")
         count = cursor.fetchone()[0]
