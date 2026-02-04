@@ -4,7 +4,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { PROFILE_BACKUPS_DIR } from "../constants/profileRegistryPaths.js";
 import type { Database } from "../db.js";
-import { saveDatabase } from "../db.js";
+import { deleteProfileData } from "../db.js";
 import {
 	buildProfileExportArchive,
 	deleteProfileTrainingData,
@@ -96,14 +96,7 @@ export function registerGdprRoutes(app: Express, deps: GdprDependencies): void {
 					return;
 				}
 				await withFileLock(dbFilePath, async () => {
-					db.profiles = db.profiles.filter((p) => p.id !== profile.id);
-					db.usageStats = db.usageStats.filter(
-						(u) => u.profileId !== profile.id,
-					);
-					db.corrections = db.corrections.filter(
-						(c) => c.profileId !== profile.id,
-					);
-					await saveDatabase(db, dbFilePath);
+					await deleteProfileData(db, profile.id, dbFilePath);
 				});
 				await deleteProfileTrainingData(profile.id);
 

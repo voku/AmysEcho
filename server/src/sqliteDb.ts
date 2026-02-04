@@ -1103,7 +1103,12 @@ export const saveDatabase = async (
 	// Could optionally do a checkpoint here if needed
 };
 
-export const loadDatabase = async (_filePath: string): Promise<Database> => {
+export const loadDatabase = async (filePath: string): Promise<Database> => {
+	// If the requested path is different from current, switch to it
+	if (currentDbPath !== filePath) {
+		await initializeDatabase(filePath);
+	}
+	
 	const sqlite = getDb();
 	
 	const symbols = sqlite.prepare("SELECT * FROM symbols").all() as any[];
