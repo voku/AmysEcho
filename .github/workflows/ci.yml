@@ -31,3 +31,9 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Run full check
         run: NODE_OPTIONS=--max_old_space_size=4096 ./scripts/full-check.sh
+      - name: Security audit (webapp)
+        run: npm audit --prefix webapp --audit-level=high
+      - name: Security audit (server)
+        run: npm audit --prefix server --audit-level=high
+      - name: Security audit (integration)
+        run: npm audit --prefix integration --audit-level=high
