@@ -6,6 +6,7 @@ import request from 'supertest';
 import type { Response } from 'supertest';
 
 import type { Database } from '../src/db.js';
+import { closeDatabase, initializeDatabase, loadDatabase } from '../src/db.js';
 import { registerGdprRoutes } from '../src/routes/gdprRoutes.js';
 import { createEmptyRegistry, ensureProfileRecord, saveProfileRegistry } from '../src/services/profileRegistry.js';
 import AdmZip from 'adm-zip';
@@ -32,6 +33,7 @@ const baseDb: Database = {
   profiles: [
     {
       id: profileId,
+      userId: 'test-user',
       displayName: 'GDPR Test',
       createdAt: '2024-05-01T10:00:00.000Z',
       consentDataUpload: false,
@@ -69,14 +71,22 @@ describe('GDPR profile endpoints', () => {
   });
 
   afterAll(async () => {
+    closeDatabase();
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
   async function buildServer() {
     const caseDir = await fs.mkdtemp(path.join(tmpDir, 'case-'));
     const db = JSON.parse(JSON.stringify(baseDb)) as Database;
-    const dbPath = path.join(caseDir, 'db.json');
-    await fs.writeFile(dbPath, JSON.stringify(db, null, 2));
+    const dbPath = path.join(caseDir, 'db.sqlite');
+    const jsonPath = path.join(caseDir, 'db.json');
+    
+    // Write JSON file for migration
+    await fs.writeFile(jsonPath, JSON.stringify(db, null, 2));
+    
+    // Initialize SQLite and migrate
+    await initializeDatabase(dbPath, jsonPath);
+    
     const registryPath = path.join(caseDir, 'profile_registry.json');
     const registry = createEmptyRegistry();
     ensureProfileRecord(registry, {
@@ -151,8 +161,8 @@ describe('GDPR profile endpoints', () => {
       .expect(200)
       .expect({ status: 'deleted' });
 
-    const raw = await fs.readFile(dbPath, 'utf8');
-    const parsed = JSON.parse(raw) as Database;
+    // Load the database from SQLite to verify deletion
+    const parsed = await loadDatabase(dbPath);
     expect(parsed.profiles.find((p) => p.id === profileId)).toBeUndefined();
     expect(parsed.usageStats.find((s) => s.profileId === profileId)).toBeUndefined();
     expect(parsed.corrections.find((c) => c.profileId === profileId)).toBeUndefined();

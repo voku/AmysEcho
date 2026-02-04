@@ -4,7 +4,7 @@ import path from 'path';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { AuthService } from '../src/services/authService.js';
-import { addUser, createDatabase, type Database, saveDatabase } from '../src/db.js';
+import { addUser, closeDatabase, createDatabase, type Database, initializeDatabase, loadDatabase, saveDatabase } from '../src/db.js';
 import { registerUserRoutes } from '../src/routes/userRoutes.js';
 import { auth } from '../src/middleware/auth.js';
 
@@ -21,12 +21,14 @@ describe('user routes', () => {
   });
 
   afterAll(async () => {
+    closeDatabase();
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
   beforeEach(async () => {
+    dbFilePath = path.join(tmpDir, `db-${Date.now()}.sqlite`);
+    await initializeDatabase(dbFilePath);
     db = createDatabase();
-    dbFilePath = path.join(tmpDir, `db-${Date.now()}.json`);
     app = express();
     app.use(express.json());
     registerUserRoutes(app, { db, dbFilePath, authMiddleware: auth });

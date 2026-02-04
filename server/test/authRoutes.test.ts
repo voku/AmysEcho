@@ -5,7 +5,7 @@ import { createHash } from 'crypto';
 import express, { type Express } from 'express';
 import request from 'supertest';
 import { AuthService } from '../src/services/authService.js';
-import { addUser, createDatabase, Database, saveDatabase } from '../src/db.js';
+import { addUser, closeDatabase, createDatabase, Database, initializeDatabase, loadDatabase, saveDatabase } from '../src/db.js';
 import { registerAuthRoutes } from '../src/routes/authRoutes.js';
 import { type EmailService } from '../src/services/emailService.js';
 import { withFileLock } from '../src/utils/fileLock.js';
@@ -24,12 +24,14 @@ describe('auth routes', () => {
   });
 
   afterAll(async () => {
+    closeDatabase();
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
   beforeEach(async () => {
+    dbFilePath = path.join(tmpDir, `db-${Date.now()}.sqlite`);
+    await initializeDatabase(dbFilePath);
     db = createDatabase();
-    dbFilePath = path.join(tmpDir, `db-${Date.now()}.json`);
     app = express();
     app.use(express.json());
     emailService = {
@@ -38,6 +40,11 @@ describe('auth routes', () => {
     };
     registerAuthRoutes(app, { db, dbFilePath, withFileLock, emailService });
   });
+  
+  // Helper to reload database after operations
+  const reloadDb = async () => {
+    db = await loadDatabase(dbFilePath);
+  };
 
   it('rejects duplicate registration attempts', async () => {
     await request(app)
@@ -74,11 +81,14 @@ describe('auth routes', () => {
       .expect(201);
 
     expect(response.body.message).toBe('Registrierung erfolgreich. Bitte bestätige deine E-Mail-Adresse.');
+    
+    // Reload database to see changes
+    await reloadDb();
     expect(db.users).toHaveLength(1);
     expect(db.users[0].passwordHash).not.toBe('super-secure-password');
     expect(db.users[0].emailVerificationTokenHash).toBeDefined();
 
-    const saved = JSON.parse(await fs.readFile(dbFilePath, 'utf8'));
+    const saved = await loadDatabase(dbFilePath);
     expect(saved.users).toHaveLength(1);
     expect(saved.users[0].passwordHash).toBe(db.users[0].passwordHash);
     expect(emailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
@@ -132,9 +142,11 @@ describe('auth routes', () => {
       .send({ username: 'amy', email: 'amy@example.com', password: 'super-secure-password' })
       .expect(201);
 
+    await reloadDb();
     db.users[0].emailVerifiedAt = Date.now();
     await saveDatabase(db, dbFilePath);
 
+    await reloadDb();
     const refreshResponse = await request(app)
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: AuthService.generateTokens({ id: db.users[0].id, username: 'amy', role: 'caregiver' }).refreshToken })
@@ -197,6 +209,7 @@ describe('auth routes', () => {
       createdAt: Date.now(),
       emailVerifiedAt: Date.now(),
     });
+    // SQLite auto-persists, no need to call saveDatabase
 
     const response = await request(app)
       .post('/api/v1/auth/password-reset/request')
@@ -204,6 +217,8 @@ describe('auth routes', () => {
       .expect(202);
 
     expect(response.body.resetToken).toBeUndefined();
+    await reloadDb();
+    expect(db.users).toHaveLength(1);
     expect(db.users[0].passwordResetTokenHash).toBeDefined();
     expect(db.users[0].passwordResetExpiresAt).toBeGreaterThan(Date.now());
     expect(emailService.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
@@ -231,6 +246,8 @@ describe('auth routes', () => {
       .send({ email: 'amy@example.com', resetToken, password: 'new-secret-123' })
       .expect(200);
 
+    await reloadDb();
+    expect(db.users).toHaveLength(1);
     expect(db.users[0].passwordResetTokenHash).toBeUndefined();
 
     await request(app)
@@ -262,6 +279,8 @@ describe('auth routes', () => {
       .expect(400);
 
     expect(response.body.error).toBe('Ungültiger oder abgelaufener Reset-Code.');
+    await reloadDb();
+    expect(db.users).toHaveLength(1);
     expect(db.users[0].passwordResetTokenHash).toBeUndefined();
   });
 
@@ -306,6 +325,8 @@ describe('auth routes', () => {
       .expect(200);
 
     expect(response.body.message).toBe('E-Mail-Adresse wurde bestätigt. Du kannst dich jetzt anmelden.');
+    await reloadDb();
+    expect(db.users).toHaveLength(1);
     expect(db.users[0].emailVerifiedAt).toBeDefined();
     expect(db.users[0].emailVerificationTokenHash).toBeUndefined();
   });

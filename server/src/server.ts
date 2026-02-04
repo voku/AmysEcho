@@ -6,7 +6,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { z } from "zod";
 import config from "./config/index.js";
-import { DB_FILE_PATH } from "./constants/dbPaths.js";
+import { DB_FILE_PATH, DB_SQLITE_PATH } from "./constants/dbPaths.js";
 import {
 	HAND_LANDMARKS_PER_HAND,
 	MULTIMODAL_LANDMARKS,
@@ -24,6 +24,7 @@ import { PROFILE_REGISTRY_PATH } from "./constants/profileRegistryPaths.js";
 import {
 	addNegativeSample,
 	type Database,
+	initializeDatabase,
 	logCorrection,
 	saveDatabase,
 	setupDatabase,
@@ -447,7 +448,12 @@ const genId = () => Date.now().toString(36) + randomBytes(4).toString("hex");
 // Initialize database before starting server
 let dbInstance: Database;
 let profileRegistry: ProfileRegistry;
-export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
+
+// Initialize SQLite database first
+export const databaseReady: Promise<Database> = (async () => {
+	await initializeDatabase(DB_SQLITE_PATH, DB_FILE_PATH);
+	return setupDatabase(DB_SQLITE_PATH);
+})()
 	.then(async (db) => {
 		dbInstance = db;
 		app.locals.dbInstance = db;
