@@ -34,6 +34,7 @@ import { registerAuthRoutes } from "./routes/authRoutes.js";
 import { registerCustomSignsRoute } from "./routes/customSignsRoute.js";
 import { registerGdprRoutes } from "./routes/gdprRoutes.js";
 import { createLatestMlpModelHandler } from "./routes/latestMlpModelRoute.js";
+import { registerPretrainingRoutes } from "./routes/pretrainingRoutes.js";
 import { registerProfileRoutes } from "./routes/profileRoutes.js";
 import { registerSymbolRoutes } from "./routes/symbolRoutes.js";
 import { registerTrainingBundleRoute } from "./routes/trainingBundleRoute.js";
@@ -556,6 +557,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 			authMiddleware: auth,
 		});
 		registerSymbolRoutes(app, db, apiLimiter);
+		registerPretrainingRoutes(app);
 		return db;
 	})
 	.catch((err) => {

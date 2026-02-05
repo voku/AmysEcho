@@ -16,20 +16,66 @@ from scripts.dgs_common import (
     save_manifest,
 )
 
-# Refined search terms to remove linguistic noise
+# Comprehensive search terms for kid starter preset glosses
+# Organized by category for better model accuracy
 TARGET_LABELS = {
-    "alle": ["alle", "alles", "jeder"],
-    "blau": ["blau"],
-    "essen": ["essen", "mahlzeit", "frühstück", "mittagessen", "abendessen", "hunger"],
-    "fertig": ["fertig", "beendet", "schluss", "ende", "vorbei"],
-    "gelb": ["gelb"],
-    "gruen": ["grün"],
-    "nochmal": ["nochmal", "wiederholen", "noch mal", "erneut"],
+    # === COLORS (Farben) ===
     "rot": ["rot", "rosa", "pink"],
+    "blau": ["blau"],
+    "gelb": ["gelb"],
+    "gruen": ["grün", "gruen"],
+    "lila": ["lila", "violett", "purple"],
+    "orange": ["orange"],
+    "schwarz": ["schwarz"],
+    "weiss": ["weiß", "weiss"],
+    
+    # === FOOD & DRINK (Essen & Trinken) ===
+    "essen": ["essen", "mahlzeit", "frühstück", "mittagessen", "abendessen"],
+    "trinken": ["trinken", "getränk"],
+    "hunger": ["hunger", "hungrig"],
+    "durst": ["durst", "durstig"],
     "satt": ["satt", "genug", "voll"],
+    "apfel": ["apfel", "äpfel"],
+    "banane": ["banane"],
+    "brot": ["brot", "brötchen"],
+    "wasser": ["wasser"],
+    "milch": ["milch"],
+    
+    # === CAREGIVERS (Bezugspersonen) ===
+    "mama": ["mama", "mutter", "mutti"],
+    "papa": ["papa", "vater", "vati"],
     "schwester": ["schwester", "geschwister"],
+    "bruder": ["bruder"],
+    "oma": ["oma", "großmutter"],
+    "opa": ["opa", "großvater"],
+    "hilfe": ["hilfe", "helfen"],
+    "bitte": ["bitte", "bitten"],
+    "danke": ["danke", "danken", "dankeschön"],
+    
+    # === ACTIVITIES (Aktivitäten) ===
     "spielen": ["spielen", "spiel", "spielplatz", "spielzeug"],
-    "trinken": ["trinken", "getränk", "durst", "wasser", "milch", "saft", "tee", "kaffee"]
+    "schlafen": ["schlafen", "schlaf", "müde"],
+    "fertig": ["fertig", "beendet", "schluss", "ende", "vorbei"],
+    "nochmal": ["nochmal", "wiederholen", "noch mal", "erneut"],
+    "stopp": ["stopp", "stop", "halt", "aufhören"],
+    "mehr": ["mehr", "noch mehr"],
+    "alle": ["alle", "alles", "jeder"],
+    
+    # === EMOTIONS (Gefühle) ===
+    "gluecklich": ["glücklich", "froh", "freude", "fröhlich"],
+    "traurig": ["traurig", "trauer", "weinen"],
+    "muede": ["müde", "erschöpft"],
+    "wuetend": ["wütend", "böse", "ärger", "zorn"],
+    "angst": ["angst", "ängstlich", "furcht"],
+    "liebe": ["liebe", "lieben", "liebhaben"],
+    
+    # === BASICS (Grundlagen) ===
+    "ja": ["ja", "jawohl", "richtig"],
+    "nein": ["nein", "nicht", "falsch"],
+    "ich": ["ich", "mich", "selbst"],
+    "du": ["du", "dich"],
+    "wo": ["wo", "wohin", "woher"],
+    "was": ["was", "welche", "welches"],
 }
 
 def main():

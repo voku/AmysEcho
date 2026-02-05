@@ -84,7 +84,11 @@ def main():
     if video_examples_dir.exists():
         LOGGER.info(f"Processing video examples from {video_examples_dir}...")
         for landmarks_file in video_examples_dir.glob("*_landmarks.json"):
-            label = landmarks_file.stem.replace("_landmarks", "")
+            # Extract label from filename: "label_main_variant_landmarks.json" -> "label"
+            # Handles formats like: "trinken.mp4_landmarks.json", "trinken_main_durst_landmarks.json"
+            filename_base = landmarks_file.stem.replace("_landmarks", "")
+            # Get the primary label (first part before underscore)
+            label = filename_base.split("_")[0]
             source = load_json(landmarks_file)
             if source and isinstance(source.get("frames"), list):
                 frames = source["frames"]

@@ -92,12 +92,14 @@ return [
 
 /**
  * Load the DGS manifest with video mappings
+ * Handles both old format (with variations) and new format (with videos array)
  */
 export async function loadDgsManifest(): Promise<{
 gestures: Array<{
 id: string;
 label: string;
 video: string | null;
+videos?: string[];
 variations?: { main: string[]; var: string[] };
 totalVideoCount?: number;
 }>;
@@ -105,7 +107,32 @@ stats?: { totalLabels: number; totalVideos: number; hasLandmarks: number };
 } | null> {
 try {
 const content = await fs.readFile(DGS_MANIFEST_PATH, "utf8");
-return JSON.parse(content);
+const manifest = JSON.parse(content);
+
+// Normalize manifest entries to have consistent structure
+if (manifest.gestures) {
+manifest.gestures = manifest.gestures.map((g: { id: string; label: string; video?: string; videos?: string[]; variations?: { main: string[]; var: string[] }; totalVideoCount?: number }) => {
+// If we have videos array but no variations, build variations from videos
+if (g.videos && !g.variations) {
+const mainVideos = g.videos.filter((v: string) => v.includes("_main_"));
+const varVideos = g.videos.filter((v: string) => v.includes("_var_"));
+const baseVideo = g.videos.find((v: string) => !v.includes("_main_") && !v.includes("_var_")) ?? null;
+
+return {
+...g,
+video: baseVideo,
+variations: {
+main: mainVideos,
+var: varVideos,
+},
+totalVideoCount: g.videos.length,
+};
+}
+return g;
+});
+}
+
+return manifest;
 } catch (error) {
 console.warn("Failed to load DGS manifest:", error);
 return null;
@@ -144,17 +171,37 @@ hasLandmarks: videoCount > 0,
 const variations = new Map<string, LabelVariation>();
 if (dgsManifest?.gestures) {
 for (const gesture of dgsManifest.gestures) {
-const mainVideos = gesture.variations?.main ?? [];
-const varVideos = gesture.variations?.var ?? [];
-const allVideos = [
+// Handle both old format (variations object) and new format (videos array)
+let allVideos: string[];
+let mainVideo: string | null;
+let variationVideos: string[];
+
+if (gesture.videos) {
+// New format: videos array
+allVideos = gesture.videos;
+mainVideo = gesture.video ?? allVideos.find(v => !v.includes("_main_") && !v.includes("_var_")) ?? allVideos[0] ?? null;
+variationVideos = allVideos.filter(v => v !== mainVideo);
+} else if (gesture.variations) {
+// Old format: variations object
+const mainVideos = gesture.variations.main ?? [];
+const varVideos = gesture.variations.var ?? [];
+allVideos = [
 gesture.video,
 ...mainVideos,
 ...varVideos,
 ].filter((v): v is string => v != null);
+mainVideo = gesture.video;
+variationVideos = [...mainVideos, ...varVideos];
+} else {
+// Fallback: just the main video
+allVideos = gesture.video ? [gesture.video] : [];
+mainVideo = gesture.video;
+variationVideos = [];
+}
 
 variations.set(gesture.id, {
-mainVideo: gesture.video,
-variationVideos: [...mainVideos, ...varVideos],
+mainVideo,
+variationVideos,
 allVideos,
 });
 }
