@@ -48,12 +48,24 @@ run_step "Install webapp dependencies" install_node_modules webapp
 run_step "Install server dependencies" install_node_modules server
 run_step "Install integration dependencies" install_node_modules integration
 
-# Ensure dummy MediaPipe assets exist for integration tests
+# Ensure MediaPipe assets exist for integration tests
+# Only create dummy files if valid models don't already exist
 mkdir -p server/data/models server/data/dgs_video_examples
-dd if=/dev/zero of=server/data/models/hand_landmarker.task bs=1M count=2 2>/dev/null
-dd if=/dev/zero of=server/data/models/pose_landmarker.task bs=1M count=2 2>/dev/null
-dd if=/dev/zero of=server/data/models/face_landmarker.task bs=1M count=2 2>/dev/null
-# Verify dummy models were created
+for model in hand_landmarker.task pose_landmarker.task face_landmarker.task; do
+  model_path="server/data/models/$model"
+  if [ -s "$model_path" ]; then
+    # MediaPipe .task files start with 2 null bytes followed by ZIP signature "PK" (0x504b)
+    header=$(head -c 4 "$model_path" | od -An -tx1 | tr -d ' ')
+    if [ "$header" = "0000504b" ]; then
+      echo "Valid MediaPipe model found: $model"
+      continue
+    fi
+  fi
+  # Create dummy file for testing (model not found or invalid)
+  echo "Creating dummy MediaPipe model: $model"
+  dd if=/dev/zero of="$model_path" bs=1M count=2 2>/dev/null
+done
+# Verify models exist (either real or dummy)
 for model in hand_landmarker.task pose_landmarker.task face_landmarker.task; do
   if [ ! -s "server/data/models/$model" ]; then
     echo "Error: Failed to create $model" >&2
@@ -68,29 +80,32 @@ for label in "${labels[@]}"; do
   echo '{"frames": []}' > "server/data/dgs_video_examples/${label}_landmarks.json"
 done
 # Create test manifest with videos array format and stats section
-# This format matches what the labelRegistry tests expect
-echo '{
+# Dynamically generated from labels array for maintainability
+{
+  gestures_json=""
+  for label in "${labels[@]}"; do
+    video_base="${label}.mp4"
+    video_main="${label}_main_${label}.mp4"
+    video_var="${label}_var_${label}_0.mp4"
+    gestures_json+=$(printf '{"id":"%s","label":"%s","videos":["%s","%s","%s"],"totalVideoCount":3},' \
+      "$label" "$label" "$video_base" "$video_main" "$video_var")
+  done
+  # Remove trailing comma
+  gestures_json="${gestures_json%,}"
+  num_labels=${#labels[@]}
+  total_videos=$((num_labels * 3))
+  cat <<EOF
+{
   "version": "3.0",
   "description": "Test fixture for DGS video examples",
-  "gestures": [
-    {"id": "alle", "label": "alle", "videos": ["alle.mp4", "alle_main_alle.mp4", "alle_var_alle_0.mp4"], "totalVideoCount": 3},
-    {"id": "blau", "label": "blau", "videos": ["blau.mp4", "blau_main_blau.mp4", "blau_var_blau_0.mp4"], "totalVideoCount": 3},
-    {"id": "essen", "label": "essen", "videos": ["essen.mp4", "essen_main_essen.mp4", "essen_var_essen_0.mp4"], "totalVideoCount": 3},
-    {"id": "fertig", "label": "fertig", "videos": ["fertig.mp4", "fertig_main_fertig.mp4", "fertig_var_fertig_0.mp4"], "totalVideoCount": 3},
-    {"id": "gelb", "label": "gelb", "videos": ["gelb.mp4", "gelb_main_gelb.mp4", "gelb_var_gelb_0.mp4"], "totalVideoCount": 3},
-    {"id": "gruen", "label": "gruen", "videos": ["gruen.mp4", "gruen_main_gruen.mp4", "gruen_var_gruen_0.mp4"], "totalVideoCount": 3},
-    {"id": "nochmal", "label": "nochmal", "videos": ["nochmal.mp4", "nochmal_main_nochmal.mp4", "nochmal_var_nochmal_0.mp4"], "totalVideoCount": 3},
-    {"id": "rot", "label": "rot", "videos": ["rot.mp4", "rot_main_rot.mp4", "rot_var_rot_0.mp4"], "totalVideoCount": 3},
-    {"id": "satt", "label": "satt", "videos": ["satt.mp4", "satt_main_satt.mp4", "satt_var_satt_0.mp4"], "totalVideoCount": 3},
-    {"id": "schwester", "label": "schwester", "videos": ["schwester.mp4", "schwester_main_schwester.mp4", "schwester_var_schwester_0.mp4"], "totalVideoCount": 3},
-    {"id": "spielen", "label": "spielen", "videos": ["spielen.mp4", "spielen_main_spielen.mp4", "spielen_var_spielen_0.mp4"], "totalVideoCount": 3},
-    {"id": "trinken", "label": "trinken", "videos": ["trinken.mp4", "trinken_main_trinken.mp4", "trinken_var_trinken_0.mp4"], "totalVideoCount": 3}
-  ],
+  "gestures": [$gestures_json],
   "stats": {
-    "totalLabels": 12,
-    "totalVideos": 36
+    "totalLabels": $num_labels,
+    "totalVideos": $total_videos
   }
-}' > server/data/dgs_manifest.json
+}
+EOF
+} > server/data/dgs_manifest.json
 
 # Run lint/type-check/tests for the browser webapp
 run_step "Lint webapp" npm run lint --prefix webapp

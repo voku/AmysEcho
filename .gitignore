@@ -61,5 +61,3 @@ server/data/datasets/ingestion_metrics.json
 server/data/models/[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*/
 server/data/models/global/amy_model.npz
 server/data/pretraining_report.json
-server/data/models/*.task
-# MediaPipe model files are large and should be downloaded
