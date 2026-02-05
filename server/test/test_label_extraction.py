@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Tests for video filename label extraction in train_mlp.py."""
 
-import pytest
-import sys
 import os
+import sys
 
 # Add the amyserver_tools directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'amyserver_tools'))
