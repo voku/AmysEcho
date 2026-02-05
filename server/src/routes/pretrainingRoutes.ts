@@ -165,6 +165,12 @@ router.get("/status", async (_req: Request, res: Response) => {
 router.get("/labels/:labelId", async (req: Request, res: Response) => {
 	const { labelId } = req.params;
 
+	// Validate labelId to prevent injection attacks
+	// Only allow alphanumeric characters, underscores, and hyphens
+	if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
+		return res.status(400).json({ error: "Invalid label ID format" });
+	}
+
 	try {
 		// Load label metadata
 		let labelConfig: {
@@ -204,7 +210,9 @@ router.get("/labels/:labelId", async (req: Request, res: Response) => {
 		let landmarkFiles: string[] = [];
 		try {
 			const files = await fs.readdir(DGS_VIDEO_DIR);
-			const labelPattern = new RegExp(`^${labelId}[_.].*_landmarks\\.json$`);
+			// Escape special regex characters in labelId to prevent ReDoS
+			const escapedLabelId = labelId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			const labelPattern = new RegExp(`^${escapedLabelId}[_.].*_landmarks\\.json$`);
 			landmarkFiles = files.filter(f => labelPattern.test(f));
 		} catch {
 			// Directory doesn't exist
