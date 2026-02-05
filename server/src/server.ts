@@ -38,6 +38,7 @@ import { registerPretrainingRoutes } from "./routes/pretrainingRoutes.js";
 import { registerProfileRoutes } from "./routes/profileRoutes.js";
 import { registerSymbolRoutes } from "./routes/symbolRoutes.js";
 import { registerTrainingBundleRoute } from "./routes/trainingBundleRoute.js";
+import { registerUserLabelRoutes } from "./routes/userLabelRoutes.js";
 import { registerUserRoutes } from "./routes/userRoutes.js";
 import {
 	appendCrashReports,
@@ -555,6 +556,12 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 			db,
 			dbFilePath: DB_FILE_PATH,
 			authMiddleware: auth,
+		});
+		registerUserLabelRoutes(app, {
+			authMiddleware: auth,
+			db,
+			registry: profileRegistry,
+			logError: (msg, meta) => logger.error(msg, meta),
 		});
 		registerSymbolRoutes(app, db, apiLimiter);
 		registerPretrainingRoutes(app);

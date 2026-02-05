@@ -138,3 +138,57 @@ export interface NegativeSample {
 	sign: string;
 	timestamp: number;
 }
+
+/**
+ * Training mode for a label
+ * - server_pretrain: Uses curated internet examples for training
+ * - user_train: Uses user-recorded samples from the webapp
+ */
+export type LabelTrainingMode = "server_pretrain" | "user_train";
+
+/**
+ * Per-user, per-label training settings
+ * Amy First: Each child can have their own personalized label collection
+ */
+export interface UserLabelSetting {
+	id: string;
+	/** User/profile ID that owns this setting */
+	userId: string;
+	/** Label ID (e.g., "rot", "blau") */
+	labelId: string;
+	/** Training mode: server_pretrain or user_train */
+	mode: LabelTrainingMode;
+	/** Whether training for this label is enabled */
+	enabled: boolean;
+	/** Last update timestamp (ISO string) */
+	updatedAt: string;
+	/** Last successful training timestamp (ISO string) */
+	lastTrainedAt?: string;
+}
+
+/**
+ * Readiness status for a label
+ * Amy First: Clear visibility into why training might not be ready
+ */
+export interface LabelReadinessStatus {
+	/** Label ID */
+	labelId: string;
+	/** Display name in German */
+	displayName: string;
+	/** Current training mode */
+	mode: LabelTrainingMode;
+	/** Whether the label is enabled for training */
+	enabled: boolean;
+	/** Number of server-pretrain videos available */
+	serverVideoCount: number;
+	/** Number of user-recorded samples */
+	userSampleCount: number;
+	/** Number of landmarks extracted */
+	landmarkCount: number;
+	/** Whether the label is ready for training */
+	ready: boolean;
+	/** Reasons why the label is not ready (empty if ready) */
+	reasons: string[];
+	/** Last trained timestamp */
+	lastTrainedAt?: string;
+}
