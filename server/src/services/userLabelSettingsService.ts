@@ -296,7 +296,7 @@ export async function getLabelReadinessForUser(
 		// Get user sample and landmark counts
 		const userSampleCount = await countUserSamples(userId, labelId);
 		const userLandmarkCount = await countUserLandmarks(userId, labelId);
-		
+
 		// Get server landmark count for server_pretrain mode
 		const serverLandmarkCount = await countServerLandmarks(userId, labelId);
 
