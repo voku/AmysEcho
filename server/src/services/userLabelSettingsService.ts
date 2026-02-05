@@ -14,9 +14,10 @@ import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
 import {
-	DATA_DIR,
 	PROFILE_ID_PATTERN,
 	TRAINING_UPLOADS_DIR,
+	getUserLabelTrainingPath,
+	ensureUserLabelDirs,
 } from "../constants/modelPaths.js";
 import {
 	getEnabledUserLabelsByMode,
@@ -308,34 +309,23 @@ export async function initializeUserLabelSettings(
 
 /**
  * Get the training data directory for a user and label based on mode
+ * Re-exports from modelPaths for convenience
  */
 export function getTrainingDataPath(
 	userId: string,
 	labelId: string,
 	mode: LabelTrainingMode,
 ): string {
-	if (!PROFILE_ID_PATTERN.test(userId)) {
-		throw new Error("Ungültige Benutzer-ID.");
-	}
-
-	if (mode === "server_pretrain") {
-		return path.join(DATA_DIR, "users", userId, "labels", labelId, "server_pretrain");
-	}
-	return path.join(DATA_DIR, "users", userId, "labels", labelId, "user_train");
+	return getUserLabelTrainingPath(userId, labelId, mode);
 }
 
 /**
  * Ensure training directories exist for a user and label
+ * Re-exports from modelPaths for convenience
  */
 export async function ensureTrainingDirectories(
 	userId: string,
 	labelId: string,
 ): Promise<void> {
-	const serverPath = getTrainingDataPath(userId, labelId, "server_pretrain");
-	const userPath = getTrainingDataPath(userId, labelId, "user_train");
-
-	await fs.mkdir(path.join(serverPath, "videos"), { recursive: true });
-	await fs.mkdir(path.join(serverPath, "landmarks"), { recursive: true });
-	await fs.mkdir(path.join(userPath, "videos"), { recursive: true });
-	await fs.mkdir(path.join(userPath, "landmarks"), { recursive: true });
+	await ensureUserLabelDirs(userId, labelId);
 }

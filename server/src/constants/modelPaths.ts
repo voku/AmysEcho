@@ -85,7 +85,86 @@ export const TRAINING_MANIFEST_PATH = path.join(
 	"training_manifest.json",
 );
 
+// Per-user training data directory structure
+// data/users/{userId}/labels/{labelId}/{mode}/[videos|landmarks]/
+export const USER_TRAINING_DATA_DIR = path.join(DATA_DIR, "users");
+
+export type TrainingMode = "server_pretrain" | "user_train";
+
+/**
+ * Get the training data directory for a specific user
+ */
+export function getUserTrainingDir(userId: string): string {
+	if (!PROFILE_ID_PATTERN.test(userId)) {
+		throw new Error("Ungültige Benutzer-ID");
+	}
+	return path.join(USER_TRAINING_DATA_DIR, userId);
+}
+
+/**
+ * Get the training data path for a user, label, and training mode
+ * Returns: data/users/{userId}/labels/{labelId}/{mode}/
+ */
+export function getUserLabelTrainingPath(
+	userId: string,
+	labelId: string,
+	mode: TrainingMode,
+): string {
+	if (!PROFILE_ID_PATTERN.test(userId)) {
+		throw new Error("Ungültige Benutzer-ID");
+	}
+	if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
+		throw new Error("Ungültige Label-ID");
+	}
+	return path.join(USER_TRAINING_DATA_DIR, userId, "labels", labelId, mode);
+}
+
+/**
+ * Get the videos directory for a user, label, and training mode
+ */
+export function getUserLabelVideosPath(
+	userId: string,
+	labelId: string,
+	mode: TrainingMode,
+): string {
+	return path.join(getUserLabelTrainingPath(userId, labelId, mode), "videos");
+}
+
+/**
+ * Get the landmarks directory for a user, label, and training mode
+ */
+export function getUserLabelLandmarksPath(
+	userId: string,
+	labelId: string,
+	mode: TrainingMode,
+): string {
+	return path.join(getUserLabelTrainingPath(userId, labelId, mode), "landmarks");
+}
+
+/**
+ * Get the training report path for a user
+ */
+export function getUserTrainingReportPath(userId: string, timestamp: string): string {
+	if (!PROFILE_ID_PATTERN.test(userId)) {
+		throw new Error("Ungültige Benutzer-ID");
+	}
+	return path.join(USER_TRAINING_DATA_DIR, userId, "models", `report_${timestamp}.json`);
+}
+
 // Ensure DATA_DIR exists before any read/write
 export async function ensureDataDir(): Promise<void> {
 	await fs.mkdir(DATA_DIR, { recursive: true });
+}
+
+/**
+ * Ensure user training directories exist for a label
+ */
+export async function ensureUserLabelDirs(
+	userId: string,
+	labelId: string,
+): Promise<void> {
+	await fs.mkdir(getUserLabelVideosPath(userId, labelId, "server_pretrain"), { recursive: true });
+	await fs.mkdir(getUserLabelLandmarksPath(userId, labelId, "server_pretrain"), { recursive: true });
+	await fs.mkdir(getUserLabelVideosPath(userId, labelId, "user_train"), { recursive: true });
+	await fs.mkdir(getUserLabelLandmarksPath(userId, labelId, "user_train"), { recursive: true });
 }

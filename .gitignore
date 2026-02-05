@@ -61,3 +61,4 @@ server/data/datasets/ingestion_metrics.json
 server/data/models/[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*/
 server/data/models/global/amy_model.npz
 server/data/pretraining_report.json
+server/data/test-*.sqlite
