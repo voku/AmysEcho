@@ -134,20 +134,59 @@ export function getEnabledLabels(
 }
 
 /**
+ * Validate and get a safe path for user training directory
+ * Prevents path traversal attacks by validating inputs and checking path containment
+ */
+function getSafeUserTrainingDir(
+	userId: string,
+	labelId: string,
+): string | null {
+	// Validate userId against UUID pattern
+	if (!PROFILE_ID_PATTERN.test(userId)) {
+		return null;
+	}
+	// Validate labelId to allow only safe characters
+	if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
+		return null;
+	}
+
+	// Resolve paths to prevent traversal
+	const rootDir = path.resolve(TRAINING_UPLOADS_DIR);
+	const userTrainDir = path.resolve(rootDir, userId, labelId);
+
+	// Ensure the resolved path is within the root directory
+	const rootWithSep = rootDir.endsWith(path.sep) ? rootDir : rootDir + path.sep;
+	if (userTrainDir !== rootDir && !userTrainDir.startsWith(rootWithSep)) {
+		return null;
+	}
+
+	return userTrainDir;
+}
+
+/**
  * Count user training samples for a label
  */
 export async function countUserSamples(
 	userId: string,
 	labelId: string,
 ): Promise<number> {
-	const userTrainDir = path.join(TRAINING_UPLOADS_DIR, userId, labelId);
+	const userTrainDir = getSafeUserTrainingDir(userId, labelId);
+	if (!userTrainDir) {
+		return 0;
+	}
+
 	try {
 		const entries = await fs.readdir(userTrainDir);
 		// Count directories (each upload bundle is a directory) using parallel stat
 		const stats = await Promise.all(
 			entries.map(async (entry) => {
 				try {
-					const stat = await fs.stat(path.join(userTrainDir, entry));
+					// Validate entry name to prevent path traversal via directory entries
+					if (entry.includes("..") || entry.includes(path.sep)) {
+						return false;
+					}
+					const entryPath = path.join(userTrainDir, entry);
+					const stat = await fs.stat(entryPath);
 					return stat.isDirectory();
 				} catch {
 					return false;
@@ -167,12 +206,17 @@ export async function countUserLandmarks(
 	userId: string,
 	labelId: string,
 ): Promise<number> {
-	const userTrainDir = path.join(TRAINING_UPLOADS_DIR, userId, labelId);
+	const userTrainDir = getSafeUserTrainingDir(userId, labelId);
+	if (!userTrainDir) {
+		return 0;
+	}
+
 	try {
 		const entries = await fs.readdir(userTrainDir, { recursive: true });
 		return entries.filter(
 			(e) =>
 				typeof e === "string" &&
+				!e.includes("..") && // Prevent path traversal in entry names
 				(e.endsWith("landmarks.json") || e.endsWith("_landmarks.json")),
 		).length;
 	} catch {
