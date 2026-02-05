@@ -177,7 +177,8 @@ python3 scripts/process_dgs_videos.py \
   --models-dir server/data/models \
   --manifest server/data/dgs_manifest.json \
   --split-output \
-  --max-frames 150
+  --max-frames 150 \
+  --frame-skip 2
 
 echo "=== Step 4: Train Model ==="
 python3 scripts/pretrain_baseline_model.py --epochs 1000

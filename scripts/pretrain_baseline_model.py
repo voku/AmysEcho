@@ -17,11 +17,21 @@ without requiring users to record their own training videos.
 
 import argparse
 import json
+import logging
 import os
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
+
+# Constants
+HAND_LANDMARKS = 42  # Number of hand landmark points
+COORDS_PER_LANDMARK = 3  # x, y, z coordinates
+HAND_LANDMARK_FEATURES = HAND_LANDMARKS * COORDS_PER_LANDMARK  # 126 total
 
 # Project root
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -52,11 +62,18 @@ def count_valid_frames(landmarks_path: Path) -> int:
             if not lm:
                 continue
             flat = [c for pt in lm for c in pt] if isinstance(lm[0], list) else lm
-            # Check first 126 values (42 hand points × 3 coords)
-            if any(v != 0 for v in flat[:126]):
+            # Check hand landmark features (42 points × 3 coords = 126)
+            if any(v != 0 for v in flat[:HAND_LANDMARK_FEATURES]):
                 valid += 1
         return valid
-    except Exception:
+    except FileNotFoundError:
+        logger.warning(f"Landmark file not found: {landmarks_path}")
+        return 0
+    except json.JSONDecodeError as e:
+        logger.warning(f"Invalid JSON in {landmarks_path}: {e}")
+        return 0
+    except (KeyError, TypeError, IndexError) as e:
+        logger.warning(f"Unexpected data structure in {landmarks_path}: {e}")
         return 0
 
 
@@ -156,17 +173,17 @@ def run_training(epochs: int, learning_rate: float) -> dict:
             try:
                 train_acc = float(line.split(":")[1].strip().rstrip("%"))
             except (IndexError, ValueError):
-                pass
+                logger.warning(f"Could not parse training accuracy from: {line}")
         elif "Validation Accuracy" in line:
             try:
                 val_acc = float(line.split(":")[1].strip().rstrip("%"))
             except (IndexError, ValueError):
-                pass
+                logger.warning(f"Could not parse validation accuracy from: {line}")
         elif "Training on" in line and "samples" in line:
             try:
                 samples = int(line.split("Training on")[1].split("samples")[0].strip())
             except (IndexError, ValueError):
-                pass
+                logger.warning(f"Could not parse sample count from: {line}")
     
     return {
         "success": result.returncode == 0,
@@ -202,8 +219,12 @@ def validate_model() -> dict:
             "input_dim": input_dim,
             "window_size": window_size
         }
-    except Exception as e:
-        return {"valid": False, "error": str(e)}
+    except ImportError as e:
+        return {"valid": False, "error": f"numpy not available: {e}"}
+    except FileNotFoundError:
+        return {"valid": False, "error": "Model file not found"}
+    except (KeyError, ValueError, TypeError) as e:
+        return {"valid": False, "error": f"Invalid model format: {e}"}
 
 
 def generate_report(manifest_stats: dict, training_results: dict, model_info: dict) -> dict:

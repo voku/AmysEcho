@@ -177,7 +177,10 @@ describe('MediaPipe Integration Tests', () => {
       const baselineLabels = ['alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen', 'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken'];
       let baselineLandmarkCount = 0;
       for (const label of baselineLabels) {
-        if (landmarkFiles.some(f => f.startsWith(label))) {
+        // Use regex to match exact label prefix followed by underscore or .json
+        // This prevents "rot" from matching "brot_*" files
+        const labelPattern = new RegExp(`^${label}[_.]`);
+        if (landmarkFiles.some(f => labelPattern.test(f))) {
           baselineLandmarkCount++;
         }
       }
