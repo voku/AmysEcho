@@ -12,6 +12,7 @@
  */
 
 import type { Express, Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import type { Database } from "../db.js";
 import type { ProfileRegistry } from "../services/profileRegistry.js";
@@ -39,6 +40,15 @@ interface UserLabelRouteDeps {
 	logError: (message: string, metadata?: Record<string, unknown>) => void;
 }
 
+// Rate limiter for label settings endpoints
+const labelSettingsLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 100, // limit each IP to 100 requests per windowMs
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { error: "Zu viele Anfragen. Bitte später erneut versuchen." },
+});
+
 export function registerUserLabelRoutes(
 	app: Express,
 	deps: UserLabelRouteDeps,
@@ -53,6 +63,7 @@ export function registerUserLabelRoutes(
 	 */
 	app.get(
 		"/api/v1/users/:userId/labels",
+		labelSettingsLimiter,
 		authMiddleware,
 		async (req: Request, res: Response) => {
 			const { userId } = req.params;
@@ -110,6 +121,7 @@ export function registerUserLabelRoutes(
 	 */
 	app.get(
 		"/api/v1/users/:userId/labels/:labelId",
+		labelSettingsLimiter,
 		authMiddleware,
 		async (req: Request, res: Response) => {
 			const { userId, labelId } = req.params;
@@ -162,6 +174,7 @@ export function registerUserLabelRoutes(
 	 */
 	app.patch(
 		"/api/v1/users/:userId/labels/:labelId",
+		labelSettingsLimiter,
 		authMiddleware,
 		async (req: Request, res: Response) => {
 			const { userId, labelId } = req.params;
@@ -237,6 +250,7 @@ export function registerUserLabelRoutes(
 	 */
 	app.post(
 		"/api/v1/users/:userId/labels/initialize",
+		labelSettingsLimiter,
 		authMiddleware,
 		async (req: Request, res: Response) => {
 			const { userId } = req.params;

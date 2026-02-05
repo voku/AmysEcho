@@ -10,6 +10,7 @@
  */
 
 import { spawn } from "child_process";
+import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
@@ -185,7 +186,8 @@ export function queueTrainingJob(userId: string): string {
 		return existingJob.jobId;
 	}
 
-	const jobId = `train_${userId}_${Date.now()}`;
+	// Use UUID with timestamp prefix for uniqueness and readability
+	const jobId = `train_${Date.now()}_${randomUUID().slice(0, 8)}`;
 	const job: TrainingJobStatus = {
 		jobId,
 		userId,

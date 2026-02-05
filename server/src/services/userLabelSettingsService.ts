@@ -143,15 +143,18 @@ export async function countUserSamples(
 	const userTrainDir = path.join(TRAINING_UPLOADS_DIR, userId, labelId);
 	try {
 		const entries = await fs.readdir(userTrainDir);
-		// Count directories (each upload bundle is a directory)
-		let count = 0;
-		for (const entry of entries) {
-			const stat = await fs.stat(path.join(userTrainDir, entry));
-			if (stat.isDirectory()) {
-				count++;
-			}
-		}
-		return count;
+		// Count directories (each upload bundle is a directory) using parallel stat
+		const stats = await Promise.all(
+			entries.map(async (entry) => {
+				try {
+					const stat = await fs.stat(path.join(userTrainDir, entry));
+					return stat.isDirectory();
+				} catch {
+					return false;
+				}
+			})
+		);
+		return stats.filter(Boolean).length;
 	} catch {
 		return 0;
 	}
