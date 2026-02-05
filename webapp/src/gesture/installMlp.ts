@@ -1,6 +1,7 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
 import { enhancePredictionWithFeedback } from './performanceFeedback';
+import { logger } from '../services/logger';
 
 export type ModelMetadata = {
   window_size?: number;
@@ -361,8 +362,8 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       WINDOW_SIZE = window_size || 30;
       rollingBuffer = []; // Reset buffer with new window size
       
-      console.log(`MLP model loaded: ${inputSize} -> ${layer1Size} -> ${layer2Size} -> ${outputSize} (${labels.length} labels)`);
-      console.log(
+      logger.info(`MLP model loaded: ${inputSize} -> ${layer1Size} -> ${layer2Size} -> ${outputSize} (${labels.length} labels)`);
+      logger.info(
         `Temporal config: window_size=${WINDOW_SIZE}, input_dim=${input_dim || MULTIMODAL_FEATURES_SIZE}`,
       );
 

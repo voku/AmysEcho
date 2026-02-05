@@ -3,6 +3,8 @@
  * Handles dynamic loading and initialization of MediaPipe components
  */
 
+import { logger } from '../../services/logger';
+
 // Types for MediaPipe components
 export interface MediaPipeComponents {
   FilesetResolver: any;
@@ -157,13 +159,13 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
   for (const c of candidates) {
     attemptCount++;
     try {
-      console.log(`Attempting to load MediaPipe from ${c.esm} (attempt ${attemptCount}/${candidates.length})`);
+      logger.debug(`Attempting to load MediaPipe from ${c.esm} (attempt ${attemptCount}/${candidates.length})`);
 
       // Try ESM first
       try {
         const mod = await import(/* @vite-ignore */ c.esm);
         if (mod?.FilesetResolver && mod?.GestureRecognizer) {
-          console.log('Successfully loaded MediaPipe via ESM');
+          logger.info('Successfully loaded MediaPipe via ESM');
           return {
             FilesetResolver: mod.FilesetResolver,
             GestureRecognizer: mod.GestureRecognizer,
@@ -179,14 +181,14 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
       }
 
       // Try UMD as fallback
-      console.log(`Attempting to load MediaPipe from ${c.umd} (attempt ${attemptCount}/${candidates.length})`);
+      logger.debug(`Attempting to load MediaPipe from ${c.umd} (attempt ${attemptCount}/${candidates.length})`);
       if (!haveUMD()) {
         const sri =
           pinned && c.umd.includes(`@${pinned.version}/`) ? (window as any).__visionBundleSri : undefined;
         await tryLoadScript(c.umd, sri);
       }
       if (haveUMD()) {
-        console.log('Successfully loaded MediaPipe via UMD');
+        logger.info('Successfully loaded MediaPipe via UMD');
         return {
           FilesetResolver: window.fileset_resolver!.FilesetResolver,
           GestureRecognizer: window.vision!.GestureRecognizer,
