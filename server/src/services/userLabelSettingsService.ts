@@ -282,9 +282,8 @@ export async function getLabelReadinessForUser(
 		settingsMap.set(s.labelId, s);
 	}
 
-	const results: LabelReadinessStatus[] = [];
-
-	for (const labelId of baselineLabels) {
+	// Process all labels in parallel for better performance
+	const results = await Promise.all(baselineLabels.map(async (labelId) => {
 		const setting = settingsMap.get(labelId);
 		const mode: LabelTrainingMode = setting?.mode ?? "user_train";
 		const enabled = setting?.enabled ?? false;
@@ -345,7 +344,7 @@ export async function getLabelReadinessForUser(
 		// Get display name from manifest or fallback
 		const displayName = labelId.charAt(0).toUpperCase() + labelId.slice(1);
 
-		results.push({
+		return {
 			labelId,
 			displayName,
 			mode,
@@ -356,8 +355,8 @@ export async function getLabelReadinessForUser(
 			ready,
 			reasons,
 			lastTrainedAt: setting?.lastTrainedAt,
-		});
-	}
+		};
+	}));
 
 	return results;
 }

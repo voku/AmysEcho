@@ -110,13 +110,12 @@ export function getUserLabelTrainingPath(
 	labelId: string,
 	mode: TrainingMode,
 ): string {
-	if (!PROFILE_ID_PATTERN.test(userId)) {
-		throw new Error("Ungültige Benutzer-ID");
-	}
+	// Reuse getUserTrainingDir which already validates userId
+	const userTrainingDir = getUserTrainingDir(userId);
 	if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
 		throw new Error("Ungültige Label-ID");
 	}
-	return path.join(USER_TRAINING_DATA_DIR, userId, "labels", labelId, mode);
+	return path.join(userTrainingDir, "labels", labelId, mode);
 }
 
 /**

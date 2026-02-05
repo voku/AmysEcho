@@ -65,6 +65,10 @@ export interface LabelTrainingData {
 // In-memory job queue (simple implementation)
 const jobQueue: Map<string, TrainingJobStatus> = new Map();
 
+// Lock set to prevent TOCTOU race condition when queueing jobs
+// Tracks users with in-flight job creation
+const jobCreationLock: Set<string> = new Set();
+
 /**
  * Get training data paths for a user's enabled labels
  * Respects the mode setting for each label
@@ -171,44 +175,69 @@ async function gatherLabelTrainingData(
 /**
  * Queue a training job for a user
  * Returns the job ID for status polling
+ * Uses locking to prevent TOCTOU race conditions
  */
 export function queueTrainingJob(userId: string): string {
 	if (!PROFILE_ID_PATTERN.test(userId)) {
 		throw new Error("Ungültige Benutzer-ID");
 	}
 
-	// Check if there's already a pending/running job for this user
-	const existingJob = Array.from(jobQueue.values()).find(
-		(job) =>
-			job.userId === userId &&
-			(job.status === "queued" || job.status === "running"),
-	);
-	if (existingJob) {
-		return existingJob.jobId;
+	// Acquire lock to prevent TOCTOU race condition
+	// If another request is currently creating a job for this user, wait
+	if (jobCreationLock.has(userId)) {
+		// Another request is creating a job - find and return the pending job
+		const pendingJob = Array.from(jobQueue.values()).find(
+			(job) =>
+				job.userId === userId &&
+				(job.status === "queued" || job.status === "running"),
+		);
+		if (pendingJob) {
+			return pendingJob.jobId;
+		}
+		// Lock exists but no job found - should not happen, but handle gracefully
+		throw new Error("Training wird bereits vorbereitet. Bitte warten.");
 	}
 
-	// Use UUID with timestamp prefix for uniqueness and readability
-	const jobId = `train_${Date.now()}_${randomUUID().slice(0, 8)}`;
-	const job: TrainingJobStatus = {
-		jobId,
-		userId,
-		status: "queued",
-		labels: [],
-	};
+	// Set lock before checking for existing jobs
+	jobCreationLock.add(userId);
 
-	jobQueue.set(jobId, job);
-
-	// Start the job asynchronously
-	void startTrainingJob(jobId).catch((error) => {
-		const job = jobQueue.get(jobId);
-		if (job) {
-			job.status = "failed";
-			job.error = error instanceof Error ? error.message : String(error);
-			job.completedAt = new Date().toISOString();
+	try {
+		// Check if there's already a pending/running job for this user
+		const existingJob = Array.from(jobQueue.values()).find(
+			(job) =>
+				job.userId === userId &&
+				(job.status === "queued" || job.status === "running"),
+		);
+		if (existingJob) {
+			return existingJob.jobId;
 		}
-	});
 
-	return jobId;
+		// Use UUID with timestamp prefix for uniqueness and readability
+		const jobId = `train_${Date.now()}_${randomUUID().slice(0, 8)}`;
+		const job: TrainingJobStatus = {
+			jobId,
+			userId,
+			status: "queued",
+			labels: [],
+		};
+
+		jobQueue.set(jobId, job);
+
+		// Start the job asynchronously
+		void startTrainingJob(jobId).catch((error) => {
+			const job = jobQueue.get(jobId);
+			if (job) {
+				job.status = "failed";
+				job.error = error instanceof Error ? error.message : String(error);
+				job.completedAt = new Date().toISOString();
+			}
+		});
+
+		return jobId;
+	} finally {
+		// Always release the lock
+		jobCreationLock.delete(userId);
+	}
 }
 
 /**

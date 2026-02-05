@@ -11,6 +11,15 @@ This document captures a self-analysis of potential issues that may have been ov
 | Unknown label validation in PATCH | ✅ Fixed | Check against baseline labels before update |
 | Case sensitivity inconsistency | ✅ Fixed | Normalize labelId to lowercase in routes |
 
+## Performance & Code Quality Issues - Addressed
+
+| Issue | Status | Solution |
+|-------|--------|----------|
+| TOCTOU race condition in job queueing | ✅ Fixed | Added `jobCreationLock` Set to prevent concurrent job creation |
+| DRY violation in modelPaths.ts | ✅ Fixed | Refactored `getUserLabelTrainingPath` to reuse `getUserTrainingDir` |
+| O(N*M) lookup in userLabelRoutes.ts | ✅ Fixed | Using Map for O(1) lookups in settings merge |
+| Sequential awaits in getLabelReadinessForUser | ✅ Fixed | Using `Promise.all` for parallel processing |
+
 ## Potential Remaining Issues
 
 ### A. In-Memory Job Queue (trainingOrchestrator.ts)
@@ -37,25 +46,7 @@ CREATE TABLE trainingJobs (
 );
 ```
 
-### B. Race Conditions in Job Queueing
-
-**Issue**: `queueTrainingJob()` has a Time-Of-Check-Time-Of-Use (TOCTOU) race when checking for existing jobs.
-
-```typescript
-// Current code - race condition window
-const existingJob = Array.from(jobQueue.values()).find(
-  (job) => job.userId === userId && ...
-);
-if (existingJob) return existingJob.jobId;
-// Another request could queue a job here
-const jobId = `train_${Date.now()}_${randomUUID().slice(0, 8)}`;
-```
-
-**Impact**: Could queue duplicate jobs if called concurrently.
-
-**Recommendation**: Use database transactions with row-level locking.
-
-### C. No Pagination for Label Lists
+### B. No Pagination for Label Lists
 
 **Issue**: `getLabelReadinessForUser()` returns all labels without pagination.
 
@@ -66,7 +57,7 @@ const jobId = `train_${Date.now()}_${randomUUID().slice(0, 8)}`;
 
 **Recommendation**: Add `page` and `pageSize` parameters.
 
-### D. Orphaned Settings on Label Deletion
+### C. Orphaned Settings on Label Deletion
 
 **Issue**: When a baseline label is removed, settings for that label remain in the database.
 
@@ -78,7 +69,7 @@ const jobId = `train_${Date.now()}_${randomUUID().slice(0, 8)}`;
 - Add background cleanup job
 - Or add ON DELETE CASCADE constraint
 
-### E. Error Messages May Leak Details
+### D. Error Messages May Leak Details
 
 **Issue**: Some error handlers pass through the original exception message.
 
@@ -96,7 +87,7 @@ logError("Failed to update label setting", { userId, labelId, error: message });
 ### Missing Test Cases
 
 1. **Path traversal attack scenarios** - Test with `../../../etc/passwd` in labelId
-2. **Concurrent job submission** - Test race condition scenarios
+2. ~~**Concurrent job submission** - Test race condition scenarios~~ ✅ Fixed with locking
 3. **Large dataset performance** - Test with 1000+ labels
 4. **Server restart recovery** - Test job state after restart
 5. **Invalid UTF-8 in labelId** - Test with malformed strings
@@ -126,7 +117,7 @@ describe("Security", () => {
 ## Priority Recommendations
 
 ### HIGH Priority
-1. Persist job queue to database
+1. Persist job queue to database (in-memory queue loses data on restart)
 2. Add database migration documentation
 
 ### MEDIUM Priority
@@ -138,6 +129,15 @@ describe("Security", () => {
 1. Add cleanup for orphaned settings
 2. Add error code documentation
 3. Add performance tests
+
+## Recently Addressed Issues
+
+The following issues from code review have been addressed:
+
+1. ✅ **TOCTOU Race Condition** - Added `jobCreationLock` Set to prevent concurrent job creation
+2. ✅ **DRY Violation** - Refactored `getUserLabelTrainingPath` to reuse `getUserTrainingDir`
+3. ✅ **O(N*M) Performance** - Using Map for O(1) lookups in settings merge
+4. ✅ **Sequential Awaits** - Using `Promise.all` for parallel label readiness processing
 
 ---
 

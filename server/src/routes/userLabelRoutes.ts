@@ -86,9 +86,12 @@ export function registerUserLabelRoutes(
 				const readinessStatuses = await getLabelReadinessForUser(userId);
 				const settings = getUserLabelSettings(userId);
 
+				// Use Map for O(1) lookups instead of O(N) find in loop
+				const settingsMap = new Map(settings.map(s => [s.labelId, s]));
+
 				// Merge settings with readiness
 				const labels = readinessStatuses.map((status) => {
-					const setting = settings.find((s) => s.labelId === status.labelId);
+					const setting = settingsMap.get(status.labelId);
 					return {
 						...status,
 						updatedAt: setting?.updatedAt,
