@@ -146,12 +146,15 @@ export function registerUserLabelRoutes(
 			}
 
 			try {
-				const readiness = await getLabelReadiness(userId, labelId);
+				// Normalize labelId to lowercase for consistency
+				const normalizedLabelId = labelId.toLowerCase();
+				
+				const readiness = await getLabelReadiness(userId, normalizedLabelId);
 				if (!readiness) {
 					return res.status(404).json({ error: "Label nicht gefunden." });
 				}
 
-				const setting = getLabelSetting(userId, labelId);
+				const setting = getLabelSetting(userId, normalizedLabelId);
 
 				return res.json({
 					...readiness,
@@ -218,21 +221,24 @@ export function registerUserLabelRoutes(
 			}
 
 			try {
+				// Normalize labelId to lowercase for consistency
+				const normalizedLabelId = labelId.toLowerCase();
+				
 				// Verify labelId exists in baseline labels before updating
 				const baselineLabels = await loadBaselineLabels();
-				if (!baselineLabels.includes(labelId.toLowerCase())) {
+				if (!baselineLabels.includes(normalizedLabelId)) {
 					return res.status(404).json({ error: "Label nicht gefunden." });
 				}
 
 				// Get existing setting or use defaults
-				const existing = getLabelSetting(userId, labelId);
+				const existing = getLabelSetting(userId, normalizedLabelId);
 				const mode = parsed.data.mode ?? existing?.mode ?? "user_train";
 				const enabled = parsed.data.enabled ?? existing?.enabled ?? true;
 
-				const setting = setLabelSetting(userId, labelId, mode, enabled);
+				const setting = setLabelSetting(userId, normalizedLabelId, mode, enabled);
 
 				// Return updated readiness as well
-				const readiness = await getLabelReadiness(userId, labelId);
+				const readiness = await getLabelReadiness(userId, normalizedLabelId);
 
 				return res.json({
 					...readiness,
