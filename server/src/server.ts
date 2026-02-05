@@ -387,11 +387,8 @@ app.get("/api/v1/health", healthHandler);
 app.get("/api/v1/labels", async (_req: Request, res: Response) => {
 	try {
 		const manifest = await buildLabelManifest();
-		// Convert Map to plain object for JSON serialization
-		const variationsObject: Record<string, { mainVideo: string | null; variationVideos: string[]; allVideos: string[] }> = {};
-		for (const [key, value] of manifest.variations) {
-			variationsObject[key] = value;
-		}
+		// Convert Map to plain object for JSON serialization using idiomatic Object.fromEntries
+		const variationsObject = Object.fromEntries(manifest.variations);
 		res.json({
 			version: manifest.version,
 			labels: manifest.labels,

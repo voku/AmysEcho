@@ -63,6 +63,14 @@ class TestExtractBaseLabelFromVideoFilename:
         # Multiple underscores without main/var pattern
         assert extract_base_label_from_video_filename("some_label_here.mp4") == "some_label_here"
     
+    def test_both_main_and_var_in_filename(self):
+        """When both _main_ and _var_ are in filename, first separator wins."""
+        # Edge case: filename contains both _main_ and _var_ - should use first occurrence
+        assert extract_base_label_from_video_filename("label_var_x_main_y.mp4") == "label"
+        assert extract_base_label_from_video_filename("label_main_x_var_y.mp4") == "label"
+        # More realistic edge case with nested terms
+        assert extract_base_label_from_video_filename("test_main_variant_var_0.mp4") == "test"
+    
     def test_umlauts_in_variants(self):
         """German umlauts in variant names should be handled."""
         assert extract_base_label_from_video_filename("essen_main_frühstück.mp4") == "essen"

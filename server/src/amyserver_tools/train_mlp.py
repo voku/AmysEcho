@@ -295,12 +295,16 @@ def extract_base_label_from_video_filename(filename: str) -> str:
     # Remove extension if present
     stem = filename.rsplit('.', 1)[0] if '.' in filename else filename
     
-    # Check for _main_ or _var_ patterns (variation videos)
-    if '_main_' in stem or '_var_' in stem:
-        # Base label is everything before _main_ or _var_
-        for separator in ('_main_', '_var_'):
-            if separator in stem:
-                return stem.split(separator)[0]
+    # Find the first occurrence of either separator
+    # This is more robust than iterating - handles edge cases like
+    # 'label_var_x_main_y.mp4' which should return 'label' (first separator wins)
+    main_idx = stem.find('_main_')
+    var_idx = stem.find('_var_')
+    
+    valid_indices = [i for i in (main_idx, var_idx) if i != -1]
+    if valid_indices:
+        separator_idx = min(valid_indices)
+        return stem[:separator_idx]
     
     # For base videos, the stem IS the label
     return stem
