@@ -145,7 +145,7 @@ function getSafeUserTrainingDir(
 	if (!PROFILE_ID_PATTERN.test(userId)) {
 		return null;
 	}
-	// Validate labelId to allow only safe characters
+	// Validate labelId to allow only safe characters and ensure non-empty
 	if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
 		return null;
 	}
@@ -154,9 +154,10 @@ function getSafeUserTrainingDir(
 	const rootDir = path.resolve(TRAINING_UPLOADS_DIR);
 	const userTrainDir = path.resolve(rootDir, userId, labelId);
 
-	// Ensure the resolved path is within the root directory
+	// Ensure the resolved path is a proper subdirectory of the root directory
+	// Must start with rootDir + separator to be a valid subdirectory
 	const rootWithSep = rootDir.endsWith(path.sep) ? rootDir : rootDir + path.sep;
-	if (userTrainDir !== rootDir && !userTrainDir.startsWith(rootWithSep)) {
+	if (!userTrainDir.startsWith(rootWithSep)) {
 		return null;
 	}
 
@@ -181,8 +182,9 @@ export async function countUserSamples(
 		const stats = await Promise.all(
 			entries.map(async (entry) => {
 				try {
-					// Validate entry name to prevent path traversal via directory entries
-					if (entry.includes("..") || entry.includes(path.sep)) {
+					// Validate entry name to prevent path traversal
+					// fs.readdir returns only entry names, but check for ".." to be safe
+					if (entry.includes("..")) {
 						return false;
 					}
 					const entryPath = path.join(userTrainDir, entry);
