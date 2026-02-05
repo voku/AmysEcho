@@ -23,6 +23,7 @@ import type {
 	StoredUser,
 	SymbolRecord,
 	UsageStat,
+	UserLabelSetting,
 	VocabularySet,
 	VocabularySetSymbol,
 } from "./types.js";
@@ -259,6 +260,23 @@ function createTables(): void {
 			timestamp INTEGER NOT NULL
 		);
 		CREATE INDEX IF NOT EXISTS idx_negativeSamples_timestamp ON negativeSamples(timestamp);
+	`);
+
+	// User label settings table - per-user, per-label training configuration
+	// Amy First: Each child can have their own personalized label collection
+	database.exec(`
+		CREATE TABLE IF NOT EXISTS userLabelSettings (
+			id TEXT PRIMARY KEY,
+			userId TEXT NOT NULL,
+			labelId TEXT NOT NULL,
+			mode TEXT NOT NULL DEFAULT 'user_train',
+			enabled INTEGER NOT NULL DEFAULT 1,
+			updatedAt TEXT NOT NULL,
+			lastTrainedAt TEXT,
+			UNIQUE(userId, labelId)
+		);
+		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_userId ON userLabelSettings(userId);
+		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_labelId ON userLabelSettings(labelId);
 	`);
 }
 
@@ -1233,6 +1251,140 @@ export function deleteNegativeSampleById(id: string): void {
 	getDb().prepare("DELETE FROM negativeSamples WHERE id = ?").run(id);
 }
 
+// ==================== USER LABEL SETTINGS OPERATIONS ====================
+
+/**
+ * Get all user label settings for a specific user
+ */
+export function getUserLabelSettingsByUserId(userId: string): UserLabelSetting[] {
+	const rows = getDb().prepare("SELECT * FROM userLabelSettings WHERE userId = ?").all(userId) as any[];
+	return rows.map(rowToUserLabelSetting);
+}
+
+/**
+ * Get a specific user label setting by user and label
+ */
+export function getUserLabelSetting(userId: string, labelId: string): UserLabelSetting | undefined {
+	const row = getDb().prepare(
+		"SELECT * FROM userLabelSettings WHERE userId = ? AND labelId = ?"
+	).get(userId, labelId) as any;
+	return row ? rowToUserLabelSetting(row) : undefined;
+}
+
+/**
+ * Get user label setting by ID
+ */
+export function getUserLabelSettingById(id: string): UserLabelSetting | undefined {
+	const row = getDb().prepare("SELECT * FROM userLabelSettings WHERE id = ?").get(id) as any;
+	return row ? rowToUserLabelSetting(row) : undefined;
+}
+
+/**
+ * Insert a new user label setting
+ */
+export function insertUserLabelSetting(setting: UserLabelSetting): void {
+	getDb().prepare(`
+		INSERT INTO userLabelSettings (id, userId, labelId, mode, enabled, updatedAt, lastTrainedAt)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`).run(
+		setting.id,
+		setting.userId,
+		setting.labelId,
+		setting.mode,
+		setting.enabled ? 1 : 0,
+		setting.updatedAt,
+		setting.lastTrainedAt ?? null,
+	);
+}
+
+/**
+ * Upsert a user label setting (insert or update on conflict)
+ */
+export function upsertUserLabelSetting(setting: UserLabelSetting): void {
+	getDb().prepare(`
+		INSERT INTO userLabelSettings (id, userId, labelId, mode, enabled, updatedAt, lastTrainedAt)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(userId, labelId) DO UPDATE SET
+			mode = excluded.mode,
+			enabled = excluded.enabled,
+			updatedAt = excluded.updatedAt,
+			lastTrainedAt = COALESCE(excluded.lastTrainedAt, lastTrainedAt)
+	`).run(
+		setting.id,
+		setting.userId,
+		setting.labelId,
+		setting.mode,
+		setting.enabled ? 1 : 0,
+		setting.updatedAt,
+		setting.lastTrainedAt ?? null,
+	);
+}
+
+/**
+ * Update an existing user label setting
+ */
+export function updateUserLabelSettingInDb(setting: UserLabelSetting): void {
+	getDb().prepare(`
+		UPDATE userLabelSettings SET
+			mode = ?,
+			enabled = ?,
+			updatedAt = ?,
+			lastTrainedAt = ?
+		WHERE id = ?
+	`).run(
+		setting.mode,
+		setting.enabled ? 1 : 0,
+		setting.updatedAt,
+		setting.lastTrainedAt ?? null,
+		setting.id,
+	);
+}
+
+/**
+ * Delete a user label setting by ID
+ */
+export function deleteUserLabelSettingById(id: string): void {
+	getDb().prepare("DELETE FROM userLabelSettings WHERE id = ?").run(id);
+}
+
+/**
+ * Delete all user label settings for a user
+ */
+export function deleteUserLabelSettingsByUserId(userId: string): void {
+	getDb().prepare("DELETE FROM userLabelSettings WHERE userId = ?").run(userId);
+}
+
+/**
+ * Update lastTrainedAt for a specific user label
+ */
+export function updateUserLabelLastTrained(userId: string, labelId: string, trainedAt: string): void {
+	getDb().prepare(`
+		UPDATE userLabelSettings SET lastTrainedAt = ?, updatedAt = ? WHERE userId = ? AND labelId = ?
+	`).run(trainedAt, trainedAt, userId, labelId);
+}
+
+/**
+ * Get all enabled labels for a user with a specific mode
+ */
+export function getEnabledUserLabelsByMode(userId: string, mode: string): UserLabelSetting[] {
+	const rows = getDb().prepare(
+		"SELECT * FROM userLabelSettings WHERE userId = ? AND mode = ? AND enabled = 1"
+	).all(userId, mode) as any[];
+	return rows.map(rowToUserLabelSetting);
+}
+
+function rowToUserLabelSetting(row: any): UserLabelSetting {
+	return {
+		id: row.id,
+		userId: row.userId,
+		labelId: row.labelId,
+		mode: row.mode,
+		enabled: row.enabled === 1,
+		updatedAt: row.updatedAt,
+		lastTrainedAt: row.lastTrainedAt ?? undefined,
+	};
+}
+
 // ==================== PROFILE DATA DELETION ====================
 
 /**
@@ -1245,6 +1397,7 @@ export function deleteProfileDataFromSqlite(profileId: string): void {
 		database.prepare("DELETE FROM usageStats WHERE profileId = ?").run(profileId);
 		database.prepare("DELETE FROM corrections WHERE profileId = ?").run(profileId);
 		database.prepare("DELETE FROM symbols WHERE profileId = ?").run(profileId);
+		database.prepare("DELETE FROM userLabelSettings WHERE userId = ?").run(profileId);
 	});
 	deleteInTransaction();
 }
