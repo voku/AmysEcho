@@ -148,6 +148,7 @@ async function gatherLabelTrainingData(
 			for (const entry of entries) {
 				if (
 					typeof entry === "string" &&
+					!entry.includes("..") && // Prevent path traversal
 					(entry.endsWith("landmarks.json") ||
 						entry.endsWith("_landmarks.json"))
 				) {

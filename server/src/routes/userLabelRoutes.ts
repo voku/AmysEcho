@@ -24,8 +24,12 @@ import {
 	initializeUserLabelSettings,
 	setLabelSetting,
 } from "../services/userLabelSettingsService.js";
+import { loadBaselineLabels } from "../services/labelRegistry.js";
 import { isProfileAuthorized } from "../utils/profileAuthorization.js";
 import { PROFILE_ID_PATTERN } from "../constants/modelPaths.js";
+
+// Label ID pattern for validation
+const LABEL_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 // Validation schemas
 const UpdateLabelSettingSchema = z.object({
@@ -132,7 +136,7 @@ export function registerUserLabelRoutes(
 			}
 
 			// Validate labelId format
-			if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
+			if (!labelId || !LABEL_ID_PATTERN.test(labelId)) {
 				return res.status(400).json({ error: "Ungültige Label-ID." });
 			}
 
@@ -185,7 +189,7 @@ export function registerUserLabelRoutes(
 			}
 
 			// Validate labelId format
-			if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
+			if (!labelId || !LABEL_ID_PATTERN.test(labelId)) {
 				return res.status(400).json({ error: "Ungültige Label-ID." });
 			}
 
@@ -214,6 +218,12 @@ export function registerUserLabelRoutes(
 			}
 
 			try {
+				// Verify labelId exists in baseline labels before updating
+				const baselineLabels = await loadBaselineLabels();
+				if (!baselineLabels.includes(labelId.toLowerCase())) {
+					return res.status(404).json({ error: "Label nicht gefunden." });
+				}
+
 				// Get existing setting or use defaults
 				const existing = getLabelSetting(userId, labelId);
 				const mode = parsed.data.mode ?? existing?.mode ?? "user_train";

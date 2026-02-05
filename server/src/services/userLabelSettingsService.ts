@@ -17,6 +17,7 @@ import {
 	PROFILE_ID_PATTERN,
 	TRAINING_UPLOADS_DIR,
 	getUserLabelTrainingPath,
+	getUserLabelLandmarksPath,
 	ensureUserLabelDirs,
 } from "../constants/modelPaths.js";
 import {
@@ -227,6 +228,40 @@ export async function countUserLandmarks(
 }
 
 /**
+ * Count server-pretrain landmarks for a label
+ * These are landmarks extracted from curated internet DGS videos
+ */
+export async function countServerLandmarks(
+	userId: string,
+	labelId: string,
+): Promise<number> {
+	// Validate inputs
+	if (!PROFILE_ID_PATTERN.test(userId)) {
+		return 0;
+	}
+	if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
+		return 0;
+	}
+
+	try {
+		const serverLandmarksPath = getUserLabelLandmarksPath(
+			userId,
+			labelId,
+			"server_pretrain",
+		);
+		const entries = await fs.readdir(serverLandmarksPath);
+		return entries.filter(
+			(e) =>
+				typeof e === "string" &&
+				!e.includes("..") &&
+				e.endsWith(".json"),
+		).length;
+	} catch {
+		return 0;
+	}
+}
+
+/**
  * Get readiness status for all labels for a user
  * Amy First: Transparent visibility into training readiness
  */
@@ -261,6 +296,9 @@ export async function getLabelReadinessForUser(
 		// Get user sample and landmark counts
 		const userSampleCount = await countUserSamples(userId, labelId);
 		const userLandmarkCount = await countUserLandmarks(userId, labelId);
+		
+		// Get server landmark count for server_pretrain mode
+		const serverLandmarkCount = await countServerLandmarks(userId, labelId);
 
 		// Compute readiness
 		const reasons: string[] = [];
@@ -273,7 +311,16 @@ export async function getLabelReadinessForUser(
 				);
 				ready = false;
 			}
-			// TODO: Check for server landmarks when implemented
+			// Check for server landmarks - required for training
+			if (serverLandmarkCount === 0) {
+				reasons.push("Keine Server-Landmarks vorhanden");
+				ready = false;
+			} else if (serverLandmarkCount < MIN_VIDEOS_FOR_SERVER_PRETRAIN) {
+				reasons.push(
+					`Zu wenige Server-Landmarks (${serverLandmarkCount}/${MIN_VIDEOS_FOR_SERVER_PRETRAIN})`,
+				);
+				ready = false;
+			}
 		} else {
 			// user_train mode
 			if (userSampleCount < MIN_SAMPLES_FOR_USER_TRAIN) {
@@ -305,7 +352,7 @@ export async function getLabelReadinessForUser(
 			enabled,
 			serverVideoCount,
 			userSampleCount,
-			landmarkCount: mode === "server_pretrain" ? 0 : userLandmarkCount,
+			landmarkCount: mode === "server_pretrain" ? serverLandmarkCount : userLandmarkCount,
 			ready,
 			reasons,
 			lastTrainedAt: setting?.lastTrainedAt,
