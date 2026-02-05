@@ -48,12 +48,24 @@ run_step "Install webapp dependencies" install_node_modules webapp
 run_step "Install server dependencies" install_node_modules server
 run_step "Install integration dependencies" install_node_modules integration
 
-# Ensure dummy MediaPipe assets exist for integration tests
+# Ensure MediaPipe assets exist for integration tests
+# Only create dummy files if valid models don't already exist
 mkdir -p server/data/models server/data/dgs_video_examples
-dd if=/dev/zero of=server/data/models/hand_landmarker.task bs=1M count=2 2>/dev/null
-dd if=/dev/zero of=server/data/models/pose_landmarker.task bs=1M count=2 2>/dev/null
-dd if=/dev/zero of=server/data/models/face_landmarker.task bs=1M count=2 2>/dev/null
-# Verify dummy models were created
+for model in hand_landmarker.task pose_landmarker.task face_landmarker.task; do
+  model_path="server/data/models/$model"
+  if [ -s "$model_path" ]; then
+    # MediaPipe .task files start with 2 null bytes followed by ZIP signature "PK" (0x504b)
+    header=$(head -c 4 "$model_path" | od -An -tx1 | tr -d ' ')
+    if [ "$header" = "0000504b" ]; then
+      echo "Valid MediaPipe model found: $model"
+      continue
+    fi
+  fi
+  # Create dummy file for testing (model not found or invalid)
+  echo "Creating dummy MediaPipe model: $model"
+  dd if=/dev/zero of="$model_path" bs=1M count=2 2>/dev/null
+done
+# Verify models exist (either real or dummy)
 for model in hand_landmarker.task pose_landmarker.task face_landmarker.task; do
   if [ ! -s "server/data/models/$model" ]; then
     echo "Error: Failed to create $model" >&2
@@ -63,24 +75,37 @@ done
 labels=('alle' 'blau' 'essen' 'fertig' 'gelb' 'gruen' 'nochmal' 'rot' 'satt' 'schwester' 'spielen' 'trinken')
 for label in "${labels[@]}"; do
   touch "server/data/dgs_video_examples/${label}.mp4"
+  touch "server/data/dgs_video_examples/${label}_main_${label}.mp4"
+  touch "server/data/dgs_video_examples/${label}_var_${label}_0.mp4"
   echo '{"frames": []}' > "server/data/dgs_video_examples/${label}_landmarks.json"
 done
-echo '{
-  "gestures": [
-    {"id": "alle", "label": "alle", "video": "alle.mp4"},
-    {"id": "blau", "label": "blau", "video": "blau.mp4"},
-    {"id": "essen", "label": "essen", "video": "essen.mp4"},
-    {"id": "fertig", "label": "fertig", "video": "fertig.mp4"},
-    {"id": "gelb", "label": "gelb", "video": "gelb.mp4"},
-    {"id": "gruen", "label": "gruen", "video": "gruen.mp4"},
-    {"id": "nochmal", "label": "nochmal", "video": "nochmal.mp4"},
-    {"id": "rot", "label": "rot", "video": "rot.mp4"},
-    {"id": "satt", "label": "satt", "video": "satt.mp4"},
-    {"id": "schwester", "label": "schwester", "video": "schwester.mp4"},
-    {"id": "spielen", "label": "spielen", "video": "spielen.mp4"},
-    {"id": "trinken", "label": "trinken", "video": "trinken.mp4"}
-  ]
-}' > server/data/dgs_manifest.json
+# Create test manifest with videos array format and stats section
+# Dynamically generated from labels array for maintainability
+{
+  gestures_json=""
+  for label in "${labels[@]}"; do
+    video_base="${label}.mp4"
+    video_main="${label}_main_${label}.mp4"
+    video_var="${label}_var_${label}_0.mp4"
+    gestures_json+=$(printf '{"id":"%s","label":"%s","videos":["%s","%s","%s"],"totalVideoCount":3},' \
+      "$label" "$label" "$video_base" "$video_main" "$video_var")
+  done
+  # Remove trailing comma
+  gestures_json="${gestures_json%,}"
+  num_labels=${#labels[@]}
+  total_videos=$((num_labels * 3))
+  cat <<EOF
+{
+  "version": "3.0",
+  "description": "Test fixture for DGS video examples",
+  "gestures": [$gestures_json],
+  "stats": {
+    "totalLabels": $num_labels,
+    "totalVideos": $total_videos
+  }
+}
+EOF
+} > server/data/dgs_manifest.json
 
 # Run lint/type-check/tests for the browser webapp
 run_step "Lint webapp" npm run lint --prefix webapp
