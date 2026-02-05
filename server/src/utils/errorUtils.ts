@@ -5,7 +5,7 @@
 
 import { logger } from "../services/logger.js";
 
-export interface ErrorResult<T = any> {
+export interface ErrorResult<T = unknown> {
 	success: boolean;
 	data?: T;
 	error?: string;
@@ -125,7 +125,7 @@ export async function withRetry<T>(
 export function createErrorMessage(
 	operation: string,
 	error: unknown,
-	additionalInfo?: Record<string, any>,
+	additionalInfo?: Record<string, unknown>,
 ): string {
 	const baseMessage = `${operation} failed`;
 	const errorMessage = error instanceof Error ? error.message : String(error);
@@ -210,32 +210,9 @@ export function handleApiError(
 }
 
 /**
- * Handles database errors consistently
- */
-export function handleDatabaseError(
-	error: unknown,
-	operation: string,
-	table?: string,
-): ErrorResult {
-	const errorMessage = error instanceof Error ? error.message : String(error);
-
-	logger.error(`Database ${operation} failed: ${errorMessage}`, {
-		operation,
-		table,
-		error: errorMessage,
-	});
-
-	return {
-		success: false,
-		error: errorMessage,
-		code: "DATABASE_ERROR",
-	};
-}
-
-/**
  * Safe JSON parsing with error handling
  */
-export function safeJsonParse<T = any>(
+export function safeJsonParse<T = unknown>(
 	jsonString: string,
 	fallback?: T,
 	context: string = "JSON parsing",
@@ -247,56 +224,9 @@ export function safeJsonParse<T = any>(
  * Safe JSON stringification with error handling
  */
 export function safeJsonStringify(
-	data: any,
+	data: unknown,
 	fallback: string = "{}",
 	context: string = "JSON stringification",
 ): ErrorResult<string> {
 	return withSyncErrorHandling(() => JSON.stringify(data), context, fallback);
-}
-
-/**
- * Creates HTTP error responses
- */
-export function createHttpError(
-	message: string,
-	statusCode: number = 500,
-	code?: string,
-	details?: any,
-): { error: string; code?: string; details?: any; statusCode: number } {
-	return {
-		error: message,
-		code,
-		details,
-		statusCode,
-	};
-}
-
-/**
- * Express.js error handler middleware factory
- */
-export function createErrorHandler(logContext?: string) {
-	return (error: Error, req: any, res: any, _next: any) => {
-		const context = logContext || "HTTP request";
-		const errorMessage = error.message || "Internal server error";
-
-		logger.error(`${context} error: ${errorMessage}`, {
-			method: req.method,
-			url: req.url,
-			userAgent: req.get("User-Agent"),
-			ip: req.ip,
-			stack: error.stack,
-		});
-
-		// Don't leak error details in production
-		const isDevelopment = process.env.NODE_ENV === "development";
-		const responseError = isDevelopment
-			? errorMessage
-			: "Internal server error";
-
-		res.status(500).json({
-			error: responseError,
-			code: "INTERNAL_ERROR",
-			...(isDevelopment && { stack: error.stack }),
-		});
-	};
 }

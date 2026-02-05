@@ -9,14 +9,14 @@ import { handleApiError, isRetryableError, withRetry } from "./errorUtils.js";
 export interface ApiRequestOptions {
 	method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 	headers?: Record<string, string>;
-	body?: any;
+	body?: unknown;
 	timeout?: number;
 	retries?: number;
 	retryDelay?: number;
 	userId?: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
 	success: boolean;
 	data?: T;
 	error?: string;
@@ -28,7 +28,7 @@ export interface ApiResponse<T = any> {
 /**
  * Makes an API request with consistent error handling and logging
  */
-export async function apiRequest<T = any>(
+export async function apiRequest<T = unknown>(
 	url: string,
 	options: ApiRequestOptions = {},
 ): Promise<ApiResponse<T>> {
@@ -57,7 +57,7 @@ export async function apiRequest<T = any>(
 	if (body && typeof body === "object") {
 		requestOptions.body = JSON.stringify(body);
 	} else if (body) {
-		requestOptions.body = body;
+		requestOptions.body = body as BodyInit;
 	}
 
 	const operation = async (): Promise<ApiResponse<T>> => {
@@ -113,7 +113,12 @@ export async function apiRequest<T = any>(
 	});
 
 	if (!result.success) {
-		return handleApiError(result.error, url, method);
+		const apiError = handleApiError(result.error, url, method);
+		return {
+			success: false,
+			error: apiError.error,
+			status: apiError.statusCode,
+		};
 	}
 
 	return result.data!;
@@ -122,7 +127,7 @@ export async function apiRequest<T = any>(
 /**
  * Makes a GET request
  */
-export async function apiGet<T = any>(
+export async function apiGet<T = unknown>(
 	url: string,
 	options: Omit<ApiRequestOptions, "method" | "body"> = {},
 ): Promise<ApiResponse<T>> {
@@ -132,9 +137,9 @@ export async function apiGet<T = any>(
 /**
  * Makes a POST request
  */
-export async function apiPost<T = any>(
+export async function apiPost<T = unknown>(
 	url: string,
-	body?: any,
+	body?: unknown,
 	options: Omit<ApiRequestOptions, "method" | "body"> = {},
 ): Promise<ApiResponse<T>> {
 	return apiRequest<T>(url, { ...options, method: "POST", body });
@@ -143,9 +148,9 @@ export async function apiPost<T = any>(
 /**
  * Makes a PUT request
  */
-export async function apiPut<T = any>(
+export async function apiPut<T = unknown>(
 	url: string,
-	body?: any,
+	body?: unknown,
 	options: Omit<ApiRequestOptions, "method" | "body"> = {},
 ): Promise<ApiResponse<T>> {
 	return apiRequest<T>(url, { ...options, method: "PUT", body });
@@ -154,7 +159,7 @@ export async function apiPut<T = any>(
 /**
  * Makes a DELETE request
  */
-export async function apiDelete<T = any>(
+export async function apiDelete<T = unknown>(
 	url: string,
 	options: Omit<ApiRequestOptions, "method" | "body"> = {},
 ): Promise<ApiResponse<T>> {
@@ -248,11 +253,11 @@ export class ExternalApiClient {
 		return `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 	}
 
-	async request<T = any>(
+	async request<T = unknown>(
 		method: string,
 		endpoint: string,
 		options: {
-			body?: any;
+			body?: unknown;
 			headers?: Record<string, string>;
 			userId?: string;
 		} = {},
@@ -261,7 +266,7 @@ export class ExternalApiClient {
 		const headers = { ...this.defaultHeaders, ...options.headers };
 
 		return apiRequest<T>(url, {
-			method: method as any,
+			method: method as ApiRequestOptions["method"],
 			headers,
 			body: options.body,
 			timeout: this.timeout,
@@ -270,30 +275,30 @@ export class ExternalApiClient {
 		});
 	}
 
-	async get<T = any>(
+	async get<T = unknown>(
 		endpoint: string,
 		options?: { headers?: Record<string, string>; userId?: string },
 	): Promise<ApiResponse<T>> {
 		return this.request<T>("GET", endpoint, options);
 	}
 
-	async post<T = any>(
+	async post<T = unknown>(
 		endpoint: string,
-		body?: any,
+		body?: unknown,
 		options?: { headers?: Record<string, string>; userId?: string },
 	): Promise<ApiResponse<T>> {
 		return this.request<T>("POST", endpoint, { ...options, body });
 	}
 
-	async put<T = any>(
+	async put<T = unknown>(
 		endpoint: string,
-		body?: any,
+		body?: unknown,
 		options?: { headers?: Record<string, string>; userId?: string },
 	): Promise<ApiResponse<T>> {
 		return this.request<T>("PUT", endpoint, { ...options, body });
 	}
 
-	async delete<T = any>(
+	async delete<T = unknown>(
 		endpoint: string,
 		options?: { headers?: Record<string, string>; userId?: string },
 	): Promise<ApiResponse<T>> {

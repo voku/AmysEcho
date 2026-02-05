@@ -5,7 +5,8 @@ import {
   safeJsonParse,
   safeJsonStringify,
   handleApiError,
-  handleDatabaseError,
+  isRetryableError,
+  createErrorMessage,
 } from '../src/utils/errorUtils.js';
 
 describe('errorUtils', () => {
@@ -58,7 +59,7 @@ describe('errorUtils', () => {
   });
 
   it('safeJsonStringify handles circular data', () => {
-    const obj: any = {};
+    const obj: Record<string, unknown> = {};
     obj.self = obj;
     const result = safeJsonStringify(obj, 'fallback');
     expect(result).toEqual({ success: false, error: expect.any(String), data: 'fallback' });
@@ -69,8 +70,34 @@ describe('errorUtils', () => {
     expect(res).toEqual({ success: false, error: 'bad', code: 'API_ERROR', statusCode: 500 });
   });
 
-  it('handleDatabaseError returns structured error', () => {
-    const res = handleDatabaseError(new Error('db'), 'insert', 'users');
-    expect(res).toEqual({ success: false, error: 'db', code: 'DATABASE_ERROR' });
+  it('isRetryableError returns true for network errors', () => {
+    expect(isRetryableError(new Error('ECONNREFUSED'))).toBe(true);
+    expect(isRetryableError(new Error('ENOTFOUND'))).toBe(true);
+    expect(isRetryableError(new Error('timeout'))).toBe(true);
+  });
+
+  it('isRetryableError returns true for HTTP 5xx errors', () => {
+    expect(isRetryableError(new Error('HTTP 500'))).toBe(true);
+    expect(isRetryableError(new Error('HTTP 503'))).toBe(true);
+  });
+
+  it('isRetryableError returns false for auth errors', () => {
+    expect(isRetryableError(new Error('401 Unauthorized'))).toBe(false);
+    expect(isRetryableError(new Error('403 Forbidden'))).toBe(false);
+  });
+
+  it('isRetryableError returns false for validation errors', () => {
+    expect(isRetryableError(new Error('validation failed'))).toBe(false);
+    expect(isRetryableError(new Error('invalid input'))).toBe(false);
+  });
+
+  it('createErrorMessage formats simple errors', () => {
+    const msg = createErrorMessage('save', new Error('oops'));
+    expect(msg).toBe('save failed: oops');
+  });
+
+  it('createErrorMessage includes additional info', () => {
+    const msg = createErrorMessage('save', new Error('oops'), { table: 'users' });
+    expect(msg).toBe('save failed: oops (table: users)');
   });
 });
