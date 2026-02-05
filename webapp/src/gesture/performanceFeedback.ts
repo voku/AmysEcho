@@ -9,6 +9,7 @@
 
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { modelManager } from './modelManager';
+import { logger } from '../services/logger';
 
 export interface PredictionResult {
   label: string;
@@ -221,7 +222,7 @@ class PerformanceFeedback {
       };
       
       await sendTelemetryEvent('performance_feedback_batch', feedbackData);
-      console.log('📊 Performance feedback sent:', feedbackData.aggregateMetrics);
+      logger.info('📊 Performance feedback sent:', feedbackData.aggregateMetrics);
       
     } catch (error) {
       console.warn('Failed to send performance feedback:', error);
@@ -270,7 +271,7 @@ class PerformanceFeedback {
       contextualFactors: {}
     };
     this.recentPredictions = [];
-    console.log('🔄 Performance feedback reset');
+    logger.info('🔄 Performance feedback reset');
   }
   
   /**

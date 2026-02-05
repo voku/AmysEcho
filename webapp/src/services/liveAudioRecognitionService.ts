@@ -7,6 +7,7 @@
  */
 
 import { MFCCExtractor, createMFCCExtractor } from './mfccExtractor';
+import { logger } from './logger';
 
 export interface LiveAudioFeatures {
   mfcc: Float32Array; // 13 coefficients (time-averaged)
@@ -33,7 +34,7 @@ export class LiveAudioRecognitionService {
   async start(config: LiveAudioConfig = {}): Promise<boolean> {
     try {
       if (this.isActive) {
-        console.warn('Live audio recognition already active');
+        logger.warn('Live audio recognition already active');
         return true;
       }
 
@@ -52,14 +53,14 @@ export class LiveAudioRecognitionService {
         this.audioStream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (error) {
         // Microphone not available - graceful degradation
-        console.info('Microphone not available for live audio recognition:', error);
+        logger.info('Microphone not available for live audio recognition:', error);
         return false;
       }
 
       // Initialize MFCC extractor
       this.mfccExtractor = await createMFCCExtractor();
       if (!this.mfccExtractor) {
-        console.error('Failed to initialize MFCC extractor');
+        logger.error('Failed to initialize MFCC extractor');
         this.stop();
         return false;
       }
@@ -69,10 +70,10 @@ export class LiveAudioRecognitionService {
       this.audioSource = this.mfccExtractor.connectMediaStream(this.audioStream);
 
       this.isActive = true;
-      console.log('Live audio recognition started');
+      logger.info('Live audio recognition started');
       return true;
     } catch (error) {
-      console.error('Failed to start live audio recognition:', error);
+      logger.error('Failed to start live audio recognition:', error);
       this.stop();
       return false;
     }
@@ -166,7 +167,7 @@ export class LiveAudioRecognitionService {
     }
 
     this.isActive = false;
-    console.log('Live audio recognition stopped');
+    logger.info('Live audio recognition stopped');
   }
 
   /**

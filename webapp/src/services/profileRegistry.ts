@@ -1,4 +1,5 @@
 import { sha256 } from 'js-sha256';
+import { logger } from './logger';
 
 /**
  * Profile Registry Service
@@ -542,11 +543,11 @@ export async function deleteProfile(uuid: string): Promise<void> {
  * Initialize profile registry (call on app startup)
  */
 export async function initializeProfileRegistry(): Promise<void> {
-  console.log('[Profile Registry] Initializing and verifying integrity...');
+  logger.info('[Profile Registry] Initializing and verifying integrity...');
   const registry = await loadProfileRegistry();
   if (!registry) {
-    console.log('[Profile Registry] No valid registry found. A new one will be created on first profile addition.');
+    logger.info('[Profile Registry] No valid registry found. A new one will be created on first profile addition.');
   } else {
-    console.log(`[Profile Registry] Initialization complete. Loaded ${registry.profiles.length} profiles.`);
+    logger.info(`[Profile Registry] Initialization complete. Loaded ${registry.profiles.length} profiles.`);
   }
 }

@@ -8,6 +8,7 @@
 import { installMlp } from './installMlp';
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { updatePriorityFactors } from './utils/landmarkNormalizer';
+import { logger } from '../services/logger';
 
 export interface ProfileModelInfo {
   profileId: string;
@@ -42,7 +43,7 @@ class ModelManager {
       if (loaded) {
         this.globalModelLoaded = true;
         await this.sendTelemetry('global_model_loaded', { success: true });
-        console.log('🌍 Global model loaded successfully');
+        logger.info('🌍 Global model loaded successfully');
         return true;
       }
     } catch (error) {
@@ -129,7 +130,7 @@ class ModelManager {
         const config = await response.json();
         if (config.priority_factors) {
           updatePriorityFactors(config.priority_factors);
-          console.log('🔧 Normalization priority factors updated:', config.priority_factors);
+          logger.info('🔧 Normalization priority factors updated:', config.priority_factors);
         }
       }
     } catch (error) {
@@ -162,7 +163,7 @@ class ModelManager {
       
       // Fall back to global if configured
       if (this.config.fallbackToGlobal && this.globalModelLoaded) {
-        console.log(`🔄 Falling back to global model for ${profileId}`);
+        logger.info(`🔄 Falling back to global model for ${profileId}`);
         this.currentProfileId = null;
         return { loaded: true, usingProfile: false };
       }
@@ -203,7 +204,7 @@ class ModelManager {
    */
   updateConfig(config: Partial<ModelSelectionConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('🔧 Model manager config updated:', this.config);
+    logger.info('🔧 Model manager config updated:', this.config);
   }
 
   /**
@@ -214,7 +215,7 @@ class ModelManager {
     this.globalModelLoaded = false;
     this.profileModels.clear();
     await this.sendTelemetry('models_reset');
-    console.log('🔄 Model manager reset');
+    logger.info('🔄 Model manager reset');
   }
 
   /**
