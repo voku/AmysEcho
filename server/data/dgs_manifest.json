@@ -1,16 +1,22 @@
 {
+  "version": "3.0",
+  "description": "Test fixture for DGS video examples",
   "gestures": [
-    {"id": "alle", "label": "alle", "video": "alle.mp4"},
-    {"id": "blau", "label": "blau", "video": "blau.mp4"},
-    {"id": "essen", "label": "essen", "video": "essen.mp4"},
-    {"id": "fertig", "label": "fertig", "video": "fertig.mp4"},
-    {"id": "gelb", "label": "gelb", "video": "gelb.mp4"},
-    {"id": "gruen", "label": "gruen", "video": "gruen.mp4"},
-    {"id": "nochmal", "label": "nochmal", "video": "nochmal.mp4"},
-    {"id": "rot", "label": "rot", "video": "rot.mp4"},
-    {"id": "satt", "label": "satt", "video": "satt.mp4"},
-    {"id": "schwester", "label": "schwester", "video": "schwester.mp4"},
-    {"id": "spielen", "label": "spielen", "video": "spielen.mp4"},
-    {"id": "trinken", "label": "trinken", "video": "trinken.mp4"}
-  ]
+    {"id": "alle", "label": "alle", "videos": ["alle.mp4", "alle_main_alle.mp4", "alle_var_alle_0.mp4"], "totalVideoCount": 3},
+    {"id": "blau", "label": "blau", "videos": ["blau.mp4", "blau_main_blau.mp4", "blau_var_blau_0.mp4"], "totalVideoCount": 3},
+    {"id": "essen", "label": "essen", "videos": ["essen.mp4", "essen_main_essen.mp4", "essen_var_essen_0.mp4"], "totalVideoCount": 3},
+    {"id": "fertig", "label": "fertig", "videos": ["fertig.mp4", "fertig_main_fertig.mp4", "fertig_var_fertig_0.mp4"], "totalVideoCount": 3},
+    {"id": "gelb", "label": "gelb", "videos": ["gelb.mp4", "gelb_main_gelb.mp4", "gelb_var_gelb_0.mp4"], "totalVideoCount": 3},
+    {"id": "gruen", "label": "gruen", "videos": ["gruen.mp4", "gruen_main_gruen.mp4", "gruen_var_gruen_0.mp4"], "totalVideoCount": 3},
+    {"id": "nochmal", "label": "nochmal", "videos": ["nochmal.mp4", "nochmal_main_nochmal.mp4", "nochmal_var_nochmal_0.mp4"], "totalVideoCount": 3},
+    {"id": "rot", "label": "rot", "videos": ["rot.mp4", "rot_main_rot.mp4", "rot_var_rot_0.mp4"], "totalVideoCount": 3},
+    {"id": "satt", "label": "satt", "videos": ["satt.mp4", "satt_main_satt.mp4", "satt_var_satt_0.mp4"], "totalVideoCount": 3},
+    {"id": "schwester", "label": "schwester", "videos": ["schwester.mp4", "schwester_main_schwester.mp4", "schwester_var_schwester_0.mp4"], "totalVideoCount": 3},
+    {"id": "spielen", "label": "spielen", "videos": ["spielen.mp4", "spielen_main_spielen.mp4", "spielen_var_spielen_0.mp4"], "totalVideoCount": 3},
+    {"id": "trinken", "label": "trinken", "videos": ["trinken.mp4", "trinken_main_trinken.mp4", "trinken_var_trinken_0.mp4"], "totalVideoCount": 3}
+  ],
+  "stats": {
+    "totalLabels": 12,
+    "totalVideos": 36
+  }
 }
