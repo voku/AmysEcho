@@ -59,6 +59,7 @@ import {
 	UUID_REGEX,
 } from "./services/profileRegistry.js";
 import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleIngestor.js";
+import { buildLabelManifest, getVideosForLabel, isValidLabel } from "./services/labelRegistry.js";
 import type { Correction, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
 import { isProfileAuthorized } from "./utils/profileAuthorization.js";
@@ -380,6 +381,48 @@ app.get("/health", healthHandler);
 
 app.use("/api/v1/health", healthLimiter);
 app.get("/api/v1/health", healthHandler);
+
+// ========== Label Registry Endpoint ==========
+// Amy First: Exposes the unified label registry for training data
+app.get("/api/v1/labels", async (_req: Request, res: Response) => {
+	try {
+		const manifest = await buildLabelManifest();
+		// Convert Map to plain object for JSON serialization using idiomatic Object.fromEntries
+		const variationsObject = Object.fromEntries(manifest.variations);
+		res.json({
+			version: manifest.version,
+			labels: manifest.labels,
+			variations: variationsObject,
+			stats: manifest.stats,
+		});
+	} catch (error) {
+		console.error("Failed to load label manifest:", error);
+		res.status(500).json({ error: "Fehler beim Laden der Gebärden-Labels" });
+	}
+});
+
+app.get("/api/v1/labels/:labelId/videos", async (req: Request, res: Response) => {
+	const { labelId } = req.params;
+	if (!labelId) {
+		return res.status(400).json({ error: "Label-ID erforderlich" });
+	}
+	
+	// Sanitize labelId: only allow lowercase letters, digits, German umlauts (äöüß), and hyphens
+	// German umlauts are intentionally permitted for Deutsche Gebärdensprache (DGS) labels
+	// like "grün" (green). This prevents injection attacks while supporting German vocabulary.
+	const sanitizedLabelId = labelId.toLowerCase().replace(/[^a-z0-9äöüß-]/g, "");
+	if (sanitizedLabelId.length === 0 || sanitizedLabelId.length > 64) {
+		return res.status(400).json({ error: "Ungültige Label-ID", labelId });
+	}
+	
+	const valid = await isValidLabel(sanitizedLabelId);
+	if (!valid) {
+		return res.status(404).json({ error: "Unbekanntes Label", labelId: sanitizedLabelId });
+	}
+	
+	const videos = await getVideosForLabel(sanitizedLabelId);
+	return res.json({ labelId: sanitizedLabelId, videos, count: videos.length });
+});
 
 async function processTrainingQueue(): Promise<void> {
 	if (isProcessingTrainingQueue) {

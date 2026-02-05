@@ -1,16 +1,269 @@
 {
+  "version": "2.0",
+  "description": "DGS video examples with variation tracking",
   "gestures": [
-    {"id": "alle", "label": "alle", "video": "alle.mp4"},
-    {"id": "blau", "label": "blau", "video": "blau.mp4"},
-    {"id": "essen", "label": "essen", "video": "essen.mp4"},
-    {"id": "fertig", "label": "fertig", "video": "fertig.mp4"},
-    {"id": "gelb", "label": "gelb", "video": "gelb.mp4"},
-    {"id": "gruen", "label": "gruen", "video": "gruen.mp4"},
-    {"id": "nochmal", "label": "nochmal", "video": "nochmal.mp4"},
-    {"id": "rot", "label": "rot", "video": "rot.mp4"},
-    {"id": "satt", "label": "satt", "video": "satt.mp4"},
-    {"id": "schwester", "label": "schwester", "video": "schwester.mp4"},
-    {"id": "spielen", "label": "spielen", "video": "spielen.mp4"},
-    {"id": "trinken", "label": "trinken", "video": "trinken.mp4"}
-  ]
+    {
+      "id": "alle",
+      "label": "alle",
+      "video": "alle.mp4",
+      "variations": {
+        "main": [
+          "alle_main_alle.mp4",
+          "alle_main_alles.mp4",
+          "alle_main_jeder.mp4"
+        ],
+        "var": [
+          "alle_var_alle_0.mp4",
+          "alle_var_alles_0.mp4",
+          "alle_var_jeder_0.mp4"
+        ]
+      },
+      "totalVideoCount": 7
+    },
+    {
+      "id": "blau",
+      "label": "blau",
+      "video": "blau.mp4",
+      "variations": {
+        "main": [
+          "blau_main_blau.mp4"
+        ],
+        "var": [
+          "blau_var_blau_0.mp4",
+          "blau_var_blau_1.mp4",
+          "blau_var_blau_2.mp4",
+          "blau_var_blau_3.mp4"
+        ]
+      },
+      "totalVideoCount": 6
+    },
+    {
+      "id": "essen",
+      "label": "essen",
+      "video": "essen.mp4",
+      "variations": {
+        "main": [
+          "essen_main_abendessen.mp4",
+          "essen_main_essen.mp4",
+          "essen_main_frühstück.mp4",
+          "essen_main_hunger.mp4",
+          "essen_main_mittagessen.mp4"
+        ],
+        "var": [
+          "essen_var_abendessen_0.mp4",
+          "essen_var_essen_0.mp4",
+          "essen_var_essen_1.mp4",
+          "essen_var_essen_2.mp4",
+          "essen_var_frühstück_0.mp4",
+          "essen_var_hunger_0.mp4",
+          "essen_var_hunger_1.mp4",
+          "essen_var_hunger_2.mp4",
+          "essen_var_mittagessen_0.mp4",
+          "essen_var_mittagessen_1.mp4",
+          "essen_var_mittagessen_2.mp4"
+        ]
+      },
+      "totalVideoCount": 17
+    },
+    {
+      "id": "fertig",
+      "label": "fertig",
+      "video": "fertig.mp4",
+      "variations": {
+        "main": [
+          "fertig_main_ende.mp4",
+          "fertig_main_fertig.mp4",
+          "fertig_main_schluss.mp4",
+          "fertig_main_vorbei.mp4"
+        ],
+        "var": [
+          "fertig_var_ende_0.mp4",
+          "fertig_var_fertig_0.mp4",
+          "fertig_var_fertig_1.mp4",
+          "fertig_var_fertig_2.mp4",
+          "fertig_var_schluss_0.mp4",
+          "fertig_var_vorbei_0.mp4"
+        ]
+      },
+      "totalVideoCount": 11
+    },
+    {
+      "id": "gelb",
+      "label": "gelb",
+      "video": "gelb.mp4",
+      "variations": {
+        "main": [
+          "gelb_main_gelb.mp4"
+        ],
+        "var": [
+          "gelb_var_gelb_0.mp4",
+          "gelb_var_gelb_1.mp4",
+          "gelb_var_gelb_2.mp4",
+          "gelb_var_gelb_3.mp4"
+        ]
+      },
+      "totalVideoCount": 6
+    },
+    {
+      "id": "gruen",
+      "label": "gruen",
+      "video": "gruen.mp4",
+      "variations": {
+        "main": [
+          "gruen_main_grün.mp4"
+        ],
+        "var": [
+          "gruen_var_grün_0.mp4",
+          "gruen_var_grün_1.mp4",
+          "gruen_var_grün_2.mp4"
+        ]
+      },
+      "totalVideoCount": 5
+    },
+    {
+      "id": "nochmal",
+      "label": "nochmal",
+      "video": "nochmal.mp4",
+      "variations": {
+        "main": [
+          "nochmal_main_nochmal.mp4",
+          "nochmal_main_wiederholen.mp4"
+        ],
+        "var": [
+          "nochmal_var_nochmal_0.mp4",
+          "nochmal_var_nochmal_1.mp4",
+          "nochmal_var_wiederholen_0.mp4",
+          "nochmal_var_wiederholen_1.mp4"
+        ]
+      },
+      "totalVideoCount": 7
+    },
+    {
+      "id": "rot",
+      "label": "rot",
+      "video": "rot.mp4",
+      "variations": {
+        "main": [
+          "rot_main_pink.mp4",
+          "rot_main_rosa.mp4",
+          "rot_main_rot.mp4"
+        ],
+        "var": [
+          "rot_var_pink_0.mp4",
+          "rot_var_rosa_0.mp4",
+          "rot_var_rosa_1.mp4",
+          "rot_var_rot_0.mp4",
+          "rot_var_rot_1.mp4",
+          "rot_var_rot_2.mp4",
+          "rot_var_rot_3.mp4"
+        ]
+      },
+      "totalVideoCount": 11
+    },
+    {
+      "id": "satt",
+      "label": "satt",
+      "video": "satt.mp4",
+      "variations": {
+        "main": [
+          "satt_main_genug.mp4",
+          "satt_main_satt.mp4",
+          "satt_main_voll.mp4"
+        ],
+        "var": [
+          "satt_var_genug_0.mp4",
+          "satt_var_genug_1.mp4",
+          "satt_var_satt_0.mp4",
+          "satt_var_satt_1.mp4",
+          "satt_var_satt_2.mp4",
+          "satt_var_voll_0.mp4"
+        ]
+      },
+      "totalVideoCount": 10
+    },
+    {
+      "id": "schwester",
+      "label": "schwester",
+      "video": "schwester.mp4",
+      "variations": {
+        "main": [
+          "schwester_main_geschwister.mp4",
+          "schwester_main_schwester.mp4"
+        ],
+        "var": [
+          "schwester_var_geschwister_0.mp4",
+          "schwester_var_schwester_0.mp4",
+          "schwester_var_schwester_1.mp4"
+        ]
+      },
+      "totalVideoCount": 6
+    },
+    {
+      "id": "spielen",
+      "label": "spielen",
+      "video": "spielen.mp4",
+      "variations": {
+        "main": [
+          "spielen_main_spiel.mp4",
+          "spielen_main_spielen.mp4",
+          "spielen_main_spielplatz.mp4",
+          "spielen_main_spielzeug.mp4"
+        ],
+        "var": [
+          "spielen_var_spiel_0.mp4",
+          "spielen_var_spielen_0.mp4",
+          "spielen_var_spielplatz_0.mp4",
+          "spielen_var_spielzeug_0.mp4"
+        ]
+      },
+      "totalVideoCount": 9
+    },
+    {
+      "id": "trinken",
+      "label": "trinken",
+      "video": "trinken.mp4",
+      "variations": {
+        "main": [
+          "trinken_main_durst.mp4",
+          "trinken_main_getränk.mp4",
+          "trinken_main_kaffee.mp4",
+          "trinken_main_milch.mp4",
+          "trinken_main_saft.mp4",
+          "trinken_main_tee.mp4",
+          "trinken_main_trinken.mp4",
+          "trinken_main_wasser.mp4"
+        ],
+        "var": [
+          "trinken_var_durst_0.mp4",
+          "trinken_var_durst_1.mp4",
+          "trinken_var_getränk_0.mp4",
+          "trinken_var_kaffee_0.mp4",
+          "trinken_var_kaffee_1.mp4",
+          "trinken_var_kaffee_2.mp4",
+          "trinken_var_milch_0.mp4",
+          "trinken_var_milch_1.mp4",
+          "trinken_var_milch_2.mp4",
+          "trinken_var_saft_0.mp4",
+          "trinken_var_saft_1.mp4",
+          "trinken_var_saft_2.mp4",
+          "trinken_var_tee_0.mp4",
+          "trinken_var_tee_1.mp4",
+          "trinken_var_tee_2.mp4",
+          "trinken_var_trinken_0.mp4",
+          "trinken_var_trinken_1.mp4",
+          "trinken_var_trinken_2.mp4",
+          "trinken_var_wasser_0.mp4",
+          "trinken_var_wasser_1.mp4",
+          "trinken_var_wasser_2.mp4",
+          "trinken_var_wasser_3.mp4"
+        ]
+      },
+      "totalVideoCount": 31
+    }
+  ],
+  "stats": {
+    "totalLabels": 12,
+    "totalVideos": 126,
+    "hasLandmarks": 126
+  }
 }
