@@ -580,3 +580,86 @@ def test_load_frame_list_for_bundle_uses_cache_without_still_duplication(monkeyp
     assert stats["bundle_fallback_extractions"] == 0
     assert stats["bundle_missing_landmarks"] == 0
     assert called["still"] == 0
+
+
+def test_load_audio_features_for_bundle_returns_none_without_file(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    features, metadata = module.load_audio_features_for_bundle(
+        audio_path=None,
+        label="HALLO",
+        profile_id=None,
+    )
+
+    assert features is None
+    assert metadata is None
+
+
+def test_load_audio_features_for_bundle_returns_none_when_preprocessing_unavailable(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    audio_path = data_dir / "training_uploads" / "unassigned" / "audio.wav"
+    audio_path.parent.mkdir(parents=True)
+    audio_path.write_bytes(b"fake-audio")
+
+    monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", False)
+
+    features, metadata = module.load_audio_features_for_bundle(
+        audio_path=audio_path,
+        label="HALLO",
+        profile_id="child-1",
+    )
+
+    assert features is None
+    assert metadata is None
+
+
+def test_load_audio_features_for_bundle_returns_features_when_preprocessing_succeeds(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    audio_path = data_dir / "training_uploads" / "unassigned" / "audio.wav"
+    audio_path.parent.mkdir(parents=True)
+    audio_path.write_bytes(b"fake-audio")
+
+    monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
+    monkeypatch.setattr(module, "check_audio_dependencies", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "preprocess_audio_for_training",
+        lambda *_args, **_kwargs: {
+            "features": {"mfcc": [0.1, 0.2, 0.3]},
+            "duration_ms": 500,
+            "has_speech": True,
+            "energy": 0.4,
+            "sample_rate": 22050,
+        },
+    )
+
+    features, metadata = module.load_audio_features_for_bundle(
+        audio_path=audio_path,
+        label="HALLO",
+        profile_id="child-1",
+    )
+
+    assert features == {"mfcc": [0.1, 0.2, 0.3]}
+    assert metadata == {
+        "duration_ms": 500,
+        "has_speech": True,
+        "energy": 0.4,
+        "sample_rate": 22050,
+    }

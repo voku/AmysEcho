@@ -1650,6 +1650,52 @@ def load_frame_list_for_bundle(
     return frame_list, local
 
 
+
+
+def load_audio_features_for_bundle(
+    audio_path: Path | None,
+    label: str,
+    profile_id: str | None,
+) -> tuple[dict | None, dict | None]:
+    if not audio_path or not audio_path.exists():
+        return None, None
+
+    try:
+        if not AUDIO_PREPROCESSING_AVAILABLE:
+            LOGGER.warning(
+                "Audio preprocessing module not available, skipping audio for label='%s', profile='%s'",
+                label,
+                profile_id,
+            )
+            return None, None
+
+        if not check_audio_dependencies():
+            return None, None
+
+        audio_result = preprocess_audio_for_training(
+            audio_path,
+            target_duration_frames=None,
+            feature_type='mfcc',
+        )
+        if audio_result.get('features') and not audio_result.get('error'):
+            audio_features_dict = audio_result['features']
+            audio_metadata_dict = {
+                'duration_ms': audio_result.get('duration_ms', 0),
+                'has_speech': audio_result.get('has_speech', False),
+                'energy': audio_result.get('energy', 0.0),
+                'sample_rate': audio_result.get('sample_rate', 16000),
+            }
+            LOGGER.info("Loaded audio features for %s: %s", label, audio_metadata_dict)
+            return audio_features_dict, audio_metadata_dict
+
+        if audio_result.get('error'):
+            LOGGER.warning("Audio preprocessing failed for %s: %s", label, audio_result['error'])
+        return None, None
+    except Exception as error:
+        LOGGER.warning("Failed to process audio for %s: %s", label, error)
+        return None, None
+
+
 def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, object]]:
     """
     Load training data from manifest and generate sliding window samples.
@@ -1709,34 +1755,11 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         audio_path = _resolve_audio_path(entry, bundle_dir)
 
         # ========== LOAD AUDIO FEATURES (if available) ==========
-        audio_features_dict: dict | None = None
-        audio_metadata_dict: dict | None = None
-        if audio_path and audio_path.exists():
-            try:
-                if not AUDIO_PREPROCESSING_AVAILABLE:
-                    LOGGER.warning(
-                        "Audio preprocessing module not available, skipping audio for label='%s', profile='%s'",
-                        label, profile_id
-                    )
-                elif check_audio_dependencies():
-                    audio_result = preprocess_audio_for_training(
-                        audio_path,
-                        target_duration_frames=None,  # Will align later if needed
-                        feature_type='mfcc'  # Use MFCC for now
-                    )
-                    if audio_result.get('features') and not audio_result.get('error'):
-                        audio_features_dict = audio_result['features']
-                        audio_metadata_dict = {
-                            'duration_ms': audio_result.get('duration_ms', 0),
-                            'has_speech': audio_result.get('has_speech', False),
-                            'energy': audio_result.get('energy', 0.0),
-                            'sample_rate': audio_result.get('sample_rate', 16000),
-                        }
-                        LOGGER.info(f"Loaded audio features for {label}: {audio_metadata_dict}")
-                    elif audio_result.get('error'):
-                        LOGGER.warning(f"Audio preprocessing failed for {label}: {audio_result['error']}")
-            except Exception as e:
-                LOGGER.warning(f"Failed to process audio for {label}: {e}")
+        audio_features_dict, audio_metadata_dict = load_audio_features_for_bundle(
+            audio_path,
+            label,
+            profile_id,
+        )
 
         # ========== LOAD FRAMES (with caching) ==========
         frame_list, frame_load_stats = load_frame_list_for_bundle(
