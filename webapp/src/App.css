@@ -5126,6 +5126,258 @@ p {
   }
 }
 
+/* ── DGS Kid-Friendly Video Player ────────────────────────── */
+
+.dgs-video-player {
+  position: relative;
+}
+
+.dgs-video-container {
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+}
+
+.dgs-video-element {
+  border-radius: var(--radius-lg);
+  background: #000;
+}
+
+/* Loading spinner */
+.dgs-video-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  text-align: center;
+}
+
+.dgs-loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #8b5cf6;
+  border-radius: 50%;
+  animation: dgs-spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+.dgs-loading-text {
+  margin-top: var(--space-sm);
+  color: #999;
+  font-size: var(--font-size-body);
+}
+
+@keyframes dgs-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Error state */
+.dgs-video-error {
+  padding: var(--space-xl);
+  text-align: center;
+  background: #fee2e2;
+  border-radius: var(--radius-lg);
+}
+
+.dgs-error-text {
+  color: #dc2626;
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-body-lg, 1.1rem);
+}
+
+.dgs-retry-button {
+  padding: var(--space-sm) var(--space-lg);
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-body);
+}
+
+/* YouTube-like play overlay */
+.dgs-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.dgs-play-overlay-button {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+
+.dgs-video-container:hover .dgs-play-overlay-button {
+  transform: scale(1.1);
+}
+
+/* Kid-friendly controls bar */
+.dgs-kid-controls {
+  padding: var(--space-md);
+  background: #f8f7ff;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-top: none;
+}
+
+/* Progress bar wrapper */
+.dgs-progress-wrapper {
+  margin-bottom: var(--space-sm);
+}
+
+.dgs-progress-bar {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.dgs-progress-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+}
+
+.dgs-progress-bar::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+}
+
+.dgs-time-display {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-body-sm);
+  color: #888;
+  margin-top: 2px;
+}
+
+/* Control buttons row */
+.dgs-control-buttons {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.dgs-control-btn {
+  min-width: 48px;
+  min-height: 48px;
+  font-size: 1.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: #e5e7eb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.dgs-control-btn:active {
+  transform: scale(0.93);
+}
+
+.dgs-control-btn-primary {
+  min-width: 64px;
+  min-height: 64px;
+  font-size: 2rem;
+  background: #8b5cf6;
+  color: white;
+  border-radius: 50%;
+  box-shadow: 0 3px 12px rgba(139, 92, 246, 0.35);
+}
+
+.dgs-control-btn-primary:active {
+  background: #7c3aed;
+}
+
+/* Speed presets */
+.dgs-speed-buttons {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.dgs-speed-btn {
+  min-width: 48px;
+  min-height: 48px;
+  font-size: 1.5rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: #f3f4f6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dgs-speed-btn.active {
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.dgs-speed-btn:active {
+  transform: scale(0.93);
+}
+
+/* Screen-reader only (already defined in some components but needed globally) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 480px) {
+  .dgs-play-overlay-button {
+    width: 64px;
+    height: 64px;
+    font-size: 2rem;
+  }
+
+  .dgs-control-btn-primary {
+    min-width: 56px;
+    min-height: 56px;
+    font-size: 1.75rem;
+  }
+}
+
 /* ── Sign Video Gallery ──────────────────────────────────── */
 
 .sign-video-gallery {

@@ -1,8 +1,11 @@
 /**
- * DGS Video Player Component
- * 
- * Plays Deutsche Gebärdensprache (German Sign Language) tutorial videos
- * with accessibility features and playback controls.
+ * DGS Video Player Component — Kid-Friendly Edition
+ *
+ * YouTube-like player designed for young children (4+).
+ * Large touch targets, emoji-based controls, no download option,
+ * big centered play/pause overlay, colorful progress bar.
+ *
+ * Amy First: Zero confusion, instant feedback, simple controls.
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
@@ -20,7 +23,10 @@ export interface DgsVideoPlayerProps {
   loop?: boolean;
   /** Muted by default */
   muted?: boolean;
-  /** Show controls */
+  /**
+   * @deprecated Native controls are always disabled for kid safety.
+   * Custom kid-friendly controls are rendered instead.
+   */
   controls?: boolean;
   /** Playback speed (0.5 - 2.0) */
   playbackSpeed?: number;
@@ -42,6 +48,13 @@ export interface DgsVideoPlayerProps {
   height?: number | string;
 }
 
+/** Speed presets with kid-friendly emoji labels */
+const SPEED_PRESETS: { value: number; emoji: string; label: string }[] = [
+  { value: 0.5, emoji: '🐢', label: 'Langsam' },
+  { value: 1.0, emoji: '🐇', label: 'Normal' },
+  { value: 1.5, emoji: '🐆', label: 'Schnell' },
+];
+
 export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
   src,
   title,
@@ -49,7 +62,6 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
   autoPlay = false,
   loop = false,
   muted = true,
-  controls = true,
   playbackSpeed = 1.0,
   onEnded,
   onPlay,
@@ -67,6 +79,7 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(playbackSpeed);
+  const [showOverlay, setShowOverlay] = useState(false);
 
   // Update playback speed when prop changes
   useEffect(() => {
@@ -75,7 +88,13 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
     }
   }, [speed]);
 
-  // Handle video load
+  // Show overlay briefly on pause
+  useEffect(() => {
+    if (!isPlaying) {
+      setShowOverlay(true);
+    }
+  }, [isPlaying]);
+
   const handleLoadedData = useCallback(() => {
     setIsLoading(false);
     if (videoRef.current) {
@@ -84,7 +103,6 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
     onLoad?.();
   }, [onLoad]);
 
-  // Handle video error
   const handleError = useCallback(() => {
     const errorMessage = 'Video konnte nicht geladen werden';
     setError(errorMessage);
@@ -92,45 +110,38 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
     onError?.(new Error(errorMessage));
   }, [onError]);
 
-  // Handle time update
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
     }
   }, []);
 
-  // Handle play
   const handlePlay = useCallback(() => {
     setIsPlaying(true);
+    setShowOverlay(false);
     onPlay?.();
   }, [onPlay]);
 
-  // Handle pause
   const handlePause = useCallback(() => {
     setIsPlaying(false);
     onPause?.();
   }, [onPause]);
 
-  // Handle ended
   const handleEnded = useCallback(() => {
     setIsPlaying(false);
     onEnded?.();
   }, [onEnded]);
 
-  // Play/Pause toggle
   const togglePlay = useCallback(() => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play().catch(() => {
-          // Handle autoplay restrictions
-        });
+        videoRef.current.play().catch(() => {});
       }
     }
   }, [isPlaying]);
 
-  // Restart video
   const restart = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
@@ -138,7 +149,6 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
     }
   }, []);
 
-  // Change playback speed
   const changeSpeed = useCallback((newSpeed: number) => {
     const clampedSpeed = Math.max(0.25, Math.min(2.0, newSpeed));
     setSpeed(clampedSpeed);
@@ -147,72 +157,77 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
     }
   }, []);
 
-  // Seek to position
   const seekTo = useCallback((time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = Math.max(0, Math.min(time, duration));
     }
   }, [duration]);
 
-  // Format time display
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Progress percentage
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  /** Prevent right-click context menu (no download option) */
+  const preventContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
   return (
-    <div className={`dgs-video-player ${className}`} style={{ width, maxWidth: '100%' }}>
-      {/* Video Element */}
-      <div className="dgs-video-container" style={{ position: 'relative' }}>
+    <div
+      className={`dgs-video-player ${className}`}
+      style={{ width, maxWidth: '100%' }}
+    >
+      {/* Video container with overlay */}
+      <div
+        className="dgs-video-container"
+        onClick={togglePlay}
+        onContextMenu={preventContextMenu}
+        role="button"
+        tabIndex={0}
+        aria-label={isPlaying ? 'Pause' : 'Abspielen'}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            togglePlay();
+          }
+        }}
+      >
+        {/* Loading spinner */}
         {isLoading && (
-          <div className="dgs-video-loading" style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 10,
-          }}>
-            <div className="loading-spinner" style={{
-              width: '40px',
-              height: '40px',
-              border: '3px solid #e0e0e0',
-              borderTop: '3px solid #6b46c1',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }} />
-            <p style={{ marginTop: '8px', color: '#666' }}>Laden...</p>
+          <div className="dgs-video-loading">
+            <div className="dgs-loading-spinner" />
+            <p className="dgs-loading-text">Laden...</p>
           </div>
         )}
 
+        {/* Error state */}
         {error && (
-          <div className="dgs-video-error" style={{
-            padding: '20px',
-            textAlign: 'center',
-            backgroundColor: '#fee2e2',
-            borderRadius: '8px',
-          }}>
-            <p style={{ color: '#dc2626', marginBottom: '10px' }}>⚠️ {error}</p>
+          <div className="dgs-video-error">
+            <p className="dgs-error-text">⚠️ {error}</p>
             <button
-              onClick={() => {
+              className="dgs-retry-button"
+              onClick={(e) => {
+                e.stopPropagation();
                 setError(null);
                 setIsLoading(true);
                 videoRef.current?.load();
               }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#6b46c1',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
             >
-              Erneut versuchen
+              🔄 Erneut versuchen
             </button>
+          </div>
+        )}
+
+        {/* Big centered play overlay (YouTube-like) */}
+        {!isLoading && !error && showOverlay && !isPlaying && (
+          <div className="dgs-play-overlay">
+            <div className="dgs-play-overlay-button" aria-hidden="true">
+              ▶️
+            </div>
           </div>
         )}
 
@@ -223,38 +238,34 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
           autoPlay={autoPlay}
           loop={loop}
           muted={muted}
-          controls={controls}
           playsInline
+          controlsList="nodownload noplaybackrate"
+          disablePictureInPicture
           onLoadedData={handleLoadedData}
           onError={handleError}
           onTimeUpdate={handleTimeUpdate}
           onPlay={handlePlay}
           onPause={handlePause}
           onEnded={handleEnded}
+          onContextMenu={preventContextMenu}
           aria-label={title}
           style={{
             width: '100%',
             height,
-            borderRadius: '8px',
-            backgroundColor: '#000',
             display: error ? 'none' : 'block',
           }}
+          className="dgs-video-element"
         >
           <track kind="captions" label="Deutsch" />
           Dein Browser unterstützt keine Videos.
         </video>
       </div>
 
-      {/* Custom Controls (when native controls are disabled) */}
-      {!controls && !error && (
-        <div className="dgs-video-controls" style={{
-          marginTop: '10px',
-          padding: '10px',
-          backgroundColor: '#f3f4f6',
-          borderRadius: '8px',
-        }}>
-          {/* Progress Bar */}
-          <div style={{ marginBottom: '10px' }}>
+      {/* Kid-friendly controls bar */}
+      {!error && (
+        <div className="dgs-kid-controls">
+          {/* Colorful progress bar */}
+          <div className="dgs-progress-wrapper">
             <input
               type="range"
               min="0"
@@ -262,97 +273,53 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
               value={currentTime}
               onChange={(e) => seekTo(parseFloat(e.target.value))}
               aria-label="Videoposition"
-              style={{ width: '100%' }}
+              className="dgs-progress-bar"
+              style={{
+                background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${progress}%, #e5e7eb ${progress}%, #e5e7eb 100%)`,
+              }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666' }}>
+            <div className="dgs-time-display">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
 
-          {/* Control Buttons */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Large control buttons */}
+          <div className="dgs-control-buttons">
+            {/* Restart */}
             <button
               onClick={restart}
               aria-label="Neustart"
-              style={{
-                padding: '8px 12px',
-                backgroundColor: '#e5e7eb',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
+              className="dgs-control-btn"
+              title="Nochmal von vorne"
             >
               ⏮️
             </button>
 
+            {/* Big play/pause */}
             <button
               onClick={togglePlay}
               aria-label={isPlaying ? 'Pause' : 'Abspielen'}
-              style={{
-                padding: '12px 20px',
-                backgroundColor: '#6b46c1',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '18px',
-              }}
+              className="dgs-control-btn dgs-control-btn-primary"
             >
               {isPlaying ? '⏸️' : '▶️'}
             </button>
 
-            {/* Speed Controls */}
-            <select
-              value={speed}
-              onChange={(e) => changeSpeed(parseFloat(e.target.value))}
-              aria-label="Wiedergabegeschwindigkeit"
-              style={{
-                padding: '8px',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                backgroundColor: 'white',
-              }}
-            >
-              <option value="0.25">0.25x</option>
-              <option value="0.5">0.5x</option>
-              <option value="0.75">0.75x</option>
-              <option value="1">1x</option>
-              <option value="1.25">1.25x</option>
-              <option value="1.5">1.5x</option>
-              <option value="2">2x</option>
-            </select>
+            {/* Speed presets — emoji buttons */}
+            <div className="dgs-speed-buttons" role="group" aria-label="Geschwindigkeit">
+              {SPEED_PRESETS.map((preset) => (
+                <button
+                  key={preset.value}
+                  onClick={() => changeSpeed(preset.value)}
+                  aria-label={preset.label}
+                  title={preset.label}
+                  className={`dgs-speed-btn ${speed === preset.value ? 'active' : ''}`}
+                >
+                  {preset.emoji}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Speed indicator for native controls */}
-      {controls && !error && (
-        <div style={{
-          marginTop: '8px',
-          display: 'flex',
-          gap: '8px',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <span style={{ fontSize: '14px', color: '#666' }}>Geschwindigkeit:</span>
-          {[0.5, 0.75, 1, 1.25, 1.5].map((s) => (
-            <button
-              key={s}
-              onClick={() => changeSpeed(s)}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: speed === s ? '#6b46c1' : '#e5e7eb',
-                color: speed === s ? 'white' : '#374151',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              {s}x
-            </button>
-          ))}
         </div>
       )}
 
@@ -361,24 +328,6 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
         {isPlaying ? `Video wird abgespielt: ${title}` : `Video pausiert: ${title}`}
         , Fortschritt: {Math.round(progress)}%
       </p>
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border: 0;
-        }
-      `}</style>
     </div>
   );
 };
