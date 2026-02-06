@@ -457,7 +457,7 @@ def test_build_samples_from_manifest_returns_policy_stats_when_manifest_missing(
     assert stats["bundle_fallback_extractions"] == 0
     assert stats["bundle_missing_landmarks"] == 0
     assert stats["bundle_landmark_policy"] == "bundle_only"
-    assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0}
+    assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0, "nonManual": 0}
     assert stats["modality_sample_total"] == 0
 
 
@@ -529,7 +529,7 @@ def test_create_empty_training_stats_contains_all_expected_keys(monkeypatch, tmp
     assert stats["cache_hits"] == 0
     assert stats["cache_misses"] == 0
     assert stats["cache_writes"] == 0
-    assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0}
+    assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0, "nonManual": 0}
     assert stats["modality_sample_total"] == 0
     assert stats["bundle_fallback_extractions"] == 0
     assert stats["bundle_missing_landmarks"] == 0

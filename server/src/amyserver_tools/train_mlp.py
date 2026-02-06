@@ -18,9 +18,9 @@ import logging
 import math
 import os
 import sys
-from functools import lru_cache
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -191,7 +191,7 @@ SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestur
 
 WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
-MODALITY_KEYS = ("hands", "pose", "face")
+MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
 
 def _emit_event(payload: dict[str, object]) -> None:
@@ -450,6 +450,7 @@ def _summarize_frame_modalities(frames: list[dict]) -> tuple[dict[str, int], dic
         "hands": "landmarks",
         "pose": "poseLandmarks",
         "face": "faceLandmarks",
+        "nonManual": "nonManualFeatures",
     }
     for frame in frames:
         for key, frame_key in landmark_map.items():
@@ -1609,6 +1610,10 @@ def load_frame_list_for_bundle(
     frames: list[dict] | None = None
     frames_from_clip = False
 
+    def mark_missing_landmarks() -> None:
+        local["bundle_missing_landmarks"] += 1
+        local["cache_misses"] += 1
+
     cached = load_json(cache_path)
     if cached and isinstance(cached.get("frames"), list):
         frames = cached["frames"]
@@ -1633,11 +1638,9 @@ def load_frame_list_for_bundle(
                 frames_from_clip = True
                 local["bundle_fallback_extractions"] += 1
             else:
-                local["bundle_missing_landmarks"] += 1
-                local["cache_misses"] += 1
+                mark_missing_landmarks()
         else:
-            local["bundle_missing_landmarks"] += 1
-            local["cache_misses"] += 1
+            mark_missing_landmarks()
 
     frame_list: list[dict] = list(frames) if frames else []
 
