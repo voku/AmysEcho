@@ -1573,6 +1573,83 @@ def should_extract_bundle_landmarks_from_clip(policy: str) -> bool:
     return policy in {"prefer_bundle", "prefer_server_extract"}
 
 
+
+
+def create_empty_training_stats() -> dict[str, object]:
+    return {
+        "entries": 0,
+        "cache_hits": 0,
+        "cache_misses": 0,
+        "cache_writes": 0,
+        "modality_counts": dict.fromkeys(MODALITY_KEYS, 0),
+        "modality_sample_total": 0,
+        "bundle_fallback_extractions": 0,
+        "bundle_missing_landmarks": 0,
+        "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY,
+    }
+
+
+def load_frame_list_for_bundle(
+    landmarks_path: Path,
+    cache_path: Path,
+    clip_path: Path | None,
+    still_path: Path | None,
+) -> tuple[list[dict], dict[str, int]]:
+    """Load frames for one bundle entry and return frame list + local counters."""
+
+    local = {
+        "cache_hits": 0,
+        "cache_misses": 0,
+        "cache_writes": 0,
+        "bundle_fallback_extractions": 0,
+        "bundle_missing_landmarks": 0,
+    }
+
+    frames: list[dict] | None = None
+    frames_from_clip = False
+
+    cached = load_json(cache_path)
+    if cached and isinstance(cached.get("frames"), list):
+        frames = cached["frames"]
+        local["cache_hits"] += 1
+    else:
+        source = load_json(landmarks_path)
+        if source and isinstance(source.get("frames"), list):
+            frames = source["frames"]
+            local["cache_misses"] += 1
+        elif (
+            clip_path
+            and clip_path.exists()
+            and should_extract_bundle_landmarks_from_clip(BUNDLE_LANDMARK_POLICY)
+        ):
+            frames = extract_landmarks_from_clip(clip_path)
+            if frames:
+                frames_from_clip = True
+                local["bundle_fallback_extractions"] += 1
+            else:
+                local["bundle_missing_landmarks"] += 1
+                local["cache_misses"] += 1
+        else:
+            local["bundle_missing_landmarks"] += 1
+            local["cache_misses"] += 1
+
+    frame_list: list[dict] = list(frames) if frames else []
+
+    if still_path and still_path.exists() and not cached:
+        extracted = extract_landmarks_from_still(still_path)
+        if extracted:
+            extracted["weight"] = STILL_FRAME_WEIGHT
+            frame_list.append(extracted)
+
+    if frames_from_clip and frame_list:
+        local["cache_writes"] += 1
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with cache_path.open("w", encoding="utf-8") as handle:
+            json.dump({"frames": frame_list}, handle, indent=2)
+
+    return frame_list, local
+
+
 def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, object]]:
     """
     Load training data from manifest and generate sliding window samples.
@@ -1584,7 +1661,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     """
     manifest = load_json(manifest_path)
     if not manifest:
-        return [], {"entries": 0, "cache_hits": 0, "cache_misses": 0, "cache_writes": 0, "modality_counts": dict.fromkeys(MODALITY_KEYS, 0), "modality_sample_total": 0, "bundle_fallback_extractions": 0, "bundle_missing_landmarks": 0, "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY}
+        return [], create_empty_training_stats()
 
     entries = manifest.get("entries", [])
     data: list[Sample] = []
@@ -1662,54 +1739,22 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                 LOGGER.warning(f"Failed to process audio for {label}: {e}")
 
         # ========== LOAD FRAMES (with caching) ==========
-        frames: list[dict] | None = None
-        frames_from_clip = False
-
-        cached = load_json(cache_path)
-        if cached and isinstance(cached.get("frames"), list):
-            frames = cached["frames"]
-            cache_hits += 1
-        else:
-            source = load_json(landmarks_path)
-            if source and isinstance(source.get("frames"), list):
-                frames = source["frames"]
-                cache_misses += 1
-            elif (
-                clip_path
-                and clip_path.exists()
-                and should_extract_bundle_landmarks_from_clip(BUNDLE_LANDMARK_POLICY)
-            ):
-                frames = extract_landmarks_from_clip(clip_path)
-                if frames:
-                    frames_from_clip = True
-                    bundle_fallback_extractions += 1
-                else:
-                    bundle_missing_landmarks += 1
-                    cache_misses += 1
-            else:
-                bundle_missing_landmarks += 1
-                cache_misses += 1
-
-        frame_list: list[dict] = list(frames) if frames else []
-
-        # Add still frame if available (only when not cached to avoid duplication)
-        if still_path and still_path.exists() and not cached:
-            extracted = extract_landmarks_from_still(still_path)
-            if extracted:
-                extracted["weight"] = STILL_FRAME_WEIGHT
-                frame_list.append(extracted)
+        frame_list, frame_load_stats = load_frame_list_for_bundle(
+            landmarks_path,
+            cache_path,
+            clip_path,
+            still_path,
+        )
+        cache_hits += frame_load_stats["cache_hits"]
+        cache_misses += frame_load_stats["cache_misses"]
+        cache_writes += frame_load_stats["cache_writes"]
+        bundle_fallback_extractions += frame_load_stats["bundle_fallback_extractions"]
+        bundle_missing_landmarks += frame_load_stats["bundle_missing_landmarks"]
 
         timing_stats = _apply_timing_weights(frame_list)
         frame_modality_counts, frame_modality_coverage = _summarize_frame_modalities(frame_list)
         modality_coverage = _resolve_modality_coverage(modality_coverage, frame_modality_coverage)
         modality_presence = _infer_modality_presence(modality_coverage, frame_modality_counts)
-
-        # Cache newly extracted frames
-        if frames_from_clip and frame_list:
-            cache_writes += 1
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            with cache_path.open("w", encoding="utf-8") as handle:
-                json.dump({"frames": frame_list}, handle, indent=2)
 
         if not frame_list:
             continue

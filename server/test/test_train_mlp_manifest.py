@@ -512,3 +512,71 @@ def test_build_samples_prefer_bundle_counts_missing_when_clip_extraction_returns
     assert samples == []
     assert stats["bundle_fallback_extractions"] == 0
     assert stats["bundle_missing_landmarks"] == 1
+
+
+def test_create_empty_training_stats_contains_all_expected_keys(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "missing_training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "bundle_only")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    stats = module.create_empty_training_stats()
+
+    assert stats["entries"] == 0
+    assert stats["cache_hits"] == 0
+    assert stats["cache_misses"] == 0
+    assert stats["cache_writes"] == 0
+    assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0}
+    assert stats["modality_sample_total"] == 0
+    assert stats["bundle_fallback_extractions"] == 0
+    assert stats["bundle_missing_landmarks"] == 0
+    assert stats["bundle_landmark_policy"] == "bundle_only"
+
+
+def test_load_frame_list_for_bundle_uses_cache_without_still_duplication(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "bundle_only")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_dir = data_dir / "training_uploads" / "unassigned" / "bundle-helper"
+    bundle_dir.mkdir(parents=True)
+
+    landmarks_path = bundle_dir / "landmarks.json"
+    landmarks_path.write_text(json.dumps({"frames": [{"landmarks": [[0.0, 0.0, 0.0] for _ in range(42)]}]}), encoding="utf-8")
+
+    cache_path = bundle_dir / "landmarks_cached.json"
+    cache_path.write_text(
+        json.dumps({"frames": [{"landmarks": [[0.1, 0.1, 0.1] for _ in range(42)]}]}),
+        encoding="utf-8",
+    )
+
+    still_path = bundle_dir / "still.jpg"
+    still_path.write_bytes(b"fake-still")
+
+    called = {"still": 0}
+
+    def fake_still(_path):
+        called["still"] += 1
+        return {"landmarks": [[0.9, 0.9, 0.9] for _ in range(42)]}
+
+    monkeypatch.setattr(module, "extract_landmarks_from_still", fake_still)
+
+    frame_list, stats = module.load_frame_list_for_bundle(
+        landmarks_path,
+        cache_path,
+        clip_path=None,
+        still_path=still_path,
+    )
+
+    assert len(frame_list) == 1
+    assert stats["cache_hits"] == 1
+    assert stats["cache_misses"] == 0
+    assert stats["cache_writes"] == 0
+    assert stats["bundle_fallback_extractions"] == 0
+    assert stats["bundle_missing_landmarks"] == 0
+    assert called["still"] == 0
