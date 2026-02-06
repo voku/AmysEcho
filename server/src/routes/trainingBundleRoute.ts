@@ -119,7 +119,7 @@ const trainingBundleUpload = express.raw({
 	limit: "64mb",
 });
 
-const MODALITY_KEYS = ["hands", "pose", "face"] as const;
+const MODALITY_KEYS = ["hands", "pose", "face", "nonManual"] as const;
 type ModalityKey = (typeof MODALITY_KEYS)[number];
 const INGESTION_METRICS_PATH = path.join(
 	TRAINING_DATASETS_DIR,
@@ -148,6 +148,7 @@ const ModalitiesSchema = z
 		hands: ModalityStatsSchema.optional(),
 		pose: ModalityStatsSchema.optional(),
 		face: ModalityStatsSchema.optional(),
+		nonManual: ModalityStatsSchema.optional(),
 	})
 	.passthrough();
 
@@ -224,9 +225,22 @@ type IngestionMetrics = {
 	>;
 };
 
+
+const NonManualFeaturesSchema = z
+	.object({
+		headYaw: z.number().nullable().optional(),
+		headPitch: z.number().nullable().optional(),
+		mouthOpenness: z.number().nullable().optional(),
+		eyebrowRaiseLeft: z.number().nullable().optional(),
+		eyebrowRaiseRight: z.number().nullable().optional(),
+		source: z.enum(["face", "pose", "mixed"]).optional(),
+	})
+	.strict();
+
 const LandmarkFrameSchema = z
 	.object({
 		landmarks: z.array(z.unknown()).optional(),
+		nonManualFeatures: NonManualFeaturesSchema.optional(),
 	})
 	.passthrough()
 	.nullable();
@@ -364,7 +378,7 @@ function isPathInside(target: string, root: string): boolean {
 }
 
 function createEmptyModalities(): Record<ModalityKey, number> {
-	return { hands: 0, pose: 0, face: 0 };
+	return { hands: 0, pose: 0, face: 0, nonManual: 0 };
 }
 
 function createEmptyIngestionMetrics(): IngestionMetrics {
@@ -493,6 +507,7 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 	let handsFrameCount = 0;
 	let poseFrameCount = 0;
 	let faceFrameCount = 0;
+	let nonManualFrameCount = 0;
 	let handednessFrameCount = 0;
 	const handednessLabels = new Set<string>();
 	for (const frame of frames) {
@@ -508,6 +523,10 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 		const handedness = Array.isArray(frame.handedness)
 			? (frame.handedness as unknown[])
 			: [];
+		const nonManualFeatures =
+			frame.nonManualFeatures && typeof frame.nonManualFeatures === "object"
+				? (frame.nonManualFeatures as Record<string, unknown>)
+				: null;
 
 		if (
 			landmarks.some(
@@ -523,6 +542,10 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 
 		if (faceLandmarks.length > 0) {
 			faceFrameCount++;
+		}
+
+		if (nonManualFeatures && Object.keys(nonManualFeatures).length > 0) {
+			nonManualFrameCount++;
 		}
 
 		const handednessStrings = handedness.filter(
@@ -551,6 +574,11 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 				present: faceFrameCount > 0,
 				frameCount: faceFrameCount,
 				coverage: totalFrames > 0 ? faceFrameCount / totalFrames : 0,
+			},
+			nonManual: {
+				present: nonManualFrameCount > 0,
+				frameCount: nonManualFrameCount,
+				coverage: totalFrames > 0 ? nonManualFrameCount / totalFrames : 0,
 			},
 		},
 		handedness:
@@ -588,6 +616,7 @@ function mergeModalities(
 		hands: { present: boolean; frameCount: number; coverage: number };
 		pose: { present: boolean; frameCount: number; coverage: number };
 		face: { present: boolean; frameCount: number; coverage: number };
+		nonManual: { present: boolean; frameCount: number; coverage: number };
 	},
 ) {
 	const parsed = ModalitiesSchema.safeParse(primary);
@@ -596,6 +625,7 @@ function mergeModalities(
 		hands: normalizeModalityStats(data?.hands, fallback?.hands),
 		pose: normalizeModalityStats(data?.pose, fallback?.pose),
 		face: normalizeModalityStats(data?.face, fallback?.face),
+		nonManual: normalizeModalityStats(data?.nonManual, fallback?.nonManual),
 	};
 }
 
@@ -641,6 +671,7 @@ interface LandmarksValidationResult {
 			hands: { present: boolean; frameCount: number; coverage: number };
 			pose: { present: boolean; frameCount: number; coverage: number };
 			face: { present: boolean; frameCount: number; coverage: number };
+			nonManual: { present: boolean; frameCount: number; coverage: number };
 		};
 		handedness?: { labels: string[]; frameCount: number };
 	};

@@ -173,6 +173,17 @@ DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not
     "no",
 }
 
+BUNDLE_LANDMARK_POLICY = os.environ.get(
+    "MLP_BUNDLE_LANDMARK_POLICY",
+    "bundle_only",
+).strip().lower()
+if BUNDLE_LANDMARK_POLICY not in {"bundle_only", "prefer_bundle", "prefer_server_extract"}:
+    LOGGER.warning(
+        "Unknown MLP_BUNDLE_LANDMARK_POLICY=%s, falling back to bundle_only",
+        BUNDLE_LANDMARK_POLICY,
+    )
+    BUNDLE_LANDMARK_POLICY = "bundle_only"
+
 # Hand landmark constants for processing
 LANDMARKS_PER_HAND = TOTAL_HAND_LANDMARKS // 2
 SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
@@ -1555,6 +1566,13 @@ def _resolve_audio_path(entry: dict, bundle_dir: Path) -> Path | None:
     return None
 
 
+
+
+def should_extract_bundle_landmarks_from_clip(policy: str) -> bool:
+    """Return whether bundle entries may trigger server-side clip extraction."""
+    return policy in {"prefer_bundle", "prefer_server_extract"}
+
+
 def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, int]]:
     """
     Load training data from manifest and generate sliding window samples.
@@ -1566,13 +1584,15 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     """
     manifest = load_json(manifest_path)
     if not manifest:
-        return [], {"entries": 0, "cache_hits": 0, "cache_misses": 0, "cache_writes": 0}
+        return [], {"entries": 0, "cache_hits": 0, "cache_misses": 0, "cache_writes": 0, "bundle_fallback_extractions": 0, "bundle_missing_landmarks": 0, "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY}
 
     entries = manifest.get("entries", [])
     data: list[Sample] = []
     cache_hits = 0
     cache_misses = 0
     cache_writes = 0
+    bundle_fallback_extractions = 0
+    bundle_missing_landmarks = 0
     modality_counts = dict.fromkeys(MODALITY_KEYS, 0)
     modality_sample_total = 0
 
@@ -1654,13 +1674,19 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
             if source and isinstance(source.get("frames"), list):
                 frames = source["frames"]
                 cache_misses += 1
-            elif clip_path and clip_path.exists():
+            elif (
+                clip_path
+                and clip_path.exists()
+                and should_extract_bundle_landmarks_from_clip(BUNDLE_LANDMARK_POLICY)
+            ):
                 frames = extract_landmarks_from_clip(clip_path)
                 if frames:
                     frames_from_clip = True
+                    bundle_fallback_extractions += 1
                 else:
                     cache_misses += 1
             else:
+                bundle_missing_landmarks += 1
                 cache_misses += 1
 
         frame_list: list[dict] = list(frames) if frames else []
@@ -1815,6 +1841,9 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         "cache_writes": cache_writes,
         "modality_counts": modality_counts,
         "modality_sample_total": modality_sample_total,
+        "bundle_fallback_extractions": bundle_fallback_extractions,
+        "bundle_missing_landmarks": bundle_missing_landmarks,
+        "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY,
     }
     return data, stats
 

@@ -104,6 +104,41 @@ interface MediaPipeGestureDetectorHandle {
   - Bundles that fail are skipped and logged with reasons. Thresholds live in `server/src/constants/trainingQuality.ts`.
 - Returns: Bundle ID and training job status
 
+## Non-Manual Feature Contract (`landmarks.json`)
+
+`nonManual` ist kein Platzhalter-Feld, sondern ein expliziter Teil des multimodalen Trainingsvertrags zwischen Webapp und Server.
+
+### Was die Webapp liefert
+Beim Bundle-Bau berechnet die Webapp pro Frame aus Pose-/Face-Landmarks zusätzliche nicht-manuelle Merkmale (`nonManualFeatures`), aktuell:
+- `headYaw`
+- `headPitch`
+- `mouthOpenness`
+- `eyebrowRaiseLeft`
+- `eyebrowRaiseRight`
+- `source` (`face` | `pose` | `mixed`)
+
+Wenn diese Werte vorhanden sind, werden sie im jeweiligen Frame von `landmarks.json` gespeichert.
+
+Zusätzlich schreibt die Webapp in `metadata.modalities.nonManual`:
+- `present`
+- `frameCount`
+- `coverage`
+
+Diese Felder beschreiben, in wie vielen Frames nicht-manuelle Features enthalten sind.
+
+### Was der Server erwartet und wie er damit umgeht
+- Der Server akzeptiert `landmarks.json` weiterhin, wenn `nonManualFeatures` fehlen (degradierter Modus bleibt möglich).
+- Wenn `nonManualFeatures` vorhanden sind, werden sie in der Modalitätszusammenfassung (`metadata.modalities.nonManual`) berücksichtigt.
+- `nonManualFeatures` wird serverseitig als Vertrag validiert (`headYaw`, `headPitch`, `mouthOpenness`, `eyebrowRaiseLeft`, `eyebrowRaiseRight`, optional `source`). Ungültige Typen führen zu HTTP 400 (`landmarks.json missing or invalid`).
+- Ingestion-Metriken zählen fehlende `nonManual`-Signale als Beobachtung, damit Qualitätsanalysen die reale multimodale Abdeckung widerspiegeln.
+
+### Warum dieser Vertrag wichtig ist
+Nicht-manuelle Signale tragen zur Bedeutung vieler Gebärden bei (z. B. Frageform, Betonung, Mimik). Für Amy bedeutet das:
+- bessere Trainingsdiagnostik,
+- konsistentere Datenqualität über Client/Server hinweg,
+- weniger stille Datenverluste in der Pipeline.
+
+
 **Bundle Format**:
 ```json
 {
@@ -201,6 +236,7 @@ Die folgenden Hinweise müssen erscheinen, wenn die jeweilige Modalität fehlt:
 - **Features**:
   - Loads training bundles from manifest
   - Extracts landmarks from videos using MediaPipe (if needed)
+  - Bundle landmark source policy: `MLP_BUNDLE_LANDMARK_POLICY` (`bundle_only` default, optional `prefer_bundle` / `prefer_server_extract`) to control whether server fallback extraction from clip is allowed for uploaded bundles
   - Caches extracted landmarks
   - Trains Multi-Layer Perceptron (MLP)
   - Produces both global and per-profile models

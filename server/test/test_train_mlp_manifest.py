@@ -8,6 +8,7 @@ def test_build_samples_from_manifest_uses_video_extension(monkeypatch, tmp_path)
     manifest_path = data_dir / "datasets" / "training_manifest.json"
     monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
     monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
 
     module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
 
@@ -128,6 +129,7 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
     manifest_path = data_dir / "datasets" / "training_manifest.json"
     monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
     monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
 
     module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
 
@@ -322,3 +324,136 @@ def test_cached_frames_do_not_duplicate_still_frame(monkeypatch, tmp_path):
     # Verify we have samples
     assert len(samples) >= 1
 
+
+
+def test_build_samples_bundle_only_does_not_extract_clip_without_landmarks(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "bundle_only")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-policy-1")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+
+    clip_rel = "clip.webm"
+    clip_path = bundle_dir / clip_rel
+    clip_path.write_bytes(b"fake-webm-bytes")
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-policy-1",
+                "profileId": None,
+                "label": "HALLO",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "bundle": str(bundle_rel / "bundle.zip"),
+                    "files": [clip_rel],
+                    "clip": clip_rel,
+                },
+                "metadata": {
+                    "label": "HALLO",
+                    "profileId": None,
+                    "clipFilename": clip_rel,
+                },
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    calls = {"count": 0}
+
+    def fake_extract(_path: Path):
+        calls["count"] += 1
+        return [{"landmarks": [[0.1, 0.1, 0.1] for _ in range(42)]}]
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", fake_extract)
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert calls["count"] == 0
+    assert stats["bundle_landmark_policy"] == "bundle_only"
+    assert stats["bundle_missing_landmarks"] == 1
+    assert stats["bundle_fallback_extractions"] == 0
+    assert not any(s.label == "HALLO" for s in samples)
+
+
+def test_build_samples_prefer_bundle_extracts_clip_without_landmarks(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-policy-2")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+
+    clip_rel = "clip.webm"
+    clip_path = bundle_dir / clip_rel
+    clip_path.write_bytes(b"fake-webm-bytes")
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-policy-2",
+                "profileId": None,
+                "label": "HALLO",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "bundle": str(bundle_rel / "bundle.zip"),
+                    "files": [clip_rel],
+                    "clip": clip_rel,
+                },
+                "metadata": {
+                    "label": "HALLO",
+                    "profileId": None,
+                    "clipFilename": clip_rel,
+                },
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    calls = {"count": 0}
+
+    def fake_extract(path: Path):
+        calls["count"] += 1
+        assert path == clip_path
+        return [{"landmarks": [[0.1, 0.1, 0.1] for _ in range(42)]}]
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", fake_extract)
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert calls["count"] == 1
+    assert stats["bundle_landmark_policy"] == "prefer_bundle"
+    assert stats["bundle_missing_landmarks"] == 0
+    assert stats["bundle_fallback_extractions"] == 1
+    assert any(s.label == "HALLO" for s in samples)
+
+
+def test_build_samples_from_manifest_returns_policy_stats_when_manifest_missing(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "missing_training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "bundle_only")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert samples == []
+    assert stats["entries"] == 0
+    assert stats["bundle_fallback_extractions"] == 0
+    assert stats["bundle_missing_landmarks"] == 0
+    assert stats["bundle_landmark_policy"] == "bundle_only"

@@ -21,3 +21,15 @@ It complements the detailed implementation plan in
 ## Related Docs
 - `docs/planning/METACOM_INTEGRATION_PLAN.md`
 - `docs/planning/TODO.md`
+- `docs/analysis/FULL_WORKFLOW_BLIND_SPOT_ANALYSIS.md`
+
+
+## Multimodal Recognition Hand-off
+
+Metacom-Integration ist der Bedeutungs-Layer hinter der Erkennung. Damit die Kette robust bleibt, sollte der Hand-off immer explizit geprüft werden:
+
+- Erkanntes Label aus dem multimodalen Modell muss deterministisch auf Metacom-`symbolId` und `boardId` gemappt werden.
+- Für Kernwörter muss ein stabiler Fallback existieren (wenn ein Symbolpaket unvollständig importiert wurde).
+- Release-Freigabe sollte sowohl Erkennungsqualität als auch Mapping-Korrektheit enthalten (nicht nur Modellmetriken).
+
+Siehe vollständige End-to-End-Risikoanalyse: `docs/analysis/FULL_WORKFLOW_BLIND_SPOT_ANALYSIS.md`.
