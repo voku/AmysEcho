@@ -93,6 +93,7 @@ interface TrainingBundleManifestEntry {
 	id: string;
 	profileId: string | null;
 	label: string;
+	symbolId?: string;
 	capturedAt: string | null;
 	source: string | null;
 	storage: {
@@ -1134,6 +1135,10 @@ export function registerTrainingBundleRoute(
 					return res.status(400).json({ error: "metadata.label is required" });
 				}
 
+				const symbolId = isNonEmptyString(parsedMetadata.symbolId)
+					? parsedMetadata.symbolId.trim()
+					: undefined;
+
 				const profileIdRaw = isNonEmptyString(parsedMetadata.profileId)
 					? parsedMetadata.profileId.trim()
 					: undefined;
@@ -1307,6 +1312,7 @@ export function registerTrainingBundleRoute(
 					id: bundleId,
 					profileId: resolvedProfileId ?? null,
 					label,
+					...(symbolId ? { symbolId } : {}),
 					capturedAt: sanitizedMetadata.capturedAt,
 					source: sanitizedMetadata.source,
 					storage: {

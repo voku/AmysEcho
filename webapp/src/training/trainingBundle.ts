@@ -121,6 +121,7 @@ function buildMetadata(
   return {
     profileId: payload.profileId,
     label: payload.label,
+    ...(payload.symbolId ? { symbolId: payload.symbolId } : {}),
     capturedAt: payload.capturedAt ?? new Date().toISOString(),
     source: payload.source ?? 'web://mediapipe',
     ...(clipFilename ? { clipFilename } : {}),
