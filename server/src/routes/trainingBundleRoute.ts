@@ -247,7 +247,7 @@ const NonManualFeaturesSchema = z
 		eyebrowRaiseRight: z.number().nullable().optional(),
 		source: z.enum(["face", "pose", "mixed"]).optional(),
 	})
-	.strict();
+	.passthrough();
 
 const LandmarkFrameSchema = z
 	.object({

@@ -1621,7 +1621,8 @@ def load_frame_list_for_bundle(
         local["cache_misses"] += 1
 
     cached = load_json(cache_path)
-    if cached and isinstance(cached.get("frames"), list):
+    cache_hit = bool(cached and isinstance(cached.get("frames"), list))
+    if cache_hit:
         frames = cached["frames"]
         local["cache_hits"] += 1
     else:
@@ -1650,7 +1651,7 @@ def load_frame_list_for_bundle(
 
     frame_list: list[dict] = list(frames) if frames else []
 
-    if still_path and still_path.exists() and not cached:
+    if still_path and still_path.exists() and not cache_hit:
         try:
             extracted = extract_landmarks_from_still(still_path)
         except DependencyUnavailableError as error:

@@ -350,22 +350,34 @@ export function findMetacomSymbolByLabel(
   if (!normalized) {
     return null;
   }
-  const startBoard = boards.start;
+  const startBoard = boards['start'];
+  const isSymbolCell = (cell: MetacomCell): cell is MetacomSymbolCell => cell.type === 'symbol';
+  const buildSymbol = (cell: MetacomSymbolCell) => ({
+    id: cell.id,
+    label: cell.label,
+    emoji: cell.emoji,
+    ...(cell.category ? { category: cell.category } : {}),
+    ...(cell.color ? { color: cell.color } : {}),
+  });
   if (startBoard) {
     const startMatch = startBoard.cells.find(
-      (cell) => cell.type === 'symbol' && cell.label.trim().toLowerCase() === normalized,
+      (cell) => isSymbolCell(cell) && cell.label.trim().toLowerCase() === normalized,
     );
-    if (startMatch) {
-      return {
-        id: startMatch.id,
-        label: startMatch.label,
-        emoji: startMatch.emoji,
-        category: startMatch.category,
-        color: startMatch.color,
-      };
+    if (startMatch && isSymbolCell(startMatch)) {
+      return buildSymbol(startMatch);
     }
   }
-  return getMetacomSymbols(boards).find(
+  const found = getMetacomSymbols(boards).find(
     (symbol) => symbol.label.trim().toLowerCase() === normalized,
-  ) ?? null;
+  );
+  if (!found) {
+    return null;
+  }
+  return {
+    id: found.id,
+    label: found.label,
+    emoji: found.emoji,
+    ...(found.category ? { category: found.category } : {}),
+    ...(found.color ? { color: found.color } : {}),
+  };
 }
