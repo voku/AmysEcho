@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { useMessage } from '../context/MessageContext';
 
@@ -228,6 +228,13 @@ export function LearningHub() {
             <span className="summary-label">In Training</span>
           </div>
         </div>
+      </div>
+
+      <div className="notice info mb-md">
+        <p>
+          🎥 <strong>Neu:</strong> Schau dir aufgenommene Gebärden als Videos an, um durch Zuschauen zu lernen!{' '}
+          <Link to="/videos">Gebärdenvideos ansehen →</Link>
+        </p>
       </div>
 
       <div className="learning-controls mb-md">

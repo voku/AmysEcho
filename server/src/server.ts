@@ -39,6 +39,7 @@ import { registerPretrainingRoutes } from "./routes/pretrainingRoutes.js";
 import { registerProfileRoutes } from "./routes/profileRoutes.js";
 import { registerSymbolRoutes } from "./routes/symbolRoutes.js";
 import { registerTrainingBundleRoute } from "./routes/trainingBundleRoute.js";
+import { registerTrainingVideoRoutes } from "./routes/trainingVideoRoutes.js";
 import { registerUserLabelRoutes } from "./routes/userLabelRoutes.js";
 import { registerUserRoutes } from "./routes/userRoutes.js";
 import {
@@ -547,6 +548,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 			logError: (message, meta) => logger.error(message, meta),
 		});
 		registerMetacomRoutes(app, { authMiddleware: auth });
+		registerTrainingVideoRoutes(app, { authMiddleware: auth });
 		const emailService = createEmailService();
 		registerAuthRoutes(app, {
 			db,
