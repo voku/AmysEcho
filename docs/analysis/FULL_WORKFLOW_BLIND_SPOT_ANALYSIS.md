@@ -2,7 +2,7 @@
 
 ## Purpose
 Diese Analyse deckt blinde Flecken über den gesamten Amy’s-Echo-Flow auf:
-1. Multimodale Erfassung (Hände + Pose + Gesicht + non-manual)
+1. Multimodale Erfassung (Hände + Pose + Gesicht + nonManual)
 2. Bundle-Bau und Upload
 3. Server-Ingestion und Qualitätsgates
 4. Training und Modellauslieferung
@@ -60,7 +60,7 @@ Ziel: **keine stille Verschlechterung**, **keine inkonsistenten Verträge**, **k
 
 **Mitigation:**
 - Trainingsreport erweitern um genutzte Feature-Kanäle.
-- Delta-Metriken dokumentieren (mit/ohne non-manual).
+- Delta-Metriken dokumentieren (mit/ohne nonManual).
 
 ---
 
@@ -106,7 +106,7 @@ Ziel: **keine stille Verschlechterung**, **keine inkonsistenten Verträge**, **k
 
 Amy’s Echo erreicht den "self-discovery"-Punkt, wenn folgende Aussagen gleichzeitig wahr sind:
 
-1. **Ich sehe** multimodale Signale vollständig (hands/pose/face/non-manual).
+1. **Ich sehe** multimodale Signale vollständig (hands/pose/face/nonManual).
 2. **Ich erinnere** diese Signale verlustfrei über Bundle + Ingestion.
 3. **Ich lerne** nachweisbar aus diesen Signalen (Trainingsreport zeigt Kanalnutzung).
 4. **Ich spreche** über Metacom-Symbole konsistent und kindgerecht zurück.
@@ -117,8 +117,8 @@ Wenn einer der vier Punkte fehlt, ist die White-Rabbit-Reise noch nicht abgeschl
 
 ## Recommended Next Actions
 
-1. Add explicit server schema validation for `frames[].nonManualFeatures` keys and numeric/null values.
-2. Add an ingestion metric for "nonManual coverage percentile" per profile (p50/p90).
-3. Extend training report with modality-channel usage summary.
-4. Add E2E test: recognized label -> Metacom symbol mapping for starter vocabulary.
-5. Add operational checklist item: verify model version + Metacom mapping on staging each week.
+1. [P0, Backend, 1-2d] Add explicit server schema validation for `frames[].nonManualFeatures` keys and numeric/null values.
+2. [P1, Observability, 2-3d] Add an ingestion metric for "nonManual coverage percentile" per profile (p50/p90).
+3. [P1, ML, 2-3d] Extend training report with modality-channel usage summary.
+4. [P0, Integration, 1-2d] Add E2E test: recognized label -> Metacom symbol mapping for starter vocabulary.
+5. [P2, Operations, weekly] Add checklist item: verify model version + Metacom mapping on staging each week.

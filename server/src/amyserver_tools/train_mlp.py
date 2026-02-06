@@ -1573,7 +1573,7 @@ def should_extract_bundle_landmarks_from_clip(policy: str) -> bool:
     return policy in {"prefer_bundle", "prefer_server_extract"}
 
 
-def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, int]]:
+def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, object]]:
     """
     Load training data from manifest and generate sliding window samples.
     
@@ -1584,7 +1584,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     """
     manifest = load_json(manifest_path)
     if not manifest:
-        return [], {"entries": 0, "cache_hits": 0, "cache_misses": 0, "cache_writes": 0, "bundle_fallback_extractions": 0, "bundle_missing_landmarks": 0, "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY}
+        return [], {"entries": 0, "cache_hits": 0, "cache_misses": 0, "cache_writes": 0, "modality_counts": dict.fromkeys(MODALITY_KEYS, 0), "modality_sample_total": 0, "bundle_fallback_extractions": 0, "bundle_missing_landmarks": 0, "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY}
 
     entries = manifest.get("entries", [])
     data: list[Sample] = []
@@ -1684,6 +1684,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                     frames_from_clip = True
                     bundle_fallback_extractions += 1
                 else:
+                    bundle_missing_landmarks += 1
                     cache_misses += 1
             else:
                 bundle_missing_landmarks += 1

@@ -457,3 +457,58 @@ def test_build_samples_from_manifest_returns_policy_stats_when_manifest_missing(
     assert stats["bundle_fallback_extractions"] == 0
     assert stats["bundle_missing_landmarks"] == 0
     assert stats["bundle_landmark_policy"] == "bundle_only"
+    assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0}
+    assert stats["modality_sample_total"] == 0
+
+
+def test_build_samples_prefer_bundle_counts_missing_when_clip_extraction_returns_no_frames(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-policy-3")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+
+    clip_rel = "clip.webm"
+    clip_path = bundle_dir / clip_rel
+    clip_path.write_bytes(b"fake-webm-bytes")
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-policy-3",
+                "profileId": None,
+                "label": "HALLO",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "bundle": str(bundle_rel / "bundle.zip"),
+                    "files": [clip_rel],
+                    "clip": clip_rel,
+                },
+                "metadata": {
+                    "label": "HALLO",
+                    "profileId": None,
+                    "clipFilename": clip_rel,
+                },
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    def fake_extract(path: Path):
+        assert path == clip_path
+        return []
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", fake_extract)
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert samples == []
+    assert stats["bundle_fallback_extractions"] == 0
+    assert stats["bundle_missing_landmarks"] == 1
