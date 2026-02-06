@@ -547,8 +547,8 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 			saveRegistry: saveProfileRegistry,
 			logError: (message, meta) => logger.error(message, meta),
 		});
-		registerMetacomRoutes(app, { authMiddleware: auth });
-		registerTrainingVideoRoutes(app, { authMiddleware: auth });
+		registerMetacomRoutes(app, { authMiddleware: auth, db, registry: profileRegistry });
+		registerTrainingVideoRoutes(app, { authMiddleware: auth, db, registry: profileRegistry });
 		const emailService = createEmailService();
 		registerAuthRoutes(app, {
 			db,

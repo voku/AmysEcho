@@ -5,11 +5,26 @@ import request from 'supertest';
 import express from 'express';
 import type { Express } from 'express';
 import { AuthService } from '../src/services/authService.js';
+import type { Database } from '../src/db.js';
+import type { ProfileRegistry } from '../src/services/profileRegistry.js';
 
 describe('Training Video Routes', () => {
   let app: Express;
   let dataDir: string;
   let accessToken: string;
+
+  const PROFILE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const BUNDLE_ID = 'test-bundle-001';
+  const USER_ID = 'video-tester';
+
+  // Minimal mock db and registry so isProfileAuthorized grants access
+  const mockDb: Database = {
+    profiles: [{ id: PROFILE_ID, userId: USER_ID } as any],
+  } as Database;
+
+  const mockRegistry: ProfileRegistry = {
+    profiles: [{ id: PROFILE_ID, caregivers: [] } as any],
+  } as ProfileRegistry;
 
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-video-'));
@@ -17,7 +32,7 @@ describe('Training Video Routes', () => {
     jest.resetModules();
 
     accessToken = AuthService.generateTokens({
-      id: 'video-tester',
+      id: USER_ID,
       username: 'tester',
       role: 'caregiver',
     }).accessToken;
@@ -28,7 +43,11 @@ describe('Training Video Routes', () => {
     const { auth } = await import('../src/middleware/auth.js');
     app = express();
     app.use(express.json());
-    registerTrainingVideoRoutes(app, { authMiddleware: auth });
+    registerTrainingVideoRoutes(app, {
+      authMiddleware: auth,
+      db: mockDb,
+      registry: mockRegistry,
+    });
   });
 
   afterAll(async () => {
@@ -38,9 +57,6 @@ describe('Training Video Routes', () => {
   const authHeaders = () => ({
     Authorization: `Bearer ${accessToken}`,
   });
-
-  const PROFILE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-  const BUNDLE_ID = 'test-bundle-001';
 
   async function seedManifest(entries: object[]) {
     const datasetsDir = path.join(dataDir, 'datasets');
@@ -140,6 +156,14 @@ describe('Training Video Routes', () => {
         .set(authHeaders());
       expect(res.status).toBe(200);
       expect(res.body.videos).toHaveLength(0);
+    });
+
+    it('returns 403 for profile the user does not own', async () => {
+      const otherProfileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+      const res = await request(app)
+        .get(`/api/v1/profiles/${otherProfileId}/training-videos`)
+        .set(authHeaders());
+      expect(res.status).toBe(403);
     });
   });
 

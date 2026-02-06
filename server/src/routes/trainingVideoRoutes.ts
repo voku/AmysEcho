@@ -8,10 +8,15 @@ import {
 	SERVER_DIR,
 	TRAINING_MANIFEST_PATH,
 } from "../constants/modelPaths.js";
+import type { Database } from "../db.js";
+import type { ProfileRegistry } from "../services/profileRegistry.js";
 import { logger } from "../services/logger.js";
+import { isProfileAuthorized } from "../utils/profileAuthorization.js";
 
 type TrainingVideoRouteDeps = {
 	authMiddleware: (req: Request, res: Response, next: NextFunction) => void;
+	db: Database;
+	registry: ProfileRegistry;
 };
 
 interface ManifestEntry {
@@ -108,7 +113,10 @@ async function loadDgsManifest(): Promise<DgsManifest> {
 	try {
 		const raw = await fs.readFile(DGS_MANIFEST_PATH, "utf8");
 		return JSON.parse(raw) as DgsManifest;
-	} catch {
+	} catch (error) {
+		logger.warn("Failed to load DGS manifest, returning empty.", {
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return { gestures: [] };
 	}
 }
@@ -117,7 +125,10 @@ async function loadManifest(): Promise<ManifestFile> {
 	try {
 		const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
 		return JSON.parse(raw) as ManifestFile;
-	} catch {
+	} catch (error) {
+		logger.warn("Failed to load training manifest, returning empty.", {
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return { entries: [] };
 	}
 }
@@ -126,7 +137,7 @@ export function registerTrainingVideoRoutes(
 	app: Express,
 	deps: TrainingVideoRouteDeps,
 ): void {
-	const { authMiddleware } = deps;
+	const { authMiddleware, db, registry } = deps;
 
 	const videoRateLimiter = rateLimit({
 		windowMs: 15 * 60 * 1000,
@@ -150,6 +161,10 @@ export function registerTrainingVideoRoutes(
 			const profileId = req.params.id;
 			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
 				return res.status(400).json({ error: "Ungültige Profil-ID." });
+			}
+
+			if (!isProfileAuthorized(req, profileId, db, registry)) {
+				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
 			try {
@@ -216,6 +231,13 @@ export function registerTrainingVideoRoutes(
 					return res
 						.status(404)
 						.json({ error: "Video nicht gefunden." });
+				}
+
+				// Verify user has access to the profile that owns this bundle
+				if (entry.profileId && !isProfileAuthorized(req, entry.profileId, db, registry)) {
+					return res
+						.status(403)
+						.json({ error: "Zugriff verweigert." });
 				}
 
 				const clipPath = path.join(
@@ -322,6 +344,13 @@ export function registerTrainingVideoRoutes(
 					return res
 						.status(404)
 						.json({ error: "Bild nicht gefunden." });
+				}
+
+				// Verify user has access to the profile that owns this bundle
+				if (entry.profileId && !isProfileAuthorized(req, entry.profileId, db, registry)) {
+					return res
+						.status(403)
+						.json({ error: "Zugriff verweigert." });
 				}
 
 				const stillPath = path.join(

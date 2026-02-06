@@ -6,10 +6,15 @@ import {
 	getProfileMetacomBundlePath,
 	PROFILE_ID_PATTERN,
 } from "../constants/modelPaths.js";
+import type { Database } from "../db.js";
+import type { ProfileRegistry } from "../services/profileRegistry.js";
 import { logger } from "../services/logger.js";
+import { isProfileAuthorized } from "../utils/profileAuthorization.js";
 
 type MetacomRouteDeps = {
 	authMiddleware: (req: Request, res: Response, next: NextFunction) => void;
+	db: Database;
+	registry: ProfileRegistry;
 };
 
 // Maximum bundle JSON size. Metacom bundles with the default boards are ~5 KB.
@@ -20,7 +25,7 @@ export function registerMetacomRoutes(
 	app: Express,
 	deps: MetacomRouteDeps,
 ): void {
-	const { authMiddleware } = deps;
+	const { authMiddleware, db, registry } = deps;
 
 	const metacomRateLimiter = rateLimit({
 		windowMs: 15 * 60 * 1000, // 15 minutes
@@ -44,6 +49,10 @@ export function registerMetacomRoutes(
 			const profileId = req.params.id;
 			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
 				return res.status(400).json({ error: "Ungültige Profil-ID." });
+			}
+
+			if (!isProfileAuthorized(req, profileId, db, registry)) {
+				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
 			const bundlePath = getProfileMetacomBundlePath(profileId);
@@ -81,6 +90,10 @@ export function registerMetacomRoutes(
 			const profileId = req.params.id;
 			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
 				return res.status(400).json({ error: "Ungültige Profil-ID." });
+			}
+
+			if (!isProfileAuthorized(req, profileId, db, registry)) {
+				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
 			const body = req.body;
@@ -132,6 +145,10 @@ export function registerMetacomRoutes(
 			const profileId = req.params.id;
 			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
 				return res.status(400).json({ error: "Ungültige Profil-ID." });
+			}
+
+			if (!isProfileAuthorized(req, profileId, db, registry)) {
+				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
 			const bundlePath = getProfileMetacomBundlePath(profileId);

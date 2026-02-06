@@ -62,6 +62,7 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
   autoPlay = false,
   loop = false,
   muted = true,
+  controls,
   playbackSpeed = 1.0,
   onEnded,
   onPlay,
@@ -80,6 +81,19 @@ export const DgsVideoPlayer: React.FC<DgsVideoPlayerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(playbackSpeed);
   const [showOverlay, setShowOverlay] = useState(false);
+
+  // Warn once when deprecated controls prop is passed
+  const hasWarnedControls = useRef(false);
+  useEffect(() => {
+    if (controls !== undefined && !hasWarnedControls.current) {
+      hasWarnedControls.current = true;
+      console.warn(
+        'DgsVideoPlayer: The "controls" prop is deprecated. ' +
+        'Native controls are always disabled for kid safety. ' +
+        'Custom kid-friendly controls are rendered instead.'
+      );
+    }
+  }, [controls]);
 
   // Update playback speed when prop changes
   useEffect(() => {
