@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { useNavigate } from 'react-router-dom';
 import { useSymbolStore } from '../context/SymbolStore';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
+import { useAppState } from '../hooks/useAppState';
 import { audioService } from '../services/audioService';
+import { resolveGestureSymbol } from '../services/metacomMappingService';
 import type { MetacomBoardDefinition, MetacomCell, MetacomSymbolCell } from '../types/metacom';
 import { SymbolButton, type Symbol } from './SymbolButton';
 import { SentenceComposer, cellToSentenceSymbol, type SentenceSymbol } from './SentenceComposer';
@@ -23,11 +25,32 @@ function getBoard(
 export function MetacomBoard() {
   const { symbols } = useSymbolStore();
   const { boards } = useMetacomBundle();
+  const { lastRecognizedSign } = useAppState();
   const navigate = useNavigate();
   const [boardHistory, setBoardHistory] = useState<string[]>([START_BOARD_ID]);
   const [lastSpoken, setLastSpoken] = useState<string | null>(null);
   const [lastSymbolSelection, setLastSymbolSelection] = useState<MetacomSymbolCell | null>(null);
   const [sentenceQueue, setSentenceQueue] = useState<SentenceSymbol[]>([]);
+  const [lastAddedSign, setLastAddedSign] = useState<string | null>(null);
+
+  // Resolve the most recently detected gesture to a Metacom symbol
+  const detectedResolution = useMemo(
+    () => (lastRecognizedSign ? resolveGestureSymbol(lastRecognizedSign) : null),
+    [lastRecognizedSign],
+  );
+
+  // Auto-add recognized gestures to sentence queue when a new sign is detected
+  useEffect(() => {
+    if (!lastRecognizedSign || lastRecognizedSign === lastAddedSign) return;
+    if (!detectedResolution) return;
+    const symbol: SentenceSymbol = {
+      id: detectedResolution.symbolId,
+      label: detectedResolution.audioText,
+      emoji: detectedResolution.emoji,
+    };
+    setSentenceQueue((prev) => [...prev, symbol]);
+    setLastAddedSign(lastRecognizedSign);
+  }, [lastRecognizedSign, lastAddedSign, detectedResolution]);
 
   const currentBoardId = boardHistory[boardHistory.length - 1] ?? START_BOARD_ID;
   const board = getBoard(currentBoardId, boards);
@@ -145,6 +168,16 @@ export function MetacomBoard() {
           </button>
         )}
       </div>
+
+      {detectedResolution && (
+        <div className="metacom-detected" aria-live="polite" data-testid="detected-gesture">
+          <span>🖐️</span>
+          <span className="metacom-detected-label">
+            {detectedResolution.emoji} {detectedResolution.label}
+          </span>
+          <span className="muted">erkannt</span>
+        </div>
+      )}
 
       <SentenceComposer
         queue={sentenceQueue}

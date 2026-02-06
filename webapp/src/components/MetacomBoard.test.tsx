@@ -86,4 +86,27 @@ describe('MetacomBoard', () => {
     expect(screen.getByTestId('location-display').textContent).toContain('gesture=Ja');
     expect(screen.getByTestId('location-display').textContent).toContain('symbolId=metacom_ja');
   });
+
+  it('adds tapped symbols to the sentence composer', async () => {
+    renderWithProviders(<MetacomBoard />);
+
+    const jaButton = await screen.findByRole('button', { name: 'Ja' });
+    fireEvent.click(jaButton);
+
+    // The sentence composer region should now contain the symbol chip
+    const composer = screen.getByRole('region', { name: 'Satzkomponist' });
+    expect(composer).toBeInTheDocument();
+    // Query within the composer to avoid matching the grid button
+    const chips = composer.querySelectorAll('.sentence-chip');
+    expect(chips.length).toBe(1);
+    expect(chips[0]?.textContent).toContain('Ja');
+  });
+
+  it('renders the sentence composer with speak button', async () => {
+    renderWithProviders(<MetacomBoard />);
+
+    // Sentence composer should always be visible
+    expect(screen.getByRole('region', { name: 'Satzkomponist' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Satz vorlesen' })).toBeInTheDocument();
+  });
 });
