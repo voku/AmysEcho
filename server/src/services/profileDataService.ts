@@ -4,6 +4,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import {
 	DATA_DIR,
+	getProfileMetacomBundlePath,
 	MLP_MODELS_DIR,
 	TRAINING_DATASETS_DIR,
 	TRAINING_MANIFEST_PATH,
@@ -145,6 +146,10 @@ export async function deleteProfileTrainingData(
 	const modelsDir = path.join(MLP_MODELS_DIR, profileId);
 	await fs.rm(uploadsDir, { recursive: true, force: true });
 	await fs.rm(modelsDir, { recursive: true, force: true });
+
+	// Remove per-profile Metacom bundle
+	const metacomBundlePath = getProfileMetacomBundlePath(profileId);
+	await fs.rm(path.dirname(metacomBundlePath), { recursive: true, force: true });
 }
 
 async function listFilesRecursive(dirPath: string): Promise<string[]> {
@@ -220,7 +225,10 @@ export async function buildProfileExportArchive(
 		await fs
 			.stat(uploadsDir)
 			.then(() => true)
-			.catch(() => false)
+			.catch((error) => {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return false;
+				throw error;
+			})
 	) {
 		const uploadFiles = await listFilesRecursive(uploadsDir);
 		for (const file of uploadFiles) {
@@ -235,7 +243,10 @@ export async function buildProfileExportArchive(
 		await fs
 			.stat(modelsDir)
 			.then(() => true)
-			.catch(() => false)
+			.catch((error) => {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return false;
+				throw error;
+			})
 	) {
 		const modelFiles = await listFilesRecursive(modelsDir);
 		for (const file of modelFiles) {
@@ -244,6 +255,20 @@ export async function buildProfileExportArchive(
 			const zipPath = path.join("models", relative).split(path.sep).join("/");
 			zip.addLocalFile(file, path.dirname(zipPath));
 		}
+	}
+
+	// Include per-profile Metacom bundle if it exists
+	const metacomBundlePath = getProfileMetacomBundlePath(profileId);
+	if (
+		await fs
+			.stat(metacomBundlePath)
+			.then(() => true)
+			.catch((error) => {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return false;
+				throw error;
+			})
+	) {
+		zip.addLocalFile(metacomBundlePath, "metacom");
 	}
 
 	const buffer = zip.toBuffer();

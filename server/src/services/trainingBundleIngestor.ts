@@ -23,6 +23,7 @@ const TrainingBundleManifestEntrySchema = z
 		id: z.string(),
 		profileId: z.string().nullable().optional(),
 		label: z.string().trim().min(1),
+		symbolId: z.string().trim().min(1).optional(),
 		capturedAt: z.string().nullable().optional(),
 		source: z.string().nullable().optional(),
 		storage: z
@@ -90,6 +91,7 @@ interface LandmarksFile {
 interface DatasetSample {
 	id: string;
 	label: string;
+	symbolId?: string;
 	landmarks: number[][];
 	ts: number;
 	profileId?: string;
@@ -907,6 +909,7 @@ function buildDatasetSample(
 	const sample: DatasetSample = {
 		id: `${BUNDLE_SAMPLE_PREFIX}${entry.id}:frame:${frameIndex}`,
 		label: entry.label,
+		...(entry.symbolId ? { symbolId: entry.symbolId } : {}),
 		landmarks: frameData.landmarks,
 		ts,
 		...(entry.profileId ? { profileId: entry.profileId } : {}),

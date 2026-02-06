@@ -21,6 +21,7 @@ import { SettingsOverview } from './SettingsOverview';
 import { SignLanguageHistory } from './SignLanguageHistory';
 import { SignLanguageRecorder } from './SignLanguageRecorder';
 import { SignLanguageTutorial } from './SignLanguageTutorial';
+import { SignVideoGallery } from './SignVideoGallery';
 import { Teach } from './Teach';
 import { TrainingUploadWithRecording } from './TrainingUpload';
 
@@ -38,6 +39,7 @@ export function MainAppContent() {
           <Route path="/symbole" element={<MetacomBoard />} />
           <Route path="/tafel" element={<Navigate to="/symbole" replace />} />
           <Route path="/training" element={<TrainingUploadWithRecording />} />
+          <Route path="/videos" element={<SignVideoGallery />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/erkenntnisse" element={<CommunicationInsights />} />
           <Route path="/fortschritt" element={<ProgressTracker />} />

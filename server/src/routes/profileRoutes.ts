@@ -143,7 +143,10 @@ async function mergeDirectoryContents(
 			await fs
 				.stat(targetPath)
 				.then(() => true)
-				.catch(() => false)
+				.catch((error) => {
+					if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return false;
+					throw error;
+				})
 		) {
 			const ext = path.extname(entry);
 			const base = path.basename(entry, ext);

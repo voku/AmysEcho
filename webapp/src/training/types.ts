@@ -32,6 +32,12 @@ export interface TrainingBundlePayload {
   frames: TrainingFrame[];
   capturedAt?: string;
   source?: string;
+  /**
+   * Optional Metacom symbol identifier linking this gesture to a symbol on a
+   * Metacom board.  Persisted in the training bundle metadata so recognition
+   * and training share the same symbol identity.
+   */
+  symbolId?: string;
   smoothingConfig?: {
     method?: string;
     minCutOff?: number;

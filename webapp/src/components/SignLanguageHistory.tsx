@@ -1,18 +1,18 @@
 import { useAppState } from '../hooks/useAppState';
-import { gestureMeaningService } from '../services/gestureMeaningService';
+import { resolveGestureSymbol } from '../services/metacomMappingService';
 
 /**
  * Displays a list of recently recognized gestures.
- * Mirrors the HistoryScreen from the Expo app.
+ * Uses the Metacom mapping layer to show symbol emoji/color/category and
+ * falls back to the gestureMeaningService for gestures not on any board.
  */
 export function SignLanguageHistory() {
   const { recentSigns, lastRecognizedSign } = useAppState();
 
   const formatGestureLabel = (label: string): string => {
-    // Try to get meaning from the service first (user-defined DGS vocabulary)
-    const meaning = gestureMeaningService.getMeaning(label.toLowerCase());
-    if (meaning) {
-      return meaning.label;
+    const resolution = resolveGestureSymbol(label);
+    if (resolution) {
+      return `${resolution.emoji} ${resolution.label}`;
     }
 
     // Fallback: format the raw label nicely
