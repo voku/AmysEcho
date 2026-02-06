@@ -2407,6 +2407,8 @@ def run_training_pipeline(
     resolved_config = config or TrainingConfig()
     label_set = sorted({s.label for s in samples})
     training_version = datetime.now(timezone.utc).isoformat()
+    modality_counts = _summarize_modality_counts(samples)
+    modalities_used = [key for key in MODALITY_KEYS if modality_counts[key] > 0]
 
     # Global training
     X, y, labels, weights = dataset_to_arrays(
@@ -2526,12 +2528,17 @@ def run_training_pipeline(
             save_model(profile_dir / "amy_model.npz", p_best_weights, p_labels, p_counts)
             _write_training_metadata(profile_dir, training_version, p_samples, metadata_payload)
 
+        p_modality_counts = _summarize_modality_counts(p_samples)
+        p_modalities_used = [key for key in MODALITY_KEYS if p_modality_counts[key] > 0]
+
         profile_reports[profile_id] = {
             "accuracy": p_accuracy,
             "f1_score": p_f1,
             "samples": len(p_samples),
             "labels": p_labels,
-            "class_counts": p_counts.tolist()
+            "class_counts": p_counts.tolist(),
+            "modalities": p_modalities_used,
+            "modality_counts": p_modality_counts,
         }
 
     return {
@@ -2541,7 +2548,9 @@ def run_training_pipeline(
             "confusion_matrix": global_cm,
             "samples": len(samples),
             "labels": label_set,
-            "class_counts": class_counts.tolist()
+            "class_counts": class_counts.tolist(),
+            "modalities": modalities_used,
+            "modality_counts": modality_counts,
         },
         "profiles": profile_reports,
         "timestamp": training_version

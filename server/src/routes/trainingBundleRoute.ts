@@ -214,6 +214,8 @@ type IngestionMetrics = {
 		uploads: number;
 		rejected: number;
 		missingModalities: Record<ModalityKey, number>;
+		nonManualCoverage: NonManualCoverageSummary;
+		nonManualCoverageSamples: number[];
 	};
 	profiles: Record<
 		string,
@@ -221,9 +223,19 @@ type IngestionMetrics = {
 			uploads: number;
 			rejected: number;
 			missingModalities: Record<ModalityKey, number>;
+			nonManualCoverage: NonManualCoverageSummary;
+			nonManualCoverageSamples: number[];
 		}
 	>;
 };
+
+type NonManualCoverageSummary = {
+	p50: number;
+	p90: number;
+	sampleCount: number;
+};
+
+const COVERAGE_SAMPLE_LIMIT = 200;
 
 
 const NonManualFeaturesSchema = z
@@ -382,12 +394,19 @@ function createEmptyModalities(): Record<ModalityKey, number> {
 }
 
 function createEmptyIngestionMetrics(): IngestionMetrics {
+	const emptyCoverage: NonManualCoverageSummary = {
+		p50: 0,
+		p90: 0,
+		sampleCount: 0,
+	};
 	return {
 		updatedAt: new Date().toISOString(),
 		totals: {
 			uploads: 0,
 			rejected: 0,
 			missingModalities: createEmptyModalities(),
+			nonManualCoverage: emptyCoverage,
+			nonManualCoverageSamples: [],
 		},
 		profiles: {},
 	};
@@ -415,6 +434,9 @@ function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
 	const record = raw as Record<string, unknown>;
 	const totalsRaw = record.totals as Record<string, unknown> | undefined;
 	const profilesRaw = record.profiles as Record<string, unknown> | undefined;
+	const totalsCoverageSamples = normalizeCoverageSamples(
+		totalsRaw?.nonManualCoverageSamples,
+	);
 	const metrics: IngestionMetrics = {
 		updatedAt:
 			typeof record.updatedAt === "string"
@@ -425,6 +447,11 @@ function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
 			rejected:
 				typeof totalsRaw?.rejected === "number" ? totalsRaw.rejected : 0,
 			missingModalities: normalizeModalities(totalsRaw?.missingModalities),
+			nonManualCoverage: normalizeCoverageSummary(
+				totalsRaw?.nonManualCoverage,
+				totalsCoverageSamples,
+			),
+			nonManualCoverageSamples: totalsCoverageSamples,
 		},
 		profiles: {},
 	};
@@ -435,6 +462,9 @@ function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
 				continue;
 			}
 			const profileRecord = profileValue as Record<string, unknown>;
+			const profileCoverageSamples = normalizeCoverageSamples(
+				profileRecord.nonManualCoverageSamples,
+			);
 			metrics.profiles[profileId] = {
 				uploads:
 					typeof profileRecord.uploads === "number" ? profileRecord.uploads : 0,
@@ -443,6 +473,11 @@ function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
 						? profileRecord.rejected
 						: 0,
 				missingModalities: normalizeModalities(profileRecord.missingModalities),
+				nonManualCoverage: normalizeCoverageSummary(
+					profileRecord.nonManualCoverage,
+					profileCoverageSamples,
+				),
+				nonManualCoverageSamples: profileCoverageSamples,
 			};
 		}
 	}
@@ -454,6 +489,7 @@ async function recordIngestionMetrics(update: {
 	profileId: string | null;
 	status: "accepted" | "rejected";
 	missingModalities?: ModalityKey[];
+	nonManualCoverage?: number | null;
 }): Promise<void> {
 	try {
 		await ensureDataDir();
@@ -476,6 +512,8 @@ async function recordIngestionMetrics(update: {
 				uploads: 0,
 				rejected: 0,
 				missingModalities: createEmptyModalities(),
+				nonManualCoverage: { p50: 0, p90: 0, sampleCount: 0 },
+				nonManualCoverageSamples: [],
 			};
 
 			if (update.status === "accepted") {
@@ -491,6 +529,24 @@ async function recordIngestionMetrics(update: {
 					metrics.totals.missingModalities[modality] += 1;
 					profileMetrics.missingModalities[modality] += 1;
 				}
+			}
+
+			if (update.status === "accepted" && update.nonManualCoverage != null) {
+				metrics.totals.nonManualCoverageSamples = updateCoverageSamples(
+					metrics.totals.nonManualCoverageSamples,
+					update.nonManualCoverage,
+				);
+				metrics.totals.nonManualCoverage = computeCoverageSummary(
+					metrics.totals.nonManualCoverageSamples,
+				);
+
+				profileMetrics.nonManualCoverageSamples = updateCoverageSamples(
+					profileMetrics.nonManualCoverageSamples,
+					update.nonManualCoverage,
+				);
+				profileMetrics.nonManualCoverage = computeCoverageSummary(
+					profileMetrics.nonManualCoverageSamples,
+				);
 			}
 
 			metrics.updatedAt = new Date().toISOString();
@@ -588,6 +644,67 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 						frameCount: handednessFrameCount,
 					}
 				: undefined,
+	};
+}
+
+function normalizeCoverageSamples(value: unknown): number[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value
+		.filter((entry) => typeof entry === "number" && Number.isFinite(entry))
+		.map((entry) => Math.max(0, Math.min(1, entry)))
+		.slice(-COVERAGE_SAMPLE_LIMIT);
+}
+
+function normalizeCoverageSummary(
+	value: unknown,
+	samples: number[],
+): NonManualCoverageSummary {
+	if (samples.length > 0) {
+		return computeCoverageSummary(samples);
+	}
+	if (!value || typeof value !== "object") {
+		return { p50: 0, p90: 0, sampleCount: 0 };
+	}
+	const record = value as Record<string, unknown>;
+	const p50 =
+		typeof record.p50 === "number" && Number.isFinite(record.p50)
+			? record.p50
+			: 0;
+	const p90 =
+		typeof record.p90 === "number" && Number.isFinite(record.p90)
+			? record.p90
+			: 0;
+	const sampleCount =
+		typeof record.sampleCount === "number" && Number.isFinite(record.sampleCount)
+			? record.sampleCount
+			: 0;
+	return { p50, p90, sampleCount };
+}
+
+function updateCoverageSamples(samples: number[], coverage: number): number[] {
+	if (!Number.isFinite(coverage)) {
+		return samples;
+	}
+	const clamped = Math.max(0, Math.min(1, coverage));
+	const updated = [...samples, clamped];
+	return updated.slice(-COVERAGE_SAMPLE_LIMIT);
+}
+
+function computeCoverageSummary(samples: number[]): NonManualCoverageSummary {
+	if (samples.length === 0) {
+		return { p50: 0, p90: 0, sampleCount: 0 };
+	}
+	const sorted = [...samples].sort((a, b) => a - b);
+	const percentile = (ratio: number) => {
+		const index = Math.floor((sorted.length - 1) * ratio);
+		return sorted[Math.max(0, Math.min(sorted.length - 1, index))];
+	};
+	return {
+		p50: percentile(0.5),
+		p90: percentile(0.9),
+		sampleCount: sorted.length,
 	};
 }
 
@@ -922,6 +1039,7 @@ export function registerTrainingBundleRoute(
 			const recordMetrics = async (update: {
 				status: "accepted" | "rejected";
 				missingModalities?: ModalityKey[];
+				nonManualCoverage?: number | null;
 			}) => {
 				metricsRecorded = true;
 				await recordIngestionMetrics({
@@ -1255,7 +1373,11 @@ export function registerTrainingBundleRoute(
 					modalities: mergedModalities,
 				});
 
-				await recordMetrics({ status: "accepted", missingModalities });
+				await recordMetrics({
+					status: "accepted",
+					missingModalities,
+					nonManualCoverage: mergedModalities.nonManual.coverage,
+				});
 
 				let trainingJob: TriggerTrainingJobResult | null = null;
 				if (deps.triggerTrainingJob) {

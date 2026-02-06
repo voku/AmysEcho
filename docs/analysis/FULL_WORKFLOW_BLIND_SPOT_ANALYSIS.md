@@ -117,8 +117,8 @@ Wenn einer der vier Punkte fehlt, ist die White-Rabbit-Reise noch nicht abgeschl
 
 ## Recommended Next Actions
 
-1. [P0, Backend, 1-2d] Add explicit server schema validation for `frames[].nonManualFeatures` keys and numeric/null values.
-2. [P1, Observability, 2-3d] Add an ingestion metric for "nonManual coverage percentile" per profile (p50/p90).
-3. [P1, ML, 2-3d] Extend training report with modality-channel usage summary.
-4. [P0, Integration, 1-2d] Add E2E test: recognized label -> Metacom symbol mapping for starter vocabulary.
-5. [P2, Operations, weekly] Add checklist item: verify model version + Metacom mapping on staging each week.
+1. [x] **[P0, Backend, 1-2d]** Add explicit server schema validation for `frames[].nonManualFeatures` keys and numeric/null values. ✅ Implemented in `trainingBundleRoute.ts` with strict schema validation.
+2. [x] **[P1, Observability, 2-3d]** Add an ingestion metric for "nonManual coverage percentile" per profile (p50/p90). ✅ Implemented via rolling coverage samples + percentile summaries in ingestion metrics.
+3. [x] **[P1, ML, 2-3d]** Extend training report with modality-channel usage summary. ✅ Added modality usage summary to the training report output.
+4. [x] **[P0, Integration, 1-2d]** Add E2E test: recognized label -> Metacom symbol mapping for starter vocabulary. ✅ Added mapping test for starter labels against the Metacom start board.
+5. [ ] **[P2, Operations, weekly]** Add checklist item: verify model version + Metacom mapping on staging each week. (Human ops task)

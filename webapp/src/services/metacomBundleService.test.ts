@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   clearMetacomBundle,
+  findMetacomSymbolByLabel,
   loadMetacomBoards,
   parseMetacomBundle,
   storeMetacomBundle,
@@ -138,5 +139,23 @@ describe('metacomBundleService', () => {
   it('throws on invalid bundles', () => {
     const invalidBundle = JSON.stringify({ version: '1.0', boards: [] });
     expect(() => parseMetacomBundle(invalidBundle)).toThrow('Metacom-Bundle enthält keine Boards.');
+  });
+
+  it('maps starter gesture labels to Metacom symbols on the start board', () => {
+    const boards = loadMetacomBoards();
+    const expectations = [
+      { label: 'Hilfe', id: 'metacom_hilfe' },
+      { label: 'Ja', id: 'metacom_ja' },
+      { label: 'Nein', id: 'metacom_nein' },
+      { label: 'Mehr', id: 'metacom_mehr' },
+      { label: 'Fertig', id: 'metacom_fertig' },
+      { label: 'Bitte', id: 'metacom_bitte' },
+      { label: 'Danke', id: 'metacom_danke' },
+    ];
+
+    expectations.forEach(({ label, id }) => {
+      const symbol = findMetacomSymbolByLabel(boards, label);
+      expect(symbol?.id).toBe(id);
+    });
   });
 });

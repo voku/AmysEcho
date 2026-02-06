@@ -341,3 +341,31 @@ export function getMetacomSymbols(boards: Record<string, MetacomBoardDefinition>
       color: cell.color,
     }));
 }
+
+export function findMetacomSymbolByLabel(
+  boards: Record<string, MetacomBoardDefinition>,
+  label: string,
+): { id: string; label: string; emoji: string; category?: string; color?: string } | null {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  const startBoard = boards.start;
+  if (startBoard) {
+    const startMatch = startBoard.cells.find(
+      (cell) => cell.type === 'symbol' && cell.label.trim().toLowerCase() === normalized,
+    );
+    if (startMatch) {
+      return {
+        id: startMatch.id,
+        label: startMatch.label,
+        emoji: startMatch.emoji,
+        category: startMatch.category,
+        color: startMatch.color,
+      };
+    }
+  }
+  return getMetacomSymbols(boards).find(
+    (symbol) => symbol.label.trim().toLowerCase() === normalized,
+  ) ?? null;
+}
