@@ -1652,6 +1652,19 @@ def load_frame_list_for_bundle(
 
 
 
+AUDIO_DEPENDENCIES_AVAILABLE: bool | None = None
+
+
+def _audio_dependencies_available() -> bool:
+    global AUDIO_DEPENDENCIES_AVAILABLE
+
+    if not AUDIO_PREPROCESSING_AVAILABLE:
+        return False
+    if AUDIO_DEPENDENCIES_AVAILABLE is None:
+        AUDIO_DEPENDENCIES_AVAILABLE = bool(check_audio_dependencies())
+    return AUDIO_DEPENDENCIES_AVAILABLE
+
+
 def load_audio_features_for_bundle(
     audio_path: Path | None,
     label: str,
@@ -1669,7 +1682,7 @@ def load_audio_features_for_bundle(
             )
             return None, None
 
-        if not check_audio_dependencies():
+        if not _audio_dependencies_available():
             return None, None
 
         audio_result = preprocess_audio_for_training(
