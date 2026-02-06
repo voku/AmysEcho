@@ -243,4 +243,74 @@ describe('Training Video Routes', () => {
       expect(res.status).toBe(404);
     });
   });
+
+  describe('GET /api/v1/dgs-videos', () => {
+    it('returns reference videos from DGS manifest', async () => {
+      const res = await request(app)
+        .get('/api/v1/dgs-videos')
+        .set(authHeaders());
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.videos)).toBe(true);
+      // The real dgs_manifest.json should have entries
+      if (res.body.videos.length > 0) {
+        expect(res.body.videos[0]).toHaveProperty('label');
+        expect(res.body.videos[0]).toHaveProperty('filename');
+        expect(res.body.videos[0]).toHaveProperty('clipUrl');
+        expect(res.body.videos[0].clipUrl).toMatch(/^\/api\/v1\/dgs-videos\//);
+      }
+    });
+
+    it('returns 401 without auth token', async () => {
+      const res = await request(app).get('/api/v1/dgs-videos');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('GET /api/v1/dgs-videos/:filename', () => {
+    it('returns 401 without auth token', async () => {
+      const res = await request(app).get('/api/v1/dgs-videos/alle.mp4');
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 400 for invalid file extension', async () => {
+      const res = await request(app)
+        .get('/api/v1/dgs-videos/test.txt')
+        .set(authHeaders());
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects path traversal attempts', async () => {
+      const res = await request(app)
+        .get('/api/v1/dgs-videos/..%2F..%2Fpackage.json')
+        .set(authHeaders());
+      // Should be rejected by either path check or extension check
+      expect([400, 403]).toContain(res.status);
+    });
+
+    it('returns 404 for non-existent video', async () => {
+      const res = await request(app)
+        .get('/api/v1/dgs-videos/nonexistent_video.mp4')
+        .set(authHeaders());
+      expect(res.status).toBe(404);
+    });
+
+    it('streams an existing DGS reference video', async () => {
+      // First get the list to find a real video filename
+      const listRes = await request(app)
+        .get('/api/v1/dgs-videos')
+        .set(authHeaders());
+
+      if (listRes.body.videos.length === 0) {
+        // No DGS videos available in test env — skip gracefully
+        return;
+      }
+
+      const firstVideo = listRes.body.videos[0];
+      const res = await request(app)
+        .get(`/api/v1/dgs-videos/${encodeURIComponent(firstVideo.filename)}`)
+        .set(authHeaders());
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toBe('video/mp4');
+    });
+  });
 });

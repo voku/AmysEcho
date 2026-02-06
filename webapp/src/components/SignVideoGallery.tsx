@@ -16,41 +16,93 @@ interface TrainingVideoItem {
   clipMimeType: string | null;
 }
 
+/** Unified video item for both recorded and reference videos */
+interface GalleryVideoItem {
+  id: string;
+  label: string;
+  clipUrl: string;
+  stillUrl: string | null;
+  capturedAt: string | null;
+  clipDurationMs: number | null;
+  source: 'recorded' | 'reference';
+}
+
 interface VideosByLabel {
   label: string;
-  videos: TrainingVideoItem[];
+  videos: GalleryVideoItem[];
+}
+
+function toGalleryItem(v: TrainingVideoItem): GalleryVideoItem {
+  return {
+    id: v.bundleId,
+    label: v.label,
+    clipUrl: v.clipUrl,
+    stillUrl: v.stillUrl,
+    capturedAt: v.capturedAt,
+    clipDurationMs: v.clipDurationMs,
+    source: 'recorded',
+  };
 }
 
 export function SignVideoGallery() {
   const { profileId } = useAppState();
   const { apiBaseUrl } = useApiConfig();
-  const [videos, setVideos] = useState<TrainingVideoItem[]>([]);
+  const [recordedVideos, setRecordedVideos] = useState<GalleryVideoItem[]>([]);
+  const [referenceVideos, setReferenceVideos] = useState<GalleryVideoItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<TrainingVideoItem | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<GalleryVideoItem | null>(null);
   const [filterLabel, setFilterLabel] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'all' | 'recorded' | 'reference'>('all');
 
   const loadVideos = useCallback(async () => {
-    if (!profileId) {
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await apiRetryManager.fetch(
-        `${apiBaseUrl}/api/v1/profiles/${profileId}/training-videos`,
-      );
-      if (!response.ok) {
-        throw new Error(`Fehler beim Laden: ${response.status}`);
+      const promises: Promise<void>[] = [];
+
+      // Load user-recorded training videos (requires profile)
+      if (profileId) {
+        promises.push(
+          apiRetryManager
+            .fetch(`${apiBaseUrl}/api/v1/profiles/${profileId}/training-videos`)
+            .then(async (res) => {
+              if (res.ok) {
+                const data = await res.json();
+                setRecordedVideos((data.videos ?? []).map(toGalleryItem));
+              }
+            }),
+        );
       }
-      const data = await response.json();
-      setVideos(data.videos ?? []);
+
+      // Load DGS reference videos (not profile-specific)
+      promises.push(
+        apiRetryManager
+          .fetch(`${apiBaseUrl}/api/v1/dgs-videos`)
+          .then(async (res) => {
+            if (res.ok) {
+              const data = await res.json();
+              const refs: GalleryVideoItem[] = (data.videos ?? []).map(
+                (v: { label: string; filename: string; clipUrl: string }) => ({
+                  id: `ref-${v.filename}`,
+                  label: v.label,
+                  clipUrl: v.clipUrl,
+                  stillUrl: null,
+                  capturedAt: null,
+                  clipDurationMs: null,
+                  source: 'reference' as const,
+                }),
+              );
+              setReferenceVideos(refs);
+            }
+          }),
+      );
+
+      await Promise.all(promises);
     } catch (err) {
       console.warn('[SignVideoGallery] Failed to load videos:', err);
-      setError('Trainingsvideos konnten nicht geladen werden.');
+      setError('Videos konnten nicht geladen werden.');
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +112,17 @@ export function SignVideoGallery() {
     loadVideos();
   }, [loadVideos]);
 
+  // Combine and filter videos by active tab
+  const allVideos = useMemo((): GalleryVideoItem[] => {
+    if (activeTab === 'recorded') return recordedVideos;
+    if (activeTab === 'reference') return referenceVideos;
+    return [...recordedVideos, ...referenceVideos];
+  }, [recordedVideos, referenceVideos, activeTab]);
+
   // Group videos by label
   const videosByLabel = useMemo((): VideosByLabel[] => {
-    const map = new Map<string, TrainingVideoItem[]>();
-    for (const video of videos) {
+    const map = new Map<string, GalleryVideoItem[]>();
+    for (const video of allVideos) {
       const existing = map.get(video.label);
       if (existing) {
         existing.push(video);
@@ -74,7 +133,7 @@ export function SignVideoGallery() {
     return Array.from(map.entries())
       .map(([label, vids]) => ({ label, videos: vids }))
       .sort((a, b) => a.label.localeCompare(b.label, 'de'));
-  }, [videos]);
+  }, [allVideos]);
 
   // Filter by label
   const filteredGroups = useMemo(() => {
@@ -103,24 +162,11 @@ export function SignVideoGallery() {
     );
   }
 
-  if (!profileId) {
-    return (
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <p className="eyebrow">Gebärdenvideos</p>
-            <h2>Kein Profil ausgewählt</h2>
-            <p className="muted">
-              Bitte wähle ein Profil aus, um die Trainingsvideos zu sehen.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   // Selected video player modal
   if (selectedVideo) {
+    const sourceLabel = selectedVideo.source === 'reference'
+      ? 'Referenzvideo'
+      : 'Eigene Aufnahme';
     return (
       <section className="card sign-video-gallery">
         <div className="card-header">
@@ -148,6 +194,9 @@ export function SignVideoGallery() {
         />
 
         <div className="sign-video-meta">
+          <span className={`badge ${selectedVideo.source === 'reference' ? 'badge-ref' : 'badge-rec'}`}>
+            {sourceLabel}
+          </span>
           {selectedVideo.capturedAt && (
             <span className="muted">
               Aufgenommen: {new Date(selectedVideo.capturedAt).toLocaleDateString('de-DE')}
@@ -177,11 +226,38 @@ export function SignVideoGallery() {
           <p className="eyebrow">Gebärdenvideos</p>
           <h2>Gebärden ansehen & lernen</h2>
           <p className="muted">
-            Hier siehst du alle aufgenommenen Gebärden. Schau dir die Videos an,
-            um die Gebärden zu lernen – nicht nur durch Ausprobieren, sondern auch
-            durch Zuschauen!
+            Schau dir Gebärdenvideos an, um durch Zuschauen zu lernen –
+            sowohl Referenzvideos als auch deine eigenen Aufnahmen!
           </p>
         </div>
+      </div>
+
+      {/* Source tabs */}
+      <div className="sign-video-tabs" role="tablist" aria-label="Videoquelle wählen">
+        <button
+          role="tab"
+          aria-selected={activeTab === 'all'}
+          className={`sign-video-tab ${activeTab === 'all' ? 'active' : ''}`}
+          onClick={() => setActiveTab('all')}
+        >
+          Alle ({recordedVideos.length + referenceVideos.length})
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'reference'}
+          className={`sign-video-tab ${activeTab === 'reference' ? 'active' : ''}`}
+          onClick={() => setActiveTab('reference')}
+        >
+          📚 Referenzvideos ({referenceVideos.length})
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'recorded'}
+          className={`sign-video-tab ${activeTab === 'recorded' ? 'active' : ''}`}
+          onClick={() => setActiveTab('recorded')}
+        >
+          🎥 Eigene Aufnahmen ({recordedVideos.length})
+        </button>
       </div>
 
       {error && (
@@ -193,18 +269,17 @@ export function SignVideoGallery() {
         </div>
       )}
 
-      {videos.length === 0 && !error && (
+      {allVideos.length === 0 && !error && (
         <div className="notice info">
           <p>
-            Noch keine Trainingsvideos aufgenommen.
-            Gehe zum{' '}
-            <Link to="/lernen">Lernbereich</Link>
-            , um Gebärden aufzunehmen – dann erscheinen sie hier zum Ansehen!
+            {activeTab === 'recorded'
+              ? <>Noch keine eigenen Aufnahmen. Gehe zum{' '}<Link to="/lernen">Lernbereich</Link>, um Gebärden aufzunehmen!</>
+              : 'Keine Videos in dieser Kategorie verfügbar.'}
           </p>
         </div>
       )}
 
-      {videos.length > 0 && (
+      {allVideos.length > 0 && (
         <>
           {labels.length > 3 && (
             <div className="sign-video-filter">
@@ -229,7 +304,7 @@ export function SignVideoGallery() {
                 <div className="sign-video-grid">
                   {group.videos.map((video) => (
                     <button
-                      key={video.bundleId}
+                      key={video.id}
                       className="sign-video-card"
                       onClick={() => setSelectedVideo(video)}
                       aria-label={`Video abspielen: ${video.label}`}
@@ -243,17 +318,15 @@ export function SignVideoGallery() {
                         />
                       ) : (
                         <div className="sign-video-thumbnail sign-video-thumbnail-placeholder">
-                          <span>🤟</span>
+                          <span>{video.source === 'reference' ? '📚' : '🤟'}</span>
                         </div>
                       )}
                       <span className="sign-video-card-label">
                         ▶ {video.label}
                       </span>
-                      {video.capturedAt && (
-                        <span className="sign-video-card-date muted">
-                          {new Date(video.capturedAt).toLocaleDateString('de-DE')}
-                        </span>
-                      )}
+                      <span className={`sign-video-card-source ${video.source === 'reference' ? 'badge-ref' : 'badge-rec'}`}>
+                        {video.source === 'reference' ? 'Referenz' : 'Aufnahme'}
+                      </span>
                     </button>
                   ))}
                 </div>

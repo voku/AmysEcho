@@ -5,6 +5,7 @@ import path from "path";
 import {
 	DATA_DIR,
 	PROFILE_ID_PATTERN,
+	SERVER_DIR,
 	TRAINING_MANIFEST_PATH,
 } from "../constants/modelPaths.js";
 import { logger } from "../services/logger.js";
@@ -82,6 +83,35 @@ const STILL_MIME_MAP: Record<string, string> = {
 	".png": "image/png",
 	".webp": "image/webp",
 };
+
+const DGS_VIDEO_DIR = path.join(SERVER_DIR, "data", "dgs_video_examples");
+const DGS_MANIFEST_PATH = path.join(SERVER_DIR, "data", "dgs_manifest.json");
+
+interface DgsManifestGesture {
+	id: string;
+	label: string;
+	videos: string[];
+	totalVideoCount: number;
+}
+
+interface DgsManifest {
+	gestures: DgsManifestGesture[];
+}
+
+interface DgsReferenceVideoItem {
+	label: string;
+	filename: string;
+	clipUrl: string;
+}
+
+async function loadDgsManifest(): Promise<DgsManifest> {
+	try {
+		const raw = await fs.readFile(DGS_MANIFEST_PATH, "utf8");
+		return JSON.parse(raw) as DgsManifest;
+	} catch {
+		return { gestures: [] };
+	}
+}
 
 async function loadManifest(): Promise<ManifestFile> {
 	try {
@@ -334,6 +364,152 @@ export function registerTrainingVideoRoutes(
 				});
 				return res.status(500).json({
 					error: "Bild konnte nicht geladen werden.",
+				});
+			}
+		},
+	);
+
+	/**
+	 * GET /api/v1/dgs-videos
+	 * List all available DGS reference videos from the downloaded examples,
+	 * grouped by label. These are pre-recorded reference videos for learning.
+	 */
+	app.get(
+		"/api/v1/dgs-videos",
+		authMiddleware,
+		videoRateLimiter,
+		async (_req: Request, res: Response) => {
+			try {
+				const dgsManifest = await loadDgsManifest();
+				const videos: DgsReferenceVideoItem[] = [];
+				for (const gesture of dgsManifest.gestures) {
+					for (const filename of gesture.videos) {
+						const ext = path.extname(filename).toLowerCase();
+						if (!ALLOWED_CLIP_EXTENSIONS.has(ext)) continue;
+						videos.push({
+							label: gesture.label,
+							filename,
+							clipUrl: `/api/v1/dgs-videos/${encodeURIComponent(filename)}`,
+						});
+					}
+				}
+				return res.status(200).json({ videos });
+			} catch (error) {
+				logger.error("Failed to list DGS reference videos", {
+					error:
+						error instanceof Error
+							? error.message
+							: String(error),
+				});
+				return res.status(500).json({
+					error: "Referenzvideos konnten nicht geladen werden.",
+				});
+			}
+		},
+	);
+
+	/**
+	 * GET /api/v1/dgs-videos/:filename
+	 * Stream a DGS reference video file from the downloaded examples directory.
+	 */
+	app.get(
+		"/api/v1/dgs-videos/:filename",
+		authMiddleware,
+		videoRateLimiter,
+		async (req: Request, res: Response) => {
+			const { filename } = req.params;
+			if (!filename) {
+				return res.status(400).json({ error: "Dateiname fehlt." });
+			}
+
+			try {
+				const ext = path.extname(filename).toLowerCase();
+				if (!ALLOWED_CLIP_EXTENSIONS.has(ext)) {
+					return res
+						.status(400)
+						.json({ error: "Ungültiges Videoformat." });
+				}
+
+				// Only allow simple filenames — no path separators
+				if (
+					filename.includes("/") ||
+					filename.includes("\\") ||
+					filename.includes("..")
+				) {
+					return res
+						.status(403)
+						.json({ error: "Zugriff verweigert." });
+				}
+
+				const videoPath = path.join(DGS_VIDEO_DIR, filename);
+				const resolvedPath = path.resolve(videoPath);
+
+				// Path traversal protection
+				if (
+					!resolvedPath.startsWith(path.resolve(DGS_VIDEO_DIR))
+				) {
+					return res
+						.status(403)
+						.json({ error: "Zugriff verweigert." });
+				}
+
+				if (!existsSync(resolvedPath)) {
+					return res
+						.status(404)
+						.json({ error: "Video nicht gefunden." });
+				}
+
+				const stat = await fs.stat(resolvedPath);
+				const mimeType =
+					CLIP_MIME_MAP[ext] ?? "application/octet-stream";
+
+				res.setHeader("Content-Type", mimeType);
+				res.setHeader("Content-Length", stat.size);
+				res.setHeader("Accept-Ranges", "bytes");
+
+				// Support range requests for video seeking
+				const range = req.headers.range;
+				if (range) {
+					const parts = range
+						.replace(/bytes=/, "")
+						.split("-");
+					const start = parseInt(parts[0] ?? "0", 10);
+					const end = parts[1]
+						? parseInt(parts[1], 10)
+						: stat.size - 1;
+					if (
+						start >= stat.size ||
+						end >= stat.size ||
+						start > end
+					) {
+						res.status(416).setHeader(
+							"Content-Range",
+							`bytes */${stat.size}`,
+						);
+						return res.end();
+					}
+					res.status(206);
+					res.setHeader(
+						"Content-Range",
+						`bytes ${start}-${end}/${stat.size}`,
+					);
+					res.setHeader("Content-Length", end - start + 1);
+					createReadStream(resolvedPath, { start, end }).pipe(
+						res,
+					);
+				} else {
+					createReadStream(resolvedPath).pipe(res);
+				}
+			} catch (error) {
+				logger.error("Failed to serve DGS reference video", {
+					filename,
+					error:
+						error instanceof Error
+							? error.message
+							: String(error),
+				});
+				return res.status(500).json({
+					error: "Referenzvideo konnte nicht abgespielt werden.",
 				});
 			}
 		},

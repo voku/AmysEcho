@@ -5214,10 +5214,62 @@ p {
   display: flex;
   gap: var(--space-md);
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.sign-video-tabs {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.sign-video-tab {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--color-surface);
+  font-size: var(--font-size-body-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sign-video-tab.active {
+  background: var(--color-primary-bg, rgba(147, 112, 219, 0.15));
+  border-color: var(--color-primary-border, rgba(147, 112, 219, 0.4));
+  font-weight: 600;
+}
+
+.badge-ref {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-body-sm);
+  font-weight: 500;
+}
+
+.badge-rec {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-body-sm);
+  font-weight: 500;
+}
+
+.sign-video-card-source {
+  padding: 2px var(--space-sm);
+  margin: 0 var(--space-sm) var(--space-xs);
+  display: inline-block;
 }
 
 @media (max-width: 720px) {
   .sign-video-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sign-video-tabs {
+    flex-direction: column;
   }
 }
