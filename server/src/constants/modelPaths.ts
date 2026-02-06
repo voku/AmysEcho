@@ -89,6 +89,20 @@ export const TRAINING_MANIFEST_PATH = path.join(
 // data/users/{userId}/labels/{labelId}/{mode}/[videos|landmarks]/
 export const USER_TRAINING_DATA_DIR = path.join(DATA_DIR, "users");
 
+// Per-profile Metacom board bundles
+// data/metacom/{profileId}/metacom_bundle.json
+export const METACOM_BUNDLES_DIR = path.join(DATA_DIR, "metacom");
+
+/**
+ * Get the filesystem path for a profile's Metacom bundle.
+ */
+export function getProfileMetacomBundlePath(profileId: string): string {
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
+		throw new Error("Ungültige Profil-ID");
+	}
+	return path.join(METACOM_BUNDLES_DIR, profileId, "metacom_bundle.json");
+}
+
 export type TrainingMode = "server_pretrain" | "user_train";
 
 /**
