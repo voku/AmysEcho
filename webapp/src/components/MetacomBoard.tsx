@@ -5,6 +5,7 @@ import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { audioService } from '../services/audioService';
 import type { MetacomBoardDefinition, MetacomCell, MetacomSymbolCell } from '../types/metacom';
 import { SymbolButton, type Symbol } from './SymbolButton';
+import { SentenceComposer, cellToSentenceSymbol, type SentenceSymbol } from './SentenceComposer';
 
 const START_BOARD_ID = 'start';
 
@@ -26,6 +27,7 @@ export function MetacomBoard() {
   const [boardHistory, setBoardHistory] = useState<string[]>([START_BOARD_ID]);
   const [lastSpoken, setLastSpoken] = useState<string | null>(null);
   const [lastSymbolSelection, setLastSymbolSelection] = useState<MetacomSymbolCell | null>(null);
+  const [sentenceQueue, setSentenceQueue] = useState<SentenceSymbol[]>([]);
 
   const currentBoardId = boardHistory[boardHistory.length - 1] ?? START_BOARD_ID;
   const board = getBoard(currentBoardId, boards);
@@ -88,6 +90,7 @@ export function MetacomBoard() {
       }
 
       setLastSymbolSelection(cell);
+      setSentenceQueue((prev) => [...prev, cellToSentenceSymbol(cell)]);
       const speechText = cell.speech ?? cell.label;
       await speakSelection(speechText);
     },
@@ -106,6 +109,14 @@ export function MetacomBoard() {
     const symbolIdParam = encodeURIComponent(lastSymbolSelection.symbolId ?? lastSymbolSelection.id);
     navigate(`/training?gesture=${gestureParam}&symbolId=${symbolIdParam}`);
   }, [lastSymbolSelection, navigate]);
+
+  const handleRemoveLast = useCallback(() => {
+    setSentenceQueue((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
+  }, []);
+
+  const handleClearSentence = useCallback(() => {
+    setSentenceQueue([]);
+  }, []);
 
   return (
     <section className="card metacom-board">
@@ -134,6 +145,12 @@ export function MetacomBoard() {
           </button>
         )}
       </div>
+
+      <SentenceComposer
+        queue={sentenceQueue}
+        onRemoveLast={handleRemoveLast}
+        onClear={handleClearSentence}
+      />
 
       <div
         className="metacom-grid"
