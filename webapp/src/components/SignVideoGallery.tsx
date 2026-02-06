@@ -62,7 +62,8 @@ export function SignVideoGallery() {
     try {
       const promises: Promise<void>[] = [];
 
-      // Load user-recorded training videos (requires profile)
+      // Load user-recorded training videos (requires profile).
+      // Clears previous recordings when no profile is active to prevent privacy leak.
       if (profileId) {
         promises.push(
           apiRetryManager
@@ -71,9 +72,13 @@ export function SignVideoGallery() {
               if (res.ok) {
                 const data = await res.json();
                 setRecordedVideos((data.videos ?? []).map(toGalleryItem));
+              } else {
+                setRecordedVideos([]);
               }
             }),
         );
+      } else {
+        setRecordedVideos([]);
       }
 
       // Load DGS reference videos (not profile-specific)

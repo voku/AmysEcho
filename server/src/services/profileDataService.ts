@@ -225,7 +225,10 @@ export async function buildProfileExportArchive(
 		await fs
 			.stat(uploadsDir)
 			.then(() => true)
-			.catch(() => false)
+			.catch((error) => {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return false;
+				throw error;
+			})
 	) {
 		const uploadFiles = await listFilesRecursive(uploadsDir);
 		for (const file of uploadFiles) {
@@ -240,7 +243,10 @@ export async function buildProfileExportArchive(
 		await fs
 			.stat(modelsDir)
 			.then(() => true)
-			.catch(() => false)
+			.catch((error) => {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return false;
+				throw error;
+			})
 	) {
 		const modelFiles = await listFilesRecursive(modelsDir);
 		for (const file of modelFiles) {
@@ -257,7 +263,10 @@ export async function buildProfileExportArchive(
 		await fs
 			.stat(metacomBundlePath)
 			.then(() => true)
-			.catch(() => false)
+			.catch((error) => {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return false;
+				throw error;
+			})
 	) {
 		zip.addLocalFile(metacomBundlePath, "metacom");
 	}

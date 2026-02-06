@@ -233,8 +233,10 @@ export function registerTrainingVideoRoutes(
 						.json({ error: "Video nicht gefunden." });
 				}
 
-				// Verify user has access to the profile that owns this bundle
-				if (entry.profileId && !isProfileAuthorized(req, entry.profileId, db, registry)) {
+				// Verify user has access to the profile that owns this bundle.
+				// Deny access when profileId is missing (legacy bundles)
+				// to prevent unauthenticated access via guessed bundleIds.
+				if (!entry.profileId || !isProfileAuthorized(req, entry.profileId, db, registry)) {
 					return res
 						.status(403)
 						.json({ error: "Zugriff verweigert." });
@@ -346,8 +348,9 @@ export function registerTrainingVideoRoutes(
 						.json({ error: "Bild nicht gefunden." });
 				}
 
-				// Verify user has access to the profile that owns this bundle
-				if (entry.profileId && !isProfileAuthorized(req, entry.profileId, db, registry)) {
+				// Verify user has access to the profile that owns this bundle.
+				// Deny access when profileId is missing to prevent unauthenticated access via guessed bundleIds.
+				if (!entry.profileId || !isProfileAuthorized(req, entry.profileId, db, registry)) {
 					return res
 						.status(403)
 						.json({ error: "Zugriff verweigert." });
