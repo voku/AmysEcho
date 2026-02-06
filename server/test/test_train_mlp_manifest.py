@@ -582,6 +582,73 @@ def test_load_frame_list_for_bundle_uses_cache_without_still_duplication(monkeyp
     assert called["still"] == 0
 
 
+def test_load_frame_list_for_bundle_skips_still_when_dependencies_missing(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_dir = data_dir / "training_uploads" / "unassigned" / "missing-still-deps"
+    bundle_dir.mkdir(parents=True)
+
+    landmarks_path = bundle_dir / "landmarks.json"
+    landmarks_path.write_text(json.dumps({"frames": []}), encoding="utf-8")
+
+    cache_path = bundle_dir / "landmarks_cached.json"
+    still_path = bundle_dir / "still.jpg"
+    still_path.write_bytes(b"fake-still")
+
+    def raise_dependency_error(_path):
+        raise module.DependencyUnavailableError("deps missing")
+
+    monkeypatch.setattr(module, "extract_landmarks_from_still", raise_dependency_error)
+
+    frame_list, stats = module.load_frame_list_for_bundle(
+        landmarks_path,
+        cache_path,
+        clip_path=None,
+        still_path=still_path,
+    )
+
+    assert frame_list == []
+    assert stats["cache_hits"] == 0
+    assert stats["cache_misses"] == 1
+
+
+def test_load_frame_list_for_bundle_skips_clip_when_dependencies_missing(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_dir = data_dir / "training_uploads" / "unassigned" / "missing-clip-deps"
+    bundle_dir.mkdir(parents=True)
+
+    landmarks_path = bundle_dir / "landmarks.json"
+    cache_path = bundle_dir / "landmarks_cached.json"
+    clip_path = bundle_dir / "clip.webm"
+    clip_path.write_bytes(b"fake-clip")
+
+    def raise_dependency_error(_path):
+        raise module.DependencyUnavailableError("deps missing")
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", raise_dependency_error)
+
+    frame_list, stats = module.load_frame_list_for_bundle(
+        landmarks_path,
+        cache_path,
+        clip_path=clip_path,
+        still_path=None,
+    )
+
+    assert frame_list == []
+    assert stats["cache_hits"] == 0
+    assert stats["cache_misses"] == 1
+    assert stats["bundle_missing_landmarks"] == 1
+    assert stats["bundle_fallback_extractions"] == 0
+
+
 def test_load_audio_features_for_bundle_returns_none_without_file(monkeypatch, tmp_path):
     data_dir = tmp_path / "data"
     manifest_path = data_dir / "datasets" / "training_manifest.json"

@@ -1623,7 +1623,12 @@ def load_frame_list_for_bundle(
             and clip_path.exists()
             and should_extract_bundle_landmarks_from_clip(BUNDLE_LANDMARK_POLICY)
         ):
-            frames = extract_landmarks_from_clip(clip_path)
+            try:
+                frames = extract_landmarks_from_clip(clip_path)
+            except DependencyUnavailableError as error:
+                LOGGER.warning("Skipping clip extraction for %s: %s", clip_path, error)
+                frames = None
+
             if frames:
                 frames_from_clip = True
                 local["bundle_fallback_extractions"] += 1
@@ -1637,7 +1642,11 @@ def load_frame_list_for_bundle(
     frame_list: list[dict] = list(frames) if frames else []
 
     if still_path and still_path.exists() and not cached:
-        extracted = extract_landmarks_from_still(still_path)
+        try:
+            extracted = extract_landmarks_from_still(still_path)
+        except DependencyUnavailableError as error:
+            LOGGER.warning("Skipping still extraction for %s: %s", still_path, error)
+            extracted = None
         if extracted:
             extracted["weight"] = STILL_FRAME_WEIGHT
             frame_list.append(extracted)
