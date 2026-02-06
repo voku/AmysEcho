@@ -8,6 +8,7 @@ def test_build_samples_from_manifest_uses_video_extension(monkeypatch, tmp_path)
     manifest_path = data_dir / "datasets" / "training_manifest.json"
     monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
     monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
 
     module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
 
@@ -128,6 +129,7 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
     manifest_path = data_dir / "datasets" / "training_manifest.json"
     monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
     monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
 
     module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
 
@@ -322,3 +324,548 @@ def test_cached_frames_do_not_duplicate_still_frame(monkeypatch, tmp_path):
     # Verify we have samples
     assert len(samples) >= 1
 
+
+
+def test_build_samples_bundle_only_does_not_extract_clip_without_landmarks(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "bundle_only")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-policy-1")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+
+    clip_rel = "clip.webm"
+    clip_path = bundle_dir / clip_rel
+    clip_path.write_bytes(b"fake-webm-bytes")
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-policy-1",
+                "profileId": None,
+                "label": "HALLO",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "bundle": str(bundle_rel / "bundle.zip"),
+                    "files": [clip_rel],
+                    "clip": clip_rel,
+                },
+                "metadata": {
+                    "label": "HALLO",
+                    "profileId": None,
+                    "clipFilename": clip_rel,
+                },
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    calls = {"count": 0}
+
+    def fake_extract(_path: Path):
+        calls["count"] += 1
+        return [{"landmarks": [[0.1, 0.1, 0.1] for _ in range(42)]}]
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", fake_extract)
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert calls["count"] == 0
+    assert stats["bundle_landmark_policy"] == "bundle_only"
+    assert stats["bundle_missing_landmarks"] == 1
+    assert stats["bundle_fallback_extractions"] == 0
+    assert not any(s.label == "HALLO" for s in samples)
+
+
+def test_build_samples_prefer_bundle_extracts_clip_without_landmarks(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-policy-2")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+
+    clip_rel = "clip.webm"
+    clip_path = bundle_dir / clip_rel
+    clip_path.write_bytes(b"fake-webm-bytes")
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-policy-2",
+                "profileId": None,
+                "label": "HALLO",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "bundle": str(bundle_rel / "bundle.zip"),
+                    "files": [clip_rel],
+                    "clip": clip_rel,
+                },
+                "metadata": {
+                    "label": "HALLO",
+                    "profileId": None,
+                    "clipFilename": clip_rel,
+                },
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    calls = {"count": 0}
+
+    def fake_extract(path: Path):
+        calls["count"] += 1
+        assert path == clip_path
+        return [{"landmarks": [[0.1, 0.1, 0.1] for _ in range(42)]}]
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", fake_extract)
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert calls["count"] == 1
+    assert stats["bundle_landmark_policy"] == "prefer_bundle"
+    assert stats["bundle_missing_landmarks"] == 0
+    assert stats["bundle_fallback_extractions"] == 1
+    assert any(s.label == "HALLO" for s in samples)
+
+
+def test_build_samples_from_manifest_returns_policy_stats_when_manifest_missing(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "missing_training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "bundle_only")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert samples == []
+    assert stats["entries"] == 0
+    assert stats["bundle_fallback_extractions"] == 0
+    assert stats["bundle_missing_landmarks"] == 0
+    assert stats["bundle_landmark_policy"] == "bundle_only"
+    assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0, "nonManual": 0}
+    assert stats["modality_sample_total"] == 0
+
+
+def test_build_samples_prefer_bundle_counts_missing_when_clip_extraction_returns_no_frames(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-policy-3")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+
+    clip_rel = "clip.webm"
+    clip_path = bundle_dir / clip_rel
+    clip_path.write_bytes(b"fake-webm-bytes")
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-policy-3",
+                "profileId": None,
+                "label": "HALLO",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "bundle": str(bundle_rel / "bundle.zip"),
+                    "files": [clip_rel],
+                    "clip": clip_rel,
+                },
+                "metadata": {
+                    "label": "HALLO",
+                    "profileId": None,
+                    "clipFilename": clip_rel,
+                },
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    def fake_extract(path: Path):
+        assert path == clip_path
+        return []
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", fake_extract)
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert samples == []
+    assert stats["bundle_fallback_extractions"] == 0
+    assert stats["bundle_missing_landmarks"] == 1
+
+
+def test_create_empty_training_stats_contains_all_expected_keys(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "missing_training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "bundle_only")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    stats = module.create_empty_training_stats()
+
+    assert stats["entries"] == 0
+    assert stats["cache_hits"] == 0
+    assert stats["cache_misses"] == 0
+    assert stats["cache_writes"] == 0
+    assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0, "nonManual": 0}
+    assert stats["modality_sample_total"] == 0
+    assert stats["bundle_fallback_extractions"] == 0
+    assert stats["bundle_missing_landmarks"] == 0
+    assert stats["bundle_landmark_policy"] == "bundle_only"
+
+
+def test_summarize_frame_modalities_counts_non_manual_dict_values(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    frames = [
+        {
+            "landmarks": [[0.1, 0.1, 0.1]],
+            "poseLandmarks": [[0.1, 0.1, 0.1]],
+            "faceLandmarks": [[0.1, 0.1, 0.1]],
+            "nonManualFeatures": {},
+        },
+        {
+            "landmarks": [[0.2, 0.2, 0.2]],
+            "poseLandmarks": [],
+            "faceLandmarks": [],
+            "nonManualFeatures": {"headYaw": 0.2, "source": "pose"},
+        },
+    ]
+
+    counts, coverage = module._summarize_frame_modalities(frames)
+
+    assert counts["hands"] == 2
+    assert counts["pose"] == 1
+    assert counts["face"] == 1
+    assert counts["nonManual"] == 1
+    assert coverage["nonManual"] == 0.5
+
+
+def test_load_frame_list_for_bundle_uses_cache_without_still_duplication(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "bundle_only")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_dir = data_dir / "training_uploads" / "unassigned" / "bundle-helper"
+    bundle_dir.mkdir(parents=True)
+
+    landmarks_path = bundle_dir / "landmarks.json"
+    landmarks_path.write_text(json.dumps({"frames": [{"landmarks": [[0.0, 0.0, 0.0] for _ in range(42)]}]}), encoding="utf-8")
+
+    cache_path = bundle_dir / "landmarks_cached.json"
+    cache_path.write_text(
+        json.dumps({"frames": [{"landmarks": [[0.1, 0.1, 0.1] for _ in range(42)]}]}),
+        encoding="utf-8",
+    )
+
+    still_path = bundle_dir / "still.jpg"
+    still_path.write_bytes(b"fake-still")
+
+    called = {"still": 0}
+
+    def fake_still(_path):
+        called["still"] += 1
+        return {"landmarks": [[0.9, 0.9, 0.9] for _ in range(42)]}
+
+    monkeypatch.setattr(module, "extract_landmarks_from_still", fake_still)
+
+    frame_list, stats = module.load_frame_list_for_bundle(
+        landmarks_path,
+        cache_path,
+        clip_path=None,
+        still_path=still_path,
+    )
+
+    assert len(frame_list) == 1
+    assert stats["cache_hits"] == 1
+    assert stats["cache_misses"] == 0
+    assert stats["cache_writes"] == 0
+    assert stats["bundle_fallback_extractions"] == 0
+    assert stats["bundle_missing_landmarks"] == 0
+    assert called["still"] == 0
+
+
+def test_load_frame_list_for_bundle_skips_still_when_dependencies_missing(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_dir = data_dir / "training_uploads" / "unassigned" / "missing-still-deps"
+    bundle_dir.mkdir(parents=True)
+
+    landmarks_path = bundle_dir / "landmarks.json"
+    landmarks_path.write_text(json.dumps({"frames": []}), encoding="utf-8")
+
+    cache_path = bundle_dir / "landmarks_cached.json"
+    still_path = bundle_dir / "still.jpg"
+    still_path.write_bytes(b"fake-still")
+
+    def raise_dependency_error(_path):
+        raise module.DependencyUnavailableError("deps missing")
+
+    monkeypatch.setattr(module, "extract_landmarks_from_still", raise_dependency_error)
+
+    frame_list, stats = module.load_frame_list_for_bundle(
+        landmarks_path,
+        cache_path,
+        clip_path=None,
+        still_path=still_path,
+    )
+
+    assert frame_list == []
+    assert stats["cache_hits"] == 0
+    assert stats["cache_misses"] == 1
+
+
+def test_load_frame_list_for_bundle_skips_clip_when_dependencies_missing(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_BUNDLE_LANDMARK_POLICY", "prefer_bundle")
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_dir = data_dir / "training_uploads" / "unassigned" / "missing-clip-deps"
+    bundle_dir.mkdir(parents=True)
+
+    landmarks_path = bundle_dir / "landmarks.json"
+    cache_path = bundle_dir / "landmarks_cached.json"
+    clip_path = bundle_dir / "clip.webm"
+    clip_path.write_bytes(b"fake-clip")
+
+    def raise_dependency_error(_path):
+        raise module.DependencyUnavailableError("deps missing")
+
+    monkeypatch.setattr(module, "extract_landmarks_from_clip", raise_dependency_error)
+
+    frame_list, stats = module.load_frame_list_for_bundle(
+        landmarks_path,
+        cache_path,
+        clip_path=clip_path,
+        still_path=None,
+    )
+
+    assert frame_list == []
+    assert stats["cache_hits"] == 0
+    assert stats["cache_misses"] == 1
+    assert stats["bundle_missing_landmarks"] == 1
+    assert stats["bundle_fallback_extractions"] == 0
+
+
+def test_load_audio_features_for_bundle_returns_none_without_file(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    features, metadata = module.load_audio_features_for_bundle(
+        audio_path=None,
+        label="HALLO",
+        profile_id=None,
+    )
+
+    assert features is None
+    assert metadata is None
+
+
+def test_load_audio_features_for_bundle_returns_none_when_preprocessing_unavailable(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    audio_path = data_dir / "training_uploads" / "unassigned" / "audio.wav"
+    audio_path.parent.mkdir(parents=True)
+    audio_path.write_bytes(b"fake-audio")
+
+    monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", False)
+
+    features, metadata = module.load_audio_features_for_bundle(
+        audio_path=audio_path,
+        label="HALLO",
+        profile_id="child-1",
+    )
+
+    assert features is None
+    assert metadata is None
+
+
+def test_load_audio_features_for_bundle_returns_none_when_dependencies_unavailable(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    audio_path = data_dir / "training_uploads" / "unassigned" / "audio.wav"
+    audio_path.parent.mkdir(parents=True)
+    audio_path.write_bytes(b"fake-audio")
+
+    monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
+    module._audio_dependencies_available.cache_clear()
+    monkeypatch.setattr(module, "check_audio_dependencies", lambda: False)
+
+    features, metadata = module.load_audio_features_for_bundle(
+        audio_path=audio_path,
+        label="HALLO",
+        profile_id="child-1",
+    )
+
+    assert features is None
+    assert metadata is None
+
+
+def test_load_audio_features_for_bundle_checks_dependencies_once(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    audio_path = data_dir / "training_uploads" / "unassigned" / "audio.wav"
+    audio_path.parent.mkdir(parents=True)
+    audio_path.write_bytes(b"fake-audio")
+
+    calls = {"dependency": 0}
+
+    def fake_check_audio_dependencies():
+        calls["dependency"] += 1
+        return True
+
+    monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
+    module._audio_dependencies_available.cache_clear()
+    monkeypatch.setattr(module, "check_audio_dependencies", fake_check_audio_dependencies)
+    monkeypatch.setattr(
+        module,
+        "preprocess_audio_for_training",
+        lambda *_args, **_kwargs: {"features": {"mfcc": [0.1]}},
+    )
+
+    first_features, first_metadata = module.load_audio_features_for_bundle(
+        audio_path=audio_path,
+        label="HALLO",
+        profile_id="child-1",
+    )
+    second_features, second_metadata = module.load_audio_features_for_bundle(
+        audio_path=audio_path,
+        label="HALLO",
+        profile_id="child-1",
+    )
+
+    assert calls["dependency"] == 1
+    assert first_features == {"mfcc": [0.1]}
+    assert first_metadata == {
+        "duration_ms": 0,
+        "has_speech": False,
+        "energy": 0.0,
+        "sample_rate": 16000,
+    }
+    assert second_features == {"mfcc": [0.1]}
+    assert second_metadata == {
+        "duration_ms": 0,
+        "has_speech": False,
+        "energy": 0.0,
+        "sample_rate": 16000,
+    }
+
+
+def test_audio_dependencies_available_cache_can_be_cleared(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    calls = {"dependency": 0}
+
+    def fake_check_audio_dependencies():
+        calls["dependency"] += 1
+        return True
+
+    monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
+    monkeypatch.setattr(module, "check_audio_dependencies", fake_check_audio_dependencies)
+    module._audio_dependencies_available.cache_clear()
+
+    assert module._audio_dependencies_available() is True
+    assert module._audio_dependencies_available() is True
+    assert calls["dependency"] == 1
+
+    module._audio_dependencies_available.cache_clear()
+    assert module._audio_dependencies_available() is True
+    assert calls["dependency"] == 2
+
+
+def test_load_audio_features_for_bundle_returns_features_when_preprocessing_succeeds(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    audio_path = data_dir / "training_uploads" / "unassigned" / "audio.wav"
+    audio_path.parent.mkdir(parents=True)
+    audio_path.write_bytes(b"fake-audio")
+
+    monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
+    module._audio_dependencies_available.cache_clear()
+    monkeypatch.setattr(module, "check_audio_dependencies", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "preprocess_audio_for_training",
+        lambda *_args, **_kwargs: {
+            "features": {"mfcc": [0.1, 0.2, 0.3]},
+            "duration_ms": 500,
+            "has_speech": True,
+            "energy": 0.4,
+            "sample_rate": 22050,
+        },
+    )
+
+    features, metadata = module.load_audio_features_for_bundle(
+        audio_path=audio_path,
+        label="HALLO",
+        profile_id="child-1",
+    )
+
+    assert features == {"mfcc": [0.1, 0.2, 0.3]}
+    assert metadata == {
+        "duration_ms": 500,
+        "has_speech": True,
+        "energy": 0.4,
+        "sample_rate": 22050,
+    }

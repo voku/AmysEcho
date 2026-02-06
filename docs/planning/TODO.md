@@ -129,6 +129,14 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Add migration strategy for existing boards with safe fallback behavior. _See `docs/metacom/METACOM_MIGRATION_STRATEGY.md`._
 - [x] Validate licensing constraints and document approved symbol sets (Import durch Nutzer, keine mitgelieferten Symbole).
 
+### Metacom Full-Cycle Communication (Overview → Training → Recognition)
+- [ ] Add a sentence composer for Metacom boards (symbol queue with backspace/clear/speak) to support dynamic multi-symbol utterances.
+- [ ] Persist `symbolId` alongside gesture `label` in training bundles, manifest entries, and training reports so recognition and training share the same symbol identity.
+- [ ] Replace the local-only gesture→meaning mapping with a single mapping layer that resolves `gesture label → symbolId → boardId` using Metacom boards (fallback to defaults when missing).
+- [ ] Use the mapping layer in recognition UI to show the Metacom symbol (emoji/color/category) and to drive TTS output consistently.
+- [ ] Sync imported Metacom bundles per profile (server-side storage + profile export) so symbols stay consistent across devices.
+- [ ] Add integration tests for the full cycle: Metacom symbol selection → training bundle includes `symbolId` → recognition output maps to the same symbol/board.
+
 ### Profile Identity & GDPR Follow-ups
 - [x] Add profile registry database.
 - [x] Implement profile deletion endpoint with cascade cleanup.

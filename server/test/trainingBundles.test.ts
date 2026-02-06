@@ -119,6 +119,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       source: 'app://mediapipe',
       clipFilename: 'clip.webm',
       stillFilename: 'still.jpg',
+      audioFilename: 'audio.webm',
       recording: {
         frameCount: 12,
         usableFrameCount: 10,
@@ -127,12 +128,16 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         clipMimeType: 'video/webm',
         stillBytes: 512,
         stillMimeType: 'image/jpeg',
+        audioDurationMs: 1100,
+        audioBytes: 1024,
+        audioMimeType: 'audio/webm',
       },
       extra: 'ignored',
       modalities: {
         hands: { present: true, frameCount: 1, coverage: 1 },
         pose: { present: false, frameCount: 0, coverage: 0 },
         face: { present: false, frameCount: 0, coverage: 0 },
+        nonManual: { present: false, frameCount: 0, coverage: 0 },
       },
       smoothing: { method: 'one_euro', beta: 0.1 },
       handedness: { labels: ['Left'], frameCount: 1 },
@@ -160,6 +165,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     );
     zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
     zip.addFile('bundle/still.jpg', Buffer.from('fake-image-data'));
+    zip.addFile('bundle/audio.webm', Buffer.from('fake-audio-data'));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
@@ -187,7 +193,14 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         id: string;
         profileId: string | null;
         label: string;
-        storage: { directory: string; bundle: string; files: string[]; clip?: string; still?: string };
+        storage: {
+          directory: string;
+          bundle: string;
+          files: string[];
+          clip?: string;
+          still?: string;
+          audio?: string;
+        };
         metadata: any;
       }>;
     };
@@ -204,10 +217,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         'bundle/landmarks.json',
         'bundle/clip.webm',
         'bundle/still.jpg',
+        'bundle/audio.webm',
       ]),
     );
     expect(entry.storage.clip).toBe('bundle/clip.webm');
     expect(entry.storage.still).toBe('bundle/still.jpg');
+    expect(entry.storage.audio).toBe('bundle/audio.webm');
     expect(entry.metadata).toEqual({
       label: metadata.label,
       profileId: resolvedProfileId,
@@ -215,6 +230,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       source: metadata.source,
       clipFilename: metadata.clipFilename,
       stillFilename: metadata.stillFilename,
+      audioFilename: metadata.audioFilename,
       recording: metadata.recording,
       modalities: metadata.modalities,
       smoothing: expect.objectContaining({ method: 'one_euro' }),
@@ -247,20 +263,104 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       totals: {
         uploads: number;
         rejected: number;
-        missingModalities: { hands: number; pose: number; face: number };
+        missingModalities: { hands: number; pose: number; face: number; nonManual: number };
+        nonManualCoverage: { p50: number; p90: number; sampleCount: number };
+        nonManualCoverageSamples: number[];
       };
       profiles: Record<string, {
         uploads: number;
         rejected: number;
-        missingModalities: { hands: number; pose: number; face: number };
+        missingModalities: { hands: number; pose: number; face: number; nonManual: number };
+        nonManualCoverage: { p50: number; p90: number; sampleCount: number };
+        nonManualCoverageSamples: number[];
       }>;
     };
     expect(metrics.totals.uploads).toBe(1);
     expect(metrics.totals.rejected).toBe(0);
-    expect(metrics.totals.missingModalities).toEqual({ hands: 0, pose: 1, face: 1 });
+    expect(metrics.totals.missingModalities).toEqual({ hands: 0, pose: 1, face: 1, nonManual: 1 });
+    expect(metrics.totals.nonManualCoverage).toEqual({ p50: 0, p90: 0, sampleCount: 1 });
+    expect(metrics.totals.nonManualCoverageSamples).toEqual([0]);
     expect(metrics.profiles[resolvedProfileId!].uploads).toBe(1);
     expect(metrics.profiles[resolvedProfileId!].rejected).toBe(0);
-    expect(metrics.profiles[resolvedProfileId!].missingModalities).toEqual({ hands: 0, pose: 1, face: 1 });
+    expect(metrics.profiles[resolvedProfileId!].missingModalities).toEqual({ hands: 0, pose: 1, face: 1, nonManual: 1 });
+    expect(metrics.profiles[resolvedProfileId!].nonManualCoverage).toEqual({ p50: 0, p90: 0, sampleCount: 1 });
+    expect(metrics.profiles[resolvedProfileId!].nonManualCoverageSamples).toEqual([0]);
+  });
+
+
+
+  it('derives nonManual modality coverage from frame data when metadata omits it', async () => {
+    const metadata = {
+      profileId: '44444444-4444-4444-8444-444444444444',
+      label: 'FARBE',
+      capturedAt: '2024-05-28T12:03:11Z',
+      source: 'app://mediapipe',
+      modalities: {
+        hands: { present: true, frameCount: 2, coverage: 1 },
+        pose: { present: true, frameCount: 2, coverage: 1 },
+        face: { present: true, frameCount: 2, coverage: 1 },
+      },
+    };
+    const landmarks = await loadSampleLandmarks();
+
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [
+              {
+                landmarks,
+                handedness: ['Right'],
+                poseLandmarks: [[0, 0, 0]],
+                faceLandmarks: [[0, 0, 0]],
+                nonManualFeatures: { eyebrowRaiseLeft: 0.7, source: 'face' },
+              },
+              {
+                landmarks,
+                handedness: ['Right'],
+                poseLandmarks: [[0, 0, 0]],
+                faceLandmarks: [[0, 0, 0]],
+              },
+            ],
+            metadata: {
+              modalities: metadata.modalities,
+            },
+          },
+          null,
+          2,
+        ),
+      ),
+    );
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer())
+      .expect(202);
+
+    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
+    const manifest = JSON.parse(manifestRaw) as {
+      entries: Array<{
+        id: string;
+        metadata: {
+          modalities: {
+            nonManual: { present: boolean; frameCount: number; coverage: number };
+          };
+        };
+      }>;
+    };
+
+    const entry = manifest.entries.find((candidate) => candidate.id === response.body.id);
+    expect(entry).toBeDefined();
+    expect(entry!.metadata.modalities.nonManual).toEqual({
+      present: true,
+      frameCount: 1,
+      coverage: 0.5,
+    });
   });
 
   it('stores handFocus metadata when provided', async () => {
@@ -364,6 +464,38 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     }
   });
 
+  it('rejects bundles with invalid nonManualFeatures payload', async () => {
+    const metadata = {
+      profileId: '66666666-6666-4666-8666-666666666666',
+      label: 'HILFE',
+    };
+    const landmarks = await loadSampleLandmarks();
+
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [{ landmarks, nonManualFeatures: { headYaw: 'invalid' } }],
+          },
+          null,
+          2,
+        ),
+      ),
+    );
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('landmarks.json missing or invalid');
+  });
+
   it('rejects bundles whose landmarks.json has no frames and cleans up bundle directory', async () => {
     const metadata = { label: 'HILFE', profileId: '44444444-4444-4444-8444-444444444444' };
     const resolvedProfileId = getResolvedProfileId(metadata.profileId);
@@ -407,9 +539,16 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       totals: {
         uploads: number;
         rejected: number;
-        missingModalities: { hands: number; pose: number; face: number };
+        missingModalities: { hands: number; pose: number; face: number; nonManual: number };
+        nonManualCoverage: { p50: number; p90: number; sampleCount: number };
+        nonManualCoverageSamples: number[];
       };
-      profiles: Record<string, { uploads: number; rejected: number }>;
+      profiles: Record<string, {
+        uploads: number;
+        rejected: number;
+        nonManualCoverage: { p50: number; p90: number; sampleCount: number };
+        nonManualCoverageSamples: number[];
+      }>;
     };
     expect(metrics.totals.uploads).toBe(0);
     expect(metrics.totals.rejected).toBe(1);

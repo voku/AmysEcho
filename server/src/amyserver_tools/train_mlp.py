@@ -20,6 +20,7 @@ import os
 import sys
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -173,13 +174,24 @@ DEPENDENCIES_REQUIRED = os.environ.get("MLP_REQUIRE_MEDIAPIPE", "1").lower() not
     "no",
 }
 
+BUNDLE_LANDMARK_POLICY = os.environ.get(
+    "MLP_BUNDLE_LANDMARK_POLICY",
+    "bundle_only",
+).strip().lower()
+if BUNDLE_LANDMARK_POLICY not in {"bundle_only", "prefer_bundle", "prefer_server_extract"}:
+    LOGGER.warning(
+        "Unknown MLP_BUNDLE_LANDMARK_POLICY=%s, falling back to bundle_only",
+        BUNDLE_LANDMARK_POLICY,
+    )
+    BUNDLE_LANDMARK_POLICY = "bundle_only"
+
 # Hand landmark constants for processing
 LANDMARKS_PER_HAND = TOTAL_HAND_LANDMARKS // 2
 SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
 
 WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
-MODALITY_KEYS = ("hands", "pose", "face")
+MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
 
 def _emit_event(payload: dict[str, object]) -> None:
@@ -438,10 +450,17 @@ def _summarize_frame_modalities(frames: list[dict]) -> tuple[dict[str, int], dic
         "hands": "landmarks",
         "pose": "poseLandmarks",
         "face": "faceLandmarks",
+        "nonManual": "nonManualFeatures",
     }
     for frame in frames:
         for key, frame_key in landmark_map.items():
             landmarks = frame.get(frame_key)
+            if key == "nonManual":
+                if isinstance(landmarks, dict) and any(
+                    value is not None for value in landmarks.values()
+                ):
+                    counts[key] += 1
+                continue
             if isinstance(landmarks, list) and len(landmarks) > 0:
                 counts[key] += 1
     coverage = {
@@ -1555,7 +1574,156 @@ def _resolve_audio_path(entry: dict, bundle_dir: Path) -> Path | None:
     return None
 
 
-def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, int]]:
+
+
+def should_extract_bundle_landmarks_from_clip(policy: str) -> bool:
+    """Return whether bundle entries may trigger server-side clip extraction."""
+    return policy in {"prefer_bundle", "prefer_server_extract"}
+
+
+
+
+def create_empty_training_stats() -> dict[str, object]:
+    return {
+        "entries": 0,
+        "cache_hits": 0,
+        "cache_misses": 0,
+        "cache_writes": 0,
+        "modality_counts": dict.fromkeys(MODALITY_KEYS, 0),
+        "modality_sample_total": 0,
+        "bundle_fallback_extractions": 0,
+        "bundle_missing_landmarks": 0,
+        "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY,
+    }
+
+
+def load_frame_list_for_bundle(
+    landmarks_path: Path,
+    cache_path: Path,
+    clip_path: Path | None,
+    still_path: Path | None,
+) -> tuple[list[dict], dict[str, int]]:
+    """Load frames for one bundle entry and return frame list + local counters."""
+
+    local = {
+        "cache_hits": 0,
+        "cache_misses": 0,
+        "cache_writes": 0,
+        "bundle_fallback_extractions": 0,
+        "bundle_missing_landmarks": 0,
+    }
+
+    frames: list[dict] | None = None
+    frames_from_clip = False
+
+    def mark_missing_landmarks() -> None:
+        local["bundle_missing_landmarks"] += 1
+        local["cache_misses"] += 1
+
+    cached = load_json(cache_path)
+    cache_hit = bool(cached and isinstance(cached.get("frames"), list))
+    if cache_hit:
+        frames = cached["frames"]
+        local["cache_hits"] += 1
+    else:
+        source = load_json(landmarks_path)
+        if source and isinstance(source.get("frames"), list):
+            frames = source["frames"]
+            local["cache_misses"] += 1
+        elif (
+            clip_path
+            and clip_path.exists()
+            and should_extract_bundle_landmarks_from_clip(BUNDLE_LANDMARK_POLICY)
+        ):
+            try:
+                frames = extract_landmarks_from_clip(clip_path)
+            except DependencyUnavailableError as error:
+                LOGGER.warning("Skipping clip extraction for %s: %s", clip_path, error)
+                frames = None
+
+            if frames:
+                frames_from_clip = True
+                local["bundle_fallback_extractions"] += 1
+            else:
+                mark_missing_landmarks()
+        else:
+            mark_missing_landmarks()
+
+    frame_list: list[dict] = list(frames) if frames else []
+
+    if still_path and still_path.exists() and not cache_hit:
+        try:
+            extracted = extract_landmarks_from_still(still_path)
+        except DependencyUnavailableError as error:
+            LOGGER.warning("Skipping still extraction for %s: %s", still_path, error)
+            extracted = None
+        if extracted:
+            extracted["weight"] = STILL_FRAME_WEIGHT
+            frame_list.append(extracted)
+
+    if frames_from_clip and frame_list:
+        local["cache_writes"] += 1
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with cache_path.open("w", encoding="utf-8") as handle:
+            json.dump({"frames": frame_list}, handle, indent=2)
+
+    return frame_list, local
+
+
+
+
+@lru_cache(maxsize=1)
+def _audio_dependencies_available() -> bool:
+    if not AUDIO_PREPROCESSING_AVAILABLE:
+        return False
+    return bool(check_audio_dependencies())
+
+
+def load_audio_features_for_bundle(
+    audio_path: Path | None,
+    label: str,
+    profile_id: str | None,
+) -> tuple[dict | None, dict | None]:
+    if not audio_path or not audio_path.exists():
+        return None, None
+
+    try:
+        if not AUDIO_PREPROCESSING_AVAILABLE:
+            LOGGER.warning(
+                "Audio preprocessing module not available, skipping audio for label='%s', profile='%s'",
+                label,
+                profile_id,
+            )
+            return None, None
+
+        if not _audio_dependencies_available():
+            return None, None
+
+        audio_result = preprocess_audio_for_training(
+            audio_path,
+            target_duration_frames=None,
+            feature_type='mfcc',
+        )
+        if audio_result.get('features') and not audio_result.get('error'):
+            audio_features_dict = audio_result['features']
+            audio_metadata_dict = {
+                'duration_ms': audio_result.get('duration_ms', 0),
+                'has_speech': audio_result.get('has_speech', False),
+                'energy': audio_result.get('energy', 0.0),
+                'sample_rate': audio_result.get('sample_rate', 16000),
+            }
+            LOGGER.info("Loaded audio features for %s: %s", label, audio_metadata_dict)
+            return audio_features_dict, audio_metadata_dict
+
+        if audio_result.get('error'):
+            LOGGER.warning("Audio preprocessing failed for %s: %s", label, audio_result['error'])
+        return None, None
+    except Exception as error:
+        LOGGER.warning("Failed to process audio for %s: %s", label, error)
+        return None, None
+
+
+def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, object]]:
     """
     Load training data from manifest and generate sliding window samples.
     
@@ -1566,13 +1734,15 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     """
     manifest = load_json(manifest_path)
     if not manifest:
-        return [], {"entries": 0, "cache_hits": 0, "cache_misses": 0, "cache_writes": 0}
+        return [], create_empty_training_stats()
 
     entries = manifest.get("entries", [])
     data: list[Sample] = []
     cache_hits = 0
     cache_misses = 0
     cache_writes = 0
+    bundle_fallback_extractions = 0
+    bundle_missing_landmarks = 0
     modality_counts = dict.fromkeys(MODALITY_KEYS, 0)
     modality_sample_total = 0
 
@@ -1612,77 +1782,29 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         audio_path = _resolve_audio_path(entry, bundle_dir)
 
         # ========== LOAD AUDIO FEATURES (if available) ==========
-        audio_features_dict: dict | None = None
-        audio_metadata_dict: dict | None = None
-        if audio_path and audio_path.exists():
-            try:
-                if not AUDIO_PREPROCESSING_AVAILABLE:
-                    LOGGER.warning(
-                        "Audio preprocessing module not available, skipping audio for label='%s', profile='%s'",
-                        label, profile_id
-                    )
-                elif check_audio_dependencies():
-                    audio_result = preprocess_audio_for_training(
-                        audio_path,
-                        target_duration_frames=None,  # Will align later if needed
-                        feature_type='mfcc'  # Use MFCC for now
-                    )
-                    if audio_result.get('features') and not audio_result.get('error'):
-                        audio_features_dict = audio_result['features']
-                        audio_metadata_dict = {
-                            'duration_ms': audio_result.get('duration_ms', 0),
-                            'has_speech': audio_result.get('has_speech', False),
-                            'energy': audio_result.get('energy', 0.0),
-                            'sample_rate': audio_result.get('sample_rate', 16000),
-                        }
-                        LOGGER.info(f"Loaded audio features for {label}: {audio_metadata_dict}")
-                    elif audio_result.get('error'):
-                        LOGGER.warning(f"Audio preprocessing failed for {label}: {audio_result['error']}")
-            except Exception as e:
-                LOGGER.warning(f"Failed to process audio for {label}: {e}")
+        audio_features_dict, audio_metadata_dict = load_audio_features_for_bundle(
+            audio_path,
+            label,
+            profile_id,
+        )
 
         # ========== LOAD FRAMES (with caching) ==========
-        frames: list[dict] | None = None
-        frames_from_clip = False
-
-        cached = load_json(cache_path)
-        if cached and isinstance(cached.get("frames"), list):
-            frames = cached["frames"]
-            cache_hits += 1
-        else:
-            source = load_json(landmarks_path)
-            if source and isinstance(source.get("frames"), list):
-                frames = source["frames"]
-                cache_misses += 1
-            elif clip_path and clip_path.exists():
-                frames = extract_landmarks_from_clip(clip_path)
-                if frames:
-                    frames_from_clip = True
-                else:
-                    cache_misses += 1
-            else:
-                cache_misses += 1
-
-        frame_list: list[dict] = list(frames) if frames else []
-
-        # Add still frame if available (only when not cached to avoid duplication)
-        if still_path and still_path.exists() and not cached:
-            extracted = extract_landmarks_from_still(still_path)
-            if extracted:
-                extracted["weight"] = STILL_FRAME_WEIGHT
-                frame_list.append(extracted)
+        frame_list, frame_load_stats = load_frame_list_for_bundle(
+            landmarks_path,
+            cache_path,
+            clip_path,
+            still_path,
+        )
+        cache_hits += frame_load_stats["cache_hits"]
+        cache_misses += frame_load_stats["cache_misses"]
+        cache_writes += frame_load_stats["cache_writes"]
+        bundle_fallback_extractions += frame_load_stats["bundle_fallback_extractions"]
+        bundle_missing_landmarks += frame_load_stats["bundle_missing_landmarks"]
 
         timing_stats = _apply_timing_weights(frame_list)
         frame_modality_counts, frame_modality_coverage = _summarize_frame_modalities(frame_list)
         modality_coverage = _resolve_modality_coverage(modality_coverage, frame_modality_coverage)
         modality_presence = _infer_modality_presence(modality_coverage, frame_modality_counts)
-
-        # Cache newly extracted frames
-        if frames_from_clip and frame_list:
-            cache_writes += 1
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            with cache_path.open("w", encoding="utf-8") as handle:
-                json.dump({"frames": frame_list}, handle, indent=2)
 
         if not frame_list:
             continue
@@ -1815,6 +1937,9 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         "cache_writes": cache_writes,
         "modality_counts": modality_counts,
         "modality_sample_total": modality_sample_total,
+        "bundle_fallback_extractions": bundle_fallback_extractions,
+        "bundle_missing_landmarks": bundle_missing_landmarks,
+        "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY,
     }
     return data, stats
 
@@ -2289,6 +2414,8 @@ def run_training_pipeline(
     resolved_config = config or TrainingConfig()
     label_set = sorted({s.label for s in samples})
     training_version = datetime.now(timezone.utc).isoformat()
+    modality_counts = _summarize_modality_counts(samples)
+    modalities_used = [key for key in MODALITY_KEYS if modality_counts[key] > 0]
 
     # Global training
     X, y, labels, weights = dataset_to_arrays(
@@ -2408,12 +2535,17 @@ def run_training_pipeline(
             save_model(profile_dir / "amy_model.npz", p_best_weights, p_labels, p_counts)
             _write_training_metadata(profile_dir, training_version, p_samples, metadata_payload)
 
+        p_modality_counts = _summarize_modality_counts(p_samples)
+        p_modalities_used = [key for key in MODALITY_KEYS if p_modality_counts[key] > 0]
+
         profile_reports[profile_id] = {
             "accuracy": p_accuracy,
             "f1_score": p_f1,
             "samples": len(p_samples),
             "labels": p_labels,
-            "class_counts": p_counts.tolist()
+            "class_counts": p_counts.tolist(),
+            "modalities": p_modalities_used,
+            "modality_counts": p_modality_counts,
         }
 
     return {
@@ -2423,7 +2555,9 @@ def run_training_pipeline(
             "confusion_matrix": global_cm,
             "samples": len(samples),
             "labels": label_set,
-            "class_counts": class_counts.tolist()
+            "class_counts": class_counts.tolist(),
+            "modalities": modalities_used,
+            "modality_counts": modality_counts,
         },
         "profiles": profile_reports,
         "timestamp": training_version

@@ -341,3 +341,43 @@ export function getMetacomSymbols(boards: Record<string, MetacomBoardDefinition>
       color: cell.color,
     }));
 }
+
+export function findMetacomSymbolByLabel(
+  boards: Record<string, MetacomBoardDefinition>,
+  label: string,
+): { id: string; label: string; emoji: string; category?: string; color?: string } | null {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  const startBoard = boards['start'];
+  const isSymbolCell = (cell: MetacomCell): cell is MetacomSymbolCell => cell.type === 'symbol';
+  const buildSymbol = (cell: MetacomSymbolCell) => ({
+    id: cell.id,
+    label: cell.label,
+    emoji: cell.emoji,
+    ...(cell.category ? { category: cell.category } : {}),
+    ...(cell.color ? { color: cell.color } : {}),
+  });
+  if (startBoard) {
+    const startMatch = startBoard.cells.find(
+      (cell) => isSymbolCell(cell) && cell.label.trim().toLowerCase() === normalized,
+    );
+    if (startMatch && isSymbolCell(startMatch)) {
+      return buildSymbol(startMatch);
+    }
+  }
+  const found = getMetacomSymbols(boards).find(
+    (symbol) => symbol.label.trim().toLowerCase() === normalized,
+  );
+  if (!found) {
+    return null;
+  }
+  return {
+    id: found.id,
+    label: found.label,
+    emoji: found.emoji,
+    ...(found.category ? { category: found.category } : {}),
+    ...(found.color ? { color: found.color } : {}),
+  };
+}

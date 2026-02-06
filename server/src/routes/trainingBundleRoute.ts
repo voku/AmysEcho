@@ -119,7 +119,7 @@ const trainingBundleUpload = express.raw({
 	limit: "64mb",
 });
 
-const MODALITY_KEYS = ["hands", "pose", "face"] as const;
+const MODALITY_KEYS = ["hands", "pose", "face", "nonManual"] as const;
 type ModalityKey = (typeof MODALITY_KEYS)[number];
 const INGESTION_METRICS_PATH = path.join(
 	TRAINING_DATASETS_DIR,
@@ -148,6 +148,7 @@ const ModalitiesSchema = z
 		hands: ModalityStatsSchema.optional(),
 		pose: ModalityStatsSchema.optional(),
 		face: ModalityStatsSchema.optional(),
+		nonManual: ModalityStatsSchema.optional(),
 	})
 	.passthrough();
 
@@ -213,6 +214,8 @@ type IngestionMetrics = {
 		uploads: number;
 		rejected: number;
 		missingModalities: Record<ModalityKey, number>;
+		nonManualCoverage: NonManualCoverageSummary;
+		nonManualCoverageSamples: number[];
 	};
 	profiles: Record<
 		string,
@@ -220,13 +223,36 @@ type IngestionMetrics = {
 			uploads: number;
 			rejected: number;
 			missingModalities: Record<ModalityKey, number>;
+			nonManualCoverage: NonManualCoverageSummary;
+			nonManualCoverageSamples: number[];
 		}
 	>;
 };
 
+type NonManualCoverageSummary = {
+	p50: number;
+	p90: number;
+	sampleCount: number;
+};
+
+const COVERAGE_SAMPLE_LIMIT = 200;
+
+
+const NonManualFeaturesSchema = z
+	.object({
+		headYaw: z.number().nullable().optional(),
+		headPitch: z.number().nullable().optional(),
+		mouthOpenness: z.number().nullable().optional(),
+		eyebrowRaiseLeft: z.number().nullable().optional(),
+		eyebrowRaiseRight: z.number().nullable().optional(),
+		source: z.enum(["face", "pose", "mixed"]).optional(),
+	})
+	.passthrough();
+
 const LandmarkFrameSchema = z
 	.object({
 		landmarks: z.array(z.unknown()).optional(),
+		nonManualFeatures: NonManualFeaturesSchema.optional(),
 	})
 	.passthrough()
 	.nullable();
@@ -364,16 +390,23 @@ function isPathInside(target: string, root: string): boolean {
 }
 
 function createEmptyModalities(): Record<ModalityKey, number> {
-	return { hands: 0, pose: 0, face: 0 };
+	return { hands: 0, pose: 0, face: 0, nonManual: 0 };
 }
 
 function createEmptyIngestionMetrics(): IngestionMetrics {
+	const emptyCoverage: NonManualCoverageSummary = {
+		p50: 0,
+		p90: 0,
+		sampleCount: 0,
+	};
 	return {
 		updatedAt: new Date().toISOString(),
 		totals: {
 			uploads: 0,
 			rejected: 0,
 			missingModalities: createEmptyModalities(),
+			nonManualCoverage: emptyCoverage,
+			nonManualCoverageSamples: [],
 		},
 		profiles: {},
 	};
@@ -401,6 +434,9 @@ function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
 	const record = raw as Record<string, unknown>;
 	const totalsRaw = record.totals as Record<string, unknown> | undefined;
 	const profilesRaw = record.profiles as Record<string, unknown> | undefined;
+	const totalsCoverageSamples = normalizeCoverageSamples(
+		totalsRaw?.nonManualCoverageSamples,
+	);
 	const metrics: IngestionMetrics = {
 		updatedAt:
 			typeof record.updatedAt === "string"
@@ -411,6 +447,11 @@ function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
 			rejected:
 				typeof totalsRaw?.rejected === "number" ? totalsRaw.rejected : 0,
 			missingModalities: normalizeModalities(totalsRaw?.missingModalities),
+			nonManualCoverage: normalizeCoverageSummary(
+				totalsRaw?.nonManualCoverage,
+				totalsCoverageSamples,
+			),
+			nonManualCoverageSamples: totalsCoverageSamples,
 		},
 		profiles: {},
 	};
@@ -421,6 +462,9 @@ function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
 				continue;
 			}
 			const profileRecord = profileValue as Record<string, unknown>;
+			const profileCoverageSamples = normalizeCoverageSamples(
+				profileRecord.nonManualCoverageSamples,
+			);
 			metrics.profiles[profileId] = {
 				uploads:
 					typeof profileRecord.uploads === "number" ? profileRecord.uploads : 0,
@@ -429,6 +473,11 @@ function normalizeIngestionMetrics(raw: unknown): IngestionMetrics {
 						? profileRecord.rejected
 						: 0,
 				missingModalities: normalizeModalities(profileRecord.missingModalities),
+				nonManualCoverage: normalizeCoverageSummary(
+					profileRecord.nonManualCoverage,
+					profileCoverageSamples,
+				),
+				nonManualCoverageSamples: profileCoverageSamples,
 			};
 		}
 	}
@@ -440,6 +489,7 @@ async function recordIngestionMetrics(update: {
 	profileId: string | null;
 	status: "accepted" | "rejected";
 	missingModalities?: ModalityKey[];
+	nonManualCoverage?: number | null;
 }): Promise<void> {
 	try {
 		await ensureDataDir();
@@ -462,6 +512,8 @@ async function recordIngestionMetrics(update: {
 				uploads: 0,
 				rejected: 0,
 				missingModalities: createEmptyModalities(),
+				nonManualCoverage: { p50: 0, p90: 0, sampleCount: 0 },
+				nonManualCoverageSamples: [],
 			};
 
 			if (update.status === "accepted") {
@@ -479,6 +531,24 @@ async function recordIngestionMetrics(update: {
 				}
 			}
 
+			if (update.status === "accepted" && update.nonManualCoverage != null) {
+				metrics.totals.nonManualCoverageSamples = updateCoverageSamples(
+					metrics.totals.nonManualCoverageSamples,
+					update.nonManualCoverage,
+				);
+				metrics.totals.nonManualCoverage = computeCoverageSummary(
+					metrics.totals.nonManualCoverageSamples,
+				);
+
+				profileMetrics.nonManualCoverageSamples = updateCoverageSamples(
+					profileMetrics.nonManualCoverageSamples,
+					update.nonManualCoverage,
+				);
+				profileMetrics.nonManualCoverage = computeCoverageSummary(
+					profileMetrics.nonManualCoverageSamples,
+				);
+			}
+
 			metrics.updatedAt = new Date().toISOString();
 			metrics.profiles[profileKey] = profileMetrics;
 			await atomicWriteJson(INGESTION_METRICS_PATH, metrics);
@@ -493,6 +563,7 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 	let handsFrameCount = 0;
 	let poseFrameCount = 0;
 	let faceFrameCount = 0;
+	let nonManualFrameCount = 0;
 	let handednessFrameCount = 0;
 	const handednessLabels = new Set<string>();
 	for (const frame of frames) {
@@ -508,6 +579,10 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 		const handedness = Array.isArray(frame.handedness)
 			? (frame.handedness as unknown[])
 			: [];
+		const nonManualFeatures =
+			frame.nonManualFeatures && typeof frame.nonManualFeatures === "object"
+				? (frame.nonManualFeatures as Record<string, unknown>)
+				: null;
 
 		if (
 			landmarks.some(
@@ -523,6 +598,15 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 
 		if (faceLandmarks.length > 0) {
 			faceFrameCount++;
+		}
+
+		if (
+			nonManualFeatures &&
+			Object.values(nonManualFeatures).some(
+				(value) => value !== null && value !== undefined,
+			)
+		) {
+			nonManualFrameCount++;
 		}
 
 		const handednessStrings = handedness.filter(
@@ -552,6 +636,11 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 				frameCount: faceFrameCount,
 				coverage: totalFrames > 0 ? faceFrameCount / totalFrames : 0,
 			},
+			nonManual: {
+				present: nonManualFrameCount > 0,
+				frameCount: nonManualFrameCount,
+				coverage: totalFrames > 0 ? nonManualFrameCount / totalFrames : 0,
+			},
 		},
 		handedness:
 			handednessLabels.size > 0
@@ -560,6 +649,67 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 						frameCount: handednessFrameCount,
 					}
 				: undefined,
+	};
+}
+
+function normalizeCoverageSamples(value: unknown): number[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value
+		.filter((entry) => typeof entry === "number" && Number.isFinite(entry))
+		.map((entry) => Math.max(0, Math.min(1, entry)))
+		.slice(-COVERAGE_SAMPLE_LIMIT);
+}
+
+function normalizeCoverageSummary(
+	value: unknown,
+	samples: number[],
+): NonManualCoverageSummary {
+	if (samples.length > 0) {
+		return computeCoverageSummary(samples);
+	}
+	if (!value || typeof value !== "object") {
+		return { p50: 0, p90: 0, sampleCount: 0 };
+	}
+	const record = value as Record<string, unknown>;
+	const p50 =
+		typeof record.p50 === "number" && Number.isFinite(record.p50)
+			? record.p50
+			: 0;
+	const p90 =
+		typeof record.p90 === "number" && Number.isFinite(record.p90)
+			? record.p90
+			: 0;
+	const sampleCount =
+		typeof record.sampleCount === "number" && Number.isFinite(record.sampleCount)
+			? record.sampleCount
+			: 0;
+	return { p50, p90, sampleCount };
+}
+
+function updateCoverageSamples(samples: number[], coverage: number): number[] {
+	if (!Number.isFinite(coverage)) {
+		return samples;
+	}
+	const clamped = Math.max(0, Math.min(1, coverage));
+	const updated = [...samples, clamped];
+	return updated.slice(-COVERAGE_SAMPLE_LIMIT);
+}
+
+function computeCoverageSummary(samples: number[]): NonManualCoverageSummary {
+	if (samples.length === 0) {
+		return { p50: 0, p90: 0, sampleCount: 0 };
+	}
+	const sorted = [...samples].sort((a, b) => a - b);
+	const percentile = (ratio: number) => {
+		const index = Math.floor((sorted.length - 1) * ratio);
+		return sorted[Math.max(0, Math.min(sorted.length - 1, index))];
+	};
+	return {
+		p50: percentile(0.5),
+		p90: percentile(0.9),
+		sampleCount: sorted.length,
 	};
 }
 
@@ -588,6 +738,7 @@ function mergeModalities(
 		hands: { present: boolean; frameCount: number; coverage: number };
 		pose: { present: boolean; frameCount: number; coverage: number };
 		face: { present: boolean; frameCount: number; coverage: number };
+		nonManual: { present: boolean; frameCount: number; coverage: number };
 	},
 ) {
 	const parsed = ModalitiesSchema.safeParse(primary);
@@ -596,6 +747,7 @@ function mergeModalities(
 		hands: normalizeModalityStats(data?.hands, fallback?.hands),
 		pose: normalizeModalityStats(data?.pose, fallback?.pose),
 		face: normalizeModalityStats(data?.face, fallback?.face),
+		nonManual: normalizeModalityStats(data?.nonManual, fallback?.nonManual),
 	};
 }
 
@@ -641,6 +793,7 @@ interface LandmarksValidationResult {
 			hands: { present: boolean; frameCount: number; coverage: number };
 			pose: { present: boolean; frameCount: number; coverage: number };
 			face: { present: boolean; frameCount: number; coverage: number };
+			nonManual: { present: boolean; frameCount: number; coverage: number };
 		};
 		handedness?: { labels: string[]; frameCount: number };
 	};
@@ -891,6 +1044,7 @@ export function registerTrainingBundleRoute(
 			const recordMetrics = async (update: {
 				status: "accepted" | "rejected";
 				missingModalities?: ModalityKey[];
+				nonManualCoverage?: number | null;
 			}) => {
 				metricsRecorded = true;
 				await recordIngestionMetrics({
@@ -1063,6 +1217,9 @@ export function registerTrainingBundleRoute(
 				const stillFilename = normalizeClipFilename(
 					parsedMetadata.stillFilename,
 				);
+				const audioFilename = normalizeClipFilename(
+					parsedMetadata.audioFilename,
+				);
 				const recordingError = validateRecordingMetadata(
 					parsedMetadata.recording,
 					clipFilename,
@@ -1084,6 +1241,7 @@ export function registerTrainingBundleRoute(
 						: null,
 					clipFilename,
 					stillFilename,
+					audioFilename,
 					...(parsedMetadata.recording
 						? { recording: parsedMetadata.recording }
 						: {}),
@@ -1118,10 +1276,7 @@ export function registerTrainingBundleRoute(
 
 				const clipRelativePath = findClipRelativePath(files, clipFilename);
 				const stillRelativePath = findStillRelativePath(files, stillFilename);
-				const audioRelativePath = findAudioRelativePath(
-					files,
-					parsedMetadata.audioFilename ?? null,
-				);
+				const audioRelativePath = findAudioRelativePath(files, audioFilename);
 
 				const mergedModalities = mergeModalities(
 					parsedMetadata.modalities ?? landmarksValidation.metadata?.modalities,
@@ -1224,7 +1379,11 @@ export function registerTrainingBundleRoute(
 					modalities: mergedModalities,
 				});
 
-				await recordMetrics({ status: "accepted", missingModalities });
+				await recordMetrics({
+					status: "accepted",
+					missingModalities,
+					nonManualCoverage: mergedModalities.nonManual.coverage,
+				});
 
 				let trainingJob: TriggerTrainingJobResult | null = null;
 				if (deps.triggerTrainingJob) {
