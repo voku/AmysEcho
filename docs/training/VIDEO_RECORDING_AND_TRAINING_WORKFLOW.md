@@ -148,6 +148,7 @@ Nicht-manuelle Signale tragen zur Bedeutung vieler Gebärden bei (z. B. Fragefor
     "capturedAt": "2024-05-28T12:03:11Z",
     "source": "web://mediapipe",
     "clipFilename": "clip.mp4", // optional when degraded
+    "audioFilename": "audio.webm", // optional, multimodal speech track
     "recording": {
       "frameCount": 48,
       "usableFrameCount": 45,
@@ -155,7 +156,10 @@ Nicht-manuelle Signale tragen zur Bedeutung vieler Gebärden bei (z. B. Fragefor
       "clipBytes": 2048576,
       "clipMimeType": "video/webm",
       "stillBytes": 120341,
-      "stillMimeType": "image/jpeg"
+      "stillMimeType": "image/jpeg",
+      "audioDurationMs": 1400,
+      "audioBytes": 98304,
+      "audioMimeType": "audio/webm"
     }
   },
   "landmarks.json": {
@@ -169,7 +173,8 @@ Nicht-manuelle Signale tragen zur Bedeutung vieler Gebärden bei (z. B. Fragefor
       }
     ]
   },
-  "clip.mp4": /* video binary */
+  "clip.mp4": /* video binary */,
+  "audio.webm": /* audio binary */
 }
 ```
 

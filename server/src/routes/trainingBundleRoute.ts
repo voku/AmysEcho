@@ -600,7 +600,12 @@ function summarizeLandmarkFrames(frames: Array<Record<string, unknown>>) {
 			faceFrameCount++;
 		}
 
-		if (nonManualFeatures && Object.keys(nonManualFeatures).length > 0) {
+		if (
+			nonManualFeatures &&
+			Object.values(nonManualFeatures).some(
+				(value) => value !== null && value !== undefined,
+			)
+		) {
 			nonManualFrameCount++;
 		}
 
@@ -1212,6 +1217,9 @@ export function registerTrainingBundleRoute(
 				const stillFilename = normalizeClipFilename(
 					parsedMetadata.stillFilename,
 				);
+				const audioFilename = normalizeClipFilename(
+					parsedMetadata.audioFilename,
+				);
 				const recordingError = validateRecordingMetadata(
 					parsedMetadata.recording,
 					clipFilename,
@@ -1233,6 +1241,7 @@ export function registerTrainingBundleRoute(
 						: null,
 					clipFilename,
 					stillFilename,
+					audioFilename,
 					...(parsedMetadata.recording
 						? { recording: parsedMetadata.recording }
 						: {}),
@@ -1267,10 +1276,7 @@ export function registerTrainingBundleRoute(
 
 				const clipRelativePath = findClipRelativePath(files, clipFilename);
 				const stillRelativePath = findStillRelativePath(files, stillFilename);
-				const audioRelativePath = findAudioRelativePath(
-					files,
-					parsedMetadata.audioFilename ?? null,
-				);
+				const audioRelativePath = findAudioRelativePath(files, audioFilename);
 
 				const mergedModalities = mergeModalities(
 					parsedMetadata.modalities ?? landmarksValidation.metadata?.modalities,

@@ -119,6 +119,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       source: 'app://mediapipe',
       clipFilename: 'clip.webm',
       stillFilename: 'still.jpg',
+      audioFilename: 'audio.webm',
       recording: {
         frameCount: 12,
         usableFrameCount: 10,
@@ -127,6 +128,9 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         clipMimeType: 'video/webm',
         stillBytes: 512,
         stillMimeType: 'image/jpeg',
+        audioDurationMs: 1100,
+        audioBytes: 1024,
+        audioMimeType: 'audio/webm',
       },
       extra: 'ignored',
       modalities: {
@@ -161,6 +165,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     );
     zip.addFile('bundle/clip.webm', Buffer.from('fake-video-data'));
     zip.addFile('bundle/still.jpg', Buffer.from('fake-image-data'));
+    zip.addFile('bundle/audio.webm', Buffer.from('fake-audio-data'));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
@@ -188,7 +193,14 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         id: string;
         profileId: string | null;
         label: string;
-        storage: { directory: string; bundle: string; files: string[]; clip?: string; still?: string };
+        storage: {
+          directory: string;
+          bundle: string;
+          files: string[];
+          clip?: string;
+          still?: string;
+          audio?: string;
+        };
         metadata: any;
       }>;
     };
@@ -205,10 +217,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         'bundle/landmarks.json',
         'bundle/clip.webm',
         'bundle/still.jpg',
+        'bundle/audio.webm',
       ]),
     );
     expect(entry.storage.clip).toBe('bundle/clip.webm');
     expect(entry.storage.still).toBe('bundle/still.jpg');
+    expect(entry.storage.audio).toBe('bundle/audio.webm');
     expect(entry.metadata).toEqual({
       label: metadata.label,
       profileId: resolvedProfileId,
@@ -216,6 +230,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       source: metadata.source,
       clipFilename: metadata.clipFilename,
       stillFilename: metadata.stillFilename,
+      audioFilename: metadata.audioFilename,
       recording: metadata.recording,
       modalities: metadata.modalities,
       smoothing: expect.objectContaining({ method: 'one_euro' }),

@@ -536,6 +536,36 @@ def test_create_empty_training_stats_contains_all_expected_keys(monkeypatch, tmp
     assert stats["bundle_landmark_policy"] == "bundle_only"
 
 
+def test_summarize_frame_modalities_counts_non_manual_dict_values(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    frames = [
+        {
+            "landmarks": [[0.1, 0.1, 0.1]],
+            "poseLandmarks": [[0.1, 0.1, 0.1]],
+            "faceLandmarks": [[0.1, 0.1, 0.1]],
+            "nonManualFeatures": {},
+        },
+        {
+            "landmarks": [[0.2, 0.2, 0.2]],
+            "poseLandmarks": [],
+            "faceLandmarks": [],
+            "nonManualFeatures": {"headYaw": 0.2, "source": "pose"},
+        },
+    ]
+
+    counts, coverage = module._summarize_frame_modalities(frames)
+
+    assert counts["hands"] == 2
+    assert counts["pose"] == 1
+    assert counts["face"] == 1
+    assert counts["nonManual"] == 1
+    assert coverage["nonManual"] == 0.5
+
+
 def test_load_frame_list_for_bundle_uses_cache_without_still_duplication(monkeypatch, tmp_path):
     data_dir = tmp_path / "data"
     monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))

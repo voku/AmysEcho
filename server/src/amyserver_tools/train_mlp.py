@@ -455,6 +455,12 @@ def _summarize_frame_modalities(frames: list[dict]) -> tuple[dict[str, int], dic
     for frame in frames:
         for key, frame_key in landmark_map.items():
             landmarks = frame.get(frame_key)
+            if key == "nonManual":
+                if isinstance(landmarks, dict) and any(
+                    value is not None for value in landmarks.values()
+                ):
+                    counts[key] += 1
+                continue
             if isinstance(landmarks, list) and len(landmarks) > 0:
                 counts[key] += 1
     coverage = {
