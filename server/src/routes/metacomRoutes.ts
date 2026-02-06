@@ -1,4 +1,5 @@
 import type { Express, NextFunction, Request, Response } from "express";
+import rateLimit from "express-rate-limit";
 import { promises as fs } from "fs";
 import path from "path";
 import {
@@ -11,6 +12,8 @@ type MetacomRouteDeps = {
 	authMiddleware: (req: Request, res: Response, next: NextFunction) => void;
 };
 
+// Maximum bundle JSON size. Metacom bundles with the default boards are ~5 KB.
+// 1 MB allows for very large custom board sets while preventing abuse.
 const MAX_BUNDLE_SIZE = 1_048_576; // 1 MB
 
 export function registerMetacomRoutes(
@@ -19,6 +22,16 @@ export function registerMetacomRoutes(
 ): void {
 	const { authMiddleware } = deps;
 
+	const metacomRateLimiter = rateLimit({
+		windowMs: 15 * 60 * 1000, // 15 minutes
+		max: 60, // limit each IP to 60 metacom requests per window
+		standardHeaders: true,
+		legacyHeaders: false,
+		message: {
+			error: "Zu viele Anfragen. Bitte versuchen Sie es später erneut.",
+		},
+	});
+
 	/**
 	 * GET /api/v1/profiles/:id/metacom-bundle
 	 * Returns the stored Metacom bundle for a profile (or 404).
@@ -26,6 +39,7 @@ export function registerMetacomRoutes(
 	app.get(
 		"/api/v1/profiles/:id/metacom-bundle",
 		authMiddleware,
+		metacomRateLimiter,
 		async (req: Request, res: Response) => {
 			const profileId = req.params.id;
 			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
@@ -62,6 +76,7 @@ export function registerMetacomRoutes(
 	app.put(
 		"/api/v1/profiles/:id/metacom-bundle",
 		authMiddleware,
+		metacomRateLimiter,
 		async (req: Request, res: Response) => {
 			const profileId = req.params.id;
 			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
@@ -112,6 +127,7 @@ export function registerMetacomRoutes(
 	app.delete(
 		"/api/v1/profiles/:id/metacom-bundle",
 		authMiddleware,
+		metacomRateLimiter,
 		async (req: Request, res: Response) => {
 			const profileId = req.params.id;
 			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
