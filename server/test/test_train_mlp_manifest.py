@@ -637,7 +637,7 @@ def test_load_audio_features_for_bundle_returns_none_when_dependencies_unavailab
     audio_path.write_bytes(b"fake-audio")
 
     monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
-    monkeypatch.setattr(module, "AUDIO_DEPENDENCIES_AVAILABLE", None)
+    module._audio_dependencies_available.cache_clear()
     monkeypatch.setattr(module, "check_audio_dependencies", lambda: False)
 
     features, metadata = module.load_audio_features_for_bundle(
@@ -669,7 +669,7 @@ def test_load_audio_features_for_bundle_checks_dependencies_once(monkeypatch, tm
         return True
 
     monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
-    monkeypatch.setattr(module, "AUDIO_DEPENDENCIES_AVAILABLE", None)
+    module._audio_dependencies_available.cache_clear()
     monkeypatch.setattr(module, "check_audio_dependencies", fake_check_audio_dependencies)
     monkeypatch.setattr(
         module,
@@ -705,6 +705,33 @@ def test_load_audio_features_for_bundle_checks_dependencies_once(monkeypatch, tm
     }
 
 
+def test_audio_dependencies_available_cache_can_be_cleared(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    calls = {"dependency": 0}
+
+    def fake_check_audio_dependencies():
+        calls["dependency"] += 1
+        return True
+
+    monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
+    monkeypatch.setattr(module, "check_audio_dependencies", fake_check_audio_dependencies)
+    module._audio_dependencies_available.cache_clear()
+
+    assert module._audio_dependencies_available() is True
+    assert module._audio_dependencies_available() is True
+    assert calls["dependency"] == 1
+
+    module._audio_dependencies_available.cache_clear()
+    assert module._audio_dependencies_available() is True
+    assert calls["dependency"] == 2
+
+
 def test_load_audio_features_for_bundle_returns_features_when_preprocessing_succeeds(monkeypatch, tmp_path):
     data_dir = tmp_path / "data"
     manifest_path = data_dir / "datasets" / "training_manifest.json"
@@ -718,6 +745,7 @@ def test_load_audio_features_for_bundle_returns_features_when_preprocessing_succ
     audio_path.write_bytes(b"fake-audio")
 
     monkeypatch.setattr(module, "AUDIO_PREPROCESSING_AVAILABLE", True)
+    module._audio_dependencies_available.cache_clear()
     monkeypatch.setattr(module, "check_audio_dependencies", lambda: True)
     monkeypatch.setattr(
         module,
