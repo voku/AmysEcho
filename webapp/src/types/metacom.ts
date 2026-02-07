@@ -1,4 +1,5 @@
 export type MetacomCellType = 'symbol' | 'board';
+export type MetacomSymbolRole = 'person' | 'action' | 'object' | 'modifier' | 'negation';
 
 export interface MetacomCellBase {
   id: string;
@@ -7,6 +8,7 @@ export interface MetacomCellBase {
   position: number;
   category?: string;
   color?: string;
+  role?: MetacomSymbolRole;
 }
 
 export interface MetacomSymbolCell extends MetacomCellBase {
@@ -18,6 +20,7 @@ export interface MetacomSymbolCell extends MetacomCellBase {
 export interface MetacomBoardCell extends MetacomCellBase {
   type: 'board';
   targetBoardId: string;
+  speech?: string;
 }
 
 export type MetacomCell = MetacomSymbolCell | MetacomBoardCell;

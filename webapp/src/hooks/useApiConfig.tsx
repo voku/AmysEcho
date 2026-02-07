@@ -73,6 +73,7 @@ type ApiConfigContextValue = {
   refreshAccessToken: () => Promise<string | null>;
   uploadEndpoint: string;
   modelEndpoint: string;
+  sentenceImproveEndpoint: string;
 };
 
 function createDefaultConfig(): StoredApiConfig {
@@ -469,6 +470,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
     const normalizedBase = normalizeApiBase(config.apiBaseUrl);
     const uploadEndpoint = `${normalizedBase}/api/v1/dgs/sample-bundles`;
     const modelEndpoint = `${normalizedBase}/api/v1/models/latest`;
+    const sentenceImproveEndpoint = `${normalizedBase}/api/v1/metacom/sentence-improve`;
     return {
       apiBaseUrl: normalizedBase,
       apiToken: config.tokens.accessToken,
@@ -483,6 +485,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
       refreshAccessToken,
       uploadEndpoint,
       modelEndpoint,
+      sentenceImproveEndpoint,
     };
   }, [
     config.apiBaseUrl,

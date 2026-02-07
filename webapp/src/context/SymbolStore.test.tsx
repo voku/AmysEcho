@@ -22,6 +22,7 @@ vi.mock('../hooks/useApiConfig', () => ({
     apiToken: 'token', 
     refreshAccessToken: refreshAccessTokenMock,
     clearApiToken: vi.fn(),
+    sentenceImproveEndpoint: 'http://localhost/api/v1/metacom/sentence-improve',
   }),
 }));
 

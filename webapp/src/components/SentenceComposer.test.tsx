@@ -4,8 +4,8 @@ import { SentenceComposer, cellToSentenceSymbol, type SentenceSymbol } from './S
 
 describe('SentenceComposer', () => {
   const sampleSymbols: SentenceSymbol[] = [
-    { id: 'metacom_ich', label: 'Ich', emoji: '👤' },
-    { id: 'metacom_mehr', label: 'Mehr', emoji: '➕' },
+    { id: 'metacom_ich', label: 'Ich', emoji: '👤', role: 'person' },
+    { id: 'metacom_mehr', label: 'Mehr', emoji: '➕', role: 'modifier' },
   ];
 
   it('shows placeholder when queue is empty', () => {
@@ -21,6 +21,19 @@ describe('SentenceComposer', () => {
     );
     expect(screen.getByText('👤 Ich')).toBeInTheDocument();
     expect(screen.getByText('➕ Mehr')).toBeInTheDocument();
+  });
+
+  it('shows slotting hints when enabled', () => {
+    render(
+      <SentenceComposer
+        queue={sampleSymbols}
+        onRemoveLast={vi.fn()}
+        onClear={vi.fn()}
+        slottingEnabled
+      />
+    );
+    expect(screen.getByText('Person')).toBeInTheDocument();
+    expect(screen.getByText('Modifier')).toBeInTheDocument();
   });
 
   it('disables buttons when queue is empty', () => {
@@ -39,6 +52,47 @@ describe('SentenceComposer', () => {
     expect(screen.getByRole('button', { name: 'Letztes Symbol löschen' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Satz leeren' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Satz vorlesen' })).not.toBeDisabled();
+  });
+
+  it('renders improve button and triggers callback', () => {
+    const onImprove = vi.fn();
+    render(
+      <SentenceComposer
+        queue={sampleSymbols}
+        onRemoveLast={vi.fn()}
+        onClear={vi.fn()}
+        onImprove={onImprove}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Satz verbessern' }));
+    expect(onImprove).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows suggestion and error text when provided', () => {
+    const { rerender } = render(
+      <SentenceComposer
+        queue={sampleSymbols}
+        onRemoveLast={vi.fn()}
+        onClear={vi.fn()}
+        improvedSentence="Ich esse mehr."
+      />,
+    );
+
+    expect(screen.getByText(/Vorschlag:/)).toBeInTheDocument();
+    expect(screen.getByText('Ich esse mehr.')).toBeInTheDocument();
+
+    rerender(
+      <SentenceComposer
+        queue={sampleSymbols}
+        onRemoveLast={vi.fn()}
+        onClear={vi.fn()}
+        improvementError="Satzverbesserung ist gerade nicht verfügbar."
+      />,
+    );
+
+    expect(
+      screen.getByText('Satzverbesserung ist gerade nicht verfügbar.'),
+    ).toBeInTheDocument();
   });
 
   it('calls onRemoveLast when backspace button is clicked', () => {
@@ -87,8 +141,9 @@ describe('cellToSentenceSymbol', () => {
       emoji: '👍',
       position: 4,
       type: 'symbol',
+      role: 'action',
     });
-    expect(result).toEqual({ id: 'metacom_ja', label: 'Ja', emoji: '👍' });
+    expect(result).toEqual({ id: 'metacom_ja', label: 'Ja', emoji: '👍', role: 'action' });
   });
 
   it('uses symbolId when present', () => {
