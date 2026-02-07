@@ -5090,7 +5090,7 @@ p {
 }
 
 .sentence-error {
-  color: var(--color-danger-text, #b42318);
+  color: var(--color-error-text);
   font-weight: 500;
 }
 

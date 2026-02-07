@@ -35,8 +35,8 @@ export function registerMetacomSentenceRoutes(
 
 	app.post(
 		"/api/v1/metacom/sentence-improve",
-		authMiddleware,
 		limiter,
+		authMiddleware,
 		async (req: Request, res: Response) => {
 			if (!req.user) {
 				return res.status(401).json({ error: "Bitte zuerst anmelden." });

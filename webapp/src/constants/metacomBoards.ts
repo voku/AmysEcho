@@ -77,6 +77,7 @@ const ESSEN_BOARD: MetacomBoardDefinition = {
       category: 'essen',
       role: 'object',
     },
+    // Positions 10-11 reserved for future food items (deliberately skipped in position sequence)
     { id: 'metacom_mehr_essen', label: 'Mehr', emoji: '➕', position: 12, type: 'symbol', role: 'modifier' },
     { id: 'metacom_fertig_essen', label: 'Fertig', emoji: '✅', position: 13, type: 'symbol' },
     { id: 'metacom_bitte_essen', label: 'Bitte', emoji: '🙏', position: 14, type: 'symbol' },
@@ -90,6 +91,7 @@ const PIZZA_BOARD: MetacomBoardDefinition = {
   rows: 2,
   columns: 3,
   cells: [
+    // Pizza customization board - positions 3-5 reserved for future topping options
     { id: 'metacom_pizza_ohne_kaese', label: 'Ohne Käse', emoji: '🧀', position: 0, type: 'symbol', category: 'essen', role: 'modifier' },
     { id: 'metacom_pizza_mit_kaese', label: 'Mit Käse', emoji: '🧀', position: 1, type: 'symbol', category: 'essen', role: 'modifier' },
     { id: 'metacom_pizza_extra_sosse', label: 'Extra Soße', emoji: '🍅', position: 2, type: 'symbol', category: 'essen', role: 'modifier' },
