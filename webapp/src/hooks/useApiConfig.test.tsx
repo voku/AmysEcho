@@ -27,6 +27,9 @@ describe('useApiConfig', () => {
     expect(result.current.isLoadingTokens).toBe(false);
     expect(result.current.uploadEndpoint).toBe(`${DEFAULT_API_BASE}/api/v1/dgs/sample-bundles`);
     expect(result.current.modelEndpoint).toBe(`${DEFAULT_API_BASE}/api/v1/models/latest`);
+    expect(result.current.sentenceImproveEndpoint).toBe(
+      `${DEFAULT_API_BASE}/api/v1/metacom/sentence-improve`,
+    );
   });
 
   it('uses environment override as fallback API base', () => {
@@ -98,6 +101,9 @@ describe('useApiConfig', () => {
     expect(result.current.apiBaseUrl).toBe('https://api.example.com');
     expect(result.current.uploadEndpoint).toBe('https://api.example.com/api/v1/dgs/sample-bundles');
     expect(result.current.modelEndpoint).toBe('https://api.example.com/api/v1/models/latest');
+    expect(result.current.sentenceImproveEndpoint).toBe(
+      'https://api.example.com/api/v1/metacom/sentence-improve',
+    );
   });
 
   it('persists API base URL and token only after opt-in', async () => {

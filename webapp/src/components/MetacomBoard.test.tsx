@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
+import { useEffect } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { MetacomBoard } from './MetacomBoard';
 import { SymbolStoreProvider } from '../context/SymbolStore';
-import { ApiConfigProvider } from '../hooks/useApiConfig';
+import { ApiConfigProvider, useApiConfig } from '../hooks/useApiConfig';
 import { AppStateProvider } from '../hooks/useAppState';
 import { MessageProvider } from '../context/MessageContext';
 
@@ -13,13 +14,22 @@ function LocationDisplay() {
   return <div data-testid="location-display">{`${location.pathname}${location.search}`}</div>;
 }
 
-const renderWithProviders = (ui: ReactElement) => {
+function ApiTokenSeeder() {
+  const { setApiToken } = useApiConfig();
+  useEffect(() => {
+    setApiToken('token-123');
+  }, [setApiToken]);
+  return null;
+}
+
+const renderWithProviders = (ui: ReactElement, options?: { withToken?: boolean }) => {
   return render(
     <MemoryRouter>
       <AppStateProvider>
         <ApiConfigProvider>
           <MessageProvider>
             <SymbolStoreProvider>
+              {options?.withToken ? <ApiTokenSeeder /> : null}
               {ui}
               <LocationDisplay />
             </SymbolStoreProvider>
@@ -32,10 +42,24 @@ const renderWithProviders = (ui: ReactElement) => {
 
 describe('MetacomBoard', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ symbols: [] }),
-    }));
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.includes('/api/v1/metacom/sentence-improve')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ improvedSentence: 'Ich esse Brot.' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ symbols: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
   });
 
   afterEach(() => {
@@ -48,6 +72,7 @@ describe('MetacomBoard', () => {
     expect(await screen.findByText('Starttafel')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ich' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Essen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Satzbau-Hilfe aus' })).toBeInTheDocument();
   });
 
   it('navigates to a category board and back', async () => {
@@ -102,11 +127,74 @@ describe('MetacomBoard', () => {
     expect(chips[0]?.textContent).toContain('Ja');
   });
 
+  it('adds category navigation with speech to the sentence composer', async () => {
+    renderWithProviders(<MetacomBoard />);
+
+    const ichButton = await screen.findByRole('button', { name: 'Ich' });
+    fireEvent.click(ichButton);
+
+    const essenButton = screen.getByRole('button', { name: 'Essen' });
+    fireEvent.click(essenButton);
+
+    const brotButton = await screen.findByRole('button', { name: 'Brot' });
+    fireEvent.click(brotButton);
+
+    const composer = screen.getByRole('region', { name: 'Satzkomponist' });
+    const chips = Array.from(composer.querySelectorAll('.sentence-chip'));
+    expect(chips.length).toBe(3);
+    expect(chips[0]?.textContent).toContain('Ich');
+    expect(chips[1]?.textContent).toContain('Essen');
+    expect(chips[2]?.textContent).toContain('Brot');
+  });
+
+  it('treats pizza modifiers as a subset of pizza', async () => {
+    renderWithProviders(<MetacomBoard />);
+
+    const ichButton = await screen.findByRole('button', { name: 'Ich' });
+    fireEvent.click(ichButton);
+
+    const essenButton = screen.getByRole('button', { name: 'Essen' });
+    fireEvent.click(essenButton);
+
+    const pizzaButton = await screen.findByRole('button', { name: 'Pizza' });
+    fireEvent.click(pizzaButton);
+
+    const ohneKaeseButton = await screen.findByRole('button', { name: 'Ohne Käse' });
+    fireEvent.click(ohneKaeseButton);
+
+    const composer = screen.getByRole('region', { name: 'Satzkomponist' });
+    const chips = Array.from(composer.querySelectorAll('.sentence-chip'));
+    expect(chips.length).toBe(4);
+    expect(chips[0]?.textContent).toContain('Ich');
+    expect(chips[1]?.textContent).toContain('Essen');
+    expect(chips[2]?.textContent).toContain('Pizza');
+    expect(chips[3]?.textContent).toContain('Ohne Käse');
+  });
+
   it('renders the sentence composer with speak button', async () => {
     renderWithProviders(<MetacomBoard />);
 
     // Sentence composer should always be visible
     expect(screen.getByRole('region', { name: 'Satzkomponist' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Satz vorlesen' })).toBeInTheDocument();
+  });
+
+  it('requests a sentence improvement and shows a suggestion', async () => {
+    renderWithProviders(<MetacomBoard />, { withToken: true });
+
+    const ichButton = await screen.findByRole('button', { name: 'Ich' });
+    fireEvent.click(ichButton);
+
+    const essenButton = screen.getByRole('button', { name: 'Essen' });
+    fireEvent.click(essenButton);
+
+    const brotButton = await screen.findByRole('button', { name: 'Brot' });
+    fireEvent.click(brotButton);
+
+    const improveButton = screen.getByRole('button', { name: 'Satz verbessern' });
+    fireEvent.click(improveButton);
+
+    expect(await screen.findByText('Ich esse Brot.')).toBeInTheDocument();
+    expect(screen.getByText(/Vorschlag/)).toBeInTheDocument();
   });
 });

@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
 import { audioService } from '../services/audioService';
-import type { MetacomSymbolCell } from '../types/metacom';
+import type { MetacomSymbolCell, MetacomSymbolRole } from '../types/metacom';
 
 export interface SentenceSymbol {
   id: string;
   label: string;
   emoji: string;
+  role?: MetacomSymbolRole;
 }
 
 interface SentenceComposerProps {
@@ -13,6 +14,11 @@ interface SentenceComposerProps {
   onRemoveLast: () => void;
   onClear: () => void;
   onSpeak?: (text: string) => void;
+  onImprove?: () => void;
+  improvedSentence?: string | null;
+  improvementError?: string | null;
+  isImproving?: boolean;
+  slottingEnabled?: boolean;
 }
 
 /**
@@ -20,7 +26,36 @@ interface SentenceComposerProps {
  * Displays a symbol queue with backspace, clear and speak actions so Amy
  * can compose multi-symbol utterances before triggering TTS output.
  */
-export function SentenceComposer({ queue, onRemoveLast, onClear, onSpeak }: SentenceComposerProps) {
+const SLOT_ORDER: Array<{ key: MetacomSymbolRole; label: string }> = [
+  { key: 'person', label: 'Person' },
+  { key: 'action', label: 'Aktion' },
+  { key: 'object', label: 'Objekt' },
+  { key: 'modifier', label: 'Modifier' },
+  { key: 'negation', label: 'Negation' },
+];
+
+function groupByRole(queue: SentenceSymbol[]) {
+  const grouped = new Map<MetacomSymbolRole, SentenceSymbol[]>();
+  for (const symbol of queue) {
+    if (!symbol.role) continue;
+    const existing = grouped.get(symbol.role) ?? [];
+    existing.push(symbol);
+    grouped.set(symbol.role, existing);
+  }
+  return grouped;
+}
+
+export function SentenceComposer({
+  queue,
+  onRemoveLast,
+  onClear,
+  onSpeak,
+  onImprove,
+  improvedSentence,
+  improvementError,
+  isImproving,
+  slottingEnabled,
+}: SentenceComposerProps) {
   const speakSentence = useCallback(async () => {
     if (queue.length === 0) return;
     const text = queue.map((s) => s.label).join(' ');
@@ -28,21 +63,59 @@ export function SentenceComposer({ queue, onRemoveLast, onClear, onSpeak }: Sent
     onSpeak?.(text);
   }, [queue, onSpeak]);
 
+  const roleGroups = slottingEnabled ? groupByRole(queue) : null;
+
   return (
     <div className="sentence-composer" role="region" aria-label="Satzkomponist">
       <div className="sentence-display" aria-live="polite" aria-atomic="true">
         {queue.length === 0 ? (
           <span className="muted">Wähle Symbole, um einen Satz zu bilden</span>
         ) : (
-          <span className="sentence-symbols">
-            {queue.map((symbol, index) => (
-              <span key={`${symbol.id}-${index}`} className="sentence-chip">
-                {symbol.emoji} {symbol.label}
-              </span>
-            ))}
-          </span>
+          <>
+            {slottingEnabled && roleGroups ? (
+              <div className="sentence-slots" aria-label="Satzbau-Hinweise">
+                {SLOT_ORDER.map((slot) => {
+                  const items = roleGroups.get(slot.key) ?? [];
+                  return (
+                    <div key={slot.key} className="sentence-slot">
+                      <span className="sentence-slot-label">{slot.label}</span>
+                      <span className="sentence-slot-items">
+                        {items.length === 0 ? (
+                          <span className="sentence-slot-empty">—</span>
+                        ) : (
+                          items.map((symbol, index) => (
+                            <span key={`${symbol.id}-${index}`} className="sentence-chip">
+                              {symbol.emoji} {symbol.label}
+                            </span>
+                          ))
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+            <span className="sentence-symbols">
+              {queue.map((symbol, index) => (
+                <span key={`${symbol.id}-${index}`} className="sentence-chip">
+                  {symbol.emoji} {symbol.label}
+                </span>
+              ))}
+            </span>
+          </>
         )}
       </div>
+      {(improvedSentence || improvementError) && (
+        <div className="sentence-suggestion" aria-live="polite">
+          {improvedSentence ? (
+            <span>
+              <strong>Vorschlag:</strong> {improvedSentence}
+            </span>
+          ) : (
+            <span className="sentence-error">{improvementError}</span>
+          )}
+        </div>
+      )}
 
       <div className="sentence-actions">
         <button
@@ -69,6 +142,16 @@ export function SentenceComposer({ queue, onRemoveLast, onClear, onSpeak }: Sent
         >
           🔊 Sprechen
         </button>
+        {onImprove && (
+          <button
+            className="secondary-button"
+            onClick={onImprove}
+            disabled={queue.length === 0 || isImproving}
+            aria-label="Satz verbessern"
+          >
+            {isImproving ? '⏳ Satz verbessern' : '✨ Satz verbessern'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -80,6 +163,7 @@ export function cellToSentenceSymbol(cell: MetacomSymbolCell): SentenceSymbol {
     id: cell.symbolId ?? cell.id,
     label: cell.speech ?? cell.label,
     emoji: cell.emoji,
+    ...(cell.role ? { role: cell.role } : {}),
   };
 }
 

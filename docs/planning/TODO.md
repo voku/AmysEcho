@@ -128,6 +128,17 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 - [x] Build stable grid UI with Metacom categories, colors, and German labels.
 - [x] Add migration strategy for existing boards with safe fallback behavior. _See `docs/metacom/METACOM_MIGRATION_STRATEGY.md`._
 - [x] Validate licensing constraints and document approved symbol sets (Import durch Nutzer, keine mitgelieferten Symbole).
+- [ ] **Metacom Satzbau & Symbolkombinationen**: Recherche + Konzept für vollständige Sätze in der Webapp. _Siehe `docs/metacom/METACOM_SENTENCE_COMPOSITION.md`._
+  - [ ] Quellen & Lizenzlage prüfen, kuratierte Referenzen dokumentieren.
+  - [ ] Rollenmodell (Person/Aktion/Objekt/Modifier/Negation) als optionales Metacom-Metadatenfeld definieren.
+  - [ ] Satzkomponist: optionales Slotting (Reihenfolge/Visualisierung) konzipieren.
+  - [ ] Tests: Reihenfolge, Modifier-Bindung, Negation und Import/Export.
+- [ ] **Metacom Modifier-Konfiguration (Folgekategorien)**: UI für konfigurierte Unterkategorien wie „Pizza → Ohne Käse“ bauen, sodass Profile eigene Kombinationen pflegen können. (3–12 Monate)
+  - [ ] Board-Schema um modifier/follow-on Metadata erweitern, inkl. optionaler Sprecher-Labels pro Navigation.
+  - [ ] Konfigurationsoberfläche in den Einstellungen/Admin hinzufügen, um Modifier-Boards zu erstellen und zu verknüpfen.
+  - [ ] Import/Export (OBF/Bundle) auf Modifier-Verknüpfungen und Sprach-Labels erweitern.
+  - [ ] Satzkomponist-TTS-Regeln für verschachtelte Modifier-Boards dokumentieren und testen.
+  - [ ] UI-Tests für das Konfigurieren sowie End-to-End Tests für „Pizza → Ohne Käse“ hinzufügen.
 
 ### Metacom Full-Cycle Communication (Overview → Training → Recognition)
 - [x] Add a sentence composer for Metacom boards (symbol queue with backspace/clear/speak) to support dynamic multi-symbol utterances. _See `webapp/src/components/SentenceComposer.tsx`, integrated into `MetacomBoard.tsx`._

@@ -719,6 +719,49 @@ Return metadata for the requested model including file size and SHA-256 checksum
 }
 ```
 
+## Metacom Sentence Improvement
+
+### POST /api/v1/metacom/sentence-improve
+Improves a composed Metacom sentence using the server-side LLM helper (German-only output).
+
+**Request Body**
+```json
+{
+  "sentence": "Ich Brot",
+  "locale": "de"
+}
+```
+
+**Success Response (200 OK)**
+```json
+{
+  "improvedSentence": "Ich esse Brot."
+}
+```
+
+**Error Responses:**
+
+*401 Unauthorized*
+```json
+{
+  "error": "Bitte zuerst anmelden."
+}
+```
+
+*400 Bad Request*
+```json
+{
+  "error": "Ungültige Satzdaten."
+}
+```
+
+*503 Service Unavailable*
+```json
+{
+  "error": "Satzverbesserung ist gerade nicht verfügbar."
+}
+```
+
 ### Validation
 
 #### Validation endpoints

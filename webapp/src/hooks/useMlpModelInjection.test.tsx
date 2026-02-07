@@ -11,6 +11,7 @@ vi.mock('./useApiConfig', () => ({
     modelEndpoint: 'http://localhost:5000/api/v1/models/latest',
     apiToken: apiTokenMock,
     refreshAccessToken: refreshAccessTokenMock,
+    sentenceImproveEndpoint: 'http://localhost:5000/api/v1/metacom/sentence-improve',
   }),
 }));
 
