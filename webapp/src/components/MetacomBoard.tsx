@@ -24,7 +24,6 @@ import type {
 import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { SymbolButton, type Symbol } from './SymbolButton';
 import { SentenceComposer, cellToSentenceSymbol, type SentenceSymbol } from './SentenceComposer';
-import type { MetacomVocabularySet } from '../types/metacomVocabulary';
 
 const START_BOARD_ID = 'start';
 
@@ -44,7 +43,7 @@ export function MetacomBoard() {
   const { lastRecognizedSign, profileMetadata, profileId } = useAppState();
   const { apiToken, refreshAccessToken, sentenceImproveEndpoint } = useApiConfig();
   const navigate = useNavigate();
-  const vocabularySet = (profileMetadata?.vocabularySet ?? 'basis') as MetacomVocabularySet;
+  const vocabularySet = profileMetadata?.vocabularySet ?? 'basis';
   const { boards } = useMetacomBundle({ vocabularySet });
   const [boardHistory, setBoardHistory] = useState<string[]>([START_BOARD_ID]);
   const [lastSpoken, setLastSpoken] = useState<string | null>(null);

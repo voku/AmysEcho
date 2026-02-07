@@ -9,6 +9,7 @@ export interface MetacomCellBase {
   category?: string;
   color?: string;
   role?: MetacomSymbolRole;
+  tags?: string[];
 }
 
 export interface MetacomSymbolCell extends MetacomCellBase {

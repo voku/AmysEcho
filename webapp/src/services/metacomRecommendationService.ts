@@ -27,12 +27,11 @@ const ROLE_FOLLOW_UP: Partial<Record<MetacomSymbolRole, MetacomSymbolRole>> = {
   negation: 'action',
 };
 
-// Wichtig: Diese Listen müssen mit den Metacom-Board-Labels synchron bleiben.
-const CORE_WORDS = ['ich', 'du', 'bitte', 'danke', 'mehr', 'ja', 'nein', 'hilfe'];
-const OLDER_WORDS = ['brot', 'wasser', 'ball', 'buch', 'puzzle', 'musik', 'malen'];
-const MORNING_WORDS = ['essen', 'trinken', 'mehr', 'bitte'];
-const AFTERNOON_WORDS = ['spielen', 'ball', 'malen', 'mehr'];
-const EVENING_WORDS = ['fertig', 'danke', 'bitte'];
+const TAG_CORE = 'core';
+const TAG_OLDER = 'older';
+const TAG_MORNING = 'morning';
+const TAG_AFTERNOON = 'afternoon';
+const TAG_EVENING = 'evening';
 
 function normalize(value: string): string {
   return value.trim().toLowerCase();
@@ -40,6 +39,14 @@ function normalize(value: string): string {
 
 function getCellSpokenLabel(cell: MetacomCell): string {
   return normalize(cell.speech ?? cell.label);
+}
+
+function getTaggedLabels(cells: MetacomCell[], tag: string): Set<string> {
+  return new Set(
+    cells
+      .filter((cell) => cell.tags?.includes(tag))
+      .map((cell) => getCellSpokenLabel(cell)),
+  );
 }
 
 function getTargetRole(queue: SentenceQueueItem[]): MetacomSymbolRole | null {
@@ -55,6 +62,23 @@ function getTimeOfDayLabel(now: Date): string {
   if (hour >= 11 && hour < 16) return 'am Nachmittag';
   if (hour >= 16 && hour < 21) return 'am Abend';
   return 'spät am Tag';
+}
+
+function getAgePreferredLabels(cells: MetacomCell[], childAge: number | null): Set<string> {
+  const coreLabels = getTaggedLabels(cells, TAG_CORE);
+  if (typeof childAge !== 'number' || childAge <= 6) {
+    return coreLabels;
+  }
+  const olderLabels = getTaggedLabels(cells, TAG_OLDER);
+  return new Set([...coreLabels, ...olderLabels]);
+}
+
+function getTimePreferredLabels(cells: MetacomCell[], now: Date): Set<string> {
+  const hour = now.getHours();
+  if (hour >= 5 && hour < 11) return getTaggedLabels(cells, TAG_MORNING);
+  if (hour >= 11 && hour < 16) return getTaggedLabels(cells, TAG_AFTERNOON);
+  if (hour >= 16 && hour < 21) return getTaggedLabels(cells, TAG_EVENING);
+  return getTaggedLabels(cells, TAG_EVENING);
 }
 
 function formatLastSentence(context: RecommendationContext): string | null {
@@ -85,20 +109,6 @@ export function buildNextWordLabel(context: RecommendationContext): string {
   return segments.join(' · ');
 }
 
-function getAgePreferredWords(childAge: number | null): string[] {
-  if (typeof childAge !== 'number') return CORE_WORDS;
-  if (childAge <= 6) return CORE_WORDS;
-  return [...CORE_WORDS, ...OLDER_WORDS];
-}
-
-function getTimePreferredWords(now: Date): string[] {
-  const hour = now.getHours();
-  if (hour >= 5 && hour < 11) return MORNING_WORDS;
-  if (hour >= 11 && hour < 16) return AFTERNOON_WORDS;
-  if (hour >= 16 && hour < 21) return EVENING_WORDS;
-  return ['fertig', 'bitte'];
-}
-
 export function getNextWordRecommendations({
   cells,
   queue,
@@ -108,8 +118,8 @@ export function getNextWordRecommendations({
   if (queue.length === 0) return [];
 
   const targetRole = getTargetRole(queue);
-  const agePreferred = new Set(getAgePreferredWords(context.childAge));
-  const timePreferred = new Set(getTimePreferredWords(context.now));
+  const agePreferred = getAgePreferredLabels(cells, context.childAge);
+  const timePreferred = getTimePreferredLabels(cells, context.now);
   const lastSentenceWords = new Set(
     context.lastSentence ? context.lastSentence.split(/\s+/).map(normalize) : [],
   );

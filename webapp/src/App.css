@@ -5119,8 +5119,8 @@ p {
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: none;
-  background: #7aa7d9;
-  color: #fff;
+  background: var(--color-info);
+  color: var(--color-inverse-text);
   font-weight: 600;
   cursor: pointer;
 }
