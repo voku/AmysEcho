@@ -19,7 +19,14 @@ export function loadMetacomMemory(profileId: string | null): MetacomMemoryItem[]
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as MetacomMemoryItem[];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.filter(
+        (item) =>
+          typeof item?.id === 'string'
+          && typeof item?.label === 'string'
+          && typeof item?.emoji === 'string',
+      )
+      : [];
   } catch {
     return [];
   }

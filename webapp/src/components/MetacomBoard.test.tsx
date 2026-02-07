@@ -126,6 +126,7 @@ describe('MetacomBoard', () => {
 
     const memoryShelf = await screen.findByRole('region', { name: 'Merkliste' });
     expect(within(memoryShelf).getByText('Merkliste')).toBeInTheDocument();
+    expect(within(memoryShelf).getByRole('button', { name: 'Ja' })).toBeInTheDocument();
   });
 
   it('adds tapped symbols to the sentence composer', async () => {

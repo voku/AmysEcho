@@ -26,6 +26,7 @@ export function useMetacomBundle(options: UseMetacomBundleOptions = {}) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    setBoards(loadMetacomBoards(loadOptions));
     const handleUpdate = () => {
       setBoards(loadMetacomBoards(loadOptions));
     };

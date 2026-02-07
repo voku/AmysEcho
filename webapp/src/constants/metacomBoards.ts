@@ -183,7 +183,7 @@ const FULL_SPIELEN_BOARD: MetacomBoardDefinition = {
   cells: [
     ...SPIELEN_BOARD.cells,
     { id: 'metacom_auto', label: 'Auto', emoji: '🚗', position: 12, type: 'symbol', category: 'spielen' },
-    { id: 'metacom_bausteine', label: 'Bausteine', emoji: '🧱', position: 13, type: 'symbol', category: 'spielen' },
+    { id: 'metacom_bausteine', label: 'Bausteine', emoji: '🧰', position: 13, type: 'symbol', category: 'spielen' },
     { id: 'metacom_kuscheln', label: 'Kuscheln', emoji: '🤗', position: 14, type: 'symbol', category: 'spielen' },
     { id: 'metacom_rennen', label: 'Rennen', emoji: '🏃', position: 15, type: 'symbol', category: 'spielen' },
   ],
@@ -228,7 +228,10 @@ function filterBoardCells(
   board: MetacomBoardDefinition,
   allowedIds: Set<string>,
 ): MetacomBoardDefinition {
-  const cells = board.cells.filter((cell) => allowedIds.has(cell.id));
+  const cells = board.cells
+    .filter((cell) => allowedIds.has(cell.id))
+    .sort((a, b) => a.position - b.position)
+    .map((cell, index) => ({ ...cell, position: index }));
   return {
     ...board,
     cells,

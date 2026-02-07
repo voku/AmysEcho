@@ -142,7 +142,11 @@ export function SentenceComposer({
                 <strong>Vorschlag:</strong> {improvedSentence}
               </span>
               <div className="sentence-suggestion-actions">
-                <button className="secondary-button" onClick={speakImprovedSentence}>
+                <button
+                  className="secondary-button"
+                  onClick={speakImprovedSentence}
+                  aria-label="Vorschlag sprechen"
+                >
                   🔊 Vorschlag sprechen
                 </button>
               </div>

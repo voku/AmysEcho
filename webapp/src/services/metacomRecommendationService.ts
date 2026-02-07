@@ -27,6 +27,7 @@ const ROLE_FOLLOW_UP: Partial<Record<MetacomSymbolRole, MetacomSymbolRole>> = {
   negation: 'action',
 };
 
+// Wichtig: Diese Listen müssen mit den Metacom-Board-Labels synchron bleiben.
 const CORE_WORDS = ['ich', 'du', 'bitte', 'danke', 'mehr', 'ja', 'nein', 'hilfe'];
 const OLDER_WORDS = ['brot', 'wasser', 'ball', 'buch', 'puzzle', 'musik', 'malen'];
 const MORNING_WORDS = ['essen', 'trinken', 'mehr', 'bitte'];
@@ -48,7 +49,7 @@ function getTargetRole(queue: SentenceQueueItem[]): MetacomSymbolRole | null {
   return ROLE_FOLLOW_UP[last.role] ?? null;
 }
 
-function getTimeOfDayLabel(now: Date): string | null {
+function getTimeOfDayLabel(now: Date): string {
   const hour = now.getHours();
   if (hour >= 5 && hour < 11) return 'am Morgen';
   if (hour >= 11 && hour < 16) return 'am Nachmittag';
@@ -78,8 +79,7 @@ export function buildNextWordLabel(context: RecommendationContext): string {
   if (typeof context.childAge === 'number') {
     segments.push(`für ${context.childAge} Jahre`);
   }
-  const timeLabel = getTimeOfDayLabel(context.now);
-  if (timeLabel) segments.push(timeLabel);
+  segments.push(getTimeOfDayLabel(context.now));
   const lastSentenceLabel = formatLastSentence(context);
   if (lastSentenceLabel) segments.push(lastSentenceLabel);
   return segments.join(' · ');

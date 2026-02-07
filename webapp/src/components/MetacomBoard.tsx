@@ -297,9 +297,9 @@ export function MetacomBoard() {
         childAge,
         lastSentence,
         lastSentenceAt,
-        now: new Date(),
+        now,
       }),
-    [childAge, lastSentence, lastSentenceAt],
+    [childAge, lastSentence, lastSentenceAt, now],
   );
 
   const recommendationCells = useMemo(() => {
@@ -313,28 +313,15 @@ export function MetacomBoard() {
         childAge,
         lastSentence,
         lastSentenceAt,
-        now: new Date(),
+        now,
       },
       maxRecommendations: 3,
     });
-  }, [allCells, board.cells, childAge, lastSentence, lastSentenceAt, sentenceQueue]);
-
-  const timeLabel = useMemo(
-    () => now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-    [now],
-  );
-  const dateLabel = useMemo(
-    () =>
-      now.toLocaleDateString('de-DE', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'short',
-      }),
-    [now],
-  );
+  }, [allCells, board.cells, childAge, lastSentence, lastSentenceAt, now, sentenceQueue]);
 
   return (
     <section className="card metacom-board">
+      <a className="skip-link" href="#metacom-main">Zum Inhalt springen</a>
       <header className="metacom-topbar">
         <div className="metacom-topbar-left">
           <button
@@ -350,14 +337,7 @@ export function MetacomBoard() {
             <h2>{board.label}</h2>
           </div>
         </div>
-        <div className="metacom-topbar-center">
-          <span className="metacom-time">{timeLabel}</span>
-          <span className="metacom-date">{dateLabel}</span>
-        </div>
         <div className="metacom-topbar-right">
-          <span className="metacom-lock" aria-label="Geschützt">
-            🔒
-          </span>
           <button
             className="secondary-button"
             onClick={() => setSlottingEnabled((prev) => !prev)}
@@ -415,11 +395,15 @@ export function MetacomBoard() {
       <div className="metacom-divider" aria-hidden="true" />
 
       {recommendationCells.length > 0 && (
-        <div className="metacom-recommendations" role="region" aria-label="Nächste Wörter">
-          <p className="metacom-recommendations-label">{recommendationLabel}</p>
-          <div className="metacom-recommendations-grid">
+        <div
+          className="metacom-feature-box metacom-recommendations"
+          role="region"
+          aria-label="Nächste Wörter"
+        >
+          <p className="metacom-feature-label metacom-recommendations-label">{recommendationLabel}</p>
+          <div className="metacom-feature-grid metacom-recommendations-grid">
             {recommendationCells.map((cell) => (
-              <div key={`recommend-${cell.id}`} className="metacom-recommendation-cell">
+              <div key={`recommend-${cell.id}`} className="metacom-feature-cell metacom-recommendation-cell">
                 <SymbolButton symbol={resolveSymbol(cell)} onPress={() => handleCellPress(cell)} />
               </div>
             ))}
@@ -428,16 +412,16 @@ export function MetacomBoard() {
       )}
 
       {memoryItems.length > 0 && (
-        <div className="metacom-memory" role="region" aria-label="Merkliste">
+        <div className="metacom-feature-box metacom-memory" role="region" aria-label="Merkliste">
           <div className="metacom-memory-header">
-            <p className="metacom-memory-label">Merkliste</p>
+            <p className="metacom-feature-label metacom-memory-label">Merkliste</p>
             <button className="secondary-button" onClick={handleClearMemory}>
               Merkliste leeren
             </button>
           </div>
-          <div className="metacom-memory-grid">
+          <div className="metacom-feature-grid metacom-memory-grid">
             {memoryItems.map((item) => (
-              <div key={`memory-${item.id}`} className="metacom-memory-cell">
+              <div key={`memory-${item.id}`} className="metacom-feature-cell metacom-memory-cell">
                 <SymbolButton
                   symbol={{ id: item.id, name: item.label, emoji: item.emoji }}
                   onPress={() => handleMemoryPress(item)}
@@ -464,7 +448,7 @@ export function MetacomBoard() {
             </div>
           ))}
         </aside>
-        <div className="metacom-main-grid">
+        <div className="metacom-main-grid" id="metacom-main">
           <div
             className="metacom-grid"
             style={{ '--metacom-columns': board.columns } as CSSProperties}
