@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import type { MetacomVocabularySet } from '../types/metacomVocabulary';
 import {
   listProfiles,
   getActiveProfile,
@@ -26,9 +27,16 @@ export function ProfileManager() {
   const [newProfileName, setNewProfileName] = useState('');
   const [newProfileAge, setNewProfileAge] = useState('');
   const [newProfileAvatar, setNewProfileAvatar] = useState('👤');
+  const [newProfileVocabulary, setNewProfileVocabulary] = useState<MetacomVocabularySet>('basis');
   const navigate = useNavigate();
 
   const avatarOptions = ['👤', '🌈', '🌸', '🎨', '⭐', '🦋', '🌻', '🐻', '🦊', '🐰'];
+  const vocabularyOptions: Array<{ value: MetacomVocabularySet; label: string }> = [
+    { value: 'einsteiger', label: 'Einsteiger (wenige Symbole)' },
+    { value: 'basis', label: 'Basis (Alltag)' },
+    { value: 'erweitert', label: 'Erweitert (mehr Wörter)' },
+    { value: 'voll', label: 'Voll (maximaler Wortschatz)' },
+  ];
 
   // Load profiles on mount
   const loadProfiles = useCallback(async () => {
@@ -76,10 +84,10 @@ export function ProfileManager() {
       const metadata: {
           childAge?: number;
           avatar: string;
-          primaryLanguage: string;
+          vocabularySet: MetacomVocabularySet;
       } = {
         avatar: newProfileAvatar,
-        primaryLanguage: 'de',
+        vocabularySet: newProfileVocabulary,
       };
 
       if (age !== undefined && !isNaN(age)) {
@@ -101,11 +109,19 @@ export function ProfileManager() {
       setNewProfileName('');
       setNewProfileAge('');
       setNewProfileAvatar('👤');
+      setNewProfileVocabulary('basis');
     } catch (error) {
       console.error('[ProfileManager] Failed to create profile:', error);
       alert('Profil konnte nicht erstellt werden. Bitte versuche es erneut.');
     }
-  }, [newProfileName, newProfileAge, newProfileAvatar, loadProfiles, handleSelectProfile]);
+  }, [
+    newProfileName,
+    newProfileAge,
+    newProfileAvatar,
+    newProfileVocabulary,
+    loadProfiles,
+    handleSelectProfile,
+  ]);
 
   const handleDeleteProfile = useCallback(async (profile: Profile) => {
     const confirmed = window.confirm(
@@ -188,6 +204,22 @@ export function ProfileManager() {
               max="18"
             />
           </div>
+
+          <div className="form-group">
+            <label htmlFor="profile-vocabulary">Wortschatz-Stufe</label>
+            <select
+              id="profile-vocabulary"
+              value={newProfileVocabulary}
+              onChange={(event) => setNewProfileVocabulary(event.target.value as MetacomVocabularySet)}
+            >
+              {vocabularyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
 
           <div className="form-group">
             <label>Avatar wählen</label>

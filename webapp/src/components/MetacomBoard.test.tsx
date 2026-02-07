@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { SymbolStoreProvider } from '../context/SymbolStore';
 import { ApiConfigProvider, useApiConfig } from '../hooks/useApiConfig';
 import { AppStateProvider } from '../hooks/useAppState';
 import { MessageProvider } from '../context/MessageContext';
+import { clearMetacomMemory } from '../services/metacomMemoryService';
 
 function LocationDisplay() {
   const location = useLocation();
@@ -42,6 +43,7 @@ const renderWithProviders = (ui: ReactElement, options?: { withToken?: boolean }
 
 describe('MetacomBoard', () => {
   beforeEach(() => {
+    clearMetacomMemory(null);
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url = input.toString();
       if (url.includes('/api/v1/metacom/sentence-improve')) {
@@ -112,6 +114,19 @@ describe('MetacomBoard', () => {
     expect(screen.getByTestId('location-display').textContent).toContain('symbolId=metacom_ja');
   });
 
+  it('allows saving a symbol to the memory shelf', async () => {
+    renderWithProviders(<MetacomBoard />);
+
+    const jaButton = await screen.findByRole('button', { name: 'Ja' });
+    fireEvent.click(jaButton);
+
+    const memoryButton = await screen.findByRole('button', { name: 'Merken' });
+    fireEvent.click(memoryButton);
+
+    const memoryShelf = await screen.findByRole('region', { name: 'Merkliste' });
+    expect(within(memoryShelf).getByText('Merkliste')).toBeInTheDocument();
+  });
+
   it('adds tapped symbols to the sentence composer', async () => {
     renderWithProviders(<MetacomBoard />);
 
@@ -179,6 +194,16 @@ describe('MetacomBoard', () => {
     expect(screen.getByRole('button', { name: 'Satz vorlesen' })).toBeInTheDocument();
   });
 
+  it('shows next word recommendations after composing a word', async () => {
+    renderWithProviders(<MetacomBoard />);
+
+    const ichButton = await screen.findByRole('button', { name: 'Ich' });
+    fireEvent.click(ichButton);
+
+    const recommendations = await screen.findByRole('region', { name: 'Nächste Wörter' });
+    expect(within(recommendations).getByText(/Nächste Wörter/)).toBeInTheDocument();
+  });
+
   it('requests a sentence improvement and shows a suggestion', async () => {
     renderWithProviders(<MetacomBoard />, { withToken: true });
 
@@ -195,6 +220,7 @@ describe('MetacomBoard', () => {
     fireEvent.click(improveButton);
 
     expect(await screen.findByText('Ich esse Brot.')).toBeInTheDocument();
-    expect(screen.getByText(/Vorschlag/)).toBeInTheDocument();
+    expect(screen.getByText('Vorschlag:')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Vorschlag sprechen/ })).toBeInTheDocument();
   });
 });

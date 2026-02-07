@@ -19,6 +19,8 @@ interface SentenceComposerProps {
   improvementError?: string | null;
   isImproving?: boolean;
   slottingEnabled?: boolean;
+  improveAllowed?: boolean;
+  improvementHint?: string | null;
 }
 
 /**
@@ -55,6 +57,8 @@ export function SentenceComposer({
   improvementError,
   isImproving,
   slottingEnabled,
+  improveAllowed = true,
+  improvementHint,
 }: SentenceComposerProps) {
   const speakSentence = useCallback(async () => {
     if (queue.length === 0) return;
@@ -64,6 +68,12 @@ export function SentenceComposer({
   }, [queue, onSpeak]);
 
   const roleGroups = slottingEnabled ? groupByRole(queue) : null;
+  const showImprovementHint =
+    Boolean(improvementHint) && queue.length > 0 && !improvedSentence && !improvementError;
+  const speakImprovedSentence = useCallback(async () => {
+    if (!improvedSentence) return;
+    await audioService.speak(improvedSentence, { allowDuplicates: true });
+  }, [improvedSentence]);
 
   return (
     <div className="sentence-composer" role="region" aria-label="Satzkomponist">
@@ -108,9 +118,16 @@ export function SentenceComposer({
       {(improvedSentence || improvementError) && (
         <div className="sentence-suggestion" aria-live="polite">
           {improvedSentence ? (
-            <span>
-              <strong>Vorschlag:</strong> {improvedSentence}
-            </span>
+            <>
+              <span>
+                <strong>Vorschlag:</strong> {improvedSentence}
+              </span>
+              <div className="sentence-suggestion-actions">
+                <button className="secondary-button" onClick={speakImprovedSentence}>
+                  🔊 Vorschlag sprechen
+                </button>
+              </div>
+            </>
           ) : (
             <span className="sentence-error">{improvementError}</span>
           )}
@@ -142,17 +159,22 @@ export function SentenceComposer({
         >
           🔊 Sprechen
         </button>
-        {onImprove && (
-          <button
-            className="secondary-button"
-            onClick={onImprove}
-            disabled={queue.length === 0 || isImproving}
-            aria-label="Satz verbessern"
-          >
-            {isImproving ? '⏳ Satz verbessern' : '✨ Satz verbessern'}
-          </button>
-        )}
       </div>
+      {(onImprove || showImprovementHint) && (
+        <div className="sentence-improve">
+          {onImprove && (
+            <button
+              className="secondary-button sentence-improve-button"
+              onClick={onImprove}
+              disabled={queue.length === 0 || isImproving || !improveAllowed}
+              aria-label="Satz verbessern"
+            >
+              {isImproving ? '⏳ Satz verbessern' : '✨ Satz verbessern'}
+            </button>
+          )}
+          {showImprovementHint && <span className="sentence-hint">{improvementHint}</span>}
+        </div>
+      )}
     </div>
   );
 }

@@ -80,6 +80,13 @@ Wir brauchen eine leichte Rollen-Zuordnung, die optional ist:
 - Antwort: `{ "improvedSentence": "Ich esse Brot." }`
 - Konfiguration über `OPENAI_API_KEY` (optional) und Modell-Parameter in der
   Server-Umgebung.
+- In der Webapp wird ein Vorschlag mit eigener „Vorschlag sprechen“-Aktion
+  angezeigt; ohne Anmeldung bleibt der Button deaktiviert und zeigt einen
+  Hinweis, dass eine Anmeldung nötig ist.
+- Zusätzlich zeigt der Satzkomponist dynamische Labels für „Nächste Wörter“,
+  die Alter, Tageszeit und den zuletzt gesprochenen Satz berücksichtigen.
+- Metacom unterstützt vier Wortschatz-Stufen (Einsteiger, Basis, Erweitert,
+  Voll) sowie eine Merkliste für häufig benötigte Wörter (aktuell deutschsprachig).
 
 ## Vorschlag für Datenstruktur (Konzept)
 

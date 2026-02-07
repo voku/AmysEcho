@@ -5,6 +5,13 @@ import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { audioService } from '../services/audioService';
+import {
+  addMetacomMemoryItem,
+  clearMetacomMemory,
+  loadMetacomMemory,
+  type MetacomMemoryItem,
+} from '../services/metacomMemoryService';
+import { buildNextWordLabel, getNextWordRecommendations } from '../services/metacomRecommendationService';
 import { improveMetacomSentence } from '../services/metacomSentenceService';
 import { resolveGestureSymbol } from '../services/metacomMappingService';
 import type {
@@ -16,6 +23,7 @@ import type {
 import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { SymbolButton, type Symbol } from './SymbolButton';
 import { SentenceComposer, cellToSentenceSymbol, type SentenceSymbol } from './SentenceComposer';
+import type { MetacomVocabularySet } from '../types/metacomVocabulary';
 
 const START_BOARD_ID = 'start';
 
@@ -32,10 +40,11 @@ function getBoard(
 
 export function MetacomBoard() {
   const { symbols } = useSymbolStore();
-  const { boards } = useMetacomBundle();
-  const { lastRecognizedSign } = useAppState();
+  const { lastRecognizedSign, profileMetadata, profileId } = useAppState();
   const { apiToken, refreshAccessToken, sentenceImproveEndpoint } = useApiConfig();
   const navigate = useNavigate();
+  const vocabularySet = (profileMetadata?.vocabularySet ?? 'basis') as MetacomVocabularySet;
+  const { boards } = useMetacomBundle({ vocabularySet });
   const [boardHistory, setBoardHistory] = useState<string[]>([START_BOARD_ID]);
   const [lastSpoken, setLastSpoken] = useState<string | null>(null);
   const [lastSymbolSelection, setLastSymbolSelection] = useState<MetacomSymbolCell | null>(null);
@@ -45,6 +54,16 @@ export function MetacomBoard() {
   const [improvedSentence, setImprovedSentence] = useState<string | null>(null);
   const [improvementError, setImprovementError] = useState<string | null>(null);
   const [isImproving, setIsImproving] = useState(false);
+  const [lastSentence, setLastSentence] = useState<string | null>(null);
+  const [lastSentenceAt, setLastSentenceAt] = useState<number | null>(null);
+  const [memoryItems, setMemoryItems] = useState<MetacomMemoryItem[]>([]);
+  const improveAllowed = Boolean(apiToken);
+  const improvementHint = improveAllowed ? null : 'Für Satzvorschläge bitte anmelden.';
+  const childAge = profileMetadata?.childAge ?? null;
+
+  useEffect(() => {
+    setMemoryItems(loadMetacomMemory(profileId));
+  }, [profileId]);
 
   // Resolve the most recently detected gesture to a Metacom symbol
   const detectedResolution = useMemo(
@@ -79,6 +98,18 @@ export function MetacomBoard() {
       setBoardHistory([fallbackBoardId]);
     }
   }, [boards, currentBoardId, fallbackBoardId]);
+
+  const allCells = useMemo(() => {
+    const map = new Map<string, MetacomCell>();
+    Object.values(boards).forEach((boardDefinition) => {
+      boardDefinition.cells.forEach((cell) => {
+        if (!map.has(cell.id)) {
+          map.set(cell.id, cell);
+        }
+      });
+    });
+    return Array.from(map.values());
+  }, [boards]);
 
   const symbolLookup = useMemo(
     () => new Map(symbols.map((symbol) => [symbol.id, symbol])),
@@ -175,6 +206,35 @@ export function MetacomBoard() {
     setSentenceQueue([]);
   }, []);
 
+  const handleSaveToMemory = useCallback(() => {
+    if (!lastSymbolSelection) return;
+    const item: MetacomMemoryItem = {
+      id: lastSymbolSelection.symbolId ?? lastSymbolSelection.id,
+      label: lastSymbolSelection.speech ?? lastSymbolSelection.label,
+      emoji: lastSymbolSelection.emoji,
+      ...(lastSymbolSelection.role ? { role: lastSymbolSelection.role } : {}),
+    };
+    setMemoryItems(addMetacomMemoryItem(profileId, item));
+  }, [lastSymbolSelection, profileId]);
+
+  const handleClearMemory = useCallback(() => {
+    clearMetacomMemory(profileId);
+    setMemoryItems([]);
+  }, [profileId]);
+
+  const handleMemoryPress = useCallback(
+    async (item: MetacomMemoryItem) => {
+      setSentenceQueue((prev) => [...prev, item]);
+      await speakSelection(item.label);
+    },
+    [speakSelection],
+  );
+
+  const handleSentenceSpoken = useCallback((text: string) => {
+    setLastSentence(text);
+    setLastSentenceAt(Date.now());
+  }, []);
+
   const handleImproveSentence = useCallback(async () => {
     if (sentenceQueue.length === 0) return;
     if (!apiToken) {
@@ -207,6 +267,34 @@ export function MetacomBoard() {
     }
   }, [apiToken, refreshAccessToken, sentenceImproveEndpoint, sentenceQueue]);
 
+  const recommendationLabel = useMemo(
+    () =>
+      buildNextWordLabel({
+        childAge,
+        lastSentence,
+        lastSentenceAt,
+        now: new Date(),
+      }),
+    [childAge, lastSentence, lastSentenceAt],
+  );
+
+  const recommendationCells = useMemo(() => {
+    if (sentenceQueue.length === 0) return [];
+    const currentBoardCellIds = new Set(board.cells.map((cell) => cell.id));
+    const candidateCells = allCells.filter((cell) => !currentBoardCellIds.has(cell.id));
+    return getNextWordRecommendations({
+      cells: candidateCells,
+      queue: sentenceQueue,
+      context: {
+        childAge,
+        lastSentence,
+        lastSentenceAt,
+        now: new Date(),
+      },
+      maxRecommendations: 3,
+    });
+  }, [allCells, board.cells, childAge, lastSentence, lastSentenceAt, sentenceQueue]);
+
   return (
     <section className="card metacom-board">
       <header className="metacom-header">
@@ -238,9 +326,14 @@ export function MetacomBoard() {
           </strong>
         </div>
         {lastSymbolSelection && (
-          <button className="secondary-button" onClick={handleUseAsGesture}>
-            Als Gebärde nutzen
-          </button>
+          <div className="metacom-status-actions">
+            <button className="secondary-button" onClick={handleUseAsGesture}>
+              Als Gebärde nutzen
+            </button>
+            <button className="secondary-button" onClick={handleSaveToMemory}>
+              Merken
+            </button>
+          </div>
         )}
       </div>
 
@@ -258,12 +351,49 @@ export function MetacomBoard() {
         queue={sentenceQueue}
         onRemoveLast={handleRemoveLast}
         onClear={handleClearSentence}
+        onSpeak={handleSentenceSpoken}
         onImprove={handleImproveSentence}
         improvedSentence={improvedSentence}
         improvementError={improvementError}
         isImproving={isImproving}
         slottingEnabled={slottingEnabled}
+        improveAllowed={improveAllowed}
+        improvementHint={improvementHint}
       />
+
+      {recommendationCells.length > 0 && (
+        <div className="metacom-recommendations" role="region" aria-label="Nächste Wörter">
+          <p className="metacom-recommendations-label">{recommendationLabel}</p>
+          <div className="metacom-recommendations-grid">
+            {recommendationCells.map((cell) => (
+              <div key={`recommend-${cell.id}`} className="metacom-recommendation-cell">
+                <SymbolButton symbol={resolveSymbol(cell)} onPress={() => handleCellPress(cell)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {memoryItems.length > 0 && (
+        <div className="metacom-memory" role="region" aria-label="Merkliste">
+          <div className="metacom-memory-header">
+            <p className="metacom-memory-label">Merkliste</p>
+            <button className="secondary-button" onClick={handleClearMemory}>
+              Merkliste leeren
+            </button>
+          </div>
+          <div className="metacom-memory-grid">
+            {memoryItems.map((item) => (
+              <div key={`memory-${item.id}`} className="metacom-memory-cell">
+                <SymbolButton
+                  symbol={{ id: item.id, name: item.label, emoji: item.emoji }}
+                  onPress={() => handleMemoryPress(item)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div
         className="metacom-grid"

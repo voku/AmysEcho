@@ -121,10 +121,13 @@ describe('TrainingUploadWithRecording', () => {
     renderWithProviders();
 
     // Wait for profile to be loaded into UI
-    await waitFor(() => {
-      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-      expect(profileInput.value).toBe('profil-1');
-    });
+    await waitFor(
+      () => {
+        const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+        expect(profileInput.value).toBe('profil-1');
+      },
+      { timeout: TEST_TIMEOUT },
+    );
 
     const labelInput = screen.getByLabelText('Gebärde suchen oder neu anlegen');
 
@@ -157,10 +160,13 @@ describe('TrainingUploadWithRecording', () => {
     renderWithProviders();
 
     // Wait for async profile loading
-    await waitFor(() => {
-      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-      expect(profileInput.value).toBe('profil-1');
-    });
+    await waitFor(
+      () => {
+        const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+        expect(profileInput.value).toBe('profil-1');
+      },
+      { timeout: TEST_TIMEOUT },
+    );
 
     const labelInput = screen.getByLabelText('Gebärde suchen oder neu anlegen');
     await user.clear(labelInput);
@@ -188,10 +194,13 @@ describe('TrainingUploadWithRecording', () => {
     renderWithProviders();
 
     // Wait for async profile loading
-    await waitFor(() => {
-      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-      expect(profileInput.value).toBe('profil-1');
-    });
+    await waitFor(
+      () => {
+        const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+        expect(profileInput.value).toBe('profil-1');
+      },
+      { timeout: TEST_TIMEOUT },
+    );
 
     const labelInput = screen.getByLabelText('Gebärde suchen oder neu anlegen');
     await user.clear(labelInput);

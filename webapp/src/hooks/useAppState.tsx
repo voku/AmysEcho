@@ -1,10 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { getActiveProfile, initializeProfileRegistry } from '../services/profileRegistry';
+import { getActiveProfile, initializeProfileRegistry, type ProfileMetadata } from '../services/profileRegistry';
 
 type AppStateContextValue = {
   profileUuid: string | null;
   profileId: string | null;
   displayName: string | null;
+  profileMetadata: ProfileMetadata | null;
   preferredSignId: string;
   preferredSignName: string;
   lastRecognizedSign: string | null;
@@ -22,6 +23,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [profileUuid, setProfileUuid] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [profileMetadata, setProfileMetadata] = useState<ProfileMetadata | null>(null);
   const [preferredSignId, setPreferredSignId] = useState('hilfe');
   const [preferredSignName, setPreferredSignName] = useState('HILFE');
   const [lastRecognizedSign, setLastRecognizedSign] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           setProfileUuid(activeProfile.uuid);
           setProfileId(activeProfile.profileId);
           setDisplayName(activeProfile.displayName);
+          setProfileMetadata(activeProfile.metadata);
         }
       } catch (error) {
         console.warn('[AppState] Failed to initialize profile registry:', error);
@@ -73,6 +76,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         setProfileUuid(activeProfile.uuid);
         setProfileId(activeProfile.profileId);
         setDisplayName(activeProfile.displayName);
+        setProfileMetadata(activeProfile.metadata);
       }
     } catch (error) {
       console.warn('[AppState] Failed to refresh from registry:', error);
@@ -84,6 +88,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       profileUuid,
       profileId,
       displayName,
+      profileMetadata,
       preferredSignId,
       preferredSignName,
       lastRecognizedSign,
@@ -92,7 +97,19 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       recordSign,
       refreshFromRegistry,
     }),
-    [profileUuid, profileId, displayName, preferredSignId, preferredSignName, lastRecognizedSign, recentSigns, setPreferredSign, recordSign, refreshFromRegistry],
+    [
+      profileUuid,
+      profileId,
+      displayName,
+      profileMetadata,
+      preferredSignId,
+      preferredSignName,
+      lastRecognizedSign,
+      recentSigns,
+      setPreferredSign,
+      recordSign,
+      refreshFromRegistry,
+    ],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

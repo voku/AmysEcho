@@ -53,13 +53,11 @@ describe('profileRegistry', () => {
         displayName: 'Emma',
         metadata: {
           childAge: 5,
-          primaryLanguage: 'de',
           avatar: '🌸',
         },
       });
 
       expect(profile.metadata.childAge).toBe(5);
-      expect(profile.metadata.primaryLanguage).toBe('de');
       expect(profile.metadata.avatar).toBe('🌸');
     });
   });

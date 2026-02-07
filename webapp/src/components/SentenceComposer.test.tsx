@@ -80,6 +80,7 @@ describe('SentenceComposer', () => {
 
     expect(screen.getByText(/Vorschlag:/)).toBeInTheDocument();
     expect(screen.getByText('Ich esse mehr.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Vorschlag sprechen/ })).toBeInTheDocument();
 
     rerender(
       <SentenceComposer
@@ -93,6 +94,22 @@ describe('SentenceComposer', () => {
     expect(
       screen.getByText('Satzverbesserung ist gerade nicht verfügbar.'),
     ).toBeInTheDocument();
+  });
+
+  it('shows a hint and disables improvement when not allowed', () => {
+    render(
+      <SentenceComposer
+        queue={sampleSymbols}
+        onRemoveLast={vi.fn()}
+        onClear={vi.fn()}
+        onImprove={vi.fn()}
+        improveAllowed={false}
+        improvementHint="Für Satzvorschläge bitte anmelden."
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Satz verbessern' })).toBeDisabled();
+    expect(screen.getByText('Für Satzvorschläge bitte anmelden.')).toBeInTheDocument();
   });
 
   it('calls onRemoveLast when backspace button is clicked', () => {

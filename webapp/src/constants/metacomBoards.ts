@@ -1,4 +1,5 @@
 import type { MetacomBoardDefinition } from '../types/metacom';
+import type { MetacomVocabularySet } from '../types/metacomVocabulary';
 
 const START_BOARD: MetacomBoardDefinition = {
   id: 'start',
@@ -51,6 +52,19 @@ const START_BOARD: MetacomBoardDefinition = {
   ],
 };
 
+const EXTENDED_START_BOARD: MetacomBoardDefinition = {
+  ...START_BOARD,
+  rows: 4,
+  columns: 4,
+  cells: [
+    ...START_BOARD.cells,
+    { id: 'metacom_nicht', label: 'Nicht', emoji: '🚫', position: 12, type: 'symbol', role: 'negation' },
+    { id: 'metacom_noch', label: 'Noch', emoji: '🔁', position: 13, type: 'symbol', role: 'modifier' },
+    { id: 'metacom_was', label: 'Was', emoji: '❓', position: 14, type: 'symbol', role: 'modifier' },
+    { id: 'metacom_warum', label: 'Warum', emoji: '🤔', position: 15, type: 'symbol', role: 'modifier' },
+  ],
+};
+
 const ESSEN_BOARD: MetacomBoardDefinition = {
   id: 'essen',
   label: 'Essen',
@@ -82,6 +96,15 @@ const ESSEN_BOARD: MetacomBoardDefinition = {
     { id: 'metacom_fertig_essen', label: 'Fertig', emoji: '✅', position: 13, type: 'symbol' },
     { id: 'metacom_bitte_essen', label: 'Bitte', emoji: '🙏', position: 14, type: 'symbol' },
     { id: 'metacom_danke_essen', label: 'Danke', emoji: '💛', position: 15, type: 'symbol' },
+  ],
+};
+
+const FULL_ESSEN_BOARD: MetacomBoardDefinition = {
+  ...ESSEN_BOARD,
+  cells: [
+    ...ESSEN_BOARD.cells,
+    { id: 'metacom_gemuese', label: 'Gemüse', emoji: '🥕', position: 10, type: 'symbol', category: 'essen', role: 'object' },
+    { id: 'metacom_obst', label: 'Obst', emoji: '🍓', position: 11, type: 'symbol', category: 'essen', role: 'object' },
   ],
 };
 
@@ -119,6 +142,19 @@ const TRINKEN_BOARD: MetacomBoardDefinition = {
   ],
 };
 
+const FULL_TRINKEN_BOARD: MetacomBoardDefinition = {
+  ...TRINKEN_BOARD,
+  rows: 4,
+  columns: 4,
+  cells: [
+    ...TRINKEN_BOARD.cells,
+    { id: 'metacom_kakao', label: 'Kakao', emoji: '🍫', position: 12, type: 'symbol', category: 'trinken' },
+    { id: 'metacom_sprudel', label: 'Sprudel', emoji: '🫧', position: 13, type: 'symbol', category: 'trinken' },
+    { id: 'metacom_becher', label: 'Becher', emoji: '🥤', position: 14, type: 'symbol', category: 'trinken' },
+    { id: 'metacom_eisgetraenk', label: 'Eisgetränk', emoji: '🧊', position: 15, type: 'symbol', category: 'trinken' },
+  ],
+};
+
 const SPIELEN_BOARD: MetacomBoardDefinition = {
   id: 'spielen',
   label: 'Spielen',
@@ -140,6 +176,19 @@ const SPIELEN_BOARD: MetacomBoardDefinition = {
   ],
 };
 
+const FULL_SPIELEN_BOARD: MetacomBoardDefinition = {
+  ...SPIELEN_BOARD,
+  rows: 4,
+  columns: 4,
+  cells: [
+    ...SPIELEN_BOARD.cells,
+    { id: 'metacom_auto', label: 'Auto', emoji: '🚗', position: 12, type: 'symbol', category: 'spielen' },
+    { id: 'metacom_bausteine', label: 'Bausteine', emoji: '🧱', position: 13, type: 'symbol', category: 'spielen' },
+    { id: 'metacom_kuscheln', label: 'Kuscheln', emoji: '🤗', position: 14, type: 'symbol', category: 'spielen' },
+    { id: 'metacom_rennen', label: 'Rennen', emoji: '🏃', position: 15, type: 'symbol', category: 'spielen' },
+  ],
+};
+
 export const METACOM_BOARDS: Record<string, MetacomBoardDefinition> = {
   start: START_BOARD,
   essen: ESSEN_BOARD,
@@ -147,3 +196,69 @@ export const METACOM_BOARDS: Record<string, MetacomBoardDefinition> = {
   trinken: TRINKEN_BOARD,
   spielen: SPIELEN_BOARD,
 };
+
+const EXTENDED_BOARDS: Record<string, MetacomBoardDefinition> = {
+  start: EXTENDED_START_BOARD,
+  essen: ESSEN_BOARD,
+  pizza: PIZZA_BOARD,
+  trinken: TRINKEN_BOARD,
+  spielen: SPIELEN_BOARD,
+};
+
+const FULL_BOARDS: Record<string, MetacomBoardDefinition> = {
+  start: EXTENDED_START_BOARD,
+  essen: FULL_ESSEN_BOARD,
+  pizza: PIZZA_BOARD,
+  trinken: FULL_TRINKEN_BOARD,
+  spielen: FULL_SPIELEN_BOARD,
+};
+
+const EINSTEIGER_IDS = new Set([
+  'metacom_ich',
+  'metacom_du',
+  'metacom_ja',
+  'metacom_nein',
+  'metacom_hilfe',
+  'metacom_board_essen',
+  'metacom_board_trinken',
+  'metacom_board_spielen',
+]);
+
+function filterBoardCells(
+  board: MetacomBoardDefinition,
+  allowedIds: Set<string>,
+): MetacomBoardDefinition {
+  const cells = board.cells.filter((cell) => allowedIds.has(cell.id));
+  return {
+    ...board,
+    cells,
+  };
+}
+
+function filterEinsteigerBoards(boards: Record<string, MetacomBoardDefinition>) {
+  const startBoard = boards['start'];
+  if (!startBoard) return boards;
+  return {
+    ...boards,
+    start: {
+      ...filterBoardCells(startBoard, EINSTEIGER_IDS),
+      rows: 2,
+      columns: 4,
+    },
+  };
+}
+
+export function getMetacomBoardsForVocabularySet(
+  vocabularySet: MetacomVocabularySet,
+): Record<string, MetacomBoardDefinition> {
+  if (vocabularySet === 'einsteiger') {
+    return filterEinsteigerBoards(METACOM_BOARDS);
+  }
+  if (vocabularySet === 'erweitert') {
+    return EXTENDED_BOARDS;
+  }
+  if (vocabularySet === 'voll') {
+    return FULL_BOARDS;
+  }
+  return METACOM_BOARDS;
+}
