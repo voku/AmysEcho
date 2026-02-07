@@ -122,7 +122,7 @@ export function MetacomBoard() {
   }, []);
 
   const addBoardSelectionToSentence = useCallback((cell: MetacomBoardCell) => {
-    const speechText = cell.speech;
+    const speechText = cell.speech ?? cell.label;
     if (!speechText) return;
     setSentenceQueue((prev) => [
       ...prev,
@@ -194,19 +194,14 @@ export function MetacomBoard() {
       });
       setImprovedSentence(suggestion);
     } catch (error) {
-      if (error instanceof HttpError) {
-        if (error.status === 401) {
-          setImprovementError(SESSION_EXPIRED_MESSAGE);
-        } else if (error.status === 429) {
-          setImprovementError('Zu viele Anfragen. Bitte später erneut versuchen.');
-        } else if (error.status === 503) {
-          setImprovementError('Satzverbesserung ist gerade nicht verfügbar.');
-        } else {
-          setImprovementError('Satzverbesserung konnte nicht abgeschlossen werden.');
-        }
-        return;
-      }
-      setImprovementError('Satzverbesserung konnte nicht abgeschlossen werden.');
+      const errorMessages: Record<number, string> = {
+        401: SESSION_EXPIRED_MESSAGE,
+        429: 'Zu viele Anfragen. Bitte später erneut versuchen.',
+        503: 'Satzverbesserung ist gerade nicht verfügbar.',
+      };
+      const status = error instanceof HttpError ? error.status : 0;
+      const message = errorMessages[status] ?? 'Satzverbesserung konnte nicht abgeschlossen werden.';
+      setImprovementError(message);
     } finally {
       setIsImproving(false);
     }
