@@ -5,6 +5,7 @@ import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { audioService } from '../services/audioService';
+import { findMetacomSymbolByLabel } from '../services/metacomBundleService';
 import {
   addMetacomMemoryItem,
   clearMetacomMemory,
@@ -57,6 +58,7 @@ export function MetacomBoard() {
   const [lastSentence, setLastSentence] = useState<string | null>(null);
   const [lastSentenceAt, setLastSentenceAt] = useState<number | null>(null);
   const [memoryItems, setMemoryItems] = useState<MetacomMemoryItem[]>([]);
+  const [now, setNow] = useState(() => new Date());
   const improveAllowed = Boolean(apiToken);
   const improvementHint = improveAllowed ? null : 'Für Satzvorschläge bitte anmelden.';
   const childAge = profileMetadata?.childAge ?? null;
@@ -64,6 +66,11 @@ export function MetacomBoard() {
   useEffect(() => {
     setMemoryItems(loadMetacomMemory(profileId));
   }, [profileId]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 60000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // Resolve the most recently detected gesture to a Metacom symbol
   const detectedResolution = useMemo(
@@ -110,6 +117,10 @@ export function MetacomBoard() {
     });
     return Array.from(map.values());
   }, [boards]);
+
+  const cellById = useMemo(() => {
+    return new Map(allCells.map((cell) => [cell.id, cell]));
+  }, [allCells]);
 
   const symbolLookup = useMemo(
     () => new Map(symbols.map((symbol) => [symbol.id, symbol])),
@@ -235,6 +246,19 @@ export function MetacomBoard() {
     setLastSentenceAt(Date.now());
   }, []);
 
+  const quickActionCells = useMemo(() => {
+    const labels = ['Nicht', 'Mehr'];
+    return labels
+      .map((label) => {
+        const found = findMetacomSymbolByLabel(boards, label);
+        if (!found) return null;
+        const cell = cellById.get(found.id);
+        if (!cell || cell.type !== 'symbol') return null;
+        return { label: found.label, cell };
+      })
+      .filter((item): item is { label: string; cell: MetacomSymbolCell } => Boolean(item));
+  }, [boards, cellById]);
+
   const handleImproveSentence = useCallback(async () => {
     if (sentenceQueue.length === 0) return;
     if (!apiToken) {
@@ -295,14 +319,45 @@ export function MetacomBoard() {
     });
   }, [allCells, board.cells, childAge, lastSentence, lastSentenceAt, sentenceQueue]);
 
+  const timeLabel = useMemo(
+    () => now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+    [now],
+  );
+  const dateLabel = useMemo(
+    () =>
+      now.toLocaleDateString('de-DE', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+      }),
+    [now],
+  );
+
   return (
     <section className="card metacom-board">
-      <header className="metacom-header">
-        <div>
-          <p className="eyebrow">Metacom</p>
-          <h2>{board.label}</h2>
+      <header className="metacom-topbar">
+        <div className="metacom-topbar-left">
+          <button
+            className="metacom-icon-button"
+            onClick={handleBack}
+            disabled={!canGoBack}
+            aria-label="Zurück"
+          >
+            ←
+          </button>
+          <div>
+            <p className="eyebrow">Metacom</p>
+            <h2>{board.label}</h2>
+          </div>
         </div>
-        <div className="metacom-header-actions">
+        <div className="metacom-topbar-center">
+          <span className="metacom-time">{timeLabel}</span>
+          <span className="metacom-date">{dateLabel}</span>
+        </div>
+        <div className="metacom-topbar-right">
+          <span className="metacom-lock" aria-label="Geschützt">
+            🔒
+          </span>
           <button
             className="secondary-button"
             onClick={() => setSlottingEnabled((prev) => !prev)}
@@ -310,15 +365,10 @@ export function MetacomBoard() {
           >
             Satzbau-Hilfe {slottingEnabled ? 'an' : 'aus'}
           </button>
-          {canGoBack && (
-            <button className="secondary-button" onClick={handleBack}>
-              Zurück
-            </button>
-          )}
         </div>
       </header>
 
-      <div className="metacom-status" aria-live="polite">
+      <div className="metacom-status" aria-live="polite" data-testid="metacom-status">
         <div className="metacom-status-details">
           <span className="muted">Letzte Auswahl</span>
           <strong className="metacom-status-text">
@@ -359,7 +409,10 @@ export function MetacomBoard() {
         slottingEnabled={slottingEnabled}
         improveAllowed={improveAllowed}
         improvementHint={improvementHint}
+        displayMode="strip"
       />
+
+      <div className="metacom-divider" aria-hidden="true" />
 
       {recommendationCells.length > 0 && (
         <div className="metacom-recommendations" role="region" aria-label="Nächste Wörter">
@@ -395,27 +448,61 @@ export function MetacomBoard() {
         </div>
       )}
 
-      <div
-        className="metacom-grid"
-        style={{ '--metacom-columns': board.columns } as CSSProperties}
-      >
-        {Array.from({ length: board.rows * board.columns }).map((_, index) => {
-          const cell = cellsByPosition.get(index);
-          if (!cell) {
-            return <div key={`empty-${index}`} className="metacom-cell metacom-cell-empty" aria-hidden="true" />;
-          }
-
-          return (
-            <div key={cell.id} className="metacom-cell">
-              <SymbolButton
-                symbol={resolveSymbol(cell)}
-                onPress={() => handleCellPress(cell)}
-                largeText
-              />
+      <div className="metacom-layout">
+        <aside className="metacom-sidebar" aria-label="Schnellauswahl">
+          <button
+            className="metacom-side-button"
+            onClick={() => setBoardHistory([START_BOARD_ID])}
+            aria-label="Home"
+          >
+            <span className="metacom-side-emoji">🏠</span>
+            <span className="metacom-side-label">Home</span>
+          </button>
+          {quickActionCells.map((item) => (
+            <div key={`quick-${item.label}`} className="metacom-side-cell">
+              <SymbolButton symbol={resolveSymbol(item.cell)} onPress={() => handleCellPress(item.cell)} />
             </div>
-          );
-        })}
+          ))}
+        </aside>
+        <div className="metacom-main-grid">
+          <div
+            className="metacom-grid"
+            style={{ '--metacom-columns': board.columns } as CSSProperties}
+          >
+            {Array.from({ length: board.rows * board.columns }).map((_, index) => {
+              const cell = cellsByPosition.get(index);
+              if (!cell) {
+                return <div key={`empty-${index}`} className="metacom-cell metacom-cell-empty" aria-hidden="true" />;
+              }
+
+              return (
+                <div key={cell.id} className="metacom-cell">
+                  <SymbolButton
+                    symbol={resolveSymbol(cell)}
+                    onPress={() => handleCellPress(cell)}
+                    largeText
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      <nav className="metacom-toolbar" aria-label="Metacom Schnellzugriff">
+        <button className="metacom-toolbar-button" onClick={() => navigate('/verlauf')}>
+          🧾 Verlauf
+        </button>
+        <button className="metacom-toolbar-button" onClick={() => navigate('/einstellungen')}>
+          ⚙️ Einstellungen
+        </button>
+        <button className="metacom-toolbar-button" onClick={() => navigate('/hilfe')}>
+          ❓ Hilfe
+        </button>
+        <button className="metacom-toolbar-button" onClick={() => navigate('/auswahl')}>
+          👥 Profile
+        </button>
+      </nav>
     </section>
   );
 }

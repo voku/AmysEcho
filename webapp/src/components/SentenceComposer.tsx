@@ -21,6 +21,7 @@ interface SentenceComposerProps {
   slottingEnabled?: boolean;
   improveAllowed?: boolean;
   improvementHint?: string | null;
+  displayMode?: 'panel' | 'strip';
 }
 
 /**
@@ -59,6 +60,7 @@ export function SentenceComposer({
   slottingEnabled,
   improveAllowed = true,
   improvementHint,
+  displayMode = 'panel',
 }: SentenceComposerProps) {
   const speakSentence = useCallback(async () => {
     if (queue.length === 0) return;
@@ -75,8 +77,14 @@ export function SentenceComposer({
     await audioService.speak(improvedSentence, { allowDuplicates: true });
   }, [improvedSentence]);
 
+  const isStrip = displayMode === 'strip';
+
   return (
-    <div className="sentence-composer" role="region" aria-label="Satzkomponist">
+    <div
+      className={`sentence-composer${isStrip ? ' sentence-composer--strip' : ''}`}
+      role="region"
+      aria-label="Satzkomponist"
+    >
       <div className="sentence-display" aria-live="polite" aria-atomic="true">
         {queue.length === 0 ? (
           <span className="muted">Wähle Symbole, um einen Satz zu bilden</span>
@@ -105,13 +113,24 @@ export function SentenceComposer({
                 })}
               </div>
             ) : null}
-            <span className="sentence-symbols">
-              {queue.map((symbol, index) => (
-                <span key={`${symbol.id}-${index}`} className="sentence-chip">
-                  {symbol.emoji} {symbol.label}
-                </span>
-              ))}
-            </span>
+            {isStrip ? (
+              <div className="sentence-strip">
+                {queue.map((symbol, index) => (
+                  <span key={`${symbol.id}-${index}`} className="sentence-strip-item">
+                    <span className="sentence-strip-emoji" aria-hidden="true">{symbol.emoji}</span>
+                    <span className="sentence-strip-label">{symbol.label}</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="sentence-symbols">
+                {queue.map((symbol, index) => (
+                  <span key={`${symbol.id}-${index}`} className="sentence-chip">
+                    {symbol.emoji} {symbol.label}
+                  </span>
+                ))}
+              </span>
+            )}
           </>
         )}
       </div>

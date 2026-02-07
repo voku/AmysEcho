@@ -96,8 +96,9 @@ describe('MetacomBoard', () => {
     const jaButton = await screen.findByRole('button', { name: 'Ja' });
     fireEvent.click(jaButton);
 
-    expect(await screen.findByText('Letzte Auswahl')).toBeInTheDocument();
-    expect(await screen.findByText('Ja')).toBeInTheDocument();
+    const status = await screen.findByTestId('metacom-status');
+    expect(within(status).getByText('Letzte Auswahl')).toBeInTheDocument();
+    expect(within(status).getByText('Ja')).toBeInTheDocument();
   });
 
   it('offers training for the last selected symbol', async () => {
@@ -137,9 +138,9 @@ describe('MetacomBoard', () => {
     const composer = screen.getByRole('region', { name: 'Satzkomponist' });
     expect(composer).toBeInTheDocument();
     // Query within the composer to avoid matching the grid button
-    const chips = composer.querySelectorAll('.sentence-chip');
-    expect(chips.length).toBe(1);
-    expect(chips[0]?.textContent).toContain('Ja');
+    const items = composer.querySelectorAll('.sentence-strip-item');
+    expect(items.length).toBe(1);
+    expect(items[0]?.textContent).toContain('Ja');
   });
 
   it('adds category navigation with speech to the sentence composer', async () => {
@@ -155,11 +156,11 @@ describe('MetacomBoard', () => {
     fireEvent.click(brotButton);
 
     const composer = screen.getByRole('region', { name: 'Satzkomponist' });
-    const chips = Array.from(composer.querySelectorAll('.sentence-chip'));
-    expect(chips.length).toBe(3);
-    expect(chips[0]?.textContent).toContain('Ich');
-    expect(chips[1]?.textContent).toContain('Essen');
-    expect(chips[2]?.textContent).toContain('Brot');
+    const items = Array.from(composer.querySelectorAll('.sentence-strip-item'));
+    expect(items.length).toBe(3);
+    expect(items[0]?.textContent).toContain('Ich');
+    expect(items[1]?.textContent).toContain('Essen');
+    expect(items[2]?.textContent).toContain('Brot');
   });
 
   it('treats pizza modifiers as a subset of pizza', async () => {
@@ -178,12 +179,12 @@ describe('MetacomBoard', () => {
     fireEvent.click(ohneKaeseButton);
 
     const composer = screen.getByRole('region', { name: 'Satzkomponist' });
-    const chips = Array.from(composer.querySelectorAll('.sentence-chip'));
-    expect(chips.length).toBe(4);
-    expect(chips[0]?.textContent).toContain('Ich');
-    expect(chips[1]?.textContent).toContain('Essen');
-    expect(chips[2]?.textContent).toContain('Pizza');
-    expect(chips[3]?.textContent).toContain('Ohne Käse');
+    const items = Array.from(composer.querySelectorAll('.sentence-strip-item'));
+    expect(items.length).toBe(4);
+    expect(items[0]?.textContent).toContain('Ich');
+    expect(items[1]?.textContent).toContain('Essen');
+    expect(items[2]?.textContent).toContain('Pizza');
+    expect(items[3]?.textContent).toContain('Ohne Käse');
   });
 
   it('renders the sentence composer with speak button', async () => {
