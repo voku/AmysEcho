@@ -35,6 +35,7 @@ import { registerCustomSignsRoute } from "./routes/customSignsRoute.js";
 import { registerGdprRoutes } from "./routes/gdprRoutes.js";
 import { createLatestMlpModelHandler } from "./routes/latestMlpModelRoute.js";
 import { registerMetacomRoutes } from "./routes/metacomRoutes.js";
+import { registerMetacomSentenceRoutes } from "./routes/metacomSentenceRoutes.js";
 import { registerPretrainingRoutes } from "./routes/pretrainingRoutes.js";
 import { registerProfileRoutes } from "./routes/profileRoutes.js";
 import { registerSymbolRoutes } from "./routes/symbolRoutes.js";
@@ -548,6 +549,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 			logError: (message, meta) => logger.error(message, meta),
 		});
 		registerMetacomRoutes(app, { authMiddleware: auth, db, registry: profileRegistry });
+		registerMetacomSentenceRoutes(app);
 		registerTrainingVideoRoutes(app, { authMiddleware: auth, db, registry: profileRegistry });
 		const emailService = createEmailService();
 		registerAuthRoutes(app, {

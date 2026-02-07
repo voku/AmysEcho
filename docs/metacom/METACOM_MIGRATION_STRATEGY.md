@@ -37,6 +37,27 @@ export function loadMetacomBoards(): Record<string, MetacomBoardDefinition> {
 }
 ```
 
+### Satzkomponist und Navigationstafeln
+
+Navigationstafeln (z. B. „Essen“, „Trinken“, „Spielen“) können optional ein `speech`-Feld tragen.
+Wenn dieses Feld gesetzt ist, wird die Auswahl zusätzlich in den Satzkomponisten aufgenommen,
+sodass zusammengesetzte Aussagen wie „Ich Essen Brot“ vollständig bleiben. Das bleibt opt-in,
+damit reine Navigationsbuttons ohne `speech` weiterhin nur die Tafel wechseln.
+
+```typescript
+{
+  id: 'metacom_board_essen',
+  label: 'Essen',
+  speech: 'Essen',
+  type: 'board',
+  targetBoardId: 'essen'
+}
+```
+
+Modifier-Boards (z. B. „Pizza“ → „Ohne Käse“) folgen dem gleichen Prinzip: Die Navigation zu
+„Pizza“ kann mit `speech: 'Pizza'` bereits in den Satz wandern, während die Modifier als
+Symbols auf der Untertafel ausgewählt werden.
+
 ## Migrationsszenarien
 
 ### Szenario 1: App-Update mit Schema-Änderung

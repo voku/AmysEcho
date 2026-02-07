@@ -27,6 +27,9 @@ export interface ServerConfig {
 	appBaseUrl: string;
 	mailTransport: "sendmail" | "smtp";
 	sendmailPath: string;
+	openAiApiKey?: string;
+	openAiModel: string;
+	openAiBaseUrl: string;
 }
 
 function getEnvVar(name: string, defaultValue?: string): string {
@@ -97,6 +100,9 @@ export const config: ServerConfig = {
 		);
 	})(),
 	sendmailPath: getEnvVar("SENDMAIL_PATH", "/usr/sbin/sendmail"),
+	openAiApiKey: process.env.OPENAI_API_KEY,
+	openAiModel: getEnvVar("OPENAI_MODEL", "gpt-4o-mini"),
+	openAiBaseUrl: getEnvVar("OPENAI_BASE_URL", "https://api.openai.com/v1"),
 };
 
 export default config;

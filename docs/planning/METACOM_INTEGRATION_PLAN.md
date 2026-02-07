@@ -25,6 +25,14 @@ Die MetaTalk-Handbuchreferenz beschreibt eine strukturierte Symbolkommunikation 
 - **Typisierung**: `webapp/src/types/metacom.ts` definiert das Board- und Zellmodell für weitere Erweiterungen.
 - **Import in der Webapp**: Im Adminbereich lassen sich Metacom-Bundles (JSON) laden und zurücksetzen.
 - **Open-Board-Format**: `.obf`-Boards werden für den Import in Metacom-Boards umgewandelt.
+- **Satzkomponist vorhanden**: Mehrere Symbole können als Satz gelesen werden; Satzbau-Logik ist noch in Planung.
+
+## Satzbau & Symbolkombinationen (Planung)
+
+Metacom-orientierte Kommunikation braucht einfache Satzkerne (Subjekt–Verb–Objekt)
+und klare Modifier (z. B. „ohne“, „mit“, „mehr“). Wir planen ein Rollenmodell und
+eine optionale Slotting-Ansicht, damit Amy und andere Kinder vollständige Sätze
+mit Metacom-Symbolen bauen können. _Siehe `docs/metacom/METACOM_SENTENCE_COMPOSITION.md`._
 
 ## Annahmen & Risiken
 - **Rechte/Lizenzen**: Metacom-Symbole und -Layouts unterliegen voraussichtlich Lizenzbedingungen. Vor Integration ist eine rechtliche Freigabe erforderlich.

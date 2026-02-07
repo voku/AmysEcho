@@ -140,7 +140,8 @@ function mapOpenBoardButtons(
         return null;
       }
 
-      const label = button.label?.trim() || button.vocalization?.trim() || 'Symbol';
+      const speech = button.vocalization?.trim();
+      const label = button.label?.trim() || speech || 'Symbol';
       const destination = extractButtonActionDestination(button);
       const color = button.background_color;
       if (destination && validDestinations.has(destination)) {
@@ -151,6 +152,7 @@ function mapOpenBoardButtons(
           position,
           type: 'board',
           targetBoardId: destination,
+          ...(speech && { speech }),
           ...(color && { color }),
         };
         return cell;
@@ -162,7 +164,7 @@ function mapOpenBoardButtons(
         emoji: '🧩',
         position,
         type: 'symbol',
-        ...(button.vocalization && { speech: button.vocalization }),
+        ...(speech && { speech }),
         ...(color && { color }),
       };
       return cell;

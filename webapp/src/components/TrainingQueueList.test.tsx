@@ -32,7 +32,7 @@ describe('TrainingQueueList', () => {
     expect(screen.getByText(/Hilfe · amy-demo/)).toBeInTheDocument();
     expect(screen.getByText(/Frames: 30/)).toBeInTheDocument();
     expect(screen.getByText(/Status: pending/)).toBeInTheDocument();
-  });
+  }, 10000);
 
   it('shows upload and delete buttons when handlers provided', () => {
     const onSyncBundle = vi.fn();

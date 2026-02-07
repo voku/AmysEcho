@@ -3,9 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useSymbolStore } from '../context/SymbolStore';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useAppState } from '../hooks/useAppState';
+import { useApiConfig } from '../hooks/useApiConfig';
 import { audioService } from '../services/audioService';
+import { improveMetacomSentence } from '../services/metacomSentenceService';
 import { resolveGestureSymbol } from '../services/metacomMappingService';
-import type { MetacomBoardDefinition, MetacomCell, MetacomSymbolCell } from '../types/metacom';
+import type {
+  MetacomBoardCell,
+  MetacomBoardDefinition,
+  MetacomCell,
+  MetacomSymbolCell,
+} from '../types/metacom';
+import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { SymbolButton, type Symbol } from './SymbolButton';
 import { SentenceComposer, cellToSentenceSymbol, type SentenceSymbol } from './SentenceComposer';
 
@@ -26,12 +34,17 @@ export function MetacomBoard() {
   const { symbols } = useSymbolStore();
   const { boards } = useMetacomBundle();
   const { lastRecognizedSign } = useAppState();
+  const { apiToken, refreshAccessToken, sentenceImproveEndpoint } = useApiConfig();
   const navigate = useNavigate();
   const [boardHistory, setBoardHistory] = useState<string[]>([START_BOARD_ID]);
   const [lastSpoken, setLastSpoken] = useState<string | null>(null);
   const [lastSymbolSelection, setLastSymbolSelection] = useState<MetacomSymbolCell | null>(null);
   const [sentenceQueue, setSentenceQueue] = useState<SentenceSymbol[]>([]);
   const [lastAddedSign, setLastAddedSign] = useState<string | null>(null);
+  const [slottingEnabled, setSlottingEnabled] = useState(false);
+  const [improvedSentence, setImprovedSentence] = useState<string | null>(null);
+  const [improvementError, setImprovementError] = useState<string | null>(null);
+  const [isImproving, setIsImproving] = useState(false);
 
   // Resolve the most recently detected gesture to a Metacom symbol
   const detectedResolution = useMemo(
@@ -51,6 +64,11 @@ export function MetacomBoard() {
     setSentenceQueue((prev) => [...prev, symbol]);
     setLastAddedSign(lastRecognizedSign);
   }, [lastRecognizedSign, lastAddedSign, detectedResolution]);
+
+  useEffect(() => {
+    setImprovedSentence(null);
+    setImprovementError(null);
+  }, [sentenceQueue]);
 
   const currentBoardId = boardHistory[boardHistory.length - 1] ?? START_BOARD_ID;
   const board = getBoard(currentBoardId, boards);
@@ -103,12 +121,28 @@ export function MetacomBoard() {
     await audioService.speak(text, { allowDuplicates: true });
   }, []);
 
+  const addBoardSelectionToSentence = useCallback((cell: MetacomBoardCell) => {
+    const speechText = cell.speech;
+    if (!speechText) return;
+    setSentenceQueue((prev) => [
+      ...prev,
+      {
+        id: cell.id,
+        label: speechText,
+        emoji: cell.emoji,
+        ...(cell.role ? { role: cell.role } : {}),
+      },
+    ]);
+  }, []);
+
   const handleCellPress = useCallback(
     async (cell: MetacomCell) => {
       if (cell.type === 'board') {
         setBoardHistory((prev) => [...prev, cell.targetBoardId]);
         setLastSymbolSelection(null);
-        await speakSelection(cell.label);
+        const speechText = cell.speech ?? cell.label;
+        addBoardSelectionToSentence(cell);
+        await speakSelection(speechText);
         return;
       }
 
@@ -117,7 +151,7 @@ export function MetacomBoard() {
       const speechText = cell.speech ?? cell.label;
       await speakSelection(speechText);
     },
-    [speakSelection]
+    [addBoardSelectionToSentence, speakSelection]
   );
 
   const canGoBack = boardHistory.length > 1;
@@ -141,6 +175,43 @@ export function MetacomBoard() {
     setSentenceQueue([]);
   }, []);
 
+  const handleImproveSentence = useCallback(async () => {
+    if (sentenceQueue.length === 0) return;
+    if (!apiToken) {
+      setImprovementError('Satzverbesserung ist nur mit Anmeldung verfügbar.');
+      return;
+    }
+    setIsImproving(true);
+    setImprovedSentence(null);
+    setImprovementError(null);
+    const sentenceText = sentenceQueue.map((symbol) => symbol.label).join(' ');
+    try {
+      const suggestion = await improveMetacomSentence({
+        endpoint: sentenceImproveEndpoint,
+        sentence: sentenceText,
+        token: apiToken,
+        refreshAccessToken,
+      });
+      setImprovedSentence(suggestion);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        if (error.status === 401) {
+          setImprovementError(SESSION_EXPIRED_MESSAGE);
+        } else if (error.status === 429) {
+          setImprovementError('Zu viele Anfragen. Bitte später erneut versuchen.');
+        } else if (error.status === 503) {
+          setImprovementError('Satzverbesserung ist gerade nicht verfügbar.');
+        } else {
+          setImprovementError('Satzverbesserung konnte nicht abgeschlossen werden.');
+        }
+        return;
+      }
+      setImprovementError('Satzverbesserung konnte nicht abgeschlossen werden.');
+    } finally {
+      setIsImproving(false);
+    }
+  }, [apiToken, refreshAccessToken, sentenceImproveEndpoint, sentenceQueue]);
+
   return (
     <section className="card metacom-board">
       <header className="metacom-header">
@@ -148,11 +219,20 @@ export function MetacomBoard() {
           <p className="eyebrow">Metacom</p>
           <h2>{board.label}</h2>
         </div>
-        {canGoBack && (
-          <button className="secondary-button" onClick={handleBack}>
-            Zurück
+        <div className="metacom-header-actions">
+          <button
+            className="secondary-button"
+            onClick={() => setSlottingEnabled((prev) => !prev)}
+            aria-pressed={slottingEnabled}
+          >
+            Satzbau-Hilfe {slottingEnabled ? 'an' : 'aus'}
           </button>
-        )}
+          {canGoBack && (
+            <button className="secondary-button" onClick={handleBack}>
+              Zurück
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="metacom-status" aria-live="polite">
@@ -183,6 +263,11 @@ export function MetacomBoard() {
         queue={sentenceQueue}
         onRemoveLast={handleRemoveLast}
         onClear={handleClearSentence}
+        onImprove={handleImproveSentence}
+        improvedSentence={improvedSentence}
+        improvementError={improvementError}
+        isImproving={isImproving}
+        slottingEnabled={slottingEnabled}
       />
 
       <div
