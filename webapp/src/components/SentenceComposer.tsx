@@ -19,6 +19,9 @@ interface SentenceComposerProps {
   improvementError?: string | null;
   isImproving?: boolean;
   slottingEnabled?: boolean;
+  improveAllowed?: boolean;
+  improvementHint?: string | null;
+  displayMode?: 'panel' | 'strip';
 }
 
 /**
@@ -55,6 +58,9 @@ export function SentenceComposer({
   improvementError,
   isImproving,
   slottingEnabled,
+  improveAllowed = true,
+  improvementHint,
+  displayMode = 'panel',
 }: SentenceComposerProps) {
   const speakSentence = useCallback(async () => {
     if (queue.length === 0) return;
@@ -64,9 +70,21 @@ export function SentenceComposer({
   }, [queue, onSpeak]);
 
   const roleGroups = slottingEnabled ? groupByRole(queue) : null;
+  const showImprovementHint =
+    Boolean(improvementHint) && queue.length > 0 && !improvedSentence && !improvementError;
+  const speakImprovedSentence = useCallback(async () => {
+    if (!improvedSentence) return;
+    await audioService.speak(improvedSentence, { allowDuplicates: true });
+  }, [improvedSentence]);
+
+  const isStrip = displayMode === 'strip';
 
   return (
-    <div className="sentence-composer" role="region" aria-label="Satzkomponist">
+    <div
+      className={`sentence-composer${isStrip ? ' sentence-composer--strip' : ''}`}
+      role="region"
+      aria-label="Satzkomponist"
+    >
       <div className="sentence-display" aria-live="polite" aria-atomic="true">
         {queue.length === 0 ? (
           <span className="muted">Wähle Symbole, um einen Satz zu bilden</span>
@@ -95,22 +113,44 @@ export function SentenceComposer({
                 })}
               </div>
             ) : null}
-            <span className="sentence-symbols">
-              {queue.map((symbol, index) => (
-                <span key={`${symbol.id}-${index}`} className="sentence-chip">
-                  {symbol.emoji} {symbol.label}
-                </span>
-              ))}
-            </span>
+            {isStrip ? (
+              <div className="sentence-strip">
+                {queue.map((symbol, index) => (
+                  <span key={`${symbol.id}-${index}`} className="sentence-strip-item">
+                    <span className="sentence-strip-emoji" aria-hidden="true">{symbol.emoji}</span>
+                    <span className="sentence-strip-label">{symbol.label}</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="sentence-symbols">
+                {queue.map((symbol, index) => (
+                  <span key={`${symbol.id}-${index}`} className="sentence-chip">
+                    {symbol.emoji} {symbol.label}
+                  </span>
+                ))}
+              </span>
+            )}
           </>
         )}
       </div>
       {(improvedSentence || improvementError) && (
         <div className="sentence-suggestion" aria-live="polite">
           {improvedSentence ? (
-            <span>
-              <strong>Vorschlag:</strong> {improvedSentence}
-            </span>
+            <>
+              <span>
+                <strong>Vorschlag:</strong> {improvedSentence}
+              </span>
+              <div className="sentence-suggestion-actions">
+                <button
+                  className="secondary-button"
+                  onClick={speakImprovedSentence}
+                  aria-label="Vorschlag sprechen"
+                >
+                  🔊 Vorschlag sprechen
+                </button>
+              </div>
+            </>
           ) : (
             <span className="sentence-error">{improvementError}</span>
           )}
@@ -142,17 +182,22 @@ export function SentenceComposer({
         >
           🔊 Sprechen
         </button>
-        {onImprove && (
-          <button
-            className="secondary-button"
-            onClick={onImprove}
-            disabled={queue.length === 0 || isImproving}
-            aria-label="Satz verbessern"
-          >
-            {isImproving ? '⏳ Satz verbessern' : '✨ Satz verbessern'}
-          </button>
-        )}
       </div>
+      {(onImprove || showImprovementHint) && (
+        <div className="sentence-improve">
+          {onImprove && (
+            <button
+              className="secondary-button sentence-improve-button"
+              onClick={onImprove}
+              disabled={queue.length === 0 || isImproving || !improveAllowed}
+              aria-label="Satz verbessern"
+            >
+              {isImproving ? '⏳ Satz verbessern' : '✨ Satz verbessern'}
+            </button>
+          )}
+          {showImprovementHint && <span className="sentence-hint">{improvementHint}</span>}
+        </div>
+      )}
     </div>
   );
 }

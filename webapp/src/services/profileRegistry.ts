@@ -1,5 +1,6 @@
 import { sha256 } from 'js-sha256';
 import { logger } from './logger';
+import type { MetacomVocabularySet } from '../types/metacomVocabulary';
 
 /**
  * Profile Registry Service
@@ -156,7 +157,7 @@ async function getRegistrySecret(): Promise<string> {
 
 export interface ProfileMetadata {
   childAge?: number;
-  primaryLanguage?: string;
+  vocabularySet?: MetacomVocabularySet;
   avatar?: string;  // Emoji or color identifier
   notes?: string;
 }
@@ -436,7 +437,15 @@ export async function addProfile(profile: Profile): Promise<void> {
  */
 export async function getActiveProfile(): Promise<Profile | null> {
   const registry = await loadProfileRegistry();
-  if (!registry || !registry.activeProfileUuid) return null;
+  if (!registry) return null;
+  if (!registry.activeProfileUuid) {
+    const fallbackProfile = registry.profiles[0];
+    if (fallbackProfile) {
+      await setActiveProfile(fallbackProfile.uuid);
+      return fallbackProfile;
+    }
+    return null;
+  }
   
   const profile = registry.profiles.find((p) => p.uuid === registry.activeProfileUuid);
   // The load function already handles invalid active UUID, but as a fallback:

@@ -26,6 +26,7 @@ describe('useAppState', () => {
     expect(result.current.profileUuid).toBeNull();
     expect(result.current.profileId).toBeNull();
     expect(result.current.displayName).toBeNull();
+    expect(result.current.profileMetadata).toBeNull();
     expect(result.current.preferredSignId).toBe('hilfe');
     expect(result.current.preferredSignName).toBe('HILFE');
   });
@@ -52,6 +53,7 @@ describe('useAppState', () => {
     expect(result.current.profileUuid).toBe('test-uuid-123');
     expect(result.current.profileId).toBe('test-profile');
     expect(result.current.displayName).toBe('Test User');
+    expect(result.current.profileMetadata).toEqual({});
   });
 
   it('records gestures and maintains recent list', () => {
@@ -89,5 +91,6 @@ describe('useAppState', () => {
     expect(result.current.profileUuid).toBe('new-uuid-456');
     expect(result.current.profileId).toBe('new-profile');
     expect(result.current.displayName).toBe('New User');
+    expect(result.current.profileMetadata).toEqual({});
   });
 });

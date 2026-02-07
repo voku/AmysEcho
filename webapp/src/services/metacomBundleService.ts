@@ -4,7 +4,8 @@ import type {
   MetacomCell,
   MetacomSymbolCell,
 } from '../types/metacom';
-import { METACOM_BOARDS } from '../constants/metacomBoards';
+import { getMetacomBoardsForVocabularySet } from '../constants/metacomBoards';
+import type { MetacomVocabularySet } from '../types/metacomVocabulary';
 
 const METACOM_BUNDLE_STORAGE_KEY = 'amysecho_metacom_bundle';
 export const METACOM_BUNDLE_UPDATED_EVENT = 'amysecho:metacom-bundle-updated';
@@ -317,18 +318,31 @@ export function clearMetacomBundle(): void {
   window.dispatchEvent(new Event(METACOM_BUNDLE_UPDATED_EVENT));
 }
 
-export function loadMetacomBoards(): Record<string, MetacomBoardDefinition> {
+type LoadMetacomBoardsOptions = {
+  vocabularySet?: MetacomVocabularySet;
+};
+
+function getDefaultMetacomBoards(
+  vocabularySet: MetacomVocabularySet,
+): Record<string, MetacomBoardDefinition> {
+  return getMetacomBoardsForVocabularySet(vocabularySet);
+}
+
+export function loadMetacomBoards(
+  options: LoadMetacomBoardsOptions = {},
+): Record<string, MetacomBoardDefinition> {
+  const vocabularySet = options.vocabularySet ?? 'basis';
   if (typeof window === 'undefined') {
-    return METACOM_BOARDS;
+    return getDefaultMetacomBoards(vocabularySet);
   }
   const raw = window.localStorage.getItem(METACOM_BUNDLE_STORAGE_KEY);
-  if (!raw) return METACOM_BOARDS;
+  if (!raw) return getDefaultMetacomBoards(vocabularySet);
   try {
     const bundle = parseMetacomBundle(raw);
     return buildBoardRecord(bundle.boards);
   } catch (error) {
     console.warn('Failed to load Metacom bundle', error);
-    return METACOM_BOARDS;
+    return getDefaultMetacomBoards(vocabularySet);
   }
 }
 

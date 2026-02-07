@@ -292,10 +292,12 @@ export function TrainingUploadWithRecording() {
     setPreferredSign,
     preferredSignId,
     profileId,
+    profileMetadata,
   } = useAppState();
   const modelInjection = useMlpModelInjection(profileId);
   const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
-  const { symbols: metacomSymbols } = useMetacomBundle();
+  const vocabularySet = profileMetadata?.vocabularySet ?? 'basis';
+  const { symbols: metacomSymbols } = useMetacomBundle({ vocabularySet });
   const combinedSymbols = useMemo(() => {
     const merged = new Map<string, SymbolDefinition>();
     for (const symbol of symbols) {
