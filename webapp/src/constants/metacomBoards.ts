@@ -2,6 +2,8 @@ import type { MetacomBoardDefinition, MetacomCell } from '../types/metacom';
 import type { MetacomVocabularySet } from '../types/metacomVocabulary';
 import boardData from '../data/metacomBoardData.json';
 
+type BoardDataKey = keyof typeof boardData.boards;
+
 type RawBoardEntry = {
   id?: string;
   label?: string;
@@ -10,12 +12,15 @@ type RawBoardEntry = {
   cells: unknown[];
 };
 
+// Cell structure is guaranteed by metacomBoardData.test.ts which validates
+// every cell has the required fields (id, label, emoji, position, type)
+// and board cells have targetBoardId.
 function castCells(raw: unknown[]): MetacomCell[] {
   return raw as MetacomCell[];
 }
 
-function loadBoard(key: string): MetacomBoardDefinition {
-  const raw = boardData.boards[key as keyof typeof boardData.boards] as RawBoardEntry | undefined;
+function loadBoard(key: BoardDataKey): MetacomBoardDefinition {
+  const raw = boardData.boards[key] as RawBoardEntry | undefined;
   if (!raw || !raw.id || !raw.label || !raw.rows || !raw.columns) {
     throw new Error(`Board data missing for key "${key}"`);
   }
@@ -28,8 +33,8 @@ function loadBoard(key: string): MetacomBoardDefinition {
   };
 }
 
-function loadExtraCells(key: string): MetacomCell[] {
-  const raw = boardData.boards[key as keyof typeof boardData.boards] as { cells: unknown[] } | undefined;
+function loadExtraCells(key: BoardDataKey): MetacomCell[] {
+  const raw = boardData.boards[key] as { cells: unknown[] } | undefined;
   if (!raw) return [];
   return castCells(raw.cells);
 }
