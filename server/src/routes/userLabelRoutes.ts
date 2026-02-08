@@ -234,6 +234,12 @@ export function registerUserLabelRoutes(
 				// Normalize labelId to lowercase for consistency
 				const normalizedLabelId = labelId.toLowerCase();
 				
+				// Validate label exists in registry
+				const metadata = await getLabelMetadataEntry(normalizedLabelId);
+				if (!metadata) {
+					return res.status(404).json({ error: "Label nicht gefunden." });
+				}
+				
 				// Get existing setting or use defaults
 				const existing = getLabelSetting(userId, normalizedLabelId);
 				const mode = parsed.data.mode ?? existing?.mode ?? "user_train";
