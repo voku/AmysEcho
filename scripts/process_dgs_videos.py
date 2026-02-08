@@ -22,15 +22,11 @@ import sys
 from typing import Any
 
 import cv2
+import mediapipe as mp
 import numpy as np
+from mediapipe.tasks import python as mp_tasks
+from mediapipe.tasks.python import vision as mp_vision
 
-try:
-    import mediapipe as mp
-    from mediapipe.tasks import python as mp_tasks
-    from mediapipe.tasks.python import vision as mp_vision
-except ImportError:
-    print("Error: MediaPipe is not installed.")
-    sys.exit(1)
 
 class DGSVideoProcessor:
     def __init__(self, models_dir: str, confidence: float = 0.5):
@@ -215,7 +211,14 @@ class DGSVideoProcessor:
 
         return {}
 
-    def process_directory(self, videos_dir: str, max_frames: int, frame_skip: int, manifest_path: str | None = None) -> list[dict[str, Any]]:
+    def process_directory(
+        self,
+        videos_dir: str,
+        max_frames: int,
+        frame_skip: int,
+        manifest_path: str | None = None,
+        label_filter: set[str] | None = None,
+    ) -> list[dict[str, Any]]:
         # Validate directory exists first
         if not os.path.exists(videos_dir):
             print(f"Error: Videos directory {videos_dir} does not exist")
@@ -243,6 +246,8 @@ class DGSVideoProcessor:
         for f in files:
             label = video_gesture_map.get(f)
             if label:
+                if label_filter and label not in label_filter:
+                    continue
                 path = os.path.join(videos_dir, f)
                 if not os.path.exists(path):
                     print(f"Warning: Video file {path} does not exist, skipping")
@@ -300,6 +305,7 @@ def main():
     parser.add_argument('--split-output', action='store_true', help='Save individual landmark files per video')
     parser.add_argument('--models-dir', default='server/data/models', help='Directory containing MediaPipe model files')
     parser.add_argument('--manifest', default='server/data/dgs_manifest.json', help='JSON manifest with video-to-gesture mappings')
+    parser.add_argument('--labels', default='', help='Comma-separated labels to process (optional)')
     parser.add_argument('--max-frames', type=int, default=300, help='Maximum frames to process per video')
     parser.add_argument('--frame-skip', type=int, default=2, help='Number of frames to skip between processing')
     parser.add_argument('--confidence', type=float, default=0.5, help='Detection confidence threshold')
@@ -319,7 +325,18 @@ def main():
             raise FileNotFoundError(f"Models directory does not exist: {args.models_dir}")
 
         processor = DGSVideoProcessor(args.models_dir, args.confidence)
-        samples = processor.process_directory(args.videos_dir, args.max_frames, args.frame_skip, args.manifest)
+        label_filter = None
+        if args.labels.strip():
+            label_filter = {label.strip() for label in args.labels.split(",") if label.strip()}
+            if not label_filter:
+                label_filter = None
+        samples = processor.process_directory(
+            args.videos_dir,
+            args.max_frames,
+            args.frame_skip,
+            args.manifest,
+            label_filter,
+        )
 
         if samples:
             save_output(samples, args.output, args.split_output, args.videos_dir)

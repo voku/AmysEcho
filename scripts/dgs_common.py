@@ -2,8 +2,11 @@
 """Shared utilities for DGS fetching scripts."""
 
 import json
+import os
+import re
 import urllib.error
 import urllib.request
+import warnings
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -11,10 +14,17 @@ from bs4 import BeautifulSoup
 BASE_URL = "https://signdict.org"
 DATA_DIR = Path("server/data/dgs_video_examples")
 MANIFEST_PATH = Path("server/data/dgs_manifest.json")
+CUSTOM_SOURCES_PATH = Path(
+    os.environ.get("AMY_DGS_SOURCES_PATH", "server/data/config/dgsVideoSources.json")
+)
 
 def ensure_dirs():
     """Ensure data directory exists."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+def normalize_source_name(value: str) -> str:
+    """Normalize source names for safe filenames."""
+    return re.sub(r"[^a-zA-Z0-9_-]+", "_", value.strip().lower()) or "source"
 
 def fetch_url(url):
     """Fetch content from a URL with a browser-like User-Agent."""
@@ -98,6 +108,91 @@ def download_video(label, video_url, index=None):
     except OSError as e:
         print(f"  Failed to download {filename} (file error): {e}")
         return None
+
+def fetch_fallback_videos(label):
+    """
+    Download videos from fallback sources for a label.
+    
+    .. deprecated:: 2026-02-08
+        Use fetch_custom_source_videos() directly or configure custom sources in
+        server/data/config/dgsVideoSources.json. This function will be removed in
+        a future version.
+    """
+    warnings.warn(
+        "fetch_fallback_videos() is deprecated. Use fetch_custom_source_videos() "
+        "directly or configure sources in server/data/config/dgsVideoSources.json.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return fetch_custom_source_videos(label)
+
+def load_custom_sources() -> dict:
+    """Load additional DGS video sources from configuration."""
+    if not CUSTOM_SOURCES_PATH.exists():
+        return {}
+    try:
+        with open(CUSTOM_SOURCES_PATH) as f:
+            payload = json.load(f)
+        labels = payload.get("labels")
+        if isinstance(labels, dict):
+            return labels
+    except json.JSONDecodeError as e:
+        print(f"Warning: Could not parse custom sources file at {CUSTOM_SOURCES_PATH}: {e}")
+    except OSError as e:
+        print(f"Warning: Could not read custom sources file at {CUSTOM_SOURCES_PATH}: {e}")
+    return {}
+
+def fetch_custom_source_videos(label: str) -> list[str]:
+    """Download videos for a label from configured custom sources."""
+    ensure_dirs()
+    sources = load_custom_sources().get(label, {}).get("sources", [])
+    downloaded: list[str] = []
+    for source_index, source in enumerate(sources):
+        if isinstance(source, dict):
+            name = source.get("name") or source.get("source") or f"source_{source_index}"
+            urls = source.get("urls") or []
+        else:
+            name = f"source_{source_index}"
+            urls = []
+        if not isinstance(urls, list):
+            continue
+        prefix = normalize_source_name(str(name))
+        for url_index, url in enumerate(urls):
+            if not url:
+                continue
+            filename = download_video(label, url, f"{prefix}_{url_index}")
+            if filename:
+                downloaded.append(filename)
+    return downloaded
+
+def update_manifest_stats(manifest: dict) -> None:
+    """Update derived statistics in the manifest."""
+    gestures = manifest.get("gestures", [])
+    total_videos = 0
+    for entry in gestures:
+        videos = entry.get("videos") or []
+        if isinstance(videos, list):
+            total_videos += len(videos)
+    manifest["stats"] = {
+        "totalLabels": len(gestures),
+        "totalVideos": total_videos,
+    }
+
+def upsert_manifest_entry(manifest: dict, label: str, video_files: list[str]) -> None:
+    """Replace or insert a manifest entry for the given label."""
+    manifest["gestures"] = [
+        g
+        for g in manifest.get("gestures", [])
+        if g.get("id") != label and g.get("label") != label
+    ]
+    manifest["gestures"].append(
+        {
+            "id": label,
+            "label": label,
+            "videos": video_files,
+            "totalVideoCount": len(video_files),
+        }
+    )
 
 def load_manifest():
     """Load the manifest file safely."""

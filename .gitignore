@@ -60,5 +60,14 @@ server/data/profiles/profile_registry.json
 server/data/datasets/ingestion_metrics.json
 server/data/models/[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*/
 server/data/models/global/amy_model.npz
+server/data/models/global/amy_model.npz.sha256
+server/data/models/global/training_metadata.json
 server/data/pretraining_report.json
 server/data/test-*.sqlite
+server/data/dgs_manifest.json
+server/data/dgs_video_examples/
+server/data/fixtures/
+server/data/users/
+# Integration test config files
+server/data/config/dgsVideoSources.integration.json
+**/dgsVideoSources.test.json

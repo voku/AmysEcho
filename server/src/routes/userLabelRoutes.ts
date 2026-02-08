@@ -24,7 +24,8 @@ import {
 	initializeUserLabelSettings,
 	setLabelSetting,
 } from "../services/userLabelSettingsService.js";
-import { loadBaselineLabels } from "../services/labelRegistry.js";
+import { getLabelMetadataEntry } from "../services/labelRegistry.js";
+import { queueAutoPretrainJob } from "../services/dgsAutoPretrainService.js";
 import { isProfileAuthorized } from "../utils/profileAuthorization.js";
 import { PROFILE_ID_PATTERN } from "../constants/modelPaths.js";
 
@@ -42,6 +43,7 @@ interface UserLabelRouteDeps {
 	db: Database;
 	registry: ProfileRegistry;
 	logError: (message: string, metadata?: Record<string, unknown>) => void;
+	queueAutoPretrainJob?: typeof queueAutoPretrainJob;
 }
 
 // Rate limiter for label settings endpoints
@@ -58,6 +60,7 @@ export function registerUserLabelRoutes(
 	deps: UserLabelRouteDeps,
 ): void {
 	const { authMiddleware, db, registry, logError } = deps;
+	const autoPretrainQueue = deps.queueAutoPretrainJob ?? queueAutoPretrainJob;
 
 	/**
 	 * GET /api/v1/users/:userId/labels
@@ -151,7 +154,11 @@ export function registerUserLabelRoutes(
 			try {
 				// Normalize labelId to lowercase for consistency
 				const normalizedLabelId = labelId.toLowerCase();
-				
+				const metadata = await getLabelMetadataEntry(normalizedLabelId);
+				if (!metadata) {
+					return res.status(404).json({ error: "Label nicht gefunden." });
+				}
+
 				const readiness = await getLabelReadiness(userId, normalizedLabelId);
 				if (!readiness) {
 					return res.status(404).json({ error: "Label nicht gefunden." });
@@ -227,18 +234,35 @@ export function registerUserLabelRoutes(
 				// Normalize labelId to lowercase for consistency
 				const normalizedLabelId = labelId.toLowerCase();
 				
-				// Verify labelId exists in baseline labels before updating
-				const baselineLabels = await loadBaselineLabels();
-				if (!baselineLabels.includes(normalizedLabelId)) {
+				// Validate label exists in registry
+				const metadata = await getLabelMetadataEntry(normalizedLabelId);
+				if (!metadata) {
 					return res.status(404).json({ error: "Label nicht gefunden." });
 				}
-
+				
 				// Get existing setting or use defaults
 				const existing = getLabelSetting(userId, normalizedLabelId);
 				const mode = parsed.data.mode ?? existing?.mode ?? "user_train";
 				const enabled = parsed.data.enabled ?? existing?.enabled ?? true;
 
 				const setting = setLabelSetting(userId, normalizedLabelId, mode, enabled);
+				let autoPretrainJob = null;
+				if (mode === "server_pretrain" && enabled) {
+					try {
+						autoPretrainJob = autoPretrainQueue({
+							userId,
+							labelId: normalizedLabelId,
+							triggerTraining: true,
+						});
+					} catch (error) {
+						const message = error instanceof Error ? error.message : String(error);
+						logError("Failed to queue auto pretrain", {
+							userId,
+							labelId: normalizedLabelId,
+							error: message,
+						});
+					}
+				}
 
 				// Return updated readiness as well
 				const readiness = await getLabelReadiness(userId, normalizedLabelId);
@@ -246,6 +270,7 @@ export function registerUserLabelRoutes(
 				return res.json({
 					...readiness,
 					updatedAt: setting.updatedAt,
+					autoPretrainJob,
 				});
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);

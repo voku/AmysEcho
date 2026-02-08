@@ -2,7 +2,7 @@ import AdmZip from 'adm-zip';
 import { spawn, ChildProcess } from 'child_process';
 import { once } from 'events';
 import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { promises as fs } from 'fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import jwt from 'jsonwebtoken';
@@ -13,6 +13,11 @@ declare global {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', '..', 'server');
+const dgsFixtureDir = join(serverDir, 'data', 'fixtures', 'dgs_sources');
+const dgsFixtureVideo = join(dgsFixtureDir, 'kindergarten.mp4');
+const dgsFixtureConfig = join(serverDir, 'data', 'config', 'dgsVideoSources.integration.json');
+const dgsFixtureLabel = 'kindergarten';
+const dgsFixtureLandmarkName = `${dgsFixtureLabel}_integration_0_landmarks.json`;
 
 export const TEST_PORT = 5050;
 export const JWT_SECRET = 'integration-jwt-secret';
@@ -26,6 +31,9 @@ const LOCAL_TEST_TOKEN = jwt.sign(
 
 export const TEST_TOKEN = process.env.LIVE_SERVER_TOKEN ?? LOCAL_TEST_TOKEN;
 const BASE_URL = LIVE_SERVER_URL ?? `http://localhost:${TEST_PORT}`;
+
+process.env.AMY_DGS_SOURCES_PATH = process.env.AMY_DGS_SOURCES_PATH ?? dgsFixtureConfig;
+process.env.AMY_DGS_SKIP_SIGNDICT = process.env.AMY_DGS_SKIP_SIGNDICT ?? 'true';
 
 export function isLiveServer() {
   return Boolean(LIVE_SERVER_URL);
@@ -92,6 +100,35 @@ async function cleanServerArtifacts() {
   await fs.rm(join(serverDir, 'data', 'datasets'), { recursive: true, force: true }).catch(() => {});
 }
 
+async function ensureDgsFixtureSources() {
+  if (isLiveServer()) {
+    return;
+  }
+  const configPath = process.env.AMY_DGS_SOURCES_PATH ?? dgsFixtureConfig;
+  await fs.mkdir(dgsFixtureDir, { recursive: true });
+  await fs.writeFile(dgsFixtureVideo, Buffer.from('fake-dgs-video-data'));
+
+  const configPayload = {
+    version: '1.0',
+    description: 'Integration test sources',
+    labels: {
+      [dgsFixtureLabel]: {
+        sources: [
+          {
+            name: 'integration',
+            urls: [pathToFileURL(dgsFixtureVideo).href],
+          },
+        ],
+      },
+    },
+  };
+  await fs.writeFile(configPath, JSON.stringify(configPayload, null, 2));
+
+  const dgsVideoDir = join(serverDir, 'data', 'dgs_video_examples');
+  await fs.mkdir(dgsVideoDir, { recursive: true });
+  await fs.writeFile(join(dgsVideoDir, dgsFixtureLandmarkName), JSON.stringify({ frames: [] }, null, 2));
+}
+
 async function waitForServerReady(baseUrl: string, headers: Record<string, string>) {
   const start = Date.now();
   const timeoutMs = 30_000;
@@ -112,6 +149,7 @@ async function waitForServerReady(baseUrl: string, headers: Record<string, strin
 
 async function actuallyStartServer(attempt = 1) {
   await cleanServerArtifacts();
+  await ensureDgsFixtureSources();
 
   await new Promise((resolve, reject) => {
     const build = spawn('npm', ['run', 'build'], {

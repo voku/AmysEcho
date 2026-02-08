@@ -2,16 +2,43 @@
 
 This document catalogs available Deutsche Gebärdensprache (DGS) video resources with open licenses suitable for training data expansion.
 
+## ⚠️ CRITICAL: Video Source Consistency
+
+**Different DGS dictionaries show different sign variations. The training videos MUST match the signs Amy has been taught.**
+
+If Amy learned with **Kestner** (https://www.kestner.app/), the SignDict videos may not match. See **[VIDEO_SOURCE_CONSISTENCY.md](VIDEO_SOURCE_CONSISTENCY.md)** for:
+- Why this matters for Amy's communication
+- How to record custom videos matching Amy's learning
+- How to verify and replace mismatched videos
+
+**Bottom line: Recognition only works if training videos match what Amy learned.**
+
 ## Amy First Note
 
 Additional training data from these resources can help Amy learn more signs and improve recognition accuracy. When expanding training data, always prioritize:
-1. **Core vocabulary first** - Focus on everyday communication needs
-2. **Kid-appropriate content** - Signs relevant to children's daily life
-3. **Quality over quantity** - Well-recorded videos with clear signing
+1. **Consistency with Amy's learning** - Use the same sign system/variants Amy knows
+2. **Core vocabulary first** - Focus on everyday communication needs
+3. **Kid-appropriate content** - Signs relevant to children's daily life
+4. **Quality over quantity** - Well-recorded videos with clear signing
 
 ---
 
 ## Available Datasets
+
+### 0. Kestner System (Professional, Paid)
+
+- **Source**: [Kestner App](https://www.kestner.app/)
+- **Content**: Over 29,000 professionally standardized DGS signs
+- **License**: ⚠️ Commercial/Proprietary - subscription required
+- **Status**: ⚠️ Not integrated - no API or bulk download available
+- **Notes**:
+  - Most comprehensive and professionally curated DGS dictionary
+  - Used widely in German schools and therapy
+  - **If Amy learned with Kestner, SignDict videos may not match**
+  - Videos are copyrighted - no programmatic access
+  - For personal use: Screen record from app with valid subscription
+  - For bulk use: Contact publisher (info@kestner.de) for licensing
+  - **Best solution**: Record custom videos matching Amy's teacher's signing
 
 ### 1. SignDict.org (Currently Used)
 
@@ -23,7 +50,35 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 2. Hugging Face: sign-language-avatar-gloss-dgs
+### 2. Custom Video Sources (Configurable Fallback)
+
+- **Source**: Configurable via `server/data/config/dgsVideoSources.json`
+- **Content**: Any publicly accessible DGS video URLs
+- **License**: Verify per video source
+- **Status**: ✅ Used as fallback when SignDict has no match
+- **Notes**:
+  - Extensible configuration-based approach
+  - Add custom URLs for labels not available on SignDict
+  - Useful for testing and offline development
+  - Example configuration:
+    ```json
+    {
+      "labels": {
+        "kindergarten": {
+          "sources": [
+            {
+              "name": "custom_source",
+              "urls": ["https://example.com/kindergarten_sign.mp4"]
+            }
+          ]
+        }
+      }
+    }
+    ```
+
+---
+
+### 3. Hugging Face: sign-language-avatar-gloss-dgs
 
 - **Source**: [fhswf/sign-language-avatar-gloss-dgs](https://huggingface.co/datasets/fhswf/sign-language-avatar-gloss-dgs)
 - **Content**: Curated SignDict.org resources with pose estimation data
@@ -40,7 +95,7 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 3. DGS-Fabeln-1 Corpus
+### 4. DGS-Fabeln-1 Corpus
 
 - **Source**: [Zenodo: DGS-Fabeln-1](https://doi.org/10.5281/zenodo.10822096)
 - **Content**: Fairy tales interpreted in DGS by native signer
@@ -54,7 +109,7 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 4. DGS-Korpus (Public Access)
+### 5. DGS-Korpus (Public Access)
 
 - **Source**: [meine-dgs.de](https://meine-dgs.de)
 - **Content**: 50+ hours of annotated natural DGS conversations
@@ -68,7 +123,7 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 5. SIGNUM Database
+### 6. SIGNUM Database
 
 - **Source**: [Phonetik BAS](https://www.phonetik.uni-muenchen.de/Bas/BasSIGNUMdeu.html)
 - **Content**: 450 isolated DGS signs, 780 sentences
@@ -92,16 +147,21 @@ For Amy's Echo, prioritize data expansion in this order:
    - Compatible with current pipeline
    - Expands existing SignDict vocabulary
 
-2. **SIGNUM Database** (Short-term)
+2. **Custom Video Sources** (Short-term)
+   - Direct video URLs via dgsVideoSources.json
+   - Great fallback for missing labels
+   - Easy to configure and test
+
+3. **SIGNUM Database** (Short-term)
    - High-quality isolated signs
    - Multiple signers for robustness
    - Academic standard
 
-3. **DGS-Fabeln-1** (Medium-term)
+4. **DGS-Fabeln-1** (Medium-term)
    - Multi-angle recordings
    - Continuous signing for sequence models
 
-4. **DGS-Korpus** (Long-term)
+5. **DGS-Korpus** (Long-term)
    - Natural language data
    - Requires more preprocessing
 
@@ -137,6 +197,10 @@ When adding new training data, ensure:
 | trinken | 31 | SignDict |
 | **Total** | **126** | |
 
+> Note: Additional labels can be added via dgsVideoSources.json configuration.
+> The auto-pretrain feature will automatically download and process videos
+> from configured custom sources when labels are enabled.
+
 ---
 
 ## Integration Notes
@@ -164,7 +228,9 @@ When adding new videos, update:
 1. `server/data/dgs_manifest.json` - Add video entries
 2. `server/data/config/defaultBaselineLabels.json` - Add new labels
 3. `server/data/config/kid_starter_preset.json` - Update vocabulary if appropriate
+4. `server/data/config/dgsVideoSources.json` - Record the source URLs when using
+   additional datasets outside SignDict/DW-DGS
 
 ---
 
-*Last updated: 2026-02-04*
+*Last updated: 2026-02-08*
