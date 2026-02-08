@@ -16,20 +16,6 @@ MANIFEST_PATH = Path("server/data/dgs_manifest.json")
 CUSTOM_SOURCES_PATH = Path(
     os.environ.get("AMY_DGS_SOURCES_PATH", "server/data/config/dgsVideoSources.json")
 )
-FALLBACK_LABEL_URLS = {
-    "alle": ["https://dw-dgs.de/static/videos/alle.mp4"],
-    "blau": ["https://dw-dgs.de/static/videos/blau.mp4"],
-    "essen": ["https://dw-dgs.de/static/videos/essen.mp4"],
-    "fertig": ["https://dw-dgs.de/static/videos/fertig.mp4"],
-    "gelb": ["https://dw-dgs.de/static/videos/gelb.mp4"],
-    "gruen": ["https://dw-dgs.de/static/videos/gruen.mp4"],
-    "nochmal": ["https://dw-dgs.de/static/videos/nochmal.mp4"],
-    "rot": ["https://dw-dgs.de/static/videos/rot.mp4"],
-    "satt": ["https://dw-dgs.de/static/videos/satt.mp4"],
-    "schwester": ["https://dw-dgs.de/static/videos/schwester.mp4"],
-    "spielen": ["https://dw-dgs.de/static/videos/spielen.mp4"],
-    "trinken": ["https://dw-dgs.de/static/videos/trinken.mp4"],
-}
 
 def ensure_dirs():
     """Ensure data directory exists."""
@@ -123,15 +109,14 @@ def download_video(label, video_url, index=None):
         return None
 
 def fetch_fallback_videos(label):
-    """Download videos from fallback sources (e.g., DW-DGS) for a label."""
-    ensure_dirs()
-    urls = FALLBACK_LABEL_URLS.get(label, [])
-    downloaded = []
-    for idx, url in enumerate(urls):
-        filename = download_video(label, url, f"fallback_{idx}")
-        if filename:
-            downloaded.append(filename)
-    return downloaded
+    """
+    Download videos from fallback sources for a label.
+    
+    This function is deprecated and now just calls fetch_custom_source_videos().
+    Use fetch_custom_source_videos() directly or configure custom sources in
+    server/data/config/dgsVideoSources.json.
+    """
+    return fetch_custom_source_videos(label)
 
 def load_custom_sources() -> dict:
     """Load additional DGS video sources from configuration."""

@@ -5,7 +5,7 @@ This document describes how to run the full DGS (Deutsche Gebärdensprache) pre-
 ## Overview
 
 The pipeline consists of 4 steps:
-1. **Download videos** from signdict.org (fallback: DW-DGS lexicon) for all 46 kid starter preset labels
+1. **Download videos** from signdict.org (fallback: custom sources from dgsVideoSources.json) for all 46 kid starter preset labels
 2. **Download MediaPipe models** for landmark extraction
 3. **Process videos** to extract hand/pose/face landmarks
 4. **Train MLP model** using the extracted landmarks
@@ -59,7 +59,7 @@ PYTHONPATH=. python3 scripts/fetch_signdict_videos_variants.py
 **What it does:**
 - Searches signdict.org for each label and its synonyms
 - Merges additional sources from `server/data/config/dgsVideoSources.json` (optional)
-- Falls back to DW-DGS direct MP4 links for core labels when SignDict has no match
+- Falls back to custom configured video URLs when SignDict has no match
 - Downloads main video + variant videos for each sign
 - Updates `server/data/dgs_manifest.json` with video inventory
 

@@ -1,13 +1,13 @@
 {
   "version": "1.0",
-  "description": "Zusätzliche DGS-Videoquellen für Auto-Pretraining.",
+  "description": "Test fixture for integration test - uses a copied video file for kindergarten label",
   "labels": {
     "kindergarten": {
       "sources": [
         {
           "name": "integration",
           "urls": [
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"
+            "file://./server/data/dgs_video_examples/alle_main_alles.mp4"
           ]
         }
       ]

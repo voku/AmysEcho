@@ -11,7 +11,6 @@ from scripts.dgs_common import (
     download_video,
     ensure_dirs,
     fetch_custom_source_videos,
-    fetch_fallback_videos,
     fetch_url,
     find_entry_url,
     find_variant_links,
@@ -130,16 +129,10 @@ def main() -> None:
 
             time.sleep(1)
 
-    # Try to fetch from all sources and combine results for comprehensive dataset
-    print("Checking additional sources...")
+    # Try to fetch from custom sources to expand the dataset
+    print("Checking additional custom sources...")
     custom_files = fetch_custom_source_videos(label)
     for filename in custom_files:
-        if filename not in video_files:
-            video_files.append(filename)
-
-    print("Checking fallback sources...")
-    fallback_files = fetch_fallback_videos(label)
-    for filename in fallback_files:
         if filename not in video_files:
             video_files.append(filename)
 

@@ -23,15 +23,31 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 2. DW-DGS Lexikon (Fallback for Core Labels)
+### 2. Custom Video Sources (Configurable Fallback)
 
-- **Source**: [dw-dgs.de](https://dw-dgs.de)
-- **Content**: Isolated DGS sign videos for common vocabulary
-- **License**: Verify per video (DW resources are typically educational; confirm usage)
-- **Status**: ✅ Used as a fallback when SignDict has no match
+- **Source**: Configurable via `server/data/config/dgsVideoSources.json`
+- **Content**: Any publicly accessible DGS video URLs
+- **License**: Verify per video source
+- **Status**: ✅ Used as fallback when SignDict has no match
 - **Notes**:
-  - Direct MP4 URLs available for core vocabulary
-  - Useful to backfill missing SignDict entries
+  - Extensible configuration-based approach
+  - Add custom URLs for labels not available on SignDict
+  - Useful for testing and offline development
+  - Example configuration:
+    ```json
+    {
+      "labels": {
+        "kindergarten": {
+          "sources": [
+            {
+              "name": "custom_source",
+              "urls": ["https://example.com/kindergarten_sign.mp4"]
+            }
+          ]
+        }
+      }
+    }
+    ```
 
 ---
 
@@ -104,9 +120,10 @@ For Amy's Echo, prioritize data expansion in this order:
    - Compatible with current pipeline
    - Expands existing SignDict vocabulary
 
-2. **DW-DGS Lexikon** (Short-term)
-   - Direct MP4 videos, easy to ingest
-   - Great fallback for missing core labels
+2. **Custom Video Sources** (Short-term)
+   - Direct video URLs via dgsVideoSources.json
+   - Great fallback for missing labels
+   - Easy to configure and test
 
 3. **SIGNUM Database** (Short-term)
    - High-quality isolated signs
@@ -153,8 +170,9 @@ When adding new training data, ensure:
 | trinken | 31 | SignDict |
 | **Total** | **126** | |
 
-> Hinweis: Sobald DW-DGS-Fallback-Videos eingebunden sind, ergänzen wir die Quellen
-> pro Label entsprechend (SignDict + DW-DGS).
+> Note: Additional labels can be added via dgsVideoSources.json configuration.
+> The auto-pretrain feature will automatically download and process videos
+> from configured custom sources when labels are enabled.
 
 ---
 
