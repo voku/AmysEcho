@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { audioService } from '../services/audioService';
 import type { MetacomSymbolCell, MetacomSymbolRole } from '../types/metacom';
 
@@ -36,6 +36,14 @@ const SLOT_ORDER: Array<{ key: MetacomSymbolRole; label: string }> = [
   { key: 'modifier', label: 'Modifier' },
   { key: 'negation', label: 'Negation' },
 ];
+
+const ROLE_PROMPTS: Record<MetacomSymbolRole, string> = {
+  person: 'Wer ist gemeint?',
+  action: 'Was passiert?',
+  object: 'Worum geht es?',
+  modifier: 'Wie, wo oder wie viel?',
+  negation: 'Soll es verneint werden?',
+};
 
 function groupByRole(queue: SentenceSymbol[]) {
   const grouped = new Map<MetacomSymbolRole, SentenceSymbol[]>();
@@ -78,6 +86,24 @@ export function SentenceComposer({
   }, [improvedSentence]);
 
   const isStrip = displayMode === 'strip';
+  const sentenceText = useMemo(() => queue.map((symbol) => symbol.label).join(' '), [queue]);
+  const lastSymbol = queue[queue.length - 1] ?? null;
+  const nextStepHint = useMemo(() => {
+    if (queue.length === 0) {
+      return 'Starte mit einem Kernwort wie „Ich“, „Du“ oder „Mehr“.';
+    }
+
+    if (!slottingEnabled || !roleGroups) {
+      return 'Füge ein weiteres Symbol hinzu, um den Satz zu erweitern.';
+    }
+
+    const missingSlot = SLOT_ORDER.find((slot) => (roleGroups.get(slot.key) ?? []).length === 0);
+    if (!missingSlot) {
+      return 'Du kannst den Satz noch erweitern oder direkt sprechen.';
+    }
+
+    return ROLE_PROMPTS[missingSlot.key];
+  }, [queue.length, roleGroups, slottingEnabled]);
 
   return (
     <div
@@ -86,52 +112,66 @@ export function SentenceComposer({
       aria-label="Satzkomponist"
     >
       <div className="sentence-display" aria-live="polite" aria-atomic="true">
-        {queue.length === 0 ? (
-          <span className="muted">Wähle Symbole, um einen Satz zu bilden</span>
-        ) : (
-          <>
-            {slottingEnabled && roleGroups ? (
-              <div className="sentence-slots" aria-label="Satzbau-Hinweise">
-                {SLOT_ORDER.map((slot) => {
-                  const items = roleGroups.get(slot.key) ?? [];
-                  return (
-                    <div key={slot.key} className="sentence-slot">
-                      <span className="sentence-slot-label">{slot.label}</span>
-                      <span className="sentence-slot-items">
-                        {items.length === 0 ? (
-                          <span className="sentence-slot-empty">—</span>
-                        ) : (
-                          items.map((symbol, index) => (
-                            <span key={`${symbol.id}-${index}`} className="sentence-chip">
-                              {symbol.emoji} {symbol.label}
-                            </span>
-                          ))
-                        )}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-            {isStrip ? (
-              <div className="sentence-strip">
-                {queue.map((symbol, index) => (
-                  <span key={`${symbol.id}-${index}`} className="sentence-strip-item">
-                    <span className="sentence-strip-emoji" aria-hidden="true">{symbol.emoji}</span>
-                    <span className="sentence-strip-label">{symbol.label}</span>
+        <div className="sentence-layers" aria-label="Satzvorschau">
+          <div className="sentence-layer">
+            <span className="sentence-layer-label">Letzte Auswahl</span>
+            <span className="sentence-layer-value">
+              {lastSymbol ? `${lastSymbol.emoji} ${lastSymbol.label}` : 'Noch keine Auswahl'}
+            </span>
+          </div>
+          <div className="sentence-layer sentence-layer--primary">
+            <span className="sentence-layer-label">Satzvorschau</span>
+            <span className="sentence-layer-value">
+              {sentenceText || 'Wähle Symbole, um einen Satz zu bilden'}
+            </span>
+          </div>
+          <div className="sentence-layer sentence-layer--hint">
+            <span className="sentence-layer-label">Nächster Schritt</span>
+            <span className="sentence-layer-value">{nextStepHint}</span>
+          </div>
+        </div>
+
+        {queue.length > 0 && slottingEnabled && roleGroups ? (
+          <div className="sentence-slots" aria-label="Satzbau-Hinweise">
+            {SLOT_ORDER.map((slot) => {
+              const items = roleGroups.get(slot.key) ?? [];
+              return (
+                <div key={slot.key} className="sentence-slot">
+                  <span className="sentence-slot-label">{slot.label}</span>
+                  <span className="sentence-slot-items">
+                    {items.length === 0 ? (
+                      <span className="sentence-slot-empty">—</span>
+                    ) : (
+                      items.map((symbol, index) => (
+                        <span key={`${symbol.id}-${index}`} className="sentence-chip">
+                          {symbol.emoji} {symbol.label}
+                        </span>
+                      ))
+                    )}
                   </span>
-                ))}
-              </div>
-            ) : (
-              <span className="sentence-symbols">
-                {queue.map((symbol, index) => (
-                  <span key={`${symbol.id}-${index}`} className="sentence-chip">
-                    {symbol.emoji} {symbol.label}
-                  </span>
-                ))}
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {queue.length === 0 ? null : isStrip ? (
+          <div className="sentence-strip">
+            {queue.map((symbol, index) => (
+              <span key={`${symbol.id}-${index}`} className="sentence-strip-item">
+                <span className="sentence-strip-emoji" aria-hidden="true">{symbol.emoji}</span>
+                <span className="sentence-strip-label">{symbol.label}</span>
               </span>
-            )}
-          </>
+            ))}
+          </div>
+        ) : (
+          <span className="sentence-symbols">
+            {queue.map((symbol, index) => (
+              <span key={`${symbol.id}-${index}`} className="sentence-chip">
+                {symbol.emoji} {symbol.label}
+              </span>
+            ))}
+          </span>
         )}
       </div>
       {(improvedSentence || improvementError) && (

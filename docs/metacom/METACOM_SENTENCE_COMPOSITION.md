@@ -68,6 +68,16 @@ Wir brauchen eine leichte Rollen-Zuordnung, die optional ist:
 - Wenn der Nutzer frei tippt, bleibt die Reihenfolge wie gewählt.
 - Optional kann ein „Satzbau-Hinweis“ die Slots visuell markieren.
 
+### B.1) Mehrschichtige Satzvorschau (UI)
+- Der Satzkomponist zeigt eine **Satzvorschau** in klaren Textschichten:
+  - **Letzte Auswahl** (direktes Feedback nach jedem Tipp).
+  - **Satzvorschau** (aktueller Satz als durchgehender Text).
+  - **Nächster Schritt** (kontextabhängiger Hinweis auf den nächsten Baustein).
+- Bei aktivem Slotting wird der „Nächster Schritt“-Hinweis aus der ersten
+  fehlenden Rolle (Person/Aktion/Objekt/Modifier/Negation) abgeleitet.
+- Ohne Slotting bleibt der Hinweis generisch („Füge ein weiteres Symbol hinzu“),
+  damit die freie Kommunikation nicht eingeschränkt wird.
+
 ### C) Follow-on Kategorien (Modifier-Boards)
 - Modifier-Boards hängen an einem Objekt (z. B. **Pizza → Ohne Käse**).
 - Diese Beziehung soll konfigurierbar sein (pro Profil), damit andere Kinder

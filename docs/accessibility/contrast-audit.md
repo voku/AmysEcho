@@ -16,5 +16,8 @@ This audit documents the contrast defects identified while addressing recent car
 | GestureMeaningSelector active button | `#FCFEFE` on `#FF8A5B` | 2.30:1 | `#14363A` on `#FF8A5B` | 5.58:1 |
 | Progress tracker completion message | `#46C49D` on `#FFFFFF` | 2.18:1 | `#0F5257` on `#FFFFFF` | 8.77:1 |
 | Teaching screen “Weiter üben” secondary action | `#14363A` on `#05363A` | 1.01:1 | `#FCFEFE` on `#05363A` | 13.01:1 |
+| Training recorder detector notice (info state) | `#0D1B1B` on `#14474A` | 1.71:1 | `#0D1B1B` on `#F8FAFC` | 16.87:1 |
 
 The updated palette keeps contrast-compliant text colors co-located in the relevant components so future changes inherit the improved accessibility defaults.
+
+Note: The detector notice ratio used the blended background of the translucent info tint over the dark detector surface (`rgba(47, 142, 162, 0.15)` on `#0F3A3B` ≈ `#14474A`).

@@ -13,14 +13,17 @@ describe('SentenceComposer', () => {
       <SentenceComposer queue={[]} onRemoveLast={vi.fn()} onClear={vi.fn()} />
     );
     expect(screen.getByText('Wähle Symbole, um einen Satz zu bilden')).toBeInTheDocument();
+    expect(screen.getByText('Starte mit einem Kernwort wie „Ich“, „Du“ oder „Mehr“.')).toBeInTheDocument();
   });
 
   it('displays queued symbols', () => {
     render(
       <SentenceComposer queue={sampleSymbols} onRemoveLast={vi.fn()} onClear={vi.fn()} />
     );
+    expect(screen.getByText('Satzvorschau')).toBeInTheDocument();
+    expect(screen.getByText(/Ich Mehr/)).toBeInTheDocument();
     expect(screen.getByText('👤 Ich')).toBeInTheDocument();
-    expect(screen.getByText('➕ Mehr')).toBeInTheDocument();
+    expect(screen.getAllByText('➕ Mehr').length).toBeGreaterThan(0);
   });
 
   it('shows slotting hints when enabled', () => {
@@ -34,6 +37,7 @@ describe('SentenceComposer', () => {
     );
     expect(screen.getByText('Person')).toBeInTheDocument();
     expect(screen.getByText('Modifier')).toBeInTheDocument();
+    expect(screen.getByText('Was passiert?')).toBeInTheDocument();
   });
 
   it('disables buttons when queue is empty', () => {
