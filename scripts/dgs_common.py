@@ -6,6 +6,7 @@ import os
 import re
 import urllib.error
 import urllib.request
+import warnings
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -112,10 +113,17 @@ def fetch_fallback_videos(label):
     """
     Download videos from fallback sources for a label.
     
-    This function is deprecated and now just calls fetch_custom_source_videos().
-    Use fetch_custom_source_videos() directly or configure custom sources in
-    server/data/config/dgsVideoSources.json.
+    .. deprecated:: 2026-02-08
+        Use fetch_custom_source_videos() directly or configure custom sources in
+        server/data/config/dgsVideoSources.json. This function will be removed in
+        a future version.
     """
+    warnings.warn(
+        "fetch_fallback_videos() is deprecated. Use fetch_custom_source_videos() "
+        "directly or configure sources in server/data/config/dgsVideoSources.json.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return fetch_custom_source_videos(label)
 
 def load_custom_sources() -> dict:
