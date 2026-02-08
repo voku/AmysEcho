@@ -2,9 +2,7 @@ import subprocess
 
 from scripts.dgs_common import (
     DATA_DIR,
-    FALLBACK_LABEL_URLS,
     MANIFEST_PATH,
-    download_video,
     ensure_dirs,
     fetch_custom_source_videos,
     load_custom_sources,
@@ -21,16 +19,6 @@ def main():
     manifest = load_manifest()
 
     updated = False
-    for label, urls in FALLBACK_LABEL_URLS.items():
-        video_files = []
-        for index, url in enumerate(urls):
-            filename = download_video(label, url, f"fallback_{index}")
-            if filename:
-                video_files.append(filename)
-        if video_files:
-            upsert_manifest_entry(manifest, label, video_files)
-            updated = True
-
     custom_labels = load_custom_sources()
     for label in custom_labels.keys():
         video_files = fetch_custom_source_videos(label)

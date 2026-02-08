@@ -1,5 +1,5 @@
 {
   "version": "1.0",
-  "description": "Zusätzliche DGS-Videoquellen für Auto-Pretraining.",
+  "description": "Zusätzliche DGS-Videoquellen für Auto-Pretraining. Die meisten Labels haben bereits DGS-Videos im Repository unter server/data/dgs_video_examples/.",
   "labels": {}
 }

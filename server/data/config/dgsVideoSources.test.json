@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "description": "Test fixture for integration test - uses a copied video file for kindergarten label",
+  "labels": {
+    "kindergarten": {
+      "sources": [
+        {
+          "name": "integration",
+          "urls": [
+            "file://./server/data/dgs_video_examples/alle_main_alles.mp4"
+          ]
+        }
+      ]
+    }
+  }
+}
