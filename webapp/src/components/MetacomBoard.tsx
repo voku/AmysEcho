@@ -326,8 +326,8 @@ export function MetacomBoard() {
   }, [allCells, board.cells, childAge, lastSentence, lastSentenceAt, now, sentenceQueue]);
 
   const flowSuggestions = useMemo(
-    () => getSentenceFlowSuggestions(sentenceQueue),
-    [sentenceQueue],
+    () => getSentenceFlowSuggestions(sentenceQueue, boards),
+    [sentenceQueue, boards],
   );
 
   const handleFlowSuggestion = useCallback(

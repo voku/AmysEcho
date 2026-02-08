@@ -1,4 +1,5 @@
 import type { SentenceSymbol } from '../components/SentenceComposer';
+import type { MetacomBoardDefinition } from '../types/metacom';
 
 /**
  * Quick phrases for one-tap communication.
@@ -62,22 +63,38 @@ export interface SentenceFlowSuggestion {
   emoji: string;
 }
 
-const BOARD_DISPLAY: Record<string, { label: string; emoji: string }> = {
-  essen: { label: 'Essen', emoji: '🍎' },
-  trinken: { label: 'Trinken', emoji: '🥛' },
-  spielen: { label: 'Spielen', emoji: '🧸' },
-  gefuehle: { label: 'Gefühle', emoji: '😊' },
-  personen: { label: 'Personen', emoji: '👨‍👩‍👧' },
-  saetze: { label: 'Sätze', emoji: '💬' },
-};
+/** Fallback emoji when a board has no cells with an emoji to derive from. */
+const FALLBACK_EMOJI = '📋';
+
+/**
+ * Derives display info (label, emoji) for a board from the loaded board definitions.
+ * Uses the board's own label plus the emoji from its first cell as a representative icon.
+ * This ensures imported Metacom bundles show correct labels/emojis.
+ */
+function getBoardDisplay(
+  boardId: string,
+  boards: Record<string, MetacomBoardDefinition>,
+): { label: string; emoji: string } | null {
+  const board = boards[boardId];
+  if (!board) return null;
+  const firstCell = board.cells[0];
+  return {
+    label: board.label,
+    emoji: firstCell?.emoji ?? FALLBACK_EMOJI,
+  };
+}
 
 /**
  * Returns suggested follow-up boards based on the last symbol in the
  * sentence queue. This creates the "layered text" experience where
  * each selection narrows the next options logically.
+ *
+ * When `boards` is provided, display info is derived from the actual loaded
+ * board definitions so that imported Metacom bundles show correct labels.
  */
 export function getSentenceFlowSuggestions(
   queue: SentenceSymbol[],
+  boards?: Record<string, MetacomBoardDefinition>,
 ): SentenceFlowSuggestion[] {
   if (queue.length === 0) return [];
   const lastSymbol = queue[queue.length - 1];
@@ -88,9 +105,13 @@ export function getSentenceFlowSuggestions(
 
   return suggestedBoardIds
     .map((boardId) => {
-      const display = BOARD_DISPLAY[boardId];
-      if (!display) return null;
-      return { boardId, label: display.label, emoji: display.emoji };
+      if (boards) {
+        const display = getBoardDisplay(boardId, boards);
+        if (!display) return null;
+        return { boardId, label: display.label, emoji: display.emoji };
+      }
+      // Fallback when no boards provided (e.g. in tests without board context)
+      return { boardId, label: boardId, emoji: FALLBACK_EMOJI };
     })
     .filter((s): s is SentenceFlowSuggestion => s !== null);
 }

@@ -34,8 +34,8 @@ function loadBoard(key: BoardDataKey): MetacomBoardDefinition {
 }
 
 function loadExtraCells(key: BoardDataKey): MetacomCell[] {
-  const raw = boardData.boards[key] as { cells: unknown[] } | undefined;
-  if (!raw) return [];
+  const raw = boardData.boards[key] as { cells?: unknown[] } | undefined;
+  if (!raw || !Array.isArray(raw.cells)) return [];
   return castCells(raw.cells);
 }
 
