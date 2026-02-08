@@ -8,6 +8,7 @@ from scripts.dgs_common import (
     BASE_URL,
     download_video,
     ensure_dirs,
+    ensure_manifest_shape,
     fetch_url,
     find_entry_url,
     find_video_url_direct,
@@ -24,7 +25,7 @@ TARGET_LABELS = {
 
 def main():
     ensure_dirs()
-    manifest = load_manifest()
+    manifest = ensure_manifest_shape(load_manifest())
     updated = False
     
     for label_key, search_term in TARGET_LABELS.items():

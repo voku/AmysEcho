@@ -194,6 +194,28 @@ def upsert_manifest_entry(manifest: dict, label: str, video_files: list[str]) ->
         }
     )
 
+def ensure_manifest_shape(manifest: dict) -> dict:
+    """Ensure manifest has required shape with default values.
+    
+    Shapes the manifest dict with required fields:
+    - gestures: list of gesture entries
+    - version: manifest format version
+    - description: human-readable description
+    
+    Args:
+        manifest: The manifest dict to shape (modified in place)
+        
+    Returns:
+        The shaped manifest dict
+    """
+    if "gestures" not in manifest or not isinstance(manifest.get("gestures"), list):
+        manifest["gestures"] = []
+    if "version" not in manifest:
+        manifest["version"] = "3.0"
+    if "description" not in manifest:
+        manifest["description"] = "DGS video examples (auto-fetched)"
+    return manifest
+
 def load_manifest():
     """Load the manifest file safely."""
     if MANIFEST_PATH.exists():
