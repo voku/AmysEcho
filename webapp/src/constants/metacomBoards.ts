@@ -1,59 +1,45 @@
-import type { MetacomBoardDefinition } from '../types/metacom';
+import type { MetacomBoardDefinition, MetacomCell } from '../types/metacom';
 import type { MetacomVocabularySet } from '../types/metacomVocabulary';
+import boardData from '../data/metacomBoardData.json';
 
-const START_BOARD: MetacomBoardDefinition = {
-  id: 'start',
-  label: 'Starttafel',
-  rows: 3,
-  columns: 4,
-  cells: [
-    { id: 'metacom_ich', label: 'Ich', emoji: '👤', position: 0, type: 'symbol', role: 'person', tags: ['core'] },
-    { id: 'metacom_du', label: 'Du', emoji: '🫵', position: 1, type: 'symbol', role: 'person', tags: ['core'] },
-    { id: 'metacom_mehr', label: 'Mehr', emoji: '➕', position: 2, type: 'symbol', tags: ['core', 'morning', 'afternoon'] },
-    { id: 'metacom_fertig', label: 'Fertig', emoji: '✅', position: 3, type: 'symbol', tags: ['evening'] },
-    { id: 'metacom_ja', label: 'Ja', emoji: '👍', position: 4, type: 'symbol', tags: ['core'] },
-    { id: 'metacom_nein', label: 'Nein', emoji: '👎', position: 5, type: 'symbol', tags: ['core'] },
-    { id: 'metacom_bitte', label: 'Bitte', emoji: '🙏', position: 6, type: 'symbol', tags: ['core', 'morning', 'evening'] },
-    { id: 'metacom_danke', label: 'Danke', emoji: '💛', position: 7, type: 'symbol', tags: ['core', 'evening'] },
-    { id: 'metacom_hilfe', label: 'Hilfe', emoji: '🆘', position: 8, type: 'symbol', color: '#FFC9DE', tags: ['core'] },
-    {
-      id: 'metacom_board_essen',
-      label: 'Essen',
-      speech: 'Essen',
-      emoji: '🍎',
-      position: 9,
-      type: 'board',
-      targetBoardId: 'essen',
-      category: 'essen',
-      role: 'action',
-      tags: ['morning'],
-    },
-    {
-      id: 'metacom_board_trinken',
-      label: 'Trinken',
-      speech: 'Trinken',
-      emoji: '🥛',
-      position: 10,
-      type: 'board',
-      targetBoardId: 'trinken',
-      category: 'trinken',
-      role: 'action',
-      tags: ['morning'],
-    },
-    {
-      id: 'metacom_board_spielen',
-      label: 'Spielen',
-      speech: 'Spielen',
-      emoji: '🧸',
-      position: 11,
-      type: 'board',
-      targetBoardId: 'spielen',
-      category: 'spielen',
-      role: 'action',
-      tags: ['afternoon'],
-    },
-  ],
+type BoardDataKey = keyof typeof boardData.boards;
+
+type RawBoardEntry = {
+  id?: string;
+  label?: string;
+  rows?: number;
+  columns?: number;
+  cells: unknown[];
 };
+
+// Cell structure is guaranteed by metacomBoardData.test.ts which validates
+// every cell has the required fields (id, label, emoji, position, type)
+// and board cells have targetBoardId.
+function castCells(raw: unknown[]): MetacomCell[] {
+  return raw as MetacomCell[];
+}
+
+function loadBoard(key: BoardDataKey): MetacomBoardDefinition {
+  const raw = boardData.boards[key] as RawBoardEntry | undefined;
+  if (!raw || !raw.id || !raw.label || !raw.rows || !raw.columns) {
+    throw new Error(`Board data missing for key "${key}"`);
+  }
+  return {
+    id: raw.id,
+    label: raw.label,
+    rows: raw.rows,
+    columns: raw.columns,
+    cells: castCells(raw.cells),
+  };
+}
+
+function loadExtraCells(key: BoardDataKey): MetacomCell[] {
+  const raw = boardData.boards[key] as { cells?: unknown[] } | undefined;
+  if (!raw || !Array.isArray(raw.cells)) return [];
+  return castCells(raw.cells);
+}
+
+const START_BOARD = loadBoard('start');
 
 const EXTENDED_START_BOARD: MetacomBoardDefinition = {
   ...START_BOARD,
@@ -61,89 +47,32 @@ const EXTENDED_START_BOARD: MetacomBoardDefinition = {
   columns: 4,
   cells: [
     ...START_BOARD.cells,
-    { id: 'metacom_nicht', label: 'Nicht', emoji: '🚫', position: 12, type: 'symbol', role: 'negation' },
-    { id: 'metacom_noch', label: 'Noch', emoji: '🔁', position: 13, type: 'symbol', role: 'modifier' },
-    { id: 'metacom_was', label: 'Was', emoji: '❓', position: 14, type: 'symbol', role: 'modifier' },
-    { id: 'metacom_warum', label: 'Warum', emoji: '🤔', position: 15, type: 'symbol', role: 'modifier' },
+    ...loadExtraCells('start_extended_extra'),
   ],
 };
 
-const ESSEN_BOARD: MetacomBoardDefinition = {
-  id: 'essen',
-  label: 'Essen',
-  rows: 4,
+const FULL_START_BOARD: MetacomBoardDefinition = {
+  ...EXTENDED_START_BOARD,
+  rows: 5,
   columns: 4,
   cells: [
-    { id: 'metacom_apfel', label: 'Apfel', emoji: '🍎', position: 0, type: 'symbol', category: 'essen', role: 'object' },
-    { id: 'metacom_brot', label: 'Brot', emoji: '🍞', position: 1, type: 'symbol', category: 'essen', role: 'object', tags: ['older'] },
-    { id: 'metacom_banane', label: 'Banane', emoji: '🍌', position: 2, type: 'symbol', category: 'essen', role: 'object' },
-    { id: 'metacom_joghurt', label: 'Joghurt', emoji: '🥣', position: 3, type: 'symbol', category: 'essen', role: 'object' },
-    { id: 'metacom_kaese', label: 'Käse', emoji: '🧀', position: 4, type: 'symbol', category: 'essen', role: 'object' },
-    { id: 'metacom_reis', label: 'Reis', emoji: '🍚', position: 5, type: 'symbol', category: 'essen', role: 'object' },
-    { id: 'metacom_suppe', label: 'Suppe', emoji: '🥣', position: 6, type: 'symbol', category: 'essen', role: 'object' },
-    { id: 'metacom_kartoffeln', label: 'Kartoffeln', emoji: '🥔', position: 7, type: 'symbol', category: 'essen', role: 'object' },
-    { id: 'metacom_nudeln', label: 'Nudeln', emoji: '🍝', position: 8, type: 'symbol', category: 'essen', role: 'object' },
-    {
-      id: 'metacom_board_pizza',
-      label: 'Pizza',
-      speech: 'Pizza',
-      emoji: '🍕',
-      position: 9,
-      type: 'board',
-      targetBoardId: 'pizza',
-      category: 'essen',
-      role: 'object',
-    },
-    // Positions 10-11 reserved for future food items (deliberately skipped in position sequence)
-    { id: 'metacom_mehr_essen', label: 'Mehr', emoji: '➕', position: 12, type: 'symbol', role: 'modifier', tags: ['core', 'morning', 'afternoon'] },
-    { id: 'metacom_fertig_essen', label: 'Fertig', emoji: '✅', position: 13, type: 'symbol', tags: ['evening'] },
-    { id: 'metacom_bitte_essen', label: 'Bitte', emoji: '🙏', position: 14, type: 'symbol', tags: ['core', 'morning', 'evening'] },
-    { id: 'metacom_danke_essen', label: 'Danke', emoji: '💛', position: 15, type: 'symbol', tags: ['core', 'evening'] },
+    ...EXTENDED_START_BOARD.cells,
+    ...loadExtraCells('start_full_extra'),
   ],
 };
+
+const ESSEN_BOARD = loadBoard('essen');
 
 const FULL_ESSEN_BOARD: MetacomBoardDefinition = {
   ...ESSEN_BOARD,
   cells: [
     ...ESSEN_BOARD.cells,
-    { id: 'metacom_gemuese', label: 'Gemüse', emoji: '🥕', position: 10, type: 'symbol', category: 'essen', role: 'object' },
-    { id: 'metacom_obst', label: 'Obst', emoji: '🍓', position: 11, type: 'symbol', category: 'essen', role: 'object' },
+    ...loadExtraCells('essen_full_extra'),
   ],
 };
 
-const PIZZA_BOARD: MetacomBoardDefinition = {
-  id: 'pizza',
-  label: 'Pizza',
-  rows: 2,
-  columns: 3,
-  cells: [
-    // Pizza customization board - positions 3-5 reserved for future topping options
-    { id: 'metacom_pizza_ohne_kaese', label: 'Ohne Käse', emoji: '🧀', position: 0, type: 'symbol', category: 'essen', role: 'modifier' },
-    { id: 'metacom_pizza_mit_kaese', label: 'Mit Käse', emoji: '🧀', position: 1, type: 'symbol', category: 'essen', role: 'modifier' },
-    { id: 'metacom_pizza_extra_sosse', label: 'Extra Soße', emoji: '🍅', position: 2, type: 'symbol', category: 'essen', role: 'modifier' },
-  ],
-};
-
-const TRINKEN_BOARD: MetacomBoardDefinition = {
-  id: 'trinken',
-  label: 'Trinken',
-  rows: 3,
-  columns: 4,
-  cells: [
-    { id: 'metacom_wasser', label: 'Wasser', emoji: '💧', position: 0, type: 'symbol', category: 'trinken', tags: ['older'] },
-    { id: 'metacom_saft', label: 'Saft', emoji: '🧃', position: 1, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_milch', label: 'Milch', emoji: '🥛', position: 2, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_tee', label: 'Tee', emoji: '🍵', position: 3, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_kalt', label: 'Kalt', emoji: '🧊', position: 4, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_warm', label: 'Warm', emoji: '☀️', position: 5, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_strohhalm', label: 'Strohhalm', emoji: '🥤', position: 6, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_fläschchen', label: 'Fläschchen', emoji: '🍼', position: 7, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_mehr_trinken', label: 'Mehr', emoji: '➕', position: 8, type: 'symbol', tags: ['core', 'morning', 'afternoon'] },
-    { id: 'metacom_fertig_trinken', label: 'Fertig', emoji: '✅', position: 9, type: 'symbol', tags: ['evening'] },
-    { id: 'metacom_bitte_trinken', label: 'Bitte', emoji: '🙏', position: 10, type: 'symbol', tags: ['core', 'morning', 'evening'] },
-    { id: 'metacom_danke_trinken', label: 'Danke', emoji: '💛', position: 11, type: 'symbol', tags: ['core', 'evening'] },
-  ],
-};
+const PIZZA_BOARD = loadBoard('pizza');
+const TRINKEN_BOARD = loadBoard('trinken');
 
 const FULL_TRINKEN_BOARD: MetacomBoardDefinition = {
   ...TRINKEN_BOARD,
@@ -151,33 +80,11 @@ const FULL_TRINKEN_BOARD: MetacomBoardDefinition = {
   columns: 4,
   cells: [
     ...TRINKEN_BOARD.cells,
-    { id: 'metacom_kakao', label: 'Kakao', emoji: '🍫', position: 12, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_sprudel', label: 'Sprudel', emoji: '🫧', position: 13, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_becher', label: 'Becher', emoji: '🥤', position: 14, type: 'symbol', category: 'trinken' },
-    { id: 'metacom_eisgetraenk', label: 'Eisgetränk', emoji: '🧊', position: 15, type: 'symbol', category: 'trinken' },
+    ...loadExtraCells('trinken_full_extra'),
   ],
 };
 
-const SPIELEN_BOARD: MetacomBoardDefinition = {
-  id: 'spielen',
-  label: 'Spielen',
-  rows: 3,
-  columns: 4,
-  cells: [
-    { id: 'metacom_ball', label: 'Ball', emoji: '⚽', position: 0, type: 'symbol', category: 'spielen', tags: ['older', 'afternoon'] },
-    { id: 'metacom_buch', label: 'Buch', emoji: '📚', position: 1, type: 'symbol', category: 'spielen', tags: ['older'] },
-    { id: 'metacom_malen', label: 'Malen', emoji: '🎨', position: 2, type: 'symbol', category: 'spielen', tags: ['older', 'afternoon'] },
-    { id: 'metacom_musik', label: 'Musik', emoji: '🎵', position: 3, type: 'symbol', category: 'spielen', tags: ['older'] },
-    { id: 'metacom_puzzle', label: 'Puzzle', emoji: '🧩', position: 4, type: 'symbol', category: 'spielen', tags: ['older'] },
-    { id: 'metacom_bauen', label: 'Bauen', emoji: '🧱', position: 5, type: 'symbol', category: 'spielen' },
-    { id: 'metacom_tanzen', label: 'Tanzen', emoji: '💃', position: 6, type: 'symbol', category: 'spielen' },
-    { id: 'metacom_raus', label: 'Rausgehen', emoji: '🌳', position: 7, type: 'symbol', category: 'spielen' },
-    { id: 'metacom_mehr_spielen', label: 'Mehr', emoji: '➕', position: 8, type: 'symbol', tags: ['core', 'morning', 'afternoon'] },
-    { id: 'metacom_fertig_spielen', label: 'Fertig', emoji: '✅', position: 9, type: 'symbol', tags: ['evening'] },
-    { id: 'metacom_bitte_spielen', label: 'Bitte', emoji: '🙏', position: 10, type: 'symbol', tags: ['core', 'morning', 'evening'] },
-    { id: 'metacom_danke_spielen', label: 'Danke', emoji: '💛', position: 11, type: 'symbol', tags: ['core', 'evening'] },
-  ],
-};
+const SPIELEN_BOARD = loadBoard('spielen');
 
 const FULL_SPIELEN_BOARD: MetacomBoardDefinition = {
   ...SPIELEN_BOARD,
@@ -185,12 +92,13 @@ const FULL_SPIELEN_BOARD: MetacomBoardDefinition = {
   columns: 4,
   cells: [
     ...SPIELEN_BOARD.cells,
-    { id: 'metacom_auto', label: 'Auto', emoji: '🚗', position: 12, type: 'symbol', category: 'spielen' },
-    { id: 'metacom_bausteine', label: 'Bausteine', emoji: '🧰', position: 13, type: 'symbol', category: 'spielen' },
-    { id: 'metacom_kuscheln', label: 'Kuscheln', emoji: '🤗', position: 14, type: 'symbol', category: 'spielen' },
-    { id: 'metacom_rennen', label: 'Rennen', emoji: '🏃', position: 15, type: 'symbol', category: 'spielen' },
+    ...loadExtraCells('spielen_full_extra'),
   ],
 };
+
+const GEFUEHLE_BOARD = loadBoard('gefuehle');
+const PERSONEN_BOARD = loadBoard('personen');
+const SAETZE_BOARD = loadBoard('saetze');
 
 export const METACOM_BOARDS: Record<string, MetacomBoardDefinition> = {
   start: START_BOARD,
@@ -198,6 +106,9 @@ export const METACOM_BOARDS: Record<string, MetacomBoardDefinition> = {
   pizza: PIZZA_BOARD,
   trinken: TRINKEN_BOARD,
   spielen: SPIELEN_BOARD,
+  gefuehle: GEFUEHLE_BOARD,
+  personen: PERSONEN_BOARD,
+  saetze: SAETZE_BOARD,
 };
 
 const EXTENDED_BOARDS: Record<string, MetacomBoardDefinition> = {
@@ -206,26 +117,23 @@ const EXTENDED_BOARDS: Record<string, MetacomBoardDefinition> = {
   pizza: PIZZA_BOARD,
   trinken: TRINKEN_BOARD,
   spielen: SPIELEN_BOARD,
+  gefuehle: GEFUEHLE_BOARD,
+  personen: PERSONEN_BOARD,
+  saetze: SAETZE_BOARD,
 };
 
 const FULL_BOARDS: Record<string, MetacomBoardDefinition> = {
-  start: EXTENDED_START_BOARD,
+  start: FULL_START_BOARD,
   essen: FULL_ESSEN_BOARD,
   pizza: PIZZA_BOARD,
   trinken: FULL_TRINKEN_BOARD,
   spielen: FULL_SPIELEN_BOARD,
+  gefuehle: GEFUEHLE_BOARD,
+  personen: PERSONEN_BOARD,
+  saetze: SAETZE_BOARD,
 };
 
-const EINSTEIGER_IDS = new Set([
-  'metacom_ich',
-  'metacom_du',
-  'metacom_ja',
-  'metacom_nein',
-  'metacom_hilfe',
-  'metacom_board_essen',
-  'metacom_board_trinken',
-  'metacom_board_spielen',
-]);
+const EINSTEIGER_IDS = new Set(boardData.einsteigerIds);
 
 function filterBoardCells(
   board: MetacomBoardDefinition,

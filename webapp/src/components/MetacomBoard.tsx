@@ -15,6 +15,13 @@ import {
 import { buildNextWordLabel, getNextWordRecommendations } from '../services/metacomRecommendationService';
 import { improveMetacomSentence } from '../services/metacomSentenceService';
 import { resolveGestureSymbol } from '../services/metacomMappingService';
+import {
+  getSentenceFlowSuggestions,
+  quickPhraseToSentenceSymbols,
+  QUICK_PHRASES,
+  type QuickPhrase,
+  type SentenceFlowSuggestion,
+} from '../services/metacomSentenceFlowService';
 import type {
   MetacomBoardCell,
   MetacomBoardDefinition,
@@ -318,6 +325,28 @@ export function MetacomBoard() {
     });
   }, [allCells, board.cells, childAge, lastSentence, lastSentenceAt, now, sentenceQueue]);
 
+  const flowSuggestions = useMemo(
+    () => getSentenceFlowSuggestions(sentenceQueue, boards),
+    [sentenceQueue, boards],
+  );
+
+  const handleFlowSuggestion = useCallback(
+    (suggestion: SentenceFlowSuggestion) => {
+      setBoardHistory((prev) => [...prev, suggestion.boardId]);
+    },
+    [],
+  );
+
+  const handleQuickPhrase = useCallback(
+    async (phrase: QuickPhrase) => {
+      const symbols = quickPhraseToSentenceSymbols(phrase);
+      setSentenceQueue((prev) => [...prev, ...symbols]);
+      await audioService.speak(phrase.speech, { allowDuplicates: true });
+      setLastSpoken(phrase.speech);
+    },
+    [],
+  );
+
   return (
     <section className="card metacom-board">
       <a className="skip-link" href="#metacom-main">Zum Inhalt springen</a>
@@ -410,6 +439,30 @@ export function MetacomBoard() {
         </div>
       )}
 
+      {flowSuggestions.length > 0 && (
+        <div
+          className="metacom-feature-box metacom-flow-suggestions"
+          role="region"
+          aria-label="Satzvorschläge"
+          data-testid="flow-suggestions"
+        >
+          <p className="metacom-feature-label">Weiter mit…</p>
+          <div className="metacom-feature-grid metacom-flow-grid">
+            {flowSuggestions.map((suggestion) => (
+              <button
+                key={`flow-${suggestion.boardId}`}
+                className="metacom-flow-button"
+                onClick={() => handleFlowSuggestion(suggestion)}
+                aria-label={`Weiter mit ${suggestion.label}`}
+              >
+                <span className="metacom-flow-emoji" aria-hidden="true">{suggestion.emoji}</span>
+                <span className="metacom-flow-label">{suggestion.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {memoryItems.length > 0 && (
         <div className="metacom-feature-box metacom-memory" role="region" aria-label="Merkliste">
           <div className="metacom-memory-header">
@@ -426,6 +479,30 @@ export function MetacomBoard() {
                   onPress={() => handleMemoryPress(item)}
                 />
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {currentBoardId === START_BOARD_ID && sentenceQueue.length === 0 && (
+        <div
+          className="metacom-feature-box metacom-quick-phrases"
+          role="region"
+          aria-label="Schnelle Sätze"
+          data-testid="quick-phrases"
+        >
+          <p className="metacom-feature-label">Schnelle Sätze</p>
+          <div className="metacom-feature-grid metacom-quick-grid">
+            {QUICK_PHRASES.map((phrase) => (
+              <button
+                key={phrase.id}
+                className="metacom-quick-button"
+                onClick={() => handleQuickPhrase(phrase)}
+                aria-label={phrase.speech}
+              >
+                <span className="metacom-quick-emoji" aria-hidden="true">{phrase.emoji}</span>
+                <span className="metacom-quick-label">{phrase.label}</span>
+              </button>
             ))}
           </div>
         </div>
