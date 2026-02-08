@@ -70,3 +70,4 @@ server/data/fixtures/
 server/data/users/
 # Integration test config files
 server/data/config/dgsVideoSources.integration.json
+**/dgsVideoSources.test.json

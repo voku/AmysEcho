@@ -1,16 +1,5 @@
 {
   "version": "1.0",
-  "description": "Zusätzliche DGS-Videoquellen für Auto-Pretraining.",
-  "labels": {
-    "kindergarten": {
-      "sources": [
-        {
-          "name": "integration",
-          "urls": [
-            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"
-          ]
-        }
-      ]
-    }
-  }
+  "description": "Zusätzliche DGS-Videoquellen für Auto-Pretraining. Die meisten Labels haben bereits DGS-Videos im Repository unter server/data/dgs_video_examples/.",
+  "labels": {}
 }
