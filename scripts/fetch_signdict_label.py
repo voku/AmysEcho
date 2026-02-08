@@ -18,8 +18,8 @@ from scripts.dgs_common import (
     find_video_url_direct,
     load_manifest,
     save_manifest,
-    upsert_manifest_entry,
     update_manifest_stats,
+    upsert_manifest_entry,
 )
 
 
