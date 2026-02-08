@@ -639,13 +639,15 @@
       "label": "kindergarten",
       "videos": [
         "kindergarten_integration_0.mp4",
-        "kindergarten_main_kindergarten.mp4"
+        "kindergarten_var_kindergarten_0.mp4",
+        "kindergarten_var_kindergarten_1.mp4",
+        "kindergarten_var_kindergarten_2.mp4"
       ],
-      "totalVideoCount": 2
+      "totalVideoCount": 4
     }
   ],
   "stats": {
     "totalLabels": 47,
-    "totalVideos": 312
+    "totalVideos": 314
   }
 }
