@@ -208,12 +208,10 @@ def ensure_manifest_shape(manifest: dict) -> dict:
     Returns:
         The shaped manifest dict
     """
-    if "gestures" not in manifest or not isinstance(manifest.get("gestures"), list):
+    if not isinstance(manifest.get("gestures"), list):
         manifest["gestures"] = []
-    if "version" not in manifest:
-        manifest["version"] = "3.0"
-    if "description" not in manifest:
-        manifest["description"] = "DGS video examples (auto-fetched)"
+    manifest.setdefault("version", "3.0")
+    manifest.setdefault("description", "DGS video examples (auto-fetched)")
     return manifest
 
 def load_manifest():
