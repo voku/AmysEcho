@@ -2,6 +2,7 @@
 """Fetch DGS videos for a single label from signdict.org."""
 
 import argparse
+import os
 import time
 import urllib.parse
 
@@ -9,6 +10,7 @@ from scripts.dgs_common import (
     BASE_URL,
     download_video,
     ensure_dirs,
+    fetch_custom_source_videos,
     fetch_fallback_videos,
     fetch_url,
     find_entry_url,
@@ -16,6 +18,8 @@ from scripts.dgs_common import (
     find_video_url_direct,
     load_manifest,
     save_manifest,
+    upsert_manifest_entry,
+    update_manifest_stats,
 )
 
 
@@ -61,36 +65,6 @@ def ensure_manifest_shape(manifest: dict) -> dict:
     return manifest
 
 
-def update_manifest_stats(manifest: dict) -> None:
-    gestures = manifest.get("gestures", [])
-    total_videos = 0
-    for entry in gestures:
-        videos = entry.get("videos") or []
-        if isinstance(videos, list):
-            total_videos += len(videos)
-    manifest["stats"] = {
-        "totalLabels": len(gestures),
-        "totalVideos": total_videos,
-    }
-
-def upsert_manifest_entry(manifest: dict, label: str, video_files: list[str]) -> None:
-    manifest["gestures"] = [
-        g
-        for g in manifest["gestures"]
-        if g.get("id") != label and g.get("label") != label
-    ]
-    manifest["gestures"].append(
-        {
-            "id": label,
-            "label": label,
-            "videos": video_files,
-            "totalVideoCount": len(video_files),
-        }
-    )
-    update_manifest_stats(manifest)
-    save_manifest(manifest)
-
-
 def main() -> None:
     args = parse_args()
     label = args.label.strip().lower()
@@ -105,63 +79,80 @@ def main() -> None:
         video_files = existing_entry["videos"]
     initial_count = len(video_files)
 
-    search_terms = build_search_terms(label, args.search_terms)
+    skip_signdict = os.environ.get("AMY_DGS_SKIP_SIGNDICT", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    if not skip_signdict:
+        search_terms = build_search_terms(label, args.search_terms)
 
-    for search_term in search_terms:
-        print(f"\n=== Processing label: {label} (search: {search_term}) ===")
-        search_url = f"{BASE_URL}/search?q={urllib.parse.quote(search_term)}"
-        search_html = fetch_url(search_url)
-        if not search_html:
-            continue
+        for search_term in search_terms:
+            print(f"\n=== Processing label: {label} (search: {search_term}) ===")
+            search_url = f"{BASE_URL}/search?q={urllib.parse.quote(search_term)}"
+            search_html = fetch_url(search_url)
+            if not search_html:
+                continue
 
-        entry_url = find_entry_url(search_html)
-        if not entry_url:
-            if find_video_url_direct(search_html):
-                print("  Search redirected directly to entry.")
-                entry_html = search_html
+            entry_url = find_entry_url(search_html)
+            if not entry_url:
+                if find_video_url_direct(search_html):
+                    print("  Search redirected directly to entry.")
+                    entry_html = search_html
+                else:
+                    print(f"  No entry found for '{search_term}'")
+                    continue
             else:
-                print(f"  No entry found for '{search_term}'")
-                continue
-        else:
-            print(f"  Found entry URL: {entry_url}")
-            entry_html = fetch_url(entry_url)
-            if not entry_html:
-                continue
+                print(f"  Found entry URL: {entry_url}")
+                entry_html = fetch_url(entry_url)
+                if not entry_html:
+                    continue
 
-        term_id = search_term.replace(" ", "_")
-        main_vid_url = find_video_url_direct(entry_html)
-        if main_vid_url:
-            fname = download_video(label, main_vid_url, f"main_{term_id}")
-            if fname and fname not in video_files:
-                video_files.append(fname)
+            term_id = search_term.replace(" ", "_")
+            main_vid_url = find_video_url_direct(entry_html)
+            if main_vid_url:
+                fname = download_video(label, main_vid_url, f"main_{term_id}")
+                if fname and fname not in video_files:
+                    video_files.append(fname)
 
-        variant_links = find_variant_links(entry_html)
-        print(f"  Found {len(variant_links)} variants.")
+            variant_links = find_variant_links(entry_html)
+            print(f"  Found {len(variant_links)} variants.")
 
-        for i, v_link in enumerate(variant_links):
-            v_html = fetch_url(v_link)
-            if v_html:
-                v_url = find_video_url_direct(v_html)
-                if v_url:
-                    fname = download_video(label, v_url, f"var_{term_id}_{i}")
-                    if fname and fname not in video_files:
-                        video_files.append(fname)
-            time.sleep(args.sleep_seconds)
+            for i, v_link in enumerate(variant_links):
+                v_html = fetch_url(v_link)
+                if v_html:
+                    v_url = find_video_url_direct(v_html)
+                    if v_url:
+                        fname = download_video(label, v_url, f"var_{term_id}_{i}")
+                        if fname and fname not in video_files:
+                            video_files.append(fname)
+                time.sleep(args.sleep_seconds)
 
-        time.sleep(1)
+            time.sleep(1)
 
     if len(video_files) > initial_count:
         upsert_manifest_entry(manifest, label, video_files)
+        update_manifest_stats(manifest)
+        save_manifest(manifest)
         print(f"Updated manifest for {label} with {len(video_files)} videos.")
     else:
-        print("No new videos found from signdict; trying fallback sources.")
-        fallback_files = fetch_fallback_videos(label)
-        for filename in fallback_files:
+        print("No new videos found from signdict; trying additional sources.")
+        custom_files = fetch_custom_source_videos(label)
+        for filename in custom_files:
             if filename not in video_files:
                 video_files.append(filename)
 
+        if len(video_files) <= initial_count:
+            print("No new videos found from additional sources; trying fallback sources.")
+            fallback_files = fetch_fallback_videos(label)
+            for filename in fallback_files:
+                if filename not in video_files:
+                    video_files.append(filename)
+
         if len(video_files) > initial_count:
             upsert_manifest_entry(manifest, label, video_files)
+            update_manifest_stats(manifest)
+            save_manifest(manifest)
             print(f"Updated manifest for {label} with {len(video_files)} videos.")
         else:
             print("No new videos found; manifest unchanged.")

@@ -53,6 +53,9 @@
     "ich": { "displayName": "Ich", "emoji": "👤", "category": "basic", "color": "#8b5cf6", "serverPreTrainingEnabled": true },
     "du": { "displayName": "Du", "emoji": "👉", "category": "basic", "color": "#f97316", "serverPreTrainingEnabled": true },
     "wo": { "displayName": "Wo", "emoji": "❓", "category": "basic", "color": "#3b82f6", "serverPreTrainingEnabled": true },
-    "was": { "displayName": "Was", "emoji": "❓", "category": "basic", "color": "#3b82f6", "serverPreTrainingEnabled": true }
+    "was": { "displayName": "Was", "emoji": "❓", "category": "basic", "color": "#3b82f6", "serverPreTrainingEnabled": true },
+    "kindergarten": { "displayName": "Kindergarten", "emoji": "🧸", "category": "place", "color": "#f59e0b", "serverPreTrainingEnabled": true },
+    "schule": { "displayName": "Schule", "emoji": "🏫", "category": "place", "color": "#0ea5e9", "serverPreTrainingEnabled": true },
+    "spielplatz": { "displayName": "Spielplatz", "emoji": "🛝", "category": "place", "color": "#22c55e", "serverPreTrainingEnabled": true }
   }
 }

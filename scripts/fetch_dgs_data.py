@@ -1,20 +1,24 @@
 import subprocess
 
 from scripts.dgs_common import (
-	DATA_DIR,
-	FALLBACK_LABEL_URLS,
-	MANIFEST_PATH,
-	download_video,
-	ensure_dirs,
-	load_manifest,
-	save_manifest,
+    DATA_DIR,
+    FALLBACK_LABEL_URLS,
+    MANIFEST_PATH,
+    download_video,
+    ensure_dirs,
+    fetch_custom_source_videos,
+    load_custom_sources,
+    load_manifest,
+    save_manifest,
+    update_manifest_stats,
+    upsert_manifest_entry,
 )
 
 def main():
     ensure_dirs()
-    
+
     manifest = load_manifest()
-    
+
     updated = False
     for label, urls in FALLBACK_LABEL_URLS.items():
         video_files = []
@@ -22,21 +26,19 @@ def main():
             filename = download_video(label, url, f"fallback_{index}")
             if filename:
                 video_files.append(filename)
-        if video_files and not any(
-            entry.get("label") == label for entry in manifest["gestures"]
-        ):
-            manifest["gestures"].append(
-                {
-                    "id": label,
-                    "label": label,
-                    "videos": video_files,
-                    "totalVideoCount": len(video_files),
-                }
-            )
+        if video_files:
+            upsert_manifest_entry(manifest, label, video_files)
             updated = True
-    
-    # Write manifest once
+
+    custom_labels = load_custom_sources()
+    for label in custom_labels.keys():
+        video_files = fetch_custom_source_videos(label)
+        if video_files:
+            upsert_manifest_entry(manifest, label, video_files)
+            updated = True
+
     if updated:
+        update_manifest_stats(manifest)
         save_manifest(manifest)
 
     # Run the processor on the entire directory once

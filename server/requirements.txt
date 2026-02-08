@@ -3,6 +3,7 @@ pytest
 mediapipe==0.10.31
 opencv-python
 pillow
+beautifulsoup4
 PyJWT~=2.9
 scikit-learn
 ruff~=0.6

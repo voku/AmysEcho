@@ -30,6 +30,7 @@ AmysEcho/
 │   ├── data/
 │   │   ├── config/
 │   │   │   └── labelMetadata.json          # 46 label definitions
+│   │   │   └── dgsVideoSources.json        # Optional extra source URLs
 │   │   ├── dgs_video_examples/             # Downloaded videos + landmarks
 │   │   ├── dgs_manifest.json               # Video inventory
 │   │   ├── datasets/
@@ -57,6 +58,7 @@ PYTHONPATH=. python3 scripts/fetch_signdict_videos_variants.py
 
 **What it does:**
 - Searches signdict.org for each label and its synonyms
+- Merges additional sources from `server/data/config/dgsVideoSources.json` (optional)
 - Falls back to DW-DGS direct MP4 links for core labels when SignDict has no match
 - Downloads main video + variant videos for each sign
 - Updates `server/data/dgs_manifest.json` with video inventory
@@ -77,6 +79,26 @@ PYTHONPATH=. python3 scripts/fetch_signdict_label.py --label rot --search-terms 
 ```
 
 This updates `server/data/dgs_manifest.json` with the new videos for that label.
+
+### Adding Extra Sources (Optional)
+
+To expand the auto-download coverage for labels that are missing in SignDict, add
+direct URLs to `server/data/config/dgsVideoSources.json`. The fetch scripts will
+download these URLs when SignDict has no results.
+
+You can override the config location for automation or tests:
+
+```bash
+AMY_DGS_SOURCES_PATH=server/data/config/dgsVideoSources.json \
+PYTHONPATH=. python3 scripts/fetch_signdict_label.py --label kindergarten
+```
+
+To skip SignDict lookups entirely (e.g., in offline tests):
+
+```bash
+AMY_DGS_SKIP_SIGNDICT=true \
+PYTHONPATH=. python3 scripts/fetch_signdict_label.py --label kindergarten
+```
 
 ---
 

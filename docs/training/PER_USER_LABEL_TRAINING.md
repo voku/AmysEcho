@@ -158,7 +158,8 @@ When a label is not ready, the API returns reasons in German:
 When a label is switched to **Auto-train (`server_pretrain`)** and enabled, the server now
 automatically:
 
-1. **Downloads missing DGS videos** for that label from signdict.org (fallback: DW-DGS lexicon)
+1. **Downloads missing DGS videos** for that label from signdict.org, additional
+   configured sources, and finally the DW-DGS lexicon fallback
 2. **Extracts landmarks** with MediaPipe (hand + pose + face)
 3. **Syncs landmarks into the profile’s `server_pretrain` directory**
 4. **Queues a training job** so the profile model learns from the new examples
@@ -172,6 +173,9 @@ enable Auto mode, without manual script runs.
 - The server must have Python dependencies installed (see `scripts/README_PRETRAINING.md`).
 - The label ID should be a safe identifier (`[a-zA-Z0-9_-]+`); the server will still
   normalize and search with display names if available.
+- Optional: add extra label-specific video sources in
+  `server/data/config/dgsVideoSources.json` (or override with
+  `AMY_DGS_SOURCES_PATH`) to cover labels not available in SignDict.
 
 ### Auto-Download Responses
 

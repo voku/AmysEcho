@@ -183,6 +183,8 @@ When adding new videos, update:
 1. `server/data/dgs_manifest.json` - Add video entries
 2. `server/data/config/defaultBaselineLabels.json` - Add new labels
 3. `server/data/config/kid_starter_preset.json` - Update vocabulary if appropriate
+4. `server/data/config/dgsVideoSources.json` - Record the source URLs when using
+   additional datasets outside SignDict/DW-DGS
 
 ---
 

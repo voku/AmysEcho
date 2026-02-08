@@ -41,7 +41,14 @@ for (let i = 0; i < rawArgs.length; i += 1) {
   }
 }
 
-const tsxArgs = ['--test', ...nodeFlags, 'test/api.test.js', 'test/training-flow.test.ts', 'test/multimodal-training-flow.test.ts'];
+const tsxArgs = [
+  '--test',
+  ...nodeFlags,
+  'test/dgs-auto-pretrain-sources.test.ts',
+  'test/api.test.js',
+  'test/training-flow.test.ts',
+  'test/multimodal-training-flow.test.ts',
+];
 
 const child = spawn(tsxPath, tsxArgs, {
   cwd: __dirname,
