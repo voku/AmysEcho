@@ -633,10 +633,18 @@
         "wuetend_var_\u00e4rger_0.mp4"
       ],
       "totalVideoCount": 5
+    },
+    {
+      "id": "kindergarten",
+      "label": "kindergarten",
+      "videos": [
+        "kindergarten_integration_0.mp4"
+      ],
+      "totalVideoCount": 1
     }
   ],
   "stats": {
-    "totalLabels": 46,
-    "totalVideos": 310
+    "totalLabels": 47,
+    "totalVideos": 311
   }
 }

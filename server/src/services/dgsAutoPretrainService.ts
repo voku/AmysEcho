@@ -189,6 +189,14 @@ async function syncLandmarksToUser(
 	labelId: string,
 	landmarkFiles: string[],
 ): Promise<void> {
+	// Validate identifiers before constructing any filesystem paths
+	if (!PROFILE_ID_PATTERN.test(userId)) {
+		throw new Error("Ungültige Benutzer-ID.");
+	}
+	if (!LABEL_ID_PATTERN.test(labelId)) {
+		throw new Error("Ungültige Label-ID.");
+	}
+
 	const targetDir = getUserLabelLandmarksPath(userId, labelId, "server_pretrain");
 	await fs.mkdir(targetDir, { recursive: true });
 	const sourceRoot = path.resolve(DGS_VIDEO_DIR);

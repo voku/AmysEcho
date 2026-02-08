@@ -14,6 +14,7 @@ from scripts.dgs_common import (
     upsert_manifest_entry,
 )
 
+
 def main():
     ensure_dirs()
 

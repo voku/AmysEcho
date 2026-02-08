@@ -18,8 +18,8 @@ from scripts.dgs_common import (
     find_video_url_direct,
     load_manifest,
     save_manifest,
-    upsert_manifest_entry,
     update_manifest_stats,
+    upsert_manifest_entry,
 )
 
 
@@ -130,32 +130,27 @@ def main() -> None:
 
             time.sleep(1)
 
+    # Try to fetch from all sources and combine results for comprehensive dataset
+    print("Checking additional sources...")
+    custom_files = fetch_custom_source_videos(label)
+    for filename in custom_files:
+        if filename not in video_files:
+            video_files.append(filename)
+
+    print("Checking fallback sources...")
+    fallback_files = fetch_fallback_videos(label)
+    for filename in fallback_files:
+        if filename not in video_files:
+            video_files.append(filename)
+
+    # Save if we found any new videos from any source
     if len(video_files) > initial_count:
         upsert_manifest_entry(manifest, label, video_files)
         update_manifest_stats(manifest)
         save_manifest(manifest)
         print(f"Updated manifest for {label} with {len(video_files)} videos.")
     else:
-        print("No new videos found from signdict; trying additional sources.")
-        custom_files = fetch_custom_source_videos(label)
-        for filename in custom_files:
-            if filename not in video_files:
-                video_files.append(filename)
-
-        if len(video_files) <= initial_count:
-            print("No new videos found from additional sources; trying fallback sources.")
-            fallback_files = fetch_fallback_videos(label)
-            for filename in fallback_files:
-                if filename not in video_files:
-                    video_files.append(filename)
-
-        if len(video_files) > initial_count:
-            upsert_manifest_entry(manifest, label, video_files)
-            update_manifest_stats(manifest)
-            save_manifest(manifest)
-            print(f"Updated manifest for {label} with {len(video_files)} videos.")
-        else:
-            print("No new videos found; manifest unchanged.")
+        print("No new videos found; manifest unchanged.")
 
 
 if __name__ == "__main__":

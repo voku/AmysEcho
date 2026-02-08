@@ -27,6 +27,7 @@ import numpy as np
 from mediapipe.tasks import python as mp_tasks
 from mediapipe.tasks.python import vision as mp_vision
 
+
 class DGSVideoProcessor:
     def __init__(self, models_dir: str, confidence: float = 0.5):
         self.confidence = confidence
