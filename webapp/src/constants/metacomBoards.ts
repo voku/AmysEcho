@@ -68,6 +68,48 @@ const EXTENDED_START_BOARD: MetacomBoardDefinition = {
   ],
 };
 
+const FULL_START_BOARD: MetacomBoardDefinition = {
+  ...EXTENDED_START_BOARD,
+  rows: 5,
+  columns: 4,
+  cells: [
+    ...EXTENDED_START_BOARD.cells,
+    {
+      id: 'metacom_board_gefuehle',
+      label: 'Gefühle',
+      speech: 'Gefühle',
+      emoji: '😊',
+      position: 16,
+      type: 'board',
+      targetBoardId: 'gefuehle',
+      category: 'gefuehle',
+      tags: ['core'],
+    },
+    {
+      id: 'metacom_board_personen',
+      label: 'Personen',
+      speech: 'Personen',
+      emoji: '👨‍👩‍👧',
+      position: 17,
+      type: 'board',
+      targetBoardId: 'personen',
+      category: 'personen',
+      tags: ['core'],
+    },
+    {
+      id: 'metacom_board_saetze',
+      label: 'Sätze',
+      speech: 'Sätze',
+      emoji: '💬',
+      position: 18,
+      type: 'board',
+      targetBoardId: 'saetze',
+      category: 'saetze',
+      tags: ['core'],
+    },
+  ],
+};
+
 const ESSEN_BOARD: MetacomBoardDefinition = {
   id: 'essen',
   label: 'Essen',
@@ -192,12 +234,78 @@ const FULL_SPIELEN_BOARD: MetacomBoardDefinition = {
   ],
 };
 
+const GEFUEHLE_BOARD: MetacomBoardDefinition = {
+  id: 'gefuehle',
+  label: 'Gefühle',
+  rows: 3,
+  columns: 4,
+  cells: [
+    { id: 'metacom_gluecklich', label: 'Glücklich', emoji: '😊', position: 0, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_traurig', label: 'Traurig', emoji: '😢', position: 1, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_muede', label: 'Müde', emoji: '😴', position: 2, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core', 'evening'] },
+    { id: 'metacom_hungrig', label: 'Hungrig', emoji: '😋', position: 3, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core', 'morning'] },
+    { id: 'metacom_durstig', label: 'Durstig', emoji: '🥵', position: 4, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_wuetend', label: 'Wütend', emoji: '😠', position: 5, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_aengstlich', label: 'Ängstlich', emoji: '😨', position: 6, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_krank', label: 'Krank', emoji: '🤒', position: 7, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_gut', label: 'Gut', emoji: '👌', position: 8, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_aufgeregt', label: 'Aufgeregt', emoji: '🤩', position: 9, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['older'] },
+    { id: 'metacom_gelangweilt', label: 'Gelangweilt', emoji: '😐', position: 10, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['older', 'afternoon'] },
+    { id: 'metacom_stolz', label: 'Stolz', emoji: '🥇', position: 11, type: 'symbol', category: 'gefuehle', role: 'modifier', tags: ['older'] },
+  ],
+};
+
+const PERSONEN_BOARD: MetacomBoardDefinition = {
+  id: 'personen',
+  label: 'Personen',
+  rows: 3,
+  columns: 4,
+  cells: [
+    { id: 'metacom_mama', label: 'Mama', emoji: '👩', position: 0, type: 'symbol', category: 'personen', role: 'person', tags: ['core'] },
+    { id: 'metacom_papa', label: 'Papa', emoji: '👨', position: 1, type: 'symbol', category: 'personen', role: 'person', tags: ['core'] },
+    { id: 'metacom_oma', label: 'Oma', emoji: '👵', position: 2, type: 'symbol', category: 'personen', role: 'person', tags: ['core'] },
+    { id: 'metacom_opa', label: 'Opa', emoji: '👴', position: 3, type: 'symbol', category: 'personen', role: 'person', tags: ['core'] },
+    { id: 'metacom_bruder', label: 'Bruder', emoji: '👦', position: 4, type: 'symbol', category: 'personen', role: 'person', tags: ['older'] },
+    { id: 'metacom_schwester', label: 'Schwester', emoji: '👧', position: 5, type: 'symbol', category: 'personen', role: 'person', tags: ['older'] },
+    { id: 'metacom_freund', label: 'Freund', emoji: '🧑‍🤝‍🧑', position: 6, type: 'symbol', category: 'personen', role: 'person', tags: ['older'] },
+    { id: 'metacom_lehrerin', label: 'Lehrerin', emoji: '👩‍🏫', position: 7, type: 'symbol', category: 'personen', role: 'person', tags: ['older'] },
+    { id: 'metacom_erzieherin', label: 'Erzieherin', emoji: '🧑‍🍼', position: 8, type: 'symbol', category: 'personen', role: 'person', tags: ['core'] },
+    { id: 'metacom_therapeutin', label: 'Therapeutin', emoji: '🩺', position: 9, type: 'symbol', category: 'personen', role: 'person', tags: ['older'] },
+    { id: 'metacom_kind', label: 'Kind', emoji: '👶', position: 10, type: 'symbol', category: 'personen', role: 'person', tags: ['core'] },
+    { id: 'metacom_alle', label: 'Alle', emoji: '👥', position: 11, type: 'symbol', category: 'personen', role: 'person', tags: ['core'] },
+  ],
+};
+
+const SAETZE_BOARD: MetacomBoardDefinition = {
+  id: 'saetze',
+  label: 'Sätze',
+  rows: 4,
+  columns: 3,
+  cells: [
+    { id: 'metacom_ich_moechte', label: 'Ich möchte', emoji: '🙋', position: 0, type: 'symbol', speech: 'Ich möchte', role: 'person', tags: ['core'] },
+    { id: 'metacom_ich_bin', label: 'Ich bin', emoji: '👤', position: 1, type: 'symbol', speech: 'Ich bin', role: 'person', tags: ['core'] },
+    { id: 'metacom_ich_mag', label: 'Ich mag', emoji: '❤️', position: 2, type: 'symbol', speech: 'Ich mag', role: 'person', tags: ['core'] },
+    { id: 'metacom_kann_ich', label: 'Kann ich', emoji: '🤚', position: 3, type: 'symbol', speech: 'Kann ich', role: 'person', tags: ['core'] },
+    { id: 'metacom_wo_ist', label: 'Wo ist', emoji: '🔍', position: 4, type: 'symbol', speech: 'Wo ist', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_ich_brauche', label: 'Ich brauche', emoji: '🆘', position: 5, type: 'symbol', speech: 'Ich brauche', role: 'person', tags: ['core'] },
+    { id: 'metacom_das_ist', label: 'Das ist', emoji: '👉', position: 6, type: 'symbol', speech: 'Das ist', role: 'modifier', tags: ['core'] },
+    { id: 'metacom_ich_will_nicht', label: 'Ich will nicht', emoji: '🚫', position: 7, type: 'symbol', speech: 'Ich will nicht', role: 'negation', tags: ['core'] },
+    { id: 'metacom_gib_mir', label: 'Gib mir', emoji: '🤲', position: 8, type: 'symbol', speech: 'Gib mir', role: 'action', tags: ['core'] },
+    { id: 'metacom_ich_heisse', label: 'Ich heiße', emoji: '🏷️', position: 9, type: 'symbol', speech: 'Ich heiße', role: 'person', tags: ['older'] },
+    { id: 'metacom_wie_heisst_du', label: 'Wie heißt du?', emoji: '❓', position: 10, type: 'symbol', speech: 'Wie heißt du?', role: 'modifier', tags: ['older'] },
+    { id: 'metacom_was_moechtest_du', label: 'Was möchtest du?', emoji: '🤔', position: 11, type: 'symbol', speech: 'Was möchtest du?', role: 'modifier', tags: ['older'] },
+  ],
+};
+
 export const METACOM_BOARDS: Record<string, MetacomBoardDefinition> = {
   start: START_BOARD,
   essen: ESSEN_BOARD,
   pizza: PIZZA_BOARD,
   trinken: TRINKEN_BOARD,
   spielen: SPIELEN_BOARD,
+  gefuehle: GEFUEHLE_BOARD,
+  personen: PERSONEN_BOARD,
+  saetze: SAETZE_BOARD,
 };
 
 const EXTENDED_BOARDS: Record<string, MetacomBoardDefinition> = {
@@ -206,14 +314,20 @@ const EXTENDED_BOARDS: Record<string, MetacomBoardDefinition> = {
   pizza: PIZZA_BOARD,
   trinken: TRINKEN_BOARD,
   spielen: SPIELEN_BOARD,
+  gefuehle: GEFUEHLE_BOARD,
+  personen: PERSONEN_BOARD,
+  saetze: SAETZE_BOARD,
 };
 
 const FULL_BOARDS: Record<string, MetacomBoardDefinition> = {
-  start: EXTENDED_START_BOARD,
+  start: FULL_START_BOARD,
   essen: FULL_ESSEN_BOARD,
   pizza: PIZZA_BOARD,
   trinken: FULL_TRINKEN_BOARD,
   spielen: FULL_SPIELEN_BOARD,
+  gefuehle: GEFUEHLE_BOARD,
+  personen: PERSONEN_BOARD,
+  saetze: SAETZE_BOARD,
 };
 
 const EINSTEIGER_IDS = new Set([
