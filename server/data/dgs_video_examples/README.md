@@ -2,6 +2,17 @@
 
 This directory contains Deutsche Gebärdensprache (DGS) sign language videos for Amy's Echo.
 
+## ⚠️ CRITICAL WARNING: Video Source Consistency
+
+**The videos in this archive are from SignDict.org, which may use DIFFERENT sign variants than what Amy learned.**
+
+If Amy learned with the **Kestner system** (https://www.kestner.app/) or a different DGS resource, these videos may not match her signs. This will cause recognition failures even when Amy signs correctly.
+
+**See [docs/training/VIDEO_SOURCE_CONSISTENCY.md](../../docs/training/VIDEO_SOURCE_CONSISTENCY.md) for:**
+- How to verify if videos match Amy's learning
+- How to record custom videos matching Amy's signs
+- How to replace mismatched videos
+
 ## Purpose
 
 These videos serve as:
