@@ -13,53 +13,53 @@ import path from "path";
 import { SERVER_DIR } from "../constants/modelPaths.js";
 
 export interface LabelDefinition {
-/** Unique label identifier (e.g., "alle", "blau") */
-id: string;
-/** Display name in German (e.g., "Alle", "Blau") */
-displayName: string;
-/** Emoji representation */
-emoji: string;
-/** Category for grouping (e.g., "color", "food", "action") */
-category: string;
-/** Color for UI styling */
-color: string;
-/** Total number of training videos available */
-videoCount?: number;
-/** Whether landmarks have been extracted */
-hasLandmarks?: boolean;
+	/** Unique label identifier (e.g., "alle", "blau") */
+	id: string;
+	/** Display name in German (e.g., "Alle", "Blau") */
+	displayName: string;
+	/** Emoji representation */
+	emoji: string;
+	/** Category for grouping (e.g., "color", "food", "action") */
+	category: string;
+	/** Color for UI styling */
+	color: string;
+	/** Total number of training videos available */
+	videoCount?: number;
+	/** Whether landmarks have been extracted */
+	hasLandmarks?: boolean;
 }
 
 export interface LabelVariation {
-/** Main video file */
-mainVideo: string | null;
-/** Variation videos (different signers, angles) */
-variationVideos: string[];
-/** All video files for this label */
-allVideos: string[];
+	/** Main video file */
+	mainVideo: string | null;
+	/** Variation videos (different signers, angles) */
+	variationVideos: string[];
+	/** All video files for this label */
+	allVideos: string[];
 }
 
 export interface LabelManifest {
-version: string;
-labels: LabelDefinition[];
-variations: Map<string, LabelVariation>;
-stats: {
-totalLabels: number;
-totalVideos: number;
-labelsWithLandmarks: number;
-};
+	version: string;
+	labels: LabelDefinition[];
+	variations: Map<string, LabelVariation>;
+	stats: {
+		totalLabels: number;
+		totalVideos: number;
+		labelsWithLandmarks: number;
+	};
 }
 
 const BASELINE_LABELS_PATH = path.join(
-SERVER_DIR,
-"data",
-"config",
-"defaultBaselineLabels.json",
+	SERVER_DIR,
+	"data",
+	"config",
+	"defaultBaselineLabels.json",
 );
 
 const DGS_MANIFEST_PATH = path.join(
-SERVER_DIR,
-"data",
-"dgs_manifest.json",
+	SERVER_DIR,
+	"data",
+	"dgs_manifest.json",
 );
 
 const LABEL_METADATA_PATH = path.join(
@@ -73,21 +73,31 @@ const LABEL_METADATA_PATH = path.join(
  * Load baseline labels from configuration
  */
 export async function loadBaselineLabels(): Promise<string[]> {
-try {
-const content = await fs.readFile(BASELINE_LABELS_PATH, "utf8");
-const labels = JSON.parse(content);
-if (Array.isArray(labels) && labels.every((l) => typeof l === "string")) {
-return labels;
-}
-console.warn("Invalid baseline labels format, using fallback");
-} catch (error) {
-console.warn("Failed to load baseline labels:", error);
-}
-// Fallback to known baseline
-return [
-"alle", "blau", "essen", "fertig", "gelb", "gruen",
-"nochmal", "rot", "satt", "schwester", "spielen", "trinken",
-];
+	try {
+		const content = await fs.readFile(BASELINE_LABELS_PATH, "utf8");
+		const labels = JSON.parse(content);
+		if (Array.isArray(labels) && labels.every((l) => typeof l === "string")) {
+			return labels;
+		}
+		console.warn("Invalid baseline labels format, using fallback");
+	} catch (error) {
+		console.warn("Failed to load baseline labels:", error);
+	}
+	// Fallback to known baseline
+	return [
+		"alle",
+		"blau",
+		"essen",
+		"fertig",
+		"gelb",
+		"gruen",
+		"nochmal",
+		"rot",
+		"satt",
+		"schwester",
+		"spielen",
+		"trinken",
+	];
 }
 
 /**
@@ -95,128 +105,150 @@ return [
  * Handles both old format (with variations) and new format (with videos array)
  */
 export async function loadDgsManifest(): Promise<{
-gestures: Array<{
-id: string;
-label: string;
-video: string | null;
-videos?: string[];
-variations?: { main: string[]; var: string[] };
-totalVideoCount?: number;
-}>;
-stats?: { totalLabels: number; totalVideos: number; hasLandmarks: number };
+	gestures: Array<{
+		id: string;
+		label: string;
+		video: string | null;
+		videos?: string[];
+		variations?: { main: string[]; var: string[] };
+		totalVideoCount?: number;
+	}>;
+	stats?: { totalLabels: number; totalVideos: number; hasLandmarks: number };
 } | null> {
-try {
-const content = await fs.readFile(DGS_MANIFEST_PATH, "utf8");
-const manifest = JSON.parse(content);
+	try {
+		const content = await fs.readFile(DGS_MANIFEST_PATH, "utf8");
+		const manifest = JSON.parse(content);
 
-// Normalize manifest entries to have consistent structure
-if (manifest.gestures) {
-manifest.gestures = manifest.gestures.map((g: { id: string; label: string; video?: string; videos?: string[]; variations?: { main: string[]; var: string[] }; totalVideoCount?: number }) => {
-// If we have videos array but no variations, build variations from videos
-if (g.videos && !g.variations) {
-const mainVideos = g.videos.filter((v: string) => v.includes("_main_"));
-const varVideos = g.videos.filter((v: string) => v.includes("_var_"));
-const baseVideo = g.videos.find((v: string) => !v.includes("_main_") && !v.includes("_var_")) ?? null;
+		// Normalize manifest entries to have consistent structure
+		if (manifest.gestures) {
+			manifest.gestures = manifest.gestures.map(
+				(g: {
+					id: string;
+					label: string;
+					video?: string;
+					videos?: string[];
+					variations?: { main: string[]; var: string[] };
+					totalVideoCount?: number;
+				}) => {
+					// If we have videos array but no variations, build variations from videos
+					if (g.videos && !g.variations) {
+						const mainVideos = g.videos.filter((v: string) =>
+							v.includes("_main_"),
+						);
+						const varVideos = g.videos.filter((v: string) =>
+							v.includes("_var_"),
+						);
+						const baseVideo =
+							g.videos.find(
+								(v: string) =>
+									!v.includes("_main_") && !v.includes("_var_"),
+							) ?? null;
 
-return {
-...g,
-video: baseVideo,
-variations: {
-main: mainVideos,
-var: varVideos,
-},
-totalVideoCount: g.videos.length,
-};
-}
-return g;
-});
-}
+						return {
+							...g,
+							video: baseVideo,
+							variations: {
+								main: mainVideos,
+								var: varVideos,
+							},
+							totalVideoCount: g.videos.length,
+						};
+					}
+					return g;
+				},
+			);
+		}
 
-return manifest;
-} catch (error) {
-console.warn("Failed to load DGS manifest:", error);
-return null;
-}
+		return manifest;
+	} catch (error) {
+		console.warn("Failed to load DGS manifest:", error);
+		return null;
+	}
 }
 
 /**
  * Build a complete label manifest combining configuration and video data
  */
 export async function buildLabelManifest(): Promise<LabelManifest> {
-const baselineLabels = await loadBaselineLabels();
-const dgsManifest = await loadDgsManifest();
+	const baselineLabels = await loadBaselineLabels();
+	const dgsManifest = await loadDgsManifest();
 
-// Pre-load label metadata from config file
-await loadLabelMetadataConfig();
+	// Pre-load label metadata from config file
+	await loadLabelMetadataConfig();
 
-// Label definitions with metadata
-const labelDefinitions: LabelDefinition[] = baselineLabels.map((id) => {
-const gestureEntry = dgsManifest?.gestures.find((g) => g.id === id);
-const videoCount = gestureEntry?.totalVideoCount ?? 0;
+	// Label definitions with metadata
+	const labelDefinitions: LabelDefinition[] = baselineLabels.map((id) => {
+		const gestureEntry = dgsManifest?.gestures.find((g) => g.id === id);
+		const videoCount = gestureEntry?.totalVideoCount ?? 0;
 
-// Map label to category and display info
-const labelMeta = getLabelMetadata(id);
-return {
-id,
-displayName: labelMeta.displayName,
-emoji: labelMeta.emoji,
-category: labelMeta.category,
-color: labelMeta.color,
-videoCount,
-hasLandmarks: videoCount > 0,
-};
-});
+		// Map label to category and display info
+		const labelMeta = getLabelMetadata(id);
+		return {
+			id,
+			displayName: labelMeta.displayName,
+			emoji: labelMeta.emoji,
+			category: labelMeta.category,
+			color: labelMeta.color,
+			videoCount,
+			hasLandmarks: videoCount > 0,
+		};
+	});
 
-// Build variation map
-const variations = new Map<string, LabelVariation>();
-if (dgsManifest?.gestures) {
-for (const gesture of dgsManifest.gestures) {
-// Handle both old format (variations object) and new format (videos array)
-let allVideos: string[];
-let mainVideo: string | null;
-let variationVideos: string[];
+	// Build variation map
+	const variations = new Map<string, LabelVariation>();
+	if (dgsManifest?.gestures) {
+		for (const gesture of dgsManifest.gestures) {
+			// Handle both old format (variations object) and new format (videos array)
+			let allVideos: string[];
+			let mainVideo: string | null;
+			let variationVideos: string[];
 
-if (gesture.videos) {
-// New format: videos array
-allVideos = gesture.videos;
-mainVideo = gesture.video ?? allVideos.find(v => !v.includes("_main_") && !v.includes("_var_")) ?? allVideos[0] ?? null;
-variationVideos = allVideos.filter(v => v !== mainVideo);
-} else if (gesture.variations) {
-// Old format: variations object
-const mainVideos = gesture.variations.main ?? [];
-const varVideos = gesture.variations.var ?? [];
-allVideos = [
-gesture.video,
-...mainVideos,
-...varVideos,
-].filter((v): v is string => v != null);
-mainVideo = gesture.video;
-variationVideos = [...mainVideos, ...varVideos];
-} else {
-// Fallback: just the main video
-allVideos = gesture.video ? [gesture.video] : [];
-mainVideo = gesture.video;
-variationVideos = [];
-}
+			if (gesture.videos) {
+				// New format: videos array
+				allVideos = gesture.videos;
+				mainVideo =
+					gesture.video ??
+					allVideos.find(
+						(v) => !v.includes("_main_") && !v.includes("_var_"),
+					) ??
+					allVideos[0] ??
+					null;
+				variationVideos = allVideos.filter((v) => v !== mainVideo);
+			} else if (gesture.variations) {
+				// Old format: variations object
+				const mainVideos = gesture.variations.main ?? [];
+				const varVideos = gesture.variations.var ?? [];
+				allVideos = [gesture.video, ...mainVideos, ...varVideos].filter(
+					(v): v is string => v != null,
+				);
+				mainVideo = gesture.video;
+				variationVideos = [...mainVideos, ...varVideos];
+			} else {
+				// Fallback: just the main video
+				allVideos = gesture.video ? [gesture.video] : [];
+				mainVideo = gesture.video;
+				variationVideos = [];
+			}
 
-variations.set(gesture.id, {
-mainVideo,
-variationVideos,
-allVideos,
-});
-}
-}
+			variations.set(gesture.id, {
+				mainVideo,
+				variationVideos,
+				allVideos,
+			});
+		}
+	}
 
-return {
-version: dgsManifest?.stats ? "2.0" : "1.0",
-labels: labelDefinitions,
-variations,
-stats: {
-totalLabels: labelDefinitions.length,
-totalVideos: dgsManifest?.stats?.totalVideos ?? 0,
-labelsWithLandmarks: labelDefinitions.filter((l) => l.hasLandmarks).length,
-},
-};
+	return {
+		version: dgsManifest?.stats ? "2.0" : "1.0",
+		labels: labelDefinitions,
+		variations,
+		stats: {
+			totalLabels: labelDefinitions.length,
+			totalVideos: dgsManifest?.stats?.totalVideos ?? 0,
+			labelsWithLandmarks: labelDefinitions.filter((l) => l.hasLandmarks)
+				.length,
+		},
+	};
 }
 
 type LabelMetadataEntry = {
@@ -232,11 +264,13 @@ let cachedLabelMetadata: Record<string, LabelMetadataEntry> | null = null;
 /**
  * Load label metadata from config file (with caching)
  */
-async function loadLabelMetadataConfig(): Promise<Record<string, LabelMetadataEntry>> {
+async function loadLabelMetadataConfig(): Promise<
+	Record<string, LabelMetadataEntry>
+> {
 	if (cachedLabelMetadata) {
 		return cachedLabelMetadata;
 	}
-	
+
 	try {
 		const content = await fs.readFile(LABEL_METADATA_PATH, "utf8");
 		const parsed = JSON.parse(content);
@@ -245,11 +279,21 @@ async function loadLabelMetadataConfig(): Promise<Record<string, LabelMetadataEn
 			return cachedLabelMetadata;
 		}
 	} catch (error) {
-		console.warn("Failed to load label metadata config, using fallback:", error);
+		console.warn(
+			"Failed to load label metadata config, using fallback:",
+			error,
+		);
 	}
-	
+
 	// Fallback to hardcoded defaults if config file fails
 	return FALLBACK_LABEL_METADATA;
+}
+
+export async function getLabelMetadataEntry(
+	id: string,
+): Promise<LabelMetadataEntry | null> {
+	const metadata = await loadLabelMetadataConfig();
+	return metadata[id] ?? null;
 }
 
 // Fallback metadata for when config file is unavailable
@@ -274,7 +318,7 @@ const FALLBACK_LABEL_METADATA: Record<string, LabelMetadataEntry> = {
 function getLabelMetadata(id: string): LabelMetadataEntry {
 	// Use cached metadata if available, otherwise use fallback
 	const metadata = cachedLabelMetadata ?? FALLBACK_LABEL_METADATA;
-	
+
 	return metadata[id] ?? {
 		displayName: id.charAt(0).toUpperCase() + id.slice(1),
 		emoji: "❓",
@@ -287,15 +331,15 @@ function getLabelMetadata(id: string): LabelMetadataEntry {
  * Validate that a label exists in the registry
  */
 export async function isValidLabel(label: string): Promise<boolean> {
-const baselineLabels = await loadBaselineLabels();
-return baselineLabels.includes(label.toLowerCase());
+	const baselineLabels = await loadBaselineLabels();
+	return baselineLabels.includes(label.toLowerCase());
 }
 
 /**
  * Get video files for a label
  */
 export async function getVideosForLabel(label: string): Promise<string[]> {
-const manifest = await buildLabelManifest();
-const variation = manifest.variations.get(label.toLowerCase());
-return variation?.allVideos ?? [];
+	const manifest = await buildLabelManifest();
+	const variation = manifest.variations.get(label.toLowerCase());
+	return variation?.allVideos ?? [];
 }

@@ -16,10 +16,11 @@ import os from "os";
 import path from "path";
 import config from "../config/index.js";
 import {
-	getMlpModelPath,
 	getUserLabelLandmarksPath,
 	PROFILE_ID_PATTERN,
 	TRAINING_UPLOADS_DIR,
+	DATA_DIR,
+	MLP_MODELS_DIR,
 } from "../constants/modelPaths.js";
 import {
 	getUserLabelSettingsByUserId,
@@ -283,16 +284,40 @@ async function startTrainingJob(jobId: string): Promise<void> {
 			sampleCount: d.sampleCount,
 		}));
 
-		// Create training manifest for this job
+		const entries = trainingData.flatMap((d) =>
+			d.landmarkPaths
+				.map((landmarkPath) => {
+					const relativePath = path.relative(DATA_DIR, landmarkPath);
+					if (
+						relativePath.startsWith("..") ||
+						path.isAbsolute(relativePath)
+					) {
+						return null;
+					}
+					return {
+						label: d.labelId,
+						profileId: job.userId,
+						storage: {
+							directory: path.dirname(relativePath),
+							files: [path.basename(relativePath)],
+						},
+						metadata: {
+							source: d.mode,
+						},
+					};
+				})
+				.filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+		);
+
+		if (entries.length === 0) {
+			throw new Error("Keine Trainingsdaten gefunden");
+		}
+
 		const manifest = {
-			userId: job.userId,
+			version: "1.0",
+			entries,
+			generatedAt: new Date().toISOString(),
 			jobId,
-			createdAt: new Date().toISOString(),
-			labels: trainingData.map((d) => ({
-				labelId: d.labelId,
-				mode: d.mode,
-				landmarkPaths: d.landmarkPaths,
-			})),
 		};
 
 		// Write manifest to temp file
@@ -333,12 +358,12 @@ async function startTrainingJob(jobId: string): Promise<void> {
  */
 async function runTrainingScript(
 	manifestPath: string,
-	userId: string,
+	_userId: string,
 ): Promise<void> {
-	const modelPath = getMlpModelPath(userId);
+	const outputDir = MLP_MODELS_DIR;
 
 	// Ensure model directory exists
-	await fs.mkdir(path.dirname(modelPath), { recursive: true });
+	await fs.mkdir(outputDir, { recursive: true });
 
 	return new Promise((resolve, reject) => {
 		const child = spawn(
@@ -347,10 +372,8 @@ async function runTrainingScript(
 				config.trainScript,
 				"--manifest",
 				manifestPath,
-				"--output",
-				modelPath,
-				"--profile",
-				userId,
+				"--output-dir",
+				outputDir,
 			],
 			{
 				stdio: ["ignore", "pipe", "pipe"],

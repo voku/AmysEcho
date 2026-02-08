@@ -1,55 +1,13 @@
 import json
 import subprocess
-from pathlib import Path
 
-# Mapping labels to known SignDict IDs or keywords for search
-SEARCH_MAP = {
-    "alle": "https://dw-dgs.de/static/videos/alle.mp4",
-    "blau": "https://dw-dgs.de/static/videos/blau.mp4",
-    "essen": "https://dw-dgs.de/static/videos/essen.mp4",
-    "fertig": "https://dw-dgs.de/static/videos/fertig.mp4",
-    "gelb": "https://dw-dgs.de/static/videos/gelb.mp4",
-    "gruen": "https://dw-dgs.de/static/videos/gruen.mp4",
-    "nochmal": "https://dw-dgs.de/static/videos/nochmal.mp4",
-    "rot": "https://dw-dgs.de/static/videos/rot.mp4",
-    "satt": "https://dw-dgs.de/static/videos/satt.mp4",
-    "schwester": "https://dw-dgs.de/static/videos/schwester.mp4",
-    "spielen": "https://dw-dgs.de/static/videos/spielen.mp4",
-    "trinken": "https://dw-dgs.de/static/videos/trinken.mp4",
-}
-
-DATA_DIR = Path("server/data/dgs_video_examples")
-MANIFEST_PATH = Path("server/data/dgs_manifest.json")
-
-def ensure_dirs():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-def download_video(label: str, url: str) -> Path | None:
-    """
-    Downloads a video for a given label. 
-    Uses yt-dlp if it's a video platform, or direct download.
-    """
-    output_path = DATA_DIR / f"{label}.mp4"
-    if output_path.exists() and output_path.stat().st_size > 1000:
-        print(f"Video for {label} already exists.")
-        return output_path
-
-    print(f"Downloading video for {label} from {url}...")
-    try:
-        # Try downloading using yt-dlp
-        subprocess.run([
-            "yt-dlp", 
-            "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-            "-o", str(output_path),
-            url
-        ], check=True, capture_output=True)
-        return output_path
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to download {label} via yt-dlp: {e}. Stderr: {e.stderr.decode(errors='ignore') if e.stderr else 'N/A'}")
-        return None
-    except OSError as e:
-        print(f"Failed to download {label} (yt-dlp not found or file error): {e}")
-        return None
+from scripts.dgs_common import (
+    DATA_DIR,
+    FALLBACK_LABEL_URLS,
+    MANIFEST_PATH,
+    download_video,
+    ensure_dirs,
+)
 
 def main():
     ensure_dirs()
@@ -67,13 +25,18 @@ def main():
         manifest["gestures"] = []
     
     updated = False
-    for label, url in SEARCH_MAP.items():
-        video_path = download_video(label, url)
-        if video_path and video_path.exists():
-            entry = {"id": label, "label": label, "video": f"{label}.mp4"}
-            if not any(e["label"] == label for e in manifest["gestures"]):
-                manifest["gestures"].append(entry)
-                updated = True
+    for label, urls in FALLBACK_LABEL_URLS.items():
+        for index, url in enumerate(urls):
+            filename = download_video(label, url, f"fallback_{index}")
+            if filename:
+                entry = {
+                    "id": label,
+                    "label": label,
+                    "video": filename,
+                }
+                if not any(e["label"] == label for e in manifest["gestures"]):
+                    manifest["gestures"].append(entry)
+                    updated = True
     
     # Write manifest once
     if updated:

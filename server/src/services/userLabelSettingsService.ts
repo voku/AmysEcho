@@ -275,6 +275,11 @@ export async function getLabelReadinessForUser(
 	const baselineLabels = await loadBaselineLabels();
 	const dgsManifest = await loadDgsManifest();
 	const userSettings = getUserLabelSettingsByUserId(userId);
+	const labelIds = new Set<string>(baselineLabels);
+	for (const setting of userSettings) {
+		labelIds.add(setting.labelId);
+	}
+	const allLabels = Array.from(labelIds);
 
 	// Build a map for quick lookup
 	const settingsMap = new Map<string, UserLabelSetting>();
@@ -283,7 +288,7 @@ export async function getLabelReadinessForUser(
 	}
 
 	// Process all labels in parallel for better performance
-	const results = await Promise.all(baselineLabels.map(async (labelId) => {
+	const results = await Promise.all(allLabels.map(async (labelId) => {
 		const setting = settingsMap.get(labelId);
 		const mode: LabelTrainingMode = setting?.mode ?? "user_train";
 		const enabled = setting?.enabled ?? false;

@@ -5,7 +5,7 @@ This document describes how to run the full DGS (Deutsche Gebärdensprache) pre-
 ## Overview
 
 The pipeline consists of 4 steps:
-1. **Download videos** from signdict.org for all 46 kid starter preset labels
+1. **Download videos** from signdict.org (fallback: DW-DGS lexicon) for all 46 kid starter preset labels
 2. **Download MediaPipe models** for landmark extraction
 3. **Process videos** to extract hand/pose/face landmarks
 4. **Train MLP model** using the extracted landmarks
@@ -57,6 +57,7 @@ PYTHONPATH=. python3 scripts/fetch_signdict_videos_variants.py
 
 **What it does:**
 - Searches signdict.org for each label and its synonyms
+- Falls back to DW-DGS direct MP4 links for core labels when SignDict has no match
 - Downloads main video + variant videos for each sign
 - Updates `server/data/dgs_manifest.json` with video inventory
 
@@ -65,6 +66,17 @@ PYTHONPATH=. python3 scripts/fetch_signdict_videos_variants.py
 - Updated manifest with 46 labels
 
 **Time estimate:** 15-30 minutes (depends on network speed)
+
+### Download a Single Label (Auto-pretrain helper)
+
+For on-demand downloads (e.g., when a profile enables Auto mode for one label), use:
+
+```bash
+cd AmysEcho
+PYTHONPATH=. python3 scripts/fetch_signdict_label.py --label rot --search-terms "rot"
+```
+
+This updates `server/data/dgs_manifest.json` with the new videos for that label.
 
 ---
 
@@ -115,6 +127,19 @@ python3 scripts/process_dgs_videos.py \
 - Each file contains ~50-75 frames of landmark data
 
 **Time estimate:** 30-60 minutes (CPU-intensive)
+
+### Process a Single Label
+
+To extract landmarks for a specific label only:
+
+```bash
+python3 scripts/process_dgs_videos.py \
+  --videos-dir server/data/dgs_video_examples \
+  --models-dir server/data/models \
+  --manifest server/data/dgs_manifest.json \
+  --split-output \
+  --labels rot
+```
 
 ---
 

@@ -23,7 +23,19 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 2. Hugging Face: sign-language-avatar-gloss-dgs
+### 2. DW-DGS Lexikon (Fallback for Core Labels)
+
+- **Source**: [dw-dgs.de](https://dw-dgs.de)
+- **Content**: Isolated DGS sign videos for common vocabulary
+- **License**: Verify per video (DW resources are typically educational; confirm usage)
+- **Status**: ✅ Used as a fallback when SignDict has no match
+- **Notes**:
+  - Direct MP4 URLs available for core vocabulary
+  - Useful to backfill missing SignDict entries
+
+---
+
+### 3. Hugging Face: sign-language-avatar-gloss-dgs
 
 - **Source**: [fhswf/sign-language-avatar-gloss-dgs](https://huggingface.co/datasets/fhswf/sign-language-avatar-gloss-dgs)
 - **Content**: Curated SignDict.org resources with pose estimation data
@@ -40,7 +52,7 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 3. DGS-Fabeln-1 Corpus
+### 4. DGS-Fabeln-1 Corpus
 
 - **Source**: [Zenodo: DGS-Fabeln-1](https://doi.org/10.5281/zenodo.10822096)
 - **Content**: Fairy tales interpreted in DGS by native signer
@@ -54,7 +66,7 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 4. DGS-Korpus (Public Access)
+### 5. DGS-Korpus (Public Access)
 
 - **Source**: [meine-dgs.de](https://meine-dgs.de)
 - **Content**: 50+ hours of annotated natural DGS conversations
@@ -68,7 +80,7 @@ Additional training data from these resources can help Amy learn more signs and 
 
 ---
 
-### 5. SIGNUM Database
+### 6. SIGNUM Database
 
 - **Source**: [Phonetik BAS](https://www.phonetik.uni-muenchen.de/Bas/BasSIGNUMdeu.html)
 - **Content**: 450 isolated DGS signs, 780 sentences
@@ -92,16 +104,20 @@ For Amy's Echo, prioritize data expansion in this order:
    - Compatible with current pipeline
    - Expands existing SignDict vocabulary
 
-2. **SIGNUM Database** (Short-term)
+2. **DW-DGS Lexikon** (Short-term)
+   - Direct MP4 videos, easy to ingest
+   - Great fallback for missing core labels
+
+3. **SIGNUM Database** (Short-term)
    - High-quality isolated signs
    - Multiple signers for robustness
    - Academic standard
 
-3. **DGS-Fabeln-1** (Medium-term)
+4. **DGS-Fabeln-1** (Medium-term)
    - Multi-angle recordings
    - Continuous signing for sequence models
 
-4. **DGS-Korpus** (Long-term)
+5. **DGS-Korpus** (Long-term)
    - Natural language data
    - Requires more preprocessing
 
@@ -167,4 +183,4 @@ When adding new videos, update:
 
 ---
 
-*Last updated: 2026-02-04*
+*Last updated: 2026-02-08*

@@ -100,12 +100,25 @@ describe("User Label Routes API", () => {
 			req.user = { id: "test-owner", username: "test", role: "caregiver" };
 			next();
 		};
+		const mockQueueAutoPretrainJob = ({
+			userId,
+			labelId,
+		}: {
+			userId: string;
+			labelId: string;
+		}) => ({
+			jobId: "auto-pretrain-1",
+			userId,
+			labelId,
+			status: "queued",
+		});
 
 		registerUserLabelRoutes(app, {
 			authMiddleware: mockAuth,
 			db: mockDb,
 			registry: mockRegistry,
 			logError: () => {},
+			queueAutoPretrainJob: mockQueueAutoPretrainJob,
 		});
 	});
 
@@ -212,6 +225,17 @@ describe("User Label Routes API", () => {
 
 			expect(response.body.mode).toBe("user_train");
 			expect(response.body.enabled).toBe(true);
+		});
+
+		it("should allow new labels and queue auto-pretrain jobs", async () => {
+			const response = await request(app)
+				.patch(`/api/v1/users/${testUserId}/labels/kindergarten`)
+				.send({ mode: "server_pretrain", enabled: true })
+				.expect(200);
+
+			expect(response.body.labelId).toBe("kindergarten");
+			expect(response.body.autoPretrainJob).toBeDefined();
+			expect(response.body.autoPretrainJob.jobId).toBe("auto-pretrain-1");
 		});
 
 		it("should reject invalid mode", async () => {

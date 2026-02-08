@@ -153,6 +153,43 @@ When a label is not ready, the API returns reasons in German:
    - Updates `lastTrainedAt` for trained labels
 5. **Model is saved** to user-specific directory
 
+## Auto-Download for `server_pretrain`
+
+When a label is switched to **Auto-train (`server_pretrain`)** and enabled, the server now
+automatically:
+
+1. **Downloads missing DGS videos** for that label from signdict.org (fallback: DW-DGS lexicon)
+2. **Extracts landmarks** with MediaPipe (hand + pose + face)
+3. **Syncs landmarks into the profile’s `server_pretrain` directory**
+4. **Queues a training job** so the profile model learns from the new examples
+
+This keeps the workflow child-focused: Amy’s profile gains new signs as soon as caregivers
+enable Auto mode, without manual script runs.
+
+### Requirements for Auto-Download
+
+- `server/data/models/` must contain the MediaPipe task files (hand, pose, face).
+- The server must have Python dependencies installed (see `scripts/README_PRETRAINING.md`).
+- The label ID should be a safe identifier (`[a-zA-Z0-9_-]+`); the server will still
+  normalize and search with display names if available.
+
+### Auto-Download Responses
+
+The label update endpoint now returns an optional `autoPretrainJob` payload so the UI
+can surface progress if desired:
+
+```json
+{
+  "labelId": "rot",
+  "mode": "server_pretrain",
+  "enabled": true,
+  "autoPretrainJob": {
+    "jobId": "auto_pretrain_...",
+    "status": "queued"
+  }
+}
+```
+
 ## Acceptance Criteria
 
 ✅ A new user can:
