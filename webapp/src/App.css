@@ -556,7 +556,8 @@ p {
 
 .notice.info {
   border-color: var(--color-info);
-  background: rgba(47, 142, 162, 0.15);
+  background: var(--color-overlay-surface);
+  color: var(--color-text);
 }
 
 .notice.warning {
@@ -5226,10 +5227,50 @@ p {
 .sentence-display {
   min-height: 48px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   flex-wrap: wrap;
   gap: var(--space-sm);
   padding: var(--space-sm) 0;
+}
+
+.sentence-layers {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.sentence-layer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-body);
+}
+
+.sentence-layer--primary {
+  font-size: var(--font-size-body-lg);
+  font-weight: 700;
+}
+
+.sentence-layer--hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
+.sentence-layer-label {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.sentence-layer-value {
+  text-align: right;
+  flex: 1;
+  min-width: 200px;
 }
 
 .sentence-strip {
@@ -5384,6 +5425,16 @@ p {
 @media (max-width: 720px) {
   .sentence-actions {
     flex-direction: column;
+  }
+
+  .sentence-layer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sentence-layer-value {
+    text-align: left;
+    min-width: 0;
   }
 
   .metacom-status-actions {
