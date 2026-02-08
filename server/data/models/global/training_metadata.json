@@ -1,16 +1,17 @@
 {
-  "version": "2026-02-05T12:23:18.212510+00:00",
+  "version": "2026-02-08T19:37:54.621155+00:00",
   "modalities": [
     "hands"
   ],
   "modality_counts": {
     "hands": 1,
     "pose": 0,
-    "face": 0
+    "face": 0,
+    "nonManual": 0
   },
   "sample_count": 1,
   "training_sources": {
-    "datasets/training_manifest.json": "d723402899d6762b25344be56ac914c6963c3781448fe7c30cd7aae06b43b71d"
+    "datasets/training_manifest.json": "bd50703461c3cdc3a3763782e3ca8ce2f155ebd86e105a506816d6e93b56c684"
   },
   "config_snapshot": {
     "epochs": 1,
@@ -38,8 +39,12 @@
     "modality_counts": {
       "hands": 1,
       "pose": 0,
-      "face": 0
+      "face": 0,
+      "nonManual": 0
     },
-    "modality_sample_total": 1
+    "modality_sample_total": 1,
+    "bundle_fallback_extractions": 0,
+    "bundle_missing_landmarks": 0,
+    "bundle_landmark_policy": "bundle_only"
   }
 }
