@@ -73,6 +73,23 @@ def update_manifest_stats(manifest: dict) -> None:
         "totalVideos": total_videos,
     }
 
+def upsert_manifest_entry(manifest: dict, label: str, video_files: list[str]) -> None:
+    manifest["gestures"] = [
+        g
+        for g in manifest["gestures"]
+        if g.get("id") != label and g.get("label") != label
+    ]
+    manifest["gestures"].append(
+        {
+            "id": label,
+            "label": label,
+            "videos": video_files,
+            "totalVideoCount": len(video_files),
+        }
+    )
+    update_manifest_stats(manifest)
+    save_manifest(manifest)
+
 
 def main() -> None:
     args = parse_args()
@@ -134,21 +151,7 @@ def main() -> None:
         time.sleep(1)
 
     if len(video_files) > initial_count:
-        manifest["gestures"] = [
-            g
-            for g in manifest["gestures"]
-            if g.get("id") != label and g.get("label") != label
-        ]
-        manifest["gestures"].append(
-            {
-                "id": label,
-                "label": label,
-                "videos": video_files,
-                "totalVideoCount": len(video_files),
-            }
-        )
-        update_manifest_stats(manifest)
-        save_manifest(manifest)
+        upsert_manifest_entry(manifest, label, video_files)
         print(f"Updated manifest for {label} with {len(video_files)} videos.")
     else:
         print("No new videos found from signdict; trying fallback sources.")
@@ -158,21 +161,7 @@ def main() -> None:
                 video_files.append(filename)
 
         if len(video_files) > initial_count:
-            manifest["gestures"] = [
-                g
-                for g in manifest["gestures"]
-                if g.get("id") != label and g.get("label") != label
-            ]
-            manifest["gestures"].append(
-                {
-                    "id": label,
-                    "label": label,
-                    "videos": video_files,
-                    "totalVideoCount": len(video_files),
-                }
-            )
-            update_manifest_stats(manifest)
-            save_manifest(manifest)
+            upsert_manifest_entry(manifest, label, video_files)
             print(f"Updated manifest for {label} with {len(video_files)} videos.")
         else:
             print("No new videos found; manifest unchanged.")

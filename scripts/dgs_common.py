@@ -115,6 +115,7 @@ def download_video(label, video_url, index=None):
 
 def fetch_fallback_videos(label):
     """Download videos from fallback sources (e.g., DW-DGS) for a label."""
+    ensure_dirs()
     urls = FALLBACK_LABEL_URLS.get(label, [])
     downloaded = []
     for idx, url in enumerate(urls):

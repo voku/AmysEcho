@@ -153,6 +153,9 @@ When adding new training data, ensure:
 | trinken | 31 | SignDict |
 | **Total** | **126** | |
 
+> Hinweis: Sobald DW-DGS-Fallback-Videos eingebunden sind, ergänzen wir die Quellen
+> pro Label entsprechend (SignDict + DW-DGS).
+
 ---
 
 ## Integration Notes

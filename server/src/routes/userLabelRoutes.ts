@@ -24,6 +24,7 @@ import {
 	initializeUserLabelSettings,
 	setLabelSetting,
 } from "../services/userLabelSettingsService.js";
+import { getLabelMetadataEntry } from "../services/labelRegistry.js";
 import { queueAutoPretrainJob } from "../services/dgsAutoPretrainService.js";
 import { isProfileAuthorized } from "../utils/profileAuthorization.js";
 import { PROFILE_ID_PATTERN } from "../constants/modelPaths.js";
@@ -153,7 +154,11 @@ export function registerUserLabelRoutes(
 			try {
 				// Normalize labelId to lowercase for consistency
 				const normalizedLabelId = labelId.toLowerCase();
-				
+				const metadata = await getLabelMetadataEntry(normalizedLabelId);
+				if (!metadata) {
+					return res.status(404).json({ error: "Label nicht gefunden." });
+				}
+
 				const readiness = await getLabelReadiness(userId, normalizedLabelId);
 				if (!readiness) {
 					return res.status(404).json({ error: "Label nicht gefunden." });

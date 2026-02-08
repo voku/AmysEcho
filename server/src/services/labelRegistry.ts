@@ -190,7 +190,7 @@ export async function buildLabelManifest(): Promise<LabelManifest> {
 			category: labelMeta.category,
 			color: labelMeta.color,
 			videoCount,
-			hasLandmarks: videoCount > 0,
+			hasLandmarks: videoCount > 0, // heuristic until per-video landmark checks are available
 		};
 	});
 
