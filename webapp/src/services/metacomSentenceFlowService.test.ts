@@ -123,8 +123,10 @@ describe('metacomSentenceFlowService', () => {
     });
 
     it('skips boards not present in imported bundle', () => {
+      const essenBoard = TEST_BOARDS['essen'];
+      expect(essenBoard).toBeDefined();
       const partialBoards: Record<string, MetacomBoardDefinition> = {
-        essen: TEST_BOARDS['essen']!,
+        essen: essenBoard!,
       };
       const suggestions = getSentenceFlowSuggestions([
         { id: 'metacom_ich_moechte', label: 'Ich möchte', emoji: '🙋' },
