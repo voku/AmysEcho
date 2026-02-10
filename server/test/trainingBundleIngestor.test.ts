@@ -268,6 +268,26 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     });
   });
 
+
+  it('setzt Ingestion fort, wenn abgelehntes Bundle auf korruptes Quality-Log trifft', async () => {
+    const jitterValue = Math.min(1, MAX_HAND_JITTER + 0.5);
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) =>
+        buildConstantLandmarkFrame(idx % 2 === 0 ? 0 : jitterValue),
+      ),
+    };
+    await writeBundleFixture('bundle-rejected-corrupt-log', { frames });
+
+    await fs.mkdir(path.dirname(TRAINING_QUALITY_LOG_PATH), { recursive: true });
+    await fs.writeFile(TRAINING_QUALITY_LOG_PATH, '{invalid json');
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    await expect(fs.readFile(datasetPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('persists multimodal landmarks and handedness', async () => {
     const frames: LandmarksPayload = {
       frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, () => ({

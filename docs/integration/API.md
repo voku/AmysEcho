@@ -54,6 +54,7 @@ All API responses follow a consistent structure:
 | `INVALID_SAMPLE` | Sample data doesn't match expected schema |
 | `TRAINING_FAILED` | Model training encountered an error |
 | `MODEL_NOT_FOUND` | Requested model file doesn't exist |
+| `INVALID_QUERY` | Query parameters failed validation |
 
 ## Authentication
 
@@ -532,6 +533,60 @@ Content-Type: multipart/form-data
 {
   "error": "Bundle muss landmarks.json enthalten.",
   "code": "INVALID_BUNDLE"
+}
+```
+
+#### GET /api/v1/dgs/training-quality
+Liefert die zuletzt vom Quality Gate abgelehnten Trainingsaufnahmen für ein Profil.
+
+**Query Parameter**
+- `profileId` (optional): Profilkennung für gefilterte Antworten. Ohne `profileId` werden nur Einträge aus autorisierten Profilen zurückgegeben.
+- `limit` (optional): Maximale Anzahl Einträge (`1-200`, Standard `50`).
+
+**Success Response (200 OK)**
+```json
+{
+  "items": [
+    {
+      "bundleId": "bundle-123",
+      "label": "HALLO",
+      "profileId": "profil-1",
+      "reasons": ["too_few_frames"],
+      "metrics": {
+        "frameCount": 6,
+        "handCoverage": 0.4,
+        "poseCoverage": 0.2,
+        "faceCoverage": 0.1
+      },
+      "recordedAt": "2024-05-28T12:03:11Z"
+    }
+  ]
+}
+```
+
+**Error Responses**
+
+*400 Bad Request - Invalid query parameters*
+```json
+{
+  "error": "Ungültige Anfrageparameter",
+  "code": "INVALID_QUERY",
+  "issues": []
+}
+```
+
+*403 Forbidden - Not authorized for profile*
+```json
+{
+  "error": "Kein Zugriff auf dieses Profil.",
+  "code": "PROFILE_UNAUTHORIZED"
+}
+```
+
+*500 Internal Server Error - Quality log unavailable*
+```json
+{
+  "error": "Qualitätsprotokoll konnte nicht geladen werden"
 }
 ```
 
