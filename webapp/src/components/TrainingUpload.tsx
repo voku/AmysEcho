@@ -4,11 +4,13 @@ import { useTrainingUploader } from '../hooks/useTrainingUploader';
 import type {
   TrainingBundlePayload,
   TrainingJobInfo,
+  TrainingQualityLogEntry,
   UploadTrainingBundleResponse,
 } from '../training/types';
 import { TrainingRecorder } from './TrainingRecorder';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { fetchTrainingQualityLog } from '../training/trainingBundle';
 import { TrainingQueueList } from './TrainingQueueList';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
@@ -68,6 +70,21 @@ const formatSyncQueuedMessage = (uploaded: number, remaining: number): string =>
   return 'Keine Pakete in der Warteschlange gefunden.';
 };
 
+
+
+
+const formatQualityLogDate = (raw: string): string => {
+  const timestamp = Date.parse(raw);
+  if (Number.isNaN(timestamp)) {
+    return raw;
+  }
+  return new Date(timestamp).toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 function TrainingStatusBlock({
   uploader,
@@ -315,6 +332,35 @@ function SymbolSelector({
   );
 }
 
+
+
+function TrainingQualityLogCard({ entries, loading, error }: { entries: TrainingQualityLogEntry[]; loading: boolean; error: string | null }) {
+  return (
+    <div className="card mt-md">
+      <p className="eyebrow">Abgelehnte Aufnahmen</p>
+      <p className="muted small">Wir zeigen dir, warum Aufnahmen nicht ins Training übernommen wurden.</p>
+      {loading ? <p className="muted small">Qualitätsprotokoll wird geladen…</p> : null}
+      {error ? <div className="notice warning">{error}</div> : null}
+      {!loading && !error && entries.length === 0 ? (
+        <div className="notice info">Noch keine abgelehnten Aufnahmen. Nimm gern ein neues Beispiel auf.</div>
+      ) : null}
+      {entries.length > 0 ? (
+        <ul className="muted small bullets">
+          {entries.map((entry) => (
+            <li key={entry.bundleId}>
+              <strong>{entry.label}</strong> ({formatQualityLogDate(entry.recordedAt)}):{' '}
+              {entry.reasons.length > 0
+                ? entry.reasons.map((reason) => formatQualityGateReason(reason)).join(', ')
+                : 'Ohne Grundangabe'}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="muted small">Tipp: Nimm die Gebärde erneut mit ruhiger Kamera und gut sichtbaren Händen auf.</p>
+    </div>
+  );
+}
+
 // Wrapper component with recording-first experience
 export function TrainingUploadWithRecording() {
   const { apiBaseUrl, apiToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
@@ -359,6 +405,9 @@ export function TrainingUploadWithRecording() {
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
   const [modelNotice, setModelNotice] = useState<string | null>(null);
+  const [qualityEntries, setQualityEntries] = useState<TrainingQualityLogEntry[]>([]);
+  const [qualityLoading, setQualityLoading] = useState<boolean>(false);
+  const [qualityError, setQualityError] = useState<string | null>(null);
   const metadataReady = !!profileId && profileId.trim().length > 0 && preferredSignId.trim().length > 0;
   const metadataError = metadataReady
     ? ''
@@ -383,6 +432,42 @@ export function TrainingUploadWithRecording() {
     const timer = window.setTimeout(() => setModelNotice(null), 3000);
     return () => window.clearTimeout(timer);
   }, [modelInjection.notice]);
+
+
+
+  useEffect(() => {
+    if (!apiBaseUrl) {
+      return;
+    }
+
+    const endpoint = `${apiBaseUrl.replace(/\/$/, '')}/api/v1/dgs/training-quality`;
+    let cancelled = false;
+    setQualityLoading(true);
+    fetchTrainingQualityLog({
+      endpoint,
+      token: apiToken,
+      ...(profileId ? { profileId } : {}),
+      limit: 10,
+    })
+      .then((items) => {
+        if (cancelled) return;
+        setQualityEntries(items);
+        setQualityError(null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setQualityError(`Qualitätsprotokoll konnte nicht geladen werden: ${error instanceof Error ? error.message : String(error)}`);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setQualityLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBaseUrl, apiToken, profileId, lastResult?.id]);
 
   useEffect(() => {
     const status = uploadState.trainingJob?.status ?? uploadState.lastResult?.trainingJob?.status ?? null;
@@ -540,6 +625,10 @@ export function TrainingUploadWithRecording() {
           onRemoveBundle={handleRemoveBundle}
         />
       </div>
+
+
+
+      <TrainingQualityLogCard entries={qualityEntries} loading={qualityLoading} error={qualityError} />
 
       {lastResult && (
         <div className="mt-md">

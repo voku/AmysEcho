@@ -84,6 +84,10 @@ export const TRAINING_MANIFEST_PATH = path.join(
 	TRAINING_DATASETS_DIR,
 	"training_manifest.json",
 );
+export const TRAINING_QUALITY_LOG_PATH = path.join(
+	TRAINING_DATASETS_DIR,
+	"training_quality_log.json",
+);
 
 // Per-user training data directory structure
 // data/users/{userId}/labels/{labelId}/{mode}/[videos|landmarks]/

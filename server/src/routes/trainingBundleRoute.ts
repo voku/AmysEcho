@@ -15,6 +15,7 @@ import {
 } from "../constants/modelPaths.js";
 import { auth } from "../middleware/auth.js";
 import { logger } from "../services/logger.js";
+import { readTrainingQualityLog } from "../services/trainingBundleIngestor.js";
 import { atomicWriteBuffer, atomicWriteJson } from "../utils/atomicFs.js";
 import { withFileLock } from "../utils/fileLock.js";
 
@@ -120,6 +121,11 @@ interface BundleQualityGateResult {
 	outcome: "pass" | "review" | "unknown";
 	reasons: string[];
 }
+
+const TrainingQualityQuerySchema = z.object({
+	profileId: z.string().trim().min(1).optional(),
+	limit: z.coerce.number().int().positive().max(200).optional(),
+});
 
 const trainingBundleUpload = express.raw({
 	type: [
@@ -1150,6 +1156,33 @@ export function registerTrainingBundleRoute(
 	genId: () => string,
 	deps: TrainingBundleRouteDeps = {},
 ): void {
+
+	app.get("/api/v1/dgs/training-quality", auth, async (req: Request, res: Response) => {
+		const parsedQuery = TrainingQualityQuerySchema.safeParse(req.query);
+		if (!parsedQuery.success) {
+			res.status(400).json({
+				error: "Ungültige Anfrageparameter",
+				issues: parsedQuery.error.issues,
+			});
+			return;
+		}
+
+		const profileIdFilter = parsedQuery.data.profileId ?? null;
+		const limit = parsedQuery.data.limit ?? 50;
+
+		try {
+			const qualityEntries = await readTrainingQualityLog();
+			const filtered = profileIdFilter
+				? qualityEntries.filter((entry) => entry.profileId === profileIdFilter)
+				: qualityEntries;
+			const items = filtered.slice(-limit).reverse();
+			res.json({ items });
+		} catch (error) {
+			logger.error("Failed to load training quality log", { error });
+			res.status(500).json({ error: "Qualitätsprotokoll konnte nicht geladen werden" });
+		}
+	});
+
 	app.get(
 		"/api/v1/dgs/sample-bundles/:id",
 		auth,

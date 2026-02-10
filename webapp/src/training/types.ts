@@ -123,3 +123,21 @@ export interface UploadTrainingBundleResponse {
     reasons: string[];
   };
 }
+
+
+export interface TrainingQualityLogEntry {
+  bundleId: string;
+  label: string;
+  profileId: string | null;
+  reasons: string[];
+  metrics: {
+    frameCount: number;
+    handCoverage: number;
+    poseCoverage: number;
+    faceCoverage: number;
+    handJitter?: number;
+    poseJitter?: number;
+    faceJitter?: number;
+  };
+  recordedAt: string;
+}
