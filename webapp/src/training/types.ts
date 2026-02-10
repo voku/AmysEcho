@@ -110,4 +110,16 @@ export interface UploadTrainingBundleResponse {
   id: string;
   status: TrainingJobStatus;
   trainingJob?: TrainingJobInfo;
+  validationSummary?: {
+    frameCount: number;
+    landmarksPath?: string;
+    issues?: string[];
+    suggestions?: string[];
+    qualityScore?: number;
+    confidence?: number;
+  };
+  qualityGate?: {
+    outcome: 'pass' | 'review' | 'unknown';
+    reasons: string[];
+  };
 }

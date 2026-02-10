@@ -3,7 +3,7 @@ import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useTrainingRecorder } from '../hooks/useTrainingRecorder';
 import type { TrainingBundlePayload, HandFocus } from '../training/types';
 import { framesHaveHandLandmarks, suggestHandFocus } from '../training/handUtils';
-import { validateLandmarkSequence } from '../training/trainingValidator';
+import { buildValidationSummary } from '../training/trainingBundle';
 import {
   formatBytes,
   getDetectorStartLabel,
@@ -14,6 +14,18 @@ import {
   getRecordingStatusPill,
   getTrainingRecorderBannerMessage,
 } from './trainingRecorderUtils';
+
+
+const validationIssueLabels: Record<string, string> = {
+  too_few_frames: 'Zu kurze Aufnahme',
+  insufficient_motion: 'Zu wenig Bewegung erkannt',
+  landmarks_missing: 'Hand-Landmarks fehlen teilweise',
+  values_out_of_range: 'Hände waren zeitweise außerhalb des Bildes',
+  hand_coverage_low: 'Hände nicht durchgängig im Bild',
+  hand_jitter_high: 'Handbewegung zu unruhig',
+  pose_jitter_high: 'Körperhaltung zu unruhig',
+  face_jitter_high: 'Kopf/Gesicht zu unruhig',
+};
 
 export interface TrainingRecorderProps {
   profileId: string;
@@ -473,22 +485,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
 
   const isRecording = state === 'recording';
   const hasRecording = state === 'idle' && recordedData.frames.length > 0;
-  const validationResult = useMemo(() => {
-    if (recordedData.frames.length === 0) {
-      return null;
-    }
-    const sequence = recordedData.frames.map((frame) => {
-      const candidate = (frame as { handLandmarks?: number[][][] }).handLandmarks;
-      if (Array.isArray(candidate)) {
-        return candidate;
-      }
-      if (Array.isArray(frame.landmarks)) {
-        return frame.landmarks;
-      }
-      return [];
-    });
-    return validateLandmarkSequence(sequence);
-  }, [recordedData.frames]);
+  const validationSummary = useMemo(() => buildValidationSummary(recordedData.frames), [recordedData.frames]);
   const clipStatus = recordedData.clipFile
     ? `${recordedData.clipFile.name} (${formatBytes(recordedData.clipFile.size)})`
     : `${formatBytes(recordedData.clipSizeBytes)} aufgenommen`;
@@ -730,13 +727,16 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
                 </div>
               )}
 
-              {hasRecording && validationResult && (
-                <div className={`notice ${validationResult.ok ? 'info' : 'warning'} compact`}>
-                  <strong>Qualitätscheck:</strong> {validationResult.qualityScore}/100
-                  {!validationResult.ok && validationResult.suggestions.length > 0 && (
+              {hasRecording && validationSummary && (
+                <div className={`notice ${validationSummary.issues.length === 0 ? 'info' : 'warning'} compact`}>
+                  <strong>Qualitätscheck:</strong> {validationSummary.qualityScore}/100
+                  {(validationSummary.issues.length > 0 || validationSummary.suggestions.length > 0) && (
                     <ul>
-                      {validationResult.suggestions.map((suggestion) => (
-                        <li key={suggestion}>{suggestion}</li>
+                      {validationSummary.issues.map((issue) => (
+                        <li key={`issue-${issue}`}>Problem: {validationIssueLabels[issue] ?? issue}</li>
+                      ))}
+                      {validationSummary.suggestions.map((suggestion) => (
+                        <li key={`suggestion-${suggestion}`}>Tipp: {suggestion}</li>
                       ))}
                     </ul>
                   )}

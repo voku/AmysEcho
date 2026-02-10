@@ -251,6 +251,17 @@ describe('TrainingRecorder', () => {
     expect(screen.getByText(/Bewege Finger und Hand deutlich/)).toBeInTheDocument();
   });
 
+
+  it('zeigt erkannte Probleme und Tipps aus der Validierungszusammenfassung vor dem Upload', () => {
+    const stillFrame = { landmarks: [[[0.1, 0.2, 0]]], handedness: ['Left'] };
+    trainingState.recordedData.frames = Array.from({ length: 2 }, () => stillFrame);
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByText(/Problem: Zu kurze Aufnahme/)).toBeInTheDocument();
+    expect(screen.getByText(/Tipp: Nimm etwas länger auf/)).toBeInTheDocument();
+  });
+
   it('zeigt die Banner-Message wenn die Kamera läuft', () => {
     gestureState.status = 'running';
 

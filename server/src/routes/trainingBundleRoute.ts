@@ -71,7 +71,11 @@ interface TrainingBundleMetadata {
 	};
 	validationSummary?: {
 		frameCount: number;
-		landmarksPath: string;
+		landmarksPath?: string;
+		issues?: string[];
+		suggestions?: string[];
+		qualityScore?: number;
+		confidence?: number;
 	};
 	modalities?: Record<string, unknown>;
 	smoothing?: Record<string, unknown>;
@@ -109,6 +113,12 @@ interface TrainingBundleManifestEntry {
 
 interface TrainingBundleManifestFile {
 	entries: TrainingBundleManifestEntry[];
+}
+
+
+interface BundleQualityGateResult {
+	outcome: "pass" | "review" | "unknown";
+	reasons: string[];
 }
 
 const trainingBundleUpload = express.raw({
@@ -175,6 +185,18 @@ const RecordingSchema = z
 	})
 	.passthrough();
 
+
+const ValidationSummarySchema = z
+	.object({
+		frameCount: z.number().int().nonnegative(),
+		landmarksPath: z.string().optional(),
+		issues: z.array(z.string()).optional(),
+		suggestions: z.array(z.string()).optional(),
+		qualityScore: z.number().optional(),
+		confidence: z.number().optional(),
+	})
+	.passthrough();
+
 const HandFocusSchema = z.enum([
 	"dominant_only", // Only one hand matters (the moving one)
 	"both_equal", // Both hands equally important
@@ -204,6 +226,7 @@ const MetadataSchema = z
 		smoothing: SmoothingSchema.optional(),
 		handedness: HandednessSchema.optional(),
 		recording: RecordingSchema.optional(),
+		validationSummary: ValidationSummarySchema.optional(),
 		handFocus: HandFocusSchema.optional(),
 		variationData: VariationDataSchema.optional(),
 	})
@@ -237,6 +260,8 @@ type NonManualCoverageSummary = {
 };
 
 const COVERAGE_SAMPLE_LIMIT = 200;
+const QUALITY_GATE_MIN_SCORE = 70;
+const QUALITY_GATE_MIN_FRAME_COUNT = 8;
 
 
 const NonManualFeaturesSchema = z
@@ -297,6 +322,33 @@ function normalizeClipFilename(value: unknown): string | null {
 	return trimmed;
 }
 
+async function readTrainingManifest(options: { strict: boolean }): Promise<TrainingBundleManifestFile> {
+	try {
+		const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
+		const parsed = JSON.parse(raw);
+		if (
+			!parsed ||
+			typeof parsed !== "object" ||
+			!Array.isArray((parsed as { entries?: unknown }).entries)
+		) {
+			if (options.strict) {
+				throw new Error(
+					"Training manifest file is corrupted and would be overwritten.",
+				);
+			}
+			return { entries: [] };
+		}
+		return {
+			entries: (parsed as { entries: TrainingBundleManifestEntry[] }).entries,
+		};
+	} catch (error: any) {
+		if (error?.code === "ENOENT") {
+			return { entries: [] };
+		}
+		throw error;
+	}
+}
+
 function normalizeVariationData(
 	raw: unknown,
 ): TrainingBundleMetadata["variationData"] | undefined {
@@ -337,6 +389,69 @@ function normalizeVariationData(
 	return Object.keys(result).length > 0
 		? (result as TrainingBundleMetadata["variationData"])
 		: undefined;
+}
+
+function normalizeValidationSummary(
+	raw: unknown,
+): TrainingBundleMetadata["validationSummary"] | undefined {
+	const parsed = ValidationSummarySchema.safeParse(raw);
+	if (!parsed.success) {
+		return undefined;
+	}
+
+	const issues = Array.isArray(parsed.data.issues)
+		? parsed.data.issues.filter(
+			(issue): issue is string => typeof issue === "string" && issue.trim().length > 0,
+		)
+		: [];
+	const suggestions = Array.isArray(parsed.data.suggestions)
+		? parsed.data.suggestions.filter(
+			(suggestion): suggestion is string =>
+				typeof suggestion === "string" && suggestion.trim().length > 0,
+		)
+		: [];
+
+	return {
+		frameCount: parsed.data.frameCount,
+		...(isNonEmptyString(parsed.data.landmarksPath)
+			? { landmarksPath: parsed.data.landmarksPath.trim() }
+			: {}),
+		...(issues.length > 0 ? { issues } : {}),
+		...(suggestions.length > 0 ? { suggestions } : {}),
+		...(typeof parsed.data.qualityScore === "number" &&
+		Number.isFinite(parsed.data.qualityScore)
+			? { qualityScore: parsed.data.qualityScore }
+			: {}),
+		...(typeof parsed.data.confidence === "number" &&
+		Number.isFinite(parsed.data.confidence)
+			? { confidence: parsed.data.confidence }
+			: {}),
+	};
+}
+
+function buildQualityGateResult(
+	validationSummary: TrainingBundleMetadata["validationSummary"] | undefined,
+): BundleQualityGateResult {
+	if (!validationSummary) {
+		return { outcome: "unknown", reasons: [] };
+	}
+
+	const reasons: string[] = [];
+	if ((validationSummary.issues?.length ?? 0) > 0) {
+		reasons.push(...(validationSummary.issues ?? []));
+	}
+	if (typeof validationSummary.qualityScore === "number" && validationSummary.qualityScore < QUALITY_GATE_MIN_SCORE) {
+		reasons.push("quality_score_below_threshold");
+	}
+	if (validationSummary.frameCount < QUALITY_GATE_MIN_FRAME_COUNT) {
+		reasons.push("too_few_frames");
+	}
+
+	const deduplicatedReasons = Array.from(new Set(reasons));
+	return {
+		outcome: deduplicatedReasons.length === 0 ? "pass" : "review",
+		reasons: deduplicatedReasons,
+	};
 }
 
 function validateRecordingMetadata(
@@ -1035,6 +1150,43 @@ export function registerTrainingBundleRoute(
 	genId: () => string,
 	deps: TrainingBundleRouteDeps = {},
 ): void {
+	app.get(
+		"/api/v1/dgs/sample-bundles/:id",
+		auth,
+		async (req: Request, res: Response) => {
+			const bundleId = typeof req.params.id === "string" ? req.params.id.trim() : "";
+			if (!bundleId) {
+				return res.status(400).json({ error: "bundleId fehlt" });
+			}
+
+			try {
+				const manifest = await withFileLock(
+					TRAINING_MANIFEST_PATH,
+					() => readTrainingManifest({ strict: false }),
+				);
+
+				const entry = manifest.entries.find((candidate) => candidate.id === bundleId);
+				if (!entry) {
+					return res.status(404).json({ error: "Bundle nicht gefunden" });
+				}
+
+				const qualityGate = buildQualityGateResult(entry.metadata?.validationSummary);
+				return res.status(200).json({
+					id: entry.id,
+					status: "queued",
+					label: entry.label,
+					profileId: entry.profileId,
+					receivedAt: entry.receivedAt,
+					validationSummary: entry.metadata?.validationSummary,
+					qualityGate,
+				});
+			} catch (error) {
+				logger.error("Error loading training bundle details", { error, bundleId });
+				return res.status(500).json({ error: "Bundle-Details konnten nicht geladen werden" });
+			}
+		},
+	);
+
 	app.post(
 		"/api/v1/dgs/sample-bundles",
 		auth,
@@ -1237,6 +1389,9 @@ export function registerTrainingBundleRoute(
 				const variationData = normalizeVariationData(
 					parsedMetadata.variationData,
 				);
+				const incomingValidationSummary = normalizeValidationSummary(
+					parsedMetadata.validationSummary,
+				);
 				const sanitizedMetadata: TrainingBundleMetadata = {
 					label,
 					profileId: resolvedProfileId ?? null,
@@ -1249,6 +1404,9 @@ export function registerTrainingBundleRoute(
 					audioFilename,
 					...(parsedMetadata.recording
 						? { recording: parsedMetadata.recording }
+						: {}),
+					...(incomingValidationSummary
+						? { validationSummary: incomingValidationSummary }
 						: {}),
 					...(parsedMetadata.handFocus
 						? { handFocus: parsedMetadata.handFocus }
@@ -1303,6 +1461,7 @@ export function registerTrainingBundleRoute(
 					...(mergedSmoothing ? { smoothing: mergedSmoothing } : {}),
 					...(mergedHandedness ? { handedness: mergedHandedness } : {}),
 					validationSummary: {
+						...(sanitizedMetadata.validationSummary ?? {}),
 						frameCount: landmarksValidation.frameCount,
 						landmarksPath: landmarksValidation.relativePath,
 					},
@@ -1329,25 +1488,7 @@ export function registerTrainingBundleRoute(
 
 				await withFileLock(TRAINING_MANIFEST_PATH, async () => {
 					await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
-
-					const manifest: TrainingBundleManifestFile = { entries: [] };
-					try {
-						const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
-						const parsed = JSON.parse(raw);
-						if (
-							!parsed ||
-							typeof parsed !== "object" ||
-							!Array.isArray((parsed as any).entries)
-						) {
-							throw new Error(
-								"Training manifest file is corrupted and would be overwritten.",
-							);
-						}
-						manifest.entries = (parsed as TrainingBundleManifestFile).entries;
-					} catch (error: any) {
-						if (error?.code !== "ENOENT") throw error;
-					}
-
+					const manifest = await readTrainingManifest({ strict: true });
 					manifest.entries.push(manifestEntry);
 					await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
 				});
@@ -1413,7 +1554,14 @@ export function registerTrainingBundleRoute(
 					}
 				}
 
-				res.status(202).json({ status: "queued", id: bundleId, trainingJob });
+				const qualityGate = buildQualityGateResult(metadataWithSummary.validationSummary);
+				res.status(202).json({
+					status: "queued",
+					id: bundleId,
+					trainingJob,
+					validationSummary: metadataWithSummary.validationSummary,
+					qualityGate,
+				});
 			} catch (error) {
 				logger.error("Error saving training bundle", { error });
 				if (metricsProfileId && !metricsRecorded) {

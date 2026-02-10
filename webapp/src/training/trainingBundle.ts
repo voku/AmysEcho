@@ -45,7 +45,7 @@ type LandmarksMetadata = {
   handedness?: { labels: string[]; frameCount: number };
 };
 
-type ValidationSummary = {
+export type ValidationSummary = {
   frameCount: number;
   issues: string[];
   suggestions: string[];
@@ -137,7 +137,7 @@ function buildMetadata(
   };
 }
 
-function buildValidationSummary(frames: TrainingFrame[]): ValidationSummary | null {
+export function buildValidationSummary(frames: TrainingFrame[]): ValidationSummary | null {
   if (!Array.isArray(frames) || frames.length === 0) {
     return null;
   }
@@ -159,6 +159,56 @@ function buildValidationSummary(frames: TrainingFrame[]): ValidationSummary | nu
     qualityScore: result.qualityScore,
     confidence: result.confidence,
   };
+}
+
+function parseValidationSummary(raw: unknown): UploadTrainingBundleResponse['validationSummary'] | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const frameCount = (raw as Record<string, unknown>)['frameCount'];
+  if (typeof frameCount !== 'number' || !Number.isFinite(frameCount)) {
+    return undefined;
+  }
+
+  const issuesRaw = (raw as Record<string, unknown>)['issues'];
+  const suggestionsRaw = (raw as Record<string, unknown>)['suggestions'];
+  const issues = Array.isArray(issuesRaw)
+    ? issuesRaw.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+  const suggestions = Array.isArray(suggestionsRaw)
+    ? suggestionsRaw.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+
+  const landmarksPath = (raw as Record<string, unknown>)['landmarksPath'];
+  const qualityScore = (raw as Record<string, unknown>)['qualityScore'];
+  const confidence = (raw as Record<string, unknown>)['confidence'];
+
+  return {
+    frameCount,
+    ...(typeof landmarksPath === 'string' && landmarksPath.trim().length > 0
+      ? { landmarksPath: landmarksPath.trim() }
+      : {}),
+    ...(issues.length > 0 ? { issues } : {}),
+    ...(suggestions.length > 0 ? { suggestions } : {}),
+    ...(typeof qualityScore === 'number' && Number.isFinite(qualityScore)
+      ? { qualityScore }
+      : {}),
+    ...(typeof confidence === 'number' && Number.isFinite(confidence)
+      ? { confidence }
+      : {}),
+  };
+}
+
+function parseQualityGate(raw: unknown): UploadTrainingBundleResponse['qualityGate'] | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const outcome = (raw as Record<string, unknown>)['outcome'];
+  if (outcome !== 'pass' && outcome !== 'review' && outcome !== 'unknown') {
+    return undefined;
+  }
+
+  const reasonsRaw = (raw as Record<string, unknown>)['reasons'];
+  const reasons = Array.isArray(reasonsRaw)
+    ? reasonsRaw.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+  return { outcome, reasons };
 }
 
 function parseMetrics(raw: unknown): TrainingJobMetrics | undefined {
@@ -430,12 +480,16 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
   }
 
   const trainingJob = parseTrainingJob((responseJson as { trainingJob?: unknown }).trainingJob);
+  const validationSummary = parseValidationSummary((responseJson as { validationSummary?: unknown }).validationSummary);
+  const qualityGate = parseQualityGate((responseJson as { qualityGate?: unknown }).qualityGate);
   const statusNormalized = normalizeTrainingJobStatus((responseJson as { status?: string }).status ?? '') ?? 'queued';
 
   return {
     id: responseJson.id,
     status: statusNormalized,
     ...(trainingJob ? { trainingJob } : {}),
+    ...(validationSummary ? { validationSummary } : {}),
+    ...(qualityGate ? { qualityGate } : {}),
   };
 }
 
