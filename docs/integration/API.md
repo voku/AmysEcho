@@ -539,7 +539,7 @@ Content-Type: multipart/form-data
 Liefert die zuletzt vom Quality Gate abgelehnten Trainingsaufnahmen für ein Profil.
 
 **Query Parameter**
-- `profileId` (optional): Profilkennung für gefilterte Antworten.
+- `profileId` (optional): Profilkennung für gefilterte Antworten. Ohne `profileId` werden nur Einträge aus autorisierten Profilen zurückgegeben.
 - `limit` (optional): Maximale Anzahl Einträge (`1-200`, Standard `50`).
 
 **Success Response (200 OK)**

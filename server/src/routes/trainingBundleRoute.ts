@@ -1187,7 +1187,13 @@ export function registerTrainingBundleRoute(
 			const qualityEntries = await readTrainingQualityLog();
 			const filtered = profileIdFilter
 				? qualityEntries.filter((entry) => entry.profileId === profileIdFilter)
-				: qualityEntries;
+				: deps.isProfileAuthorized
+					? qualityEntries.filter(
+						(entry) =>
+							typeof entry.profileId === "string" &&
+							deps.isProfileAuthorized?.(req, entry.profileId),
+					)
+					: qualityEntries;
 			const items = filtered.slice(-limit).reverse();
 			res.json({ items });
 		} catch (error) {

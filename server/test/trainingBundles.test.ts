@@ -779,6 +779,64 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     });
   });
 
+
+  it('liefert ohne Profilfilter nur berechtigte Profile', async () => {
+    const qualityLogPath = path.join(dataDir, 'datasets', 'training_quality_log.json');
+    await fs.mkdir(path.dirname(qualityLogPath), { recursive: true });
+    await fs.writeFile(
+      qualityLogPath,
+      JSON.stringify(
+        {
+          entries: [
+            {
+              bundleId: 'bundle-a',
+              label: 'HILFE',
+              profileId: 'profile-a',
+              reasons: ['too_few_frames'],
+              metrics: { frameCount: 8, handCoverage: 0.4, poseCoverage: 0.8, faceCoverage: 0.7 },
+              recordedAt: '2026-01-01T10:00:00.000Z',
+            },
+            {
+              bundleId: 'bundle-b',
+              label: 'ESSEN',
+              profileId: 'profile-b',
+              reasons: ['hand_jitter_too_high'],
+              metrics: { frameCount: 14, handCoverage: 1, poseCoverage: 1, faceCoverage: 1, handJitter: 0.8 },
+              recordedAt: '2026-01-01T12:00:00.000Z',
+            },
+            {
+              bundleId: 'bundle-null',
+              label: 'TRINKEN',
+              profileId: null,
+              reasons: ['too_few_frames'],
+              metrics: { frameCount: 5, handCoverage: 0.1, poseCoverage: 0.1, faceCoverage: 0.1 },
+              recordedAt: '2026-01-01T13:00:00.000Z',
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    isProfileAuthorized = (profileId) => profileId === 'profile-b';
+
+    const response = await request(app)
+      .get('/api/v1/dgs/training-quality?limit=10')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual({
+      items: [
+        expect.objectContaining({
+          bundleId: 'bundle-b',
+          profileId: 'profile-b',
+        }),
+      ],
+    });
+  });
+
   it('validiert Query-Parameter für GET /api/v1/dgs/training-quality', async () => {
     const response = await request(app)
       .get('/api/v1/dgs/training-quality?limit=0')

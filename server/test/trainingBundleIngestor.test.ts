@@ -268,6 +268,22 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     });
   });
 
+
+  it('setzt Ingestion fort, wenn das Quality-Log ungültiges JSON enthält', async () => {
+    await writeBundleFixture('bundle-valid-after-corrupt-log');
+
+    await fs.mkdir(path.dirname(TRAINING_QUALITY_LOG_PATH), { recursive: true });
+    await fs.writeFile(TRAINING_QUALITY_LOG_PATH, '{invalid json');
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+
+    const datasetPath = resolveDataPath('dgs_samples.json');
+    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
+    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
+  });
+
   it('persists multimodal landmarks and handedness', async () => {
     const frames: LandmarksPayload = {
       frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, () => ({

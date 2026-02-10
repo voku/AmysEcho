@@ -1122,7 +1122,6 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 			if (!quality.accepted) {
 				const recordedAt =
 					(typeof entry.capturedAt === "string" && entry.capturedAt) ||
-					(typeof entry.metadata?.capturedAt === "string" && entry.metadata.capturedAt) ||
 					(typeof entry.receivedAt === "string" && entry.receivedAt) ||
 					new Date().toISOString();
 				const qualityLogEntry: TrainingQualityLogEntry = {
@@ -1133,7 +1132,17 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 					metrics: quality.metrics,
 					recordedAt,
 				};
-				await appendTrainingQualityLog(qualityLogEntry);
+				try {
+					await appendTrainingQualityLog(qualityLogEntry);
+				} catch (appendError) {
+					logger.error("Failed to append training quality log entry", {
+						bundleId: entry.id,
+						error:
+							appendError instanceof Error
+								? appendError.message
+								: String(appendError),
+					});
+				}
 				logger.warn("Training bundle rejected by quality gate", {
 					bundleId: entry.id,
 					profileId: entry.profileId ?? null,
