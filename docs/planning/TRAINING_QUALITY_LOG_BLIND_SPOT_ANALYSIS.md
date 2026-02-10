@@ -9,6 +9,12 @@ It covers:
 - webapp rendering of rejected recordings in training
 - test and ops implications
 
+## Resolution Update
+- ✅ Added contract-level assertions for `/api/v1/dgs/training-quality` filtering and latest-first ordering in `server/test/trainingBundles.test.ts`.
+- ✅ Added German fallback guidance for unknown quality reasons in the Training UI and regression coverage in `TrainingUploadWithRecording.test.tsx`.
+- ✅ Documented profile-bound visibility semantics and latest-state behavior in `docs/integration/API.md`.
+- ✅ Added a production QA checklist step to verify API↔UI rejection feedback loop in staging.
+
 ## Observed Strengths in Current Implementation
 - Rejection reasons are now persisted and available to caregivers in the training UI.
 - Profile-level access checks are enforced before returning quality-log entries.

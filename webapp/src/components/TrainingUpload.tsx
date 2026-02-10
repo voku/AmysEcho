@@ -117,7 +117,7 @@ const formatQualityLogReason = (reason: string): string => {
     const label = jitterMatch[1] === 'hand' ? 'Hände' : jitterMatch[1] === 'pose' ? 'Pose' : 'Gesicht';
     return `${label}-Jitter zu hoch (${jitterMatch[2]} > ${jitterMatch[3]}).`;
   }
-  return reason;
+  return `Unbekannter Qualitätsgrund: ${reason}. Bitte erneut aufnehmen und auf stabile Sichtbarkeit achten.`;
 };
 
 function TrainingQualityLogCard({

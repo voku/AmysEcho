@@ -756,6 +756,19 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
               recordedAt: '2024-05-28T12:03:11Z',
             },
             {
+              bundleId: 'bundle-3',
+              label: 'BITTE',
+              profileId,
+              reasons: ['handCoverage 0.5 < 0.7'],
+              metrics: {
+                frameCount: 10,
+                handCoverage: 0.5,
+                poseCoverage: 0.4,
+                faceCoverage: 0.3,
+              },
+              recordedAt: '2024-05-30T12:03:11Z',
+            },
+            {
               bundleId: 'bundle-2',
               label: 'HILFE',
               profileId: '22222222-2222-4222-8222-222222222222',
@@ -781,11 +794,23 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    expect(response.body.items).toHaveLength(1);
+    expect(response.body.items).toHaveLength(2);
     expect(response.body.items[0]).toMatchObject({
+      bundleId: 'bundle-3',
+      label: 'BITTE',
+      profileId,
+      reasons: ['handCoverage 0.5 < 0.7'],
+    });
+    expect(response.body.items[1]).toMatchObject({
       bundleId: 'bundle-1',
       label: 'HALLO',
       profileId,
+    });
+    expect(response.body.items[0].metrics).toMatchObject({
+      frameCount: 10,
+      handCoverage: 0.5,
+      poseCoverage: 0.4,
+      faceCoverage: 0.3,
     });
   });
 

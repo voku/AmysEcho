@@ -32,4 +32,6 @@ Use this checklist before every production release to confirm the full training 
 
 ## Post-checks
 - [ ] Run a quick recognition session to ensure the new model is in use.
+- [ ] Trigger one intentionally weak recording (e.g., too few frames) and confirm it appears in `GET /api/v1/dgs/training-quality?profileId=<profileId>`.
+- [ ] Verify the webapp Training page shows the same rejection under **Abgelehnte Aufnahmen** with understandable German guidance.
 - [ ] Record any anomalies (missing modalities, upload failures, training errors) in the release log.

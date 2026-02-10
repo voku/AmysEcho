@@ -541,6 +541,8 @@ Retrieve recent training bundle rejections from the quality gate for a specific 
 **Query Parameters**
 - `profileId` (required): UUID of the profile
 - `limit` (optional): Number of entries to return (default: 50, max: 200)
+- Results are returned **latest-first** and represent the most recent rejection per `bundleId` (latest state wins).
+- Access scope is **profile-bound**: callers must supply `profileId`, and the API only returns entries for profiles the authenticated user is authorized to access.
 
 **Success Response (200 OK)**
 ```json

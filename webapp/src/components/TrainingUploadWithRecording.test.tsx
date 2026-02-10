@@ -265,6 +265,39 @@ describe('TrainingUploadWithRecording', () => {
     );
   }, TEST_TIMEOUT);
 
+  it('zeigt eine deutsche Fallback-Hinweiszeile für unbekannte Ablehnungsgründe', async () => {
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
+    trainingQualityItems = [
+      {
+        bundleId: 'bundle-2',
+        label: 'BITTE',
+        profileId: 'profil-1',
+        reasons: ['some_new_quality_reason'],
+        metrics: {
+          frameCount: 12,
+          handCoverage: 0.8,
+          poseCoverage: 0.7,
+          faceCoverage: 0.6,
+        },
+        recordedAt: '2024-05-29T12:03:11Z',
+      },
+    ];
+
+    renderWithProviders();
+
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/Unbekannter Qualitätsgrund: some_new_quality_reason/i),
+        ).toBeInTheDocument();
+      },
+      { timeout: TEST_TIMEOUT },
+    );
+  }, TEST_TIMEOUT);
+
   it('zeigt Trainings-Fehlermeldung sauber an', async () => {
     const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
     await addProfile(profile);
