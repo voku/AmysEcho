@@ -86,6 +86,13 @@ const formatQualityLogDate = (raw: string): string => {
   });
 };
 
+const getQualityAreaName = (part: string): string => {
+  if (part === 'hand') return 'Hände';
+  if (part === 'pose') return 'Pose';
+  if (part === 'face') return 'Gesicht';
+  return 'Bereich';
+};
+
 const formatQualityLogReason = (reason: string): string => {
   const translated = formatQualityGateReason(reason);
   if (translated !== reason) {
@@ -99,14 +106,10 @@ const formatQualityLogReason = (reason: string): string => {
 
   const coverageMatch = reason.match(/^(hand|pose|face)Coverage\s+([0-9.]+)\s+<\s+([0-9.]+)/i);
   if (coverageMatch) {
-    const part = coverageMatch[1] ?? '';
+    const part = (coverageMatch[1] ?? '').toLowerCase();
     const measured = coverageMatch[2] ?? '0';
     const threshold = coverageMatch[3] ?? '0';
-    const area = part.toLowerCase() === 'hand'
-      ? 'Hände'
-      : part.toLowerCase() === 'pose'
-        ? 'Pose'
-        : 'Gesicht';
+    const area = getQualityAreaName(part);
     return `${area} zu selten erkannt (${Math.round(Number(measured) * 100)}% < ${Math.round(
       Number(threshold) * 100,
     )}%).`;
@@ -114,14 +117,10 @@ const formatQualityLogReason = (reason: string): string => {
 
   const jitterMatch = reason.match(/^(hand|pose|face)Jitter\s+([0-9.]+)\s+>\s+([0-9.]+)/i);
   if (jitterMatch) {
-    const part = jitterMatch[1] ?? '';
+    const part = (jitterMatch[1] ?? '').toLowerCase();
     const measured = jitterMatch[2] ?? '0';
     const threshold = jitterMatch[3] ?? '0';
-    const area = part.toLowerCase() === 'hand'
-      ? 'Hände'
-      : part.toLowerCase() === 'pose'
-        ? 'Pose'
-        : 'Gesicht';
+    const area = getQualityAreaName(part);
     return `${area}-Jitter zu hoch (${measured} > ${threshold}).`;
   }
 
