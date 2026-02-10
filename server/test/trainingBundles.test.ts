@@ -725,4 +725,64 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const manifestRaw = await fs.readFile(manifestPath, 'utf8');
     expect(manifestRaw).toBe(corrupted);
   });
+
+  it('liefert Quality-Gate-Ablehnungen über GET /api/v1/dgs/training-quality', async () => {
+    const qualityLogPath = path.join(dataDir, 'datasets', 'training_quality_log.json');
+    await fs.mkdir(path.dirname(qualityLogPath), { recursive: true });
+    await fs.writeFile(
+      qualityLogPath,
+      JSON.stringify(
+        {
+          entries: [
+            {
+              bundleId: 'bundle-old',
+              label: 'HILFE',
+              profileId: 'profile-a',
+              reasons: ['too_few_frames'],
+              metrics: { frameCount: 8, handCoverage: 0.4, poseCoverage: 0.8, faceCoverage: 0.7 },
+              recordedAt: '2026-01-01T10:00:00.000Z',
+            },
+            {
+              bundleId: 'bundle-new',
+              label: 'ESSEN',
+              profileId: 'profile-b',
+              reasons: ['hand_jitter_too_high'],
+              metrics: { frameCount: 14, handCoverage: 1, poseCoverage: 1, faceCoverage: 1, handJitter: 0.8 },
+              recordedAt: '2026-01-01T12:00:00.000Z',
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    const response = await request(app)
+      .get('/api/v1/dgs/training-quality?profileId=profile-b&limit=5')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual({
+      items: [
+        expect.objectContaining({
+          bundleId: 'bundle-new',
+          label: 'ESSEN',
+          profileId: 'profile-b',
+          reasons: ['hand_jitter_too_high'],
+        }),
+      ],
+    });
+  });
+
+  it('validiert Query-Parameter für GET /api/v1/dgs/training-quality', async () => {
+    const response = await request(app)
+      .get('/api/v1/dgs/training-quality?limit=0')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(400);
+
+    expect(response.body.error).toBe('Ungültige Anfrageparameter');
+    expect(Array.isArray(response.body.issues)).toBe(true);
+  });
+
 });

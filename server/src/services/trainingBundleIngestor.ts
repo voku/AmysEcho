@@ -6,6 +6,7 @@ import {
 	DATA_DIR,
 	ensureDataDir,
 	TRAINING_MANIFEST_PATH,
+	TRAINING_QUALITY_LOG_PATH,
 } from "../constants/modelPaths.js";
 import {
 	MAX_FACE_JITTER,
@@ -155,6 +156,16 @@ interface TimingMetadata {
 	averageDeltaMs?: number;
 	minDeltaMs?: number;
 	maxDeltaMs?: number;
+}
+
+
+export interface TrainingQualityLogEntry {
+	bundleId: string;
+	label: string;
+	profileId: string | null;
+	reasons: string[];
+	metrics: QualityMetrics;
+	recordedAt: string;
 }
 
 function isDatasetSample(value: unknown): value is DatasetSample {
@@ -659,6 +670,91 @@ async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
 	}
 }
 
+function isQualityMetrics(value: unknown): value is QualityMetrics {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+	const candidate = value as Record<string, unknown>;
+	return (
+		typeof candidate.frameCount === "number" &&
+		Number.isFinite(candidate.frameCount) &&
+		typeof candidate.handCoverage === "number" &&
+		Number.isFinite(candidate.handCoverage) &&
+		typeof candidate.poseCoverage === "number" &&
+		Number.isFinite(candidate.poseCoverage) &&
+		typeof candidate.faceCoverage === "number" &&
+		Number.isFinite(candidate.faceCoverage)
+	);
+}
+
+function normalizeTrainingQualityLogEntries(raw: unknown): TrainingQualityLogEntry[] {
+	if (!raw || typeof raw !== "object") {
+		return [];
+	}
+	const entries = Array.isArray((raw as { entries?: unknown }).entries)
+		? (raw as { entries: unknown[] }).entries
+		: [];
+	return entries
+		.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === "object")
+		.filter((entry) =>
+			typeof entry.bundleId === "string" &&
+			typeof entry.label === "string" &&
+			(entry.profileId === null || typeof entry.profileId === "string") &&
+			Array.isArray(entry.reasons) &&
+			entry.reasons.every((reason) => typeof reason === "string") &&
+			isQualityMetrics(entry.metrics) &&
+			typeof entry.recordedAt === "string",
+		)
+		.map((entry) => ({
+			bundleId: entry.bundleId as string,
+			label: entry.label as string,
+			profileId: (entry.profileId as string | null) ?? null,
+			reasons: entry.reasons as string[],
+			metrics: entry.metrics as QualityMetrics,
+			recordedAt: entry.recordedAt as string,
+		}));
+}
+
+export async function readTrainingQualityLog(): Promise<TrainingQualityLogEntry[]> {
+	try {
+		const raw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, "utf8");
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(raw);
+		} catch (parseError) {
+			logger.warn("Training quality log is not valid JSON – resetting file", {
+				error:
+					parseError instanceof Error
+						? parseError.message
+						: String(parseError),
+				path: TRAINING_QUALITY_LOG_PATH,
+			});
+			return [];
+		}
+		return normalizeTrainingQualityLogEntries(parsed);
+	} catch (error: any) {
+		if (error?.code === "ENOENT") {
+			return [];
+		}
+		throw error;
+	}
+}
+
+async function appendTrainingQualityLog(entry: TrainingQualityLogEntry): Promise<void> {
+	await withFileLock(TRAINING_QUALITY_LOG_PATH, async () => {
+		await fs.mkdir(path.dirname(TRAINING_QUALITY_LOG_PATH), { recursive: true });
+		const entries = await readTrainingQualityLog();
+		entries.push(entry);
+		const deduplicatedByBundle = new Map<string, TrainingQualityLogEntry>();
+		for (const item of entries) {
+			deduplicatedByBundle.set(item.bundleId, item);
+		}
+		await atomicWriteJson(TRAINING_QUALITY_LOG_PATH, {
+			entries: Array.from(deduplicatedByBundle.values()),
+		});
+	});
+}
+
 function normalizeFlattenedLandmarks(raw: unknown): number[][] {
 	const points = normalizePointArray(raw, {
 		maxPoints: MAX_FLATTENED_LANDMARK_POINTS,
@@ -1024,6 +1120,15 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 			if (frames.length === 0) continue;
 			const quality = evaluateBundleQuality(frames);
 			if (!quality.accepted) {
+				const qualityLogEntry: TrainingQualityLogEntry = {
+					bundleId: entry.id,
+					label: entry.label,
+					profileId: entry.profileId ?? null,
+					reasons: quality.reasons,
+					metrics: quality.metrics,
+					recordedAt: new Date().toISOString(),
+				};
+				await appendTrainingQualityLog(qualityLogEntry);
 				logger.warn("Training bundle rejected by quality gate", {
 					bundleId: entry.id,
 					profileId: entry.profileId ?? null,

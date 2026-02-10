@@ -11,6 +11,7 @@ let ingestTrainingBundlesIntoDataset: (
 )['ingestTrainingBundlesIntoDataset'];
 let TRAINING_MANIFEST_PATH: string;
 let DATA_DIR: string;
+let TRAINING_QUALITY_LOG_PATH: string;
 
 function resolveDataPath(relativePath: string): string {
   if (!DATA_DIR) {
@@ -64,6 +65,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const constants = await import('../src/constants/modelPaths.js');
     DATA_DIR = constants.DATA_DIR;
     TRAINING_MANIFEST_PATH = constants.TRAINING_MANIFEST_PATH;
+    TRAINING_QUALITY_LOG_PATH = constants.TRAINING_QUALITY_LOG_PATH;
     ({ ingestTrainingBundlesIntoDataset } = await import('../src/services/trainingBundleIngestor.js'));
   });
 
@@ -226,6 +228,44 @@ describe('ingestTrainingBundlesIntoDataset', () => {
 
     const datasetPath = resolveDataPath('dgs_samples.json');
     await expect(fs.readFile(datasetPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+
+
+  it('persistiert Quality-Gate-Ablehnungen im Quality-Log', async () => {
+    const jitterValue = Math.min(1, MAX_HAND_JITTER + 0.5);
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) =>
+        buildConstantLandmarkFrame(idx % 2 === 0 ? 0 : jitterValue),
+      ),
+    };
+
+    await writeBundleFixture('bundle-quality-log', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const qualityLogRaw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, 'utf8');
+    const qualityLog = JSON.parse(qualityLogRaw) as {
+      entries: Array<{
+        bundleId: string;
+        label: string;
+        profileId: string | null;
+        reasons: string[];
+        metrics: Record<string, number>;
+      }>;
+    };
+
+    expect(qualityLog.entries).toHaveLength(1);
+    expect(qualityLog.entries[0]).toMatchObject({
+      bundleId: 'bundle-quality-log',
+      label: 'HALLO',
+      profileId: 'p-123',
+      reasons: expect.arrayContaining([expect.stringContaining('handJitter')]),
+      metrics: expect.objectContaining({
+        frameCount: MIN_SIGN_SAMPLE_FRAMES,
+      }),
+    });
   });
 
   it('persists multimodal landmarks and handedness', async () => {

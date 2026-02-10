@@ -75,13 +75,40 @@ function renderWithProviders() {
 
 describe('TrainingUploadWithRecording', () => {
   beforeEach(() => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ symbols: [] }),
-      arrayBuffer: async () => new ArrayBuffer(0),
-      headers: new Headers(),
-    } as any);
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/v1/dgs/training-quality')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [
+              {
+                bundleId: 'bundle-rejected-1',
+                label: 'HILFE',
+                profileId: 'profil-1',
+                reasons: ['too_few_frames', 'hand_coverage_low'],
+                metrics: {
+                  frameCount: 8,
+                  handCoverage: 0.45,
+                  poseCoverage: 0.7,
+                  faceCoverage: 0.6,
+                },
+                recordedAt: '2026-01-01T10:00:00.000Z',
+              },
+            ],
+          }),
+          headers: new Headers(),
+        } as any;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ symbols: [] }),
+        arrayBuffer: async () => new ArrayBuffer(0),
+        headers: new Headers(),
+      } as any;
+    });
     vi.stubGlobal('fetch', fetchMock);
     uploadMock.mockReset();
     syncQueuedMock.mockReset();
@@ -216,6 +243,23 @@ describe('TrainingUploadWithRecording', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Upload fehlgeschlagen: Netzwerkfehler/i)).toBeInTheDocument();
+    });
+  }, TEST_TIMEOUT);
+
+
+
+  it('zeigt abgelehnte Aufnahmen mit Gründen an', async () => {
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(screen.getByText('Abgelehnte Aufnahmen')).toBeInTheDocument();
+      expect(screen.getByText(/Zu wenige verwertbare Frames erkannt/i)).toBeInTheDocument();
+      expect(screen.getByText(/Hände waren nicht durchgängig sichtbar/i)).toBeInTheDocument();
+      expect(screen.getByText(/Nimm die Gebärde erneut/i)).toBeInTheDocument();
     });
   }, TEST_TIMEOUT);
 
