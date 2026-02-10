@@ -41,6 +41,7 @@ interface TrainingBundleRouteDeps {
 	resolveProfileId?: (
 		profileId: string | null,
 	) => Promise<{ profileId: string | null }>;
+	isProfileAuthorized?: (req: Request, profileId: string) => boolean;
 }
 
 interface TrainingBundleMetadata {
@@ -1162,6 +1163,7 @@ export function registerTrainingBundleRoute(
 		if (!parsedQuery.success) {
 			res.status(400).json({
 				error: "Ungültige Anfrageparameter",
+				code: "INVALID_QUERY",
 				issues: parsedQuery.error.issues,
 			});
 			return;
@@ -1169,6 +1171,17 @@ export function registerTrainingBundleRoute(
 
 		const profileIdFilter = parsedQuery.data.profileId ?? null;
 		const limit = parsedQuery.data.limit ?? 50;
+		if (
+			profileIdFilter &&
+			deps.isProfileAuthorized &&
+			!deps.isProfileAuthorized(req, profileIdFilter)
+		) {
+			res.status(403).json({
+				error: "Kein Zugriff auf dieses Profil.",
+				code: "PROFILE_UNAUTHORIZED",
+			});
+			return;
+		}
 
 		try {
 			const qualityEntries = await readTrainingQualityLog();

@@ -49,6 +49,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let triggerCalls: TriggerCall[];
   let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
   let accessToken: string;
+  let isProfileAuthorized: (profileId: string) => boolean;
   const resolveProfileId = async (profileId: string | null) => ({
     profileId,
   });
@@ -77,6 +78,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       username: 'bundle',
       role: 'caregiver',
     }).accessToken;
+    isProfileAuthorized = () => true;
     const mod = await import('../src/routes/trainingBundleRoute.js');
     const registerRoute = mod.registerTrainingBundleRoute;
     const { TRAINING_MANIFEST_PATH } = await import('../src/constants/modelPaths.js');
@@ -94,6 +96,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         return { jobId, status: 'queued', pollUrl: `/api/v1/train-status/${jobId}` };
       },
       resolveProfileId,
+      isProfileAuthorized: (_req, profileId) => isProfileAuthorized(profileId),
     });
     manifestPath = TRAINING_MANIFEST_PATH;
   });
@@ -104,6 +107,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     await fs.rm(path.dirname(manifestPath), { recursive: true, force: true });
     triggerCalls.length = 0;
     triggerOverride = null;
+    isProfileAuthorized = () => true;
   });
 
   afterAll(async () => {
@@ -782,7 +786,22 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .expect(400);
 
     expect(response.body.error).toBe('Ungültige Anfrageparameter');
+    expect(response.body.code).toBe('INVALID_QUERY');
     expect(Array.isArray(response.body.issues)).toBe(true);
+  });
+
+  it('verweigert Quality-Log-Antworten ohne Profilberechtigung', async () => {
+    isProfileAuthorized = () => false;
+
+    const response = await request(app)
+      .get('/api/v1/dgs/training-quality?profileId=profile-a')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(403);
+
+    expect(response.body).toEqual({
+      error: 'Kein Zugriff auf dieses Profil.',
+      code: 'PROFILE_UNAUTHORIZED',
+    });
   });
 
 });

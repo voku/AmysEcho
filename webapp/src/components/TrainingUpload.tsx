@@ -86,6 +86,48 @@ const formatQualityLogDate = (raw: string): string => {
   });
 };
 
+const formatQualityLogReason = (reason: string): string => {
+  const translated = formatQualityGateReason(reason);
+  if (translated !== reason) {
+    return translated;
+  }
+
+  const frameMatch = reason.match(/^frameCount\s+(\d+)\s+<\s+(\d+)/i);
+  if (frameMatch) {
+    return `Zu wenige Frames (${frameMatch[1]} < ${frameMatch[2]}).`;
+  }
+
+  const coverageMatch = reason.match(/^(hand|pose|face)Coverage\s+([0-9.]+)\s+<\s+([0-9.]+)/i);
+  if (coverageMatch) {
+    const part = coverageMatch[1] ?? '';
+    const measured = coverageMatch[2] ?? '0';
+    const threshold = coverageMatch[3] ?? '0';
+    const area = part.toLowerCase() === 'hand'
+      ? 'Hände'
+      : part.toLowerCase() === 'pose'
+        ? 'Pose'
+        : 'Gesicht';
+    return `${area} zu selten erkannt (${Math.round(Number(measured) * 100)}% < ${Math.round(
+      Number(threshold) * 100,
+    )}%).`;
+  }
+
+  const jitterMatch = reason.match(/^(hand|pose|face)Jitter\s+([0-9.]+)\s+>\s+([0-9.]+)/i);
+  if (jitterMatch) {
+    const part = jitterMatch[1] ?? '';
+    const measured = jitterMatch[2] ?? '0';
+    const threshold = jitterMatch[3] ?? '0';
+    const area = part.toLowerCase() === 'hand'
+      ? 'Hände'
+      : part.toLowerCase() === 'pose'
+        ? 'Pose'
+        : 'Gesicht';
+    return `${area}-Jitter zu hoch (${measured} > ${threshold}).`;
+  }
+
+  return 'Unbekannter Ablehnungsgrund.';
+};
+
 function TrainingStatusBlock({
   uploader,
   message,
@@ -334,7 +376,13 @@ function SymbolSelector({
 
 
 
-function TrainingQualityLogCard({ entries, loading, error }: { entries: TrainingQualityLogEntry[]; loading: boolean; error: string | null }) {
+interface TrainingQualityLogCardProps {
+  entries: TrainingQualityLogEntry[];
+  loading: boolean;
+  error: string | null;
+}
+
+function TrainingQualityLogCard({ entries, loading, error }: TrainingQualityLogCardProps) {
   return (
     <div className="card mt-md">
       <p className="eyebrow">Abgelehnte Aufnahmen</p>
@@ -350,7 +398,7 @@ function TrainingQualityLogCard({ entries, loading, error }: { entries: Training
             <li key={entry.bundleId}>
               <strong>{entry.label}</strong> ({formatQualityLogDate(entry.recordedAt)}):{' '}
               {entry.reasons.length > 0
-                ? entry.reasons.map((reason) => formatQualityGateReason(reason)).join(', ')
+                ? entry.reasons.map((reason) => formatQualityLogReason(reason)).join(', ')
                 : 'Ohne Grundangabe'}
             </li>
           ))}
@@ -436,7 +484,10 @@ export function TrainingUploadWithRecording() {
 
 
   useEffect(() => {
-    if (!apiBaseUrl) {
+    if (!apiBaseUrl || !profileId) {
+      setQualityEntries([]);
+      setQualityError(null);
+      setQualityLoading(false);
       return;
     }
 

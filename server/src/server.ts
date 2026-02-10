@@ -941,6 +941,8 @@ registerTrainingBundleRoute(app, genId, {
 		}
 	},
 	resolveProfileId: resolveProfileId,
+	isProfileAuthorized: (req: Request, profileId: string) =>
+		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
 });
 
 registerCustomSignsRoute(app, {

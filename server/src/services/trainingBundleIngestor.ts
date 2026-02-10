@@ -722,14 +722,14 @@ export async function readTrainingQualityLog(): Promise<TrainingQualityLogEntry[
 		try {
 			parsed = JSON.parse(raw);
 		} catch (parseError) {
-			logger.warn("Training quality log is not valid JSON – resetting file", {
+			logger.warn("Training quality log is not valid JSON", {
 				error:
 					parseError instanceof Error
 						? parseError.message
 						: String(parseError),
 				path: TRAINING_QUALITY_LOG_PATH,
 			});
-			return [];
+			throw parseError;
 		}
 		return normalizeTrainingQualityLogEntries(parsed);
 	} catch (error: any) {
@@ -1120,13 +1120,18 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 			if (frames.length === 0) continue;
 			const quality = evaluateBundleQuality(frames);
 			if (!quality.accepted) {
+				const recordedAt =
+					(typeof entry.capturedAt === "string" && entry.capturedAt) ||
+					(typeof entry.metadata?.capturedAt === "string" && entry.metadata.capturedAt) ||
+					(typeof entry.receivedAt === "string" && entry.receivedAt) ||
+					new Date().toISOString();
 				const qualityLogEntry: TrainingQualityLogEntry = {
 					bundleId: entry.id,
 					label: entry.label,
 					profileId: entry.profileId ?? null,
 					reasons: quality.reasons,
 					metrics: quality.metrics,
-					recordedAt: new Date().toISOString(),
+					recordedAt,
 				};
 				await appendTrainingQualityLog(qualityLogEntry);
 				logger.warn("Training bundle rejected by quality gate", {
