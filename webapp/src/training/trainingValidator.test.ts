@@ -35,7 +35,7 @@ describe('TrainingDataValidator', () => {
   });
 
   it('flags insufficient motion', () => {
-    const frame = [makePoints(21)];
+    const frame = makeMultiModalFrame();
     const seq = Array.from({ length: 15 }, () => frame); // identical frames -> no motion
     const result = validateLandmarkSequence(seq);
     expect(result.ok).toBe(false);

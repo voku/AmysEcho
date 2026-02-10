@@ -106,7 +106,7 @@ function computeAverageJitter(
       const dx = next[0] - prev[0];
       const dy = next[1] - prev[1];
       const dz = next[2] - prev[2];
-      sumOfDistances += Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+      sumOfDistances += Math.hypot(dx, dy, dz);
     }
     deltas.push(sumOfDistances / prevPoints.length);
   }
@@ -144,14 +144,11 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
     }
     const { handPoints } = extractFramePoints(currentFrame);
 
-    if (handPoints.length > 0) {
-      handFrames += 1;
-    }
-
-    if (!handPoints || handPoints.length === 0) {
+    if (handPoints.length === 0) {
       hasMissing = true;
       continue;
     }
+    handFrames += 1;
 
     // Range check and motion calculation
     for (let j = 0; j < handPoints.length; j++) {
