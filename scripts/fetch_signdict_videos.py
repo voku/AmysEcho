@@ -8,11 +8,14 @@ from scripts.dgs_common import (
     BASE_URL,
     download_video,
     ensure_dirs,
+    ensure_manifest_shape,
     fetch_url,
     find_entry_url,
     find_video_url_direct,
     load_manifest,
     save_manifest,
+    update_manifest_stats,
+    upsert_manifest_entry,
 )
 
 TARGET_LABELS = [
@@ -22,7 +25,7 @@ TARGET_LABELS = [
 
 def main():
     ensure_dirs()
-    manifest = load_manifest()
+    manifest = ensure_manifest_shape(load_manifest())
     updated = False
     
     for label in TARGET_LABELS:
@@ -30,7 +33,7 @@ def main():
             print(f"\nProcessing {label}...")
             
             # Check if already in manifest
-            if any(item["label"] == label for item in manifest["gestures"]):
+            if any(item.get("label") == label or item.get("id") == label for item in manifest["gestures"]):
                 print(f"  {label} already in manifest. Skipping.")
                 continue
 
@@ -52,8 +55,9 @@ def main():
                 print(f"  No video URL found for {label}")
                 continue
                 
-            if download_video(label, video_url):
-                manifest["gestures"].append({"label": label, "video": f"{label}.mp4"})
+            filename = download_video(label, video_url)
+            if filename:
+                upsert_manifest_entry(manifest, label, [filename])
                 updated = True
             
             time.sleep(1) # Be nice to the server
@@ -62,6 +66,7 @@ def main():
             print(f"Error processing {label}: {e}")
 
     if updated:
+        update_manifest_stats(manifest)
         save_manifest(manifest)
     else:
         print("\nNo manifest updates needed.")

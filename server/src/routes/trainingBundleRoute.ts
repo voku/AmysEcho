@@ -137,6 +137,7 @@ interface BundleQualityGateResult {
 	reasons: string[];
 }
 
+
 const trainingBundleUpload = express.raw({
 	type: [
 		"application/zip",
@@ -1166,6 +1167,8 @@ export function registerTrainingBundleRoute(
 	genId: () => string,
 	deps: TrainingBundleRouteDeps = {},
 ): void {
+
+
 	app.get(
 		"/api/v1/dgs/training-quality",
 		auth,

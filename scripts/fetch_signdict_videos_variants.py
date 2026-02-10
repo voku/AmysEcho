@@ -8,12 +8,15 @@ from scripts.dgs_common import (
     BASE_URL,
     download_video,
     ensure_dirs,
+    ensure_manifest_shape,
     fetch_url,
     find_entry_url,
     find_variant_links,
     find_video_url_direct,
     load_manifest,
     save_manifest,
+    update_manifest_stats,
+    upsert_manifest_entry,
 )
 
 # Comprehensive search terms for kid starter preset glosses
@@ -80,14 +83,14 @@ TARGET_LABELS = {
 
 def main():
     ensure_dirs()
-    manifest = load_manifest()
+    manifest = ensure_manifest_shape(load_manifest())
     updated = False
     
     for label, search_terms in TARGET_LABELS.items():
         print(f"\n=== Processing label: {label} ===")
         
         # Get existing videos from manifest to avoid redundant work
-        existing_entry = next((g for g in manifest["gestures"] if g["label"] == label), None)
+        existing_entry = next((g for g in manifest["gestures"] if g.get("label") == label or g.get("id") == label), None)
         video_files = existing_entry.get("videos", []) if existing_entry and "videos" in existing_entry else []
         initial_count = len(video_files)
 
@@ -137,18 +140,14 @@ def main():
             time.sleep(1)
 
         if len(video_files) > initial_count:
-            # Update manifest in memory
-            manifest["gestures"] = [g for g in manifest["gestures"] if g["label"] != label]
-            manifest["gestures"].append({
-                "label": label,
-                "videos": video_files
-            })
+            upsert_manifest_entry(manifest, label, video_files)
             updated = True
-            print(f"  Updated memory for {label} with {len(video_files)} unique videos.")
+            print(f"  Updated manifest for {label} with {len(video_files)} unique videos.")
         else:
             print(f"  No new videos found for {label}")
 
     if updated:
+        update_manifest_stats(manifest)
         save_manifest(manifest)
     else:
         print("\nNo manifest updates needed.")
