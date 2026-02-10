@@ -142,7 +142,15 @@ function buildValidationSummary(frames: TrainingFrame[]): ValidationSummary | nu
     return null;
   }
 
-  const sequence = frames.map((frame) => (Array.isArray(frame.landmarks) ? frame.landmarks : []));
+  const sequence = frames.map((frame) => {
+    const hands = Array.isArray(frame.landmarks) ? frame.landmarks.slice(0, 2) : [];
+    return [
+      hands[0] ?? [],
+      hands[1] ?? [],
+      Array.isArray(frame.poseLandmarks) ? frame.poseLandmarks : [],
+      Array.isArray(frame.faceLandmarks) ? frame.faceLandmarks : [],
+    ];
+  });
   const result = validateLandmarkSequence(sequence);
   return {
     frameCount: frames.length,
