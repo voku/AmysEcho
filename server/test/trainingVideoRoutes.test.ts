@@ -214,6 +214,113 @@ describe('Training Video Routes', () => {
       );
       expect(res.status).toBe(401);
     });
+
+    it('returns 403 when user tries to access another users video', async () => {
+      // Create a bundle for a different user
+      const otherUserId = 'other-user-123';
+      const otherProfileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+      const otherBundleId = 'other-bundle-001';
+      const dir = `uploads/${otherProfileId}/${otherBundleId}`;
+
+      await seedManifest([
+        {
+          id: otherBundleId,
+          profileId: otherProfileId,
+          label: 'OtherUserVideo',
+          storage: {
+            directory: dir,
+            clip: 'clip.webm',
+            files: ['clip.webm'],
+          },
+          metadata: {
+            recording: { clipMimeType: 'video/webm' },
+          },
+          receivedAt: '2026-01-15T10:05:00Z',
+        },
+      ]);
+      await seedVideoFile(dir, 'clip.webm');
+
+      // Try to access with current user's token (should be denied)
+      const res = await request(app)
+        .get(`/api/v1/training-videos/${otherBundleId}/clip`)
+        .set(authHeaders());
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('Zugriff verweigert.');
+    });
+
+    it('returns 403 for bundle without profileId (legacy bundle)', async () => {
+      // Create a legacy bundle without profileId
+      const legacyBundleId = 'legacy-bundle-001';
+      const dir = `uploads/legacy/${legacyBundleId}`;
+
+      await seedManifest([
+        {
+          id: legacyBundleId,
+          profileId: null,  // Legacy bundle without profileId
+          label: 'LegacyVideo',
+          storage: {
+            directory: dir,
+            clip: 'clip.webm',
+            files: ['clip.webm'],
+          },
+          metadata: {
+            recording: { clipMimeType: 'video/webm' },
+          },
+          receivedAt: '2020-01-15T10:05:00Z',
+        },
+      ]);
+      await seedVideoFile(dir, 'clip.webm');
+
+      // Try to access legacy bundle (should be denied for privacy)
+      const res = await request(app)
+        .get(`/api/v1/training-videos/${legacyBundleId}/clip`)
+        .set(authHeaders());
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('Zugriff verweigert.');
+    });
+
+    it('allows caregiver with access to download video', async () => {
+      // Create a profile owned by a different user but with current user as caregiver
+      const childUserId = 'child-user-456';
+      const childProfileId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+      const caregiverBundleId = 'caregiver-bundle-001';
+      const dir = `uploads/${childProfileId}/${caregiverBundleId}`;
+
+      // Update mockDb to include the child profile
+      mockDb.profiles.push({ id: childProfileId, userId: childUserId } as any);
+      
+      // Update mockRegistry to include caregiver access
+      mockRegistry.profiles.push({ 
+        id: childProfileId, 
+        caregivers: [{ caregiverId: USER_ID }] 
+      } as any);
+
+      await seedManifest([
+        {
+          id: caregiverBundleId,
+          profileId: childProfileId,
+          label: 'ChildVideo',
+          storage: {
+            directory: dir,
+            clip: 'clip.webm',
+            files: ['clip.webm'],
+          },
+          metadata: {
+            recording: { clipMimeType: 'video/webm' },
+          },
+          receivedAt: '2026-01-15T10:05:00Z',
+        },
+      ]);
+      await seedVideoFile(dir, 'clip.webm');
+
+      // Current user should be able to access as caregiver
+      const res = await request(app)
+        .get(`/api/v1/training-videos/${caregiverBundleId}/clip`)
+        .set(authHeaders())
+        .buffer(true);
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toBe('video/webm');
+    });
   });
 
   describe('GET /api/v1/training-videos/:bundleId/still', () => {
@@ -265,6 +372,67 @@ describe('Training Video Routes', () => {
         .get('/api/v1/training-videos/no-still/still')
         .set(authHeaders());
       expect(res.status).toBe(404);
+    });
+
+    it('returns 403 when user tries to access another users still image', async () => {
+      // Create a bundle for a different user
+      const otherProfileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+      const otherBundleId = 'other-bundle-002';
+      const dir = `uploads/${otherProfileId}/${otherBundleId}`;
+
+      await seedManifest([
+        {
+          id: otherBundleId,
+          profileId: otherProfileId,
+          label: 'OtherUserImage',
+          storage: {
+            directory: dir,
+            clip: 'clip.webm',
+            still: 'still.jpg',
+            files: ['clip.webm', 'still.jpg'],
+          },
+          metadata: {},
+          receivedAt: '2026-01-15T10:05:00Z',
+        },
+      ]);
+      await seedVideoFile(dir, 'still.jpg');
+
+      // Try to access with current user's token (should be denied)
+      const res = await request(app)
+        .get(`/api/v1/training-videos/${otherBundleId}/still`)
+        .set(authHeaders());
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('Zugriff verweigert.');
+    });
+
+    it('returns 403 for still image from bundle without profileId (legacy bundle)', async () => {
+      // Create a legacy bundle without profileId
+      const legacyBundleId = 'legacy-bundle-002';
+      const dir = `uploads/legacy/${legacyBundleId}`;
+
+      await seedManifest([
+        {
+          id: legacyBundleId,
+          profileId: null,  // Legacy bundle without profileId
+          label: 'LegacyImage',
+          storage: {
+            directory: dir,
+            clip: 'clip.webm',
+            still: 'still.jpg',
+            files: ['clip.webm', 'still.jpg'],
+          },
+          metadata: {},
+          receivedAt: '2020-01-15T10:05:00Z',
+        },
+      ]);
+      await seedVideoFile(dir, 'still.jpg');
+
+      // Try to access legacy bundle still (should be denied for privacy)
+      const res = await request(app)
+        .get(`/api/v1/training-videos/${legacyBundleId}/still`)
+        .set(authHeaders());
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('Zugriff verweigert.');
     });
   });
 

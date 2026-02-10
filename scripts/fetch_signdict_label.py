@@ -10,6 +10,7 @@ from scripts.dgs_common import (
     BASE_URL,
     download_video,
     ensure_dirs,
+    ensure_manifest_shape,
     fetch_custom_source_videos,
     fetch_url,
     find_entry_url,
@@ -52,16 +53,6 @@ def find_existing_entry(manifest: dict, label: str) -> dict | None:
         if entry.get("id") == label or entry.get("label") == label:
             return entry
     return None
-
-
-def ensure_manifest_shape(manifest: dict) -> dict:
-    if "gestures" not in manifest or not isinstance(manifest.get("gestures"), list):
-        manifest["gestures"] = []
-    if "version" not in manifest:
-        manifest["version"] = "3.0"
-    if "description" not in manifest:
-        manifest["description"] = "DGS video examples (auto-fetched)"
-    return manifest
 
 
 def main() -> None:

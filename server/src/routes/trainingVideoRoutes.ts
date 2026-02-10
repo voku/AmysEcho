@@ -211,6 +211,10 @@ export function registerTrainingVideoRoutes(
 	/**
 	 * GET /api/v1/training-videos/:bundleId/clip
 	 * Stream the video clip file from a training bundle.
+	 * 
+	 * PRIVACY: Only the user who recorded the video (or their authorized caregivers)
+	 * can access it. This protects the privacy of kids with special needs by ensuring
+	 * videos are never accessible to unauthorized users, even if they guess the bundleId.
 	 */
 	app.get(
 		"/api/v1/training-videos/:bundleId/clip",
@@ -233,9 +237,12 @@ export function registerTrainingVideoRoutes(
 						.json({ error: "Video nicht gefunden." });
 				}
 
-				// Verify user has access to the profile that owns this bundle.
-				// Deny access when profileId is missing (legacy bundles)
-				// to prevent unauthenticated access via guessed bundleIds.
+				// PRIVACY PROTECTION: Verify user has access to the profile that owns this bundle.
+				// Deny access when profileId is missing (legacy bundles) to prevent
+				// unauthenticated access via guessed bundleIds.
+				// Authorization is granted if:
+				// 1. The user owns the profile (profile.userId === user.id)
+				// 2. The user is a caregiver with access to the profile
 				if (!entry.profileId || !isProfileAuthorized(req, entry.profileId, db, registry)) {
 					return res
 						.status(403)
@@ -326,6 +333,10 @@ export function registerTrainingVideoRoutes(
 	/**
 	 * GET /api/v1/training-videos/:bundleId/still
 	 * Serve the still image from a training bundle.
+	 * 
+	 * PRIVACY: Only the user who recorded the video (or their authorized caregivers)
+	 * can access the still image. This protects the privacy of kids with special needs
+	 * by ensuring images are never accessible to unauthorized users.
 	 */
 	app.get(
 		"/api/v1/training-videos/:bundleId/still",
@@ -348,8 +359,12 @@ export function registerTrainingVideoRoutes(
 						.json({ error: "Bild nicht gefunden." });
 				}
 
-				// Verify user has access to the profile that owns this bundle.
-				// Deny access when profileId is missing to prevent unauthenticated access via guessed bundleIds.
+				// PRIVACY PROTECTION: Verify user has access to the profile that owns this bundle.
+				// Deny access when profileId is missing to prevent unauthenticated access
+				// via guessed bundleIds.
+				// Authorization is granted if:
+				// 1. The user owns the profile (profile.userId === user.id)
+				// 2. The user is a caregiver with access to the profile
 				if (!entry.profileId || !isProfileAuthorized(req, entry.profileId, db, registry)) {
 					return res
 						.status(403)
