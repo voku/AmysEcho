@@ -217,8 +217,8 @@ function TrainingResultCard({ result, trainingJob }: { result: UploadTrainingBun
           )}
           {result.qualityGate?.reasons?.length ? (
             <ul className="muted small bullets">
-              {result.qualityGate.reasons.map((reason) => (
-                <li key={reason}>{formatQualityGateReason(reason)}</li>
+              {result.qualityGate.reasons.map((reason, index) => (
+                <li key={`${reason}-${index}`}>{formatQualityGateReason(reason)}</li>
               ))}
             </ul>
           ) : null}

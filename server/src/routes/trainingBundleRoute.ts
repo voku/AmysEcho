@@ -260,6 +260,8 @@ type NonManualCoverageSummary = {
 };
 
 const COVERAGE_SAMPLE_LIMIT = 200;
+const QUALITY_GATE_MIN_SCORE = 70;
+const QUALITY_GATE_MIN_FRAME_COUNT = 8;
 
 
 const NonManualFeaturesSchema = z
@@ -318,6 +320,33 @@ function normalizeClipFilename(value: unknown): string | null {
 		return null;
 	}
 	return trimmed;
+}
+
+async function readTrainingManifest(options: { strict: boolean }): Promise<TrainingBundleManifestFile> {
+	try {
+		const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
+		const parsed = JSON.parse(raw);
+		if (
+			!parsed ||
+			typeof parsed !== "object" ||
+			!Array.isArray((parsed as { entries?: unknown }).entries)
+		) {
+			if (options.strict) {
+				throw new Error(
+					"Training manifest file is corrupted and would be overwritten.",
+				);
+			}
+			return { entries: [] };
+		}
+		return {
+			entries: (parsed as { entries: TrainingBundleManifestEntry[] }).entries,
+		};
+	} catch (error: any) {
+		if (error?.code === "ENOENT") {
+			return { entries: [] };
+		}
+		throw error;
+	}
 }
 
 function normalizeVariationData(
@@ -411,16 +440,17 @@ function buildQualityGateResult(
 	if ((validationSummary.issues?.length ?? 0) > 0) {
 		reasons.push(...(validationSummary.issues ?? []));
 	}
-	if (typeof validationSummary.qualityScore === "number" && validationSummary.qualityScore < 70) {
+	if (typeof validationSummary.qualityScore === "number" && validationSummary.qualityScore < QUALITY_GATE_MIN_SCORE) {
 		reasons.push("quality_score_below_threshold");
 	}
-	if (validationSummary.frameCount < 8) {
+	if (validationSummary.frameCount < QUALITY_GATE_MIN_FRAME_COUNT) {
 		reasons.push("too_few_frames");
 	}
 
+	const deduplicatedReasons = Array.from(new Set(reasons));
 	return {
-		outcome: reasons.length === 0 ? "pass" : "review",
-		reasons,
+		outcome: deduplicatedReasons.length === 0 ? "pass" : "review",
+		reasons: deduplicatedReasons,
 	};
 }
 
@@ -1130,18 +1160,10 @@ export function registerTrainingBundleRoute(
 			}
 
 			try {
-				let manifest: TrainingBundleManifestFile = { entries: [] };
-				try {
-					const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
-					const parsed = JSON.parse(raw);
-					if (parsed && typeof parsed === "object" && Array.isArray((parsed as any).entries)) {
-						manifest = parsed as TrainingBundleManifestFile;
-					}
-				} catch (error: any) {
-					if (error?.code !== "ENOENT") {
-						throw error;
-					}
-				}
+				const manifest = await withFileLock(
+					TRAINING_MANIFEST_PATH,
+					() => readTrainingManifest({ strict: false }),
+				);
 
 				const entry = manifest.entries.find((candidate) => candidate.id === bundleId);
 				if (!entry) {
@@ -1439,9 +1461,7 @@ export function registerTrainingBundleRoute(
 					...(mergedSmoothing ? { smoothing: mergedSmoothing } : {}),
 					...(mergedHandedness ? { handedness: mergedHandedness } : {}),
 					validationSummary: {
-						...(sanitizedMetadata.validationSummary ?? {
-							frameCount: landmarksValidation.frameCount,
-						}),
+						...(sanitizedMetadata.validationSummary ?? {}),
 						frameCount: landmarksValidation.frameCount,
 						landmarksPath: landmarksValidation.relativePath,
 					},
@@ -1468,25 +1488,7 @@ export function registerTrainingBundleRoute(
 
 				await withFileLock(TRAINING_MANIFEST_PATH, async () => {
 					await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
-
-					const manifest: TrainingBundleManifestFile = { entries: [] };
-					try {
-						const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
-						const parsed = JSON.parse(raw);
-						if (
-							!parsed ||
-							typeof parsed !== "object" ||
-							!Array.isArray((parsed as any).entries)
-						) {
-							throw new Error(
-								"Training manifest file is corrupted and would be overwritten.",
-							);
-						}
-						manifest.entries = (parsed as TrainingBundleManifestFile).entries;
-					} catch (error: any) {
-						if (error?.code !== "ENOENT") throw error;
-					}
-
+					const manifest = await readTrainingManifest({ strict: true });
 					manifest.entries.push(manifestEntry);
 					await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
 				});
