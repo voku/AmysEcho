@@ -93,6 +93,9 @@ const getQualityAreaName = (part: string): string => {
   return 'Bereich';
 };
 
+// Server sendet die technischen Gründe aktuell als Strings wie
+// "handCoverage 0.40 < 0.50" bzw. "handJitter 0.123 > 0.100".
+// Diese Regexe müssen bei Änderungen in evaluateBundleQuality synchron gehalten werden.
 const formatQualityLogReason = (reason: string): string => {
   const translated = formatQualityGateReason(reason);
   if (translated !== reason) {

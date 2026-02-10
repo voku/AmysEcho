@@ -54,6 +54,7 @@ All API responses follow a consistent structure:
 | `INVALID_SAMPLE` | Sample data doesn't match expected schema |
 | `TRAINING_FAILED` | Model training encountered an error |
 | `MODEL_NOT_FOUND` | Requested model file doesn't exist |
+| `INVALID_QUERY` | Query parameters failed validation |
 
 ## Authentication
 
@@ -579,6 +580,13 @@ Liefert die zuletzt vom Quality Gate abgelehnten Trainingsaufnahmen für ein Pro
 {
   "error": "Kein Zugriff auf dieses Profil.",
   "code": "PROFILE_UNAUTHORIZED"
+}
+```
+
+*500 Internal Server Error - Quality log unavailable*
+```json
+{
+  "error": "Qualitätsprotokoll konnte nicht geladen werden"
 }
 ```
 

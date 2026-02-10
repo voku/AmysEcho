@@ -1122,6 +1122,7 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 			if (!quality.accepted) {
 				const recordedAt =
 					(typeof entry.capturedAt === "string" && entry.capturedAt) ||
+					(typeof entry.metadata?.capturedAt === "string" && entry.metadata.capturedAt) ||
 					(typeof entry.receivedAt === "string" && entry.receivedAt) ||
 					new Date().toISOString();
 				const qualityLogEntry: TrainingQualityLogEntry = {
