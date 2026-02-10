@@ -24,6 +24,16 @@ const trainingJobLabel: Record<TrainingJobInfo['status'], string> = {
   failed: 'Fehlgeschlagen',
 };
 
+const qualityGateReasonLabels: Record<string, string> = {
+  too_few_frames: 'Zu wenige verwertbare Frames erkannt',
+  quality_score_below_threshold: 'Qualitätswert liegt unter dem Grenzwert',
+  insufficient_motion: 'Zu wenig Bewegung in der Aufnahme',
+  landmarks_missing: 'Landmarks fehlen teilweise',
+  hand_coverage_low: 'Hände waren nicht durchgängig sichtbar',
+};
+
+const formatQualityGateReason = (reason: string): string => qualityGateReasonLabels[reason] ?? reason;
+
 const formatPercent = (value?: number): string | null => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   const clamped = Math.min(100, Math.max(0, Math.round(value)));
@@ -183,6 +193,35 @@ function TrainingResultCard({ result, trainingJob }: { result: UploadTrainingBun
           <p className="value">{trainingJobLabel[activeTrainingJob.status]}</p>
           <p className="muted small">Job-ID: {activeTrainingJob.jobId}</p>
           {activeTrainingJob.message && <p className="muted small">{activeTrainingJob.message}</p>}
+        </div>
+      )}
+      {(result.validationSummary || result.qualityGate) && (
+        <div>
+          <p className="eyebrow">Qualitätsprüfung (Server)</p>
+          {result.validationSummary && (
+            <p className="muted small">
+              Frames: {result.validationSummary.frameCount}
+              {typeof result.validationSummary.qualityScore === 'number'
+                ? ` · Score: ${result.validationSummary.qualityScore}/100`
+                : ''}
+            </p>
+          )}
+          {result.qualityGate && (
+            <p className="muted small">
+              Ergebnis: {result.qualityGate.outcome === 'pass'
+                ? 'Bestanden'
+                : result.qualityGate.outcome === 'review'
+                ? 'Bitte prüfen'
+                : 'Unbekannt'}
+            </p>
+          )}
+          {result.qualityGate?.reasons?.length ? (
+            <ul className="muted small bullets">
+              {result.qualityGate.reasons.map((reason) => (
+                <li key={reason}>{formatQualityGateReason(reason)}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       )}
     </div>

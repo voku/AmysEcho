@@ -141,6 +141,13 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       },
       smoothing: { method: 'one_euro', beta: 0.1 },
       handedness: { labels: ['Left'], frameCount: 1 },
+      validationSummary: {
+        frameCount: 12,
+        issues: ['too_few_frames'],
+        suggestions: ['Nimm etwas länger auf.'],
+        qualityScore: 58,
+        confidence: 0.7,
+      },
     };
     const landmarks = await loadSampleLandmarks();
 
@@ -180,6 +187,18 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       jobId: 'job-1',
       status: 'queued',
       pollUrl: '/api/v1/train-status/job-1',
+    });
+    expect(response.body.validationSummary).toMatchObject({
+      frameCount: 1,
+      issues: ['too_few_frames'],
+      suggestions: ['Nimm etwas länger auf.'],
+      qualityScore: 58,
+      confidence: 0.7,
+      landmarksPath: 'bundle/landmarks.json',
+    });
+    expect(response.body.qualityGate).toEqual({
+      outcome: 'review',
+      reasons: expect.arrayContaining(['too_few_frames', 'quality_score_below_threshold']),
     });
 
     const resolvedProfileId = getResolvedProfileId(metadata.profileId);
@@ -238,6 +257,10 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       validationSummary: {
         frameCount: 1,
         landmarksPath: 'bundle/landmarks.json',
+        issues: ['too_few_frames'],
+        suggestions: ['Nimm etwas länger auf.'],
+        qualityScore: 58,
+        confidence: 0.7,
       },
     });
 
@@ -288,6 +311,69 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   });
 
 
+
+
+  it('returns bundle details via GET /api/v1/dgs/sample-bundles/:id including quality gate outcome', async () => {
+    const metadata = {
+      profileId: '99999999-9999-4999-8999-999999999999',
+      label: 'HALLO',
+      capturedAt: '2024-05-28T12:03:11Z',
+      source: 'app://mediapipe',
+      validationSummary: {
+        frameCount: 2,
+        issues: ['landmarks_missing'],
+        suggestions: ['Achte auf bessere Beleuchtung.'],
+        qualityScore: 82,
+        confidence: 0.8,
+      },
+    };
+    const landmarks = await loadSampleLandmarks();
+
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [
+              { landmarks, handedness: ['Left'] },
+              { landmarks, handedness: ['Left'] },
+            ],
+          },
+          null,
+          2,
+        ),
+      ),
+    );
+
+    const uploadResponse = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer())
+      .expect(202);
+
+    const detailResponse = await request(app)
+      .get(`/api/v1/dgs/sample-bundles/${uploadResponse.body.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(detailResponse.body.id).toBe(uploadResponse.body.id);
+    expect(detailResponse.body.label).toBe(metadata.label);
+    expect(detailResponse.body.validationSummary).toMatchObject({
+      frameCount: 2,
+      issues: ['landmarks_missing'],
+      suggestions: ['Achte auf bessere Beleuchtung.'],
+      qualityScore: 82,
+      confidence: 0.8,
+      landmarksPath: 'bundle/landmarks.json',
+    });
+    expect(detailResponse.body.qualityGate).toEqual({
+      outcome: 'review',
+      reasons: expect.arrayContaining(['landmarks_missing', 'too_few_frames']),
+    });
+  });
 
   it('derives nonManual modality coverage from frame data when metadata omits it', async () => {
     const metadata = {

@@ -448,6 +448,17 @@ describe('uploadTrainingBundle', () => {
           queueDepth: 2,
           retryAfterMs: 1000,
         },
+        validationSummary: {
+          frameCount: 14,
+          issues: ['hand_coverage_low'],
+          suggestions: ['Halte die Hände im Bild.'],
+          qualityScore: 74,
+          confidence: 0.9,
+        },
+        qualityGate: {
+          outcome: 'review',
+          reasons: ['hand_coverage_low'],
+        },
       }),
     });
     (globalThis as any).fetch = fetchSpy;
@@ -455,5 +466,8 @@ describe('uploadTrainingBundle', () => {
     const result = await uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
     expect(result.trainingJob?.queueDepth).toBe(2);
     expect(result.trainingJob?.retryAfterMs).toBe(1000);
+    expect(result.validationSummary?.frameCount).toBe(14);
+    expect(result.validationSummary?.qualityScore).toBe(74);
+    expect(result.qualityGate).toEqual({ outcome: 'review', reasons: ['hand_coverage_low'] });
   });
 });

@@ -71,7 +71,11 @@ interface TrainingBundleMetadata {
 	};
 	validationSummary?: {
 		frameCount: number;
-		landmarksPath: string;
+		landmarksPath?: string;
+		issues?: string[];
+		suggestions?: string[];
+		qualityScore?: number;
+		confidence?: number;
 	};
 	modalities?: Record<string, unknown>;
 	smoothing?: Record<string, unknown>;
@@ -109,6 +113,12 @@ interface TrainingBundleManifestEntry {
 
 interface TrainingBundleManifestFile {
 	entries: TrainingBundleManifestEntry[];
+}
+
+
+interface BundleQualityGateResult {
+	outcome: "pass" | "review" | "unknown";
+	reasons: string[];
 }
 
 const trainingBundleUpload = express.raw({
@@ -175,6 +185,18 @@ const RecordingSchema = z
 	})
 	.passthrough();
 
+
+const ValidationSummarySchema = z
+	.object({
+		frameCount: z.number().int().nonnegative(),
+		landmarksPath: z.string().optional(),
+		issues: z.array(z.string()).optional(),
+		suggestions: z.array(z.string()).optional(),
+		qualityScore: z.number().optional(),
+		confidence: z.number().optional(),
+	})
+	.passthrough();
+
 const HandFocusSchema = z.enum([
 	"dominant_only", // Only one hand matters (the moving one)
 	"both_equal", // Both hands equally important
@@ -204,6 +226,7 @@ const MetadataSchema = z
 		smoothing: SmoothingSchema.optional(),
 		handedness: HandednessSchema.optional(),
 		recording: RecordingSchema.optional(),
+		validationSummary: ValidationSummarySchema.optional(),
 		handFocus: HandFocusSchema.optional(),
 		variationData: VariationDataSchema.optional(),
 	})
@@ -337,6 +360,68 @@ function normalizeVariationData(
 	return Object.keys(result).length > 0
 		? (result as TrainingBundleMetadata["variationData"])
 		: undefined;
+}
+
+function normalizeValidationSummary(
+	raw: unknown,
+): TrainingBundleMetadata["validationSummary"] | undefined {
+	const parsed = ValidationSummarySchema.safeParse(raw);
+	if (!parsed.success) {
+		return undefined;
+	}
+
+	const issues = Array.isArray(parsed.data.issues)
+		? parsed.data.issues.filter(
+			(issue): issue is string => typeof issue === "string" && issue.trim().length > 0,
+		)
+		: [];
+	const suggestions = Array.isArray(parsed.data.suggestions)
+		? parsed.data.suggestions.filter(
+			(suggestion): suggestion is string =>
+				typeof suggestion === "string" && suggestion.trim().length > 0,
+		)
+		: [];
+
+	return {
+		frameCount: parsed.data.frameCount,
+		...(isNonEmptyString(parsed.data.landmarksPath)
+			? { landmarksPath: parsed.data.landmarksPath.trim() }
+			: {}),
+		...(issues.length > 0 ? { issues } : {}),
+		...(suggestions.length > 0 ? { suggestions } : {}),
+		...(typeof parsed.data.qualityScore === "number" &&
+		Number.isFinite(parsed.data.qualityScore)
+			? { qualityScore: parsed.data.qualityScore }
+			: {}),
+		...(typeof parsed.data.confidence === "number" &&
+		Number.isFinite(parsed.data.confidence)
+			? { confidence: parsed.data.confidence }
+			: {}),
+	};
+}
+
+function buildQualityGateResult(
+	validationSummary: TrainingBundleMetadata["validationSummary"] | undefined,
+): BundleQualityGateResult {
+	if (!validationSummary) {
+		return { outcome: "unknown", reasons: [] };
+	}
+
+	const reasons: string[] = [];
+	if ((validationSummary.issues?.length ?? 0) > 0) {
+		reasons.push(...(validationSummary.issues ?? []));
+	}
+	if (typeof validationSummary.qualityScore === "number" && validationSummary.qualityScore < 70) {
+		reasons.push("quality_score_below_threshold");
+	}
+	if (validationSummary.frameCount < 8) {
+		reasons.push("too_few_frames");
+	}
+
+	return {
+		outcome: reasons.length === 0 ? "pass" : "review",
+		reasons,
+	};
 }
 
 function validateRecordingMetadata(
@@ -1035,6 +1120,51 @@ export function registerTrainingBundleRoute(
 	genId: () => string,
 	deps: TrainingBundleRouteDeps = {},
 ): void {
+	app.get(
+		"/api/v1/dgs/sample-bundles/:id",
+		auth,
+		async (req: Request, res: Response) => {
+			const bundleId = typeof req.params.id === "string" ? req.params.id.trim() : "";
+			if (!bundleId) {
+				return res.status(400).json({ error: "bundleId fehlt" });
+			}
+
+			try {
+				let manifest: TrainingBundleManifestFile = { entries: [] };
+				try {
+					const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
+					const parsed = JSON.parse(raw);
+					if (parsed && typeof parsed === "object" && Array.isArray((parsed as any).entries)) {
+						manifest = parsed as TrainingBundleManifestFile;
+					}
+				} catch (error: any) {
+					if (error?.code !== "ENOENT") {
+						throw error;
+					}
+				}
+
+				const entry = manifest.entries.find((candidate) => candidate.id === bundleId);
+				if (!entry) {
+					return res.status(404).json({ error: "Bundle nicht gefunden" });
+				}
+
+				const qualityGate = buildQualityGateResult(entry.metadata?.validationSummary);
+				return res.status(200).json({
+					id: entry.id,
+					status: "queued",
+					label: entry.label,
+					profileId: entry.profileId,
+					receivedAt: entry.receivedAt,
+					validationSummary: entry.metadata?.validationSummary,
+					qualityGate,
+				});
+			} catch (error) {
+				logger.error("Error loading training bundle details", { error, bundleId });
+				return res.status(500).json({ error: "Bundle-Details konnten nicht geladen werden" });
+			}
+		},
+	);
+
 	app.post(
 		"/api/v1/dgs/sample-bundles",
 		auth,
@@ -1237,6 +1367,9 @@ export function registerTrainingBundleRoute(
 				const variationData = normalizeVariationData(
 					parsedMetadata.variationData,
 				);
+				const incomingValidationSummary = normalizeValidationSummary(
+					parsedMetadata.validationSummary,
+				);
 				const sanitizedMetadata: TrainingBundleMetadata = {
 					label,
 					profileId: resolvedProfileId ?? null,
@@ -1249,6 +1382,9 @@ export function registerTrainingBundleRoute(
 					audioFilename,
 					...(parsedMetadata.recording
 						? { recording: parsedMetadata.recording }
+						: {}),
+					...(incomingValidationSummary
+						? { validationSummary: incomingValidationSummary }
 						: {}),
 					...(parsedMetadata.handFocus
 						? { handFocus: parsedMetadata.handFocus }
@@ -1303,6 +1439,9 @@ export function registerTrainingBundleRoute(
 					...(mergedSmoothing ? { smoothing: mergedSmoothing } : {}),
 					...(mergedHandedness ? { handedness: mergedHandedness } : {}),
 					validationSummary: {
+						...(sanitizedMetadata.validationSummary ?? {
+							frameCount: landmarksValidation.frameCount,
+						}),
 						frameCount: landmarksValidation.frameCount,
 						landmarksPath: landmarksValidation.relativePath,
 					},
@@ -1413,7 +1552,14 @@ export function registerTrainingBundleRoute(
 					}
 				}
 
-				res.status(202).json({ status: "queued", id: bundleId, trainingJob });
+				const qualityGate = buildQualityGateResult(metadataWithSummary.validationSummary);
+				res.status(202).json({
+					status: "queued",
+					id: bundleId,
+					trainingJob,
+					validationSummary: metadataWithSummary.validationSummary,
+					qualityGate,
+				});
 			} catch (error) {
 				logger.error("Error saving training bundle", { error });
 				if (metricsProfileId && !metricsRecorded) {
