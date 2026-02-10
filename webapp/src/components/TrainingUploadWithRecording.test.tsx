@@ -15,6 +15,7 @@ const syncQueuedMock = vi.fn();
 const syncBundleMock = vi.fn();
 const removeBundleMock = vi.fn();
 const fetchMock = vi.fn();
+let trainingQualityItems: unknown[] = [];
 
 let mockTrainingJob: any = null;
 let mockTrainingJobError: string | null = null;
@@ -75,13 +76,25 @@ function renderWithProviders() {
 
 describe('TrainingUploadWithRecording', () => {
   beforeEach(() => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ symbols: [] }),
-      arrayBuffer: async () => new ArrayBuffer(0),
-      headers: new Headers(),
-    } as any);
+    trainingQualityItems = [];
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/api/v1/dgs/training-quality')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: trainingQualityItems }),
+          headers: new Headers(),
+        } as any;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ symbols: [] }),
+        arrayBuffer: async () => new ArrayBuffer(0),
+        headers: new Headers(),
+      } as any;
+    });
     vi.stubGlobal('fetch', fetchMock);
     uploadMock.mockReset();
     syncQueuedMock.mockReset();
@@ -217,6 +230,39 @@ describe('TrainingUploadWithRecording', () => {
     await waitFor(() => {
       expect(screen.getByText(/Upload fehlgeschlagen: Netzwerkfehler/i)).toBeInTheDocument();
     });
+  }, TEST_TIMEOUT);
+
+  it('zeigt abgelehnte Aufnahmen aus dem Qualitätsprotokoll', async () => {
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
+    trainingQualityItems = [
+      {
+        bundleId: 'bundle-1',
+        label: 'HALLO',
+        profileId: 'profil-1',
+        reasons: ['frameCount 6 < 8'],
+        metrics: {
+          frameCount: 6,
+          handCoverage: 0.4,
+          poseCoverage: 0.2,
+          faceCoverage: 0.1,
+        },
+        recordedAt: '2024-05-28T12:03:11Z',
+      },
+    ];
+
+    renderWithProviders();
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('Abgelehnte Aufnahmen')).toBeInTheDocument();
+        expect(screen.getByText('HALLO')).toBeInTheDocument();
+        expect(screen.getByText(/Zu wenige Frames/i)).toBeInTheDocument();
+      },
+      { timeout: TEST_TIMEOUT },
+    );
   }, TEST_TIMEOUT);
 
   it('zeigt Trainings-Fehlermeldung sauber an', async () => {

@@ -6,6 +6,7 @@ import {
 	DATA_DIR,
 	ensureDataDir,
 	TRAINING_MANIFEST_PATH,
+	TRAINING_QUALITY_LOG_PATH,
 } from "../constants/modelPaths.js";
 import {
 	MAX_FACE_JITTER,
@@ -123,6 +124,15 @@ interface QualityMetrics {
 	faceJitter?: number;
 }
 
+export interface TrainingQualityLogEntry {
+	bundleId: string;
+	label: string;
+	profileId: string | null;
+	reasons: string[];
+	metrics: QualityMetrics;
+	recordedAt: string;
+}
+
 interface CaptureMetadata {
 	modalities?: { hands?: boolean; pose?: boolean; face?: boolean };
 	smoothing?: {
@@ -178,6 +188,101 @@ const MAX_POSE_POINTS = POSE_LANDMARKS;
 // MediaPipe Face Mesh provides 468 landmarks. We capture and process all of them,
 // but only render a subset (8 key points) in OverlayRenderer for performance.
 const MAX_FACE_POINTS = FACE_LANDMARKS;
+const MAX_QUALITY_LOG_ENTRIES = 500;
+
+function isQualityMetrics(value: unknown): value is QualityMetrics {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+	const candidate = value as Record<string, unknown>;
+	return (
+		typeof candidate.frameCount === "number" &&
+		typeof candidate.handCoverage === "number" &&
+		typeof candidate.poseCoverage === "number" &&
+		typeof candidate.faceCoverage === "number" &&
+		(candidate.handJitter === undefined ||
+			typeof candidate.handJitter === "number") &&
+		(candidate.poseJitter === undefined ||
+			typeof candidate.poseJitter === "number") &&
+		(candidate.faceJitter === undefined ||
+			typeof candidate.faceJitter === "number")
+	);
+}
+
+function isTrainingQualityLogEntry(
+	value: unknown,
+): value is TrainingQualityLogEntry {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+	const candidate = value as Record<string, unknown>;
+	return (
+		typeof candidate.bundleId === "string" &&
+		typeof candidate.label === "string" &&
+		(candidate.profileId === null ||
+			typeof candidate.profileId === "string") &&
+		Array.isArray(candidate.reasons) &&
+		candidate.reasons.every((reason) => typeof reason === "string") &&
+		isQualityMetrics(candidate.metrics) &&
+		typeof candidate.recordedAt === "string"
+	);
+}
+
+function normalizeTrainingQualityLogEntries(
+	raw: unknown,
+): TrainingQualityLogEntry[] {
+	if (!raw || typeof raw !== "object") {
+		return [];
+	}
+	const entries = Array.isArray((raw as { entries?: unknown }).entries)
+		? (raw as { entries: unknown[] }).entries
+		: [];
+	return entries.filter(isTrainingQualityLogEntry).map((entry) => ({
+		bundleId: entry.bundleId,
+		label: entry.label,
+		profileId: entry.profileId ?? null,
+		reasons: entry.reasons,
+		metrics: entry.metrics,
+		recordedAt: entry.recordedAt,
+	}));
+}
+
+export async function readTrainingQualityLog(): Promise<
+	TrainingQualityLogEntry[]
+> {
+	try {
+		const raw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, "utf8");
+		const parsed = JSON.parse(raw);
+		return normalizeTrainingQualityLogEntries(parsed);
+	} catch (error: any) {
+		if (error?.code === "ENOENT") {
+			return [];
+		}
+		logger.warn("Failed to read training quality log", {
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return [];
+	}
+}
+
+export async function appendTrainingQualityLog(
+	entry: TrainingQualityLogEntry,
+): Promise<void> {
+	await withFileLock(TRAINING_QUALITY_LOG_PATH, async () => {
+		await fs.mkdir(path.dirname(TRAINING_QUALITY_LOG_PATH), { recursive: true });
+		const entries = await readTrainingQualityLog();
+		const deduplicatedByBundle = new Map<string, TrainingQualityLogEntry>();
+		for (const item of [...entries, entry]) {
+			if (deduplicatedByBundle.has(item.bundleId)) {
+				deduplicatedByBundle.delete(item.bundleId);
+			}
+			deduplicatedByBundle.set(item.bundleId, item);
+		}
+		const deduplicated = Array.from(deduplicatedByBundle.values());
+		const trimmed = deduplicated.slice(-MAX_QUALITY_LOG_ENTRIES);
+		await atomicWriteJson(TRAINING_QUALITY_LOG_PATH, { entries: trimmed });
+	});
+}
 
 function normalizeRelativePath(relativePath: string): string | null {
 	if (typeof relativePath !== "string") {
@@ -1024,6 +1129,23 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 			if (frames.length === 0) continue;
 			const quality = evaluateBundleQuality(frames);
 			if (!quality.accepted) {
+				const qualityLogEntry: TrainingQualityLogEntry = {
+					bundleId: entry.id,
+					label: entry.label,
+					profileId: entry.profileId ?? null,
+					reasons: quality.reasons,
+					metrics: quality.metrics,
+					recordedAt: new Date().toISOString(),
+				};
+				try {
+					await appendTrainingQualityLog(qualityLogEntry);
+				} catch (logError) {
+					logger.warn("Failed to append training quality log entry", {
+						error:
+							logError instanceof Error ? logError.message : String(logError),
+						bundleId: entry.id,
+					});
+				}
 				logger.warn("Training bundle rejected by quality gate", {
 					bundleId: entry.id,
 					profileId: entry.profileId ?? null,

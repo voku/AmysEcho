@@ -10,6 +10,7 @@ let ingestTrainingBundlesIntoDataset: (
   typeof import('../src/services/trainingBundleIngestor.js')
 )['ingestTrainingBundlesIntoDataset'];
 let TRAINING_MANIFEST_PATH: string;
+let TRAINING_QUALITY_LOG_PATH: string;
 let DATA_DIR: string;
 
 function resolveDataPath(relativePath: string): string {
@@ -64,6 +65,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const constants = await import('../src/constants/modelPaths.js');
     DATA_DIR = constants.DATA_DIR;
     TRAINING_MANIFEST_PATH = constants.TRAINING_MANIFEST_PATH;
+    TRAINING_QUALITY_LOG_PATH = constants.TRAINING_QUALITY_LOG_PATH;
     ({ ingestTrainingBundlesIntoDataset } = await import('../src/services/trainingBundleIngestor.js'));
   });
 
@@ -226,6 +228,32 @@ describe('ingestTrainingBundlesIntoDataset', () => {
 
     const datasetPath = resolveDataPath('dgs_samples.json');
     await expect(fs.readFile(datasetPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('persists quality gate rejections in the quality log', async () => {
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES - 1 }, (_, idx) =>
+        buildLandmarkFrame(0.41 + idx * 0.01),
+      ),
+    };
+
+    await writeBundleFixture('bundle-rejected', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const raw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as { entries?: Array<Record<string, unknown>> };
+    const entries = parsed.entries ?? [];
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      bundleId: 'bundle-rejected',
+      label: 'HALLO',
+      profileId: 'p-123',
+    });
+    expect(entries[0]?.reasons).toEqual(
+      expect.arrayContaining([`frameCount ${MIN_SIGN_SAMPLE_FRAMES - 1} < ${MIN_SIGN_SAMPLE_FRAMES}`]),
+    );
   });
 
   it('persists multimodal landmarks and handedness', async () => {

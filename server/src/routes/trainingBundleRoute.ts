@@ -14,6 +14,7 @@ import {
 	TRAINING_UPLOADS_DIR,
 } from "../constants/modelPaths.js";
 import { auth } from "../middleware/auth.js";
+import { readTrainingQualityLog } from "../services/trainingBundleIngestor.js";
 import { logger } from "../services/logger.js";
 import { atomicWriteBuffer, atomicWriteJson } from "../utils/atomicFs.js";
 import { withFileLock } from "../utils/fileLock.js";
@@ -40,6 +41,7 @@ interface TrainingBundleRouteDeps {
 	resolveProfileId?: (
 		profileId: string | null,
 	) => Promise<{ profileId: string | null }>;
+	isProfileAuthorized?: (req: Request, profileId: string) => boolean;
 }
 
 interface TrainingBundleMetadata {
@@ -115,6 +117,20 @@ interface TrainingBundleManifestFile {
 	entries: TrainingBundleManifestEntry[];
 }
 
+const TrainingQualityQuerySchema = z.object({
+	profileId: z.string().regex(PROFILE_ID_PATTERN, "Ungültige Profil-ID"),
+	limit: z
+		.preprocess((value) => {
+			if (Array.isArray(value)) {
+				return value[0];
+			}
+			if (value === undefined || value === null || value === "") {
+				return undefined;
+			}
+			return Number(value);
+		}, z.number().int().positive().max(200).optional())
+		.optional(),
+});
 
 interface BundleQualityGateResult {
 	outcome: "pass" | "review" | "unknown";
@@ -1150,6 +1166,45 @@ export function registerTrainingBundleRoute(
 	genId: () => string,
 	deps: TrainingBundleRouteDeps = {},
 ): void {
+	app.get(
+		"/api/v1/dgs/training-quality",
+		auth,
+		async (req: Request, res: Response) => {
+			if (!deps.isProfileAuthorized) {
+				return res.status(500).json({
+					error: "Qualitätsprotokoll ist derzeit nicht verfügbar.",
+				});
+			}
+			const parsedQuery = TrainingQualityQuerySchema.safeParse(req.query);
+			if (!parsedQuery.success) {
+				return res.status(400).json({
+					error: "Ungültige Anfrageparameter",
+					issues: parsedQuery.error.issues,
+				});
+			}
+
+			const { profileId } = parsedQuery.data;
+			const limit = parsedQuery.data.limit ?? 50;
+
+			if (!deps.isProfileAuthorized(req, profileId)) {
+				return res.status(403).json({ error: "Kein Zugriff auf dieses Profil." });
+			}
+
+			try {
+				const qualityEntries = await readTrainingQualityLog();
+				const filtered = qualityEntries.filter(
+					(entry) => entry.profileId === profileId,
+				);
+				const items = filtered.slice(-limit).reverse();
+				return res.json({ items });
+			} catch (error) {
+				logger.error("Failed to load training quality log", { error });
+				return res.status(500).json({
+					error: "Qualitätsprotokoll konnte nicht geladen werden",
+				});
+			}
+		},
+	);
 	app.get(
 		"/api/v1/dgs/sample-bundles/:id",
 		auth,

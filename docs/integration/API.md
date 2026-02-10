@@ -535,6 +535,51 @@ Content-Type: multipart/form-data
 }
 ```
 
+#### GET /api/v1/dgs/training-quality
+Retrieve recent training bundle rejections from the quality gate for a specific profile. This endpoint is authenticated and only returns data for profiles the current user can access.
+
+**Query Parameters**
+- `profileId` (required): UUID of the profile
+- `limit` (optional): Number of entries to return (default: 50, max: 200)
+
+**Success Response (200 OK)**
+```json
+{
+  "items": [
+    {
+      "bundleId": "bundle-123",
+      "label": "HALLO",
+      "profileId": "11111111-1111-4111-8111-111111111111",
+      "reasons": ["frameCount 6 < 8"],
+      "metrics": {
+        "frameCount": 6,
+        "handCoverage": 0.4,
+        "poseCoverage": 0.2,
+        "faceCoverage": 0.1
+      },
+      "recordedAt": "2024-05-28T12:03:11Z"
+    }
+  ]
+}
+```
+
+**Error Responses**
+
+*400 Bad Request - Invalid query parameters*
+```json
+{
+  "error": "Ungültige Anfrageparameter",
+  "issues": []
+}
+```
+
+*403 Forbidden - Not authorized for profile*
+```json
+{
+  "error": "Kein Zugriff auf dieses Profil."
+}
+```
+
 ### Corrections & Negative Samples
 
 #### POST /api/v1/corrections

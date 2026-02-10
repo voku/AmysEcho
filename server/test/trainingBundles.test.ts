@@ -40,6 +40,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let app: Express;
   let dataDir: string;
   let manifestPath: string;
+  let qualityLogPath: string;
   type TriggerCall = { bundleId: string; profileId: string | null; label: string };
   type TriggerResult = {
     jobId: string;
@@ -48,6 +49,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   };
   let triggerCalls: TriggerCall[];
   let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
+  let allowedProfiles: Set<string>;
   let accessToken: string;
   const resolveProfileId = async (profileId: string | null) => ({
     profileId,
@@ -79,11 +81,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     }).accessToken;
     const mod = await import('../src/routes/trainingBundleRoute.js');
     const registerRoute = mod.registerTrainingBundleRoute;
-    const { TRAINING_MANIFEST_PATH } = await import('../src/constants/modelPaths.js');
+    const { TRAINING_MANIFEST_PATH, TRAINING_QUALITY_LOG_PATH } = await import('../src/constants/modelPaths.js');
     app = express();
     let counter = 0;
     triggerCalls = [];
     triggerOverride = null;
+    allowedProfiles = new Set();
     registerRoute(app, () => `bundle-${++counter}`, {
       triggerTrainingJob: (context: TriggerCall) => {
         triggerCalls.push(context);
@@ -94,16 +97,20 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         return { jobId, status: 'queued', pollUrl: `/api/v1/train-status/${jobId}` };
       },
       resolveProfileId,
+      isProfileAuthorized: (_req, profileId) => allowedProfiles.has(profileId),
     });
     manifestPath = TRAINING_MANIFEST_PATH;
+    qualityLogPath = TRAINING_QUALITY_LOG_PATH;
   });
 
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
     await fs.rm(path.dirname(manifestPath), { recursive: true, force: true });
+    await fs.rm(path.dirname(qualityLogPath), { recursive: true, force: true });
     triggerCalls.length = 0;
     triggerOverride = null;
+    allowedProfiles.clear();
   });
 
   afterAll(async () => {
@@ -724,5 +731,78 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(response.status).toBe(500);
     const manifestRaw = await fs.readFile(manifestPath, 'utf8');
     expect(manifestRaw).toBe(corrupted);
+  });
+
+  it('returns quality gate rejections via GET /api/v1/dgs/training-quality', async () => {
+    const profileId = '11111111-1111-4111-8111-111111111111';
+    allowedProfiles.add(profileId);
+    await fs.mkdir(path.dirname(qualityLogPath), { recursive: true });
+    await fs.writeFile(
+      qualityLogPath,
+      JSON.stringify(
+        {
+          entries: [
+            {
+              bundleId: 'bundle-1',
+              label: 'HALLO',
+              profileId,
+              reasons: ['frameCount 6 < 8'],
+              metrics: {
+                frameCount: 6,
+                handCoverage: 0.4,
+                poseCoverage: 0.2,
+                faceCoverage: 0.1,
+              },
+              recordedAt: '2024-05-28T12:03:11Z',
+            },
+            {
+              bundleId: 'bundle-2',
+              label: 'HILFE',
+              profileId: '22222222-2222-4222-8222-222222222222',
+              reasons: ['handCoverage 0.2 < 0.7'],
+              metrics: {
+                frameCount: 9,
+                handCoverage: 0.2,
+                poseCoverage: 0.1,
+                faceCoverage: 0.1,
+              },
+              recordedAt: '2024-05-29T12:03:11Z',
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    const response = await request(app)
+      .get(`/api/v1/dgs/training-quality?profileId=${profileId}&limit=10`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.items).toHaveLength(1);
+    expect(response.body.items[0]).toMatchObject({
+      bundleId: 'bundle-1',
+      label: 'HALLO',
+      profileId,
+    });
+  });
+
+  it('validates query parameters for GET /api/v1/dgs/training-quality', async () => {
+    const response = await request(app)
+      .get('/api/v1/dgs/training-quality?profileId=not-a-uuid&limit=oops')
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects unauthorized access to training quality logs', async () => {
+    const profileId = '11111111-1111-4111-8111-111111111111';
+    const response = await request(app)
+      .get(`/api/v1/dgs/training-quality?profileId=${profileId}&limit=10`)
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(403);
   });
 });

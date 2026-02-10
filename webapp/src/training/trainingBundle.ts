@@ -9,6 +9,7 @@ import type {
   TrainingJobInfo,
   TrainingJobMetrics,
   TrainingJobStatus,
+  TrainingQualityLogEntry,
   UploadTrainingBundleResponse,
 } from './types';
 
@@ -209,6 +210,52 @@ function parseQualityGate(raw: unknown): UploadTrainingBundleResponse['qualityGa
     ? reasonsRaw.filter((entry): entry is string => typeof entry === 'string')
     : [];
   return { outcome, reasons };
+}
+
+function parseTrainingQualityLogEntry(raw: unknown): TrainingQualityLogEntry | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const entry = raw as Record<string, unknown>;
+  const bundleId = entry['bundleId'];
+  const label = entry['label'];
+  const profileId = entry['profileId'];
+  const reasonsRaw = entry['reasons'];
+  const metricsRaw = entry['metrics'];
+  const recordedAt = entry['recordedAt'];
+
+  if (typeof bundleId !== 'string' || bundleId.trim().length === 0) return null;
+  if (typeof label !== 'string' || label.trim().length === 0) return null;
+  if (!(profileId === null || typeof profileId === 'string')) return null;
+  if (typeof recordedAt !== 'string' || recordedAt.trim().length === 0) return null;
+  if (!Array.isArray(reasonsRaw)) return null;
+  if (!metricsRaw || typeof metricsRaw !== 'object') return null;
+
+  const reasons = reasonsRaw.filter((reason): reason is string => typeof reason === 'string');
+  const metrics = metricsRaw as Record<string, unknown>;
+  if (
+    typeof metrics['frameCount'] !== 'number' ||
+    typeof metrics['handCoverage'] !== 'number' ||
+    typeof metrics['poseCoverage'] !== 'number' ||
+    typeof metrics['faceCoverage'] !== 'number'
+  ) {
+    return null;
+  }
+
+  return {
+    bundleId,
+    label,
+    profileId: profileId ?? null,
+    reasons,
+    metrics: {
+      frameCount: metrics['frameCount'],
+      handCoverage: metrics['handCoverage'],
+      poseCoverage: metrics['poseCoverage'],
+      faceCoverage: metrics['faceCoverage'],
+      ...(typeof metrics['handJitter'] === 'number' ? { handJitter: metrics['handJitter'] } : {}),
+      ...(typeof metrics['poseJitter'] === 'number' ? { poseJitter: metrics['poseJitter'] } : {}),
+      ...(typeof metrics['faceJitter'] === 'number' ? { faceJitter: metrics['faceJitter'] } : {}),
+    },
+    recordedAt,
+  };
 }
 
 function parseMetrics(raw: unknown): TrainingJobMetrics | undefined {
@@ -431,6 +478,13 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
 }
 
 export type TrainingUploadOptions = { endpoint: string; token?: string };
+export type FetchTrainingQualityOptions = {
+  endpoint: string;
+  token?: string;
+  profileId: string;
+  limit?: number;
+  signal?: AbortSignal;
+};
 
 export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUploadOptions): Promise<UploadTrainingBundleResponse> {
   const endpoint = options.endpoint?.trim();
@@ -499,4 +553,66 @@ export async function uploadTrainingBundle(
 ): Promise<UploadTrainingBundleResponse> {
   const zip = await createTrainingZip(payload);
   return uploadTrainingZip(zip, options);
+}
+
+export async function fetchTrainingQualityLog(
+  options: FetchTrainingQualityOptions,
+): Promise<TrainingQualityLogEntry[]> {
+  const endpoint = options.endpoint?.trim();
+  if (!endpoint) {
+    throw new Error('API-Endpunkt fehlt für das Qualitätsprotokoll.');
+  }
+  if (!options.profileId?.trim()) {
+    throw new Error('Profil-ID fehlt für das Qualitätsprotokoll.');
+  }
+
+  const url = new URL(endpoint);
+  url.searchParams.set('profileId', options.profileId.trim());
+  if (typeof options.limit === 'number' && Number.isFinite(options.limit)) {
+    url.searchParams.set('limit', String(options.limit));
+  }
+
+  let response: Response;
+  try {
+    response = await fetchWithRetry(
+      url.toString(),
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        },
+        ...(options.signal ? { signal: options.signal } : {}),
+      },
+      { retries: 1, retryDelayMs: 300, timeoutMs: 10000 },
+    );
+  } catch (error) {
+    const message =
+      error instanceof DOMException && error.name === 'AbortError'
+        ? 'Anfrage wurde wegen einer Zeitüberschreitung abgebrochen.'
+        : 'Qualitätsprotokoll konnte wegen eines Netzwerkfehlers nicht geladen werden.';
+    throw new Error(message);
+  }
+
+  if (!response.ok) {
+    throw new HttpError(response.status, `Qualitätsprotokoll konnte nicht geladen werden (HTTP ${response.status}).`);
+  }
+
+  let responseJson: unknown;
+  try {
+    responseJson = await response.json();
+  } catch {
+    throw new Error('Serverantwort konnte nicht gelesen werden.');
+  }
+
+  if (!responseJson || typeof responseJson !== 'object') {
+    return [];
+  }
+  const items = (responseJson as Record<string, unknown>)['items'];
+  if (!Array.isArray(items)) {
+    return [];
+  }
+  return items
+    .map((item) => parseTrainingQualityLogEntry(item))
+    .filter((entry): entry is TrainingQualityLogEntry => entry !== null);
 }

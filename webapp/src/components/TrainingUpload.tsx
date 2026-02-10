@@ -4,6 +4,7 @@ import { useTrainingUploader } from '../hooks/useTrainingUploader';
 import type {
   TrainingBundlePayload,
   TrainingJobInfo,
+  TrainingQualityLogEntry,
   UploadTrainingBundleResponse,
 } from '../training/types';
 import { TrainingRecorder } from './TrainingRecorder';
@@ -14,6 +15,7 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { SymbolButton } from './SymbolButton';
+import { fetchTrainingQualityLog } from '../training/trainingBundle';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -38,6 +40,12 @@ const formatPercent = (value?: number): string | null => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   const clamped = Math.min(100, Math.max(0, Math.round(value)));
   return `${clamped}%`;
+};
+
+const formatCoveragePercent = (value?: number): string | null => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  const clamped = Math.min(1, Math.max(0, value));
+  return `${Math.round(clamped * 100)}%`;
 };
 
 const formatDateTime = (timestamp?: number): string | null => {
@@ -67,6 +75,109 @@ const formatSyncQueuedMessage = (uploaded: number, remaining: number): string =>
   }
   return 'Keine Pakete in der Warteschlange gefunden.';
 };
+
+const formatQualityLogDate = (timestamp: string): string => {
+  try {
+    return new Date(timestamp).toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return timestamp;
+  }
+};
+
+const formatQualityLogReason = (reason: string): string => {
+  const frameMatch = reason.match(/^frameCount\s+(\d+)\s+<\s+(\d+)/i);
+  if (frameMatch) {
+    return `Zu wenige Frames (${frameMatch[1]} < ${frameMatch[2]}).`;
+  }
+  const handCoverageMatch = reason.match(/^handCoverage\s+([0-9.]+)\s+<\s+([0-9.]+)/i);
+  if (handCoverageMatch) {
+    return `Hände zu selten im Bild (${Math.round(Number(handCoverageMatch[1]) * 100)}% < ${Math.round(
+      Number(handCoverageMatch[2]) * 100,
+    )}%).`;
+  }
+  const poseCoverageMatch = reason.match(/^poseCoverage\s+([0-9.]+)\s+<\s+([0-9.]+)/i);
+  if (poseCoverageMatch) {
+    return `Pose zu selten erkannt (${Math.round(Number(poseCoverageMatch[1]) * 100)}% < ${Math.round(
+      Number(poseCoverageMatch[2]) * 100,
+    )}%).`;
+  }
+  const faceCoverageMatch = reason.match(/^faceCoverage\s+([0-9.]+)\s+<\s+([0-9.]+)/i);
+  if (faceCoverageMatch) {
+    return `Gesicht zu selten erkannt (${Math.round(Number(faceCoverageMatch[1]) * 100)}% < ${Math.round(
+      Number(faceCoverageMatch[2]) * 100,
+    )}%).`;
+  }
+  const jitterMatch = reason.match(/^(hand|pose|face)Jitter\s+([0-9.]+)\s+>\s+([0-9.]+)/i);
+  if (jitterMatch) {
+    const label = jitterMatch[1] === 'hand' ? 'Hände' : jitterMatch[1] === 'pose' ? 'Pose' : 'Gesicht';
+    return `${label}-Jitter zu hoch (${jitterMatch[2]} > ${jitterMatch[3]}).`;
+  }
+  return reason;
+};
+
+function TrainingQualityLogCard({
+  entries,
+  loading,
+  error,
+}: {
+  entries: TrainingQualityLogEntry[];
+  loading: boolean;
+  error: string | null;
+}) {
+  return (
+    <div className="panel">
+      <p className="eyebrow">Abgelehnte Aufnahmen</p>
+      {loading && <p className="muted small">Qualitätsprotokoll wird geladen…</p>}
+      {error && <div className="notice warning">{error}</div>}
+      {!loading && !error && entries.length === 0 && (
+        <p className="muted small">Noch keine abgelehnten Aufnahmen.</p>
+      )}
+      {entries.length > 0 ? (
+        <ul className="muted small bullets">
+          {entries.map((entry) => (
+            <li key={entry.bundleId}>
+              <div>
+                <p className="value">{entry.label}</p>
+                <p className="muted small">
+                  Aufnahme: {formatQualityLogDate(entry.recordedAt)}
+                </p>
+                <p className="muted small">
+                  Frames: {entry.metrics.frameCount}
+                  {formatCoveragePercent(entry.metrics.handCoverage)
+                    ? ` · Hände: ${formatCoveragePercent(entry.metrics.handCoverage)}`
+                    : ''}
+                  {formatCoveragePercent(entry.metrics.poseCoverage)
+                    ? ` · Pose: ${formatCoveragePercent(entry.metrics.poseCoverage)}`
+                    : ''}
+                  {formatCoveragePercent(entry.metrics.faceCoverage)
+                    ? ` · Gesicht: ${formatCoveragePercent(entry.metrics.faceCoverage)}`
+                    : ''}
+                </p>
+                {entry.reasons.length > 0 ? (
+                  <ul className="muted small bullets">
+                    {entry.reasons.map((reason, index) => (
+                      <li key={`${entry.bundleId}-${index}`}>{formatQualityLogReason(reason)}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {entries.length > 0 ? (
+        <p className="muted small">
+          Tipp: Nimm die Gebärde erneut mit ruhiger Kamera und gut sichtbaren Händen auf.
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 
 function TrainingStatusBlock({
@@ -359,6 +470,9 @@ export function TrainingUploadWithRecording() {
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
   const [modelNotice, setModelNotice] = useState<string | null>(null);
+  const [qualityEntries, setQualityEntries] = useState<TrainingQualityLogEntry[]>([]);
+  const [qualityError, setQualityError] = useState<string | null>(null);
+  const [qualityLoading, setQualityLoading] = useState<boolean>(false);
   const metadataReady = !!profileId && profileId.trim().length > 0 && preferredSignId.trim().length > 0;
   const metadataError = metadataReady
     ? ''
@@ -383,6 +497,44 @@ export function TrainingUploadWithRecording() {
     const timer = window.setTimeout(() => setModelNotice(null), 3000);
     return () => window.clearTimeout(timer);
   }, [modelInjection.notice]);
+
+  useEffect(() => {
+    if (!apiBaseUrl || !profileId) {
+      setQualityEntries([]);
+      setQualityError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const endpoint = `${apiBaseUrl.replace(/\/$/, '')}/api/v1/dgs/training-quality`;
+    setQualityLoading(true);
+    fetchTrainingQualityLog({
+      endpoint,
+      token: apiToken,
+      profileId,
+      limit: 10,
+      signal: controller.signal,
+    })
+      .then((items) => {
+        if (controller.signal.aborted) return;
+        setQualityEntries(items);
+        setQualityError(null);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        const reason = error instanceof Error ? error.message : String(error);
+        setQualityError(`Qualitätsprotokoll konnte nicht geladen werden: ${reason}`);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setQualityLoading(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [apiBaseUrl, apiToken, profileId, lastResult?.id]);
 
   useEffect(() => {
     const status = uploadState.trainingJob?.status ?? uploadState.lastResult?.trainingJob?.status ?? null;
@@ -538,6 +690,14 @@ export function TrainingUploadWithRecording() {
           onSyncQueued={handleSyncQueued}
           onSyncBundle={handleSyncBundle}
           onRemoveBundle={handleRemoveBundle}
+        />
+      </div>
+
+      <div className="card mt-md">
+        <TrainingQualityLogCard
+          entries={qualityEntries}
+          loading={qualityLoading}
+          error={qualityError}
         />
       </div>
 

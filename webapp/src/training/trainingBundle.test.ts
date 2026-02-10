@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
-import { createTrainingZip, normalizeTrainingJobStatus, uploadTrainingBundle } from './trainingBundle';
+import { createTrainingZip, fetchTrainingQualityLog, normalizeTrainingJobStatus, uploadTrainingBundle } from './trainingBundle';
 import type { TrainingBundlePayload } from './types';
 
 const basePoseLandmarks = () => {
@@ -469,5 +469,56 @@ describe('uploadTrainingBundle', () => {
     expect(result.validationSummary?.frameCount).toBe(14);
     expect(result.validationSummary?.qualityScore).toBe(74);
     expect(result.qualityGate).toEqual({ outcome: 'review', reasons: ['hand_coverage_low'] });
+  });
+});
+
+describe('fetchTrainingQualityLog', () => {
+  it('requests and parses quality log entries', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          {
+            bundleId: 'bundle-1',
+            label: 'HALLO',
+            profileId: 'profile-1',
+            reasons: ['frameCount 6 < 8'],
+            metrics: {
+              frameCount: 6,
+              handCoverage: 0.4,
+              poseCoverage: 0.2,
+              faceCoverage: 0.1,
+            },
+            recordedAt: '2024-05-28T12:03:11Z',
+          },
+          {
+            bundleId: '',
+          },
+        ],
+      }),
+    });
+    (globalThis as any).fetch = fetchSpy;
+
+    const result = await fetchTrainingQualityLog({
+      endpoint: 'https://example.test/api/v1/dgs/training-quality',
+      token: 'token-1',
+      profileId: 'profile-1',
+      limit: 10,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      bundleId: 'bundle-1',
+      label: 'HALLO',
+      profileId: 'profile-1',
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/profileId=profile-1.*limit=10|limit=10.*profileId=profile-1/),
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Authorization: 'Bearer token-1' }),
+      }),
+    );
   });
 });
