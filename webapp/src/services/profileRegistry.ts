@@ -19,7 +19,7 @@ const REGISTRY_STORAGE_KEY = 'webapp:profile-registry';
 const REGISTRY_VERSION = 1;
 
 const SECRET_STORAGE_KEY = 'webapp:profile-registry-secret';
-const PROFILE_ID_PATTERN =
+export const PROFILE_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
@@ -164,6 +164,42 @@ export interface ProfileMetadata {
   notes?: string;
 }
 
+function isMetacomVocabularySet(value: string): value is MetacomVocabularySet {
+  return value === 'einsteiger' || value === 'basis' || value === 'erweitert' || value === 'voll';
+}
+
+function normalizeMetadata(metadata?: ProfileMetadata): ProfileMetadata {
+  const input = metadata ?? {};
+  const normalized: ProfileMetadata = {};
+  const keys = Object.keys(input).sort() as Array<keyof ProfileMetadata>;
+  for (const key of keys) {
+    const value = input[key];
+    if (value === undefined) {
+      continue;
+    }
+
+    if (key === 'childAge' && typeof value === 'number') {
+      normalized.childAge = value;
+      continue;
+    }
+
+    if (key === 'vocabularySet' && typeof value === 'string' && isMetacomVocabularySet(value)) {
+      normalized.vocabularySet = value;
+      continue;
+    }
+
+    if (key === 'avatar' && typeof value === 'string') {
+      normalized.avatar = value;
+      continue;
+    }
+
+    if (key === 'notes' && typeof value === 'string') {
+      normalized.notes = value;
+    }
+  }
+  return normalized;
+}
+
 export interface Profile {
   uuid: string;              // UUID v4 - truly stable ID
   profileId: string;         // Backend storage key (UUID)
@@ -235,14 +271,22 @@ async function secureHash(data: Uint8Array): Promise<string> {
  * Generate HMAC-SHA256 security token for a profile
  * This makes manual localStorage tampering detectable
  */
-async function generateSecurityToken(uuid: string, profileId: string, secretOverride?: string): Promise<string> {
+async function generateSecurityToken(
+  uuid: string,
+  profileId: string,
+  metadata?: ProfileMetadata,
+  secretOverride?: string,
+): Promise<string> {
   const secret = secretOverride || await getRegistrySecret();
+  const metadataPayload = JSON.stringify(normalizeMetadata(metadata));
+  const data = new TextEncoder().encode(`${uuid}:${profileId}:${metadataPayload}:${secret}`);
+  return computeHmac(data, secret);
+}
+
+async function computeHmac(data: Uint8Array, secret: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(`${uuid}:${profileId}:${secret}`);
-  
   if (typeof crypto !== 'undefined' && crypto.subtle) {
     try {
-      // Use Web Crypto API
       const key = await crypto.subtle.importKey(
         'raw',
         encoder.encode(secret),
@@ -250,7 +294,7 @@ async function generateSecurityToken(uuid: string, profileId: string, secretOver
         false,
         ['sign']
       );
-      const signature = await crypto.subtle.sign('HMAC', key, data);
+      const signature = await crypto.subtle.sign('HMAC', key, data as BufferSource);
       return Array.from(new Uint8Array(signature))
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
@@ -259,20 +303,33 @@ async function generateSecurityToken(uuid: string, profileId: string, secretOver
       return secureHash(data);
     }
   }
-  
+
   console.warn('Web Crypto API not available for HMAC, falling back to SHA-256 hash.');
   return secureHash(data);
+}
+
+async function generateLegacySecurityToken(
+  uuid: string,
+  profileId: string,
+  secretOverride?: string,
+): Promise<string> {
+  const secret = secretOverride || await getRegistrySecret();
+  const data = new TextEncoder().encode(`${uuid}:${profileId}:${secret}`);
+  return computeHmac(data, secret);
 }
 
 /**
  * Verify a profile's security token
  */
 async function verifySecurityToken(profile: Profile): Promise<boolean> {
-  // 1. Try with the current device secret
-  const expectedToken = await generateSecurityToken(profile.uuid, profile.profileId);
+  const normalizedMetadata = normalizeMetadata(profile.metadata);
+
+  const expectedToken = await generateSecurityToken(profile.uuid, profile.profileId, normalizedMetadata);
   if (expectedToken === profile.securityToken) return true;
-  
-  return false;
+
+  // Legacy fallback (without metadata in token payload), migrated on next save.
+  const legacyToken = await generateLegacySecurityToken(profile.uuid, profile.profileId);
+  return legacyToken === profile.securityToken;
 }
 
 /**
@@ -285,6 +342,7 @@ async function generateChecksum(profiles: Profile[]): Promise<string> {
     profileId: p.profileId,
     displayName: p.displayName,
     createdAt: p.createdAt,
+    metadata: normalizeMetadata(p.metadata),
     securityToken: p.securityToken,
   })));
   
@@ -321,26 +379,64 @@ export async function loadProfileRegistry(): Promise<ProfileRegistry | null> {
       return null;
     }
     
-    // Verify each profile's security token
+    const validProfiles: Profile[] = [];
+    let shouldPersistSanitizedRegistry = false;
+
+    // Verify each profile's structure and security token.
+    // Invalid legacy entries are ignored so they can't break authenticated API calls.
     for (const profile of registry.profiles) {
-      if (!profile || typeof profile.uuid !== 'string') {
+      if (!profile || typeof profile.uuid !== 'string' || typeof profile.profileId !== 'string') {
         console.error('[Profile Registry] Found invalid profile entry while loading.');
-        continue; // Skip invalid entries
+        shouldPersistSanitizedRegistry = true;
+        continue;
       }
-      const isValid = await verifySecurityToken(profile);
+
+      const normalizedProfileId = profile.profileId.trim().toLowerCase();
+      if (!PROFILE_ID_PATTERN.test(normalizedProfileId)) {
+        console.warn(
+          `[Profile Registry] Ignoring profile ${profile.uuid} with invalid profileId: ${profile.profileId}`,
+        );
+        shouldPersistSanitizedRegistry = true;
+        continue;
+      }
+
+      const casingChanged = normalizedProfileId !== profile.profileId;
+      // When profileId casing changes, verify against original casing,
+      // because that's the payload the persisted token was generated from.
+      const profileForVerification = casingChanged
+        ? profile
+        : { ...profile, profileId: normalizedProfileId };
+      const isValid = await verifySecurityToken(profileForVerification);
       if (!isValid) {
         console.error(`[Profile Registry] Security token invalid for profile ${profile.uuid}. The profile may be corrupt or tampered with.`);
         // Decide on a strategy: either return null to invalidate the whole registry,
         // or filter out invalid profiles. For now, we invalidate the whole registry.
         return null;
       }
+
+      const normalizedMetadata = normalizeMetadata(profile.metadata);
+      const metadataChanged = JSON.stringify(normalizedMetadata) !== JSON.stringify(profile.metadata ?? {});
+
+      if (casingChanged || metadataChanged) {
+        shouldPersistSanitizedRegistry = true;
+        const securityToken = await generateSecurityToken(profile.uuid, normalizedProfileId, normalizedMetadata);
+        validProfiles.push({ ...profile, profileId: normalizedProfileId, metadata: normalizedMetadata, securityToken });
+      } else {
+        validProfiles.push({ ...profile, profileId: normalizedProfileId });
+      }
     }
+
+    registry.profiles = validProfiles;
     
     // Ensure active profile is valid
     if (registry.activeProfileUuid && !registry.profiles.some(p => p.uuid === registry.activeProfileUuid)) {
         console.warn(`[Profile Registry] Active profile UUID "${registry.activeProfileUuid}" not found in profiles list. Resetting active profile.`);
         registry.activeProfileUuid = registry.profiles.length > 0 ? registry.profiles[0]?.uuid ?? null : null;
-        // No need to save here, as this is a read operation. The next write will fix it.
+        shouldPersistSanitizedRegistry = true;
+    }
+
+    if (shouldPersistSanitizedRegistry) {
+      await saveProfileRegistry(registry);
     }
 
 
@@ -384,14 +480,15 @@ export async function createProfile(params: {
   }
   const profileId = normalizedProfileId ?? uuid.toLowerCase();
   
-  const securityToken = await generateSecurityToken(uuid, profileId);
+  const normalizedMetadata = normalizeMetadata(params.metadata);
+  const securityToken = await generateSecurityToken(uuid, profileId, normalizedMetadata);
   
   const profile: Profile = {
     uuid,
     profileId,
     displayName: params.displayName,
     createdAt: new Date().toISOString(),
-    metadata: params.metadata || {},
+    metadata: normalizedMetadata,
     securityToken,
   };
   
@@ -509,14 +606,18 @@ export async function updateProfile(uuid: string, updates: Partial<Omit<Profile,
   // Apply updates to the found profile
   const originalProfile = registry.profiles[index];
   if (originalProfile) {
-    registry.profiles[index] = {
+    const mergedMetadata = normalizeMetadata({
+      ...originalProfile.metadata,
+      ...(updates.metadata || {}),
+    });
+    const updatedProfile: Profile = {
       ...originalProfile,
       ...updates,
-      // Ensure metadata is merged, not replaced, if it exists in updates
-      metadata: {
-        ...originalProfile.metadata,
-        ...(updates.metadata || {}),
-      },
+      metadata: mergedMetadata,
+      securityToken: await generateSecurityToken(originalProfile.uuid, originalProfile.profileId, mergedMetadata),
+    };
+    registry.profiles[index] = {
+      ...updatedProfile,
     };
   }
 
@@ -560,4 +661,62 @@ export async function initializeProfileRegistry(): Promise<void> {
   } else {
     logger.info(`[Profile Registry] Initialization complete. Loaded ${registry.profiles.length} profiles.`);
   }
+}
+
+/**
+ * Ensure login always activates the backend profile while preserving
+ * existing local profiles for multi-child households.
+ */
+export async function replaceWithBackendProfile(params: {
+  profileId: string;
+  displayName: string;
+}): Promise<Profile> {
+  const normalizedProfileId = params.profileId.trim().toLowerCase();
+  if (!PROFILE_ID_PATTERN.test(normalizedProfileId)) {
+    throw new Error('Profil-ID muss eine UUID sein.');
+  }
+
+  const existingRegistry = await loadProfileRegistry();
+  const registry: ProfileRegistry = existingRegistry ?? {
+    profiles: [],
+    activeProfileUuid: null,
+    registryVersion: REGISTRY_VERSION,
+    checksum: '',
+  };
+
+  const existingIndex = registry.profiles.findIndex(
+    (profile) => profile.profileId.toLowerCase() === normalizedProfileId,
+  );
+
+  if (existingIndex >= 0) {
+    const existingProfile = registry.profiles[existingIndex];
+    if (!existingProfile) {
+      throw new Error('Profil konnte nicht geladen werden.');
+    }
+    const normalizedMeta = normalizeMetadata(existingProfile.metadata);
+    const updatedProfile: Profile = {
+      ...existingProfile,
+      displayName: params.displayName,
+      profileId: normalizedProfileId,
+      metadata: normalizedMeta,
+      securityToken: await generateSecurityToken(
+        existingProfile.uuid,
+        normalizedProfileId,
+        normalizedMeta,
+      ),
+    };
+    registry.profiles[existingIndex] = updatedProfile;
+    registry.activeProfileUuid = updatedProfile.uuid;
+    await saveProfileRegistry(registry);
+    return updatedProfile;
+  }
+
+  const profile = await createProfile({
+    displayName: params.displayName,
+    profileId: normalizedProfileId,
+  });
+  registry.profiles.push(profile);
+  registry.activeProfileUuid = profile.uuid;
+  await saveProfileRegistry(registry);
+  return profile;
 }
