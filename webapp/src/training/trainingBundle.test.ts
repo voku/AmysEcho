@@ -531,4 +531,58 @@ describe('fetchTrainingQualityLog', () => {
 
     vi.unstubAllGlobals();
   });
+
+  it('fällt bei 403 mit profileId auf den allgemeinen Qualitäts-Log zurück', async () => {
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        headers: new Headers(),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: [
+            {
+              bundleId: 'bundle-2',
+              label: 'HALLO',
+              profileId: 'profile-2',
+              reasons: ['hand_coverage_low'],
+              metrics: {
+                frameCount: 12,
+                handCoverage: 0.5,
+                poseCoverage: 0.75,
+                faceCoverage: 0.8,
+              },
+              recordedAt: '2026-01-01T12:00:00.000Z',
+            },
+          ],
+        }),
+        headers: new Headers(),
+      });
+
+    vi.stubGlobal('fetch', fetchSpy as any);
+
+    const result = await fetchTrainingQualityLog({
+      endpoint: 'https://api.example.org/api/v1/dgs/training-quality',
+      token: 'token-1',
+      profileId: 'nicht-autorisierte-profile-id',
+      limit: 10,
+    });
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        bundleId: 'bundle-2',
+      }),
+    ]);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    const firstRequestUrl = String(fetchSpy.mock.calls[0]?.[0]);
+    const secondRequestUrl = String(fetchSpy.mock.calls[1]?.[0]);
+    expect(firstRequestUrl).toContain('profileId=nicht-autorisierte-profile-id');
+    expect(secondRequestUrl).not.toContain('profileId=');
+
+    vi.unstubAllGlobals();
+  });
 });

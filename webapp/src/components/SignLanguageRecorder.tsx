@@ -111,6 +111,16 @@ export function SignLanguageRecorder() {
           } catch {
             // ignore quota errors
           }
+        } else if (response.status === 401 || response.status === 403) {
+          // Avoid keeping stale per-profile label cache when access is no longer authorized
+          setTrainedSignLabels([]);
+          setHasTrainedSigns(false);
+          try {
+            window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify([]));
+            window.localStorage.setItem('webapp:has-trained-signs', 'false');
+          } catch {
+            // ignore quota errors
+          }
         } else {
           // Endpoint failed; keep cached values to maintain consistent state
           console.warn('trained-labels endpoint returned non-ok status; using cached data');

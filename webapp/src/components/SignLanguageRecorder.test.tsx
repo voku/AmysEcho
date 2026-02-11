@@ -1,10 +1,10 @@
 import { fireEvent, screen } from '@testing-library/dom';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { SignLanguageRecorder } from './SignLanguageRecorder';
-import { AppStateProvider } from '../hooks/useAppState';
 import { ApiConfigProvider } from '../hooks/useApiConfig';
+import { apiRetryManager } from '../services/apiRetryManager';
 
 // Mock the hooks that have external dependencies
 const toggleAudioMutedMock = vi.fn();
@@ -30,11 +30,27 @@ vi.mock('../hooks/useMlpModelInjection', () => ({
   }),
 }));
 
+const appStateMock = {
+  profileId: null as string | null,
+  recordSign: vi.fn(),
+};
+
+vi.mock('../hooks/useAppState', () => ({
+  AppStateProvider: ({ children }: { children: React.ReactNode }) => children,
+  useAppState: () => appStateMock,
+}));
+
+vi.mock('../services/apiRetryManager', () => ({
+  apiRetryManager: {
+    fetch: vi.fn(),
+  },
+}));
+
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <MemoryRouter>
       <ApiConfigProvider>
-        <AppStateProvider>{ui}</AppStateProvider>
+        {ui}
       </ApiConfigProvider>
     </MemoryRouter>,
   );
@@ -42,6 +58,13 @@ const renderWithProviders = (ui: React.ReactElement) => {
 
 describe('SignLanguageRecorder', () => {
   beforeEach(() => {
+    appStateMock.profileId = null;
+    appStateMock.recordSign.mockReset();
+    vi.mocked(apiRetryManager.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: [] }),
+    } as Response);
     window.localStorage.clear();
     toggleAudioMutedMock.mockReset();
   });
@@ -166,5 +189,30 @@ describe('SignLanguageRecorder', () => {
     const canvasElement = document.querySelector('canvas');
     expect(canvasElement).toBeInTheDocument();
     expect(canvasElement).toHaveClass('overlay');
+  });
+
+  it('löscht veralteten Label-Cache bei 403 vom trained-labels-Endpunkt', async () => {
+    appStateMock.profileId = 'amy';
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['HILFE']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({}),
+    } as Response);
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    await waitFor(() => {
+      expect(apiRetryManager.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/dgs/trained-labels?profileId=amy'),
+      );
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('[]');
+      expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('false');
+    });
   });
 });

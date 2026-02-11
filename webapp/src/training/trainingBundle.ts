@@ -564,16 +564,19 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
     throw new Error('API-Endpunkt fehlt für Qualitätsprotokoll.');
   }
 
-  const url = new URL(endpoint);
-  if (options.profileId && options.profileId.trim().length > 0) {
-    url.searchParams.set('profileId', options.profileId.trim());
-  }
-  if (typeof options.limit === 'number' && Number.isFinite(options.limit) && options.limit > 0) {
-    url.searchParams.set('limit', String(Math.round(options.limit)));
-  }
+  const buildRequestUrl = (includeProfileId: boolean): string => {
+    const url = new URL(endpoint);
+    if (includeProfileId && options.profileId && options.profileId.trim().length > 0) {
+      url.searchParams.set('profileId', options.profileId.trim());
+    }
+    if (typeof options.limit === 'number' && Number.isFinite(options.limit) && options.limit > 0) {
+      url.searchParams.set('limit', String(Math.round(options.limit)));
+    }
+    return url.toString();
+  };
 
-  const response = await fetchWithRetry(
-    url.toString(),
+  let response = await fetchWithRetry(
+    buildRequestUrl(true),
     {
       method: 'GET',
       headers: {
@@ -583,6 +586,24 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
     },
     { retries: 1, retryDelayMs: 300, timeoutMs: 10000 },
   );
+
+  if (
+    response.status === 403
+    && options.profileId
+    && options.profileId.trim().length > 0
+  ) {
+    response = await fetchWithRetry(
+      buildRequestUrl(false),
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        },
+      },
+      { retries: 1, retryDelayMs: 300, timeoutMs: 10000 },
+    );
+  }
 
   if (!response.ok) {
     throw new HttpError(response.status, `Qualitätsprotokoll konnte nicht geladen werden (HTTP ${response.status}).`);
