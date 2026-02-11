@@ -20,6 +20,7 @@ const fetchMock = vi.fn();
 
 let mockTrainingJob: any = null;
 let mockTrainingJobError: string | null = null;
+let mockMetacomSymbols: Array<{ id: string; label: string; emoji: string; category?: string; color?: string }> = [];
 
 vi.mock('../hooks/useTrainingUploader', () => ({
   useTrainingUploader: () => ({
@@ -59,6 +60,10 @@ vi.mock('./TrainingRecorder', () => ({
   ),
 }));
 
+vi.mock('../hooks/useMetacomBundle', () => ({
+  useMetacomBundle: () => ({ symbols: mockMetacomSymbols }),
+}));
+
 function renderWithProviders() {
   return render(
     <MemoryRouter>
@@ -77,6 +82,7 @@ function renderWithProviders() {
 
 describe('TrainingUploadWithRecording', () => {
   beforeEach(() => {
+    mockMetacomSymbols = [];
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes('/api/v1/dgs/training-quality')) {
@@ -287,5 +293,65 @@ describe('TrainingUploadWithRecording', () => {
     
     // It should NOT show the generic fallback since message is present
     expect(screen.queryByText(/Training fehlgeschlagen\. Bitte prüfe die Logs oder versuche es erneut\./i)).not.toBeInTheDocument();
+  }, TEST_TIMEOUT);
+
+  it('zeigt keine doppelten Symbol-Labels nach manuellem Synchronisieren', async () => {
+    const user = userEvent.setup();
+    mockMetacomSymbols = [
+      { id: 'metacom-essen', label: 'Essen', emoji: '🍽️', category: 'food' },
+    ];
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/v1/dgs/training-quality')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [] }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      if (url.includes('/api/v1/symbols')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            symbols: [
+              {
+                id: 'server-essen',
+                name: 'Essen',
+                category: 'food',
+                emoji: '🍽️',
+              },
+            ],
+          }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ symbols: [] }),
+        headers: new Headers(),
+      } as any;
+    });
+
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Synchronisieren/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /Synchronisieren/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
+    });
   }, TEST_TIMEOUT);
 });

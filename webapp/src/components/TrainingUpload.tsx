@@ -435,20 +435,42 @@ export function TrainingUploadWithRecording() {
   const { symbols: metacomSymbols } = useMetacomBundle({ vocabularySet });
   const combinedSymbols = useMemo(() => {
     const merged = new Map<string, SymbolDefinition>();
+    const mergedByName = new Map<string, SymbolDefinition>();
+
+    const getNameKey = (name: string): string => name.trim().toLocaleLowerCase('de-DE');
+
     for (const symbol of symbols) {
+      const normalizedName = getNameKey(symbol.name);
+      if (!normalizedName) {
+        merged.set(symbol.id, symbol);
+        continue;
+      }
+      if (!mergedByName.has(normalizedName)) {
+        mergedByName.set(normalizedName, symbol);
+      }
       merged.set(symbol.id, symbol);
     }
+
     for (const symbol of metacomSymbols) {
-      if (!merged.has(symbol.id)) {
-        merged.set(symbol.id, {
-          id: symbol.id,
-          name: symbol.label,
-          category: symbol.category ?? 'metacom',
-          emoji: symbol.emoji,
-          color: symbol.color,
-        });
+      const nextSymbol = {
+        id: symbol.id,
+        name: symbol.label,
+        category: symbol.category ?? 'metacom',
+        emoji: symbol.emoji,
+        color: symbol.color,
+      };
+      const normalizedName = getNameKey(nextSymbol.name);
+      if (normalizedName && mergedByName.has(normalizedName)) {
+        continue;
+      }
+      if (normalizedName) {
+        mergedByName.set(normalizedName, nextSymbol);
+      }
+      if (!merged.has(nextSymbol.id)) {
+        merged.set(nextSymbol.id, nextSymbol);
       }
     }
+
     return Array.from(merged.values());
   }, [metacomSymbols, symbols]);
   const lastJobStatusRef = useRef<string | null>(null);
