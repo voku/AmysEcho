@@ -199,7 +199,7 @@ describe('SignLanguageRecorder', () => {
     expect(canvasElement).toHaveClass('overlay');
   });
 
-  it('löscht veralteten Label-Cache bei 403 vom trained-labels-Endpunkt', async () => {
+  it('clears stale label cache when trained-labels endpoint returns 403', async () => {
     appStateMock.profileId = 'amy';
     window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['HILFE']));
     window.localStorage.setItem('webapp:has-trained-signs', 'true');
@@ -224,7 +224,7 @@ describe('SignLanguageRecorder', () => {
     });
   });
 
-  it('versucht trained-labels bei 403 mit aktivem Profil aus Registry erneut', async () => {
+  it('retries trained-labels with active registry profile after 403', async () => {
     appStateMock.profileId = 'amy-alt';
 
     vi.mocked(apiRetryManager.fetch)
@@ -254,6 +254,68 @@ describe('SignLanguageRecorder', () => {
 
     await waitFor(() => {
       expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('["HILFE"]');
+      expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
+    });
+  });
+
+  it('ignores stale 403 responses after profile switch', async () => {
+    appStateMock.profileId = 'amy-old';
+
+    let resolveOldResponse: null | ((value: Response) => void) = null;
+    vi.mocked(apiRetryManager.fetch).mockImplementation((url: string | URL | Request) => {
+      const requestUrl = String(url);
+      if (requestUrl.includes('profileId=amy-old')) {
+        return new Promise<Response>((resolve) => {
+          resolveOldResponse = resolve;
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ trainedLabels: ['HALLO'] }),
+      } as Response);
+    });
+
+    const view = renderWithProviders(<SignLanguageRecorder />);
+
+    await waitFor(() => {
+      expect(apiRetryManager.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('profileId=amy-old'),
+      );
+    });
+
+    appStateMock.profileId = 'amy-new';
+    view.rerender(
+      <MemoryRouter>
+        <ApiConfigProvider>
+          <SignLanguageRecorder />
+        </ApiConfigProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(apiRetryManager.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('profileId=amy-new'),
+      );
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('["HALLO"]');
+      expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
+    });
+
+    const oldResponseResolver = resolveOldResponse as ((value: Response) => void) | null;
+    if (oldResponseResolver) {
+      oldResponseResolver({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+    }
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('["HALLO"]');
       expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
     });
   });

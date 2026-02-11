@@ -575,16 +575,19 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
     return url.toString();
   };
 
+  const requestInit: RequestInit = {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+    },
+  };
+  const retryOptions = { retries: 1, retryDelayMs: 300, timeoutMs: 10000 } as const;
+
   let response = await fetchWithRetry(
     buildRequestUrl(true),
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-      },
-    },
-    { retries: 1, retryDelayMs: 300, timeoutMs: 10000 },
+    requestInit,
+    retryOptions,
   );
 
   if (
@@ -592,16 +595,12 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
     && options.profileId
     && options.profileId.trim().length > 0
   ) {
+    // 401 is intentionally excluded here: an unauthenticated/expired session should
+    // surface to the caller, while 403 indicates profile scoping can fall back.
     response = await fetchWithRetry(
       buildRequestUrl(false),
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-        },
-      },
-      { retries: 1, retryDelayMs: 300, timeoutMs: 10000 },
+      requestInit,
+      retryOptions,
     );
   }
 

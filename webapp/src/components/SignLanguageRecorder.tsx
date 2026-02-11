@@ -86,14 +86,25 @@ export function SignLanguageRecorder() {
   const { profileId, recordSign } = useAppState();
   const { notice: modelNotice } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
+  const latestProfileIdRef = useRef<string | null>(profileId);
+
+  useEffect(() => {
+    latestProfileIdRef.current = profileId;
+  }, [profileId]);
 
   // Check if profile has trained signs
   useEffect(() => {
+    let isActive = true;
+
     async function checkSigns() {
       if (!profileId) {
         setIsLoadingProfile(false);
         return;
       }
+
+      const requestedProfileId = profileId;
+      const shouldApplyResult = () =>
+        isActive && latestProfileIdRef.current === requestedProfileId;
 
       const parseLabelsFromResponse = async (response: Response): Promise<string[] | null> => {
         if (!response.ok) {
@@ -106,6 +117,9 @@ export function SignLanguageRecorder() {
       };
 
       const applyLabels = (labels: string[]) => {
+        if (!shouldApplyResult()) {
+          return;
+        }
         setTrainedSignLabels(labels);
         const hasAny = labels.length > 0;
         setHasTrainedSigns(hasAny);
@@ -118,6 +132,9 @@ export function SignLanguageRecorder() {
       };
 
       const clearLabelCache = () => {
+        if (!shouldApplyResult()) {
+          return;
+        }
         setTrainedSignLabels([]);
         setHasTrainedSigns(false);
         try {
@@ -132,13 +149,23 @@ export function SignLanguageRecorder() {
         `${apiBaseUrl}/api/v1/dgs/trained-labels?profileId=${encodeURIComponent(id)}`;
       
       try {
-        let response = await apiRetryManager.fetch(buildTrainedLabelsUrl(profileId));
+        let response = await apiRetryManager.fetch(buildTrainedLabelsUrl(requestedProfileId));
+
+        if (!shouldApplyResult()) {
+          return;
+        }
 
         if (response.status === 403) {
           const activeProfile = await getActiveProfile().catch(() => null);
+          if (!shouldApplyResult()) {
+            return;
+          }
           const activeProfileId = activeProfile?.profileId?.trim();
-          if (activeProfileId && activeProfileId !== profileId) {
+          if (activeProfileId && activeProfileId !== requestedProfileId) {
             response = await apiRetryManager.fetch(buildTrainedLabelsUrl(activeProfileId));
+            if (!shouldApplyResult()) {
+              return;
+            }
           }
         }
 
@@ -153,6 +180,9 @@ export function SignLanguageRecorder() {
           console.warn('trained-labels endpoint returned non-ok status; using cached data');
         }
       } catch (err) {
+        if (!shouldApplyResult()) {
+          return;
+        }
         console.warn('Failed to check profile signs:', err);
         // On network error, prefer the cached value if it exists
         const cached = window.localStorage.getItem('webapp:has-trained-signs');
@@ -163,11 +193,17 @@ export function SignLanguageRecorder() {
           setHasTrainedSigns(false);
         }
       } finally {
-        setIsLoadingProfile(false);
+        if (shouldApplyResult()) {
+          setIsLoadingProfile(false);
+        }
       }
     }
 
     checkSigns();
+
+    return () => {
+      isActive = false;
+    };
   }, [profileId, apiBaseUrl]);
 
   // Auto-start camera when component mounts and camera is supported AND we have trained signs
