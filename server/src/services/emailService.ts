@@ -56,8 +56,13 @@ function buildTokenEmail(params: {
 	const safeUsername = sanitizeUsername(username);
 	const safeEmail = sanitizeEmail(email);
 
+	// Ensure base URL ends with a slash and path doesn't start with one
+	// This ensures sub-path deployments (like GitHub Pages) work correctly
+	const baseUrl = config.appBaseUrl.endsWith("/") ? config.appBaseUrl : `${config.appBaseUrl}/`;
+	const relativePath = urlPath.startsWith("/") ? urlPath.substring(1) : urlPath;
+
 	// Use URL constructor to avoid double-slash and encoding edge cases
-	const url = new URL(urlPath, config.appBaseUrl);
+	const url = new URL(relativePath, baseUrl);
 	url.searchParams.set("email", safeEmail);
 	url.searchParams.set("token", token);
 	const link = url.toString();
