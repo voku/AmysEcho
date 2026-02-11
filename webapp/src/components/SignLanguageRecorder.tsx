@@ -7,6 +7,7 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
+import { getActiveProfile } from '../services/profileRegistry';
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -85,37 +86,103 @@ export function SignLanguageRecorder() {
   const { profileId, recordSign } = useAppState();
   const { notice: modelNotice } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
+  const latestProfileIdRef = useRef<string | null>(profileId);
+
+  useEffect(() => {
+    latestProfileIdRef.current = profileId;
+  }, [profileId]);
 
   // Check if profile has trained signs
   useEffect(() => {
+    let isActive = true;
+
     async function checkSigns() {
       if (!profileId) {
         setIsLoadingProfile(false);
         return;
       }
+
+      const requestedProfileId = profileId;
+      const shouldApplyResult = () =>
+        isActive && latestProfileIdRef.current === requestedProfileId;
+
+      const parseLabelsFromResponse = async (response: Response): Promise<string[] | null> => {
+        if (!response.ok) {
+          return null;
+        }
+        const data = await response.json() as { trainedLabels?: unknown };
+        return Array.isArray(data.trainedLabels)
+          ? data.trainedLabels.filter((label: unknown): label is string => typeof label === 'string')
+          : [];
+      };
+
+      const applyLabels = (labels: string[]) => {
+        if (!shouldApplyResult()) {
+          return;
+        }
+        setTrainedSignLabels(labels);
+        const hasAny = labels.length > 0;
+        setHasTrainedSigns(hasAny);
+        try {
+          window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(labels));
+          window.localStorage.setItem('webapp:has-trained-signs', String(hasAny));
+        } catch {
+          // ignore quota errors
+        }
+      };
+
+      const clearLabelCache = () => {
+        if (!shouldApplyResult()) {
+          return;
+        }
+        setTrainedSignLabels([]);
+        setHasTrainedSigns(false);
+        try {
+          window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify([]));
+          window.localStorage.setItem('webapp:has-trained-signs', 'false');
+        } catch {
+          // ignore quota errors
+        }
+      };
+
+      const buildTrainedLabelsUrl = (id: string) =>
+        `${apiBaseUrl}/api/v1/dgs/trained-labels?profileId=${encodeURIComponent(id)}`;
       
       try {
-        // We use the new trained-labels endpoint to get specific allowed labels
-        const response = await apiRetryManager.fetch(`${apiBaseUrl}/api/v1/dgs/trained-labels?profileId=${profileId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const labels = data.trainedLabels || [];
-          setTrainedSignLabels(labels);
-          const hasAny = labels.length > 0;
-          setHasTrainedSigns(hasAny);
-          
-          // Cache results
-          try {
-            window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(labels));
-            window.localStorage.setItem('webapp:has-trained-signs', String(hasAny));
-          } catch {
-            // ignore quota errors
+        let response = await apiRetryManager.fetch(buildTrainedLabelsUrl(requestedProfileId));
+
+        if (!shouldApplyResult()) {
+          return;
+        }
+
+        if (response.status === 403) {
+          const activeProfile = await getActiveProfile().catch(() => null);
+          if (!shouldApplyResult()) {
+            return;
           }
+          const activeProfileId = activeProfile?.profileId?.trim();
+          if (activeProfileId && activeProfileId !== requestedProfileId) {
+            response = await apiRetryManager.fetch(buildTrainedLabelsUrl(activeProfileId));
+            if (!shouldApplyResult()) {
+              return;
+            }
+          }
+        }
+
+        const labels = await parseLabelsFromResponse(response);
+        if (labels) {
+          applyLabels(labels);
+        } else if (response.status === 401 || response.status === 403) {
+          // Access denied after retry; clear stale data so UI and auth state stay aligned.
+          clearLabelCache();
         } else {
           // Endpoint failed; keep cached values to maintain consistent state
           console.warn('trained-labels endpoint returned non-ok status; using cached data');
         }
       } catch (err) {
+        if (!shouldApplyResult()) {
+          return;
+        }
         console.warn('Failed to check profile signs:', err);
         // On network error, prefer the cached value if it exists
         const cached = window.localStorage.getItem('webapp:has-trained-signs');
@@ -126,11 +193,17 @@ export function SignLanguageRecorder() {
           setHasTrainedSigns(false);
         }
       } finally {
-        setIsLoadingProfile(false);
+        if (shouldApplyResult()) {
+          setIsLoadingProfile(false);
+        }
       }
     }
 
     checkSigns();
+
+    return () => {
+      isActive = false;
+    };
   }, [profileId, apiBaseUrl]);
 
   // Auto-start camera when component mounts and camera is supported AND we have trained signs

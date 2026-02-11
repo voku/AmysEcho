@@ -564,25 +564,45 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
     throw new Error('API-Endpunkt fehlt für Qualitätsprotokoll.');
   }
 
-  const url = new URL(endpoint);
-  if (options.profileId && options.profileId.trim().length > 0) {
-    url.searchParams.set('profileId', options.profileId.trim());
-  }
-  if (typeof options.limit === 'number' && Number.isFinite(options.limit) && options.limit > 0) {
-    url.searchParams.set('limit', String(Math.round(options.limit)));
-  }
+  const buildRequestUrl = (includeProfileId: boolean): string => {
+    const url = new URL(endpoint);
+    if (includeProfileId && options.profileId && options.profileId.trim().length > 0) {
+      url.searchParams.set('profileId', options.profileId.trim());
+    }
+    if (typeof options.limit === 'number' && Number.isFinite(options.limit) && options.limit > 0) {
+      url.searchParams.set('limit', String(Math.round(options.limit)));
+    }
+    return url.toString();
+  };
 
-  const response = await fetchWithRetry(
-    url.toString(),
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-      },
+  const requestInit: RequestInit = {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
     },
-    { retries: 1, retryDelayMs: 300, timeoutMs: 10000 },
+  };
+  const retryOptions = { retries: 1, retryDelayMs: 300, timeoutMs: 10000 } as const;
+
+  let response = await fetchWithRetry(
+    buildRequestUrl(true),
+    requestInit,
+    retryOptions,
   );
+
+  if (
+    response.status === 403
+    && options.profileId
+    && options.profileId.trim().length > 0
+  ) {
+    // 401 is intentionally excluded here: an unauthenticated/expired session should
+    // surface to the caller, while 403 indicates profile scoping can fall back.
+    response = await fetchWithRetry(
+      buildRequestUrl(false),
+      requestInit,
+      retryOptions,
+    );
+  }
 
   if (!response.ok) {
     throw new HttpError(response.status, `Qualitätsprotokoll konnte nicht geladen werden (HTTP ${response.status}).`);
