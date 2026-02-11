@@ -12,6 +12,21 @@ import {
   type Profile,
 } from './profileRegistry';
 
+// Keep this payload selection aligned with generateChecksum() in profileRegistry.ts.
+async function computeRegistryChecksum(profiles: Profile[]): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = JSON.stringify(profiles.map((p) => ({
+    uuid: p.uuid,
+    profileId: p.profileId,
+    displayName: p.displayName,
+    createdAt: p.createdAt,
+    securityToken: p.securityToken,
+  })));
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(data))))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 describe('profileRegistry', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -244,17 +259,7 @@ describe('profileRegistry', () => {
         profileId: 'amy-legacy-profile',
       });
 
-      const encoder = new TextEncoder();
-      const data = JSON.stringify(registry.profiles.map((p: Profile) => ({
-        uuid: p.uuid,
-        profileId: p.profileId,
-        displayName: p.displayName,
-        createdAt: p.createdAt,
-        securityToken: p.securityToken,
-      })));
-      registry.checksum = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(data))))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
+      registry.checksum = await computeRegistryChecksum(registry.profiles as Profile[]);
       localStorage.setItem('webapp:profile-registry', JSON.stringify(registry));
 
       const loadedRegistry = await loadProfileRegistry();
@@ -298,17 +303,7 @@ describe('profileRegistry', () => {
         const registry = JSON.parse(registryRaw);
         registry.profiles[0].securityToken = 'fake-token-12345';
         // Update checksum to bypass checksum check (testing token check specifically)
-        const encoder = new TextEncoder();
-        const data = JSON.stringify(registry.profiles.map((p: Profile) => ({
-          uuid: p.uuid,
-          profileId: p.profileId,
-          displayName: p.displayName,
-          createdAt: p.createdAt,
-          securityToken: p.securityToken,
-        })));
-        registry.checksum = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(data))))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
+        registry.checksum = await computeRegistryChecksum(registry.profiles as Profile[]);
         localStorage.setItem('webapp:profile-registry', JSON.stringify(registry));
       }
 
@@ -319,7 +314,7 @@ describe('profileRegistry', () => {
   });
 
   describe('replaceWithBackendProfile', () => {
-    it('should replace local registry with backend profile and set it active', async () => {
+    it('should merge backend profile into existing registry and set it active', async () => {
       const localProfile = await createProfile({ displayName: 'Lokal' });
       await addProfile(localProfile);
 
@@ -329,13 +324,32 @@ describe('profileRegistry', () => {
       });
 
       const profiles = await listProfiles();
-      expect(profiles).toHaveLength(1);
-      expect(profiles[0]?.profileId).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-      expect(profiles[0]?.displayName).toBe('Amy Backend');
+      expect(profiles).toHaveLength(2);
+      expect(profiles.some((p) => p.uuid === localProfile.uuid)).toBe(true);
+      expect(profiles.some((p) => p.profileId === 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')).toBe(true);
 
       const activeProfile = await getActiveProfile();
       expect(activeProfile?.uuid).toBe(backendProfile.uuid);
       expect(activeProfile?.profileId).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    });
+
+    it('should reuse existing backend profile and only update display name', async () => {
+      const existingBackend = await createProfile({
+        displayName: 'Alt',
+        profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      });
+      await addProfile(existingBackend);
+
+      const result = await replaceWithBackendProfile({
+        profileId: 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA',
+        displayName: 'Neu',
+      });
+
+      const profiles = await listProfiles();
+      expect(profiles).toHaveLength(1);
+      expect(result.uuid).toBe(existingBackend.uuid);
+      expect(result.displayName).toBe('Neu');
+      expect(result.profileId).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     });
   });
 });

@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { useAppState } from '../hooks/useAppState';
-import { replaceWithBackendProfile } from '../services/profileRegistry';
+import { PROFILE_ID_PATTERN, replaceWithBackendProfile } from '../services/profileRegistry';
 
 interface LoginScreenProps {
   onComplete: () => void;
 }
-
-const PROFILE_ID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // ========================================
 // Auth/Login Screen - Erster Schritt

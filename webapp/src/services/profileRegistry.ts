@@ -19,7 +19,7 @@ const REGISTRY_STORAGE_KEY = 'webapp:profile-registry';
 const REGISTRY_VERSION = 1;
 
 const SECRET_STORAGE_KEY = 'webapp:profile-registry-secret';
-const PROFILE_ID_PATTERN =
+export const PROFILE_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
@@ -342,11 +342,11 @@ export async function loadProfileRegistry(): Promise<ProfileRegistry | null> {
         continue;
       }
 
-      if (normalizedProfileId !== profile.profileId) {
-        shouldPersistSanitizedRegistry = true;
-      }
-
-      const isValid = await verifySecurityToken({ ...profile, profileId: normalizedProfileId });
+      const casingChanged = normalizedProfileId !== profile.profileId;
+      const profileForVerification = casingChanged
+        ? profile
+        : { ...profile, profileId: normalizedProfileId };
+      const isValid = await verifySecurityToken(profileForVerification);
       if (!isValid) {
         console.error(`[Profile Registry] Security token invalid for profile ${profile.uuid}. The profile may be corrupt or tampered with.`);
         // Decide on a strategy: either return null to invalidate the whole registry,
@@ -354,7 +354,13 @@ export async function loadProfileRegistry(): Promise<ProfileRegistry | null> {
         return null;
       }
 
-      validProfiles.push({ ...profile, profileId: normalizedProfileId });
+      if (casingChanged) {
+        shouldPersistSanitizedRegistry = true;
+        const securityToken = await generateSecurityToken(profile.uuid, normalizedProfileId);
+        validProfiles.push({ ...profile, profileId: normalizedProfileId, securityToken });
+      } else {
+        validProfiles.push({ ...profile, profileId: normalizedProfileId });
+      }
     }
 
     registry.profiles = validProfiles;
@@ -603,18 +609,41 @@ export async function replaceWithBackendProfile(params: {
     throw new Error('Profil-ID muss eine UUID sein.');
   }
 
-  const profile = await createProfile({
-    displayName: params.displayName,
-    profileId: normalizedProfileId,
-  });
-
-  const registry: ProfileRegistry = {
-    profiles: [profile],
-    activeProfileUuid: profile.uuid,
+  const existingRegistry = await loadProfileRegistry();
+  const registry: ProfileRegistry = existingRegistry ?? {
+    profiles: [],
+    activeProfileUuid: null,
     registryVersion: REGISTRY_VERSION,
     checksum: '',
   };
 
+  const existingIndex = registry.profiles.findIndex(
+    (profile) => profile.profileId.toLowerCase() === normalizedProfileId,
+  );
+
+  if (existingIndex >= 0) {
+    const existingProfile = registry.profiles[existingIndex];
+    if (!existingProfile) {
+      throw new Error('Profil konnte nicht geladen werden.');
+    }
+    const updatedProfile: Profile = {
+      ...existingProfile,
+      displayName: params.displayName,
+      profileId: normalizedProfileId,
+      securityToken: await generateSecurityToken(existingProfile.uuid, normalizedProfileId),
+    };
+    registry.profiles[existingIndex] = updatedProfile;
+    registry.activeProfileUuid = updatedProfile.uuid;
+    await saveProfileRegistry(registry);
+    return updatedProfile;
+  }
+
+  const profile = await createProfile({
+    displayName: params.displayName,
+    profileId: normalizedProfileId,
+  });
+  registry.profiles.push(profile);
+  registry.activeProfileUuid = profile.uuid;
   await saveProfileRegistry(registry);
   return profile;
 }
