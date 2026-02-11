@@ -106,7 +106,7 @@ export async function improveMetacomSentence({
 	let payload: OpenAiResponse;
 	try {
 		payload = (await response.json()) as OpenAiResponse;
-	} catch (error) {
+	} catch {
 		logger.warn("Failed to parse OpenAI response", {
 			error: "JSON parse error",
 			userId,

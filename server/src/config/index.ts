@@ -24,6 +24,7 @@ export interface ServerConfig {
 	smtpUser?: string;
 	smtpPass?: string;
 	smtpFrom: string;
+	smtpIgnoreCertErrors: boolean;
 	appBaseUrl: string;
 	mailTransport: "sendmail" | "smtp";
 	sendmailPath: string;
@@ -90,6 +91,7 @@ export const config: ServerConfig = {
 	smtpUser: process.env.SMTP_USER,
 	smtpPass: process.env.SMTP_PASS,
 	smtpFrom: getEnvVar("SMTP_FROM", "no-reply@amysecho.local"),
+	smtpIgnoreCertErrors: process.env.SMTP_IGNORE_CERT_ERRORS === "true",
 	appBaseUrl: getEnvVar("APP_BASE_URL", "http://localhost:5173"),
 	mailTransport: (() => {
 		const transport = process.env.MAIL_TRANSPORT;

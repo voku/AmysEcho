@@ -342,12 +342,11 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 			return null;
 		}
-		if (process.env.NODE_ENV !== "production") {
-			// eslint-disable-next-line no-console -- Metadata read failures should not break model downloads.
-			console.warn(
-				`[mlpModelArtifacts] Failed to read training metadata at ${metadataPath}:`,
-				error,
-			);
+			if (process.env.NODE_ENV !== "production") {
+				console.warn(
+					`[mlpModelArtifacts] Failed to read training metadata at ${metadataPath}:`,
+					error,
+				);
 		}
 		return null;
 	}

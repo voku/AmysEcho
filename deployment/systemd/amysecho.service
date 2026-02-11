@@ -31,7 +31,8 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/amysecho/app/server/data /opt/amysecho/app/server/db.json
+# Allow writing to data/ and the server root (for db.sqlite and its journal files)
+ReadWritePaths=/opt/amysecho/app/server/data /opt/amysecho/app/server/
 
 # Resource limits
 LimitNOFILE=65536

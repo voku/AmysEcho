@@ -662,8 +662,8 @@ async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
 			}
 		});
 		return validEntries;
-	} catch (error: any) {
-		if (error?.code === "ENOENT") {
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 			return [];
 		}
 		throw error;
@@ -732,8 +732,8 @@ export async function readTrainingQualityLog(): Promise<TrainingQualityLogEntry[
 			throw parseError;
 		}
 		return normalizeTrainingQualityLogEntries(parsed);
-	} catch (error: any) {
-		if (error?.code === "ENOENT") {
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 			return [];
 		}
 		throw error;
@@ -979,8 +979,8 @@ async function readLandmarks(
 			});
 		});
 		return frames;
-	} catch (error: any) {
-		if (error?.code === "ENOENT") {
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 			return [];
 		}
 		throw error;
@@ -1085,8 +1085,8 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 					},
 				);
 			}
-		} catch (error: any) {
-			if (error?.code !== "ENOENT") {
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
 				throw error;
 			}
 		}

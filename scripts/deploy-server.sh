@@ -38,7 +38,14 @@ chown -R $SERVICE_USER:$SERVICE_GROUP "$APP_ROOT"
 # Ensure data directories exist and are writable
 # (These paths match your systemd ReadWritePaths)
 mkdir -p "$SERVER_DIR/data"
-chown $SERVICE_USER:$SERVICE_GROUP "$SERVER_DIR/data" "$SERVER_DIR/db.json" || true
+chown $SERVICE_USER:$SERVICE_GROUP "$SERVER_DIR/data" || true
+# SQLite files handling
+for f in "$SERVER_DIR/db.json" "$SERVER_DIR/db.sqlite" "$SERVER_DIR/db.sqlite-wal" "$SERVER_DIR/db.sqlite-shm"; do
+    if [ -f "$f" ]; then
+        chown $SERVICE_USER:$SERVICE_GROUP "$f"
+        chmod 664 "$f"
+    fi
+done
 chmod 775 "$SERVER_DIR/data" || true
 
 # 4. Restart Systemd Service
@@ -48,12 +55,35 @@ sudo systemctl restart "$SERVICE_NAME"
 
 # 5. Verification
 echo "📡 Verifying health endpoints..."
-sleep 3
+# Give it a bit more time and check locally first
+sleep 5
 
-echo -n "Checking /health: "
+echo "Checking local health (bypassing Nginx):"
+curl -s -f http://127.0.0.1:5000/health > /dev/null && echo "  127.0.0.1:5000/health: ✅ OK" || echo "  127.0.0.1:5000/health: ❌ Failed"
+
+echo "Checking public health (via Nginx):"
+echo -n "  Checking /health: "
 curl -s -f https://amysecho.moelleken.org/health > /dev/null && echo "✅ OK" || echo "❌ Failed"
 
-echo -n "Checking /api/v1/health: "
+echo -n "  Checking /api/v1/health: "
 curl -s -f https://amysecho.moelleken.org/api/v1/health > /dev/null && echo "✅ OK" || echo "❌ Failed"
+
+# If it failed, show the logs and diagnostic info
+if ! curl -s -f http://127.0.0.1:5000/health > /dev/null; then
+    echo -e "\n⚠️  Health check failed! Diagnostics:"
+    echo "1. Last 20 lines of service logs:"
+    sudo journalctl -u "$SERVICE_NAME" -n 20 --no-pager
+    
+    echo -e "\n2. Service Status:"
+    sudo systemctl status "$SERVICE_NAME" --no-pager
+    
+    echo -e "\n3. Permission Check:"
+    ls -la "$SERVER_DIR/db.sqlite"* 2>/dev/null || echo "   db.sqlite not found"
+    
+    echo -e "\n💡 Tip: Check if /etc/systemd/system/$SERVICE_NAME.service has:"
+    echo "   User=$SERVICE_USER"
+    echo "   Group=$SERVICE_GROUP"
+    echo "   ReadWritePaths=$SERVER_DIR/data $SERVER_DIR/"
+fi
 
 echo -e "\n✨ Deployment successfully completed!"

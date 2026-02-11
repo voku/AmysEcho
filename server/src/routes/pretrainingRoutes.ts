@@ -101,7 +101,7 @@ router.get("/status", async (_req: Request, res: Response) => {
 		}
 
 		// Check for landmark files
-		let landmarkLabels = new Set<string>();
+		const landmarkLabels = new Set<string>();
 		try {
 			const files = await fs.readdir(DGS_VIDEO_DIR);
 			const landmarkFiles = files.filter(f => f.endsWith("_landmarks.json"));

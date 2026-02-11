@@ -348,8 +348,8 @@ async function readTrainingManifest(options: { strict: boolean }): Promise<Train
 		return {
 			entries: (parsed as { entries: TrainingBundleManifestEntry[] }).entries,
 		};
-	} catch (error: any) {
-		if (error?.code === "ENOENT") {
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 			return { entries: [] };
 		}
 		throw error;
@@ -622,8 +622,8 @@ async function recordIngestionMetrics(update: {
 			try {
 				const raw = await fs.readFile(INGESTION_METRICS_PATH, "utf8");
 				metrics = normalizeIngestionMetrics(JSON.parse(raw));
-			} catch (error: any) {
-				if (error?.code !== "ENOENT") {
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
 					logger.warn("Failed to read ingestion metrics; reinitializing", {
 						error,
 					});
@@ -1475,17 +1475,17 @@ export function registerTrainingBundleRoute(
 						bundleRootResolved,
 						files,
 					);
-				} catch (error: any) {
+				} catch (error) {
 					console.error("Invalid landmarks.json in training bundle:", error);
 					logger.warn("Rejected training bundle: landmarks invalid", {
 						profileId: resolvedProfileId ?? null,
-						reason: error?.message ?? "unknown",
+						reason: error instanceof Error ? error.message : "unknown",
 					});
 					await cleanupBundleRoot(bundleRoot);
 					await recordMetrics({ status: "rejected" });
 					return res.status(400).json({
 						error: "landmarks.json missing or invalid",
-						...(error?.message ? { details: error.message } : {}),
+						...(error instanceof Error ? { details: error.message } : {}),
 					});
 				}
 

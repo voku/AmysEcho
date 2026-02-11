@@ -12,7 +12,7 @@ interface LogEntry {
 	level: string;
 	message: string;
 	service: string;
-	data?: any;
+	data?: unknown;
 	userId?: string;
 	requestId?: string;
 	duration?: number;
@@ -57,7 +57,7 @@ export class Logger {
 	private formatLogEntry(
 		level: LogLevel,
 		message: string,
-		data?: any,
+		data?: unknown,
 		userId?: string,
 	): LogEntry {
 		const ctx = { ...this.context };
@@ -91,7 +91,7 @@ export class Logger {
 	private log(
 		level: LogLevel,
 		message: string,
-		data?: any,
+		data?: unknown,
 		userId?: string,
 	): void {
 		if (!this.shouldLog(level)) return;
@@ -99,19 +99,19 @@ export class Logger {
 		this.writeLog(entry);
 	}
 
-	error(message: string, data?: any, userId?: string): void {
+	error(message: string, data?: unknown, userId?: string): void {
 		this.log(LogLevel.ERROR, message, data, userId);
 	}
 
-	warn(message: string, data?: any, userId?: string): void {
+	warn(message: string, data?: unknown, userId?: string): void {
 		this.log(LogLevel.WARN, message, data, userId);
 	}
 
-	info(message: string, data?: any, userId?: string): void {
+	info(message: string, data?: unknown, userId?: string): void {
 		this.log(LogLevel.INFO, message, data, userId);
 	}
 
-	debug(message: string, data?: any, userId?: string): void {
+	debug(message: string, data?: unknown, userId?: string): void {
 		this.log(LogLevel.DEBUG, message, data, userId);
 	}
 
@@ -164,7 +164,7 @@ export class Logger {
 	modelOperation(
 		operation: string,
 		modelId: string,
-		details?: any,
+		details?: unknown,
 		userId?: string,
 	): void {
 		const message = `Model ${operation}: ${modelId}`;
@@ -199,7 +199,7 @@ export class Logger {
 	logErrorWithContext(
 		message: string,
 		error: Error | unknown,
-		context?: Record<string, any>,
+		context?: Record<string, unknown>,
 		userId?: string,
 	): void {
 		const errorMessage = error instanceof Error ? error.message : String(error);

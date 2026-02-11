@@ -33,6 +33,41 @@ import type { Database as DatabaseType } from "./db.js";
 let db: Database.Database | null = null;
 let currentDbPath: string | null = null;
 
+type SqliteRow = Record<string, unknown>;
+
+function getString(row: SqliteRow, key: string): string {
+	return row[key] as string;
+}
+
+function getOptionalString(row: SqliteRow, key: string): string | undefined {
+	const value = row[key];
+	return value == null ? undefined : (value as string);
+}
+
+function getNumber(row: SqliteRow, key: string): number {
+	return row[key] as number;
+}
+
+function getOptionalNumber(row: SqliteRow, key: string): number | undefined {
+	const value = row[key];
+	return value == null ? undefined : (value as number);
+}
+
+function getBooleanFromInt(row: SqliteRow, key: string): boolean {
+	return getNumber(row, key) === 1;
+}
+
+function getOptionalBooleanFromInt(
+	row: SqliteRow,
+	key: string,
+): boolean | undefined {
+	const value = row[key];
+	if (value == null) {
+		return undefined;
+	}
+	return (value as number) === 1;
+}
+
 /**
  * Initialize SQLite database connection with WAL mode
  * @param sqlitePath - Path to the SQLite database file
@@ -517,12 +552,12 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
 // ==================== USER OPERATIONS ====================
 
 export function getAllUsers(): StoredUser[] {
-	const rows = getDb().prepare("SELECT * FROM users").all() as any[];
+	const rows = getDb().prepare("SELECT * FROM users").all() as SqliteRow[];
 	return rows.map(rowToUser);
 }
 
 export function getUserById(id: string): StoredUser | undefined {
-	const row = getDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToUser(row) : undefined;
 }
 
@@ -531,7 +566,7 @@ export function getUserByUsername(username: string): StoredUser | undefined {
 	// Values are stored normalized (lowercase), so no COLLATE NOCASE needed
 	const row = getDb()
 		.prepare("SELECT * FROM users WHERE username = ?")
-		.get(normalized) as any;
+		.get(normalized) as SqliteRow | undefined;
 	return row ? rowToUser(row) : undefined;
 }
 
@@ -540,7 +575,7 @@ export function getUserByEmail(email: string): StoredUser | undefined {
 	// Values are stored normalized (lowercase), so no COLLATE NOCASE needed
 	const row = getDb()
 		.prepare("SELECT * FROM users WHERE email = ?")
-		.get(normalized) as any;
+		.get(normalized) as SqliteRow | undefined;
 	return row ? rowToUser(row) : undefined;
 }
 
@@ -610,39 +645,48 @@ export function deleteUserById(id: string): void {
 	getDb().prepare("DELETE FROM users WHERE id = ?").run(id);
 }
 
-function rowToUser(row: any): StoredUser {
+function rowToUser(row: SqliteRow): StoredUser {
 	return {
-		id: row.id,
-		username: row.username,
-		email: row.email,
-		passwordHash: row.passwordHash,
-		displayName: row.displayName ?? undefined,
-		role: row.role,
-		createdAt: row.createdAt,
-		emailVerifiedAt: row.emailVerifiedAt ?? undefined,
-		emailVerificationTokenHash: row.emailVerificationTokenHash ?? undefined,
-		emailVerificationExpiresAt: row.emailVerificationExpiresAt ?? undefined,
-		emailVerificationSentAt: row.emailVerificationSentAt ?? undefined,
-		passwordResetTokenHash: row.passwordResetTokenHash ?? undefined,
-		passwordResetExpiresAt: row.passwordResetExpiresAt ?? undefined,
-		passwordResetRequestedAt: row.passwordResetRequestedAt ?? undefined,
+		id: getString(row, "id"),
+		username: getString(row, "username"),
+		email: getString(row, "email"),
+		passwordHash: getString(row, "passwordHash"),
+		displayName: getOptionalString(row, "displayName"),
+		role: getString(row, "role") as StoredUser["role"],
+		createdAt: getNumber(row, "createdAt"),
+		emailVerifiedAt: getOptionalNumber(row, "emailVerifiedAt"),
+		emailVerificationTokenHash: getOptionalString(
+			row,
+			"emailVerificationTokenHash",
+		),
+		emailVerificationExpiresAt: getOptionalNumber(
+			row,
+			"emailVerificationExpiresAt",
+		),
+		emailVerificationSentAt: getOptionalNumber(row, "emailVerificationSentAt"),
+		passwordResetTokenHash: getOptionalString(row, "passwordResetTokenHash"),
+		passwordResetExpiresAt: getOptionalNumber(row, "passwordResetExpiresAt"),
+		passwordResetRequestedAt: getOptionalNumber(
+			row,
+			"passwordResetRequestedAt",
+		),
 	};
 }
 
 // ==================== PROFILE OPERATIONS ====================
 
 export function getAllProfiles(): Profile[] {
-	const rows = getDb().prepare("SELECT * FROM profiles").all() as any[];
+	const rows = getDb().prepare("SELECT * FROM profiles").all() as SqliteRow[];
 	return rows.map(rowToProfile);
 }
 
 export function getProfileById(id: string): Profile | undefined {
-	const row = getDb().prepare("SELECT * FROM profiles WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM profiles WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToProfile(row) : undefined;
 }
 
 export function getProfilesByUserId(userId: string): Profile[] {
-	const rows = getDb().prepare("SELECT * FROM profiles WHERE userId = ?").all(userId) as any[];
+	const rows = getDb().prepare("SELECT * FROM profiles WHERE userId = ?").all(userId) as SqliteRow[];
 	return rows.map(rowToProfile);
 }
 
@@ -698,39 +742,40 @@ export function deleteProfileById(id: string): void {
 	getDb().prepare("DELETE FROM profiles WHERE id = ?").run(id);
 }
 
-function rowToProfile(row: any): Profile {
+function rowToProfile(row: SqliteRow): Profile {
+	const metadata = getOptionalString(row, "metadata");
 	return {
-		id: row.id,
-		userId: row.userId,
-		displayName: row.displayName,
-		createdAt: row.createdAt,
-		metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
-		consentDataUpload: row.consentDataUpload === 1,
-		consentHelpMeGetSmarter: row.consentHelpMeGetSmarter === 1,
-		vocabularySetId: row.vocabularySetId,
-		largeText: row.largeText === null ? undefined : row.largeText === 1,
-		highContrast: row.highContrast === null ? undefined : row.highContrast === 1,
+		id: getString(row, "id"),
+		userId: getString(row, "userId"),
+		displayName: getString(row, "displayName"),
+		createdAt: getString(row, "createdAt"),
+		metadata: metadata ? JSON.parse(metadata) : undefined,
+		consentDataUpload: getBooleanFromInt(row, "consentDataUpload"),
+		consentHelpMeGetSmarter: getBooleanFromInt(row, "consentHelpMeGetSmarter"),
+		vocabularySetId: getString(row, "vocabularySetId"),
+		largeText: getOptionalBooleanFromInt(row, "largeText"),
+		highContrast: getOptionalBooleanFromInt(row, "highContrast"),
 	};
 }
 
 // ==================== SYMBOL OPERATIONS ====================
 
 export function getAllSymbols(): SymbolRecord[] {
-	const rows = getDb().prepare("SELECT * FROM symbols").all() as any[];
+	const rows = getDb().prepare("SELECT * FROM symbols").all() as SqliteRow[];
 	return rows.map(rowToSymbol);
 }
 
 export function getSymbolById(id: string): SymbolRecord | undefined {
-	const row = getDb().prepare("SELECT * FROM symbols WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM symbols WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToSymbol(row) : undefined;
 }
 
 export function getSymbolsByProfileId(profileId: string | null): SymbolRecord[] {
 	if (profileId === null) {
-		const rows = getDb().prepare("SELECT * FROM symbols WHERE profileId IS NULL").all() as any[];
+		const rows = getDb().prepare("SELECT * FROM symbols WHERE profileId IS NULL").all() as SqliteRow[];
 		return rows.map(rowToSymbol);
 	}
-	const rows = getDb().prepare("SELECT * FROM symbols WHERE profileId = ?").all(profileId) as any[];
+	const rows = getDb().prepare("SELECT * FROM symbols WHERE profileId = ?").all(profileId) as SqliteRow[];
 	return rows.map(rowToSymbol);
 }
 
@@ -785,30 +830,30 @@ export function deleteSymbolById(id: string): void {
 	getDb().prepare("DELETE FROM symbols WHERE id = ?").run(id);
 }
 
-function rowToSymbol(row: any): SymbolRecord {
+function rowToSymbol(row: SqliteRow): SymbolRecord {
 	return {
-		id: row.id,
-		name: row.name,
-		emoji: row.emoji,
-		color: row.color,
-		category: row.category ?? undefined,
-		imageUrl: row.imageUrl ?? undefined,
-		audioUri: row.audioUri,
-		dgsVideoUri: row.dgsVideoUri ?? undefined,
-		healthScore: row.healthScore,
-		profileId: row.profileId ?? undefined,
+		id: getString(row, "id"),
+		name: getString(row, "name"),
+		emoji: getString(row, "emoji"),
+		color: getString(row, "color"),
+		category: getOptionalString(row, "category"),
+		imageUrl: getOptionalString(row, "imageUrl"),
+		audioUri: getString(row, "audioUri"),
+		dgsVideoUri: getOptionalString(row, "dgsVideoUri"),
+		healthScore: getNumber(row, "healthScore"),
+		profileId: getOptionalString(row, "profileId"),
 	};
 }
 
 // ==================== SIGN DEFINITION OPERATIONS ====================
 
 export function getAllSignDefinitions(): SignDefinition[] {
-	const rows = getDb().prepare("SELECT * FROM signDefinitions").all() as any[];
+	const rows = getDb().prepare("SELECT * FROM signDefinitions").all() as SqliteRow[];
 	return rows.map(rowToSignDefinition);
 }
 
 export function getSignDefinitionById(id: string): SignDefinition | undefined {
-	const row = getDb().prepare("SELECT * FROM signDefinitions WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM signDefinitions WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToSignDefinition(row) : undefined;
 }
 
@@ -834,25 +879,25 @@ export function deleteSignDefinitionById(id: string): void {
 	getDb().prepare("DELETE FROM signDefinitions WHERE id = ?").run(id);
 }
 
-function rowToSignDefinition(row: any): SignDefinition {
+function rowToSignDefinition(row: SqliteRow): SignDefinition {
 	return {
-		id: row.id,
-		symbolId: row.symbolId,
-		status: row.status,
-		healthScore: row.healthScore,
-		minConfidenceThreshold: row.minConfidenceThreshold,
+		id: getString(row, "id"),
+		symbolId: getString(row, "symbolId"),
+		status: getString(row, "status") as SignDefinition["status"],
+		healthScore: getNumber(row, "healthScore"),
+		minConfidenceThreshold: getNumber(row, "minConfidenceThreshold"),
 	};
 }
 
 // ==================== SIGN TRAINING DATA OPERATIONS ====================
 
 export function getAllSignTrainingData(): SignTrainingData[] {
-	const rows = getDb().prepare("SELECT * FROM signTrainingData").all() as any[];
+	const rows = getDb().prepare("SELECT * FROM signTrainingData").all() as SqliteRow[];
 	return rows.map(rowToSignTrainingData);
 }
 
 export function getSignTrainingDataById(id: string): SignTrainingData | undefined {
-	const row = getDb().prepare("SELECT * FROM signTrainingData WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM signTrainingData WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToSignTrainingData(row) : undefined;
 }
 
@@ -893,26 +938,26 @@ export function deleteSignTrainingDataById(id: string): void {
 	getDb().prepare("DELETE FROM signTrainingData WHERE id = ?").run(id);
 }
 
-function rowToSignTrainingData(row: any): SignTrainingData {
+function rowToSignTrainingData(row: SqliteRow): SignTrainingData {
 	return {
-		id: row.id,
-		signId: row.signId,
-		landmarkData: JSON.parse(row.landmarkData),
-		source: row.source,
-		syncStatus: row.syncStatus,
-		approved: row.approved === 1,
+		id: getString(row, "id"),
+		signId: getString(row, "signId"),
+		landmarkData: JSON.parse(getString(row, "landmarkData")),
+		source: getString(row, "source") as SignTrainingData["source"],
+		syncStatus: getString(row, "syncStatus") as SignTrainingData["syncStatus"],
+		approved: getBooleanFromInt(row, "approved"),
 	};
 }
 
 // ==================== INTERACTION LOG OPERATIONS ====================
 
 export function getAllInteractionLogs(): InteractionLog[] {
-	const rows = getDb().prepare("SELECT * FROM interactionLogs").all() as any[];
+	const rows = getDb().prepare("SELECT * FROM interactionLogs").all() as SqliteRow[];
 	return rows.map(rowToInteractionLog);
 }
 
 export function getInteractionLogById(id: string): InteractionLog | undefined {
-	const row = getDb().prepare("SELECT * FROM interactionLogs WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM interactionLogs WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToInteractionLog(row) : undefined;
 }
 
@@ -958,28 +1003,35 @@ export function deleteInteractionLogById(id: string): void {
 	getDb().prepare("DELETE FROM interactionLogs WHERE id = ?").run(id);
 }
 
-function rowToInteractionLog(row: any): InteractionLog {
+function rowToInteractionLog(row: SqliteRow): InteractionLog {
 	return {
-		id: row.id,
-		signId: row.signId,
-		wasSuccessful: row.wasSuccessful === 1,
-		confidenceScore: row.confidenceScore,
-		timestamp: row.timestamp,
-		caregiverOverrideId: row.caregiverOverrideId ?? undefined,
-		processedBy: row.processedBy,
+		id: getString(row, "id"),
+		signId: getString(row, "signId"),
+		wasSuccessful: getBooleanFromInt(row, "wasSuccessful"),
+		confidenceScore: getNumber(row, "confidenceScore"),
+		timestamp: getNumber(row, "timestamp"),
+		caregiverOverrideId: getOptionalString(row, "caregiverOverrideId"),
+		processedBy: getString(row, "processedBy") as InteractionLog["processedBy"],
 	};
 }
 
 // ==================== VOCABULARY SET OPERATIONS ====================
 
 export function getAllVocabularySets(): VocabularySet[] {
-	const rows = getDb().prepare("SELECT * FROM vocabularySets").all() as any[];
-	return rows.map((row: any) => ({ id: row.id, name: row.name }));
+	const rows = getDb().prepare("SELECT * FROM vocabularySets").all() as SqliteRow[];
+	return rows.map((row: SqliteRow) => ({
+		id: getString(row, "id"),
+		name: getString(row, "name"),
+	}));
 }
 
 export function getVocabularySetById(id: string): VocabularySet | undefined {
-	const row = getDb().prepare("SELECT * FROM vocabularySets WHERE id = ?").get(id) as any;
-	return row ? { id: row.id, name: row.name } : undefined;
+	const row = getDb()
+		.prepare("SELECT * FROM vocabularySets WHERE id = ?")
+		.get(id) as SqliteRow | undefined;
+	return row
+		? { id: getString(row, "id"), name: getString(row, "name") }
+		: undefined;
 }
 
 export function insertVocabularySet(set: VocabularySet): void {
@@ -997,17 +1049,25 @@ export function deleteVocabularySetById(id: string): void {
 // ==================== VOCABULARY SET SYMBOL OPERATIONS ====================
 
 export function getAllVocabularySetSymbols(): VocabularySetSymbol[] {
-	const rows = getDb().prepare("SELECT * FROM vocabularySetSymbols").all() as any[];
-	return rows.map((row: any) => ({
-		id: row.id,
-		vocabularySetId: row.vocabularySetId,
-		symbolId: row.symbolId,
+	const rows = getDb().prepare("SELECT * FROM vocabularySetSymbols").all() as SqliteRow[];
+	return rows.map((row: SqliteRow) => ({
+		id: getString(row, "id"),
+		vocabularySetId: getString(row, "vocabularySetId"),
+		symbolId: getString(row, "symbolId"),
 	}));
 }
 
 export function getVocabularySetSymbolById(id: string): VocabularySetSymbol | undefined {
-	const row = getDb().prepare("SELECT * FROM vocabularySetSymbols WHERE id = ?").get(id) as any;
-	return row ? { id: row.id, vocabularySetId: row.vocabularySetId, symbolId: row.symbolId } : undefined;
+	const row = getDb()
+		.prepare("SELECT * FROM vocabularySetSymbols WHERE id = ?")
+		.get(id) as SqliteRow | undefined;
+	return row
+		? {
+				id: getString(row, "id"),
+				vocabularySetId: getString(row, "vocabularySetId"),
+				symbolId: getString(row, "symbolId"),
+			}
+		: undefined;
 }
 
 export function insertVocabularySetSymbol(link: VocabularySetSymbol): void {
@@ -1033,27 +1093,36 @@ export function deleteVocabularySetSymbolById(id: string): void {
 // ==================== USAGE STAT OPERATIONS ====================
 
 export function getAllUsageStats(): UsageStat[] {
-	const rows = getDb().prepare("SELECT * FROM usageStats").all() as any[];
-	return rows.map((row: any) => ({
-		id: row.id,
-		symbolId: row.symbolId,
-		profileId: row.profileId,
-		count: row.count,
+	const rows = getDb().prepare("SELECT * FROM usageStats").all() as SqliteRow[];
+	return rows.map((row: SqliteRow) => ({
+		id: getString(row, "id"),
+		symbolId: getString(row, "symbolId"),
+		profileId: getString(row, "profileId"),
+		count: getNumber(row, "count"),
 	}));
 }
 
 export function getUsageStatById(id: string): UsageStat | undefined {
-	const row = getDb().prepare("SELECT * FROM usageStats WHERE id = ?").get(id) as any;
-	return row ? { id: row.id, symbolId: row.symbolId, profileId: row.profileId, count: row.count } : undefined;
+	const row = getDb()
+		.prepare("SELECT * FROM usageStats WHERE id = ?")
+		.get(id) as SqliteRow | undefined;
+	return row
+		? {
+				id: getString(row, "id"),
+				symbolId: getString(row, "symbolId"),
+				profileId: getString(row, "profileId"),
+				count: getNumber(row, "count"),
+			}
+		: undefined;
 }
 
 export function getUsageStatsByProfileId(profileId: string): UsageStat[] {
-	const rows = getDb().prepare("SELECT * FROM usageStats WHERE profileId = ?").all(profileId) as any[];
-	return rows.map((row: any) => ({
-		id: row.id,
-		symbolId: row.symbolId,
-		profileId: row.profileId,
-		count: row.count,
+	const rows = getDb().prepare("SELECT * FROM usageStats WHERE profileId = ?").all(profileId) as SqliteRow[];
+	return rows.map((row: SqliteRow) => ({
+		id: getString(row, "id"),
+		symbolId: getString(row, "symbolId"),
+		profileId: getString(row, "profileId"),
+		count: getNumber(row, "count"),
 	}));
 }
 
@@ -1086,12 +1155,12 @@ export function deleteUsageStatsByProfileId(profileId: string): void {
 // ==================== LEARNING ANALYTICS OPERATIONS ====================
 
 export function getAllLearningAnalytics(): LearningAnalytics[] {
-	const rows = getDb().prepare("SELECT * FROM learningAnalytics").all() as any[];
+	const rows = getDb().prepare("SELECT * FROM learningAnalytics").all() as SqliteRow[];
 	return rows.map(rowToLearningAnalytics);
 }
 
 export function getLearningAnalyticsById(id: string): LearningAnalytics | undefined {
-	const row = getDb().prepare("SELECT * FROM learningAnalytics WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM learningAnalytics WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToLearningAnalytics(row) : undefined;
 }
 
@@ -1137,32 +1206,32 @@ export function deleteLearningAnalyticsById(id: string): void {
 	getDb().prepare("DELETE FROM learningAnalytics WHERE id = ?").run(id);
 }
 
-function rowToLearningAnalytics(row: any): LearningAnalytics {
+function rowToLearningAnalytics(row: SqliteRow): LearningAnalytics {
 	return {
-		id: row.id,
-		signId: row.signId,
-		successRate24h: row.successRate24h,
-		successRate7d: row.successRate7d,
-		avgConfidenceScore: row.avgConfidenceScore,
-		improvementTrend: row.improvementTrend,
-		lastCalculated: row.lastCalculated,
+		id: getString(row, "id"),
+		signId: getString(row, "signId"),
+		successRate24h: getNumber(row, "successRate24h"),
+		successRate7d: getNumber(row, "successRate7d"),
+		avgConfidenceScore: getNumber(row, "avgConfidenceScore"),
+		improvementTrend: getNumber(row, "improvementTrend"),
+		lastCalculated: getNumber(row, "lastCalculated"),
 	};
 }
 
 // ==================== CORRECTION OPERATIONS ====================
 
 export function getAllCorrections(): Correction[] {
-	const rows = getDb().prepare("SELECT * FROM corrections").all() as any[];
+	const rows = getDb().prepare("SELECT * FROM corrections").all() as SqliteRow[];
 	return rows.map(rowToCorrection);
 }
 
 export function getCorrectionById(id: string): Correction | undefined {
-	const row = getDb().prepare("SELECT * FROM corrections WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM corrections WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToCorrection(row) : undefined;
 }
 
 export function getCorrectionsByProfileId(profileId: string): Correction[] {
-	const rows = getDb().prepare("SELECT * FROM corrections WHERE profileId = ?").all(profileId) as any[];
+	const rows = getDb().prepare("SELECT * FROM corrections WHERE profileId = ?").all(profileId) as SqliteRow[];
 	return rows.map(rowToCorrection);
 }
 
@@ -1211,32 +1280,40 @@ export function deleteCorrectionsByProfileId(profileId: string): void {
 	getDb().prepare("DELETE FROM corrections WHERE profileId = ?").run(profileId);
 }
 
-function rowToCorrection(row: any): Correction {
+function rowToCorrection(row: SqliteRow): Correction {
 	return {
-		id: row.id,
-		predictedSign: row.predictedSign,
-		actualSign: row.actualSign,
-		confidence: row.confidence,
-		timestamp: row.timestamp,
-		isSynced: row.isSynced === 1,
-		profileId: row.profileId ?? undefined,
+		id: getString(row, "id"),
+		predictedSign: getString(row, "predictedSign"),
+		actualSign: getString(row, "actualSign"),
+		confidence: getNumber(row, "confidence"),
+		timestamp: getNumber(row, "timestamp"),
+		isSynced: getBooleanFromInt(row, "isSynced"),
+		profileId: getOptionalString(row, "profileId"),
 	};
 }
 
 // ==================== NEGATIVE SAMPLE OPERATIONS ====================
 
 export function getAllNegativeSamples(): NegativeSample[] {
-	const rows = getDb().prepare("SELECT * FROM negativeSamples").all() as any[];
-	return rows.map((row: any) => ({
-		id: row.id,
-		sign: row.sign,
-		timestamp: row.timestamp,
+	const rows = getDb().prepare("SELECT * FROM negativeSamples").all() as SqliteRow[];
+	return rows.map((row: SqliteRow) => ({
+		id: getString(row, "id"),
+		sign: getString(row, "sign"),
+		timestamp: getNumber(row, "timestamp"),
 	}));
 }
 
 export function getNegativeSampleById(id: string): NegativeSample | undefined {
-	const row = getDb().prepare("SELECT * FROM negativeSamples WHERE id = ?").get(id) as any;
-	return row ? { id: row.id, sign: row.sign, timestamp: row.timestamp } : undefined;
+	const row = getDb()
+		.prepare("SELECT * FROM negativeSamples WHERE id = ?")
+		.get(id) as SqliteRow | undefined;
+	return row
+		? {
+				id: getString(row, "id"),
+				sign: getString(row, "sign"),
+				timestamp: getNumber(row, "timestamp"),
+			}
+		: undefined;
 }
 
 export function insertNegativeSample(sample: NegativeSample): void {
@@ -1257,7 +1334,7 @@ export function deleteNegativeSampleById(id: string): void {
  * Get all user label settings for a specific user
  */
 export function getUserLabelSettingsByUserId(userId: string): UserLabelSetting[] {
-	const rows = getDb().prepare("SELECT * FROM userLabelSettings WHERE userId = ?").all(userId) as any[];
+	const rows = getDb().prepare("SELECT * FROM userLabelSettings WHERE userId = ?").all(userId) as SqliteRow[];
 	return rows.map(rowToUserLabelSetting);
 }
 
@@ -1267,7 +1344,7 @@ export function getUserLabelSettingsByUserId(userId: string): UserLabelSetting[]
 export function getUserLabelSetting(userId: string, labelId: string): UserLabelSetting | undefined {
 	const row = getDb().prepare(
 		"SELECT * FROM userLabelSettings WHERE userId = ? AND labelId = ?"
-	).get(userId, labelId) as any;
+	).get(userId, labelId) as SqliteRow | undefined;
 	return row ? rowToUserLabelSetting(row) : undefined;
 }
 
@@ -1275,7 +1352,7 @@ export function getUserLabelSetting(userId: string, labelId: string): UserLabelS
  * Get user label setting by ID
  */
 export function getUserLabelSettingById(id: string): UserLabelSetting | undefined {
-	const row = getDb().prepare("SELECT * FROM userLabelSettings WHERE id = ?").get(id) as any;
+	const row = getDb().prepare("SELECT * FROM userLabelSettings WHERE id = ?").get(id) as SqliteRow | undefined;
 	return row ? rowToUserLabelSetting(row) : undefined;
 }
 
@@ -1369,19 +1446,19 @@ export function updateUserLabelLastTrained(userId: string, labelId: string, trai
 export function getEnabledUserLabelsByMode(userId: string, mode: string): UserLabelSetting[] {
 	const rows = getDb().prepare(
 		"SELECT * FROM userLabelSettings WHERE userId = ? AND mode = ? AND enabled = 1"
-	).all(userId, mode) as any[];
+	).all(userId, mode) as SqliteRow[];
 	return rows.map(rowToUserLabelSetting);
 }
 
-function rowToUserLabelSetting(row: any): UserLabelSetting {
+function rowToUserLabelSetting(row: SqliteRow): UserLabelSetting {
 	return {
-		id: row.id,
-		userId: row.userId,
-		labelId: row.labelId,
-		mode: row.mode,
-		enabled: row.enabled === 1,
-		updatedAt: row.updatedAt,
-		lastTrainedAt: row.lastTrainedAt ?? undefined,
+		id: getString(row, "id"),
+		userId: getString(row, "userId"),
+		labelId: getString(row, "labelId"),
+		mode: getString(row, "mode") as UserLabelSetting["mode"],
+		enabled: getBooleanFromInt(row, "enabled"),
+		updatedAt: getString(row, "updatedAt"),
+		lastTrainedAt: getOptionalString(row, "lastTrainedAt"),
 	};
 }
 

@@ -52,7 +52,7 @@ afterAll(async () => {
 
 const originalError = console.error;
 if (process.env.TEST_LOGS_VERBOSE !== '1') {
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const msg = args[0];
     if (
       typeof msg === 'string' &&
@@ -72,7 +72,7 @@ if (process.env.TEST_LOGS_VERBOSE !== '1') {
 
 const originalWarn = console.warn;
 if (process.env.TEST_LOGS_VERBOSE !== '1') {
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     const msg = args[0];
     if (typeof msg === 'string') {
       if (

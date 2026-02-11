@@ -10,6 +10,16 @@ export interface User {
 	role: UserRole;
 }
 
+interface AccessTokenPayload extends jwt.JwtPayload {
+	userId?: string;
+	username?: string;
+	role?: UserRole;
+}
+
+interface RefreshTokenPayload extends jwt.JwtPayload {
+	userId?: string;
+}
+
 export interface AuthTokens {
 	accessToken: string;
 	refreshToken: string;
@@ -90,7 +100,20 @@ export class AuthService {
 
 	static verifyAccessToken(token: string): User | null {
 		try {
-			const payload = jwt.verify(token, AuthService.JWT_SECRET) as any;
+			const decoded = jwt.verify(token, AuthService.JWT_SECRET);
+			if (typeof decoded === "string") {
+				return null;
+			}
+			const payload = decoded as AccessTokenPayload;
+			if (
+				typeof payload.userId !== "string" ||
+				typeof payload.username !== "string" ||
+				(payload.role !== "admin" &&
+					payload.role !== "caregiver" &&
+					payload.role !== "user")
+			) {
+				return null;
+			}
 			return {
 				id: payload.userId,
 				username: payload.username,
@@ -103,7 +126,14 @@ export class AuthService {
 
 	static verifyRefreshToken(token: string): { userId: string } | null {
 		try {
-			const payload = jwt.verify(token, AuthService.JWT_REFRESH_SECRET) as any;
+			const decoded = jwt.verify(token, AuthService.JWT_REFRESH_SECRET);
+			if (typeof decoded === "string") {
+				return null;
+			}
+			const payload = decoded as RefreshTokenPayload;
+			if (typeof payload.userId !== "string") {
+				return null;
+			}
 			return { userId: payload.userId };
 		} catch {
 			return null;

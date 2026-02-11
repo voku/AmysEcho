@@ -90,8 +90,10 @@ export function registerUserRoutes(
 				}
 
 				return res.json({ user: toUserProfile(updated) });
-			} catch (error: any) {
-				logger.error("Profile update failed", { error: error?.message });
+				} catch (error) {
+					logger.error("Profile update failed", {
+						error: error instanceof Error ? error.message : String(error),
+					});
 				return res
 					.status(500)
 					.json({ error: "Profilaktualisierung fehlgeschlagen." });
@@ -160,8 +162,10 @@ export function registerUserRoutes(
 				}
 
 				return res.json({ message: "Passwort wurde aktualisiert." });
-			} catch (error: any) {
-				logger.error("Password update failed", { error: error?.message });
+				} catch (error) {
+					logger.error("Password update failed", {
+						error: error instanceof Error ? error.message : String(error),
+					});
 				return res
 					.status(500)
 					.json({ error: "Passwortänderung fehlgeschlagen." });

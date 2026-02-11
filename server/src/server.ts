@@ -72,12 +72,19 @@ import { httpsEnforcement, hstsHeaders } from "./middleware/httpsEnforcement.js"
 
 export const app = express();
 
+// Trust first proxy (Nginx) to correctly handle X-Forwarded-Proto
+app.set("trust proxy", 1);
+
 // Security middleware - must be first
 // HTTPS enforcement (production only) and HSTS headers
 app.use(httpsEnforcement);
 app.use(hstsHeaders);
 
-async function readServerPackageJson(): Promise<any> {
+function getErrnoCode(error: unknown): string | undefined {
+	return (error as NodeJS.ErrnoException | undefined)?.code;
+}
+
+async function readServerPackageJson(): Promise<Record<string, unknown>> {
 	const candidates = [
 		path.join(SERVER_DIR, "package.json"),
 		path.join(SERVER_DIR, "..", "package.json"),
@@ -85,9 +92,12 @@ async function readServerPackageJson(): Promise<any> {
 	for (const candidate of candidates) {
 		try {
 			const raw = await fs.readFile(candidate, "utf8");
-			return JSON.parse(raw);
-		} catch (error: any) {
-			if (error?.code !== "ENOENT") {
+			const parsed = JSON.parse(raw);
+			if (parsed && typeof parsed === "object") {
+				return parsed as Record<string, unknown>;
+			}
+		} catch (error) {
+			if (getErrnoCode(error) !== "ENOENT") {
 				throw error;
 			}
 		}
@@ -101,13 +111,22 @@ app.use(express.urlencoded({ extended: true, limit: "8mb" }));
 
 // Centralized error handling middleware
 const errorHandler = (
-	error: any,
+	error: unknown,
 	req: Request,
 	res: Response,
 	_next: Function,
 ) => {
-	const statusCode = error.statusCode || 500;
-	const message = error.message || "Internal server error";
+	const errorRecord = error as {
+		statusCode?: number;
+		message?: string;
+		stack?: string;
+	};
+	const statusCode =
+		typeof errorRecord.statusCode === "number" ? errorRecord.statusCode : 500;
+	const message =
+		typeof errorRecord.message === "string"
+			? errorRecord.message
+			: "Internal server error";
 
 	// Log detailed error for debugging
 	logger.error(
@@ -115,19 +134,19 @@ const errorHandler = (
 		{
 			method: req.method,
 			path: req.path,
-			message: error.message,
-			stack: error.stack,
+			message: errorRecord.message,
+			stack: errorRecord.stack,
 			statusCode,
 			url: req.url,
 			userAgent: req.get("User-Agent"),
 		},
-		(req as any).user?.id,
+		req.user?.id,
 	);
 
 	// Return user-friendly error message
 	res.status(statusCode).json({
 		error: statusCode === 500 ? "Internal server error" : message,
-		...(config.nodeEnv === "development" && { details: error.message }),
+		...(config.nodeEnv === "development" && { details: message }),
 	});
 };
 
@@ -299,10 +318,10 @@ async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; mess
 		// Update cache
 		pythonDepsCheckCache = { ...result, timestamp: Date.now() };
 		return result;
-	} catch (error: any) {
+	} catch (error) {
 		const result = {
 			status: "error" as const,
-			message: error.message,
+			message: error instanceof Error ? error.message : String(error),
 		};
 		
 		// Cache error result too, but with shorter TTL (don't retry on every request)
@@ -312,7 +331,7 @@ async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; mess
 }
 
 const healthHandler = async (_req: Request, res: Response) => {
-	const checks: Record<string, { status: string; message?: string; details?: any }> = {};
+	const checks: Record<string, { status: string; message?: string; details?: unknown }> = {};
 	let overallStatus = "ok";
 
 	// Check database connectivity
@@ -322,10 +341,10 @@ const healthHandler = async (_req: Request, res: Response) => {
 			status: dbExists ? "ok" : "warning",
 			message: dbExists ? "Database file accessible" : "Database file not found (will be created on first write)",
 		};
-	} catch (error: any) {
+	} catch (error) {
 		checks.database = {
 			status: "error",
-			message: error.message,
+			message: error instanceof Error ? error.message : String(error),
 		};
 		overallStatus = "degraded";
 	}
@@ -339,10 +358,10 @@ const healthHandler = async (_req: Request, res: Response) => {
 			message: modelExists ? "Global model available" : "Global model not found (will be created on first training)",
 			details: { path: globalModelPath },
 		};
-	} catch (error: any) {
+	} catch (error) {
 		checks.globalModel = {
 			status: "error",
-			message: error.message,
+			message: error instanceof Error ? error.message : String(error),
 		};
 		overallStatus = "degraded";
 	}
@@ -364,10 +383,10 @@ const healthHandler = async (_req: Request, res: Response) => {
 			status: manifestExists ? "ok" : "warning",
 			message: manifestExists ? "Training manifest accessible" : "Training manifest not found (will be created on first bundle upload)",
 		};
-	} catch (error: any) {
+	} catch (error) {
 		checks.trainingManifest = {
 			status: "error",
-			message: error.message,
+			message: error instanceof Error ? error.message : String(error),
 		};
 		overallStatus = "degraded";
 	}
@@ -725,12 +744,16 @@ async function runTrainingWorkflow(
 
 	if (toAdd.length > 0) {
 		await withFileLock(dataPath, async () => {
-			let data: any = { samples: [] };
+			let data: { samples: unknown[] } = { samples: [] };
 			try {
 				const raw = await fs.readFile(dataPath, "utf8");
-				data = JSON.parse(raw);
-				if (!Array.isArray(data.samples)) data.samples = [];
-			} catch {}
+				const parsed = JSON.parse(raw) as { samples?: unknown };
+				data = {
+					samples: Array.isArray(parsed.samples) ? parsed.samples : [],
+				};
+			} catch {
+				data = { samples: [] };
+			}
 			data.samples.push(...toAdd);
 			const tmp = `${dataPath}.tmp`;
 			await fs.writeFile(tmp, JSON.stringify(data, null, 2));
@@ -893,8 +916,16 @@ async function runTrainingWorkflow(
 		);
 	}
 	job.metrics = {
-		accuracy: (parsedReport as any)?.global?.accuracy ?? 0,
-		samples: (parsedReport as any)?.global?.samples ?? 0,
+		accuracy:
+			typeof (parsedReport.global as { accuracy?: unknown } | undefined)
+				?.accuracy === "number"
+				? ((parsedReport.global as { accuracy: number }).accuracy ?? 0)
+				: 0,
+		samples:
+			typeof (parsedReport.global as { samples?: unknown } | undefined)
+				?.samples === "number"
+				? ((parsedReport.global as { samples: number }).samples ?? 0)
+				: 0,
 		bundleFrames,
 		trainingDurationMs: trainDurationMs,
 		captureToTrainMs,
@@ -1015,20 +1046,22 @@ app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Resp
 		if (resolvedProfileId && !isProfileAuthorized(req, resolvedProfileId, dbInstance, profileRegistry)) {
 			return res.status(403).json({ error: "Zugriff verweigert." });
 		}
-		console.log(
-			`Received DGS sample: label=${label}, profileId=${resolvedProfileId}, landmarks length=${landmarks.length}`,
-		);
-		const dataPath = path.join(DATA_DIR, "dgs_samples.json");
-		await withFileLock(dataPath, async () => {
-			let data: any = { samples: [] };
-			try {
-				const raw = await fs.readFile(dataPath, "utf8");
-				data = JSON.parse(raw);
-				if (!Array.isArray(data.samples)) data.samples = [];
-			} catch (err: any) {
-				if (err?.code !== "ENOENT") throw err;
-			}
-			data.samples.push({
+			console.log(
+				`Received DGS sample: label=${label}, profileId=${resolvedProfileId}, landmarks length=${landmarks.length}`,
+			);
+			const dataPath = path.join(DATA_DIR, "dgs_samples.json");
+			await withFileLock(dataPath, async () => {
+				let data: { samples: unknown[] } = { samples: [] };
+				try {
+					const raw = await fs.readFile(dataPath, "utf8");
+					const parsed = JSON.parse(raw) as { samples?: unknown };
+					data = {
+						samples: Array.isArray(parsed.samples) ? parsed.samples : [],
+					};
+				} catch (err) {
+					if (getErrnoCode(err) !== "ENOENT") throw err;
+				}
+				data.samples.push({
 				id: genId(),
 				label,
 				profileId: resolvedProfileId,
@@ -1051,25 +1084,29 @@ app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Resp
 // Crash report ingestion
 app.post("/api/v1/crash-reports", auth, apiLimiter, async (req: Request, res: Response) => {
 	try {
-		const payload = Array.isArray(req.body) ? req.body : [req.body];
+		const payload: unknown[] = Array.isArray(req.body) ? req.body : [req.body];
 		const valid: CrashReport[] = [];
 		for (const r of payload) {
 			if (!r || typeof r !== "object") continue;
-			if (typeof r.message !== "string" || typeof r.timestamp !== "number")
+			const candidate = r as Record<string, unknown>;
+			if (
+				typeof candidate.message !== "string" ||
+				typeof candidate.timestamp !== "number"
+			)
 				continue;
 			valid.push({
 				id:
-					typeof (r as any).id === "string"
-						? (r as any).id
+					typeof candidate.id === "string"
+						? candidate.id
 						: Date.now().toString(36),
-				name: typeof (r as any).name === "string" ? (r as any).name : "Error",
-				message: r.message,
+				name: typeof candidate.name === "string" ? candidate.name : "Error",
+				message: candidate.message,
 				stack:
-					typeof (r as any).stack === "string" ? (r as any).stack : undefined,
-				timestamp: r.timestamp,
+					typeof candidate.stack === "string" ? candidate.stack : undefined,
+				timestamp: candidate.timestamp,
 				extra:
-					(r as any).extra && typeof (r as any).extra === "object"
-						? (r as any).extra
+					candidate.extra && typeof candidate.extra === "object"
+						? (candidate.extra as Record<string, unknown>)
 						: undefined,
 			});
 		}
@@ -1397,9 +1434,9 @@ app.get("/api/models/profiles", auth, modelMetadataLimiter, async (req: Request,
 		let modelDirs: string[] = [];
 		try {
 			modelDirs = await fs.readdir(modelsDir);
-		} catch (e) {
-			// Models dir might not exist yet
-		}
+			} catch {
+				// Models dir might not exist yet
+			}
 
 		for (const pid of modelDirs) {
 			if (pid === "global" || !PROFILE_ID_PATTERN.test(pid)) continue;
@@ -1417,9 +1454,9 @@ app.get("/api/models/profiles", auth, modelMetadataLimiter, async (req: Request,
 				const stat = await fs.stat(modelPath);
 				modelAvailable = true;
 				lastUpdated = stat.mtime;
-			} catch (e) {
-				// Model not built yet
-			}
+				} catch {
+					// Model not built yet
+				}
 
 			const counts = profileCounts.get(pid) || {};
 			const signCount = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -1499,7 +1536,7 @@ app.get(
 			);
 			const raw = await fs.readFile(configPath, "utf8");
 			res.json(JSON.parse(raw));
-		} catch (error) {
+		} catch {
 			// Return defaults if config missing
 			res.json({
 				priority_factors: {

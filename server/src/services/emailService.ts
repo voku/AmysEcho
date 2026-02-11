@@ -120,6 +120,10 @@ export function createEmailService(): EmailService {
 					connectionTimeout: 10000, // 10 seconds to establish connection
 					greetingTimeout: 10000, // 10 seconds to receive greeting
 					socketTimeout: 30000, // 30 seconds of inactivity
+					tls: {
+						// Allow ignoring certificate errors for local/legacy SMTP servers
+						rejectUnauthorized: !config.smtpIgnoreCertErrors,
+					},
 				})
 			: nodemailer.createTransport({
 					sendmail: true,
@@ -135,10 +139,13 @@ export function createEmailService(): EmailService {
 					from: config.smtpFrom,
 					...email,
 				});
-				logger.info("Verification email sent");
+				logger.info("Verification email sent", { to: params.email });
 			} catch (error) {
 				logger.error("Failed to send verification email", {
+					to: params.email,
+					transport: config.mailTransport,
 					error: error instanceof Error ? error.message : "Unknown error",
+					details: error,
 				});
 				throw new Error("Email delivery failed");
 			}
@@ -150,10 +157,13 @@ export function createEmailService(): EmailService {
 					from: config.smtpFrom,
 					...email,
 				});
-				logger.info("Password reset email sent");
+				logger.info("Password reset email sent", { to: params.email });
 			} catch (error) {
 				logger.error("Failed to send password reset email", {
+					to: params.email,
+					transport: config.mailTransport,
 					error: error instanceof Error ? error.message : "Unknown error",
+					details: error,
 				});
 				throw new Error("Email delivery failed");
 			}

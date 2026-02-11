@@ -13,7 +13,7 @@ export async function loadManifestEntries(): Promise<ManifestEntry[]> {
 		return Array.isArray(manifest?.entries) ? manifest.entries : [];
 	} catch (err: unknown) {
 		// NodeJS.ErrnoException is not globally available in TS without types/node
-		const code = (err as any)?.code;
+		const code = (err as NodeJS.ErrnoException | undefined)?.code;
 		if (code !== "ENOENT") {
 			console.error("Failed to load or parse training manifest:", err);
 		}

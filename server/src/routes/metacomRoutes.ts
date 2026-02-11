@@ -60,8 +60,8 @@ export function registerMetacomRoutes(
 				const raw = await fs.readFile(bundlePath, "utf8");
 				res.setHeader("Content-Type", "application/json");
 				return res.status(200).send(raw);
-			} catch (error: any) {
-				if (error?.code === "ENOENT") {
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 					return res
 						.status(404)
 						.json({ error: "Kein Metacom-Bundle für dieses Profil." });
@@ -156,8 +156,8 @@ export function registerMetacomRoutes(
 				await fs.unlink(bundlePath);
 				logger.info("Metacom bundle deleted", { profileId });
 				return res.status(200).json({ ok: true });
-			} catch (error: any) {
-				if (error?.code === "ENOENT") {
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 					return res.status(200).json({ ok: true });
 				}
 				logger.error("Failed to delete Metacom bundle", {
