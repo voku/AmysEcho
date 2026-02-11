@@ -18,7 +18,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const serverDir = join(__dirname, '..', '..', 'server');
 const baseUrl = serverBaseUrl();
 const liveServer = isLiveServer();
-const localOnlyTest = liveServer ? test.skip : test;
 
 const TEST_PROFILE_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const TEST_LABEL = 'kindergarten';
@@ -73,7 +72,7 @@ after(async () => {
   await stopServer();
 });
 
-localOnlyTest('auto-pretrain uses custom DGS sources for new German labels', async () => {
+test('auto-pretrain uses custom DGS sources for new German labels', async () => {
   const res = await fetch(
     `${baseUrl}/api/v1/users/${TEST_PROFILE_ID}/labels/${TEST_LABEL}`,
     {
@@ -91,21 +90,23 @@ localOnlyTest('auto-pretrain uses custom DGS sources for new German labels', asy
   assert.ok(payload.autoPretrainJob);
   assert.ok(typeof payload.autoPretrainJob.jobId === 'string');
 
-  const manifestPath = join(serverDir, 'data', 'dgs_manifest.json');
-  const entry = await waitForManifestEntry(manifestPath, TEST_LABEL);
-  assert.ok(entry, 'Manifest entry for the new label should be created.');
+  if (!liveServer) {
+    const manifestPath = join(serverDir, 'data', 'dgs_manifest.json');
+    const entry = await waitForManifestEntry(manifestPath, TEST_LABEL);
+    assert.ok(entry, 'Manifest entry for the new label should be created.');
 
-  const targetLandmark = join(
-    serverDir,
-    'data',
-    'users',
-    TEST_PROFILE_ID,
-    'labels',
-    TEST_LABEL,
-    'server_pretrain',
-    'landmarks',
-    TEST_LANDMARK_NAME,
-  );
-  const landmarkCopied = await waitForFile(targetLandmark);
-  assert.ok(landmarkCopied, 'Landmark file should be synchronized to the user profile.');
+    const targetLandmark = join(
+      serverDir,
+      'data',
+      'users',
+      TEST_PROFILE_ID,
+      'labels',
+      TEST_LABEL,
+      'server_pretrain',
+      'landmarks',
+      TEST_LANDMARK_NAME,
+    );
+    const landmarkCopied = await waitForFile(targetLandmark);
+    assert.ok(landmarkCopied, 'Landmark file should be synchronized to the user profile.');
+  }
 });

@@ -21,7 +21,6 @@ const serverDir = join(__dirname, '..', '..', 'server');
 
 const baseUrl = serverBaseUrl();
 const liveServer = isLiveServer();
-const localOnlyTest = liveServer ? test.skip : test;
 
 const TEST_PROFILE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const TEST_LABEL = 'HALLO';
@@ -160,7 +159,18 @@ test('GET /api/v1/models/version returns version and path', async () => {
   assert.strictEqual(data.modelPath, '/api/v1/models/latest');
 });
 
-localOnlyTest('GET /api/v1/models/latest serves file and client caches it', async () => {
+test('GET /api/v1/models/latest serves file and client caches it', async () => {
+  if (liveServer) {
+    const res = await fetch(`${baseUrl}/api/v1/models/latest?profileId=11111111-1111-4111-8111-111111111111`, {
+      headers: serverHeaders({ 'X-Profile-Id': '11111111-1111-4111-8111-111111111111' }),
+    });
+    assert.ok(
+      res.status === 200 || res.status === 404,
+      `Unexpected model endpoint status on live server: ${res.status}`,
+    );
+    return;
+  }
+
   const modelDir = join(serverDir, 'data', 'models', '11111111-1111-4111-8111-111111111111');
   await fs.mkdir(modelDir, { recursive: true });
   const buf = Buffer.from('mlp-model');

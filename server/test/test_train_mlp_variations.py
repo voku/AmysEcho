@@ -321,21 +321,16 @@ def test_per_profile_models_learn_from_variations(monkeypatch, tmp_path):
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-    # Train the model
-    try:
-        samples, _ = module.build_samples_from_manifest(manifest_path)
-        assert len(samples) > 0
+    # Keep this deterministic: validate manifest-driven pipeline without
+    # depending on optional MediaPipe extraction paths.
+    samples, _ = module.build_samples_from_manifest(manifest_path, skip_examples=True)
+    assert len(samples) > 0
 
-        # The per-profile model should be created
-        # (actual training might be skipped in CI without mediapipe)
-        _profile_model_path = models_dir / profile_id / "amy_model.npz"
+    # The per-profile model path is where a personalized model is expected.
+    _profile_model_path = models_dir / profile_id / "amy_model.npz"
 
-        # We're mainly testing that the pipeline handles variation metadata
-        # without crashing and preserves it through to model training
-        assert samples[0].profile_id == profile_id
-
-    except module.DependencyUnavailableError:
-        pytest.skip("Mediapipe not available - skipping actual training test")
+    # Verify variation metadata flows into profile-scoped samples.
+    assert samples[0].profile_id == profile_id
 
 
 def test_variation_metadata_in_training_report(monkeypatch, tmp_path):
