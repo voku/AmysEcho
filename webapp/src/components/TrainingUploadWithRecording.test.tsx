@@ -20,6 +20,7 @@ const fetchMock = vi.fn();
 
 let mockTrainingJob: any = null;
 let mockTrainingJobError: string | null = null;
+let mockMetacomSymbols: Array<{ id: string; label: string; emoji: string; category?: string; color?: string }> = [];
 
 vi.mock('../hooks/useTrainingUploader', () => ({
   useTrainingUploader: () => ({
@@ -59,6 +60,10 @@ vi.mock('./TrainingRecorder', () => ({
   ),
 }));
 
+vi.mock('../hooks/useMetacomBundle', () => ({
+  useMetacomBundle: () => ({ symbols: mockMetacomSymbols }),
+}));
+
 function renderWithProviders() {
   return render(
     <MemoryRouter>
@@ -77,6 +82,9 @@ function renderWithProviders() {
 
 describe('TrainingUploadWithRecording', () => {
   beforeEach(() => {
+    mockTrainingJob = null;
+    mockTrainingJobError = null;
+    mockMetacomSymbols = [];
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes('/api/v1/dgs/training-quality')) {
@@ -287,5 +295,119 @@ describe('TrainingUploadWithRecording', () => {
     
     // It should NOT show the generic fallback since message is present
     expect(screen.queryByText(/Training fehlgeschlagen\. Bitte prüfe die Logs oder versuche es erneut\./i)).not.toBeInTheDocument();
+  }, TEST_TIMEOUT);
+
+  it('zeigt keine doppelten Symbol-Labels nach Synchronisierung und remappt die Auswahl', async () => {
+    const user = userEvent.setup();
+    mockMetacomSymbols = [
+      { id: 'metacom-essen', label: 'Essen', emoji: '🍽️', category: 'food' },
+    ];
+
+    let symbolFetchCount = 0;
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/v1/dgs/training-quality')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [] }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      if (url.includes('/api/v1/symbols')) {
+        symbolFetchCount += 1;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            symbols:
+              symbolFetchCount <= 2
+                ? []
+                : [
+                    {
+                      id: 'server-essen',
+                      name: 'Essen',
+                      category: 'food',
+                      emoji: '🍽️',
+                    },
+                  ],
+          }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ symbols: [] }),
+        headers: new Headers(),
+      } as any;
+    });
+
+    renderWithProviders();
+
+    await user.click(screen.getByLabelText('Essen'));
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Ausgewählt:')).toBeInTheDocument();
+      expect(screen.getByText('Essen')).toBeInTheDocument();
+    });
+  }, TEST_TIMEOUT);
+
+  it('unterdrückt Metacom-Namen nicht dauerhaft bei ID-Kollision ohne Einfügen', async () => {
+    mockMetacomSymbols = [
+      { id: 'symbol-kollision', label: 'Essen', emoji: '🍽️', category: 'food' },
+      { id: 'symbol-eindeutig', label: 'Essen', emoji: '🍽️', category: 'food' },
+    ];
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/v1/dgs/training-quality')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [] }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      if (url.includes('/api/v1/symbols')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            symbols: [
+              {
+                id: 'symbol-kollision',
+                name: 'Brot',
+                category: 'food',
+                emoji: '🍞',
+              },
+            ],
+          }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ symbols: [] }),
+        headers: new Headers(),
+      } as any;
+    });
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Brot')).toBeInTheDocument();
+      expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
+    });
   }, TEST_TIMEOUT);
 });

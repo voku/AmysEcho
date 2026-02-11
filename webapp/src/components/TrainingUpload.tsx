@@ -93,6 +93,8 @@ const getQualityAreaName = (part: string): string => {
   return 'Bereich';
 };
 
+const normalizeSymbolName = (name: string): string => name.trim().toLocaleLowerCase('de-DE');
+
 // Server sendet die technischen Gründe aktuell als Strings wie
 // "handCoverage 0.40 < 0.50" bzw. "handJitter 0.123 > 0.100".
 // Diese Regexe müssen bei Änderungen in evaluateBundleQuality synchron gehalten werden.
@@ -433,23 +435,57 @@ export function TrainingUploadWithRecording() {
   const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
   const vocabularySet = profileMetadata?.vocabularySet ?? 'basis';
   const { symbols: metacomSymbols } = useMetacomBundle({ vocabularySet });
-  const combinedSymbols = useMemo(() => {
+  const { combinedSymbols, symbolById, symbolByName } = useMemo(() => {
     const merged = new Map<string, SymbolDefinition>();
+    const seenNames = new Set<string>();
+
     for (const symbol of symbols) {
       merged.set(symbol.id, symbol);
-    }
-    for (const symbol of metacomSymbols) {
-      if (!merged.has(symbol.id)) {
-        merged.set(symbol.id, {
-          id: symbol.id,
-          name: symbol.label,
-          category: symbol.category ?? 'metacom',
-          emoji: symbol.emoji,
-          color: symbol.color,
-        });
+      const normalizedName = normalizeSymbolName(symbol.name);
+      if (normalizedName) {
+        seenNames.add(normalizedName);
       }
     }
-    return Array.from(merged.values());
+
+    for (const symbol of metacomSymbols) {
+      const nextSymbol = {
+        id: symbol.id,
+        name: symbol.label,
+        category: symbol.category ?? 'metacom',
+        emoji: symbol.emoji,
+        color: symbol.color,
+      };
+      const normalizedName = normalizeSymbolName(nextSymbol.name);
+      if (normalizedName) {
+        if (seenNames.has(normalizedName)) {
+          continue;
+        }
+      }
+      if (!merged.has(nextSymbol.id)) {
+        merged.set(nextSymbol.id, nextSymbol);
+        if (normalizedName) {
+          seenNames.add(normalizedName);
+        }
+      }
+    }
+
+    const combinedSymbolsList = Array.from(merged.values());
+    const byId = new Map<string, SymbolDefinition>();
+    const byName = new Map<string, SymbolDefinition>();
+
+    for (const symbol of combinedSymbolsList) {
+      byId.set(symbol.id, symbol);
+      const normalizedName = normalizeSymbolName(symbol.name);
+      if (normalizedName && !byName.has(normalizedName)) {
+        byName.set(normalizedName, symbol);
+      }
+    }
+
+    return {
+      combinedSymbols: combinedSymbolsList,
+      symbolById: byId,
+      symbolByName: byName,
+    };
   }, [metacomSymbols, symbols]);
   const lastJobStatusRef = useRef<string | null>(null);
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
@@ -546,6 +582,28 @@ export function TrainingUploadWithRecording() {
     },
     [setPreferredSign],
   );
+
+  useEffect(() => {
+    if (!preferredSignId) {
+      return;
+    }
+    if (symbolById.has(preferredSignId)) {
+      return;
+    }
+    const selectedMetacom = metacomSymbols.find((symbol) => symbol.id === preferredSignId);
+    if (!selectedMetacom) {
+      return;
+    }
+    const normalizedName = normalizeSymbolName(selectedMetacom.label);
+    if (!normalizedName) {
+      return;
+    }
+    const replacement = symbolByName.get(normalizedName);
+    if (!replacement || replacement.id === preferredSignId) {
+      return;
+    }
+    setPreferredSign(replacement.id, replacement.name);
+  }, [metacomSymbols, preferredSignId, setPreferredSign, symbolById, symbolByName]);
 
   useEffect(() => {
     // Sync URL params/symbols to label - only on mount or when URL/symbols change
