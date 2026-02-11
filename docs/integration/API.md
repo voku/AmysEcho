@@ -252,6 +252,13 @@ The server always returns HTTP status `202 Accepted` and never exposes the reset
 { "message": "E-Mail-Adresse wurde bestätigt. Du kannst dich jetzt anmelden." }
 ```
 
+**Rate Limiting (E-Mail-Bestätigung)**
+
+- `POST /api/v1/auth/verify-email/request`: 8 requests per 15 minutes (keyed by normalized email, fallback IP).
+- `POST /api/v1/auth/verify-email/confirm`: 20 attempts per 15 minutes (keyed by normalized email, fallback IP).
+- Successful confirmation requests are not counted against the confirm limiter (`skipSuccessfulRequests=true`).
+- This split prevents repeated resend requests from blocking valid confirmation attempts.
+
 ### Benutzerkonto
 
 Alle Endpunkte erfordern einen gültigen Zugriffstoken. Nur bestätigte Konten dürfen Änderungen vornehmen.

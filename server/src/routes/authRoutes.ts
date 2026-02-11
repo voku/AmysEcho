@@ -10,7 +10,8 @@ import {
 } from "./auth/handlers/index.js";
 import {
 	createAuthLimiter,
-	createEmailVerificationLimiter,
+	createEmailVerificationConfirmLimiter,
+	createEmailVerificationRequestLimiter,
 	createPasswordResetLimiter,
 	createRefreshLimiter,
 } from "./auth/rateLimiters.js";
@@ -28,7 +29,8 @@ export function registerAuthRoutes(
 	const authLimiter = createAuthLimiter();
 	const refreshLimiter = createRefreshLimiter();
 	const passwordResetLimiter = createPasswordResetLimiter();
-	const emailVerificationLimiter = createEmailVerificationLimiter();
+	const emailVerificationRequestLimiter = createEmailVerificationRequestLimiter();
+	const emailVerificationConfirmLimiter = createEmailVerificationConfirmLimiter();
 
 	// Registration endpoint
 	app.post("/api/v1/auth/register", authLimiter, async (req, res) => {
@@ -65,7 +67,7 @@ export function registerAuthRoutes(
 	// Email verification endpoints
 	app.post(
 		"/api/v1/auth/verify-email/request",
-		emailVerificationLimiter,
+		emailVerificationRequestLimiter,
 		async (req, res) => {
 			await handleEmailVerificationRequest(req, res, deps);
 		},
@@ -73,7 +75,7 @@ export function registerAuthRoutes(
 
 	app.post(
 		"/api/v1/auth/verify-email/confirm",
-		emailVerificationLimiter,
+		emailVerificationConfirmLimiter,
 		async (req, res) => {
 			await handleEmailVerificationConfirm(req, res, deps);
 		},

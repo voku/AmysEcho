@@ -311,4 +311,36 @@ describe('auth routes', () => {
     expect(db.users[0].emailVerifiedAt).toBeDefined();
     expect(db.users[0].emailVerificationTokenHash).toBeUndefined();
   });
+
+  it('allows email confirmation even after multiple verification email requests', async () => {
+    const passwordHash = await AuthService.hashPassword('topsecret');
+    addUser(db, {
+      id: 'user-1',
+      username: 'amy',
+      email: 'amy@example.com',
+      passwordHash,
+      role: 'caregiver',
+      createdAt: Date.now(),
+    });
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await request(app)
+        .post('/api/v1/auth/verify-email/request')
+        .send({ email: 'amy@example.com' })
+        .expect(202);
+    }
+
+    expect(emailService.sendVerificationEmail).toHaveBeenCalledTimes(5);
+    const sentEmail = (emailService.sendVerificationEmail as jest.Mock).mock.calls.at(-1)?.[0];
+    const verificationToken = sentEmail?.token;
+    expect(typeof verificationToken).toBe('string');
+
+    await request(app)
+      .post('/api/v1/auth/verify-email/confirm')
+      .send({ email: 'amy@example.com', verificationToken })
+      .expect(200);
+
+    expect(db.users[0].emailVerifiedAt).toBeDefined();
+    expect(db.users[0].emailVerificationTokenHash).toBeUndefined();
+  });
 });
