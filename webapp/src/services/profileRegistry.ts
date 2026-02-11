@@ -164,6 +164,19 @@ export interface ProfileMetadata {
   notes?: string;
 }
 
+function normalizeMetadata(metadata?: ProfileMetadata): ProfileMetadata {
+  const input = metadata ?? {};
+  const normalized: Partial<Record<keyof ProfileMetadata, ProfileMetadata[keyof ProfileMetadata]>> = {};
+  const keys = Object.keys(input).sort() as Array<keyof ProfileMetadata>;
+  for (const key of keys) {
+    const value = input[key];
+    if (value !== undefined) {
+      normalized[key] = value;
+    }
+  }
+  return normalized as ProfileMetadata;
+}
+
 export interface Profile {
   uuid: string;              // UUID v4 - truly stable ID
   profileId: string;         // Backend storage key (UUID)
@@ -235,10 +248,16 @@ async function secureHash(data: Uint8Array): Promise<string> {
  * Generate HMAC-SHA256 security token for a profile
  * This makes manual localStorage tampering detectable
  */
-async function generateSecurityToken(uuid: string, profileId: string, secretOverride?: string): Promise<string> {
+async function generateSecurityToken(
+  uuid: string,
+  profileId: string,
+  metadata?: ProfileMetadata,
+  secretOverride?: string,
+): Promise<string> {
   const secret = secretOverride || await getRegistrySecret();
   const encoder = new TextEncoder();
-  const data = encoder.encode(`${uuid}:${profileId}:${secret}`);
+  const metadataPayload = JSON.stringify(normalizeMetadata(metadata));
+  const data = encoder.encode(`${uuid}:${profileId}:${metadataPayload}:${secret}`);
   
   if (typeof crypto !== 'undefined' && crypto.subtle) {
     try {
@@ -264,15 +283,48 @@ async function generateSecurityToken(uuid: string, profileId: string, secretOver
   return secureHash(data);
 }
 
+async function generateLegacySecurityToken(
+  uuid: string,
+  profileId: string,
+  secretOverride?: string,
+): Promise<string> {
+  const secret = secretOverride || await getRegistrySecret();
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${uuid}:${profileId}:${secret}`);
+
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signature = await crypto.subtle.sign('HMAC', key, data);
+      return Array.from(new Uint8Array(signature))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    } catch {
+      return secureHash(data);
+    }
+  }
+
+  return secureHash(data);
+}
+
 /**
  * Verify a profile's security token
  */
 async function verifySecurityToken(profile: Profile): Promise<boolean> {
-  // 1. Try with the current device secret
-  const expectedToken = await generateSecurityToken(profile.uuid, profile.profileId);
+  const normalizedMetadata = normalizeMetadata(profile.metadata);
+
+  const expectedToken = await generateSecurityToken(profile.uuid, profile.profileId, normalizedMetadata);
   if (expectedToken === profile.securityToken) return true;
-  
-  return false;
+
+  // Legacy fallback (without metadata in token payload), migrated on next save.
+  const legacyToken = await generateLegacySecurityToken(profile.uuid, profile.profileId);
+  return legacyToken === profile.securityToken;
 }
 
 /**
@@ -285,6 +337,7 @@ async function generateChecksum(profiles: Profile[]): Promise<string> {
     profileId: p.profileId,
     displayName: p.displayName,
     createdAt: p.createdAt,
+    metadata: normalizeMetadata(p.metadata),
     securityToken: p.securityToken,
   })));
   
@@ -354,10 +407,13 @@ export async function loadProfileRegistry(): Promise<ProfileRegistry | null> {
         return null;
       }
 
-      if (casingChanged) {
+      const normalizedMetadata = normalizeMetadata(profile.metadata);
+      const metadataChanged = JSON.stringify(normalizedMetadata) !== JSON.stringify(profile.metadata ?? {});
+
+      if (casingChanged || metadataChanged) {
         shouldPersistSanitizedRegistry = true;
-        const securityToken = await generateSecurityToken(profile.uuid, normalizedProfileId);
-        validProfiles.push({ ...profile, profileId: normalizedProfileId, securityToken });
+        const securityToken = await generateSecurityToken(profile.uuid, normalizedProfileId, normalizedMetadata);
+        validProfiles.push({ ...profile, profileId: normalizedProfileId, metadata: normalizedMetadata, securityToken });
       } else {
         validProfiles.push({ ...profile, profileId: normalizedProfileId });
       }
@@ -417,14 +473,15 @@ export async function createProfile(params: {
   }
   const profileId = normalizedProfileId ?? uuid.toLowerCase();
   
-  const securityToken = await generateSecurityToken(uuid, profileId);
+  const normalizedMetadata = normalizeMetadata(params.metadata);
+  const securityToken = await generateSecurityToken(uuid, profileId, normalizedMetadata);
   
   const profile: Profile = {
     uuid,
     profileId,
     displayName: params.displayName,
     createdAt: new Date().toISOString(),
-    metadata: params.metadata || {},
+    metadata: normalizedMetadata,
     securityToken,
   };
   
@@ -542,14 +599,18 @@ export async function updateProfile(uuid: string, updates: Partial<Omit<Profile,
   // Apply updates to the found profile
   const originalProfile = registry.profiles[index];
   if (originalProfile) {
-    registry.profiles[index] = {
+    const mergedMetadata = normalizeMetadata({
+      ...originalProfile.metadata,
+      ...(updates.metadata || {}),
+    });
+    const updatedProfile: Profile = {
       ...originalProfile,
       ...updates,
-      // Ensure metadata is merged, not replaced, if it exists in updates
-      metadata: {
-        ...originalProfile.metadata,
-        ...(updates.metadata || {}),
-      },
+      metadata: mergedMetadata,
+      securityToken: await generateSecurityToken(originalProfile.uuid, originalProfile.profileId, mergedMetadata),
+    };
+    registry.profiles[index] = {
+      ...updatedProfile,
     };
   }
 
@@ -596,9 +657,8 @@ export async function initializeProfileRegistry(): Promise<void> {
 }
 
 /**
- * Ensure login always uses the backend profile as active profile.
- * This intentionally replaces legacy local entries to avoid stale
- * non-backend profile IDs causing API sync failures after auth.
+ * Ensure login always activates the backend profile while preserving
+ * existing local profiles for multi-child households.
  */
 export async function replaceWithBackendProfile(params: {
   profileId: string;
@@ -630,7 +690,11 @@ export async function replaceWithBackendProfile(params: {
       ...existingProfile,
       displayName: params.displayName,
       profileId: normalizedProfileId,
-      securityToken: await generateSecurityToken(existingProfile.uuid, normalizedProfileId),
+      securityToken: await generateSecurityToken(
+        existingProfile.uuid,
+        normalizedProfileId,
+        normalizeMetadata(existingProfile.metadata),
+      ),
     };
     registry.profiles[existingIndex] = updatedProfile;
     registry.activeProfileUuid = updatedProfile.uuid;

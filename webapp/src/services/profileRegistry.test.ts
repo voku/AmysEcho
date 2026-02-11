@@ -14,12 +14,24 @@ import {
 
 // Keep this payload selection aligned with generateChecksum() in profileRegistry.ts.
 async function computeRegistryChecksum(profiles: Profile[]): Promise<string> {
+  const normalizeMetadata = (metadata: Profile['metadata']) => {
+    const normalized: Profile['metadata'] = {};
+    for (const key of Object.keys(metadata ?? {}).sort() as Array<keyof Profile['metadata']>) {
+      const value = metadata[key];
+      if (value !== undefined) {
+        normalized[key] = value;
+      }
+    }
+    return normalized;
+  };
+
   const encoder = new TextEncoder();
   const data = JSON.stringify(profiles.map((p) => ({
     uuid: p.uuid,
     profileId: p.profileId,
     displayName: p.displayName,
     createdAt: p.createdAt,
+    metadata: normalizeMetadata(p.metadata),
     securityToken: p.securityToken,
   })));
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(data))))
@@ -243,6 +255,27 @@ describe('profileRegistry', () => {
   });
 
   describe('integrity verification', () => {
+    it('should detect tampered metadata when checksum is bypassed', async () => {
+      const profile = await createProfile({
+        displayName: 'Amy',
+        metadata: { childAge: 5, vocabularySet: 'basis' },
+      });
+      await addProfile(profile);
+
+      const registryRaw = localStorage.getItem('webapp:profile-registry');
+      if (!registryRaw) {
+        throw new Error('Expected profile registry to be present in localStorage');
+      }
+
+      const registry = JSON.parse(registryRaw);
+      registry.profiles[0].metadata = { childAge: 9, vocabularySet: 'voll' };
+      registry.checksum = await computeRegistryChecksum(registry.profiles as Profile[]);
+      localStorage.setItem('webapp:profile-registry', JSON.stringify(registry));
+
+      const loadedRegistry = await loadProfileRegistry();
+      expect(loadedRegistry).toBeNull();
+    });
+
     it('should ignore legacy profiles with non-UUID profileId values', async () => {
       const validProfile = await createProfile({ displayName: 'Amy' });
       await addProfile(validProfile);
