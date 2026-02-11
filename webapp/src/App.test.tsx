@@ -79,10 +79,11 @@ describe('LoginScreen', () => {
   });
 
   it('persistiert Tokens und setzt das Profil nach erfolgreicher Anmeldung', async () => {
+    const backendProfileId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        user: { username: 'amy-user', id: 'user-1' },
+        user: { username: 'amy-user', id: backendProfileId },
         tokens: { accessToken: 'token-abc', refreshToken: 'refresh-xyz' },
       }),
     });
@@ -126,12 +127,43 @@ describe('LoginScreen', () => {
     await waitFor(() => {
       const debug = screen.getByTestId('login-debug');
       expect(debug.dataset['token']).toBe('token-abc');
-      expect(debug.dataset['profile']).toBe('amy-user');
+      expect(debug.dataset['profile']).toBe(backendProfileId);
     });
 
     const debug = screen.getByTestId('login-debug');
     expect(debug.dataset['refresh']).toBe('refresh-xyz');
     expect(debug.dataset['persist']).toBe('true');
+  });
+
+  it('zeigt einen Fehler, wenn die Anmeldung keine gültige Profil-ID liefert', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        user: { username: 'amy-user', id: 'amy-user' },
+        tokens: { accessToken: 'token-abc', refreshToken: 'refresh-xyz' },
+      }),
+    });
+    global.fetch = fetchMock as any;
+
+    render(
+      <ApiConfigProvider>
+        <AppStateProvider>
+          <LoginScreen onComplete={vi.fn()} />
+        </AppStateProvider>
+      </ApiConfigProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText(/Nutzername/i), { target: { value: 'Amy-User ' } });
+    fireEvent.change(screen.getByLabelText(/Passwort/i), { target: { value: 'geheim' } });
+    const submitButton = screen
+      .getAllByRole('button', { name: 'Anmelden' })
+      .find((button: HTMLElement) => button.getAttribute('type') === 'submit');
+    if (!submitButton) {
+      throw new Error('Submit-Button nicht gefunden');
+    }
+    fireEvent.click(submitButton);
+
+    await screen.findByText('Login-Antwort enthält keine gültige Profil-ID.');
   });
 
   it('fordert einen Reset-Code an und bestätigt das neue Passwort', async () => {

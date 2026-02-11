@@ -19,6 +19,8 @@ const REGISTRY_STORAGE_KEY = 'webapp:profile-registry';
 const REGISTRY_VERSION = 1;
 
 const SECRET_STORAGE_KEY = 'webapp:profile-registry-secret';
+const PROFILE_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
  * Derive a key for encrypting the registry secret using Web Crypto.
@@ -164,7 +166,7 @@ export interface ProfileMetadata {
 
 export interface Profile {
   uuid: string;              // UUID v4 - truly stable ID
-  profileId: string;         // Backend storage key
+  profileId: string;         // Backend storage key (UUID)
   displayName: string;       // User-friendly name
   createdAt: string;         // ISO timestamp
   metadata: ProfileMetadata;
@@ -376,12 +378,11 @@ export async function createProfile(params: {
   metadata?: ProfileMetadata;
 }): Promise<Profile> {
   const uuid = generateUuid();
-  const profileId = params.profileId || params.displayName
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '') || `profile-${uuid.slice(0, 8)}`;
+  const normalizedProfileId = params.profileId?.trim().toLowerCase();
+  if (normalizedProfileId && !PROFILE_ID_PATTERN.test(normalizedProfileId)) {
+    throw new Error('Profil-ID muss eine UUID sein.');
+  }
+  const profileId = normalizedProfileId ?? uuid.toLowerCase();
   
   const securityToken = await generateSecurityToken(uuid, profileId);
   

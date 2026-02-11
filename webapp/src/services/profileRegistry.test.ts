@@ -25,27 +25,29 @@ describe('profileRegistry', () => {
 
       expect(profile.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
       expect(profile.displayName).toBe('Amy Marie');
-      expect(profile.profileId).toBe('amy-marie');
+      expect(profile.profileId).toBe(profile.uuid);
       expect(profile.securityToken).toBeTruthy();
       expect(profile.securityToken.length).toBeGreaterThan(0);
       expect(profile.createdAt).toBeTruthy();
     });
 
     it('should use provided profileId if given', async () => {
+      const profileId = '11111111-1111-4111-8111-111111111111';
       const profile = await createProfile({
         displayName: 'Test Child',
-        profileId: 'custom-id-123',
+        profileId,
       });
 
-      expect(profile.profileId).toBe('custom-id-123');
+      expect(profile.profileId).toBe(profileId);
     });
 
-    it('should sanitize display name for profileId', async () => {
-      const profile = await createProfile({
-        displayName: 'Max 🎨 (Kita)',
-      });
-
-      expect(profile.profileId).toBe('max-kita');
+    it('should reject non-UUID profileId values', async () => {
+      await expect(
+        createProfile({
+          displayName: 'Max 🎨 (Kita)',
+          profileId: 'max-kita',
+        }),
+      ).rejects.toThrow('Profil-ID muss eine UUID sein.');
     });
 
     it('should include metadata if provided', async () => {
@@ -91,8 +93,9 @@ describe('profileRegistry', () => {
     });
 
     it('should reject duplicate profileId', async () => {
-      const profile1 = await createProfile({ displayName: 'Amy', profileId: 'amy' });
-      const profile2 = await createProfile({ displayName: 'Amy 2', profileId: 'amy' });
+      const profileId = '22222222-2222-4222-8222-222222222222';
+      const profile1 = await createProfile({ displayName: 'Amy', profileId });
+      const profile2 = await createProfile({ displayName: 'Amy 2', profileId });
       
       await addProfile(profile1);
       await expect(addProfile(profile2)).rejects.toThrow('Profile with this profileId already exists');

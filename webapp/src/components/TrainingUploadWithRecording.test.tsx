@@ -10,6 +10,8 @@ import { SymbolStoreProvider } from '../context/SymbolStore';
 import { MessageProvider } from '../context/MessageContext';
 import { createProfile, addProfile, setActiveProfile } from '../services/profileRegistry';
 
+const TEST_PROFILE_ID = '11111111-1111-4111-8111-111111111111';
+
 const uploadMock = vi.fn();
 const syncQueuedMock = vi.fn();
 const syncBundleMock = vi.fn();
@@ -86,7 +88,7 @@ describe('TrainingUploadWithRecording', () => {
               {
                 bundleId: 'bundle-rejected-1',
                 label: 'HILFE',
-                profileId: 'profil-1',
+                profileId: TEST_PROFILE_ID,
                 reasons: ['too_few_frames', 'hand_coverage_low'],
                 metrics: {
                   frameCount: 8,
@@ -141,7 +143,7 @@ describe('TrainingUploadWithRecording', () => {
     const user = userEvent.setup();
     
     // Create and set a profile before rendering
-    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
     await setActiveProfile(profile.uuid);
 
@@ -151,7 +153,7 @@ describe('TrainingUploadWithRecording', () => {
     await waitFor(
       () => {
         const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-        expect(profileInput.value).toBe('profil-1');
+        expect(profileInput.value).toBe(TEST_PROFILE_ID);
       },
       { timeout: TEST_TIMEOUT },
     );
@@ -174,13 +176,13 @@ describe('TrainingUploadWithRecording', () => {
     const payload = uploadMock.mock.calls[0]?.[0];
     expect(payload).toBeDefined();
     if (!payload) return;
-    expect(payload.profileId).toBe('profil-1');
+    expect(payload.profileId).toBe(TEST_PROFILE_ID);
     expect(payload.label).toBe('neues-label');
   }, TEST_TIMEOUT);
 
   it('zeigt Erfolgsmeldung nach erfolgreichem Upload an', async () => {
     const user = userEvent.setup();
-    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
     await setActiveProfile(profile.uuid);
 
@@ -190,7 +192,7 @@ describe('TrainingUploadWithRecording', () => {
     await waitFor(
       () => {
         const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-        expect(profileInput.value).toBe('profil-1');
+        expect(profileInput.value).toBe(TEST_PROFILE_ID);
       },
       { timeout: TEST_TIMEOUT },
     );
@@ -214,7 +216,7 @@ describe('TrainingUploadWithRecording', () => {
 
   it('zeigt Fehlermeldung nach fehlgeschlagenem Upload an', async () => {
     const user = userEvent.setup();
-    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
     await setActiveProfile(profile.uuid);
 
@@ -224,7 +226,7 @@ describe('TrainingUploadWithRecording', () => {
     await waitFor(
       () => {
         const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-        expect(profileInput.value).toBe('profil-1');
+        expect(profileInput.value).toBe(TEST_PROFILE_ID);
       },
       { timeout: TEST_TIMEOUT },
     );
@@ -249,7 +251,7 @@ describe('TrainingUploadWithRecording', () => {
 
 
   it('zeigt abgelehnte Aufnahmen mit Gründen an', async () => {
-    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
     await setActiveProfile(profile.uuid);
 
@@ -264,7 +266,7 @@ describe('TrainingUploadWithRecording', () => {
   }, TEST_TIMEOUT);
 
   it('zeigt Trainings-Fehlermeldung sauber an', async () => {
-    const profile = await createProfile({ displayName: 'Test Profil', profileId: 'profil-1' });
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
     await setActiveProfile(profile.uuid);
 

@@ -7,6 +7,9 @@ interface LoginScreenProps {
   onComplete: () => void;
 }
 
+const PROFILE_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 // ========================================
 // Auth/Login Screen - Erster Schritt
 // ========================================
@@ -108,33 +111,27 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
       }
 
       if (accessToken) {
+        const backendProfileIdRaw =
+          typeof payload?.user?.id === 'string' ? payload.user.id.trim() : '';
+        if (!PROFILE_ID_PATTERN.test(backendProfileIdRaw)) {
+          throw new Error('Login-Antwort enthält keine gültige Profil-ID.');
+        }
+        const backendProfileId = backendProfileIdRaw.toLowerCase();
+        const profiles = await listProfiles();
+        const existing = profiles.find((p) => p.profileId.toLowerCase() === backendProfileId);
+        if (!existing) {
+          const newProfile = await createProfile({
+            displayName: username.trim(),
+            profileId: backendProfileId,
+          });
+          await addProfile(newProfile);
+          await setActiveProfile(newProfile.uuid);
+        } else {
+          await setActiveProfile(existing.uuid);
+        }
+
         setPersistToken(true);
         setTokens({ accessToken, refreshToken });
-
-        // Ensure a profile exists for this user in the local registry
-        try {
-          const profiles = await listProfiles();
-          const usernameId = username
-            .trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
-
-          const existing = profiles.find((p) => p.profileId === usernameId);
-          if (!existing) {
-            const newProfile = await createProfile({
-              displayName: username.trim(),
-              profileId: usernameId,
-            });
-            await addProfile(newProfile);
-            await setActiveProfile(newProfile.uuid);
-          } else {
-            await setActiveProfile(existing.uuid);
-          }
-        } catch (profileError) {
-          console.warn('[Login] Failed to sync local profile:', profileError);
-        }
 
         // After auth, profiles are managed by the registry.
         // Refresh the app state to pick up the active profile.

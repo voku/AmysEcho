@@ -129,7 +129,7 @@ Create a caregiver account with username, email, and password:
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
-    "id": "user-123",
+    "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     "username": "amy",
     "email": "amy@example.com",
     "role": "caregiver",
@@ -137,6 +137,8 @@ Create a caregiver account with username, email, and password:
   }
 }
 ```
+
+`user.id` ist eine UUID und muss als `profileId` für profilbezogene Endpunkte verwendet werden.
 
 **Error Responses:**
 
