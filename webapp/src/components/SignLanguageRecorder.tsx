@@ -7,6 +7,7 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
+import { getActiveProfile } from '../services/profileRegistry';
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -93,34 +94,60 @@ export function SignLanguageRecorder() {
         setIsLoadingProfile(false);
         return;
       }
+
+      const parseLabelsFromResponse = async (response: Response): Promise<string[] | null> => {
+        if (!response.ok) {
+          return null;
+        }
+        const data = await response.json() as { trainedLabels?: unknown };
+        return Array.isArray(data.trainedLabels)
+          ? data.trainedLabels.filter((label: unknown): label is string => typeof label === 'string')
+          : [];
+      };
+
+      const applyLabels = (labels: string[]) => {
+        setTrainedSignLabels(labels);
+        const hasAny = labels.length > 0;
+        setHasTrainedSigns(hasAny);
+        try {
+          window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(labels));
+          window.localStorage.setItem('webapp:has-trained-signs', String(hasAny));
+        } catch {
+          // ignore quota errors
+        }
+      };
+
+      const clearLabelCache = () => {
+        setTrainedSignLabels([]);
+        setHasTrainedSigns(false);
+        try {
+          window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify([]));
+          window.localStorage.setItem('webapp:has-trained-signs', 'false');
+        } catch {
+          // ignore quota errors
+        }
+      };
+
+      const buildTrainedLabelsUrl = (id: string) =>
+        `${apiBaseUrl}/api/v1/dgs/trained-labels?profileId=${encodeURIComponent(id)}`;
       
       try {
-        // We use the new trained-labels endpoint to get specific allowed labels
-        const response = await apiRetryManager.fetch(`${apiBaseUrl}/api/v1/dgs/trained-labels?profileId=${profileId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const labels = data.trainedLabels || [];
-          setTrainedSignLabels(labels);
-          const hasAny = labels.length > 0;
-          setHasTrainedSigns(hasAny);
-          
-          // Cache results
-          try {
-            window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(labels));
-            window.localStorage.setItem('webapp:has-trained-signs', String(hasAny));
-          } catch {
-            // ignore quota errors
+        let response = await apiRetryManager.fetch(buildTrainedLabelsUrl(profileId));
+
+        if (response.status === 403) {
+          const activeProfile = await getActiveProfile().catch(() => null);
+          const activeProfileId = activeProfile?.profileId?.trim();
+          if (activeProfileId && activeProfileId !== profileId) {
+            response = await apiRetryManager.fetch(buildTrainedLabelsUrl(activeProfileId));
           }
+        }
+
+        const labels = await parseLabelsFromResponse(response);
+        if (labels) {
+          applyLabels(labels);
         } else if (response.status === 401 || response.status === 403) {
-          // Avoid keeping stale per-profile label cache when access is no longer authorized
-          setTrainedSignLabels([]);
-          setHasTrainedSigns(false);
-          try {
-            window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify([]));
-            window.localStorage.setItem('webapp:has-trained-signs', 'false');
-          } catch {
-            // ignore quota errors
-          }
+          // Access denied after retry; clear stale data so UI and auth state stay aligned.
+          clearLabelCache();
         } else {
           // Endpoint failed; keep cached values to maintain consistent state
           console.warn('trained-labels endpoint returned non-ok status; using cached data');

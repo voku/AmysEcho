@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { SignLanguageRecorder } from './SignLanguageRecorder';
 import { ApiConfigProvider } from '../hooks/useApiConfig';
 import { apiRetryManager } from '../services/apiRetryManager';
+import { getActiveProfile } from '../services/profileRegistry';
 
 // Mock the hooks that have external dependencies
 const toggleAudioMutedMock = vi.fn();
@@ -46,6 +47,10 @@ vi.mock('../services/apiRetryManager', () => ({
   },
 }));
 
+vi.mock('../services/profileRegistry', () => ({
+  getActiveProfile: vi.fn().mockResolvedValue(null),
+}));
+
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <MemoryRouter>
@@ -60,11 +65,14 @@ describe('SignLanguageRecorder', () => {
   beforeEach(() => {
     appStateMock.profileId = null;
     appStateMock.recordSign.mockReset();
+    vi.mocked(apiRetryManager.fetch).mockReset();
     vi.mocked(apiRetryManager.fetch).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ trainedLabels: [] }),
     } as Response);
+    vi.mocked(getActiveProfile).mockReset();
+    vi.mocked(getActiveProfile).mockResolvedValue(null);
     window.localStorage.clear();
     toggleAudioMutedMock.mockReset();
   });
@@ -213,6 +221,40 @@ describe('SignLanguageRecorder', () => {
     await waitFor(() => {
       expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('[]');
       expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('false');
+    });
+  });
+
+  it('versucht trained-labels bei 403 mit aktivem Profil aus Registry erneut', async () => {
+    appStateMock.profileId = 'amy-alt';
+
+    vi.mocked(apiRetryManager.fetch)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ trainedLabels: ['HILFE'] }),
+      } as Response);
+    vi.mocked(getActiveProfile).mockResolvedValue({ profileId: 'amy-neu' } as any);
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    await waitFor(() => {
+      expect(apiRetryManager.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    const firstUrl = String(vi.mocked(apiRetryManager.fetch).mock.calls[0]?.[0]);
+    const secondUrl = String(vi.mocked(apiRetryManager.fetch).mock.calls[1]?.[0]);
+
+    expect(firstUrl).toContain('profileId=amy-alt');
+    expect(secondUrl).toContain('profileId=amy-neu');
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('["HILFE"]');
+      expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
     });
   });
 });
