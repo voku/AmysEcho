@@ -359,4 +359,55 @@ describe('TrainingUploadWithRecording', () => {
       expect(screen.getByText('Essen')).toBeInTheDocument();
     });
   }, TEST_TIMEOUT);
+
+  it('unterdrückt Metacom-Namen nicht dauerhaft bei ID-Kollision ohne Einfügen', async () => {
+    mockMetacomSymbols = [
+      { id: 'symbol-kollision', label: 'Essen', emoji: '🍽️', category: 'food' },
+      { id: 'symbol-eindeutig', label: 'Essen', emoji: '🍽️', category: 'food' },
+    ];
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/v1/dgs/training-quality')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [] }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      if (url.includes('/api/v1/symbols')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            symbols: [
+              {
+                id: 'symbol-kollision',
+                name: 'Brot',
+                category: 'food',
+                emoji: '🍞',
+              },
+            ],
+          }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ symbols: [] }),
+        headers: new Headers(),
+      } as any;
+    });
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Brot')).toBeInTheDocument();
+      expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
+    });
+  }, TEST_TIMEOUT);
 });
