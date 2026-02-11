@@ -82,6 +82,8 @@ function renderWithProviders() {
 
 describe('TrainingUploadWithRecording', () => {
   beforeEach(() => {
+    mockTrainingJob = null;
+    mockTrainingJobError = null;
     mockMetacomSymbols = [];
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -295,11 +297,13 @@ describe('TrainingUploadWithRecording', () => {
     expect(screen.queryByText(/Training fehlgeschlagen\. Bitte prüfe die Logs oder versuche es erneut\./i)).not.toBeInTheDocument();
   }, TEST_TIMEOUT);
 
-  it('zeigt keine doppelten Symbol-Labels nach manuellem Synchronisieren', async () => {
+  it('zeigt keine doppelten Symbol-Labels nach Synchronisierung und remappt die Auswahl', async () => {
     const user = userEvent.setup();
     mockMetacomSymbols = [
       { id: 'metacom-essen', label: 'Essen', emoji: '🍽️', category: 'food' },
     ];
+
+    let symbolFetchCount = 0;
 
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -313,18 +317,22 @@ describe('TrainingUploadWithRecording', () => {
       }
 
       if (url.includes('/api/v1/symbols')) {
+        symbolFetchCount += 1;
         return {
           ok: true,
           status: 200,
           json: async () => ({
-            symbols: [
-              {
-                id: 'server-essen',
-                name: 'Essen',
-                category: 'food',
-                emoji: '🍽️',
-              },
-            ],
+            symbols:
+              symbolFetchCount <= 2
+                ? []
+                : [
+                    {
+                      id: 'server-essen',
+                      name: 'Essen',
+                      category: 'food',
+                      emoji: '🍽️',
+                    },
+                  ],
           }),
           headers: new Headers(),
         } as any;
@@ -338,20 +346,17 @@ describe('TrainingUploadWithRecording', () => {
       } as any;
     });
 
-    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
-    await addProfile(profile);
-    await setActiveProfile(profile.uuid);
-
     renderWithProviders();
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Synchronisieren/i })).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /Synchronisieren/i }));
+    await user.click(screen.getByLabelText('Essen'));
 
     await waitFor(() => {
       expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Ausgewählt:')).toBeInTheDocument();
+      expect(screen.getByText('Essen')).toBeInTheDocument();
     });
   }, TEST_TIMEOUT);
 });

@@ -435,20 +435,16 @@ export function TrainingUploadWithRecording() {
   const { symbols: metacomSymbols } = useMetacomBundle({ vocabularySet });
   const combinedSymbols = useMemo(() => {
     const merged = new Map<string, SymbolDefinition>();
-    const mergedByName = new Map<string, SymbolDefinition>();
+    const seenNames = new Set<string>();
 
     const getNameKey = (name: string): string => name.trim().toLocaleLowerCase('de-DE');
 
     for (const symbol of symbols) {
-      const normalizedName = getNameKey(symbol.name);
-      if (!normalizedName) {
-        merged.set(symbol.id, symbol);
-        continue;
-      }
-      if (!mergedByName.has(normalizedName)) {
-        mergedByName.set(normalizedName, symbol);
-      }
       merged.set(symbol.id, symbol);
+      const normalizedName = getNameKey(symbol.name);
+      if (normalizedName) {
+        seenNames.add(normalizedName);
+      }
     }
 
     for (const symbol of metacomSymbols) {
@@ -460,11 +456,11 @@ export function TrainingUploadWithRecording() {
         color: symbol.color,
       };
       const normalizedName = getNameKey(nextSymbol.name);
-      if (normalizedName && mergedByName.has(normalizedName)) {
-        continue;
-      }
       if (normalizedName) {
-        mergedByName.set(normalizedName, nextSymbol);
+        if (seenNames.has(normalizedName)) {
+          continue;
+        }
+        seenNames.add(normalizedName);
       }
       if (!merged.has(nextSymbol.id)) {
         merged.set(nextSymbol.id, nextSymbol);
@@ -473,6 +469,23 @@ export function TrainingUploadWithRecording() {
 
     return Array.from(merged.values());
   }, [metacomSymbols, symbols]);
+  const symbolById = useMemo(() => {
+    const byId = new Map<string, SymbolDefinition>();
+    for (const symbol of combinedSymbols) {
+      byId.set(symbol.id, symbol);
+    }
+    return byId;
+  }, [combinedSymbols]);
+  const symbolByName = useMemo(() => {
+    const byName = new Map<string, SymbolDefinition>();
+    for (const symbol of combinedSymbols) {
+      const normalizedName = symbol.name.trim().toLocaleLowerCase('de-DE');
+      if (normalizedName && !byName.has(normalizedName)) {
+        byName.set(normalizedName, symbol);
+      }
+    }
+    return byName;
+  }, [combinedSymbols]);
   const lastJobStatusRef = useRef<string | null>(null);
   // Removed local label state - using preferredGestureLabel directly from app state to prevent circular dependencies
   const [message, setMessage] = useState<string>('');
@@ -568,6 +581,28 @@ export function TrainingUploadWithRecording() {
     },
     [setPreferredSign],
   );
+
+  useEffect(() => {
+    if (!preferredSignId) {
+      return;
+    }
+    if (symbolById.has(preferredSignId)) {
+      return;
+    }
+    const selectedMetacom = metacomSymbols.find((symbol) => symbol.id === preferredSignId);
+    if (!selectedMetacom) {
+      return;
+    }
+    const normalizedName = selectedMetacom.label.trim().toLocaleLowerCase('de-DE');
+    if (!normalizedName) {
+      return;
+    }
+    const replacement = symbolByName.get(normalizedName);
+    if (!replacement || replacement.id === preferredSignId) {
+      return;
+    }
+    setPreferredSign(replacement.id, replacement.name);
+  }, [metacomSymbols, preferredSignId, setPreferredSign, symbolById, symbolByName]);
 
   useEffect(() => {
     // Sync URL params/symbols to label - only on mount or when URL/symbols change
