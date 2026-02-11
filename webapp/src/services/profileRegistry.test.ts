@@ -211,6 +211,36 @@ describe('profileRegistry', () => {
       }
     });
 
+    it('should rotate security token when metadata changes', async () => {
+      const profile = await createProfile({
+        displayName: 'Amy',
+        metadata: { childAge: 5, vocabularySet: 'basis' },
+      });
+      await addProfile(profile);
+
+      const beforeRegistryRaw = localStorage.getItem('webapp:profile-registry');
+      if (!beforeRegistryRaw) {
+        throw new Error('Expected profile registry to be present in localStorage');
+      }
+      const beforeRegistry = JSON.parse(beforeRegistryRaw);
+      const beforeToken = beforeRegistry.profiles[0]?.securityToken;
+
+      await updateProfile(profile.uuid, {
+        metadata: { childAge: 6 },
+      });
+
+      const afterRegistryRaw = localStorage.getItem('webapp:profile-registry');
+      if (!afterRegistryRaw) {
+        throw new Error('Expected profile registry to be present in localStorage after update');
+      }
+      const afterRegistry = JSON.parse(afterRegistryRaw);
+      const afterToken = afterRegistry.profiles[0]?.securityToken;
+
+      expect(beforeToken).toBeTruthy();
+      expect(afterToken).toBeTruthy();
+      expect(afterToken).not.toBe(beforeToken);
+    });
+
     it('should throw error when updating non-existent profile', async () => {
       await expect(updateProfile('non-existent-uuid', { displayName: 'Test' }))
         .rejects.toThrow('Profile not found');
