@@ -8,6 +8,7 @@ import {
   updateProfile,
   deleteProfile,
   loadProfileRegistry,
+  replaceWithBackendProfile,
   type Profile,
 } from './profileRegistry';
 
@@ -227,6 +228,49 @@ describe('profileRegistry', () => {
   });
 
   describe('integrity verification', () => {
+    it('should ignore legacy profiles with non-UUID profileId values', async () => {
+      const validProfile = await createProfile({ displayName: 'Amy' });
+      await addProfile(validProfile);
+
+      const registryRaw = localStorage.getItem('webapp:profile-registry');
+      if (!registryRaw) {
+        throw new Error('Expected profile registry to be present in localStorage');
+      }
+
+      const registry = JSON.parse(registryRaw);
+      registry.profiles.push({
+        ...validProfile,
+        uuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        profileId: 'amy-legacy-profile',
+      });
+
+      const encoder = new TextEncoder();
+      const data = JSON.stringify(registry.profiles.map((p: Profile) => ({
+        uuid: p.uuid,
+        profileId: p.profileId,
+        displayName: p.displayName,
+        createdAt: p.createdAt,
+        securityToken: p.securityToken,
+      })));
+      registry.checksum = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(data))))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+      localStorage.setItem('webapp:profile-registry', JSON.stringify(registry));
+
+      const loadedRegistry = await loadProfileRegistry();
+      expect(loadedRegistry).not.toBeNull();
+      expect(loadedRegistry?.profiles).toHaveLength(1);
+      expect(loadedRegistry?.profiles[0]?.profileId).toBe(validProfile.profileId);
+
+      const sanitizedRegistryRaw = localStorage.getItem('webapp:profile-registry');
+      if (!sanitizedRegistryRaw) {
+        throw new Error('Expected sanitized profile registry to be saved in localStorage');
+      }
+      const sanitizedRegistry = JSON.parse(sanitizedRegistryRaw);
+      expect(sanitizedRegistry.profiles).toHaveLength(1);
+      expect(sanitizedRegistry.profiles[0]?.profileId).toBe(validProfile.profileId);
+    });
+
     it('should detect tampered registry', async () => {
       const profile = await createProfile({ displayName: 'Amy' });
       await addProfile(profile);
@@ -258,6 +302,8 @@ describe('profileRegistry', () => {
         const data = JSON.stringify(registry.profiles.map((p: Profile) => ({
           uuid: p.uuid,
           profileId: p.profileId,
+          displayName: p.displayName,
+          createdAt: p.createdAt,
           securityToken: p.securityToken,
         })));
         registry.checksum = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(data))))
@@ -269,6 +315,27 @@ describe('profileRegistry', () => {
       // Should detect tampered token
       const loadedRegistry = await loadProfileRegistry();
       expect(loadedRegistry).toBeNull();
+    });
+  });
+
+  describe('replaceWithBackendProfile', () => {
+    it('should replace local registry with backend profile and set it active', async () => {
+      const localProfile = await createProfile({ displayName: 'Lokal' });
+      await addProfile(localProfile);
+
+      const backendProfile = await replaceWithBackendProfile({
+        profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        displayName: 'Amy Backend',
+      });
+
+      const profiles = await listProfiles();
+      expect(profiles).toHaveLength(1);
+      expect(profiles[0]?.profileId).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+      expect(profiles[0]?.displayName).toBe('Amy Backend');
+
+      const activeProfile = await getActiveProfile();
+      expect(activeProfile?.uuid).toBe(backendProfile.uuid);
+      expect(activeProfile?.profileId).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     });
   });
 });

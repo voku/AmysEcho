@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { useAppState } from '../hooks/useAppState';
-import { addProfile, createProfile, listProfiles, setActiveProfile } from '../services/profileRegistry';
+import { replaceWithBackendProfile } from '../services/profileRegistry';
 
 interface LoginScreenProps {
   onComplete: () => void;
@@ -117,18 +117,10 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
           throw new Error('Login-Antwort enthält keine gültige Profil-ID.');
         }
         const backendProfileId = backendProfileIdRaw.toLowerCase();
-        const profiles = await listProfiles();
-        const existing = profiles.find((p) => p.profileId.toLowerCase() === backendProfileId);
-        if (!existing) {
-          const newProfile = await createProfile({
-            displayName: username.trim(),
-            profileId: backendProfileId,
-          });
-          await addProfile(newProfile);
-          await setActiveProfile(newProfile.uuid);
-        } else {
-          await setActiveProfile(existing.uuid);
-        }
+        await replaceWithBackendProfile({
+          displayName: username.trim(),
+          profileId: backendProfileId,
+        });
 
         setPersistToken(true);
         setTokens({ accessToken, refreshToken });

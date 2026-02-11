@@ -321,26 +321,53 @@ export async function loadProfileRegistry(): Promise<ProfileRegistry | null> {
       return null;
     }
     
-    // Verify each profile's security token
+    const validProfiles: Profile[] = [];
+    let shouldPersistSanitizedRegistry = false;
+
+    // Verify each profile's structure and security token.
+    // Invalid legacy entries are ignored so they can't break authenticated API calls.
     for (const profile of registry.profiles) {
-      if (!profile || typeof profile.uuid !== 'string') {
+      if (!profile || typeof profile.uuid !== 'string' || typeof profile.profileId !== 'string') {
         console.error('[Profile Registry] Found invalid profile entry while loading.');
-        continue; // Skip invalid entries
+        shouldPersistSanitizedRegistry = true;
+        continue;
       }
-      const isValid = await verifySecurityToken(profile);
+
+      const normalizedProfileId = profile.profileId.trim().toLowerCase();
+      if (!PROFILE_ID_PATTERN.test(normalizedProfileId)) {
+        console.warn(
+          `[Profile Registry] Ignoring profile ${profile.uuid} with invalid profileId: ${profile.profileId}`,
+        );
+        shouldPersistSanitizedRegistry = true;
+        continue;
+      }
+
+      if (normalizedProfileId !== profile.profileId) {
+        shouldPersistSanitizedRegistry = true;
+      }
+
+      const isValid = await verifySecurityToken({ ...profile, profileId: normalizedProfileId });
       if (!isValid) {
         console.error(`[Profile Registry] Security token invalid for profile ${profile.uuid}. The profile may be corrupt or tampered with.`);
         // Decide on a strategy: either return null to invalidate the whole registry,
         // or filter out invalid profiles. For now, we invalidate the whole registry.
         return null;
       }
+
+      validProfiles.push({ ...profile, profileId: normalizedProfileId });
     }
+
+    registry.profiles = validProfiles;
     
     // Ensure active profile is valid
     if (registry.activeProfileUuid && !registry.profiles.some(p => p.uuid === registry.activeProfileUuid)) {
         console.warn(`[Profile Registry] Active profile UUID "${registry.activeProfileUuid}" not found in profiles list. Resetting active profile.`);
         registry.activeProfileUuid = registry.profiles.length > 0 ? registry.profiles[0]?.uuid ?? null : null;
-        // No need to save here, as this is a read operation. The next write will fix it.
+        shouldPersistSanitizedRegistry = true;
+    }
+
+    if (shouldPersistSanitizedRegistry) {
+      await saveProfileRegistry(registry);
     }
 
 
@@ -560,4 +587,34 @@ export async function initializeProfileRegistry(): Promise<void> {
   } else {
     logger.info(`[Profile Registry] Initialization complete. Loaded ${registry.profiles.length} profiles.`);
   }
+}
+
+/**
+ * Ensure login always uses the backend profile as active profile.
+ * This intentionally replaces legacy local entries to avoid stale
+ * non-backend profile IDs causing API sync failures after auth.
+ */
+export async function replaceWithBackendProfile(params: {
+  profileId: string;
+  displayName: string;
+}): Promise<Profile> {
+  const normalizedProfileId = params.profileId.trim().toLowerCase();
+  if (!PROFILE_ID_PATTERN.test(normalizedProfileId)) {
+    throw new Error('Profil-ID muss eine UUID sein.');
+  }
+
+  const profile = await createProfile({
+    displayName: params.displayName,
+    profileId: normalizedProfileId,
+  });
+
+  const registry: ProfileRegistry = {
+    profiles: [profile],
+    activeProfileUuid: profile.uuid,
+    registryVersion: REGISTRY_VERSION,
+    checksum: '',
+  };
+
+  await saveProfileRegistry(registry);
+  return profile;
 }
