@@ -414,5 +414,14 @@ describe('profileRegistry', () => {
       expect(result.displayName).toBe('Neu');
       expect(result.profileId).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     });
+
+    it('should reject invalid backend profileId values', async () => {
+      await expect(
+        replaceWithBackendProfile({
+          profileId: 'not-a-uuid',
+          displayName: 'Amy',
+        }),
+      ).rejects.toThrow('Profil-ID muss eine UUID sein.');
+    });
   });
 });

@@ -164,17 +164,40 @@ export interface ProfileMetadata {
   notes?: string;
 }
 
+function isMetacomVocabularySet(value: string): value is MetacomVocabularySet {
+  return value === 'einsteiger' || value === 'basis' || value === 'erweitert' || value === 'voll';
+}
+
 function normalizeMetadata(metadata?: ProfileMetadata): ProfileMetadata {
   const input = metadata ?? {};
-  const normalized: Partial<Record<keyof ProfileMetadata, ProfileMetadata[keyof ProfileMetadata]>> = {};
+  const normalized: ProfileMetadata = {};
   const keys = Object.keys(input).sort() as Array<keyof ProfileMetadata>;
   for (const key of keys) {
     const value = input[key];
-    if (value !== undefined) {
-      normalized[key] = value;
+    if (value === undefined) {
+      continue;
+    }
+
+    if (key === 'childAge' && typeof value === 'number') {
+      normalized.childAge = value;
+      continue;
+    }
+
+    if (key === 'vocabularySet' && typeof value === 'string' && isMetacomVocabularySet(value)) {
+      normalized.vocabularySet = value;
+      continue;
+    }
+
+    if (key === 'avatar' && typeof value === 'string') {
+      normalized.avatar = value;
+      continue;
+    }
+
+    if (key === 'notes' && typeof value === 'string') {
+      normalized.notes = value;
     }
   }
-  return normalized as ProfileMetadata;
+  return normalized;
 }
 
 export interface Profile {
@@ -255,13 +278,15 @@ async function generateSecurityToken(
   secretOverride?: string,
 ): Promise<string> {
   const secret = secretOverride || await getRegistrySecret();
-  const encoder = new TextEncoder();
   const metadataPayload = JSON.stringify(normalizeMetadata(metadata));
-  const data = encoder.encode(`${uuid}:${profileId}:${metadataPayload}:${secret}`);
-  
+  const data = new TextEncoder().encode(`${uuid}:${profileId}:${metadataPayload}:${secret}`);
+  return computeHmac(data, secret);
+}
+
+async function computeHmac(data: Uint8Array, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
   if (typeof crypto !== 'undefined' && crypto.subtle) {
     try {
-      // Use Web Crypto API
       const key = await crypto.subtle.importKey(
         'raw',
         encoder.encode(secret),
@@ -269,7 +294,7 @@ async function generateSecurityToken(
         false,
         ['sign']
       );
-      const signature = await crypto.subtle.sign('HMAC', key, data);
+      const signature = await crypto.subtle.sign('HMAC', key, data as BufferSource);
       return Array.from(new Uint8Array(signature))
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
@@ -278,7 +303,7 @@ async function generateSecurityToken(
       return secureHash(data);
     }
   }
-  
+
   console.warn('Web Crypto API not available for HMAC, falling back to SHA-256 hash.');
   return secureHash(data);
 }
@@ -289,28 +314,8 @@ async function generateLegacySecurityToken(
   secretOverride?: string,
 ): Promise<string> {
   const secret = secretOverride || await getRegistrySecret();
-  const encoder = new TextEncoder();
-  const data = encoder.encode(`${uuid}:${profileId}:${secret}`);
-
-  if (typeof crypto !== 'undefined' && crypto.subtle) {
-    try {
-      const key = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(secret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-      const signature = await crypto.subtle.sign('HMAC', key, data);
-      return Array.from(new Uint8Array(signature))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-    } catch {
-      return secureHash(data);
-    }
-  }
-
-  return secureHash(data);
+  const data = new TextEncoder().encode(`${uuid}:${profileId}:${secret}`);
+  return computeHmac(data, secret);
 }
 
 /**
@@ -396,6 +401,8 @@ export async function loadProfileRegistry(): Promise<ProfileRegistry | null> {
       }
 
       const casingChanged = normalizedProfileId !== profile.profileId;
+      // When profileId casing changes, verify against original casing,
+      // because that's the payload the persisted token was generated from.
       const profileForVerification = casingChanged
         ? profile
         : { ...profile, profileId: normalizedProfileId };
@@ -686,14 +693,16 @@ export async function replaceWithBackendProfile(params: {
     if (!existingProfile) {
       throw new Error('Profil konnte nicht geladen werden.');
     }
+    const normalizedMeta = normalizeMetadata(existingProfile.metadata);
     const updatedProfile: Profile = {
       ...existingProfile,
       displayName: params.displayName,
       profileId: normalizedProfileId,
+      metadata: normalizedMeta,
       securityToken: await generateSecurityToken(
         existingProfile.uuid,
         normalizedProfileId,
-        normalizeMetadata(existingProfile.metadata),
+        normalizedMeta,
       ),
     };
     registry.profiles[existingIndex] = updatedProfile;
