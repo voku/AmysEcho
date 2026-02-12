@@ -106,6 +106,24 @@ describe('useApiConfig', () => {
     );
   });
 
+  it('normalizes API base URL when /api or /api/v1 is provided', () => {
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    act(() => {
+      result.current.setApiBaseUrl('https://api.example.com/api/v1/');
+    });
+
+    expect(result.current.apiBaseUrl).toBe('https://api.example.com');
+    expect(result.current.uploadEndpoint).toBe('https://api.example.com/api/v1/dgs/sample-bundles');
+
+    act(() => {
+      result.current.setApiBaseUrl('https://api.example.com/api');
+    });
+
+    expect(result.current.apiBaseUrl).toBe('https://api.example.com');
+    expect(result.current.modelEndpoint).toBe('https://api.example.com/api/v1/models/latest');
+  });
+
   it('persists API base URL and token only after opt-in', async () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
@@ -404,28 +422,28 @@ describe('resolvePollUrl', () => {
 
   it('falls back to default endpoint when pollUrl is undefined', () => {
     expect(resolvePollUrl('https://api.example.com', undefined, 'job-123')).toBe(
-      'https://api.example.com/api/training-status/job-123',
+      'https://api.example.com/api/v1/training-status/job-123',
     );
   });
 
   it('falls back to default endpoint when pollUrl is empty or whitespace', () => {
     expect(resolvePollUrl('https://api.example.com', '', 'job-123')).toBe(
-      'https://api.example.com/api/training-status/job-123',
+      'https://api.example.com/api/v1/training-status/job-123',
     );
     expect(resolvePollUrl('https://api.example.com', '   ', 'job-123')).toBe(
-      'https://api.example.com/api/training-status/job-123',
+      'https://api.example.com/api/v1/training-status/job-123',
     );
   });
 
   it('encodes jobId in default endpoint', () => {
     expect(resolvePollUrl('https://api.example.com', undefined, 'job/with/slashes')).toBe(
-      'https://api.example.com/api/training-status/job%2Fwith%2Fslashes',
+      'https://api.example.com/api/v1/training-status/job%2Fwith%2Fslashes',
     );
   });
 
   it('normalizes base URL by removing trailing slashes', () => {
     expect(resolvePollUrl('https://api.example.com/', undefined, 'job-1')).toBe(
-      'https://api.example.com/api/training-status/job-1',
+      'https://api.example.com/api/v1/training-status/job-1',
     );
   });
 

@@ -22,6 +22,7 @@ VITE_API_URL=https://dein-server.example.com
 ```
 
 Im UI kannst du den Wert jederzeit überschreiben; Upload- und Polling-Endpunkte werden automatisch aktualisiert.
+Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, normalisiert die Webapp den Wert automatisch auf die Server-Basisdomain, damit Uploads nicht auf einen doppelten API-Pfad laufen.
 
 ## Nutzung
 

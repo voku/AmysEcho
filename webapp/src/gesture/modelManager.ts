@@ -24,6 +24,16 @@ export interface ModelSelectionConfig {
   minSamplesForProfile: number;
 }
 
+
+function resolveApiUrl(path: string): string {
+  const envBase = import.meta.env['VITE_API_URL']?.trim();
+  const normalizedBase = envBase ? envBase.replace(/\/+$/, '') : '';
+  if (!normalizedBase) {
+    return path;
+  }
+  return `${normalizedBase}${path}`;
+}
+
 class ModelManager {
   private currentProfileId: string | null = null;
   private globalModelLoaded = false;
@@ -59,7 +69,7 @@ class ModelManager {
   async loadProfileModel(profileId: string): Promise<boolean> {
     try {
       // Check if profile model file exists
-      const modelPath = `/api/models/profile/${profileId}`;
+      const modelPath = resolveApiUrl(`/api/v1/models/latest?profileId=${encodeURIComponent(profileId)}`);
       const response = await fetch(modelPath);
       
       if (!response.ok) {
@@ -125,7 +135,7 @@ class ModelManager {
    */
   async loadNormalizationConfig(): Promise<void> {
     try {
-      const response = await fetch('/api/config/normalization');
+      const response = await fetch(resolveApiUrl('/api/v1/config/normalization'));
       if (response.ok) {
         const config = await response.json();
         if (config.priority_factors) {
@@ -185,7 +195,7 @@ class ModelManager {
    */
   async getAvailableProfileModels(): Promise<ProfileModelInfo[]> {
     try {
-      const response = await fetch('/api/models/profiles');
+      const response = await fetch(resolveApiUrl('/api/models/profiles'));
       if (!response.ok) return [];
       
       const profiles: ProfileModelInfo[] = await response.json();

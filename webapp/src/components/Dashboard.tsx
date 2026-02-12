@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
@@ -29,22 +29,6 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Load local analytics only when a profile is active
-    if (profileId) {
-      const localSummary = loadLocalAnalytics(profileId);
-      setSummary(localSummary);
-    } else {
-      setSummary(null); // Clear summary if no profile is active
-    }
-
-    // Fetch server analytics if configured
-    if (apiBaseUrl && apiToken) {
-      fetchServerInsights(apiBaseUrl, apiToken);
-    }
-    setLoading(false);
-  }, [profileId, apiBaseUrl, apiToken]);
-
   const loadLocalAnalytics = (profileId: string): AnalyticsSummary => {
     const progressKey = `webapp:progress:${profileId}`;
     const appStateKey = 'webapp:app-state';
@@ -73,31 +57,70 @@ export function Dashboard() {
     }
   };
 
-  const fetchServerInsights = async (apiUrl: string, authToken: string) => {
+  const fetchServerInsights = useCallback(async (apiUrl: string, authToken: string) => {
+    if (!profileId) {
+      setServerInsights(null);
+      return;
+    }
+
     try {
-      const [summaryRes, insightsRes] = await Promise.all([
-        fetch(`${apiUrl}/api/analytics/summary`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        }),
-        fetch(`${apiUrl}/api/analytics/insights`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        }),
-      ]);
+      const qualityUrl = new URL(`${apiUrl}/api/v1/dgs/training-quality`);
+      qualityUrl.searchParams.set('profileId', profileId);
+      qualityUrl.searchParams.set('limit', '50');
 
-      if (summaryRes.ok) {
-        const data = await summaryRes.json();
-        setSummary((prev) => ({ ...prev, ...data }));
+      const qualityRes = await fetch(qualityUrl.toString(), {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      if (!qualityRes.ok) {
+        return;
       }
 
-      if (insightsRes.ok) {
-        const insights = await insightsRes.json();
-        setServerInsights(insights);
+      const payload = (await qualityRes.json()) as { items?: Array<{ label?: string; qualityGate?: { accepted?: boolean } }> };
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      const labelCounts = new Map<string, number>();
+      let acceptedCount = 0;
+
+      for (const item of items) {
+        const label = typeof item.label === 'string' ? item.label.trim() : '';
+        if (label) {
+          labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
+        }
+        if (item.qualityGate?.accepted === true) {
+          acceptedCount += 1;
+        }
       }
+
+      const topGestures = Array.from(labelCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count }));
+
+      setServerInsights({
+        topGestures,
+        recentActivity: [],
+        successRate: items.length > 0 ? acceptedCount / items.length : 0,
+      });
     } catch (e) {
       console.warn('Failed to fetch server insights', e);
       setError('Server-Insights konnten nicht geladen werden.');
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    // Load local analytics only when a profile is active
+    if (profileId) {
+      const localSummary = loadLocalAnalytics(profileId);
+      setSummary(localSummary);
+    } else {
+      setSummary(null); // Clear summary if no profile is active
+    }
+
+    // Fetch server analytics if configured
+    if (apiBaseUrl && apiToken) {
+      fetchServerInsights(apiBaseUrl, apiToken);
+    }
+    setLoading(false);
+  }, [profileId, apiBaseUrl, apiToken, fetchServerInsights]);
 
   return (
     <section className="card">

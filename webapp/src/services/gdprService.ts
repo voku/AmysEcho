@@ -42,7 +42,7 @@ export const gdprService = {
       logger.error('[gdprService] API-Basis fehlt.');
       return null;
     }
-    const resp = await request(`${apiUrl}/api/profiles/${profileId}/export`, token);
+    const resp = await request(`${apiUrl}/api/v1/profiles/${profileId}/export`, token);
     if (!resp) return null;
     try {
       const data = (await resp.json()) as ExportedProfileData;
@@ -60,7 +60,7 @@ export const gdprService = {
       logger.error('[gdprService] API-Basis fehlt.');
       return false;
     }
-    const resp = await request(`${apiUrl}/api/profiles/${profileId}`, token, { method: 'DELETE' });
+    const resp = await request(`${apiUrl}/api/v1/profiles/${profileId}`, token, { method: 'DELETE' });
     if (resp) {
       logger.info(`[gdprService] Profile ${profileId} deleted for privacy compliance`);
     }
@@ -73,72 +73,26 @@ export const gdprService = {
     accessType: 'view' | 'export' | 'modify' | 'delete',
     config: ApiClientConfig,
   ): Promise<void> {
-    const apiUrl = config.apiBaseUrl;
-    const token = config.apiToken ?? null;
-    if (!apiUrl) {
-      logger.error('[gdprService] API-Basis fehlt.');
-      return;
-    }
-    try {
-      await request(`${apiUrl}/api/audit/profiles/${profileId}/access`, token, {
-        method: 'POST',
-        body: JSON.stringify({
-          accessorId,
-          accessType,
-          timestamp: new Date().toISOString(),
-          ipAddress: 'browser',
-          userAgent: navigator.userAgent
-        })
-      });
-    } catch (e) {
-      logger.error('[gdprService] Failed to log data access audit', e);
-    }
+    void profileId;
+    void accessorId;
+    void accessType;
+    void config;
+    logger.warn('[gdprService] Server unterstützt aktuell kein Audit-Access-Ende im Webapp-Client.');
   },
 
   async scheduleDataDeletion(profileId: string, retentionDays: number, config: ApiClientConfig): Promise<boolean> {
-    const apiUrl = config.apiBaseUrl;
-    const token = config.apiToken ?? null;
-    if (!apiUrl) {
-      logger.error('[gdprService] API-Basis fehlt.');
-      return false;
-    }
-    try {
-      const deletionDate = new Date();
-      deletionDate.setDate(deletionDate.getDate() + retentionDays);
-
-      const resp = await request(`${apiUrl}/api/profiles/${profileId}/schedule-deletion`, token, {
-        method: 'POST',
-        body: JSON.stringify({
-          deletionDate: deletionDate.toISOString(),
-          reason: 'data_retention_policy'
-        })
-      });
-      return !!resp;
-    } catch (e) {
-      logger.error('[gdprService] Failed to schedule data deletion', e);
-      return false;
-    }
+    void profileId;
+    void retentionDays;
+    void config;
+    logger.warn('[gdprService] Geplante Löschung wird vom Server derzeit nicht angeboten.');
+    return false;
   },
 
   async anonymizeProfileData(profileId: string, config: ApiClientConfig): Promise<boolean> {
-    const apiUrl = config.apiBaseUrl;
-    const token = config.apiToken ?? null;
-    if (!apiUrl) {
-      logger.error('[gdprService] API-Basis fehlt.');
-      return false;
-    }
-    try {
-      const resp = await request(`${apiUrl}/api/profiles/${profileId}/anonymize`, token, {
-        method: 'POST'
-      });
-      if (resp) {
-        logger.info(`[gdprService] Profile ${profileId} data anonymized for privacy`);
-      }
-      return !!resp;
-    } catch (e) {
-      logger.error('[gdprService] Failed to anonymize profile data', e);
-      return false;
-    }
+    void profileId;
+    void config;
+    logger.warn('[gdprService] Anonymisierung wird vom Server derzeit nicht angeboten.');
+    return false;
   },
 
   async getDataRetentionStatus(profileId: string, config: ApiClientConfig): Promise<{
@@ -147,20 +101,10 @@ export const gdprService = {
     lastAccessed: string;
     dataSize: number;
   } | null> {
-    const apiUrl = config.apiBaseUrl;
-    const token = config.apiToken ?? null;
-    if (!apiUrl) {
-      logger.error('[gdprService] API-Basis fehlt.');
-      return null;
-    }
-    try {
-      const resp = await request(`${apiUrl}/api/profiles/${profileId}/retention-status`, token);
-      if (!resp) return null;
-      return await resp.json();
-    } catch (e) {
-      logger.error('[gdprService] Failed to get retention status', e);
-      return null;
-    }
+    void profileId;
+    void config;
+    logger.warn('[gdprService] Retention-Status wird vom Server derzeit nicht angeboten.');
+    return null;
   },
 
   /**

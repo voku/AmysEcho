@@ -211,7 +211,11 @@ function normalizeApiBase(raw: string | undefined): string {
   if (!raw) return resolveFallbackApiBase();
   const trimmed = raw.trim();
   if (!trimmed) return resolveFallbackApiBase();
-  return trimmed.replace(/\/$/, '');
+  const withoutTrailingSlash = trimmed.replace(/\/+$/, '');
+  const withoutApiPrefix = withoutTrailingSlash
+    .replace(/\/api\/v1$/i, '')
+    .replace(/\/api$/i, '');
+  return withoutApiPrefix || resolveFallbackApiBase();
 }
 
 function readFromStorage(): StoredApiConfig {
@@ -525,5 +529,5 @@ export function resolvePollUrl(baseUrl: string, pollUrl: string | undefined, job
     return `${trimmedBase}/${trimmedPollUrl.replace(/^\/+/, '')}`;
   }
 
-  return `${trimmedBase}/api/training-status/${encodeURIComponent(jobId)}`;
+  return `${trimmedBase}/api/v1/training-status/${encodeURIComponent(jobId)}`;
 }
