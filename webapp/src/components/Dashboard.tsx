@@ -17,6 +17,16 @@ interface ServerInsights {
   successRate: number;
 }
 
+interface TrainingQualityItem {
+  label?: string;
+  reasons?: unknown;
+  metrics?: { handCoverage?: number };
+}
+
+interface TrainingQualityPayload {
+  items?: TrainingQualityItem[];
+}
+
 /**
  * Dashboard component - mirrors DashboardScreen from the Expo app.
  * Shows analytics summary and insights for caregivers.
@@ -73,10 +83,19 @@ export function Dashboard() {
       });
 
       if (!qualityRes.ok) {
+        setServerInsights(null);
+        const responseText = await qualityRes.text().catch(() => '');
+        const errorDetail = responseText ? `: ${responseText.slice(0, 120)}` : '';
+        console.warn('Server insights request failed', {
+          status: qualityRes.status,
+          statusText: qualityRes.statusText,
+          apiUrl,
+        });
+        setError(`Server-Insights konnten nicht geladen werden (HTTP ${qualityRes.status})${errorDetail}`);
         return;
       }
 
-      const payload = (await qualityRes.json()) as { items?: Array<{ label?: string; qualityGate?: { accepted?: boolean } }> };
+      const payload = (await qualityRes.json()) as TrainingQualityPayload;
       const items = Array.isArray(payload.items) ? payload.items : [];
       const labelCounts = new Map<string, number>();
       let acceptedCount = 0;
@@ -86,7 +105,10 @@ export function Dashboard() {
         if (label) {
           labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
         }
-        if (item.qualityGate?.accepted === true) {
+
+        const reasons = Array.isArray(item.reasons) ? item.reasons : [];
+        const isAccepted = reasons.length === 0;
+        if (isAccepted) {
           acceptedCount += 1;
         }
       }
@@ -100,6 +122,7 @@ export function Dashboard() {
         recentActivity: [],
         successRate: items.length > 0 ? acceptedCount / items.length : 0,
       });
+      setError(null);
     } catch (e) {
       console.warn('Failed to fetch server insights', e);
       setError('Server-Insights konnten nicht geladen werden.');

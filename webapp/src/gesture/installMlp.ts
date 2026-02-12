@@ -2,15 +2,8 @@ import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
 import { enhancePredictionWithFeedback } from './performanceFeedback';
 import { logger } from '../services/logger';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
-function resolveApiUrl(path: string): string {
-  const envBase = import.meta.env['VITE_API_URL']?.trim();
-  const normalizedBase = envBase ? envBase.replace(/\/+$/, '') : '';
-  if (!normalizedBase) {
-    return path;
-  }
-  return `${normalizedBase}${path}`;
-}
 
 export type ModelMetadata = {
   window_size?: number;

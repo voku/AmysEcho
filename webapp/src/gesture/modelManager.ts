@@ -9,6 +9,7 @@ import { installMlp } from './installMlp';
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { updatePriorityFactors } from './utils/landmarkNormalizer';
 import { logger } from '../services/logger';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 export interface ProfileModelInfo {
   profileId: string;
@@ -24,15 +25,6 @@ export interface ModelSelectionConfig {
   minSamplesForProfile: number;
 }
 
-
-function resolveApiUrl(path: string): string {
-  const envBase = import.meta.env['VITE_API_URL']?.trim();
-  const normalizedBase = envBase ? envBase.replace(/\/+$/, '') : '';
-  if (!normalizedBase) {
-    return path;
-  }
-  return `${normalizedBase}${path}`;
-}
 
 class ModelManager {
   private currentProfileId: string | null = null;
@@ -83,11 +75,13 @@ class ModelManager {
       
       // Convert ArrayBuffer to base64
       const bytes = new Uint8Array(modelData);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]!);
+      const CHUNK_SIZE = 0x8000;
+      const chunks: string[] = [];
+      for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+        const slice = bytes.subarray(i, i + CHUNK_SIZE);
+        chunks.push(String.fromCharCode.apply(null, slice as unknown as number[]));
       }
-      const b64 = btoa(binary);
+      const b64 = btoa(chunks.join(''));
 
       // Install the profile model
       const installed = await installMlp(b64);
@@ -195,7 +189,7 @@ class ModelManager {
    */
   async getAvailableProfileModels(): Promise<ProfileModelInfo[]> {
     try {
-      const response = await fetch(resolveApiUrl('/api/models/profiles'));
+      const response = await fetch(resolveApiUrl('/api/v1/models/profiles'));
       if (!response.ok) return [];
       
       const profiles: ProfileModelInfo[] = await response.json();
