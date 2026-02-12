@@ -1,6 +1,6 @@
 numpy
 pytest
-mediapipe==0.10.31
+mediapipe==0.10.32
 opencv-python
 pillow
 beautifulsoup4
