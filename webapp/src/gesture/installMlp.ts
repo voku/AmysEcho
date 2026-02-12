@@ -3,6 +3,7 @@ import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR
 import { enhancePredictionWithFeedback } from './performanceFeedback';
 import { logger } from '../services/logger';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
+import { arrayBufferToBase64 } from '../utils/arrayBufferToBase64';
 
 
 export type ModelMetadata = {
@@ -723,14 +724,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       const modelBuffer = await response.arrayBuffer();
-      const modelBytes = new Uint8Array(modelBuffer);
-      const CHUNK_SIZE = 0x8000;
-      const chunks: string[] = [];
-      for (let i = 0; i < modelBytes.length; i += CHUNK_SIZE) {
-        const slice = modelBytes.subarray(i, i + CHUNK_SIZE);
-        chunks.push(String.fromCharCode.apply(null, slice as unknown as number[]));
-      }
-      const serverB64 = btoa(chunks.join(''));
+      const serverB64 = arrayBufferToBase64(modelBuffer);
       if (await loadMlpFromB64(serverB64)) {
         forwardTelemetry('mlp_server_loaded');
         return true;

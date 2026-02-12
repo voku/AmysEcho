@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 interface AnalyticsSummary {
   totalGestures: number;
@@ -19,7 +20,7 @@ interface ServerInsights {
 
 interface TrainingQualityItem {
   label?: string;
-  reasons?: unknown;
+  reasons?: string[];
   metrics?: { handCoverage?: number };
 }
 
@@ -67,14 +68,15 @@ export function Dashboard() {
     }
   };
 
-  const fetchServerInsights = useCallback(async (apiUrl: string, authToken: string) => {
+  const fetchServerInsights = useCallback(async (authToken: string) => {
     if (!profileId) {
       setServerInsights(null);
       return;
     }
 
     try {
-      const qualityUrl = new URL(`${apiUrl}/api/v1/dgs/training-quality`);
+      const endpoint = resolveApiUrl('/api/v1/dgs/training-quality', apiBaseUrl);
+      const qualityUrl = new URL(endpoint, window.location.origin);
       qualityUrl.searchParams.set('profileId', profileId);
       qualityUrl.searchParams.set('limit', '50');
 
@@ -89,7 +91,7 @@ export function Dashboard() {
         console.warn('Server insights request failed', {
           status: qualityRes.status,
           statusText: qualityRes.statusText,
-          apiUrl,
+          endpoint: qualityUrl.toString(),
         });
         setError(`Server-Insights konnten nicht geladen werden (HTTP ${qualityRes.status})${errorDetail}`);
         return;
@@ -124,25 +126,47 @@ export function Dashboard() {
       });
       setError(null);
     } catch (e) {
-      console.warn('Failed to fetch server insights', e);
-      setError('Server-Insights konnten nicht geladen werden.');
+      console.warn('Server insights skipped due to endpoint resolution or fetch error', e);
+      setServerInsights(null);
     }
-  }, [profileId]);
+  }, [apiBaseUrl, profileId]);
 
   useEffect(() => {
-    // Load local analytics only when a profile is active
-    if (profileId) {
-      const localSummary = loadLocalAnalytics(profileId);
-      setSummary(localSummary);
-    } else {
-      setSummary(null); // Clear summary if no profile is active
-    }
+    let cancelled = false;
 
-    // Fetch server analytics if configured
-    if (apiBaseUrl && apiToken) {
-      fetchServerInsights(apiBaseUrl, apiToken);
-    }
-    setLoading(false);
+    const run = async () => {
+      setLoading(true);
+      try {
+        // Load local analytics only when a profile is active
+        if (profileId) {
+          const localSummary = loadLocalAnalytics(profileId);
+          if (!cancelled) {
+            setSummary(localSummary);
+          }
+        } else if (!cancelled) {
+          setSummary(null); // Clear summary if no profile is active
+          setServerInsights(null);
+          setError(null);
+        }
+
+        // Fetch server analytics if configured
+        if (!cancelled && apiBaseUrl && apiToken) {
+          await fetchServerInsights(apiToken);
+        }
+      } catch (error) {
+        console.warn('Dashboard loading failed', error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [profileId, apiBaseUrl, apiToken, fetchServerInsights]);
 
   return (

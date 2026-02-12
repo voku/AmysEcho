@@ -10,6 +10,7 @@ import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { updatePriorityFactors } from './utils/landmarkNormalizer';
 import { logger } from '../services/logger';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
+import { arrayBufferToBase64 } from '../utils/arrayBufferToBase64';
 
 export interface ProfileModelInfo {
   profileId: string;
@@ -72,16 +73,8 @@ class ModelManager {
 
       // Load and install profile-specific model
       const modelData = await response.arrayBuffer();
-      
       // Convert ArrayBuffer to base64
-      const bytes = new Uint8Array(modelData);
-      const CHUNK_SIZE = 0x8000;
-      const chunks: string[] = [];
-      for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-        const slice = bytes.subarray(i, i + CHUNK_SIZE);
-        chunks.push(String.fromCharCode.apply(null, slice as unknown as number[]));
-      }
-      const b64 = btoa(chunks.join(''));
+      const b64 = arrayBufferToBase64(modelData);
 
       // Install the profile model
       const installed = await installMlp(b64);
