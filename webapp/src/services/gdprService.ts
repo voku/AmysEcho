@@ -6,6 +6,7 @@
 import type { ApiClientConfig } from './apiClient';
 import { buildAuthHeaders } from './apiClient';
 import { logger } from './logger';
+import { resolveApiUrl } from './resolveApiUrl';
 
 export interface ExportedProfileData {
   profile: unknown;
@@ -42,7 +43,7 @@ export const gdprService = {
       logger.error('[gdprService] API-Basis fehlt.');
       return null;
     }
-    const resp = await request(`${apiUrl}/api/v1/profiles/${profileId}/export`, token);
+    const resp = await request(resolveApiUrl(`/api/v1/profiles/${profileId}/export`, apiUrl), token);
     if (!resp) return null;
     try {
       const data = (await resp.json()) as ExportedProfileData;
@@ -60,7 +61,7 @@ export const gdprService = {
       logger.error('[gdprService] API-Basis fehlt.');
       return false;
     }
-    const resp = await request(`${apiUrl}/api/v1/profiles/${profileId}`, token, { method: 'DELETE' });
+    const resp = await request(resolveApiUrl(`/api/v1/profiles/${profileId}`, apiUrl), token, { method: 'DELETE' });
     if (resp) {
       logger.info(`[gdprService] Profile ${profileId} deleted for privacy compliance`);
     }

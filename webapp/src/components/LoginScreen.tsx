@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useAppState } from '../hooks/useAppState';
 import { PROFILE_ID_PATTERN, replaceWithBackendProfile } from '../services/profileRegistry';
 
@@ -84,7 +85,7 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
         requestBody.email = email.trim();
       }
 
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/${authMode}`, {
+      const response = await fetch(resolveApiUrl(`/api/v1/auth/${authMode}`, apiBaseUrl), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -146,7 +147,7 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
     setMessage('Reset-Code wird per E-Mail gesendet…');
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/password-reset/request`, {
+      const response = await fetch(resolveApiUrl('/api/v1/auth/password-reset/request', apiBaseUrl), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
@@ -176,7 +177,7 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
     setMessage('Passwort wird aktualisiert…');
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/password-reset/confirm`, {
+      const response = await fetch(resolveApiUrl('/api/v1/auth/password-reset/confirm', apiBaseUrl), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), resetToken, password }),
@@ -205,7 +206,7 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
     setMessage('Bestätigungscode wird per E-Mail gesendet…');
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/verify-email/request`, {
+      const response = await fetch(resolveApiUrl('/api/v1/auth/verify-email/request', apiBaseUrl), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
@@ -235,7 +236,7 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
     setMessage('E-Mail-Adresse wird bestätigt…');
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/verify-email/confirm`, {
+      const response = await fetch(resolveApiUrl('/api/v1/auth/verify-email/confirm', apiBaseUrl), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), verificationToken }),

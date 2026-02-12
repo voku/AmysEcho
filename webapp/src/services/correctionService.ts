@@ -4,6 +4,7 @@
  */
 
 import { logger } from './logger';
+import { resolveApiUrl } from './resolveApiUrl';
 import type { ApiClientConfig } from './apiClient';
 import { buildAuthHeaders } from './apiClient';
 
@@ -13,7 +14,7 @@ export const correctionService = {
     const token = config.apiToken;
 
     try {
-      await fetch(`${apiUrl}/api/v1/corrections`, {
+      await fetch(resolveApiUrl('/api/v1/corrections', apiUrl), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,7 +33,7 @@ export const correctionService = {
     const token = config.apiToken;
 
     try {
-      await fetch(`${apiUrl}/api/v1/negative-samples`, {
+      await fetch(resolveApiUrl('/api/v1/negative-samples', apiUrl), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

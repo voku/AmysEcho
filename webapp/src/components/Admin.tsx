@@ -6,6 +6,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useMessage } from '../context/MessageContext';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { backupService } from '../services/backupService';
@@ -290,7 +291,7 @@ export const Admin: React.FC = () => {
 
   const handleDownloadModel = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/models/latest`, {
+      const response = await fetch(resolveApiUrl('/api/v1/models/latest', apiBaseUrl), {
         headers: { Authorization: `Bearer ${apiToken}` },
       });
       if (response.ok) {

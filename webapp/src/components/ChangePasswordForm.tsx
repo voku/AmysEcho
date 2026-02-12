@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 export function ChangePasswordForm() {
   const { apiBaseUrl, apiToken } = useApiConfig();
@@ -28,7 +29,7 @@ export function ChangePasswordForm() {
       setMessage('Passwort wird aktualisiert…');
 
       try {
-        const response = await fetch(`${apiBaseUrl}/api/user/password`, {
+        const response = await fetch(resolveApiUrl('/api/user/password', apiBaseUrl), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

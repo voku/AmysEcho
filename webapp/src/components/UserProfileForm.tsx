@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 export interface UserProfileFormProps {
   initialDisplayName?: string;
@@ -26,7 +27,7 @@ export function UserProfileForm({ initialDisplayName = '' }: UserProfileFormProp
       setMessage('Profil wird gespeichert…');
 
       try {
-        const response = await fetch(`${apiBaseUrl}/api/user/profile`, {
+        const response = await fetch(resolveApiUrl('/api/user/profile', apiBaseUrl), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useAppState } from '../hooks/useAppState';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { DgsVideoPlayer } from './DgsVideoPlayer';
@@ -67,7 +68,7 @@ export function SignVideoGallery() {
       if (profileId) {
         promises.push(
           apiRetryManager
-            .fetch(`${apiBaseUrl}/api/v1/profiles/${profileId}/training-videos`)
+            .fetch(resolveApiUrl(`/api/v1/profiles/${profileId}/training-videos`, apiBaseUrl))
             .then(async (res) => {
               if (res.ok) {
                 const data = await res.json();
@@ -84,7 +85,7 @@ export function SignVideoGallery() {
       // Load DGS reference videos (not profile-specific)
       promises.push(
         apiRetryManager
-          .fetch(`${apiBaseUrl}/api/v1/dgs-videos`)
+          .fetch(resolveApiUrl('/api/v1/dgs-videos', apiBaseUrl))
           .then(async (res) => {
             if (res.ok) {
               const data = await res.json();
