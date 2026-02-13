@@ -9,6 +9,7 @@ const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
 const SESSION_CRYPTO_KEY = 'webapp:api-config:session:key';
 const DEFAULT_NON_PROD_API_BASE = 'http://localhost:5000';
+const DEFAULT_PROD_API_BASE = 'https://amysecho.moelleken.org';
 const DEV_ORIGINS = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -18,6 +19,10 @@ const DEV_ORIGINS = new Set([
   'http://127.0.0.1:4173',
   'https://localhost:4173',
   'https://127.0.0.1:4173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://localhost:3000',
+  'https://127.0.0.1:3000',
 ]);
 
 export function resolveFallbackApiBase(
@@ -34,8 +39,12 @@ export function resolveFallbackApiBase(
     /^https?:\/\//i.test(runtimeOrigin) &&
     !DEV_ORIGINS.has(runtimeOrigin);
   if (isValidRuntimeOrigin) {
+    if (/github\.io$/i.test(new URL(runtimeOrigin).hostname)) {
+      return DEFAULT_PROD_API_BASE;
+    }
     return runtimeOrigin.replace(/\/$/, '');
   }
+  if (env.MODE === 'production') return DEFAULT_PROD_API_BASE;
   return DEFAULT_NON_PROD_API_BASE;
 }
 
@@ -213,6 +222,18 @@ function normalizeApiBase(raw: string | undefined): string {
   return normalized || resolveFallbackApiBase();
 }
 
+function shouldOverrideStoredBase(storedBase: string, fallbackBase: string): boolean {
+  if (storedBase === DEFAULT_NON_PROD_API_BASE && fallbackBase !== DEFAULT_NON_PROD_API_BASE) {
+    return true;
+  }
+  try {
+    const host = new URL(storedBase).hostname;
+    return /github\.io$/i.test(host) && storedBase !== fallbackBase;
+  } catch {
+    return false;
+  }
+}
+
 function readFromStorage(): StoredApiConfig {
   if (typeof window === 'undefined') return createDefaultConfig();
   initialEncryptedToken.current = null;
@@ -247,7 +268,7 @@ function readFromStorage(): StoredApiConfig {
       : parsed?.apiBaseUrl;
     const normalizedStoredBase = normalizeApiBase(storedBase);
     const apiBaseUrl =
-      normalizedStoredBase === DEFAULT_NON_PROD_API_BASE && fallbackBase !== DEFAULT_NON_PROD_API_BASE
+      shouldOverrideStoredBase(normalizedStoredBase, fallbackBase)
         ? fallbackBase
         : normalizedStoredBase;
     const tokenSource =

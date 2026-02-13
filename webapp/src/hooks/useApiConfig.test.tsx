@@ -43,13 +43,22 @@ describe('useApiConfig', () => {
     expect(fallbackBase).toBe('https://api.example.com');
   });
 
-  it('keeps non-production default when no environment override is provided', () => {
+  it('uses production fallback when no environment override is provided', () => {
     const fallbackBase = resolveFallbackApiBase(
       { MODE: 'production', VITE_API_URL: undefined } as any,
       { location: { origin: 'http://localhost:5173' } } as any,
     );
 
-    expect(fallbackBase).toBe(DEFAULT_API_BASE);
+    expect(fallbackBase).toBe('https://amysecho.moelleken.org');
+  });
+
+  it('uses production backend fallback for github pages runtime origins', () => {
+    const fallbackBase = resolveFallbackApiBase(
+      { MODE: 'production', VITE_API_URL: undefined } as any,
+      { location: { origin: 'https://voku.github.io' } } as any,
+    );
+
+    expect(fallbackBase).toBe('https://amysecho.moelleken.org');
   });
 
   it('ignores invalid runtime origin values', () => {
@@ -62,8 +71,8 @@ describe('useApiConfig', () => {
       { location: { origin: 'null' } } as any,
     );
 
-    expect(fileOriginBase).toBe(DEFAULT_API_BASE);
-    expect(nullOriginBase).toBe(DEFAULT_API_BASE);
+    expect(fileOriginBase).toBe('https://amysecho.moelleken.org');
+    expect(nullOriginBase).toBe('https://amysecho.moelleken.org');
   });
 
   it('uses runtime origin when running in production without override', () => {
@@ -82,6 +91,22 @@ describe('useApiConfig', () => {
     window.localStorage.setItem(
       'webapp:api-config',
       JSON.stringify({ apiBaseUrl: DEFAULT_API_BASE, persistToken: false }),
+    );
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await waitFor(() => {
+      expect(result.current.apiBaseUrl).toBe('https://amysecho.moelleken.org');
+    });
+  });
+
+  it('replaces persisted github pages base with production API fallback', async () => {
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_API_URL', '');
+
+    window.localStorage.setItem(
+      'webapp:api-config',
+      JSON.stringify({ apiBaseUrl: 'https://voku.github.io/AmysEcho', persistToken: false }),
     );
 
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
