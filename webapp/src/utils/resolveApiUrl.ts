@@ -1,6 +1,6 @@
 const API_CONFIG_KEY = 'webapp:api-config';
 
-function normalizeConfiguredApiBase(raw: string | undefined): string {
+export function normalizeConfiguredApiBase(raw: string | undefined): string {
   if (!raw) return '';
   const trimmed = raw.trim();
   if (!trimmed) return '';
