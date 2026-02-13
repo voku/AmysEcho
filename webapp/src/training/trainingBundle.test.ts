@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
-import { createTrainingZip, fetchTrainingQualityLog, normalizeTrainingJobStatus, uploadTrainingBundle } from './trainingBundle';
+import {
+  createTrainingZip,
+  fetchTrainingQualityLog,
+  normalizeTrainingJobStatus,
+  resolveTrainingUploadTimeoutMs,
+  uploadTrainingBundle,
+} from './trainingBundle';
 import type { TrainingBundlePayload } from './types';
 
 const basePoseLandmarks = () => {
@@ -407,6 +413,21 @@ describe('normalizeTrainingJobStatus', () => {
   });
 });
 
+describe('resolveTrainingUploadTimeoutMs', () => {
+  it('verwendet das Mindest-Timeout für leere Bundles', () => {
+    expect(resolveTrainingUploadTimeoutMs(0)).toBe(30000);
+  });
+
+  it('erhöht das Timeout abhängig von der Bundle-Größe', () => {
+    expect(resolveTrainingUploadTimeoutMs(1024 * 1024)).toBe(45000);
+    expect(resolveTrainingUploadTimeoutMs(4 * 1024 * 1024)).toBe(90000);
+  });
+
+  it('begrenzt das Timeout auf das Maximum', () => {
+    expect(resolveTrainingUploadTimeoutMs(40 * 1024 * 1024)).toBe(300000);
+  });
+});
+
 describe('uploadTrainingBundle', () => {
   it('reicht den ZIP-Body an den Server weiter', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
@@ -469,6 +490,15 @@ describe('uploadTrainingBundle', () => {
     expect(result.validationSummary?.frameCount).toBe(14);
     expect(result.validationSummary?.qualityScore).toBe(74);
     expect(result.qualityGate).toEqual({ outcome: 'review', reasons: ['hand_coverage_low'] });
+  });
+
+  it('meldet Zeitüberschreitungen mit verständlicher Fehlermeldung', async () => {
+    const fetchSpy = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
+    (globalThis as any).fetch = fetchSpy;
+
+    await expect(uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' })).rejects.toThrow(
+      'Upload wurde wegen einer Zeitüberschreitung abgebrochen.',
+    );
   });
 });
 

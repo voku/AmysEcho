@@ -481,6 +481,20 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
 
 export type TrainingUploadOptions = { endpoint: string; token?: string };
 
+const MIN_TRAINING_UPLOAD_TIMEOUT_MS = 30000;
+const TRAINING_UPLOAD_TIMEOUT_PER_MB_MS = 15000;
+const MAX_TRAINING_UPLOAD_TIMEOUT_MS = 300000;
+
+export function resolveTrainingUploadTimeoutMs(zipSizeBytes: number): number {
+  if (!Number.isFinite(zipSizeBytes) || zipSizeBytes <= 0) {
+    return MIN_TRAINING_UPLOAD_TIMEOUT_MS;
+  }
+
+  const bundleSizeInMb = Math.max(1, Math.ceil(zipSizeBytes / (1024 * 1024)));
+  const calculatedTimeoutMs = MIN_TRAINING_UPLOAD_TIMEOUT_MS + (bundleSizeInMb * TRAINING_UPLOAD_TIMEOUT_PER_MB_MS);
+  return Math.min(MAX_TRAINING_UPLOAD_TIMEOUT_MS, calculatedTimeoutMs);
+}
+
 export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUploadOptions): Promise<UploadTrainingBundleResponse> {
   const endpoint = options.endpoint?.trim();
   if (!endpoint) {
@@ -489,6 +503,7 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
 
   const zipView = new Uint8Array(zip);
   const body = new Blob([zipView], { type: 'application/zip' });
+  const timeoutMs = resolveTrainingUploadTimeoutMs(zipView.byteLength);
 
   let response: Response;
   try {
@@ -503,7 +518,7 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
         },
         body,
       },
-      { retries: 2, retryDelayMs: 400, timeoutMs: 20000 },
+      { retries: 2, retryDelayMs: 400, timeoutMs },
     );
   } catch (error) {
     const message =
