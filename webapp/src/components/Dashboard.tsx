@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 interface AnalyticsSummary {
   totalGestures: number;
@@ -17,6 +18,16 @@ interface ServerInsights {
   successRate: number;
 }
 
+interface TrainingQualityItem {
+  label?: string;
+  reasons?: string[];
+  metrics?: { handCoverage?: number };
+}
+
+interface TrainingQualityPayload {
+  items?: TrainingQualityItem[];
+}
+
 /**
  * Dashboard component - mirrors DashboardScreen from the Expo app.
  * Shows analytics summary and insights for caregivers.
@@ -28,22 +39,6 @@ export function Dashboard() {
   const [serverInsights, setServerInsights] = useState<ServerInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Load local analytics only when a profile is active
-    if (profileId) {
-      const localSummary = loadLocalAnalytics(profileId);
-      setSummary(localSummary);
-    } else {
-      setSummary(null); // Clear summary if no profile is active
-    }
-
-    // Fetch server analytics if configured
-    if (apiBaseUrl && apiToken) {
-      fetchServerInsights(apiBaseUrl, apiToken);
-    }
-    setLoading(false);
-  }, [profileId, apiBaseUrl, apiToken]);
 
   const loadLocalAnalytics = (profileId: string): AnalyticsSummary => {
     const progressKey = `webapp:progress:${profileId}`;
@@ -73,31 +68,106 @@ export function Dashboard() {
     }
   };
 
-  const fetchServerInsights = async (apiUrl: string, authToken: string) => {
-    try {
-      const [summaryRes, insightsRes] = await Promise.all([
-        fetch(`${apiUrl}/api/analytics/summary`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        }),
-        fetch(`${apiUrl}/api/analytics/insights`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        }),
-      ]);
-
-      if (summaryRes.ok) {
-        const data = await summaryRes.json();
-        setSummary((prev) => ({ ...prev, ...data }));
-      }
-
-      if (insightsRes.ok) {
-        const insights = await insightsRes.json();
-        setServerInsights(insights);
-      }
-    } catch (e) {
-      console.warn('Failed to fetch server insights', e);
-      setError('Server-Insights konnten nicht geladen werden.');
+  const fetchServerInsights = useCallback(async (authToken: string) => {
+    if (!profileId) {
+      setServerInsights(null);
+      return;
     }
-  };
+
+    try {
+      const endpoint = resolveApiUrl('/api/v1/dgs/training-quality', apiBaseUrl);
+      const qualityUrl = new URL(endpoint, window.location.origin);
+      qualityUrl.searchParams.set('profileId', profileId);
+      qualityUrl.searchParams.set('limit', '50');
+
+      const qualityRes = await fetch(qualityUrl.toString(), {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      if (!qualityRes.ok) {
+        setServerInsights(null);
+        const responseText = await qualityRes.text().catch(() => '');
+        const errorDetail = responseText ? `: ${responseText.slice(0, 120)}` : '';
+        console.warn('Server insights request failed', {
+          status: qualityRes.status,
+          statusText: qualityRes.statusText,
+          endpoint: qualityUrl.toString(),
+        });
+        setError(`Server-Insights konnten nicht geladen werden (HTTP ${qualityRes.status})${errorDetail}`);
+        return;
+      }
+
+      const payload = (await qualityRes.json()) as TrainingQualityPayload;
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      const labelCounts = new Map<string, number>();
+      let acceptedCount = 0;
+
+      for (const item of items) {
+        const label = typeof item.label === 'string' ? item.label.trim() : '';
+        if (label) {
+          labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1);
+        }
+
+        const reasons = Array.isArray(item.reasons) ? item.reasons : [];
+        const isAccepted = reasons.length === 0;
+        if (isAccepted) {
+          acceptedCount += 1;
+        }
+      }
+
+      const topGestures = Array.from(labelCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count }));
+
+      setServerInsights({
+        topGestures,
+        recentActivity: [],
+        successRate: items.length > 0 ? acceptedCount / items.length : 0,
+      });
+      setError(null);
+    } catch (e) {
+      console.warn('Server insights skipped due to endpoint resolution or fetch error', e);
+      setServerInsights(null);
+    }
+  }, [apiBaseUrl, profileId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      setLoading(true);
+      try {
+        // Load local analytics only when a profile is active
+        if (profileId) {
+          const localSummary = loadLocalAnalytics(profileId);
+          if (!cancelled) {
+            setSummary(localSummary);
+          }
+        } else if (!cancelled) {
+          setSummary(null); // Clear summary if no profile is active
+          setServerInsights(null);
+          setError(null);
+        }
+
+        // Fetch server analytics if configured
+        if (!cancelled && apiBaseUrl && apiToken) {
+          await fetchServerInsights(apiToken);
+        }
+      } catch (error) {
+        console.warn('Dashboard loading failed', error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId, apiBaseUrl, apiToken, fetchServerInsights]);
 
   return (
     <section className="card">

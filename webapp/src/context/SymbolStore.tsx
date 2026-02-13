@@ -10,7 +10,8 @@ import {
 } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { useAppState } from '../hooks/useAppState';
-import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
+import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http'
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useMessage } from './MessageContext';
 
 export interface SymbolDefinition {
@@ -251,7 +252,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           };
           const saved = await withAuthRetry(
             (tokenOverride) =>
-              fetchJson<SymbolDefinition>(`${apiBaseUrl}/api/v1/symbols`, {
+              fetchJson<SymbolDefinition>(resolveApiUrl('/api/v1/symbols', apiBaseUrl), {
                 method: 'POST',
                 headers: resolveHeaders(tokenOverride),
                 body: JSON.stringify(payload),
@@ -317,7 +318,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     try {
       const { pending: pendingSymbols } = await flushPending();
       
-      const url = new URL(`${apiBaseUrl}/api/v1/symbols`);
+      const url = new URL(resolveApiUrl('/api/v1/symbols', apiBaseUrl), window.location.origin);
       if (currentProfileId) {
         url.searchParams.set('profileId', currentProfileId);
       }
@@ -424,7 +425,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       try {
         const saved = await withAuthRetry(
           (tokenOverride) =>
-            fetchJson<SymbolDefinition>(`${apiBaseUrl}/api/v1/symbols`, {
+            fetchJson<SymbolDefinition>(resolveApiUrl('/api/v1/symbols', apiBaseUrl), {
               method: 'POST',
               headers: resolveHeaders(tokenOverride),
               body: JSON.stringify(payload),
@@ -472,7 +473,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       try {
         await withAuthRetry(
           (tokenOverride) =>
-            fetchJson<void>(`${apiBaseUrl}/api/v1/symbols/${encodeURIComponent(id)}`, {
+            fetchJson<void>(resolveApiUrl(`/api/v1/symbols/${encodeURIComponent(id)}`, apiBaseUrl), {
               method: 'DELETE',
               headers: resolveHeaders(tokenOverride),
             }),

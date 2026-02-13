@@ -10,6 +10,7 @@ import type {
 import { TrainingRecorder } from './TrainingRecorder';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { fetchTrainingQualityLog } from '../training/trainingBundle';
 import { TrainingQueueList } from './TrainingQueueList';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
@@ -529,7 +530,7 @@ export function TrainingUploadWithRecording() {
       return;
     }
 
-    const endpoint = `${apiBaseUrl.replace(/\/$/, '')}/api/v1/dgs/training-quality`;
+    const endpoint = resolveApiUrl('/api/v1/dgs/training-quality', apiBaseUrl);
     let cancelled = false;
     setQualityLoading(true);
     fetchTrainingQualityLog({

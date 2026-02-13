@@ -1,5 +1,6 @@
 import { useCallback, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 export function ApiConfigBar() {
   const {
@@ -50,7 +51,7 @@ export function ApiConfigBar() {
 
       setIsSubmitting(true);
       setAuthMessage('Sende Daten…');
-      const target = `${apiBaseUrl}/api/v1/auth/${authMode}`;
+      const target = resolveApiUrl(`/api/v1/auth/${authMode}`, apiBaseUrl);
       try {
         const response = await fetch(target, {
           method: 'POST',

@@ -62,6 +62,29 @@ describe('ApiConfigBar authentication helpers', () => {
     await screen.findByText('Ungültige Zugangsdaten.');
   });
 
+
+  it('normalisiert API-Basis mit /api/v1 beim Auth-Aufruf', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        tokens: { accessToken: 'jwt-token', refreshToken: 'refresh-token' },
+        user: { username: 'amy' },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderWithProvider();
+
+    fireEvent.change(screen.getByLabelText('Basis-URL'), {
+      target: { value: 'https://api.example.com/api/v1' },
+    });
+    fireEvent.change(screen.getByLabelText('Nutzername'), { target: { value: 'amy' } });
+    fireEvent.change(screen.getByLabelText(/^Passwort/), { target: { value: 'sehrgeheim' } });
+    fireEvent.click(screen.getByRole('button', { name: /anmelden/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.example.com/api/v1/auth/login');
+  });
   it('shows the current backend URL in the config header', () => {
     renderWithProvider();
 

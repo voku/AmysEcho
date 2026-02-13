@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { normalizeConfiguredApiBase } from '../utils/resolveApiUrl';
 
 const STORAGE_KEY = 'webapp:api-config';
 const STORAGE_VERSION_KEY = 'webapp:api-config:version';
@@ -25,7 +26,7 @@ export function resolveFallbackApiBase(
 ): string {
   if (env.MODE === 'test') return DEFAULT_NON_PROD_API_BASE;
   const envBase = env['VITE_API_URL'] as string | undefined;
-  if (envBase?.trim()) return envBase.trim().replace(/\/$/, '');
+  if (envBase?.trim()) return normalizeConfiguredApiBase(envBase) || DEFAULT_NON_PROD_API_BASE;
   const runtimeOrigin = runtimeWindow?.location?.origin;
   const isValidRuntimeOrigin =
     runtimeOrigin &&
@@ -208,10 +209,8 @@ async function decryptToken(encrypted: EncryptedToken, source: StoredEncryptedTo
 }
 
 function normalizeApiBase(raw: string | undefined): string {
-  if (!raw) return resolveFallbackApiBase();
-  const trimmed = raw.trim();
-  if (!trimmed) return resolveFallbackApiBase();
-  return trimmed.replace(/\/$/, '');
+  const normalized = normalizeConfiguredApiBase(raw);
+  return normalized || resolveFallbackApiBase();
 }
 
 function readFromStorage(): StoredApiConfig {
@@ -525,5 +524,5 @@ export function resolvePollUrl(baseUrl: string, pollUrl: string | undefined, job
     return `${trimmedBase}/${trimmedPollUrl.replace(/^\/+/, '')}`;
   }
 
-  return `${trimmedBase}/api/training-status/${encodeURIComponent(jobId)}`;
+  return `${trimmedBase}/api/v1/training-status/${encodeURIComponent(jobId)}`;
 }

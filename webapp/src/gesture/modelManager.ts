@@ -9,6 +9,8 @@ import { installMlp } from './installMlp';
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { updatePriorityFactors } from './utils/landmarkNormalizer';
 import { logger } from '../services/logger';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
+import { arrayBufferToBase64 } from '../utils/arrayBufferToBase64';
 
 export interface ProfileModelInfo {
   profileId: string;
@@ -23,6 +25,7 @@ export interface ModelSelectionConfig {
   fallbackToGlobal: boolean;
   minSamplesForProfile: number;
 }
+
 
 class ModelManager {
   private currentProfileId: string | null = null;
@@ -59,7 +62,7 @@ class ModelManager {
   async loadProfileModel(profileId: string): Promise<boolean> {
     try {
       // Check if profile model file exists
-      const modelPath = `/api/models/profile/${profileId}`;
+      const modelPath = resolveApiUrl(`/api/v1/models/latest?profileId=${encodeURIComponent(profileId)}`);
       const response = await fetch(modelPath);
       
       if (!response.ok) {
@@ -70,14 +73,8 @@ class ModelManager {
 
       // Load and install profile-specific model
       const modelData = await response.arrayBuffer();
-      
       // Convert ArrayBuffer to base64
-      const bytes = new Uint8Array(modelData);
-      let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]!);
-      }
-      const b64 = btoa(binary);
+      const b64 = arrayBufferToBase64(modelData);
 
       // Install the profile model
       const installed = await installMlp(b64);
@@ -125,7 +122,7 @@ class ModelManager {
    */
   async loadNormalizationConfig(): Promise<void> {
     try {
-      const response = await fetch('/api/config/normalization');
+      const response = await fetch(resolveApiUrl('/api/v1/config/normalization'));
       if (response.ok) {
         const config = await response.json();
         if (config.priority_factors) {
@@ -185,7 +182,7 @@ class ModelManager {
    */
   async getAvailableProfileModels(): Promise<ProfileModelInfo[]> {
     try {
-      const response = await fetch('/api/models/profiles');
+      const response = await fetch(resolveApiUrl('/api/v1/models/profiles'));
       if (!response.ok) return [];
       
       const profiles: ProfileModelInfo[] = await response.json();

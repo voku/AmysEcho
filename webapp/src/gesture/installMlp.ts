@@ -2,6 +2,9 @@ import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
 import { enhancePredictionWithFeedback } from './performanceFeedback';
 import { logger } from '../services/logger';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
+import { arrayBufferToBase64 } from '../utils/arrayBufferToBase64';
+
 
 export type ModelMetadata = {
   window_size?: number;
@@ -715,12 +718,13 @@ export function installMlp(customModelData?: string): Promise<boolean> {
 
     // Try server fallback
     try {
-      const modelUrl = '/api/models/current';
+      const modelUrl = resolveApiUrl('/api/v1/models/latest');
       const response = await fetch(modelUrl);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      const serverB64 = await response.text();
+      const modelBuffer = await response.arrayBuffer();
+      const serverB64 = arrayBufferToBase64(modelBuffer);
       if (await loadMlpFromB64(serverB64)) {
         forwardTelemetry('mlp_server_loaded');
         return true;

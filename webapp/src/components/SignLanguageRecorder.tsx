@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
@@ -146,7 +147,7 @@ export function SignLanguageRecorder() {
       };
 
       const buildTrainedLabelsUrl = (id: string) =>
-        `${apiBaseUrl}/api/v1/dgs/trained-labels?profileId=${encodeURIComponent(id)}`;
+        resolveApiUrl(`/api/v1/dgs/trained-labels?profileId=${encodeURIComponent(id)}`, apiBaseUrl);
       
       try {
         let response = await apiRetryManager.fetch(buildTrainedLabelsUrl(requestedProfileId));

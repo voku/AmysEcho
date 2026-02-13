@@ -1,6 +1,7 @@
 import type { TrainingJobInfo, TrainingJobStatus } from './types';
 import { normalizeTrainingJobStatus } from './trainingBundle';
-import { fetchWithRetry, HttpError } from '../utils/http';
+import { fetchWithRetry, HttpError } from '../utils/http'
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 const STATUS_ALIASES: Record<string, TrainingJobStatus> = {
   queued: 'queued',
@@ -97,7 +98,7 @@ export async function triggerTrainingJob(
     return null;
   }
 
-  const endpoint = `${base}/train-model`;
+  const endpoint = resolveApiUrl('/train-model', base);
 
   let response: Response;
   try {
