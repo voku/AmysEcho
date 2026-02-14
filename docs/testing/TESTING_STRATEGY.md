@@ -179,6 +179,25 @@ Validate timer-driven polling flows (for example, `useTrainingUploader`) in inte
 3. ✅ **Use `it.skip()` with clear explanation** - Keep the unit test code as documentation
 4. ⚠️ **Use fake timers sparingly** - Only when async storage or network mocks remain reliable under simulated time
 
+
+
+### Blind-Spot Follow-up: Queue State vs. Retryability
+Recent deep-dive analysis found a production-risk blind spot: the queue UI and manual sync summary can report "packages waiting" even when all remaining bundles are blocked by an expired session.
+
+Guardrails:
+- Return retry diagnostics from queue sync (`uploaded`, `remaining`, `blocked`) so UI messaging can distinguish connectivity issues from auth/session issues.
+- Treat auth-failed bundles as retryable only when a valid token is available; skip them otherwise to avoid endless failing loops.
+- Trigger automatic queue sync when a token becomes available again so caregivers do not need to manually re-record or clear bundles.
+
+### Real Video Upload Integration Guardrail
+Add and keep an integration test that uploads a **real video fixture** through the webapp helpers (`createTrainingZip` + `uploadTrainingZip`) into a spun-up server. This catches blind spots that unit tests miss:
+
+1. Queue/API wiring can look correct in mocks while multipart/zip payloads still fail in live requests.
+2. `metadata.recording` fields (`clipBytes`, `clipMimeType`, `clipDurationMs`) can drift and break server-side validation silently.
+3. Upload success is not enough: verify the persisted clip is streamable via `/api/v1/training-videos/:bundleId/clip` and byte-identical to the fixture.
+
+Reference implementation: `integration/test/webapp-video-upload.test.ts`.
+
 ### Test Utilities
 ```typescript
 // test/utils/testHelpers.ts

@@ -13,6 +13,7 @@ import { useApiConfig } from '../hooks/useApiConfig';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { fetchTrainingQualityLog } from '../training/trainingBundle';
 import { TrainingQueueList } from './TrainingQueueList';
+import { SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
@@ -58,14 +59,23 @@ const formatDateTime = (timestamp?: number): string | null => {
   }
 };
 
-const formatSyncQueuedMessage = (uploaded: number, remaining: number): string => {
+const formatSyncQueuedMessage = (uploaded: number, remaining: number, blocked: number): string => {
   if (uploaded > 0 && remaining > 0) {
+    if (blocked > 0) {
+      return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen, ${remaining} verbleibend). ${blocked} Paket(e) benötigen eine neue Anmeldung.`;
+    }
     return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen, ${remaining} verbleibend). Bitte prüfe die Verbindung oder versuche es später erneut.`;
   }
   if (uploaded > 0) {
     return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`;
   }
   if (remaining > 0) {
+    if (blocked > 0 && blocked === remaining) {
+      return `${blocked} Paket(e) sind durch eine abgelaufene Sitzung blockiert. Bitte melde dich erneut an.`;
+    }
+    if (blocked > 0) {
+      return `${remaining} Paket(e) verbleiben, davon ${blocked} mit abgelaufener Sitzung. Bitte melde dich erneut an.`;
+    }
     return `${remaining} Paket(e) warten noch auf Upload. Bitte prüfe die Verbindung oder versuche es später erneut.`;
   }
   return 'Keine Pakete in der Warteschlange gefunden.';
@@ -148,8 +158,14 @@ function TrainingStatusBlock({
   onSyncBundle?: (key: string) => Promise<void>;
   onRemoveBundle?: (key: string) => Promise<void>;
 }) {
-  const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob } = uploader;
+  const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob, queuedBundles } = uploader;
   const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
+
+  const blockedAuthCount = queuedBundles.filter((bundle) => {
+    const reason = bundle.lastError?.toLowerCase() ?? '';
+    return bundle.status === 'failed' && (reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase()));
+  }).length;
+  const queueWaitingCount = Math.max(0, queuedCount - blockedAuthCount);
 
   return (
     <div className="panel">
@@ -209,7 +225,11 @@ function TrainingStatusBlock({
           <p className="muted small">
             {queuedCount === 0
               ? 'Keine offenen Pakete.'
-              : `${queuedCount} Paket(e) warten auf Upload${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`}
+              : queueWaitingCount === 0
+                ? `${blockedAuthCount} Paket(e) warten auf neue Anmeldung${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`
+                : blockedAuthCount > 0
+                  ? `${queueWaitingCount} Paket(e) warten auf Upload, ${blockedAuthCount} Paket(e) auf neue Anmeldung${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`
+                  : `${queuedCount} Paket(e) warten auf Upload${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`}
           </p>
         </div>
         <button
@@ -651,8 +671,8 @@ export function TrainingUploadWithRecording() {
   const handleSyncQueued = useCallback(async () => {
     setMessage('Warteschlange wird synchronisiert…');
     try {
-      const { uploaded, remaining } = await uploadState.syncQueued();
-      setMessage(formatSyncQueuedMessage(uploaded, remaining));
+      const { uploaded, remaining, blocked } = await uploadState.syncQueued();
+      setMessage(formatSyncQueuedMessage(uploaded, remaining, blocked));
     } catch (syncErr) {
       const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
       setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);

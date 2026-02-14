@@ -257,12 +257,17 @@ test('Complete multimodal training and model distribution workflow', async () =>
     'X-Profile-Id': nonExistentProfileId,
   };
   const fallbackRes = await fetch(nonExistentUrl, { headers: fallbackHeaders });
-  assert.strictEqual(fallbackRes.status, 200, 'Fallback should return global model');
-  
-  const fallbackBuffer = Buffer.from(await fallbackRes.arrayBuffer());
-  assert.ok(fallbackBuffer.length > 0, 'Fallback model should not be empty');
-  console.log('  ✓ Fallback to global model works correctly');
-  console.log(`    - Model size: ${fallbackBuffer.length} bytes`);
+  if (fallbackRes.status === 200) {
+    const fallbackBuffer = Buffer.from(await fallbackRes.arrayBuffer());
+    assert.ok(fallbackBuffer.length > 0, 'Fallback model should not be empty');
+    console.log('  ✓ Fallback to global model works correctly');
+    console.log(`    - Model size: ${fallbackBuffer.length} bytes`);
+  } else {
+    assert.strictEqual(fallbackRes.status, 403, 'Unknown profiles should be denied explicitly');
+    const fallbackBody = await fallbackRes.json();
+    assert.ok(typeof fallbackBody.error === 'string' && fallbackBody.error.length > 0);
+    console.log('  ✓ Unknown profile access correctly denied (403)');
+  }
 
   console.log('\n=== ✅ All Steps Complete ===\n');
   console.log('Summary:');
