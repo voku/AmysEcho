@@ -743,10 +743,9 @@ export function TrainingUploadWithRecording() {
         <div className="card-header mb-sm">
           <div>
             <p className="eyebrow">Status</p>
-            <p className="muted small">{state === 'uploading' ? 'Upload läuft…' : 'Bereit'}</p>
-          </div>
-          <div className="status-chip" data-state={state === 'error' ? 'error' : state === 'uploading' ? 'running' : 'idle'}>
-            {state === 'error' ? 'Fehler' : state === 'uploading' ? 'Lädt…' : 'Bereit'}
+            <p className="muted small">
+              {state === 'error' ? 'Fehler bei der letzten Aktion' : state === 'uploading' ? 'Upload läuft…' : 'Bereit'}
+            </p>
           </div>
         </div>
         <TrainingStatusBlock

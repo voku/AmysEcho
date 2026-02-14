@@ -9,7 +9,7 @@ const ONBOARDING_KEY = 'webapp:onboarding-complete';
 // ========================================
 export function useAppStatus() {
   const [status, setStatus] = useState<'loading' | 'auth' | 'hero' | 'app'>('loading');
-  const { apiToken, refreshToken, persistToken, isLoadingTokens } = useApiConfig();
+  const { apiToken, refreshToken, isLoadingTokens } = useApiConfig();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -42,7 +42,7 @@ export function useAppStatus() {
 
   useEffect(() => {
     // Don't check tokens while they are still loading
-    if (status === 'loading' || !persistToken || isLoadingTokens) return;
+    if (status === 'loading' || isLoadingTokens) return;
 
     const noActiveTokens = !apiToken && !refreshToken;
     if (noActiveTokens) {
@@ -51,7 +51,7 @@ export function useAppStatus() {
       }
       setStatus('auth');
     }
-  }, [apiToken, persistToken, refreshToken, status, isLoadingTokens]);
+  }, [apiToken, refreshToken, status, isLoadingTokens]);
 
   return { status, completeAuth, completeOnboarding };
 }
