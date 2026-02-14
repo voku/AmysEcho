@@ -47,6 +47,7 @@ const tsxArgs = [
   'test/dgs-auto-pretrain-sources.test.ts',
   'test/api.test.js',
   'test/training-flow.test.ts',
+  'test/webapp-video-upload.test.ts',
   'test/multimodal-training-flow.test.ts',
 ];
 

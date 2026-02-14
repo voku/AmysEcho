@@ -226,7 +226,7 @@ describe('useTrainingUploader', () => {
     }, { timeout: 3000 });
   }, 5000);
 
-  it('überspringt bereits als fehlgeschlagen markierte Bundles bei der automatischen Synchronisierung', async () => {
+  it('überspringt Auth-fehlgeschlagene Bundles ohne Token weiterhin bei der Synchronisierung', async () => {
     const stored = await enqueuePersistedBundle({
       profileId: 'demo',
       label: 'HILFE',
@@ -252,20 +252,18 @@ describe('useTrainingUploader', () => {
       expect(result.current.queuedBundles[0]?.status).toBe('failed');
     });
 
-    let resultSync!: { uploaded: number; remaining: number };
+    let resultSync!: { uploaded: number; remaining: number; blocked: number };
     await act(async () => {
       resultSync = await result.current.syncQueued();
     });
 
     expect(resultSync.uploaded).toBe(0);
     expect(resultSync.remaining).toBe(1);
+    expect(resultSync.blocked).toBe(1);
     expect(fetchSpy).not.toHaveBeenCalled();
-    await waitFor(async () => {
-      const queuedAfter = await listQueuedBundles();
-      expect(queuedAfter.length).toBe(1);
-      expect(queuedAfter[0]?.status).toBe('failed');
-    });
   });
+
+
 
   it('listet gespeicherte Bundles und erlaubt das Löschen', async () => {
     const stored = await enqueuePersistedBundle({

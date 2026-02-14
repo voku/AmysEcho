@@ -27,7 +27,12 @@ type UploadOptions = TrainingUploadOptions & { apiBase?: string; refreshAccessTo
 type AuthRetryOptions = { token?: string; refreshAccessToken?: () => Promise<string | null> };
 
 export type DefaultUploadOptions = Partial<UploadOptions>;
-export type SyncQueuedResult = { uploaded: number; remaining: number };
+export type SyncQueuedResult = { uploaded: number; remaining: number; blocked: number };
+
+export function isAuthFailureReason(reason: string | undefined): boolean {
+  const normalized = reason?.toLowerCase() ?? '';
+  return normalized.includes('401') || normalized.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
+}
 
 export function useTrainingUploader(
   options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions; retryDelayMs?: number; maxRetryDelayMs?: number } = {},
@@ -63,6 +68,7 @@ export function useTrainingUploader(
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncingRef = useRef(false);
   const queuedCountRef = useRef(0);
+  const queuedBundlesRef = useRef<PersistedTrainingBundle[]>([]);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryDelayRef = useRef(retryConfig.base);
   const pollDelayRef = useRef(pollIntervalMs);
@@ -80,6 +86,7 @@ export function useTrainingUploader(
       setQueuedCount(bundles.length);
       setQueuedBundles(bundles);
       queuedCountRef.current = bundles.length;
+      queuedBundlesRef.current = bundles;
       return bundles;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -103,12 +110,12 @@ export function useTrainingUploader(
     [defaultOptions],
   );
 
-  const isBundleRetryable = useCallback((bundle: PersistedTrainingBundle): boolean => {
+  const isBundleRetryable = useCallback((bundle: PersistedTrainingBundle, token?: string): boolean => {
     if (bundle.status === 'pending') return true;
     if (bundle.status !== 'failed') return false;
-    const reason = bundle.lastError?.toLowerCase() ?? '';
-    const isAuthFailure = reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
-    return !isAuthFailure;
+    const isAuthFailure = isAuthFailureReason(bundle.lastError);
+    if (!isAuthFailure) return true;
+    return typeof token === 'string' && token.trim().length > 0;
   }, []);
 
   const withAuthRetry = useCallback(
@@ -185,7 +192,11 @@ export function useTrainingUploader(
 
   const syncQueued = useCallback(
     async (options?: DefaultUploadOptions): Promise<SyncQueuedResult> => {
-      if (syncingRef.current) return { uploaded: 0, remaining: queuedCountRef.current };
+      if (syncingRef.current) {
+        const token = options?.token ?? defaultOptions.token;
+        const blocked = queuedBundlesRef.current.filter((bundle) => !isBundleRetryable(bundle, token)).length;
+        return { uploaded: 0, remaining: queuedCountRef.current, blocked };
+      }
       syncingRef.current = true;
       setSyncing(true);
       setSyncError(null);
@@ -197,10 +208,10 @@ export function useTrainingUploader(
         setSyncError(reason);
         setSyncing(false);
         syncingRef.current = false;
-        return { uploaded: 0, remaining: queuedCountRef.current };
+        return { uploaded: 0, remaining: queuedCountRef.current, blocked: 0 };
       }
       const bundles = await refreshQueue();
-      const pending = bundles.filter(isBundleRetryable);
+      const pending = bundles.filter((bundle) => isBundleRetryable(bundle, resolvedOptions.token));
       let uploaded = 0;
       let encounteredError = false;
       let trainingJobFromUploads: TrainingJobInfo | null = null;
@@ -240,7 +251,8 @@ export function useTrainingUploader(
       }
 
       const remaining = await refreshQueue();
-      const retryableRemaining = remaining.filter(isBundleRetryable);
+      const retryableRemaining = remaining.filter((bundle) => isBundleRetryable(bundle, resolvedOptions.token));
+      const blocked = Math.max(0, remaining.length - retryableRemaining.length);
       const hasPending = retryableRemaining.length > 0;
       if (!encounteredError) {
         retryDelayRef.current = retryConfig.base;
@@ -275,7 +287,7 @@ export function useTrainingUploader(
         await maybeTriggerTrainingJob(resolvedOptions);
       }
 
-      return { uploaded, remaining: remaining.length };
+      return { uploaded, remaining: remaining.length, blocked };
     },
     [
       applyTrainingJob,
@@ -287,6 +299,7 @@ export function useTrainingUploader(
       buildAuthOptions,
       isBundleRetryable,
       withAuthRetry,
+      defaultOptions.token,
     ],
   );
 
@@ -389,6 +402,9 @@ export function useTrainingUploader(
   }, [refreshQueue, syncQueued]);
 
   useEffect(() => subscribeToBundleUpdates(refreshQueue), [refreshQueue]);
+
+
+
 
   useEffect(() => {
     const handleOnline = () => {
