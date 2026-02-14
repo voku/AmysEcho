@@ -11,7 +11,7 @@ import { TEST_TOKEN, serverBaseUrl, serverHeaders, startServer, stopServer, crea
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..', '..');
 const clipFixturePath = join(repoRoot, 'server', 'test', 'fixtures', 'clip.mp4');
-const profileId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const profileId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 
 before(async () => {
   await startServer();
@@ -24,12 +24,12 @@ function buildFrames(): TrainingFrame[] {
   return [
     {
       timestampMs: 0,
-      landmarks: Array.from({ length: 42 }, () => [0.1, 0.2, 0.3]),
+      landmarks: [Array.from({ length: 42 }, () => [0.1, 0.2, 0.3])],
       handedness: ['Right'],
     },
     {
       timestampMs: 33,
-      landmarks: Array.from({ length: 42 }, () => [0.15, 0.25, 0.35]),
+      landmarks: [Array.from({ length: 42 }, () => [0.15, 0.25, 0.35])],
       handedness: ['Right'],
     },
   ];
@@ -48,7 +48,13 @@ test('webapp helpers upload a real repo video and server serves stored clip', as
   const clipBytes = await fs.readFile(clipFixturePath);
   assert.ok(clipBytes.length > 0, 'expected non-empty clip fixture');
 
-  const clipFile = new File([new Uint8Array(clipBytes)], 'clip.mp4', { type: 'video/mp4' });
+  const clipData = new Uint8Array(clipBytes);
+  const clipFile = {
+    name: 'clip.mp4',
+    type: 'video/mp4',
+    size: clipData.byteLength,
+    arrayBuffer: async () => clipData.buffer.slice(clipData.byteOffset, clipData.byteOffset + clipData.byteLength),
+  } as File;
   const payload: TrainingBundlePayload = {
     profileId,
     label: 'VIDEO_TEST',

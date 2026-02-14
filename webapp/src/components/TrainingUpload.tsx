@@ -1,6 +1,6 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTrainingUploader } from '../hooks/useTrainingUploader';
+import { isAuthFailureReason, useTrainingUploader } from '../hooks/useTrainingUploader';
 import type {
   TrainingBundlePayload,
   TrainingJobInfo,
@@ -13,7 +13,6 @@ import { useApiConfig } from '../hooks/useApiConfig';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { fetchTrainingQualityLog } from '../training/trainingBundle';
 import { TrainingQueueList } from './TrainingQueueList';
-import { SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
@@ -150,6 +149,7 @@ function TrainingStatusBlock({
   actionSlot,
   onSyncBundle,
   onRemoveBundle,
+  hasApiToken,
 }: {
   uploader: TrainingUploaderHandle;
   message?: string;
@@ -157,15 +157,15 @@ function TrainingStatusBlock({
   actionSlot?: ReactNode;
   onSyncBundle?: (key: string) => Promise<void>;
   onRemoveBundle?: (key: string) => Promise<void>;
+  hasApiToken: boolean;
 }) {
   const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob, queuedBundles } = uploader;
   const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
 
-  const blockedAuthCount = queuedBundles.filter((bundle) => {
-    const reason = bundle.lastError?.toLowerCase() ?? '';
-    return bundle.status === 'failed' && (reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase()));
-  }).length;
-  const queueWaitingCount = Math.max(0, queuedCount - blockedAuthCount);
+  const blockedAuthCount = queuedBundles.filter((bundle) =>
+    bundle.status === 'failed' && isAuthFailureReason(bundle.lastError) && !hasApiToken,
+  ).length;
+  const queueWaitingCount = Math.max(0, queuedBundles.length - blockedAuthCount);
 
   return (
     <div className="panel">
@@ -755,6 +755,7 @@ export function TrainingUploadWithRecording() {
           onSyncQueued={handleSyncQueued}
           onSyncBundle={handleSyncBundle}
           onRemoveBundle={handleRemoveBundle}
+          hasApiToken={typeof apiToken === 'string' && apiToken.trim().length > 0}
         />
       </div>
 

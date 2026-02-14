@@ -29,6 +29,11 @@ type AuthRetryOptions = { token?: string; refreshAccessToken?: () => Promise<str
 export type DefaultUploadOptions = Partial<UploadOptions>;
 export type SyncQueuedResult = { uploaded: number; remaining: number; blocked: number };
 
+export function isAuthFailureReason(reason: string | undefined): boolean {
+  const normalized = reason?.toLowerCase() ?? '';
+  return normalized.includes('401') || normalized.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
+}
+
 export function useTrainingUploader(
   options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions; retryDelayMs?: number; maxRetryDelayMs?: number } = {},
 ) {
@@ -108,8 +113,7 @@ export function useTrainingUploader(
   const isBundleRetryable = useCallback((bundle: PersistedTrainingBundle, token?: string): boolean => {
     if (bundle.status === 'pending') return true;
     if (bundle.status !== 'failed') return false;
-    const reason = bundle.lastError?.toLowerCase() ?? '';
-    const isAuthFailure = reason.includes('401') || reason.includes(SESSION_EXPIRED_MESSAGE.toLowerCase());
+    const isAuthFailure = isAuthFailureReason(bundle.lastError);
     if (!isAuthFailure) return true;
     return typeof token === 'string' && token.trim().length > 0;
   }, []);
@@ -400,17 +404,7 @@ export function useTrainingUploader(
   useEffect(() => subscribeToBundleUpdates(refreshQueue), [refreshQueue]);
 
 
-  useEffect(() => {
-    const hasToken = typeof defaultOptions.token === 'string' && defaultOptions.token.trim().length > 0;
-    const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false;
-    if (!hasToken || !isOnline || queuedCount === 0 || syncingRef.current) {
-      return;
-    }
 
-    syncQueued().catch((err) => {
-      console.warn('Automatische Synchronisation nach Anmeldung fehlgeschlagen', err);
-    });
-  }, [defaultOptions.token, queuedCount, syncQueued]);
 
   useEffect(() => {
     const handleOnline = () => {
