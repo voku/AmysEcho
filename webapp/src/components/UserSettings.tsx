@@ -1,9 +1,8 @@
 import { useCallback } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { AUTH_KEY } from '../constants/auth';
 import { ChangePasswordForm } from './ChangePasswordForm';
 import { UserProfileForm } from './UserProfileForm';
-
-const AUTH_KEY = 'webapp:auth-complete';
 
 export function UserSettings() {
   const { clearApiToken } = useApiConfig();

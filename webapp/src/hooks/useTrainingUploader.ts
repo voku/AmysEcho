@@ -307,7 +307,7 @@ export function useTrainingUploader(
       buildAuthOptions,
       isBundleRetryable,
       withAuthRetry,
-      defaultOptions.token,
+      defaultOptions,
     ],
   );
 

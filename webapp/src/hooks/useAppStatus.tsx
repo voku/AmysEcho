@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { AUTH_KEY } from '../constants/auth';
 import { useApiConfig } from './useApiConfig';
-
-const AUTH_KEY = 'webapp:auth-complete';
 const ONBOARDING_KEY = 'webapp:onboarding-complete';
 
 // ========================================
@@ -9,7 +8,7 @@ const ONBOARDING_KEY = 'webapp:onboarding-complete';
 // ========================================
 export function useAppStatus() {
   const [status, setStatus] = useState<'loading' | 'auth' | 'hero' | 'app'>('loading');
-  const { apiToken, refreshToken, isLoadingTokens } = useApiConfig();
+  const { apiToken, refreshToken, persistToken, isLoadingTokens } = useApiConfig();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -42,7 +41,7 @@ export function useAppStatus() {
 
   useEffect(() => {
     // Don't check tokens while they are still loading
-    if (status === 'loading' || isLoadingTokens) return;
+    if (status === 'loading' || !persistToken || isLoadingTokens) return;
 
     const noActiveTokens = !apiToken && !refreshToken;
     if (noActiveTokens) {
@@ -51,7 +50,7 @@ export function useAppStatus() {
       }
       setStatus('auth');
     }
-  }, [apiToken, refreshToken, status, isLoadingTokens]);
+  }, [apiToken, refreshToken, persistToken, status, isLoadingTokens]);
 
   return { status, completeAuth, completeOnboarding };
 }
