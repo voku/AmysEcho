@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { AUTH_KEY, ONBOARDING_KEY } from '../constants/auth';
 import { useApiConfig } from './useApiConfig';
-
-const AUTH_KEY = 'webapp:auth-complete';
-const ONBOARDING_KEY = 'webapp:onboarding-complete';
 
 // ========================================
 // App Status Hook
@@ -51,7 +49,7 @@ export function useAppStatus() {
       }
       setStatus('auth');
     }
-  }, [apiToken, persistToken, refreshToken, status, isLoadingTokens]);
+  }, [apiToken, refreshToken, persistToken, status, isLoadingTokens]);
 
   return { status, completeAuth, completeOnboarding };
 }

@@ -110,13 +110,20 @@ export function useTrainingUploader(
     [defaultOptions],
   );
 
-  const isBundleRetryable = useCallback((bundle: PersistedTrainingBundle, token?: string): boolean => {
+  const canRetryAuthFailure = useCallback((authOptions?: AuthRetryOptions): boolean => {
+    if (typeof authOptions?.token === 'string' && authOptions.token.trim().length > 0) {
+      return true;
+    }
+    return typeof authOptions?.refreshAccessToken === 'function';
+  }, []);
+
+  const isBundleRetryable = useCallback((bundle: PersistedTrainingBundle, authOptions?: AuthRetryOptions): boolean => {
     if (bundle.status === 'pending') return true;
     if (bundle.status !== 'failed') return false;
     const isAuthFailure = isAuthFailureReason(bundle.lastError);
     if (!isAuthFailure) return true;
-    return typeof token === 'string' && token.trim().length > 0;
-  }, []);
+    return canRetryAuthFailure(authOptions);
+  }, [canRetryAuthFailure]);
 
   const withAuthRetry = useCallback(
     async <T>(operation: (tokenOverride?: string) => Promise<T>, options: AuthRetryOptions): Promise<T> => {
@@ -193,8 +200,8 @@ export function useTrainingUploader(
   const syncQueued = useCallback(
     async (options?: DefaultUploadOptions): Promise<SyncQueuedResult> => {
       if (syncingRef.current) {
-        const token = options?.token ?? defaultOptions.token;
-        const blocked = queuedBundlesRef.current.filter((bundle) => !isBundleRetryable(bundle, token)).length;
+        const authOptions = buildAuthOptions({ ...defaultOptions, ...options });
+        const blocked = queuedBundlesRef.current.filter((bundle) => !isBundleRetryable(bundle, authOptions)).length;
         return { uploaded: 0, remaining: queuedCountRef.current, blocked };
       }
       syncingRef.current = true;
@@ -211,7 +218,8 @@ export function useTrainingUploader(
         return { uploaded: 0, remaining: queuedCountRef.current, blocked: 0 };
       }
       const bundles = await refreshQueue();
-      const pending = bundles.filter((bundle) => isBundleRetryable(bundle, resolvedOptions.token));
+      const authOptions = buildAuthOptions(resolvedOptions);
+      const pending = bundles.filter((bundle) => isBundleRetryable(bundle, authOptions));
       let uploaded = 0;
       let encounteredError = false;
       let trainingJobFromUploads: TrainingJobInfo | null = null;
@@ -251,7 +259,7 @@ export function useTrainingUploader(
       }
 
       const remaining = await refreshQueue();
-      const retryableRemaining = remaining.filter((bundle) => isBundleRetryable(bundle, resolvedOptions.token));
+      const retryableRemaining = remaining.filter((bundle) => isBundleRetryable(bundle, authOptions));
       const blocked = Math.max(0, remaining.length - retryableRemaining.length);
       const hasPending = retryableRemaining.length > 0;
       if (!encounteredError) {
@@ -299,7 +307,7 @@ export function useTrainingUploader(
       buildAuthOptions,
       isBundleRetryable,
       withAuthRetry,
-      defaultOptions.token,
+      defaultOptions,
     ],
   );
 

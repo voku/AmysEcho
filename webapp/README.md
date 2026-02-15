@@ -31,6 +31,7 @@ Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, 
 - Das Overlay kann ein- oder ausgeblendet werden; Statuschips zeigen „bereit“, „laufend“ oder Fehler an.
 - Ein globaler Profil- und Label-Schalter synchronisiert Gestenerkennung und Training. Erkannte Gesten werden als Vorschlag gespeichert und können direkt als neues Trainingslabel übernommen werden.
 - Die Seite **Grenzen & Alternativen** listet deaktivierte native Features und Web-Ersatzwege.
+- Die Seite **Einstellungen** enthält einen klaren **Abmelden**-Button, der die Sitzungstoken entfernt und den Login wieder erzwingt, ohne lokale Trainingsdaten löschen zu müssen.
 - Die Seite **Training / Upload** bietet zwei Modi:
   - **Geste aufnehmen**: Nimmt Gesten mit der Kamera in Echtzeit auf. Die Handbewegungen werden automatisch erkannt und als Frames mit Landmarks erfasst. Nach der Aufnahme wird ein Trainingspaket (`metadata.json`, `landmarks.json`, Standbild) erstellt und direkt hochgeladen.
   - **Datei hochladen**: Lädt ein vorbereitetes ZIP-Paket wie die App (`metadata.json`, `landmarks.json`, optional Clip/Standbild) hoch - ideal für Test-Bundles oder QA im Browser.

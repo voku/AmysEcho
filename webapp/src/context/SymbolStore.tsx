@@ -9,8 +9,9 @@ import {
   type ReactNode,
 } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { AUTH_KEY } from '../constants/auth';
 import { useAppState } from '../hooks/useAppState';
-import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http'
+import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useMessage } from './MessageContext';
 
@@ -121,8 +122,6 @@ function mergePendingSymbols(symbols: SymbolDefinition[], pending: SymbolDefinit
   return Array.from(mergedMap.values());
 }
 
-const AUTH_COMPLETE_KEY = 'webapp:auth-complete';
-
 export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   const { apiBaseUrl, apiToken, refreshAccessToken, clearApiToken } = useApiConfig();
   const { profileId } = useAppState();
@@ -201,7 +200,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
           clearApiToken();
           if (typeof window !== 'undefined') {
             try {
-              window.localStorage.setItem(AUTH_COMPLETE_KEY, 'false');
+              window.localStorage.setItem(AUTH_KEY, 'false');
             } catch {
               // ignore storage errors
             }

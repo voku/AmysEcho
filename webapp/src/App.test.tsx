@@ -7,6 +7,7 @@ import { AppStateProvider, useAppState } from './hooks/useAppState';
 import { useAppStatus } from './hooks/useAppStatus';
 import { LoginScreen } from './components/LoginScreen';
 import { App } from './App';
+import { AUTH_KEY, ONBOARDING_KEY } from './constants/auth';
 import { MessageProvider } from './context/MessageContext';
 import { SymbolStoreProvider } from './context/SymbolStore';
 
@@ -35,8 +36,8 @@ function StatusHarness({ handles }: HarnessProps) {
 describe('useAppStatus session handling', () => {
   beforeEach(() => {
     window.localStorage.clear();
-    window.localStorage.setItem('webapp:auth-complete', 'true');
-    window.localStorage.setItem('webapp:onboarding-complete', 'true');
+    window.localStorage.setItem(AUTH_KEY, 'true');
+    window.localStorage.setItem(ONBOARDING_KEY, 'true');
   });
 
   it('setzt den Status bei abgelaufener Sitzung zurück auf Auth', async () => {
@@ -61,7 +62,7 @@ describe('useAppStatus session handling', () => {
       const status = screen.getByTestId('status');
       expect(status.dataset['status']).toBe('auth');
     });
-    expect(window.localStorage.getItem('webapp:auth-complete')).toBe('false');
+    expect(window.localStorage.getItem(AUTH_KEY)).toBe('false');
   });
 });
 

@@ -254,6 +254,7 @@ describe('useTrainingUploader', () => {
 
     let resultSync!: { uploaded: number; remaining: number; blocked: number };
     await act(async () => {
+      Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
       resultSync = await result.current.syncQueued();
     });
 

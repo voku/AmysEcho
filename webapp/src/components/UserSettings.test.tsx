@@ -2,6 +2,7 @@ import { fireEvent, screen } from '@testing-library/dom';
 import { act, render } from '@testing-library/react';
 import { useEffect } from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { AUTH_KEY } from '../constants/auth';
 import { ApiConfigProvider, useApiConfig } from '../hooks/useApiConfig';
 import { UserSettings } from './UserSettings';
 
@@ -53,6 +54,33 @@ describe('UserSettings', () => {
       expect.objectContaining({ method: 'PUT' }),
     );
     await screen.findByText('Profil gespeichert.');
+  });
+
+
+  it('meldet das Konto ab und leert gespeicherte Token', async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as any;
+
+    function TokenProbe() {
+      const { apiToken } = useApiConfig();
+      return <span data-testid="token-probe">{apiToken || 'leer'}</span>;
+    }
+
+    render(
+      <ApiConfigProvider>
+        <AuthHarness>
+          <UserSettings />
+          <TokenProbe />
+        </AuthHarness>
+      </ApiConfigProvider>,
+    );
+
+    expect(screen.getByTestId('token-probe')).toHaveTextContent('token-abc');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abmelden' }));
+
+    expect(screen.getByTestId('token-probe')).toHaveTextContent('leer');
+    expect(window.localStorage.getItem(AUTH_KEY)).toBe('false');
   });
 
   it('zeigt einen Validierungsfehler bei nicht passenden Passwörtern', async () => {
