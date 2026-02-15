@@ -36,7 +36,8 @@ Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, 
   - **Geste aufnehmen**: Nimmt Gesten mit der Kamera in Echtzeit auf. Die Handbewegungen werden automatisch erkannt und als Frames mit Landmarks erfasst. Nach der Aufnahme wird ein Trainingspaket (`metadata.json`, `landmarks.json`, Standbild) erstellt und direkt hochgeladen.
   - **Datei hochladen**: Lädt ein vorbereitetes ZIP-Paket wie die App (`metadata.json`, `landmarks.json`, optional Clip/Standbild) hoch - ideal für Test-Bundles oder QA im Browser.
 
-  Beide Modi laden direkt gegen `VITE_API_URL/api/v1/dgs/sample-bundles` hoch.
+  Beide Modi laden primär gegen `VITE_API_URL/api/v1/dgs/sample-bundles` hoch.
+  Wenn der Server dieses Bundle-API noch nicht bereitstellt (HTTP 404), versucht die Webapp automatisch einen Legacy-Fallback auf `/api/v1/dgs/samples`, damit Trainingsdaten nicht verloren gehen.
   Das Upload-Timeout passt sich dabei automatisch an die ZIP-Größe an (statt eines starren Limits), damit größere Video-/Audio-Bundles bei langsamer Verbindung nicht unnötig früh abgebrochen werden.
   Die Weboberfläche zeigt außerdem alle zwischengespeicherten Bundles an (inkl. Status, Versuche und Größe). Du kannst jedes Paket sofort erneut hochladen oder löschen, falls es veraltet ist.
 
