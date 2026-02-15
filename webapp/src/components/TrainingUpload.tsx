@@ -543,7 +543,7 @@ export function TrainingUploadWithRecording() {
 
 
   useEffect(() => {
-    if (!apiBaseUrl || !profileId || !apiToken) {
+    if (!apiBaseUrl || !profileId) {
       setQualityEntries([]);
       setQualityError(null);
       setQualityLoading(false);

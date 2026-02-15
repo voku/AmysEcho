@@ -68,8 +68,18 @@ curl -s -f https://amysecho.moelleken.org/health > /dev/null && echo "✅ OK" ||
 echo -n "  Checking /api/v1/health: "
 curl -s -f https://amysecho.moelleken.org/api/v1/health > /dev/null && echo "✅ OK" || echo "❌ Failed"
 
+echo -n "  Checking /api/v1/dgs/sample-bundles route: "
+BUNDLE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://amysecho.moelleken.org/api/v1/dgs/sample-bundles)
+if [ "$BUNDLE_STATUS" = "404" ]; then
+    echo "❌ Missing (HTTP 404)"
+elif [ "$BUNDLE_STATUS" = "000" ]; then
+    echo "❌ Unreachable"
+else
+    echo "✅ Reachable (HTTP $BUNDLE_STATUS)"
+fi
+
 # If it failed, show the logs and diagnostic info
-if ! curl -s -f http://127.0.0.1:5000/health > /dev/null; then
+if ! curl -s -f http://127.0.0.1:5000/health > /dev/null || [ "${BUNDLE_STATUS:-000}" = "404" ]; then
     echo -e "\n⚠️  Health check failed! Diagnostics:"
     echo "1. Last 20 lines of service logs:"
     sudo journalctl -u "$SERVICE_NAME" -n 20 --no-pager
