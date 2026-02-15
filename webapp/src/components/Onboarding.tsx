@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ONBOARDING_KEY } from '../constants/auth';
 
 /**
  * Onboarding component - redirects to ProfileManager for profile setup
@@ -8,7 +9,7 @@ export function Onboarding({ onComplete }: { onComplete?: () => void }) {
   const navigate = useNavigate();
 
   const handleStart = useCallback(() => {
-    localStorage.setItem('webapp:onboarding-complete', 'true');
+    localStorage.setItem(ONBOARDING_KEY, 'true');
     
     // Navigate to profile manager to create first profile
     navigate('/profile');

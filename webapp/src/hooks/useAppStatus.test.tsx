@@ -1,11 +1,10 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useEffect, type ReactNode } from 'react';
 import { describe, expect, it, beforeEach } from 'vitest';
-import { AUTH_KEY } from '../constants/auth';
+import { AUTH_KEY, ONBOARDING_KEY } from '../constants/auth';
 import { ApiConfigProvider, useApiConfig } from './useApiConfig';
 import { useAppStatus } from './useAppStatus';
 
-const ONBOARDING_KEY = 'webapp:onboarding-complete';
 
 function ApiConfigHarness({ children, persistToken }: { children: ReactNode; persistToken?: boolean }) {
   const { setPersistToken } = useApiConfig();

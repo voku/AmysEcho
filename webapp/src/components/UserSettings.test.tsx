@@ -2,6 +2,7 @@ import { fireEvent, screen } from '@testing-library/dom';
 import { act, render } from '@testing-library/react';
 import { useEffect } from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { AUTH_KEY } from '../constants/auth';
 import { ApiConfigProvider, useApiConfig } from '../hooks/useApiConfig';
 import { UserSettings } from './UserSettings';
 
@@ -79,7 +80,7 @@ describe('UserSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Abmelden' }));
 
     expect(screen.getByTestId('token-probe')).toHaveTextContent('leer');
-    expect(window.localStorage.getItem('webapp:auth-complete')).toBe('false');
+    expect(window.localStorage.getItem(AUTH_KEY)).toBe('false');
   });
 
   it('zeigt einen Validierungsfehler bei nicht passenden Passwörtern', async () => {

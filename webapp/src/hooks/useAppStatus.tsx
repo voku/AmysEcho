@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AUTH_KEY } from '../constants/auth';
+import { AUTH_KEY, ONBOARDING_KEY } from '../constants/auth';
 import { useApiConfig } from './useApiConfig';
-const ONBOARDING_KEY = 'webapp:onboarding-complete';
 
 // ========================================
 // App Status Hook
