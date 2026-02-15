@@ -485,6 +485,7 @@ const MIN_TRAINING_UPLOAD_TIMEOUT_MS = 30000;
 const TRAINING_UPLOAD_TIMEOUT_PER_MB_MS = 15000;
 const MAX_TRAINING_UPLOAD_TIMEOUT_MS = 300000;
 
+
 export function resolveTrainingUploadTimeoutMs(zipSizeBytes: number): number {
   if (!Number.isFinite(zipSizeBytes) || zipSizeBytes <= 0) {
     return MIN_TRAINING_UPLOAD_TIMEOUT_MS;
@@ -529,6 +530,9 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
   }
 
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new HttpError(404, 'Upload-Endpunkt nicht gefunden (HTTP 404). Bitte Webapp und Server gemeinsam aktualisieren.');
+    }
     throw new HttpError(response.status, `Upload fehlgeschlagen (HTTP ${response.status}).`);
   }
 

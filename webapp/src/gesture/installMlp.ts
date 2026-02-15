@@ -2,8 +2,6 @@ import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
 import { enhancePredictionWithFeedback } from './performanceFeedback';
 import { logger } from '../services/logger';
-import { resolveApiUrl } from '../utils/resolveApiUrl';
-import { arrayBufferToBase64 } from '../utils/arrayBufferToBase64';
 
 
 export type ModelMetadata = {
@@ -13,6 +11,12 @@ export type ModelMetadata = {
   feature_size?: number;
   audio_feature_size?: number;
   labels?: string[];
+};
+
+type ModelInputPlan = {
+  windowSize: number;
+  featuresPerFrame: number;
+  isMultimodal: boolean;
 };
 
 export function installMlp(customModelData?: string): Promise<boolean> {
@@ -32,6 +36,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     window_size?: number;
     input_dim?: number;
     audio_feature_size?: number;
+    inferredInputPlan?: ModelInputPlan;
   };
   const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
     void sendTelemetryEvent(event, data ?? {}).catch((err) => {
@@ -41,6 +46,52 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
   let WINDOW_SIZE = 30; // Default, will be updated from model metadata
   let rollingBuffer: Float32Array[] = [];
+
+  function inferInputPlan(
+    inputSize: number,
+    metadataWindowSize: number | undefined,
+    metadataAudioFeatureSize: number | undefined,
+  ): ModelInputPlan {
+    const audioFeatureSize = resolveAudioFeatureSize(metadataAudioFeatureSize);
+    const visualInputSize = Math.max(0, inputSize - audioFeatureSize);
+    const metadataWindow =
+      typeof metadataWindowSize === 'number' && Number.isFinite(metadataWindowSize) && metadataWindowSize > 0
+        ? Math.round(metadataWindowSize)
+        : 0;
+
+    if (metadataWindow > 0) {
+      const featuresPerFrame = visualInputSize / metadataWindow;
+      return {
+        windowSize: metadataWindow,
+        featuresPerFrame,
+        isMultimodal: featuresPerFrame === MULTIMODAL_FEATURES_SIZE,
+      };
+    }
+
+    const multimodalWindow = visualInputSize / MULTIMODAL_FEATURES_SIZE;
+    if (Number.isInteger(multimodalWindow) && multimodalWindow > 0) {
+      return {
+        windowSize: multimodalWindow,
+        featuresPerFrame: MULTIMODAL_FEATURES_SIZE,
+        isMultimodal: true,
+      };
+    }
+
+    const handOnlyWindow = visualInputSize / (21 * 2 * 3);
+    if (Number.isInteger(handOnlyWindow) && handOnlyWindow > 0) {
+      return {
+        windowSize: handOnlyWindow,
+        featuresPerFrame: 21 * 2 * 3,
+        isMultimodal: false,
+      };
+    }
+
+    return {
+      windowSize: 1,
+      featuresPerFrame: visualInputSize,
+      isMultimodal: visualInputSize === MULTIMODAL_FEATURES_SIZE,
+    };
+  }
 
   function parseNPY(buf: Uint8Array) {
     const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -340,7 +391,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       }
 
       // Validate tensor dimensions for MLP compatibility
-      const inputSize = w1.shape[1];
+      const inputSize = w1.shape[1] ?? 0;
       const layer1Size = w1.shape[0];
       const layer2Size = w2.shape[0];
       const outputSize = w3.shape[0];
@@ -361,13 +412,15 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         throw new Error(`Dimension mismatch: b3 has ${b3.shape[0]} but expected ${outputSize}`);
       }
 
-      // Update temporal window parameters from model metadata
-      WINDOW_SIZE = window_size || 30;
+      const inferredInputPlan = inferInputPlan(inputSize, window_size, audio_feature_size);
+
+      // Update temporal window parameters from model metadata or inferred structure
+      WINDOW_SIZE = inferredInputPlan.windowSize;
       rollingBuffer = []; // Reset buffer with new window size
       
       logger.info(`MLP model loaded: ${inputSize} -> ${layer1Size} -> ${layer2Size} -> ${outputSize} (${labels.length} labels)`);
       logger.info(
-        `Temporal config: window_size=${WINDOW_SIZE}, input_dim=${input_dim || MULTIMODAL_FEATURES_SIZE}`,
+        `Temporal config: window_size=${WINDOW_SIZE}, input_dim=${input_dim || inputSize}, multimodal=${inferredInputPlan.isMultimodal}`,
       );
 
       mlp = {
@@ -381,6 +434,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         ...(window_size !== undefined ? { window_size } : {}),
         ...(input_dim !== undefined ? { input_dim } : {}),
         ...(audio_feature_size !== undefined ? { audio_feature_size } : {}),
+        inferredInputPlan,
       };
       return true;
     } catch (e: any) {
@@ -441,13 +495,8 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   }
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
-    const inputSize = mlp?.w1.shape[1] ?? 0;
-    const windowSize = mlp?.window_size ?? WINDOW_SIZE;
-    const audioFeatureSize = resolveAudioFeatureSize(mlp?.audio_feature_size);
-    const visualInputSize = Math.max(0, inputSize - audioFeatureSize);
-    const featuresPerFrame = windowSize > 0 ? visualInputSize / windowSize : visualInputSize;
-    
-    const isMultimodalInModel = mlp && featuresPerFrame === MULTIMODAL_FEATURES_SIZE;
+    const inferredPlan = mlp?.inferredInputPlan;
+    const isMultimodalInModel = inferredPlan?.isMultimodal ?? false;
     
     let frameFeatures: Float32Array;
     
@@ -535,7 +584,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       const currentFrameVec = normalizeLandmarks(all, handednesses, poseLandmarks, faceLandmarks);
       
       // 2. Determine if model expects multimodal input
-      const windowSize = mlp.window_size ?? WINDOW_SIZE;
+      const windowSize = mlp.inferredInputPlan?.windowSize ?? mlp.window_size ?? WINDOW_SIZE;
       const audioFeatureSize = resolveAudioFeatureSize(mlp.audio_feature_size);
       // A model is considered multimodal (with audio) if it has audio features.
       const isMultimodalModel = audioFeatureSize > 0;
@@ -555,7 +604,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       let x: Float32Array;
       
       // Determine actual feature size per frame from current frame
-      const featureSizePerFrame = currentFrameVec.length;
+      const featureSizePerFrame = mlp.inferredInputPlan?.featuresPerFrame ?? currentFrameVec.length;
       
       // Check if this is a temporal model or static model
       // Use actual feature size instead of MULTIMODAL_FEATURES_SIZE constant for flexibility
@@ -716,24 +765,8 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       console.warn('Failed to load provided custom model data');
     }
 
-    // Try server fallback
-    try {
-      const modelUrl = resolveApiUrl('/api/v1/models/latest');
-      const response = await fetch(modelUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      const modelBuffer = await response.arrayBuffer();
-      const serverB64 = arrayBufferToBase64(modelBuffer);
-      if (await loadMlpFromB64(serverB64)) {
-        forwardTelemetry('mlp_server_loaded');
-        return true;
-      }
-    } catch (e) {
-      // Server fallback is optional, log but don't fail
-      console.info('Server model fallback not available or failed:', e instanceof Error ? e.message : String(e));
-      forwardTelemetry('mlp_server_failed', { error: String(e) });
-    }
+    // Server model fetching is handled by useMlpModelInjection with auth/token refresh.
+    // This runtime bootstrap intentionally avoids unauthenticated background requests.
     return false;
   })();
 }

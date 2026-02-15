@@ -492,6 +492,34 @@ describe('uploadTrainingBundle', () => {
     expect(result.qualityGate).toEqual({ outcome: 'review', reasons: ['hand_coverage_low'] });
   });
 
+
+  it('meldet HTTP 404 mit klarer Update-Hinweis-Meldung', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+    });
+    (globalThis as any).fetch = fetchSpy;
+
+    await expect(
+      uploadTrainingBundle(basePayload, {
+        endpoint: 'https://example.test/api/v1/dgs/sample-bundles',
+        token: 'demo-token',
+      }),
+    ).rejects.toThrow('Upload-Endpunkt nicht gefunden (HTTP 404). Bitte Webapp und Server gemeinsam aktualisieren.');
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const firstCall = fetchSpy.mock.calls[0];
+    if (firstCall) {
+      const [url, requestInit] = firstCall;
+      expect(url).toBe('https://example.test/api/v1/dgs/sample-bundles');
+      expect(requestInit?.headers).toMatchObject({
+        'Content-Type': 'application/zip',
+        Authorization: 'Bearer demo-token',
+      });
+    }
+  });
+
   it('meldet Zeitüberschreitungen mit verständlicher Fehlermeldung', async () => {
     const fetchSpy = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
     (globalThis as any).fetch = fetchSpy;

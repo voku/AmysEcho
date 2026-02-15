@@ -63,9 +63,10 @@ describe('installMlp', () => {
     layer2: number,
     output: number,
     labels: string[],
-    options: { windowSize?: number; audioFeatureSize?: number } = {},
+    options: { windowSize?: number; audioFeatureSize?: number; includeWindowMetadata?: boolean } = {},
   ) {
     const windowSize = options.windowSize ?? 1;
+    const includeWindowMetadata = options.includeWindowMetadata ?? true;
     const w1 = new Float32Array(layer1 * inputDim).fill(0.1);
     const b1 = new Float32Array(layer1).fill(0);
     const w2 = new Float32Array(layer2 * layer1).fill(0.1);
@@ -81,9 +82,12 @@ describe('installMlp', () => {
       'w3.npy': createMockNpy(w3, [output, layer2]),
       'b3.npy': createMockNpy(b3, [output]),
       'labels.npy': createMockNpy(labels, [labels.length]),
-      'window_size.npy': createMockNpy(new Float32Array([windowSize]), [1]),
       'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1])
     };
+
+    if (includeWindowMetadata) {
+      zipEntries['window_size.npy'] = createMockNpy(new Float32Array([windowSize]), [1]);
+    }
 
     if (options.audioFeatureSize !== undefined) {
       zipEntries['audio_feature_size.npy'] = createMockNpy(
@@ -350,6 +354,32 @@ describe('installMlp', () => {
 
       expect(res).not.toBeNull();
       expect(res?.label).toBe('multimodal');
+    });
+
+
+    it('leitet Fenstergröße aus Input-Dimension ohne window_size-Metadaten ab', async () => {
+      const inferredWindowModel = create3LayerZipB64(
+        MULTIMODAL_FEATURES_SIZE * 6,
+        10,
+        5,
+        1,
+        ['inferred-window'],
+        { includeWindowMetadata: false },
+      );
+      const ok = await window.__setMlpModelB64!(inferredWindowModel);
+      expect(ok).toBe(true);
+
+      const pose = createPoseLandmarks();
+      const face = createFaceLandmarks();
+      const res = window.__mlpPredict!(
+        [TEST_HAND],
+        [[{ categoryName: 'Left' }]],
+        pose,
+        face,
+      );
+
+      expect(res).not.toBeNull();
+      expect(res?.label).toBe('inferred-window');
     });
 
     it('nutzt die Audio-Feature-Größe aus dem Modell', async () => {
