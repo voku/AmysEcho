@@ -23,4 +23,9 @@ packages = { find = { where = ["src"], include = ["amyserver_tools*"] } }
 pythonpath = ["src"]
 filterwarnings = [
     "ignore:The 'hidden_size' parameter is deprecated and ignored.*:DeprecationWarning",
+    "ignore:'aifc' is deprecated and slated for removal in Python 3.13:DeprecationWarning:audioread.rawread",
+    "ignore:'audioop' is deprecated and slated for removal in Python 3.13:DeprecationWarning:audioread.rawread",
+    "ignore:'sunau' is deprecated and slated for removal in Python 3.13:DeprecationWarning:audioread.rawread",
+    "ignore:PySoundFile failed\\. Trying audioread instead\\.:UserWarning:amyserver_tools.audio_preprocessing",
+    "ignore:librosa\\.core\\.audio\\.__audioread_load.*:FutureWarning:librosa.core.audio",
 ]

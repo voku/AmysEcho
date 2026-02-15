@@ -14,7 +14,12 @@ from typing import Any
 
 import numpy as np
 import pytest
-from conftest import _get_free_port, create_access_token
+from conftest import (
+    TEST_JWT_REFRESH_SECRET,
+    TEST_JWT_SECRET,
+    _get_free_port,
+    create_access_token,
+)
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
 
@@ -124,8 +129,8 @@ def _parse_timestamp(value: Any) -> datetime:
 
 def start_server():
     env = os.environ.copy()
-    env.setdefault("JWT_SECRET", "test-jwt-secret")
-    env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
+    env.setdefault("JWT_SECRET", TEST_JWT_SECRET)
+    env.setdefault("JWT_REFRESH_SECRET", TEST_JWT_REFRESH_SECRET)
     env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
     port = str(_get_free_port())
     env["PORT"] = port

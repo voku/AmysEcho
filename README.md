@@ -37,6 +37,19 @@ npm run build --prefix server && ./scripts/server-start.sh  # Terminal A
 npm run dev --prefix webapp  # Terminal B → http://localhost:5173
 ```
 
+
+### NPM Proxy Warning Cleanup
+
+If your environment injects `npm_config_http_proxy` / `npm_config_https_proxy`, npm can print `Unknown env config "http-proxy"` warnings.
+Use these shell helpers for clean output during checks:
+
+```bash
+./scripts/run-webapp-type-check-clean.sh
+./scripts/run-webapp-lint-clean.sh
+./scripts/run-webapp-build-clean.sh
+./scripts/run-server-type-check-clean.sh
+```
+
 ---
 
 ## Key Entry Points

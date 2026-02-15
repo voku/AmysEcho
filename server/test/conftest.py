@@ -15,6 +15,8 @@ import numpy as np
 import pytest
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
+TEST_JWT_SECRET = "test-jwt-secret-with-at-least-32-bytes"
+TEST_JWT_REFRESH_SECRET = "test-refresh-secret-with-at-least-32-bytes"
 
 
 def resolve_data_dir() -> Path:
@@ -97,8 +99,8 @@ def start_server() -> ServerContext:
     ensure_baseline_model()
 
     env = os.environ.copy()
-    env.setdefault("JWT_SECRET", "test-jwt-secret")
-    env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
+    env.setdefault("JWT_SECRET", TEST_JWT_SECRET)
+    env.setdefault("JWT_REFRESH_SECRET", TEST_JWT_REFRESH_SECRET)
     env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
     env.setdefault("PORT", PORT)
     env.setdefault("HOST", HOST)
