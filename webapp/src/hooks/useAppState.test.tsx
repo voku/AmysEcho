@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { AppStateProvider, useAppState } from './useAppState';
 import * as profileRegistry from '../services/profileRegistry';
@@ -13,14 +13,15 @@ describe('useAppState', () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.clearAllMocks();
+    vi.mocked(profileRegistry.initializeProfileRegistry).mockResolvedValue(undefined);
+    vi.mocked(profileRegistry.getActiveProfile).mockResolvedValue(null);
   });
 
   it('provides defaults when no active profile', async () => {
     const { result } = renderHook(() => useAppState(), { wrapper: AppStateProvider });
 
-    // Wait for initialization
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 50));
+    await waitFor(() => {
+      expect(profileRegistry.initializeProfileRegistry).toHaveBeenCalledTimes(1);
     });
 
     expect(result.current.profileUuid).toBeNull();
@@ -45,9 +46,8 @@ describe('useAppState', () => {
 
     const { result } = renderHook(() => useAppState(), { wrapper: AppStateProvider });
 
-    // Wait for initialization
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 50));
+    await waitFor(() => {
+      expect(profileRegistry.getActiveProfile).toHaveBeenCalledTimes(1);
     });
 
     expect(result.current.profileUuid).toBe('test-uuid-123');
@@ -56,8 +56,12 @@ describe('useAppState', () => {
     expect(result.current.profileMetadata).toEqual({});
   });
 
-  it('records gestures and maintains recent list', () => {
+  it('records gestures and maintains recent list', async () => {
     const { result } = renderHook(() => useAppState(), { wrapper: AppStateProvider });
+
+    await waitFor(() => {
+      expect(profileRegistry.initializeProfileRegistry).toHaveBeenCalledTimes(1);
+    });
 
     act(() => {
       ['EINS', 'ZWEI', 'DREI', 'VIER', 'FÜNF', 'SECHS', 'VIER'].forEach((sign) => {

@@ -7,7 +7,7 @@ import time
 import urllib.error
 import urllib.request
 
-from conftest import create_access_token
+from conftest import TEST_JWT_REFRESH_SECRET, TEST_JWT_SECRET, create_access_token
 
 SERVER_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 PORT = "5055"
@@ -17,8 +17,8 @@ ACCESS_TOKEN = ""
 
 def start_server():
     env = os.environ.copy()
-    env.setdefault("JWT_SECRET", "test-jwt-secret")
-    env.setdefault("JWT_REFRESH_SECRET", "test-refresh-secret")
+    env.setdefault("JWT_SECRET", TEST_JWT_SECRET)
+    env.setdefault("JWT_REFRESH_SECRET", TEST_JWT_REFRESH_SECRET)
     env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
     env.setdefault("PORT", PORT)
     global ACCESS_TOKEN
