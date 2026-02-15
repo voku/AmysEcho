@@ -61,41 +61,10 @@ class AudioService {
    * Preload common sound effects
    */
   private async preloadSounds(): Promise<void> {
-    const names = [
-      'success',
-      'error',
-      'confirmation',
-      'gesture_recognized',
-      'listening',
-      'thinking',
-      'celebration',
-    ];
-
-    for (const name of names) {
-      try {
-        // Try to load from public sounds directory
-        const audio = new Audio(`/sounds/${name}.mp3`);
-        audio.volume = this.config.volume;
-        audio.preload = 'auto';
-        
-        // Wait for the audio to be ready or fail gracefully
-        await new Promise<void>((resolve) => {
-          audio.addEventListener('canplaythrough', () => {
-            this.sounds.set(name, audio);
-            logger.debug(`Preloaded sound: ${name}`);
-            resolve();
-          });
-          audio.addEventListener('error', () => {
-            logger.debug(`No sound asset found for ${name}`);
-            resolve();
-          });
-          // Timeout after 2 seconds
-          setTimeout(resolve, 2000);
-        });
-      } catch (error) {
-        logger.debug(`Error loading sound ${name}:`, error);
-      }
-    }
+    // MP3 assets were removed from the web deployment because they were
+    // not reliably available and created noisy 404 errors.
+    // Keep the API surface but default to speech + haptics feedback only.
+    this.sounds.clear();
   }
 
   /**
