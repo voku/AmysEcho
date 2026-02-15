@@ -1,4 +1,4 @@
-import { strFromU8, unzipSync, zipSync } from 'fflate';
+import { zipSync } from 'fflate';
 import { extractNonManualFeatures } from '../gesture/utils/nonManualFeatures';
 import { flattenHandsWithHandedness, frameHasAnyLandmarks, framesHaveHandLandmarks } from './handUtils';
 import { validateLandmarkSequence } from './trainingValidator';
@@ -486,125 +486,6 @@ const TRAINING_UPLOAD_TIMEOUT_PER_MB_MS = 15000;
 const MAX_TRAINING_UPLOAD_TIMEOUT_MS = 300000;
 
 
-type LegacySampleUploadPayload = {
-  label: string;
-  profileId?: string;
-  landmarks: [number, number, number][];
-};
-
-function findZipEntryByName(entries: Record<string, Uint8Array>, name: string): Uint8Array | null {
-  const direct = entries[name];
-  if (direct) return direct;
-  const normalizedTarget = name.replace(/^\/+/, '');
-  for (const [entryName, bytes] of Object.entries(entries)) {
-    const normalizedEntry = entryName.replace(/\\/g, '/').replace(/^\/+/, '');
-    if (normalizedEntry.endsWith(normalizedTarget)) {
-      return bytes;
-    }
-  }
-  return null;
-}
-
-function parseLegacySamplePayloadFromZip(zipBytes: Uint8Array): LegacySampleUploadPayload | null {
-  try {
-    const entries = unzipSync(zipBytes);
-    const metadataBytes = findZipEntryByName(entries, 'metadata.json');
-    const landmarksBytes = findZipEntryByName(entries, 'landmarks.json');
-    if (!metadataBytes || !landmarksBytes) {
-      return null;
-    }
-
-    const metadata = JSON.parse(strFromU8(metadataBytes)) as { label?: unknown; profileId?: unknown };
-    const landmarks = JSON.parse(strFromU8(landmarksBytes)) as {
-      frames?: Array<{ landmarks?: unknown }>;
-    };
-
-    const label = typeof metadata.label === 'string' ? metadata.label.trim() : '';
-    if (!label) {
-      return null;
-    }
-
-    const firstFrame = Array.isArray(landmarks.frames)
-      ? landmarks.frames.find((frame) => Array.isArray(frame?.landmarks) && frame.landmarks.length > 0)
-      : undefined;
-    const rawLandmarks = Array.isArray(firstFrame?.landmarks) ? firstFrame.landmarks : [];
-    const points = rawLandmarks
-      .map((point) => {
-        if (!Array.isArray(point)) return null;
-        const x = Number(point[0]);
-        const y = Number(point[1]);
-        const z = Number(point[2]);
-        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
-        return [x, y, z] as [number, number, number];
-      })
-      .filter((point): point is [number, number, number] => point !== null);
-
-    if (points.length !== 21 && points.length !== 42 && points.length !== 543) {
-      return null;
-    }
-
-    const profileId = typeof metadata.profileId === 'string' && metadata.profileId.trim().length > 0
-      ? metadata.profileId.trim()
-      : undefined;
-
-    return {
-      label,
-      ...(profileId ? { profileId } : {}),
-      landmarks: points,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function resolveLegacySamplesEndpoint(endpoint: string): string | null {
-  const trimmed = endpoint.trim();
-  if (!trimmed) return null;
-  if (trimmed.includes('/api/v1/dgs/sample-bundles')) {
-    return trimmed.replace('/api/v1/dgs/sample-bundles', '/api/v1/dgs/samples');
-  }
-  return null;
-}
-
-async function uploadViaLegacySamplesEndpoint(
-  zipBytes: Uint8Array,
-  endpoint: string,
-  token?: string,
-): Promise<UploadTrainingBundleResponse | null> {
-  const legacyEndpoint = resolveLegacySamplesEndpoint(endpoint);
-  if (!legacyEndpoint) {
-    return null;
-  }
-
-  const payload = parseLegacySamplePayloadFromZip(zipBytes);
-  if (!payload) {
-    return null;
-  }
-
-  const legacyResponse = await fetchWithRetry(
-    legacyEndpoint,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(payload),
-    },
-    { retries: 1, retryDelayMs: 300, timeoutMs: MIN_TRAINING_UPLOAD_TIMEOUT_MS },
-  );
-
-  if (!legacyResponse.ok) {
-    throw new HttpError(legacyResponse.status, `Upload fehlgeschlagen (HTTP ${legacyResponse.status}).`);
-  }
-
-  return {
-    id: `legacy-${Date.now()}`,
-    status: 'queued',
-  };
-}
-
 export function resolveTrainingUploadTimeoutMs(zipSizeBytes: number): number {
   if (!Number.isFinite(zipSizeBytes) || zipSizeBytes <= 0) {
     return MIN_TRAINING_UPLOAD_TIMEOUT_MS;
@@ -650,17 +531,7 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
 
   if (!response.ok) {
     if (response.status === 404) {
-      try {
-        const fallbackResponse = await uploadViaLegacySamplesEndpoint(zipView, endpoint, options.token);
-        if (fallbackResponse) {
-          return fallbackResponse;
-        }
-      } catch (error) {
-        if (error instanceof HttpError) {
-          throw error;
-        }
-        throw new Error('Legacy-Upload konnte nicht abgeschlossen werden.');
-      }
+      throw new HttpError(404, 'Upload-Endpunkt nicht gefunden (HTTP 404). Bitte Webapp und Server gemeinsam aktualisieren.');
     }
     throw new HttpError(response.status, `Upload fehlgeschlagen (HTTP ${response.status}).`);
   }

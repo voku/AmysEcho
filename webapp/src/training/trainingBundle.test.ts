@@ -493,57 +493,30 @@ describe('uploadTrainingBundle', () => {
   });
 
 
-  it('fällt bei 404 auf Legacy-Endpoint /api/v1/dgs/samples zurück', async () => {
-    const fetchSpy = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ status: 'ok' }),
-      });
+  it('meldet HTTP 404 mit klarer Update-Hinweis-Meldung', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+    });
     (globalThis as any).fetch = fetchSpy;
 
-    const result = await uploadTrainingBundle(basePayload, {
-      endpoint: 'https://example.test/api/v1/dgs/sample-bundles',
-      token: 'demo-token',
-    });
+    await expect(
+      uploadTrainingBundle(basePayload, {
+        endpoint: 'https://example.test/api/v1/dgs/sample-bundles',
+        token: 'demo-token',
+      }),
+    ).rejects.toThrow('Upload-Endpunkt nicht gefunden (HTTP 404). Bitte Webapp und Server gemeinsam aktualisieren.');
 
-    expect(result.status).toBe('queued');
-    expect(result.id.startsWith('legacy-')).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
-
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
     const firstCall = fetchSpy.mock.calls[0];
     if (firstCall) {
       const [url, requestInit] = firstCall;
       expect(url).toBe('https://example.test/api/v1/dgs/sample-bundles');
-      expect(requestInit?.headers).toMatchObject({ 'Content-Type': 'application/zip' });
-    }
-
-    const secondCall = fetchSpy.mock.calls[1];
-    if (secondCall) {
-      const [url, requestInit] = secondCall;
-      expect(url).toBe('https://example.test/api/v1/dgs/samples');
       expect(requestInit?.headers).toMatchObject({
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/zip',
         Authorization: 'Bearer demo-token',
       });
-
-      const bodyRaw = requestInit?.body;
-      expect(typeof bodyRaw).toBe('string');
-      const body = JSON.parse(String(bodyRaw)) as {
-        label: string;
-        profileId?: string;
-        landmarks: number[][];
-      };
-      expect(body.label).toBe('HILFE');
-      expect(body.profileId).toBe('p1');
-      expect(Array.isArray(body.landmarks)).toBe(true);
-      expect(body.landmarks.length).toBe(42);
     }
   });
 
