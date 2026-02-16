@@ -423,6 +423,7 @@ this runbook:
 Compatibility note:
 - Legacy aliases `JWT_ACCESS_SECRET` and `JWT_REFRESH_TOKEN_SECRET` are
   supported as fallbacks, but should be migrated to canonical names.
+- Monitor server logs for deprecation warnings if legacy aliases are used.
 
 ---
 

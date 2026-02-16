@@ -687,6 +687,7 @@ export function TrainingUploadWithRecording() {
   }, [uploadState]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!hasAuthRetry) {
       authRetryFiredRef.current = false;
       return;
@@ -701,14 +702,20 @@ export function TrainingUploadWithRecording() {
 
     authRetryFiredRef.current = true;
     uploadState.syncQueued().then(({ uploaded, remaining, blocked }) => {
+      if (cancelled) return;
       setMessage(formatSyncQueuedMessage(uploaded, remaining, blocked));
       if (blocked === 0) {
         authRetryFiredRef.current = false;
       }
     }).catch((syncErr) => {
+      if (cancelled) return;
       const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
       setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [hasAuthBlockedBundles, hasAuthRetry, uploadState]);
 
   const handleSyncBundle = useCallback(

@@ -423,7 +423,7 @@ describe('installMlp', () => {
     });
 
     it('lädt Metadaten mit skalarem NPY-Shape ohne Warnung', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const warnSpy = vi.spyOn(console, 'warn');
       const scalarMetadataModel = create3LayerZipB64(
         MULTIMODAL_FEATURES_SIZE + 4,
         10,
