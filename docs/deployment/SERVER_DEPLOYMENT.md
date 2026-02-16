@@ -407,6 +407,23 @@ sudo ufw enable
 | `MLP_SCRIPT` | No | (auto) | Path to train_mlp.py |
 | `DB_PATH` | No | `server/db.json` | Database file path |
 
+### JWT Secret Rotation Workflow (Important)
+
+Changing `JWT_SECRET` or `JWT_REFRESH_SECRET` invalidates all previously issued
+tokens. If users suddenly get session-expired errors after deployment, follow
+this runbook:
+
+1. Confirm env names and values:
+   - Use canonical names: `JWT_SECRET`, `JWT_REFRESH_SECRET`
+   - Avoid empty values and trailing spaces
+2. Restart the server process/container so the new secrets are loaded.
+3. Ask users to log in again (old access/refresh tokens cannot be refreshed).
+4. If a browser still loops on refresh, clear site storage and log in again.
+
+Compatibility note:
+- Legacy aliases `JWT_ACCESS_SECRET` and `JWT_REFRESH_TOKEN_SECRET` are
+  supported as fallbacks, but should be migrated to canonical names.
+
 ---
 
 ## SSL/TLS Setup
