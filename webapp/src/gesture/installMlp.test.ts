@@ -64,10 +64,16 @@ describe('installMlp', () => {
     layer2: number,
     output: number,
     labels: string[],
-    options: { windowSize?: number; audioFeatureSize?: number; includeWindowMetadata?: boolean } = {},
+    options: {
+      windowSize?: number;
+      audioFeatureSize?: number;
+      includeWindowMetadata?: boolean;
+      scalarMetadata?: boolean;
+    } = {},
   ) {
     const windowSize = options.windowSize ?? 1;
     const includeWindowMetadata = options.includeWindowMetadata ?? true;
+    const scalarMetadata = options.scalarMetadata ?? false;
     const w1 = new Float32Array(layer1 * inputDim).fill(0.1);
     const b1 = new Float32Array(layer1).fill(0);
     const w2 = new Float32Array(layer2 * layer1).fill(0.1);
@@ -83,54 +89,20 @@ describe('installMlp', () => {
       'w3.npy': createMockNpy(w3, [output, layer2]),
       'b3.npy': createMockNpy(b3, [output]),
       'labels.npy': createMockNpy(labels, [labels.length]),
-      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1])
+      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1], scalarMetadata)
     };
 
     if (includeWindowMetadata) {
-      zipEntries['window_size.npy'] = createMockNpy(new Float32Array([windowSize]), [1]);
+      zipEntries['window_size.npy'] = createMockNpy(new Float32Array([windowSize]), [1], scalarMetadata);
     }
 
     if (options.audioFeatureSize !== undefined) {
       zipEntries['audio_feature_size.npy'] = createMockNpy(
         new Float32Array([options.audioFeatureSize]),
         [1],
+        scalarMetadata,
       );
     }
-
-    const zip = zipSync(zipEntries);
-
-    return Buffer.from(zip).toString('base64');
-  }
-
-  function create3LayerZipB64WithScalarMetadata(
-    inputDim: number,
-    layer1: number,
-    layer2: number,
-    output: number,
-    labels: string[],
-    options: { windowSize?: number; audioFeatureSize?: number } = {},
-  ) {
-    const windowSize = options.windowSize ?? 1;
-    const audioFeatureSize = options.audioFeatureSize ?? 0;
-    const w1 = new Float32Array(layer1 * inputDim).fill(0.1);
-    const b1 = new Float32Array(layer1).fill(0);
-    const w2 = new Float32Array(layer2 * layer1).fill(0.1);
-    const b2 = new Float32Array(layer2).fill(0);
-    const w3 = new Float32Array(output * layer2).fill(0.1);
-    const b3 = new Float32Array(output).fill(0);
-
-    const zipEntries: Record<string, Uint8Array> = {
-      'w1.npy': createMockNpy(w1, [layer1, inputDim]),
-      'b1.npy': createMockNpy(b1, [layer1]),
-      'w2.npy': createMockNpy(w2, [layer2, layer1]),
-      'b2.npy': createMockNpy(b2, [layer2]),
-      'w3.npy': createMockNpy(w3, [output, layer2]),
-      'b3.npy': createMockNpy(b3, [output]),
-      'labels.npy': createMockNpy(labels, [labels.length]),
-      'window_size.npy': createMockNpy(new Float32Array([windowSize]), [1], true),
-      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1], true),
-      'audio_feature_size.npy': createMockNpy(new Float32Array([audioFeatureSize]), [1], true),
-    };
 
     const zip = zipSync(zipEntries);
 
@@ -452,13 +424,13 @@ describe('installMlp', () => {
 
     it('lädt Metadaten mit skalarem NPY-Shape ohne Warnung', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-      const scalarMetadataModel = create3LayerZipB64WithScalarMetadata(
+      const scalarMetadataModel = create3LayerZipB64(
         MULTIMODAL_FEATURES_SIZE + 4,
         10,
         5,
         1,
         ['scalar-meta'],
-        { windowSize: 1, audioFeatureSize: 4 },
+        { windowSize: 1, audioFeatureSize: 4, scalarMetadata: true },
       );
 
       const ok = await window.__setMlpModelB64!(scalarMetadataModel);

@@ -36,4 +36,14 @@ describe('config JWT env aliases', () => {
       expect.stringContaining('JWT_REFRESH_TOKEN_SECRET is deprecated'),
     );
   });
+
+  it('throws when required JWT secret is missing across canonical and alias env names', async () => {
+    process.env.JWT_REFRESH_SECRET = 'some-refresh-secret';
+    delete process.env.JWT_SECRET;
+    delete process.env.JWT_ACCESS_SECRET;
+
+    await expect(import('../src/config/index.js')).rejects.toThrow(
+      'Environment variable JWT_SECRET is required (accepted aliases: JWT_ACCESS_SECRET)',
+    );
+  });
 });

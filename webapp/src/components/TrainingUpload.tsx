@@ -526,6 +526,10 @@ export function TrainingUploadWithRecording() {
   const gestureParam = searchParams.get('gesture');
   const symbolIdParam = searchParams.get('symbolId');
   const prevMetadataReadyRef = useRef(metadataReady);
+  const authRetryFiredRef = useRef(false);
+  const hasAuthBlockedBundles = uploadState.queuedBundles.some(
+    (bundle) => bundle.status === 'failed' && isAuthFailureReason(bundle.lastError),
+  );
 
   useEffect(() => {
     // Only clear message when transitioning from not-ready to ready
@@ -684,18 +688,28 @@ export function TrainingUploadWithRecording() {
 
   useEffect(() => {
     if (!hasAuthRetry) {
+      authRetryFiredRef.current = false;
       return;
     }
-    if (!message.includes('abgelaufene Sitzung blockiert')) {
+    if (!hasAuthBlockedBundles) {
+      authRetryFiredRef.current = false;
       return;
     }
+    if (authRetryFiredRef.current) {
+      return;
+    }
+
+    authRetryFiredRef.current = true;
     uploadState.syncQueued().then(({ uploaded, remaining, blocked }) => {
       setMessage(formatSyncQueuedMessage(uploaded, remaining, blocked));
+      if (blocked === 0) {
+        authRetryFiredRef.current = false;
+      }
     }).catch((syncErr) => {
       const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
       setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
     });
-  }, [hasAuthRetry, message, uploadState]);
+  }, [hasAuthBlockedBundles, hasAuthRetry, uploadState]);
 
   const handleSyncBundle = useCallback(
     async (key: string) => {
