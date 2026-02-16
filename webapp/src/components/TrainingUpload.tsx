@@ -149,7 +149,7 @@ function TrainingStatusBlock({
   actionSlot,
   onSyncBundle,
   onRemoveBundle,
-  hasApiToken,
+  hasAuthRetry,
 }: {
   uploader: TrainingUploaderHandle;
   message?: string;
@@ -157,13 +157,13 @@ function TrainingStatusBlock({
   actionSlot?: ReactNode;
   onSyncBundle?: (key: string) => Promise<void>;
   onRemoveBundle?: (key: string) => Promise<void>;
-  hasApiToken: boolean;
+  hasAuthRetry: boolean;
 }) {
   const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob, queuedBundles } = uploader;
   const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
 
   const blockedAuthCount = queuedBundles.filter((bundle) =>
-    bundle.status === 'failed' && isAuthFailureReason(bundle.lastError) && !hasApiToken,
+    bundle.status === 'failed' && isAuthFailureReason(bundle.lastError) && !hasAuthRetry,
   ).length;
   const queueWaitingCount = Math.max(0, queuedBundles.length - blockedAuthCount);
 
@@ -436,7 +436,10 @@ function TrainingQualityLogCard({ entries, loading, error }: TrainingQualityLogC
 
 // Wrapper component with recording-first experience
 export function TrainingUploadWithRecording() {
-  const { apiBaseUrl, apiToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
+  const { apiBaseUrl, apiToken, refreshToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
+  const hasAuthRetry =
+    (typeof apiToken === 'string' && apiToken.trim().length > 0) ||
+    (typeof refreshToken === 'string' && refreshToken.trim().length > 0);
   const uploadState = useTrainingUploader({
     defaultOptions: {
       endpoint: uploadEndpoint,
@@ -679,6 +682,21 @@ export function TrainingUploadWithRecording() {
     }
   }, [uploadState]);
 
+  useEffect(() => {
+    if (!hasAuthRetry) {
+      return;
+    }
+    if (!message.includes('abgelaufene Sitzung blockiert')) {
+      return;
+    }
+    uploadState.syncQueued().then(({ uploaded, remaining, blocked }) => {
+      setMessage(formatSyncQueuedMessage(uploaded, remaining, blocked));
+    }).catch((syncErr) => {
+      const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
+      setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
+    });
+  }, [hasAuthRetry, message, uploadState]);
+
   const handleSyncBundle = useCallback(
     async (key: string) => {
       setMessage('Bundle wird hochgeladen…');
@@ -754,7 +772,7 @@ export function TrainingUploadWithRecording() {
           onSyncQueued={handleSyncQueued}
           onSyncBundle={handleSyncBundle}
           onRemoveBundle={handleRemoveBundle}
-          hasApiToken={typeof apiToken === 'string' && apiToken.trim().length > 0}
+          hasAuthRetry={hasAuthRetry}
         />
       </div>
 

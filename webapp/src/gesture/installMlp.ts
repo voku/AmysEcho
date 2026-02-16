@@ -116,7 +116,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     }
     const fortran = fortranMatch[1] === 'True';
     const shapeCaptured = shapeMatch[1];
-    if (!shapeCaptured) {
+    if (shapeCaptured === undefined) {
       throw new Error('npy header missing shape');
     }
     const shapeStr = shapeCaptured.trim();

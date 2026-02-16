@@ -41,6 +41,27 @@ function getEnvVar(name: string, defaultValue?: string): string {
 	return value || defaultValue!;
 }
 
+function getRequiredEnvWithAliases(primary: string, aliases: readonly string[]): string {
+	const primaryValue = process.env[primary];
+	if (primaryValue) {
+		return primaryValue;
+	}
+
+	for (const alias of aliases) {
+		const aliasValue = process.env[alias];
+		if (aliasValue) {
+			console.warn(
+				`Environment variable ${alias} is deprecated. Please rename it to ${primary}.`,
+			);
+			return aliasValue;
+		}
+	}
+
+	throw new Error(
+		`Environment variable ${primary} is required (accepted aliases: ${aliases.join(", ")})`,
+	);
+}
+
 function getEnvVarAsNumber(name: string, defaultValue: number): number {
 	const value = process.env[name];
 	if (!value) return defaultValue;
@@ -83,8 +104,8 @@ export const config: ServerConfig = {
 		"GESTURE_TASK_URL",
 		"https://api.github.com/repos/sst/dgs/contents/tasks",
 	),
-	jwtSecret: getEnvVar("JWT_SECRET"),
-	jwtRefreshSecret: getEnvVar("JWT_REFRESH_SECRET"),
+	jwtSecret: getRequiredEnvWithAliases("JWT_SECRET", ["JWT_ACCESS_SECRET"]),
+	jwtRefreshSecret: getRequiredEnvWithAliases("JWT_REFRESH_SECRET", ["JWT_REFRESH_TOKEN_SECRET"]),
 	smtpHost: getEnvVar("SMTP_HOST", "localhost"),
 	smtpPort: getEnvVarAsNumber("SMTP_PORT", 1025),
 	smtpSecure: getEnvVar("SMTP_SECURE", "false") === "true",

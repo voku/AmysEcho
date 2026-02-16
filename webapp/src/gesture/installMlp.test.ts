@@ -9,15 +9,16 @@ describe('installMlp', () => {
   ) as number[][];
 
   // Helper to generate a mock NPY buffer for tests
-  function createMockNpy(data: Float32Array | string[], shape: number[]): Uint8Array {
+  function createMockNpy(data: Float32Array | string[], shape: number[], scalar = false): Uint8Array {
     const isString = Array.isArray(data) && typeof data[0] === 'string';
     let header = '';
     const STR_LEN = 16;
     
+    const shapeHeader = scalar ? '()' : `(${shape.join(',')},)`;
     if (isString) {
-      header = `{'descr': '<U${STR_LEN}', 'fortran_order': False, 'shape': (${shape.join(',')},), }`;
+      header = `{'descr': '<U${STR_LEN}', 'fortran_order': False, 'shape': ${shapeHeader}, }`;
     } else {
-      header = `{'descr': '<f4', 'fortran_order': False, 'shape': (${shape.join(',')},), }`;
+      header = `{'descr': '<f4', 'fortran_order': False, 'shape': ${shapeHeader}, }`;
     }
     
     // Pad header to multiple of 64
@@ -97,7 +98,42 @@ describe('installMlp', () => {
     }
 
     const zip = zipSync(zipEntries);
-    
+
+    return Buffer.from(zip).toString('base64');
+  }
+
+  function create3LayerZipB64WithScalarMetadata(
+    inputDim: number,
+    layer1: number,
+    layer2: number,
+    output: number,
+    labels: string[],
+    options: { windowSize?: number; audioFeatureSize?: number } = {},
+  ) {
+    const windowSize = options.windowSize ?? 1;
+    const audioFeatureSize = options.audioFeatureSize ?? 0;
+    const w1 = new Float32Array(layer1 * inputDim).fill(0.1);
+    const b1 = new Float32Array(layer1).fill(0);
+    const w2 = new Float32Array(layer2 * layer1).fill(0.1);
+    const b2 = new Float32Array(layer2).fill(0);
+    const w3 = new Float32Array(output * layer2).fill(0.1);
+    const b3 = new Float32Array(output).fill(0);
+
+    const zipEntries: Record<string, Uint8Array> = {
+      'w1.npy': createMockNpy(w1, [layer1, inputDim]),
+      'b1.npy': createMockNpy(b1, [layer1]),
+      'w2.npy': createMockNpy(w2, [layer2, layer1]),
+      'b2.npy': createMockNpy(b2, [layer2]),
+      'w3.npy': createMockNpy(w3, [output, layer2]),
+      'b3.npy': createMockNpy(b3, [output]),
+      'labels.npy': createMockNpy(labels, [labels.length]),
+      'window_size.npy': createMockNpy(new Float32Array([windowSize]), [1], true),
+      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1], true),
+      'audio_feature_size.npy': createMockNpy(new Float32Array([audioFeatureSize]), [1], true),
+    };
+
+    const zip = zipSync(zipEntries);
+
     return Buffer.from(zip).toString('base64');
   }
 
@@ -412,6 +448,26 @@ describe('installMlp', () => {
 
       expect(res).not.toBeNull();
       expect(res?.label).toBe('audio');
+    });
+
+    it('lädt Metadaten mit skalarem NPY-Shape ohne Warnung', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const scalarMetadataModel = create3LayerZipB64WithScalarMetadata(
+        MULTIMODAL_FEATURES_SIZE + 4,
+        10,
+        5,
+        1,
+        ['scalar-meta'],
+        { windowSize: 1, audioFeatureSize: 4 },
+      );
+
+      const ok = await window.__setMlpModelB64!(scalarMetadataModel);
+      expect(ok).toBe(true);
+
+      const warningMessages = warnSpy.mock.calls
+        .map((call) => String(call[0] ?? ''))
+        .filter((message) => message.includes('Failed to parse'));
+      expect(warningMessages).toEqual([]);
     });
 
     it('verwendet hand-only Normalisierung für hand-only Modell', async () => {
