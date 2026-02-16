@@ -75,12 +75,23 @@ describe('UserSettings', () => {
       </ApiConfigProvider>,
     );
 
+    await act(async () => {
+      // wait for encrypted persistence effects
+      await Promise.resolve();
+    });
+
+    expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
+
     expect(screen.getByTestId('token-probe')).toHaveTextContent('token-abc');
 
     fireEvent.click(screen.getByRole('button', { name: 'Abmelden' }));
 
     expect(screen.getByTestId('token-probe')).toHaveTextContent('leer');
     expect(window.localStorage.getItem(AUTH_KEY)).toBe('false');
+    expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
+    expect(window.localStorage.getItem('webapp:api-config:persisted-key')).toBeNull();
+    expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeNull();
+    expect(window.sessionStorage.getItem('webapp:api-config:session:key')).toBeNull();
   });
 
   it('zeigt einen Validierungsfehler bei nicht passenden Passwörtern', async () => {

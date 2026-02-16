@@ -262,6 +262,11 @@ Then in the webapp:
 - Sign out and sign in again (required after secret rotation).
 - If needed, clear browser storage for the site and log in again.
 
+Current behavior:
+- The webapp logout button now removes all auth token artifacts from
+  `localStorage` and `sessionStorage` (persisted + session token slots), so the
+  next login starts from a clean auth state.
+
 Notes:
 - Canonical names are `JWT_SECRET` and `JWT_REFRESH_SECRET`.
 - Legacy aliases `JWT_ACCESS_SECRET` and `JWT_REFRESH_TOKEN_SECRET` are still

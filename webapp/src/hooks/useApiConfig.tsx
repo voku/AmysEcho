@@ -86,6 +86,16 @@ type ApiConfigContextValue = {
   sentenceImproveEndpoint: string;
 };
 
+function clearStoredTokenArtifacts(): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(PERSISTED_TOKEN_KEY);
+  window.localStorage.removeItem(PERSISTED_CRYPTO_KEY);
+  window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+  persistedCryptoKey = null;
+  sessionCryptoKey = null;
+}
+
 function createDefaultConfig(): StoredApiConfig {
   return {
     apiBaseUrl: resolveFallbackApiBase(),
@@ -378,6 +388,10 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
           if (!config.tokens.accessToken && initialEncryptedToken.current) {
             return;
           }
+          if (!config.tokens.accessToken && !config.tokens.refreshToken) {
+            clearStoredTokenArtifacts();
+            return;
+          }
           const encrypted = await encryptToken(JSON.stringify(config.tokens), 'persisted');
           if (!cancelled) {
             window.localStorage.setItem(
@@ -386,6 +400,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
             );
             window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
             window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+            sessionCryptoKey = null;
           }
         } else {
           window.localStorage.removeItem(PERSISTED_TOKEN_KEY);
@@ -402,6 +417,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
           } else if (!initialEncryptedToken.current) {
             window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
             window.sessionStorage.removeItem(SESSION_CRYPTO_KEY);
+            sessionCryptoKey = null;
           }
         }
       } catch (error) {
@@ -439,6 +455,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearApiToken = useCallback(() => {
+    clearStoredTokenArtifacts();
     setConfig((prev) => ({ ...prev, tokens: { accessToken: '', refreshToken: '' } }));
   }, []);
 
