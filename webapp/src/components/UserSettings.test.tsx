@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/dom';
+import { fireEvent, screen, waitFor } from '@testing-library/dom';
 import { act, render } from '@testing-library/react';
 import { useEffect } from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -75,12 +75,20 @@ describe('UserSettings', () => {
       </ApiConfigProvider>,
     );
 
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
+    });
+
     expect(screen.getByTestId('token-probe')).toHaveTextContent('token-abc');
 
     fireEvent.click(screen.getByRole('button', { name: 'Abmelden' }));
 
     expect(screen.getByTestId('token-probe')).toHaveTextContent('leer');
     expect(window.localStorage.getItem(AUTH_KEY)).toBe('false');
+    expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
+    expect(window.localStorage.getItem('webapp:api-config:persisted-key')).toBeNull();
+    expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeNull();
+    expect(window.sessionStorage.getItem('webapp:api-config:session:key')).toBeNull();
   });
 
   it('zeigt einen Validierungsfehler bei nicht passenden Passwörtern', async () => {

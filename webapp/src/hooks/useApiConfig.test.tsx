@@ -383,6 +383,34 @@ describe('useApiConfig', () => {
     expect(parsed.persistToken).toBe(false);
   });
 
+  it('removes persisted token artifacts on clearApiToken even when persistToken stays enabled', async () => {
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await act(async () => {
+      result.current.setApiBaseUrl('https://api.example.com');
+      result.current.setPersistToken(true);
+      result.current.setTokens({ accessToken: 'access-token', refreshToken: 'refresh-token' });
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
+      expect(window.localStorage.getItem('webapp:api-config:persisted-key')).toBeTruthy();
+    });
+
+    act(() => {
+      result.current.clearApiToken();
+    });
+
+    await waitFor(() => {
+      expect(result.current.apiToken).toBe('');
+      expect(result.current.refreshToken).toBe('');
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeNull();
+      expect(window.localStorage.getItem('webapp:api-config:persisted-key')).toBeNull();
+      expect(window.sessionStorage.getItem('webapp:api-config:session')).toBeNull();
+      expect(window.sessionStorage.getItem('webapp:api-config:session:key')).toBeNull();
+    });
+  });
+
   it('falls back to default when empty base URL is set', () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 

@@ -9,15 +9,16 @@ describe('installMlp', () => {
   ) as number[][];
 
   // Helper to generate a mock NPY buffer for tests
-  function createMockNpy(data: Float32Array | string[], shape: number[]): Uint8Array {
+  function createMockNpy(data: Float32Array | string[], shape: number[], scalar = false): Uint8Array {
     const isString = Array.isArray(data) && typeof data[0] === 'string';
     let header = '';
     const STR_LEN = 16;
     
+    const shapeHeader = scalar ? '()' : `(${shape.join(',')},)`;
     if (isString) {
-      header = `{'descr': '<U${STR_LEN}', 'fortran_order': False, 'shape': (${shape.join(',')},), }`;
+      header = `{'descr': '<U${STR_LEN}', 'fortran_order': False, 'shape': ${shapeHeader}, }`;
     } else {
-      header = `{'descr': '<f4', 'fortran_order': False, 'shape': (${shape.join(',')},), }`;
+      header = `{'descr': '<f4', 'fortran_order': False, 'shape': ${shapeHeader}, }`;
     }
     
     // Pad header to multiple of 64
@@ -63,10 +64,16 @@ describe('installMlp', () => {
     layer2: number,
     output: number,
     labels: string[],
-    options: { windowSize?: number; audioFeatureSize?: number; includeWindowMetadata?: boolean } = {},
+    options: {
+      windowSize?: number;
+      audioFeatureSize?: number;
+      includeWindowMetadata?: boolean;
+      scalarMetadata?: boolean;
+    } = {},
   ) {
     const windowSize = options.windowSize ?? 1;
     const includeWindowMetadata = options.includeWindowMetadata ?? true;
+    const scalarMetadata = options.scalarMetadata ?? false;
     const w1 = new Float32Array(layer1 * inputDim).fill(0.1);
     const b1 = new Float32Array(layer1).fill(0);
     const w2 = new Float32Array(layer2 * layer1).fill(0.1);
@@ -82,22 +89,23 @@ describe('installMlp', () => {
       'w3.npy': createMockNpy(w3, [output, layer2]),
       'b3.npy': createMockNpy(b3, [output]),
       'labels.npy': createMockNpy(labels, [labels.length]),
-      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1])
+      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1], scalarMetadata)
     };
 
     if (includeWindowMetadata) {
-      zipEntries['window_size.npy'] = createMockNpy(new Float32Array([windowSize]), [1]);
+      zipEntries['window_size.npy'] = createMockNpy(new Float32Array([windowSize]), [1], scalarMetadata);
     }
 
     if (options.audioFeatureSize !== undefined) {
       zipEntries['audio_feature_size.npy'] = createMockNpy(
         new Float32Array([options.audioFeatureSize]),
         [1],
+        scalarMetadata,
       );
     }
 
     const zip = zipSync(zipEntries);
-    
+
     return Buffer.from(zip).toString('base64');
   }
 
@@ -412,6 +420,26 @@ describe('installMlp', () => {
 
       expect(res).not.toBeNull();
       expect(res?.label).toBe('audio');
+    });
+
+    it('lädt Metadaten mit skalarem NPY-Shape ohne Warnung', async () => {
+      const warnSpy = vi.spyOn(console, 'warn');
+      const scalarMetadataModel = create3LayerZipB64(
+        MULTIMODAL_FEATURES_SIZE + 4,
+        10,
+        5,
+        1,
+        ['scalar-meta'],
+        { windowSize: 1, audioFeatureSize: 4, scalarMetadata: true },
+      );
+
+      const ok = await window.__setMlpModelB64!(scalarMetadataModel);
+      expect(ok).toBe(true);
+
+      const warningMessages = warnSpy.mock.calls
+        .map((call) => String(call[0] ?? ''))
+        .filter((message) => message.includes('Failed to parse'));
+      expect(warningMessages).toEqual([]);
     });
 
     it('verwendet hand-only Normalisierung für hand-only Modell', async () => {

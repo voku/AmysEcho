@@ -149,7 +149,7 @@ function TrainingStatusBlock({
   actionSlot,
   onSyncBundle,
   onRemoveBundle,
-  hasApiToken,
+  hasAnyAuthToken,
 }: {
   uploader: TrainingUploaderHandle;
   message?: string;
@@ -157,13 +157,13 @@ function TrainingStatusBlock({
   actionSlot?: ReactNode;
   onSyncBundle?: (key: string) => Promise<void>;
   onRemoveBundle?: (key: string) => Promise<void>;
-  hasApiToken: boolean;
+  hasAnyAuthToken: boolean;
 }) {
   const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob, queuedBundles } = uploader;
   const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
 
   const blockedAuthCount = queuedBundles.filter((bundle) =>
-    bundle.status === 'failed' && isAuthFailureReason(bundle.lastError) && !hasApiToken,
+    bundle.status === 'failed' && isAuthFailureReason(bundle.lastError) && !hasAnyAuthToken,
   ).length;
   const queueWaitingCount = Math.max(0, queuedBundles.length - blockedAuthCount);
 
@@ -436,7 +436,11 @@ function TrainingQualityLogCard({ entries, loading, error }: TrainingQualityLogC
 
 // Wrapper component with recording-first experience
 export function TrainingUploadWithRecording() {
-  const { apiBaseUrl, apiToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
+  const { apiBaseUrl, apiToken, refreshToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
+  const hasAnyAuthToken =
+    (typeof apiToken === 'string' && apiToken.trim().length > 0) ||
+    (typeof refreshToken === 'string' && refreshToken.trim().length > 0);
+  const hasRefreshAvailable = typeof refreshToken === 'string' && refreshToken.trim().length > 0;
   const uploadState = useTrainingUploader({
     defaultOptions: {
       endpoint: uploadEndpoint,
@@ -523,6 +527,10 @@ export function TrainingUploadWithRecording() {
   const gestureParam = searchParams.get('gesture');
   const symbolIdParam = searchParams.get('symbolId');
   const prevMetadataReadyRef = useRef(metadataReady);
+  const authRetryFiredRef = useRef(false);
+  const hasAuthBlockedBundles = uploadState.queuedBundles.some(
+    (bundle) => bundle.status === 'failed' && isAuthFailureReason(bundle.lastError),
+  );
 
   useEffect(() => {
     // Only clear message when transitioning from not-ready to ready
@@ -679,6 +687,38 @@ export function TrainingUploadWithRecording() {
     }
   }, [uploadState]);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!hasRefreshAvailable) {
+      authRetryFiredRef.current = false;
+      return;
+    }
+    if (!hasAuthBlockedBundles) {
+      authRetryFiredRef.current = false;
+      return;
+    }
+    if (authRetryFiredRef.current) {
+      return;
+    }
+
+    authRetryFiredRef.current = true;
+    uploadState.syncQueued().then(({ uploaded, remaining, blocked }) => {
+      if (cancelled) return;
+      setMessage(formatSyncQueuedMessage(uploaded, remaining, blocked));
+      if (blocked === 0) {
+        authRetryFiredRef.current = false;
+      }
+    }).catch((syncErr) => {
+      if (cancelled) return;
+      const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
+      setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasAuthBlockedBundles, hasRefreshAvailable, uploadState]);
+
   const handleSyncBundle = useCallback(
     async (key: string) => {
       setMessage('Bundle wird hochgeladen…');
@@ -754,7 +794,7 @@ export function TrainingUploadWithRecording() {
           onSyncQueued={handleSyncQueued}
           onSyncBundle={handleSyncBundle}
           onRemoveBundle={handleRemoveBundle}
-          hasApiToken={typeof apiToken === 'string' && apiToken.trim().length > 0}
+          hasAnyAuthToken={hasAnyAuthToken}
         />
       </div>
 

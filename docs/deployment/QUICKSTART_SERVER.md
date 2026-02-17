@@ -239,6 +239,41 @@ docker-compose exec amysecho-server cat /app/data/training-debug.log
 docker-compose exec amysecho-server pip3 list
 ```
 
+### Login/refresh fails after changing `JWT_*` values
+
+If you rotate `JWT_SECRET` or `JWT_REFRESH_SECRET`, all previously issued
+access and refresh tokens become invalid. This is expected security behavior.
+
+Use this recovery workflow:
+
+```bash
+# 1) Verify canonical env names are set in .env
+grep -E '^JWT_SECRET=|^JWT_REFRESH_SECRET=' .env
+
+# 2) Restart backend so new secrets are loaded
+docker-compose down
+docker-compose up -d
+
+# 3) Verify health endpoint is up
+curl http://localhost:5000/health
+```
+
+Then in the webapp:
+- Sign out and sign in again (required after secret rotation).
+- If needed, clear browser storage for the site and log in again.
+
+Current behavior:
+- The webapp logout button now removes all auth token artifacts from
+  `localStorage` and `sessionStorage` (persisted + session token slots), so the
+  next login starts from a clean auth state.
+
+Notes:
+- Canonical names are `JWT_SECRET` and `JWT_REFRESH_SECRET`.
+- Legacy aliases `JWT_ACCESS_SECRET` and `JWT_REFRESH_TOKEN_SECRET` are still
+  accepted temporarily with deprecation warnings.
+- Check server logs for deprecation warnings if you still use legacy aliases,
+  and migrate to canonical names to avoid future breakage.
+
 ## Manual Deployment (Without Docker)
 
 If you prefer not to use Docker, see the complete manual deployment instructions in **[docs/deployment/SERVER_DEPLOYMENT.md](docs/deployment/SERVER_DEPLOYMENT.md#manual-deployment-with-systemd)**.
