@@ -65,7 +65,15 @@ Use the update script to pull the latest code, install dependencies, rebuild, an
 
 ```bash
 sudo /opt/amysecho/app/deployment/scripts/update-server.sh
+
+# Empfohlen: Reverse-Proxy + Upload-Endpunkt öffentlich validieren
+sudo PUBLIC_BASE_URL="https://your-domain.com" /opt/amysecho/app/deployment/scripts/update-server.sh
+
+# Optional (hartes Gate): Abbruch wenn empfohlene nginx/ISPConfig-Proxy-Settings fehlen
+sudo PUBLIC_BASE_URL="https://your-domain.com" STRICT_PROXY_RECOMMENDATIONS=true /opt/amysecho/app/deployment/scripts/update-server.sh
 ```
+
+Hinweis für ISPConfig: **"Enable PROXY Protocol" muss deaktiviert bleiben**, sonst kann die Route-Erkennung fehlschlagen.
 
 ### Breaking Changes
 
