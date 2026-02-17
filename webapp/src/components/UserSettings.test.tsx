@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/dom';
+import { fireEvent, screen, waitFor } from '@testing-library/dom';
 import { act, render } from '@testing-library/react';
 import { useEffect } from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -75,12 +75,9 @@ describe('UserSettings', () => {
       </ApiConfigProvider>,
     );
 
-    await act(async () => {
-      // wait for encrypted persistence effects
-      await Promise.resolve();
+    await waitFor(() => {
+      expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
     });
-
-    expect(window.localStorage.getItem('webapp:api-config:persisted-token')).toBeTruthy();
 
     expect(screen.getByTestId('token-probe')).toHaveTextContent('token-abc');
 

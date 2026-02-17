@@ -455,7 +455,6 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearApiToken = useCallback(() => {
-    clearStoredTokenArtifacts();
     setConfig((prev) => ({ ...prev, tokens: { accessToken: '', refreshToken: '' } }));
   }, []);
 

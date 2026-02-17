@@ -149,7 +149,7 @@ function TrainingStatusBlock({
   actionSlot,
   onSyncBundle,
   onRemoveBundle,
-  hasAuthRetry,
+  hasAnyAuthToken,
 }: {
   uploader: TrainingUploaderHandle;
   message?: string;
@@ -157,13 +157,13 @@ function TrainingStatusBlock({
   actionSlot?: ReactNode;
   onSyncBundle?: (key: string) => Promise<void>;
   onRemoveBundle?: (key: string) => Promise<void>;
-  hasAuthRetry: boolean;
+  hasAnyAuthToken: boolean;
 }) {
   const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob, queuedBundles } = uploader;
   const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
 
   const blockedAuthCount = queuedBundles.filter((bundle) =>
-    bundle.status === 'failed' && isAuthFailureReason(bundle.lastError) && !hasAuthRetry,
+    bundle.status === 'failed' && isAuthFailureReason(bundle.lastError) && !hasAnyAuthToken,
   ).length;
   const queueWaitingCount = Math.max(0, queuedBundles.length - blockedAuthCount);
 
@@ -437,9 +437,10 @@ function TrainingQualityLogCard({ entries, loading, error }: TrainingQualityLogC
 // Wrapper component with recording-first experience
 export function TrainingUploadWithRecording() {
   const { apiBaseUrl, apiToken, refreshToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
-  const hasAuthRetry =
+  const hasAnyAuthToken =
     (typeof apiToken === 'string' && apiToken.trim().length > 0) ||
     (typeof refreshToken === 'string' && refreshToken.trim().length > 0);
+  const hasRefreshAvailable = typeof refreshToken === 'string' && refreshToken.trim().length > 0;
   const uploadState = useTrainingUploader({
     defaultOptions: {
       endpoint: uploadEndpoint,
@@ -688,7 +689,7 @@ export function TrainingUploadWithRecording() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!hasAuthRetry) {
+    if (!hasRefreshAvailable) {
       authRetryFiredRef.current = false;
       return;
     }
@@ -716,7 +717,7 @@ export function TrainingUploadWithRecording() {
     return () => {
       cancelled = true;
     };
-  }, [hasAuthBlockedBundles, hasAuthRetry, uploadState]);
+  }, [hasAuthBlockedBundles, hasRefreshAvailable, uploadState]);
 
   const handleSyncBundle = useCallback(
     async (key: string) => {
@@ -793,7 +794,7 @@ export function TrainingUploadWithRecording() {
           onSyncQueued={handleSyncQueued}
           onSyncBundle={handleSyncBundle}
           onRemoveBundle={handleRemoveBundle}
-          hasAuthRetry={hasAuthRetry}
+          hasAnyAuthToken={hasAnyAuthToken}
         />
       </div>
 
