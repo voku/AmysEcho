@@ -65,6 +65,9 @@ Use the update script to pull the latest code, install dependencies, rebuild, an
 
 ```bash
 sudo /opt/amysecho/app/deployment/scripts/update-server.sh
+
+# Optional: Validate reverse proxy + upload endpoint via public URL
+sudo PUBLIC_BASE_URL="https://your-domain.com" /opt/amysecho/app/deployment/scripts/update-server.sh
 ```
 
 ### Breaking Changes

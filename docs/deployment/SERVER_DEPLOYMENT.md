@@ -956,7 +956,12 @@ Use the repository-provided script to pull the latest code, install dependencies
 
 ```bash
 sudo /opt/amysecho/app/deployment/scripts/update-server.sh
+
+# Empfohlen: Öffentliche Route inkl. Reverse Proxy validieren
+sudo PUBLIC_BASE_URL="https://your-domain.com" /opt/amysecho/app/deployment/scripts/update-server.sh
 ```
+
+Das Update-Skript prüft zusätzlich die Upload-Route `/api/v1/dgs/sample-bundles` und meldet explizit, wenn ein Reverse-Proxy eine 404/405-Antwort erzeugt (typisch bei fehlerhafter nginx-/ISPConfig-Weiterleitung).
 
 #### Manual Update Steps
 

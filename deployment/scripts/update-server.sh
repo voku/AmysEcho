@@ -12,6 +12,11 @@
 # - RUN_TESTS: true | false (default: false)
 # - HEALTH_URL: URL to verify health after update (default: http://localhost:5000/health)
 # - CHECK_HEALTH: true | false (default: true)
+# - CHECK_UPLOAD_ROUTE: true | false (default: true)
+# - UPLOAD_ROUTE_URL: URL for upload route verification (default: http://localhost:5000/api/v1/dgs/sample-bundles)
+# - CHECK_PROXY_CONFIG: true | false (default: true)
+# - NGINX_CONFIG_PATH: nginx vhost config path used for proxy verification (default: /etc/nginx/sites-enabled/amysecho)
+# - PUBLIC_BASE_URL: Optional HTTPS base URL (e.g. https://amysecho.example.org) to validate reverse proxy routing
 # - SUDO: sudo command override (default: sudo)
 
 set -euo pipefail
@@ -22,6 +27,11 @@ REPO_USER="${REPO_USER:-amysecho}"
 RUN_TESTS="${RUN_TESTS:-false}"
 HEALTH_URL="${HEALTH_URL:-http://localhost:5000/health}"
 CHECK_HEALTH="${CHECK_HEALTH:-true}"
+CHECK_UPLOAD_ROUTE="${CHECK_UPLOAD_ROUTE:-true}"
+UPLOAD_ROUTE_URL="${UPLOAD_ROUTE_URL:-http://localhost:5000/api/v1/dgs/sample-bundles}"
+CHECK_PROXY_CONFIG="${CHECK_PROXY_CONFIG:-true}"
+NGINX_CONFIG_PATH="${NGINX_CONFIG_PATH:-/etc/nginx/sites-enabled/amysecho}"
+PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 SUDO="${SUDO:-sudo}"
 LOG_FILE="${LOG_FILE:-/var/log/amysecho-update.log}"
 
@@ -46,6 +56,51 @@ run_systemctl() {
     else
         systemctl "$@"
     fi
+}
+
+probe_upload_route() {
+    local url="$1"
+    local context="$2"
+    local status
+
+    status=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 \
+        -X POST \
+        -H "x-api-token: demo-token" \
+        -F "bundle=@/etc/hosts;type=application/zip" \
+        "$url" || true)
+
+    if [ "$status" = "000" ]; then
+        error_exit "$context nicht erreichbar: $url"
+    fi
+
+    if [ "$status" = "404" ]; then
+        error_exit "$context meldet HTTP 404 für $url. Prüfe nginx/ISPConfig-Proxy und Webapp-API-URL."
+    fi
+
+    if [ "$status" = "405" ]; then
+        error_exit "$context meldet HTTP 405 für $url. Wahrscheinlich blockiert der Webserver POST auf /api/v1/dgs/sample-bundles."
+    fi
+
+    log "$context erreichbar (HTTP $status): $url"
+}
+
+verify_proxy_config() {
+    local config_path="$1"
+
+    if [ ! -f "$config_path" ]; then
+        log "WARNUNG: nginx-Konfiguration nicht gefunden: $config_path"
+        return
+    fi
+
+    if ! rg -q "proxy_pass\\s+http://(127\\.0\\.0\\.1|localhost):5000" "$config_path"; then
+        error_exit "In $config_path wurde kein proxy_pass auf localhost:5000 gefunden. Bitte Reverse-Proxy prüfen."
+    fi
+
+    if ! rg -q "location\\s+/" "$config_path"; then
+        error_exit "In $config_path fehlt ein location / Block. API-Routen werden vermutlich nicht weitergeleitet."
+    fi
+
+    log "nginx-Proxy-Konfiguration wirkt plausibel: $config_path"
 }
 
 log "=== Amy's Echo Server-Update gestartet ==="
@@ -114,6 +169,24 @@ if [ "$CHECK_HEALTH" = "true" ]; then
         error_exit "Health-Check fehlgeschlagen für $HEALTH_URL"
     fi
     log "Health-Check erfolgreich"
+fi
+
+if [ "$CHECK_PROXY_CONFIG" = "true" ]; then
+    log "nginx/Reverse-Proxy-Konfiguration wird geprüft"
+    verify_proxy_config "$NGINX_CONFIG_PATH"
+fi
+
+if [ "$CHECK_UPLOAD_ROUTE" = "true" ]; then
+    log "Upload-Route wird lokal geprüft: $UPLOAD_ROUTE_URL"
+    probe_upload_route "$UPLOAD_ROUTE_URL" "Lokale Upload-Route"
+
+    if [ -n "$PUBLIC_BASE_URL" ]; then
+        PUBLIC_UPLOAD_URL="${PUBLIC_BASE_URL%/}/api/v1/dgs/sample-bundles"
+        log "Upload-Route wird öffentlich geprüft: $PUBLIC_UPLOAD_URL"
+        probe_upload_route "$PUBLIC_UPLOAD_URL" "Öffentliche Upload-Route"
+    else
+        log "Hinweis: PUBLIC_BASE_URL nicht gesetzt, öffentlicher Reverse-Proxy-Test wird übersprungen"
+    fi
 fi
 
 log "=== Update erfolgreich abgeschlossen ==="
