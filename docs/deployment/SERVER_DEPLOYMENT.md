@@ -569,37 +569,49 @@ server {
 If your virtual server is managed through ISPConfig, you can keep ISPConfig in place and still reuse the standard nginx reverse proxy shown above. The goal is to forward HTTPS traffic from the ISPConfig-managed vhost to the Amy's Echo Node.js service on `127.0.0.1:5000` while preserving Let's Encrypt handling.
 
 1. **Create or reuse your site in ISPConfig** and enable Let's Encrypt for the domain. ISPConfig will manage certificate renewal automatically; the `ssl_certificate` paths in its generated vhost already point to the right files.
-2. **Open the "Apache/Nginx Directives" (or custom nginx directives) field** for the site and replace the location section with a reverse proxy to the Node.js service:
+2. **Open the "Apache/Nginx Directives" (or custom nginx directives) field** for the site and replace the location section with this working reverse-proxy template (optimized for Amy's Echo uploads and ISPConfig):
 
    ```nginx
    location / {
        proxy_pass http://127.0.0.1:5000;
+       proxy_http_version 1.1;
+       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Connection "upgrade";
        proxy_set_header Host $host;
        proxy_set_header X-Real-IP $remote_addr;
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto $scheme;
-       client_max_body_size 100m;
 
-       # CORS for browser clients (update the origin for your deployment)
+       # Upload/training robustness
+       client_max_body_size 256m;
+       proxy_request_buffering off;
+       proxy_read_timeout 300s;
+       proxy_connect_timeout 300s;
+
+       # CORS for the hosted webapp
        add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
-       add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+       add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
        add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
-       add_header 'Access-Control-Max-Age' 86400 always;
 
        if ($request_method = OPTIONS) {
+           add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
+           add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+           add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
+           add_header 'Access-Control-Max-Age' 86400 always;
            return 204;
        }
    }
    ```
 
 3. **Keep the existing `/.well-known/acme-challenge` block** that ISPConfig generates so certificate renewals continue to work. Do not proxy those requests.
-4. **Reload nginx** from ISPConfig or via SSH after saving the directives:
+4. **In ISPConfig, keep `Enable PROXY Protocol` disabled** for this site. Amy's Echo expects normal forwarded headers, and enabling PROXY protocol can break route handling.
+5. **Reload nginx** from ISPConfig or via SSH after saving the directives:
 
    ```bash
    sudo systemctl reload nginx
    ```
 
-5. **Health check:** verify both the direct service and the proxied endpoint:
+6. **Health check:** verify both the direct service and the proxied endpoint:
 
    ```bash
    curl http://127.0.0.1:5000/health
@@ -713,9 +725,29 @@ The commands below match the directory layout shown in the provided context (`/v
        proxy_set_header X-Real-IP $remote_addr;
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto $scheme;
-       client_max_body_size 100m;
+
+       # --- TWEAKS FOR SERVER PERFORMANCE ---
+       client_max_body_size 256m;
+       proxy_request_buffering off;
+       proxy_read_timeout 300s;
+       proxy_connect_timeout 300s;
+
+       # CORS for the hosted webapp
+       add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
+       add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+       add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
+
+       if ($request_method = OPTIONS) {
+           add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
+           add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+           add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
+           add_header 'Access-Control-Max-Age' 86400 always;
+           return 204;
+       }
    }
    ```
+   **Wichtig in ISPConfig:** `Enable PROXY Protocol` muss deaktiviert sein.
+
    Reload nginx via ISPConfig or:
    ```bash
    sudo systemctl reload nginx
