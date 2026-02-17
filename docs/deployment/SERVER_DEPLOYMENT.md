@@ -959,9 +959,12 @@ sudo /opt/amysecho/app/deployment/scripts/update-server.sh
 
 # Empfohlen: Öffentliche Route inkl. Reverse Proxy validieren
 sudo PUBLIC_BASE_URL="https://your-domain.com" /opt/amysecho/app/deployment/scripts/update-server.sh
+
+# Optional (hartes Gate): Abbruch wenn empfohlene Proxy-Settings fehlen
+sudo PUBLIC_BASE_URL="https://your-domain.com" STRICT_PROXY_RECOMMENDATIONS=true /opt/amysecho/app/deployment/scripts/update-server.sh
 ```
 
-Das Update-Skript prüft zusätzlich die Upload-Route `/api/v1/dgs/sample-bundles` und meldet explizit, wenn ein Reverse-Proxy eine 404/405-Antwort erzeugt (typisch bei fehlerhafter nginx-/ISPConfig-Weiterleitung).
+Das Update-Skript prüft zusätzlich die Upload-Route `/api/v1/dgs/sample-bundles` und meldet explizit, wenn ein Reverse-Proxy eine 404/405-Antwort erzeugt (typisch bei fehlerhafter nginx-/ISPConfig-Weiterleitung). Es prüft außerdem auf aktive `proxy_protocol`-Direktiven und gibt eine klare Fehlermeldung aus, da in ISPConfig **"Enable PROXY Protocol" deaktiviert** sein muss.
 
 #### Manual Update Steps
 
