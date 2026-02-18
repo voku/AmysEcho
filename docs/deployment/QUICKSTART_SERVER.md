@@ -92,7 +92,7 @@ export APP_BASE_URL=http://localhost:5173
 # export SMTP_USER=your-user
 # export SMTP_PASS=your-pass
 
-# Register a caregiver (stores the user in db.json)
+# Register a caregiver (stores the user in SQLite, default: `server/db.sqlite`)
 curl -X POST http://localhost:5000/api/v1/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"username":"amy","email":"amy@example.com","password":"super-secure-password"}'
@@ -195,10 +195,90 @@ docker-compose build
 docker-compose up -d
 
 # Backup data manually
-docker-compose exec amysecho-server tar -czf /tmp/backup.tar.gz /app/data /app/db.json
+docker-compose exec amysecho-server tar -czf /tmp/backup.tar.gz /app/data /app/db.sqlite
 
 # Access container shell
 docker-compose exec amysecho-server bash
+```
+
+## Server Management (SQLite & Accounts)
+
+### Where user data is stored
+
+The server uses SQLite by default (`server/db.sqlite`).
+If you use Docker, the DB inside the container is typically `/app/db.sqlite`.
+
+### Re-initialize the SQLite database (development only)
+
+⚠️ This deletes all accounts, profiles, and training-related persisted records.
+
+```bash
+# Stop server/container first
+# Local (from repo root)
+rm -f server/db.sqlite server/db.sqlite-shm server/db.sqlite-wal
+
+# Docker
+# docker-compose stop amysecho-server
+# docker-compose exec amysecho-server rm -f /app/db.sqlite /app/db.sqlite-shm /app/db.sqlite-wal
+# docker-compose start amysecho-server
+```
+
+### Show current users
+
+```bash
+# Local DB file
+python - <<'PY'
+import sqlite3
+conn = sqlite3.connect('server/db.sqlite')
+cur = conn.cursor()
+for row in cur.execute('SELECT id, username, email, role, emailVerifiedAt FROM users ORDER BY createdAt DESC'):
+    print(row)
+PY
+```
+
+### Delete an account (safe self-delete with data cleanup)
+
+Preferred path: use the authenticated endpoint (same safety as webapp settings).
+A user can delete only their own account after re-authentication.
+
+```bash
+# 1) Login and get access token
+curl -s -X POST http://localhost:5000/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"amy","password":"super-secure-password"}'
+
+# 2) Delete own account (username must match current session user)
+curl -X DELETE http://localhost:5000/api/v1/auth/account \
+  -H 'Authorization: Bearer <access_token>' \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"amy","password":"super-secure-password","confirmText":"KONTO LÖSCHEN"}'
+```
+
+The backend deletes owned profile data and then the account, and writes audit logs.
+
+### Emergency direct SQL deletion (maintenance only)
+
+Use only if API deletion is impossible (e.g., broken auth stack). Always create a backup first.
+
+```bash
+cp server/db.sqlite server/db.sqlite.backup.$(date +%Y%m%d_%H%M%S)
+
+python - <<'PY'
+import sqlite3
+user_id = 'REPLACE-USER-ID'
+conn = sqlite3.connect('server/db.sqlite')
+cur = conn.cursor()
+profiles = [row[0] for row in cur.execute('SELECT id FROM profiles WHERE userId = ?', (user_id,))]
+for profile_id in profiles:
+    cur.execute('DELETE FROM profiles WHERE id = ?', (profile_id,))
+    cur.execute('DELETE FROM usageStats WHERE profileId = ?', (profile_id,))
+    cur.execute('DELETE FROM corrections WHERE profileId = ?', (profile_id,))
+    cur.execute('DELETE FROM symbols WHERE profileId = ?', (profile_id,))
+cur.execute('DELETE FROM userLabelSettings WHERE userId = ?', (user_id,))
+cur.execute('DELETE FROM users WHERE id = ?', (user_id,))
+conn.commit()
+print('deleted user', user_id)
+PY
 ```
 
 ## Troubleshooting
@@ -295,7 +375,7 @@ If you prefer not to use Docker, see the complete manual deployment instructions
 | File/Directory | Purpose |
 |----------------|---------|
 | `server/data/` | Training data and models |
-| `server/db.json` | User database |
+| `server/db.sqlite` | User database (SQLite) |
 | `.env` | Environment configuration (gitignored) |
 | `logs/` | Application logs |
 

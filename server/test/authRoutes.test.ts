@@ -380,6 +380,42 @@ describe('auth routes', () => {
     expect(db.profiles).toHaveLength(0);
   });
 
+  it('verhindert das Löschen eines anderen Kontos trotz gültiger Sitzung', async () => {
+    const passwordHashAmy = await AuthService.hashPassword('topsecret');
+    addUser(db, {
+      id: 'user-1',
+      username: 'amy',
+      email: 'amy@example.com',
+      passwordHash: passwordHashAmy,
+      role: 'caregiver',
+      createdAt: Date.now(),
+      emailVerifiedAt: Date.now(),
+    });
+
+    const passwordHashBen = await AuthService.hashPassword('another-secret');
+    addUser(db, {
+      id: 'user-2',
+      username: 'ben',
+      email: 'ben@example.com',
+      passwordHash: passwordHashBen,
+      role: 'caregiver',
+      createdAt: Date.now(),
+      emailVerifiedAt: Date.now(),
+    });
+
+    const { accessToken } = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' });
+
+    const response = await request(app)
+      .delete('/api/v1/auth/account')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'ben', password: 'topsecret', confirmText: 'KONTO LÖSCHEN' })
+      .expect(403);
+
+    expect(response.body.error).toBe('Nutzername stimmt nicht mit der aktuellen Anmeldung überein.');
+    expect(db.users).toHaveLength(2);
+  });
+
+
   it('lehnt Konto-Löschung bei falscher Bestätigung ab', async () => {
     const passwordHash = await AuthService.hashPassword('topsecret');
     addUser(db, {
