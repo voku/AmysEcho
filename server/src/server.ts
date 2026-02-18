@@ -539,6 +539,9 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 	.then(async (db) => {
 		dbInstance = db;
 		app.locals.dbInstance = db;
+		if (!app.locals.dbInstance) {
+			throw new Error("Database initialization failed: app.locals.dbInstance is not set");
+		}
 		profileRegistry = await loadProfileRegistry(PROFILE_REGISTRY_PATH);
 		let registryDirty = false;
 		for (const profile of db.profiles) {

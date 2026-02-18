@@ -59,8 +59,7 @@ import {
 	deleteSignTrainingDataById,
 	deleteSymbolById,
 	deleteUsageStatById,
-	deleteUserById,
-	deleteUserLabelSettingsByUserId,
+	deleteUserAndLabelSettingsByUserId,
 	deleteVocabularySetById,
 	deleteVocabularySetSymbolById,
 } from "./sqliteDb.js";
@@ -259,8 +258,7 @@ export const findUserById = (
 export const removeUser = (db: Database, id: string): void => {
 	removeById(db.users, id);
 	if (sqliteInitialized) {
-		deleteUserById(id);
-		deleteUserLabelSettingsByUserId(id);
+		deleteUserAndLabelSettingsByUserId(id);
 	}
 };
 
@@ -269,15 +267,15 @@ export const removeUserAccountData = (db: Database, userId: string): string[] =>
 		.filter((profile) => profile.userId === userId)
 		.map((profile) => profile.id);
 
+	if (sqliteInitialized) {
+		deleteAccountDataByUserId(userId);
+	}
+
 	db.profiles = db.profiles.filter((profile) => profile.userId !== userId);
 	db.usageStats = db.usageStats.filter((usage) => !ownedProfileIds.includes(usage.profileId));
 	db.corrections = db.corrections.filter((corr) => !ownedProfileIds.includes(corr.profileId ?? ""));
 	db.symbols = db.symbols.filter((symbol) => !symbol.profileId || !ownedProfileIds.includes(symbol.profileId));
 	db.users = db.users.filter((user) => user.id !== userId);
-
-	if (sqliteInitialized) {
-		deleteAccountDataByUserId(userId);
-	}
 
 	return ownedProfileIds;
 };
