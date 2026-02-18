@@ -51,6 +51,7 @@ import {
 	updateUserInDb,
 	updateVocabularySetInDb,
 	updateVocabularySetSymbolInDb,
+	deleteAccountDataByUserId,
 	deleteInteractionLogById,
 	deleteLearningAnalyticsById,
 	deleteProfileById,
@@ -261,6 +262,24 @@ export const removeUser = (db: Database, id: string): void => {
 		deleteUserById(id);
 		deleteUserLabelSettingsByUserId(id);
 	}
+};
+
+export const removeUserAccountData = (db: Database, userId: string): string[] => {
+	const ownedProfileIds = db.profiles
+		.filter((profile) => profile.userId === userId)
+		.map((profile) => profile.id);
+
+	db.profiles = db.profiles.filter((profile) => profile.userId !== userId);
+	db.usageStats = db.usageStats.filter((usage) => !ownedProfileIds.includes(usage.profileId));
+	db.corrections = db.corrections.filter((corr) => !ownedProfileIds.includes(corr.profileId ?? ""));
+	db.symbols = db.symbols.filter((symbol) => !symbol.profileId || !ownedProfileIds.includes(symbol.profileId));
+	db.users = db.users.filter((user) => user.id !== userId);
+
+	if (sqliteInitialized) {
+		deleteAccountDataByUserId(userId);
+	}
+
+	return ownedProfileIds;
 };
 
 const updateById = <T extends { id: string }>(items: T[], record: T): void => {

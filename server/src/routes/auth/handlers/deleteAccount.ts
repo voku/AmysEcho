@@ -1,13 +1,13 @@
 import type { Request, Response } from "express";
 import {
-	deleteProfileData,
 	findUserById,
-	removeUser,
+	removeUserAccountData,
 	saveDatabase,
 } from "../../../db.js";
 import { AuthService } from "../../../services/authService.js";
 import auditLogger from "../../../services/auditLogger.js";
 import logger from "../../../services/logger.js";
+import { deleteProfileTrainingData } from "../../../services/profileDataService.js";
 import { DeleteAccountSchema, normalizeUsername } from "../schemas.js";
 import type { AuthRouteDeps } from "../types.js";
 
@@ -56,10 +56,10 @@ export async function handleDeleteAccount(
 
 			const ownProfiles = deps.db.profiles.filter((profile) => profile.userId === storedUser.id);
 			for (const profile of ownProfiles) {
-				await deleteProfileData(deps.db, profile.id, deps.dbFilePath);
+				await deleteProfileTrainingData(profile.id);
 			}
 
-			removeUser(deps.db, storedUser.id);
+			removeUserAccountData(deps.db, storedUser.id);
 			await saveDatabase(deps.db, deps.dbFilePath);
 			return true;
 		});

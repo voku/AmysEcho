@@ -1,4 +1,5 @@
 import type express from "express";
+import { findUserById, type Database } from "../db.js";
 import { AuthService, type User } from "../services/authService.js";
 
 declare global {
@@ -27,6 +28,15 @@ export function auth(
 
 	if (!user) {
 		return res.status(401).json({ error: "Invalid or expired token" });
+	}
+
+	
+	const db = req.app.locals.dbInstance as Database | undefined;
+	if (db) {
+		const storedUser = findUserById(db, user.id);
+		if (!storedUser) {
+			return res.status(401).json({ error: "Invalid or expired token" });
+		}
 	}
 
 	req.user = user;

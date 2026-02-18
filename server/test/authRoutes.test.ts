@@ -356,7 +356,7 @@ describe('auth routes', () => {
     });
 
     db.profiles.push({
-      id: 'profile-1',
+      id: '11111111-1111-4111-8111-111111111111',
       userId: 'user-1',
       displayName: 'Amy',
       createdAt: new Date().toISOString(),
@@ -378,6 +378,12 @@ describe('auth routes', () => {
 
     expect(db.users).toHaveLength(0);
     expect(db.profiles).toHaveLength(0);
+
+    await request(app)
+      .delete('/api/v1/auth/account')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'amy', password: 'topsecret', confirmText: 'KONTO LÖSCHEN' })
+      .expect(401);
   });
 
   it('verhindert das Löschen eines anderen Kontos trotz gültiger Sitzung', async () => {

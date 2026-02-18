@@ -83,7 +83,7 @@ export function registerAuthRoutes(
 		},
 	);
 
-	app.delete("/api/v1/auth/account", auth, async (req, res) => {
+	app.delete("/api/v1/auth/account", authLimiter, auth, async (req, res) => {
 		await handleDeleteAccount(req, res, deps);
 	});
 }

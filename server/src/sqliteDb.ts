@@ -645,6 +645,24 @@ export function deleteUserById(id: string): void {
 	getDb().prepare("DELETE FROM users WHERE id = ?").run(id);
 }
 
+export function deleteAccountDataByUserId(userId: string): void {
+	const database = getDb();
+	const deleteInTransaction = database.transaction(() => {
+		const profileRows = database
+			.prepare("SELECT id FROM profiles WHERE userId = ?")
+			.all(userId) as Array<{ id: string }>;
+		for (const profile of profileRows) {
+			database.prepare("DELETE FROM profiles WHERE id = ?").run(profile.id);
+			database.prepare("DELETE FROM usageStats WHERE profileId = ?").run(profile.id);
+			database.prepare("DELETE FROM corrections WHERE profileId = ?").run(profile.id);
+			database.prepare("DELETE FROM symbols WHERE profileId = ?").run(profile.id);
+		}
+		database.prepare("DELETE FROM userLabelSettings WHERE userId = ?").run(userId);
+		database.prepare("DELETE FROM users WHERE id = ?").run(userId);
+	});
+	deleteInTransaction();
+}
+
 function rowToUser(row: SqliteRow): StoredUser {
 	return {
 		id: getString(row, "id"),
