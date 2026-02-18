@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import { createHash, randomBytes } from "crypto";
 import express, { type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
-import { promises as fs } from "fs";
+import { existsSync, promises as fs } from "fs";
 import path from "path";
 import { z } from "zod";
 import config from "./config/index.js";
@@ -288,6 +288,19 @@ let pythonDepsCheckCache: {
 } | null = null;
 const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+function resolvePythonExecutableForHealthCheck(): string {
+	if (process.env.AMY_PYTHON_BIN && process.env.AMY_PYTHON_BIN.trim().length > 0) {
+		return process.env.AMY_PYTHON_BIN.trim();
+	}
+
+	const projectVenvPython = path.join(SERVER_DIR, ".venv", "bin", "python");
+	if (existsSync(projectVenvPython)) {
+		return projectVenvPython;
+	}
+
+	return "python3";
+}
+
 async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; message: string }> {
 	// Return cached result if still valid
 	if (pythonDepsCheckCache && Date.now() - pythonDepsCheckCache.timestamp < PYTHON_DEPS_CACHE_TTL_MS) {
@@ -296,15 +309,16 @@ async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; mess
 
 	// Perform actual check
 	try {
+		const pythonExecutable = resolvePythonExecutableForHealthCheck();
 		await new Promise<void>((resolve, reject) => {
-			const proc = spawn("python3", ["-c", "import numpy, sklearn, mediapipe; print('ok')"]);
+			const proc = spawn(pythonExecutable, ["-c", "import numpy, sklearn, mediapipe; print('ok')"]);
 			let stderr = "";
 			proc.stderr.on("data", (data) => { stderr += data; });
 			proc.on("close", (code) => {
 				if (code === 0) {
 					resolve();
 				} else {
-					reject(new Error(`Python check failed with code ${code}: ${stderr}`));
+					reject(new Error(`Python check failed with code ${code} using ${pythonExecutable}: ${stderr}`));
 				}
 			});
 			proc.on("error", reject);
@@ -312,7 +326,7 @@ async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; mess
 		
 		const result = {
 			status: "ok" as const,
-			message: "Required Python packages installed (numpy, sklearn, mediapipe)",
+			message: `Required Python packages installed (numpy, sklearn, mediapipe) via ${pythonExecutable}`,
 		};
 		
 		// Update cache

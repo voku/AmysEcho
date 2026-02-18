@@ -340,6 +340,8 @@ Headers include:
 
 Check server health and system status. No authentication required.
 
+Der Python-Abhängigkeitscheck verwendet bevorzugt `server/.venv/bin/python`, falls vorhanden. Mit der Umgebungsvariable `AMY_PYTHON_BIN` kann der zu prüfende Interpreter explizit gesetzt werden.
+
 **Success Response (200 OK)**
 ```json
 {
@@ -360,7 +362,7 @@ Check server health and system status. No authentication required.
     },
     "pythonDependencies": {
       "status": "ok",
-      "message": "Required Python packages installed (numpy, sklearn, mediapipe)"
+      "message": "Required Python packages installed (numpy, sklearn, mediapipe) via /path/to/python"
     },
     "trainingManifest": {
       "status": "ok",
