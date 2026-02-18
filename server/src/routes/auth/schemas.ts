@@ -19,6 +19,12 @@ export const RefreshSchema = z.object({
 	refreshToken: z.string().min(1),
 });
 
+export const DeleteAccountSchema = z.object({
+	username: z.string().trim().min(3).max(50),
+	password: z.string().min(6).max(128),
+	confirmText: z.string().trim().min(1),
+});
+
 export const PasswordResetRequestSchema = z.object({
 	email: z.string().trim().email().max(254),
 });

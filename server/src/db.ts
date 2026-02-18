@@ -58,6 +58,8 @@ import {
 	deleteSignTrainingDataById,
 	deleteSymbolById,
 	deleteUsageStatById,
+	deleteUserById,
+	deleteUserLabelSettingsByUserId,
 	deleteVocabularySetById,
 	deleteVocabularySetSymbolById,
 } from "./sqliteDb.js";
@@ -251,6 +253,14 @@ export const findUserById = (
 ): StoredUser | undefined => {
 	// In-memory array is synced with SQLite, so just search there
 	return db.users.find((user) => user.id === id);
+};
+
+export const removeUser = (db: Database, id: string): void => {
+	removeById(db.users, id);
+	if (sqliteInitialized) {
+		deleteUserById(id);
+		deleteUserLabelSettingsByUserId(id);
+	}
 };
 
 const updateById = <T extends { id: string }>(items: T[], record: T): void => {
