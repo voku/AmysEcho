@@ -698,6 +698,12 @@ export function TrainingUploadWithRecording() {
   }, [authTokenKey]);
 
   useEffect(() => {
+    // Guard + cleanup contract for this closure:
+    // - If lastQueueSyncResult is falsy we return immediately to avoid re-entry loops.
+    // - If hasAnyAuthToken is available and hasAuthBlockedBundles is false, we treat this
+    //   as externally resolved auth blocking and clear stale result/message state.
+    // - setLastQueueSyncResult(null) intentionally drops outdated sync snapshots so later
+    //   runs don't re-emit stale UI from formatSyncQueuedMessage via setMessage.
     if (!hasAnyAuthToken || hasAuthBlockedBundles || !lastQueueSyncResult) {
       return;
     }
