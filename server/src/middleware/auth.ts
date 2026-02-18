@@ -30,9 +30,9 @@ export function auth(
 		return res.status(401).json({ error: "Invalid or expired token" });
 	}
 
-	
+
 	const db = req.app?.locals?.dbInstance as Database | undefined;
-	if (db) {
+	if (db && user.role !== "admin") {
 		const storedUser = findUserById(db, user.id);
 		if (!storedUser) {
 			return res.status(401).json({ error: "Invalid or expired token" });

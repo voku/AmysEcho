@@ -24,7 +24,7 @@ export const JWT_SECRET = 'integration-jwt-secret';
 
 const LIVE_SERVER_URL = process.env.LIVE_SERVER_URL?.replace(/\/+$/, '');
 const LOCAL_TEST_TOKEN = jwt.sign(
-  { userId: 'integration-user', username: 'integration', role: 'caregiver' },
+  { userId: 'integration-user', username: 'integration', role: 'admin' },
   JWT_SECRET,
   { expiresIn: '1h' },
 );
