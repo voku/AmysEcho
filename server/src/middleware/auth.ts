@@ -31,7 +31,7 @@ export function auth(
 	}
 
 	
-	const db = req.app.locals.dbInstance as Database | undefined;
+	const db = req.app?.locals?.dbInstance as Database | undefined;
 	if (db) {
 		const storedUser = findUserById(db, user.id);
 		if (!storedUser) {
