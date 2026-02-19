@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateLandmarkSequence } from './trainingValidator';
+import { MAX_FACE_JITTER, MAX_HAND_JITTER, MAX_POSE_JITTER } from './trainingQuality';
 
 const makePoints = (n: number, x = 0.1, y = 0.2, z = 0): number[][] =>
   Array.from({ length: n }, (_, i) => [x + (i * 0.001), y + (i * 0.001), z]);
@@ -57,7 +58,7 @@ describe('TrainingDataValidator', () => {
 
   it('flags high hand jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
-      makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : 0.5 }),
+      makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : MAX_HAND_JITTER + 0.25 }),
     );
 
     const result = validateLandmarkSequence(seq);
@@ -69,7 +70,7 @@ describe('TrainingDataValidator', () => {
 
   it('flags high pose jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
-      makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : 0.3 }),
+      makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : MAX_POSE_JITTER + 0.05 }),
     );
 
     const result = validateLandmarkSequence(seq);
@@ -82,7 +83,7 @@ describe('TrainingDataValidator', () => {
 
   it('accepts moderate pose jitter below updated threshold', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
-      makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : 0.17 }),
+      makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : MAX_POSE_JITTER * 0.5 }),
     );
 
     const result = validateLandmarkSequence(seq);
@@ -90,9 +91,30 @@ describe('TrainingDataValidator', () => {
     expect(result.issues).not.toContain('pose_jitter_high');
   });
 
+
+  it('accepts moderate hand jitter below updated threshold', () => {
+    const seq = Array.from({ length: 12 }, (_, index) =>
+      makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : MAX_HAND_JITTER * 0.5 }),
+    );
+
+    const result = validateLandmarkSequence(seq);
+
+    expect(result.issues).not.toContain('hand_jitter_high');
+  });
+
+  it('accepts moderate face jitter below updated threshold', () => {
+    const seq = Array.from({ length: 12 }, (_, index) =>
+      makeMultiModalFrame({ faceOffset: index % 2 === 0 ? 0 : MAX_FACE_JITTER * 0.5 }),
+    );
+
+    const result = validateLandmarkSequence(seq);
+
+    expect(result.issues).not.toContain('face_jitter_high');
+  });
+
   it('flags high face jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
-      makeMultiModalFrame({ faceOffset: index % 2 === 0 ? 0 : 0.25 }),
+      makeMultiModalFrame({ faceOffset: index % 2 === 0 ? 0 : MAX_FACE_JITTER + 0.05 }),
     );
 
     const result = validateLandmarkSequence(seq);

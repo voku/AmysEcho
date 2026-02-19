@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import {
+  MAX_FACE_JITTER,
   MAX_HAND_JITTER,
   MAX_POSE_JITTER,
   MIN_SIGN_SAMPLE_FRAMES,
@@ -257,6 +258,52 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
   });
 
+
+  it('accepts bundles with moderate hand jitter', async () => {
+    const moderateHandDelta = MAX_HAND_JITTER * 0.5;
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [
+            idx % 2 === 0 ? 0 : moderateHandDelta,
+            idx % 2 === 0 ? 0 : moderateHandDelta,
+            0,
+          ]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+        poseLandmarks: Array.from({ length: 33 }, () => [0.2, 0.2, 0]),
+      })),
+    };
+
+    await writeBundleFixture('bundle-moderate-hand-jitter', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+  });
+
+  it('accepts bundles with moderate face jitter', async () => {
+    const moderateFaceDelta = MAX_FACE_JITTER * 0.5;
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [0.2, 0.2, 0.2]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+        faceLandmarks: Array.from({ length: 20 }, () => [
+          idx % 2 === 0 ? 0.4 : 0.4 + moderateFaceDelta,
+          idx % 2 === 0 ? 0.4 : 0.4 + moderateFaceDelta,
+          0,
+        ]),
+      })),
+    };
+
+    await writeBundleFixture('bundle-moderate-face-jitter', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+  });
   it('persistiert Quality-Gate-Ablehnungen im Quality-Log', async () => {
     const jitterValue = Math.min(1, MAX_HAND_JITTER + 0.5);
     const frames: LandmarksPayload = {
