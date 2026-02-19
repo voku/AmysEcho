@@ -19,6 +19,56 @@ import { atomicWriteJson } from "../utils/atomicFs.js";
 import { withFileLock } from "../utils/fileLock.js";
 import { logger } from "./logger.js";
 
+
+const KID_STARTER_PRESET_PATH = process.env.AMY_ECHO_KID_STARTER_PRESET_PATH
+	? path.resolve(process.env.AMY_ECHO_KID_STARTER_PRESET_PATH)
+	: path.join(DATA_DIR, "config", "kid_starter_preset.json");
+
+interface QualityThresholds {
+	maxHandJitter: number;
+	maxPoseJitter: number;
+	maxFaceJitter: number;
+}
+
+const DEFAULT_QUALITY_THRESHOLDS: QualityThresholds = {
+	maxHandJitter: MAX_HAND_JITTER,
+	maxPoseJitter: MAX_POSE_JITTER,
+	maxFaceJitter: MAX_FACE_JITTER,
+};
+
+async function loadQualityThresholds(): Promise<QualityThresholds> {
+	try {
+		const raw = await fs.readFile(KID_STARTER_PRESET_PATH, "utf8");
+		const parsed = JSON.parse(raw) as Record<string, unknown>;
+		const gates = parsed["qualityGates"];
+		if (!gates || typeof gates !== "object") {
+			return DEFAULT_QUALITY_THRESHOLDS;
+		}
+		const candidate = gates as Record<string, unknown>;
+		const generic = candidate["maxJitterThreshold"];
+		const hand = candidate["maxHandJitterThreshold"];
+		const pose = candidate["maxPoseJitterThreshold"];
+		const face = candidate["maxFaceJitterThreshold"];
+		const genericValue = typeof generic === "number" && Number.isFinite(generic) && generic > 0 ? generic : null;
+		const handValue = typeof hand === "number" && Number.isFinite(hand) && hand > 0 ? hand : genericValue;
+		const poseValue = typeof pose === "number" && Number.isFinite(pose) && pose > 0 ? pose : genericValue;
+		const faceValue = typeof face === "number" && Number.isFinite(face) && face > 0 ? face : genericValue;
+		return {
+			maxHandJitter: handValue ?? DEFAULT_QUALITY_THRESHOLDS.maxHandJitter,
+			maxPoseJitter: poseValue ?? DEFAULT_QUALITY_THRESHOLDS.maxPoseJitter,
+			maxFaceJitter: faceValue ?? DEFAULT_QUALITY_THRESHOLDS.maxFaceJitter,
+		};
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
+			logger.warn("Failed to load kid starter quality thresholds; using defaults", {
+				error: error instanceof Error ? error.message : String(error),
+				path: KID_STARTER_PRESET_PATH,
+			});
+		}
+		return DEFAULT_QUALITY_THRESHOLDS;
+	}
+}
+
 const TrainingBundleManifestEntrySchema = z
 	.object({
 		id: z.string(),
@@ -864,7 +914,9 @@ function computeAverageJitter(
 	return total / deltas.length;
 }
 
-function computeOverallQualityScore(metrics: {
+function computeOverallQualityScore(
+	thresholds: QualityThresholds,
+	metrics: {
 	frameCount: number;
 	handCoverage: number;
 	poseCoverage: number;
@@ -876,14 +928,14 @@ function computeOverallQualityScore(metrics: {
 	const frameScore = Math.min(1, metrics.frameCount / (MIN_SIGN_SAMPLE_FRAMES * 2));
 	const coverageScore =
 		(metrics.handCoverage * 0.5) + (metrics.poseCoverage * 0.25) + (metrics.faceCoverage * 0.25);
-	const handJitterScore = metrics.handJitter === null ? 1 : Math.max(0, 1 - (metrics.handJitter / MAX_HAND_JITTER));
-	const poseJitterScore = metrics.poseJitter === null ? 1 : Math.max(0, 1 - (metrics.poseJitter / MAX_POSE_JITTER));
-	const faceJitterScore = metrics.faceJitter === null ? 1 : Math.max(0, 1 - (metrics.faceJitter / MAX_FACE_JITTER));
+	const handJitterScore = metrics.handJitter === null ? 1 : Math.max(0, 1 - (metrics.handJitter / thresholds.maxHandJitter));
+	const poseJitterScore = metrics.poseJitter === null ? 1 : Math.max(0, 1 - (metrics.poseJitter / thresholds.maxPoseJitter));
+	const faceJitterScore = metrics.faceJitter === null ? 1 : Math.max(0, 1 - (metrics.faceJitter / thresholds.maxFaceJitter));
 	const jitterScore = (handJitterScore * 0.5) + (poseJitterScore * 0.25) + (faceJitterScore * 0.25);
 	return Number(((frameScore * 0.2) + (coverageScore * 0.4) + (jitterScore * 0.4)).toFixed(3));
 }
 
-function evaluateBundleQuality(frames: NormalizedFrameData[]): {
+function evaluateBundleQuality(frames: NormalizedFrameData[], thresholds: QualityThresholds): {
 	accepted: boolean;
 	reasons: string[];
 	metrics: QualityMetrics;
@@ -921,7 +973,7 @@ function evaluateBundleQuality(frames: NormalizedFrameData[]): {
 		(frame) => frame.faceLandmarks ?? [],
 		{ useSmoothing: true },
 	);
-	const overallQualityScore = computeOverallQualityScore({
+	const overallQualityScore = computeOverallQualityScore(thresholds, {
 		frameCount,
 		handCoverage,
 		poseCoverage,
@@ -954,14 +1006,14 @@ function evaluateBundleQuality(frames: NormalizedFrameData[]): {
 			`handCoverage ${handCoverage.toFixed(2)} < ${MIN_HAND_FRAME_COVERAGE}`,
 		);
 	}
-	if (handJitter !== null && handJitter > MAX_HAND_JITTER) {
-		reasons.push(`handJitter ${handJitter.toFixed(3)} > ${MAX_HAND_JITTER}`);
+	if (handJitter !== null && handJitter > thresholds.maxHandJitter) {
+		reasons.push(`handJitter ${handJitter.toFixed(3)} > ${thresholds.maxHandJitter}`);
 	}
-	if (poseJitter !== null && poseJitter > MAX_POSE_JITTER) {
-		reasons.push(`poseJitter ${poseJitter.toFixed(3)} > ${MAX_POSE_JITTER}`);
+	if (poseJitter !== null && poseJitter > thresholds.maxPoseJitter) {
+		reasons.push(`poseJitter ${poseJitter.toFixed(3)} > ${thresholds.maxPoseJitter}`);
 	}
-	if (faceJitter !== null && faceJitter > MAX_FACE_JITTER) {
-		reasons.push(`faceJitter ${faceJitter.toFixed(3)} > ${MAX_FACE_JITTER}`);
+	if (faceJitter !== null && faceJitter > thresholds.maxFaceJitter) {
+		reasons.push(`faceJitter ${faceJitter.toFixed(3)} > ${thresholds.maxFaceJitter}`);
 	}
 
 	return {
@@ -1116,6 +1168,7 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 }> {
 	await ensureDataDir();
 	const manifestEntries = await loadManifest();
+	const qualityThresholds = await loadQualityThresholds();
 	if (manifestEntries.length === 0) {
 		return { appended: 0 };
 	}
@@ -1193,7 +1246,7 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 				return [] as NormalizedFrameData[];
 			});
 			if (frames.length === 0) continue;
-			const quality = evaluateBundleQuality(frames);
+			const quality = evaluateBundleQuality(frames, qualityThresholds);
 			if (!quality.accepted) {
 				const recordedAt =
 					(typeof entry.capturedAt === "string" && entry.capturedAt) ||
