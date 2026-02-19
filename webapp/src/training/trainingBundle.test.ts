@@ -568,6 +568,10 @@ describe('fetchTrainingQualityLog', () => {
               handCoverage: 0.4,
               poseCoverage: 0.8,
               faceCoverage: 0.7,
+              handJitterRaw: 0.12,
+              poseJitterRaw: 0.2,
+              faceJitterRaw: 0.08,
+              overallQualityScore: 0.74,
             },
             recordedAt: '2026-01-01T10:00:00.000Z',
           },
@@ -597,6 +601,12 @@ describe('fetchTrainingQualityLog', () => {
       expect.objectContaining({
         bundleId: 'bundle-1',
         reasons: ['too_few_frames'],
+        metrics: expect.objectContaining({
+          handJitterRaw: 0.12,
+          poseJitterRaw: 0.2,
+          faceJitterRaw: 0.08,
+          overallQualityScore: 0.74,
+        }),
       }),
     ]);
     expect(fetchSpy).toHaveBeenCalledWith(

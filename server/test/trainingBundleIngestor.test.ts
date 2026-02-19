@@ -336,6 +336,9 @@ describe('ingestTrainingBundlesIntoDataset', () => {
       reasons: expect.arrayContaining([expect.stringContaining('handJitter')]),
       metrics: expect.objectContaining({
         frameCount: MIN_SIGN_SAMPLE_FRAMES,
+        overallQualityScore: expect.any(Number),
+        handJitter: expect.any(Number),
+        handJitterRaw: expect.any(Number),
       }),
     });
   });

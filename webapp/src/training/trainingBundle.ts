@@ -255,6 +255,10 @@ function parseTrainingQualityLogEntry(raw: unknown): TrainingQualityLogEntry | n
       ...(typeof metrics['handJitter'] === 'number' ? { handJitter: metrics['handJitter'] } : {}),
       ...(typeof metrics['poseJitter'] === 'number' ? { poseJitter: metrics['poseJitter'] } : {}),
       ...(typeof metrics['faceJitter'] === 'number' ? { faceJitter: metrics['faceJitter'] } : {}),
+      ...(typeof metrics['handJitterRaw'] === 'number' ? { handJitterRaw: metrics['handJitterRaw'] } : {}),
+      ...(typeof metrics['poseJitterRaw'] === 'number' ? { poseJitterRaw: metrics['poseJitterRaw'] } : {}),
+      ...(typeof metrics['faceJitterRaw'] === 'number' ? { faceJitterRaw: metrics['faceJitterRaw'] } : {}),
+      ...(typeof metrics['overallQualityScore'] === 'number' ? { overallQualityScore: metrics['overallQualityScore'] } : {}),
     },
     recordedAt,
   };
