@@ -5,11 +5,23 @@ export function mergeTrainedLabels(
   profileCounts: Record<string, number>,
   manifestEntries: ManifestEntry[],
 ): string[] {
-  const labels = new Set<string>();
+  const normalizedLabelMap = new Map<string, string>();
+
+  const addLabel = (rawLabel: string): void => {
+    const label = rawLabel.trim();
+    if (label.length === 0) {
+      return;
+    }
+
+    const normalized = label.toLocaleLowerCase("de-DE");
+    if (!normalizedLabelMap.has(normalized)) {
+      normalizedLabelMap.set(normalized, label);
+    }
+  };
 
   for (const [label, count] of Object.entries(profileCounts)) {
-    if (count > 0 && label.trim().length > 0) {
-      labels.add(label.trim());
+    if (count > 0) {
+      addLabel(label);
     }
   }
 
@@ -26,11 +38,8 @@ export function mergeTrainedLabels(
       continue;
     }
 
-    const label = entry.label.trim();
-    if (label.length > 0) {
-      labels.add(label);
-    }
+    addLabel(entry.label);
   }
 
-  return Array.from(labels);
+  return Array.from(normalizedLabelMap.values());
 }

@@ -27,4 +27,17 @@ describe("mergeTrainedLabels", () => {
 
     expect(result).toEqual(["HALLO"]);
   });
+
+  it("deduplicates labels case-insensitively across sources", () => {
+    const result = mergeTrainedLabels(
+      "profile-1",
+      { hallo: 1 },
+      [
+        { profileId: "profile-1", label: "HALLO" },
+        { profileId: "profile-1", label: "HaLLo" },
+      ],
+    );
+
+    expect(result).toEqual(["hallo"]);
+  });
 });
