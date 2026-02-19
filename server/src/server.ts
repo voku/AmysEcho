@@ -65,7 +65,7 @@ import {
 } from "./services/profileRegistry.js";
 import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleIngestor.js";
 import { buildLabelManifest, getVideosForLabel, isValidLabel } from "./services/labelRegistry.js";
-import type { Correction, NegativeSample } from "./types.js";
+import type { Correction, ManifestEntry, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
 import { loadManifestEntries } from "./utils/manifestUtils.js";
 import { mergeTrainedLabels } from "./services/trainedLabelsService.js";
@@ -173,6 +173,11 @@ const trainingLimiter = rateLimit({
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: "Zu viele Trainingsanfragen. Bitte versuche es später erneut.",
+	handler: (_req, res, _next, optionsUsed) => {
+		const retryAfterSecs = Math.ceil(((optionsUsed.windowMs as number | undefined) ?? 60_000) / 1000);
+		res.setHeader("Retry-After", String(retryAfterSecs));
+		res.status(429).json({ error: "Zu viele Trainingsanfragen. Bitte versuche es später erneut." });
+	},
 });
 
 const healthLimiter = rateLimit({
@@ -291,11 +296,11 @@ let pythonDepsCheckCache: {
 const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 let trainingManifestCache: {
-	entries: Awaited<ReturnType<typeof loadManifestEntries>>;
+	entries: ManifestEntry[];
 	timestamp: number;
 } | null = null;
 
-async function getCachedManifestEntries(): Promise<Awaited<ReturnType<typeof loadManifestEntries>>> {
+async function getCachedManifestEntries(): Promise<ManifestEntry[]> {
 	if (trainingManifestCache && Date.now() - trainingManifestCache.timestamp < config.trainingManifestCacheTtlMs) {
 		return trainingManifestCache.entries;
 	}

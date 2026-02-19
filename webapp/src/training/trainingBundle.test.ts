@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
 import {
   createTrainingZip,
@@ -429,6 +429,11 @@ describe('resolveTrainingUploadTimeoutMs', () => {
 });
 
 describe('uploadTrainingBundle', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
   it('reicht den ZIP-Body an den Server weiter', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
@@ -571,8 +576,6 @@ describe('uploadTrainingBundle', () => {
     await vi.advanceTimersByTimeAsync(1000);
     await expectation;
     expect(fetchSpy).toHaveBeenCalledTimes(2);
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
   });
 
   it('liefert bei dauerhaftem HTTP 429 eine verständliche Upload-Fehlermeldung', async () => {
@@ -591,14 +594,17 @@ describe('uploadTrainingBundle', () => {
     await vi.advanceTimersByTimeAsync(2000);
     await expectation;
     expect(fetchSpy).toHaveBeenCalledTimes(3);
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
   });
 
 });
 
 
 describe('fetchTrainingQualityLog', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
   it('lädt und filtert Quality-Log-Einträge', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
@@ -787,8 +793,6 @@ describe('fetchTrainingQualityLog', () => {
     await vi.advanceTimersByTimeAsync(1000);
     await expectation;
     expect(fetchSpy).toHaveBeenCalledTimes(2);
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
   });
 
   it('liefert bei dauerhaftem HTTP 429 eine verständliche Fehlermeldung', async () => {
@@ -812,7 +816,5 @@ describe('fetchTrainingQualityLog', () => {
     await vi.advanceTimersByTimeAsync(2000);
     await expectation;
     expect(fetchSpy).toHaveBeenCalledTimes(3);
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
   });
 });

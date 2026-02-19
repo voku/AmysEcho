@@ -491,6 +491,7 @@ const MAX_TRAINING_UPLOAD_TIMEOUT_MS = 300000;
 const RATE_LIMIT_RETRY_DEFAULT_DELAY_MS = 1500;
 const RATE_LIMIT_RETRY_MIN_DELAY_MS = 500;
 const MAX_RATE_LIMIT_RETRIES = 2;
+const RATE_LIMIT_RETRY_MAX_DELAY_MS = 15000;
 
 
 export function resolveTrainingUploadTimeoutMs(zipSizeBytes: number): number {
@@ -531,7 +532,10 @@ async function fetchWithRateLimitRetry(
 
   for (let attempt = 0; attempt < maxRateLimitRetries && response.status === 429; attempt += 1) {
     const retryAfterDelayMs = parseRetryAfterDelayMs(response.headers.get('Retry-After'));
-    const nextDelayMs = Math.max(retryAfterDelayMs ?? RATE_LIMIT_RETRY_DEFAULT_DELAY_MS, RATE_LIMIT_RETRY_MIN_DELAY_MS);
+    const nextDelayMs = Math.min(
+      Math.max(retryAfterDelayMs ?? RATE_LIMIT_RETRY_DEFAULT_DELAY_MS, RATE_LIMIT_RETRY_MIN_DELAY_MS),
+      RATE_LIMIT_RETRY_MAX_DELAY_MS,
+    );
     await new Promise((resolve) => setTimeout(resolve, nextDelayMs));
     response = await fetchWithRetry(url, requestInit, retryOptions);
   }

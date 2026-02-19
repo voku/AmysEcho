@@ -89,6 +89,8 @@ export function createUserRateLimiter(
 				});
 			}
 
+			const retryAfterSecs = Math.ceil(((optionsUsed.windowMs as number | undefined) ?? windowMs) / 1000);
+			res.setHeader("Retry-After", String(retryAfterSecs));
 			res.status(429).json({
 				error: message,
 				code: "RATE_LIMIT_EXCEEDED",
