@@ -632,14 +632,20 @@ databaseReady
 async function resolveProfileId(
 	value?: string | null,
 ): Promise<{ profileId: string | null }> {
-	if (!profileRegistry || !value) {
-		return { profileId: value ?? null };
+	if (!value) {
+		return { profileId: null };
 	}
 	const trimmed = value.trim();
-	const exists = profileRegistry.profiles.some(
-		(profile) => profile.id === trimmed,
-	);
-	return { profileId: exists ? trimmed : null };
+	// Check SQLite database first (primary source after migration)
+	const inDb = dbInstance?.profiles.some((p) => p.id === trimmed) ?? false;
+	if (inDb) {
+		return { profileId: trimmed };
+	}
+	// Fall back to profile registry (JSON) for caregiver/device metadata
+	const inRegistry =
+		profileRegistry?.profiles.some((profile) => profile.id === trimmed) ??
+		false;
+	return { profileId: inRegistry ? trimmed : null };
 }
 
 async function runProfileBackupCycle(): Promise<void> {
