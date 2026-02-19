@@ -40,4 +40,19 @@ describe("mergeTrainedLabels", () => {
 
     expect(result).toEqual(["hallo"]);
   });
+
+  it("strips trailing UUID suffixes before deduplication", () => {
+    const result = mergeTrainedLabels(
+      "profile-1",
+      {
+        "hallo_123e4567-e89b-12d3-a456-426614174000": 1,
+      },
+      [
+        { profileId: "profile-1", label: "HALLO-123e4567-e89b-12d3-a456-426614174000" },
+        { profileId: "profile-1", label: "HALLO" },
+      ],
+    );
+
+    expect(result).toEqual(["hallo"]);
+  });
 });
