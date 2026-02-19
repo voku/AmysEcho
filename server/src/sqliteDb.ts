@@ -665,6 +665,21 @@ export function deleteAccountDataByUserId(userId: string): void {
 		for (const profile of profileRows) {
 			database
 				.prepare(
+					"DELETE FROM vocabularySetSymbols WHERE symbolId IN (SELECT id FROM symbols WHERE profileId = ?)",
+				)
+				.run(profile.id);
+			database
+				.prepare(
+					"DELETE FROM interactionLogs WHERE signId IN (SELECT id FROM signDefinitions WHERE symbolId IN (SELECT id FROM symbols WHERE profileId = ?))",
+				)
+				.run(profile.id);
+			database
+				.prepare(
+					"DELETE FROM learningAnalytics WHERE signId IN (SELECT id FROM signDefinitions WHERE symbolId IN (SELECT id FROM symbols WHERE profileId = ?))",
+				)
+				.run(profile.id);
+			database
+				.prepare(
 					"DELETE FROM signTrainingData WHERE signId IN (SELECT id FROM signDefinitions WHERE symbolId IN (SELECT id FROM symbols WHERE profileId = ?))",
 				)
 				.run(profile.id);

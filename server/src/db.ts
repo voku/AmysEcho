@@ -256,10 +256,10 @@ export const findUserById = (
 };
 
 export const removeUser = (db: Database, id: string): void => {
-	removeById(db.users, id);
 	if (sqliteInitialized) {
 		deleteUserAndLabelSettingsByUserId(id);
 	}
+	removeById(db.users, id);
 };
 
 export const removeUserAccountData = (db: Database, userId: string): string[] => {
@@ -271,6 +271,32 @@ export const removeUserAccountData = (db: Database, userId: string): string[] =>
 		deleteAccountDataByUserId(userId);
 	}
 
+	const removedSymbolIds = new Set(
+		db.symbols
+			.filter((symbol) => symbol.profileId && ownedProfileIds.includes(symbol.profileId))
+			.map((symbol) => symbol.id),
+	);
+	const removedSignDefinitionIds = new Set(
+		db.signDefinitions
+			.filter((definition) => removedSymbolIds.has(definition.symbolId))
+			.map((definition) => definition.id),
+	);
+
+	db.signTrainingData = db.signTrainingData.filter(
+		(training) => !removedSignDefinitionIds.has(training.signId),
+	);
+	db.interactionLogs = db.interactionLogs.filter(
+		(log) => !removedSignDefinitionIds.has(log.signId),
+	);
+	db.learningAnalytics = db.learningAnalytics.filter(
+		(analytics) => !removedSignDefinitionIds.has(analytics.signId),
+	);
+	db.vocabularySetSymbols = db.vocabularySetSymbols.filter(
+		(link) => !removedSymbolIds.has(link.symbolId),
+	);
+	db.signDefinitions = db.signDefinitions.filter(
+		(definition) => !removedSymbolIds.has(definition.symbolId),
+	);
 	db.profiles = db.profiles.filter((profile) => profile.userId !== userId);
 	db.usageStats = db.usageStats.filter((usage) => !ownedProfileIds.includes(usage.profileId));
 	db.corrections = db.corrections.filter((corr) => !ownedProfileIds.includes(corr.profileId ?? ""));

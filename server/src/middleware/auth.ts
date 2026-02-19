@@ -22,23 +22,27 @@ const resolveDbInstance = (req: express.Request): Database | undefined => {
 	return db;
 };
 
-const validateTokenUser = (
-	res: express.Response,
-	db: Database | undefined,
-	user: User,
-): boolean => {
+const hasActiveTokenUser = (db: Database | undefined, user: User): boolean => {
 	if (process.env.NODE_ENV === "test") {
 		return true;
 	}
 	if (!db) {
-		res.status(500).json({ error: "Authentication service unavailable" });
 		return false;
 	}
-	if (user.role === "admin") {
-		return true;
-	}
 	const storedUser = findUserById(db, user.id);
-	if (!storedUser) {
+	return Boolean(storedUser);
+};
+
+const validateTokenUserOrRespond = (
+	res: express.Response,
+	db: Database | undefined,
+	user: User,
+): boolean => {
+	if (!hasActiveTokenUser(db, user)) {
+		if (!db && process.env.NODE_ENV !== "test") {
+			res.status(500).json({ error: "Authentication service unavailable" });
+			return false;
+		}
 		res.status(401).json({ error: "Invalid or expired token" });
 		return false;
 	}
@@ -66,7 +70,7 @@ export function auth(
 	}
 
 	const db = resolveDbInstance(req);
-	if (!validateTokenUser(res, db, user)) {
+	if (!validateTokenUserOrRespond(res, db, user)) {
 		return;
 	}
 
@@ -86,7 +90,7 @@ export function optionalAuth(
 		const user = AuthService.verifyAccessToken(token);
 		if (user) {
 			const db = resolveDbInstance(req);
-			if (validateTokenUser(_res, db, user)) {
+			if (hasActiveTokenUser(db, user)) {
 				req.user = user;
 			}
 		}
