@@ -118,11 +118,11 @@ export const userRateLimiters = {
 	}),
 
 	/**
-	 * Training rate limiter (5 requests/minute)
+	 * Training rate limiter (120 requests/minute)
 	 */
 	training: createUserRateLimiter({
 		windowMs: 60 * 1000,
-		max: 5,
+		max: 120,
 		message: "Zu viele Trainingsanfragen. Bitte versuche es später erneut.",
 	}),
 
@@ -141,7 +141,7 @@ export const userRateLimiters = {
 	 */
 	modelDownload: createUserRateLimiter({
 		windowMs: 60 * 1000,
-		max: 20,
+		max: 120,
 		message: "Zu viele Modell-Downloads. Bitte versuche es später erneut.",
 	}),
 };

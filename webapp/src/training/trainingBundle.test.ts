@@ -711,4 +711,59 @@ describe('fetchTrainingQualityLog', () => {
 
     vi.unstubAllGlobals();
   });
+
+  it('wartet bei HTTP 429 und versucht das Qualitätsprotokoll erneut', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: new Headers({ 'Retry-After': '1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [] }),
+        headers: new Headers(),
+      });
+
+    vi.stubGlobal('fetch', fetchSpy as any);
+
+    const request = fetchTrainingQualityLog({
+      endpoint: 'https://api.example.org/api/v1/dgs/training-quality',
+      token: 'token-1',
+      profileId: 'profile-1',
+      limit: 10,
+    });
+    const expectation = expect(request).resolves.toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await expectation;
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    vi.unstubAllGlobals();
+  });
+
+  it('liefert bei dauerhaftem HTTP 429 eine verständliche Fehlermeldung', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      headers: new Headers({ 'Retry-After': '0.1' }),
+    });
+
+    vi.stubGlobal('fetch', fetchSpy as any);
+
+    const request = fetchTrainingQualityLog({
+      endpoint: 'https://api.example.org/api/v1/dgs/training-quality',
+      token: 'token-1',
+      profileId: 'profile-1',
+      limit: 10,
+    });
+    const expectation = expect(request).rejects.toThrow('Zu viele Anfragen. Qualitätsprotokoll wird gleich erneut geladen.');
+
+    await vi.advanceTimersByTimeAsync(2000);
+    await expectation;
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    vi.unstubAllGlobals();
+  });
 });

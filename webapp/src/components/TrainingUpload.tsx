@@ -588,7 +588,12 @@ export function TrainingUploadWithRecording() {
       })
       .catch((error) => {
         if (cancelled) return;
-        setQualityError(`Qualitätsprotokoll konnte nicht geladen werden: ${error instanceof Error ? error.message : String(error)}`);
+        const details = error instanceof Error ? error.message : String(error);
+        if (details.startsWith('Qualitätsprotokoll konnte nicht geladen werden')) {
+          setQualityError(details);
+          return;
+        }
+        setQualityError(`Qualitätsprotokoll konnte nicht geladen werden: ${details}`);
       })
       .finally(() => {
         if (!cancelled) {

@@ -167,7 +167,7 @@ const modelMetadataLimiter = rateLimit({
 
 const trainingLimiter = rateLimit({
 	windowMs: 60 * 1000,
-	max: 5, // Training operations are expensive, limit to 5 per minute
+	max: config.trainingLimit, // Training operations are expensive, but caregivers may upload/poll in bursts
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: "Zu viele Trainingsanfragen. Bitte versuche es später erneut.",

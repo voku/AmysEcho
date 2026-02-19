@@ -6,6 +6,7 @@ export interface ServerConfig {
 	nodeEnv: string;
 	apiLimit: number;
 	modelMetadataLimit: number;
+	trainingLimit: number;
 	profileBackupIntervalHours: number;
 	mlpScript: string;
 	trainingTimeoutMs: number;
@@ -75,8 +76,9 @@ function getEnvVarAsNumber(name: string, defaultValue: number): number {
 export const config: ServerConfig = {
 	port: getEnvVarAsNumber("PORT", 5000),
 	nodeEnv: getEnvVar("NODE_ENV", "development"),
-	apiLimit: getEnvVarAsNumber("API_LIMIT", 120),
-	modelMetadataLimit: getEnvVarAsNumber("MODEL_METADATA_LIMIT", 10),
+	apiLimit: getEnvVarAsNumber("API_LIMIT", 1000),
+	modelMetadataLimit: getEnvVarAsNumber("MODEL_METADATA_LIMIT", 300),
+	trainingLimit: getEnvVarAsNumber("TRAINING_LIMIT", 120),
 	profileBackupIntervalHours: getEnvVarAsNumber(
 		"PROFILE_BACKUP_INTERVAL_HOURS",
 		24,

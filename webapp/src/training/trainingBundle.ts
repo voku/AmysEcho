@@ -590,6 +590,41 @@ export type FetchTrainingQualityOptions = {
   limit?: number;
 };
 
+function parseRetryAfterDelayMs(headerValue: string | null): number | null {
+  if (!headerValue) {
+    return null;
+  }
+
+  const asSeconds = Number(headerValue);
+  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+    return Math.round(asSeconds * 1000);
+  }
+
+  const retryTimestamp = Date.parse(headerValue);
+  if (!Number.isNaN(retryTimestamp)) {
+    return Math.max(0, retryTimestamp - Date.now());
+  }
+
+  return null;
+}
+
+async function fetchTrainingQualityWithRateLimitRetry(
+  url: string,
+  requestInit: RequestInit,
+  retryOptions: { retries: number; retryDelayMs: number; timeoutMs: number },
+): Promise<Response> {
+  let response = await fetchWithRetry(url, requestInit, retryOptions);
+
+  for (let attempt = 0; attempt < 2 && response.status === 429; attempt += 1) {
+    const retryAfterDelayMs = parseRetryAfterDelayMs(response.headers.get('Retry-After'));
+    const nextDelayMs = Math.max(retryAfterDelayMs ?? 1500, 500);
+    await new Promise((resolve) => setTimeout(resolve, nextDelayMs));
+    response = await fetchWithRetry(url, requestInit, retryOptions);
+  }
+
+  return response;
+}
+
 export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptions): Promise<TrainingQualityLogEntry[]> {
   const endpoint = options.endpoint?.trim();
   if (!endpoint) {
@@ -616,7 +651,7 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
   };
   const retryOptions = { retries: 1, retryDelayMs: 300, timeoutMs: 10000 } as const;
 
-  let response = await fetchWithRetry(
+  let response = await fetchTrainingQualityWithRateLimitRetry(
     buildRequestUrl(true),
     requestInit,
     retryOptions,
@@ -629,7 +664,7 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
   ) {
     // 401 is intentionally excluded here: an unauthenticated/expired session should
     // surface to the caller, while 403 indicates profile scoping can fall back.
-    response = await fetchWithRetry(
+    response = await fetchTrainingQualityWithRateLimitRetry(
       buildRequestUrl(false),
       requestInit,
       retryOptions,
@@ -637,6 +672,9 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
   }
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new HttpError(429, 'Zu viele Anfragen. Qualitätsprotokoll wird gleich erneut geladen.');
+    }
     throw new HttpError(response.status, `Qualitätsprotokoll konnte nicht geladen werden (HTTP ${response.status}).`);
   }
 
