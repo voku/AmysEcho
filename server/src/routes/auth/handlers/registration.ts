@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import {
+	addProfile,
 	addUser,
 	findUserByEmail,
 	findUserByUsername,
@@ -73,7 +74,7 @@ export async function handleRegistration(
 				emailVerificationSentAt: Date.now(),
 			};
 			addUser(deps.db, user);
-			deps.db.profiles.push({
+			addProfile(deps.db, {
 				id: user.id,
 				userId: user.id,
 				displayName: user.displayName ?? defaultDisplayName,
