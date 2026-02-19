@@ -341,6 +341,10 @@ describe('ingestTrainingBundlesIntoDataset', () => {
         handJitterRaw: expect.any(Number),
       }),
     });
+
+    const metrics = qualityLog.entries[0]?.metrics ?? {};
+    expect((metrics.overallQualityScore as number) >= 0 && (metrics.overallQualityScore as number) <= 1).toBe(true);
+    expect((metrics.handJitterRaw as number) >= (metrics.handJitter as number)).toBe(true);
   });
 
 

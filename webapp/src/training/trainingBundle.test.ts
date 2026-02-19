@@ -620,6 +620,44 @@ describe('fetchTrainingQualityLog', () => {
     vi.unstubAllGlobals();
   });
 
+
+  it('ignoriert Quality-Log-Einträge mit nicht-endlichen Pflichtmetriken', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          {
+            bundleId: 'bundle-invalid-nan',
+            label: 'HILFE',
+            profileId: 'profile-1',
+            reasons: ['too_few_frames'],
+            metrics: {
+              frameCount: Number.NaN,
+              handCoverage: 0.4,
+              poseCoverage: 0.8,
+              faceCoverage: 0.7,
+            },
+            recordedAt: '2026-01-01T10:00:00.000Z',
+          },
+        ],
+      }),
+      headers: new Headers(),
+    });
+
+    vi.stubGlobal('fetch', fetchSpy as any);
+
+    const result = await fetchTrainingQualityLog({
+      endpoint: 'https://api.example.org/api/v1/dgs/training-quality',
+      token: 'token-1',
+      profileId: 'profile-1',
+      limit: 10,
+    });
+
+    expect(result).toEqual([]);
+    vi.unstubAllGlobals();
+  });
+
   it('fällt bei 403 mit profileId auf den allgemeinen Qualitäts-Log zurück', async () => {
     const fetchSpy = vi.fn()
       .mockResolvedValueOnce({
