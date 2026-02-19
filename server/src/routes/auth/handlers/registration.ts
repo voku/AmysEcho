@@ -9,6 +9,7 @@ import {
 } from "../../../db.js";
 import { AuthService } from "../../../services/authService.js";
 import logger from "../../../services/logger.js";
+import { ensureProfileRecord } from "../../../services/profileRegistry.js";
 import type { StoredUser } from "../../../types.js";
 import {
 	normalizeEmail,
@@ -40,13 +41,15 @@ export async function handleRegistration(
 	const username = normalizeUsername(parsed.data.username);
 	const password = parsed.data.password;
 	const email = normalizeEmail(parsed.data.email);
+	const defaultDisplayName = parsed.data.username.trim();
 	const verificationToken = randomBytes(TOKEN_BYTE_LENGTH).toString("hex");
 	const verificationTokenHash = hashToken(verificationToken);
 	const verificationExpiresAt = Date.now() + EMAIL_VERIFICATION_TTL_MS;
 
 	try {
 		const passwordHash = await AuthService.hashPassword(password);
-		const result = await deps.withFileLock(deps.dbFilePath, async () => {
+		const result = await deps.withFileLock(deps.registryPath, async () =>
+			deps.withFileLock(deps.dbFilePath, async () => {
 			const existingUsername = findUserByUsername(deps.db, username);
 			const existingEmail = findUserByEmail(deps.db, email);
 
@@ -62,7 +65,7 @@ export async function handleRegistration(
 				username,
 				email,
 				passwordHash,
-				displayName: parsed.data.username.trim(),
+				displayName: defaultDisplayName,
 				role: "caregiver",
 				createdAt: Date.now(),
 				emailVerificationTokenHash: verificationTokenHash,
@@ -70,11 +73,27 @@ export async function handleRegistration(
 				emailVerificationSentAt: Date.now(),
 			};
 			addUser(deps.db, user);
+			deps.db.profiles.push({
+				id: user.id,
+				userId: user.id,
+				displayName: user.displayName ?? defaultDisplayName,
+				createdAt: new Date(user.createdAt).toISOString(),
+				metadata: {},
+				consentDataUpload: false,
+				consentHelpMeGetSmarter: false,
+				vocabularySetId: "basic",
+			});
+			ensureProfileRecord(deps.registry, {
+				id: user.id,
+				displayName: user.displayName ?? defaultDisplayName,
+			});
 			// Seed symbols for the user's primary profile (using userId as profileId for now as per current app patterns)
 			seedProfileSymbols(deps.db, user.id);
+			await deps.saveRegistry(deps.registryPath, deps.registry);
 			await saveDatabase(deps.db, deps.dbFilePath);
 			return { user };
-		});
+			}),
+		);
 
 		if ("error" in result) {
 			// Generic error to prevent user enumeration via different messages

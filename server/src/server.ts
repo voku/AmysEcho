@@ -591,6 +591,9 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 		registerAuthRoutes(app, {
 			db,
 			dbFilePath: DB_FILE_PATH,
+			registry: profileRegistry,
+			registryPath: PROFILE_REGISTRY_PATH,
+			saveRegistry: saveProfileRegistry,
 			withFileLock,
 			emailService,
 		});
