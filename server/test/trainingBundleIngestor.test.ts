@@ -343,6 +343,39 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(qualityLog.entries[0]?.reasons.some((reason) => reason.includes('> 0.05'))).toBe(true);
   });
 
+  it('falls back to generic maxJitterThreshold when specific keys are missing', async () => {
+    await fs.mkdir(path.dirname(KID_STARTER_PRESET_PATH), { recursive: true });
+    await fs.writeFile(
+      KID_STARTER_PRESET_PATH,
+      JSON.stringify({
+        qualityGates: {
+          maxJitterThreshold: 0.05,
+        },
+      }),
+      'utf8',
+    );
+
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [idx % 2 === 0 ? 0 : 0.5, idx % 2 === 0 ? 0 : 0.5, 0]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+      })),
+    };
+
+    await writeBundleFixture('bundle-generic-threshold', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const qualityLogRaw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, 'utf8');
+    const qualityLog = JSON.parse(qualityLogRaw) as { entries: Array<{ bundleId: string; reasons: string[] }> };
+    const entry = qualityLog.entries.find((item) => item.bundleId === 'bundle-generic-threshold');
+    expect(entry?.reasons.some((reason) => reason.includes('> 0.05'))).toBe(true);
+  });
+
   it('persistiert Quality-Gate-Ablehnungen im Quality-Log', async () => {
     const jitterValue = Math.min(1, MAX_HAND_JITTER + 0.5);
     const frames: LandmarksPayload = {

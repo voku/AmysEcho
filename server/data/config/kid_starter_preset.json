@@ -120,6 +120,9 @@
     "minUsableFrameRatio": 0.6,
     "minClipDurationMs": 500,
     "maxJitterThreshold": 0.3,
+    "maxHandJitterThreshold": 0.3,
+    "maxPoseJitterThreshold": 0.3,
+    "maxFaceJitterThreshold": 0.2,
     "reviewRequiredForGlobal": true
   },
   "metadata": {
