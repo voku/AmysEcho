@@ -21,6 +21,7 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { SymbolButton } from './SymbolButton';
+import { syncAllProfilesToServer } from '../services/profileRegistry';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -457,6 +458,16 @@ export function TrainingUploadWithRecording() {
     profileId,
     profileMetadata,
   } = useAppState();
+
+  // Ensure all local profiles are synced to the server before uploading
+  const profileSyncedRef = useRef(false);
+  useEffect(() => {
+    if (apiToken && !profileSyncedRef.current) {
+      profileSyncedRef.current = true;
+      void syncAllProfilesToServer(apiToken);
+    }
+  }, [apiToken]);
+
   const modelInjection = useMlpModelInjection(profileId);
   const { symbols, syncError: symbolSyncError, refresh: refreshSymbols, loading: symbolsLoading } = useSymbolStore();
   const vocabularySet = profileMetadata?.vocabularySet ?? 'basis';

@@ -9,8 +9,11 @@ import {
   addProfile,
   deleteProfile,
   initializeProfileRegistry,
+  syncProfileToServer,
+  syncAllProfilesToServer,
   type Profile,
 } from '../services/profileRegistry';
+import { useApiConfig } from '../hooks/useApiConfig';
 
 /**
  * ProfileManager - Multi-child profile selector and manager
@@ -29,6 +32,7 @@ export function ProfileManager() {
   const [newProfileAvatar, setNewProfileAvatar] = useState('👤');
   const [newProfileVocabulary, setNewProfileVocabulary] = useState<MetacomVocabularySet>('basis');
   const navigate = useNavigate();
+  const { apiToken } = useApiConfig();
 
   const avatarOptions = ['👤', '🌈', '🌸', '🎨', '⭐', '🦋', '🌻', '🐻', '🦊', '🐰'];
   const vocabularyOptions: Array<{ value: MetacomVocabularySet; label: string }> = [
@@ -59,6 +63,13 @@ export function ProfileManager() {
   useEffect(() => {
     loadProfiles();
   }, [loadProfiles]);
+
+  // Sync all local profiles to the server when the token becomes available
+  useEffect(() => {
+    if (apiToken) {
+      void syncAllProfilesToServer(apiToken);
+    }
+  }, [apiToken]);
 
   const handleSelectProfile = useCallback(async (profile: Profile) => {
     try {
@@ -100,6 +111,14 @@ export function ProfileManager() {
       });
 
       await addProfile(profile);
+
+      // Sync new profile to server so training uploads can find it
+      if (apiToken) {
+        void syncProfileToServer(profile, apiToken).catch((error) => {
+          console.warn('[ProfileManager] Server-Sync fehlgeschlagen:', error);
+        });
+      }
+
       await loadProfiles();
       
       // Select the new profile
@@ -121,6 +140,7 @@ export function ProfileManager() {
     newProfileVocabulary,
     loadProfiles,
     handleSelectProfile,
+    apiToken,
   ]);
 
   const handleDeleteProfile = useCallback(async (profile: Profile) => {

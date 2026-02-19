@@ -1,6 +1,7 @@
 import { sha256 } from 'js-sha256';
 import { logger } from './logger';
 import type { MetacomVocabularySet } from '../types/metacomVocabulary';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 /**
  * Profile Registry Service
@@ -531,8 +532,77 @@ export async function addProfile(profile: Profile): Promise<void> {
 }
 
 /**
- * Get the active profile
+ * Sync a local profile to the server via POST /api/v1/profiles.
+ *
+ * The server endpoint is idempotent: if the profile already exists and
+ * belongs to the current user it simply returns the existing record.
+ *
+ * @param profile  The local profile to sync
+ * @param token    Auth token for the request
  */
+export async function syncProfileToServer(
+  profile: Profile,
+  token: string,
+): Promise<boolean> {
+  if (!token) {
+    logger.warn('[Profile Registry] Kein Auth-Token vorhanden, Server-Sync übersprungen');
+    return false;
+  }
+
+  const url = resolveApiUrl('/api/v1/profiles');
+  const body = JSON.stringify({
+    id: profile.profileId,
+    displayName: profile.displayName,
+    metadata: profile.metadata.childAge !== undefined
+      ? { ageYears: profile.metadata.childAge }
+      : undefined,
+  });
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body,
+    });
+
+    if (response.ok || response.status === 201) {
+      logger.info(`[Profile Registry] Profil ${profile.profileId} erfolgreich mit Server synchronisiert`);
+      return true;
+    }
+
+    // 403 means profile belongs to another user — not an error for our flow
+    if (response.status === 403) {
+      logger.warn(`[Profile Registry] Profil ${profile.profileId} gehört einem anderen Benutzer`);
+      return false;
+    }
+
+    logger.warn(`[Profile Registry] Server-Sync fehlgeschlagen: HTTP ${response.status}`);
+    return false;
+  } catch (error) {
+    logger.warn('[Profile Registry] Server-Sync Netzwerkfehler:', error);
+    return false;
+  }
+}
+
+/**
+ * Sync all local profiles that may not yet exist on the server.
+ * Called during app initialization to catch profiles created while offline.
+ */
+export async function syncAllProfilesToServer(token: string): Promise<void> {
+  const registry = await loadProfileRegistry();
+  if (!registry || registry.profiles.length === 0) return;
+
+  for (const profile of registry.profiles) {
+    try {
+      await syncProfileToServer(profile, token);
+    } catch (error) {
+      logger.warn(`[Profile Registry] Sync für Profil ${profile.profileId} fehlgeschlagen:`, error);
+    }
+  }
+}
 export async function getActiveProfile(): Promise<Profile | null> {
   const registry = await loadProfileRegistry();
   if (!registry) return null;
