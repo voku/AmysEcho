@@ -80,7 +80,7 @@ describe('TrainingDataValidator', () => {
   });
 
 
-  it('accepts moderate pose jitter with multimodal landmarks', () => {
+  it('accepts moderate pose jitter below updated threshold', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
       makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : 0.17 }),
     );

@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import {
   MAX_HAND_JITTER,
+  MAX_POSE_JITTER,
   MIN_SIGN_SAMPLE_FRAMES,
 } from '../src/constants/trainingQuality.js';
 
@@ -234,6 +235,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
 
 
   it('accepts bundles with moderate pose jitter', async () => {
+    const moderatePoseDelta = MAX_POSE_JITTER * 0.5;
     const frames: LandmarksPayload = {
       frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
         landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
@@ -242,9 +244,9 @@ describe('ingestTrainingBundlesIntoDataset', () => {
           Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
         ],
         poseLandmarks: Array.from({ length: 33 }, () => [
-          idx % 2 === 0 ? 0 : 0.17,
-          idx % 2 === 0 ? 0 : 0.17,
-          idx % 2 === 0 ? 0 : 0.17,
+          idx % 2 === 0 ? 0 : moderatePoseDelta,
+          idx % 2 === 0 ? 0 : moderatePoseDelta,
+          0,
         ]),
       })),
     };
