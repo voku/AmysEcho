@@ -1001,9 +1001,21 @@ registerTrainingBundleRoute(app, genId, {
 		}
 		// Auto-create profile during training bundle upload (Amy First: Zero failure)
 		const created = ensureProfileRecord(profileRegistry, { id: trimmed });
-		await withFileLock(PROFILE_REGISTRY_PATH, async () =>
-			saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
-		);
+		try {
+			await withFileLock(PROFILE_REGISTRY_PATH, async () =>
+				saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
+			);
+		} catch (error) {
+			// Revert in-memory change to keep registry consistent with disk
+			profileRegistry.profiles = profileRegistry.profiles.filter(
+				(p) => p.id !== created.id,
+			);
+			logger.error("Failed to persist auto-created profile", {
+				profileId: trimmed,
+				error: (error as Error)?.message,
+			});
+			// Still return the profileId so Amy's upload is never rejected
+		}
 		return { profileId: created.id };
 	},
 	isProfileAuthorized: (req: Request, profileId: string) =>

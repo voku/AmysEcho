@@ -520,28 +520,14 @@ describe('uploadTrainingBundle', () => {
     }
   });
 
-  it('zeigt die tatsächliche Server-Fehlermeldung bei HTTP-Fehlern an', async () => {
+  it.each([
+    { status: 422, statusText: 'Unprocessable Entity' },
+    { status: 404, statusText: 'Not Found' },
+  ])('zeigt die tatsächliche Server-Fehlermeldung bei HTTP $status an', async ({ status, statusText }) => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: false,
-      status: 422,
-      statusText: 'Unprocessable Entity',
-      json: () => Promise.resolve({ error: 'Profil nicht gefunden.' }),
-    });
-    (globalThis as any).fetch = fetchSpy;
-
-    await expect(
-      uploadTrainingBundle(basePayload, {
-        endpoint: 'https://example.test/api/v1/dgs/sample-bundles',
-        token: 'demo-token',
-      }),
-    ).rejects.toThrow('Profil nicht gefunden.');
-  });
-
-  it('zeigt die tatsächliche Server-Fehlermeldung bei HTTP 404 an', async () => {
-    const fetchSpy = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found',
+      status,
+      statusText,
       json: () => Promise.resolve({ error: 'Profil nicht gefunden.' }),
     });
     (globalThis as any).fetch = fetchSpy;
