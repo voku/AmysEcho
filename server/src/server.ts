@@ -988,36 +988,7 @@ registerTrainingBundleRoute(app, genId, {
 			return null;
 		}
 	},
-	resolveProfileId: async (value) => {
-		if (!profileRegistry || !value) {
-			return { profileId: value ?? null };
-		}
-		const trimmed = value.trim();
-		const exists = profileRegistry.profiles.some(
-			(profile) => profile.id === trimmed,
-		);
-		if (exists) {
-			return { profileId: trimmed };
-		}
-		// Auto-create profile during training bundle upload (Amy First: Zero failure)
-		const created = ensureProfileRecord(profileRegistry, { id: trimmed });
-		try {
-			await withFileLock(PROFILE_REGISTRY_PATH, async () =>
-				saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
-			);
-		} catch (error) {
-			// Revert in-memory change to keep registry consistent with disk
-			profileRegistry.profiles = profileRegistry.profiles.filter(
-				(p) => p.id !== created.id,
-			);
-			logger.error("Failed to persist auto-created profile", {
-				profileId: trimmed,
-				error: (error as Error)?.message,
-			});
-			// Still return the profileId so Amy's upload is never rejected
-		}
-		return { profileId: created.id };
-	},
+	resolveProfileId: resolveProfileId,
 	isProfileAuthorized: (req: Request, profileId: string) =>
 		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
 });

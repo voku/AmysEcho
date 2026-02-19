@@ -1360,6 +1360,16 @@ export function registerTrainingBundleRoute(
 					await recordMetrics({ status: "rejected" });
 					return res.status(422).json({ error: "Profil nicht gefunden." });
 				}
+				if (
+					resolvedProfileId &&
+					deps.isProfileAuthorized &&
+					!deps.isProfileAuthorized(req, resolvedProfileId)
+				) {
+					await recordMetrics({ status: "rejected" });
+					return res
+						.status(403)
+						.json({ error: "Kein Zugriff auf dieses Profil." });
+				}
 				metricsProfileId = resolvedProfileId ?? null;
 
 				const bundleId = genId();

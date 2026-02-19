@@ -87,7 +87,7 @@ describe('Training bundle upload profile resolution', () => {
     delete process.env.AMY_ECHO_DATA_DIR;
   });
 
-  it('accepts upload when resolveProfileId auto-creates the profile', async () => {
+  it('accepts upload when profile is resolved and authorized', async () => {
     const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-upload-'));
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     jest.resetModules();
@@ -110,6 +110,33 @@ describe('Training bundle upload profile resolution', () => {
     expect(response.status).toBe(202);
     expect(response.body).toHaveProperty('id');
     expect(response.body).toHaveProperty('status', 'queued');
+
+    await fs.rm(dataDir, { recursive: true, force: true });
+    delete process.env.AMY_ECHO_DATA_DIR;
+  });
+
+  it('rejects upload with 403 when profile authorization fails', async () => {
+    const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-upload-'));
+    process.env.AMY_ECHO_DATA_DIR = dataDir;
+    jest.resetModules();
+
+    const mod = await import('../src/routes/trainingBundleRoute.js');
+    const app = express();
+    let counter = 0;
+    mod.registerTrainingBundleRoute(app, () => `bundle-${++counter}`, {
+      triggerTrainingJob: () => ({ jobId: 'j-3', status: 'queued' }),
+      resolveProfileId: async (profileId) => ({ profileId }),
+      isProfileAuthorized: () => false,
+    });
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(buildTestBundle(TEST_PROFILE_ID, 'HALLO'));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toHaveProperty('error', 'Kein Zugriff auf dieses Profil.');
 
     await fs.rm(dataDir, { recursive: true, force: true });
     delete process.env.AMY_ECHO_DATA_DIR;
