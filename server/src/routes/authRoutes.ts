@@ -1,5 +1,6 @@
 import type express from "express";
 import {
+	handleDeleteAccount,
 	handleEmailVerificationConfirm,
 	handleEmailVerificationRequest,
 	handleLogin,
@@ -16,6 +17,7 @@ import {
 	createRefreshLimiter,
 } from "./auth/rateLimiters.js";
 import type { AuthRouteDeps } from "./auth/types.js";
+import { auth } from "../middleware/auth.js";
 
 /**
  * Register all authentication routes
@@ -80,4 +82,8 @@ export function registerAuthRoutes(
 			await handleEmailVerificationConfirm(req, res, deps);
 		},
 	);
+
+	app.delete("/api/v1/auth/account", authLimiter, auth, async (req, res) => {
+		await handleDeleteAccount(req, res, deps);
+	});
 }

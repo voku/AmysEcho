@@ -51,6 +51,7 @@ import {
 	updateUserInDb,
 	updateVocabularySetInDb,
 	updateVocabularySetSymbolInDb,
+	deleteAccountDataByUserId,
 	deleteInteractionLogById,
 	deleteLearningAnalyticsById,
 	deleteProfileById,
@@ -58,6 +59,7 @@ import {
 	deleteSignTrainingDataById,
 	deleteSymbolById,
 	deleteUsageStatById,
+	deleteUserAndLabelSettingsByUserId,
 	deleteVocabularySetById,
 	deleteVocabularySetSymbolById,
 } from "./sqliteDb.js";
@@ -251,6 +253,57 @@ export const findUserById = (
 ): StoredUser | undefined => {
 	// In-memory array is synced with SQLite, so just search there
 	return db.users.find((user) => user.id === id);
+};
+
+export const removeUser = (db: Database, id: string): void => {
+	if (sqliteInitialized) {
+		deleteUserAndLabelSettingsByUserId(id);
+	}
+	removeById(db.users, id);
+};
+
+export const removeUserAccountData = (db: Database, userId: string): string[] => {
+	const ownedProfileIds = db.profiles
+		.filter((profile) => profile.userId === userId)
+		.map((profile) => profile.id);
+
+	if (sqliteInitialized) {
+		deleteAccountDataByUserId(userId);
+	}
+
+	const removedSymbolIds = new Set(
+		db.symbols
+			.filter((symbol) => symbol.profileId && ownedProfileIds.includes(symbol.profileId))
+			.map((symbol) => symbol.id),
+	);
+	const removedSignDefinitionIds = new Set(
+		db.signDefinitions
+			.filter((definition) => removedSymbolIds.has(definition.symbolId))
+			.map((definition) => definition.id),
+	);
+
+	db.signTrainingData = db.signTrainingData.filter(
+		(training) => !removedSignDefinitionIds.has(training.signId),
+	);
+	db.interactionLogs = db.interactionLogs.filter(
+		(log) => !removedSignDefinitionIds.has(log.signId),
+	);
+	db.learningAnalytics = db.learningAnalytics.filter(
+		(analytics) => !removedSignDefinitionIds.has(analytics.signId),
+	);
+	db.vocabularySetSymbols = db.vocabularySetSymbols.filter(
+		(link) => !removedSymbolIds.has(link.symbolId),
+	);
+	db.signDefinitions = db.signDefinitions.filter(
+		(definition) => !removedSymbolIds.has(definition.symbolId),
+	);
+	db.profiles = db.profiles.filter((profile) => profile.userId !== userId);
+	db.usageStats = db.usageStats.filter((usage) => !ownedProfileIds.includes(usage.profileId));
+	db.corrections = db.corrections.filter((corr) => !ownedProfileIds.includes(corr.profileId ?? ""));
+	db.symbols = db.symbols.filter((symbol) => !symbol.profileId || !ownedProfileIds.includes(symbol.profileId));
+	db.users = db.users.filter((user) => user.id !== userId);
+
+	return ownedProfileIds;
 };
 
 const updateById = <T extends { id: string }>(items: T[], record: T): void => {

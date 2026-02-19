@@ -343,4 +343,107 @@ describe('auth routes', () => {
     expect(db.users[0].emailVerifiedAt).toBeDefined();
     expect(db.users[0].emailVerificationTokenHash).toBeUndefined();
   });
+  it('löscht ein Konto nur nach erneuter Passwort-Bestätigung', async () => {
+    const passwordHash = await AuthService.hashPassword('topsecret');
+    addUser(db, {
+      id: 'user-1',
+      username: 'amy',
+      email: 'amy@example.com',
+      passwordHash,
+      role: 'caregiver',
+      createdAt: Date.now(),
+      emailVerifiedAt: Date.now(),
+    });
+
+    db.profiles.push({
+      id: '11111111-1111-4111-8111-111111111111',
+      userId: 'user-1',
+      displayName: 'Amy',
+      createdAt: new Date().toISOString(),
+      metadata: {},
+      consentDataUpload: true,
+      consentHelpMeGetSmarter: true,
+      vocabularySetId: 'basic',
+      largeText: false,
+      highContrast: false,
+    });
+
+    const { accessToken } = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' });
+
+    await request(app)
+      .delete('/api/v1/auth/account')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'amy', password: 'topsecret', confirmText: 'KONTO LÖSCHEN' })
+      .expect(200);
+
+    expect(db.users).toHaveLength(0);
+    expect(db.profiles).toHaveLength(0);
+
+    await request(app)
+      .delete('/api/v1/auth/account')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'amy', password: 'topsecret', confirmText: 'KONTO LÖSCHEN' })
+      .expect(401);
+  });
+
+  it('verhindert das Löschen eines anderen Kontos trotz gültiger Sitzung', async () => {
+    const passwordHashAmy = await AuthService.hashPassword('topsecret');
+    addUser(db, {
+      id: 'user-1',
+      username: 'amy',
+      email: 'amy@example.com',
+      passwordHash: passwordHashAmy,
+      role: 'caregiver',
+      createdAt: Date.now(),
+      emailVerifiedAt: Date.now(),
+    });
+
+    const passwordHashBen = await AuthService.hashPassword('another-secret');
+    addUser(db, {
+      id: 'user-2',
+      username: 'ben',
+      email: 'ben@example.com',
+      passwordHash: passwordHashBen,
+      role: 'caregiver',
+      createdAt: Date.now(),
+      emailVerifiedAt: Date.now(),
+    });
+
+    const { accessToken } = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' });
+
+    const response = await request(app)
+      .delete('/api/v1/auth/account')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'ben', password: 'topsecret', confirmText: 'KONTO LÖSCHEN' })
+      .expect(403);
+
+    expect(response.body.error).toBe('Nutzername stimmt nicht mit der aktuellen Anmeldung überein.');
+    expect(db.users).toHaveLength(2);
+  });
+
+
+  it('lehnt Konto-Löschung bei falscher Bestätigung ab', async () => {
+    const passwordHash = await AuthService.hashPassword('topsecret');
+    addUser(db, {
+      id: 'user-1',
+      username: 'amy',
+      email: 'amy@example.com',
+      passwordHash,
+      role: 'caregiver',
+      createdAt: Date.now(),
+      emailVerifiedAt: Date.now(),
+    });
+
+    const { accessToken } = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' });
+
+    const response = await request(app)
+      .delete('/api/v1/auth/account')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'amy', password: 'topsecret', confirmText: 'löschen' })
+      .expect(400);
+
+    expect(response.body.error).toContain('KONTO LÖSCHEN');
+    expect(db.users).toHaveLength(1);
+  });
+
 });

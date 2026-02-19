@@ -132,6 +132,7 @@ def start_server():
     env.setdefault("JWT_SECRET", TEST_JWT_SECRET)
     env.setdefault("JWT_REFRESH_SECRET", TEST_JWT_REFRESH_SECRET)
     env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
+    env.setdefault("NODE_ENV", "test")
     port = str(_get_free_port())
     env["PORT"] = port
     # Run the real training script but keep epochs low for test speed

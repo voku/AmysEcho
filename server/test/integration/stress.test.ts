@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { addUser, type Database } from '../../src/db.js';
 import { app, databaseReady } from '../../src/server.js';
 import { AuthService } from '../../src/services/authService.js';
 import AdmZip from 'adm-zip';
@@ -18,6 +19,19 @@ describe('System Stress & Stability Integration', () => {
       username: 'stress',
       role: 'admin',
     }).accessToken;
+
+    const db = app.locals.dbInstance as Database | undefined;
+    if (db && !db.users.find((user) => user.id === 'stress-tester')) {
+      addUser(db, {
+        id: 'stress-tester',
+        username: 'stress',
+        email: 'stress@example.com',
+        passwordHash: 'not-used-in-this-test',
+        role: 'admin',
+        createdAt: Date.now(),
+        emailVerifiedAt: Date.now(),
+      });
+    }
 
     const profileResponses = await Promise.all([
       request(app)

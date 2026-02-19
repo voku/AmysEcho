@@ -684,7 +684,7 @@ export function TrainingUploadWithRecording() {
     setLastQueueSyncResult(null);
     setMessage('Warteschlange wird synchronisiert…');
     try {
-      const result = await uploadState.syncQueued();
+      const result = await uploadState.syncQueued(undefined, { includeAuthBlocked: true });
       setLastQueueSyncResult(result);
       setMessage(formatSyncQueuedMessage(result.uploaded, result.remaining, result.blocked));
     } catch (syncErr) {
@@ -701,9 +701,9 @@ export function TrainingUploadWithRecording() {
     // Guard + cleanup contract for this closure:
     // - If lastQueueSyncResult is falsy we return immediately to avoid re-entry loops.
     // - If hasAnyAuthToken is available and hasAuthBlockedBundles is false, we treat this
-    //   as externally resolved auth blocking and clear stale result/message state.
+    //   as externally resolved auth blocking and clear stale sync snapshot state only.
     // - setLastQueueSyncResult(null) intentionally drops outdated sync snapshots so later
-    //   runs don't re-emit stale UI from formatSyncQueuedMessage via setMessage.
+    //   runs do not re-process auth-blocked queue results.
     if (!hasAnyAuthToken || hasAuthBlockedBundles || !lastQueueSyncResult) {
       return;
     }
@@ -712,16 +712,6 @@ export function TrainingUploadWithRecording() {
       return;
     }
 
-    const staleMessage = formatSyncQueuedMessage(
-      lastQueueSyncResult.uploaded,
-      lastQueueSyncResult.remaining,
-      lastQueueSyncResult.blocked,
-    );
-    setMessage((prev) =>
-      prev === staleMessage
-        ? ''
-        : prev,
-    );
     setLastQueueSyncResult(null);
   }, [hasAnyAuthToken, hasAuthBlockedBundles, lastQueueSyncResult]);
 
@@ -740,7 +730,7 @@ export function TrainingUploadWithRecording() {
     }
 
     authRetryFiredRef.current = true;
-    uploadState.syncQueued().then(({ uploaded, remaining, blocked }) => {
+    uploadState.syncQueued(undefined, { includeAuthBlocked: true }).then(({ uploaded, remaining, blocked }) => {
       if (cancelled) return;
       setLastQueueSyncResult({ uploaded, remaining, blocked });
       setMessage(formatSyncQueuedMessage(uploaded, remaining, blocked));

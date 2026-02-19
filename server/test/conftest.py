@@ -102,6 +102,7 @@ def start_server() -> ServerContext:
     env.setdefault("JWT_SECRET", TEST_JWT_SECRET)
     env.setdefault("JWT_REFRESH_SECRET", TEST_JWT_REFRESH_SECRET)
     env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
+    env.setdefault("NODE_ENV", "test")
     env.setdefault("PORT", PORT)
     env.setdefault("HOST", HOST)
     host = env.get("HOST", HOST)

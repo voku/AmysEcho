@@ -91,6 +91,67 @@ describe('UserSettings', () => {
     expect(window.sessionStorage.getItem('webapp:api-config:session:key')).toBeNull();
   });
 
+  it('validiert das Sicherheitswort vor dem Konto-Löschen', async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as any;
+
+    render(
+      <ApiConfigProvider>
+        <AuthHarness>
+          <UserSettings />
+        </AuthHarness>
+      </ApiConfigProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('Nutzername zur Bestätigung'), { target: { value: 'amy' } });
+    fireEvent.change(screen.getByLabelText('Passwort zur Bestätigung'), { target: { value: 'topsecret' } });
+    fireEvent.change(screen.getByLabelText(/Sicherheitswort eingeben/), { target: { value: 'löschen' } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Konto dauerhaft löschen' }));
+    });
+
+    await screen.findByText(/Bitte gib zur Bestätigung exakt "KONTO LÖSCHEN" ein\./);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('löscht das Konto nach erneuter Anmeldung und meldet ab', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ message: 'Konto wurde gelöscht.' }),
+    });
+    global.fetch = fetchMock as any;
+
+    function TokenProbe() {
+      const { apiToken } = useApiConfig();
+      return <span data-testid="token-probe-delete">{apiToken || 'leer'}</span>;
+    }
+
+    render(
+      <ApiConfigProvider>
+        <AuthHarness>
+          <UserSettings />
+          <TokenProbe />
+        </AuthHarness>
+      </ApiConfigProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('Nutzername zur Bestätigung'), { target: { value: 'amy' } });
+    fireEvent.change(screen.getByLabelText('Passwort zur Bestätigung'), { target: { value: 'topsecret' } });
+    fireEvent.change(screen.getByLabelText(/Sicherheitswort eingeben/), { target: { value: 'KONTO LÖSCHEN' } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Konto dauerhaft löschen' }));
+    });
+
+    await screen.findByText('Konto wurde gelöscht. Du bist jetzt abgemeldet.');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/auth/account'),
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+    expect(screen.getByTestId('token-probe-delete')).toHaveTextContent('leer');
+  });
+
   it('zeigt einen Validierungsfehler bei nicht passenden Passwörtern', async () => {
     const fetchMock = vi.fn();
     global.fetch = fetchMock as any;

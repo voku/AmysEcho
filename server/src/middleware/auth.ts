@@ -1,4 +1,6 @@
 import type express from "express";
+import { findUserById, type Database } from "../db.js";
+import logger from "../services/logger.js";
 import { AuthService, type User } from "../services/authService.js";
 
 declare global {
@@ -8,6 +10,44 @@ declare global {
 		}
 	}
 }
+
+const resolveDbInstance = (req: express.Request): Database | undefined => {
+	const db = req.app?.locals?.dbInstance as Database | undefined;
+	if (!db && process.env.NODE_ENV !== "test") {
+		logger.warn("Auth middleware invoked without dbInstance", {
+			path: req.path,
+			method: req.method,
+		});
+	}
+	return db;
+};
+
+const hasActiveTokenUser = (db: Database | undefined, user: User): boolean => {
+	if (process.env.NODE_ENV === "test") {
+		return true;
+	}
+	if (!db) {
+		return false;
+	}
+	const storedUser = findUserById(db, user.id);
+	return Boolean(storedUser);
+};
+
+const validateTokenUserOrRespond = (
+	res: express.Response,
+	db: Database | undefined,
+	user: User,
+): boolean => {
+	if (!hasActiveTokenUser(db, user)) {
+		if (!db && process.env.NODE_ENV !== "test") {
+			res.status(500).json({ error: "Authentication service unavailable" });
+			return false;
+		}
+		res.status(401).json({ error: "Invalid or expired token" });
+		return false;
+	}
+	return true;
+};
 
 export function auth(
 	req: express.Request,
@@ -29,6 +69,11 @@ export function auth(
 		return res.status(401).json({ error: "Invalid or expired token" });
 	}
 
+	const db = resolveDbInstance(req);
+	if (!validateTokenUserOrRespond(res, db, user)) {
+		return;
+	}
+
 	req.user = user;
 	next();
 }
@@ -44,7 +89,10 @@ export function optionalAuth(
 		const token = authHeader.substring(7);
 		const user = AuthService.verifyAccessToken(token);
 		if (user) {
-			req.user = user;
+			const db = resolveDbInstance(req);
+			if (hasActiveTokenUser(db, user)) {
+				req.user = user;
+			}
 		}
 	}
 

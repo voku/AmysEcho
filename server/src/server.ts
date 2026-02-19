@@ -537,6 +537,9 @@ let dbInstance: Database;
 let profileRegistry: ProfileRegistry;
 export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 	.then(async (db) => {
+		if (!db) {
+			throw new Error("Database initialization failed: setupDatabase returned falsy");
+		}
 		dbInstance = db;
 		app.locals.dbInstance = db;
 		profileRegistry = await loadProfileRegistry(PROFILE_REGISTRY_PATH);

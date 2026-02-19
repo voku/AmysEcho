@@ -13,3 +13,5 @@ export {
 } from "./passwordReset.js";
 export { handleRefreshToken } from "./refresh.js";
 export { handleRegistration } from "./registration.js";
+
+export { handleDeleteAccount } from "./deleteAccount.js";
