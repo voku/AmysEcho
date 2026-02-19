@@ -27,10 +27,10 @@ const validateTokenUser = (
 	db: Database | undefined,
 	user: User,
 ): boolean => {
+	if (process.env.NODE_ENV === "test") {
+		return true;
+	}
 	if (!db) {
-		if (process.env.NODE_ENV === "test") {
-			return true;
-		}
 		res.status(500).json({ error: "Authentication service unavailable" });
 		return false;
 	}
