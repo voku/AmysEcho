@@ -2,7 +2,9 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import {
+  MAX_FACE_JITTER,
   MAX_HAND_JITTER,
+  MAX_POSE_JITTER,
   MIN_SIGN_SAMPLE_FRAMES,
 } from '../src/constants/trainingQuality.js';
 
@@ -12,6 +14,7 @@ let ingestTrainingBundlesIntoDataset: (
 let TRAINING_MANIFEST_PATH: string;
 let DATA_DIR: string;
 let TRAINING_QUALITY_LOG_PATH: string;
+let KID_STARTER_PRESET_PATH: string;
 
 function resolveDataPath(relativePath: string): string {
   if (!DATA_DIR) {
@@ -66,11 +69,14 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     DATA_DIR = constants.DATA_DIR;
     TRAINING_MANIFEST_PATH = constants.TRAINING_MANIFEST_PATH;
     TRAINING_QUALITY_LOG_PATH = constants.TRAINING_QUALITY_LOG_PATH;
+    KID_STARTER_PRESET_PATH = path.join(tempDir, 'config', 'kid_starter_preset.json');
+    process.env.AMY_ECHO_KID_STARTER_PRESET_PATH = KID_STARTER_PRESET_PATH;
     ({ ingestTrainingBundlesIntoDataset } = await import('../src/services/trainingBundleIngestor.js'));
   });
 
   afterAll(async () => {
     delete process.env.AMY_ECHO_DATA_DIR;
+    delete process.env.AMY_ECHO_KID_STARTER_PRESET_PATH;
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
@@ -232,6 +238,163 @@ describe('ingestTrainingBundlesIntoDataset', () => {
 
 
 
+
+  it('accepts bundles with moderate pose jitter', async () => {
+    const moderatePoseDelta = MAX_POSE_JITTER * 0.5;
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [0.2, 0.2, 0.2]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+        poseLandmarks: Array.from({ length: 33 }, () => [
+          idx % 2 === 0 ? 0 : moderatePoseDelta,
+          idx % 2 === 0 ? 0 : moderatePoseDelta,
+          0,
+        ]),
+      })),
+    };
+
+    await writeBundleFixture('bundle-moderate-pose-jitter', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+  });
+
+
+
+  it('accepts borderline oscillating hand jitter when smoothing trajectory is continuous', async () => {
+    const jitterAmplitude = 0.9;
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [idx % 2 === 0 ? 0 : jitterAmplitude, idx % 2 === 0 ? 0 : jitterAmplitude, 0]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+      })),
+    };
+
+    await writeBundleFixture('bundle-borderline-hand-jitter', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+  });
+
+  it('accepts bundles with moderate hand jitter', async () => {
+    const moderateHandDelta = MAX_HAND_JITTER * 0.5;
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [
+            idx % 2 === 0 ? 0 : moderateHandDelta,
+            idx % 2 === 0 ? 0 : moderateHandDelta,
+            0,
+          ]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+        poseLandmarks: Array.from({ length: 33 }, () => [0.2, 0.2, 0]),
+      })),
+    };
+
+    await writeBundleFixture('bundle-moderate-hand-jitter', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+  });
+
+  it('accepts bundles with moderate face jitter', async () => {
+    const moderateFaceDelta = MAX_FACE_JITTER * 0.5;
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [0.2, 0.2, 0.2]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+        faceLandmarks: Array.from({ length: 20 }, () => [
+          idx % 2 === 0 ? 0.4 : 0.4 + moderateFaceDelta,
+          idx % 2 === 0 ? 0.4 : 0.4 + moderateFaceDelta,
+          0,
+        ]),
+      })),
+    };
+
+    await writeBundleFixture('bundle-moderate-face-jitter', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+  });
+
+  it('uses configurable jitter thresholds from kid starter preset', async () => {
+    await fs.mkdir(path.dirname(KID_STARTER_PRESET_PATH), { recursive: true });
+    await fs.writeFile(
+      KID_STARTER_PRESET_PATH,
+      JSON.stringify({
+        qualityGates: {
+          maxHandJitterThreshold: 0.05,
+          maxPoseJitterThreshold: 0.05,
+          maxFaceJitterThreshold: 0.05,
+        },
+      }),
+      'utf8',
+    );
+
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [idx % 2 === 0 ? 0 : 0.5, idx % 2 === 0 ? 0 : 0.5, 0]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+      })),
+    };
+
+    await writeBundleFixture('bundle-preset-threshold', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const qualityLogRaw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, 'utf8');
+    const qualityLog = JSON.parse(qualityLogRaw) as { entries: Array<{ reasons: string[] }> };
+    expect(qualityLog.entries[0]?.reasons.some((reason) => reason.includes('> 0.05'))).toBe(true);
+  });
+
+  it('falls back to generic maxJitterThreshold when specific keys are missing', async () => {
+    await fs.mkdir(path.dirname(KID_STARTER_PRESET_PATH), { recursive: true });
+    await fs.writeFile(
+      KID_STARTER_PRESET_PATH,
+      JSON.stringify({
+        qualityGates: {
+          maxJitterThreshold: 0.05,
+        },
+      }),
+      'utf8',
+    );
+
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [idx % 2 === 0 ? 0 : 0.5, idx % 2 === 0 ? 0 : 0.5, 0]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+      })),
+    };
+
+    await writeBundleFixture('bundle-generic-threshold', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const qualityLogRaw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, 'utf8');
+    const qualityLog = JSON.parse(qualityLogRaw) as { entries: Array<{ bundleId: string; reasons: string[] }> };
+    const entry = qualityLog.entries.find((item) => item.bundleId === 'bundle-generic-threshold');
+    expect(entry?.reasons.some((reason) => reason.includes('> 0.05'))).toBe(true);
+  });
+
   it('persistiert Quality-Gate-Ablehnungen im Quality-Log', async () => {
     const jitterValue = Math.min(1, MAX_HAND_JITTER + 0.5);
     const frames: LandmarksPayload = {
@@ -264,8 +427,15 @@ describe('ingestTrainingBundlesIntoDataset', () => {
       reasons: expect.arrayContaining([expect.stringContaining('handJitter')]),
       metrics: expect.objectContaining({
         frameCount: MIN_SIGN_SAMPLE_FRAMES,
+        overallQualityScore: expect.any(Number),
+        handJitter: expect.any(Number),
+        handJitterRaw: expect.any(Number),
       }),
     });
+
+    const metrics = qualityLog.entries[0]?.metrics ?? {};
+    expect((metrics.overallQualityScore as number) >= 0 && (metrics.overallQualityScore as number) <= 1).toBe(true);
+    expect((metrics.handJitterRaw as number) >= (metrics.handJitter as number)).toBe(true);
   });
 
 

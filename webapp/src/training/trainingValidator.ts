@@ -72,15 +72,38 @@ function extractFramePoints(frame: number[][][]): {
   };
 }
 
+function smoothPoints(
+  points: [number, number, number][],
+  previous: [number, number, number][] | null,
+): [number, number, number][] {
+  if (!previous || previous.length !== points.length) {
+    return points;
+  }
+  const alpha = 0.35;
+  return points.map((point, idx) => {
+    const prev = previous[idx];
+    if (!prev) {
+      return point;
+    }
+    return [
+      (prev[0] * (1 - alpha)) + (point[0] * alpha),
+      (prev[1] * (1 - alpha)) + (point[1] * alpha),
+      (prev[2] * (1 - alpha)) + (point[2] * alpha),
+    ];
+  });
+}
+
 function computeAverageJitter(
   frames: number[][][][],
   getPoints: (frame: number[][][]) => [number, number, number][],
+  options?: { useSmoothing?: boolean },
 ): number | null {
   if (frames.length < 2) {
     return null;
   }
 
   const deltas: number[] = [];
+  let previousSmoothed: [number, number, number][] | null = null;
   for (let i = 1; i < frames.length; i += 1) {
     const previousFrame = frames[i - 1];
     const currentFrame = frames[i];
@@ -96,10 +119,16 @@ function computeAverageJitter(
       continue;
     }
 
+    const prevFramePoints: [number, number, number][] =
+      options?.useSmoothing && previousSmoothed !== null
+        ? previousSmoothed
+        : prevPoints;
+    const nextFramePoints: [number, number, number][] = options?.useSmoothing ? smoothPoints(nextPoints, prevFramePoints) : nextPoints;
+
     let sumOfDistances = 0;
-    for (let idx = 0; idx < prevPoints.length; idx += 1) {
-      const prev = prevPoints[idx];
-      const next = nextPoints[idx];
+    for (let idx = 0; idx < prevFramePoints.length; idx += 1) {
+      const prev = prevFramePoints[idx];
+      const next = nextFramePoints[idx];
       if (!prev || !next) {
         continue;
       }
@@ -108,7 +137,8 @@ function computeAverageJitter(
       const dz = next[2] - prev[2];
       sumOfDistances += Math.hypot(dx, dy, dz);
     }
-    deltas.push(sumOfDistances / prevPoints.length);
+    deltas.push(sumOfDistances / prevFramePoints.length);
+    previousSmoothed = nextFramePoints;
   }
 
   if (deltas.length === 0) {
@@ -116,6 +146,24 @@ function computeAverageJitter(
   }
   const total = deltas.reduce((acc, value) => acc + value, 0);
   return total / deltas.length;
+}
+
+function computeOverallQualityScore(
+  frameCount: number,
+  handCoverage: number,
+  handJitter: number | null,
+  poseJitter: number | null,
+  faceJitter: number | null,
+  avgMotion: number,
+): number {
+  const frameScore = Math.min(1, frameCount / (MIN_SIGN_SAMPLE_FRAMES * 2));
+  const coverageScore = handCoverage;
+  const handJitterScore = handJitter === null ? 1 : Math.max(0, 1 - (handJitter / MAX_HAND_JITTER));
+  const poseJitterScore = poseJitter === null ? 1 : Math.max(0, 1 - (poseJitter / MAX_POSE_JITTER));
+  const faceJitterScore = faceJitter === null ? 1 : Math.max(0, 1 - (faceJitter / MAX_FACE_JITTER));
+  const motionScore = Math.min(1, avgMotion / 0.005);
+  const jitterScore = (handJitterScore * 0.5) + (poseJitterScore * 0.25) + (faceJitterScore * 0.25);
+  return Math.round(((frameScore * 0.2) + (coverageScore * 0.3) + (jitterScore * 0.4) + (motionScore * 0.1)) * 100);
 }
 
 // Basic quality checks for recorded gesture samples used in training.
@@ -199,42 +247,32 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
     suggestions.push('Halte deine Hände während der gesamten Aufnahme sichtbar im Bild.');
   }
 
-  const handJitter = computeAverageJitter(samples, (frame) => extractFramePoints(frame).handPoints);
+  const handJitter = computeAverageJitter(samples, (frame) => extractFramePoints(frame).handPoints, { useSmoothing: true });
   if (handJitter !== null && handJitter > MAX_HAND_JITTER) {
     issues.push('hand_jitter_high');
     suggestions.push('Halte die Kamera ruhiger und führe die Handbewegung kontrollierter aus.');
   }
 
-  const poseJitter = computeAverageJitter(samples, (frame) => extractFramePoints(frame).posePoints);
+  const poseJitter = computeAverageJitter(samples, (frame) => extractFramePoints(frame).posePoints, { useSmoothing: true });
   if (poseJitter !== null && poseJitter > MAX_POSE_JITTER) {
     issues.push('pose_jitter_high');
     suggestions.push('Stehe etwas ruhiger und halte den Oberkörper möglichst stabil.');
   }
 
-  const faceJitter = computeAverageJitter(samples, (frame) => extractFramePoints(frame).facePoints);
+  const faceJitter = computeAverageJitter(samples, (frame) => extractFramePoints(frame).facePoints, { useSmoothing: true });
   if (faceJitter !== null && faceJitter > MAX_FACE_JITTER) {
     issues.push('face_jitter_high');
     suggestions.push('Halte dein Gesicht gut im Bild und bewege den Kopf etwas weniger.');
   }
 
-  // Calculate quality score based on various factors
-  let qualityScore = 100;
-
-  // Penalize for each issue
-  qualityScore -= issues.length * 15;
-
-  // Bonus for good motion
-  if (avgMotion > 0.005) {
-    qualityScore += 10;
-  }
-
-  // Bonus for sufficient frames
-  if (frameCount >= 20) {
-    qualityScore += 5;
-  }
-
-  // Ensure score is within bounds
-  qualityScore = Math.max(0, Math.min(100, qualityScore));
+  const qualityScore = computeOverallQualityScore(
+    frameCount,
+    handCoverage,
+    handJitter,
+    poseJitter,
+    faceJitter,
+    avgMotion,
+  );
 
   // Calculate confidence based on data completeness
   const confidence = Math.min(1.0, frameCount / 30); // Higher confidence with more frames

@@ -97,10 +97,12 @@ interface MediaPipeGestureDetectorHandle {
 - During ingestion into `data/dgs_samples.json`, the server applies a quality gate before frames are promoted from `training_manifest.json`:
   - **Minimum frames per sign**: `MIN_SIGN_SAMPLE_FRAMES = 8`
   - **Required hand coverage**: `MIN_HAND_FRAME_COVERAGE = 0.7`
-  - **Jitter thresholds (average per-frame delta)**:
-    - Hands: `MAX_HAND_JITTER = 0.2`
-    - Pose: `MAX_POSE_JITTER = 0.15`
-    - Face: `MAX_FACE_JITTER = 0.12`
+  - **Jitter thresholds (average per-frame delta, smoothed sequence)**:
+    - Hands: `MAX_HAND_JITTER = 0.3`
+    - Pose: `MAX_POSE_JITTER = 0.3`
+    - Face: `MAX_FACE_JITTER = 0.2`
+  - The quality log stores both smoothed jitter values (`handJitter`, `poseJitter`, `faceJitter`) and raw values (`handJitterRaw`, `poseJitterRaw`, `faceJitterRaw`) plus an `overallQualityScore` (0-1).
+  - Thresholds can be overridden via `server/data/config/kid_starter_preset.json` (`qualityGates.maxHandJitterThreshold`, `maxPoseJitterThreshold`, `maxFaceJitterThreshold`; fallback to `maxJitterThreshold` or default constants).
   - Bundles that fail are skipped and logged with reasons. Thresholds live in `server/src/constants/trainingQuality.ts`.
 - Returns: Bundle ID and training job status
 

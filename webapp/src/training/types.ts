@@ -138,6 +138,10 @@ export interface TrainingQualityLogEntry {
     handJitter?: number;
     poseJitter?: number;
     faceJitter?: number;
+    handJitterRaw?: number;
+    poseJitterRaw?: number;
+    faceJitterRaw?: number;
+    overallQualityScore?: number;
   };
   recordedAt: string;
 }

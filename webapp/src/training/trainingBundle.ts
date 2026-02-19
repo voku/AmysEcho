@@ -234,10 +234,10 @@ function parseTrainingQualityLogEntry(raw: unknown): TrainingQualityLogEntry | n
   const reasons = reasonsRaw.filter((reason): reason is string => typeof reason === 'string');
   const metrics = metricsRaw as Record<string, unknown>;
   if (
-    typeof metrics['frameCount'] !== 'number' ||
-    typeof metrics['handCoverage'] !== 'number' ||
-    typeof metrics['poseCoverage'] !== 'number' ||
-    typeof metrics['faceCoverage'] !== 'number'
+    typeof metrics['frameCount'] !== 'number' || !Number.isFinite(metrics['frameCount']) ||
+    typeof metrics['handCoverage'] !== 'number' || !Number.isFinite(metrics['handCoverage']) ||
+    typeof metrics['poseCoverage'] !== 'number' || !Number.isFinite(metrics['poseCoverage']) ||
+    typeof metrics['faceCoverage'] !== 'number' || !Number.isFinite(metrics['faceCoverage'])
   ) {
     return null;
   }
@@ -255,6 +255,10 @@ function parseTrainingQualityLogEntry(raw: unknown): TrainingQualityLogEntry | n
       ...(typeof metrics['handJitter'] === 'number' ? { handJitter: metrics['handJitter'] } : {}),
       ...(typeof metrics['poseJitter'] === 'number' ? { poseJitter: metrics['poseJitter'] } : {}),
       ...(typeof metrics['faceJitter'] === 'number' ? { faceJitter: metrics['faceJitter'] } : {}),
+      ...(typeof metrics['handJitterRaw'] === 'number' ? { handJitterRaw: metrics['handJitterRaw'] } : {}),
+      ...(typeof metrics['poseJitterRaw'] === 'number' ? { poseJitterRaw: metrics['poseJitterRaw'] } : {}),
+      ...(typeof metrics['faceJitterRaw'] === 'number' ? { faceJitterRaw: metrics['faceJitterRaw'] } : {}),
+      ...(typeof metrics['overallQualityScore'] === 'number' ? { overallQualityScore: metrics['overallQualityScore'] } : {}),
     },
     recordedAt,
   };

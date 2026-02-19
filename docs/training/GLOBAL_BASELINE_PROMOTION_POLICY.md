@@ -18,22 +18,27 @@ This policy defines when caregiver-submitted training data can be promoted from
 | Ziel-Samples pro Gloss | **15** | `server/data/config/kid_starter_preset.json` (`targetSamplesPerGloss`) |
 | Mindest-Frames pro Sample | **8** | `server/src/constants/trainingQuality.ts` |
 | Hand-Coverage | **≥ 70%** | `server/src/constants/trainingQuality.ts` |
-| Jitter (Hand) | **≤ 0.2** | `server/src/constants/trainingQuality.ts` |
-| Jitter (Pose) | **≤ 0.15** | `server/src/constants/trainingQuality.ts` |
-| Jitter (Face) | **≤ 0.12** | `server/src/constants/trainingQuality.ts` |
+| Jitter (Hand) | **≤ 0.3** | `server/src/constants/trainingQuality.ts` |
+| Jitter (Pose) | **≤ 0.3** | `server/src/constants/trainingQuality.ts` |
+| Jitter (Face) | **≤ 0.2** | `server/src/constants/trainingQuality.ts` |
 
 ## Qualitäts-Metriken (pro Bundle)
 
-Jedes Bundle bekommt bei der Ingest-Phase eine `validationSummary` mit:
+Jedes Bundle liefert zwei Ebenen von Qualitätsdaten:
 
-- `frameCount`
-- `qualityScore`
-- `confidence`
-- `issues`
+- **Upload-`validationSummary` (Webapp-Validator):**
+  - `frameCount`
+  - `qualityScore`
+  - `confidence`
+  - `issues`
+- **Ingest-Quality-Log (`training_quality_log.json`, Server):**
+  - `frameCount`
+  - `overallQualityScore` (0-1, combines frame count, coverage, and smoothed jitter)
+  - `handJitter`, `poseJitter`, `faceJitter` (smoothed)
+  - `handJitterRaw`, `poseJitterRaw`, `faceJitterRaw` (raw frame-to-frame)
 
-Diese Werte stammen aus dem Webapp-Validator (`webapp/src/training/trainingValidator.ts`)
-und helfen, **zu schwache Aufnahmen frühzeitig zu erkennen**, bevor sie in die
-globale Stichprobe gelangen.
+Diese Werte helfen, **zu schwache Aufnahmen frühzeitig zu erkennen** und gleichzeitig
+bei der Ingest-Phase detaillierte Qualitätsmetriken für Review/Training zu protokollieren.
 
 ## Promotion-Workflow
 

@@ -19,6 +19,56 @@ import { atomicWriteJson } from "../utils/atomicFs.js";
 import { withFileLock } from "../utils/fileLock.js";
 import { logger } from "./logger.js";
 
+
+const KID_STARTER_PRESET_PATH = process.env.AMY_ECHO_KID_STARTER_PRESET_PATH
+	? path.resolve(process.env.AMY_ECHO_KID_STARTER_PRESET_PATH)
+	: path.join(DATA_DIR, "config", "kid_starter_preset.json");
+
+interface QualityThresholds {
+	maxHandJitter: number;
+	maxPoseJitter: number;
+	maxFaceJitter: number;
+}
+
+const DEFAULT_QUALITY_THRESHOLDS: QualityThresholds = {
+	maxHandJitter: MAX_HAND_JITTER,
+	maxPoseJitter: MAX_POSE_JITTER,
+	maxFaceJitter: MAX_FACE_JITTER,
+};
+
+async function loadQualityThresholds(): Promise<QualityThresholds> {
+	try {
+		const raw = await fs.readFile(KID_STARTER_PRESET_PATH, "utf8");
+		const parsed = JSON.parse(raw) as Record<string, unknown>;
+		const gates = parsed["qualityGates"];
+		if (!gates || typeof gates !== "object") {
+			return DEFAULT_QUALITY_THRESHOLDS;
+		}
+		const candidate = gates as Record<string, unknown>;
+		const generic = candidate["maxJitterThreshold"];
+		const hand = candidate["maxHandJitterThreshold"];
+		const pose = candidate["maxPoseJitterThreshold"];
+		const face = candidate["maxFaceJitterThreshold"];
+		const genericValue = typeof generic === "number" && Number.isFinite(generic) && generic > 0 ? generic : null;
+		const handValue = typeof hand === "number" && Number.isFinite(hand) && hand > 0 ? hand : genericValue;
+		const poseValue = typeof pose === "number" && Number.isFinite(pose) && pose > 0 ? pose : genericValue;
+		const faceValue = typeof face === "number" && Number.isFinite(face) && face > 0 ? face : genericValue;
+		return {
+			maxHandJitter: handValue ?? DEFAULT_QUALITY_THRESHOLDS.maxHandJitter,
+			maxPoseJitter: poseValue ?? DEFAULT_QUALITY_THRESHOLDS.maxPoseJitter,
+			maxFaceJitter: faceValue ?? DEFAULT_QUALITY_THRESHOLDS.maxFaceJitter,
+		};
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
+			logger.warn("Failed to load kid starter quality thresholds; using defaults", {
+				error: error instanceof Error ? error.message : String(error),
+				path: KID_STARTER_PRESET_PATH,
+			});
+		}
+		return DEFAULT_QUALITY_THRESHOLDS;
+	}
+}
+
 const TrainingBundleManifestEntrySchema = z
 	.object({
 		id: z.string(),
@@ -122,6 +172,10 @@ interface QualityMetrics {
 	handJitter?: number;
 	poseJitter?: number;
 	faceJitter?: number;
+	handJitterRaw?: number;
+	poseJitterRaw?: number;
+	faceJitterRaw?: number;
+	overallQualityScore?: number;
 }
 
 interface CaptureMetadata {
@@ -797,14 +851,34 @@ function extractHandPoints(frame: NormalizedFrameData): number[][] {
 	return [];
 }
 
+function smoothPoints(points: number[][], previous: number[][] | null): number[][] {
+	if (!previous || previous.length !== points.length) {
+		return points;
+	}
+	const alpha = 0.35;
+	return points.map((point, idx) => {
+		const prev = previous[idx];
+		if (!prev) {
+			return point;
+		}
+		return [
+			(prev[0] * (1 - alpha)) + (point[0] * alpha),
+			(prev[1] * (1 - alpha)) + (point[1] * alpha),
+			(prev[2] * (1 - alpha)) + (point[2] * alpha),
+		];
+	});
+}
+
 function computeAverageJitter(
 	frames: NormalizedFrameData[],
 	getPoints: (frame: NormalizedFrameData) => number[][],
+	options?: { useSmoothing?: boolean },
 ): number | null {
 	if (frames.length < 2) {
 		return null;
 	}
 	const deltas: number[] = [];
+	let previousSmoothed: number[][] | null = null;
 	for (let i = 1; i < frames.length; i += 1) {
 		const prevPoints = getPoints(frames[i - 1]);
 		const nextPoints = getPoints(frames[i]);
@@ -814,16 +888,25 @@ function computeAverageJitter(
 		if (prevPoints.length !== nextPoints.length) {
 			continue;
 		}
+		const prevFramePoints: number[][] =
+			options?.useSmoothing && previousSmoothed !== null
+				? previousSmoothed
+				: prevPoints;
+		const nextFramePoints: number[][] = options?.useSmoothing
+			? smoothPoints(nextPoints, prevFramePoints)
+			: nextPoints;
+
 		let sumOfDistances = 0;
-		for (let idx = 0; idx < prevPoints.length; idx += 1) {
-			const prev = prevPoints[idx];
-			const next = nextPoints[idx];
+		for (let idx = 0; idx < prevFramePoints.length; idx += 1) {
+			const prev = prevFramePoints[idx];
+			const next = nextFramePoints[idx];
 			const dx = next[0] - prev[0];
 			const dy = next[1] - prev[1];
 			const dz = next[2] - prev[2];
 			sumOfDistances += Math.sqrt(dx * dx + dy * dy + dz * dz);
 		}
-		deltas.push(sumOfDistances / prevPoints.length);
+		deltas.push(sumOfDistances / prevFramePoints.length);
+		previousSmoothed = nextFramePoints;
 	}
 	if (deltas.length === 0) {
 		return null;
@@ -832,7 +915,28 @@ function computeAverageJitter(
 	return total / deltas.length;
 }
 
-function evaluateBundleQuality(frames: NormalizedFrameData[]): {
+function computeOverallQualityScore(
+	thresholds: QualityThresholds,
+	metrics: {
+	frameCount: number;
+	handCoverage: number;
+	poseCoverage: number;
+	faceCoverage: number;
+	handJitter: number | null;
+	poseJitter: number | null;
+	faceJitter: number | null;
+}): number {
+	const frameScore = Math.min(1, metrics.frameCount / (MIN_SIGN_SAMPLE_FRAMES * 2));
+	const coverageScore =
+		(metrics.handCoverage * 0.5) + (metrics.poseCoverage * 0.25) + (metrics.faceCoverage * 0.25);
+	const handJitterScore = metrics.handJitter === null ? 1 : Math.max(0, 1 - (metrics.handJitter / thresholds.maxHandJitter));
+	const poseJitterScore = metrics.poseJitter === null ? 1 : Math.max(0, 1 - (metrics.poseJitter / thresholds.maxPoseJitter));
+	const faceJitterScore = metrics.faceJitter === null ? 1 : Math.max(0, 1 - (metrics.faceJitter / thresholds.maxFaceJitter));
+	const jitterScore = (handJitterScore * 0.5) + (poseJitterScore * 0.25) + (faceJitterScore * 0.25);
+	return Number(((frameScore * 0.2) + (coverageScore * 0.4) + (jitterScore * 0.4)).toFixed(3));
+}
+
+function evaluateBundleQuality(frames: NormalizedFrameData[], thresholds: QualityThresholds): {
 	accepted: boolean;
 	reasons: string[];
 	metrics: QualityMetrics;
@@ -850,24 +954,48 @@ function evaluateBundleQuality(frames: NormalizedFrameData[]): {
 	const handCoverage = frameCount > 0 ? handFrames / frameCount : 0;
 	const poseCoverage = frameCount > 0 ? poseFrames / frameCount : 0;
 	const faceCoverage = frameCount > 0 ? faceFrames / frameCount : 0;
-	const handJitter = computeAverageJitter(frames, extractHandPoints);
+	const handJitterRaw = computeAverageJitter(frames, extractHandPoints);
+	const poseJitterRaw = computeAverageJitter(
+		frames,
+		(frame) => frame.poseLandmarks ?? [],
+	);
+	const faceJitterRaw = computeAverageJitter(
+		frames,
+		(frame) => frame.faceLandmarks ?? [],
+	);
+	const handJitter = computeAverageJitter(frames, extractHandPoints, { useSmoothing: true });
 	const poseJitter = computeAverageJitter(
 		frames,
 		(frame) => frame.poseLandmarks ?? [],
+		{ useSmoothing: true },
 	);
 	const faceJitter = computeAverageJitter(
 		frames,
 		(frame) => frame.faceLandmarks ?? [],
+		{ useSmoothing: true },
 	);
+	const overallQualityScore = computeOverallQualityScore(thresholds, {
+		frameCount,
+		handCoverage,
+		poseCoverage,
+		faceCoverage,
+		handJitter,
+		poseJitter,
+		faceJitter,
+	});
 
 	const metrics: QualityMetrics = {
 		frameCount,
 		handCoverage,
 		poseCoverage,
 		faceCoverage,
+		overallQualityScore,
 		...(handJitter !== null ? { handJitter } : {}),
 		...(poseJitter !== null ? { poseJitter } : {}),
 		...(faceJitter !== null ? { faceJitter } : {}),
+		...(handJitterRaw !== null ? { handJitterRaw } : {}),
+		...(poseJitterRaw !== null ? { poseJitterRaw } : {}),
+		...(faceJitterRaw !== null ? { faceJitterRaw } : {}),
 	};
 
 	const reasons: string[] = [];
@@ -879,14 +1007,14 @@ function evaluateBundleQuality(frames: NormalizedFrameData[]): {
 			`handCoverage ${handCoverage.toFixed(2)} < ${MIN_HAND_FRAME_COVERAGE}`,
 		);
 	}
-	if (handJitter !== null && handJitter > MAX_HAND_JITTER) {
-		reasons.push(`handJitter ${handJitter.toFixed(3)} > ${MAX_HAND_JITTER}`);
+	if (handJitter !== null && handJitter > thresholds.maxHandJitter) {
+		reasons.push(`handJitter ${handJitter.toFixed(3)} > ${thresholds.maxHandJitter}`);
 	}
-	if (poseJitter !== null && poseJitter > MAX_POSE_JITTER) {
-		reasons.push(`poseJitter ${poseJitter.toFixed(3)} > ${MAX_POSE_JITTER}`);
+	if (poseJitter !== null && poseJitter > thresholds.maxPoseJitter) {
+		reasons.push(`poseJitter ${poseJitter.toFixed(3)} > ${thresholds.maxPoseJitter}`);
 	}
-	if (faceJitter !== null && faceJitter > MAX_FACE_JITTER) {
-		reasons.push(`faceJitter ${faceJitter.toFixed(3)} > ${MAX_FACE_JITTER}`);
+	if (faceJitter !== null && faceJitter > thresholds.maxFaceJitter) {
+		reasons.push(`faceJitter ${faceJitter.toFixed(3)} > ${thresholds.maxFaceJitter}`);
 	}
 
 	return {
@@ -1041,6 +1169,7 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 }> {
 	await ensureDataDir();
 	const manifestEntries = await loadManifest();
+	const qualityThresholds = await loadQualityThresholds();
 	if (manifestEntries.length === 0) {
 		return { appended: 0 };
 	}
@@ -1118,7 +1247,7 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 				return [] as NormalizedFrameData[];
 			});
 			if (frames.length === 0) continue;
-			const quality = evaluateBundleQuality(frames);
+			const quality = evaluateBundleQuality(frames, qualityThresholds);
 			if (!quality.accepted) {
 				const recordedAt =
 					(typeof entry.capturedAt === "string" && entry.capturedAt) ||
