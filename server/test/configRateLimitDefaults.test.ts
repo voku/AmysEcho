@@ -13,11 +13,13 @@ describe('config rate limit defaults', () => {
     delete process.env.API_LIMIT;
     delete process.env.MODEL_METADATA_LIMIT;
     delete process.env.TRAINING_LIMIT;
+    delete process.env.MODEL_DOWNLOAD_LIMIT;
 
     const { config } = await import('../src/config/index.js');
 
     expect(config.apiLimit).toBe(1000);
     expect(config.modelMetadataLimit).toBe(300);
     expect(config.trainingLimit).toBe(120);
+    expect(config.modelDownloadLimit).toBe(120);
   });
 });

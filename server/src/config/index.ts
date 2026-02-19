@@ -7,6 +7,7 @@ export interface ServerConfig {
 	apiLimit: number;
 	modelMetadataLimit: number;
 	trainingLimit: number;
+	modelDownloadLimit: number;
 	profileBackupIntervalHours: number;
 	mlpScript: string;
 	trainingTimeoutMs: number;
@@ -79,6 +80,7 @@ export const config: ServerConfig = {
 	apiLimit: getEnvVarAsNumber("API_LIMIT", 1000),
 	modelMetadataLimit: getEnvVarAsNumber("MODEL_METADATA_LIMIT", 300),
 	trainingLimit: getEnvVarAsNumber("TRAINING_LIMIT", 120),
+	modelDownloadLimit: getEnvVarAsNumber("MODEL_DOWNLOAD_LIMIT", 120),
 	profileBackupIntervalHours: getEnvVarAsNumber(
 		"PROFILE_BACKUP_INTERVAL_HOURS",
 		24,

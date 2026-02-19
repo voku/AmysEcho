@@ -488,6 +488,9 @@ export type TrainingUploadOptions = { endpoint: string; token?: string };
 const MIN_TRAINING_UPLOAD_TIMEOUT_MS = 30000;
 const TRAINING_UPLOAD_TIMEOUT_PER_MB_MS = 15000;
 const MAX_TRAINING_UPLOAD_TIMEOUT_MS = 300000;
+const RATE_LIMIT_RETRY_DEFAULT_DELAY_MS = 1500;
+const RATE_LIMIT_RETRY_MIN_DELAY_MS = 500;
+const MAX_RATE_LIMIT_RETRIES = 2;
 
 
 export function resolveTrainingUploadTimeoutMs(zipSizeBytes: number): number {
@@ -528,7 +531,7 @@ async function fetchWithRateLimitRetry(
 
   for (let attempt = 0; attempt < maxRateLimitRetries && response.status === 429; attempt += 1) {
     const retryAfterDelayMs = parseRetryAfterDelayMs(response.headers.get('Retry-After'));
-    const nextDelayMs = Math.max(retryAfterDelayMs ?? 1500, 500);
+    const nextDelayMs = Math.max(retryAfterDelayMs ?? RATE_LIMIT_RETRY_DEFAULT_DELAY_MS, RATE_LIMIT_RETRY_MIN_DELAY_MS);
     await new Promise((resolve) => setTimeout(resolve, nextDelayMs));
     response = await fetchWithRetry(url, requestInit, retryOptions);
   }
@@ -561,7 +564,7 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
         body,
       },
       { retries: 2, retryDelayMs: 400, timeoutMs },
-      2,
+      MAX_RATE_LIMIT_RETRIES,
     );
   } catch (error) {
     const message =
@@ -662,7 +665,7 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
     buildRequestUrl(true),
     requestInit,
     retryOptions,
-    2,
+    MAX_RATE_LIMIT_RETRIES,
   );
 
   if (
@@ -676,13 +679,13 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
       buildRequestUrl(false),
       requestInit,
       retryOptions,
-      2,
+      MAX_RATE_LIMIT_RETRIES,
     );
   }
 
   if (!response.ok) {
     if (response.status === 429) {
-      throw new HttpError(429, 'Zu viele Anfragen. Qualitätsprotokoll wird gleich erneut geladen.');
+      throw new HttpError(429, 'Zu viele Anfragen. Bitte versuche es später erneut.');
     }
     throw new HttpError(response.status, `Qualitätsprotokoll konnte nicht geladen werden (HTTP ${response.status}).`);
   }

@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import rateLimit, { type RateLimitRequestHandler, type Options } from "express-rate-limit";
 import auditLogger from "../services/auditLogger.js";
+import config from "../config/index.js";
 // Import to ensure Express.Request augmentation is loaded
 import "../middleware/auth.js";
 
@@ -118,11 +119,11 @@ export const userRateLimiters = {
 	}),
 
 	/**
-	 * Training rate limiter (120 requests/minute)
+	 * Training rate limiter (configurable via TRAINING_LIMIT)
 	 */
 	training: createUserRateLimiter({
 		windowMs: 60 * 1000,
-		max: 120,
+		max: config.trainingLimit,
 		message: "Zu viele Trainingsanfragen. Bitte versuche es später erneut.",
 	}),
 
@@ -137,11 +138,11 @@ export const userRateLimiters = {
 	}),
 
 	/**
-	 * Model download rate limiter (20 requests/minute)
+	 * Model download rate limiter (configurable via MODEL_DOWNLOAD_LIMIT)
 	 */
 	modelDownload: createUserRateLimiter({
 		windowMs: 60 * 1000,
-		max: 120,
+		max: config.modelDownloadLimit,
 		message: "Zu viele Modell-Downloads. Bitte versuche es später erneut.",
 	}),
 };

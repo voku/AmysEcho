@@ -290,6 +290,25 @@ let pythonDepsCheckCache: {
 } | null = null;
 const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+const TRAINING_MANIFEST_CACHE_TTL_MS = 30 * 1000;
+let trainingManifestCache: {
+	entries: Awaited<ReturnType<typeof loadManifestEntries>>;
+	timestamp: number;
+} | null = null;
+
+async function getCachedManifestEntries(): Promise<Awaited<ReturnType<typeof loadManifestEntries>>> {
+	if (trainingManifestCache && Date.now() - trainingManifestCache.timestamp < TRAINING_MANIFEST_CACHE_TTL_MS) {
+		return trainingManifestCache.entries;
+	}
+
+	const entries = await loadManifestEntries();
+	trainingManifestCache = {
+		entries,
+		timestamp: Date.now(),
+	};
+	return entries;
+}
+
 function resolvePythonExecutableForHealthCheck(): string {
 	if (process.env.AMY_PYTHON_BIN && process.env.AMY_PYTHON_BIN.trim().length > 0) {
 		return process.env.AMY_PYTHON_BIN.trim();
@@ -1539,7 +1558,7 @@ app.get(
 
 			const { profileCounts } = await collectLabelCounts();
 			const counts = profileCounts.get(profileId) || {};
-			const manifestEntries = await loadManifestEntries();
+			const manifestEntries = await getCachedManifestEntries();
 			const trainedLabels = mergeTrainedLabels(profileId, counts, manifestEntries);
 
 			res.json({ profileId, trainedLabels });
