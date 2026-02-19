@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
 import {
   createTrainingZip,
@@ -429,13 +429,18 @@ describe('resolveTrainingUploadTimeoutMs', () => {
 });
 
 describe('uploadTrainingBundle', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
   it('reicht den ZIP-Body an den Server weiter', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ id: 'bundle-1', status: 'queued' }),
     });
-    (globalThis as any).fetch = fetchSpy;
+    vi.stubGlobal('fetch', fetchSpy as any);
 
     const result = await uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
     expect(result.id).toBe('bundle-1');
@@ -482,7 +487,7 @@ describe('uploadTrainingBundle', () => {
         },
       }),
     });
-    (globalThis as any).fetch = fetchSpy;
+    vi.stubGlobal('fetch', fetchSpy as any);
 
     const result = await uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
     expect(result.trainingJob?.queueDepth).toBe(2);
@@ -499,7 +504,7 @@ describe('uploadTrainingBundle', () => {
       status: 404,
       statusText: 'Not Found',
     });
-    (globalThis as any).fetch = fetchSpy;
+    vi.stubGlobal('fetch', fetchSpy as any);
 
     await expect(
       uploadTrainingBundle(basePayload, {
@@ -530,7 +535,7 @@ describe('uploadTrainingBundle', () => {
       statusText,
       json: () => Promise.resolve({ error: 'Profil nicht gefunden.' }),
     });
-    (globalThis as any).fetch = fetchSpy;
+    vi.stubGlobal('fetch', fetchSpy as any);
 
     await expect(
       uploadTrainingBundle(basePayload, {
@@ -542,16 +547,64 @@ describe('uploadTrainingBundle', () => {
 
   it('meldet Zeitüberschreitungen mit verständlicher Fehlermeldung', async () => {
     const fetchSpy = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
-    (globalThis as any).fetch = fetchSpy;
+    vi.stubGlobal('fetch', fetchSpy as any);
 
     await expect(uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' })).rejects.toThrow(
       'Upload wurde wegen einer Zeitüberschreitung abgebrochen.',
     );
   });
+
+  it('versucht den Upload bei HTTP 429 erneut und respektiert Retry-After', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: new Headers({ 'Retry-After': '1' }),
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'bundle-retry', status: 'queued' }),
+      });
+    vi.stubGlobal('fetch', fetchSpy as any);
+
+    const request = uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
+    const expectation = expect(request).resolves.toMatchObject({ id: 'bundle-retry' });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await expectation;
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('liefert bei dauerhaftem HTTP 429 eine verständliche Upload-Fehlermeldung', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      headers: new Headers({ 'Retry-After': '0.1' }),
+      json: async () => ({}),
+    });
+    vi.stubGlobal('fetch', fetchSpy as any);
+
+    const request = uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
+    const expectation = expect(request).rejects.toThrow('Zu viele Anfragen. Bitte warte einen Moment und versuche den Upload erneut.');
+
+    await vi.advanceTimersByTimeAsync(2000);
+    await expectation;
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
 });
 
 
 describe('fetchTrainingQualityLog', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
   it('lädt und filtert Quality-Log-Einträge', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,
@@ -710,5 +763,58 @@ describe('fetchTrainingQualityLog', () => {
     expect(secondRequestUrl).not.toContain('profileId=');
 
     vi.unstubAllGlobals();
+  });
+
+  it('wartet bei HTTP 429 und versucht das Qualitätsprotokoll erneut', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: new Headers({ 'Retry-After': '1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [] }),
+        headers: new Headers(),
+      });
+
+    vi.stubGlobal('fetch', fetchSpy as any);
+
+    const request = fetchTrainingQualityLog({
+      endpoint: 'https://api.example.org/api/v1/dgs/training-quality',
+      token: 'token-1',
+      profileId: 'profile-1',
+      limit: 10,
+    });
+    const expectation = expect(request).resolves.toEqual([]);
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await expectation;
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('liefert bei dauerhaftem HTTP 429 eine verständliche Fehlermeldung', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      headers: new Headers({ 'Retry-After': '0.1' }),
+    });
+
+    vi.stubGlobal('fetch', fetchSpy as any);
+
+    const request = fetchTrainingQualityLog({
+      endpoint: 'https://api.example.org/api/v1/dgs/training-quality',
+      token: 'token-1',
+      profileId: 'profile-1',
+      limit: 10,
+    });
+    const expectation = expect(request).rejects.toThrow('Zu viele Anfragen. Bitte versuche es später erneut.');
+
+    await vi.advanceTimersByTimeAsync(2000);
+    await expectation;
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 });

@@ -65,8 +65,10 @@ import {
 } from "./services/profileRegistry.js";
 import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleIngestor.js";
 import { buildLabelManifest, getVideosForLabel, isValidLabel } from "./services/labelRegistry.js";
-import type { Correction, NegativeSample } from "./types.js";
+import type { Correction, ManifestEntry, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
+import { loadManifestEntries } from "./utils/manifestUtils.js";
+import { mergeTrainedLabels } from "./services/trainedLabelsService.js";
 import { isProfileAuthorized } from "./utils/profileAuthorization.js";
 import { httpsEnforcement, hstsHeaders } from "./middleware/httpsEnforcement.js";
 
@@ -167,10 +169,15 @@ const modelMetadataLimiter = rateLimit({
 
 const trainingLimiter = rateLimit({
 	windowMs: 60 * 1000,
-	max: 5, // Training operations are expensive, limit to 5 per minute
+	max: config.trainingLimit, // Training operations are expensive, but caregivers may upload/poll in bursts
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: "Zu viele Trainingsanfragen. Bitte versuche es später erneut.",
+	handler: (_req, res, _next, optionsUsed) => {
+		const retryAfterSecs = Math.ceil(((optionsUsed.windowMs as number | undefined) ?? 60_000) / 1000);
+		res.setHeader("Retry-After", String(retryAfterSecs));
+		res.status(429).json({ error: "Zu viele Trainingsanfragen. Bitte versuche es später erneut." });
+	},
 });
 
 const healthLimiter = rateLimit({
@@ -287,6 +294,24 @@ let pythonDepsCheckCache: {
 	timestamp: number;
 } | null = null;
 const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+let trainingManifestCache: {
+	entries: ManifestEntry[];
+	timestamp: number;
+} | null = null;
+
+async function getCachedManifestEntries(): Promise<ManifestEntry[]> {
+	if (trainingManifestCache && Date.now() - trainingManifestCache.timestamp < config.trainingManifestCacheTtlMs) {
+		return trainingManifestCache.entries;
+	}
+
+	const entries = await loadManifestEntries();
+	trainingManifestCache = {
+		entries,
+		timestamp: Date.now(),
+	};
+	return entries;
+}
 
 function resolvePythonExecutableForHealthCheck(): string {
 	if (process.env.AMY_PYTHON_BIN && process.env.AMY_PYTHON_BIN.trim().length > 0) {
@@ -1537,9 +1562,8 @@ app.get(
 
 			const { profileCounts } = await collectLabelCounts();
 			const counts = profileCounts.get(profileId) || {};
-			const trainedLabels = Object.keys(counts).filter(
-				(label) => counts[label] > 0,
-			);
+			const manifestEntries = await getCachedManifestEntries();
+			const trainedLabels = mergeTrainedLabels(profileId, counts, manifestEntries);
 
 			res.json({ profileId, trainedLabels });
 		} catch (error) {

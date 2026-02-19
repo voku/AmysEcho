@@ -15,6 +15,7 @@ import { TrainingRecorder } from './TrainingRecorder';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
+import { HttpError } from '../utils/http';
 import { fetchTrainingQualityLog } from '../training/trainingBundle';
 import { TrainingQueueList } from './TrainingQueueList';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
@@ -588,7 +589,12 @@ export function TrainingUploadWithRecording() {
       })
       .catch((error) => {
         if (cancelled) return;
-        setQualityError(`Qualitätsprotokoll konnte nicht geladen werden: ${error instanceof Error ? error.message : String(error)}`);
+        if (error instanceof HttpError) {
+          setQualityError(error.message);
+          return;
+        }
+        const details = error instanceof Error ? error.message : String(error);
+        setQualityError(`Qualitätsprotokoll konnte nicht geladen werden: ${details}`);
       })
       .finally(() => {
         if (!cancelled) {
