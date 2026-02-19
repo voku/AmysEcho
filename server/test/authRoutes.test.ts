@@ -7,6 +7,7 @@ import request from 'supertest';
 import { AuthService } from '../src/services/authService.js';
 import { addUser, createDatabase, Database, saveDatabase } from '../src/db.js';
 import { registerAuthRoutes } from '../src/routes/authRoutes.js';
+import { createEmptyRegistry, saveProfileRegistry } from '../src/services/profileRegistry.js';
 import { type EmailService } from '../src/services/emailService.js';
 import { withFileLock } from '../src/utils/fileLock.js';
 
@@ -16,6 +17,7 @@ describe('auth routes', () => {
   let dbFilePath: string;
   let tmpDir: string;
   let emailService: EmailService;
+  let registryPath: string;
 
   beforeAll(async () => {
     process.env.JWT_SECRET = 'test-jwt-secret';
@@ -30,13 +32,22 @@ describe('auth routes', () => {
   beforeEach(async () => {
     db = createDatabase();
     dbFilePath = path.join(tmpDir, `db-${Date.now()}.json`);
+    registryPath = path.join(tmpDir, `registry-${Date.now()}.json`);
     app = express();
     app.use(express.json());
     emailService = {
       sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
       sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
     };
-    registerAuthRoutes(app, { db, dbFilePath, withFileLock, emailService });
+    registerAuthRoutes(app, {
+      db,
+      dbFilePath,
+      registry: createEmptyRegistry(),
+      registryPath,
+      saveRegistry: saveProfileRegistry,
+      withFileLock,
+      emailService,
+    });
   });
 
   it('rejects duplicate registration attempts', async () => {
@@ -83,6 +94,13 @@ describe('auth routes', () => {
     expect(db.users).toHaveLength(1);
     expect(db.users[0].passwordHash).toBeDefined();
     expect(db.users[0].passwordHash.length).toBeGreaterThan(10);
+    expect(db.profiles).toHaveLength(1);
+    expect(db.profiles[0].id).toBe(db.users[0].id);
+    expect(db.profiles[0].userId).toBe(db.users[0].id);
+    const registryRaw = await fs.readFile(registryPath, 'utf8');
+    const savedRegistry = JSON.parse(registryRaw) as { profiles: Array<{ id: string; displayName: string }> };
+    const savedProfile = savedRegistry.profiles.find((profile) => profile.id === db.users[0].id);
+    expect(savedProfile?.displayName).toBe('amy');
     expect(emailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
   });
 
