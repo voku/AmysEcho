@@ -263,6 +263,25 @@ describe('ingestTrainingBundlesIntoDataset', () => {
   });
 
 
+
+  it('accepts borderline oscillating hand jitter when smoothing trajectory is continuous', async () => {
+    const jitterAmplitude = 0.9;
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [idx % 2 === 0 ? 0 : jitterAmplitude, idx % 2 === 0 ? 0 : jitterAmplitude, 0]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+      })),
+    };
+
+    await writeBundleFixture('bundle-borderline-hand-jitter', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+  });
+
   it('accepts bundles with moderate hand jitter', async () => {
     const moderateHandDelta = MAX_HAND_JITTER * 0.5;
     const frames: LandmarksPayload = {

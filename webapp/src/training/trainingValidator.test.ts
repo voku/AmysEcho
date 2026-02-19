@@ -92,6 +92,17 @@ describe('TrainingDataValidator', () => {
   });
 
 
+
+  it('accepts borderline oscillating hand jitter with continuous smoothing', () => {
+    const seq = Array.from({ length: 12 }, (_, index) =>
+      makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : 0.9 }),
+    );
+
+    const result = validateLandmarkSequence(seq);
+
+    expect(result.issues).not.toContain('hand_jitter_high');
+  });
+
   it('accepts moderate hand jitter below updated threshold', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
       makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : MAX_HAND_JITTER * 0.5 }),

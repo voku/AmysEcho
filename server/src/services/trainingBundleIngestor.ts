@@ -888,9 +888,10 @@ function computeAverageJitter(
 		if (prevPoints.length !== nextPoints.length) {
 			continue;
 		}
-		const prevFramePoints: number[][] = options?.useSmoothing
-			? smoothPoints(prevPoints, previousSmoothed)
-			: prevPoints;
+		const prevFramePoints: number[][] =
+			options?.useSmoothing && previousSmoothed !== null
+				? previousSmoothed
+				: prevPoints;
 		const nextFramePoints: number[][] = options?.useSmoothing
 			? smoothPoints(nextPoints, prevFramePoints)
 			: nextPoints;
