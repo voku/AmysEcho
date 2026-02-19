@@ -30,6 +30,9 @@ Jedes Bundle bekommt bei der Ingest-Phase eine `validationSummary` mit:
 - `qualityScore`
 - `confidence`
 - `issues`
+- `overallQualityScore` (0-1, combines frame count, coverage, and smoothed jitter)
+- `handJitter`, `poseJitter`, `faceJitter` (smoothed)
+- `handJitterRaw`, `poseJitterRaw`, `faceJitterRaw` (raw frame-to-frame)
 
 Diese Werte stammen aus dem Webapp-Validator (`webapp/src/training/trainingValidator.ts`)
 und helfen, **zu schwache Aufnahmen frühzeitig zu erkennen**, bevor sie in die

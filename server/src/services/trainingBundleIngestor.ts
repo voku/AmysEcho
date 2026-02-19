@@ -122,6 +122,10 @@ interface QualityMetrics {
 	handJitter?: number;
 	poseJitter?: number;
 	faceJitter?: number;
+	handJitterRaw?: number;
+	poseJitterRaw?: number;
+	faceJitterRaw?: number;
+	overallQualityScore?: number;
 }
 
 interface CaptureMetadata {
@@ -797,14 +801,34 @@ function extractHandPoints(frame: NormalizedFrameData): number[][] {
 	return [];
 }
 
+function smoothPoints(points: number[][], previous: number[][] | null): number[][] {
+	if (!previous || previous.length !== points.length) {
+		return points;
+	}
+	const alpha = 0.35;
+	return points.map((point, idx) => {
+		const prev = previous[idx];
+		if (!prev) {
+			return point;
+		}
+		return [
+			(prev[0] * (1 - alpha)) + (point[0] * alpha),
+			(prev[1] * (1 - alpha)) + (point[1] * alpha),
+			(prev[2] * (1 - alpha)) + (point[2] * alpha),
+		];
+	});
+}
+
 function computeAverageJitter(
 	frames: NormalizedFrameData[],
 	getPoints: (frame: NormalizedFrameData) => number[][],
+	options?: { useSmoothing?: boolean },
 ): number | null {
 	if (frames.length < 2) {
 		return null;
 	}
 	const deltas: number[] = [];
+	let previousSmoothed: number[][] | null = null;
 	for (let i = 1; i < frames.length; i += 1) {
 		const prevPoints = getPoints(frames[i - 1]);
 		const nextPoints = getPoints(frames[i]);
@@ -814,22 +838,49 @@ function computeAverageJitter(
 		if (prevPoints.length !== nextPoints.length) {
 			continue;
 		}
+		const prevFramePoints: number[][] = options?.useSmoothing
+			? smoothPoints(prevPoints, previousSmoothed)
+			: prevPoints;
+		const nextFramePoints: number[][] = options?.useSmoothing
+			? smoothPoints(nextPoints, prevFramePoints)
+			: nextPoints;
+
 		let sumOfDistances = 0;
-		for (let idx = 0; idx < prevPoints.length; idx += 1) {
-			const prev = prevPoints[idx];
-			const next = nextPoints[idx];
+		for (let idx = 0; idx < prevFramePoints.length; idx += 1) {
+			const prev = prevFramePoints[idx];
+			const next = nextFramePoints[idx];
 			const dx = next[0] - prev[0];
 			const dy = next[1] - prev[1];
 			const dz = next[2] - prev[2];
 			sumOfDistances += Math.sqrt(dx * dx + dy * dy + dz * dz);
 		}
-		deltas.push(sumOfDistances / prevPoints.length);
+		deltas.push(sumOfDistances / prevFramePoints.length);
+		previousSmoothed = nextFramePoints;
 	}
 	if (deltas.length === 0) {
 		return null;
 	}
 	const total = deltas.reduce((acc, value) => acc + value, 0);
 	return total / deltas.length;
+}
+
+function computeOverallQualityScore(metrics: {
+	frameCount: number;
+	handCoverage: number;
+	poseCoverage: number;
+	faceCoverage: number;
+	handJitter: number | null;
+	poseJitter: number | null;
+	faceJitter: number | null;
+}): number {
+	const frameScore = Math.min(1, metrics.frameCount / (MIN_SIGN_SAMPLE_FRAMES * 2));
+	const coverageScore =
+		(metrics.handCoverage * 0.5) + (metrics.poseCoverage * 0.25) + (metrics.faceCoverage * 0.25);
+	const handJitterScore = metrics.handJitter === null ? 1 : Math.max(0, 1 - (metrics.handJitter / MAX_HAND_JITTER));
+	const poseJitterScore = metrics.poseJitter === null ? 1 : Math.max(0, 1 - (metrics.poseJitter / MAX_POSE_JITTER));
+	const faceJitterScore = metrics.faceJitter === null ? 1 : Math.max(0, 1 - (metrics.faceJitter / MAX_FACE_JITTER));
+	const jitterScore = (handJitterScore * 0.5) + (poseJitterScore * 0.25) + (faceJitterScore * 0.25);
+	return Number(((frameScore * 0.2) + (coverageScore * 0.4) + (jitterScore * 0.4)).toFixed(3));
 }
 
 function evaluateBundleQuality(frames: NormalizedFrameData[]): {
@@ -850,24 +901,48 @@ function evaluateBundleQuality(frames: NormalizedFrameData[]): {
 	const handCoverage = frameCount > 0 ? handFrames / frameCount : 0;
 	const poseCoverage = frameCount > 0 ? poseFrames / frameCount : 0;
 	const faceCoverage = frameCount > 0 ? faceFrames / frameCount : 0;
-	const handJitter = computeAverageJitter(frames, extractHandPoints);
+	const handJitterRaw = computeAverageJitter(frames, extractHandPoints);
+	const poseJitterRaw = computeAverageJitter(
+		frames,
+		(frame) => frame.poseLandmarks ?? [],
+	);
+	const faceJitterRaw = computeAverageJitter(
+		frames,
+		(frame) => frame.faceLandmarks ?? [],
+	);
+	const handJitter = computeAverageJitter(frames, extractHandPoints, { useSmoothing: true });
 	const poseJitter = computeAverageJitter(
 		frames,
 		(frame) => frame.poseLandmarks ?? [],
+		{ useSmoothing: true },
 	);
 	const faceJitter = computeAverageJitter(
 		frames,
 		(frame) => frame.faceLandmarks ?? [],
+		{ useSmoothing: true },
 	);
+	const overallQualityScore = computeOverallQualityScore({
+		frameCount,
+		handCoverage,
+		poseCoverage,
+		faceCoverage,
+		handJitter,
+		poseJitter,
+		faceJitter,
+	});
 
 	const metrics: QualityMetrics = {
 		frameCount,
 		handCoverage,
 		poseCoverage,
 		faceCoverage,
+		overallQualityScore,
 		...(handJitter !== null ? { handJitter } : {}),
 		...(poseJitter !== null ? { poseJitter } : {}),
 		...(faceJitter !== null ? { faceJitter } : {}),
+		...(handJitterRaw !== null ? { handJitterRaw } : {}),
+		...(poseJitterRaw !== null ? { poseJitterRaw } : {}),
+		...(faceJitterRaw !== null ? { faceJitterRaw } : {}),
 	};
 
 	const reasons: string[] = [];

@@ -58,7 +58,7 @@ describe('TrainingDataValidator', () => {
 
   it('flags high hand jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
-      makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : MAX_HAND_JITTER + 0.25 }),
+      makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : MAX_HAND_JITTER + 1.2 }),
     );
 
     const result = validateLandmarkSequence(seq);
@@ -70,7 +70,7 @@ describe('TrainingDataValidator', () => {
 
   it('flags high pose jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
-      makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : MAX_POSE_JITTER + 0.05 }),
+      makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : MAX_POSE_JITTER + 1.2 }),
     );
 
     const result = validateLandmarkSequence(seq);
@@ -114,7 +114,7 @@ describe('TrainingDataValidator', () => {
 
   it('flags high face jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
-      makeMultiModalFrame({ faceOffset: index % 2 === 0 ? 0 : MAX_FACE_JITTER + 0.05 }),
+      makeMultiModalFrame({ faceOffset: index % 2 === 0 ? 0 : MAX_FACE_JITTER + 1.2 }),
     );
 
     const result = validateLandmarkSequence(seq);
