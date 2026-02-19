@@ -97,6 +97,10 @@ describe('auth routes', () => {
     expect(db.profiles).toHaveLength(1);
     expect(db.profiles[0].id).toBe(db.users[0].id);
     expect(db.profiles[0].userId).toBe(db.users[0].id);
+    const registryRaw = await fs.readFile(registryPath, 'utf8');
+    const savedRegistry = JSON.parse(registryRaw) as { profiles: Array<{ id: string; displayName: string }> };
+    const savedProfile = savedRegistry.profiles.find((profile) => profile.id === db.users[0].id);
+    expect(savedProfile?.displayName).toBe('amy');
     expect(emailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
   });
 

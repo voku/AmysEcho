@@ -49,8 +49,8 @@ export async function handleRegistration(
 
 	try {
 		const passwordHash = await AuthService.hashPassword(password);
-		const result = await deps.withFileLock(deps.registryPath, async () =>
-			deps.withFileLock(deps.dbFilePath, async () => {
+		const result = await deps.withFileLock(deps.dbFilePath, async () =>
+			deps.withFileLock(deps.registryPath, async () => {
 			const existingUsername = findUserByUsername(deps.db, username);
 			const existingEmail = findUserByEmail(deps.db, email);
 
@@ -77,7 +77,7 @@ export async function handleRegistration(
 			addProfile(deps.db, {
 				id: user.id,
 				userId: user.id,
-				displayName: user.displayName ?? defaultDisplayName,
+				displayName: defaultDisplayName,
 				createdAt: new Date(user.createdAt).toISOString(),
 				metadata: {},
 				consentDataUpload: false,
@@ -86,7 +86,7 @@ export async function handleRegistration(
 			});
 			ensureProfileRecord(deps.registry, {
 				id: user.id,
-				displayName: user.displayName ?? defaultDisplayName,
+				displayName: defaultDisplayName,
 			});
 			// Seed symbols for the user's primary profile (using userId as profileId for now as per current app patterns)
 			seedProfileSymbols(deps.db, user.id);

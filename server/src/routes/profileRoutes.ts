@@ -281,10 +281,10 @@ export function registerProfileRoutes(
 				}
 			}
 
+			await withFileLock(dbFilePath, async () => saveDatabase(db, dbFilePath));
 			await withFileLock(registryPath, async () =>
 				saveRegistry(registryPath, registry),
 			);
-			await withFileLock(dbFilePath, async () => saveDatabase(db, dbFilePath));
 
 			return res.status(201).json({ profile });
 		} catch (error) {
@@ -331,10 +331,10 @@ export function registerProfileRoutes(
 				dbProfile.displayName = record.displayName;
 				dbProfile.metadata = record.metadata;
 			}
+			await withFileLock(dbFilePath, async () => saveDatabase(db, dbFilePath));
 			await withFileLock(registryPath, async () =>
 				saveRegistry(registryPath, registry),
 			);
-			await withFileLock(dbFilePath, async () => saveDatabase(db, dbFilePath));
 			return res.json(record);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
