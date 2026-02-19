@@ -67,6 +67,8 @@ import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleInges
 import { buildLabelManifest, getVideosForLabel, isValidLabel } from "./services/labelRegistry.js";
 import type { Correction, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
+import { loadManifestEntries } from "./utils/manifestUtils.js";
+import { mergeTrainedLabels } from "./services/trainedLabelsService.js";
 import { isProfileAuthorized } from "./utils/profileAuthorization.js";
 import { httpsEnforcement, hstsHeaders } from "./middleware/httpsEnforcement.js";
 
@@ -1537,9 +1539,8 @@ app.get(
 
 			const { profileCounts } = await collectLabelCounts();
 			const counts = profileCounts.get(profileId) || {};
-			const trainedLabels = Object.keys(counts).filter(
-				(label) => counts[label] > 0,
-			);
+			const manifestEntries = await loadManifestEntries();
+			const trainedLabels = mergeTrainedLabels(profileId, counts, manifestEntries);
 
 			res.json({ profileId, trainedLabels });
 		} catch (error) {

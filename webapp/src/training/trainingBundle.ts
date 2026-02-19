@@ -500,6 +500,43 @@ export function resolveTrainingUploadTimeoutMs(zipSizeBytes: number): number {
   return Math.min(MAX_TRAINING_UPLOAD_TIMEOUT_MS, calculatedTimeoutMs);
 }
 
+function parseRetryAfterDelayMs(headerValue: string | null): number | null {
+  if (!headerValue) {
+    return null;
+  }
+
+  const asSeconds = Number(headerValue);
+  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+    return Math.round(asSeconds * 1000);
+  }
+
+  const retryTimestamp = Date.parse(headerValue);
+  if (!Number.isNaN(retryTimestamp)) {
+    return Math.max(0, retryTimestamp - Date.now());
+  }
+
+  return null;
+}
+
+async function fetchWithRateLimitRetry(
+  url: string,
+  requestInit: RequestInit,
+  retryOptions: { retries: number; retryDelayMs: number; timeoutMs: number },
+  maxRateLimitRetries: number,
+): Promise<Response> {
+  let response = await fetchWithRetry(url, requestInit, retryOptions);
+
+  for (let attempt = 0; attempt < maxRateLimitRetries && response.status === 429; attempt += 1) {
+    const retryAfterDelayMs = parseRetryAfterDelayMs(response.headers.get('Retry-After'));
+    const nextDelayMs = Math.max(retryAfterDelayMs ?? 1500, 500);
+    await new Promise((resolve) => setTimeout(resolve, nextDelayMs));
+    response = await fetchWithRetry(url, requestInit, retryOptions);
+  }
+
+  return response;
+}
+
+
 export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUploadOptions): Promise<UploadTrainingBundleResponse> {
   const endpoint = options.endpoint?.trim();
   if (!endpoint) {
@@ -512,7 +549,7 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
 
   let response: Response;
   try {
-    response = await fetchWithRetry(
+    response = await fetchWithRateLimitRetry(
       endpoint,
       {
         method: 'POST',
@@ -524,6 +561,7 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
         body,
       },
       { retries: 2, retryDelayMs: 400, timeoutMs },
+      2,
     );
   } catch (error) {
     const message =
@@ -545,6 +583,9 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
     }
     if (response.status === 404) {
       throw new HttpError(404, serverError ?? 'Upload-Endpunkt nicht gefunden (HTTP 404). Bitte Webapp und Server gemeinsam aktualisieren.');
+    }
+    if (response.status === 429) {
+      throw new HttpError(429, serverError ?? 'Zu viele Anfragen. Bitte warte einen Moment und versuche den Upload erneut.');
     }
     throw new HttpError(response.status, serverError ?? `Upload fehlgeschlagen (HTTP ${response.status}).`);
   }
@@ -590,40 +631,6 @@ export type FetchTrainingQualityOptions = {
   limit?: number;
 };
 
-function parseRetryAfterDelayMs(headerValue: string | null): number | null {
-  if (!headerValue) {
-    return null;
-  }
-
-  const asSeconds = Number(headerValue);
-  if (Number.isFinite(asSeconds) && asSeconds >= 0) {
-    return Math.round(asSeconds * 1000);
-  }
-
-  const retryTimestamp = Date.parse(headerValue);
-  if (!Number.isNaN(retryTimestamp)) {
-    return Math.max(0, retryTimestamp - Date.now());
-  }
-
-  return null;
-}
-
-async function fetchTrainingQualityWithRateLimitRetry(
-  url: string,
-  requestInit: RequestInit,
-  retryOptions: { retries: number; retryDelayMs: number; timeoutMs: number },
-): Promise<Response> {
-  let response = await fetchWithRetry(url, requestInit, retryOptions);
-
-  for (let attempt = 0; attempt < 2 && response.status === 429; attempt += 1) {
-    const retryAfterDelayMs = parseRetryAfterDelayMs(response.headers.get('Retry-After'));
-    const nextDelayMs = Math.max(retryAfterDelayMs ?? 1500, 500);
-    await new Promise((resolve) => setTimeout(resolve, nextDelayMs));
-    response = await fetchWithRetry(url, requestInit, retryOptions);
-  }
-
-  return response;
-}
 
 export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptions): Promise<TrainingQualityLogEntry[]> {
   const endpoint = options.endpoint?.trim();
@@ -651,10 +658,11 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
   };
   const retryOptions = { retries: 1, retryDelayMs: 300, timeoutMs: 10000 } as const;
 
-  let response = await fetchTrainingQualityWithRateLimitRetry(
+  let response = await fetchWithRateLimitRetry(
     buildRequestUrl(true),
     requestInit,
     retryOptions,
+    2,
   );
 
   if (
@@ -664,10 +672,11 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
   ) {
     // 401 is intentionally excluded here: an unauthenticated/expired session should
     // surface to the caller, while 403 indicates profile scoping can fall back.
-    response = await fetchTrainingQualityWithRateLimitRetry(
+    response = await fetchWithRateLimitRetry(
       buildRequestUrl(false),
       requestInit,
       retryOptions,
+      2,
     );
   }
 

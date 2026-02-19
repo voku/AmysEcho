@@ -548,6 +548,49 @@ describe('uploadTrainingBundle', () => {
       'Upload wurde wegen einer Zeitüberschreitung abgebrochen.',
     );
   });
+
+  it('versucht den Upload bei HTTP 429 erneut und respektiert Retry-After', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: new Headers({ 'Retry-After': '1' }),
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'bundle-retry', status: 'queued' }),
+      });
+    (globalThis as any).fetch = fetchSpy;
+
+    const request = uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
+    const expectation = expect(request).resolves.toMatchObject({ id: 'bundle-retry' });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await expectation;
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('liefert bei dauerhaftem HTTP 429 eine verständliche Upload-Fehlermeldung', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      headers: new Headers({ 'Retry-After': '0.1' }),
+      json: async () => ({}),
+    });
+    (globalThis as any).fetch = fetchSpy;
+
+    const request = uploadTrainingBundle(basePayload, { endpoint: 'https://example.test' });
+    const expectation = expect(request).rejects.toThrow('Zu viele Anfragen. Bitte warte einen Moment und versuche den Upload erneut.');
+
+    await vi.advanceTimersByTimeAsync(2000);
+    await expectation;
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
 });
 
 
