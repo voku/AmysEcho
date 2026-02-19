@@ -19,7 +19,7 @@ This policy defines when caregiver-submitted training data can be promoted from
 | Mindest-Frames pro Sample | **8** | `server/src/constants/trainingQuality.ts` |
 | Hand-Coverage | **≥ 70%** | `server/src/constants/trainingQuality.ts` |
 | Jitter (Hand) | **≤ 0.2** | `server/src/constants/trainingQuality.ts` |
-| Jitter (Pose) | **≤ 0.15** | `server/src/constants/trainingQuality.ts` |
+| Jitter (Pose) | **≤ 0.3** | `server/src/constants/trainingQuality.ts` |
 | Jitter (Face) | **≤ 0.12** | `server/src/constants/trainingQuality.ts` |
 
 ## Qualitäts-Metriken (pro Bundle)

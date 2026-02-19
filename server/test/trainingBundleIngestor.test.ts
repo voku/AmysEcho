@@ -232,6 +232,29 @@ describe('ingestTrainingBundlesIntoDataset', () => {
 
 
 
+
+  it('accepts bundles with moderate pose jitter', async () => {
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({
+        landmarks: Array.from({ length: 42 }, () => [0.2, 0.2, 0.2]),
+        handLandmarks: [
+          Array.from({ length: 21 }, () => [0.2, 0.2, 0.2]),
+          Array.from({ length: 21 }, () => [0.3, 0.3, 0.3]),
+        ],
+        poseLandmarks: Array.from({ length: 33 }, () => [
+          idx % 2 === 0 ? 0 : 0.17,
+          idx % 2 === 0 ? 0 : 0.17,
+          idx % 2 === 0 ? 0 : 0.17,
+        ]),
+      })),
+    };
+
+    await writeBundleFixture('bundle-moderate-pose-jitter', { frames });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+  });
+
   it('persistiert Quality-Gate-Ablehnungen im Quality-Log', async () => {
     const jitterValue = Math.min(1, MAX_HAND_JITTER + 0.5);
     const frames: LandmarksPayload = {

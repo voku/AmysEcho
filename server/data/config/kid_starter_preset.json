@@ -119,7 +119,7 @@
     "minFaceCoverage": 0.4,
     "minUsableFrameRatio": 0.6,
     "minClipDurationMs": 500,
-    "maxJitterThreshold": 0.15,
+    "maxJitterThreshold": 0.3,
     "reviewRequiredForGlobal": true
   },
   "metadata": {

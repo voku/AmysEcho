@@ -99,7 +99,7 @@ interface MediaPipeGestureDetectorHandle {
   - **Required hand coverage**: `MIN_HAND_FRAME_COVERAGE = 0.7`
   - **Jitter thresholds (average per-frame delta)**:
     - Hands: `MAX_HAND_JITTER = 0.2`
-    - Pose: `MAX_POSE_JITTER = 0.15`
+    - Pose: `MAX_POSE_JITTER = 0.3`
     - Face: `MAX_FACE_JITTER = 0.12`
   - Bundles that fail are skipped and logged with reasons. Thresholds live in `server/src/constants/trainingQuality.ts`.
 - Returns: Bundle ID and training job status

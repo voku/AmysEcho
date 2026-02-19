@@ -79,6 +79,17 @@ describe('TrainingDataValidator', () => {
     expect(result.suggestions).toContain('Stehe etwas ruhiger und halte den Oberkörper möglichst stabil.');
   });
 
+
+  it('accepts moderate pose jitter with multimodal landmarks', () => {
+    const seq = Array.from({ length: 12 }, (_, index) =>
+      makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : 0.17 }),
+    );
+
+    const result = validateLandmarkSequence(seq);
+
+    expect(result.issues).not.toContain('pose_jitter_high');
+  });
+
   it('flags high face jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
       makeMultiModalFrame({ faceOffset: index % 2 === 0 ? 0 : 0.25 }),
