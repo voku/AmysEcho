@@ -988,7 +988,24 @@ registerTrainingBundleRoute(app, genId, {
 			return null;
 		}
 	},
-	resolveProfileId: resolveProfileId,
+	resolveProfileId: async (value) => {
+		if (!profileRegistry || !value) {
+			return { profileId: value ?? null };
+		}
+		const trimmed = value.trim();
+		const exists = profileRegistry.profiles.some(
+			(profile) => profile.id === trimmed,
+		);
+		if (exists) {
+			return { profileId: trimmed };
+		}
+		// Auto-create profile during training bundle upload (Amy First: Zero failure)
+		const created = ensureProfileRecord(profileRegistry, { id: trimmed });
+		await withFileLock(PROFILE_REGISTRY_PATH, async () =>
+			saveProfileRegistry(PROFILE_REGISTRY_PATH, profileRegistry),
+		);
+		return { profileId: created.id };
+	},
 	isProfileAuthorized: (req: Request, profileId: string) =>
 		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
 });

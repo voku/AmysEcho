@@ -530,10 +530,19 @@ export async function uploadTrainingZip(zip: Uint8Array, options: TrainingUpload
   }
 
   if (!response.ok) {
-    if (response.status === 404) {
-      throw new HttpError(404, 'Upload-Endpunkt nicht gefunden (HTTP 404). Bitte Webapp und Server gemeinsam aktualisieren.');
+    let serverError: string | undefined;
+    try {
+      const body = await response.json() as { error?: string };
+      if (typeof body?.error === 'string' && body.error.trim().length > 0) {
+        serverError = body.error.trim();
+      }
+    } catch {
+      // Response body could not be parsed – fall through to generic message
     }
-    throw new HttpError(response.status, `Upload fehlgeschlagen (HTTP ${response.status}).`);
+    if (response.status === 404) {
+      throw new HttpError(404, serverError ?? 'Upload-Endpunkt nicht gefunden (HTTP 404). Bitte Webapp und Server gemeinsam aktualisieren.');
+    }
+    throw new HttpError(response.status, serverError ?? `Upload fehlgeschlagen (HTTP ${response.status}).`);
   }
 
   let responseJson: unknown;

@@ -1358,7 +1358,7 @@ export function registerTrainingBundleRoute(
 				const resolvedProfileId = resolvedProfile.profileId ?? null;
 				if (profileIdRaw && !resolvedProfileId) {
 					await recordMetrics({ status: "rejected" });
-					return res.status(404).json({ error: "Profil nicht gefunden." });
+					return res.status(422).json({ error: "Profil nicht gefunden." });
 				}
 				metricsProfileId = resolvedProfileId ?? null;
 
