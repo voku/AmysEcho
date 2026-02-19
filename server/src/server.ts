@@ -290,14 +290,13 @@ let pythonDepsCheckCache: {
 } | null = null;
 const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-const TRAINING_MANIFEST_CACHE_TTL_MS = 30 * 1000;
 let trainingManifestCache: {
 	entries: Awaited<ReturnType<typeof loadManifestEntries>>;
 	timestamp: number;
 } | null = null;
 
 async function getCachedManifestEntries(): Promise<Awaited<ReturnType<typeof loadManifestEntries>>> {
-	if (trainingManifestCache && Date.now() - trainingManifestCache.timestamp < TRAINING_MANIFEST_CACHE_TTL_MS) {
+	if (trainingManifestCache && Date.now() - trainingManifestCache.timestamp < config.trainingManifestCacheTtlMs) {
 		return trainingManifestCache.entries;
 	}
 

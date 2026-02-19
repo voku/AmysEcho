@@ -6,12 +6,13 @@ export interface ServerConfig {
 	nodeEnv: string;
 	apiLimit: number;
 	modelMetadataLimit: number;
-	trainingLimit: number;
 	modelDownloadLimit: number;
+	trainingLimit: number;
 	profileBackupIntervalHours: number;
 	mlpScript: string;
 	trainingTimeoutMs: number;
 	trainingSlaMs: number;
+	trainingManifestCacheTtlMs: number;
 	backupSecret: string;
 	trainScript: string;
 	dbPath: string;
@@ -79,8 +80,8 @@ export const config: ServerConfig = {
 	nodeEnv: getEnvVar("NODE_ENV", "development"),
 	apiLimit: getEnvVarAsNumber("API_LIMIT", 1000),
 	modelMetadataLimit: getEnvVarAsNumber("MODEL_METADATA_LIMIT", 300),
-	trainingLimit: getEnvVarAsNumber("TRAINING_LIMIT", 120),
 	modelDownloadLimit: getEnvVarAsNumber("MODEL_DOWNLOAD_LIMIT", 120),
+	trainingLimit: getEnvVarAsNumber("TRAINING_LIMIT", 120),
 	profileBackupIntervalHours: getEnvVarAsNumber(
 		"PROFILE_BACKUP_INTERVAL_HOURS",
 		24,
@@ -91,6 +92,7 @@ export const config: ServerConfig = {
 	),
 	trainingTimeoutMs: getEnvVarAsNumber("TRAINING_JOB_TIMEOUT_MS", 600_000),
 	trainingSlaMs: getEnvVarAsNumber("TRAINING_JOB_SLA_MS", 120_000),
+	trainingManifestCacheTtlMs: getEnvVarAsNumber("TRAINING_MANIFEST_CACHE_TTL_MS", 30_000),
 	// SECURITY: No default value for BACKUP_SECRET - must be explicitly configured
 	// to prevent using a known default password for backups
 	backupSecret: getEnvVar("BACKUP_SECRET"),
