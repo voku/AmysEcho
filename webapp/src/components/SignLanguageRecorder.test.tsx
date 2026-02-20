@@ -2,8 +2,9 @@ import { fireEvent, screen } from '@testing-library/dom';
 import { render, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { useEffect } from 'react';
 import { SignLanguageRecorder } from './SignLanguageRecorder';
-import { ApiConfigProvider } from '../hooks/useApiConfig';
+import { ApiConfigProvider, useApiConfig } from '../hooks/useApiConfig';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
 
@@ -51,10 +52,21 @@ vi.mock('../services/profileRegistry', () => ({
   getActiveProfile: vi.fn().mockResolvedValue(null),
 }));
 
-const renderWithProviders = (ui: React.ReactElement) => {
+function ApiTokenSetter({ token }: { token: string }) {
+  const { setApiToken } = useApiConfig();
+
+  useEffect(() => {
+    setApiToken(token);
+  }, [setApiToken, token]);
+
+  return null;
+}
+
+const renderWithProviders = (ui: React.ReactElement, options?: { apiToken?: string }) => {
   return render(
     <MemoryRouter>
       <ApiConfigProvider>
+        {options?.apiToken ? <ApiTokenSetter token={options.apiToken} /> : null}
         {ui}
       </ApiConfigProvider>
     </MemoryRouter>,
@@ -199,6 +211,21 @@ describe('SignLanguageRecorder', () => {
     expect(canvasElement).toHaveClass('overlay');
   });
 
+
+  it('includes Authorization header when apiToken is configured', async () => {
+    appStateMock.profileId = 'amy';
+    renderWithProviders(<SignLanguageRecorder />, { apiToken: 'test-token' });
+
+    await waitFor(() => {
+      expect(apiRetryManager.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/dgs/trained-labels?profileId=amy'),
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer test-token' },
+        }),
+      );
+    });
+  });
+
   it('clears stale label cache when trained-labels endpoint returns 403', async () => {
     appStateMock.profileId = 'amy';
     window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['HILFE']));
@@ -215,6 +242,7 @@ describe('SignLanguageRecorder', () => {
     await waitFor(() => {
       expect(apiRetryManager.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/v1/dgs/trained-labels?profileId=amy'),
+        expect.objectContaining({}),
       );
     });
 
@@ -282,6 +310,7 @@ describe('SignLanguageRecorder', () => {
     await waitFor(() => {
       expect(apiRetryManager.fetch).toHaveBeenCalledWith(
         expect.stringContaining('profileId=amy-old'),
+        expect.objectContaining({}),
       );
     });
 
@@ -297,6 +326,7 @@ describe('SignLanguageRecorder', () => {
     await waitFor(() => {
       expect(apiRetryManager.fetch).toHaveBeenCalledWith(
         expect.stringContaining('profileId=amy-new'),
+        expect.objectContaining({}),
       );
     });
 
@@ -319,4 +349,5 @@ describe('SignLanguageRecorder', () => {
       expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
     });
   });
+
 });

@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { LearningHub } from './LearningHub';
 import { MemoryRouter } from 'react-router-dom';
-import { SymbolStoreProvider } from '../context/SymbolStore';
+import { SymbolStoreProvider, type SymbolDefinition } from '../context/SymbolStore';
 import { ApiConfigProvider } from '../hooks/useApiConfig';
 import { AppStateProvider } from '../hooks/useAppState';
 import { MessageProvider } from '../context/MessageContext';
@@ -19,7 +19,7 @@ const mockSaveSymbol = vi.fn().mockResolvedValue({
 
 const mockShowToast = vi.fn();
 
-const mockSymbols = [
+const mockSymbols: SymbolDefinition[] = [
   { id: 'alle', name: 'Alle', category: 'basic', emoji: '👐', sampleCount: 0, samplesNeeded: 5, isReady: false, status: 'registered' },
   { id: 'essen', name: 'Essen', category: 'food', emoji: '🍽️', sampleCount: 2, samplesNeeded: 3, isReady: false, status: 'training' },
   { id: 'trinken', name: 'Trinken', category: 'food', emoji: '🥤', sampleCount: 5, samplesNeeded: 0, isReady: true, status: 'ready' },
@@ -98,6 +98,29 @@ describe('LearningHub', () => {
       renderWithProviders(<LearningHub />);
 
       expect(screen.getByText('💡 Tipps für effektives Training')).toBeInTheDocument();
+    });
+
+    it('prefers profile-specific symbols over globals with the same name', () => {
+      mockSymbols.push(
+        {
+          id: 'essen-profil',
+          name: 'Essen',
+          profileId: 'amy',
+          category: 'food',
+          emoji: '🍽️',
+          sampleCount: 3,
+          samplesNeeded: 2,
+          isReady: false,
+          status: 'training',
+        },
+      );
+
+      try {
+        renderWithProviders(<LearningHub />);
+        expect(screen.getAllByRole('heading', { level: 3, name: 'Essen' })).toHaveLength(1);
+      } finally {
+        mockSymbols.pop();
+      }
     });
   });
 
