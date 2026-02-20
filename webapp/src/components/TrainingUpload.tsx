@@ -475,14 +475,31 @@ export function TrainingUploadWithRecording() {
   const { symbols: metacomSymbols } = useMetacomBundle({ vocabularySet });
   const { combinedSymbols, symbolById, symbolByName } = useMemo(() => {
     const merged = new Map<string, SymbolDefinition>();
-    const seenNames = new Set<string>();
+    const idByName = new Map<string, string>();
 
     for (const symbol of symbols) {
-      merged.set(symbol.id, symbol);
       const normalizedName = normalizeSymbolName(symbol.name);
-      if (normalizedName) {
-        seenNames.add(normalizedName);
+      if (!normalizedName) {
+        merged.set(symbol.id, symbol);
+        continue;
       }
+
+      const existingId = idByName.get(normalizedName);
+      if (!existingId) {
+        merged.set(symbol.id, symbol);
+        idByName.set(normalizedName, symbol.id);
+        continue;
+      }
+
+      const existingSymbol = merged.get(existingId);
+      const shouldPreferCurrent = Boolean(symbol.profileId) && !Boolean(existingSymbol?.profileId);
+      if (!shouldPreferCurrent) {
+        continue;
+      }
+
+      merged.delete(existingId);
+      merged.set(symbol.id, symbol);
+      idByName.set(normalizedName, symbol.id);
     }
 
     for (const symbol of metacomSymbols) {
@@ -495,14 +512,14 @@ export function TrainingUploadWithRecording() {
       };
       const normalizedName = normalizeSymbolName(nextSymbol.name);
       if (normalizedName) {
-        if (seenNames.has(normalizedName)) {
+        if (idByName.has(normalizedName)) {
           continue;
         }
       }
       if (!merged.has(nextSymbol.id)) {
         merged.set(nextSymbol.id, nextSymbol);
         if (normalizedName) {
-          seenNames.add(normalizedName);
+          idByName.set(normalizedName, nextSymbol.id);
         }
       }
     }

@@ -410,4 +410,60 @@ describe('TrainingUploadWithRecording', () => {
       expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
     });
   }, TEST_TIMEOUT);
+
+  it('zeigt doppelte Namen aus dem Symbol-Store nur einmal an', async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/v1/dgs/training-quality')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [] }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      if (url.includes('/api/v1/symbols')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            symbols: [
+              {
+                id: 'symbol-global-essen',
+                name: 'Essen',
+                category: 'food',
+                emoji: '🍽️',
+              },
+              {
+                id: 'symbol-profile-essen',
+                name: 'Essen',
+                category: 'food',
+                emoji: '🍽️',
+                profileId: TEST_PROFILE_ID,
+              },
+            ],
+          }),
+          headers: new Headers(),
+        } as any;
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ symbols: [] }),
+        headers: new Headers(),
+      } as any;
+    });
+
+    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
+    await addProfile(profile);
+    await setActiveProfile(profile.uuid);
+
+    renderWithProviders();
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
+    });
+  }, TEST_TIMEOUT);
 });
