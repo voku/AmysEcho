@@ -476,7 +476,27 @@ export function TrainingUploadWithRecording() {
   const { combinedSymbols, symbolById, symbolByName } = useMemo(() => {
     const merged = new Map<string, SymbolDefinition>();
     const idByName = new Map<string, string>();
+    const winnerByName = new Map<string, SymbolDefinition>();
 
+    for (const symbol of symbols) {
+      const normalizedName = normalizeSymbolName(symbol.name);
+      if (!normalizedName) {
+        continue;
+      }
+
+      const existingSymbol = winnerByName.get(normalizedName);
+      if (!existingSymbol) {
+        winnerByName.set(normalizedName, symbol);
+        continue;
+      }
+
+      const shouldPreferCurrent = Boolean(symbol.profileId) && !Boolean(existingSymbol?.profileId);
+      if (shouldPreferCurrent) {
+        winnerByName.set(normalizedName, symbol);
+      }
+    }
+
+    const insertedWinnerNames = new Set<string>();
     for (const symbol of symbols) {
       const normalizedName = normalizeSymbolName(symbol.name);
       if (!normalizedName) {
@@ -484,22 +504,18 @@ export function TrainingUploadWithRecording() {
         continue;
       }
 
-      const existingId = idByName.get(normalizedName);
-      if (!existingId) {
-        merged.set(symbol.id, symbol);
-        idByName.set(normalizedName, symbol.id);
+      if (insertedWinnerNames.has(normalizedName)) {
         continue;
       }
 
-      const existingSymbol = merged.get(existingId);
-      const shouldPreferCurrent = Boolean(symbol.profileId) && !Boolean(existingSymbol?.profileId);
-      if (!shouldPreferCurrent) {
+      const winner = winnerByName.get(normalizedName);
+      if (!winner) {
         continue;
       }
 
-      merged.delete(existingId);
-      merged.set(symbol.id, symbol);
-      idByName.set(normalizedName, symbol.id);
+      merged.set(winner.id, winner);
+      idByName.set(normalizedName, winner.id);
+      insertedWinnerNames.add(normalizedName);
     }
 
     for (const symbol of metacomSymbols) {

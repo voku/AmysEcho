@@ -136,7 +136,7 @@ describe('TrainingUploadWithRecording', () => {
 
   const TEST_TIMEOUT = 10000;
 
-  it('blockiert Uploads, wenn Profil oder Label fehlen', async () => {
+  it('blocks uploads when profile or label are missing', async () => {
     const user = userEvent.setup();
     renderWithProviders();
 
@@ -147,7 +147,7 @@ describe('TrainingUploadWithRecording', () => {
     expect(uploadMock).not.toHaveBeenCalled();
   }, TEST_TIMEOUT);
 
-  it('übermittelt Aufnahmen nur mit gefüllter Profil-ID und Label', async () => {
+  it('submits recordings only with a filled profile ID and label', async () => {
     const user = userEvent.setup();
     
     // Create and set a profile before rendering
@@ -188,7 +188,7 @@ describe('TrainingUploadWithRecording', () => {
     expect(payload.label).toBe('neues-label');
   }, TEST_TIMEOUT);
 
-  it('zeigt Erfolgsmeldung nach erfolgreichem Upload an', async () => {
+  it('shows a success message after a successful upload', async () => {
     const user = userEvent.setup();
     const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
@@ -222,7 +222,7 @@ describe('TrainingUploadWithRecording', () => {
     });
   }, TEST_TIMEOUT);
 
-  it('zeigt Fehlermeldung nach fehlgeschlagenem Upload an', async () => {
+  it('shows an error message after a failed upload', async () => {
     const user = userEvent.setup();
     const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
@@ -258,7 +258,7 @@ describe('TrainingUploadWithRecording', () => {
 
 
 
-  it('zeigt abgelehnte Aufnahmen mit Gründen an', async () => {
+  it('shows rejected recordings with reasons', async () => {
     const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
     await setActiveProfile(profile.uuid);
@@ -273,7 +273,7 @@ describe('TrainingUploadWithRecording', () => {
     });
   }, TEST_TIMEOUT);
 
-  it('zeigt Trainings-Fehlermeldung sauber an', async () => {
+  it('shows training failure details without redundant fallback text', async () => {
     const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
     await addProfile(profile);
     await setActiveProfile(profile.uuid);
@@ -297,7 +297,7 @@ describe('TrainingUploadWithRecording', () => {
     expect(screen.queryByText(/Training fehlgeschlagen\. Bitte prüfe die Logs oder versuche es erneut\./i)).not.toBeInTheDocument();
   }, TEST_TIMEOUT);
 
-  it('zeigt keine doppelten Symbol-Labels nach Synchronisierung und remappt die Auswahl', async () => {
+  it('shows no duplicate symbol labels after sync and remaps selection', async () => {
     const user = userEvent.setup();
     mockMetacomSymbols = [
       { id: 'metacom-essen', label: 'Essen', emoji: '🍽️', category: 'food' },
@@ -360,7 +360,7 @@ describe('TrainingUploadWithRecording', () => {
     });
   }, TEST_TIMEOUT);
 
-  it('unterdrückt Metacom-Namen nicht dauerhaft bei ID-Kollision ohne Einfügen', async () => {
+  it('does not permanently suppress Metacom labels on ID collision without insertion', async () => {
     mockMetacomSymbols = [
       { id: 'symbol-kollision', label: 'Essen', emoji: '🍽️', category: 'food' },
       { id: 'symbol-eindeutig', label: 'Essen', emoji: '🍽️', category: 'food' },
@@ -411,7 +411,8 @@ describe('TrainingUploadWithRecording', () => {
     });
   }, TEST_TIMEOUT);
 
-  it('zeigt doppelte Namen aus dem Symbol-Store nur einmal an', async () => {
+  it('shows duplicate names from the symbol store only once and keeps the profile symbol', async () => {
+    const user = userEvent.setup();
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes('/api/v1/dgs/training-quality')) {
@@ -465,5 +466,20 @@ describe('TrainingUploadWithRecording', () => {
     await waitFor(() => {
       expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
     });
+
+    await waitFor(() => {
+      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+      expect(profileInput.value).toBe(TEST_PROFILE_ID);
+    });
+
+    await user.click(screen.getByLabelText('Essen'));
+    await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
+
+    await waitFor(() => {
+      expect(uploadMock).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = uploadMock.mock.calls[0]?.[0];
+    expect(payload?.label).toBe('symbol-profile-essen');
   }, TEST_TIMEOUT);
 });
