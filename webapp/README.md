@@ -55,6 +55,17 @@ Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, 
 - **Training**: Offline-Queueing erfolgt im Browser über IndexedDB. Bundles behalten Profil, Label, Landmarken, Standbild und
   optionalen Clip und können einzeln neu angestoßen werden.
 
+
+### Screenshot-Workflow (QA)
+
+Für UI-Checks und Screenshots musst du nicht am Login hängen bleiben:
+
+1. Öffne die Startseite der Webapp.
+2. Klicke **„Ohne Anmeldung fortfahren (Demo)”**.
+3. Navigiere danach zur gewünschten Ansicht (z. B. **Training / Upload**) und erstelle dort den Screenshot.
+
+So landen Screenshots in Reviews auf der relevanten Fachansicht statt auf dem Login-Screen.
+
 ## Tests
 
 Vitest-Tests prüfen den Gesten-Hook (Start/Stop sowie Event-Handling). Jsdom stellt dabei die DOM-Oberfläche und das WebView-Bridge-Event bereit.
