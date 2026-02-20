@@ -65,7 +65,7 @@ export function LearningHub() {
   const buildProfileOverrideId = useCallback((baseId: string): string => {
     const normalizedBaseId = baseId.trim();
     if (!normalizedBaseId) {
-      return `symbol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      return `symbol_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
     }
 
     if (profileId) {
@@ -204,7 +204,7 @@ export function LearningHub() {
       formData.id.trim() ||
       (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? `symbol_${crypto.randomUUID()}`
-        : `symbol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+        : `symbol_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`);
     try {
       await saveSymbol({
         id,
