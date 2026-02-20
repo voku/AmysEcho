@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { useMessage } from '../context/MessageContext';
+import { useAppState } from '../hooks/useAppState';
 
 const MIN_SAMPLES_FOR_READY = 5;
 
@@ -27,6 +28,7 @@ const BASELINE_GESTURES: SymbolDefinition[] = [
 export function LearningHub() {
   const { symbols, refresh, syncError, loading, saveSymbol } = useSymbolStore();
   const { showToast } = useMessage();
+  const { profileId } = useAppState();
   const [modalOpen, setModalOpen] = useState(false);
   const [savingSymbol, setSavingSymbol] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -43,8 +45,35 @@ export function LearningHub() {
   const navigate = useNavigate();
 
   const activeSymbols = useMemo(() => {
-    return symbols.length > 0 ? symbols : BASELINE_GESTURES;
+    const baseSymbols = symbols.length > 0 ? symbols : BASELINE_GESTURES;
+    const profileNameSet = new Set(
+      baseSymbols
+        .filter((symbol) => symbol.profileId)
+        .map((symbol) => symbol.name.trim().toLocaleLowerCase('de-DE')),
+    );
+
+    return baseSymbols.filter((symbol) => {
+      if (symbol.profileId) {
+        return true;
+      }
+
+      const normalizedName = symbol.name.trim().toLocaleLowerCase('de-DE');
+      return !profileNameSet.has(normalizedName);
+    });
   }, [symbols]);
+
+  const buildProfileOverrideId = useCallback((baseId: string): string => {
+    const normalizedBaseId = baseId.trim();
+    if (!normalizedBaseId) {
+      return `symbol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    if (profileId) {
+      return `profile_${profileId}__${normalizedBaseId}`;
+    }
+
+    return `profile_local__${normalizedBaseId}`;
+  }, [profileId]);
 
   const categoryLabels: Record<string, string> = {
     all: 'Alle',
@@ -97,13 +126,12 @@ export function LearningHub() {
   };
 
   const handleEditSymbol = (symbol: SymbolDefinition) => {
-    // If editing a global symbol (no profileId), generate a new unique ID for the profile copy
-    // This ensures users can customize defaults without collision
     const isGlobalSymbol = !symbol.profileId;
+    const existingOverride = symbols.find(
+      (entry) => entry.profileId && entry.name.trim().toLocaleLowerCase('de-DE') === symbol.name.trim().toLocaleLowerCase('de-DE'),
+    );
     const symbolId = isGlobalSymbol
-      ? (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-          ? `symbol_${crypto.randomUUID()}`
-          : `symbol_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+      ? (existingOverride?.id ?? buildProfileOverrideId(symbol.id))
       : symbol.id;
     
     setFormData({
@@ -440,4 +468,3 @@ export function LearningHub() {
     </section>
   );
 }
-

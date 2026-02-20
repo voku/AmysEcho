@@ -19,7 +19,7 @@ const mockSaveSymbol = vi.fn().mockResolvedValue({
 
 const mockShowToast = vi.fn();
 
-const mockSymbols = [
+const mockSymbols: any[] = [
   { id: 'alle', name: 'Alle', category: 'basic', emoji: '👐', sampleCount: 0, samplesNeeded: 5, isReady: false, status: 'registered' },
   { id: 'essen', name: 'Essen', category: 'food', emoji: '🍽️', sampleCount: 2, samplesNeeded: 3, isReady: false, status: 'training' },
   { id: 'trinken', name: 'Trinken', category: 'food', emoji: '🥤', sampleCount: 5, samplesNeeded: 0, isReady: true, status: 'ready' },
@@ -98,6 +98,18 @@ describe('LearningHub', () => {
       renderWithProviders(<LearningHub />);
 
       expect(screen.getByText('💡 Tipps für effektives Training')).toBeInTheDocument();
+    });
+
+    it('bevorzugt profilspezifische Gebärden bei gleichem Namen', () => {
+      mockSymbols.push(
+        { id: 'essen-profil', name: 'Essen', profileId: 'amy', category: 'food', emoji: '🍽️', sampleCount: 3, samplesNeeded: 2, isReady: false, status: 'training' },
+      );
+
+      renderWithProviders(<LearningHub />);
+
+      expect(screen.getAllByRole('heading', { level: 3, name: 'Essen' })).toHaveLength(1);
+
+      mockSymbols.pop();
     });
   });
 

@@ -215,6 +215,7 @@ describe('SignLanguageRecorder', () => {
     await waitFor(() => {
       expect(apiRetryManager.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/v1/dgs/trained-labels?profileId=amy'),
+        expect.objectContaining({}),
       );
     });
 
@@ -282,6 +283,7 @@ describe('SignLanguageRecorder', () => {
     await waitFor(() => {
       expect(apiRetryManager.fetch).toHaveBeenCalledWith(
         expect.stringContaining('profileId=amy-old'),
+        expect.objectContaining({}),
       );
     });
 
@@ -297,6 +299,7 @@ describe('SignLanguageRecorder', () => {
     await waitFor(() => {
       expect(apiRetryManager.fetch).toHaveBeenCalledWith(
         expect.stringContaining('profileId=amy-new'),
+        expect.objectContaining({}),
       );
     });
 
@@ -319,4 +322,5 @@ describe('SignLanguageRecorder', () => {
       expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
     });
   });
+
 });

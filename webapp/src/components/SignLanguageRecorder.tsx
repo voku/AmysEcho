@@ -34,7 +34,7 @@ function toTitleCase(value: string): string {
 
 export function SignLanguageRecorder() {
   const navigate = useNavigate();
-  const { apiBaseUrl } = useApiConfig();
+  const { apiBaseUrl, apiToken } = useApiConfig();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
@@ -150,7 +150,11 @@ export function SignLanguageRecorder() {
         resolveApiUrl(`/api/v1/dgs/trained-labels?profileId=${encodeURIComponent(id)}`, apiBaseUrl);
       
       try {
-        let response = await apiRetryManager.fetch(buildTrainedLabelsUrl(requestedProfileId));
+        const requestOptions: RequestInit = apiToken.trim().length > 0
+          ? { headers: { Authorization: `Bearer ${apiToken}` } }
+          : {};
+
+        let response = await apiRetryManager.fetch(buildTrainedLabelsUrl(requestedProfileId), requestOptions);
 
         if (!shouldApplyResult()) {
           return;
@@ -163,7 +167,7 @@ export function SignLanguageRecorder() {
           }
           const activeProfileId = activeProfile?.profileId?.trim();
           if (activeProfileId && activeProfileId !== requestedProfileId) {
-            response = await apiRetryManager.fetch(buildTrainedLabelsUrl(activeProfileId));
+            response = await apiRetryManager.fetch(buildTrainedLabelsUrl(activeProfileId), requestOptions);
             if (!shouldApplyResult()) {
               return;
             }
@@ -205,7 +209,7 @@ export function SignLanguageRecorder() {
     return () => {
       isActive = false;
     };
-  }, [profileId, apiBaseUrl]);
+  }, [profileId, apiBaseUrl, apiToken]);
 
   // Auto-start camera when component mounts and camera is supported AND we have trained signs
   useEffect(() => {
