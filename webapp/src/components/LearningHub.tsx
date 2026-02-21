@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { useMessage } from '../context/MessageContext';
 import { useAppState } from '../hooks/useAppState';
+import LoadingIndicator from './LoadingIndicator';
 
 const MIN_SAMPLES_FOR_READY = 5;
 
@@ -285,6 +286,16 @@ export function LearningHub() {
           </button>
         </div>
       </div>
+
+      {loading && (
+        <div className="notice info mb-md" role="status" aria-live="polite">
+          <LoadingIndicator
+            fullscreen={false}
+            size="small"
+            label="Gebärdenliste wird im Hintergrund aktualisiert…"
+          />
+        </div>
+      )}
 
       <div className="category-filters mb-lg">
         {categories.map(cat => (
