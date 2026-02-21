@@ -35,6 +35,7 @@ export function LearningHub() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [manualRefreshLoading, setManualRefreshLoading] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -149,6 +150,15 @@ export function LearningHub() {
   const handleCloseModal = () => {
     setModalOpen(false);
     setSavingSymbol(false);
+  };
+
+  const handleRefreshSymbols = async () => {
+    setManualRefreshLoading(true);
+    try {
+      await refresh();
+    } finally {
+      setManualRefreshLoading(false);
+    }
   };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -278,8 +288,8 @@ export function LearningHub() {
           {searchTerm && <button className="clear-search" onClick={() => setSearchTerm('')}>✕</button>}
         </div>
         <div className="action-buttons">
-          <button className="secondary-button" onClick={refresh} disabled={loading}>
-            {loading ? 'Aktualisiere…' : '🔄 Synchronisieren'}
+          <button className="secondary-button" onClick={handleRefreshSymbols} disabled={loading || manualRefreshLoading}>
+            {loading || manualRefreshLoading ? 'Aktualisiere…' : '🔄 Synchronisieren'}
           </button>
           <button className="primary-button" onClick={handleOpenModal}>
             ➕ Neue Gebärde
@@ -287,7 +297,7 @@ export function LearningHub() {
         </div>
       </div>
 
-      {loading && (
+      {(loading || manualRefreshLoading) && (
         <div className="notice info mb-md" role="status" aria-live="polite">
           <LoadingIndicator
             fullscreen={false}
