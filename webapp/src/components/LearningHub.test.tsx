@@ -116,10 +116,10 @@ describe('LearningHub', () => {
 
     it('shows loading indicator when refresh button is pressed', async () => {
       const user = userEvent.setup();
-      let resolveRefresh: (() => void) | null = null;
+      let resolveRefresh!: () => void;
       mockRefresh.mockImplementation(
         () => new Promise<void>((resolve) => {
-          resolveRefresh = resolve;
+          resolveRefresh = () => resolve();
         }),
       );
 
@@ -128,7 +128,7 @@ describe('LearningHub', () => {
 
       expect(screen.getByText('Gebärdenliste wird im Hintergrund aktualisiert…')).toBeInTheDocument();
 
-      resolveRefresh?.();
+      resolveRefresh();
       await waitFor(() => {
         expect(screen.queryByText('Gebärdenliste wird im Hintergrund aktualisiert…')).not.toBeInTheDocument();
       });
