@@ -62,7 +62,8 @@ Für UI-Checks und Screenshots musst du nicht am Login hängen bleiben:
 
 1. Öffne die Startseite der Webapp.
 2. Klicke **„Ohne Anmeldung fortfahren (Demo)”**.
-3. Navigiere danach zur gewünschten Ansicht (z. B. **Training / Upload**) und erstelle dort den Screenshot.
+3. Klicke auf der Startansicht auf **„Lernen entdecken”**, um direkt auf eine inhaltlich relevante Oberfläche zu kommen.
+4. Navigiere danach zur gewünschten Ansicht (z. B. **Training / Upload**) und erstelle dort den Screenshot.
 
 So landen Screenshots in Reviews auf der relevanten Fachansicht statt auf dem Login-Screen.
 
