@@ -85,6 +85,7 @@ function SymbolButtonComponent({ symbol, onPress, largeText = false, highContras
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       aria-label={symbol.name}
+      data-symbol-id={symbol.id}
       role="button"
       tabIndex={0}
     >

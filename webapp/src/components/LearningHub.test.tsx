@@ -18,6 +18,15 @@ const mockSaveSymbol = vi.fn().mockResolvedValue({
 });
 
 const mockShowToast = vi.fn();
+const mockRefresh = vi.fn();
+
+const mockSymbolStoreState = {
+  symbols: [] as SymbolDefinition[],
+  refresh: mockRefresh,
+  syncError: null as string | null,
+  loading: false,
+  saveSymbol: mockSaveSymbol,
+};
 
 const mockSymbols: SymbolDefinition[] = [
   { id: 'alle', name: 'Alle', category: 'basic', emoji: '👐', sampleCount: 0, samplesNeeded: 5, isReady: false, status: 'registered' },
@@ -29,13 +38,7 @@ vi.mock('../context/SymbolStore', async () => {
   const actual = await vi.importActual('../context/SymbolStore');
   return {
     ...actual,
-    useSymbolStore: () => ({
-      symbols: mockSymbols,
-      refresh: vi.fn(),
-      syncError: null,
-      loading: false,
-      saveSymbol: mockSaveSymbol,
-    }),
+    useSymbolStore: () => mockSymbolStoreState,
   };
 });
 
@@ -67,6 +70,10 @@ const renderWithProviders = (ui: ReactElement) => {
 describe('LearningHub', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRefresh.mockResolvedValue(undefined);
+    mockSymbolStoreState.symbols = mockSymbols;
+    mockSymbolStoreState.loading = false;
+    mockSymbolStoreState.syncError = null;
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ symbols: mockSymbols }),
@@ -98,6 +105,33 @@ describe('LearningHub', () => {
       renderWithProviders(<LearningHub />);
 
       expect(screen.getByText('💡 Tipps für effektives Training')).toBeInTheDocument();
+    });
+
+    it('shows a non-blocking loading indicator while symbols refresh in background', () => {
+      mockSymbolStoreState.loading = true;
+      renderWithProviders(<LearningHub />);
+
+      expect(screen.getByText('Gebärdenliste wird im Hintergrund aktualisiert…')).toBeInTheDocument();
+    });
+
+    it('shows loading indicator when refresh button is pressed', async () => {
+      const user = userEvent.setup();
+      let resolveRefresh!: () => void;
+      mockRefresh.mockImplementation(
+        () => new Promise<void>((resolve) => {
+          resolveRefresh = () => resolve();
+        }),
+      );
+
+      renderWithProviders(<LearningHub />);
+      await user.click(screen.getByRole('button', { name: '🔄 Synchronisieren' }));
+
+      expect(screen.getByText('Gebärdenliste wird im Hintergrund aktualisiert…')).toBeInTheDocument();
+
+      resolveRefresh();
+      await waitFor(() => {
+        expect(screen.queryByText('Gebärdenliste wird im Hintergrund aktualisiert…')).not.toBeInTheDocument();
+      });
     });
 
     it('prefers profile-specific symbols over globals with the same name', () => {

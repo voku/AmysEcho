@@ -136,6 +136,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   const syncingRef = useRef(false);
   const retryStateRef = useRef({ retryCount: 0, nextAllowed: 0 });
   const syncTimerRef = useRef<number | null>(null);
+  const lastSymbolLoadToastRef = useRef<{ message: string; shownAt: number } | null>(null);
   
   const stateRef = useRef(state);
   const profileIdRef = useRef(profileId);
@@ -353,7 +354,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         const nextRetryCount = Math.min(retryStateRef.current.retryCount + 1, 6);
         const delay = Math.min(MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS * 2 ** (nextRetryCount - 1));
         retryStateRef.current = { retryCount: nextRetryCount, nextAllowed: Date.now() + delay };
-        if (typeof window !== 'undefined' && stateRef.current.pending.length > 0) {
+        if (typeof window !== 'undefined') {
           if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
           syncTimerRef.current = window.setTimeout(() => {
             syncTimerRef.current = null;
@@ -363,7 +364,17 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       }
 
       if (!options?.silent && !isAuthError) {
-        showToast({ message: `Gebärden-Liste konnte nicht geladen werden: ${reason}`, tone: 'warning' });
+        const toastMessage = `Gebärden-Liste konnte nicht geladen werden: ${reason}`;
+        const now = Date.now();
+        const lastToast = lastSymbolLoadToastRef.current;
+        const shouldShowToast = !lastToast
+          || lastToast.message !== toastMessage
+          || now - lastToast.shownAt > 4000;
+
+        if (shouldShowToast) {
+          showToast({ message: toastMessage, tone: 'warning' });
+          lastSymbolLoadToastRef.current = { message: toastMessage, shownAt: now };
+        }
       }
     } finally {
       setLoading(false);

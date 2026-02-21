@@ -475,14 +475,47 @@ export function TrainingUploadWithRecording() {
   const { symbols: metacomSymbols } = useMetacomBundle({ vocabularySet });
   const { combinedSymbols, symbolById, symbolByName } = useMemo(() => {
     const merged = new Map<string, SymbolDefinition>();
-    const seenNames = new Set<string>();
+    const idByName = new Map<string, string>();
+    const winnerByName = new Map<string, SymbolDefinition>();
 
     for (const symbol of symbols) {
-      merged.set(symbol.id, symbol);
       const normalizedName = normalizeSymbolName(symbol.name);
-      if (normalizedName) {
-        seenNames.add(normalizedName);
+      if (!normalizedName) {
+        continue;
       }
+
+      const existingSymbol = winnerByName.get(normalizedName);
+      if (!existingSymbol) {
+        winnerByName.set(normalizedName, symbol);
+        continue;
+      }
+
+      const shouldPreferCurrent = Boolean(symbol.profileId) && !Boolean(existingSymbol?.profileId);
+      if (shouldPreferCurrent) {
+        winnerByName.set(normalizedName, symbol);
+      }
+    }
+
+    const insertedWinnerNames = new Set<string>();
+    for (const symbol of symbols) {
+      const normalizedName = normalizeSymbolName(symbol.name);
+      if (!normalizedName) {
+        merged.set(symbol.id, symbol);
+        continue;
+      }
+
+      if (insertedWinnerNames.has(normalizedName)) {
+        continue;
+      }
+
+      const winner = winnerByName.get(normalizedName);
+      if (!winner) {
+        continue;
+      }
+
+      merged.set(winner.id, winner);
+      idByName.set(normalizedName, winner.id);
+      insertedWinnerNames.add(normalizedName);
     }
 
     for (const symbol of metacomSymbols) {
@@ -495,14 +528,14 @@ export function TrainingUploadWithRecording() {
       };
       const normalizedName = normalizeSymbolName(nextSymbol.name);
       if (normalizedName) {
-        if (seenNames.has(normalizedName)) {
+        if (idByName.has(normalizedName)) {
           continue;
         }
       }
       if (!merged.has(nextSymbol.id)) {
         merged.set(nextSymbol.id, nextSymbol);
         if (normalizedName) {
-          seenNames.add(normalizedName);
+          idByName.set(normalizedName, nextSymbol.id);
         }
       }
     }

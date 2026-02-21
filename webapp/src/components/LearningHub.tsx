@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { useMessage } from '../context/MessageContext';
 import { useAppState } from '../hooks/useAppState';
+import LoadingIndicator from './LoadingIndicator';
 
 const MIN_SAMPLES_FOR_READY = 5;
 
@@ -34,6 +35,7 @@ export function LearningHub() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [manualRefreshLoading, setManualRefreshLoading] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
@@ -148,6 +150,15 @@ export function LearningHub() {
   const handleCloseModal = () => {
     setModalOpen(false);
     setSavingSymbol(false);
+  };
+
+  const handleRefreshSymbols = async () => {
+    setManualRefreshLoading(true);
+    try {
+      await refresh();
+    } finally {
+      setManualRefreshLoading(false);
+    }
   };
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -277,14 +288,24 @@ export function LearningHub() {
           {searchTerm && <button className="clear-search" onClick={() => setSearchTerm('')}>✕</button>}
         </div>
         <div className="action-buttons">
-          <button className="secondary-button" onClick={refresh} disabled={loading}>
-            {loading ? 'Aktualisiere…' : '🔄 Synchronisieren'}
+          <button className="secondary-button" onClick={handleRefreshSymbols} disabled={loading || manualRefreshLoading}>
+            {loading || manualRefreshLoading ? 'Aktualisiere…' : '🔄 Synchronisieren'}
           </button>
           <button className="primary-button" onClick={handleOpenModal}>
             ➕ Neue Gebärde
           </button>
         </div>
       </div>
+
+      {(loading || manualRefreshLoading) && (
+        <div className="notice info mb-md" role="status" aria-live="polite">
+          <LoadingIndicator
+            fullscreen={false}
+            size="small"
+            label="Gebärdenliste wird im Hintergrund aktualisiert…"
+          />
+        </div>
+      )}
 
       <div className="category-filters mb-lg">
         {categories.map(cat => (
