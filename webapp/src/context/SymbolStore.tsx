@@ -354,7 +354,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         const nextRetryCount = Math.min(retryStateRef.current.retryCount + 1, 6);
         const delay = Math.min(MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS * 2 ** (nextRetryCount - 1));
         retryStateRef.current = { retryCount: nextRetryCount, nextAllowed: Date.now() + delay };
-        if (typeof window !== 'undefined' && stateRef.current.pending.length > 0) {
+        if (typeof window !== 'undefined') {
           if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
           syncTimerRef.current = window.setTimeout(() => {
             syncTimerRef.current = null;

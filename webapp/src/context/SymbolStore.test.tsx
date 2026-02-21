@@ -212,4 +212,31 @@ describe('SymbolStore offline handling', () => {
       );
     });
   });
+
+  it('schedules a retry after transient symbol fetch errors without pending symbols', async () => {
+    const fetchMock = global.fetch as unknown as Mock;
+    const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
+
+    const { result } = renderHook(() => useSymbolStore(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    fetchMock.mockRejectedValueOnce(new TypeError('Network error'));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    await waitFor(() => {
+      expect(result.current.syncError).toBe('Network error');
+    });
+
+    expect(setTimeoutSpy).toHaveBeenCalled();
+    const retryDelays = setTimeoutSpy.mock.calls
+      .map((call) => call[1])
+      .filter((value): value is number => typeof value === 'number');
+    expect(retryDelays.some((delay) => delay >= 1000)).toBe(true);
+  });
 });
