@@ -10,20 +10,22 @@ import { getActiveProfile } from '../services/profileRegistry';
 
 // Mock the hooks that have external dependencies
 const toggleAudioMutedMock = vi.fn();
+const detectorState = {
+  start: vi.fn().mockResolvedValue(true),
+  stop: vi.fn().mockResolvedValue(undefined),
+  cleanup: vi.fn().mockResolvedValue(undefined),
+  audioMuted: false,
+  toggleAudioMuted: toggleAudioMutedMock,
+  status: 'idle',
+  error: null as string | null,
+  lastSign: null as string | null,
+  lastLandmarks: [] as number[][][],
+  lastConfidence: null as number | null,
+  messageLog: [],
+};
 
 vi.mock('../hooks/useSignLanguageDetector', () => ({
-  useSignLanguageDetector: () => ({
-    start: vi.fn().mockResolvedValue(true),
-    stop: vi.fn().mockResolvedValue(undefined),
-    cleanup: vi.fn().mockResolvedValue(undefined),
-    audioMuted: false,
-    toggleAudioMuted: toggleAudioMutedMock,
-    status: 'idle',
-    error: null,
-    lastSign: null,
-    lastConfidence: null,
-    messageLog: [],
-  }),
+  useSignLanguageDetector: () => detectorState,
 }));
 
 vi.mock('../hooks/useMlpModelInjection', () => ({
@@ -87,6 +89,11 @@ describe('SignLanguageRecorder', () => {
     vi.mocked(getActiveProfile).mockResolvedValue(null);
     window.localStorage.clear();
     toggleAudioMutedMock.mockReset();
+    detectorState.status = 'idle';
+    detectorState.error = null;
+    detectorState.lastSign = null;
+    detectorState.lastLandmarks = [];
+    detectorState.lastConfidence = null;
   });
 
   it('renders the gesture demo section', () => {
@@ -163,6 +170,15 @@ describe('SignLanguageRecorder', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
     expect(screen.getByText('Zeige eine Gebärde in die Kamera…')).toBeInTheDocument();
+  });
+
+  it('shows hand-detected feedback while waiting for a trained gesture', () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    expect(screen.getByText('Hand erkannt – ich suche nach einer passenden Gebärde…')).toBeInTheDocument();
   });
 
   it('shows initial status as ready (Bereit)', () => {

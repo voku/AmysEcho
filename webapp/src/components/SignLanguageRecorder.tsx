@@ -81,6 +81,7 @@ export function SignLanguageRecorder() {
     error,
     lastSign,
     lastConfidence,
+    lastLandmarks,
     audioMuted,
     toggleAudioMuted,
   } = useSignLanguageDetector(videoRef, overlayRef);
@@ -253,6 +254,7 @@ export function SignLanguageRecorder() {
     ? gestureMeaning?.audioText ?? gestureLabel ?? normalizedGesture
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
+  const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
 
   const handleStart = async () => {
     await start();
@@ -406,7 +408,11 @@ export function SignLanguageRecorder() {
             </div>
           ) : (
             <span className="gesture-screen__placeholder">
-              {demoMode ? 'Demo-Modus: Gestenerkennung deaktiviert' : 'Zeige eine Gebärde in die Kamera…'}
+              {demoMode
+                ? 'Demo-Modus: Gestenerkennung deaktiviert'
+                : hasDetectedHands
+                  ? 'Hand erkannt – ich suche nach einer passenden Gebärde…'
+                  : 'Zeige eine Gebärde in die Kamera…'}
             </span>
           )}
         </div>
