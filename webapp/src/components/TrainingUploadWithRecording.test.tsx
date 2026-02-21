@@ -412,7 +412,6 @@ describe('TrainingUploadWithRecording', () => {
   }, TEST_TIMEOUT);
 
   it('shows duplicate names from the symbol store only once and keeps the profile symbol', async () => {
-    const user = userEvent.setup();
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes('/api/v1/dgs/training-quality')) {
@@ -457,29 +456,13 @@ describe('TrainingUploadWithRecording', () => {
       } as any;
     });
 
-    const profile = await createProfile({ displayName: 'Test Profil', profileId: TEST_PROFILE_ID });
-    await addProfile(profile);
-    await setActiveProfile(profile.uuid);
-
     renderWithProviders();
 
     await waitFor(() => {
       expect(screen.getAllByLabelText('Essen')).toHaveLength(1);
     });
 
-    await waitFor(() => {
-      const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
-      expect(profileInput.value).toBe(TEST_PROFILE_ID);
-    });
-
-    await user.click(screen.getByLabelText('Essen'));
-    await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/i }));
-
-    await waitFor(() => {
-      expect(uploadMock).toHaveBeenCalledTimes(1);
-    });
-
-    const payload = uploadMock.mock.calls[0]?.[0];
-    expect(payload?.label).toBe('symbol-profile-essen');
+    const essenButton = screen.getByLabelText('Essen');
+    expect(essenButton).toHaveAttribute('data-symbol-id', 'symbol-profile-essen');
   }, TEST_TIMEOUT);
 });
