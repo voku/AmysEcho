@@ -217,6 +217,46 @@ function calculateGestureConfidenceWithContext(
 - Large UI flows (auth, settings, dashboards) should live in `webapp/src/components/` with colocated tests.
 - If `App.tsx` is growing beyond routing/state orchestration, move UI into dedicated components.
 
+## Identity Architecture Quick Reference (Account vs. Profile)
+
+When working on auth, settings, uploads, training, or any API integration, always separate **account identity** from **profile identity**:
+
+### 1) Account identity (`Konto`)
+- Purpose: authentication and session lifecycle.
+- Typical scope: register/login/logout, refresh token, password reset/change, account deletion.
+- Primary code touchpoints:
+  - `webapp/src/hooks/useApiConfig.tsx` (token persistence, refresh, auth headers)
+  - `webapp/src/components/LoginScreen.tsx` (register/login/reset/verify UX)
+  - `webapp/src/components/UserSettings.tsx` (logout, account deletion, password flows)
+
+### 2) Profile identity (`Kind-Profil` / communication user)
+- Purpose: child-specific communication context and multimodal learning state.
+- Typical scope: `profileId`, active profile switching, gesture/model personalization, uploads/training queues, profile-scoped caches.
+- Primary code touchpoints:
+  - `webapp/src/services/profileRegistry.ts` (profile lifecycle, active profile, integrity checks)
+  - `webapp/src/hooks/useAppState.tsx` (active profile surfaced to UI)
+  - `webapp/src/hooks/useTrainingUploader.ts` (queued bundles and profile-scoped training sync)
+  - `webapp/src/context/SymbolStore.tsx` (profile-aware symbol/pending cache and sync)
+
+### 3) Non-negotiable boundary rules
+- A valid account token **does not** replace missing profile context.
+- A selected profile **does not** imply valid auth/session.
+- Uploads/training/recognition operations should verify both dimensions when required:
+  - account auth (token/session), and
+  - profile scope (`profileId`/active profile).
+- For bugs in one flow, quickly check for the same pattern in neighboring modules before applying a narrow fix.
+
+### 4) Naming guidance for future contributors/agents
+- Use `account`, `auth`, `session`, `token` for caregiver login identity.
+- Use `profile`, `profileId`, `child profile`, `communication profile` for Amy/child-specific data scope.
+- Avoid ambiguous `user` naming unless the type/doc explicitly states whether it means account or profile.
+
+### 5) Fast pre-PR checklist for identity-sensitive changes
+- Did you test at least one non-happy-path auth failure (`401`/expired session)?
+- Did you test missing/stale profile context during upload/training/profile-scoped operations?
+- Did you verify that local UI state does not claim success when server state failed?
+- Did you check for existing shared retry/auth patterns before introducing a custom local approach?
+
 ## Testing Rules
 
 - Never skip or comment out existing tests. Update them when behavior changes.

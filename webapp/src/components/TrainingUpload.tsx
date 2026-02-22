@@ -566,10 +566,12 @@ export function TrainingUploadWithRecording() {
   const [qualityEntries, setQualityEntries] = useState<TrainingQualityLogEntry[]>([]);
   const [qualityLoading, setQualityLoading] = useState<boolean>(false);
   const [qualityError, setQualityError] = useState<string | null>(null);
-  const metadataReady = !!profileId && profileId.trim().length > 0 && preferredSignId.trim().length > 0;
+  const hasProfileContext = !!profileId && profileId.trim().length > 0;
+  const hasGestureSelection = preferredSignId.trim().length > 0;
+  const metadataReady = hasProfileContext && hasGestureSelection;
   const metadataError = metadataReady
     ? ''
-    : 'Bitte wähle eine Gebärde aus, bevor du eine Aufnahme startest.';
+    : 'Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.';
   const [searchParams] = useSearchParams();
   const gestureParam = searchParams.get('gesture');
   const symbolIdParam = searchParams.get('symbolId');

@@ -236,6 +236,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
     syncingRef.current = true;
     try {
       const syncedIds = new Set<string>();
+      let successfulSyncCount = 0;
       const nextConfirmedSymbols = [...currentSymbols];
 
       for (const pendingSymbol of currentPending) {
@@ -259,6 +260,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
               }),
           );
           syncedIds.add(saved.id);
+          successfulSyncCount += 1;
           const exists = nextConfirmedSymbols.findIndex(s => s.id === saved.id);
           if (exists !== -1) {
             nextConfirmedSymbols[exists] = saved;
@@ -282,17 +284,17 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      updateStoreState((prev) => {
-        const finalPending = (prev?.pending ?? []).filter(p => !syncedIds.has(p.id));
+      const finalPending = currentPending.filter((symbol) => !syncedIds.has(symbol.id));
+      updateStoreState(() => {
         writeCache(currentProfileId, nextConfirmedSymbols, finalPending);
         return { symbols: nextConfirmedSymbols, pending: finalPending, cachedAt: Date.now() };
       });
 
-      if (syncedIds.size > 0) {
+      if (successfulSyncCount > 0) {
         showToast({ message: 'Offline gespeicherte Gebärden synchronisiert.', tone: 'success' });
       }
 
-      return { symbols: nextConfirmedSymbols, pending: stateRef.current.pending };
+      return { symbols: nextConfirmedSymbols, pending: finalPending };
     } finally {
       syncingRef.current = false;
     }
@@ -384,17 +386,24 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(() => fetchSymbols(), [fetchSymbols]);
 
   useEffect(() => {
-    if (symbols.length === 0 || pendingCount > 0) {
-      const delay = Math.max(0, retryStateRef.current.nextAllowed - Date.now());
-      if (typeof window === 'undefined' || delay === 0) {
-        void fetchSymbols({ silent: true });
-      } else {
-        if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
-        syncTimerRef.current = window.setTimeout(() => {
+    if (pendingCount <= 0) {
+      return () => {
+        if (syncTimerRef.current) {
+          window.clearTimeout(syncTimerRef.current);
           syncTimerRef.current = null;
-          void fetchSymbols({ silent: true });
-        }, delay);
-      }
+        }
+      };
+    }
+
+    const delay = Math.max(0, retryStateRef.current.nextAllowed - Date.now());
+    if (typeof window === 'undefined' || delay === 0) {
+      void fetchSymbols({ silent: true });
+    } else {
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => {
+        syncTimerRef.current = null;
+        void fetchSymbols({ silent: true });
+      }, delay);
     }
 
     return () => {
@@ -403,7 +412,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
         syncTimerRef.current = null;
       }
     };
-  }, [fetchSymbols, pendingCount, symbols.length]);
+  }, [fetchSymbols, pendingCount]);
 
   const saveSymbol = useCallback(
     async (input: SymbolDefinition & { imageDataUrl?: string | null }) => {
@@ -499,14 +508,18 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         const isAuthError = error instanceof HttpError && error.status === 401;
         const reason = isAuthError ? SESSION_EXPIRED_MESSAGE : error instanceof Error ? error.message : 'Unbekannter Fehler';
-        updateStoreState((prev) => {
-          const nextSymbols = (prev?.symbols ?? []).filter((symbol) => symbol.id !== id);
-          const nextPending = (prev?.pending ?? []).filter((symbol) => symbol.id !== id);
-          writeCache(currentProfileId, nextSymbols, nextPending);
-          return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
-        });
+
+        if (!isAuthError) {
+          updateStoreState((prev) => {
+            const nextSymbols = (prev?.symbols ?? []).filter((symbol) => symbol.id !== id);
+            const nextPending = (prev?.pending ?? []).filter((symbol) => symbol.id !== id);
+            writeCache(currentProfileId, nextSymbols, nextPending);
+            return { symbols: nextSymbols, pending: nextPending, cachedAt: Date.now() };
+          });
+          showToast({ message: `Gebärde nur lokal gelöscht: ${reason}`, tone: 'warning' });
+        }
+
         setSyncError(reason);
-        if (!isAuthError) showToast({ message: `Gebärde nur lokal gelöscht: ${reason}`, tone: 'warning' });
       }
     },
     [apiBaseUrl, resolveHeaders, showToast, updateStoreState, withAuthRetry],

@@ -69,7 +69,11 @@ export async function withRetry<T>(
         totalTimeMs: Date.now() - startTime,
       };
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+      if (error instanceof Response) {
+        lastError = new Error(`HTTP ${error.status}: ${error.statusText}`);
+      } else {
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
       
       if (attempt >= fullConfig.maxRetries || !isRetryableError(error, fullConfig)) {
         break;

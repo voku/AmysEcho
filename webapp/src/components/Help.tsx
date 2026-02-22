@@ -7,9 +7,29 @@ import { useSymbolStore } from '../context/SymbolStore';
  */
 export function Help() {
   const { symbols, loading, syncError } = useSymbolStore();
+  const activeSymbols = useMemo(() => {
+    const symbolsByName = new Map<string, (typeof symbols)[number]>();
+
+    for (const symbol of symbols) {
+      const normalizedName = symbol.name.trim().toLocaleLowerCase('de-DE');
+      const existingSymbol = symbolsByName.get(normalizedName);
+
+      if (!existingSymbol) {
+        symbolsByName.set(normalizedName, symbol);
+        continue;
+      }
+
+      if (!existingSymbol.profileId && symbol.profileId) {
+        symbolsByName.set(normalizedName, symbol);
+      }
+    }
+
+    return Array.from(symbolsByName.values());
+  }, [symbols]);
+
   const sortedSymbols = useMemo(
-    () => [...symbols].sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    [symbols],
+    () => [...activeSymbols].sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    [activeSymbols],
   );
   const hasSymbols = sortedSymbols.length > 0;
 
