@@ -16,7 +16,10 @@ vi.mock('../context/MessageContext', () => ({
 
 vi.mock('../context/SymbolStore', () => ({
   useSymbolStore: () => ({
-    symbols: [{ id: 'essen', name: 'Essen', category: 'food' }],
+    symbols: [
+      { id: 'global-essen', name: 'Essen', category: 'food' },
+      { id: 'profile-essen', name: ' essen ', category: 'food', profileId: 'amy' },
+    ],
     saveSymbol: vi.fn(),
     removeSymbol: vi.fn(),
     refresh: vi.fn(),
@@ -47,7 +50,16 @@ describe('Admin', () => {
     );
 
     expect(screen.getByRole('heading', { name: /Adminbereich/ })).toBeInTheDocument();
-    expect(screen.getByText('Essen')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Backend-Token speichern/i })).toBeInTheDocument();
+  });
+
+  it('shows duplicate symbol names only once in Symbolsammlung', () => {
+    render(
+      <MemoryRouter>
+        <Admin />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByText(/essen/i)).toHaveLength(1);
   });
 });

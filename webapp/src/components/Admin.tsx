@@ -11,6 +11,7 @@ import { useMessage } from '../context/MessageContext';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { backupService } from '../services/backupService';
 import { clearMetacomBundle, storeMetacomBundle } from '../services/metacomBundleService';
+import { dedupeSymbolsByName } from '../utils/symbolDedup';
 
 const METACOM_TEMPLATE = {
   version: '1.0',
@@ -64,7 +65,7 @@ export const Admin: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const sortedSymbols = useMemo(
-    () => [...symbols].sort((a, b) => a.name.localeCompare(b.name)),
+    () => dedupeSymbolsByName(symbols).sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [symbols],
   );
 
