@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useSymbolStore } from '../context/SymbolStore';
+import { dedupeSymbolsByName } from '../utils/symbolDedup';
 
 /**
  * Help component - mirrors HelpScreen from the Expo app.
@@ -7,27 +8,7 @@ import { useSymbolStore } from '../context/SymbolStore';
  */
 export function Help() {
   const { symbols, loading, syncError } = useSymbolStore();
-  const activeSymbols = useMemo(() => {
-    const symbolsByName = new Map<string, (typeof symbols)[number]>();
-
-    for (const symbol of symbols) {
-      const trimmedName = symbol.name.trim();
-      const normalizedName = trimmedName.toLocaleLowerCase('de-DE');
-      const normalizedSymbol = { ...symbol, name: trimmedName };
-      const existingSymbol = symbolsByName.get(normalizedName);
-
-      if (!existingSymbol) {
-        symbolsByName.set(normalizedName, normalizedSymbol);
-        continue;
-      }
-
-      if (!existingSymbol.profileId && symbol.profileId) {
-        symbolsByName.set(normalizedName, normalizedSymbol);
-      }
-    }
-
-    return Array.from(symbolsByName.values());
-  }, [symbols]);
+  const activeSymbols = useMemo(() => dedupeSymbolsByName(symbols), [symbols]);
 
   const sortedSymbols = useMemo(
     () => [...activeSymbols].sort((a, b) => a.name.localeCompare(b.name, 'de')),
