@@ -23,6 +23,7 @@ import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { SymbolButton } from './SymbolButton';
 import { syncAllProfilesToServer } from '../services/profileRegistry';
+import { normalizeSymbolName } from '../utils/symbolDedup';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -109,7 +110,6 @@ const getQualityAreaName = (part: string): string => {
   return 'Bereich';
 };
 
-const normalizeSymbolName = (name: string): string => name.trim().toLocaleLowerCase('de-DE');
 
 // Server sendet die technischen Gründe aktuell als Strings wie
 // "handCoverage 0.40 < 0.50" bzw. "handJitter 0.123 > 0.100".

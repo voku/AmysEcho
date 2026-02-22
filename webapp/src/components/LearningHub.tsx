@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { useMessage } from '../context/MessageContext';
 import { useAppState } from '../hooks/useAppState';
+import { dedupeSymbolsByName, normalizeSymbolName } from '../utils/symbolDedup';
 import LoadingIndicator from './LoadingIndicator';
 
 const MIN_SAMPLES_FOR_READY = 5;
@@ -48,20 +49,7 @@ export function LearningHub() {
 
   const activeSymbols = useMemo(() => {
     const baseSymbols = symbols.length > 0 ? symbols : BASELINE_GESTURES;
-    const profileNameSet = new Set(
-      baseSymbols
-        .filter((symbol) => symbol.profileId)
-        .map((symbol) => symbol.name.trim().toLocaleLowerCase('de-DE')),
-    );
-
-    return baseSymbols.filter((symbol) => {
-      if (symbol.profileId) {
-        return true;
-      }
-
-      const normalizedName = symbol.name.trim().toLocaleLowerCase('de-DE');
-      return !profileNameSet.has(normalizedName);
-    });
+    return dedupeSymbolsByName(baseSymbols);
   }, [symbols]);
 
   const buildProfileOverrideId = useCallback((baseId: string): string => {
@@ -130,7 +118,7 @@ export function LearningHub() {
   const handleEditSymbol = (symbol: SymbolDefinition) => {
     const isGlobalSymbol = !symbol.profileId;
     const existingOverride = symbols.find(
-      (entry) => entry.profileId && entry.name.trim().toLocaleLowerCase('de-DE') === symbol.name.trim().toLocaleLowerCase('de-DE'),
+      (entry) => entry.profileId && normalizeSymbolName(entry.name) === normalizeSymbolName(symbol.name),
     );
     const symbolId = isGlobalSymbol
       ? (existingOverride?.id ?? buildProfileOverrideId(symbol.id))
