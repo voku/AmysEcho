@@ -213,7 +213,129 @@ describe('SymbolStore offline handling', () => {
     });
   });
 
-  it('schedules a retry after transient symbol fetch errors without pending symbols', async () => {
+
+  it('does not show sync success toast when pending symbol upload is rejected with 4xx', async () => {
+    const fetchMock = global.fetch as unknown as Mock;
+
+    localStorage.setItem(
+      `amysecho_symbols_${mockProfileId}`,
+      JSON.stringify({
+        symbols: [],
+        pending: [{ id: 'bad-symbol', name: 'Bad', category: 'custom', imageUrl: null }],
+        cachedAt: Date.now(),
+      }),
+    );
+
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return new Response(JSON.stringify({ message: 'ungueltig' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ symbols: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    renderHook(() => useSymbolStore(), { wrapper });
+
+    await waitFor(() => {
+      const toastMessages = showToastMock.mock.calls.map((call) => call[0]?.message);
+      expect(toastMessages.some((message) => typeof message === 'string' && message.includes('konnte nicht synchronisiert werden'))).toBe(true);
+    });
+
+    const toastMessages = showToastMock.mock.calls.map((call) => call[0]?.message);
+    expect(toastMessages).not.toContain('Offline gespeicherte Gebärden synchronisiert.');
+  });
+
+
+
+  it('removes 4xx-rejected pending symbols from pending state after refresh', async () => {
+    const fetchMock = global.fetch as unknown as Mock;
+
+    localStorage.setItem(
+      `amysecho_symbols_${mockProfileId}`,
+      JSON.stringify({
+        symbols: [],
+        pending: [{ id: 'reject-me', name: 'Reject', category: 'custom', imageUrl: null }],
+        cachedAt: Date.now(),
+      }),
+    );
+
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return new Response(JSON.stringify({ message: 'ungueltig' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ symbols: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    const { result } = renderHook(() => useSymbolStore(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.symbols.some((symbol) => symbol.id === 'reject-me')).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    await waitFor(() => {
+      const cache = JSON.parse(localStorage.getItem(`amysecho_symbols_${mockProfileId}`) || '{}');
+      const pending = Array.isArray(cache.pending) ? cache.pending : [];
+      expect(pending.some((symbol: { id: string }) => symbol.id === 'reject-me')).toBe(false);
+    });
+  });
+
+  it('keeps symbol visible when server delete fails with 401 so caregivers are not misled', async () => {
+    const fetchMock = global.fetch as unknown as Mock;
+
+    localStorage.setItem(
+      `amysecho_symbols_${mockProfileId}`,
+      JSON.stringify({
+        symbols: [{ id: 'keep-me', name: 'Behalten', category: 'custom', imageUrl: null }],
+        pending: [],
+        cachedAt: Date.now(),
+      }),
+    );
+
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'DELETE') {
+        return new Response(JSON.stringify({ message: 'expired' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ symbols: [{ id: 'keep-me', name: 'Behalten', category: 'custom', imageUrl: null }] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    const { result } = renderHook(() => useSymbolStore(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.symbols.some((symbol) => symbol.id === 'keep-me')).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.removeSymbol('keep-me');
+    });
+
+    await waitFor(() => {
+      expect(result.current.symbols.some((symbol) => symbol.id === 'keep-me')).toBe(true);
+      expect(result.current.syncError).toContain('Sitzung');
+    });
+  });
+
+  it('schedules one retry after transient symbol fetch errors without entering a refresh loop', async () => {
     const fetchMock = global.fetch as unknown as Mock;
     const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
 
@@ -223,6 +345,7 @@ describe('SymbolStore offline handling', () => {
       expect(result.current.loading).toBe(false);
     });
 
+    const baselineCalls = fetchMock.mock.calls.length;
     fetchMock.mockRejectedValueOnce(new TypeError('Network error'));
 
     await act(async () => {
@@ -232,6 +355,9 @@ describe('SymbolStore offline handling', () => {
     await waitFor(() => {
       expect(result.current.syncError).toBe('Network error');
     });
+
+    const callsAfterRefresh = fetchMock.mock.calls.length;
+    expect(callsAfterRefresh - baselineCalls).toBe(1);
 
     expect(setTimeoutSpy).toHaveBeenCalled();
     const retryDelays = setTimeoutSpy.mock.calls

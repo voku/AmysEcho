@@ -13,7 +13,8 @@
     "test": "vitest run",
     "type-check": "tsc -p tsconfig.app.json --noEmit",
     "preview": "vite preview",
-    "deps-snapshot": "npm ls --all --json --silent --legacy-peer-deps > ../docs/deps/webapp-deps.json"
+    "deps-snapshot": "npm ls --all --json --silent --legacy-peer-deps > ../docs/deps/webapp-deps.json",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "fflate": "^0.8.2",
@@ -33,6 +34,7 @@
     "@typescript-eslint/eslint-plugin": "^8.50.0",
     "@typescript-eslint/parser": "^8.50.0",
     "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",

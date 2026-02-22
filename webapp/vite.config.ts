@@ -36,5 +36,15 @@ export default defineConfig({
     globalSetup: './src/testGlobalSetup.ts',
     css: true,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      thresholds: {
+        statements: 68,
+        branches: 57,
+        functions: 70,
+        lines: 70,
+      },
+    },
   },
 });

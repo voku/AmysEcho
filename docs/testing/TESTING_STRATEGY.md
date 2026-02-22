@@ -25,6 +25,104 @@
 - [ ] **Utility functions**: >60% coverage
 - [ ] **Integration tests**: >50% coverage
 
+## ✅ Enforced Coverage Baseline (CI Gate)
+
+To prevent coverage regressions, the webapp test pipeline now enforces a minimum V8 coverage baseline:
+
+- Statements: **68%**
+- Branches: **57%**
+- Functions: **70%**
+- Lines: **70%**
+
+The gate runs in CI via `npm --prefix webapp run test:coverage` and fails the build if any threshold drops below baseline.
+
+The branch threshold is intentionally lower as a **current floor** (close to measured baseline) to prevent regressions while the suite is still expanding. Treat it as transitional, and raise it incrementally (target: **65% branches** in the next quality-improvement cycle).
+
+
+## 🔍 Bug-Finding Workflow (TDD + Context-Driven)
+
+To increase **real quality** (not only coverage), use a structured loop that stays flexible to context:
+
+1. **Choose a risk scenario first**
+   - e.g. expired session (`401`), validation reject (`4xx`), transient network failure, stale cache/race conditions.
+   - prioritize scenarios that can confuse Amy/caregivers or break communication continuity.
+
+2. **Check existing solutions before implementing**
+   - search for similar patterns in the codebase (`rg`) and confirm whether this problem is already solved elsewhere.
+   - prefer reusing established mechanisms (for example shared retry/auth/error utilities) when they fit.
+   - if a local fix is better, document why reuse was not chosen.
+
+3. **Write a test for expected behavior (usually first)**
+   - in most cases, start with a failing regression test (red).
+   - if setup constraints require it, you may iterate test+code in small steps, but preserve the bug-reproduction evidence.
+   - assert both internal state and user-visible outcome where relevant.
+
+4. **Validate failure reason before fixing**
+   - confirm the test fails for the intended bug (not for flaky setup/mocks).
+   - adjust test scaffolding first if the failure signal is noisy.
+
+5. **Implement and evaluate fix options**
+   - choose the simplest robust fix when appropriate, but not blindly.
+   - check whether the same pattern exists in other modules and whether a broader/shared fix is safer.
+   - avoid refactor-only churn unless required for correctness.
+
+6. **Verify at multiple levels**
+   - focused test(s) for the touched area,
+   - type-check,
+   - broader suite to catch integration regressions.
+
+7. **Document the lesson**
+   - capture reusable guardrails in this strategy document (or linked docs) so future chats catch the class earlier.
+
+### PR Quality Bar (recommended)
+- Include at least one non-happy-path test for changed logic paths.
+- Include at least one user-visible assertion where UX can diverge from server/internal state.
+- In the PR description, summarize: **repro → test signal → chosen fix approach → verification**.
+
+### Pattern Reuse & Cross-Codebase Checks
+Before finalizing a fix, quickly validate:
+- Does a shared utility/service already address this class of issue?
+- Are there duplicate implementations that should be aligned?
+- Does the same bug pattern appear in nearby modules (same API flow, same cache/update pattern, same retry logic)?
+
+### Example Guardrails from SymbolStore work
+- Avoid reporting global sync success when nothing was actually uploaded successfully.
+- Avoid local state changes that falsely imply server success (e.g., auth-failed delete).
+- Keep pending/queue state deterministic after partial failures to prevent stale re-merge/retry churn.
+- Trigger background retries only when there is actionable pending work.
+
+
+## 🧭 Identity Model Guardrails: Account vs. User/Profile
+
+Amy's Echo uses two related but different identity concepts that must stay separated in code and tests:
+
+- **Account (Konto)**
+  - Authentication identity from register/login (caregiver-facing auth context).
+  - Owns session/token lifecycle (login, refresh, logout, password reset, account deletion/change password).
+- **User/Profile (Kind-Profil)**
+  - Communication identity used for recognition/training/personalization.
+  - Carries `profileId`, model scope, uploads, gesture history, and per-child settings.
+
+### Practical boundary by UI flow
+- **Register/Login**: validates account/session behavior and bootstraps profile linkage, but must not silently replace profile-scoped data assumptions.
+- **Settings**: account actions (credentials/session) and profile actions (active profile, profile export/management) must be tested as separate concerns.
+- **Uploads/Training**: requests must be scoped by active `profileId`; a valid account token is required but not a substitute for profile selection.
+
+### Test checklist for identity-related changes
+When touching auth/profile/upload code, add/verify tests for:
+1. **Auth success + missing/invalid profile linkage** (must fail safely with clear message).
+2. **Valid token + missing profile context** (upload/training must be blocked).
+3. **Profile switch during active session** (requests target new profile, not stale one).
+4. **Session expiry (`401`) during profile operations** (no false local success, preserve server truth).
+5. **Account-level actions do not mutate wrong profile state** (and vice versa).
+
+### Naming recommendation for tests and docs
+To avoid ambiguity in future chats and PRs:
+- use **account/konto** for authentication/session constructs,
+- use **profile/user/child profile** for communication/training scope.
+
+If legacy code uses `user` for both, tests should explicitly assert which identity is intended.
+
 ## 🧪 Test Categories
 
 ### 1. Communication Reliability Tests
@@ -176,7 +274,7 @@ Validate timer-driven polling flows (for example, `useTrainingUploader`) in inte
 **Best Practice**: When you encounter tests that rely on timer-based effects:
 1. ✅ **Convert to integration tests** - Move to `integration/test/` for full lifecycle testing
 2. ✅ **Document the conversion** - Add comments explaining why (see `useTrainingUploader.test.tsx` lines 104-107, 142-145, 206-209, 237-240)
-3. ✅ **Use `it.skip()` with clear explanation** - Keep the unit test code as documentation
+3. ❌ **Avoid `it.skip()`** - Skipped tests provide no regression value and violate the "never skip tests" rule; move such cases to `integration/test/` instead.
 4. ⚠️ **Use fake timers sparingly** - Only when async storage or network mocks remain reliable under simulated time
 
 
