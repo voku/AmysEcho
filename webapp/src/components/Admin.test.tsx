@@ -39,7 +39,7 @@ vi.mock('../services/metacomBundleService', () => ({
 }));
 
 describe('Admin', () => {
-  it('rendert Admin-Werkzeuge und Symbolverwaltung', () => {
+  it('renders admin tools and symbol management', () => {
     render(
       <MemoryRouter>
         <Admin />

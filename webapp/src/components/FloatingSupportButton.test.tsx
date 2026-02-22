@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FloatingSupportButton } from './FloatingSupportButton';
 
 describe('FloatingSupportButton', () => {
-  it('rendert den Link zur Übersicht mit passender Beschriftung', () => {
+  it('renders the overview link with the correct label and href', () => {
     render(
       <BrowserRouter>
         <FloatingSupportButton />

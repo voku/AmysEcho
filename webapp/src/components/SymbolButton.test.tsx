@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SymbolButton } from './SymbolButton';
 
 const symbol = {
@@ -16,6 +16,10 @@ describe('SymbolButton', () => {
       ...navigator,
       vibrate: vi.fn(),
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('löst onPress beim Klick aus und nutzt Vibration', async () => {

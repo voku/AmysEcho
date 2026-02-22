@@ -15,7 +15,7 @@ vi.mock('./UserSettings', () => ({
 }));
 
 describe('Settings', () => {
-  it('zeigt Profilhinweise und die Navigation zur Profilverwaltung', () => {
+  it('shows profile details and navigation to profile management', () => {
     render(
       <BrowserRouter>
         <Settings />
@@ -28,7 +28,7 @@ describe('Settings', () => {
     expect(screen.getByRole('link', { name: 'Profile verwalten' })).toHaveAttribute('href', '/profile');
   });
 
-  it('zeigt Aktionen zur Datenverwaltung', () => {
+  it('shows data-management actions', () => {
     render(
       <BrowserRouter>
         <Settings />

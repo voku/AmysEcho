@@ -8,7 +8,7 @@ describe('CaregiverReport', () => {
     localStorage.clear();
   });
 
-  it('zeigt Profilname und zusammengefasste Lernwerte aus Speicherdaten', () => {
+  it('shows profile name and aggregated learning metrics from stored data', () => {
     localStorage.setItem('amysecho_active_profile', JSON.stringify({ name: 'Amy' }));
     localStorage.setItem(
       'amysecho_progress',
@@ -24,8 +24,7 @@ describe('CaregiverReport', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Bericht für:')).toBeInTheDocument();
-    expect(screen.getByText('Amy')).toBeInTheDocument();
+    expect(screen.getByText(/Bericht für:/, { selector: 'p.profile-note' })).toHaveTextContent('Amy');
     expect(screen.getByText('15')).toBeInTheDocument();
     expect(screen.getByText('85%')).toBeInTheDocument();
   });

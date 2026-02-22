@@ -16,14 +16,14 @@ describe('CommunicationInsights', () => {
     localStorage.clear();
   });
 
-  it('zeigt Empty-State ohne gespeicherte Fortschrittsdaten', async () => {
+  it('shows empty state when no saved progress data exists', async () => {
     render(<CommunicationInsights />);
 
     expect(await screen.findByText('Noch keine Daten vorhanden.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Zur Erkennung' })).toHaveAttribute('href', '/');
   });
 
-  it('zeigt Erkenntnisse mit Top-Gebärden wenn Fortschrittsdaten vorliegen', async () => {
+  it('shows insights with top gestures when progress data exists', async () => {
     localStorage.setItem(
       'webapp:progress:amy',
       JSON.stringify({

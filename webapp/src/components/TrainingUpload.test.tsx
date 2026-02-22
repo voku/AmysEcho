@@ -79,7 +79,7 @@ vi.mock('./TrainingRecorder', () => ({
 }));
 
 describe('TrainingUpload', () => {
-  it('zeigt Validierung, wenn keine Gebärde ausgewählt wurde', async () => {
+  it('shows validation when no gesture is selected', async () => {
     profileIdMock = '11111111-1111-4111-8111-111111111111';
     preferredSignIdMock = '';
     const user = userEvent.setup();
@@ -93,7 +93,7 @@ describe('TrainingUpload', () => {
     expect(screen.getAllByText('Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.').length).toBeGreaterThan(0);
   });
 
-  it('zeigt Validierung, wenn Konto angemeldet ist aber kein Profil aktiv ist', async () => {
+  it('shows validation when account is authenticated but profile is missing', async () => {
     profileIdMock = null;
     preferredSignIdMock = 'hilfe';
     const user = userEvent.setup();
@@ -107,7 +107,7 @@ describe('TrainingUpload', () => {
     expect(screen.getAllByText('Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.').length).toBeGreaterThan(0);
   });
 
-  it('synchronisiert die Warteschlange und zeigt Ergebnistext', async () => {
+  it('syncs queue and shows result message', async () => {
     profileIdMock = '11111111-1111-4111-8111-111111111111';
     preferredSignIdMock = 'hilfe';
     syncQueuedMock.mockResolvedValue({ uploaded: 1, remaining: 0, blocked: 0 });

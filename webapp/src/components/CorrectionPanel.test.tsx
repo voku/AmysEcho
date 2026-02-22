@@ -10,12 +10,12 @@ vi.mock('../hooks/useAppState', () => ({
 }));
 
 describe('CorrectionPanel', () => {
-  it('zeigt Hinweis wenn keine Gebärde erkannt wurde', () => {
+  it('shows hint when no sign has been recognized', () => {
     render(<CorrectionPanel recognizedSign={null} />);
     expect(screen.getByText(/Warte auf erkannte Gebärde/)).toBeInTheDocument();
   });
 
-  it('korrigiert eine Gebärde und ruft Callback auf', async () => {
+  it('corrects a sign and invokes callback', async () => {
     const user = userEvent.setup();
     const onCorrection = vi.fn();
 
@@ -30,7 +30,7 @@ describe('CorrectionPanel', () => {
     expect(screen.getByText(/Korrektur gespeichert/)).toBeInTheDocument();
   });
 
-  it('unterstützt forceOpen + onDismiss', async () => {
+  it('supports forceOpen and calls onDismiss', async () => {
     const user = userEvent.setup();
     const onDismiss = vi.fn();
 

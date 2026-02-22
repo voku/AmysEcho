@@ -11,16 +11,18 @@ export function Help() {
     const symbolsByName = new Map<string, (typeof symbols)[number]>();
 
     for (const symbol of symbols) {
-      const normalizedName = symbol.name.trim().toLocaleLowerCase('de-DE');
+      const trimmedName = symbol.name.trim();
+      const normalizedName = trimmedName.toLocaleLowerCase('de-DE');
+      const normalizedSymbol = { ...symbol, name: trimmedName };
       const existingSymbol = symbolsByName.get(normalizedName);
 
       if (!existingSymbol) {
-        symbolsByName.set(normalizedName, symbol);
+        symbolsByName.set(normalizedName, normalizedSymbol);
         continue;
       }
 
       if (!existingSymbol.profileId && symbol.profileId) {
-        symbolsByName.set(normalizedName, symbol);
+        symbolsByName.set(normalizedName, normalizedSymbol);
       }
     }
 

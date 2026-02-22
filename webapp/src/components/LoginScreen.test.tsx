@@ -31,7 +31,7 @@ describe('LoginScreen', () => {
     vi.stubGlobal('fetch', mocks.fetch);
   });
 
-  it('zeigt Validierungsfehler bei leerem Login und unterstützt Demo-Weiter', async () => {
+  it('shows validation for empty login and supports demo continue', async () => {
     const onComplete = vi.fn();
     const user = userEvent.setup();
     render(<LoginScreen onComplete={onComplete} />);
@@ -43,7 +43,7 @@ describe('LoginScreen', () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it('führt erfolgreichen Login aus und setzt Token/Profile', async () => {
+  it('runs successful login and sets tokens/profile', async () => {
     const onComplete = vi.fn();
     mocks.fetch.mockResolvedValue({
       ok: true,
@@ -71,6 +71,7 @@ describe('LoginScreen', () => {
       expect(setPersistTokenMock).toHaveBeenCalledWith(true);
       expect(setTokensMock).toHaveBeenCalledWith({ accessToken: 'access-1', refreshToken: 'refresh-1' });
       expect(refreshFromRegistryMock).toHaveBeenCalled();
+      expect(onComplete).toHaveBeenCalledTimes(1);
     });
   });
 

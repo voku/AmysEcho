@@ -14,7 +14,7 @@ vi.mock('../services/metacomMappingService', () => ({
 }));
 
 describe('SignLanguageHistory', () => {
-  it('zeigt Hinweis wenn noch keine Gebärden erkannt wurden', () => {
+  it('shows hint when no signs have been recognized yet', () => {
     mockUseAppState.mockReturnValue({ recentSigns: [], lastRecognizedSign: null });
     resolveGestureSymbolMock.mockReturnValue(null);
 
@@ -23,7 +23,7 @@ describe('SignLanguageHistory', () => {
     expect(screen.getByText(/Noch keine Gebärden erkannt/)).toBeInTheDocument();
   });
 
-  it('zeigt letzte Gebärde und Verlauf mit Metacom-Auflösung', () => {
+  it('shows latest sign and history with Metacom resolution', () => {
     mockUseAppState.mockReturnValue({ recentSigns: ['essen'], lastRecognizedSign: 'essen' });
     resolveGestureSymbolMock.mockReturnValue({ emoji: '🍽️', label: 'Essen' });
 

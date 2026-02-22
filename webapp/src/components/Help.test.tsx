@@ -22,7 +22,7 @@ vi.mock('../context/SymbolStore', async () => {
 });
 
 describe('Help', () => {
-  it('zeigt Gebärdennamen ohne doppelte Labels, auch bei mehrfachen Profilvarianten', () => {
+  it('deduplicates gesture labels across profile variants', () => {
     render(<Help />);
 
     expect(screen.getByText('Amy\'s Echo erkennt aktuell diese trainierten Gebärden:')).toBeInTheDocument();

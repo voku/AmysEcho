@@ -33,7 +33,7 @@ jobs:
         run: NODE_OPTIONS=--max_old_space_size=4096 ./scripts/full-check.sh
 
       - name: Coverage gate (webapp)
-        run: npm run test:coverage --prefix webapp -- --coverage.reporter=text-summary
+        run: npm --prefix webapp run test:coverage -- --coverage.reporter=text-summary
 
       - name: Security audit (webapp)
         run: npm audit --prefix webapp --audit-level=high

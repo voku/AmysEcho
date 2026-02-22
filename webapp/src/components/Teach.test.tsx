@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { Teach } from './Teach';
 
 describe('Teach', () => {
-  it('zeigt Anleitung und Navigationslinks', () => {
+  it('renders instructions and navigation links', () => {
     render(
       <MemoryRouter>
         <Teach />

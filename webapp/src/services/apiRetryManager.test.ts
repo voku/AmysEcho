@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchWithRetry, withRetry } from './apiRetryManager';
 
 describe('apiRetryManager', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('returns retry attempts for transient network errors', async () => {
     const operation = vi
       .fn<() => Promise<string>>()
@@ -16,18 +20,18 @@ describe('apiRetryManager', () => {
   });
 
   it('throws an informative error after exhausting retryable HTTP status retries', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        new Response('unavailable', {
-          status: 503,
-          statusText: 'Service Unavailable',
-        }),
-      ),
+    const fetchMock = vi.fn(async () =>
+      new Response('unavailable', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      }),
     );
+    vi.stubGlobal('fetch', fetchMock);
 
     await expect(
       fetchWithRetry('https://example.org/api', {}, { maxRetries: 1, baseDelayMs: 0, maxDelayMs: 0 }),
     ).rejects.toThrow('HTTP 503');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -272,7 +272,7 @@ Validate timer-driven polling flows (for example, `useTrainingUploader`) in inte
 **Best Practice**: When you encounter tests that rely on timer-based effects:
 1. ✅ **Convert to integration tests** - Move to `integration/test/` for full lifecycle testing
 2. ✅ **Document the conversion** - Add comments explaining why (see `useTrainingUploader.test.tsx` lines 104-107, 142-145, 206-209, 237-240)
-3. ✅ **Use `it.skip()` with clear explanation** - Keep the unit test code as documentation
+3. ❌ **Avoid `it.skip()`** - Skipped tests provide no regression value and violate the "never skip tests" rule; move such cases to `integration/test/` instead.
 4. ⚠️ **Use fake timers sparingly** - Only when async storage or network mocks remain reliable under simulated time
 
 
