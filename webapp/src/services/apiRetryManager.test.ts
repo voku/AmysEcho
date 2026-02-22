@@ -28,10 +28,27 @@ describe('apiRetryManager', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
+    // 503 is retryable by default config, so one retry should occur (2 total calls).
     await expect(
       fetchWithRetry('https://example.org/api', {}, { maxRetries: 1, baseDelayMs: 0, maxDelayMs: 0 }),
     ).rejects.toThrow('HTTP 503');
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry non-retryable HTTP status codes', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response('bad request', {
+        status: 400,
+        statusText: 'Bad Request',
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      fetchWithRetry('https://example.org/api', {}, { maxRetries: 2, baseDelayMs: 0, maxDelayMs: 0 }),
+    ).rejects.toThrow('HTTP 400');
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

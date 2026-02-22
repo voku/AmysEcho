@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { FloatingSupportButton } from './FloatingSupportButton';
 
 describe('FloatingSupportButton', () => {
   it('renders the overview link with the correct label and href', () => {
     render(
-      <BrowserRouter>
+      <MemoryRouter>
         <FloatingSupportButton />
-      </BrowserRouter>,
+      </MemoryRouter>,
     );
 
     const link = screen.getByRole('link', {

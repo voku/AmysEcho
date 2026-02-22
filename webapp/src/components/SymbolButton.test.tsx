@@ -22,7 +22,7 @@ describe('SymbolButton', () => {
     vi.unstubAllGlobals();
   });
 
-  it('löst onPress beim Klick aus und nutzt Vibration', async () => {
+  it('triggers onPress on click and uses vibration', async () => {
     const user = userEvent.setup();
     const onPress = vi.fn();
 
@@ -34,7 +34,7 @@ describe('SymbolButton', () => {
     expect(navigator.vibrate).toHaveBeenCalledWith(30);
   });
 
-  it('unterstützt Aktivierung per Tastatur', async () => {
+  it('supports keyboard activation', async () => {
     const user = userEvent.setup();
     const onPress = vi.fn();
 

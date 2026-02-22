@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { TrainingUploadWithRecording } from './TrainingUpload';
 
@@ -71,17 +71,21 @@ vi.mock('../training/trainingBundle', () => ({
 }));
 
 vi.mock('./TrainingRecorder', () => ({
-  TrainingRecorder: ({ onRecordingComplete }: { onRecordingComplete: (payload: any) => void }) => (
+  TrainingRecorder: ({ onRecordingComplete }: { onRecordingComplete: (payload: unknown) => void }) => (
     <button type="button" onClick={() => onRecordingComplete({ profileId: 'p', label: 'hilfe', frames: [] })}>
       Aufnahme abschicken (Test)
     </button>
   ),
 }));
 
+beforeEach(() => {
+  profileIdMock = '11111111-1111-4111-8111-111111111111';
+  preferredSignIdMock = '';
+  vi.clearAllMocks();
+});
+
 describe('TrainingUpload', () => {
   it('shows validation when no gesture is selected', async () => {
-    profileIdMock = '11111111-1111-4111-8111-111111111111';
-    preferredSignIdMock = '';
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -90,7 +94,7 @@ describe('TrainingUpload', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/ }));
-    expect(screen.getAllByText('Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.').length).toBeGreaterThan(0);
+    expect(screen.getByText('Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.', { selector: 'div.notice.error' })).toBeInTheDocument();
   });
 
   it('shows validation when account is authenticated but profile is missing', async () => {
@@ -104,7 +108,7 @@ describe('TrainingUpload', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/ }));
-    expect(screen.getAllByText('Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.').length).toBeGreaterThan(0);
+    expect(screen.getByText('Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.', { selector: 'div.notice.error' })).toBeInTheDocument();
   });
 
   it('syncs queue and shows result message', async () => {

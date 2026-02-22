@@ -34,7 +34,9 @@ To prevent coverage regressions, the webapp test pipeline now enforces a minimum
 - Functions: **70%**
 - Lines: **70%**
 
-The gate runs in CI via `npm run test:coverage --prefix webapp` and fails the build if any threshold drops below baseline.
+The gate runs in CI via `npm --prefix webapp run test:coverage` and fails the build if any threshold drops below baseline.
+
+The branch threshold is intentionally lower as a **current floor** (close to measured baseline) to prevent regressions while the suite is still expanding. Treat it as transitional, and raise it incrementally (target: **65% branches** in the next quality-improvement cycle).
 
 
 ## 🔍 Bug-Finding Workflow (TDD + Context-Driven)
