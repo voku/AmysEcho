@@ -23,7 +23,7 @@ import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { SymbolButton } from './SymbolButton';
 import { syncAllProfilesToServer } from '../services/profileRegistry';
-import { normalizeSymbolName } from '../utils/symbolDedup';
+import { dedupeSymbolsByName, normalizeSymbolName } from '../utils/symbolDedup';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -476,46 +476,13 @@ export function TrainingUploadWithRecording() {
   const { combinedSymbols, symbolById, symbolByName } = useMemo(() => {
     const merged = new Map<string, SymbolDefinition>();
     const idByName = new Map<string, string>();
-    const winnerByName = new Map<string, SymbolDefinition>();
 
-    for (const symbol of symbols) {
+    for (const symbol of dedupeSymbolsByName(symbols)) {
       const normalizedName = normalizeSymbolName(symbol.name);
-      if (!normalizedName) {
-        continue;
+      merged.set(symbol.id, symbol);
+      if (normalizedName) {
+        idByName.set(normalizedName, symbol.id);
       }
-
-      const existingSymbol = winnerByName.get(normalizedName);
-      if (!existingSymbol) {
-        winnerByName.set(normalizedName, symbol);
-        continue;
-      }
-
-      const shouldPreferCurrent = Boolean(symbol.profileId) && !Boolean(existingSymbol?.profileId);
-      if (shouldPreferCurrent) {
-        winnerByName.set(normalizedName, symbol);
-      }
-    }
-
-    const insertedWinnerNames = new Set<string>();
-    for (const symbol of symbols) {
-      const normalizedName = normalizeSymbolName(symbol.name);
-      if (!normalizedName) {
-        merged.set(symbol.id, symbol);
-        continue;
-      }
-
-      if (insertedWinnerNames.has(normalizedName)) {
-        continue;
-      }
-
-      const winner = winnerByName.get(normalizedName);
-      if (!winner) {
-        continue;
-      }
-
-      merged.set(winner.id, winner);
-      idByName.set(normalizedName, winner.id);
-      insertedWinnerNames.add(normalizedName);
     }
 
     for (const symbol of metacomSymbols) {

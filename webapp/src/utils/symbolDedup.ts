@@ -6,21 +6,29 @@ export function dedupeSymbolsByName(symbols: SymbolDefinition[]): SymbolDefiniti
   const symbolsByName = new Map<string, SymbolDefinition>();
 
   for (const symbol of symbols) {
-    const trimmedName = symbol.name.trim();
+    const trimmedName = typeof symbol.name === 'string' ? symbol.name.trim() : '';
     if (!trimmedName) {
       continue;
     }
 
+    const trimmedProfileId = typeof symbol.profileId === 'string' ? symbol.profileId.trim() : '';
     const normalizedName = normalizeSymbolName(trimmedName);
-    const normalizedSymbol = { ...symbol, name: trimmedName };
-    const existingSymbol = symbolsByName.get(normalizedName);
+    const normalizedSymbol = {
+      ...symbol,
+      name: trimmedName,
+      profileId: trimmedProfileId || undefined,
+    };
 
-    if (!existingSymbol) {
+    const existingSymbol = symbolsByName.get(normalizedName);
+     if (!existingSymbol) {
       symbolsByName.set(normalizedName, normalizedSymbol);
       continue;
     }
-
-    if (!existingSymbol.profileId && symbol.profileId) {
+    
+    const symbolHasProfileScope = Boolean(trimmedProfileId);
+    const existingProfileId = typeof existingSymbol.profileId === 'string' ? existingSymbol.profileId.trim() : '';
+    const existingHasProfileScope = Boolean(existingProfileId);
+    if (!existingHasProfileScope && symbolHasProfileScope) {
       symbolsByName.set(normalizedName, normalizedSymbol);
     }
   }
