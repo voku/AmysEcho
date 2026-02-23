@@ -1,4 +1,4 @@
-import type { SymbolDefinition } from '../context/SymbolStore';
+import type { SymbolDefinition } from 'context/SymbolStore';
 
 export const normalizeSymbolName = (name: string): string => name.trim().toLocaleLowerCase('de-DE');
 
@@ -6,16 +6,15 @@ export function dedupeSymbolsByName(symbols: SymbolDefinition[]): SymbolDefiniti
   const symbolsByName = new Map<string, SymbolDefinition>();
 
   for (const symbol of symbols) {
-    const trimmedName = symbol.name.trim();
-    if (!trimmedName) {
+    if (!symbol.name.trim()) {
       continue;
     }
 
-    const normalizedName = normalizeSymbolName(trimmedName);
+    const normalizedName = normalizeSymbolName(symbol.name);
     const existingSymbol = symbolsByName.get(normalizedName);
 
     if (!existingSymbol || (!existingSymbol.profileId && symbol.profileId)) {
-      symbolsByName.set(normalizedName, { ...symbol, name: trimmedName });
+      symbolsByName.set(normalizedName, { ...symbol, name: symbol.name.trim() });
     }
   }
 
