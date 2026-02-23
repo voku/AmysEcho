@@ -6,16 +6,17 @@ export function dedupeSymbolsByName(symbols: SymbolDefinition[]): SymbolDefiniti
   const symbolsByName = new Map<string, SymbolDefinition>();
 
   for (const symbol of symbols) {
-    const trimmedName = symbol.name.trim();
+    const trimmedName = typeof symbol.name === 'string' ? symbol.name.trim() : '';
     if (!trimmedName) {
       continue;
     }
 
+    const trimmedProfileId = typeof symbol.profileId === 'string' ? symbol.profileId.trim() : '';
     const normalizedName = normalizeSymbolName(trimmedName);
     const normalizedSymbol = {
       ...symbol,
       name: trimmedName,
-      profileId: symbol.profileId?.trim() || undefined,
+      profileId: trimmedProfileId || undefined,
     };
 
     const existingSymbol = symbolsByName.get(normalizedName);
@@ -24,8 +25,9 @@ export function dedupeSymbolsByName(symbols: SymbolDefinition[]): SymbolDefiniti
       continue;
     }
     
-    const symbolHasProfileScope = Boolean(symbol.profileId?.trim());
-    const existingHasProfileScope = Boolean(existingSymbol?.profileId?.trim());
+    const symbolHasProfileScope = Boolean(trimmedProfileId);
+    const existingProfileId = typeof existingSymbol.profileId === 'string' ? existingSymbol.profileId.trim() : '';
+    const existingHasProfileScope = Boolean(existingProfileId);
     if (!existingHasProfileScope && symbolHasProfileScope) {
       symbolsByName.set(normalizedName, normalizedSymbol);
     }
