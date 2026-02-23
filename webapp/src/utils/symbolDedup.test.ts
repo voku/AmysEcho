@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import type { SymbolDefinition } from '../context/SymbolStore';
 import { dedupeSymbolsByName, normalizeSymbolName } from './symbolDedup';
 
 describe('symbolDedup', () => {
@@ -53,6 +52,17 @@ describe('symbolDedup', () => {
     expect(result[0]?.id).toBe('global-first');
   });
 
+  it('prefers profile-scoped symbol over whitespace-profileId encountered first', () => {
+    const result = dedupeSymbolsByName([
+      { id: 'whitespace-first', name: 'Essen', category: 'food', profileId: '   ' },
+      { id: 'real-profile', name: ' essen ', category: 'food', profileId: 'amy' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    expect(result[0]?.id).toBe('real-profile');
+  });
+
   it('keeps the first symbol when both collisions are profile-scoped', () => {
     const result = dedupeSymbolsByName([
       { id: 'profile-first', name: 'Essen', category: 'food', profileId: 'amy' },
@@ -63,3 +73,4 @@ describe('symbolDedup', () => {
     expect(result[0]).toBeDefined();
     expect(result[0]?.id).toBe('profile-first');
   });
+});

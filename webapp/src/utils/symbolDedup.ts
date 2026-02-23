@@ -12,7 +12,11 @@ export function dedupeSymbolsByName(symbols: SymbolDefinition[]): SymbolDefiniti
     }
 
     const normalizedName = normalizeSymbolName(trimmedName);
-    const normalizedSymbol = { ...symbol, name: trimmedName };
+    const normalizedSymbol = {
+      ...symbol,
+      name: trimmedName,
+      profileId: symbol.profileId?.trim() || undefined,
+    };
 
     const existingSymbol = symbolsByName.get(normalizedName);
      if (!existingSymbol) {
