@@ -947,6 +947,7 @@ p {
   flex-direction: column;
   gap: var(--space-lg);
   padding: var(--space-xl);
+  padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl));
   background: var(--color-neutral);
   color: var(--color-inverse-text);
 }
@@ -1092,6 +1093,51 @@ p {
 
 .gesture-screen__meta-error {
   color: var(--color-error);
+}
+
+.gesture-screen__diagnostics {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-gesture-border-light);
+  background: rgba(6, 30, 32, 0.88);
+  display: grid;
+  gap: var(--space-xs);
+  color: #f8fcff;
+}
+
+.gesture-screen__diagnostics[data-severity='error'] {
+  border-color: color-mix(in oklab, var(--color-error) 40%, transparent);
+}
+
+.gesture-screen__diagnostics[data-severity='warning'] {
+  border-color: color-mix(in oklab, var(--color-warning) 40%, transparent);
+}
+
+.gesture-screen__diagnostics[data-severity='success'] {
+  border-color: color-mix(in oklab, var(--color-success) 40%, transparent);
+}
+
+.gesture-screen__diagnostics-title {
+  margin: 0;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.gesture-screen__diagnostics-hint {
+  margin: 0;
+  color: #d7f1f2;
+}
+
+.gesture-screen__diagnostics ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.gesture-screen__diagnostics li,
+.gesture-screen__diagnostics li strong {
+  color: #f8fcff;
 }
 
 /* ==========================================================================

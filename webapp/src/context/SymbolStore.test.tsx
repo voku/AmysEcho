@@ -353,7 +353,7 @@ describe('SymbolStore offline handling', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.syncError).toBe('Network error');
+      expect(result.current.syncError).toBe('Netzwerkverbindung unterbrochen. Bitte Verbindung prüfen und erneut versuchen.');
     });
 
     const callsAfterRefresh = fetchMock.mock.calls.length;

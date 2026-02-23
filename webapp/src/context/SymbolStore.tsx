@@ -49,6 +49,21 @@ type CachedSymbols = { symbols: SymbolDefinition[]; pending: SymbolDefinition[];
 const BASE_RETRY_DELAY_MS = 2000;
 const MAX_RETRY_DELAY_MS = 30000;
 
+function mapSymbolSyncError(error: unknown): string {
+  if (error instanceof HttpError) {
+    return error.message;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  const normalized = message.toLowerCase();
+
+  if (normalized === 'failed to fetch' || normalized === 'network error' || normalized.includes('netzwerk')) {
+    return 'Netzwerkverbindung unterbrochen. Bitte Verbindung prüfen und erneut versuchen.';
+  }
+
+  return message || 'Unbekannter Fehler beim Laden der Gebärden';
+}
+
 function getCacheKey(profileId: string | null): string {
   return `${CACHE_KEY_PREFIX}${profileId || 'global'}`;
 }
@@ -347,9 +362,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       const isAuthError = error instanceof HttpError && error.status === 401;
       const reason = isAuthError
         ? SESSION_EXPIRED_MESSAGE
-        : error instanceof Error
-          ? error.message
-          : 'Unbekannter Fehler beim Laden der Gebärden';
+        : mapSymbolSyncError(error);
       setSyncError(reason);
 
       if (!isAuthError) {
