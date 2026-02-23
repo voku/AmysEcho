@@ -1,4 +1,4 @@
-import type { SymbolDefinition } from 'context/SymbolStore';
+import type { SymbolDefinition } from '../context/SymbolStore';
 
 export const normalizeSymbolName = (name: string): string => name.trim().toLocaleLowerCase('de-DE');
 
