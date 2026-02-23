@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { useEffect } from 'react';
 import { SignLanguageRecorder } from './SignLanguageRecorder';
+import type { SignLanguageMessage } from '../hooks/useSignLanguageDetector';
 import { ApiConfigProvider, useApiConfig } from '../hooks/useApiConfig';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
@@ -21,7 +22,7 @@ const detectorState = {
   lastSign: null as string | null,
   lastLandmarks: [] as number[][][],
   lastConfidence: null as number | null,
-  messageLog: [],
+  messageLog: [] as SignLanguageMessage[],
 };
 
 vi.mock('../hooks/useSignLanguageDetector', () => ({
@@ -94,13 +95,14 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastSign = null;
     detectorState.lastLandmarks = [];
     detectorState.lastConfidence = null;
+    detectorState.messageLog = [];
   });
 
   it('renders the gesture demo section', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText('Bereit für die Kamera')).toBeInTheDocument();
-    expect(screen.getByText(/Profil/)).toBeInTheDocument();
+    expect(screen.getByText('Bereit für die Kamera', { selector: '.gesture-screen__status-pill span' })).toBeInTheDocument();
+    expect(screen.getByText(/Profil/, { selector: '.gesture-screen__status-meta p' })).toBeInTheDocument();
   });
 
   it('shows camera action buttons', () => {
@@ -140,6 +142,34 @@ describe('SignLanguageRecorder', () => {
     const rawToggle = screen.getByLabelText('Rohvideo');
     expect(rawToggle).toBeInTheDocument();
     expect(rawToggle).toBeChecked();
+  });
+
+  it('shows diagnostics panel with actionable guidance', () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = null;
+    detectorState.lastConfidence = 0.24;
+    detectorState.messageLog = [
+      {
+        type: 'landmarks',
+        summary: 'Keine Hand erkannt',
+        payload: { type: 'landmarks' },
+        receivedAt: Date.now(),
+        count: 1,
+      },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['HALLO', 'ESSEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
+
+    expect(screen.getByText('Hand erkannt, aber keine passende Gebärde')).toBeInTheDocument();
+    expect(screen.getByText(/Aktuelle Sicherheit ist zu niedrig/)).toBeInTheDocument();
+    expect(screen.getByText(/Letzte Systemmeldung:/)).toBeInTheDocument();
+    expect(screen.getByText(/Trainierte Beispiele: HALLO, ESSEN/)).toBeInTheDocument();
   });
 
   it('toggles overlay visibility when checkbox is clicked', () => {
@@ -184,13 +214,13 @@ describe('SignLanguageRecorder', () => {
   it('shows initial status as ready (Bereit)', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText('Bereit für die Kamera')).toBeInTheDocument();
+    expect(screen.getByText('Bereit für die Kamera', { selector: '.gesture-screen__status-pill span' })).toBeInTheDocument();
   });
 
   it('displays profile information', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText(/Profil/)).toBeInTheDocument();
+    expect(screen.getByText(/Profil/, { selector: '.gesture-screen__status-meta p' })).toBeInTheDocument();
   });
 
   it('shows camera warning when camera is not supported', () => {

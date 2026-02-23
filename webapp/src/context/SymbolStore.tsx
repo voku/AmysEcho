@@ -49,6 +49,32 @@ type CachedSymbols = { symbols: SymbolDefinition[]; pending: SymbolDefinition[];
 const BASE_RETRY_DELAY_MS = 2000;
 const MAX_RETRY_DELAY_MS = 30000;
 
+function mapSymbolSyncError(error: unknown): string {
+  const genericMessage = 'Fehler beim Synchronisieren der Gebärden. Bitte erneut versuchen.';
+  const message = error instanceof Error ? error.message : String(error);
+  const normalized = message.toLowerCase();
+
+  if (normalized === 'failed to fetch' || normalized === 'network error' || normalized.includes('netzwerk')) {
+    return 'Netzwerkverbindung unterbrochen. Bitte Verbindung prüfen und erneut versuchen.';
+  }
+
+  if (error instanceof HttpError) {
+    console.warn('Symbol sync HTTP error', { status: error.status, message: error.message });
+    return genericMessage;
+  }
+
+  if (error instanceof Error) {
+    console.warn('Symbol sync error', { message: error.message, stack: error.stack ?? null });
+    return genericMessage;
+  }
+
+  if (String(error).trim().length > 0) {
+    console.warn('Symbol sync unknown error', { rawError: error });
+  }
+
+  return genericMessage;
+}
+
 function getCacheKey(profileId: string | null): string {
   return `${CACHE_KEY_PREFIX}${profileId || 'global'}`;
 }
@@ -347,9 +373,7 @@ export function SymbolStoreProvider({ children }: { children: ReactNode }) {
       const isAuthError = error instanceof HttpError && error.status === 401;
       const reason = isAuthError
         ? SESSION_EXPIRED_MESSAGE
-        : error instanceof Error
-          ? error.message
-          : 'Unbekannter Fehler beim Laden der Gebärden';
+        : mapSymbolSyncError(error);
       setSyncError(reason);
 
       if (!isAuthError) {

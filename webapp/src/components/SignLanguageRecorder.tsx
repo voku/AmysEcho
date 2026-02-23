@@ -67,6 +67,7 @@ export function SignLanguageRecorder() {
   });
   const isMirroredPreview = facingMode === 'user';
   const [cameraSwitchFeedback, setCameraSwitchFeedback] = useState('');
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -82,6 +83,7 @@ export function SignLanguageRecorder() {
     lastSign,
     lastConfidence,
     lastLandmarks,
+    messageLog,
     audioMuted,
     toggleAudioMuted,
   } = useSignLanguageDetector(videoRef, overlayRef);
@@ -316,6 +318,68 @@ export function SignLanguageRecorder() {
   }, [navigate]);
 
   const needsCameraStart = status === 'idle' || status === 'stopped' || status === 'error';
+  const latestMessageSummary = messageLog[0]?.summary ?? null;
+
+  const diagnostics = useMemo(() => {
+    if (demoMode) {
+      return {
+        severity: 'info' as const,
+        title: 'Demo-Modus aktiv',
+        hint: 'Im Demo-Modus ist die echte Erkennung deaktiviert.',
+      };
+    }
+
+    if (status === 'error' || error) {
+      return {
+        severity: 'error' as const,
+        title: 'Kamera oder Erkennung hat ein Problem',
+        hint: 'Bitte Kamera neu starten und Berechtigungen prüfen.',
+      };
+    }
+
+    if (status !== 'running') {
+      return {
+        severity: 'warning' as const,
+        title: 'Erkennung läuft noch nicht',
+        hint: 'Tippe auf „Kamera starten“, damit Gesten erkannt werden können.',
+      };
+    }
+
+    if (!hasDetectedHands) {
+      return {
+        severity: 'warning' as const,
+        title: 'Keine Hand erkannt',
+        hint: 'Halte beide Hände gut sichtbar ins Bild und achte auf Licht.',
+      };
+    }
+
+    if (!lastSign) {
+      const confidencePercent =
+        typeof lastConfidence === 'number' ? `${Math.round(lastConfidence * 100)}%` : null;
+      return {
+        severity: 'warning' as const,
+        title: 'Hand erkannt, aber keine passende Gebärde',
+        hint: confidencePercent
+          ? `Aktuelle Sicherheit ist zu niedrig (${confidencePercent}). Bitte Gebärde klarer und langsamer zeigen.`
+          : 'Bitte Gebärde klarer und langsamer zeigen oder die Kamera etwas weiter weg positionieren.',
+      };
+    }
+
+    const isTrainedSign = normalizedTrainedSignLabels.has(lastSign.toLowerCase());
+    if (trainedSignLabels.length > 0 && !isTrainedSign) {
+      return {
+        severity: 'warning' as const,
+        title: 'Gebärde erkannt, aber nicht im trainierten Profil',
+        hint: 'Trainiere diese Gebärde im aktuellen Profil oder wechsle zum passenden Profil.',
+      };
+    }
+
+    return {
+      severity: 'success' as const,
+      title: 'Erkennung arbeitet stabil',
+      hint: 'Die aktuelle Gebärde passt zu deinem trainierten Profil.',
+    };
+  }, [demoMode, error, hasDetectedHands, lastConfidence, lastSign, normalizedTrainedSignLabels, status, trainedSignLabels]);
 
   // Loading state
   if (isLoadingProfile) {
@@ -489,6 +553,16 @@ export function SignLanguageRecorder() {
               />
               <span>Rohvideo</span>
             </label>
+            <button
+              className="ghost-inline"
+              type="button"
+              onClick={() => setShowDiagnostics((current) => !current)}
+              aria-expanded={showDiagnostics}
+              aria-controls="gesture-diagnostics-panel"
+              title={showDiagnostics ? 'Diagnose ausblenden' : 'Diagnose anzeigen'}
+            >
+              {showDiagnostics ? '🛠️ Diagnose ausblenden' : '🛠️ Diagnose anzeigen'}
+            </button>
           </div>
 
           {cameraSwitchFeedback && (
@@ -505,6 +579,38 @@ export function SignLanguageRecorder() {
             </div>
           )}
           {error && <div className="gesture-screen__meta-error">{error}</div>}
+
+          <div
+            id="gesture-diagnostics-panel"
+            className="gesture-screen__diagnostics"
+            data-severity={diagnostics.severity}
+            hidden={!showDiagnostics}
+          >
+              <p className="gesture-screen__diagnostics-title">{diagnostics.title}</p>
+              <p className="gesture-screen__diagnostics-hint">{diagnostics.hint}</p>
+              <ul>
+                <li>Status: <strong>{formatStatusLabel(status)}</strong></li>
+                <li>Hände im Bild: <strong>{hasDetectedHands ? 'Ja' : 'Nein'}</strong></li>
+                <li>
+                  Letzte Sicherheit:{' '}
+                  <strong>{lastConfidence != null ? `${Math.round(lastConfidence * 100)}%` : 'Keine Messung'}</strong>
+                </li>
+                <li>
+                  Trainierte Gebärden im Profil:{' '}
+                  <strong>{trainedSignLabels.length > 0 ? trainedSignLabels.length : 'Keine'}</strong>
+                </li>
+                <li>
+                  Letzte Systemmeldung:{' '}
+                  <strong>{latestMessageSummary ?? 'Noch keine Meldung'}</strong>
+                </li>
+              </ul>
+            {trainedSignLabels.length > 0 && (
+              <p className="gesture-screen__diagnostics-hint">
+                Trainierte Beispiele: {trainedSignLabels.slice(0, 6).join(', ')}
+                {trainedSignLabels.length > 6 ? ' …' : ''}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>

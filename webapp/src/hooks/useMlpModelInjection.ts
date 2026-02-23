@@ -7,6 +7,28 @@ import { useApiConfig } from './useApiConfig';
 
 export type ModelInjectionStatus = 'idle' | 'loading' | 'ready' | 'error';
 
+const MODEL_FETCH_ERROR_MESSAGE = 'MLP-Modell konnte nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.';
+const MODEL_GENERIC_ERROR_MESSAGE = 'Bei der Verbindung zum MLP-Modell ist ein Fehler aufgetreten. Bitte Verbindung prüfen und erneut versuchen.';
+
+function toModelNotice(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const normalized = message.toLowerCase();
+
+  if (error instanceof HttpError && message === SESSION_EXPIRED_MESSAGE) {
+    return message;
+  }
+
+  if (normalized === 'failed to fetch' || normalized === 'network error' || normalized.includes('netzwerk')) {
+    return MODEL_FETCH_ERROR_MESSAGE;
+  }
+
+  if (message.includes('Sitzung')) {
+    return message;
+  }
+
+  return MODEL_GENERIC_ERROR_MESSAGE;
+}
+
 export function useMlpModelInjection(
   profileId: string | null,
   options: { autoRefreshMs?: number } = {},
@@ -90,7 +112,7 @@ export function useMlpModelInjection(
         }
       })();
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = toModelNotice(error);
       setStatus('error');
       setNotice(reason);
       refreshInFlightRef.current = false;

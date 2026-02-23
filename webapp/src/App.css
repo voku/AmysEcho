@@ -51,6 +51,10 @@
   --color-gesture-border-soft: rgba(255, 255, 255, 0.18);
   --color-gesture-text-bright: rgba(255, 255, 255, 0.85);
   --color-gesture-text-medium: rgba(255, 255, 255, 0.72);
+  --color-gesture-diagnostics-bg: rgba(6, 30, 32, 0.88);
+  --color-gesture-diagnostics-text: var(--color-gesture-text-bright);
+  --color-gesture-diagnostics-title: var(--color-inverse-text);
+  --color-gesture-diagnostics-hint: var(--color-gesture-text-medium);
 
   /* State Surfaces */
   --color-chip-success-bg: rgba(76, 217, 100, 0.18);
@@ -947,6 +951,7 @@ p {
   flex-direction: column;
   gap: var(--space-lg);
   padding: var(--space-xl);
+  padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl));
   background: var(--color-neutral);
   color: var(--color-inverse-text);
 }
@@ -1092,6 +1097,55 @@ p {
 
 .gesture-screen__meta-error {
   color: var(--color-error);
+}
+
+.gesture-screen__diagnostics {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-gesture-border-light);
+  background: var(--color-gesture-diagnostics-bg);
+  display: grid;
+  gap: var(--space-xs);
+  color: var(--color-gesture-diagnostics-text);
+}
+
+.gesture-screen__diagnostics[data-severity='error'] {
+  border-color: color-mix(in oklab, var(--color-error) 40%, transparent);
+}
+
+.gesture-screen__diagnostics[data-severity='warning'] {
+  border-color: color-mix(in oklab, var(--color-warning) 40%, transparent);
+}
+
+.gesture-screen__diagnostics[data-severity='success'] {
+  border-color: color-mix(in oklab, var(--color-success) 40%, transparent);
+}
+
+.gesture-screen__diagnostics[data-severity='info'] {
+  border-color: color-mix(in oklab, var(--color-info) 40%, transparent);
+}
+
+.gesture-screen__diagnostics-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-inverse-text);
+}
+
+.gesture-screen__diagnostics-hint {
+  margin: 0;
+  color: var(--color-gesture-diagnostics-hint);
+}
+
+.gesture-screen__diagnostics ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.gesture-screen__diagnostics li,
+.gesture-screen__diagnostics li strong {
+  color: var(--color-gesture-diagnostics-text);
 }
 
 /* ==========================================================================
@@ -1700,6 +1754,7 @@ p {
 
   .gesture-screen__controls {
     padding: var(--space-lg);
+    padding-bottom: calc(var(--bottom-nav-height) + var(--space-lg));
   }
 
   .app-header {
@@ -2863,7 +2918,7 @@ p {
   padding: 12px 16px;
   border-radius: 999px;
   background: #146c6e;
-  color: #ffffff;
+  color: var(--color-inverse-text);
   text-decoration: none;
   font-weight: 600;
   box-shadow: 0 12px 24px rgba(13, 27, 27, 0.2);

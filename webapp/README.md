@@ -29,6 +29,7 @@ Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, 
 - Die Startseite **Gestenerkennung** rendert `useGestureDetector`, ruft den bekannten `GestureRecognitionOrchestrator` auf und protokolliert alle `postMessage`-Events der kopierten WebView-Logik. Landmarks werden wie in der Expo-App stabilisiert, Handedness-Fallbacks ergänzt und können als JSON heruntergeladen werden.
 - Ein Browser-Bridge (`window.ReactNativeWebView`) leitet alle Nachrichten als `CustomEvent` (`webapp:webview-message`) weiter; die UI zeigt letzte Gesten und Bridge-Payloads an.
 - Das Overlay kann ein- oder ausgeblendet werden; Statuschips zeigen „bereit“, „laufend“ oder Fehler an.
+- Die Erkennungsseite enthält eine einklappbare **Diagnose** („🛠️ Diagnose anzeigen“), die verständlich erklärt, warum trainierte Gebärden ggf. noch nicht erkannt werden (z. B. keine Hand im Bild, Sicherheit zu niedrig, falsches Profil).
 - Ein globaler Profil- und Label-Schalter synchronisiert Gestenerkennung und Training. Erkannte Gesten werden als Vorschlag gespeichert und können direkt als neues Trainingslabel übernommen werden.
 - Die Seite **Grenzen & Alternativen** listet deaktivierte native Features und Web-Ersatzwege.
 - Die Seite **Einstellungen** enthält einen klaren **Abmelden**-Button, der die Sitzungstoken entfernt und den Login wieder erzwingt, ohne lokale Trainingsdaten löschen zu müssen.
