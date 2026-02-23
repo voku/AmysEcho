@@ -7,6 +7,51 @@ describe('symbolDedup', () => {
     expect(normalizeSymbolName('  ESSEN  ')).toBe('essen');
   });
 
+  it('lowercases german-specific characters', () => {
+    expect(normalizeSymbolName('ÄPFEL')).toBe('äpfel');
+    expect(normalizeSymbolName('ÖL')).toBe('öl');
+    expect(normalizeSymbolName('ÜBER')).toBe('über');
+    expect(normalizeSymbolName('STRAẞE')).toBe('straße');
+  });
+
+  it('returns an empty array for empty input', () => {
+    expect(dedupeSymbolsByName([])).toHaveLength(0);
+  });
+
+  it('skips symbols with empty or whitespace-only names', () => {
+    const result = dedupeSymbolsByName([
+      { id: 'empty', name: '', category: 'food' },
+      { id: 'spaces', name: '   ', category: 'food' },
+      { id: 'valid', name: 'Apfel', category: 'food' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    expect(result[0]?.id).toBe('valid');
+  });
+
+  it('keeps the first symbol when both collisions are global', () => {
+    const result = dedupeSymbolsByName([
+      { id: 'first', name: 'Essen', category: 'food' },
+      { id: 'second', name: ' essen ', category: 'food' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    expect(result[0]?.id).toBe('first');
+  });
+
+  it('keeps the first symbol when both collisions are profile-scoped', () => {
+    const result = dedupeSymbolsByName([
+      { id: 'profile-first', name: 'Essen', category: 'food', profileId: 'amy' },
+      { id: 'profile-second', name: ' essen ', category: 'food', profileId: 'amy' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    expect(result[0]?.id).toBe('profile-first');
+  });
+
   it('deduplicates by normalized name and prefers profile symbols', () => {
     const symbols: SymbolDefinition[] = [
       { id: 'global-essen', name: 'Essen', category: 'food' },

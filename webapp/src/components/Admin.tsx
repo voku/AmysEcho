@@ -349,7 +349,7 @@ export const Admin: React.FC = () => {
           Symbol hinzufügen
         </button>
 
-        {symbols.length === 0 ? (
+        {sortedSymbols.length === 0 ? (
           <p className="empty-state">Noch keine Symbole</p>
         ) : (
           <ul className="symbol-list">
