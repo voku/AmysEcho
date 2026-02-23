@@ -335,6 +335,26 @@ describe('SymbolStore offline handling', () => {
     });
   });
 
+
+  it('maps non-network symbol sync errors to a localized German fallback', async () => {
+    const fetchMock = global.fetch as unknown as Mock;
+    const { result } = renderHook(() => useSymbolStore(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    fetchMock.mockRejectedValueOnce(new Error('Invalid payload'));
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    await waitFor(() => {
+      expect(result.current.syncError).toBe('Fehler beim Synchronisieren der Gebärden. Bitte erneut versuchen.');
+    });
+  });
+
   it('schedules one retry after transient symbol fetch errors without entering a refresh loop', async () => {
     const fetchMock = global.fetch as unknown as Mock;
     const setTimeoutSpy = vi.spyOn(window, 'setTimeout');

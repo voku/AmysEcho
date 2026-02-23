@@ -50,10 +50,7 @@ const BASE_RETRY_DELAY_MS = 2000;
 const MAX_RETRY_DELAY_MS = 30000;
 
 function mapSymbolSyncError(error: unknown): string {
-  if (error instanceof HttpError) {
-    return error.message;
-  }
-
+  const genericMessage = 'Fehler beim Synchronisieren der Gebärden. Bitte erneut versuchen.';
   const message = error instanceof Error ? error.message : String(error);
   const normalized = message.toLowerCase();
 
@@ -61,7 +58,21 @@ function mapSymbolSyncError(error: unknown): string {
     return 'Netzwerkverbindung unterbrochen. Bitte Verbindung prüfen und erneut versuchen.';
   }
 
-  return message || 'Unbekannter Fehler beim Laden der Gebärden';
+  if (error instanceof HttpError) {
+    console.warn('Symbol sync HTTP error', { status: error.status, message: error.message });
+    return genericMessage;
+  }
+
+  if (error instanceof Error) {
+    console.warn('Symbol sync error', { message: error.message, stack: error.stack ?? null });
+    return genericMessage;
+  }
+
+  if (String(error).trim().length > 0) {
+    console.warn('Symbol sync unknown error', { rawError: error });
+  }
+
+  return genericMessage;
 }
 
 function getCacheKey(profileId: string | null): string {

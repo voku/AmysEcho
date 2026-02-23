@@ -365,7 +365,8 @@ export function SignLanguageRecorder() {
       };
     }
 
-    if (trainedSignLabels.length > 0 && !trainedSignLabels.includes(lastSign)) {
+    const isTrainedSign = normalizedTrainedSignLabels.has(lastSign.toLowerCase());
+    if (trainedSignLabels.length > 0 && !isTrainedSign) {
       return {
         severity: 'warning' as const,
         title: 'Gebärde erkannt, aber nicht im trainierten Profil',
@@ -378,7 +379,7 @@ export function SignLanguageRecorder() {
       title: 'Erkennung arbeitet stabil',
       hint: 'Die aktuelle Gebärde passt zu deinem trainierten Profil.',
     };
-  }, [demoMode, error, hasDetectedHands, lastConfidence, lastSign, status, trainedSignLabels]);
+  }, [demoMode, error, hasDetectedHands, lastConfidence, lastSign, normalizedTrainedSignLabels, status, trainedSignLabels]);
 
   // Loading state
   if (isLoadingProfile) {
