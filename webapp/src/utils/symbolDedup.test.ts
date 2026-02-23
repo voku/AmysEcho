@@ -1,0 +1,80 @@
+import { describe, expect, it } from 'vitest';
+import type { SymbolDefinition } from '../context/SymbolStore';
+import { dedupeSymbolsByName, normalizeSymbolName } from './symbolDedup';
+
+describe('symbolDedup', () => {
+  it('normalizes symbol names with german locale', () => {
+    expect(normalizeSymbolName('  ESSEN  ')).toBe('essen');
+  });
+
+  it('lowercases german-specific characters', () => {
+    expect(normalizeSymbolName('ÄPFEL')).toBe('äpfel');
+    expect(normalizeSymbolName('ÖL')).toBe('öl');
+    expect(normalizeSymbolName('ÜBER')).toBe('über');
+    expect(normalizeSymbolName('STRAẞE')).toBe('straße');
+  });
+
+  it('returns an empty array for empty input', () => {
+    expect(dedupeSymbolsByName([])).toHaveLength(0);
+  });
+
+  it('skips symbols with empty or whitespace-only names', () => {
+    const result = dedupeSymbolsByName([
+      { id: 'empty', name: '', category: 'food' },
+      { id: 'spaces', name: '   ', category: 'food' },
+      { id: 'valid', name: 'Apfel', category: 'food' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    expect(result[0]?.id).toBe('valid');
+  });
+
+  it('keeps the first symbol when both collisions are global', () => {
+    const result = dedupeSymbolsByName([
+      { id: 'first', name: 'Essen', category: 'food' },
+      { id: 'second', name: ' essen ', category: 'food' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    expect(result[0]?.id).toBe('first');
+  });
+
+
+  it('treats whitespace-only profileId as global for collision priority', () => {
+    const result = dedupeSymbolsByName([
+      { id: 'global-first', name: 'Essen', category: 'food' },
+      { id: 'whitespace-profile', name: ' essen ', category: 'food', profileId: '   ' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    expect(result[0]?.id).toBe('global-first');
+  });
+
+  it('keeps the first symbol when both collisions are profile-scoped', () => {
+    const result = dedupeSymbolsByName([
+      { id: 'profile-first', name: 'Essen', category: 'food', profileId: 'amy' },
+      { id: 'profile-second', name: ' essen ', category: 'food', profileId: 'amy' },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    expect(result[0]?.id).toBe('profile-first');
+  });
+
+  it('deduplicates by normalized name and prefers profile symbols', () => {
+    const symbols: SymbolDefinition[] = [
+      { id: 'global-essen', name: 'Essen', category: 'food' },
+      { id: 'profile-essen', name: ' essen ', category: 'food', profileId: 'amy' },
+      { id: 'wasser', name: 'Wasser', category: 'drink' },
+    ];
+
+    const result = dedupeSymbolsByName(symbols);
+
+    expect(result).toHaveLength(2);
+    expect(result.find((symbol) => symbol.name === 'essen')?.id).toBe('profile-essen');
+    expect(result.find((symbol) => symbol.name === 'Wasser')?.id).toBe('wasser');
+  });
+});
