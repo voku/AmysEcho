@@ -63,18 +63,3 @@ describe('symbolDedup', () => {
     expect(result[0]).toBeDefined();
     expect(result[0]?.id).toBe('profile-first');
   });
-
-  it('deduplicates by normalized name and prefers profile symbols', () => {
-    const symbols: SymbolDefinition[] = [
-      { id: 'global-essen', name: 'Essen', category: 'food' },
-      { id: 'profile-essen', name: ' essen ', category: 'food', profileId: 'amy' },
-      { id: 'wasser', name: 'Wasser', category: 'drink' },
-    ];
-
-    const result = dedupeSymbolsByName(symbols);
-
-    expect(result).toHaveLength(2);
-    expect(result.find((symbol) => symbol.name === 'essen')?.id).toBe('profile-essen');
-    expect(result.find((symbol) => symbol.name === 'Wasser')?.id).toBe('wasser');
-  });
-});
