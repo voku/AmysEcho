@@ -1121,10 +1121,14 @@ p {
   border-color: color-mix(in oklab, var(--color-success) 40%, transparent);
 }
 
+.gesture-screen__diagnostics[data-severity='info'] {
+  border-color: color-mix(in oklab, var(--color-info) 40%, transparent);
+}
+
 .gesture-screen__diagnostics-title {
   margin: 0;
   font-weight: 700;
-  color: var(--color-gesture-diagnostics-title);
+  color: var(--color-inverse-text);
 }
 
 .gesture-screen__diagnostics-hint {
@@ -1750,6 +1754,7 @@ p {
 
   .gesture-screen__controls {
     padding: var(--space-lg);
+    padding-bottom: calc(var(--bottom-nav-height) + var(--space-lg));
   }
 
   .app-header {
@@ -2913,7 +2918,7 @@ p {
   padding: 12px 16px;
   border-radius: 999px;
   background: #146c6e;
-  color: var(--color-gesture-diagnostics-title);
+  color: var(--color-inverse-text);
   text-decoration: none;
   font-weight: 600;
   box-shadow: 0 12px 24px rgba(13, 27, 27, 0.2);

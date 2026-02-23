@@ -352,6 +352,11 @@ describe('SymbolStore offline handling', () => {
 
     await waitFor(() => {
       expect(result.current.syncError).toBe('Fehler beim Synchronisieren der Gebärden. Bitte erneut versuchen.');
+      expect(showToastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Gebärden-Liste konnte nicht geladen werden: Fehler beim Synchronisieren der Gebärden. Bitte erneut versuchen.',
+        }),
+      );
     });
   });
 

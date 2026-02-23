@@ -101,8 +101,8 @@ describe('SignLanguageRecorder', () => {
   it('renders the gesture demo section', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText('Bereit für die Kamera')).toBeInTheDocument();
-    expect(screen.getByText(/Profil/)).toBeInTheDocument();
+    expect(screen.getByText('Bereit für die Kamera', { selector: '.gesture-screen__status-pill span' })).toBeInTheDocument();
+    expect(screen.getByText(/Profil/, { selector: '.gesture-screen__status-meta p' })).toBeInTheDocument();
   });
 
   it('shows camera action buttons', () => {
@@ -168,7 +168,7 @@ describe('SignLanguageRecorder', () => {
 
     expect(screen.getByText('Hand erkannt, aber keine passende Gebärde')).toBeInTheDocument();
     expect(screen.getByText(/Aktuelle Sicherheit ist zu niedrig/)).toBeInTheDocument();
-    expect(screen.getByText(/Letzte Pipeline-Meldung:/)).toBeInTheDocument();
+    expect(screen.getByText(/Letzte Systemmeldung:/)).toBeInTheDocument();
     expect(screen.getByText(/Trainierte Beispiele: HALLO, ESSEN/)).toBeInTheDocument();
   });
 
@@ -214,13 +214,13 @@ describe('SignLanguageRecorder', () => {
   it('shows initial status as ready (Bereit)', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText('Bereit für die Kamera')).toBeInTheDocument();
+    expect(screen.getByText('Bereit für die Kamera', { selector: '.gesture-screen__status-pill span' })).toBeInTheDocument();
   });
 
   it('displays profile information', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText(/Profil/)).toBeInTheDocument();
+    expect(screen.getByText(/Profil/, { selector: '.gesture-screen__status-meta p' })).toBeInTheDocument();
   });
 
   it('shows camera warning when camera is not supported', () => {

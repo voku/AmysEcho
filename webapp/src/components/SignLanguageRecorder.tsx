@@ -580,12 +580,12 @@ export function SignLanguageRecorder() {
           )}
           {error && <div className="gesture-screen__meta-error">{error}</div>}
 
-          {showDiagnostics && (
-            <div
-              id="gesture-diagnostics-panel"
-              className="gesture-screen__diagnostics"
-              data-severity={diagnostics.severity}
-            >
+          <div
+            id="gesture-diagnostics-panel"
+            className="gesture-screen__diagnostics"
+            data-severity={diagnostics.severity}
+            hidden={!showDiagnostics}
+          >
               <p className="gesture-screen__diagnostics-title">{diagnostics.title}</p>
               <p className="gesture-screen__diagnostics-hint">{diagnostics.hint}</p>
               <ul>
@@ -600,18 +600,17 @@ export function SignLanguageRecorder() {
                   <strong>{trainedSignLabels.length > 0 ? trainedSignLabels.length : 'Keine'}</strong>
                 </li>
                 <li>
-                  Letzte Pipeline-Meldung:{' '}
+                  Letzte Systemmeldung:{' '}
                   <strong>{latestMessageSummary ?? 'Noch keine Meldung'}</strong>
                 </li>
               </ul>
-              {trainedSignLabels.length > 0 && (
-                <p className="gesture-screen__diagnostics-hint">
-                  Trainierte Beispiele: {trainedSignLabels.slice(0, 6).join(', ')}
-                  {trainedSignLabels.length > 6 ? ' …' : ''}
-                </p>
-              )}
-            </div>
-          )}
+            {trainedSignLabels.length > 0 && (
+              <p className="gesture-screen__diagnostics-hint">
+                Trainierte Beispiele: {trainedSignLabels.slice(0, 6).join(', ')}
+                {trainedSignLabels.length > 6 ? ' …' : ''}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>
