@@ -26,7 +26,8 @@ export function dedupeSymbolsByName(symbols: SymbolDefinition[]): SymbolDefiniti
     }
     
     const symbolHasProfileScope = Boolean(trimmedProfileId);
-    const existingHasProfileScope = Boolean(existingSymbol?.profileId?.trim());
+    const existingProfileId = typeof existingSymbol.profileId === 'string' ? existingSymbol.profileId.trim() : '';
+    const existingHasProfileScope = Boolean(existingProfileId);
     if (!existingHasProfileScope && symbolHasProfileScope) {
       symbolsByName.set(normalizedName, normalizedSymbol);
     }
