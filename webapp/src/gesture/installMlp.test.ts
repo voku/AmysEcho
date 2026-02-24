@@ -58,6 +58,27 @@ describe('installMlp', () => {
     return buf;
   }
 
+  function createInt64ScalarNpy(value: bigint): Uint8Array {
+    let header = "{'descr': '<i8', 'fortran_order': False, 'shape': (), }";
+    header = header.padEnd(Math.ceil((header.length + 11) / 64) * 64 - 11, ' ');
+    header += '\n';
+
+    const headerBytes = strToU8(header);
+    const headerLen = headerBytes.length;
+    const buf = new Uint8Array(10 + headerLen + 8);
+    buf[0] = 0x93;
+    buf.set(strToU8('NUMPY'), 1);
+    buf[6] = 1;
+    buf[7] = 0;
+    buf[8] = headerLen & 0xFF;
+    buf[9] = (headerLen >> 8) & 0xFF;
+    buf.set(headerBytes, 10);
+
+    const view = new DataView(buf.buffer, buf.byteOffset + 10 + headerLen, 8);
+    view.setBigInt64(0, value, true);
+    return buf;
+  }
+
   function create3LayerZipB64(
     inputDim: number,
     layer1: number,
@@ -439,6 +460,30 @@ describe('installMlp', () => {
       const warningMessages = warnSpy.mock.calls
         .map((call) => String(call[0] ?? ''))
         .filter((message) => message.includes('Failed to parse'));
+      expect(warningMessages).toEqual([]);
+    });
+
+    it('lädt int64-Metadaten ohne Parse-Warnung', async () => {
+      const warnSpy = vi.spyOn(console, 'warn');
+      const modelEntries: Record<string, Uint8Array> = {
+        'w1.npy': createMockNpy(new Float32Array(10 * 126).fill(0.1), [10, 126]),
+        'b1.npy': createMockNpy(new Float32Array(10).fill(0), [10]),
+        'w2.npy': createMockNpy(new Float32Array(5 * 10).fill(0.1), [5, 10]),
+        'b2.npy': createMockNpy(new Float32Array(5).fill(0), [5]),
+        'w3.npy': createMockNpy(new Float32Array(1 * 5).fill(0.1), [1, 5]),
+        'b3.npy': createMockNpy(new Float32Array(1).fill(0), [1]),
+        'labels.npy': createMockNpy(['int64-meta'], [1]),
+        'window_size.npy': createInt64ScalarNpy(30n),
+        'input_dim.npy': createInt64ScalarNpy(126n),
+      };
+      const modelB64 = Buffer.from(zipSync(modelEntries)).toString('base64');
+
+      const ok = await window.__setMlpModelB64!(modelB64);
+      expect(ok).toBe(true);
+
+      const warningMessages = warnSpy.mock.calls
+        .map((call) => String(call[0] ?? ''))
+        .filter((message) => message.includes('Failed to parse window_size') || message.includes('Failed to parse input_dim'));
       expect(warningMessages).toEqual([]);
     });
 

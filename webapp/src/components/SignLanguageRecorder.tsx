@@ -715,12 +715,12 @@ export function SignLanguageRecorder() {
           )}
           {error && <div className="gesture-screen__meta-error">{error}</div>}
 
-          <div
-            id="gesture-diagnostics-panel"
-            className="gesture-screen__diagnostics"
-            data-severity={diagnostics.severity}
-            hidden={!showDiagnostics}
-          >
+          {showDiagnostics && (
+            <div
+              id="gesture-diagnostics-panel"
+              className="gesture-screen__diagnostics"
+              data-severity={diagnostics.severity}
+            >
               <p className="gesture-screen__diagnostics-title">{diagnostics.title}</p>
               <p className="gesture-screen__diagnostics-hint">{diagnostics.hint}</p>
               <ul>
@@ -760,7 +760,8 @@ export function SignLanguageRecorder() {
                 {trainedSignLabels.length > 6 ? ' …' : ''}
               </p>
             )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </section>

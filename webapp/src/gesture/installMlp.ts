@@ -141,6 +141,16 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         const value = src[i] ?? 0;
         data[i] = f16ToF32(value);
       }
+    } else if (type === 'i8') {
+      data = new Float32Array(size);
+      const dataView = new DataView(buf.buffer, buf.byteOffset + offset, size * 8);
+      for (let i = 0; i < size; i++) {
+        const value = Number(dataView.getBigInt64(i * 8, true));
+        if (!Number.isSafeInteger(value)) {
+          throw new Error('int64 value exceeds safe integer range');
+        }
+        data[i] = value;
+      }
     } else if (type === 'i4') {
       const src = new Int32Array(buf.buffer, buf.byteOffset + offset, size);
       data = new Float32Array(size);
