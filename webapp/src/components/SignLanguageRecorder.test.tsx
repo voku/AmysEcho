@@ -21,10 +21,12 @@ const detectorState = {
   error: null as string | null,
   lastSign: null as string | null,
   lastLandmarks: [] as number[][][],
+  lastHandedness: [] as string[],
   lastConfidence: null as number | null,
   lastDetectionMethod: null as string | null,
   lastUsedFallback: false,
   messageLog: [] as SignLanguageMessage[],
+  getVariationMetrics: vi.fn().mockReturnValue(undefined),
 };
 
 vi.mock('../hooks/useSignLanguageDetector', () => ({
@@ -90,6 +92,7 @@ describe('SignLanguageRecorder', () => {
     detectorState.error = null;
     detectorState.lastSign = null;
     detectorState.lastLandmarks = [];
+    detectorState.lastHandedness = [];
     detectorState.lastConfidence = null;
     detectorState.lastDetectionMethod = null;
     detectorState.lastUsedFallback = false;
@@ -278,6 +281,59 @@ describe('SignLanguageRecorder', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' }));
     expect(await screen.findByText('Wieder auf Profilmodell warten')).toBeInTheDocument();
+  });
+
+  it('resets fallback override when active profile changes', async () => {
+    appStateMock.profileId = 'profile-a';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=')) {
+          return new Response('missing-profile', { status: 404 });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response(new Uint8Array([9, 9, 9]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '999',
+              'X-Model-Source': 'global',
+            },
+          });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['TRINKEN'] }),
+    } as Response);
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    const { rerender } = renderWithProviders(<SignLanguageRecorder />);
+
+    expect(await screen.findByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' }));
+    expect(await screen.findByRole('button', { name: 'Wieder auf Profilmodell warten' })).toBeInTheDocument();
+
+    appStateMock.profileId = 'profile-b';
+    rerender(
+      <MemoryRouter>
+        <ApiConfigProvider>
+          <SignLanguageRecorder />
+        </ApiConfigProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Wieder auf Profilmodell warten' })).not.toBeInTheDocument();
   });
 
   it('toggles overlay visibility when checkbox is clicked', () => {

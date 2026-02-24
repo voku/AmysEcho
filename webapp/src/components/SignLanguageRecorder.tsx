@@ -99,6 +99,10 @@ export function SignLanguageRecorder() {
     latestProfileIdRef.current = profileId;
   }, [profileId]);
 
+  useEffect(() => {
+    setAllowGlobalFallbackOutput(false);
+  }, [profileId]);
+
   // Check if profile has trained signs
   useEffect(() => {
     let isActive = true;
@@ -663,7 +667,7 @@ export function SignLanguageRecorder() {
                     type="button"
                     className="ghost-inline"
                     onClick={() => setAllowGlobalFallbackOutput(true)}
-                    title="Vorübergehend mit dem globalen Modell fortfahren"
+                    title="Vorübergehend mit dem Ersatzmodell fortfahren"
                   >
                     Vorübergehend mit Ersatzmodell fortfahren
                   </button>
