@@ -93,7 +93,9 @@ export function useMlpModelInjection(
       return null;
     }
     
-    setStatus('loading');
+    const hadModelBeforeRefresh = lastSignatureRef.current !== null;
+
+    setStatus((previousStatus) => (previousStatus === 'ready' ? 'ready' : 'loading'));
     setNotice(null);
 
     let result: MlpModelResponse | null;
@@ -126,17 +128,27 @@ export function useMlpModelInjection(
       })();
     } catch (error) {
       const reason = toModelNotice(error);
-      setStatus('error');
+      if (hadModelBeforeRefresh) {
+        setStatus('ready');
+        console.warn('[MLP] Modell-Refresh fehlgeschlagen, letztes Modell bleibt aktiv', error);
+      } else {
+        setStatus('error');
+      }
       setNotice(reason);
       refreshInFlightRef.current = false;
       return null;
     }
 
     if (!result) {
-      // MLP-Modell ist optional - Gebärdenerkennung funktioniert mit MediaPipe-Standard
-      // Kein Fehler anzeigen, nur protokollieren und weitermachen
-      setStatus('idle');
-      console.info('[MLP] Kein personalisiertes Modell verfügbar – MediaPipe-Standard wird verwendet');
+      if (hadModelBeforeRefresh) {
+        setStatus('ready');
+        console.warn('[MLP] Refresh lieferte kein Modell, letztes Modell bleibt aktiv');
+      } else {
+        // MLP-Modell ist optional - Gebärdenerkennung funktioniert mit MediaPipe-Standard
+        // Kein Fehler anzeigen, nur protokollieren und weitermachen
+        setStatus('idle');
+        console.info('[MLP] Kein personalisiertes Modell verfügbar – MediaPipe-Standard wird verwendet');
+      }
       refreshInFlightRef.current = false;
       return null;
     }
