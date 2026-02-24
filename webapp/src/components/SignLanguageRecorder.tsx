@@ -32,6 +32,16 @@ function toTitleCase(value: string): string {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
+function normalizeSignLabel(value: string): string {
+  const normalized = value
+    .normalize('NFKC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+
+  return normalized.replace(/(?:[_-])[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, '');
+}
+
 export function SignLanguageRecorder() {
   const navigate = useNavigate();
   const { apiBaseUrl, apiToken } = useApiConfig();
@@ -233,21 +243,21 @@ export function SignLanguageRecorder() {
   }, [cameraSupported, status, start, hasTrainedSigns]);
 
   const normalizedTrainedSignLabels = useMemo(
-    () => new Set(trainedSignLabels.map(label => label.toLowerCase())),
+    () => new Set(trainedSignLabels.map(label => normalizeSignLabel(label)).filter(Boolean)),
     [trainedSignLabels]
   );
 
   useEffect(() => {
     if (lastSign) {
       // Only record if it's a trained label (case-insensitive)
-      if (normalizedTrainedSignLabels.has(lastSign.toLowerCase())) {
+      if (normalizedTrainedSignLabels.has(normalizeSignLabel(lastSign))) {
         recordSign(lastSign);
       }
     }
   }, [lastSign, recordSign, normalizedTrainedSignLabels]);
 
   const normalizedGesture = lastSign?.trim() ?? '';
-  const gestureKey = normalizedGesture ? normalizedGesture.toLowerCase() : '';
+  const gestureKey = normalizedGesture ? normalizeSignLabel(normalizedGesture) : '';
   
   // Filter prediction: only show if it's in the trained labels list
   const isTrained = useMemo(() => {
@@ -439,7 +449,7 @@ export function SignLanguageRecorder() {
       };
     }
 
-    const isTrainedSign = normalizedTrainedSignLabels.has(lastSign.toLowerCase());
+    const isTrainedSign = normalizedTrainedSignLabels.has(normalizeSignLabel(lastSign));
     if (trainedSignLabels.length > 0 && !isTrainedSign) {
       return {
         severity: 'warning' as const,

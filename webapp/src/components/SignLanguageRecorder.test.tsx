@@ -233,6 +233,103 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getAllByText(/Fallback-Erkennung aktiv/).length).toBeGreaterThan(0);
   });
 
+  it('treats trained labels as matching even with extra whitespace and casing differences', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = '  TRINKEN  ';
+    detectorState.lastConfidence = 0.89;
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['trinken   ']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
+    expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+  });
+
+
+  it('matches trained labels that include generated UUID suffixes', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'TRINKEN';
+    detectorState.lastConfidence = 0.93;
+
+    window.localStorage.setItem(
+      'webapp:trained-sign-labels',
+      JSON.stringify(['trinken-05d6e861-36e0-4ca2-91f1-e6d9bf591726']),
+    );
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
+    expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+  });
+
+  
+  
+  it('accepts UUID-suffixed labels returned by trained-labels API for matching and recording', async () => {
+    appStateMock.profileId = 'profile-uuid-api';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'TRINKEN';
+    detectorState.lastConfidence = 0.88;
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        trainedLabels: ['trinken_05d6e861-36e0-4ca2-91f1-e6d9bf591726'],
+      }),
+    } as Response);
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    await waitFor(() => {
+      expect(apiRetryManager.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/dgs/trained-labels?profileId=profile-uuid-api'),
+        expect.any(Object),
+      );
+    });
+
+    const enableFallbackButton = await screen.findByRole('button', {
+      name: 'Vorübergehend mit Ersatzmodell fortfahren',
+    });
+    fireEvent.click(enableFallbackButton);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
+    expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+    expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN');
+  });
+
+  it('matches detector output when generated UUID suffix uses underscore separator', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'TRINKEN_05d6e861-36e0-4ca2-91f1-e6d9bf591726';
+    detectorState.lastConfidence = 0.91;
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
+    expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+  });
+
   it('blocks trained-sign output until the personal profile model is active', async () => {
     appStateMock.profileId = 'profile-456';
     detectorState.status = 'running';
