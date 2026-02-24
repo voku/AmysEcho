@@ -22,7 +22,15 @@ const detectorState = {
   lastSign: null as string | null,
   lastLandmarks: [] as number[][][],
   lastConfidence: null as number | null,
+  lastDetectionMethod: null as string | null,
+  lastUsedFallback: false,
   messageLog: [] as SignLanguageMessage[],
+};
+
+const mlpInjectionState = {
+  notice: null as string | null,
+  status: 'idle' as 'idle' | 'loading' | 'ready' | 'error',
+  lastMeta: null as { source: 'profile' | 'global'; version?: string | null } | null,
 };
 
 vi.mock('../hooks/useSignLanguageDetector', () => ({
@@ -30,9 +38,7 @@ vi.mock('../hooks/useSignLanguageDetector', () => ({
 }));
 
 vi.mock('../hooks/useMlpModelInjection', () => ({
-  useMlpModelInjection: () => ({
-    notice: null,
-  }),
+  useMlpModelInjection: () => mlpInjectionState,
 }));
 
 const appStateMock = {
@@ -95,7 +101,12 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastSign = null;
     detectorState.lastLandmarks = [];
     detectorState.lastConfidence = null;
+    detectorState.lastDetectionMethod = null;
+    detectorState.lastUsedFallback = false;
     detectorState.messageLog = [];
+    mlpInjectionState.notice = null;
+    mlpInjectionState.status = 'idle';
+    mlpInjectionState.lastMeta = null;
   });
 
   it('renders the gesture demo section', () => {
@@ -169,7 +180,63 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByText('Hand erkannt, aber keine passende Gebärde')).toBeInTheDocument();
     expect(screen.getByText(/Aktuelle Sicherheit ist zu niedrig/)).toBeInTheDocument();
     expect(screen.getByText(/Letzte Systemmeldung:/)).toBeInTheDocument();
+    expect(screen.getByText(/Aktives Modell:/)).toBeInTheDocument();
+    expect(screen.getByText(/Letzter Erkennungsweg:/)).toBeInTheDocument();
     expect(screen.getByText(/Trainierte Beispiele: HALLO, ESSEN/)).toBeInTheDocument();
+  });
+
+  it('shows profile model usage and fallback mode in diagnostics', async () => {
+    appStateMock.profileId = 'profile-123';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastDetectionMethod = 'mlp';
+    detectorState.lastUsedFallback = true;
+    mlpInjectionState.status = 'ready';
+    mlpInjectionState.lastMeta = { source: 'profile', version: '12345' };
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['TRINKEN'] }),
+    } as Response);
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+    expect(await screen.findByText(/Modell: Profilmodell aktiv v12345 · Erkennung: Fallback-Erkennung aktiv/)).toBeInTheDocument();
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText(/Profilmodell aktiv \(Version 12345\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Fallback-Erkennung aktiv/).length).toBeGreaterThan(0);
+  });
+
+  it('blocks trained-sign output until the personal profile model is active', async () => {
+    appStateMock.profileId = 'profile-456';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'TRINKEN';
+    detectorState.lastConfidence = 0.94;
+    mlpInjectionState.status = 'ready';
+    mlpInjectionState.lastMeta = { source: 'global', version: '999' };
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['TRINKEN'] }),
+    } as Response);
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    expect(await screen.findByText(/Persönliches Profilmodell noch nicht aktiv/)).toBeInTheDocument();
+    expect(screen.queryByText('Trinken')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
+    expect(screen.getByText('Persönliches Modell wird vorbereitet')).toBeInTheDocument();
   });
 
   it('toggles overlay visibility when checkbox is clicked', () => {

@@ -82,13 +82,15 @@ export function SignLanguageRecorder() {
     error,
     lastSign,
     lastConfidence,
+    lastDetectionMethod,
+    lastUsedFallback,
     lastLandmarks,
     messageLog,
     audioMuted,
     toggleAudioMuted,
   } = useSignLanguageDetector(videoRef, overlayRef);
   const { profileId, recordSign } = useAppState();
-  const { notice: modelNotice } = useMlpModelInjection(profileId);
+  const { notice: modelNotice, status: modelStatus, lastMeta: modelMeta } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
   const latestProfileIdRef = useRef<string | null>(profileId);
 
@@ -248,8 +250,14 @@ export function SignLanguageRecorder() {
     return normalizedTrainedSignLabels.has(gestureKey);
   }, [gestureKey, normalizedTrainedSignLabels]);
 
-  const gestureMeaning = (gestureKey && isTrained) ? gestureMeaningService.getMeaning(gestureKey) : undefined;
-  const gestureLabel = (gestureKey && isTrained)
+  const profileModelRequired = Boolean(profileId && trainedSignLabels.length > 0 && !demoMode);
+  const isProfileModelActive = modelStatus === 'ready' && modelMeta?.source === 'profile';
+  const canUseProfileRecognition = !profileModelRequired || isProfileModelActive;
+
+  const gestureMeaning = (gestureKey && isTrained && canUseProfileRecognition)
+    ? gestureMeaningService.getMeaning(gestureKey)
+    : undefined;
+  const gestureLabel = (gestureKey && isTrained && canUseProfileRecognition)
     ? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
@@ -320,6 +328,55 @@ export function SignLanguageRecorder() {
   const needsCameraStart = status === 'idle' || status === 'stopped' || status === 'error';
   const latestMessageSummary = messageLog[0]?.summary ?? null;
 
+  const modelStatusLabel = useMemo(() => {
+    if (!profileId) {
+      return 'Kein Profil aktiv';
+    }
+    if (modelStatus === 'loading') {
+      return 'Modell wird geladen…';
+    }
+    if (modelStatus === 'ready' && modelMeta?.source === 'profile') {
+      return 'Profilmodell aktiv';
+    }
+    if (modelStatus === 'ready' && modelMeta?.source === 'global') {
+      return 'Globales Ersatzmodell aktiv';
+    }
+    if (modelStatus === 'error') {
+      return 'Modellfehler – Standarderkennung aktiv';
+    }
+    return 'Standarderkennung aktiv';
+  }, [modelMeta?.source, modelStatus, profileId]);
+
+  const recognitionModeLabel = useMemo(() => {
+    if (lastUsedFallback) {
+      return 'Fallback-Erkennung aktiv';
+    }
+    if (!lastDetectionMethod) {
+      return 'Noch keine Messung';
+    }
+
+    if (lastDetectionMethod === 'mlp') {
+      return 'MLP-Modell';
+    }
+    if (lastDetectionMethod === 'mlp_audio_only') {
+      return 'MLP (nur Audio)';
+    }
+    if (lastDetectionMethod === 'mediapipe') {
+      return 'MediaPipe';
+    }
+    if (lastDetectionMethod === 'none') {
+      return 'Keine eindeutige Erkennung';
+    }
+    return lastDetectionMethod;
+  }, [lastDetectionMethod, lastUsedFallback]);
+
+  const liveRecognitionStatus = useMemo(() => {
+    const modelVersion = modelMeta?.version ? ` v${modelMeta.version}` : '';
+    const modelPart = `Modell: ${modelStatusLabel}${modelVersion}`;
+    const recognitionPart = `Erkennung: ${recognitionModeLabel}`;
+    return `${modelPart} · ${recognitionPart}`;
+  }, [modelMeta?.version, modelStatusLabel, recognitionModeLabel]);
+
   const diagnostics = useMemo(() => {
     if (demoMode) {
       return {
@@ -353,6 +410,14 @@ export function SignLanguageRecorder() {
       };
     }
 
+    if (profileModelRequired && !isProfileModelActive) {
+      return {
+        severity: 'warning' as const,
+        title: 'Persönliches Modell wird vorbereitet',
+        hint: 'Bitte kurz warten. Die Erkennung startet mit deinem Profilmodell, sobald es bereit ist.',
+      };
+    }
+
     if (!lastSign) {
       const confidencePercent =
         typeof lastConfidence === 'number' ? `${Math.round(lastConfidence * 100)}%` : null;
@@ -379,7 +444,18 @@ export function SignLanguageRecorder() {
       title: 'Erkennung arbeitet stabil',
       hint: 'Die aktuelle Gebärde passt zu deinem trainierten Profil.',
     };
-  }, [demoMode, error, hasDetectedHands, lastConfidence, lastSign, normalizedTrainedSignLabels, status, trainedSignLabels]);
+  }, [
+    demoMode,
+    error,
+    hasDetectedHands,
+    isProfileModelActive,
+    lastConfidence,
+    lastSign,
+    normalizedTrainedSignLabels,
+    profileModelRequired,
+    status,
+    trainedSignLabels,
+  ]);
 
   // Loading state
   if (isLoadingProfile) {
@@ -568,6 +644,12 @@ export function SignLanguageRecorder() {
           {cameraSwitchFeedback && (
             <div className="gesture-screen__meta-note">{cameraSwitchFeedback}</div>
           )}
+          <div className="gesture-screen__meta-note">{liveRecognitionStatus}</div>
+          {profileModelRequired && !isProfileModelActive && (
+            <div className="gesture-screen__meta-warning">
+              Persönliches Profilmodell noch nicht aktiv. Bitte warte kurz oder öffne „Lernen“, um das Training zu prüfen.
+            </div>
+          )}
           {audioMuted && (
             <div className="gesture-screen__meta-note">
               <strong>Audio stummgeschaltet.</strong> So stören Umgebungsgeräusche die Erkennung nicht.
@@ -602,6 +684,17 @@ export function SignLanguageRecorder() {
                 <li>
                   Letzte Systemmeldung:{' '}
                   <strong>{latestMessageSummary ?? 'Noch keine Meldung'}</strong>
+                </li>
+                <li>
+                  Aktives Modell:{' '}
+                  <strong>
+                    {modelStatusLabel}
+                    {modelMeta?.version ? ` (Version ${modelMeta.version})` : ''}
+                  </strong>
+                </li>
+                <li>
+                  Letzter Erkennungsweg:{' '}
+                  <strong>{recognitionModeLabel}</strong>
                 </li>
               </ul>
             {trainedSignLabels.length > 0 && (

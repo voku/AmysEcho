@@ -290,4 +290,22 @@ describe('GET /latest-mlp-model', () => {
       .expect('X-Model-Source', 'profile')
       .expect('X-Model-Profile', profileId);
   });
+
+  it('falls back to global model when requested profile model is missing', async () => {
+    const profileId = '22222222-2222-4222-8222-222222222222';
+    const globalModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(globalModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, globalModelPath);
+
+    const response = await request(app)
+      .get(`/latest-mlp-model?profileId=${profileId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-source']).toBe('global');
+    expect(response.headers['x-model-profile']).toBeUndefined();
+  });
 });

@@ -65,6 +65,7 @@ interface GestureMessagePayload {
     fallback: number;
     mlp: number;
   };
+  detectionMethod?: string;
   frameCapture?: string | null;
 }
 
@@ -1186,6 +1187,9 @@ export class GestureRecognitionOrchestrator {
           fallback: FALLBACK_CONFIDENCE_THRESHOLD,
           mlp: MLP_CONFIDENCE_THRESHOLD,
         },
+        ...(processingResult.metadata?.method
+          ? { detectionMethod: processingResult.metadata.method }
+          : {}),
       };
 
       const fallbackResult = processingResult.fallback;

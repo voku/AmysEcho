@@ -78,6 +78,35 @@ describe('useMlpModelInjection', () => {
     expect(result.current.notice).toBeNull();
   });
 
+  it('zeigt klaren Hinweis wenn Profilmodell fehlt und globales Modell genutzt wird', async () => {
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response('not found', { status: 404 }))
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array([9, 8, 7]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'g-2',
+            'X-Model-Source': 'global',
+          },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+      expect(result.current.lastMeta?.source).toBe('global');
+      expect(result.current.notice).toContain('persönliches Modell verfügbar');
+    });
+
+    const firstUrl = String(fetchMock.mock.calls[0]?.[0] ?? '');
+    const secondUrl = String(fetchMock.mock.calls[1]?.[0] ?? '');
+    expect(firstUrl).toContain('profileId=amy');
+    expect(secondUrl).not.toContain('profileId=amy');
+  });
+
   it('installiert Runtime, wenn __setMlpModelB64 fehlt', async () => {
     const fetchMock = vi
       .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
