@@ -161,6 +161,9 @@ describe('useMlpModelInjection', () => {
   });
 
   it('unterdrückt Hinweis, wenn dieselbe Modellversion erneut geladen wird', async () => {
+    const injectMock = vi.fn().mockResolvedValue(true);
+    (window as any).__setMlpModelB64 = injectMock;
+
     const firstResponse = new Response(new Uint8Array([3, 3, 3]), {
       status: 200,
       headers: {
@@ -197,6 +200,8 @@ describe('useMlpModelInjection', () => {
       expect(result.current.status).toBe('ready');
       expect(result.current.notice).toBeNull();
     });
+
+    expect(injectMock).toHaveBeenCalledTimes(1);
   });
 
   it('lädt neue Version auf manuellen Refresh', async () => {
@@ -235,6 +240,46 @@ describe('useMlpModelInjection', () => {
       expect(result.current.lastMeta?.version).toBe('p-8');
       expect(result.current.notice).toContain('aktualisiert');
     });
+  });
+
+  it('lädt unbekannte Version erneut, wenn sich das Modell ohne Versionsheader ändert', async () => {
+    const injectMock = vi.fn().mockResolvedValue(true);
+    (window as any).__setMlpModelB64 = injectMock;
+
+    const firstResponse = new Response(new Uint8Array([1, 2, 3, 4]), {
+      status: 200,
+      headers: {
+        'X-Model-Source': 'profile',
+        'X-Model-Profile': 'amy',
+      },
+    });
+    const secondResponse = new Response(new Uint8Array([4, 3, 2, 1]), {
+      status: 200,
+      headers: {
+        'X-Model-Source': 'profile',
+        'X-Model-Profile': 'amy',
+      },
+    });
+
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValueOnce(firstResponse)
+      .mockResolvedValueOnce(secondResponse);
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+
+    await result.current.refreshModel();
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+
+    expect(injectMock).toHaveBeenCalledTimes(2);
   });
 
   it('versucht Token-Refresh bei 401 und lädt Modell erneut', async () => {

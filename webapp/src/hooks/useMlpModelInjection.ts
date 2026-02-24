@@ -55,10 +55,22 @@ export function useMlpModelInjection(
     lastSignatureRef.current = null;
   }, [profileId]);
 
+  const hashBase64 = useCallback((value: string) => {
+    let hash = 2166136261;
+    for (let i = 0; i < value.length; i++) {
+      hash ^= value.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16);
+  }, []);
+
   const signatureFor = useCallback((result: MlpModelResponse | null) => {
     if (!result) return null;
-    return result.meta.version ?? `${result.b64.length}:${result.meta.source}`;
-  }, []);
+    if (result.meta.version) {
+      return `version:${result.meta.source}:${result.meta.version}`;
+    }
+    return `hash:${result.meta.source}:${result.b64.length}:${hashBase64(result.b64)}`;
+  }, [hashBase64]);
 
   const injectIntoRuntime = useCallback(async (payload: MlpModelResponse | null) => {
     if (!payload) return false;
@@ -131,6 +143,19 @@ export function useMlpModelInjection(
 
     const signature = signatureFor(result);
     const isNewModel = signature && signature !== lastSignatureRef.current;
+
+    if (!isNewModel) {
+      setLastMeta(result.meta);
+      setStatus('ready');
+      if (result.meta.source === 'global' && profileId) {
+        setNotice(MODEL_PROFILE_FALLBACK_NOTICE);
+      } else {
+        setNotice(null);
+      }
+      refreshInFlightRef.current = false;
+      return result;
+    }
+
     ensureRuntimeReady();
     const injected = await injectIntoRuntime(result);
 

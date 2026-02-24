@@ -188,6 +188,22 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByText(/Trainierte Beispiele: HALLO, ESSEN/)).toBeInTheDocument();
   });
 
+  it('toggles diagnostics panel visibility', () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    expect(screen.queryByText(/Letzter Erkennungsweg:/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
+    expect(screen.getByText(/Letzter Erkennungsweg:/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose ausblenden' }));
+    expect(screen.queryByText(/Letzter Erkennungsweg:/)).not.toBeInTheDocument();
+  });
+
   it('shows profile model usage and fallback mode in diagnostics', async () => {
     appStateMock.profileId = 'profile-123';
     detectorState.status = 'running';
