@@ -82,7 +82,9 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 						`latest-mlp-model resolved profile file ${profiledPath}`,
 					);
 				} catch {
-					// fall through to global handling
+					await deps.logTraining(
+						`latest-mlp-model profile model not found at ${profiledPath}, falling back to global`,
+					);
 				}
 			}
 

@@ -361,11 +361,97 @@ describe('useMlpModelInjection', () => {
     });
   });
 
+
+
+  it('bleibt bei Refresh im ready-Status, solange ein Modell aktiv ist', async () => {
+    let resolveNextFetch: ((value: Response) => void) | null = null;
+
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array([9, 9, 9]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-11',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+          },
+        }),
+      )
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => {
+        resolveNextFetch = resolve;
+      }));
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+
+    const refreshPromise = result.current.refreshModel();
+
+    expect(result.current.status).toBe('ready');
+
+    act(() => {
+      resolveNextFetch?.(
+        new Response(new Uint8Array([9, 9, 9]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-11',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+          },
+        }),
+      );
+    });
+
+    await refreshPromise;
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+    });
+  });
+
+  it('bleibt im ready-Status, wenn Refresh kein Modell liefert aber bereits eins aktiv war', async () => {
+    const fetchMock = vi
+      .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValueOnce(
+        new Response(new Uint8Array([6, 6, 6]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-12',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+          },
+        }),
+      )
+      .mockResolvedValueOnce(new Response('not found', { status: 404 }))
+      .mockResolvedValueOnce(new Response('not found', { status: 404 }));
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const { result } = renderHook(() => useMlpModelInjection('amy'));
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+      expect(result.current.lastMeta?.version).toBe('p-12');
+    });
+
+    await result.current.refreshModel();
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('ready');
+      expect(result.current.lastMeta?.version).toBe('p-12');
+    });
+  });
+
   it('aktualisiert das Modell im Hintergrund in festem Intervall', async () => {
     vi.useFakeTimers();
     const fetchMock = vi
       .fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>()
-      .mockResolvedValue(
+      .mockImplementation(() => Promise.resolve(
         new Response(new Uint8Array([8, 8, 8]), {
           status: 200,
           headers: {
@@ -374,7 +460,7 @@ describe('useMlpModelInjection', () => {
             'X-Model-Profile': 'amy',
           },
         }),
-      );
+      ));
 
     vi.stubGlobal('fetch', fetchMock as any);
 

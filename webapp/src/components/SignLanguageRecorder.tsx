@@ -10,7 +10,7 @@ import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
 
-const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
+const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -106,6 +106,8 @@ export function SignLanguageRecorder() {
   const { notice: modelNotice, status: modelStatus, lastMeta: modelMeta } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
   const latestProfileIdRef = useRef<string | null>(profileId);
+  const lastProfileModelLogRef = useRef<string>('');
+  const lastFilteredPredictionLogRef = useRef<string>('');
 
   useEffect(() => {
     latestProfileIdRef.current = profileId;
@@ -254,6 +256,45 @@ export function SignLanguageRecorder() {
   const canUseProfileRecognition = !profileModelRequired || isProfileModelActive || allowGlobalFallbackOutput;
 
   useEffect(() => {
+    if (!profileModelRequired) {
+      return;
+    }
+
+    const transitionSignature = [
+      profileId ?? 'none',
+      modelStatus,
+      modelMeta?.source ?? 'none',
+      modelMeta?.version ?? 'none',
+      String(allowGlobalFallbackOutput),
+      String(isProfileModelActive),
+    ].join('|');
+
+    if (lastProfileModelLogRef.current === transitionSignature) {
+      return;
+    }
+    lastProfileModelLogRef.current = transitionSignature;
+
+    console.info('[Recorder] Profile model status', {
+      profileId,
+      modelStatus,
+      modelSource: modelMeta?.source ?? null,
+      modelVersion: modelMeta?.version ?? null,
+      trainedSignCount: trainedSignLabels.length,
+      isProfileModelActive,
+      allowGlobalFallbackOutput,
+    });
+  }, [
+    allowGlobalFallbackOutput,
+    isProfileModelActive,
+    modelMeta?.source,
+    modelMeta?.version,
+    modelStatus,
+    profileId,
+    profileModelRequired,
+    trainedSignLabels.length,
+  ]);
+
+  useEffect(() => {
     if (lastSign) {
       // Only record if it's a trained label and profile output is currently allowed
       if (
@@ -285,6 +326,58 @@ export function SignLanguageRecorder() {
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
+
+  useEffect(() => {
+    if (!lastSign || !profileModelRequired) {
+      return;
+    }
+
+    const reason = !isTrained
+      ? 'prediction_not_in_trained_labels'
+      : !canUseProfileRecognition
+        ? 'profile_model_not_ready'
+        : null;
+
+    if (!reason) {
+      return;
+    }
+
+    const signature = `${reason}|${normalizeSignLabel(lastSign)}|${modelStatus}|${modelMeta?.source ?? 'none'}`;
+    if (lastFilteredPredictionLogRef.current === signature) {
+      return;
+    }
+    lastFilteredPredictionLogRef.current = signature;
+
+    console.info('[Recorder] Prediction suppressed', {
+      reason,
+      predictedLabel: lastSign,
+      normalizedPrediction: normalizeSignLabel(lastSign),
+      lastConfidence,
+      detectionMethod: lastDetectionMethod ?? null,
+      modelStatus,
+      modelSource: modelMeta?.source ?? null,
+      modelVersion: modelMeta?.version ?? null,
+      isProfileModelActive,
+      profileId,
+      normalizedTrainedLabelsPreview: trainedSignLabels.slice(0, 10).map(l => normalizeSignLabel(l)),
+      trainedSignCount: trainedSignLabels.length,
+      allowGlobalFallbackOutput,
+    });
+  }, [
+    allowGlobalFallbackOutput,
+    canUseProfileRecognition,
+    isProfileModelActive,
+    isTrained,
+    lastConfidence,
+    lastDetectionMethod,
+    lastSign,
+    modelMeta?.source,
+    modelMeta?.version,
+    modelStatus,
+    profileId,
+    profileModelRequired,
+    trainedSignLabels,
+  ]);
 
   const handleStart = async () => {
     await start();

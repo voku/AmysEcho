@@ -131,6 +131,7 @@ export function useSignLanguageDetector(
   const [audioMuted, setAudioMuted] = useState(false);
   const audioMutedRef = useRef(false);
   const orchestratorRef = useRef<GestureRecognitionOrchestrator | null>(null);
+  const lastMlpDecisionLogRef = useRef<string>('');
   const handStabilizerRef = useRef<HandLandmarkStabilizer>(
     createHandLandmarkStabilizer({ ttlMs: 250, maxHands: 2 }),
   );
@@ -182,7 +183,42 @@ export function useSignLanguageDetector(
           detectionMethod?: string;
           isFallback?: boolean;
           metadata?: { method?: string };
+          mlpDecision?: {
+            selected: boolean;
+            reason: string;
+            threshold?: number;
+            margin?: number;
+            score?: number;
+            selectedConfidenceBeforeMlp?: number;
+            selectedGestureBeforeMlp?: string | null;
+          };
         };
+
+        const mlpDecision = payload.mlpDecision;
+        if (mlpDecision && mlpDecision.selected === false) {
+          const decisionSignature = [
+            mlpDecision.reason,
+            String(mlpDecision.score ?? 'na'),
+            String(mlpDecision.threshold ?? 'na'),
+            String(payload.gesture ?? 'none'),
+            String(payload.detectionMethod ?? payload.metadata?.method ?? 'none'),
+          ].join('|');
+
+          if (lastMlpDecisionLogRef.current !== decisionSignature) {
+            lastMlpDecisionLogRef.current = decisionSignature;
+            console.info('[Detector] MLP prediction rejected', {
+              reason: mlpDecision.reason,
+              score: mlpDecision.score ?? null,
+              threshold: mlpDecision.threshold ?? null,
+              margin: mlpDecision.margin ?? null,
+              selectedGestureBeforeMlp: mlpDecision.selectedGestureBeforeMlp ?? null,
+              selectedConfidenceBeforeMlp: mlpDecision.selectedConfidenceBeforeMlp ?? null,
+              finalDetectionMethod: payload.detectionMethod ?? payload.metadata?.method ?? null,
+              finalGesture: payload.gesture ?? null,
+              finalConfidence: typeof payload.confidence === 'number' ? payload.confidence : null,
+            });
+          }
+        }
 
         const resolveDetectionMethod = () => {
           const topLevelMethod = payload.detectionMethod?.trim();

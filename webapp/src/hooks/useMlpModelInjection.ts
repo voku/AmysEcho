@@ -93,7 +93,9 @@ export function useMlpModelInjection(
       return null;
     }
     
-    setStatus('loading');
+    const hadModelBeforeRefresh = lastSignatureRef.current !== null;
+
+    setStatus((previousStatus) => (previousStatus === 'ready' ? 'ready' : 'loading'));
     setNotice(null);
 
     let result: MlpModelResponse | null;
@@ -117,7 +119,7 @@ export function useMlpModelInjection(
                 });
               }
             } catch (refreshError) {
-              console.warn('Token-Refresh für MLP-Modell fehlgeschlagen', refreshError);
+              console.warn('Token refresh failed for MLP model', refreshError);
             }
             throw new HttpError(401, SESSION_EXPIRED_MESSAGE);
           }
@@ -126,17 +128,27 @@ export function useMlpModelInjection(
       })();
     } catch (error) {
       const reason = toModelNotice(error);
-      setStatus('error');
+      if (hadModelBeforeRefresh) {
+        setStatus('ready');
+        console.warn('[MLP] Model refresh failed, keeping last active model', error);
+      } else {
+        setStatus('error');
+      }
       setNotice(reason);
       refreshInFlightRef.current = false;
       return null;
     }
 
     if (!result) {
-      // MLP-Modell ist optional - Gebärdenerkennung funktioniert mit MediaPipe-Standard
-      // Kein Fehler anzeigen, nur protokollieren und weitermachen
-      setStatus('idle');
-      console.info('[MLP] Kein personalisiertes Modell verfügbar – MediaPipe-Standard wird verwendet');
+      if (hadModelBeforeRefresh) {
+        setStatus('ready');
+        console.warn('[MLP] Refresh returned no model, keeping last active model');
+      } else {
+        // MLP model is optional - gesture recognition works with MediaPipe default
+        // No error shown, just log and continue
+        setStatus('idle');
+        console.info('[MLP] No personalized model available – using MediaPipe default');
+      }
       refreshInFlightRef.current = false;
       return null;
     }
