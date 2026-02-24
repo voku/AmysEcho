@@ -71,6 +71,11 @@ interface GestureMessagePayload {
       ? D
       : never
     : never;
+  mlp?: ProcessingResult['metadata'] extends infer T
+    ? T extends { mlp?: infer M }
+      ? M
+      : never
+    : never;
   frameCapture?: string | null;
 }
 
@@ -1197,6 +1202,9 @@ export class GestureRecognitionOrchestrator {
           : {}),
         ...(processingResult.metadata?.mlpDecision
           ? { mlpDecision: processingResult.metadata.mlpDecision }
+          : {}),
+        ...(processingResult.metadata?.mlp
+          ? { mlp: processingResult.metadata.mlp }
           : {}),
       };
 

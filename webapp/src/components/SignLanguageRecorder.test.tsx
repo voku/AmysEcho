@@ -25,6 +25,9 @@ const detectorState = {
   lastConfidence: null as number | null,
   lastDetectionMethod: null as string | null,
   lastUsedFallback: false,
+  lastMlpLabel: null as string | null,
+  lastMlpScore: null as number | null,
+  lastMlpThreshold: null as number | null,
   messageLog: [] as SignLanguageMessage[],
   getVariationMetrics: vi.fn().mockReturnValue(undefined),
 };
@@ -96,6 +99,9 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastConfidence = null;
     detectorState.lastDetectionMethod = null;
     detectorState.lastUsedFallback = false;
+    detectorState.lastMlpLabel = null;
+    detectorState.lastMlpScore = null;
+    detectorState.lastMlpThreshold = null;
     detectorState.messageLog = [];
     vi.stubGlobal(
       'fetch',
@@ -319,6 +325,29 @@ describe('SignLanguageRecorder', () => {
       name: 'Vorübergehend mit Ersatzmodell fortfahren',
     });
     fireEvent.click(enableFallbackButton);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
+    expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+    expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN');
+  });
+
+
+  it('uses trained MLP candidate when MediaPipe result is untrained baseline label', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpLabel = 'TRINKEN';
+    detectorState.lastMlpScore = 0.62;
+    detectorState.lastMlpThreshold = 0.4;
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
 
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);

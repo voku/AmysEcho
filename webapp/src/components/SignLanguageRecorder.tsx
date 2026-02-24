@@ -97,6 +97,9 @@ export function SignLanguageRecorder() {
     lastConfidence,
     lastDetectionMethod,
     lastUsedFallback,
+    lastMlpLabel,
+    lastMlpScore,
+    lastMlpThreshold,
     lastLandmarks,
     messageLog,
     audioMuted,
@@ -294,19 +297,44 @@ export function SignLanguageRecorder() {
     trainedSignLabels.length,
   ]);
 
+  const shouldPreferMlpTrainedLabel = useMemo(() => {
+    if (!lastSign || !lastMlpLabel) {
+      return false;
+    }
+
+    if (lastDetectionMethod !== 'mediapipe') {
+      return false;
+    }
+
+    const normalizedMlpLabel = normalizeSignLabel(lastMlpLabel);
+    const normalizedDetectedLabel = normalizeSignLabel(lastSign);
+    if (!normalizedMlpLabel || normalizedMlpLabel === normalizedDetectedLabel) {
+      return false;
+    }
+
+    if (!normalizedTrainedSignLabels.has(normalizedMlpLabel)) {
+      return false;
+    }
+
+    const threshold = typeof lastMlpThreshold === 'number' ? lastMlpThreshold : 0.05;
+    return typeof lastMlpScore === 'number' && lastMlpScore >= threshold;
+  }, [lastDetectionMethod, lastMlpLabel, lastMlpScore, lastMlpThreshold, lastSign, normalizedTrainedSignLabels]);
+
+  const effectiveSign = shouldPreferMlpTrainedLabel ? lastMlpLabel : lastSign;
+
   useEffect(() => {
-    if (lastSign) {
+    if (effectiveSign) {
       // Only record if it's a trained label and profile output is currently allowed
       if (
-        normalizedTrainedSignLabels.has(normalizeSignLabel(lastSign))
+        normalizedTrainedSignLabels.has(normalizeSignLabel(effectiveSign))
         && canUseProfileRecognition
       ) {
-        recordSign(lastSign);
+        recordSign(effectiveSign);
       }
     }
-  }, [canUseProfileRecognition, lastSign, recordSign, normalizedTrainedSignLabels]);
+  }, [canUseProfileRecognition, effectiveSign, recordSign, normalizedTrainedSignLabels]);
 
-  const normalizedGesture = lastSign?.trim() ?? '';
+  const normalizedGesture = effectiveSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizeSignLabel(normalizedGesture) : '';
   
   // Filter prediction: only show if it's in the trained labels list
@@ -352,6 +380,10 @@ export function SignLanguageRecorder() {
       reason,
       predictedLabel: lastSign,
       normalizedPrediction: normalizeSignLabel(lastSign),
+      effectiveLabel: effectiveSign,
+      mlpCandidateLabel: lastMlpLabel ?? null,
+      mlpCandidateScore: lastMlpScore,
+      mlpCandidateThreshold: lastMlpThreshold,
       lastConfidence,
       detectionMethod: lastDetectionMethod ?? null,
       modelStatus,
@@ -370,6 +402,9 @@ export function SignLanguageRecorder() {
     isTrained,
     lastConfidence,
     lastDetectionMethod,
+    lastMlpLabel,
+    lastMlpScore,
+    lastMlpThreshold,
     lastSign,
     modelMeta?.source,
     modelMeta?.version,
@@ -377,6 +412,7 @@ export function SignLanguageRecorder() {
     profileId,
     profileModelRequired,
     trainedSignLabels,
+    effectiveSign,
   ]);
 
   const handleStart = async () => {
@@ -535,7 +571,7 @@ export function SignLanguageRecorder() {
       };
     }
 
-    if (!lastSign) {
+    if (!effectiveSign) {
       const confidencePercent =
         typeof lastConfidence === 'number' ? `${Math.round(lastConfidence * 100)}%` : null;
       return {
@@ -547,7 +583,7 @@ export function SignLanguageRecorder() {
       };
     }
 
-    const isTrainedSign = normalizedTrainedSignLabels.has(normalizeSignLabel(lastSign));
+    const isTrainedSign = normalizedTrainedSignLabels.has(normalizeSignLabel(effectiveSign));
     if (trainedSignLabels.length > 0 && !isTrainedSign) {
       return {
         severity: 'warning' as const,
@@ -567,7 +603,7 @@ export function SignLanguageRecorder() {
     hasDetectedHands,
     isProfileModelActive,
     lastConfidence,
-    lastSign,
+    effectiveSign,
     normalizedTrainedSignLabels,
     allowGlobalFallbackOutput,
     profileModelRequired,

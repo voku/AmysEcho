@@ -76,6 +76,7 @@ export interface ProcessingResult {
       selected: boolean;
       reason:
         | 'selected'
+        | 'selected_profile_vocab_priority'
         | 'below_threshold'
         | 'below_override_margin'
         | 'null_label'

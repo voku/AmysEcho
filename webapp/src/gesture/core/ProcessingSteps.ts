@@ -17,6 +17,18 @@ export const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 export const MLP_NULL_LABEL = '_NULL_';
 
+const MEDIAPIPE_BASELINE_GESTURES = new Set([
+  'none',
+  'closed_fist',
+  'fist',
+  'open_palm',
+  'pointing_up',
+  'thumb_down',
+  'thumb_up',
+  'victory',
+  'iloveyou',
+]);
+
 interface LandmarkPreprocessingResult {
   landmarks: number[][][];
   rawLandmarks?: number[][][];
@@ -51,6 +63,7 @@ interface MlpSelection {
     selected: boolean;
     reason:
       | 'selected'
+      | 'selected_profile_vocab_priority'
       | 'below_threshold'
       | 'below_override_margin'
       | 'null_label'
@@ -388,13 +401,30 @@ export class GestureDetectionStep implements ProcessingStep {
               selectedGestureBeforeMlp: resolvedGesture,
             };
             gestureDebugLog('mlp', `Ignoring background noise (${MLP_NULL_LABEL})`, undefined, { sampleIntervalMs: 2000 });
-          } else if (mlpResult.score >= threshold &&
-              (resolvedGesture === null ||
-               resolvedGesture === 'none' ||
-               mlpResult.score >= (resolvedConfidence + confidenceMargin))) {
+          } else {
+            const normalizedMlpLabel = this.normalizeLabel(mlpResult.label);
+            const mediapipeWinsByMargin =
+              resolvedGesture !== null &&
+              resolvedGesture !== 'none' &&
+              mlpResult.score < (resolvedConfidence + confidenceMargin);
+            const shouldPreferMlpOverBaseline =
+              !!normalizedMlpLabel &&
+              !!resolvedGesture &&
+              MEDIAPIPE_BASELINE_GESTURES.has(resolvedGesture) &&
+              !MEDIAPIPE_BASELINE_GESTURES.has(normalizedMlpLabel);
+            const canSelectMlp =
+              mlpResult.score >= threshold &&
+              (
+                resolvedGesture === null ||
+                resolvedGesture === 'none' ||
+                mlpResult.score >= (resolvedConfidence + confidenceMargin) ||
+                (mediapipeWinsByMargin && shouldPreferMlpOverBaseline)
+              );
+
+            if (canSelectMlp) {
             mlpDecision = {
               selected: true,
-              reason: 'selected',
+              reason: shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected',
               threshold,
               margin: confidenceMargin,
               score: mlpResult.score,
@@ -410,7 +440,7 @@ export class GestureDetectionStep implements ProcessingStep {
             resolvedConfidence = mlpResult.score;
             resolvedMethod = 'mlp';
             resolvedTwoHand = null;
-          } else {
+            } else {
             mlpDecision = {
               selected: false,
               reason: mlpResult.score < threshold ? 'below_threshold' : 'below_override_margin',
@@ -426,6 +456,7 @@ export class GestureDetectionStep implements ProcessingStep {
               selectedConfidence: resolvedConfidence,
               margin: confidenceMargin,
             }), { sampleIntervalMs: 3000 });
+            }
           }
         } else {
           mlpDecision = {

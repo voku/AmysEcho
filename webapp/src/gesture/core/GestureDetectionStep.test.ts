@@ -139,6 +139,44 @@ describe('GestureDetectionStep', () => {
     expect(result.metadata?.method).toBe('mlp');
   });
 
+  it('prefers MLP custom vocabulary labels over baseline MediaPipe labels', async () => {
+    const step = createStep();
+    const landmarks = [[[0.1, 0.2, 0.3]]] as any;
+    const context = {
+      landmarks,
+      timestamp: Date.now(),
+      processingStep: 'gesture_detection',
+      skipExpensiveSteps: false,
+      normalizedResults: {
+        hands: [
+          {
+            handedness: 'Left',
+            landmarks: [],
+            gestures: [{ label: 'Closed_Fist', score: 0.78 }],
+          },
+        ],
+        landmarks: [],
+        handednesses: ['Left'],
+      },
+      rawResults: buildResult({
+        gestures: [[{ categoryName: 'Closed_Fist', score: 0.78 }]],
+        handednesses: [[{ categoryName: 'Left' }]],
+      }),
+    } as any;
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({ label: 'Trinken', score: 0.65 });
+
+    const result = await step.execute(context);
+
+    expect(result.gesture).toBe('trinken');
+    expect(result.metadata?.method).toBe('mlp');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: true,
+      reason: 'selected_profile_vocab_priority',
+      selectedGestureBeforeMlp: 'closed_fist',
+    });
+  });
+
   it('detects audio-only gestures when visual landmarks are missing', async () => {
     const step = createStep();
     const context = {
