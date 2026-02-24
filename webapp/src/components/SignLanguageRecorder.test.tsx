@@ -328,6 +328,7 @@ describe('SignLanguageRecorder', () => {
 
     expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
     expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+    expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN_05d6e861-36e0-4ca2-91f1-e6d9bf591726');
   });
 
   it('blocks trained-sign output until the personal profile model is active', async () => {
@@ -371,6 +372,7 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' })).toBeInTheDocument();
     expect(screen.queryByText('Trinken')).not.toBeInTheDocument();
     expect(screen.getByText('Profilmodell wird geladen – Ausgaben sind kurz pausiert.')).toBeInTheDocument();
+    expect(appStateMock.recordSign).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
     expect(screen.getByText('Persönliches Modell wird vorbereitet')).toBeInTheDocument();
@@ -573,7 +575,7 @@ describe('SignLanguageRecorder', () => {
         status: 200,
         json: async () => ({ trainedLabels: ['HILFE'] }),
       } as Response);
-    vi.mocked(getActiveProfile).mockResolvedValue({ profileId: 'amy-neu' } as any);
+    vi.mocked(getActiveProfile).mockResolvedValue({ profileId: 'amy-neu' } as unknown as Awaited<ReturnType<typeof getActiveProfile>>);
 
     renderWithProviders(<SignLanguageRecorder />);
 

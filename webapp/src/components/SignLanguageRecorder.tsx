@@ -10,6 +10,8 @@ import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
 
+const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
+
 function formatStatusLabel(status: string): string {
   switch (status) {
     case 'initializing':
@@ -39,7 +41,7 @@ function normalizeSignLabel(value: string): string {
     .replace(/\s+/g, ' ')
     .toLowerCase();
 
-  return normalized.replace(/(?:[_-])[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, '');
+  return normalized.replace(TRAILING_UUID_SUFFIX_PATTERN, '');
 }
 
 export function SignLanguageRecorder() {
@@ -247,14 +249,21 @@ export function SignLanguageRecorder() {
     [trainedSignLabels]
   );
 
+  const profileModelRequired = Boolean(profileId && trainedSignLabels.length > 0 && !demoMode);
+  const isProfileModelActive = modelStatus === 'ready' && modelMeta?.source === 'profile';
+  const canUseProfileRecognition = !profileModelRequired || isProfileModelActive || allowGlobalFallbackOutput;
+
   useEffect(() => {
     if (lastSign) {
-      // Only record if it's a trained label (case-insensitive)
-      if (normalizedTrainedSignLabels.has(normalizeSignLabel(lastSign))) {
+      // Only record if it's a trained label and profile output is currently allowed
+      if (
+        normalizedTrainedSignLabels.has(normalizeSignLabel(lastSign))
+        && canUseProfileRecognition
+      ) {
         recordSign(lastSign);
       }
     }
-  }, [lastSign, recordSign, normalizedTrainedSignLabels]);
+  }, [canUseProfileRecognition, lastSign, recordSign, normalizedTrainedSignLabels]);
 
   const normalizedGesture = lastSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizeSignLabel(normalizedGesture) : '';
@@ -264,10 +273,6 @@ export function SignLanguageRecorder() {
     if (!gestureKey) return false;
     return normalizedTrainedSignLabels.has(gestureKey);
   }, [gestureKey, normalizedTrainedSignLabels]);
-
-  const profileModelRequired = Boolean(profileId && trainedSignLabels.length > 0 && !demoMode);
-  const isProfileModelActive = modelStatus === 'ready' && modelMeta?.source === 'profile';
-  const canUseProfileRecognition = !profileModelRequired || isProfileModelActive || allowGlobalFallbackOutput;
 
   const gestureMeaning = (gestureKey && isTrained && canUseProfileRecognition)
     ? gestureMeaningService.getMeaning(gestureKey)
