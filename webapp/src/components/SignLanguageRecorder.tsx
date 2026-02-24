@@ -274,7 +274,7 @@ export function SignLanguageRecorder() {
     }
     lastProfileModelLogRef.current = transitionSignature;
 
-    console.info('[Recorder] Profilmodellstatus', {
+    console.info('[Recorder] Profile model status', {
       profileId,
       modelStatus,
       modelSource: modelMeta?.source ?? null,
@@ -348,7 +348,7 @@ export function SignLanguageRecorder() {
     }
     lastFilteredPredictionLogRef.current = signature;
 
-    console.info('[Recorder] Vorhersage nicht freigegeben', {
+    console.info('[Recorder] Prediction suppressed', {
       reason,
       predictedLabel: lastSign,
       normalizedPrediction: normalizeSignLabel(lastSign),
