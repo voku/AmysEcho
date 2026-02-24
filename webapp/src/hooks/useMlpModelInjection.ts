@@ -119,7 +119,7 @@ export function useMlpModelInjection(
                 });
               }
             } catch (refreshError) {
-              console.warn('Token-Refresh für MLP-Modell fehlgeschlagen', refreshError);
+              console.warn('Token refresh failed for MLP model', refreshError);
             }
             throw new HttpError(401, SESSION_EXPIRED_MESSAGE);
           }
@@ -130,7 +130,7 @@ export function useMlpModelInjection(
       const reason = toModelNotice(error);
       if (hadModelBeforeRefresh) {
         setStatus('ready');
-        console.warn('[MLP] Modell-Refresh fehlgeschlagen, letztes Modell bleibt aktiv', error);
+        console.warn('[MLP] Model refresh failed, keeping last active model', error);
       } else {
         setStatus('error');
       }
@@ -142,12 +142,12 @@ export function useMlpModelInjection(
     if (!result) {
       if (hadModelBeforeRefresh) {
         setStatus('ready');
-        console.warn('[MLP] Refresh lieferte kein Modell, letztes Modell bleibt aktiv');
+        console.warn('[MLP] Refresh returned no model, keeping last active model');
       } else {
-        // MLP-Modell ist optional - Gebärdenerkennung funktioniert mit MediaPipe-Standard
-        // Kein Fehler anzeigen, nur protokollieren und weitermachen
+        // MLP model is optional - gesture recognition works with MediaPipe default
+        // No error shown, just log and continue
         setStatus('idle');
-        console.info('[MLP] Kein personalisiertes Modell verfügbar – MediaPipe-Standard wird verwendet');
+        console.info('[MLP] No personalized model available – using MediaPipe default');
       }
       refreshInFlightRef.current = false;
       return null;
