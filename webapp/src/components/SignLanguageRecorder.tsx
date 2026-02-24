@@ -367,7 +367,8 @@ export function SignLanguageRecorder() {
     if (lastDetectionMethod === 'none') {
       return 'Keine eindeutige Erkennung';
     }
-    return lastDetectionMethod;
+    console.debug('[SignLanguageRecorder] Unknown detection method', { lastDetectionMethod });
+    return 'Unbekannte Erkennung';
   }, [lastDetectionMethod, lastUsedFallback]);
 
   const liveRecognitionStatus = useMemo(() => {

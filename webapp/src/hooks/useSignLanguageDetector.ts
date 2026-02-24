@@ -185,21 +185,28 @@ export function useSignLanguageDetector(
         };
 
         const resolveDetectionMethod = () => {
-          if (typeof payload.detectionMethod === 'string' && payload.detectionMethod.trim().length > 0) {
-            return payload.detectionMethod;
+          const topLevelMethod = payload.detectionMethod?.trim();
+          if (topLevelMethod) {
+            return topLevelMethod;
           }
-          if (typeof payload.metadata?.method === 'string' && payload.metadata.method.trim().length > 0) {
-            return payload.metadata.method;
+          const topLevelMetaMethod = payload.metadata?.method?.trim();
+          if (topLevelMetaMethod) {
+            return topLevelMetaMethod;
           }
-          const messageMethod = payload.messages?.find((msg) =>
-            typeof msg.detectionMethod === 'string' || typeof msg.metadata?.method === 'string'
-          );
-          if (typeof messageMethod?.detectionMethod === 'string') {
-            return messageMethod.detectionMethod;
+
+          if (payload.messages) {
+            for (const message of payload.messages) {
+              const messageMethod = message.detectionMethod?.trim();
+              if (messageMethod) {
+                return messageMethod;
+              }
+              const messageMetaMethod = message.metadata?.method?.trim();
+              if (messageMetaMethod) {
+                return messageMetaMethod;
+              }
+            }
           }
-          if (typeof messageMethod?.metadata?.method === 'string') {
-            return messageMethod.metadata.method;
-          }
+
           return null;
         };
 
@@ -210,8 +217,19 @@ export function useSignLanguageDetector(
           return payload.messages?.some((msg) => msg.isFallback === true) ?? false;
         };
 
-        setLastDetectionMethod(resolveDetectionMethod());
-        setLastUsedFallback(resolveFallbackUsage());
+        const resolvedMethod = resolveDetectionMethod();
+        const resolvedFallback = resolveFallbackUsage();
+        const hasGesturePayload =
+          isMeaningfulGestureLabel(payload.gesture) ||
+          payload.messages?.some((msg) => isMeaningfulGestureLabel(msg.gesture)) === true;
+
+        if (resolvedMethod !== null || hasGesturePayload) {
+          setLastDetectionMethod(resolvedMethod);
+        }
+
+        if (resolvedFallback || hasGesturePayload) {
+          setLastUsedFallback(resolvedFallback);
+        }
 
         if (isMeaningfulGestureLabel(payload.gesture)) {
           setLastSign(payload.gesture);

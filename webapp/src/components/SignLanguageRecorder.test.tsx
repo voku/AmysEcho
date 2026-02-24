@@ -27,18 +27,8 @@ const detectorState = {
   messageLog: [] as SignLanguageMessage[],
 };
 
-const mlpInjectionState = {
-  notice: null as string | null,
-  status: 'idle' as 'idle' | 'loading' | 'ready' | 'error',
-  lastMeta: null as { source: 'profile' | 'global'; version?: string | null } | null,
-};
-
 vi.mock('../hooks/useSignLanguageDetector', () => ({
   useSignLanguageDetector: () => detectorState,
-}));
-
-vi.mock('../hooks/useMlpModelInjection', () => ({
-  useMlpModelInjection: () => mlpInjectionState,
 }));
 
 const appStateMock = {
@@ -104,9 +94,19 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastDetectionMethod = null;
     detectorState.lastUsedFallback = false;
     detectorState.messageLog = [];
-    mlpInjectionState.notice = null;
-    mlpInjectionState.status = 'idle';
-    mlpInjectionState.lastMeta = null;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response('not-found', { status: 404 });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+    (window as unknown as { __setMlpModelB64?: (b64: string) => Promise<boolean> }).__setMlpModelB64 = vi
+      .fn()
+      .mockResolvedValue(true);
   });
 
   it('renders the gesture demo section', () => {
@@ -191,8 +191,26 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
     detectorState.lastDetectionMethod = 'mlp';
     detectorState.lastUsedFallback = true;
-    mlpInjectionState.status = 'ready';
-    mlpInjectionState.lastMeta = { source: 'profile', version: '12345' };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=profile-123')) {
+          return new Response(new Uint8Array([1, 2, 3]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '12345',
+              'X-Model-Source': 'profile',
+              'X-Model-Profile': 'profile-123',
+            },
+          });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response('not-found', { status: 404 });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
 
     vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
       ok: true,
@@ -218,8 +236,25 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
     detectorState.lastSign = 'TRINKEN';
     detectorState.lastConfidence = 0.94;
-    mlpInjectionState.status = 'ready';
-    mlpInjectionState.lastMeta = { source: 'global', version: '999' };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=profile-456')) {
+          return new Response('missing-profile', { status: 404 });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response(new Uint8Array([9, 9, 9]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '999',
+              'X-Model-Source': 'global',
+            },
+          });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
 
     vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
       ok: true,
