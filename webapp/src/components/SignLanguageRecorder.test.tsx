@@ -222,7 +222,7 @@ describe('SignLanguageRecorder', () => {
     window.localStorage.setItem('webapp:has-trained-signs', 'true');
 
     renderWithProviders(<SignLanguageRecorder />);
-    expect(await screen.findByText(/Modell: Profilmodell aktiv v12345 · Erkennung: Fallback-Erkennung aktiv/)).toBeInTheDocument();
+    expect(await screen.findByText(/Modell: Profilmodell aktiv v12345 · Erkennung: Fallback-Erkennung aktiv · Kommunikation freigegeben/)).toBeInTheDocument();
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
@@ -268,10 +268,16 @@ describe('SignLanguageRecorder', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
     expect(await screen.findByText(/Persönliches Profilmodell noch nicht aktiv/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' })).toBeInTheDocument();
     expect(screen.queryByText('Trinken')).not.toBeInTheDocument();
+    expect(screen.getByText('Profilmodell wird geladen – Ausgaben sind kurz pausiert.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
     expect(screen.getByText('Persönliches Modell wird vorbereitet')).toBeInTheDocument();
+    expect(screen.getByText(/Ausgabe-Freigabe:/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' }));
+    expect(await screen.findByText('Wieder auf Profilmodell warten')).toBeInTheDocument();
   });
 
   it('toggles overlay visibility when checkbox is clicked', () => {

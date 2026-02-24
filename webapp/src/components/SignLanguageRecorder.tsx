@@ -68,6 +68,7 @@ export function SignLanguageRecorder() {
   const isMirroredPreview = facingMode === 'user';
   const [cameraSwitchFeedback, setCameraSwitchFeedback] = useState('');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [allowGlobalFallbackOutput, setAllowGlobalFallbackOutput] = useState(false);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -252,7 +253,7 @@ export function SignLanguageRecorder() {
 
   const profileModelRequired = Boolean(profileId && trainedSignLabels.length > 0 && !demoMode);
   const isProfileModelActive = modelStatus === 'ready' && modelMeta?.source === 'profile';
-  const canUseProfileRecognition = !profileModelRequired || isProfileModelActive;
+  const canUseProfileRecognition = !profileModelRequired || isProfileModelActive || allowGlobalFallbackOutput;
 
   const gestureMeaning = (gestureKey && isTrained && canUseProfileRecognition)
     ? gestureMeaningService.getMeaning(gestureKey)
@@ -375,8 +376,11 @@ export function SignLanguageRecorder() {
     const modelVersion = modelMeta?.version ? ` v${modelMeta.version}` : '';
     const modelPart = `Modell: ${modelStatusLabel}${modelVersion}`;
     const recognitionPart = `Erkennung: ${recognitionModeLabel}`;
-    return `${modelPart} · ${recognitionPart}`;
-  }, [modelMeta?.version, modelStatusLabel, recognitionModeLabel]);
+    const communicationPart = canUseProfileRecognition
+      ? 'Kommunikation freigegeben'
+      : 'Kommunikation wartet auf Profilmodell';
+    return `${modelPart} · ${recognitionPart} · ${communicationPart}`;
+  }, [canUseProfileRecognition, modelMeta?.version, modelStatusLabel, recognitionModeLabel]);
 
   const diagnostics = useMemo(() => {
     if (demoMode) {
@@ -411,11 +415,11 @@ export function SignLanguageRecorder() {
       };
     }
 
-    if (profileModelRequired && !isProfileModelActive) {
+    if (profileModelRequired && !isProfileModelActive && !allowGlobalFallbackOutput) {
       return {
         severity: 'warning' as const,
         title: 'Persönliches Modell wird vorbereitet',
-        hint: 'Bitte kurz warten. Die Erkennung startet mit deinem Profilmodell, sobald es bereit ist.',
+        hint: 'Du kannst warten oder vorübergehend mit dem Ersatzmodell fortfahren.',
       };
     }
 
@@ -453,6 +457,7 @@ export function SignLanguageRecorder() {
     lastConfidence,
     lastSign,
     normalizedTrainedSignLabels,
+    allowGlobalFallbackOutput,
     profileModelRequired,
     status,
     trainedSignLabels,
@@ -551,6 +556,8 @@ export function SignLanguageRecorder() {
             <span className="gesture-screen__placeholder">
               {demoMode
                 ? 'Demo-Modus: Gestenerkennung deaktiviert'
+                : profileModelRequired && !isProfileModelActive && !allowGlobalFallbackOutput
+                  ? 'Profilmodell wird geladen – Ausgaben sind kurz pausiert.'
                 : hasDetectedHands
                   ? 'Hand erkannt – ich suche nach einer passenden Gebärde…'
                   : 'Zeige eine Gebärde in die Kamera…'}
@@ -649,6 +656,32 @@ export function SignLanguageRecorder() {
           {profileModelRequired && !isProfileModelActive && (
             <div className="gesture-screen__meta-warning">
               Persönliches Profilmodell noch nicht aktiv. Bitte warte kurz oder öffne „Lernen“, um das Training zu prüfen.
+              {!allowGlobalFallbackOutput && (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    className="ghost-inline"
+                    onClick={() => setAllowGlobalFallbackOutput(true)}
+                    title="Vorübergehend mit dem globalen Modell fortfahren"
+                  >
+                    Vorübergehend mit Ersatzmodell fortfahren
+                  </button>
+                </>
+              )}
+              {allowGlobalFallbackOutput && (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    className="ghost-inline"
+                    onClick={() => setAllowGlobalFallbackOutput(false)}
+                    title="Wieder auf Profilmodell warten"
+                  >
+                    Wieder auf Profilmodell warten
+                  </button>
+                </>
+              )}
             </div>
           )}
           {audioMuted && (
@@ -696,6 +729,10 @@ export function SignLanguageRecorder() {
                 <li>
                   Letzter Erkennungsweg:{' '}
                   <strong>{recognitionModeLabel}</strong>
+                </li>
+                <li>
+                  Ausgabe-Freigabe:{' '}
+                  <strong>{canUseProfileRecognition ? 'Aktiv' : 'Pausiert (wartet auf Profilmodell)'}</strong>
                 </li>
               </ul>
             {trainedSignLabels.length > 0 && (
