@@ -47,6 +47,22 @@ interface MlpSelection {
   confidence: number;
   method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none';
   mlpMetadata: { label: string; score: number } | null;
+  mlpDecision: {
+    selected: boolean;
+    reason:
+      | 'selected'
+      | 'below_threshold'
+      | 'below_override_margin'
+      | 'null_label'
+      | 'invalid_result'
+      | 'predictor_unavailable'
+      | 'predictor_error';
+    threshold?: number;
+    margin?: number;
+    score?: number;
+    selectedConfidenceBeforeMlp?: number;
+    selectedGestureBeforeMlp?: string | null;
+  } | null;
   twoHandMetadata: TwoHandGesture | null;
 }
 
@@ -209,6 +225,7 @@ export class GestureDetectionStep implements ProcessingStep {
         perHand: mediaPipeSelection.perHand.map(({ hand, label, score }) => ({ hand, label, score })),
         handednesses: mediaPipeSelection.handednesses,
         mlp: mlpSelection.mlpMetadata,
+        mlpDecision: mlpSelection.mlpDecision,
         twoHand: twoHandMetadata,
         audioOnly: audioOnlyDetection
       }
@@ -318,6 +335,7 @@ export class GestureDetectionStep implements ProcessingStep {
     twoHandMetadata: TwoHandGesture | null,
   ): MlpSelection {
     let mlpMetadata: { label: string; score: number } | null = null;
+    let mlpDecision: MlpSelection['mlpDecision'] = null;
     let resolvedGesture = selectedGesture;
     let resolvedConfidence = selectedConfidence;
     let resolvedMethod = detectionMethod;
@@ -361,11 +379,28 @@ export class GestureDetectionStep implements ProcessingStep {
           const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
 
           if (mlpResult.label === MLP_NULL_LABEL) {
+            mlpDecision = {
+              selected: false,
+              reason: 'null_label',
+              threshold,
+              score: mlpResult.score,
+              selectedConfidenceBeforeMlp: resolvedConfidence,
+              selectedGestureBeforeMlp: resolvedGesture,
+            };
             gestureDebugLog('mlp', `Ignoring background noise (${MLP_NULL_LABEL})`, undefined, { sampleIntervalMs: 2000 });
           } else if (mlpResult.score >= threshold &&
               (resolvedGesture === null ||
                resolvedGesture === 'none' ||
                mlpResult.score >= (resolvedConfidence + confidenceMargin))) {
+            mlpDecision = {
+              selected: true,
+              reason: 'selected',
+              threshold,
+              margin: confidenceMargin,
+              score: mlpResult.score,
+              selectedConfidenceBeforeMlp: resolvedConfidence,
+              selectedGestureBeforeMlp: resolvedGesture,
+            };
             gestureDebugLog('mlp', 'MLP gesture selected', () => ({
               label: mlpResult.label,
               score: mlpResult.score,
@@ -376,6 +411,15 @@ export class GestureDetectionStep implements ProcessingStep {
             resolvedMethod = 'mlp';
             resolvedTwoHand = null;
           } else {
+            mlpDecision = {
+              selected: false,
+              reason: mlpResult.score < threshold ? 'below_threshold' : 'below_override_margin',
+              threshold,
+              margin: confidenceMargin,
+              score: mlpResult.score,
+              selectedConfidenceBeforeMlp: resolvedConfidence,
+              selectedGestureBeforeMlp: resolvedGesture,
+            };
             gestureDebugLog('mlp', 'MLP gesture not selected', () => ({
               score: mlpResult.score,
               threshold,
@@ -384,12 +428,24 @@ export class GestureDetectionStep implements ProcessingStep {
             }), { sampleIntervalMs: 3000 });
           }
         } else {
+          mlpDecision = {
+            selected: false,
+            reason: 'invalid_result',
+            selectedConfidenceBeforeMlp: resolvedConfidence,
+            selectedGestureBeforeMlp: resolvedGesture,
+          };
           gestureDebugLog('mlp', 'MLP result invalid', () => ({
             hasResult: !!mlpResult,
             hasScore: typeof mlpResult?.score === 'number',
           }), { sampleIntervalMs: 5000 });
         }
       } catch (error) {
+        mlpDecision = {
+          selected: false,
+          reason: 'predictor_error',
+          selectedConfidenceBeforeMlp: resolvedConfidence,
+          selectedGestureBeforeMlp: resolvedGesture,
+        };
         gestureDebugLog('mlp', 'MLP prediction failed', () => ({
           error: error instanceof Error ? error.message : String(error),
         }), { sampleIntervalMs: 5000, level: 'warn' });
@@ -411,6 +467,13 @@ export class GestureDetectionStep implements ProcessingStep {
           // These errors are expected when running in browser environments without the React Native WebView.
         }
       }
+    } else {
+      mlpDecision = {
+        selected: false,
+        reason: 'predictor_unavailable',
+        selectedConfidenceBeforeMlp: resolvedConfidence,
+        selectedGestureBeforeMlp: resolvedGesture,
+      };
     }
 
     return {
@@ -418,6 +481,7 @@ export class GestureDetectionStep implements ProcessingStep {
       confidence: resolvedConfidence,
       method: resolvedMethod,
       mlpMetadata,
+      mlpDecision,
       twoHandMetadata: resolvedTwoHand,
     };
   }

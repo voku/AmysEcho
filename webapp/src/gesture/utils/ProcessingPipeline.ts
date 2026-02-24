@@ -72,6 +72,22 @@ export interface ProcessingResult {
     perHand: Array<{ hand: string; label: string; score: number }>;
     handednesses: string[];
     mlp: { label: string; score: number } | null;
+    mlpDecision?: {
+      selected: boolean;
+      reason:
+        | 'selected'
+        | 'below_threshold'
+        | 'below_override_margin'
+        | 'null_label'
+        | 'invalid_result'
+        | 'predictor_unavailable'
+        | 'predictor_error';
+      threshold?: number;
+      margin?: number;
+      score?: number;
+      selectedConfidenceBeforeMlp?: number;
+      selectedGestureBeforeMlp?: string | null;
+    } | null;
     twoHand: TwoHandGesture | null;
     audioOnly?: boolean;
   } | null;
