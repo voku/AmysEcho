@@ -21,18 +21,16 @@ const detectorState = {
   error: null as string | null,
   lastSign: null as string | null,
   lastLandmarks: [] as number[][][],
+  lastHandedness: [] as string[],
   lastConfidence: null as number | null,
+  lastDetectionMethod: null as string | null,
+  lastUsedFallback: false,
   messageLog: [] as SignLanguageMessage[],
+  getVariationMetrics: vi.fn().mockReturnValue(undefined),
 };
 
 vi.mock('../hooks/useSignLanguageDetector', () => ({
   useSignLanguageDetector: () => detectorState,
-}));
-
-vi.mock('../hooks/useMlpModelInjection', () => ({
-  useMlpModelInjection: () => ({
-    notice: null,
-  }),
 }));
 
 const appStateMock = {
@@ -94,8 +92,24 @@ describe('SignLanguageRecorder', () => {
     detectorState.error = null;
     detectorState.lastSign = null;
     detectorState.lastLandmarks = [];
+    detectorState.lastHandedness = [];
     detectorState.lastConfidence = null;
+    detectorState.lastDetectionMethod = null;
+    detectorState.lastUsedFallback = false;
     detectorState.messageLog = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response('not-found', { status: 404 });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+    (window as unknown as { __setMlpModelB64?: (b64: string) => Promise<boolean> }).__setMlpModelB64 = vi
+      .fn()
+      .mockResolvedValue(true);
   });
 
   it('renders the gesture demo section', () => {
@@ -169,7 +183,157 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByText('Hand erkannt, aber keine passende Gebärde')).toBeInTheDocument();
     expect(screen.getByText(/Aktuelle Sicherheit ist zu niedrig/)).toBeInTheDocument();
     expect(screen.getByText(/Letzte Systemmeldung:/)).toBeInTheDocument();
+    expect(screen.getByText(/Aktives Modell:/)).toBeInTheDocument();
+    expect(screen.getByText(/Letzter Erkennungsweg:/)).toBeInTheDocument();
     expect(screen.getByText(/Trainierte Beispiele: HALLO, ESSEN/)).toBeInTheDocument();
+  });
+
+  it('shows profile model usage and fallback mode in diagnostics', async () => {
+    appStateMock.profileId = 'profile-123';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastDetectionMethod = 'mlp';
+    detectorState.lastUsedFallback = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=profile-123')) {
+          return new Response(new Uint8Array([1, 2, 3]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '12345',
+              'X-Model-Source': 'profile',
+              'X-Model-Profile': 'profile-123',
+            },
+          });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response('not-found', { status: 404 });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['TRINKEN'] }),
+    } as Response);
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+    expect(await screen.findByText(/Modell: Profilmodell aktiv v12345 · Erkennung: Fallback-Erkennung aktiv · Kommunikation freigegeben/)).toBeInTheDocument();
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText(/Profilmodell aktiv \(Version 12345\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Fallback-Erkennung aktiv/).length).toBeGreaterThan(0);
+  });
+
+  it('blocks trained-sign output until the personal profile model is active', async () => {
+    appStateMock.profileId = 'profile-456';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'TRINKEN';
+    detectorState.lastConfidence = 0.94;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=profile-456')) {
+          return new Response('missing-profile', { status: 404 });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response(new Uint8Array([9, 9, 9]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '999',
+              'X-Model-Source': 'global',
+            },
+          });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['TRINKEN'] }),
+    } as Response);
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    expect(await screen.findByText(/Persönliches Profilmodell noch nicht aktiv/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' })).toBeInTheDocument();
+    expect(screen.queryByText('Trinken')).not.toBeInTheDocument();
+    expect(screen.getByText('Profilmodell wird geladen – Ausgaben sind kurz pausiert.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
+    expect(screen.getByText('Persönliches Modell wird vorbereitet')).toBeInTheDocument();
+    expect(screen.getByText(/Ausgabe-Freigabe:/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' }));
+    expect(await screen.findByText('Wieder auf Profilmodell warten')).toBeInTheDocument();
+  });
+
+  it('resets fallback override when active profile changes', async () => {
+    appStateMock.profileId = 'profile-a';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=')) {
+          return new Response('missing-profile', { status: 404 });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response(new Uint8Array([9, 9, 9]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '999',
+              'X-Model-Source': 'global',
+            },
+          });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['TRINKEN'] }),
+    } as Response);
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    const { rerender } = renderWithProviders(<SignLanguageRecorder />);
+
+    expect(await screen.findByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' }));
+    expect(await screen.findByRole('button', { name: 'Wieder auf Profilmodell warten' })).toBeInTheDocument();
+
+    appStateMock.profileId = 'profile-b';
+    rerender(
+      <MemoryRouter>
+        <ApiConfigProvider>
+          <SignLanguageRecorder />
+        </ApiConfigProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Wieder auf Profilmodell warten' })).not.toBeInTheDocument();
   });
 
   it('toggles overlay visibility when checkbox is clicked', () => {

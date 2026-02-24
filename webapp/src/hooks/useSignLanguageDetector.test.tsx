@@ -130,6 +130,40 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
+  it('ignoriert "none" und verwendet die nächste echte Gebärde aus gesture_batch Meldungen', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            confidence: 0.81,
+            messages: [
+              { gesture: 'none', landmarks: [] },
+              { gesture: 'TRINKEN', landmarks: [[[0.1, 0.2, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastSign).toBe('TRINKEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.81);
+      expect(result.current.messageLog[0]?.summary).toContain('Gebärde: TRINKEN');
+      expect(result.current.messageLog[0]?.summary).not.toContain('Gebärde: none');
+    });
+  });
+
   it('übernimmt Landmark-Previews aus Bridge-Meldungen', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
@@ -156,6 +190,41 @@ describe('useSignLanguageDetector', () => {
     await waitFor(() => {
       expect(result.current.lastLandmarks.length).toBeGreaterThan(0);
       expect(result.current.lastHandedness[0]).toBe('Left');
+    });
+  });
+
+  it('merkt sich Erkennungsweg und Fallback-Status aus Meldungen', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              {
+                gesture: 'TRINKEN',
+                detectionMethod: 'mlp',
+                isFallback: true,
+                landmarks: [[[0.2, 0.3, 0]]],
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastDetectionMethod).toBe('mlp');
+      expect(result.current.lastUsedFallback).toBe(true);
     });
   });
 

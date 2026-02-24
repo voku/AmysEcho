@@ -9,6 +9,7 @@ export type ModelInjectionStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 const MODEL_FETCH_ERROR_MESSAGE = 'MLP-Modell konnte nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.';
 const MODEL_GENERIC_ERROR_MESSAGE = 'Bei der Verbindung zum MLP-Modell ist ein Fehler aufgetreten. Bitte Verbindung prüfen und erneut versuchen.';
+const MODEL_PROFILE_FALLBACK_NOTICE = 'Für dieses Profil ist noch kein persönliches Modell verfügbar. Ich nutze vorübergehend das globale Modell.';
 
 function toModelNotice(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -143,7 +144,14 @@ export function useMlpModelInjection(
         version: result.meta.version ?? 'unbekannt',
       });
       if (isNewModel) {
-        setNotice('Modell aktualisiert');
+        if (result.meta.source === 'global' && profileId) {
+          setNotice(MODEL_PROFILE_FALLBACK_NOTICE);
+        } else {
+          setNotice('Modell aktualisiert');
+        }
+      } else if (result.meta.source === 'global' && profileId) {
+        // Keep this hint visible even when there is no version change.
+        setNotice(MODEL_PROFILE_FALLBACK_NOTICE);
       }
       refreshInFlightRef.current = false;
       return result;

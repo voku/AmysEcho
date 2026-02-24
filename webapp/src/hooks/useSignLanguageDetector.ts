@@ -44,21 +44,31 @@ export type SignLanguageHookResult = {
   lastLandmarks: number[][][];
   lastHandedness: string[];
   lastConfidence: number | null;
+  lastDetectionMethod: string | null;
+  lastUsedFallback: boolean;
   messageLog: SignLanguageMessage[];
   getVariationMetrics: (gesture: string) => VariationMetrics | undefined;
 };
 
 const UNKNOWN_TYPE = 'unbekannt';
 
+function isMeaningfulGestureLabel(label: unknown): label is string {
+  if (typeof label !== 'string') return false;
+  const normalized = label.trim().toLowerCase();
+  return normalized.length > 0 && normalized !== 'none' && normalized !== '_null_';
+}
+
 function parseIncomingMessage(raw: string): SignLanguageMessage | null {
   try {
     const parsed = JSON.parse(raw);
     const type = typeof parsed?.type === 'string' ? parsed.type : UNKNOWN_TYPE;
-    const signCandidate = parsed?.gesture ?? parsed?.messages?.[0]?.gesture;
+    const signCandidate = isMeaningfulGestureLabel(parsed?.gesture)
+      ? parsed.gesture
+      : parsed?.messages?.find((m: { gesture?: string }) => isMeaningfulGestureLabel(m?.gesture))?.gesture;
     const summaryParts = [] as string[];
 
     const hasSign = Boolean(
-      signCandidate || parsed?.messages?.some((m: { gesture?: string }) => m?.gesture),
+      signCandidate || parsed?.messages?.some((m: { gesture?: string }) => isMeaningfulGestureLabel(m?.gesture)),
     );
 
     // Check if this is a "no hands detected" scenario
@@ -115,6 +125,8 @@ export function useSignLanguageDetector(
   const [lastLandmarks, setLastLandmarks] = useState<number[][][]>([]);
   const [lastHandedness, setLastHandedness] = useState<string[]>([]);
   const [lastConfidence, setLastConfidence] = useState<number | null>(null);
+  const [lastDetectionMethod, setLastDetectionMethod] = useState<string | null>(null);
+  const [lastUsedFallback, setLastUsedFallback] = useState(false);
   const [messageLog, setMessageLog] = useState<SignLanguageMessage[]>([]);
   const [audioMuted, setAudioMuted] = useState(false);
   const audioMutedRef = useRef(false);
@@ -156,18 +168,77 @@ export function useSignLanguageDetector(
         const payload = parsed.payload as {
           gesture?: string;
           type?: string;
-          messages?: Array<{ gesture?: string; landmarks?: unknown; handednesses?: string[] }>;
+          messages?: Array<{
+            gesture?: string;
+            landmarks?: unknown;
+            handednesses?: string[];
+            detectionMethod?: string;
+            isFallback?: boolean;
+            metadata?: { method?: string };
+          }>;
           confidence?: number;
           landmarks?: unknown;
           handednesses?: string[];
+          detectionMethod?: string;
+          isFallback?: boolean;
+          metadata?: { method?: string };
         };
-        if (payload.gesture) {
+
+        const resolveDetectionMethod = () => {
+          const topLevelMethod = payload.detectionMethod?.trim();
+          if (topLevelMethod) {
+            return topLevelMethod;
+          }
+          const topLevelMetaMethod = payload.metadata?.method?.trim();
+          if (topLevelMetaMethod) {
+            return topLevelMetaMethod;
+          }
+
+          if (payload.messages) {
+            for (const message of payload.messages) {
+              const messageMethod = message.detectionMethod?.trim();
+              if (messageMethod) {
+                return messageMethod;
+              }
+              const messageMetaMethod = message.metadata?.method?.trim();
+              if (messageMetaMethod) {
+                return messageMetaMethod;
+              }
+            }
+          }
+
+          return null;
+        };
+
+        const resolveFallbackUsage = () => {
+          if (payload.isFallback === true) {
+            return true;
+          }
+          return payload.messages?.some((msg) => msg.isFallback === true) ?? false;
+        };
+
+        const resolvedMethod = resolveDetectionMethod();
+        const resolvedFallback = resolveFallbackUsage();
+        const hasGesturePayload =
+          isMeaningfulGestureLabel(payload.gesture) ||
+          payload.messages?.some((msg) => isMeaningfulGestureLabel(msg.gesture)) === true;
+
+        if (resolvedMethod !== null || hasGesturePayload) {
+          setLastDetectionMethod(resolvedMethod);
+        }
+
+        if (resolvedFallback || hasGesturePayload) {
+          setLastUsedFallback(resolvedFallback);
+        }
+
+        if (isMeaningfulGestureLabel(payload.gesture)) {
           setLastSign(payload.gesture);
           setLastConfidence(typeof payload.confidence === 'number' ? payload.confidence : null);
         } else if (Array.isArray(payload.messages)) {
-          const signMessage = payload.messages.find((msg) => typeof msg?.gesture === 'string');
+          const signMessage = payload.messages.find((msg) => isMeaningfulGestureLabel(msg?.gesture));
           if (signMessage?.gesture) {
             setLastSign(signMessage.gesture);
+            setLastConfidence(typeof payload.confidence === 'number' ? payload.confidence : null);
           }
         }
 
@@ -271,6 +342,8 @@ export function useSignLanguageDetector(
       setLastLandmarks([]);
       setLastHandedness([]);
       setLastConfidence(null);
+      setLastDetectionMethod(null);
+      setLastUsedFallback(false);
     }
   }, []);
 
@@ -305,6 +378,8 @@ export function useSignLanguageDetector(
     lastLandmarks,
     lastHandedness,
     lastConfidence,
+    lastDetectionMethod,
+    lastUsedFallback,
     messageLog,
     getVariationMetrics,
   };
