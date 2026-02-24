@@ -55,4 +55,19 @@ describe("mergeTrainedLabels", () => {
 
     expect(result).toEqual(["hallo"]);
   });
+
+  it("normalizes NFKC and collapses whitespace before deduplication", () => {
+    // U+00E9 (precomposed é) vs U+0065 U+0301 (decomposed é)
+    const result = mergeTrainedLabels(
+      "profile-1",
+      { "caf\u00e9": 1 },
+      [
+        { profileId: "profile-1", label: "caf\u0065\u0301" },
+        { profileId: "profile-1", label: "hello  world" },
+      ],
+    );
+
+    expect(result).toEqual(expect.arrayContaining(["café", "hello world"]));
+    expect(result).toHaveLength(2);
+  });
 });

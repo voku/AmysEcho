@@ -3,7 +3,7 @@ import type { ManifestEntry } from "../types.js";
 const TRAILING_UUID_SUFFIX_PATTERN = /(?:[_-])[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 function normalizeMergedLabel(rawLabel: string): string {
-  const trimmed = rawLabel.trim();
+  const trimmed = rawLabel.normalize("NFKC").trim().replace(/\s+/g, " ");
   if (trimmed.length === 0) {
     return "";
   }

@@ -10,7 +10,7 @@ import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
 
-const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
+const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -353,20 +353,26 @@ export function SignLanguageRecorder() {
       predictedLabel: lastSign,
       normalizedPrediction: normalizeSignLabel(lastSign),
       lastConfidence,
+      detectionMethod: lastDetectionMethod ?? null,
       modelStatus,
       modelSource: modelMeta?.source ?? null,
+      modelVersion: modelMeta?.version ?? null,
+      isProfileModelActive,
       profileId,
-      trainedSignsPreview: trainedSignLabels.slice(0, 10),
+      normalizedTrainedLabelsPreview: trainedSignLabels.slice(0, 10).map(l => normalizeSignLabel(l)),
       trainedSignCount: trainedSignLabels.length,
       allowGlobalFallbackOutput,
     });
   }, [
     allowGlobalFallbackOutput,
     canUseProfileRecognition,
+    isProfileModelActive,
     isTrained,
     lastConfidence,
+    lastDetectionMethod,
     lastSign,
     modelMeta?.source,
+    modelMeta?.version,
     modelStatus,
     profileId,
     profileModelRequired,

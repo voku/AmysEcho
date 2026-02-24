@@ -137,10 +137,19 @@ export async function fetchMlpModelWithFallback({
   if (trimmedProfile) {
     const personalized = await fetchModel(endpoint, token, trimmedProfile);
     if (personalized) {
-      console.info('[MLP] Personalisiertes Modell geladen', {
-        profileId: personalized.meta.profileId ?? trimmedProfile,
-        version: personalized.meta.version ?? 'unbekannt',
-      });
+      if (personalized.meta.source === 'profile') {
+        console.info('[MLP] Personalisiertes Modell geladen', {
+          profileId: personalized.meta.profileId ?? trimmedProfile,
+          version: personalized.meta.version ?? 'unbekannt',
+          source: personalized.meta.source,
+        });
+      } else {
+        console.warn('[MLP] Profil-Modell angefragt, Server lieferte globales Modell', {
+          requestedProfileId: trimmedProfile,
+          returnedSource: personalized.meta.source,
+          version: personalized.meta.version ?? 'unbekannt',
+        });
+      }
       emitMlpModelUpdated(personalized.meta);
       return personalized;
     }
