@@ -177,6 +177,46 @@ describe('GestureDetectionStep', () => {
     });
   });
 
+
+  it('can select MLP profile vocabulary below threshold when MediaPipe only found baseline gesture', async () => {
+    const step = createStep();
+    const context = {
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      timestamp: Date.now(),
+      processingStep: 'gesture_detection',
+      skipExpensiveSteps: false,
+      normalizedResults: {
+        hands: [
+          {
+            handedness: 'Left',
+            landmarks: [],
+            gestures: [{ label: 'Closed_Fist', score: 0.73 }],
+          },
+        ],
+        landmarks: [],
+        handednesses: ['Left'],
+      },
+      rawResults: buildResult({
+        gestures: [[{ categoryName: 'Closed_Fist', score: 0.73 }]],
+        handednesses: [[{ categoryName: 'Left' }]],
+      }),
+    } as any;
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({ label: 'Trinken', score: 0.31 });
+
+    const result = await step.execute(context);
+
+    expect(result.gesture).toBe('trinken');
+    expect(result.metadata?.method).toBe('mlp');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: true,
+      reason: 'selected_profile_vocab_relaxed_threshold',
+      threshold: 0.4,
+      score: 0.31,
+      selectedGestureBeforeMlp: 'closed_fist',
+    });
+  });
+
   it('detects audio-only gestures when visual landmarks are missing', async () => {
     const step = createStep();
     const context = {

@@ -42,10 +42,11 @@ function normalizeSignLabel(value: string): string {
   const normalized = value
     .normalize('NFKC')
     .trim()
+    .replace(/[.,!?;:]+$/g, '')
     .replace(/\s+/g, ' ')
     .toLowerCase();
 
-  return normalized.replace(TRAILING_UUID_SUFFIX_PATTERN, '');
+  return normalized.replace(TRAILING_UUID_SUFFIX_PATTERN, '').trim();
 }
 
 type SuggestedMlpChoice = {
@@ -381,15 +382,21 @@ export function SignLanguageRecorder() {
     return typeof lastMlpScore === 'number' && lastMlpScore >= threshold;
   }, [lastDetectionMethod, lastMlpLabel, lastMlpScore, lastMlpThreshold, lastSign, normalizedTrainedSignLabels]);
 
-  const suggestedMlpChoices = useMemo(() => (
-    lastMlpCandidates
+  const suggestedMlpChoices = useMemo(() => {
+    const candidateSource = lastMlpCandidates.length > 0
+      ? lastMlpCandidates
+      : (lastMlpLabel && typeof lastMlpScore === 'number'
+          ? [{ label: lastMlpLabel, score: lastMlpScore }]
+          : []);
+
+    return candidateSource
       .filter(candidate => candidate.label !== MLP_NULL_LABEL)
       .map(candidate => ({
         ...candidate,
         normalizedLabel: normalizeSignLabel(candidate.label),
       }))
-      .filter(candidate => candidate.normalizedLabel.length > 0)
-  ), [lastMlpCandidates]);
+      .filter(candidate => candidate.normalizedLabel.length > 0);
+  }, [lastMlpCandidates, lastMlpLabel, lastMlpScore]);
 
   const effectiveSign = manualSuggestionLabel ?? (shouldPreferMlpTrainedLabel ? lastMlpLabel : lastSign);
 
