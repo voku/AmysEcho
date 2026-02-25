@@ -526,7 +526,115 @@ describe('SignLanguageRecorder', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
     expect(screen.getByText(/Unsichere Erkennung:/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Trinken · 27% · trainiert/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Trinken · 27% · trainiert/ }).length).toBeGreaterThan(0);
+  });
+
+
+  it('shows best model matches even for an already recognized sign', async () => {
+    appStateMock.profileId = 'profile-123';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'TRINKEN';
+    detectorState.lastDetectionMethod = 'mlp';
+    detectorState.lastMlpCandidates = [
+      { label: 'TRINKEN', score: 0.74 },
+      { label: 'ESSEN', score: 0.42 },
+      { label: 'HILFE', score: 0.33 },
+    ];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=profile-123')) {
+          return new Response(new Uint8Array([1, 2, 3]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '12345',
+              'X-Model-Source': 'profile',
+              'X-Model-Profile': 'profile-123',
+            },
+          });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response('not-found', { status: 404 });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['TRINKEN', 'ESSEN', 'HILFE'] }),
+    } as Response);
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'ESSEN', 'HILFE']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const bestMatchesHeading = await screen.findByText(/Beste Modelltreffer:/);
+    const bestMatchesPanel = bestMatchesHeading.closest('div.gesture-screen__meta-note') as HTMLElement | null;
+    expect(bestMatchesPanel).toBeInTheDocument();
+    if (!bestMatchesPanel) {
+      throw new Error('Best-Matches-Bereich wurde nicht gefunden.');
+    }
+    const panelScope = within(bestMatchesPanel);
+    expect(panelScope.getByRole('button', { name: /Trinken · 74% · trainiert/ })).toBeInTheDocument();
+    expect(panelScope.getByRole('button', { name: /Essen · 42% · trainiert/ })).toBeInTheDocument();
+    expect(panelScope.getByRole('button', { name: /Hilfe · 33% · trainiert/ })).toBeInTheDocument();
+  });
+
+
+  it('übernimmt manuell gewählten Modellvorschlag auch ohne geladenen Label-Katalog', async () => {
+    appStateMock.profileId = 'profile-123';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpCandidates = [
+      { label: 'TRINKEN', score: 0.34 },
+      { label: 'ESSEN', score: 0.21 },
+    ];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=profile-123')) {
+          return new Response(new Uint8Array([1, 2, 3]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '12345',
+              'X-Model-Source': 'profile',
+              'X-Model-Profile': 'profile-123',
+            },
+          });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response('not-found', { status: 404 });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+    vi.mocked(apiRetryManager.fetch).mockRejectedValueOnce(new Error('offline'));
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify([]));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const suggestionButtons = await screen.findAllByRole('button', { name: /Trinken · 34% · Modellvorschlag/ });
+    expect(suggestionButtons.length).toBeGreaterThan(0);
+    const [firstSuggestion] = suggestionButtons;
+    if (!firstSuggestion) {
+      throw new Error('Kein Modellvorschlag-Button für Trinken gefunden.');
+    }
+    fireEvent.click(firstSuggestion);
+    expect(await screen.findByText('Trinken')).toBeInTheDocument();
   });
 
   it('shows contextual suggestion buttons without opening diagnostics when no trained sign is selected', async () => {
