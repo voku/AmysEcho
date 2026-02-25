@@ -703,8 +703,16 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       if (!Number.isFinite(best)) {
         return null;
       }
-      const label = mlp.labels?.[bestI] ?? String(bestI);
-      const prediction = { label, score: best };
+      const labels = mlp?.labels ?? [];
+      const label = labels[bestI] ?? String(bestI);
+      const rankedCandidates = Array.from(probs)
+        .map((score, index) => ({
+          label: labels[index] ?? String(index),
+          score,
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+      const prediction = { label, score: best, candidates: rankedCandidates };
       
       // Record prediction for performance feedback
       enhancePredictionWithFeedback(prediction, performance.now() - startTime);

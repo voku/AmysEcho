@@ -2,7 +2,7 @@ import { GestureDetectorConfig } from '../config/GestureConfig';
 import { GestureSizeNormalizer, PartialGestureDetector } from '../gestureProcessing';
 import { FallbackGestureDetector } from './FallbackGestureDetector';
 import { HandStabilityAssistant } from './HandStabilityAssistant';
-import { HandednessCategory, TwoHandGesture } from '../types/MediaPipeTypes';
+import { HandednessCategory, MLPPrediction, TwoHandGesture } from '../types/MediaPipeTypes';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { ErrorRecoveryManager } from '../utils/ErrorRecoveryManager';
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
@@ -16,6 +16,18 @@ import {
 export const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 export const MLP_NULL_LABEL = '_NULL_';
+
+export const MEDIAPIPE_BASELINE_GESTURES = new Set([
+  'none',
+  'closed_fist',
+  'fist',
+  'open_palm',
+  'pointing_up',
+  'thumb_down',
+  'thumb_up',
+  'victory',
+  'iloveyou',
+]);
 
 interface LandmarkPreprocessingResult {
   landmarks: number[][][];
@@ -46,11 +58,12 @@ interface MlpSelection {
   gesture: string | null;
   confidence: number;
   method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none';
-  mlpMetadata: { label: string; score: number } | null;
+  mlpMetadata: MLPPrediction | null;
   mlpDecision: {
     selected: boolean;
     reason:
       | 'selected'
+      | 'selected_profile_vocab_priority'
       | 'below_threshold'
       | 'below_override_margin'
       | 'null_label'
@@ -334,7 +347,7 @@ export class GestureDetectionStep implements ProcessingStep {
     detectionMethod: MlpSelection['method'],
     twoHandMetadata: TwoHandGesture | null,
   ): MlpSelection {
-    let mlpMetadata: { label: string; score: number } | null = null;
+    let mlpMetadata: MLPPrediction | null = null;
     let mlpDecision: MlpSelection['mlpDecision'] = null;
     let resolvedGesture = selectedGesture;
     let resolvedConfidence = selectedConfidence;
@@ -388,44 +401,62 @@ export class GestureDetectionStep implements ProcessingStep {
               selectedGestureBeforeMlp: resolvedGesture,
             };
             gestureDebugLog('mlp', `Ignoring background noise (${MLP_NULL_LABEL})`, undefined, { sampleIntervalMs: 2000 });
-          } else if (mlpResult.score >= threshold &&
-              (resolvedGesture === null ||
-               resolvedGesture === 'none' ||
-               mlpResult.score >= (resolvedConfidence + confidenceMargin))) {
-            mlpDecision = {
-              selected: true,
-              reason: 'selected',
-              threshold,
-              margin: confidenceMargin,
-              score: mlpResult.score,
-              selectedConfidenceBeforeMlp: resolvedConfidence,
-              selectedGestureBeforeMlp: resolvedGesture,
-            };
-            gestureDebugLog('mlp', 'MLP gesture selected', () => ({
-              label: mlpResult.label,
-              score: mlpResult.score,
-              margin: confidenceMargin,
-            }), { sampleIntervalMs: 2000 });
-            resolvedGesture = this.normalizeLabel(mlpResult.label);
-            resolvedConfidence = mlpResult.score;
-            resolvedMethod = 'mlp';
-            resolvedTwoHand = null;
           } else {
-            mlpDecision = {
-              selected: false,
-              reason: mlpResult.score < threshold ? 'below_threshold' : 'below_override_margin',
-              threshold,
-              margin: confidenceMargin,
-              score: mlpResult.score,
-              selectedConfidenceBeforeMlp: resolvedConfidence,
-              selectedGestureBeforeMlp: resolvedGesture,
-            };
-            gestureDebugLog('mlp', 'MLP gesture not selected', () => ({
-              score: mlpResult.score,
-              threshold,
-              selectedConfidence: resolvedConfidence,
-              margin: confidenceMargin,
-            }), { sampleIntervalMs: 3000 });
+            const normalizedMlpLabel = this.normalizeLabel(mlpResult.label);
+            const mediapipeWinsByMargin =
+              resolvedGesture !== null &&
+              resolvedGesture !== 'none' &&
+              mlpResult.score < (resolvedConfidence + confidenceMargin);
+            const shouldPreferMlpOverBaseline =
+              !!normalizedMlpLabel &&
+              !!resolvedGesture &&
+              MEDIAPIPE_BASELINE_GESTURES.has(resolvedGesture) &&
+              !MEDIAPIPE_BASELINE_GESTURES.has(normalizedMlpLabel);
+            const canSelectMlp =
+              mlpResult.score >= threshold &&
+              (
+                resolvedGesture === null ||
+                resolvedGesture === 'none' ||
+                mlpResult.score >= (resolvedConfidence + confidenceMargin) ||
+                (mediapipeWinsByMargin && shouldPreferMlpOverBaseline)
+              );
+
+            if (canSelectMlp) {
+              mlpDecision = {
+                selected: true,
+                reason: shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected',
+                threshold,
+                margin: confidenceMargin,
+                score: mlpResult.score,
+                selectedConfidenceBeforeMlp: resolvedConfidence,
+                selectedGestureBeforeMlp: resolvedGesture,
+              };
+              gestureDebugLog('mlp', 'MLP gesture selected', () => ({
+                label: mlpResult.label,
+                score: mlpResult.score,
+                margin: confidenceMargin,
+              }), { sampleIntervalMs: 2000 });
+              resolvedGesture = this.normalizeLabel(mlpResult.label);
+              resolvedConfidence = mlpResult.score;
+              resolvedMethod = 'mlp';
+              resolvedTwoHand = null;
+            } else {
+              mlpDecision = {
+                selected: false,
+                reason: mlpResult.score < threshold ? 'below_threshold' : 'below_override_margin',
+                threshold,
+                margin: confidenceMargin,
+                score: mlpResult.score,
+                selectedConfidenceBeforeMlp: resolvedConfidence,
+                selectedGestureBeforeMlp: resolvedGesture,
+              };
+              gestureDebugLog('mlp', 'MLP gesture not selected', () => ({
+                score: mlpResult.score,
+                threshold,
+                selectedConfidence: resolvedConfidence,
+                margin: confidenceMargin,
+              }), { sampleIntervalMs: 3000 });
+            }
           }
         } else {
           mlpDecision = {

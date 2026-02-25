@@ -9,8 +9,12 @@ import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
+import { MEDIAPIPE_BASELINE_GESTURES, MLP_NULL_LABEL } from '../gesture/core/ProcessingSteps';
 
 const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+
+const RECORDER_MLP_CONFIDENCE_FALLBACK = 0.4;
+
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -81,6 +85,7 @@ export function SignLanguageRecorder() {
   const [cameraSwitchFeedback, setCameraSwitchFeedback] = useState('');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [allowGlobalFallbackOutput, setAllowGlobalFallbackOutput] = useState(false);
+  const [manualSuggestionLabel, setManualSuggestionLabel] = useState<string | null>(null);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -97,6 +102,10 @@ export function SignLanguageRecorder() {
     lastConfidence,
     lastDetectionMethod,
     lastUsedFallback,
+    lastMlpLabel,
+    lastMlpScore,
+    lastMlpThreshold,
+    lastMlpCandidates,
     lastLandmarks,
     messageLog,
     audioMuted,
@@ -115,6 +124,7 @@ export function SignLanguageRecorder() {
 
   useEffect(() => {
     setAllowGlobalFallbackOutput(false);
+    setManualSuggestionLabel(null);
   }, [profileId]);
 
   // Check if profile has trained signs
@@ -294,19 +304,74 @@ export function SignLanguageRecorder() {
     trainedSignLabels.length,
   ]);
 
+  const shouldPreferMlpTrainedLabel = useMemo(() => {
+    if (!lastSign || !lastMlpLabel) {
+      return false;
+    }
+
+    if (lastDetectionMethod !== 'mediapipe') {
+      return false;
+    }
+
+    const normalizedMlpLabel = normalizeSignLabel(lastMlpLabel);
+    const normalizedDetectedLabel = normalizeSignLabel(lastSign);
+    if (!normalizedMlpLabel || normalizedMlpLabel === normalizedDetectedLabel) {
+      return false;
+    }
+
+    if (normalizedTrainedSignLabels.has(normalizedDetectedLabel)) {
+      return false;
+    }
+
+    if (!MEDIAPIPE_BASELINE_GESTURES.has(normalizedDetectedLabel)) {
+      return false;
+    }
+
+    if (!normalizedTrainedSignLabels.has(normalizedMlpLabel)) {
+      return false;
+    }
+
+    const threshold = typeof lastMlpThreshold === 'number' ? lastMlpThreshold : RECORDER_MLP_CONFIDENCE_FALLBACK;
+    return typeof lastMlpScore === 'number' && lastMlpScore >= threshold;
+  }, [lastDetectionMethod, lastMlpLabel, lastMlpScore, lastMlpThreshold, lastSign, normalizedTrainedSignLabels]);
+
+  const suggestedMlpChoices = useMemo(() => (
+    lastMlpCandidates
+      .filter(candidate => candidate.label !== MLP_NULL_LABEL)
+      .map(candidate => ({
+        ...candidate,
+        normalizedLabel: normalizeSignLabel(candidate.label),
+      }))
+      .filter(candidate => candidate.normalizedLabel.length > 0)
+  ), [lastMlpCandidates]);
+
+  const effectiveSign = manualSuggestionLabel ?? (shouldPreferMlpTrainedLabel ? lastMlpLabel : lastSign);
+
   useEffect(() => {
-    if (lastSign) {
+    if (!manualSuggestionLabel) {
+      return;
+    }
+
+    const normalizedManual = normalizeSignLabel(manualSuggestionLabel);
+    const stillAvailable = suggestedMlpChoices.some(candidate => candidate.normalizedLabel === normalizedManual);
+    if (!stillAvailable) {
+      setManualSuggestionLabel(null);
+    }
+  }, [manualSuggestionLabel, suggestedMlpChoices]);
+
+  useEffect(() => {
+    if (effectiveSign) {
       // Only record if it's a trained label and profile output is currently allowed
       if (
-        normalizedTrainedSignLabels.has(normalizeSignLabel(lastSign))
+        normalizedTrainedSignLabels.has(normalizeSignLabel(effectiveSign))
         && canUseProfileRecognition
       ) {
-        recordSign(lastSign);
+        recordSign(effectiveSign);
       }
     }
-  }, [canUseProfileRecognition, lastSign, recordSign, normalizedTrainedSignLabels]);
+  }, [canUseProfileRecognition, effectiveSign, recordSign, normalizedTrainedSignLabels]);
 
-  const normalizedGesture = lastSign?.trim() ?? '';
+  const normalizedGesture = effectiveSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizeSignLabel(normalizedGesture) : '';
   
   // Filter prediction: only show if it's in the trained labels list
@@ -352,6 +417,11 @@ export function SignLanguageRecorder() {
       reason,
       predictedLabel: lastSign,
       normalizedPrediction: normalizeSignLabel(lastSign),
+      effectiveLabel: effectiveSign,
+      mlpCandidateLabel: lastMlpLabel ?? null,
+      mlpCandidateScore: lastMlpScore,
+      mlpCandidateThreshold: lastMlpThreshold,
+      mlpCandidatesPreview: suggestedMlpChoices.slice(0, 5).map(c => ({ label: c.normalizedLabel, score: c.score })),
       lastConfidence,
       detectionMethod: lastDetectionMethod ?? null,
       modelStatus,
@@ -370,6 +440,10 @@ export function SignLanguageRecorder() {
     isTrained,
     lastConfidence,
     lastDetectionMethod,
+    lastMlpLabel,
+    lastMlpScore,
+    lastMlpThreshold,
+    suggestedMlpChoices,
     lastSign,
     modelMeta?.source,
     modelMeta?.version,
@@ -377,6 +451,7 @@ export function SignLanguageRecorder() {
     profileId,
     profileModelRequired,
     trainedSignLabels,
+    effectiveSign,
   ]);
 
   const handleStart = async () => {
@@ -535,7 +610,7 @@ export function SignLanguageRecorder() {
       };
     }
 
-    if (!lastSign) {
+    if (!effectiveSign) {
       const confidencePercent =
         typeof lastConfidence === 'number' ? `${Math.round(lastConfidence * 100)}%` : null;
       return {
@@ -547,7 +622,7 @@ export function SignLanguageRecorder() {
       };
     }
 
-    const isTrainedSign = normalizedTrainedSignLabels.has(normalizeSignLabel(lastSign));
+    const isTrainedSign = normalizedTrainedSignLabels.has(normalizeSignLabel(effectiveSign));
     if (trainedSignLabels.length > 0 && !isTrainedSign) {
       return {
         severity: 'warning' as const,
@@ -567,7 +642,7 @@ export function SignLanguageRecorder() {
     hasDetectedHands,
     isProfileModelActive,
     lastConfidence,
-    lastSign,
+    effectiveSign,
     normalizedTrainedSignLabels,
     allowGlobalFallbackOutput,
     profileModelRequired,
@@ -847,6 +922,34 @@ export function SignLanguageRecorder() {
                   <strong>{canUseProfileRecognition ? 'Aktiv' : 'Pausiert (wartet auf Profilmodell)'}</strong>
                 </li>
               </ul>
+            {suggestedMlpChoices.length > 0 && (
+              <div className="gesture-screen__diagnostics-hint">
+                <p>Mögliche Gebärden aus deinem Modell:</p>
+                <div className="gesture-screen__empty-actions">
+                  {suggestedMlpChoices.map((candidate) => {
+                    const confidencePercent = Math.round(candidate.score * 100);
+                    const isTrainedCandidate = normalizedTrainedSignLabels.has(candidate.normalizedLabel);
+                    return (
+                      <button
+                        key={`${candidate.normalizedLabel}-${confidencePercent}`}
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => {
+                          if (!isTrainedCandidate) return;
+                          setManualSuggestionLabel(candidate.label);
+                        }}
+                        disabled={!isTrainedCandidate}
+                        title={isTrainedCandidate
+                          ? 'Diese Gebärde als aktuelle Ausgabe übernehmen'
+                          : 'Nicht trainiert – zur Nutzung bitte erst im Profil trainieren'}
+                      >
+                        {toTitleCase(candidate.label)} · {confidencePercent}%{isTrainedCandidate ? ' · trainiert' : ' · nicht trainiert'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {trainedSignLabels.length > 0 && (
               <p className="gesture-screen__diagnostics-hint">
                 Trainierte Beispiele: {trainedSignLabels.slice(0, 6).join(', ')}

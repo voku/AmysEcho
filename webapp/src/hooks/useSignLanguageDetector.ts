@@ -46,6 +46,10 @@ export type SignLanguageHookResult = {
   lastConfidence: number | null;
   lastDetectionMethod: string | null;
   lastUsedFallback: boolean;
+  lastMlpLabel: string | null;
+  lastMlpScore: number | null;
+  lastMlpThreshold: number | null;
+  lastMlpCandidates: Array<{ label: string; score: number }>;
   messageLog: SignLanguageMessage[];
   getVariationMetrics: (gesture: string) => VariationMetrics | undefined;
 };
@@ -127,6 +131,10 @@ export function useSignLanguageDetector(
   const [lastConfidence, setLastConfidence] = useState<number | null>(null);
   const [lastDetectionMethod, setLastDetectionMethod] = useState<string | null>(null);
   const [lastUsedFallback, setLastUsedFallback] = useState(false);
+  const [lastMlpLabel, setLastMlpLabel] = useState<string | null>(null);
+  const [lastMlpScore, setLastMlpScore] = useState<number | null>(null);
+  const [lastMlpThreshold, setLastMlpThreshold] = useState<number | null>(null);
+  const [lastMlpCandidates, setLastMlpCandidates] = useState<Array<{ label: string; score: number }>>([]);
   const [messageLog, setMessageLog] = useState<SignLanguageMessage[]>([]);
   const [audioMuted, setAudioMuted] = useState(false);
   const audioMutedRef = useRef(false);
@@ -192,6 +200,8 @@ export function useSignLanguageDetector(
             selectedConfidenceBeforeMlp?: number;
             selectedGestureBeforeMlp?: string | null;
           };
+          mlp?: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
+          thresholds?: { mlp?: number };
         };
 
         const mlpDecision = payload.mlpDecision;
@@ -219,6 +229,34 @@ export function useSignLanguageDetector(
             });
           }
         }
+
+        const mlpMetadata = payload.mlp;
+        if (mlpMetadata && typeof mlpMetadata.label === 'string') {
+          setLastMlpLabel(mlpMetadata.label);
+          setLastMlpScore(typeof mlpMetadata.score === 'number' ? mlpMetadata.score : null);
+          setLastMlpCandidates(
+            Array.isArray(mlpMetadata.candidates)
+              ? mlpMetadata.candidates.filter((candidate): candidate is { label: string; score: number } =>
+                  typeof candidate?.label === 'string' && typeof candidate?.score === 'number',
+                )
+              : [],
+          );
+        } else {
+          setLastMlpLabel(null);
+          setLastMlpScore(null);
+          setLastMlpCandidates([]);
+        }
+
+        const mlpThresholdFromDecision =
+          typeof payload.mlpDecision?.threshold === 'number'
+            ? payload.mlpDecision.threshold
+            : null;
+        const mlpThresholdFromPayload =
+          typeof payload.thresholds?.mlp === 'number'
+            ? payload.thresholds.mlp
+            : null;
+
+        setLastMlpThreshold(mlpThresholdFromDecision ?? mlpThresholdFromPayload);
 
         const resolveDetectionMethod = () => {
           const topLevelMethod = payload.detectionMethod?.trim();
@@ -380,6 +418,10 @@ export function useSignLanguageDetector(
       setLastConfidence(null);
       setLastDetectionMethod(null);
       setLastUsedFallback(false);
+      setLastMlpLabel(null);
+      setLastMlpScore(null);
+      setLastMlpThreshold(null);
+      setLastMlpCandidates([]);
     }
   }, []);
 
@@ -416,6 +458,10 @@ export function useSignLanguageDetector(
     lastConfidence,
     lastDetectionMethod,
     lastUsedFallback,
+    lastMlpLabel,
+    lastMlpScore,
+    lastMlpThreshold,
+    lastMlpCandidates,
     messageLog,
     getVariationMetrics,
   };

@@ -132,6 +132,7 @@ describe('installMlp', () => {
 
   const MINIMAL_3LAYER_ZIP_B64 = create3LayerZipB64(126, 10, 5, 1, ['hi']);
   const MULTIMODAL_3LAYER_ZIP_B64 = create3LayerZipB64(1629, 10, 5, 1, ['multimodal']);
+  const MULTI_LABEL_3LAYER_ZIP_B64 = create3LayerZipB64(126, 10, 5, 3, ['trinken', 'satt', 'mehr']);
 
   // Helper to create realistic pose data (33 landmarks with x,y,z,visibility)
   function createPoseLandmarks(): number[][] {
@@ -308,6 +309,20 @@ describe('installMlp', () => {
     const res = window.__mlpPredict!([TEST_HAND], []);
     // Returns null because input is all zeros (no hands detected)
     expect(res).toBeNull();
+  });
+
+  it('liefert gerankte MLP-Kandidaten mit Top-Liste', async () => {
+    const ok = await window.__setMlpModelB64!(MULTI_LABEL_3LAYER_ZIP_B64);
+    expect(ok).toBe(true);
+
+    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    expect(res).not.toBeNull();
+    expect(res?.candidates).toBeDefined();
+    expect(res?.candidates?.length).toBe(3);
+    expect(res?.candidates?.[0]?.label).toBe(res?.label);
+
+    const candidateScores = res?.candidates?.map(candidate => candidate.score) ?? [];
+    expect(candidateScores).toEqual([...candidateScores].sort((a, b) => b - a));
   });
 
   describe('Multimodal prediction', () => {

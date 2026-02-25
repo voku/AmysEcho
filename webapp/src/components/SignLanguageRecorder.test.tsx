@@ -25,6 +25,10 @@ const detectorState = {
   lastConfidence: null as number | null,
   lastDetectionMethod: null as string | null,
   lastUsedFallback: false,
+  lastMlpLabel: null as string | null,
+  lastMlpScore: null as number | null,
+  lastMlpThreshold: null as number | null,
+  lastMlpCandidates: [] as Array<{ label: string; score: number }>,
   messageLog: [] as SignLanguageMessage[],
   getVariationMetrics: vi.fn().mockReturnValue(undefined),
 };
@@ -96,6 +100,10 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastConfidence = null;
     detectorState.lastDetectionMethod = null;
     detectorState.lastUsedFallback = false;
+    detectorState.lastMlpLabel = null;
+    detectorState.lastMlpScore = null;
+    detectorState.lastMlpThreshold = null;
+    detectorState.lastMlpCandidates = [];
     detectorState.messageLog = [];
     vi.stubGlobal(
       'fetch',
@@ -319,6 +327,147 @@ describe('SignLanguageRecorder', () => {
       name: 'Vorübergehend mit Ersatzmodell fortfahren',
     });
     fireEvent.click(enableFallbackButton);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
+    expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+    expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN');
+  });
+
+
+
+  it('does not override a trained MediaPipe label with another trained MLP candidate', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'TRINKEN';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpLabel = 'ESSEN';
+    detectorState.lastMlpScore = 0.8;
+    detectorState.lastMlpThreshold = 0.4;
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'ESSEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    await waitFor(() => {
+      expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN');
+    });
+    expect(appStateMock.recordSign).not.toHaveBeenCalledWith('ESSEN');
+  });
+
+
+  it('does not override baseline label when MLP score is below recorder fallback threshold', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpLabel = 'TRINKEN';
+    detectorState.lastMlpScore = 0.2;
+    detectorState.lastMlpThreshold = null;
+    detectorState.lastMlpCandidates = [];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    await waitFor(() => {
+      expect(appStateMock.recordSign).not.toHaveBeenCalledWith('TRINKEN');
+    });
+  });
+
+
+
+  it('allows caregiver to select an MLP candidate from diagnostics for contextual output', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpCandidates = [
+      { label: 'TRINKEN', score: 0.28 },
+      { label: 'SATT', score: 0.21 },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'SATT']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    fireEvent.click(screen.getByRole('button', { name: /Satt · 21% · trainiert/ }));
+
+    await waitFor(() => {
+      expect(appStateMock.recordSign).toHaveBeenCalledWith('SATT');
+    });
+  });
+
+
+  it('shows untrained MLP candidates as disabled with guidance', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpCandidates = [
+      { label: 'UNBEKANNT', score: 0.25 },
+      { label: 'TRINKEN', score: 0.22 },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    const untrainedButton = screen.getByRole('button', { name: /Unbekannt · 25% · nicht trainiert/ });
+    expect(untrainedButton).toBeDisabled();
+    expect(untrainedButton).toHaveAttribute('title', expect.stringContaining('Nicht trainiert'));
+  });
+
+  it('shows low-confidence MLP candidate list so caregivers can decide in context', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpCandidates = [
+      { label: 'TRINKEN', score: 0.28 },
+      { label: 'SATT', score: 0.21 },
+      { label: '_NULL_', score: 0.16 },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'SATT']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Mögliche Gebärden aus deinem Modell:')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Satt · 21% · trainiert/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /_NULL_/i })).not.toBeInTheDocument();
+  });
+
+  it('uses trained MLP candidate when MediaPipe result is untrained baseline label', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpLabel = 'TRINKEN';
+    detectorState.lastMlpScore = 0.62;
+    detectorState.lastMlpThreshold = 0.4;
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
 
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);

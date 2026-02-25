@@ -5,7 +5,7 @@
 
 import { PerformanceOptimizer } from './PerformanceOptimizer';
 import { MemoryOptimizer } from './MemoryOptimizer';
-import { MediaPipeGestureResult, TwoHandGesture } from '../types/MediaPipeTypes';
+import { MediaPipeGestureResult, type MlpCandidate, TwoHandGesture } from '../types/MediaPipeTypes';
 import { NormalizedMediaPipeResult } from './mapMediaPipeResults';
 
 export interface ProcessingContext {
@@ -71,11 +71,12 @@ export interface ProcessingResult {
     method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none';
     perHand: Array<{ hand: string; label: string; score: number }>;
     handednesses: string[];
-    mlp: { label: string; score: number } | null;
+    mlp: { label: string; score: number; candidates?: MlpCandidate[] } | null;
     mlpDecision?: {
       selected: boolean;
       reason:
         | 'selected'
+        | 'selected_profile_vocab_priority'
         | 'below_threshold'
         | 'below_override_margin'
         | 'null_label'
