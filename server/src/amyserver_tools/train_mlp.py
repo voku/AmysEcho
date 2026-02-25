@@ -214,17 +214,19 @@ _TRAILING_UUID_SUFFIX_RE = re.compile(
 
 
 def normalize_training_label(raw_label: str) -> str:
-    """Normalize a training label by stripping trailing UUID suffixes.
+    """Normalize a training label for stable class assignment.
 
-    Profile-seeded symbols may carry ``<name>-<profileId>`` identifiers.
-    The suffix must be removed so that all recordings of the same sign
-    converge into a single class during training.
+    Profile-seeded symbols may carry ``<name>-<profileId>`` identifiers,
+    and uploads can arrive with case-preserving display labels (e.g. "Hilfe").
+    The trainer canonicalizes both variants so recordings collapse into a
+    single class label during retraining.
     """
     import unicodedata
 
     trimmed = unicodedata.normalize("NFKC", raw_label).strip()
     trimmed = re.sub(r"\s+", " ", trimmed)
-    return _TRAILING_UUID_SUFFIX_RE.sub("", trimmed).strip()
+    without_uuid = _TRAILING_UUID_SUFFIX_RE.sub("", trimmed).strip()
+    return without_uuid.lower()
 
 
 

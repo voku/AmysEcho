@@ -24,6 +24,7 @@ import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
 import { SymbolButton } from './SymbolButton';
 import { syncAllProfilesToServer } from '../services/profileRegistry';
 import { dedupeSymbolsByName, normalizeSymbolName } from '../utils/symbolDedup';
+import { normalizeGestureLabel } from '../utils/stringUtils';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -676,6 +677,12 @@ export function TrainingUploadWithRecording() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [combinedSymbols, gestureParam, symbolIdParam]);
 
+  const canonicalTrainingLabel = useMemo(() => {
+    const base = preferredSignId.trim().length > 0 ? preferredSignId : preferredSignName;
+    const normalized = normalizeGestureLabel(base);
+    return normalized || base.trim().toLowerCase();
+  }, [preferredSignId, preferredSignName]);
+
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
       if (!metadataReady) {
@@ -811,7 +818,8 @@ export function TrainingUploadWithRecording() {
 
       <TrainingRecorder
         profileId={profileId || 'default'}
-        label={preferredSignName || preferredSignId}
+        label={canonicalTrainingLabel}
+        {...(preferredSignId ? { symbolId: preferredSignId } : {})}
         onRecordingComplete={handleRecordingComplete}
       />
 
