@@ -391,6 +391,7 @@ export function SignLanguageRecorder() {
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
+  const shouldShowContextSuggestions = !demoMode && !gestureLabel && hasDetectedHands && suggestedMlpChoices.length > 0;
 
   useEffect(() => {
     if (!lastSign || !profileModelRequired) {
@@ -751,6 +752,36 @@ export function SignLanguageRecorder() {
             </span>
           )}
         </div>
+
+
+        {shouldShowContextSuggestions && (
+          <div className="gesture-screen__meta-warning">
+            <p><strong>Unsichere Erkennung:</strong> Wähle die wahrscheinlichste Gebärde aus dem Kontext.</p>
+            <div className="gesture-screen__empty-actions">
+              {suggestedMlpChoices.map((candidate) => {
+                const confidencePercent = Math.round(candidate.score * 100);
+                const isTrainedCandidate = normalizedTrainedSignLabels.has(candidate.normalizedLabel);
+                return (
+                  <button
+                    key={`context-${candidate.normalizedLabel}-${confidencePercent}`}
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      if (!isTrainedCandidate) return;
+                      setManualSuggestionLabel(candidate.label);
+                    }}
+                    disabled={!isTrainedCandidate}
+                    title={isTrainedCandidate
+                      ? 'Diese Gebärde als aktuelle Ausgabe übernehmen'
+                      : 'Nicht trainiert – zur Nutzung bitte erst im Profil trainieren'}
+                  >
+                    {toTitleCase(candidate.label)} · {confidencePercent}%{isTrainedCandidate ? ' · trainiert' : ' · nicht trainiert'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {needsCameraStart && (
           <button

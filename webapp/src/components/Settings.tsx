@@ -9,6 +9,7 @@ import { UserSettings } from './UserSettings';
  */
 export function Settings() {
   const { profileId, displayName } = useAppState();
+  const commitHash = import.meta.env['VITE_APP_COMMIT_SHA']?.trim() || 'unbekannt';
 
   const handleExportData = useCallback(() => {
     const data = {
@@ -90,6 +91,7 @@ export function Settings() {
         <h3>Über Amy&apos;s Echo</h3>
         <div className="about-info">
           <p><strong>Version:</strong> Webapp Preview</p>
+          <p><strong>Commit:</strong> {commitHash}</p>
           {profileId && (
             <>
               <p><strong>Profil:</strong> {displayName || profileId}</p>

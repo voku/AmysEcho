@@ -399,7 +399,7 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-    fireEvent.click(screen.getByRole('button', { name: /Satt · 21% · trainiert/ }));
+    fireEvent.click(screen.getAllByRole('button', { name: /Satt · 21% · trainiert/ })[0]!);
 
     await waitFor(() => {
       expect(appStateMock.recordSign).toHaveBeenCalledWith('SATT');
@@ -425,7 +425,7 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-    const untrainedButton = screen.getByRole('button', { name: /Unbekannt · 25% · nicht trainiert/ });
+    const untrainedButton = screen.getAllByRole('button', { name: /Unbekannt · 25% · nicht trainiert/ })[0]!
     expect(untrainedButton).toBeDisabled();
     expect(untrainedButton).toHaveAttribute('title', expect.stringContaining('Nicht trainiert'));
   });
@@ -450,9 +450,32 @@ describe('SignLanguageRecorder', () => {
     fireEvent.click(diagnosticsButton);
 
     expect(screen.getByText('Mögliche Gebärden aus deinem Modell:')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Satt · 21% · trainiert/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Trinken · 28% · trainiert/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /Satt · 21% · trainiert/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: /_NULL_/i })).not.toBeInTheDocument();
+  });
+
+
+  it('shows contextual suggestion buttons without opening diagnostics when no trained sign is selected', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpCandidates = [
+      { label: 'TRINKEN', score: 0.28 },
+      { label: 'UNBEKANNT', score: 0.16 },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    expect(screen.getByText(/Unsichere Erkennung:/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Trinken · 28% · trainiert/ }).length).toBeGreaterThan(0);
+
+    const untrainedButton = screen.getAllByRole('button', { name: /Unbekannt · 16% · nicht trainiert/ })[0]!
+    expect(untrainedButton).toBeDisabled();
   });
 
   it('uses trained MLP candidate when MediaPipe result is untrained baseline label', async () => {
