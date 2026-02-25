@@ -275,7 +275,7 @@ describe('useSignLanguageDetector', () => {
             type: 'gesture',
             gesture: 'closed_fist',
             detectionMethod: 'mediapipe',
-            mlp: { label: 'TRINKEN', score: 0.61 },
+            mlp: { label: 'TRINKEN', score: 0.61, candidates: [{ label: 'TRINKEN', score: 0.61 }] },
             mlpDecision: { selected: false, reason: 'below_override_margin', threshold: 0.4 },
           }),
         }),
@@ -286,6 +286,7 @@ describe('useSignLanguageDetector', () => {
       expect(result.current.lastMlpLabel).toBe('TRINKEN');
       expect(result.current.lastMlpScore).toBeCloseTo(0.61);
       expect(result.current.lastMlpThreshold).toBeCloseTo(0.4);
+      expect(result.current.lastMlpCandidates).toEqual([{ label: 'TRINKEN', score: 0.61 }]);
     });
 
     act(() => {
@@ -304,6 +305,7 @@ describe('useSignLanguageDetector', () => {
       expect(result.current.lastMlpLabel).toBeNull();
       expect(result.current.lastMlpScore).toBeNull();
       expect(result.current.lastMlpThreshold).toBeNull();
+      expect(result.current.lastMlpCandidates).toEqual([]);
     });
   });
 

@@ -380,6 +380,32 @@ describe('SignLanguageRecorder', () => {
   });
 
 
+
+  it('allows caregiver to select an MLP candidate from diagnostics for contextual output', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpCandidates = [
+      { label: 'TRINKEN', score: 0.28 },
+      { label: 'SATT', score: 0.21 },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'SATT']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    fireEvent.click(screen.getByRole('button', { name: /Satt · 21% · trainiert/ }));
+
+    await waitFor(() => {
+      expect(appStateMock.recordSign).toHaveBeenCalledWith('SATT');
+    });
+  });
+
   it('shows low-confidence MLP candidate list so caregivers can decide in context', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
