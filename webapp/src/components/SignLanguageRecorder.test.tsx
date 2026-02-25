@@ -526,7 +526,29 @@ describe('SignLanguageRecorder', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
     expect(screen.getByText(/Unsichere Erkennung:/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Trinken · 27% · trainiert/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Trinken · 27% · trainiert/ }).length).toBeGreaterThan(0);
+  });
+
+
+  it('zeigt beste Modelltreffer auch bei bereits erkannter Gebärde', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'TRINKEN';
+    detectorState.lastDetectionMethod = 'mlp';
+    detectorState.lastMlpCandidates = [
+      { label: 'TRINKEN', score: 0.74 },
+      { label: 'ESSEN', score: 0.42 },
+      { label: 'HILFE', score: 0.33 },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'ESSEN', 'HILFE']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    expect(screen.getByText(/Beste Modelltreffer:/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Trinken · 74% · trainiert/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Essen · 42% · trainiert/ })).toBeInTheDocument();
   });
 
   it('shows contextual suggestion buttons without opening diagnostics when no trained sign is selected', async () => {
