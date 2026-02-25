@@ -39,7 +39,7 @@ export function isAuthFailureReason(reason: string | undefined): boolean {
 export function useTrainingUploader(
   options: { pollIntervalMs?: number; defaultOptions?: DefaultUploadOptions; retryDelayMs?: number; maxRetryDelayMs?: number } = {},
 ) {
-  const pollIntervalMs = options.pollIntervalMs ?? 2000;
+  const pollIntervalMs = options.pollIntervalMs ?? 5000;
   const retryConfig = useMemo(
     () => ({ base: options.retryDelayMs ?? 2000, max: options.maxRetryDelayMs ?? 30000 }),
     [options.maxRetryDelayMs, options.retryDelayMs],
@@ -76,6 +76,24 @@ export function useTrainingUploader(
   const pollDelayRef = useRef(pollIntervalMs);
   const pollErrorCountRef = useRef(0);
   const maxPollErrors = 5;
+
+  const parseRetryAfterDelayMs = useCallback((headerValue: string | null): number | null => {
+    if (!headerValue) {
+      return null;
+    }
+
+    const asSeconds = Number(headerValue);
+    if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+      return Math.round(asSeconds * 1000);
+    }
+
+    const retryTimestamp = Date.parse(headerValue);
+    if (!Number.isNaN(retryTimestamp)) {
+      return Math.max(0, retryTimestamp - Date.now());
+    }
+
+    return null;
+  }, []);
 
   useEffect(() => {
     retryDelayRef.current = retryConfig.base;
@@ -545,6 +563,10 @@ export function useTrainingUploader(
             if (result.status === 401) {
               throw new HttpError(401, SESSION_EXPIRED_MESSAGE);
             }
+            if (result.status === 429) {
+              const retryAfterMs = parseRetryAfterDelayMs(result.headers.get('Retry-After'));
+              throw new HttpError(429, 'Zu viele Anfragen. Bitte warte einen Moment.', retryAfterMs ?? undefined);
+            }
             if (!result.ok) {
               throw new Error(`Polling fehlgeschlagen (HTTP ${result.status}).`);
             }
@@ -565,7 +587,7 @@ export function useTrainingUploader(
             return;
           }
           pollErrorCountRef.current = 0;
-          pollDelayRef.current = pollIntervalMs;
+          pollDelayRef.current = Math.max(mergedJob?.retryAfterMs ?? 0, pollIntervalMs);
         } else {
           const statusOnly = normalizeTrainingJobStatus((body as { status?: string })?.status ?? '');
           if (statusOnly) {
@@ -590,10 +612,16 @@ export function useTrainingUploader(
           }
         }
       } catch (err) {
-        const reason = err instanceof Error ? err.message : String(err);
-        setTrainingJobError(reason);
-        pollErrorCountRef.current += 1;
-        pollDelayRef.current = Math.min(pollDelayRef.current * 2, pollIntervalMs * 5);
+        if (err instanceof HttpError && err.status === 429) {
+          const retryAfterMs = typeof err.retryAfterMs === 'number' ? err.retryAfterMs : pollIntervalMs * 2;
+          pollDelayRef.current = Math.min(Math.max(retryAfterMs, pollIntervalMs), pollIntervalMs * 12);
+          setTrainingJobError('Trainingsstatus wird gedrosselt. Wir versuchen es gleich erneut.');
+        } else {
+          const reason = err instanceof Error ? err.message : String(err);
+          setTrainingJobError(reason);
+          pollErrorCountRef.current += 1;
+          pollDelayRef.current = Math.min(pollDelayRef.current * 2, pollIntervalMs * 5);
+        }
         if (pollErrorCountRef.current >= maxPollErrors) {
           pollErrorCountRef.current = maxPollErrors;
         }
@@ -611,7 +639,7 @@ export function useTrainingUploader(
         pollTimeoutRef.current = null;
       }
     };
-  }, [applyTrainingJob, defaultOptions.token, pollAuthOptions, pollIntervalMs, trainingJob, withAuthRetry]);
+  }, [applyTrainingJob, defaultOptions.token, parseRetryAfterDelayMs, pollAuthOptions, pollIntervalMs, trainingJob, withAuthRetry]);
 
   return useMemo(
     () => ({

@@ -180,6 +180,44 @@ describe('useTrainingUploader', () => {
     await waitFor(() => expect(result.current.trainingJobError).toMatch(/Polling/));
   });
 
+
+  it('respektiert Retry-After beim Polling nach HTTP 429', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 'bundle-77',
+          status: 'queued',
+          trainingJob: { jobId: 'job-77', status: 'running', pollUrl: 'https://example.invalid/jobs/77' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: new Headers({ 'Retry-After': '0.2' }),
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'completed' }) });
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() => useTrainingUploader({ pollIntervalMs: 10 }));
+    await act(async () => {
+      await result.current.upload(payload, { endpoint: 'https://example.invalid' });
+    });
+
+    await waitFor(() => {
+      expect(result.current.trainingJobError).toContain('gedrosselt');
+    });
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+      expect(result.current.trainingJob?.status).toBe('completed');
+    }, { timeout: 4000 });
+  }, 10000);
+
+
   it('versucht fehlgeschlagene Bundles im Hintergrund erneut zu synchronisieren', async () => {
     await enqueuePersistedBundle({
       profileId: 'demo',

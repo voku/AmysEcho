@@ -1,7 +1,7 @@
 export const SESSION_EXPIRED_MESSAGE = 'Sitzung abgelaufen. Bitte neu anmelden.';
 
 export class HttpError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public retryAfterMs?: number) {
     super(message);
     this.name = 'HttpError';
   }
