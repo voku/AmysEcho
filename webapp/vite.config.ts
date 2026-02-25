@@ -23,6 +23,7 @@ export default defineConfig({
   plugins: [react()],
   define: {
     'import.meta.env.VITE_APP_COMMIT_SHA': JSON.stringify(appCommitHash),
+    "import.meta.env['VITE_APP_COMMIT_SHA']": JSON.stringify(appCommitHash),
   },
   // Base path for GitHub Pages deployment (repository name)
   // Set to '/' for custom domain or local development

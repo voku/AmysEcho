@@ -14,15 +14,15 @@ vi.mock('./UserSettings', () => ({
   UserSettings: () => <div>Benutzereinstellungen Platzhalter</div>,
 }));
 
-beforeEach(() => {
-  vi.stubEnv('VITE_APP_COMMIT_SHA', 'abc1234');
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-
 describe('Settings', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_APP_COMMIT_SHA', 'abc1234');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('shows profile details and navigation to profile management', () => {
     render(
       <BrowserRouter>

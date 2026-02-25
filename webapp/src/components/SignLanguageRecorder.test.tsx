@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@testing-library/dom';
-import { render, waitFor } from '@testing-library/react';
+import { render, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { useEffect } from 'react';
@@ -399,7 +399,12 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /Satt · 21% · trainiert/ })[0]!);
+    const diagnosticsHint = screen.getByText('Mögliche Gebärden aus deinem Modell:').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    if (!diagnosticsHint) {
+      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
+    }
+
+    fireEvent.click(within(diagnosticsHint).getByRole('button', { name: /Satt · 21% · trainiert/ }));
 
     await waitFor(() => {
       expect(appStateMock.recordSign).toHaveBeenCalledWith('SATT');
@@ -425,7 +430,12 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-    const untrainedButton = screen.getAllByRole('button', { name: /Unbekannt · 25% · nicht trainiert/ })[0]!
+    const diagnosticsHint = screen.getByText('Mögliche Gebärden aus deinem Modell:').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    if (!diagnosticsHint) {
+      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
+    }
+
+    const untrainedButton = within(diagnosticsHint).getByRole('button', { name: /Unbekannt · 25% · nicht trainiert/ });
     expect(untrainedButton).toBeDisabled();
     expect(untrainedButton).toHaveAttribute('title', expect.stringContaining('Nicht trainiert'));
   });
@@ -449,9 +459,16 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
+    const diagnosticsHint = screen.getByText('Mögliche Gebärden aus deinem Modell:').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    if (!diagnosticsHint) {
+      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
+    }
+
+    const diagnosticsScope = within(diagnosticsHint);
+
     expect(screen.getByText('Mögliche Gebärden aus deinem Modell:')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Trinken · 28% · trainiert/ }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: /Satt · 21% · trainiert/ }).length).toBeGreaterThan(0);
+    expect(diagnosticsScope.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
+    expect(diagnosticsScope.getByRole('button', { name: /Satt · 21% · trainiert/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /_NULL_/i })).not.toBeInTheDocument();
   });
 
@@ -472,9 +489,15 @@ describe('SignLanguageRecorder', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
     expect(screen.getByText(/Unsichere Erkennung:/)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Trinken · 28% · trainiert/ }).length).toBeGreaterThan(0);
+    const contextPanel = screen.getByText(/Unsichere Erkennung:/).closest<HTMLElement>('.gesture-screen__meta-warning');
+    if (!contextPanel) {
+      throw new Error('Kontextbereich mit MLP-Vorschlägen nicht gefunden.');
+    }
 
-    const untrainedButton = screen.getAllByRole('button', { name: /Unbekannt · 16% · nicht trainiert/ })[0]!
+    const contextScope = within(contextPanel);
+    expect(contextScope.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
+
+    const untrainedButton = contextScope.getByRole('button', { name: /Unbekannt · 16% · nicht trainiert/ });
     expect(untrainedButton).toBeDisabled();
   });
 
