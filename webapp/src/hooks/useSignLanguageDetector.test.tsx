@@ -257,7 +257,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('speichert und leert MLP-Metadaten passend zur letzten Bridge-Meldung', async () => {
+  it('behält MLP-Metadaten bei, wenn die nächste Meldung kein mlp-Feld enthält', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -302,10 +302,71 @@ describe('useSignLanguageDetector', () => {
     });
 
     await waitFor(() => {
+      expect(result.current.lastMlpLabel).toBe('TRINKEN');
+      expect(result.current.lastMlpScore).toBeCloseTo(0.61);
+      expect(result.current.lastMlpThreshold).toBeNull();
+      expect(result.current.lastMlpCandidates).toEqual([{ label: 'TRINKEN', score: 0.61 }]);
+    });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture',
+            gesture: 'closed_fist',
+            detectionMethod: 'mediapipe',
+            mlp: null,
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
       expect(result.current.lastMlpLabel).toBeNull();
       expect(result.current.lastMlpScore).toBeNull();
-      expect(result.current.lastMlpThreshold).toBeNull();
       expect(result.current.lastMlpCandidates).toEqual([]);
+    });
+  });
+
+
+  it('liest MLP-Metadaten aus gesture_batch-Nachrichten', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              {
+                type: 'gesture',
+                gesture: 'open_palm',
+                detectionMethod: 'mediapipe',
+                mlpDecision: { selected: false, reason: 'below_override_margin', threshold: 0.4 },
+                mlp: { label: 'TRINKEN', score: 0.57, candidates: [{ label: 'TRINKEN', score: 0.57 }] },
+                thresholds: { mlp: 0.4 },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastMlpLabel).toBe('TRINKEN');
+      expect(result.current.lastMlpScore).toBeCloseTo(0.57);
+      expect(result.current.lastMlpThreshold).toBeCloseTo(0.4);
+      expect(result.current.lastMlpCandidates).toEqual([{ label: 'TRINKEN', score: 0.57 }]);
+      expect(result.current.lastDetectionMethod).toBe('mediapipe');
+      expect(result.current.lastSign).toBe('open_palm');
     });
   });
 

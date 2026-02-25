@@ -184,6 +184,17 @@ export function useSignLanguageDetector(
             detectionMethod?: string;
             isFallback?: boolean;
             metadata?: { method?: string };
+            mlpDecision?: {
+              selected: boolean;
+              reason: string;
+              threshold?: number;
+              margin?: number;
+              score?: number;
+              selectedConfidenceBeforeMlp?: number;
+              selectedGestureBeforeMlp?: string | null;
+            };
+            mlp?: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
+            thresholds?: { mlp?: number };
           }>;
           confidence?: number;
           landmarks?: unknown;
@@ -204,14 +215,49 @@ export function useSignLanguageDetector(
           thresholds?: { mlp?: number };
         };
 
-        const mlpDecision = payload.mlpDecision;
+        const payloadMessages = Array.isArray(payload.messages) ? payload.messages : [];
+
+        const findLastMessageWithMlpDecision = () => {
+          for (let index = payloadMessages.length - 1; index >= 0; index -= 1) {
+            const message = payloadMessages[index];
+            if (message && typeof message === 'object' && 'mlpDecision' in message) {
+              return message;
+            }
+          }
+          return null;
+        };
+
+        const findLastMessageWithMlp = () => {
+          for (let index = payloadMessages.length - 1; index >= 0; index -= 1) {
+            const message = payloadMessages[index];
+            if (message && typeof message === 'object' && 'mlp' in message) {
+              return message;
+            }
+          }
+          return null;
+        };
+
+        const findLastMessageWithThresholds = () => {
+          for (let index = payloadMessages.length - 1; index >= 0; index -= 1) {
+            const message = payloadMessages[index];
+            if (message && typeof message === 'object' && 'thresholds' in message) {
+              return message;
+            }
+          }
+          return null;
+        };
+
+        const nestedMlpDecisionMessage = findLastMessageWithMlpDecision();
+        const nestedMlpDecision = nestedMlpDecisionMessage?.mlpDecision;
+        const mlpDecision = payload.mlpDecision ?? nestedMlpDecision ?? null;
+
         if (mlpDecision && mlpDecision.selected === false) {
           const decisionSignature = [
             mlpDecision.reason,
             String(mlpDecision.score ?? 'na'),
             String(mlpDecision.threshold ?? 'na'),
-            String(payload.gesture ?? 'none'),
-            String(payload.detectionMethod ?? payload.metadata?.method ?? 'none'),
+            String(payload.gesture ?? nestedMlpDecisionMessage?.gesture ?? 'none'),
+            String(payload.detectionMethod ?? payload.metadata?.method ?? nestedMlpDecisionMessage?.detectionMethod ?? 'none'),
           ].join('|');
 
           if (lastMlpDecisionLogRef.current !== decisionSignature) {
@@ -223,38 +269,50 @@ export function useSignLanguageDetector(
               margin: mlpDecision.margin ?? null,
               selectedGestureBeforeMlp: mlpDecision.selectedGestureBeforeMlp ?? null,
               selectedConfidenceBeforeMlp: mlpDecision.selectedConfidenceBeforeMlp ?? null,
-              finalDetectionMethod: payload.detectionMethod ?? payload.metadata?.method ?? null,
-              finalGesture: payload.gesture ?? null,
+              finalDetectionMethod: payload.detectionMethod ?? payload.metadata?.method ?? nestedMlpDecisionMessage?.detectionMethod ?? null,
+              finalGesture: payload.gesture ?? nestedMlpDecisionMessage?.gesture ?? null,
               finalConfidence: typeof payload.confidence === 'number' ? payload.confidence : null,
             });
           }
         }
 
-        const mlpMetadata = payload.mlp;
-        if (mlpMetadata && typeof mlpMetadata.label === 'string') {
-          setLastMlpLabel(mlpMetadata.label);
-          setLastMlpScore(typeof mlpMetadata.score === 'number' ? mlpMetadata.score : null);
-          setLastMlpCandidates(
-            Array.isArray(mlpMetadata.candidates)
-              ? mlpMetadata.candidates.filter((candidate): candidate is { label: string; score: number } =>
-                  typeof candidate?.label === 'string' && typeof candidate?.score === 'number',
-                )
-              : [],
-          );
-        } else {
-          setLastMlpLabel(null);
-          setLastMlpScore(null);
-          setLastMlpCandidates([]);
+        const nestedMlpMessage = findLastMessageWithMlp();
+        const hasMlpMetadata =
+          Object.prototype.hasOwnProperty.call(payload, 'mlp') ||
+          nestedMlpMessage !== null;
+
+        if (hasMlpMetadata) {
+          const mlpMetadata = Object.prototype.hasOwnProperty.call(payload, 'mlp')
+            ? payload.mlp
+            : nestedMlpMessage?.mlp;
+          if (mlpMetadata && typeof mlpMetadata.label === 'string') {
+            setLastMlpLabel(mlpMetadata.label);
+            setLastMlpScore(typeof mlpMetadata.score === 'number' ? mlpMetadata.score : null);
+            setLastMlpCandidates(
+              Array.isArray(mlpMetadata.candidates)
+                ? mlpMetadata.candidates.filter((candidate): candidate is { label: string; score: number } =>
+                    typeof candidate?.label === 'string' && typeof candidate?.score === 'number',
+                  )
+                : [],
+            );
+          } else {
+            setLastMlpLabel(null);
+            setLastMlpScore(null);
+            setLastMlpCandidates([]);
+          }
         }
 
+        const nestedThresholdMessage = findLastMessageWithThresholds();
         const mlpThresholdFromDecision =
-          typeof payload.mlpDecision?.threshold === 'number'
-            ? payload.mlpDecision.threshold
+          typeof mlpDecision?.threshold === 'number'
+            ? mlpDecision.threshold
             : null;
         const mlpThresholdFromPayload =
           typeof payload.thresholds?.mlp === 'number'
             ? payload.thresholds.mlp
-            : null;
+            : typeof nestedThresholdMessage?.thresholds?.mlp === 'number'
+              ? nestedThresholdMessage.thresholds.mlp
+              : null;
 
         setLastMlpThreshold(mlpThresholdFromDecision ?? mlpThresholdFromPayload);
 
