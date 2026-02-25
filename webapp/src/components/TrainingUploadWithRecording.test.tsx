@@ -185,7 +185,7 @@ describe('TrainingUploadWithRecording', () => {
     expect(payload).toBeDefined();
     if (!payload) return;
     expect(payload.profileId).toBe(TEST_PROFILE_ID);
-    expect(payload.label).toBe('neues-label');
+    expect(payload.label).toBe('NEUES-LABEL');
   }, TEST_TIMEOUT);
 
   it('shows a success message after a successful upload', async () => {

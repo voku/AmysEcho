@@ -456,6 +456,7 @@ export function TrainingUploadWithRecording() {
   const {
     setPreferredSign,
     preferredSignId,
+    preferredSignName,
     profileId,
     profileMetadata,
   } = useAppState();
@@ -810,7 +811,7 @@ export function TrainingUploadWithRecording() {
 
       <TrainingRecorder
         profileId={profileId || 'default'}
-        label={preferredSignId}
+        label={preferredSignName || preferredSignId}
         onRecordingComplete={handleRecordingComplete}
       />
 

@@ -17,6 +17,7 @@ import json
 import logging
 import math
 import os
+import re
 import sys
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
@@ -202,6 +203,29 @@ def _emit_event(payload: dict[str, object]) -> None:
     LOGGER.info(message)
 
 # --- Helpers ----------------------------------------------------------------
+
+# Matches a trailing UUID suffix separated by a hyphen or underscore.
+# Must stay in sync with TRAILING_UUID_SUFFIX_PATTERN in
+# server/src/services/trainedLabelsService.ts and webapp/src/components/SignLanguageRecorder.tsx.
+_TRAILING_UUID_SUFFIX_RE = re.compile(
+    r"[_-][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+
+
+def normalize_training_label(raw_label: str) -> str:
+    """Normalize a training label by stripping trailing UUID suffixes.
+
+    Profile-seeded symbols may carry ``<name>-<profileId>`` identifiers.
+    The suffix must be removed so that all recordings of the same sign
+    converge into a single class during training.
+    """
+    import unicodedata
+
+    trimmed = unicodedata.normalize("NFKC", raw_label).strip()
+    trimmed = re.sub(r"\s+", " ", trimmed)
+    return _TRAILING_UUID_SUFFIX_RE.sub("", trimmed).strip()
+
 
 
 def _max_l1(points: np.ndarray) -> float:
@@ -1748,6 +1772,12 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
 
     for entry in entries:
         label = entry.get("label")
+        if not label:
+            continue
+
+        # Normalize the label to strip trailing UUID suffixes so that
+        # e.g. "Trinken" and "Trinken-<profileId>" merge into one class.
+        label = normalize_training_label(label)
         if not label:
             continue
 
