@@ -49,6 +49,7 @@ export type SignLanguageHookResult = {
   lastMlpLabel: string | null;
   lastMlpScore: number | null;
   lastMlpThreshold: number | null;
+  lastMlpCandidates: Array<{ label: string; score: number }>;
   messageLog: SignLanguageMessage[];
   getVariationMetrics: (gesture: string) => VariationMetrics | undefined;
 };
@@ -133,6 +134,7 @@ export function useSignLanguageDetector(
   const [lastMlpLabel, setLastMlpLabel] = useState<string | null>(null);
   const [lastMlpScore, setLastMlpScore] = useState<number | null>(null);
   const [lastMlpThreshold, setLastMlpThreshold] = useState<number | null>(null);
+  const [lastMlpCandidates, setLastMlpCandidates] = useState<Array<{ label: string; score: number }>>([]);
   const [messageLog, setMessageLog] = useState<SignLanguageMessage[]>([]);
   const [audioMuted, setAudioMuted] = useState(false);
   const audioMutedRef = useRef(false);
@@ -198,7 +200,7 @@ export function useSignLanguageDetector(
             selectedConfidenceBeforeMlp?: number;
             selectedGestureBeforeMlp?: string | null;
           };
-          mlp?: { label: string; score: number } | null;
+          mlp?: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
           thresholds?: { mlp?: number };
         };
 
@@ -232,9 +234,17 @@ export function useSignLanguageDetector(
         if (mlpMetadata && typeof mlpMetadata.label === 'string') {
           setLastMlpLabel(mlpMetadata.label);
           setLastMlpScore(typeof mlpMetadata.score === 'number' ? mlpMetadata.score : null);
+          setLastMlpCandidates(
+            Array.isArray(mlpMetadata.candidates)
+              ? mlpMetadata.candidates.filter((candidate): candidate is { label: string; score: number } =>
+                  typeof candidate?.label === 'string' && typeof candidate?.score === 'number',
+                )
+              : [],
+          );
         } else {
           setLastMlpLabel(null);
           setLastMlpScore(null);
+          setLastMlpCandidates([]);
         }
 
         const mlpThresholdFromDecision =
@@ -411,6 +421,7 @@ export function useSignLanguageDetector(
       setLastMlpLabel(null);
       setLastMlpScore(null);
       setLastMlpThreshold(null);
+      setLastMlpCandidates([]);
     }
   }, []);
 
@@ -450,6 +461,7 @@ export function useSignLanguageDetector(
     lastMlpLabel,
     lastMlpScore,
     lastMlpThreshold,
+    lastMlpCandidates,
     messageLog,
     getVariationMetrics,
   };

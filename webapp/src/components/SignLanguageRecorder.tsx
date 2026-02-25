@@ -9,6 +9,7 @@ import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
+import { MLP_NULL_LABEL } from '../gesture/core/ProcessingSteps';
 
 const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
@@ -95,6 +96,7 @@ export function SignLanguageRecorder() {
   const [cameraSwitchFeedback, setCameraSwitchFeedback] = useState('');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [allowGlobalFallbackOutput, setAllowGlobalFallbackOutput] = useState(false);
+  const [manualSuggestionLabel, setManualSuggestionLabel] = useState<string | null>(null);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -114,6 +116,7 @@ export function SignLanguageRecorder() {
     lastMlpLabel,
     lastMlpScore,
     lastMlpThreshold,
+    lastMlpCandidates,
     lastLandmarks,
     messageLog,
     audioMuted,
@@ -132,6 +135,7 @@ export function SignLanguageRecorder() {
 
   useEffect(() => {
     setAllowGlobalFallbackOutput(false);
+    setManualSuggestionLabel(null);
   }, [profileId]);
 
   // Check if profile has trained signs
@@ -342,7 +346,29 @@ export function SignLanguageRecorder() {
     return typeof lastMlpScore === 'number' && lastMlpScore >= threshold;
   }, [lastDetectionMethod, lastMlpLabel, lastMlpScore, lastMlpThreshold, lastSign, normalizedTrainedSignLabels]);
 
-  const effectiveSign = shouldPreferMlpTrainedLabel ? lastMlpLabel : lastSign;
+  const suggestedMlpChoices = useMemo(() => (
+    lastMlpCandidates
+      .filter(candidate => candidate.label !== MLP_NULL_LABEL)
+      .map(candidate => ({
+        ...candidate,
+        normalizedLabel: normalizeSignLabel(candidate.label),
+      }))
+      .filter(candidate => candidate.normalizedLabel.length > 0)
+  ), [lastMlpCandidates]);
+
+  const effectiveSign = manualSuggestionLabel ?? (shouldPreferMlpTrainedLabel ? lastMlpLabel : lastSign);
+
+  useEffect(() => {
+    if (!manualSuggestionLabel) {
+      return;
+    }
+
+    const normalizedManual = normalizeSignLabel(manualSuggestionLabel);
+    const stillAvailable = suggestedMlpChoices.some(candidate => candidate.normalizedLabel === normalizedManual);
+    if (!stillAvailable) {
+      setManualSuggestionLabel(null);
+    }
+  }, [manualSuggestionLabel, suggestedMlpChoices]);
 
   useEffect(() => {
     if (effectiveSign) {
@@ -406,6 +432,7 @@ export function SignLanguageRecorder() {
       mlpCandidateLabel: lastMlpLabel ?? null,
       mlpCandidateScore: lastMlpScore,
       mlpCandidateThreshold: lastMlpThreshold,
+      mlpCandidatesPreview: suggestedMlpChoices.slice(0, 5).map(c => ({ label: c.normalizedLabel, score: c.score })),
       lastConfidence,
       detectionMethod: lastDetectionMethod ?? null,
       modelStatus,
@@ -427,6 +454,7 @@ export function SignLanguageRecorder() {
     lastMlpLabel,
     lastMlpScore,
     lastMlpThreshold,
+    suggestedMlpChoices,
     lastSign,
     modelMeta?.source,
     modelMeta?.version,
@@ -905,6 +933,28 @@ export function SignLanguageRecorder() {
                   <strong>{canUseProfileRecognition ? 'Aktiv' : 'Pausiert (wartet auf Profilmodell)'}</strong>
                 </li>
               </ul>
+            {suggestedMlpChoices.length > 0 && (
+              <div className="gesture-screen__diagnostics-hint">
+                <p>Mögliche Gebärden aus deinem Modell:</p>
+                <div className="gesture-screen__empty-actions">
+                  {suggestedMlpChoices.map((candidate) => {
+                    const confidencePercent = Math.round(candidate.score * 100);
+                    const isTrainedCandidate = normalizedTrainedSignLabels.has(candidate.normalizedLabel);
+                    return (
+                      <button
+                        key={`${candidate.normalizedLabel}-${confidencePercent}`}
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => setManualSuggestionLabel(candidate.label)}
+                        title="Diese Gebärde als aktuelle Ausgabe übernehmen"
+                      >
+                        {toTitleCase(candidate.label)} · {confidencePercent}%{isTrainedCandidate ? ' · trainiert' : ''}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {trainedSignLabels.length > 0 && (
               <p className="gesture-screen__diagnostics-hint">
                 Trainierte Beispiele: {trainedSignLabels.slice(0, 6).join(', ')}

@@ -71,7 +71,7 @@ export interface ProcessingResult {
     method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none';
     perHand: Array<{ hand: string; label: string; score: number }>;
     handednesses: string[];
-    mlp: { label: string; score: number } | null;
+    mlp: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
     mlpDecision?: {
       selected: boolean;
       reason:

@@ -2,7 +2,7 @@ import { GestureDetectorConfig } from '../config/GestureConfig';
 import { GestureSizeNormalizer, PartialGestureDetector } from '../gestureProcessing';
 import { FallbackGestureDetector } from './FallbackGestureDetector';
 import { HandStabilityAssistant } from './HandStabilityAssistant';
-import { HandednessCategory, TwoHandGesture } from '../types/MediaPipeTypes';
+import { HandednessCategory, MLPPrediction, TwoHandGesture } from '../types/MediaPipeTypes';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { ErrorRecoveryManager } from '../utils/ErrorRecoveryManager';
 import { mapMediaPipeResult, NormalizedMediaPipeResult } from '../utils/mapMediaPipeResults';
@@ -58,7 +58,7 @@ interface MlpSelection {
   gesture: string | null;
   confidence: number;
   method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none';
-  mlpMetadata: { label: string; score: number } | null;
+  mlpMetadata: MLPPrediction | null;
   mlpDecision: {
     selected: boolean;
     reason:
@@ -347,7 +347,7 @@ export class GestureDetectionStep implements ProcessingStep {
     detectionMethod: MlpSelection['method'],
     twoHandMetadata: TwoHandGesture | null,
   ): MlpSelection {
-    let mlpMetadata: { label: string; score: number } | null = null;
+    let mlpMetadata: MLPPrediction | null = null;
     let mlpDecision: MlpSelection['mlpDecision'] = null;
     let resolvedGesture = selectedGesture;
     let resolvedConfidence = selectedConfidence;

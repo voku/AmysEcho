@@ -55,9 +55,15 @@ export interface HolisticLandmarkerResult {
 }
 
 // MLP Prediction Result
+export interface MlpCandidate {
+  label: string;
+  score: number;
+}
+
 export interface MLPPrediction {
   label: string;
   score: number;
+  candidates?: MlpCandidate[];
 }
 
 // Gesture Detection Result

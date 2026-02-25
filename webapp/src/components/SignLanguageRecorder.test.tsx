@@ -28,6 +28,7 @@ const detectorState = {
   lastMlpLabel: null as string | null,
   lastMlpScore: null as number | null,
   lastMlpThreshold: null as number | null,
+  lastMlpCandidates: [] as Array<{ label: string; score: number }>,
   messageLog: [] as SignLanguageMessage[],
   getVariationMetrics: vi.fn().mockReturnValue(undefined),
 };
@@ -102,6 +103,7 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastMlpLabel = null;
     detectorState.lastMlpScore = null;
     detectorState.lastMlpThreshold = null;
+    detectorState.lastMlpCandidates = [];
     detectorState.messageLog = [];
     vi.stubGlobal(
       'fetch',
@@ -365,6 +367,7 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastMlpLabel = 'TRINKEN';
     detectorState.lastMlpScore = 0.2;
     detectorState.lastMlpThreshold = null;
+    detectorState.lastMlpCandidates = [];
 
     window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
     window.localStorage.setItem('webapp:has-trained-signs', 'true');
@@ -374,6 +377,32 @@ describe('SignLanguageRecorder', () => {
     await waitFor(() => {
       expect(appStateMock.recordSign).not.toHaveBeenCalledWith('TRINKEN');
     });
+  });
+
+
+  it('shows low-confidence MLP candidate list so caregivers can decide in context', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpCandidates = [
+      { label: 'TRINKEN', score: 0.28 },
+      { label: 'SATT', score: 0.21 },
+      { label: '_NULL_', score: 0.16 },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'SATT']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Mögliche Gebärden aus deinem Modell:')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Satt · 21% · trainiert/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /_NULL_/i })).not.toBeInTheDocument();
   });
 
   it('uses trained MLP candidate when MediaPipe result is untrained baseline label', async () => {
