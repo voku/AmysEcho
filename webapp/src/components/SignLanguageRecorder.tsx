@@ -466,19 +466,19 @@ export function SignLanguageRecorder() {
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
-  const shouldShowContextSuggestions = !demoMode && !gestureLabel && hasDetectedHands && suggestedMlpChoices.length > 0;
   const topMlpMatches = suggestedMlpChoices.slice(0, 3);
-  const shouldShowBestMatches = !demoMode && canUseProfileRecognition && topMlpMatches.length > 0;
+  const shouldShowBestMatches = !demoMode && canUseProfileRecognition && isProfileModelActive && topMlpMatches.length > 0;
+  const shouldShowContextSuggestions = !shouldShowBestMatches && !demoMode && !gestureLabel && hasDetectedHands && suggestedMlpChoices.length > 0;
 
   useEffect(() => {
     if (!lastSign || !profileModelRequired) {
       return;
     }
 
-    const reason = !shouldShowGestureOutput
-      ? 'prediction_not_in_trained_labels'
-      : !canUseProfileRecognition
-        ? 'profile_model_not_ready'
+    const reason = !canUseProfileRecognition
+      ? 'profile_model_not_ready'
+      : !shouldShowGestureOutput
+        ? 'prediction_not_in_trained_labels'
         : null;
 
     if (!reason) {

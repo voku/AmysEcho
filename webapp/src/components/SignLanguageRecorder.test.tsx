@@ -530,7 +530,8 @@ describe('SignLanguageRecorder', () => {
   });
 
 
-  it('zeigt beste Modelltreffer auch bei bereits erkannter Gebärde', async () => {
+  it('shows best model matches even for an already recognized sign', async () => {
+    appStateMock.profileId = 'profile-123';
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
     detectorState.lastSign = 'TRINKEN';
@@ -541,12 +542,41 @@ describe('SignLanguageRecorder', () => {
       { label: 'HILFE', score: 0.33 },
     ];
 
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest?profileId=profile-123')) {
+          return new Response(new Uint8Array([1, 2, 3]), {
+            status: 200,
+            headers: {
+              'X-Model-Version': '12345',
+              'X-Model-Source': 'profile',
+              'X-Model-Profile': 'profile-123',
+            },
+          });
+        }
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response('not-found', { status: 404 });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['TRINKEN', 'ESSEN', 'HILFE'] }),
+    } as Response);
+
     window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'ESSEN', 'HILFE']));
     window.localStorage.setItem('webapp:has-trained-signs', 'true');
 
     renderWithProviders(<SignLanguageRecorder />);
 
-    const bestMatchesPanel = screen.getByText(/Beste Modelltreffer:/).closest('div.gesture-screen__meta-note') as HTMLElement | null;
+    const bestMatchesHeading = await screen.findByText(/Beste Modelltreffer:/);
+    const bestMatchesPanel = bestMatchesHeading.closest('div.gesture-screen__meta-note') as HTMLElement | null;
     expect(bestMatchesPanel).toBeInTheDocument();
     if (!bestMatchesPanel) {
       throw new Error('Best-Matches-Bereich wurde nicht gefunden.');
