@@ -9,23 +9,12 @@ import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
-import { MLP_NULL_LABEL } from '../gesture/core/ProcessingSteps';
+import { MEDIAPIPE_BASELINE_GESTURES, MLP_NULL_LABEL } from '../gesture/core/ProcessingSteps';
 
 const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 const RECORDER_MLP_CONFIDENCE_FALLBACK = 0.4;
 
-const MEDIAPIPE_BASELINE_GESTURES = new Set([
-  'none',
-  'closed_fist',
-  'fist',
-  'open_palm',
-  'pointing_up',
-  'thumb_down',
-  'thumb_up',
-  'victory',
-  'iloveyou',
-]);
 
 function formatStatusLabel(status: string): string {
   switch (status) {
@@ -945,10 +934,16 @@ export function SignLanguageRecorder() {
                         key={`${candidate.normalizedLabel}-${confidencePercent}`}
                         type="button"
                         className="secondary-button"
-                        onClick={() => setManualSuggestionLabel(candidate.label)}
-                        title="Diese Gebärde als aktuelle Ausgabe übernehmen"
+                        onClick={() => {
+                          if (!isTrainedCandidate) return;
+                          setManualSuggestionLabel(candidate.label);
+                        }}
+                        disabled={!isTrainedCandidate}
+                        title={isTrainedCandidate
+                          ? 'Diese Gebärde als aktuelle Ausgabe übernehmen'
+                          : 'Nicht trainiert – zur Nutzung bitte erst im Profil trainieren'}
                       >
-                        {toTitleCase(candidate.label)} · {confidencePercent}%{isTrainedCandidate ? ' · trainiert' : ''}
+                        {toTitleCase(candidate.label)} · {confidencePercent}%{isTrainedCandidate ? ' · trainiert' : ' · nicht trainiert'}
                       </button>
                     );
                   })}

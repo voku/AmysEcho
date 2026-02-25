@@ -17,7 +17,7 @@ export const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 export const MLP_NULL_LABEL = '_NULL_';
 
-const MEDIAPIPE_BASELINE_GESTURES = new Set([
+export const MEDIAPIPE_BASELINE_GESTURES = new Set([
   'none',
   'closed_fist',
   'fist',
@@ -422,40 +422,40 @@ export class GestureDetectionStep implements ProcessingStep {
               );
 
             if (canSelectMlp) {
-            mlpDecision = {
-              selected: true,
-              reason: shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected',
-              threshold,
-              margin: confidenceMargin,
-              score: mlpResult.score,
-              selectedConfidenceBeforeMlp: resolvedConfidence,
-              selectedGestureBeforeMlp: resolvedGesture,
-            };
-            gestureDebugLog('mlp', 'MLP gesture selected', () => ({
-              label: mlpResult.label,
-              score: mlpResult.score,
-              margin: confidenceMargin,
-            }), { sampleIntervalMs: 2000 });
-            resolvedGesture = this.normalizeLabel(mlpResult.label);
-            resolvedConfidence = mlpResult.score;
-            resolvedMethod = 'mlp';
-            resolvedTwoHand = null;
+              mlpDecision = {
+                selected: true,
+                reason: shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected',
+                threshold,
+                margin: confidenceMargin,
+                score: mlpResult.score,
+                selectedConfidenceBeforeMlp: resolvedConfidence,
+                selectedGestureBeforeMlp: resolvedGesture,
+              };
+              gestureDebugLog('mlp', 'MLP gesture selected', () => ({
+                label: mlpResult.label,
+                score: mlpResult.score,
+                margin: confidenceMargin,
+              }), { sampleIntervalMs: 2000 });
+              resolvedGesture = this.normalizeLabel(mlpResult.label);
+              resolvedConfidence = mlpResult.score;
+              resolvedMethod = 'mlp';
+              resolvedTwoHand = null;
             } else {
-            mlpDecision = {
-              selected: false,
-              reason: mlpResult.score < threshold ? 'below_threshold' : 'below_override_margin',
-              threshold,
-              margin: confidenceMargin,
-              score: mlpResult.score,
-              selectedConfidenceBeforeMlp: resolvedConfidence,
-              selectedGestureBeforeMlp: resolvedGesture,
-            };
-            gestureDebugLog('mlp', 'MLP gesture not selected', () => ({
-              score: mlpResult.score,
-              threshold,
-              selectedConfidence: resolvedConfidence,
-              margin: confidenceMargin,
-            }), { sampleIntervalMs: 3000 });
+              mlpDecision = {
+                selected: false,
+                reason: mlpResult.score < threshold ? 'below_threshold' : 'below_override_margin',
+                threshold,
+                margin: confidenceMargin,
+                score: mlpResult.score,
+                selectedConfidenceBeforeMlp: resolvedConfidence,
+                selectedGestureBeforeMlp: resolvedGesture,
+              };
+              gestureDebugLog('mlp', 'MLP gesture not selected', () => ({
+                score: mlpResult.score,
+                threshold,
+                selectedConfidence: resolvedConfidence,
+                margin: confidenceMargin,
+              }), { sampleIntervalMs: 3000 });
             }
           }
         } else {

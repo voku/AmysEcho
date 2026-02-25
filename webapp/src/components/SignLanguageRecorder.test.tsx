@@ -406,6 +406,30 @@ describe('SignLanguageRecorder', () => {
     });
   });
 
+
+  it('shows untrained MLP candidates as disabled with guidance', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpCandidates = [
+      { label: 'UNBEKANNT', score: 0.25 },
+      { label: 'TRINKEN', score: 0.22 },
+    ];
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    const untrainedButton = screen.getByRole('button', { name: /Unbekannt · 25% · nicht trainiert/ });
+    expect(untrainedButton).toBeDisabled();
+    expect(untrainedButton).toHaveAttribute('title', expect.stringContaining('Nicht trainiert'));
+  });
+
   it('shows low-confidence MLP candidate list so caregivers can decide in context', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
