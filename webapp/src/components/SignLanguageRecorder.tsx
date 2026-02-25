@@ -447,12 +447,12 @@ export function SignLanguageRecorder() {
     return normalizedTrainedSignLabels.has(gestureKey);
   }, [gestureKey, normalizedTrainedSignLabels]);
   const hasKnownTrainedCatalog = normalizedTrainedSignLabels.size > 0;
+  const hasManualSuggestion = Boolean(manualSuggestionLabel && normalizeSignLabel(manualSuggestionLabel));
   const canUseDirectMlpOutput =
     Boolean(gestureKey) &&
-    lastDetectionMethod === 'mlp' &&
-    canUseProfileRecognition &&
     isProfileModelActive &&
-    !hasKnownTrainedCatalog;
+    !hasKnownTrainedCatalog &&
+    (lastDetectionMethod === 'mlp' || hasManualSuggestion);
   const shouldShowGestureOutput = (isTrained && canUseProfileRecognition) || canUseDirectMlpOutput;
 
   const gestureMeaning = (gestureKey && shouldShowGestureOutput)
