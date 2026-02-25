@@ -17,6 +17,9 @@ export const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 export const MLP_NULL_LABEL = '_NULL_';
 
+const RELAXED_BASELINE_THRESHOLD_MIN = 0.2;
+const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
+
 export const MEDIAPIPE_BASELINE_GESTURES = new Set([
   'none',
   'closed_fist',
@@ -64,6 +67,7 @@ interface MlpSelection {
     reason:
       | 'selected'
       | 'selected_profile_vocab_priority'
+      | 'selected_profile_vocab_relaxed_threshold'
       | 'below_threshold'
       | 'below_override_margin'
       | 'null_label'
@@ -412,8 +416,16 @@ export class GestureDetectionStep implements ProcessingStep {
               !!resolvedGesture &&
               MEDIAPIPE_BASELINE_GESTURES.has(resolvedGesture) &&
               !MEDIAPIPE_BASELINE_GESTURES.has(normalizedMlpLabel);
+            const relaxedBaselineThreshold = Math.max(
+              RELAXED_BASELINE_THRESHOLD_MIN,
+              threshold - RELAXED_BASELINE_THRESHOLD_DELTA,
+            );
+            const canSelectMlpByRelaxedBaseline =
+              shouldPreferMlpOverBaseline &&
+              mlpResult.score < threshold &&
+              mlpResult.score >= relaxedBaselineThreshold;
             const canSelectMlp =
-              mlpResult.score >= threshold &&
+              (mlpResult.score >= threshold || canSelectMlpByRelaxedBaseline) &&
               (
                 resolvedGesture === null ||
                 resolvedGesture === 'none' ||
@@ -424,7 +436,9 @@ export class GestureDetectionStep implements ProcessingStep {
             if (canSelectMlp) {
               mlpDecision = {
                 selected: true,
-                reason: shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected',
+                reason: canSelectMlpByRelaxedBaseline
+                  ? 'selected_profile_vocab_relaxed_threshold'
+                  : (shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected'),
                 threshold,
                 margin: confidenceMargin,
                 score: mlpResult.score,
