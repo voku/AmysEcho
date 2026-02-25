@@ -1195,7 +1195,7 @@ export class GestureRecognitionOrchestrator {
         skippedSteps: processingResult.skippedSteps,
         thresholds: {
           fallback: FALLBACK_CONFIDENCE_THRESHOLD,
-          mlp: MLP_CONFIDENCE_THRESHOLD,
+          mlp: processingResult.metadata?.mlpDecision?.threshold ?? MLP_CONFIDENCE_THRESHOLD,
         },
         ...(processingResult.metadata?.method
           ? { detectionMethod: processingResult.metadata.method }

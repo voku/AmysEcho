@@ -12,6 +12,18 @@ import { getActiveProfile } from '../services/profileRegistry';
 
 const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
+const MEDIAPIPE_BASELINE_GESTURES = new Set([
+  'none',
+  'closed_fist',
+  'fist',
+  'open_palm',
+  'pointing_up',
+  'thumb_down',
+  'thumb_up',
+  'victory',
+  'iloveyou',
+]);
+
 function formatStatusLabel(status: string): string {
   switch (status) {
     case 'initializing':
@@ -309,6 +321,14 @@ export function SignLanguageRecorder() {
     const normalizedMlpLabel = normalizeSignLabel(lastMlpLabel);
     const normalizedDetectedLabel = normalizeSignLabel(lastSign);
     if (!normalizedMlpLabel || normalizedMlpLabel === normalizedDetectedLabel) {
+      return false;
+    }
+
+    if (normalizedTrainedSignLabels.has(normalizedDetectedLabel)) {
+      return false;
+    }
+
+    if (!MEDIAPIPE_BASELINE_GESTURES.has(normalizedDetectedLabel)) {
       return false;
     }
 

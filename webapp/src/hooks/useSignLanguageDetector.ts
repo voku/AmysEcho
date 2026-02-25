@@ -232,10 +232,21 @@ export function useSignLanguageDetector(
         if (mlpMetadata && typeof mlpMetadata.label === 'string') {
           setLastMlpLabel(mlpMetadata.label);
           setLastMlpScore(typeof mlpMetadata.score === 'number' ? mlpMetadata.score : null);
+        } else {
+          setLastMlpLabel(null);
+          setLastMlpScore(null);
         }
-        if (typeof payload.thresholds?.mlp === 'number') {
-          setLastMlpThreshold(payload.thresholds.mlp);
-        }
+
+        const mlpThresholdFromDecision =
+          typeof payload.mlpDecision?.threshold === 'number'
+            ? payload.mlpDecision.threshold
+            : null;
+        const mlpThresholdFromPayload =
+          typeof payload.thresholds?.mlp === 'number'
+            ? payload.thresholds.mlp
+            : null;
+
+        setLastMlpThreshold(mlpThresholdFromDecision ?? mlpThresholdFromPayload);
 
         const resolveDetectionMethod = () => {
           const topLevelMethod = payload.detectionMethod?.trim();

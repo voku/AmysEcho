@@ -256,4 +256,55 @@ describe('useSignLanguageDetector', () => {
       expect(result.current.lastHandedness[0]).toBe('Hand 1');
     });
   });
+
+  it('speichert und leert MLP-Metadaten passend zur letzten Bridge-Meldung', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture',
+            gesture: 'closed_fist',
+            detectionMethod: 'mediapipe',
+            mlp: { label: 'TRINKEN', score: 0.61 },
+            mlpDecision: { selected: false, reason: 'below_override_margin', threshold: 0.4 },
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastMlpLabel).toBe('TRINKEN');
+      expect(result.current.lastMlpScore).toBeCloseTo(0.61);
+      expect(result.current.lastMlpThreshold).toBeCloseTo(0.4);
+    });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture',
+            gesture: 'closed_fist',
+            detectionMethod: 'mediapipe',
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastMlpLabel).toBeNull();
+      expect(result.current.lastMlpScore).toBeNull();
+      expect(result.current.lastMlpThreshold).toBeNull();
+    });
+  });
+
 });
