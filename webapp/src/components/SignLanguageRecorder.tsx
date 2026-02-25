@@ -72,7 +72,9 @@ function MlpCandidateButtons({
     <>
       {choices.map((candidate) => {
         const confidencePercent = Math.round(candidate.score * 100);
-        const isTrainedCandidate = normalizedTrainedSignLabels.has(candidate.normalizedLabel);
+        const hasKnownTrainingSet = normalizedTrainedSignLabels.size > 0;
+        const isTrainedCandidate =
+          !hasKnownTrainingSet || normalizedTrainedSignLabels.has(candidate.normalizedLabel);
         return (
           <button
             key={`${keyPrefix}${candidate.normalizedLabel}-${confidencePercent}`}
@@ -87,7 +89,9 @@ function MlpCandidateButtons({
               ? 'Diese Gebärde als aktuelle Ausgabe übernehmen'
               : 'Nicht trainiert – zur Nutzung bitte erst im Profil trainieren'}
           >
-            {toTitleCase(candidate.label)} · {confidencePercent}%{isTrainedCandidate ? ' · trainiert' : ' · nicht trainiert'}
+            {toTitleCase(candidate.label)} · {confidencePercent}%{hasKnownTrainingSet
+              ? (isTrainedCandidate ? ' · trainiert' : ' · nicht trainiert')
+              : ' · Modellvorschlag'}
           </button>
         );
       })}
@@ -436,16 +440,25 @@ export function SignLanguageRecorder() {
   const normalizedGesture = effectiveSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizeSignLabel(normalizedGesture) : '';
   
-  // Filter prediction: only show if it's in the trained labels list
+  // Prefer trained labels, but allow direct MLP output when profile model is active
+  // and the trained-label catalog is temporarily unavailable.
   const isTrained = useMemo(() => {
     if (!gestureKey) return false;
     return normalizedTrainedSignLabels.has(gestureKey);
   }, [gestureKey, normalizedTrainedSignLabels]);
+  const hasKnownTrainedCatalog = normalizedTrainedSignLabels.size > 0;
+  const canUseDirectMlpOutput =
+    Boolean(gestureKey) &&
+    lastDetectionMethod === 'mlp' &&
+    canUseProfileRecognition &&
+    isProfileModelActive &&
+    !hasKnownTrainedCatalog;
+  const shouldShowGestureOutput = (isTrained && canUseProfileRecognition) || canUseDirectMlpOutput;
 
-  const gestureMeaning = (gestureKey && isTrained && canUseProfileRecognition)
+  const gestureMeaning = (gestureKey && shouldShowGestureOutput)
     ? gestureMeaningService.getMeaning(gestureKey)
     : undefined;
-  const gestureLabel = (gestureKey && isTrained && canUseProfileRecognition)
+  const gestureLabel = (gestureKey && shouldShowGestureOutput)
     ? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
@@ -454,13 +467,15 @@ export function SignLanguageRecorder() {
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
   const shouldShowContextSuggestions = !demoMode && !gestureLabel && hasDetectedHands && suggestedMlpChoices.length > 0;
+  const topMlpMatches = suggestedMlpChoices.slice(0, 3);
+  const shouldShowBestMatches = !demoMode && canUseProfileRecognition && topMlpMatches.length > 0;
 
   useEffect(() => {
     if (!lastSign || !profileModelRequired) {
       return;
     }
 
-    const reason = !isTrained
+    const reason = !shouldShowGestureOutput
       ? 'prediction_not_in_trained_labels'
       : !canUseProfileRecognition
         ? 'profile_model_not_ready'
@@ -500,7 +515,7 @@ export function SignLanguageRecorder() {
     allowGlobalFallbackOutput,
     canUseProfileRecognition,
     isProfileModelActive,
-    isTrained,
+    shouldShowGestureOutput,
     lastConfidence,
     lastDetectionMethod,
     lastMlpLabel,
@@ -825,6 +840,20 @@ export function SignLanguageRecorder() {
                 normalizedTrainedSignLabels={normalizedTrainedSignLabels}
                 onSelect={setManualSuggestionLabel}
                 keyPrefix="context-"
+              />
+            </div>
+          </div>
+        )}
+
+        {shouldShowBestMatches && (
+          <div className="gesture-screen__meta-note">
+            <p><strong>Beste Modelltreffer:</strong> So hat dein MLP-Modell die aktuelle Bewegung bewertet.</p>
+            <div className="gesture-screen__empty-actions">
+              <MlpCandidateButtons
+                choices={topMlpMatches}
+                normalizedTrainedSignLabels={normalizedTrainedSignLabels}
+                onSelect={setManualSuggestionLabel}
+                keyPrefix="best-"
               />
             </div>
           </div>
