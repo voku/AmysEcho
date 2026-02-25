@@ -1,8 +1,30 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { execSync } from 'node:child_process';
+
+function resolveCommitHash(): string {
+  const envHash = process.env.VITE_APP_COMMIT_SHA?.trim();
+  if (envHash) {
+    return envHash;
+  }
+
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch {
+    return 'unbekannt';
+  }
+}
+
+const appCommitHash = resolveCommitHash();
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'import.meta.env.VITE_APP_COMMIT_SHA': JSON.stringify(appCommitHash),
+    "import.meta.env['VITE_APP_COMMIT_SHA']": JSON.stringify(appCommitHash),
+  },
   // Base path for GitHub Pages deployment (repository name)
   // Set to '/' for custom domain or local development
   base: process.env.VITE_BASE_PATH || '/AmysEcho/',

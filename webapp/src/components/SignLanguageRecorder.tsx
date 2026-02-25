@@ -48,6 +48,52 @@ function normalizeSignLabel(value: string): string {
   return normalized.replace(TRAILING_UUID_SUFFIX_PATTERN, '');
 }
 
+type SuggestedMlpChoice = {
+  label: string;
+  normalizedLabel: string;
+  score: number;
+};
+
+type MlpCandidateButtonsProps = {
+  choices: SuggestedMlpChoice[];
+  normalizedTrainedSignLabels: Set<string>;
+  onSelect: (label: string) => void;
+  keyPrefix: string;
+};
+
+function MlpCandidateButtons({
+  choices,
+  normalizedTrainedSignLabels,
+  onSelect,
+  keyPrefix,
+}: MlpCandidateButtonsProps) {
+  return (
+    <>
+      {choices.map((candidate) => {
+        const confidencePercent = Math.round(candidate.score * 100);
+        const isTrainedCandidate = normalizedTrainedSignLabels.has(candidate.normalizedLabel);
+        return (
+          <button
+            key={`${keyPrefix}${candidate.normalizedLabel}-${confidencePercent}`}
+            type="button"
+            className="secondary-button"
+            onClick={() => {
+              if (!isTrainedCandidate) return;
+              onSelect(candidate.label);
+            }}
+            disabled={!isTrainedCandidate}
+            title={isTrainedCandidate
+              ? 'Diese Gebärde als aktuelle Ausgabe übernehmen'
+              : 'Nicht trainiert – zur Nutzung bitte erst im Profil trainieren'}
+          >
+            {toTitleCase(candidate.label)} · {confidencePercent}%{isTrainedCandidate ? ' · trainiert' : ' · nicht trainiert'}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
 export function SignLanguageRecorder() {
   const navigate = useNavigate();
   const { apiBaseUrl, apiToken } = useApiConfig();
@@ -367,9 +413,18 @@ export function SignLanguageRecorder() {
         && canUseProfileRecognition
       ) {
         recordSign(effectiveSign);
+        if (manualSuggestionLabel) {
+          setManualSuggestionLabel(null);
+        }
       }
     }
-  }, [canUseProfileRecognition, effectiveSign, recordSign, normalizedTrainedSignLabels]);
+  }, [
+    canUseProfileRecognition,
+    effectiveSign,
+    manualSuggestionLabel,
+    recordSign,
+    normalizedTrainedSignLabels,
+  ]);
 
   const normalizedGesture = effectiveSign?.trim() ?? '';
   const gestureKey = normalizedGesture ? normalizeSignLabel(normalizedGesture) : '';
@@ -391,6 +446,7 @@ export function SignLanguageRecorder() {
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
+  const shouldShowContextSuggestions = !demoMode && !gestureLabel && hasDetectedHands && suggestedMlpChoices.length > 0;
 
   useEffect(() => {
     if (!lastSign || !profileModelRequired) {
@@ -752,6 +808,21 @@ export function SignLanguageRecorder() {
           )}
         </div>
 
+
+        {shouldShowContextSuggestions && (
+          <div className="gesture-screen__meta-warning">
+            <p><strong>Unsichere Erkennung:</strong> Wähle die wahrscheinlichste Gebärde aus dem Kontext.</p>
+            <div className="gesture-screen__empty-actions">
+              <MlpCandidateButtons
+                choices={suggestedMlpChoices}
+                normalizedTrainedSignLabels={normalizedTrainedSignLabels}
+                onSelect={setManualSuggestionLabel}
+                keyPrefix="context-"
+              />
+            </div>
+          </div>
+        )}
+
         {needsCameraStart && (
           <button
             className="gesture-screen__start"
@@ -926,27 +997,12 @@ export function SignLanguageRecorder() {
               <div className="gesture-screen__diagnostics-hint">
                 <p>Mögliche Gebärden aus deinem Modell:</p>
                 <div className="gesture-screen__empty-actions">
-                  {suggestedMlpChoices.map((candidate) => {
-                    const confidencePercent = Math.round(candidate.score * 100);
-                    const isTrainedCandidate = normalizedTrainedSignLabels.has(candidate.normalizedLabel);
-                    return (
-                      <button
-                        key={`${candidate.normalizedLabel}-${confidencePercent}`}
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => {
-                          if (!isTrainedCandidate) return;
-                          setManualSuggestionLabel(candidate.label);
-                        }}
-                        disabled={!isTrainedCandidate}
-                        title={isTrainedCandidate
-                          ? 'Diese Gebärde als aktuelle Ausgabe übernehmen'
-                          : 'Nicht trainiert – zur Nutzung bitte erst im Profil trainieren'}
-                      >
-                        {toTitleCase(candidate.label)} · {confidencePercent}%{isTrainedCandidate ? ' · trainiert' : ' · nicht trainiert'}
-                      </button>
-                    );
-                  })}
+                  <MlpCandidateButtons
+                    choices={suggestedMlpChoices}
+                    normalizedTrainedSignLabels={normalizedTrainedSignLabels}
+                    onSelect={setManualSuggestionLabel}
+                    keyPrefix="diagnostics-"
+                  />
                 </div>
               </div>
             )}

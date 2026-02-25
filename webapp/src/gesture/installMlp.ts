@@ -710,8 +710,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
           label: labels[index] ?? String(index),
           score,
         }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5);
+        .sort((a, b) => b.score - a.score);
       const prediction = { label, score: best, candidates: rankedCandidates };
       
       // Record prediction for performance feedback
