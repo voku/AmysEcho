@@ -64,6 +64,7 @@ interface MlpSelection {
     reason:
       | 'selected'
       | 'selected_profile_vocab_priority'
+      | 'selected_profile_vocab_relaxed_threshold'
       | 'below_threshold'
       | 'below_override_margin'
       | 'null_label'
@@ -412,8 +413,13 @@ export class GestureDetectionStep implements ProcessingStep {
               !!resolvedGesture &&
               MEDIAPIPE_BASELINE_GESTURES.has(resolvedGesture) &&
               !MEDIAPIPE_BASELINE_GESTURES.has(normalizedMlpLabel);
+            const relaxedBaselineThreshold = Math.max(0.2, threshold - 0.12);
+            const canSelectMlpByRelaxedBaseline =
+              shouldPreferMlpOverBaseline &&
+              mlpResult.score < threshold &&
+              mlpResult.score >= relaxedBaselineThreshold;
             const canSelectMlp =
-              mlpResult.score >= threshold &&
+              (mlpResult.score >= threshold || canSelectMlpByRelaxedBaseline) &&
               (
                 resolvedGesture === null ||
                 resolvedGesture === 'none' ||
@@ -424,7 +430,9 @@ export class GestureDetectionStep implements ProcessingStep {
             if (canSelectMlp) {
               mlpDecision = {
                 selected: true,
-                reason: shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected',
+                reason: canSelectMlpByRelaxedBaseline
+                  ? 'selected_profile_vocab_relaxed_threshold'
+                  : (shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected'),
                 threshold,
                 margin: confidenceMargin,
                 score: mlpResult.score,

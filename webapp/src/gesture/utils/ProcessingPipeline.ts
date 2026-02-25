@@ -77,6 +77,7 @@ export interface ProcessingResult {
       reason:
         | 'selected'
         | 'selected_profile_vocab_priority'
+        | 'selected_profile_vocab_relaxed_threshold'
         | 'below_threshold'
         | 'below_override_margin'
         | 'null_label'
