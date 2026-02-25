@@ -317,6 +317,25 @@ describe('SignLanguageRecorder', () => {
 
   
   
+
+  it('matches trained labels when prediction includes punctuation before a UUID suffix', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'trinken?-05d6e861-36e0-4ca2-91f1-e6d9bf591726';
+    detectorState.lastConfidence = 0.9;
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['trinken']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
+    expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+  });
+
   it('accepts UUID-suffixed labels returned by trained-labels API for matching and recording', async () => {
     appStateMock.profileId = 'profile-uuid-api';
     detectorState.status = 'running';

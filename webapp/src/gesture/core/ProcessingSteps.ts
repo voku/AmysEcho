@@ -17,6 +17,9 @@ export const MLP_CONFIDENCE_THRESHOLD =
   typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
 export const MLP_NULL_LABEL = '_NULL_';
 
+const RELAXED_BASELINE_THRESHOLD_MIN = 0.2;
+const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
+
 export const MEDIAPIPE_BASELINE_GESTURES = new Set([
   'none',
   'closed_fist',
@@ -413,7 +416,10 @@ export class GestureDetectionStep implements ProcessingStep {
               !!resolvedGesture &&
               MEDIAPIPE_BASELINE_GESTURES.has(resolvedGesture) &&
               !MEDIAPIPE_BASELINE_GESTURES.has(normalizedMlpLabel);
-            const relaxedBaselineThreshold = Math.max(0.2, threshold - 0.12);
+            const relaxedBaselineThreshold = Math.max(
+              RELAXED_BASELINE_THRESHOLD_MIN,
+              threshold - RELAXED_BASELINE_THRESHOLD_DELTA,
+            );
             const canSelectMlpByRelaxedBaseline =
               shouldPreferMlpOverBaseline &&
               mlpResult.score < threshold &&

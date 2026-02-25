@@ -42,11 +42,11 @@ function normalizeSignLabel(value: string): string {
   const normalized = value
     .normalize('NFKC')
     .trim()
-    .replace(/[.,!?;:]+$/g, '')
     .replace(/\s+/g, ' ')
     .toLowerCase();
 
-  return normalized.replace(TRAILING_UUID_SUFFIX_PATTERN, '').trim();
+  const withoutUuidSuffix = normalized.replace(TRAILING_UUID_SUFFIX_PATTERN, '').trim();
+  return withoutUuidSuffix.replace(/[.,!?;:]+$/g, '').trim();
 }
 
 type SuggestedMlpChoice = {
