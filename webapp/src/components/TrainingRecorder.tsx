@@ -30,10 +30,11 @@ const validationIssueLabels: Record<string, string> = {
 export interface TrainingRecorderProps {
   profileId: string;
   label: string;
+  symbolId?: string;
   onRecordingComplete: (payload: TrainingBundlePayload) => void;
 }
 
-export function TrainingRecorder({ profileId, label, onRecordingComplete }: TrainingRecorderProps) {
+export function TrainingRecorder({ profileId, label, symbolId, onRecordingComplete }: TrainingRecorderProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const isMountedRef = useRef(true);
@@ -218,6 +219,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       const payload: TrainingBundlePayload = {
         profileId: profileId.trim(),
         label: label.trim(),
+        ...(symbolId?.trim() ? { symbolId: symbolId.trim() } : {}),
         frames: recordedData.frames,
         capturedAt: new Date().toISOString(),
         source: 'web://mediapipe',
@@ -237,6 +239,7 @@ export function TrainingRecorder({ profileId, label, onRecordingComplete }: Trai
       recordedData,
       profileId,
       label,
+      symbolId,
       onRecordingComplete,
       resetRecording,
       manualStillFile,
