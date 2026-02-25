@@ -356,6 +356,26 @@ describe('SignLanguageRecorder', () => {
     expect(appStateMock.recordSign).not.toHaveBeenCalledWith('ESSEN');
   });
 
+
+  it('does not override baseline label when MLP score is below recorder fallback threshold', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'closed_fist';
+    detectorState.lastDetectionMethod = 'mediapipe';
+    detectorState.lastMlpLabel = 'TRINKEN';
+    detectorState.lastMlpScore = 0.2;
+    detectorState.lastMlpThreshold = null;
+
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN']));
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    await waitFor(() => {
+      expect(appStateMock.recordSign).not.toHaveBeenCalledWith('TRINKEN');
+    });
+  });
+
   it('uses trained MLP candidate when MediaPipe result is untrained baseline label', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];

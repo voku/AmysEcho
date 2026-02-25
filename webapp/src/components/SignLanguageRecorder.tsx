@@ -12,6 +12,8 @@ import { getActiveProfile } from '../services/profileRegistry';
 
 const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
+const RECORDER_MLP_CONFIDENCE_FALLBACK = 0.4;
+
 const MEDIAPIPE_BASELINE_GESTURES = new Set([
   'none',
   'closed_fist',
@@ -336,7 +338,7 @@ export function SignLanguageRecorder() {
       return false;
     }
 
-    const threshold = typeof lastMlpThreshold === 'number' ? lastMlpThreshold : 0.05;
+    const threshold = typeof lastMlpThreshold === 'number' ? lastMlpThreshold : RECORDER_MLP_CONFIDENCE_FALLBACK;
     return typeof lastMlpScore === 'number' && lastMlpScore >= threshold;
   }, [lastDetectionMethod, lastMlpLabel, lastMlpScore, lastMlpThreshold, lastSign, normalizedTrainedSignLabels]);
 
