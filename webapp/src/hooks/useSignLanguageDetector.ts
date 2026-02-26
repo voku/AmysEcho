@@ -62,18 +62,43 @@ function isMeaningfulGestureLabel(label: unknown): label is string {
   return normalized.length > 0 && normalized !== 'none' && normalized !== '_null_';
 }
 
+type BatchMessageEntry = {
+  gesture?: string;
+  confidence?: number;
+  landmarks?: unknown[];
+  handednesses?: string[];
+  detectionMethod?: string;
+  isFallback?: boolean;
+  metadata?: { method?: string };
+  mlpDecision?: {
+    selected: boolean;
+    reason: string;
+    threshold?: number;
+    margin?: number;
+    score?: number;
+    selectedConfidenceBeforeMlp?: number;
+    selectedGestureBeforeMlp?: string | null;
+  };
+  mlp?: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
+  thresholds?: { mlp?: number };
+};
+
+function findSignMessage(messages: BatchMessageEntry[] | undefined): BatchMessageEntry | null {
+  if (!Array.isArray(messages)) return null;
+  return messages.find((m) => isMeaningfulGestureLabel(m?.gesture)) ?? null;
+}
+
 function parseIncomingMessage(raw: string): SignLanguageMessage | null {
   try {
     const parsed = JSON.parse(raw);
     const type = typeof parsed?.type === 'string' ? parsed.type : UNKNOWN_TYPE;
+    const nestedSignMessage = findSignMessage(parsed?.messages);
     const signCandidate = isMeaningfulGestureLabel(parsed?.gesture)
       ? parsed.gesture
-      : parsed?.messages?.find((m: { gesture?: string }) => isMeaningfulGestureLabel(m?.gesture))?.gesture;
+      : nestedSignMessage?.gesture ?? null;
     const summaryParts = [] as string[];
 
-    const hasSign = Boolean(
-      signCandidate || parsed?.messages?.some((m: { gesture?: string }) => isMeaningfulGestureLabel(m?.gesture)),
-    );
+    const hasSign = Boolean(signCandidate);
 
     // Check if this is a "no hands detected" scenario
     const hasLandmarks =
@@ -94,13 +119,8 @@ function parseIncomingMessage(raw: string): SignLanguageMessage | null {
 
     if (parsed?.confidence !== undefined) {
       summaryParts.push(`Score: ${(parsed.confidence as number).toFixed?.(2) ?? parsed.confidence}`);
-    } else if (type === 'gesture_batch' && Array.isArray(parsed?.messages)) {
-      const signMsg = parsed.messages.find((m: { gesture?: string; confidence?: number }) =>
-        isMeaningfulGestureLabel(m?.gesture),
-      );
-      if (signMsg && typeof signMsg.confidence === 'number') {
-        summaryParts.push(`Score: ${signMsg.confidence.toFixed(2)}`);
-      }
+    } else if (nestedSignMessage && typeof nestedSignMessage.confidence === 'number') {
+      summaryParts.push(`Score: ${nestedSignMessage.confidence.toFixed(2)}`);
     }
 
     if (type === 'gesture_batch' && Array.isArray(parsed?.messages)) {
@@ -184,42 +204,15 @@ export function useSignLanguageDetector(
         const payload = parsed.payload as {
           gesture?: string;
           type?: string;
-          messages?: Array<{
-            gesture?: string;
-            confidence?: number;
-            landmarks?: unknown;
-            handednesses?: string[];
-            detectionMethod?: string;
-            isFallback?: boolean;
-            metadata?: { method?: string };
-            mlpDecision?: {
-              selected: boolean;
-              reason: string;
-              threshold?: number;
-              margin?: number;
-              score?: number;
-              selectedConfidenceBeforeMlp?: number;
-              selectedGestureBeforeMlp?: string | null;
-            };
-            mlp?: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
-            thresholds?: { mlp?: number };
-          }>;
+          messages?: BatchMessageEntry[];
           confidence?: number;
           landmarks?: unknown;
           handednesses?: string[];
           detectionMethod?: string;
           isFallback?: boolean;
           metadata?: { method?: string };
-          mlpDecision?: {
-            selected: boolean;
-            reason: string;
-            threshold?: number;
-            margin?: number;
-            score?: number;
-            selectedConfidenceBeforeMlp?: number;
-            selectedGestureBeforeMlp?: string | null;
-          };
-          mlp?: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
+          mlpDecision?: BatchMessageEntry['mlpDecision'];
+          mlp?: BatchMessageEntry['mlp'];
           thresholds?: { mlp?: number };
         };
 
@@ -359,9 +352,10 @@ export function useSignLanguageDetector(
 
         const resolvedMethod = resolveDetectionMethod();
         const resolvedFallback = resolveFallbackUsage();
+        const nestedSignMsg = findSignMessage(payload.messages);
         const hasGesturePayload =
           isMeaningfulGestureLabel(payload.gesture) ||
-          payload.messages?.some((msg) => isMeaningfulGestureLabel(msg.gesture)) === true;
+          nestedSignMsg !== null;
 
         if (resolvedMethod !== null || hasGesturePayload) {
           setLastDetectionMethod(resolvedMethod);
@@ -374,14 +368,11 @@ export function useSignLanguageDetector(
         if (isMeaningfulGestureLabel(payload.gesture)) {
           setLastSign(payload.gesture);
           setLastConfidence(typeof payload.confidence === 'number' ? payload.confidence : null);
-        } else if (Array.isArray(payload.messages)) {
-          const signMessage = payload.messages.find((msg) => isMeaningfulGestureLabel(msg?.gesture));
-          if (signMessage?.gesture) {
-            setLastSign(signMessage.gesture);
-            const batchConfidence = typeof payload.confidence === 'number' ? payload.confidence : null;
-            const messageConfidence = typeof signMessage.confidence === 'number' ? signMessage.confidence : null;
-            setLastConfidence(batchConfidence ?? messageConfidence);
-          }
+        } else if (nestedSignMsg?.gesture) {
+          setLastSign(nestedSignMsg.gesture);
+          const batchConfidence = typeof payload.confidence === 'number' ? payload.confidence : null;
+          const messageConfidence = typeof nestedSignMsg.confidence === 'number' ? nestedSignMsg.confidence : null;
+          setLastConfidence(batchConfidence ?? messageConfidence);
         }
 
         const messageWithLandmarks = payload.messages?.find((msg) =>
