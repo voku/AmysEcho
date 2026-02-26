@@ -164,6 +164,43 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
+  it('liest Konfidenz aus verschachtelter Nachricht wenn auf Batch-Ebene keine vorhanden', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // Realistic batch format: MessageBatcher does NOT include top-level confidence
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 2,
+            frameCount: 4,
+            lastSentAt: Date.now(),
+            messages: [
+              { type: 'gesture', gesture: 'none', confidence: 0.1, landmarks: [] },
+              { type: 'gesture', gesture: 'ESSEN', confidence: 0.75, landmarks: [[[0.3, 0.4, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastSign).toBe('ESSEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.75);
+      expect(result.current.messageLog[0]?.summary).toContain('Gebärde: ESSEN');
+      expect(result.current.messageLog[0]?.summary).toContain('Score: 0.75');
+    });
+  });
+
   it('übernimmt Landmark-Previews aus Bridge-Meldungen', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;

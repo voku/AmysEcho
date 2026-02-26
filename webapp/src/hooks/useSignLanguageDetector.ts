@@ -94,6 +94,13 @@ function parseIncomingMessage(raw: string): SignLanguageMessage | null {
 
     if (parsed?.confidence !== undefined) {
       summaryParts.push(`Score: ${(parsed.confidence as number).toFixed?.(2) ?? parsed.confidence}`);
+    } else if (type === 'gesture_batch' && Array.isArray(parsed?.messages)) {
+      const signMsg = parsed.messages.find((m: { gesture?: string; confidence?: number }) =>
+        isMeaningfulGestureLabel(m?.gesture) && typeof m?.confidence === 'number',
+      );
+      if (signMsg && typeof signMsg.confidence === 'number') {
+        summaryParts.push(`Score: ${signMsg.confidence.toFixed(2)}`);
+      }
     }
 
     if (type === 'gesture_batch' && Array.isArray(parsed?.messages)) {
@@ -179,6 +186,7 @@ export function useSignLanguageDetector(
           type?: string;
           messages?: Array<{
             gesture?: string;
+            confidence?: number;
             landmarks?: unknown;
             handednesses?: string[];
             detectionMethod?: string;
@@ -370,7 +378,9 @@ export function useSignLanguageDetector(
           const signMessage = payload.messages.find((msg) => isMeaningfulGestureLabel(msg?.gesture));
           if (signMessage?.gesture) {
             setLastSign(signMessage.gesture);
-            setLastConfidence(typeof payload.confidence === 'number' ? payload.confidence : null);
+            const batchConfidence = typeof payload.confidence === 'number' ? payload.confidence : null;
+            const messageConfidence = typeof signMessage.confidence === 'number' ? signMessage.confidence : null;
+            setLastConfidence(batchConfidence ?? messageConfidence);
           }
         }
 
