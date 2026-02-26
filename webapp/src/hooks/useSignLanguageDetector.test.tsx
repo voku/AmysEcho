@@ -164,6 +164,43 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
+  it('liest Konfidenz aus verschachtelter Nachricht wenn auf Batch-Ebene keine vorhanden', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // Realistic batch format: MessageBatcher does NOT include top-level confidence
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 2,
+            frameCount: 4,
+            lastSentAt: Date.now(),
+            messages: [
+              { type: 'gesture', gesture: 'none', confidence: 0.1, landmarks: [] },
+              { type: 'gesture', gesture: 'ESSEN', confidence: 0.75, landmarks: [[[0.3, 0.4, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastSign).toBe('ESSEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.75);
+      expect(result.current.messageLog[0]?.summary).toContain('Gebärde: ESSEN');
+      expect(result.current.messageLog[0]?.summary).toContain('Score: 0.75');
+    });
+  });
+
   it('übernimmt Landmark-Previews aus Bridge-Meldungen', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
@@ -367,6 +404,403 @@ describe('useSignLanguageDetector', () => {
       expect(result.current.lastMlpCandidates).toEqual([{ label: 'TRINKEN', score: 0.57 }]);
       expect(result.current.lastDetectionMethod).toBe('mediapipe');
       expect(result.current.lastSign).toBe('open_palm');
+    });
+  });
+
+  it('bevorzugt Batch-Konfidenz über verschachtelter Nachricht-Konfidenz', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // When both batch-level and message-level confidence exist, batch takes precedence
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            confidence: 0.95,
+            messages: [
+              { type: 'gesture', gesture: 'WINKEN', confidence: 0.60, landmarks: [[[0.1, 0.2, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastSign).toBe('WINKEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.95);
+    });
+  });
+
+  it('verarbeitet Konfidenz=0 korrekt auf Batch-Ebene', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // confidence=0 is a valid number, so it should be used over message-level
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            confidence: 0,
+            messages: [
+              { type: 'gesture', gesture: 'TRINKEN', confidence: 0.88, landmarks: [[[0.1, 0.2, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastSign).toBe('TRINKEN');
+      // confidence=0 at batch level takes precedence (it's a valid number)
+      expect(result.current.lastConfidence).toBe(0);
+    });
+  });
+
+  it('wählt erste sinnvolle Gebärde aus mehreren Nachrichten', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // Multiple meaningful gestures - first meaningful one should be selected
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 3,
+            frameCount: 3,
+            lastSentAt: Date.now(),
+            messages: [
+              { type: 'gesture', gesture: 'none', confidence: 0.1, landmarks: [] },
+              { type: 'gesture', gesture: 'TRINKEN', confidence: 0.72, landmarks: [[[0.1, 0.2, 0]]] },
+              { type: 'gesture', gesture: 'ESSEN', confidence: 0.85, landmarks: [[[0.3, 0.4, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      // First meaningful gesture (TRINKEN) wins, not the one with highest confidence
+      expect(result.current.lastSign).toBe('TRINKEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.72);
+    });
+  });
+
+  it('filtert _NULL_ Labels aus gesture_batch Nachrichten', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 2,
+            frameCount: 2,
+            lastSentAt: Date.now(),
+            messages: [
+              { type: 'gesture', gesture: '_NULL_', confidence: 0.9, landmarks: [[[0.1, 0.2, 0]]] },
+              { type: 'gesture', gesture: 'DANKE', confidence: 0.65, landmarks: [[[0.3, 0.4, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastSign).toBe('DANKE');
+      expect(result.current.lastConfidence).toBeCloseTo(0.65);
+      expect(result.current.messageLog[0]?.summary).toContain('Gebärde: DANKE');
+      expect(result.current.messageLog[0]?.summary).not.toContain('_NULL_');
+    });
+  });
+
+  it('zeigt Landmark-Daten an wenn Batch nur Landmarks aber keine Gebärde hat', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // Batch with landmarks but no meaningful gesture (e.g. hands visible but no recognized sign)
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 1,
+            frameCount: 1,
+            lastSentAt: Date.now(),
+            messages: [
+              {
+                type: 'gesture',
+                gesture: 'none',
+                confidence: 0.05,
+                landmarks: [[[0.5, 0.5, 0], [0.6, 0.6, 0]]],
+                handednesses: ['Right'],
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      // No meaningful gesture so lastSign stays null
+      expect(result.current.lastSign).toBeNull();
+      // But landmarks should still be updated
+      expect(result.current.lastLandmarks.length).toBeGreaterThan(0);
+      // Message should still appear in log (has landmarks)
+      expect(result.current.messageLog.length).toBe(1);
+    });
+  });
+
+  it('verarbeitet echtes Orchestrator-Payload mit MLP-Selektion korrekt', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // Realistic payload matching GestureMessagePayload from the orchestrator
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 1,
+            frameCount: 1,
+            lastSentAt: Date.now(),
+            messages: [
+              {
+                type: 'gesture',
+                gesture: 'HALLO',
+                confidence: 0.82,
+                landmarks: [[[0.5, 0.5, 0]]],
+                handednesses: ['Right'],
+                timestamp: Date.now(),
+                isFallback: false,
+                processingTime: 15,
+                stepsExecuted: ['preprocessing', 'detection', 'mlp'],
+                skippedSteps: [],
+                thresholds: { fallback: 0.35, mlp: 0.05 },
+                detectionMethod: 'mlp',
+                mlpDecision: {
+                  selected: true,
+                  reason: 'selected',
+                  threshold: 0.05,
+                  margin: 0,
+                  score: 0.82,
+                  selectedConfidenceBeforeMlp: 0,
+                  selectedGestureBeforeMlp: null,
+                },
+                mlp: {
+                  label: 'HALLO',
+                  score: 0.82,
+                  candidates: [
+                    { label: 'HALLO', score: 0.82 },
+                    { label: 'TRINKEN', score: 0.12 },
+                    { label: '_NULL_', score: 0.06 },
+                  ],
+                },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      // Sign and confidence from message
+      expect(result.current.lastSign).toBe('HALLO');
+      expect(result.current.lastConfidence).toBeCloseTo(0.82);
+      // MLP metadata from nested message
+      expect(result.current.lastMlpLabel).toBe('HALLO');
+      expect(result.current.lastMlpScore).toBeCloseTo(0.82);
+      expect(result.current.lastMlpThreshold).toBeCloseTo(0.05);
+      expect(result.current.lastMlpCandidates).toHaveLength(3);
+      // Detection method
+      expect(result.current.lastDetectionMethod).toBe('mlp');
+      expect(result.current.lastUsedFallback).toBe(false);
+      // Summary should contain all relevant info
+      expect(result.current.messageLog[0]?.summary).toContain('Gebärde: HALLO');
+      expect(result.current.messageLog[0]?.summary).toContain('Score: 0.82');
+    });
+  });
+
+  it('setzt MLP-Daten auf null wenn Batch-Nachricht mlp:null sendet', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // First: set some MLP data
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture',
+            gesture: 'closed_fist',
+            confidence: 0.8,
+            mlp: { label: 'WINKEN', score: 0.7, candidates: [{ label: 'WINKEN', score: 0.7 }] },
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastMlpLabel).toBe('WINKEN');
+    });
+
+    // Then: send batch with explicit mlp:null in a nested message
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 1,
+            frameCount: 1,
+            lastSentAt: Date.now(),
+            messages: [
+              {
+                type: 'gesture',
+                gesture: 'open_palm',
+                confidence: 0.5,
+                landmarks: [[[0.1, 0.2, 0]]],
+                mlp: null,
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastSign).toBe('open_palm');
+      expect(result.current.lastMlpLabel).toBeNull();
+      expect(result.current.lastMlpScore).toBeNull();
+      expect(result.current.lastMlpCandidates).toEqual([]);
+    });
+  });
+
+  it('propagiert Konfidenz-Summary wenn Nachricht Konfidenz hat aber Batch nicht', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    // No top-level confidence, no gesture label in first message
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 2,
+            frameCount: 2,
+            lastSentAt: Date.now(),
+            messages: [
+              { type: 'gesture', gesture: 'none', confidence: 0.02, landmarks: [] },
+              { type: 'gesture', gesture: 'SPIELEN', confidence: 0.91, landmarks: [[[0.2, 0.3, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      const summary = result.current.messageLog[0]?.summary ?? '';
+      // Summary should include score from the meaningful message (SPIELEN has 0.91)
+      expect(summary).toContain('Score: 0.91');
+      expect(summary).toContain('Gebärde: SPIELEN');
+      expect(summary).toContain('2 Meldungen gesammelt');
+    });
+  });
+
+  it('überträgt Handedness aus verschachtelter Nachricht', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messageCount: 1,
+            frameCount: 1,
+            lastSentAt: Date.now(),
+            messages: [
+              {
+                type: 'gesture',
+                gesture: 'WINKEN',
+                confidence: 0.7,
+                landmarks: [[[0.4, 0.5, 0], [0.5, 0.6, 0]]],
+                handednesses: ['left'],
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastSign).toBe('WINKEN');
+      expect(result.current.lastLandmarks.length).toBeGreaterThan(0);
+      expect(result.current.lastHandedness[0]).toBe('Left');
     });
   });
 
