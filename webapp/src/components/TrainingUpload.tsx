@@ -461,6 +461,8 @@ export function TrainingUploadWithRecording() {
     profileId,
     profileMetadata,
   } = useAppState();
+  const preferredSignIdValue = preferredSignId ?? '';
+  const preferredSignNameValue = preferredSignName ?? '';
 
   // Ensure all local profiles are synced to the server before uploading
   const profileSyncedRef = useRef(false);
@@ -536,7 +538,7 @@ export function TrainingUploadWithRecording() {
   const [qualityLoading, setQualityLoading] = useState<boolean>(false);
   const [qualityError, setQualityError] = useState<string | null>(null);
   const hasProfileContext = !!profileId && profileId.trim().length > 0;
-  const hasGestureSelection = preferredSignId.trim().length > 0;
+  const hasGestureSelection = preferredSignIdValue.trim().length > 0;
   const metadataReady = hasProfileContext && hasGestureSelection;
   const metadataError = metadataReady
     ? ''
@@ -678,10 +680,10 @@ export function TrainingUploadWithRecording() {
   }, [combinedSymbols, gestureParam, symbolIdParam]);
 
   const canonicalTrainingLabel = useMemo(() => {
-    const base = preferredSignId.trim().length > 0 ? preferredSignId : preferredSignName;
+    const base = preferredSignIdValue.trim().length > 0 ? preferredSignIdValue : preferredSignNameValue;
     const normalized = normalizeGestureLabel(base);
     return normalized || base.trim().toLowerCase();
-  }, [preferredSignId, preferredSignName]);
+  }, [preferredSignIdValue, preferredSignNameValue]);
 
   const handleRecordingComplete = useCallback(
     async (payload: TrainingBundlePayload) => {
