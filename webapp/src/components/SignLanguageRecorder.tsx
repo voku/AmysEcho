@@ -12,6 +12,7 @@ import { getActiveProfile } from '../services/profileRegistry';
 import { MEDIAPIPE_BASELINE_GESTURES, MLP_NULL_LABEL } from '../gesture/core/ProcessingSteps';
 
 const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const TRAILING_PUNCTUATION_WITH_OPTIONAL_UUID_PATTERN = /[.,!?;:]+(?=(?:[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?$)/i;
 
 const RECORDER_MLP_CONFIDENCE_FALLBACK = 0.4;
 
@@ -47,6 +48,15 @@ function normalizeSignLabel(value: string): string {
 
   const withoutUuidSuffix = normalized.replace(TRAILING_UUID_SUFFIX_PATTERN, '').trim();
   return withoutUuidSuffix.replace(/[.,!?;:]+$/g, '').trim();
+}
+
+function canonicalizeRecordedSign(value: string): string {
+  return value
+    .normalize('NFKC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(TRAILING_PUNCTUATION_WITH_OPTIONAL_UUID_PATTERN, '')
+    .trim();
 }
 
 type SuggestedMlpChoice = {
@@ -387,11 +397,10 @@ export function SignLanguageRecorder() {
   }, [lastDetectionMethod, lastMlpLabel, lastMlpScore, lastMlpThreshold, lastSign, normalizedTrainedSignLabels]);
 
   const suggestedMlpChoices = useMemo(() => {
-    const candidateSource = lastMlpCandidates.length > 0
-      ? lastMlpCandidates
-      : (lastMlpLabel && typeof lastMlpScore === 'number'
-          ? [{ label: lastMlpLabel, score: lastMlpScore }]
-          : []);
+    let candidateSource = lastMlpCandidates;
+    if (candidateSource.length === 0 && lastMlpLabel && typeof lastMlpScore === 'number') {
+      candidateSource = [{ label: lastMlpLabel, score: lastMlpScore }];
+    }
 
     return candidateSource
       .filter(candidate => candidate.label !== MLP_NULL_LABEL)
@@ -418,12 +427,13 @@ export function SignLanguageRecorder() {
 
   useEffect(() => {
     if (effectiveSign) {
+      const normalizedEffectiveSign = normalizeSignLabel(effectiveSign);
       // Only record if it's a trained label and profile output is currently allowed
       if (
-        normalizedTrainedSignLabels.has(normalizeSignLabel(effectiveSign))
+        normalizedTrainedSignLabels.has(normalizedEffectiveSign)
         && canUseProfileRecognition
       ) {
-        recordSign(effectiveSign);
+        recordSign(canonicalizeRecordedSign(effectiveSign));
         if (manualSuggestionLabel) {
           setManualSuggestionLabel(null);
         }
@@ -466,9 +476,7 @@ export function SignLanguageRecorder() {
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
-  const topMlpMatches = suggestedMlpChoices.slice(0, 3);
-  const shouldShowBestMatches = !demoMode && canUseProfileRecognition && isProfileModelActive && topMlpMatches.length > 0;
-  const shouldShowContextSuggestions = !shouldShowBestMatches && !demoMode && !gestureLabel && hasDetectedHands && suggestedMlpChoices.length > 0;
+  const shouldShowContextSuggestions = !demoMode && !gestureLabel && hasDetectedHands && suggestedMlpChoices.length > 0;
 
   useEffect(() => {
     if (!lastSign || !profileModelRequired) {
@@ -840,20 +848,6 @@ export function SignLanguageRecorder() {
                 normalizedTrainedSignLabels={normalizedTrainedSignLabels}
                 onSelect={setManualSuggestionLabel}
                 keyPrefix="context-"
-              />
-            </div>
-          </div>
-        )}
-
-        {shouldShowBestMatches && (
-          <div className="gesture-screen__meta-note">
-            <p><strong>Beste Modelltreffer:</strong> So hat dein MLP-Modell die aktuelle Bewegung bewertet.</p>
-            <div className="gesture-screen__empty-actions">
-              <MlpCandidateButtons
-                choices={topMlpMatches}
-                normalizedTrainedSignLabels={normalizedTrainedSignLabels}
-                onSelect={setManualSuggestionLabel}
-                keyPrefix="best-"
               />
             </div>
           </div>
