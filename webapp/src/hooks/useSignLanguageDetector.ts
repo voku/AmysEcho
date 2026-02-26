@@ -62,6 +62,10 @@ function isMeaningfulGestureLabel(label: unknown): label is string {
   return normalized.length > 0 && normalized !== 'none' && normalized !== '_null_';
 }
 
+/**
+ * Shared shape for individual messages within a gesture_batch payload.
+ * Mirrors the fields of GestureMessagePayload produced by the orchestrator.
+ */
 type BatchMessageEntry = {
   gesture?: string;
   confidence?: number;
@@ -83,6 +87,10 @@ type BatchMessageEntry = {
   thresholds?: { mlp?: number };
 };
 
+/**
+ * Return the first message with a meaningful gesture label, or null.
+ * "Meaningful" excludes 'none', '_NULL_', and empty strings.
+ */
 function findSignMessage(messages: BatchMessageEntry[] | undefined): BatchMessageEntry | null {
   if (!Array.isArray(messages)) return null;
   return messages.find((m) => isMeaningfulGestureLabel(m?.gesture)) ?? null;
