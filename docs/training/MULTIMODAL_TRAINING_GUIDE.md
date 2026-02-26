@@ -98,6 +98,16 @@ Die konkreten nächsten Schritte und Prioritäten stehen in [`docs/planning/TODO
 - **Face**: 33 features (11 key facial points × 3 coords)
 - **Total**: 258-dimensional input to the neural network
 
+### Hand-first Training Defaults
+
+Für Amys Echtzeit-Erkennung ist die Modell-Priorität jetzt standardmäßig handgeführt:
+
+- `MLP_HAND_PRIORITY` = `4.0` (Primärsignal)
+- `MLP_POSE_PRIORITY` = `0.2` (Hilfskontext)
+- `MLP_FACE_PRIORITY` = `0.05` (Hilfskontext)
+
+Pose- und Gesichtslandmarks bleiben erhalten, haben aber bewusst deutlich weniger Einfluss als die Handlandmarks.
+
 ### Automatic Fallbacks
 1. **No personalized model?** → Uses global model
 2. **No pose/face data?** → Uses hand-only features
