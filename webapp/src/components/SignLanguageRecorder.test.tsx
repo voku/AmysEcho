@@ -313,6 +313,10 @@ describe('SignLanguageRecorder', () => {
 
     expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
     expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(appStateMock.recordSign).toHaveBeenCalledWith('trinken');
+      expect(appStateMock.recordSign).not.toHaveBeenCalledWith('trinken?');
+    });
   });
 
   
@@ -530,7 +534,7 @@ describe('SignLanguageRecorder', () => {
   });
 
 
-  it('shows best model matches even for an already recognized sign', async () => {
+  it('does not duplicate best model matches outside diagnostics', async () => {
     appStateMock.profileId = 'profile-123';
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
@@ -575,16 +579,20 @@ describe('SignLanguageRecorder', () => {
 
     renderWithProviders(<SignLanguageRecorder />);
 
-    const bestMatchesHeading = await screen.findByText(/Beste Modelltreffer:/);
-    const bestMatchesPanel = bestMatchesHeading.closest('div.gesture-screen__meta-note') as HTMLElement | null;
-    expect(bestMatchesPanel).toBeInTheDocument();
-    if (!bestMatchesPanel) {
-      throw new Error('Best-Matches-Bereich wurde nicht gefunden.');
+    expect(screen.queryByText(/Beste Modelltreffer:/)).not.toBeInTheDocument();
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    const diagnosticsHint = screen.getByText('Mögliche Gebärden aus deinem Modell:').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    if (!diagnosticsHint) {
+      throw new Error('Diagnosebereich mit Modelltreffern wurde nicht gefunden.');
     }
-    const panelScope = within(bestMatchesPanel);
-    expect(panelScope.getByRole('button', { name: /Trinken · 74% · trainiert/ })).toBeInTheDocument();
-    expect(panelScope.getByRole('button', { name: /Essen · 42% · trainiert/ })).toBeInTheDocument();
-    expect(panelScope.getByRole('button', { name: /Hilfe · 33% · trainiert/ })).toBeInTheDocument();
+
+    const diagnosticsScope = within(diagnosticsHint);
+    expect(diagnosticsScope.getByRole('button', { name: /Trinken · 74% · trainiert/ })).toBeInTheDocument();
+    expect(diagnosticsScope.getByRole('button', { name: /Essen · 42% · trainiert/ })).toBeInTheDocument();
+    expect(diagnosticsScope.getByRole('button', { name: /Hilfe · 33% · trainiert/ })).toBeInTheDocument();
   });
 
 

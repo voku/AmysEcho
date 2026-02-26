@@ -8,6 +8,9 @@ import {
   convertToPoints,
   prepareLandmarksForMLP,
   prepareMultimodalForMLP,
+  HAND_PRIORITY_FACTOR,
+  POSE_PRIORITY_FACTOR,
+  FACE_PRIORITY_FACTOR,
   calculateCentroid,
   calculateBoundingBox,
   distance,
@@ -18,6 +21,12 @@ import {
 } from './landmarkNormalizer';
 
 describe('LandmarkNormalizer', () => {
+  it('uses hand-first default modality priority factors', () => {
+    expect(HAND_PRIORITY_FACTOR).toBe(4.0);
+    expect(POSE_PRIORITY_FACTOR).toBe(0.2);
+    expect(FACE_PRIORITY_FACTOR).toBe(0.05);
+  });
+
   describe('normalizeLandmarks', () => {
     it('gibt leeres Array für leere Eingabe zurück', () => {
       expect(normalizeLandmarks([])).toEqual([]);

@@ -62,7 +62,7 @@ def test_build_samples_from_manifest_uses_video_extension(monkeypatch, tmp_path)
     assert stats["cache_writes"] == 1
     assert stats["cache_hits"] == 0
     # The last samples should be the actual label
-    assert any(s.label == "HALLO" for s in samples)
+    assert any(s.label == "hallo" for s in samples)
 
 
 def test_build_samples_from_manifest_uses_still_image(monkeypatch, tmp_path):
@@ -117,7 +117,7 @@ def test_build_samples_from_manifest_uses_still_image(monkeypatch, tmp_path):
     assert stats["cache_hits"] == 0
     assert len(samples) >= 1
     # Find a sample that isn't _NULL_
-    sign_samples = [s for s in samples if s.label == "BITTE"]
+    sign_samples = [s for s in samples if s.label == "bitte"]
     assert sign_samples
     # In sliding window, landmarks are flattened (WINDOW_SIZE * 1629)
     from amyserver_tools.train_mlp import WINDOW_FEATURE_SIZE
@@ -181,7 +181,7 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
 
     assert len(samples) >= 1
     # Check that we have HALLO samples
-    sign_samples = [s for s in samples if s.label == "HALLO"]
+    sign_samples = [s for s in samples if s.label == "hallo"]
     assert sign_samples
 
     # Verify cache write happened (it should when frames come from clip)
@@ -241,7 +241,7 @@ def test_still_frames_are_included_in_samples(monkeypatch, tmp_path):
     samples, _stats = module.build_samples_from_manifest(module.MANIFEST_PATH)
 
     assert len(samples) >= 1
-    sign_samples = [s for s in samples if s.label == "TEST"]
+    sign_samples = [s for s in samples if s.label == "test"]
     assert sign_samples
 
     # In the new sliding window logic, if we have 1 clip frame + 1 still frame,
@@ -438,7 +438,7 @@ def test_build_samples_prefer_bundle_extracts_clip_without_landmarks(monkeypatch
     assert stats["bundle_landmark_policy"] == "prefer_bundle"
     assert stats["bundle_missing_landmarks"] == 0
     assert stats["bundle_fallback_extractions"] == 1
-    assert any(s.label == "HALLO" for s in samples)
+    assert any(s.label == "hallo" for s in samples)
 
 
 def test_build_samples_from_manifest_returns_policy_stats_when_manifest_missing(monkeypatch, tmp_path):

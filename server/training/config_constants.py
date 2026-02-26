@@ -72,9 +72,13 @@ def load_normalization_config():
 
 NORM_CONFIG = load_normalization_config()
 
-HAND_PRIORITY_FACTOR = float(os.environ.get("MLP_HAND_PRIORITY", NORM_CONFIG.get("hands", 3.0)))
-POSE_PRIORITY_FACTOR = float(os.environ.get("MLP_POSE_PRIORITY", NORM_CONFIG.get("pose", 0.4)))
-FACE_PRIORITY_FACTOR = float(os.environ.get("MLP_FACE_PRIORITY", NORM_CONFIG.get("face", 0.1)))
+# Amy First (hand-first recognition):
+# - Hands carry primary lexical signal for DGS recognition.
+# - Pose/face stay available as helper context only.
+# These defaults can still be overridden by normalization_config.json or env vars.
+HAND_PRIORITY_FACTOR = float(os.environ.get("MLP_HAND_PRIORITY", NORM_CONFIG.get("hands", 4.0)))
+POSE_PRIORITY_FACTOR = float(os.environ.get("MLP_POSE_PRIORITY", NORM_CONFIG.get("pose", 0.2)))
+FACE_PRIORITY_FACTOR = float(os.environ.get("MLP_FACE_PRIORITY", NORM_CONFIG.get("face", 0.05)))
 
 # ============================================================================
 # TRAINING HYPERPARAMETERS

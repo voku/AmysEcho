@@ -90,7 +90,8 @@ def test_training_preserves_variation_metadata(monkeypatch, tmp_path):
     samples, _stats = module.build_samples_from_manifest(manifest_path)
 
     assert len(samples) > 0, "Should create samples from variation data"
-    assert samples[0].label == "HELLO"
+    # Labels are canonicalized by trainer normalization to keep class assignment stable.
+    assert samples[0].label == "hello"
     assert samples[0].profile_id == "amy-profile"
 
 
@@ -251,7 +252,8 @@ def test_canonical_templates_used_for_augmentation(monkeypatch, tmp_path):
     # Check if variation metadata is accessible
     if samples:
         sample = samples[0]
-        assert sample.label == "THANK_YOU"
+        # Labels are canonicalized by trainer normalization to keep class assignment stable.
+        assert sample.label == "thank_you"
 
 
 def test_per_profile_models_learn_from_variations(monkeypatch, tmp_path):
