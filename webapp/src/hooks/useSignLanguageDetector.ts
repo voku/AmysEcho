@@ -96,7 +96,7 @@ function parseIncomingMessage(raw: string): SignLanguageMessage | null {
       summaryParts.push(`Score: ${(parsed.confidence as number).toFixed?.(2) ?? parsed.confidence}`);
     } else if (type === 'gesture_batch' && Array.isArray(parsed?.messages)) {
       const signMsg = parsed.messages.find((m: { gesture?: string; confidence?: number }) =>
-        isMeaningfulGestureLabel(m?.gesture) && typeof m?.confidence === 'number',
+        isMeaningfulGestureLabel(m?.gesture),
       );
       if (signMsg && typeof signMsg.confidence === 'number') {
         summaryParts.push(`Score: ${signMsg.confidence.toFixed(2)}`);
