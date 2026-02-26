@@ -1590,9 +1590,9 @@ app.get(
 			// Return defaults if config missing
 			res.json({
 				priority_factors: {
-					hands: 3.0,
-					pose: 0.4,
-					face: 0.1,
+					hands: 4.0,
+					pose: 0.2,
+					face: 0.05,
 				},
 			});
 		}
