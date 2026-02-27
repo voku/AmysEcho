@@ -289,6 +289,7 @@ export function useSignLanguageDetector(
         const hasMlpMetadata =
           Object.prototype.hasOwnProperty.call(payload, 'mlp') ||
           nestedMlpMessage !== null;
+        const isGesturePayload = payload.type === 'gesture' || payload.type === 'gesture_batch' || payload.type === 'landmarks';
 
         if (hasMlpMetadata) {
           const mlpMetadata = Object.prototype.hasOwnProperty.call(payload, 'mlp')
@@ -309,6 +310,10 @@ export function useSignLanguageDetector(
             setLastMlpScore(null);
             setLastMlpCandidates([]);
           }
+        } else if (isGesturePayload) {
+          setLastMlpLabel(null);
+          setLastMlpScore(null);
+          setLastMlpCandidates([]);
         }
 
         const nestedThresholdMessage = findLastMessageWithThresholds();

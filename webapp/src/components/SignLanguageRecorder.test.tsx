@@ -440,7 +440,7 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-    const diagnosticsHint = screen.getByText('Mögliche Gebärden aus deinem Modell:').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
     if (!diagnosticsHint) {
       throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
     }
@@ -471,7 +471,7 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-    const diagnosticsHint = screen.getByText('Mögliche Gebärden aus deinem Modell:').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
     if (!diagnosticsHint) {
       throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
     }
@@ -500,14 +500,14 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-    const diagnosticsHint = screen.getByText('Mögliche Gebärden aus deinem Modell:').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
     if (!diagnosticsHint) {
       throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
     }
 
     const diagnosticsScope = within(diagnosticsHint);
 
-    expect(screen.getByText('Mögliche Gebärden aus deinem Modell:')).toBeInTheDocument();
+    expect(screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):')).toBeInTheDocument();
     expect(diagnosticsScope.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
     expect(diagnosticsScope.getByRole('button', { name: /Satt · 21% · trainiert/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /_NULL_/i })).not.toBeInTheDocument();
@@ -529,8 +529,10 @@ describe('SignLanguageRecorder', () => {
 
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText(/Unsichere Erkennung:/)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Trinken · 27% · trainiert/ }).length).toBeGreaterThan(0);
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+    expect(screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Trinken · 27% · trainiert/ })).toBeInTheDocument();
   });
 
 
@@ -584,7 +586,7 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-    const diagnosticsHint = screen.getByText('Mögliche Gebärden aus deinem Modell:').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
     if (!diagnosticsHint) {
       throw new Error('Diagnosebereich mit Modelltreffern wurde nicht gefunden.');
     }
@@ -593,6 +595,13 @@ describe('SignLanguageRecorder', () => {
     expect(diagnosticsScope.getByRole('button', { name: /Trinken · 74% · trainiert/ })).toBeInTheDocument();
     expect(diagnosticsScope.getByRole('button', { name: /Essen · 42% · trainiert/ })).toBeInTheDocument();
     expect(diagnosticsScope.getByRole('button', { name: /Hilfe · 33% · trainiert/ })).toBeInTheDocument();
+
+    const rankedButtons = diagnosticsScope.getAllByRole('button');
+    expect(rankedButtons.map(button => button.textContent)).toEqual([
+      expect.stringMatching(/Trinken · 74% · trainiert/),
+      expect.stringMatching(/Essen · 42% · trainiert/),
+      expect.stringMatching(/Hilfe · 33% · trainiert/),
+    ]);
   });
 
 
@@ -635,7 +644,15 @@ describe('SignLanguageRecorder', () => {
 
     renderWithProviders(<SignLanguageRecorder />);
 
-    const suggestionButtons = await screen.findAllByRole('button', { name: /Trinken · 34% · Modellvorschlag/ });
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    if (!diagnosticsHint) {
+      throw new Error('Diagnosebereich mit Modellvorschlägen nicht gefunden.');
+    }
+
+    const suggestionButtons = within(diagnosticsHint).getAllByRole('button', { name: /Trinken · 34% · Modellvorschlag/ });
     expect(suggestionButtons.length).toBeGreaterThan(0);
     const [firstSuggestion] = suggestionButtons;
     if (!firstSuggestion) {
@@ -645,7 +662,7 @@ describe('SignLanguageRecorder', () => {
     expect(await screen.findByText('Trinken')).toBeInTheDocument();
   });
 
-  it('shows contextual suggestion buttons without opening diagnostics when no trained sign is selected', async () => {
+  it('shows model suggestions only in diagnostics and keeps untrained option disabled', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
     detectorState.lastSign = 'closed_fist';
@@ -660,16 +677,20 @@ describe('SignLanguageRecorder', () => {
 
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText(/Unsichere Erkennung:/)).toBeInTheDocument();
-    const contextPanel = screen.getByText(/Unsichere Erkennung:/).closest<HTMLElement>('.gesture-screen__meta-warning');
-    if (!contextPanel) {
-      throw new Error('Kontextbereich mit MLP-Vorschlägen nicht gefunden.');
+    expect(screen.queryByText(/Unsichere Erkennung:/)).not.toBeInTheDocument();
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    if (!diagnosticsHint) {
+      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
     }
 
-    const contextScope = within(contextPanel);
-    expect(contextScope.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
+    const diagnosticsScope = within(diagnosticsHint);
+    expect(diagnosticsScope.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
 
-    const untrainedButton = contextScope.getByRole('button', { name: /Unbekannt · 16% · nicht trainiert/ });
+    const untrainedButton = diagnosticsScope.getByRole('button', { name: /Unbekannt · 16% · nicht trainiert/ });
     expect(untrainedButton).toBeDisabled();
   });
 

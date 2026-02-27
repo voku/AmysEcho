@@ -265,6 +265,68 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
+  it('setzt MLP-Werte zurück, wenn die aktuelle Batch keine MLP-Metadaten enthält', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              {
+                gesture: 'TRINKEN',
+                confidence: 0.7,
+                landmarks: [[[0.2, 0.3, 0]]],
+                mlp: {
+                  label: 'TRINKEN',
+                  score: 0.7,
+                  candidates: [{ label: 'TRINKEN', score: 0.7 }],
+                },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastMlpLabel).toBe('TRINKEN');
+      expect(result.current.lastMlpCandidates).toHaveLength(1);
+    });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              {
+                gesture: 'TRINKEN',
+                confidence: 0.68,
+                landmarks: [[[0.2, 0.3, 0]]],
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastMlpLabel).toBeNull();
+      expect(result.current.lastMlpScore).toBeNull();
+      expect(result.current.lastMlpCandidates).toEqual([]);
+    });
+  });
+
   it('stabilisiert fehlende Handedness-Einträge mit Platzhaltern', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
@@ -294,7 +356,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('behält MLP-Metadaten bei, wenn die nächste Meldung kein mlp-Feld enthält', async () => {
+  it('setzt MLP-Metadaten bei Meldungen ohne mlp-Feld zurück', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -339,10 +401,10 @@ describe('useSignLanguageDetector', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.lastMlpLabel).toBe('TRINKEN');
-      expect(result.current.lastMlpScore).toBeCloseTo(0.61);
+      expect(result.current.lastMlpLabel).toBeNull();
+      expect(result.current.lastMlpScore).toBeNull();
       expect(result.current.lastMlpThreshold).toBeNull();
-      expect(result.current.lastMlpCandidates).toEqual([{ label: 'TRINKEN', score: 0.61 }]);
+      expect(result.current.lastMlpCandidates).toEqual([]);
     });
 
     act(() => {

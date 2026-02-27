@@ -408,7 +408,8 @@ export function SignLanguageRecorder() {
         ...candidate,
         normalizedLabel: normalizeSignLabel(candidate.label),
       }))
-      .filter(candidate => candidate.normalizedLabel.length > 0);
+      .filter(candidate => candidate.normalizedLabel.length > 0)
+      .sort((left, right) => right.score - left.score);
   }, [lastMlpCandidates, lastMlpLabel, lastMlpScore]);
 
   const effectiveSign = manualSuggestionLabel ?? (shouldPreferMlpTrainedLabel ? lastMlpLabel : lastSign);
@@ -476,7 +477,6 @@ export function SignLanguageRecorder() {
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
-  const shouldShowContextSuggestions = !demoMode && !gestureLabel && hasDetectedHands && suggestedMlpChoices.length > 0;
 
   useEffect(() => {
     if (!lastSign || !profileModelRequired) {
@@ -839,20 +839,6 @@ export function SignLanguageRecorder() {
         </div>
 
 
-        {shouldShowContextSuggestions && (
-          <div className="gesture-screen__meta-warning">
-            <p><strong>Unsichere Erkennung:</strong> Wähle die wahrscheinlichste Gebärde aus dem Kontext.</p>
-            <div className="gesture-screen__empty-actions">
-              <MlpCandidateButtons
-                choices={suggestedMlpChoices}
-                normalizedTrainedSignLabels={normalizedTrainedSignLabels}
-                onSelect={setManualSuggestionLabel}
-                keyPrefix="context-"
-              />
-            </div>
-          </div>
-        )}
-
         {needsCameraStart && (
           <button
             className="gesture-screen__start"
@@ -1025,7 +1011,7 @@ export function SignLanguageRecorder() {
               </ul>
             {suggestedMlpChoices.length > 0 && (
               <div className="gesture-screen__diagnostics-hint">
-                <p>Mögliche Gebärden aus deinem Modell:</p>
+                <p>Aktuelle Modellwerte (beste Übereinstimmung zuerst):</p>
                 <div className="gesture-screen__empty-actions">
                   <MlpCandidateButtons
                     choices={suggestedMlpChoices}
