@@ -1,5 +1,6 @@
 import { GestureDetectorConfig } from '../config/GestureConfig';
 import { GestureSizeNormalizer, PartialGestureDetector } from '../gestureProcessing';
+import { LandmarkTemplateDetector, type TemplateMatchResult } from '../landmarkTemplateDetector';
 import { FallbackGestureDetector } from './FallbackGestureDetector';
 import { HandStabilityAssistant } from './HandStabilityAssistant';
 import { HandednessCategory, MLPPrediction, TwoHandGesture } from '../types/MediaPipeTypes';
@@ -60,7 +61,7 @@ interface AudioOnlySelection {
 interface MlpSelection {
   gesture: string | null;
   confidence: number;
-  method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none';
+  method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'landmark_template' | 'none';
   mlpMetadata: MLPPrediction | null;
   mlpDecision: {
     selected: boolean;
@@ -185,8 +186,14 @@ export class StabilityAnalysisStep implements ProcessingStep {
 export class GestureDetectionStep implements ProcessingStep {
   name = 'gesture_detection';
   isExpensive = true; // MediaPipe processing can be expensive
+  private templateDetector: LandmarkTemplateDetector | null;
 
-  constructor(private config: GestureDetectorConfig) {}
+  constructor(config: GestureDetectorConfig, templateDetector?: LandmarkTemplateDetector) {
+    this.config = config;
+    this.templateDetector = templateDetector ?? null;
+  }
+
+  private config: GestureDetectorConfig;
 
   async execute(context: ProcessingContext): Promise<GestureDetectionResult> {
     gestureDebugLog('detection', 'GestureDetectionStep executing', () => ({
@@ -207,6 +214,28 @@ export class GestureDetectionStep implements ProcessingStep {
     let detectionMethod: MlpSelection['method'] = mediaPipeSelection.method;
     let twoHandMetadata = mediaPipeSelection.twoHandMetadata;
     let audioOnlyDetection = false;
+    let templateMatch: TemplateMatchResult | null = null;
+
+    // Try landmark template detection first – it is fast, reliable, and
+    // specifically trained for Amy's custom gestures.
+    if (this.templateDetector && this.templateDetector.getTemplateCount() > 0 && context.landmarks?.length > 0) {
+      templateMatch = this.templateDetector.detect(
+        context.rawLandmarks ?? context.landmarks,
+        handednesses,
+      );
+
+      if (templateMatch && templateMatch.confidence > selectedConfidence) {
+        gestureDebugLog('template', 'Template match selected', () => ({
+          label: templateMatch!.label,
+          confidence: templateMatch!.confidence,
+          distance: templateMatch!.distance,
+        }), { sampleIntervalMs: 2000 });
+        selectedGesture = templateMatch.label;
+        selectedConfidence = templateMatch.confidence;
+        detectionMethod = 'landmark_template';
+        twoHandMetadata = null;
+      }
+    }
 
     // Check for audio-only detection when no visual landmarks are present
     // This enables Amy to communicate via speech when she's not signing
@@ -244,7 +273,8 @@ export class GestureDetectionStep implements ProcessingStep {
         mlp: mlpSelection.mlpMetadata,
         mlpDecision: mlpSelection.mlpDecision,
         twoHand: twoHandMetadata,
-        audioOnly: audioOnlyDetection
+        audioOnly: audioOnlyDetection,
+        templateMatch: templateMatch ?? null,
       }
     };
   }

@@ -44,6 +44,7 @@ import {
   ResultProcessingStep,
   StabilityAnalysisStep,
 } from './ProcessingSteps';
+import { LandmarkTemplateDetector } from '../landmarkTemplateDetector';
 
 // Default fallback confidence threshold
 const FALLBACK_CONFIDENCE_THRESHOLD = 0.35;
@@ -158,6 +159,7 @@ export class GestureRecognitionOrchestrator {
   private variationTracker: SignVariationTracker;
   private variationCleanupCounter = 0;
   private audioMuted = false;
+  private templateDetector: LandmarkTemplateDetector;
   private readonly VARIATION_CLEANUP_INTERVAL = 100; // Run cleanup every 100 gestures
 
   private readonly createGestureDetector: (video: HTMLVideoElement, overlay: HTMLCanvasElement) => GestureDetector;
@@ -174,6 +176,7 @@ export class GestureRecognitionOrchestrator {
     this.multimodalSmoother = new MultimodalSmoother();
     this.variationTracker = new SignVariationTracker();
     this.liveAudioService = new LiveAudioRecognitionService();
+    this.templateDetector = new LandmarkTemplateDetector();
 
     this.createGestureDetector =
       dependencies.createGestureDetector ?? ((videoEl, overlayEl) => new GestureDetector(videoEl, overlayEl));
@@ -207,7 +210,7 @@ export class GestureRecognitionOrchestrator {
     // Add processing steps in order of execution
     this.processingPipeline.addStep(new LandmarkPreprocessingStep(this.sizeNormalizer, this.tremorCompensator));
     this.processingPipeline.addStep(new StabilityAnalysisStep(this.handStabilityAssistant));
-    this.processingPipeline.addStep(new GestureDetectionStep(this.config));
+    this.processingPipeline.addStep(new GestureDetectionStep(this.config, this.templateDetector));
     this.processingPipeline.addStep(new PartialGestureAnalysisStep(this.partialDetector));
     this.processingPipeline.addStep(new FallbackProcessingStep(this.fallbackDetector, this.errorRecoveryManager));
     this.processingPipeline.addStep(new ResultProcessingStep());
@@ -296,6 +299,14 @@ export class GestureRecognitionOrchestrator {
     if (this.isRunning && !this.liveAudioService.isRunning()) {
       await this.liveAudioService.start();
     }
+  }
+
+  /**
+   * Update the landmark templates used for custom gesture detection.
+   * Call this after fetching templates from the server.
+   */
+  setLandmarkTemplates(templates: import('../landmarkTemplateDetector').LandmarkTemplate[]): void {
+    this.templateDetector.setTemplates(templates);
   }
 
   /**
