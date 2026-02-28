@@ -23,11 +23,15 @@ export class TelemetryRecorder {
   private readonly readyPromise: Promise<void>;
 
   private getStorage(): Storage | null {
-    if (typeof globalThis.localStorage === 'undefined') {
+    try {
+      if (typeof globalThis.localStorage === 'undefined') {
+        return null;
+      }
+
+      return globalThis.localStorage;
+    } catch {
       return null;
     }
-
-    return globalThis.localStorage;
   }
 
   constructor() {

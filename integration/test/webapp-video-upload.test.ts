@@ -15,6 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..', '..');
 const clipFixturePath = join(repoRoot, 'server', 'test', 'fixtures', 'clip.mp4');
 const profileId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+const TRAINING_COMPLETION_TIMEOUT_MS = 600_000;
 
 type RepoLandmarkFrame = {
   landmarks?: number[][];
@@ -63,7 +64,7 @@ async function readManifest() {
 
 async function waitForTrainingCompletion(pollUrl: string) {
   const start = Date.now();
-  const timeoutMs = 600_000;
+  const timeoutMs = TRAINING_COMPLETION_TIMEOUT_MS;
 
   while (Date.now() - start <= timeoutMs) {
     const statusResp = await fetch(pollUrl, { headers: serverHeaders() });
@@ -279,45 +280,60 @@ test('real repo videos with multiple samples per label produce a profile model',
   assert.ok(modelBytes.length > 0, 'profile model should contain binary payload');
 });
 
+// Note: This test depends on the profile model produced by the previous multi-label training test.
 test('gesture detection works with downloaded profile model after training', async () => {
   const win = globalThis as any;
-  win.window = win;
-  win.fflate = { unzip };
-  win.ReactNativeWebView = { postMessage: () => undefined };
-  win.navigator = { onLine: true, sendBeacon: () => true };
-  win.localStorage = {
-    getItem: () => null,
-    setItem: () => undefined,
-    removeItem: () => undefined,
-  };
+  const originalWindow = win.window;
+  const originalFflate = win.fflate;
+  const originalReactNativeWebView = win.ReactNativeWebView;
+  const originalNavigator = win.navigator;
+  const originalLocalStorage = win.localStorage;
 
-  await installMlp();
+  try {
+    win.window = win;
+    win.fflate = { unzip };
+    win.ReactNativeWebView = { postMessage: () => undefined };
+    win.navigator = { onLine: true, sendBeacon: () => true };
+    win.localStorage = {
+      getItem: () => null,
+      setItem: () => undefined,
+      removeItem: () => undefined,
+    };
 
-  const modelResponse = await fetch(`${serverBaseUrl()}/api/v1/models/latest?profileId=${profileId}`, {
-    headers: serverHeaders({ 'X-Profile-Id': profileId }),
-  });
-  assert.strictEqual(modelResponse.status, 200);
-  const modelBase64 = Buffer.from(await modelResponse.arrayBuffer()).toString('base64');
+    await installMlp();
 
-  const loaded = await win.__setMlpModelB64(modelBase64);
-  assert.strictEqual(loaded, true, 'expected downloaded profile model to load into webapp predictor');
+    const modelResponse = await fetch(`${serverBaseUrl()}/api/v1/models/latest?profileId=${profileId}`, {
+      headers: serverHeaders({ 'X-Profile-Id': profileId }),
+    });
+    assert.strictEqual(modelResponse.status, 200);
+    const modelBase64 = Buffer.from(await modelResponse.arrayBuffer()).toString('base64');
 
-  const essenFrames = loadRepoLandmarkFrames(await loadLandmarkFile('essen_main_essen_landmarks.json'));
-  const trinkenFrames = loadRepoLandmarkFrames(await loadLandmarkFile('trinken_main_trinken_landmarks.json'));
+    const loaded = await win.__setMlpModelB64(modelBase64);
+    assert.strictEqual(loaded, true, 'expected downloaded profile model to load into webapp predictor');
 
-  const essenPrediction = predictLabelFromFrames(essenFrames);
-  const trinkenPrediction = predictLabelFromFrames(trinkenFrames);
+    const essenFrames = loadRepoLandmarkFrames(await loadLandmarkFile('essen_main_essen_landmarks.json'));
+    const trinkenFrames = loadRepoLandmarkFrames(await loadLandmarkFile('trinken_main_trinken_landmarks.json'));
 
-  assert.ok(essenPrediction, 'ESSEN prediction should produce MLP output');
-  assert.ok(trinkenPrediction, 'TRINKEN prediction should produce MLP output');
-  const essenCandidates = (essenPrediction?.candidates ?? []).map((candidate) => candidate.label.toUpperCase());
-  const trinkenCandidates = (trinkenPrediction?.candidates ?? []).map((candidate) => candidate.label.toUpperCase());
-  assert.ok(essenCandidates.includes('ESSEN'), 'ESSEN sample should include ESSEN in ranked candidates');
-  assert.ok(trinkenCandidates.includes('TRINKEN'), 'TRINKEN sample should include TRINKEN in ranked candidates');
+    const essenPrediction = predictLabelFromFrames(essenFrames);
+    const trinkenPrediction = predictLabelFromFrames(trinkenFrames);
 
-  const trinkenCandidateScores = trinkenPrediction?.candidates ?? [];
-  assert.ok(trinkenCandidateScores.length > 1, 'MLP should return ranked candidate list');
-  const rankedScores = trinkenCandidateScores.map((candidate) => candidate.score);
-  const sortedScores = [...rankedScores].sort((a, b) => b - a);
-  assert.deepStrictEqual(rankedScores, sortedScores, 'MLP candidates should be sorted best match first');
+    assert.ok(essenPrediction, 'ESSEN prediction should produce MLP output');
+    assert.ok(trinkenPrediction, 'TRINKEN prediction should produce MLP output');
+    const essenCandidates = (essenPrediction?.candidates ?? []).map((candidate) => candidate.label.toUpperCase());
+    const trinkenCandidates = (trinkenPrediction?.candidates ?? []).map((candidate) => candidate.label.toUpperCase());
+    assert.ok(essenCandidates.includes('ESSEN'), 'ESSEN sample should include ESSEN in ranked candidates');
+    assert.ok(trinkenCandidates.includes('TRINKEN'), 'TRINKEN sample should include TRINKEN in ranked candidates');
+
+    const trinkenCandidateScores = trinkenPrediction?.candidates ?? [];
+    assert.ok(trinkenCandidateScores.length > 1, 'MLP should return ranked candidate list');
+    const rankedScores = trinkenCandidateScores.map((candidate) => candidate.score);
+    const sortedScores = [...rankedScores].sort((a, b) => b - a);
+    assert.deepStrictEqual(rankedScores, sortedScores, 'MLP candidates should be sorted best match first');
+  } finally {
+    win.window = originalWindow;
+    win.fflate = originalFflate;
+    win.ReactNativeWebView = originalReactNativeWebView;
+    win.navigator = originalNavigator;
+    win.localStorage = originalLocalStorage;
+  }
 });

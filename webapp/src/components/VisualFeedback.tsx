@@ -317,4 +317,3 @@ export const GestureRecognitionFeedback: React.FC<GestureRecognitionFeedbackProp
   );
 };
 
-export default VisualFeedback;

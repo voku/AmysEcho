@@ -3,12 +3,13 @@ import { TelemetryRecorder } from './recorder';
 
 describe('TelemetryRecorder', () => {
   beforeEach(() => {
-    localStorage.clear();
+    globalThis.localStorage?.clear();
     vi.useFakeTimers();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it('persists events with throttling', async () => {
@@ -58,24 +59,13 @@ describe('TelemetryRecorder', () => {
   });
 
   it('works without localStorage (non-browser runtime)', async () => {
-    const originalLocalStorage = globalThis.localStorage;
-    Object.defineProperty(globalThis, 'localStorage', {
-      value: undefined,
-      configurable: true,
-    });
+    vi.stubGlobal('localStorage', undefined);
 
-    try {
-      const recorder = new TelemetryRecorder();
-      await recorder.whenReady();
-      await recorder.add('camera_started', { source: 'test' });
-      const dumped = await recorder.dump();
-      expect(dumped).toHaveLength(1);
-      expect(dumped[0]?.event).toBe('camera_started');
-    } finally {
-      Object.defineProperty(globalThis, 'localStorage', {
-        value: originalLocalStorage,
-        configurable: true,
-      });
-    }
+    const recorder = new TelemetryRecorder();
+    await recorder.whenReady();
+    await recorder.add('camera_started', { source: 'test' });
+    const dumped = await recorder.dump();
+    expect(dumped).toHaveLength(1);
+    expect(dumped[0]?.event).toBe('camera_started');
   });
 });

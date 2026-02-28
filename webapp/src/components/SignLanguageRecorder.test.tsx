@@ -442,7 +442,7 @@ describe('SignLanguageRecorder', () => {
 
     const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
     if (!diagnosticsHint) {
-      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
+      throw new Error('Diagnostic area with MLP suggestions not found.');
     }
 
     fireEvent.click(within(diagnosticsHint).getByRole('button', { name: /Satt · 21% · trainiert/ }));
@@ -473,7 +473,7 @@ describe('SignLanguageRecorder', () => {
 
     const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
     if (!diagnosticsHint) {
-      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
+      throw new Error('Diagnostic area with MLP suggestions not found.');
     }
 
     const untrainedButton = within(diagnosticsHint).getByRole('button', { name: /Unbekannt · 25% · nicht trainiert/ });
@@ -502,7 +502,7 @@ describe('SignLanguageRecorder', () => {
 
     const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
     if (!diagnosticsHint) {
-      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
+      throw new Error('Diagnostic area with MLP suggestions not found.');
     }
 
     const diagnosticsScope = within(diagnosticsHint);
@@ -515,7 +515,7 @@ describe('SignLanguageRecorder', () => {
 
 
 
-  it('zeigt Top-MLP-Label ohne Kandidatenliste ausschließlich in der Diagnose', async () => {
+  it('shows top MLP label without candidate list only in diagnostics', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
     detectorState.lastSign = 'closed_fist';
@@ -566,8 +566,8 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
           });
         }
-        if (url.includes('/api/v1/models/latest')) {
-          return new Response('not-found', { status: 404 });
+      throw new Error('Diagnostic area with model matches not found.');
+  it('applies manually selected model suggestion even without loaded label catalog', async () => {
         }
         return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
       }),
@@ -577,8 +577,8 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
-  it('zeigt Modellvorschläge nur im Diagnosebereich und sortiert sie absteigend', async () => {
-      { label: 'TRINKEN', score: 0.28 },
+      throw new Error('No model suggestion button found for Trinken.');
+  it('shows model suggestions only in diagnostics and sorts them descending', async () => {
       { label: 'ESSEN', score: 0.42 },
     window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'ESSEN']));
     expect(screen.queryByText(/Unsichere Erkennung:/)).not.toBeInTheDocument();
@@ -589,7 +589,7 @@ describe('SignLanguageRecorder', () => {
 
     const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
     if (!diagnosticsHint) {
-      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
+      throw new Error('Diagnostic area with MLP suggestions not found.');
     }
     const suggestionButtons = within(diagnosticsHint).getAllByRole('button');
     const buttonLabels = suggestionButtons.map((button) => button.textContent ?? '');
