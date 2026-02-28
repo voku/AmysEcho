@@ -213,7 +213,7 @@ class PerformanceFeedback {
           contextualDistribution: this.calculateContextualDistribution(batch)
         },
         systemInfo: {
-          userAgent: navigator.userAgent,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
           memory: (performance as any).memory ? {
             usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
             totalJSHeapSize: (performance as any).memory.totalJSHeapSize

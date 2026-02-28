@@ -22,10 +22,20 @@ export class TelemetryRecorder {
   private readonly PERSIST_DELAY_MS = 1000;
   private readonly readyPromise: Promise<void>;
 
+  private getStorage(): Storage | null {
+    if (typeof globalThis.localStorage === 'undefined') {
+      return null;
+    }
+
+    return globalThis.localStorage;
+  }
+
   constructor() {
     this.readyPromise = this.enqueue(async () => {
       try {
-        const raw = localStorage.getItem(this.KEY);
+        const storage = this.getStorage();
+        if (!storage) return;
+        const raw = storage.getItem(this.KEY);
         if (!raw) return;
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
@@ -87,7 +97,10 @@ export class TelemetryRecorder {
         clearTimeout(this.persistTimer);
         this.persistTimer = null;
         try {
-          localStorage.setItem(this.KEY, JSON.stringify(this.buffer));
+          const storage = this.getStorage();
+          if (storage) {
+            storage.setItem(this.KEY, JSON.stringify(this.buffer));
+          }
         } catch (e) {
           console.warn(
             'Failed to persist telemetry before dump. Aborting dump to prevent data loss.',
@@ -104,7 +117,9 @@ export class TelemetryRecorder {
       const data = this.buffer;
       this.buffer = [];
       try {
-        localStorage.setItem(this.KEY, '[]');
+        const storage = this.getStorage();
+        if (!storage) return data;
+        storage.setItem(this.KEY, '[]');
         return data;
       } catch (e) {
         console.warn('Error clearing stored telemetry events', e);
@@ -126,7 +141,9 @@ export class TelemetryRecorder {
       this.persistTimer = null;
       this.enqueue(async () => {
         try {
-          localStorage.setItem(this.KEY, JSON.stringify(this.buffer));
+          const storage = this.getStorage();
+          if (!storage) return;
+          storage.setItem(this.KEY, JSON.stringify(this.buffer));
         } catch (e) {
           console.warn('Failed to persist telemetry events.', e);
         }
