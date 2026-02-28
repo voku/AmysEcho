@@ -1,4 +1,4 @@
-import { mergeTrainedLabels } from "../src/services/trainedLabelsService";
+import { buildTrainedLabelDescriptors, mergeTrainedLabels } from "../src/services/trainedLabelsService";
 
 describe("mergeTrainedLabels", () => {
   it("returns labels from either legacy sample counts or training manifest entries", () => {
@@ -69,5 +69,34 @@ describe("mergeTrainedLabels", () => {
 
     expect(result).toEqual(expect.arrayContaining(["café", "hello world"]));
     expect(result).toHaveLength(2);
+  });
+});
+
+describe("buildTrainedLabelDescriptors", () => {
+  it("enriches trained labels with custom sign display metadata", () => {
+    const result = buildTrainedLabelDescriptors(
+      "profile-1",
+      ["wasserzeichen", "TRINKEN"],
+      [
+        { id: "wasserzeichen", label: "Wasser bitte", emoji: "💧", profileId: "profile-1" },
+      ],
+    );
+
+    expect(result).toEqual([
+      {
+        id: "wasserzeichen",
+        normalizedId: "wasserzeichen",
+        displayLabel: "Wasser bitte",
+        emoji: "💧",
+        isCustom: true,
+      },
+      {
+        id: "TRINKEN",
+        normalizedId: "trinken",
+        displayLabel: "TRINKEN",
+        emoji: null,
+        isCustom: false,
+      },
+    ]);
   });
 });

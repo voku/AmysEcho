@@ -55,7 +55,7 @@ import {
 	sendBinaryModel,
 	writeMinimalMlpModel,
 } from "./services/mlpModelArtifacts.js";
-import { writeProfileBackup } from "./services/profileDataService.js";
+import { loadCustomSigns, writeProfileBackup } from "./services/profileDataService.js";
 import {
 	ensureProfileRecord,
 	loadProfileRegistry,
@@ -68,7 +68,7 @@ import { buildLabelManifest, getVideosForLabel, isValidLabel } from "./services/
 import type { Correction, ManifestEntry, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
 import { loadManifestEntries } from "./utils/manifestUtils.js";
-import { mergeTrainedLabels } from "./services/trainedLabelsService.js";
+import { buildTrainedLabelDescriptors, mergeTrainedLabels } from "./services/trainedLabelsService.js";
 import { isProfileAuthorized } from "./utils/profileAuthorization.js";
 import { httpsEnforcement, hstsHeaders } from "./middleware/httpsEnforcement.js";
 
@@ -1564,8 +1564,14 @@ app.get(
 			const counts = profileCounts.get(profileId) || {};
 			const manifestEntries = await getCachedManifestEntries();
 			const trainedLabels = mergeTrainedLabels(profileId, counts, manifestEntries);
+			const customSigns = await loadCustomSigns();
+			const labelDescriptors = buildTrainedLabelDescriptors(
+				profileId,
+				trainedLabels,
+				Array.isArray(customSigns.signs) ? customSigns.signs : [],
+			);
 
-			res.json({ profileId, trainedLabels });
+			res.json({ profileId, trainedLabels, labelDescriptors });
 		} catch (error) {
 			console.error("Failed to get trained labels:", error);
 			res.status(500).json({ error: "Internal server error" });

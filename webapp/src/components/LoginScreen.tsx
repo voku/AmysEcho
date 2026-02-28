@@ -271,7 +271,7 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
               ? 'Passwort zurücksetzen'
               : authMode === 'verify'
                 ? 'E-Mail-Adresse bestätigen'
-                : 'Willkommen bei Amy&apos;s Echo'}
+                : "Willkommen bei Amy's Echo"}
           </h1>
           <p className="muted">
             {authMode === 'reset'
