@@ -224,6 +224,18 @@ Nicht-manuelle Signale tragen zur Bedeutung vieler Gebärden bei (z. B. Fragefor
 4. **Modell laden** – `GET /latest-mlp-model?profileId=<profil>` abrufen, sicherstellen, dass ein neuer Download erfolgt.
 5. **Ergebnis prüfen** – Im Recorder prüfen, ob die neue Modellversion geladen wird und die Erkennung stabil bleibt.
 
+### CI-nahe Verifikation (Lernpunkte aus PR-Debugging)
+
+Bei Änderungen am Trainings-/Erkennungs-Loop sollte die Verifikation nicht nur auf einzelne Unit-Tests gestützt werden. Für robuste Merge-Entscheidungen hat sich folgender Ablauf bewährt:
+
+1. **Gesamte Prüfkette lokal ausführen** – `NODE_OPTIONS=--max_old_space_size=4096 ./scripts/full-check.sh` verwenden, damit dieselben Paket-Checks wie in CI laufen.
+2. **Komplett-Log mitschreiben** – Ausgabe immer in eine Datei mit `tee` schreiben, damit Fehlermeldungen später reproduzierbar analysiert werden können.
+3. **Test-Output korrekt lesen** – `stderr`-Zeilen in Testläufen können erwartete Negativpfade sein; entscheidend ist die Zusammenfassung am Ende (keine fehlgeschlagenen Suiten/Tests, Exit-Code 0).
+4. **Integrationstests unabhängig halten** – Tests wie „Profilmodell nach Training herunterladen und Erkennung prüfen“ müssen ihre Vorbereitung (Training + Modellbereitstellung) explizit selbst aufrufen oder aus gemeinsamem Setup beziehen, statt Seiteneffekte früherer Tests vorauszusetzen.
+5. **Profilmodell-Funktion explizit bestätigen** – Nach Training sowohl den Download des personalisierten Modells als auch eine erfolgreiche Vorhersage gegen echte Landmark-Dateien prüfen.
+
+Diese Schritte reduzieren das Risiko, auf veraltete Review-Kommentare zu reagieren, und sichern die zentrale Kommunikationskette (Aufnahme → Training → personalisierte Erkennung) für Amy zuverlässig ab.
+
 ### Erwartete UI-Hinweise (Deutsch)
 Die folgenden Hinweise müssen erscheinen, wenn die jeweilige Modalität fehlt:
 - **Hände fehlen:** `Bitte halte beide Hände sichtbar im Kamerabild.`

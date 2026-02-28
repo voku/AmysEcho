@@ -16,7 +16,7 @@ function createStubOrchestrator() {
 }
 
 describe('useSignLanguageDetector', () => {
-  it('startet und stoppt den Orchestrator', async () => {
+  it('starts and stops the orchestrator', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -43,7 +43,7 @@ describe('useSignLanguageDetector', () => {
     expect(orchestrator.stop).toHaveBeenCalled();
   });
 
-  it('schaltet die Audioerkennung stumm', async () => {
+  it('toggles audio mute for recognition', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -66,7 +66,7 @@ describe('useSignLanguageDetector', () => {
     expect(orchestrator.setAudioMuted).toHaveBeenLastCalledWith(true);
   });
 
-  it('fasst Bridge-Meldungen zusammen und merkt sich Gesten', async () => {
+  it('aggregates bridge messages and stores gesture state', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -99,7 +99,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('ignoriert leere gesture_batch Meldungen ohne Gesten und Landmarks', async () => {
+  it('ignores empty gesture_batch messages without gestures and landmarks', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -130,7 +130,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('ignoriert "none" und verwendet die nächste echte Gebärde aus gesture_batch Meldungen', async () => {
+  it('ignores "none" and uses the next meaningful gesture from gesture_batch messages', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -164,7 +164,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('liest Konfidenz aus verschachtelter Nachricht wenn auf Batch-Ebene keine vorhanden', async () => {
+  it('reads confidence from nested message when batch-level confidence is missing', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -201,7 +201,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('übernimmt Landmark-Previews aus Bridge-Meldungen', async () => {
+  it('uses landmark previews from bridge messages', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -230,7 +230,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('merkt sich Erkennungsweg und Fallback-Status aus Meldungen', async () => {
+  it('tracks detection method and fallback status from messages', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -265,7 +265,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('stabilisiert fehlende Handedness-Einträge mit Platzhaltern', async () => {
+  it('stabilizes missing handedness entries with placeholders', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -294,7 +294,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('behält MLP-Metadaten bei, wenn die nächste Meldung kein mlp-Feld enthält', async () => {
+  it('resets MLP metadata when the next message from MediaPipe has no mlp field', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -339,10 +339,10 @@ describe('useSignLanguageDetector', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.lastMlpLabel).toBe('TRINKEN');
-      expect(result.current.lastMlpScore).toBeCloseTo(0.61);
+      expect(result.current.lastMlpLabel).toBeNull();
+      expect(result.current.lastMlpScore).toBeNull();
       expect(result.current.lastMlpThreshold).toBeNull();
-      expect(result.current.lastMlpCandidates).toEqual([{ label: 'TRINKEN', score: 0.61 }]);
+      expect(result.current.lastMlpCandidates).toEqual([]);
     });
 
     act(() => {
@@ -366,7 +366,7 @@ describe('useSignLanguageDetector', () => {
   });
 
 
-  it('liest MLP-Metadaten aus gesture_batch-Nachrichten', async () => {
+  it('reads MLP metadata from gesture_batch messages', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -407,7 +407,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('bevorzugt Batch-Konfidenz über verschachtelter Nachricht-Konfidenz', async () => {
+  it('prefers batch confidence over nested message confidence', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -439,7 +439,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('verarbeitet Konfidenz=0 korrekt auf Batch-Ebene', async () => {
+  it('handles confidence=0 correctly at batch level', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -472,7 +472,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('wählt erste sinnvolle Gebärde aus mehreren Nachrichten', async () => {
+  it('chooses the latest meaningful gesture from multiple messages', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -483,7 +483,7 @@ describe('useSignLanguageDetector', () => {
       }),
     );
 
-    // Multiple meaningful gestures - first meaningful one should be selected
+    // Multiple meaningful gestures - latest meaningful one should be selected
     act(() => {
       window.dispatchEvent(
         new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
@@ -503,13 +503,46 @@ describe('useSignLanguageDetector', () => {
     });
 
     await waitFor(() => {
-      // First meaningful gesture (TRINKEN) wins, not the one with highest confidence
-      expect(result.current.lastSign).toBe('TRINKEN');
-      expect(result.current.lastConfidence).toBeCloseTo(0.72);
+      // Latest meaningful gesture (ESSEN) wins because gesture_batch is ordered oldest->newest
+      expect(result.current.lastSign).toBe('ESSEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.85);
     });
   });
 
-  it('filtert _NULL_ Labels aus gesture_batch Nachrichten', async () => {
+
+
+  it('uses the latest detection method from a gesture_batch message', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              { type: 'gesture', gesture: 'THUMBS_UP', detectionMethod: 'mediapipe', landmarks: [[[0.1, 0.2, 0]]] },
+              { type: 'gesture', gesture: 'TRINKEN', detectionMethod: 'mlp', landmarks: [[[0.3, 0.4, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastDetectionMethod).toBe('mlp');
+      expect(result.current.lastSign).toBe('TRINKEN');
+    });
+  });
+
+  it('filters _NULL_ labels from gesture_batch messages', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -545,7 +578,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('zeigt Landmark-Daten an wenn Batch nur Landmarks aber keine Gebärde hat', async () => {
+  it('shows landmark data when batch has only landmarks and no gesture', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -589,7 +622,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('verarbeitet echtes Orchestrator-Payload mit MLP-Selektion korrekt', async () => {
+  it('handles real orchestrator payload with MLP selection correctly', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -666,7 +699,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('setzt MLP-Daten auf null wenn Batch-Nachricht mlp:null sendet', async () => {
+  it('sets MLP data to null when batch message sends mlp:null', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -726,7 +759,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('propagiert Konfidenz-Summary wenn Nachricht Konfidenz hat aber Batch nicht', async () => {
+  it('propagates confidence summary when message has confidence but batch does not', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -764,7 +797,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('überträgt Handedness aus verschachtelter Nachricht', async () => {
+  it('propagates handedness from nested message', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;

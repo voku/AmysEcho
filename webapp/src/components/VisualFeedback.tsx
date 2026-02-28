@@ -5,7 +5,7 @@
  * Shows success/failure states with animations and colors.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export type FeedbackType = 'success' | 'warning' | 'error' | 'info' | 'neutral';
 
@@ -85,28 +85,49 @@ export const VisualFeedback: React.FC<VisualFeedbackProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const hideTimerRef = useRef<number | null>(null);
+  const fadeOutTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    if (fadeOutTimerRef.current !== null) {
+      window.clearTimeout(fadeOutTimerRef.current);
+      fadeOutTimerRef.current = null;
+    }
+
     if (active) {
       setIsVisible(true);
       setIsAnimating(true);
 
       if (duration > 0) {
-        const timer = setTimeout(() => {
+        hideTimerRef.current = window.setTimeout(() => {
           setIsAnimating(false);
-          setTimeout(() => {
+          fadeOutTimerRef.current = window.setTimeout(() => {
             setIsVisible(false);
             onHide?.();
           }, 300); // Fade out duration
         }, duration);
-        return () => clearTimeout(timer);
       }
-      return; // Explicit return for duration === 0
     } else {
       setIsAnimating(false);
-      setTimeout(() => setIsVisible(false), 300);
-      return;
+      fadeOutTimerRef.current = window.setTimeout(() => {
+        setIsVisible(false);
+      }, 300);
     }
+
+    return () => {
+      if (hideTimerRef.current !== null) {
+        window.clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+      if (fadeOutTimerRef.current !== null) {
+        window.clearTimeout(fadeOutTimerRef.current);
+        fadeOutTimerRef.current = null;
+      }
+    };
   }, [active, duration, onHide]);
 
   if (!isVisible) return null;
@@ -296,4 +317,3 @@ export const GestureRecognitionFeedback: React.FC<GestureRecognitionFeedbackProp
   );
 };
 
-export default VisualFeedback;
