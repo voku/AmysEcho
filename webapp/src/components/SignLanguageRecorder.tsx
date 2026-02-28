@@ -15,6 +15,11 @@ const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f
 const TRAILING_PUNCTUATION_WITH_OPTIONAL_UUID_PATTERN = /[.,!?;:]+(?=(?:[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?$)/i;
 
 const RECORDER_MLP_CONFIDENCE_FALLBACK = 0.4;
+const HELPFUL_MATCHES_DECAY_FACTOR = 0.9;
+const HELPFUL_MATCHES_BLEND_FACTOR = 0.4;
+const HELPFUL_MATCHES_TTL_MS = 8000;
+const HELPFUL_MATCHES_MIN_SCORE = 0.05;
+const HELPFUL_MATCHES_MAX_ITEMS = 3;
 
 
 function formatStatusLabel(status: string): string {
@@ -147,6 +152,7 @@ export function SignLanguageRecorder() {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [allowGlobalFallbackOutput, setAllowGlobalFallbackOutput] = useState(false);
   const [manualSuggestionLabel, setManualSuggestionLabel] = useState<string | null>(null);
+  const [helpfulMlpChoices, setHelpfulMlpChoices] = useState<SuggestedMlpChoice[]>([]);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -411,6 +417,57 @@ export function SignLanguageRecorder() {
       .filter(candidate => candidate.normalizedLabel.length > 0)
       .sort((left, right) => right.score - left.score);
   }, [lastMlpCandidates, lastMlpLabel, lastMlpScore]);
+
+  const helpfulMatchStoreRef = useRef(
+    new Map<string, { label: string; normalizedLabel: string; score: number; lastSeenAt: number }>(),
+  );
+
+  useEffect(() => {
+    const hasHandsInFrame = status === 'running' && lastLandmarks.length > 0;
+    if (!hasHandsInFrame || suggestedMlpChoices.length === 0) {
+      return;
+    }
+
+    const now = Date.now();
+    const nextStore = new Map(helpfulMatchStoreRef.current);
+
+    for (const [key, value] of nextStore) {
+      const age = now - value.lastSeenAt;
+      const decayedScore = age > HELPFUL_MATCHES_TTL_MS
+        ? 0
+        : value.score * HELPFUL_MATCHES_DECAY_FACTOR;
+
+      if (decayedScore < HELPFUL_MATCHES_MIN_SCORE) {
+        nextStore.delete(key);
+      } else {
+        nextStore.set(key, {
+          ...value,
+          score: decayedScore,
+        });
+      }
+    }
+
+    for (const candidate of suggestedMlpChoices) {
+      const existing = nextStore.get(candidate.normalizedLabel);
+      const blendedScore = existing
+        ? (existing.score * (1 - HELPFUL_MATCHES_BLEND_FACTOR)) + (candidate.score * HELPFUL_MATCHES_BLEND_FACTOR)
+        : candidate.score;
+
+      nextStore.set(candidate.normalizedLabel, {
+        label: candidate.label,
+        normalizedLabel: candidate.normalizedLabel,
+        score: blendedScore,
+        lastSeenAt: now,
+      });
+    }
+
+    helpfulMatchStoreRef.current = nextStore;
+    setHelpfulMlpChoices(
+      Array.from(nextStore.values())
+        .sort((left, right) => right.score - left.score)
+        .slice(0, HELPFUL_MATCHES_MAX_ITEMS),
+    );
+  }, [lastLandmarks.length, status, suggestedMlpChoices]);
 
   const effectiveSign = manualSuggestionLabel ?? (shouldPreferMlpTrainedLabel ? lastMlpLabel : lastSign);
 
@@ -837,6 +894,20 @@ export function SignLanguageRecorder() {
             </span>
           )}
         </div>
+
+        {!demoMode && hasDetectedHands && !gestureLabel && helpfulMlpChoices.length > 0 && (
+          <div className="gesture-screen__meta-warning">
+            <p><strong>Hilfreiche Treffervorschläge:</strong> Die Liste stabilisiert die letzten Kamera-Treffer.</p>
+            <div className="gesture-screen__empty-actions">
+              <MlpCandidateButtons
+                choices={helpfulMlpChoices}
+                normalizedTrainedSignLabels={normalizedTrainedSignLabels}
+                onSelect={setManualSuggestionLabel}
+                keyPrefix="helpful-"
+              />
+            </div>
+          </div>
+        )}
 
 
         {needsCameraStart && (

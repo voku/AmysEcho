@@ -532,7 +532,7 @@ describe('SignLanguageRecorder', () => {
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
     expect(screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Trinken · 27% · trainiert/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Trinken · 27% · trainiert/ }).length).toBeGreaterThan(0);
   });
 
 
@@ -662,7 +662,7 @@ describe('SignLanguageRecorder', () => {
     expect(await screen.findByText('Trinken')).toBeInTheDocument();
   });
 
-  it('shows model suggestions only in diagnostics and keeps untrained option disabled', async () => {
+  it('shows stabilized helpful suggestions in UI and keeps untrained option disabled', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
     detectorState.lastSign = 'closed_fist';
@@ -677,7 +677,17 @@ describe('SignLanguageRecorder', () => {
 
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.queryByText(/Unsichere Erkennung:/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Hilfreiche Treffervorschläge:/)).toBeInTheDocument();
+
+    const helpfulPanel = screen.getByText(/Hilfreiche Treffervorschläge:/).closest<HTMLElement>('.gesture-screen__meta-warning');
+    if (!helpfulPanel) {
+      throw new Error('Bereich mit hilfreichen Treffervorschlägen nicht gefunden.');
+    }
+
+    const helpfulScope = within(helpfulPanel);
+    expect(helpfulScope.getByRole('button', { name: /Trinken · 28% · trainiert/ })).toBeInTheDocument();
+    const helpfulUntrainedButton = helpfulScope.getByRole('button', { name: /Unbekannt · 16% · nicht trainiert/ });
+    expect(helpfulUntrainedButton).toBeDisabled();
 
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
