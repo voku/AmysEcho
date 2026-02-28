@@ -313,6 +313,4 @@ export function enhancePredictionWithFeedback(
   performanceFeedback.recordPrediction(result);
 }
 
-// Export utilities
 // Export utilities - types already declared above
-export default performanceFeedback;

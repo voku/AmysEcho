@@ -77,6 +77,9 @@ async function waitForTrainingCompletion(pollUrl: string) {
 
   while (Date.now() - start <= timeoutMs) {
     const statusResp = await fetch(pollUrl, { headers: serverHeaders() });
+    if (statusResp.status >= 400 && statusResp.status < 500) {
+      assert.fail(`Training poll returned client error ${statusResp.status} for ${pollUrl}`);
+    }
     if (statusResp.status !== 200) {
       await delay(500);
       continue;
@@ -187,7 +190,10 @@ async function ensureProfileModelReady(): Promise<void> {
       for (const pollUrl of pollUrls) {
         await waitForTrainingCompletion(pollUrl);
       }
-    })();
+    })().catch((error) => {
+      ensureProfileModelReadyPromise = null;
+      throw error;
+    });
   }
 
   await ensureProfileModelReadyPromise;
