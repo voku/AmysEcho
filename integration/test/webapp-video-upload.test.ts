@@ -16,6 +16,8 @@ const repoRoot = join(__dirname, '..', '..');
 const clipFixturePath = join(repoRoot, 'server', 'test', 'fixtures', 'clip.mp4');
 const profileId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 const TRAINING_COMPLETION_TIMEOUT_MS = 600_000;
+const POLL_INTERVAL_MS = 500;
+const RATE_LIMIT_BACKOFF_MS = 2000;
 
 const PROFILE_MODEL_TRAINING_FIXTURES = [
   ['essen_main_essen.mp4', 'essen_main_essen_landmarks.json', 'ESSEN'],
@@ -74,14 +76,18 @@ async function readManifest() {
 async function waitForTrainingCompletion(pollUrl: string) {
   const start = Date.now();
   const timeoutMs = TRAINING_COMPLETION_TIMEOUT_MS;
+  const maxAttempts = Math.ceil(timeoutMs / POLL_INTERVAL_MS);
+  let attempts = 0;
 
-  while (Date.now() - start <= timeoutMs) {
+  while (Date.now() - start <= timeoutMs && attempts < maxAttempts) {
+    attempts++;
     const statusResp = await fetch(pollUrl, { headers: serverHeaders() });
-    if (statusResp.status >= 400 && statusResp.status < 500) {
+    // Fail fast only on non-transient 4xx; retry 404 (job not yet indexed) and 429 (rate limited)
+    if (statusResp.status >= 400 && statusResp.status < 500 && statusResp.status !== 404 && statusResp.status !== 429) {
       assert.fail(`Training poll returned client error ${statusResp.status} for ${pollUrl}`);
     }
     if (statusResp.status !== 200) {
-      await delay(500);
+      await delay(statusResp.status === 429 ? RATE_LIMIT_BACKOFF_MS : POLL_INTERVAL_MS);
       continue;
     }
     const info = await statusResp.json();
@@ -91,26 +97,34 @@ async function waitForTrainingCompletion(pollUrl: string) {
     if (info.status === 'completed') {
       return;
     }
-    await delay(500);
+    await delay(POLL_INTERVAL_MS);
   }
 
   assert.fail('training job did not complete before timeout');
 }
 
-function toTrainingFrame(frame: RepoLandmarkFrame): TrainingFrame {
+function parseLandmarks(frame: RepoLandmarkFrame): {
+  leftHand: number[][];
+  rightHand: number[][];
+  poseLandmarks: number[][];
+  faceLandmarks: number[][];
+} {
   const points = Array.isArray(frame.landmarks)
     ? frame.landmarks.filter(
       (point): point is number[] =>
         Array.isArray(point) && point.length >= 3 && point.every((value) => Number.isFinite(value)),
     )
     : [];
+  return {
+    leftHand: points.slice(0, 21),
+    rightHand: points.slice(21, 42),
+    poseLandmarks: points.slice(42, 75),
+    faceLandmarks: points.slice(75, 543),
+  };
+}
 
-  const handPoints = points.slice(0, 42);
-  const leftHand = handPoints.slice(0, 21);
-  const rightHand = handPoints.slice(21, 42);
-  const poseLandmarks = points.slice(42, 75);
-  const faceLandmarks = points.slice(75, 543);
-
+function toTrainingFrame(frame: RepoLandmarkFrame): TrainingFrame {
+  const { leftHand, rightHand, poseLandmarks, faceLandmarks } = parseLandmarks(frame);
   return {
     landmarks: [leftHand, rightHand],
     handedness: ['Left', 'Right'],
@@ -204,15 +218,7 @@ function predictLabelFromFrames(frames: RepoLandmarkFrame[], maxFrames = 12): Ml
   let lastResult: MlpPredictResult | null = null;
 
   for (const frame of frames.slice(0, maxFrames)) {
-    const points = Array.isArray(frame.landmarks)
-      ? frame.landmarks.filter(
-        (point): point is number[] => Array.isArray(point) && point.length >= 3 && point.every((value) => Number.isFinite(value)),
-      )
-      : [];
-    const leftHand = points.slice(0, 21);
-    const rightHand = points.slice(21, 42);
-    const poseLandmarks = points.slice(42, 75);
-    const faceLandmarks = points.slice(75, 543);
+    const { leftHand, rightHand, poseLandmarks, faceLandmarks } = parseLandmarks(frame);
 
     const prediction = win.__mlpPredict?.(
       [leftHand, rightHand],
@@ -307,11 +313,20 @@ test('real repo videos with multiple samples per label produce a profile model',
 
 test('gesture detection works with downloaded profile model after training', async () => {
   const win = globalThis as any;
-  const originalWindow = win.window;
-  const originalFflate = win.fflate;
-  const originalReactNativeWebView = win.ReactNativeWebView;
-  const originalNavigator = win.navigator;
-  const originalLocalStorage = win.localStorage;
+  const savedGlobals: Record<string, { had: boolean; value: unknown }> = {};
+  for (const key of ['window', 'fflate', 'ReactNativeWebView', 'navigator', 'localStorage']) {
+    savedGlobals[key] = { had: key in win, value: win[key] };
+  }
+
+  const restoreGlobals = () => {
+    for (const [key, { had, value }] of Object.entries(savedGlobals)) {
+      if (had) {
+        win[key] = value;
+      } else {
+        delete win[key];
+      }
+    }
+  };
 
   try {
     win.window = win;
@@ -356,10 +371,6 @@ test('gesture detection works with downloaded profile model after training', asy
     const sortedScores = [...rankedScores].sort((a, b) => b - a);
     assert.deepStrictEqual(rankedScores, sortedScores, 'MLP candidates should be sorted best match first');
   } finally {
-    win.window = originalWindow;
-    win.fflate = originalFflate;
-    win.ReactNativeWebView = originalReactNativeWebView;
-    win.navigator = originalNavigator;
-    win.localStorage = originalLocalStorage;
+    restoreGlobals();
   }
 });
