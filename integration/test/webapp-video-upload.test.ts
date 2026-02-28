@@ -313,31 +313,31 @@ test('real repo videos with multiple samples per label produce a profile model',
 
 test('gesture detection works with downloaded profile model after training', async () => {
   const win = globalThis as any;
-  const savedGlobals: Record<string, { had: boolean; value: unknown }> = {};
+  const savedDescriptors: Record<string, PropertyDescriptor | undefined> = {};
   for (const key of ['window', 'fflate', 'ReactNativeWebView', 'navigator', 'localStorage']) {
-    savedGlobals[key] = { had: key in win, value: win[key] };
+    savedDescriptors[key] = Object.getOwnPropertyDescriptor(win, key);
   }
 
   const restoreGlobals = () => {
-    for (const [key, { had, value }] of Object.entries(savedGlobals)) {
-      if (had) {
-        win[key] = value;
-      } else {
+    for (const [key, descriptor] of Object.entries(savedDescriptors)) {
+      if (descriptor === undefined) {
         delete win[key];
+      } else {
+        Object.defineProperty(win, key, descriptor);
       }
     }
   };
 
   try {
-    win.window = win;
-    win.fflate = { unzip };
-    win.ReactNativeWebView = { postMessage: () => undefined };
-    win.navigator = { onLine: true, sendBeacon: () => true };
-    win.localStorage = {
-      getItem: () => null,
-      setItem: () => undefined,
-      removeItem: () => undefined,
-    };
+    for (const [key, value] of Object.entries({
+      window: win,
+      fflate: { unzip },
+      ReactNativeWebView: { postMessage: () => undefined },
+      navigator: { onLine: true, sendBeacon: () => true },
+      localStorage: { getItem: () => null, setItem: () => undefined, removeItem: () => undefined },
+    })) {
+      Object.defineProperty(win, key, { value, writable: true, configurable: true, enumerable: true });
+    }
 
     await ensureProfileModelReady();
 
