@@ -17,6 +17,15 @@ const clipFixturePath = join(repoRoot, 'server', 'test', 'fixtures', 'clip.mp4')
 const profileId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 const TRAINING_COMPLETION_TIMEOUT_MS = 600_000;
 
+const PROFILE_MODEL_TRAINING_FIXTURES = [
+  ['essen_main_essen.mp4', 'essen_main_essen_landmarks.json', 'ESSEN'],
+  ['essen_var_abendessen_0.mp4', 'essen_var_abendessen_0_landmarks.json', 'ESSEN'],
+  ['trinken_main_trinken.mp4', 'trinken_main_trinken_landmarks.json', 'TRINKEN'],
+  ['trinken_var_wasser_1.mp4', 'trinken_var_wasser_1_landmarks.json', 'TRINKEN'],
+] as const;
+
+let ensureProfileModelReadyPromise: Promise<void> | null = null;
+
 type RepoLandmarkFrame = {
   landmarks?: number[][];
 };
@@ -158,6 +167,32 @@ async function loadLandmarkFile(fileName: string): Promise<RepoLandmarkFile> {
   return JSON.parse(landmarksRaw) as RepoLandmarkFile;
 }
 
+
+async function ensureProfileModelReady(): Promise<void> {
+  if (!ensureProfileModelReadyPromise) {
+    ensureProfileModelReadyPromise = (async () => {
+      const uploads = await Promise.all(
+        PROFILE_MODEL_TRAINING_FIXTURES.map(([clipName, landmarksName, label]) =>
+          createBundleFromRepoVideo(clipName, landmarksName, label),
+        ),
+      );
+
+      const pollUrls = uploads
+        .map((upload) => upload.trainingJob?.pollUrl)
+        .filter((pollUrl): pollUrl is string => typeof pollUrl === 'string' && pollUrl.length > 0)
+        .map((pollUrl) => new URL(pollUrl, serverBaseUrl()).href);
+
+      assert.ok(pollUrls.length > 0, 'bundle uploads should return at least one training poll URL');
+
+      for (const pollUrl of pollUrls) {
+        await waitForTrainingCompletion(pollUrl);
+      }
+    })();
+  }
+
+  await ensureProfileModelReadyPromise;
+}
+
 function predictLabelFromFrames(frames: RepoLandmarkFrame[], maxFrames = 12): MlpPredictResult | null {
   const win = globalThis as any;
   let lastResult: MlpPredictResult | null = null;
@@ -243,23 +278,7 @@ test('webapp helpers upload a real repo video and server serves stored clip', as
 });
 
 test('real repo videos with multiple samples per label produce a profile model', async () => {
-  const uploads = await Promise.all([
-    createBundleFromRepoVideo('essen_main_essen.mp4', 'essen_main_essen_landmarks.json', 'ESSEN'),
-    createBundleFromRepoVideo('essen_var_abendessen_0.mp4', 'essen_var_abendessen_0_landmarks.json', 'ESSEN'),
-    createBundleFromRepoVideo('trinken_main_trinken.mp4', 'trinken_main_trinken_landmarks.json', 'TRINKEN'),
-    createBundleFromRepoVideo('trinken_var_wasser_1.mp4', 'trinken_var_wasser_1_landmarks.json', 'TRINKEN'),
-  ]);
-
-  const pollUrls = uploads
-    .map((upload) => upload.trainingJob?.pollUrl)
-    .filter((pollUrl): pollUrl is string => typeof pollUrl === 'string' && pollUrl.length > 0)
-    .map((pollUrl) => new URL(pollUrl, serverBaseUrl()).href);
-
-  assert.ok(pollUrls.length > 0, 'bundle uploads should return at least one training poll URL');
-
-  for (const pollUrl of pollUrls) {
-    await waitForTrainingCompletion(pollUrl);
-  }
+  await ensureProfileModelReady();
 
   const labelsResponse = await fetch(`${serverBaseUrl()}/api/v1/dgs/trained-labels?profileId=${profileId}`, {
     headers: serverHeaders({ 'X-Profile-Id': profileId }),
@@ -280,7 +299,6 @@ test('real repo videos with multiple samples per label produce a profile model',
   assert.ok(modelBytes.length > 0, 'profile model should contain binary payload');
 });
 
-// Note: This test depends on the profile model produced by the previous multi-label training test.
 test('gesture detection works with downloaded profile model after training', async () => {
   const win = globalThis as any;
   const originalWindow = win.window;
@@ -299,6 +317,8 @@ test('gesture detection works with downloaded profile model after training', asy
       setItem: () => undefined,
       removeItem: () => undefined,
     };
+
+    await ensureProfileModelReady();
 
     await installMlp();
 
