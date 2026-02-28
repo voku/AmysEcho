@@ -57,7 +57,7 @@ export async function fetchLandmarkTemplates(
   }
 
   const trimmedProfileId = profileId?.trim();
-  if (!trimmedProfileId || trimmedProfileId.length === 0) {
+  if (!trimmedProfileId) {
     return [];
   }
 

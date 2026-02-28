@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
 import { z } from "zod";
@@ -68,7 +69,7 @@ type TemplateStore = z.infer<typeof TemplateStoreSchema>;
 // --- Helpers ---
 
 function generateTemplateId(): string {
-	return `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+	return `tpl_${crypto.randomUUID()}`;
 }
 
 async function readStore(profileId: string): Promise<TemplateStore> {

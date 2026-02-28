@@ -186,14 +186,13 @@ export class StabilityAnalysisStep implements ProcessingStep {
 export class GestureDetectionStep implements ProcessingStep {
   name = 'gesture_detection';
   isExpensive = true; // MediaPipe processing can be expensive
+  private config: GestureDetectorConfig;
   private templateDetector: LandmarkTemplateDetector | null;
 
   constructor(config: GestureDetectorConfig, templateDetector?: LandmarkTemplateDetector) {
     this.config = config;
     this.templateDetector = templateDetector ?? null;
   }
-
-  private config: GestureDetectorConfig;
 
   async execute(context: ProcessingContext): Promise<GestureDetectionResult> {
     gestureDebugLog('detection', 'GestureDetectionStep executing', () => ({
