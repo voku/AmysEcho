@@ -88,12 +88,20 @@ type BatchMessageEntry = {
 };
 
 /**
- * Return the first message with a meaningful gesture label, or null.
+ * Return the most recent message with a meaningful gesture label, or null.
  * "Meaningful" excludes 'none', '_NULL_', and empty strings.
  */
 function findSignMessage(messages: BatchMessageEntry[] | undefined): BatchMessageEntry | null {
   if (!Array.isArray(messages)) return null;
-  return messages.find((m) => isMeaningfulGestureLabel(m?.gesture)) ?? null;
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (isMeaningfulGestureLabel(message?.gesture)) {
+      return message;
+    }
+  }
+
+  return null;
 }
 
 function parseIncomingMessage(raw: string): SignLanguageMessage | null {
@@ -296,7 +304,11 @@ export function useSignLanguageDetector(
           }
 
           if (payload.messages) {
-            for (const message of payload.messages) {
+            for (let index = payload.messages.length - 1; index >= 0; index -= 1) {
+              const message = payload.messages[index];
+              if (!message) {
+                continue;
+              }
               const messageMethod = message.detectionMethod?.trim();
               if (messageMethod) {
                 return messageMethod;
@@ -363,9 +375,9 @@ export function useSignLanguageDetector(
 
         const resolveFallbackUsage = () => {
           if (payload.isFallback === true) {
-            return true;
-          }
-          return payload.messages?.some((msg) => msg.isFallback === true) ?? false;
+        const messageWithLandmarks = payload.messages
+          ? [...payload.messages].reverse().find((msg) => Array.isArray(msg?.landmarks))
+          : undefined;
         };
 
         const resolvedMethod = resolveDetectionMethod();

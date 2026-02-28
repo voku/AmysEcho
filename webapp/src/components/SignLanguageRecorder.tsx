@@ -386,7 +386,8 @@ export function SignLanguageRecorder() {
       return false;
     }
 
-    if (normalizedTrainedSignLabels.has(normalizedDetectedLabel)) {
+      .filter(candidate => candidate.normalizedLabel.length > 0)
+      .sort((left, right) => right.score - left.score);
       return false;
     }
 
@@ -451,7 +452,6 @@ export function SignLanguageRecorder() {
       const existing = nextStore.get(candidate.normalizedLabel);
       const blendedScore = existing
         ? (existing.score * (1 - HELPFUL_MATCHES_BLEND_FACTOR)) + (candidate.score * HELPFUL_MATCHES_BLEND_FACTOR)
-        : candidate.score;
 
       nextStore.set(candidate.normalizedLabel, {
         label: candidate.label,
@@ -814,20 +814,6 @@ export function SignLanguageRecorder() {
             So kann ich deine Bewegungen zuverlässig verstehen.
           </p>
           <p className="gesture-screen__empty-body">
-            Du kannst direkt starten oder im Demo-Modus weitergehen.
-          </p>
-          <div className="gesture-screen__empty-actions">
-            <Link to="/beibringen" className="primary-button">
-              Jetzt Gebärde beibringen
-            </Link>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => {
-                setHasTrainedSigns(true);
-                setDemoMode(true);
-              }}
-            >
               Trotzdem fortfahren (Demo)
             </button>
           </div>
@@ -1000,7 +986,7 @@ export function SignLanguageRecorder() {
           <div className="gesture-screen__meta-note">{liveRecognitionStatus}</div>
           {profileModelRequired && !isProfileModelActive && (
             <div className="gesture-screen__meta-warning">
-              Persönliches Profilmodell noch nicht aktiv. Bitte warte kurz oder öffne „Lernen“, um das Training zu prüfen.
+                <p>Aktuelle Modellwerte (beste Übereinstimmung zuerst):</p>
               {!allowGlobalFallbackOutput && (
                 <>
                   {' '}

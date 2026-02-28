@@ -447,10 +447,43 @@ describe('useSignLanguageDetector', () => {
             messages: [
               {
                 type: 'gesture',
-                gesture: 'open_palm',
-                detectionMethod: 'mediapipe',
-                mlpDecision: { selected: false, reason: 'below_override_margin', threshold: 0.4 },
-                mlp: { label: 'TRINKEN', score: 0.57, candidates: [{ label: 'TRINKEN', score: 0.57 }] },
+  it('wählt die neueste sinnvolle Gebärde aus mehreren Nachrichten', async () => {
+    // Multiple meaningful gestures - latest meaningful one should be selected
+      // Latest meaningful gesture (ESSEN) wins because gesture_batch is ordered oldest->newest
+      expect(result.current.lastSign).toBe('ESSEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.85);
+    });
+  });
+
+
+
+  it('verwendet den neuesten Erkennungsweg aus einer gesture_batch Nachricht', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              { type: 'gesture', gesture: 'THUMBS_UP', detectionMethod: 'mediapipe', landmarks: [[[0.1, 0.2, 0]]] },
+              { type: 'gesture', gesture: 'TRINKEN', detectionMethod: 'mlp', landmarks: [[[0.3, 0.4, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.lastDetectionMethod).toBe('mlp');
                 thresholds: { mlp: 0.4 },
               },
             ],

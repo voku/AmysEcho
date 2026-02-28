@@ -515,7 +515,7 @@ describe('SignLanguageRecorder', () => {
 
 
 
-  it('shows contextual MLP suggestion from top label even when candidates list is missing', async () => {
+  it('zeigt Top-MLP-Label ohne Kandidatenliste ausschließlich in der Diagnose', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
     detectorState.lastSign = 'closed_fist';
@@ -529,8 +529,12 @@ describe('SignLanguageRecorder', () => {
 
     renderWithProviders(<SignLanguageRecorder />);
 
+    expect(screen.queryByText(/Unsichere Erkennung:/)).not.toBeInTheDocument();
+
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByRole('button', { name: /Trinken · 27% · trainiert/ })).toBeInTheDocument();
     expect(screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Trinken · 27% · trainiert/ }).length).toBeGreaterThan(0);
   });
@@ -559,7 +563,7 @@ describe('SignLanguageRecorder', () => {
               'X-Model-Version': '12345',
               'X-Model-Source': 'profile',
               'X-Model-Profile': 'profile-123',
-            },
+    const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
           });
         }
         if (url.includes('/api/v1/models/latest')) {
@@ -570,19 +574,29 @@ describe('SignLanguageRecorder', () => {
     );
 
 
-    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ trainedLabels: ['TRINKEN', 'ESSEN', 'HILFE'] }),
-    } as Response);
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
 
-    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'ESSEN', 'HILFE']));
-    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+  it('zeigt Modellvorschläge nur im Diagnosebereich und sortiert sie absteigend', async () => {
+      { label: 'TRINKEN', score: 0.28 },
+      { label: 'ESSEN', score: 0.42 },
+    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['TRINKEN', 'ESSEN']));
+    expect(screen.queryByText(/Unsichere Erkennung:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Trinken · 28% · trainiert/ })).not.toBeInTheDocument();
 
-    renderWithProviders(<SignLanguageRecorder />);
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
 
-    expect(screen.queryByText(/Beste Modelltreffer:/)).not.toBeInTheDocument();
-
+    const diagnosticsHint = screen.getByText('Aktuelle Modellwerte (beste Übereinstimmung zuerst):').closest<HTMLElement>('.gesture-screen__diagnostics-hint');
+    if (!diagnosticsHint) {
+      throw new Error('Diagnosebereich mit MLP-Vorschlägen nicht gefunden.');
+    }
+    const suggestionButtons = within(diagnosticsHint).getAllByRole('button');
+    const buttonLabels = suggestionButtons.map((button) => button.textContent ?? '');
+    expect(buttonLabels[0]).toContain('Essen · 42% · trainiert');
+    expect(buttonLabels[1]).toContain('Trinken · 28% · trainiert');
+    expect(buttonLabels[2]).toContain('Unbekannt · 16% · nicht trainiert');
+    expect(suggestionButtons[2]).toBeDisabled();
     const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
     fireEvent.click(diagnosticsButton);
 
