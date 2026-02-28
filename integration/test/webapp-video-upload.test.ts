@@ -355,7 +355,9 @@ test('gesture detection works with downloaded profile model after training', asy
     const essenFrames = loadRepoLandmarkFrames(await loadLandmarkFile('essen_main_essen_landmarks.json'));
     const trinkenFrames = loadRepoLandmarkFrames(await loadLandmarkFile('trinken_main_trinken_landmarks.json'));
 
+    assert.strictEqual(await win.__setMlpModelB64(modelBase64), true, 'expected model reload before ESSEN prediction');
     const essenPrediction = predictLabelFromFrames(essenFrames);
+    assert.strictEqual(await win.__setMlpModelB64(modelBase64), true, 'expected model reload before TRINKEN prediction');
     const trinkenPrediction = predictLabelFromFrames(trinkenFrames);
 
     assert.ok(essenPrediction, 'ESSEN prediction should produce MLP output');

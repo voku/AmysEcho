@@ -481,6 +481,85 @@ describe('SignLanguageRecorder', () => {
     expect(untrainedButton).toHaveAttribute('title', expect.stringContaining('Nicht trainiert'));
   });
 
+
+
+  it('syncs ready custom signs and uses their label for recognized output without descriptors', async () => {
+    appStateMock.profileId = 'amy';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'wasserzeichen';
+    detectorState.lastDetectionMethod = 'mlp';
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: ['wasserzeichen'] }),
+    } as Response);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/api/v1/models/latest')) {
+          return new Response('not-found', { status: 404 });
+        }
+        if (url.includes('/api/v1/dgs/signs?profileId=amy')) {
+          return new Response(JSON.stringify({
+            signs: [
+              {
+                id: 'wasserzeichen',
+                label: 'Wasser bitte',
+                emoji: '💧',
+                isReady: true,
+              },
+            ],
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const allowFallbackButton = await screen.findByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' });
+    fireEvent.click(allowFallbackButton);
+
+    expect(await screen.findByText('Wasser bitte')).toBeInTheDocument();
+  });
+
+  it('renders custom gesture display labels from trained label descriptors', async () => {
+    appStateMock.profileId = 'amy';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'wasserzeichen';
+    detectorState.lastDetectionMethod = 'mlp';
+    detectorState.lastMlpCandidates = [{ label: 'wasserzeichen', score: 0.8 }];
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        trainedLabels: ['wasserzeichen'],
+        labelDescriptors: [
+          {
+            id: 'wasserzeichen',
+            normalizedId: 'wasserzeichen',
+            displayLabel: 'Wasser bitte',
+            emoji: '💧',
+            isCustom: true,
+          },
+        ],
+      }),
+    } as Response);
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByRole('button', { name: /💧 Wasser bitte · 80% · trainiert/ })).toBeInTheDocument();
+  });
+
   it('shows low-confidence MLP candidate list so caregivers can decide in context', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];

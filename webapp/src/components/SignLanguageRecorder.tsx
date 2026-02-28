@@ -59,15 +59,51 @@ function canonicalizeRecordedSign(value: string): string {
     .trim();
 }
 
+function parseCustomSigns(raw: unknown): CustomSignResponse[] {
+  if (!raw || typeof raw !== 'object') {
+    return [];
+  }
+
+  const signs = (raw as { signs?: unknown }).signs;
+  if (!Array.isArray(signs)) {
+    return [];
+  }
+
+  return signs.filter((item): item is CustomSignResponse => {
+    if (!item || typeof item !== 'object') {
+      return false;
+    }
+
+    const candidate = item as Record<string, unknown>;
+    return typeof candidate['id'] === 'string' && typeof candidate['label'] === 'string';
+  });
+}
+
 type SuggestedMlpChoice = {
   label: string;
   normalizedLabel: string;
   score: number;
 };
 
+type TrainedLabelDescriptor = {
+  id: string;
+  normalizedId: string;
+  displayLabel: string;
+  emoji: string | null;
+  isCustom: boolean;
+};
+
+type CustomSignResponse = {
+  id: string;
+  label: string;
+  emoji?: string | null;
+  isReady?: boolean;
+};
+
 type MlpCandidateButtonsProps = {
   choices: SuggestedMlpChoice[];
   normalizedTrainedSignLabels: Set<string>;
+  labelDescriptorByNormalizedId: Map<string, TrainedLabelDescriptor>;
   onSelect: (label: string) => void;
   keyPrefix: string;
 };
@@ -75,6 +111,7 @@ type MlpCandidateButtonsProps = {
 function MlpCandidateButtons({
   choices,
   normalizedTrainedSignLabels,
+  labelDescriptorByNormalizedId,
   onSelect,
   keyPrefix,
 }: MlpCandidateButtonsProps) {
@@ -99,7 +136,12 @@ function MlpCandidateButtons({
               ? 'Diese Gebärde als aktuelle Ausgabe übernehmen'
               : 'Nicht trainiert – zur Nutzung bitte erst im Profil trainieren'}
           >
-            {toTitleCase(candidate.label)} · {confidencePercent}%{hasKnownTrainingSet
+            {(() => {
+              const descriptor = labelDescriptorByNormalizedId.get(candidate.normalizedLabel);
+              const displayLabel = descriptor?.displayLabel ?? toTitleCase(candidate.label);
+              const displayEmoji = descriptor?.emoji ? `${descriptor.emoji} ` : '';
+              return `${displayEmoji}${displayLabel}`;
+            })()} · {confidencePercent}%{hasKnownTrainingSet
               ? (isTrainedCandidate ? ' · trainiert' : ' · nicht trainiert')
               : ' · Modellvorschlag'}
           </button>
@@ -128,6 +170,14 @@ export function SignLanguageRecorder() {
   const [trainedSignLabels, setTrainedSignLabels] = useState<string[]>(() => {
     try {
       const cached = window.localStorage.getItem('webapp:trained-sign-labels');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [trainedLabelDescriptors, setTrainedLabelDescriptors] = useState<TrainedLabelDescriptor[]>(() => {
+    try {
+      const cached = window.localStorage.getItem('webapp:trained-label-descriptors');
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -202,25 +252,47 @@ export function SignLanguageRecorder() {
       const shouldApplyResult = () =>
         isActive && latestProfileIdRef.current === requestedProfileId;
 
-      const parseLabelsFromResponse = async (response: Response): Promise<string[] | null> => {
+      const parseLabelsFromResponse = async (response: Response): Promise<{ labels: string[]; descriptors: TrainedLabelDescriptor[] } | null> => {
         if (!response.ok) {
           return null;
         }
-        const data = await response.json() as { trainedLabels?: unknown };
-        return Array.isArray(data.trainedLabels)
+        const data = await response.json() as { trainedLabels?: unknown; labelDescriptors?: unknown };
+        const labels = Array.isArray(data.trainedLabels)
           ? data.trainedLabels.filter((label: unknown): label is string => typeof label === 'string')
           : [];
+        const descriptors = Array.isArray(data.labelDescriptors)
+          ? data.labelDescriptors.filter((descriptor: unknown): descriptor is TrainedLabelDescriptor => {
+            if (!descriptor || typeof descriptor !== 'object') {
+              return false;
+            }
+            const candidate = descriptor as Record<string, unknown>;
+            return typeof candidate['id'] === 'string'
+              && typeof candidate['normalizedId'] === 'string'
+              && typeof candidate['displayLabel'] === 'string'
+              && (typeof candidate['emoji'] === 'string' || candidate['emoji'] === null)
+              && typeof candidate['isCustom'] === 'boolean';
+          })
+          : labels.map((label) => ({
+            id: label,
+            normalizedId: normalizeSignLabel(label),
+            displayLabel: toTitleCase(label),
+            emoji: null,
+            isCustom: false,
+          }));
+        return { labels, descriptors };
       };
 
-      const applyLabels = (labels: string[]) => {
+      const applyLabels = (labels: string[], descriptors: TrainedLabelDescriptor[]) => {
         if (!shouldApplyResult()) {
           return;
         }
         setTrainedSignLabels(labels);
+        setTrainedLabelDescriptors(descriptors);
         const hasAny = labels.length > 0;
         setHasTrainedSigns(hasAny);
         try {
           window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(labels));
+          window.localStorage.setItem('webapp:trained-label-descriptors', JSON.stringify(descriptors));
           window.localStorage.setItem('webapp:has-trained-signs', String(hasAny));
         } catch {
           // ignore quota errors
@@ -232,9 +304,11 @@ export function SignLanguageRecorder() {
           return;
         }
         setTrainedSignLabels([]);
+        setTrainedLabelDescriptors([]);
         setHasTrainedSigns(false);
         try {
           window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify([]));
+          window.localStorage.setItem('webapp:trained-label-descriptors', JSON.stringify([]));
           window.localStorage.setItem('webapp:has-trained-signs', 'false');
         } catch {
           // ignore quota errors
@@ -243,6 +317,42 @@ export function SignLanguageRecorder() {
 
       const buildTrainedLabelsUrl = (id: string) =>
         resolveApiUrl(`/api/v1/dgs/trained-labels?profileId=${encodeURIComponent(id)}`, apiBaseUrl);
+
+      const syncCustomSignMeanings = async (id: string) => {
+        const customSignsUrl = resolveApiUrl(`/api/v1/dgs/signs?profileId=${encodeURIComponent(id)}`, apiBaseUrl);
+        const headers: HeadersInit = apiToken.trim().length > 0
+          ? { Authorization: `Bearer ${apiToken}` }
+          : {};
+        const response = await fetch(customSignsUrl, { headers });
+        if (!response.ok) {
+          return;
+        }
+
+        const signs = parseCustomSigns(await response.json());
+        for (const sign of signs) {
+          const normalizedId = normalizeSignLabel(sign.id);
+          if (!normalizedId) {
+            continue;
+          }
+
+          const displayLabel = sign.label.trim();
+          const isReady = sign.isReady !== false;
+          if (!displayLabel || !isReady) {
+            continue;
+          }
+
+          const emoji = typeof sign.emoji === 'string' && sign.emoji.trim().length > 0 ? sign.emoji.trim() : '🖐️';
+          gestureMeaningService.setMeaning({
+            gestureId: normalizedId,
+            label: displayLabel,
+            emoji,
+            category: 'eigene',
+            color: '#9B6DFF',
+            audioText: displayLabel,
+            priority: 2,
+          });
+        }
+      };
       
       try {
         const requestOptions: RequestInit = apiToken.trim().length > 0
@@ -269,9 +379,12 @@ export function SignLanguageRecorder() {
           }
         }
 
-        const labels = await parseLabelsFromResponse(response);
-        if (labels) {
-          applyLabels(labels);
+        const parsedResult = await parseLabelsFromResponse(response);
+        if (parsedResult) {
+          applyLabels(parsedResult.labels, parsedResult.descriptors);
+          await syncCustomSignMeanings(requestedProfileId).catch((customSignError) => {
+            console.warn('Failed to sync custom sign meanings:', customSignError);
+          });
         } else if (response.status === 401 || response.status === 403) {
           // Access denied after retry; clear stale data so UI and auth state stay aligned.
           clearLabelCache();
@@ -320,6 +433,10 @@ export function SignLanguageRecorder() {
   const normalizedTrainedSignLabels = useMemo(
     () => new Set(trainedSignLabels.map(label => normalizeSignLabel(label)).filter(Boolean)),
     [trainedSignLabels]
+  );
+  const labelDescriptorByNormalizedId = useMemo(
+    () => new Map(trainedLabelDescriptors.map((descriptor) => [descriptor.normalizedId, descriptor])),
+    [trainedLabelDescriptors],
   );
 
   const profileModelRequired = Boolean(profileId && trainedSignLabels.length > 0 && !demoMode);
@@ -466,14 +583,15 @@ export function SignLanguageRecorder() {
     (lastDetectionMethod === 'mlp' || hasManualSuggestion);
   const shouldShowGestureOutput = (isTrained && canUseProfileRecognition) || canUseDirectMlpOutput;
 
+  const selectedLabelDescriptor = gestureKey ? labelDescriptorByNormalizedId.get(gestureKey) : undefined;
   const gestureMeaning = (gestureKey && shouldShowGestureOutput)
     ? gestureMeaningService.getMeaning(gestureKey)
     : undefined;
   const gestureLabel = (gestureKey && shouldShowGestureOutput)
-    ? gestureMeaning?.label ?? toTitleCase(normalizedGesture)
+    ? gestureMeaning?.label ?? selectedLabelDescriptor?.displayLabel ?? toTitleCase(normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
-    ? gestureMeaning?.audioText ?? gestureLabel ?? normalizedGesture
+    ? gestureMeaning?.audioText ?? selectedLabelDescriptor?.displayLabel ?? gestureLabel ?? normalizedGesture
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
@@ -1016,6 +1134,7 @@ export function SignLanguageRecorder() {
                   <MlpCandidateButtons
                     choices={suggestedMlpChoices}
                     normalizedTrainedSignLabels={normalizedTrainedSignLabels}
+                    labelDescriptorByNormalizedId={labelDescriptorByNormalizedId}
                     onSelect={setManualSuggestionLabel}
                     keyPrefix="diagnostics-"
                   />
