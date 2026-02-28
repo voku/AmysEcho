@@ -285,38 +285,43 @@ export function useSignLanguageDetector(
           }
         }
 
+        const resolveDetectionMethod = () => {
+          const topLevelMethod = payload.detectionMethod?.trim();
+          if (topLevelMethod) {
+            return topLevelMethod;
+          }
+          const topLevelMetaMethod = payload.metadata?.method?.trim();
+          if (topLevelMetaMethod) {
+            return topLevelMetaMethod;
+          }
+
+          if (payload.messages) {
+            for (const message of payload.messages) {
+              const messageMethod = message.detectionMethod?.trim();
+              if (messageMethod) {
+                return messageMethod;
+              }
+              const messageMetaMethod = message.metadata?.method?.trim();
+              if (messageMetaMethod) {
+                return messageMetaMethod;
+              }
+            }
+          }
+
+          return null;
+        };
+
+        const resolvedMethod = resolveDetectionMethod();
+
         const nestedMlpMessage = findLastMessageWithMlp();
         const hasMlpMetadata =
           Object.prototype.hasOwnProperty.call(payload, 'mlp') ||
           nestedMlpMessage !== null;
-        const isGesturePayload = payload.type === 'gesture' || payload.type === 'gesture_batch' || payload.type === 'landmarks';
-
-        if (hasMlpMetadata) {
-          const mlpMetadata = Object.prototype.hasOwnProperty.call(payload, 'mlp')
-            ? payload.mlp
-            : nestedMlpMessage?.mlp;
-          if (mlpMetadata && typeof mlpMetadata.label === 'string') {
-            setLastMlpLabel(mlpMetadata.label);
-            setLastMlpScore(typeof mlpMetadata.score === 'number' ? mlpMetadata.score : null);
-            setLastMlpCandidates(
-              Array.isArray(mlpMetadata.candidates)
-                ? mlpMetadata.candidates.filter((candidate): candidate is { label: string; score: number } =>
-                    typeof candidate?.label === 'string' && typeof candidate?.score === 'number',
-                  )
-                : [],
-            );
-          } else {
-            setLastMlpLabel(null);
-            setLastMlpScore(null);
-            setLastMlpCandidates([]);
-          }
-        } else if (isGesturePayload) {
+        } else if (resolvedMethod && resolvedMethod !== 'mlp') {
           setLastMlpLabel(null);
           setLastMlpScore(null);
           setLastMlpCandidates([]);
-        }
 
-        const nestedThresholdMessage = findLastMessageWithThresholds();
         const mlpThresholdFromDecision =
           typeof mlpDecision?.threshold === 'number'
             ? mlpDecision.threshold

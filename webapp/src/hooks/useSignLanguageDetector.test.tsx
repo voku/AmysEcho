@@ -280,10 +280,10 @@ describe('useSignLanguageDetector', () => {
       window.dispatchEvent(
         new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
           detail: JSON.stringify({
-            type: 'gesture_batch',
-            messages: [
-              {
-                gesture: 'TRINKEN',
+  it('setzt MLP-Metadaten zurück, wenn die nächste Meldung ohne mlp von MediaPipe kommt', async () => {
+      expect(result.current.lastMlpLabel).toBeNull();
+      expect(result.current.lastMlpScore).toBeNull();
+      expect(result.current.lastMlpCandidates).toEqual([]);
                 confidence: 0.7,
                 landmarks: [[[0.2, 0.3, 0]]],
                 mlp: {
