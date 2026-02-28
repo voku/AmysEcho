@@ -159,6 +159,25 @@ npm test --prefix integration
 ./scripts/full-check.sh
 ```
 
+### CI Parity Troubleshooting Loop (Required Before Escalating)
+
+When PR comments or CI snippets report parse/type failures, verify against the **current branch state** before changing code. We have repeatedly seen stale bot comments after conflicts were already fixed.
+
+Use this exact loop:
+
+```bash
+mkdir -p /tmp/amy-ci
+NODE_OPTIONS=--max_old_space_size=4096 ./scripts/full-check.sh 2>&1 | tee /tmp/amy-ci/full-check-$(date +%s).log
+rg -n "Parsing error|TS1005|Identifier expected|\bnot ok\b|\bfail\b|failing|error" /tmp/amy-ci/full-check-*.log
+```
+
+Interpretation guidance:
+- `stderr` lines in test output are not automatically failures (many tests assert error paths intentionally).
+- Treat the run as green only when package summaries show zero failed suites/tests (for example, TAP ends with `fail 0`, Jest/Vitest show all suites passed, and `full-check.sh` exits `0`).
+- If `full-check.sh` updates generated artifacts (for example dependency snapshots or training fixture outputs), restore them before committing unless the task explicitly includes those files.
+
+This protects Amy-critical behavior by avoiding unnecessary refactors based on outdated diagnostics and ensures every fix is validated in CI-equivalent conditions.
+
 ### Key File Locations by Task
 
 | Task | Files |

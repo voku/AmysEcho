@@ -88,12 +88,20 @@ type BatchMessageEntry = {
 };
 
 /**
- * Return the first message with a meaningful gesture label, or null.
+ * Return the most recent message with a meaningful gesture label, or null.
  * "Meaningful" excludes 'none', '_NULL_', and empty strings.
  */
 function findSignMessage(messages: BatchMessageEntry[] | undefined): BatchMessageEntry | null {
   if (!Array.isArray(messages)) return null;
-  return messages.find((m) => isMeaningfulGestureLabel(m?.gesture)) ?? null;
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (isMeaningfulGestureLabel(message?.gesture)) {
+      return message;
+    }
+  }
+
+  return null;
 }
 
 function parseIncomingMessage(raw: string): SignLanguageMessage | null {
@@ -285,6 +293,38 @@ export function useSignLanguageDetector(
           }
         }
 
+        const resolveDetectionMethod = () => {
+          const topLevelMethod = payload.detectionMethod?.trim();
+          if (topLevelMethod) {
+            return topLevelMethod;
+          }
+          const topLevelMetaMethod = payload.metadata?.method?.trim();
+          if (topLevelMetaMethod) {
+            return topLevelMetaMethod;
+          }
+
+          if (payload.messages) {
+            for (let index = payload.messages.length - 1; index >= 0; index -= 1) {
+              const message = payload.messages[index];
+              if (!message) {
+                continue;
+              }
+              const messageMethod = message.detectionMethod?.trim();
+              if (messageMethod) {
+                return messageMethod;
+              }
+              const messageMetaMethod = message.metadata?.method?.trim();
+              if (messageMetaMethod) {
+                return messageMetaMethod;
+              }
+            }
+          }
+
+          return null;
+        };
+
+        const resolvedMethod = resolveDetectionMethod();
+
         const nestedMlpMessage = findLastMessageWithMlp();
         const hasMlpMetadata =
           Object.prototype.hasOwnProperty.call(payload, 'mlp') ||
@@ -309,6 +349,10 @@ export function useSignLanguageDetector(
             setLastMlpScore(null);
             setLastMlpCandidates([]);
           }
+        } else if (resolvedMethod && resolvedMethod !== 'mlp') {
+          setLastMlpLabel(null);
+          setLastMlpScore(null);
+          setLastMlpCandidates([]);
         }
 
         const nestedThresholdMessage = findLastMessageWithThresholds();
@@ -325,32 +369,6 @@ export function useSignLanguageDetector(
 
         setLastMlpThreshold(mlpThresholdFromDecision ?? mlpThresholdFromPayload);
 
-        const resolveDetectionMethod = () => {
-          const topLevelMethod = payload.detectionMethod?.trim();
-          if (topLevelMethod) {
-            return topLevelMethod;
-          }
-          const topLevelMetaMethod = payload.metadata?.method?.trim();
-          if (topLevelMetaMethod) {
-            return topLevelMetaMethod;
-          }
-
-          if (payload.messages) {
-            for (const message of payload.messages) {
-              const messageMethod = message.detectionMethod?.trim();
-              if (messageMethod) {
-                return messageMethod;
-              }
-              const messageMetaMethod = message.metadata?.method?.trim();
-              if (messageMetaMethod) {
-                return messageMetaMethod;
-              }
-            }
-          }
-
-          return null;
-        };
-
         const resolveFallbackUsage = () => {
           if (payload.isFallback === true) {
             return true;
@@ -358,7 +376,6 @@ export function useSignLanguageDetector(
           return payload.messages?.some((msg) => msg.isFallback === true) ?? false;
         };
 
-        const resolvedMethod = resolveDetectionMethod();
         const resolvedFallback = resolveFallbackUsage();
         const nestedSignMsg = findSignMessage(payload.messages);
         const hasGesturePayload =
@@ -383,9 +400,9 @@ export function useSignLanguageDetector(
           setLastConfidence(batchConfidence ?? messageConfidence);
         }
 
-        const messageWithLandmarks = payload.messages?.find((msg) =>
-          Array.isArray(msg?.landmarks),
-        );
+        const messageWithLandmarks = payload.messages
+          ? [...payload.messages].reverse().find((msg) => Array.isArray(msg?.landmarks))
+          : undefined;
         const landmarksCandidate = Array.isArray(payload.landmarks)
           ? (payload.landmarks as number[][][])
           : messageWithLandmarks?.landmarks;
