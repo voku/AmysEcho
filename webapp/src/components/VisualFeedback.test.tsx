@@ -33,6 +33,22 @@ describe('VisualFeedback', () => {
     }
   });
 
+  it('ruft onHide nicht mehr auf, wenn die Komponente vor Ablauf entfernt wird', () => {
+    vi.useFakeTimers();
+    const onHide = vi.fn();
+
+    try {
+      const { unmount } = render(
+        <VisualFeedback type="info" active message="Hinweis" duration={50} onHide={onHide} />,
+      );
+      unmount();
+      vi.advanceTimersByTime(1000);
+      expect(onHide).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('zeigt Gestenerkennungs-Feedback mit Gestenlabel', () => {
     render(<GestureRecognitionFeedback gesture="Essen" confidence={0.9} isActive />);
     expect(screen.getByRole('status', { name: 'Essen' })).toBeInTheDocument();
