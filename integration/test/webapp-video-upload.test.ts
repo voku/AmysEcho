@@ -4,8 +4,10 @@ import { dirname, join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { after, before, test } from 'node:test';
+import { unzip } from 'fflate';
 
 import { createTrainingZip, uploadTrainingZip } from '../../webapp/src/training/trainingBundle.ts';
+import { installMlp } from '../../webapp/src/gesture/installMlp.ts';
 import type { TrainingBundlePayload, TrainingFrame } from '../../webapp/src/training/types.ts';
 import { TEST_TOKEN, serverBaseUrl, serverHeaders, startServer, stopServer, createProfile } from './helpers/server.ts';
 
@@ -16,6 +18,12 @@ const profileId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
 
 type RepoLandmarkFrame = {
   landmarks?: number[][];
+};
+
+type MlpPredictResult = {
+  label: string;
+  score: number;
+  candidates?: Array<{ label: string; score: number }>;
 };
 
 type RepoLandmarkFile = {
@@ -138,6 +146,46 @@ async function createBundleFromRepoVideo(clipName: string, landmarksName: string
   });
 }
 
+function loadRepoLandmarkFrames(landmarks: RepoLandmarkFile): RepoLandmarkFrame[] {
+  return Array.isArray(landmarks.frames)
+    ? landmarks.frames.filter((frame): frame is RepoLandmarkFrame => !!frame && typeof frame === 'object')
+    : [];
+}
+
+async function loadLandmarkFile(fileName: string): Promise<RepoLandmarkFile> {
+  const landmarksRaw = await fs.readFile(join(repoRoot, 'server', 'data', 'dgs_video_examples', fileName), 'utf8');
+  return JSON.parse(landmarksRaw) as RepoLandmarkFile;
+}
+
+function predictLabelFromFrames(frames: RepoLandmarkFrame[], maxFrames = 12): MlpPredictResult | null {
+  const win = globalThis as any;
+  let lastResult: MlpPredictResult | null = null;
+
+  for (const frame of frames.slice(0, maxFrames)) {
+    const points = Array.isArray(frame.landmarks)
+      ? frame.landmarks.filter(
+        (point): point is number[] => Array.isArray(point) && point.length >= 3 && point.every((value) => Number.isFinite(value)),
+      )
+      : [];
+    const leftHand = points.slice(0, 21);
+    const rightHand = points.slice(21, 42);
+    const poseLandmarks = points.slice(42, 75);
+    const faceLandmarks = points.slice(75, 543);
+
+    const prediction = win.__mlpPredict?.(
+      [leftHand, rightHand],
+      [[{ categoryName: 'Left' }], [{ categoryName: 'Right' }]],
+      poseLandmarks,
+      faceLandmarks,
+    ) as MlpPredictResult | null;
+    if (prediction) {
+      lastResult = prediction;
+    }
+  }
+
+  return lastResult;
+}
+
 test('webapp helpers upload a real repo video and server serves stored clip', async () => {
   const clipBytes = await fs.readFile(clipFixturePath);
   assert.ok(clipBytes.length > 0, 'expected non-empty clip fixture');
@@ -229,4 +277,47 @@ test('real repo videos with multiple samples per label produce a profile model',
   assert.strictEqual(modelResponse.headers.get('x-model-profile'), profileId);
   const modelBytes = Buffer.from(await modelResponse.arrayBuffer());
   assert.ok(modelBytes.length > 0, 'profile model should contain binary payload');
+});
+
+test('gesture detection works with downloaded profile model after training', async () => {
+  const win = globalThis as any;
+  win.window = win;
+  win.fflate = { unzip };
+  win.ReactNativeWebView = { postMessage: () => undefined };
+  win.navigator = { onLine: true, sendBeacon: () => true };
+  win.localStorage = {
+    getItem: () => null,
+    setItem: () => undefined,
+    removeItem: () => undefined,
+  };
+
+  await installMlp();
+
+  const modelResponse = await fetch(`${serverBaseUrl()}/api/v1/models/latest?profileId=${profileId}`, {
+    headers: serverHeaders({ 'X-Profile-Id': profileId }),
+  });
+  assert.strictEqual(modelResponse.status, 200);
+  const modelBase64 = Buffer.from(await modelResponse.arrayBuffer()).toString('base64');
+
+  const loaded = await win.__setMlpModelB64(modelBase64);
+  assert.strictEqual(loaded, true, 'expected downloaded profile model to load into webapp predictor');
+
+  const essenFrames = loadRepoLandmarkFrames(await loadLandmarkFile('essen_main_essen_landmarks.json'));
+  const trinkenFrames = loadRepoLandmarkFrames(await loadLandmarkFile('trinken_main_trinken_landmarks.json'));
+
+  const essenPrediction = predictLabelFromFrames(essenFrames);
+  const trinkenPrediction = predictLabelFromFrames(trinkenFrames);
+
+  assert.ok(essenPrediction, 'ESSEN prediction should produce MLP output');
+  assert.ok(trinkenPrediction, 'TRINKEN prediction should produce MLP output');
+  const essenCandidates = (essenPrediction?.candidates ?? []).map((candidate) => candidate.label.toUpperCase());
+  const trinkenCandidates = (trinkenPrediction?.candidates ?? []).map((candidate) => candidate.label.toUpperCase());
+  assert.ok(essenCandidates.includes('ESSEN'), 'ESSEN sample should include ESSEN in ranked candidates');
+  assert.ok(trinkenCandidates.includes('TRINKEN'), 'TRINKEN sample should include TRINKEN in ranked candidates');
+
+  const trinkenCandidateScores = trinkenPrediction?.candidates ?? [];
+  assert.ok(trinkenCandidateScores.length > 1, 'MLP should return ranked candidate list');
+  const rankedScores = trinkenCandidateScores.map((candidate) => candidate.score);
+  const sortedScores = [...rankedScores].sort((a, b) => b - a);
+  assert.deepStrictEqual(rankedScores, sortedScores, 'MLP candidates should be sorted best match first');
 });
