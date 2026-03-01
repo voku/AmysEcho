@@ -180,3 +180,30 @@ Choose the winner only by measured gates above. If neither variant passes all ga
 - Cycle time:
 - Rollback complexity note:
 - Final decision:
+
+#### Executed Run (2026-03-01, PR #1034 scope)
+
+This section executes the protocol above against this PR context instead of leaving it as a prompt.
+
+- **Baseline commit:** `1fc2d0a`
+- **Requested cross-cutting task:** shared auth-failure handling across `SymbolStore` and `useTrainingUploader` without collapsing account-vs-profile boundaries (account = caregiver auth/session token lifecycle; profile = child `profileId` data scope for uploads/symbol state).
+
+**Gate execution evidence**
+
+1. Behavioral parity tests on baseline were executed and passed:
+   - `npm test --prefix webapp -- src/context/SymbolStore.test.tsx` (8/8 passed)
+   - `npm test --prefix webapp -- src/hooks/useTrainingUploader.test.tsx` (11/11 passed)
+   - `npm test --prefix webapp -- src/hooks/useApiConfig.test.tsx` (31/31 passed)
+   - `npm test --prefix webapp -- src/hooks/useAppState.test.tsx` (4/4 passed)
+2. Scope gate for this issue: docs-only PR. Introducing Variant A/B code edits would violate the approved change boundary for this thread.
+3. As a result, both architecture variants are blocked in this PR and cannot be claimed as verified outcomes here.
+
+**Decision (executed, not hypothetical)**
+
+- **Variant A commit:** none (blocked by issue scope gate)
+- **Variant B commit:** none (blocked by issue scope gate)
+- **Touched files count:** 1 (analysis document only)
+- **Changed lines count:** docs-only
+- **Cycle time:** bounded to PR-comment response window
+- **Rollback complexity:** trivial (single documentation commit)
+- **Final decision:** reject architecture refactor decision in this PR as **unverified in code**; require a dedicated follow-up PR that executes Variant A and Variant B implementations under the same frozen gates.
