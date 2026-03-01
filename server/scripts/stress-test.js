@@ -6,7 +6,7 @@ const TOKEN = process.env.STRESS_TEST_TOKEN;
 
 if (!TOKEN) {
   console.error('STRESS_TEST_TOKEN environment variable not set. Please generate a token and export it.');
-  console.log('Usage: STRESS_TEST_TOKEN=$(node generate-token.js) node stress-test.js');
+  console.log('Usage: STRESS_TEST_TOKEN=$(npm run -s generate-token --prefix server) npm run stress-test --prefix server');
   process.exit(1);
 }
 

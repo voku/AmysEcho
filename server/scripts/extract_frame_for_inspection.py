@@ -9,7 +9,8 @@ import cv2
 def main():
     """Extract and save a frame from DGS video for visual inspection"""
 
-    video_path = Path(__file__).parent / "data" / "dgs_video_examples" / "gelb.mp4"
+    script_dir = Path(__file__).parent
+    video_path = script_dir.parent / "data" / "dgs_video_examples" / "gelb.mp4"
 
     cap = cv2.VideoCapture(str(video_path))
 
@@ -23,7 +24,10 @@ def main():
 
         if success:
             # Save the frame as image for inspection
-            output_path = Path(__file__).parent / "gelb_frame_for_inspection.jpg"
+            artifact_dir = script_dir / "dev-artifacts"
+            artifact_dir.mkdir(parents=True, exist_ok=True)
+
+            output_path = artifact_dir / "gelb_frame_for_inspection.jpg"
             cv2.imwrite(str(output_path), frame)
             print(f"Saved frame to: {output_path}")
             print(f"Frame shape: {frame.shape}")
@@ -37,7 +41,7 @@ def main():
             print(f"Found {len(contours)} contours")
 
             # Save edge detected version
-            edge_path = Path(__file__).parent / "gelb_frame_edges.jpg"
+            edge_path = artifact_dir / "gelb_frame_edges.jpg"
             cv2.imwrite(str(edge_path), edges)
             print(f"Saved edges to: {edge_path}")
         else:
