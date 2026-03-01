@@ -23,7 +23,7 @@ Die Manifest-Datei muss im Format `{"entries": []}` initialisiert sein:
 
 ## 2. Authentifizierung
 
-Für lokale Tests kann ein Token mit `npm run generate-token --prefix server` (oder direkt `server/scripts/generate-token.js`) erstellt werden:
+Für lokale Tests kann ein Token mit `npm run generate-token --prefix server` (oder direkt mit `node server/scripts/generate-token.js`) erstellt werden:
 
 ```javascript
 import jwt from 'jsonwebtoken';
