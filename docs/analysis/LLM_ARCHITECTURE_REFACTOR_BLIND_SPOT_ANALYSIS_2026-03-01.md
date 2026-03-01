@@ -133,3 +133,50 @@ Replacement ritual (mandatory):
 5. Keep evidence in-command outputs, not assumptions.
 
 This is the only reliable way to align "minimal changes" with actual behavior.
+
+### Real Work Addendum — Repository-Grounded Proof Card
+
+To make this self-analysis concrete, the next architecture-refactor decision must be evaluated against a real cross-cutting hotspot that exists in this codebase now:
+
+- `webapp/src/hooks/useApiConfig.tsx` owns account/session token lifecycle (storage + refresh).
+- `webapp/src/hooks/useAppState.tsx` + `webapp/src/services/profileRegistry.ts` own active child profile scope (`profileId`).
+- `webapp/src/context/SymbolStore.tsx` and `webapp/src/hooks/useTrainingUploader.ts` mix both concerns (auth retry + profile-scoped data sync/upload).
+
+This is exactly where "clean architecture" arguments are most likely to sound convincing while hiding risk.
+
+#### Pre-Registered A/B Task (must be frozen before coding)
+
+**Task:** Improve shared auth-failure handling in profile-scoped sync/upload flows without collapsing the account-vs-profile boundary.
+
+- **Variant A (current architecture):**
+  Keep retry/error handling local in `SymbolStore` and `useTrainingUploader`; apply only minimal tactical fixes.
+- **Variant B (proposed refactor):**
+  Introduce one shared boundary utility for auth-failure retry policy; keep profile selection/state ownership where it currently lives.
+
+#### Pass/Fail Gates (non-negotiable)
+
+1. **Behavioral parity tests** (both variants must pass):
+   - `npm test --prefix webapp -- src/context/SymbolStore.test.tsx`
+   - `npm test --prefix webapp -- src/hooks/useTrainingUploader.test.tsx`
+   - `npm test --prefix webapp -- src/hooks/useApiConfig.test.tsx`
+   - `npm test --prefix webapp -- src/hooks/useAppState.test.tsx`
+2. **Boundary gate:** no variant may move profile ownership out of `useAppState` / `profileRegistry`.
+3. **Diff budget:** max 5 touched files, max 220 changed lines.
+4. **Cycle-time budget:** implementation + verification <= 120 minutes per variant.
+5. **Rollback gate:** revert by dropping one commit without data-migration steps.
+
+#### Decision Rule
+
+Choose the winner only by measured gates above. If neither variant passes all gates, reject both and keep baseline.
+
+#### Evidence Log Template (required)
+
+- Baseline commit:
+- Variant A commit:
+- Variant B commit:
+- Test output links:
+- Touched files count:
+- Changed lines count:
+- Cycle time:
+- Rollback complexity note:
+- Final decision:
