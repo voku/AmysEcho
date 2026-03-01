@@ -29,6 +29,29 @@ type LandmarkTemplateDeps = {
 	) => Promise<{ profileId: string | null }>;
 };
 
+type ProfileResolution =
+	| { ok: true; profileId: string }
+	| { ok: false; status: number; error: string };
+
+async function resolveRequiredProfile(
+	profileId: unknown,
+	deps: LandmarkTemplateDeps,
+): Promise<ProfileResolution> {
+	if (typeof profileId !== "string" || profileId.trim().length === 0) {
+		return { ok: false, status: 400, error: "profileId ist erforderlich." };
+	}
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
+		return { ok: false, status: 400, error: "Ungültige Profil-ID." };
+	}
+	const resolved = deps.resolveProfileId
+		? await deps.resolveProfileId(profileId)
+		: { profileId };
+	if (!resolved.profileId) {
+		return { ok: false, status: 404, error: "Profil nicht gefunden." };
+	}
+	return { ok: true, profileId: resolved.profileId };
+}
+
 export function registerLandmarkTemplateRoute(
 	app: Express,
 	deps: LandmarkTemplateDeps = {},
@@ -41,6 +64,7 @@ export function registerLandmarkTemplateRoute(
 			try {
 				const { profileId } = req.query;
 
+				// GET returns empty list when no profileId is provided
 				if (
 					typeof profileId !== "string" ||
 					profileId.trim().length === 0
@@ -48,23 +72,12 @@ export function registerLandmarkTemplateRoute(
 					return res.json({ templates: [] });
 				}
 
-				if (!PROFILE_ID_PATTERN.test(profileId)) {
-					return res
-						.status(400)
-						.json({ error: "Ungültige Profil-ID." });
+				const result = await resolveRequiredProfile(profileId, deps);
+				if (!result.ok) {
+					return res.status(result.status).json({ error: result.error });
 				}
 
-				const resolved = deps.resolveProfileId
-					? await deps.resolveProfileId(profileId)
-					: { profileId };
-
-				if (!resolved.profileId) {
-					return res
-						.status(404)
-						.json({ error: "Profil nicht gefunden." });
-				}
-
-				const templates = await listTemplates(resolved.profileId);
+				const templates = await listTemplates(result.profileId);
 				return res.json({ templates });
 			} catch (error: unknown) {
 				console.error("Failed to list landmark templates", error);
@@ -91,18 +104,13 @@ export function registerLandmarkTemplateRoute(
 			const { label, profileId, landmarks, handedness } = parsed.data;
 
 			try {
-				const resolved = deps.resolveProfileId
-					? await deps.resolveProfileId(profileId)
-					: { profileId };
-
-				if (!resolved.profileId) {
-					return res
-						.status(404)
-						.json({ error: "Profil nicht gefunden." });
+				const result = await resolveRequiredProfile(profileId, deps);
+				if (!result.ok) {
+					return res.status(result.status).json({ error: result.error });
 				}
 
 				const template = await addTemplate(
-					resolved.profileId,
+					result.profileId,
 					label,
 					landmarks,
 					handedness,
@@ -124,38 +132,14 @@ export function registerLandmarkTemplateRoute(
 		auth,
 		async (req: Request, res: Response) => {
 			try {
-				const { profileId } = req.query;
 				const { id } = req.params;
 
-				if (
-					typeof profileId !== "string" ||
-					profileId.trim().length === 0
-				) {
-					return res
-						.status(400)
-						.json({ error: "profileId ist erforderlich." });
+				const result = await resolveRequiredProfile(req.query.profileId, deps);
+				if (!result.ok) {
+					return res.status(result.status).json({ error: result.error });
 				}
 
-				if (!PROFILE_ID_PATTERN.test(profileId)) {
-					return res
-						.status(400)
-						.json({ error: "Ungültige Profil-ID." });
-				}
-
-				const resolved = deps.resolveProfileId
-					? await deps.resolveProfileId(profileId)
-					: { profileId };
-
-				if (!resolved.profileId) {
-					return res
-						.status(404)
-						.json({ error: "Profil nicht gefunden." });
-				}
-
-				const deleted = await deleteTemplate(
-					resolved.profileId,
-					id,
-				);
+				const deleted = await deleteTemplate(result.profileId, id);
 				if (!deleted) {
 					return res
 						.status(404)
@@ -178,16 +162,7 @@ export function registerLandmarkTemplateRoute(
 		auth,
 		async (req: Request, res: Response) => {
 			try {
-				const { profileId, label } = req.query;
-
-				if (
-					typeof profileId !== "string" ||
-					profileId.trim().length === 0
-				) {
-					return res
-						.status(400)
-						.json({ error: "profileId ist erforderlich." });
-				}
+				const { label } = req.query;
 
 				if (typeof label !== "string" || label.trim().length === 0) {
 					return res
@@ -195,24 +170,13 @@ export function registerLandmarkTemplateRoute(
 						.json({ error: "label ist erforderlich." });
 				}
 
-				if (!PROFILE_ID_PATTERN.test(profileId)) {
-					return res
-						.status(400)
-						.json({ error: "Ungültige Profil-ID." });
-				}
-
-				const resolved = deps.resolveProfileId
-					? await deps.resolveProfileId(profileId)
-					: { profileId };
-
-				if (!resolved.profileId) {
-					return res
-						.status(404)
-						.json({ error: "Profil nicht gefunden." });
+				const result = await resolveRequiredProfile(req.query.profileId, deps);
+				if (!result.ok) {
+					return res.status(result.status).json({ error: result.error });
 				}
 
 				const count = await deleteTemplatesByLabel(
-					resolved.profileId,
+					result.profileId,
 					label,
 				);
 				return res.json({ deleted: count });
