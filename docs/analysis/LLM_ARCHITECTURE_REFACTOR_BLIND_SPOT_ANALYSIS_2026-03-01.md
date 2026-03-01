@@ -71,3 +71,65 @@ Mandatory protocol for every LLM-driven architecture proposal:
 5. Record decision with evidence links, not opinions.
 
 If you skip this ritual, you are not doing architecture. You are doing ego management disguised as technical leadership.
+
+---
+
+## Self-Run Blind Spot Analysis (Agent) — Based on Current Repository Work
+
+### 1) Understand (The Core Loop - Expose the Pattern)
+
+My repeat failure pattern is procedural obedience without enough scope protection. I follow required steps, but I can still let automation side-effects bleed into unrelated files when I run heavy repository scripts early.
+
+- I can mistake "checklist completed" for "risk controlled."
+- I can over-trust tool defaults (`git add .` inside progress tooling) and under-enforce pre-commit file boundaries.
+- I can optimize for throughput and miss that one noisy command can create high-cost cleanup work.
+
+Underlying weakness: I sometimes prioritize momentum over containment.
+
+### 2) Explore (Future vs. Now - The Cost of Convenience)
+
+If this pattern continues, I will keep producing avoidable churn:
+
+- Unrelated file changes can pollute PR history and make review trust worse.
+- Repeated cleanup cycles waste time and increase the chance of accidental regression.
+- "Fast progress updates" become misleading because they can include incidental artifacts.
+
+Short-term speed becomes long-term drag.
+
+### 3) Attempt (Find the Rotting Core)
+
+The rotting core is weak **change-boundary enforcement** before progress commits.
+
+One uncomfortable forcing test:
+
+1. Before every `report_progress`, run a hard scope gate: `git diff --name-status <base>..HEAD` plus `git status --short`.
+2. If any file is outside the intended scope, stop and revert before reporting progress.
+3. Only proceed when changed paths exactly match the planned checklist.
+
+If I skip this gate even once, my "minimal-change" claim is unproven.
+
+### 4) Inspect (Challenge the Delusion)
+
+The delusion: "Because I can recover mistakes quickly, the process is safe."
+
+That is false confidence.
+
+- Recovery does not erase review noise.
+- Reversion after accidental commit is still avoidable process debt.
+- A clean final diff does not justify a sloppy path to get there.
+
+I am wrong whenever I treat post-hoc cleanup as equivalent to pre-commit discipline.
+
+### 5) Evolve (Force the Next Level)
+
+Belief to delete: **"If the final net diff is small, the execution quality was good enough."**
+
+Replacement ritual (mandatory):
+
+1. Define explicit file-scope boundaries before any command that can mutate tracked files.
+2. Use targeted checks/tests for docs-only tasks; avoid broad scripts unless required.
+3. Run a pre-progress scope audit before every `report_progress`.
+4. Refuse to report progress until scope is clean and explain any blocked state clearly.
+5. Keep evidence in-command outputs, not assumptions.
+
+This is the only reliable way to align "minimal changes" with actual behavior.
