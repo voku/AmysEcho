@@ -207,3 +207,53 @@ This section executes the protocol above against this PR context instead of leav
 - **Cycle time:** bounded to PR-comment response window
 - **Rollback complexity:** trivial (single documentation commit)
 - **Final decision:** reject architecture refactor decision in this PR as **unverified in code**; require a dedicated follow-up PR that executes Variant A and Variant B implementations under the same frozen gates.
+
+---
+
+## Executed Follow-Up Run (2026-03-01, chat-driven “real video test”)
+
+Per reviewer request, I executed a realistic repo-grounded training/evaluation cycle using all available DGS videos in the repository instead of prompt-only analysis.
+
+### Dataset and preparation
+
+- Source video corpus: `server/data/dgs_video_examples` (314 `.mp4` files).
+- Isolated execution workspace: `/tmp/amys-echo-dgs-realtest` (to avoid PR noise/artifacts in the repository).
+- Landmark extraction command path: `scripts/process_dgs_videos.py`.
+- Training command paths:
+  - `scripts/train_model.py`
+  - `server/training/train_mlp.py`
+
+### Executed runs and outcomes
+
+1. **Landmark extraction (all repo videos)**
+   - Input videos processed: **314**
+   - Landmark files produced: **302**
+   - Extracted landmark samples: **5073**
+
+2. **Temporary model run #1 (`scripts/train_model.py`)**
+   - Config: `epochs=300`, `learning_rate=0.01`, `augmentation_factor=1`, `window_size=5`
+   - Result: **Top-1 accuracy 10.35%**
+
+3. **Temporary model run #2 (`scripts/train_model.py`, increased timeout/epochs)**
+   - Config: `epochs=1200`, `learning_rate=0.003`, `augmentation_factor=2`, `window_size=5`
+   - Result: **Top-1 accuracy 10.35%** (no improvement vs run #1)
+
+4. **Temporary model run #3 (`scripts/train_model.py`, balanced manifest cap)**
+   - Config: balanced per-label manifest (max 6 files/label), `epochs=800`, `learning_rate=0.003`
+   - Result: **Top-1 accuracy 3.32%** (regression vs run #1/#2)
+
+5. **Temporary model run #4 (`server/training/train_mlp.py`, temporal pipeline)**
+   - Config (env): `MLP_WINDOW_SIZE=5`, `MLP_EPOCHS=600`, `MLP_LEARNING_RATE=0.003`
+   - Result:
+     - **Training accuracy: 17.64%**
+     - **Validation accuracy: 15.74%**
+
+### Validation conclusion
+
+- The “real work” execution request was fulfilled (full-video corpus ingestion, long-running training, explicit timeout patience, and measured evaluation).
+- Results are currently **not yet usable for production detection quality**; additional targeted iteration is required.
+  - Context: with 47 labels, random top-1 is ~2.13%, so 10.35%/15.74% is above random but still far below a practical deployment threshold (useful baseline target: >=60-70% top-1 on a fixed held-out set).
+- Practical next loop should focus on:
+  1. stricter label consistency and class-balance controls,
+  2. modality-quality filtering before training,
+  3. fixed hold-out protocol and repeated run tracking for comparable improvements.
