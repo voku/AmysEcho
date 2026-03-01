@@ -15,6 +15,7 @@ const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f
 const TRAILING_PUNCTUATION_WITH_OPTIONAL_UUID_PATTERN = /[.,!?;:]+(?=(?:[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?$)/i;
 
 const RECORDER_MLP_CONFIDENCE_FALLBACK = 0.4;
+const UNKNOWN_GESTURE_LABEL = 'Unbekannte Gebärde';
 
 
 function formatStatusLabel(status: string): string {
@@ -57,6 +58,29 @@ function canonicalizeRecordedSign(value: string): string {
     .replace(/\s+/g, ' ')
     .replace(TRAILING_PUNCTUATION_WITH_OPTIONAL_UUID_PATTERN, '')
     .trim();
+}
+
+function resolveDisplayLabel(rawLabel: string | undefined, fallbackValue: string): string {
+  const trimmedRawLabel = rawLabel?.trim();
+  if (trimmedRawLabel) {
+    return trimmedRawLabel;
+  }
+
+  const fallbackLabel = toTitleCase(fallbackValue).trim();
+  return fallbackLabel || UNKNOWN_GESTURE_LABEL;
+}
+
+function resolveSpeechLabel(
+  preferredSpeech: string | undefined,
+  preferredDisplayLabel: string | undefined,
+  fallbackValue: string,
+): string {
+  const trimmedSpeech = preferredSpeech?.trim();
+  if (trimmedSpeech) {
+    return trimmedSpeech;
+  }
+
+  return resolveDisplayLabel(preferredDisplayLabel, fallbackValue);
 }
 
 function parseCustomSigns(raw: unknown): CustomSignResponse[] {
@@ -138,7 +162,7 @@ function MlpCandidateButtons({
           >
             {(() => {
               const descriptor = labelDescriptorByNormalizedId.get(candidate.normalizedLabel);
-              const displayLabel = descriptor?.displayLabel ?? toTitleCase(candidate.label);
+              const displayLabel = resolveDisplayLabel(descriptor?.displayLabel, candidate.label);
               const displayEmoji = descriptor?.emoji ? `${descriptor.emoji} ` : '';
               return `${displayEmoji}${displayLabel}`;
             })()} · {confidencePercent}%{hasKnownTrainingSet
@@ -360,6 +384,7 @@ export function SignLanguageRecorder() {
           : {};
 
         let response = await apiRetryManager.fetch(buildTrainedLabelsUrl(requestedProfileId), requestOptions);
+        let labelsProfileId = requestedProfileId;
 
         if (!shouldApplyResult()) {
           return;
@@ -373,6 +398,7 @@ export function SignLanguageRecorder() {
           const activeProfileId = activeProfile?.profileId?.trim();
           if (activeProfileId && activeProfileId !== requestedProfileId) {
             response = await apiRetryManager.fetch(buildTrainedLabelsUrl(activeProfileId), requestOptions);
+            labelsProfileId = activeProfileId;
             if (!shouldApplyResult()) {
               return;
             }
@@ -382,7 +408,7 @@ export function SignLanguageRecorder() {
         const parsedResult = await parseLabelsFromResponse(response);
         if (parsedResult) {
           applyLabels(parsedResult.labels, parsedResult.descriptors);
-          await syncCustomSignMeanings(requestedProfileId).catch((customSignError) => {
+          await syncCustomSignMeanings(labelsProfileId).catch((customSignError) => {
             console.warn('Failed to sync custom sign meanings:', customSignError);
           });
         } else if (response.status === 401 || response.status === 403) {
@@ -588,10 +614,14 @@ export function SignLanguageRecorder() {
     ? gestureMeaningService.getMeaning(gestureKey)
     : undefined;
   const gestureLabel = (gestureKey && shouldShowGestureOutput)
-    ? gestureMeaning?.label ?? selectedLabelDescriptor?.displayLabel ?? toTitleCase(normalizedGesture)
+    ? resolveDisplayLabel(gestureMeaning?.label ?? selectedLabelDescriptor?.displayLabel, normalizedGesture)
     : null;
   const gestureSpeech = gestureKey
-    ? gestureMeaning?.audioText ?? selectedLabelDescriptor?.displayLabel ?? gestureLabel ?? normalizedGesture
+    ? resolveSpeechLabel(
+      gestureMeaning?.audioText,
+      gestureMeaning?.label ?? selectedLabelDescriptor?.displayLabel ?? gestureLabel ?? undefined,
+      normalizedGesture,
+    )
     : '';
   const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;

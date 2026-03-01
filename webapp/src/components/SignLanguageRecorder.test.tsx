@@ -8,6 +8,8 @@ import type { SignLanguageMessage } from '../hooks/useSignLanguageDetector';
 import { ApiConfigProvider, useApiConfig } from '../hooks/useApiConfig';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
+import { audioService } from '../services/audioService';
+import { gestureMeaningService } from '../services/gestureMeaningService';
 
 // Mock the hooks that have external dependencies
 const toggleAudioMutedMock = vi.fn();
@@ -57,6 +59,12 @@ vi.mock('../services/profileRegistry', () => ({
   getActiveProfile: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('../services/audioService', () => ({
+  audioService: {
+    speak: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 function ApiTokenSetter({ token }: { token: string }) {
   const { setApiToken } = useApiConfig();
 
@@ -90,6 +98,9 @@ describe('SignLanguageRecorder', () => {
     } as Response);
     vi.mocked(getActiveProfile).mockReset();
     vi.mocked(getActiveProfile).mockResolvedValue(null);
+    vi.mocked(audioService.speak).mockReset();
+    vi.mocked(audioService.speak).mockResolvedValue(undefined);
+    gestureMeaningService.reset();
     window.localStorage.clear();
     toggleAudioMutedMock.mockReset();
     detectorState.status = 'idle';
@@ -558,6 +569,73 @@ describe('SignLanguageRecorder', () => {
     fireEvent.click(diagnosticsButton);
 
     expect(screen.getByRole('button', { name: /💧 Wasser bitte · 80% · trainiert/ })).toBeInTheDocument();
+  });
+
+  it('falls back to realistic labels when descriptor text is blank', async () => {
+    appStateMock.profileId = 'amy';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'wasserzeichen';
+    detectorState.lastDetectionMethod = 'mlp';
+    detectorState.lastMlpCandidates = [{ label: 'wasserzeichen', score: 0.8 }];
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        trainedLabels: ['wasserzeichen'],
+        labelDescriptors: [
+          {
+            id: 'wasserzeichen',
+            normalizedId: 'wasserzeichen',
+            displayLabel: '   ',
+            emoji: '💧',
+            isCustom: true,
+          },
+        ],
+      }),
+    } as Response);
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByRole('button', { name: /💧 Wasserzeichen · 80% · trainiert/ })).toBeInTheDocument();
+  });
+
+  it('uses the same fallback text for speech output when descriptor text is blank', async () => {
+    appStateMock.profileId = 'amy';
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'leertextzeichen';
+    detectorState.lastDetectionMethod = 'mlp';
+
+    vi.mocked(apiRetryManager.fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        trainedLabels: ['leertextzeichen'],
+        labelDescriptors: [
+          {
+            id: 'leertextzeichen',
+            normalizedId: 'leertextzeichen',
+            displayLabel: '   ',
+            emoji: null,
+            isCustom: true,
+          },
+        ],
+      }),
+    } as Response);
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Aussprechen' }));
+
+    await waitFor(() => {
+      expect(audioService.speak).toHaveBeenCalledWith('Leertextzeichen');
+    });
   });
 
   it('shows low-confidence MLP candidate list so caregivers can decide in context', async () => {
@@ -1069,6 +1147,60 @@ describe('SignLanguageRecorder', () => {
       expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('["HILFE"]');
       expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
     });
+  });
+
+  it('syncs custom signs for the resolved active profile after 403 retry', async () => {
+    appStateMock.profileId = 'amy-alt';
+
+    vi.mocked(apiRetryManager.fetch)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ trainedLabels: ['wasserzeichen'] }),
+      } as Response);
+    vi.mocked(getActiveProfile).mockResolvedValue({ profileId: 'amy-neu' } as unknown as Awaited<ReturnType<typeof getActiveProfile>>);
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/v1/models/latest')) {
+        return new Response('not-found', { status: 404 });
+      }
+      if (url.includes('/api/v1/dgs/signs?profileId=amy-neu')) {
+        return new Response(JSON.stringify({
+          signs: [
+            { id: 'wasserzeichen', label: 'Wasser bitte', emoji: '💧', isReady: true },
+          ],
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      if (url.includes('/api/v1/dgs/signs?profileId=amy-alt')) {
+        return new Response(JSON.stringify({
+          signs: [
+            { id: 'wasserzeichen', label: 'Falsches Profil', emoji: '❌', isReady: true },
+          ],
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = 'wasserzeichen';
+    detectorState.lastDetectionMethod = 'mlp';
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const allowFallbackButton = await screen.findByRole('button', { name: 'Vorübergehend mit Ersatzmodell fortfahren' });
+    fireEvent.click(allowFallbackButton);
+
+    expect(await screen.findByText('Wasser bitte')).toBeInTheDocument();
+    expect(screen.queryByText('Falsches Profil')).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/v1/dgs/signs?profileId=amy-neu'), expect.anything());
   });
 
   it('ignores stale 403 responses after profile switch', async () => {
