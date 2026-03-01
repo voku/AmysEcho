@@ -23,7 +23,8 @@ def main():
 
         if success:
             # Save the frame as image for inspection
-            output_path = Path(__file__).parent / "gelb_frame_for_inspection.jpg"
+            output_path = Path(__file__).parent / "dev-artifacts" / "gelb_frame_for_inspection.jpg"
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             cv2.imwrite(str(output_path), frame)
             print(f"Saved frame to: {output_path}")
             print(f"Frame shape: {frame.shape}")
@@ -37,7 +38,7 @@ def main():
             print(f"Found {len(contours)} contours")
 
             # Save edge detected version
-            edge_path = Path(__file__).parent / "gelb_frame_edges.jpg"
+            edge_path = Path(__file__).parent / "dev-artifacts" / "gelb_frame_edges.jpg"
             cv2.imwrite(str(edge_path), edges)
             print(f"Saved edges to: {edge_path}")
         else:

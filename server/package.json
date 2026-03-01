@@ -50,7 +50,9 @@
     "lint:fix": "eslint . --ext .ts,.js --fix",
     "build": "sh -c 'rm -rf dist && tsc'",
     "start": "node dist/server.js",
-    "download-gesture-task": "ts-node src/tools/getGestureTask.ts"
+    "download-gesture-task": "ts-node src/tools/getGestureTask.ts",
+    "generate-token": "node scripts/generate-token.js",
+    "stress-test": "node scripts/stress-test.js"
   },
   "engines": {
     "node": ">=18.13.0"

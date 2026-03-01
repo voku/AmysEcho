@@ -72,3 +72,10 @@ server/data/users/
 # Integration test config files
 server/data/config/dgsVideoSources.integration.json
 **/dgsVideoSources.test.json
+
+# local Python coverage artifact in server package
+server/.coverage
+
+# local server script artifacts
+server/scripts/dev-artifacts/*.jpg
+server/scripts/dev-artifacts/*.png
