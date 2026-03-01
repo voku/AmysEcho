@@ -33,6 +33,7 @@ import { auth } from "./middleware/auth.js";
 import { registerAuthRoutes } from "./routes/authRoutes.js";
 import { registerCustomSignsRoute } from "./routes/customSignsRoute.js";
 import { registerGdprRoutes } from "./routes/gdprRoutes.js";
+import { registerLandmarkTemplateRoute } from "./routes/landmarkTemplateRoute.js";
 import { createLatestMlpModelHandler } from "./routes/latestMlpModelRoute.js";
 import { registerMetacomRoutes } from "./routes/metacomRoutes.js";
 import { registerMetacomSentenceRoutes } from "./routes/metacomSentenceRoutes.js";
@@ -1042,6 +1043,10 @@ registerCustomSignsRoute(app, {
 			);
 		}
 	},
+});
+
+registerLandmarkTemplateRoute(app, {
+	resolveProfileId: resolveProfileId,
 });
 
 // Add a labeled DGS sample (landmarks normalized [0..1])

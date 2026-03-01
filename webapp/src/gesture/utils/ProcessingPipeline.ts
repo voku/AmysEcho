@@ -68,7 +68,7 @@ export interface ProcessingResult {
     timestamp: number;
   };
   metadata?: {
-    method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'none';
+    method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'landmark_template' | 'none';
     perHand: Array<{ hand: string; label: string; score: number }>;
     handednesses: string[];
     mlp: { label: string; score: number; candidates?: MlpCandidate[] } | null;
@@ -92,6 +92,12 @@ export interface ProcessingResult {
     } | null;
     twoHand: TwoHandGesture | null;
     audioOnly?: boolean;
+    templateMatch?: {
+      label: string;
+      confidence: number;
+      templateId: string;
+      distance: number;
+    } | null;
   } | null;
 }
 
