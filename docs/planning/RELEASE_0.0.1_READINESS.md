@@ -21,7 +21,9 @@ npm run lint --prefix webapp
 npm test --prefix webapp
 npm run build --prefix webapp
 npm run type-check --prefix server
+npm run lint --prefix server
 npm test --prefix server
+npm run build --prefix server
 npm test --prefix integration
 ```
 
@@ -32,6 +34,7 @@ If a command cannot be executed in the current environment (for example, missing
 - Webapp and server tests pass without skipping existing suites.
 - Coverage status is documented in `docs/testing/TEST_COVERAGE_ANALYSIS.md`.
 - Known risk areas (camera access, training uploads, model download, auth/session refresh) have explicit test evidence.
+  Acceptable evidence includes: passing test-suite names/files, manual test reports with steps + timestamps, CI artifact links (logs/reports), and coverage thresholds (overall >= 80%, critical modules >= 90%).
 
 ## 3) Documentation Gates
 
@@ -45,11 +48,11 @@ Before tag creation, confirm these docs are up to date and internally consistent
 
 ## 4) Functional Go/No-Go Checklist
 
-- [ ] Account login/logout and token refresh verified.
-- [ ] Active profile selection verified after refresh/reload.
-- [ ] Capture → bundle → upload → train → personalized model download verified.
-- [ ] Health endpoints show `ok` or explain any `degraded` state with mitigation.
-- [ ] German user-facing text confirmed for new or modified UI surfaces.
+- [ ] Account login/logout and token refresh verified. (Evidence: )
+- [ ] Active profile selection verified after refresh/reload. (Evidence: )
+- [ ] Capture → bundle → upload → train → personalized model download verified. (Evidence: )
+- [ ] Health endpoints show `ok` or explain any `degraded` state with mitigation. (Evidence: )
+- [ ] German user-facing text confirmed for new or modified UI surfaces. (Evidence: )
 
 ## 5) Release Artifacts
 

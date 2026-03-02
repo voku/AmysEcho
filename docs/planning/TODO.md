@@ -12,6 +12,7 @@
 - [ ] Add concurrency stress tests for training bundle ingestion and retry storms.
 - [ ] Add long-session device performance baselines (FPS, thermal, battery) for target caregiver hardware.
 - [ ] Expand operational runbooks with incident drills and rollback practice evidence.
+- [ ] Establish accessibility manual verification cadence (screen reader and keyboard-only sessions).
 
 ## Copilot Issue Queue (Open TODOs → GitHub Issues)
 
