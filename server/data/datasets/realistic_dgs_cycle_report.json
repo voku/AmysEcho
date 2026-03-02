@@ -1,7 +1,7 @@
 {
   "startedAt": "2026-03-02T09:50:47.651024+00:00",
   "finishedAt": "2026-03-02T09:55:46.295277+00:00",
-  "videoSourceDirectory": "/home/runner/work/AmysEcho/AmysEcho/server/data/dgs_video_examples",
+  "videoSourceDirectory": "server/data/dgs_video_examples",
   "landmarkFilesDiscovered": 117,
   "trainFiles": [
     "alle_main_jeder_landmarks.json",
@@ -150,7 +150,7 @@
   "workflowPreset": "none",
   "timeoutSeconds": 14400,
   "baselineEvaluation": {
-    "model_path": "/home/runner/work/AmysEcho/AmysEcho/server/data/models/global/amy_model.npz",
+    "model_path": "server/data/models/global/amy_model.npz",
     "sample_count": 511,
     "known_label_samples": 511,
     "unknown_label_samples": 0,
@@ -179,7 +179,7 @@
     "seed": 20260302,
     "epochs": 100,
     "evaluation": {
-      "model_path": "/home/runner/work/AmysEcho/AmysEcho/server/data/datasets/realistic_dgs_cycle_o31ztnq6/models_attempt_1/global/amy_model.npz",
+      "model_path": "server/data/datasets/realistic_dgs_cycle_o31ztnq6/models_attempt_1/global/amy_model.npz",
       "sample_count": 511,
       "known_label_samples": 511,
       "unknown_label_samples": 0,
@@ -472,7 +472,7 @@
         }
       },
       "evaluation": {
-        "model_path": "/home/runner/work/AmysEcho/AmysEcho/server/data/datasets/realistic_dgs_cycle_o31ztnq6/models_attempt_1/global/amy_model.npz",
+        "model_path": "server/data/datasets/realistic_dgs_cycle_o31ztnq6/models_attempt_1/global/amy_model.npz",
         "sample_count": 511,
         "known_label_samples": 511,
         "unknown_label_samples": 0,
@@ -495,13 +495,12 @@
         },
         "skipped_labels": []
       },
-      "stdout": "{\"global\": {\"accuracy\": 0.537236332328885, \"f1_score\": 0.32045710336754235, \"confusion_matrix\": [[11, 0, 76, 4, 0, 0, 0, 2, 0, 23, 0, 7, 32], [0, 2, 17, 4, 0, 0, 0, 0, 9, 0, 0, 14, 56], [0, 0, 214, 0, 0, 0, 0, 0, 0, 1, 4, 12, 18], [0, 0, 2, 134, 0, 4, 0, 0, 0, 0, 1, 23, 88], [0, 0, 14, 0, 0, 0, 0, 0, 11, 0, 0, 1, 18], [0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 2, 78], [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 19], [0, 0, 21, 0, 0, 0, 0, 6, 3, 0, 0, 31, 58], [0, 0, 45, 0, 0, 0, 0, 0, 21, 0, 0, 7, 121], [0, 0, 0, 0, 0, 0, 0, 0, 1, 15, 0, 34, 140], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 137, 4, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 268, 9], [0, 0, 9, 14, 0, 0, 0, 1, 0, 0, 0, 30, 440]], \"samples\": 2323, \"labels\": [\"alle\", \"blau\", \"essen\", \"fertig\", \"gelb\", \"gruen\", \"kindergarten\", \"nochmal\", \"rot\", \"satt\", \"schwester\", \"spielen\", \"trinken\"], \"class_counts\": [155, 102, 249, 252, 44, 83, 23, 119, 194, 190, 141, 277, 494], \"modalities\": [\"hands\"], \"modality_counts\": {\"hands\": 2323, \"pose\": 0, \"face\": 0, \"nonManual\": 0}}, \"profiles\": {}, \"timestamp\": \"2026-03-02T09:50:59.945430+00:00\", \"stats\": {\"entries\": 93, \"cache_hits\": 0, \"cache_misses\": 93, \"cache_writes\": 0, \"modality_counts\": {\"hands\": 2323, \"pose\": 0, \"face\": 0, \"nonManual\": 0}, \"modality_sample_total\": 2323, \"bundle_fallback_extractions\": 0, \"bundle_missing_landmarks\": 0, \"bundle_landmark_policy\": \"bundle_only\"}}\n",
-      "stderr": "{\"type\": \"progress\", \"epoch\": 1, \"total\": 100, \"loss\": \"2.5915\", \"validationLoss\": \"2.5684\"}\n{\"type\": \"progress\", \"epoch\": 1, \"total\": 100, \"loss\": \"2.5915\", \"validationLoss\": \"2.5684\"}\n{\"type\": \"progress\", \"epoch\": 11, \"total\": 100, \"loss\": \"2.2819\", \"validationLoss\": \"2.2899\"}\n{\"type\": \"progress\", \"epoch\": 11, \"total\": 100, \"loss\": \"2.2819\", \"validationLoss\": \"2.2899\"}\n{\"type\": \"progress\", \"epoch\": 21, \"total\": 100, \"loss\": \"2.1210\", \"validationLoss\": \"2.1347\"}\n{\"type\": \"progress\", \"epoch\": 21, \"total\": 100, \"loss\": \"2.1210\", \"validationLoss\": \"2.1347\"}\n{\"type\": \"progress\", \"epoch\": 31, \"total\": 100, \"loss\": \"2.0082\", \"validationLoss\": \"2.0229\"}\n{\"type\": \"progress\", \"epoch\": 31, \"total\": 100, \"loss\": \"2.0082\", \"validationLoss\": \"2.0229\"}\n{\"type\": \"progress\", \"epoch\": 41, \"total\": 100, \"loss\": \"1.9176\", \"validationLoss\": \"1.9359\"}\n{\"type\": \"progress\", \"epoch\": 41, \"total\": 100, \"loss\": \"1.9176\", \"validationLoss\": \"1.9359\"}\n{\"type\": \"progress\", \"epoch\": 51, \"total\": 100, \"loss\": \"1.8377\", \"validationLoss\": \"1.8650\"}\n{\"type\": \"progress\", \"epoch\": 51, \"total\": 100, \"loss\": \"1.8377\", \"validationLoss\": \"1.8650\"}\n{\"type\": \"progress\", \"epoch\": 61, \"total\": 100, \"loss\": \"1.7943\", \"validationLoss\": \"1.8052\"}\n{\"type\": \"progress\", \"epoch\": 61, \"total\": 100, \"loss\": \"1.7943\", \"validationLoss\": \"1.8052\"}\n{\"type\": \"progress\", \"epoch\": 71, \"total\": 100, \"loss\": \"1.7310\", \"validationLoss\": \"1.7522\"}\n{\"type\": \"progress\", \"epoch\": 71, \"total\": 100, \"loss\": \"1.7310\", \"validationLoss\": \"1.7522\"}\n{\"type\": \"progress\", \"epoch\": 81, \"total\": 100, \"loss\": \"1.6937\", \"validationLoss\": \"1.7061\"}\n{\"type\": \"progress\", \"epoch\": 81, \"total\": 100, \"loss\": \"1.6937\", \"validationLoss\": \"1.7061\"}\n{\"type\": \"progress\", \"epoch\": 91, \"total\": 100, \"loss\": \"1.6459\", \"validationLoss\": \"1.6659\"}\n{\"type\": \"progress\", \"epoch\": 91, \"total\": 100, \"loss\": \"1.6459\", \"validationLoss\": \"1.6659\"}\n",
       "meetsUsableThreshold": true,
-      "modelPath": "/home/runner/work/AmysEcho/AmysEcho/server/data/datasets/realistic_dgs_cycle_o31ztnq6/models_attempt_1/global/amy_model.npz"
+      "modelPath": "server/data/datasets/realistic_dgs_cycle_o31ztnq6/models_attempt_1/global/amy_model.npz",
+      "stderrSummary": "{\"type\": \"progress\", \"epoch\": 1, \"total\": 100, \"loss\": \"2.5915\", \"validationLoss\": \"2.5684\"}\n{\"type\": \"progress\", \"epoch\": 1, \"total\": 100, \"loss\": \"2.5915\", \"validationLoss\": \"2.5684\"}\n{\"type\": \"progress\", \"epoch\": 11, \"total\": 100, \"loss\": \"2.2819\", \"validationLoss\": \"2.2899\"}\n{\"type\": \"progress\", \"epoch\": 11, \"total\": 100, \"loss\": \"2.2819\", \"validationLoss\": \"2.2899\"}\n{\"type\": \"progress\", \"epoch\": 21, \"total\": 100, \"loss\": \"2.1210\", \"validationLoss\": \"2.1347\"}\n{\"type\": \"progress\", \"epoch\": 21, \"total\": 100, \"loss\": \"2.1210\", \"validationLoss\": \"2.1347\"}\n{\"type\": \"progress\", \"epoch\": 31, \"total\": 100, \"loss\": \"2.0082\", \"validationLoss\": \"2.0229\"}\n{\"type\": \"progress\", \"epoch\": 31, \"total\": 100, \"loss\": \"2.0082\", \"validationLoss\": \"2.0229\"}\n{\"type\": \"progress\", \"epoch\": 41, \"total\": 100, \"loss\": \"1.9176\", \"validationLoss\": \"1.9359\"}\n{\"type\": \"progress\", \"epoch\": 41, \"total\": 100, \"loss\": \"1.9176\", \"validationLoss\": \"1.9359\"}\n{\"type\": \"progress\", \"epoch\": 51, \"total\": 100, \"loss\": \"1.8377\", \"validationLoss\": \"1.8650\"}\n{\"type\": \"progress\", \"epoch\": 51, \"total\": 100, \"loss\": \"1.8377\", \"validationLoss\": \"1.8650\"}\n{\"type\": \"progress\", \"epoch\": 61, \"total\": 100, \"loss\": \"1.7943\", \"validationLoss\": \"1.8052\"}\n{\"type\": \"progress\", \"epoch\": 61, \"total\": 100, \"loss\": \"1.7943\", \"validationLoss\": \"1.8052\"}\n{\"type\": \"progress\", \"epoch\": 71, \"total\": 100, \"loss\": \"1.7310\", \"validationLoss\": \"1.7522\"}\n{\"type\": \"progress\", \"epoch\": 71, \"total\": 100, \"loss\": \"1.7310\", \"validationLoss\": \"1.7522\"}\n{\"type\": \"progress\", \"epoch\": 81, \"total\": 100, \"loss\": \"1.6937\", \"validationLoss\": \"1.7061\"}\n{\"type\": \"progress\", \"epoch\": 81, \"total\": 100, \"loss\": \"1.6937\", \"validationLoss\": \"1.7061\"}\n{\"type\": \"progress\", \"epoch\": 91, \"total\": 100, \"loss\": \"1.6459\", \"validationLoss\": \"1.6659\"}\n{\"type\": \"progress\", \"epoch\": 91, \"total\": 100, \"loss\": \"1.6459\", \"validationLoss\": \"1.6659\"}\n"
     }
   ],
-  "promotedModelPath": "/home/runner/work/AmysEcho/AmysEcho/server/data/models/global/amy_model.npz",
+  "promotedModelPath": "server/data/models/global/amy_model.npz",
   "gates": {
     "holdoutSetNonEmpty": true,
     "bestKnownLabelSamples": 511,
