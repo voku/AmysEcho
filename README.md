@@ -80,6 +80,7 @@ Use these shell helpers for clean output during checks:
 | [Deployment](docs/deployment.md) | Server/webapp deployment, Docker |
 | [Files Catalog](docs/files.md) | Complete file reference |
 | [TODO](docs/planning/TODO.md) | Current priorities, roadmap |
+| [Release Readiness v0.0.1](docs/planning/RELEASE_0.0.1_READINESS.md) | Go/No-Go checklist for first version tag |
 
 ### Detailed Guides
 
