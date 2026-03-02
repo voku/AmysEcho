@@ -2,6 +2,9 @@
 
 # Amy's Echo
 
+[![Open Source – MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![100% Vibe Coded](https://img.shields.io/badge/built%20with-vibes-blueviolet)](#-open-source--vibe-coded)
+
 **This repository contains the development work for my little girl — to help her be understood, to help her learn, and to help others understand her world.**
 
 Amy is four years old. She was born with **22q11 Deletion Syndrome** and communicates using **Deutsche Gebärdensprache (DGS)** — German Sign Language. Her gestures are expressive, her intent is clear — but most people around her don't understand what she's trying to say.
@@ -97,6 +100,57 @@ Use these shell helpers for clean output during checks:
 
 ---
 
+## 🌍 Open Source & Vibe Coded
+
+Amy's Echo is **100% open source** (MIT License) and **100% vibe coded** — every line written in partnership with AI assistants (GitHub Copilot Coding Agent), guided by one single priority: helping Amy communicate.
+
+There is no product roadmap driven by business metrics. There is only Amy. If a feature helps her be understood, it ships. If it doesn't, it doesn't.
+
+The source is public because other children deserve the same chance. If you use this to help another child, [open an issue and tell me](https://github.com/voku/AmysEcho/issues) — that matters more than any star or fork count.
+
+---
+
+## 🪙 Invest Your Remaining Copilot Requests of the Month
+
+If you have a **GitHub Copilot** subscription (Individual, Business, or Enterprise), you receive a monthly allowance of Copilot **agent requests** (premium interactions). At the end of the month those credits reset — use them or lose them.
+
+**Invest the remainder in Amy.** Here's how:
+
+### Option A — Let the Agent work autonomously
+
+1. Open the [Issues tab](https://github.com/voku/AmysEcho/issues) and pick any open issue tagged **`good first issue`**, **`help wanted`**, or **`enhancement`**.
+2. In the issue comment, write:
+
+   ```
+   @github-copilot implement this
+   ```
+
+3. Copilot Coding Agent will open a pull request with a solution. Review it, leave feedback, and merge.
+
+### Option B — Assign an issue to the Agent directly
+
+1. Click **"Assign to Copilot"** from the issue sidebar (if your repo/org has the GitHub Copilot agent integration enabled).
+2. The agent will create a branch, implement the feature, and open a PR automatically.
+
+### Option C — Use the Agent in your fork
+
+1. Fork this repo, enable Copilot in your account settings, and open VS Code.
+2. Use **Copilot Chat → Agent mode** (`/implement`, `/fix`, or describe what you want).
+3. The agent makes commits on your fork — open a PR back here when done.
+
+### What to work on
+
+| Tag | Description |
+|-----|-------------|
+| [`good first issue`](https://github.com/voku/AmysEcho/labels/good%20first%20issue) | Small, well-scoped tasks — perfect for an agent with a few tokens |
+| [`help wanted`](https://github.com/voku/AmysEcho/labels/help%20wanted) | Larger improvements where AI assistance is especially welcome |
+| [`enhancement`](https://github.com/voku/AmysEcho/labels/enhancement) | New features aligned with Amy's communication needs |
+| [`bug`](https://github.com/voku/AmysEcho/labels/bug) | Reliability fixes — zero-failure is an Amy First principle |
+
+> Every token you invest here goes directly toward helping a child with 22q11 Deletion Syndrome communicate. Thank you.
+
+---
+
 ## Contributing
 
 See [AGENTS.md](AGENTS.md) for development guidelines. German for user-facing text, tests colocated with source (webapp) or in `test/` (server).
@@ -105,4 +159,4 @@ See [AGENTS.md](AGENTS.md) for development guidelines. German for user-facing te
 
 ## License
 
-MIT — If you use this to help another child, let me know. That's why it's public.
+[MIT](LICENSE) — If you use this to help another child, let me know. That's why it's public.
