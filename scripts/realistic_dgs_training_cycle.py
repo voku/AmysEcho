@@ -6,12 +6,12 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import random
 import shutil
 import subprocess
 import sys
 import tempfile
 from collections import defaultdict
-import random
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -124,7 +124,7 @@ def split_train_eval(
             train_files.extend(files)
             continue
 
-        eval_count = max(1, int(round(len(files) * holdout_ratio)))
+        eval_count = max(1, round(len(files) * holdout_ratio))
         eval_count = min(eval_count, len(files) - 1)
         eval_files.extend(files[:eval_count])
         train_files.extend(files[eval_count:])
@@ -238,11 +238,11 @@ def evaluate_model(model_path: Path, eval_manifest_path: Path) -> EvaluationResu
     X_eval, y_eval, eval_labels, _ = trainer.dataset_to_arrays(eval_samples, augmentations_per_sample=0)
     weights, model_labels, _ = load_model(model_path)
 
-    coverage = {label: 0 for label in eval_labels}
+    coverage = dict.fromkeys(eval_labels, 0)
     for sample in eval_samples:
         coverage[sample.label] = coverage.get(sample.label, 0) + 1
 
-    eval_index_to_label = {index: label for index, label in enumerate(eval_labels)}
+    eval_index_to_label = dict(enumerate(eval_labels))
     model_label_to_index = {label: index for index, label in enumerate(model_labels)}
 
     known_indices: list[int] = []

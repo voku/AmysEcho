@@ -6,7 +6,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "realistic_dgs_training_cycle.py"
 spec = importlib.util.spec_from_file_location("realistic_dgs_training_cycle", SCRIPT_PATH)
 assert spec is not None and spec.loader is not None
