@@ -26,6 +26,7 @@ SERVER_DATA = SERVER_DIR / "data"
 VIDEO_DIR = SERVER_DATA / "dgs_video_examples"
 TRAINER_SCRIPT = SERVER_DIR / "src" / "amyserver_tools" / "train_mlp.py"
 BASELINE_MODEL_PATH = SERVER_DATA / "models" / "global" / "amy_model.npz"
+STDERR_SUMMARY_LINES = 20
 
 
 def load_trainer_module() -> Any:
@@ -70,11 +71,11 @@ class AttemptResult:
 
 def _relative_eval_dict(result: EvaluationResult) -> dict[str, Any]:
     """Return asdict(result) with model_path made relative to PROJECT_ROOT."""
-    d = asdict(result)
-    p = Path(d["model_path"])
-    if p.is_relative_to(PROJECT_ROOT):
-        d["model_path"] = str(p.relative_to(PROJECT_ROOT))
-    return d
+    eval_dict = asdict(result)
+    abs_model_path = Path(eval_dict["model_path"])
+    if abs_model_path.is_relative_to(PROJECT_ROOT):
+        eval_dict["model_path"] = str(abs_model_path.relative_to(PROJECT_ROOT))
+    return eval_dict
 
 
 def extract_label_from_landmark_file(path: Path) -> str:
@@ -453,7 +454,7 @@ def main() -> None:
             )
 
             stderr_lines = training_payload["stderr"].splitlines()
-            stderr_summary = "\n".join(stderr_lines[-20:]) if len(stderr_lines) > 20 else training_payload["stderr"]
+            stderr_summary = "\n".join(stderr_lines[-STDERR_SUMMARY_LINES:]) if len(stderr_lines) > STDERR_SUMMARY_LINES else training_payload["stderr"]
             rel_model_path = model_path.relative_to(PROJECT_ROOT) if model_path.is_relative_to(PROJECT_ROOT) else model_path
             attempts_payload.append(
                 {
