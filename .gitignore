@@ -64,6 +64,7 @@ server/data/models/global/amy_model.npz
 server/data/models/global/amy_model.npz.sha256
 server/data/models/global/training_metadata.json
 server/data/pretraining_report.json
+server/data/datasets/realistic_dgs_cycle_*/
 server/data/test-*.sqlite
 server/data/dgs_manifest.json
 server/data/dgs_video_examples/

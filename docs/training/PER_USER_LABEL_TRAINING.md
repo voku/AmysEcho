@@ -222,3 +222,18 @@ can surface progress if desired:
 
 - `server/test/userLabelSettings.test.ts` - Unit tests for SQLite operations
 - `server/test/userLabelRoutes.test.ts` - API integration tests
+
+
+## Verbesserter Workflow für personalisierte Kind-Modelle
+
+Die `/train-model` Pipeline nutzt jetzt einen mehrstufigen Trainingslauf auch für personalisierte Modelle:
+
+- Standard-Trainingsplan: `20,40,80` Epochen (über `AMY_PROFILE_TRAINING_EPOCH_SCHEDULE` anpassbar)
+- Nutzbarkeitsschwelle: `0.35` (über `AMY_PROFILE_TRAINING_USABLE_ACCURACY` anpassbar)
+- Wenn genau ein Profil trainiert wird, wird die Attempt-Auswahl über **Profil-Accuracy**
+  (nicht nur globale Accuracy) gesteuert.
+- Das beste Attempt-Ergebnis wird als Job-Metrik (`bestAttempt`, `trainingSchedule`,
+  `targetProfileId`) in `/api/v1/train-status/:id` sichtbar.
+
+Damit fließen die Erkenntnisse aus den realen Trainingsläufen direkt in das tägliche Training
+für individuelle Kind-Modelle ein, nicht nur in die globale Baseline.

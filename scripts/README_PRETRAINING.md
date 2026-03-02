@@ -197,6 +197,65 @@ python3 training/train_mlp.py
 
 **Time estimate:** 10-30 minutes (depends on epochs)
 
+
+### Realistic multi-attempt validation cycle (all repository videos)
+
+Wenn du einen realistischen Trainingslauf mit allen vorhandenen `*_landmarks.json`-Dateien fahren willst,
+kannst du den Zyklus mit gehaltenem Eval-Set verwenden. Der Lauf:
+
+1. nutzt alle verfügbaren DGS-Beispiele aus `server/data/dgs_video_examples`,
+2. hält pro Label automatisch einen Teil der Videos zur Validierung zurück,
+3. trainiert mit erhöhtem Timeout,
+4. bewertet das neue temporäre Modell auf echten Frames aus den zurückgehaltenen Videos,
+5. wiederholt den Trainingsversuch mit aufsteigenden Epochen (`--epoch-schedule`) bis zum konfigurierten Qualitätsziel.
+
+```bash
+cd AmysEcho
+python3 scripts/realistic_dgs_training_cycle.py \
+  --attempts 3 \
+  --epoch-schedule 20,40,80 \
+  --timeout-seconds 14400 \
+  --usable-accuracy 0.35
+```
+
+Der Ergebnisbericht wird nach `server/data/datasets/realistic_dgs_cycle_report.json` geschrieben und enthält
+Baseline-vs.-Temp-Modell Vergleichswerte (Top-1 Accuracy + Macro F1), Label-Abdeckung,
+Skip-Labels sowie Gate-Status (`usableAccuracyReached`, `holdoutSetNonEmpty`).
+
+Optional kannst du das beste temporäre Modell direkt sichern:
+
+```bash
+python3 scripts/realistic_dgs_training_cycle.py \
+  --attempts 4 \
+  --epoch-schedule 20,40,80,120 \
+  --save-best-model-to server/data/models/global/amy_model_candidate.npz \
+  --promote-best-global-model
+```
+
+Für einen konkreten, nachvollziehbaren Vergleichslauf siehe auch
+`docs/training/REALISTIC_DGS_EXPERIMENT_2026-03-01.md`.
+
+
+### Produktiver Workflow mit Chat-validiertem Preset
+
+Für den echten Projekt-Workflow kann das validierte Preset direkt genutzt werden:
+
+```bash
+npm run train:mlp:realistic --prefix server
+```
+
+Dieser Befehl entspricht:
+
+```bash
+python3 scripts/realistic_dgs_training_cycle.py \
+  --workflow-preset chat-validated-2026-03 \
+  --auto-promote-on-usable
+```
+
+Damit werden die validierten Parameter (`attempts=3`, `epoch-schedule=20,40,80`,
+`max-files-per-label=3`, `usable-accuracy=0.35`) erzwungen und das beste Modell
+bei erreichter Nutzbarkeit automatisch in `server/data/models/global/amy_model.npz` übernommen.
+
 ---
 
 ## Full Pipeline (One Command)

@@ -52,7 +52,8 @@
     "start": "node dist/server.js",
     "download-gesture-task": "ts-node src/tools/getGestureTask.ts",
     "generate-token": "node scripts/generate-token.js",
-    "stress-test": "node scripts/stress-test.js"
+    "stress-test": "node scripts/stress-test.js",
+    "train:mlp:realistic": "python3 ../scripts/realistic_dgs_training_cycle.py --workflow-preset chat-validated-2026-03 --auto-promote-on-usable"
   },
   "engines": {
     "node": ">=18.13.0"

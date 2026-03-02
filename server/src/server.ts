@@ -66,6 +66,7 @@ import {
 } from "./services/profileRegistry.js";
 import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleIngestor.js";
 import { buildLabelManifest, getVideosForLabel, isValidLabel } from "./services/labelRegistry.js";
+import { parseEpochSchedule, resolveTrainingScore } from "./services/profileTrainingTuning.js";
 import type { Correction, ManifestEntry, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
 import { loadManifestEntries } from "./utils/manifestUtils.js";
@@ -883,66 +884,125 @@ async function runTrainingWorkflow(
 		scriptArgs.push("--skip-examples");
 	}
 
-	const trainStartMs = Date.now();
-	const runReport = await new Promise<{ stdout: string; stderr: string }>(
-		(resolve, reject) => {
-			const proc = spawn("python3", scriptArgs, {
-				cwd: serverRoot,
-			});
-			let stdout = "";
-			let stderr = "";
-			let settled = false;
-			const timer = setTimeout(() => {
-				if (settled) return;
-				settled = true;
-				proc.kill("SIGKILL");
-				reject(
-					new Error(`train_mlp timed out after ${config.trainingTimeoutMs}ms`),
-				);
-			}, config.trainingTimeoutMs);
-			timer.unref();
-			proc.stdout?.on("data", (chunk: Buffer) => {
-				stdout += chunk.toString();
-			});
-			proc.stderr?.on("data", (chunk: Buffer) => {
-				stderr += chunk.toString();
-			});
-			proc.on("error", (error) => {
-				if (settled) return;
-				settled = true;
-				clearTimeout(timer);
-				reject(error);
-			});
-			proc.on("close", (code) => {
-				if (settled) return;
-				settled = true;
-				clearTimeout(timer);
-				if (code === 0) {
-					resolve({ stdout, stderr });
-				} else {
-					reject(new Error(stderr || `train_mlp exited with code ${code}`));
-				}
-			});
-		},
+	const trainingSchedule = parseEpochSchedule(
+		process.env.AMY_PROFILE_TRAINING_EPOCH_SCHEDULE,
+		[20, 40, 80],
 	);
+	const usableAccuracyThreshold = Number.parseFloat(
+		process.env.AMY_PROFILE_TRAINING_USABLE_ACCURACY ?? "0.35",
+	);
+	const targetProfileIds = Array.from(
+		new Set(
+			samples
+				.map((sample) => sample.profileId)
+				.filter((profileId): profileId is string => !!profileId),
+		),
+	);
+	const scoreProfileId = targetProfileIds.length === 1 ? targetProfileIds[0] : null;
 
-	const trainDurationMs = Date.now() - trainStartMs;
-	if (runReport.stderr.trim().length > 0) {
-		await logTraining(`job ${id}: train_mlp stderr ${runReport.stderr.trim()}`);
-	}
+	const trainStartMs = Date.now();
+	let bestReport: Record<string, unknown> = {};
+	let bestScore = -1;
+	let bestAttempt = 0;
+	let lastStderr = "";
 
-	let parsedReport: Record<string, unknown> = {};
-	const stdoutText = runReport.stdout.trim();
-	if (stdoutText.length > 0) {
-		try {
-			const lines = stdoutText.split(/\r?\n/).filter(Boolean);
-			parsedReport = JSON.parse(lines[lines.length - 1]);
-		} catch (err) {
+	for (let attemptIndex = 0; attemptIndex < trainingSchedule.length; attemptIndex += 1) {
+		const attempt = attemptIndex + 1;
+		const epochs = trainingSchedule[attemptIndex];
+		const attemptArgs = [
+			...scriptArgs,
+			"--epochs",
+			String(epochs),
+			"--seed",
+			String(20260301 + attempt),
+		];
+		await logTraining(
+			`job ${id}: train attempt ${attempt}/${trainingSchedule.length} (epochs=${epochs})`,
+		);
+
+		const runReport = await new Promise<{ stdout: string; stderr: string }>(
+			(resolve, reject) => {
+				const proc = spawn("python3", attemptArgs, {
+					cwd: serverRoot,
+				});
+				let stdout = "";
+				let stderr = "";
+				let settled = false;
+				const timer = setTimeout(() => {
+					if (settled) return;
+					settled = true;
+					proc.kill("SIGKILL");
+					reject(
+						new Error(`train_mlp timed out after ${config.trainingTimeoutMs}ms`),
+					);
+				}, config.trainingTimeoutMs);
+				timer.unref();
+				proc.stdout?.on("data", (chunk: Buffer) => {
+					stdout += chunk.toString();
+				});
+				proc.stderr?.on("data", (chunk: Buffer) => {
+					stderr += chunk.toString();
+				});
+				proc.on("error", (error) => {
+					if (settled) return;
+					settled = true;
+					clearTimeout(timer);
+					reject(error);
+				});
+				proc.on("close", (code) => {
+					if (settled) return;
+					settled = true;
+					clearTimeout(timer);
+					if (code === 0) {
+						resolve({ stdout, stderr });
+					} else {
+						reject(new Error(stderr || `train_mlp exited with code ${code}`));
+					}
+				});
+			},
+		);
+
+		lastStderr = runReport.stderr.trim();
+		if (lastStderr.length > 0) {
 			await logTraining(
-				`job ${id}: failed to parse training report (${String(err)})`,
+				`job ${id}: train_mlp stderr attempt ${attempt} ${lastStderr}`,
 			);
 		}
+
+		let parsedReport: Record<string, unknown> = {};
+		const stdoutText = runReport.stdout.trim();
+		if (stdoutText.length > 0) {
+			try {
+				const lines = stdoutText.split(/\r?\n/).filter(Boolean);
+				parsedReport = JSON.parse(lines[lines.length - 1]);
+			} catch (err) {
+				await logTraining(
+					`job ${id}: failed to parse training report attempt ${attempt} (${String(err)})`,
+				);
+			}
+		}
+
+		const score = resolveTrainingScore(parsedReport, scoreProfileId);
+		if (score > bestScore) {
+			bestScore = score;
+			bestReport = parsedReport;
+			bestAttempt = attempt;
+		}
+		await logTraining(`job ${id}: attempt ${attempt} score=${score.toFixed(4)}`);
+		if (score >= usableAccuracyThreshold) {
+			await logTraining(
+				`job ${id}: usable score reached (${score.toFixed(4)} >= ${usableAccuracyThreshold})`,
+			);
+			break;
+		}
 	}
+
+	const trainDurationMs = Date.now() - trainStartMs;
+	if (lastStderr.length > 0) {
+		await logTraining(`job ${id}: final train_mlp stderr ${lastStderr}`);
+	}
+
+	const parsedReport = bestReport;
 
 	job.progress = 100;
 	job.status = "completed";
@@ -968,6 +1028,10 @@ async function runTrainingWorkflow(
 		);
 	}
 	job.metrics = {
+		bestAttempt,
+		usableAccuracyThreshold,
+		trainingSchedule,
+		targetProfileId: scoreProfileId,
 		accuracy:
 			typeof (parsedReport.global as { accuracy?: unknown } | undefined)
 				?.accuracy === "number"
