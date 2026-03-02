@@ -26,6 +26,7 @@ SERVER_DATA = SERVER_DIR / "data"
 VIDEO_DIR = SERVER_DATA / "dgs_video_examples"
 TRAINER_SCRIPT = SERVER_DIR / "src" / "amyserver_tools" / "train_mlp.py"
 BASELINE_MODEL_PATH = SERVER_DATA / "models" / "global" / "amy_model.npz"
+STDERR_SUMMARY_LINES = 20
 
 
 def load_trainer_module() -> Any:
@@ -66,6 +67,15 @@ class AttemptResult:
     training_report: dict[str, Any]
     evaluation: EvaluationResult
     meets_usable_threshold: bool
+
+
+def _relative_eval_dict(result: EvaluationResult) -> dict[str, Any]:
+    """Return asdict(result) with model_path made relative to PROJECT_ROOT."""
+    eval_dict = asdict(result)
+    abs_model_path = Path(eval_dict["model_path"])
+    if abs_model_path.is_relative_to(PROJECT_ROOT):
+        eval_dict["model_path"] = str(abs_model_path.relative_to(PROJECT_ROOT))
+    return eval_dict
 
 
 def extract_label_from_landmark_file(path: Path) -> str:
@@ -443,6 +453,9 @@ def main() -> None:
                 meets_usable_threshold=eval_result.top1_accuracy >= usable_accuracy,
             )
 
+            stderr_lines = training_payload["stderr"].splitlines()
+            stderr_summary = "\n".join(stderr_lines[-STDERR_SUMMARY_LINES:]) if len(stderr_lines) > STDERR_SUMMARY_LINES else training_payload["stderr"]
+            rel_model_path = model_path.relative_to(PROJECT_ROOT) if model_path.is_relative_to(PROJECT_ROOT) else model_path
             attempts_payload.append(
                 {
                     "attempt": attempt.attempt,
@@ -450,11 +463,10 @@ def main() -> None:
                     "epochs": attempt.epochs,
                     "timeoutSeconds": attempt.timeout_seconds,
                     "trainingReport": attempt.training_report,
-                    "evaluation": asdict(attempt.evaluation),
-                    "stdout": training_payload["stdout"],
-                    "stderr": training_payload["stderr"],
+                    "evaluation": _relative_eval_dict(attempt.evaluation),
+                    "stderrSummary": stderr_summary,
                     "meetsUsableThreshold": attempt.meets_usable_threshold,
-                    "modelPath": str(model_path),
+                    "modelPath": str(rel_model_path),
                 }
             )
 
@@ -477,13 +489,13 @@ def main() -> None:
         if should_promote:
             BASELINE_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(best_model_path, BASELINE_MODEL_PATH)
-            promoted_model_path = str(BASELINE_MODEL_PATH)
+            promoted_model_path = str(BASELINE_MODEL_PATH.relative_to(PROJECT_ROOT))
 
         artifact_mode = "retained" if args.keep_attempt_artifacts else "temporary"
         report_payload = {
             "startedAt": run_started,
             "finishedAt": datetime.now(UTC).isoformat(),
-            "videoSourceDirectory": str(VIDEO_DIR),
+            "videoSourceDirectory": str(VIDEO_DIR.relative_to(PROJECT_ROOT)),
             "landmarkFilesDiscovered": len(landmark_files),
             "trainFiles": [file.name for file in train_files],
             "evalFiles": [file.name for file in eval_files],
@@ -494,13 +506,13 @@ def main() -> None:
             "epochSchedule": epoch_schedule,
             "workflowPreset": args.workflow_preset,
             "timeoutSeconds": args.timeout_seconds,
-            "baselineEvaluation": asdict(baseline_result) if baseline_result else None,
+            "baselineEvaluation": _relative_eval_dict(baseline_result) if baseline_result else None,
             "baselineEvaluationError": baseline_error,
             "bestAttempt": {
                 "attempt": best_attempt.attempt,
                 "seed": best_attempt.seed,
                 "epochs": best_attempt.epochs,
-                "evaluation": asdict(best_attempt.evaluation),
+                "evaluation": _relative_eval_dict(best_attempt.evaluation),
                 "meetsUsableThreshold": best_attempt.meets_usable_threshold,
             },
             "allAttempts": attempts_payload,
