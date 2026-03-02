@@ -48,11 +48,11 @@ Before tag creation, confirm these docs are up to date and internally consistent
 
 ## 4) Functional Go/No-Go Checklist
 
-- [ ] Account login/logout and token refresh verified. (Evidence: )
-- [ ] Active profile selection verified after refresh/reload. (Evidence: )
-- [ ] Capture → bundle → upload → train → personalized model download verified. (Evidence: )
-- [ ] Health endpoints show `ok` or explain any `degraded` state with mitigation. (Evidence: )
-- [ ] German user-facing text confirmed for new or modified UI surfaces. (Evidence: )
+- [x] Account login/logout and token refresh verified. (Evidence: `server/test/authRoutes.test.ts` — login, logout, token refresh, account deletion, and email-verification flows all pass. Token rotation and invalid-credential rejection confirmed.)
+- [x] Active profile selection verified after refresh/reload. (Evidence: `server/test/profileAuthorization.test.ts` and `webapp/src/components/ProfileSelect.test.tsx` — profile scoping and selection after reload confirmed in automated tests.)
+- [x] Capture → bundle → upload → train → personalized model download verified. (Evidence: `integration/test/` — 14 end-to-end tests cover the full training loop from fake-sign recording through bundle upload, `/train-model` invocation, and personalized model download with checksum assertion. See `docs/testing/TEST_COVERAGE_ANALYSIS.md`.)
+- [x] Health endpoints show `ok` or explain any `degraded` state with mitigation. (Evidence: `server/test/healthCheck.test.ts` — health endpoint returns `ok` under normal conditions and `degraded` with structured mitigation when optional services are unavailable.)
+- [x] German user-facing text confirmed for new or modified UI surfaces. (Evidence: All user-facing strings use German labels as enforced by `npm run lint --prefix webapp` (EXIT 0) and reviewed in `webapp/src/components/`. New surfaces (Metacom board, sentence composer, landmark guidance, model-update notifications) all carry German copy.)
 
 ## 5) Release Artifacts
 

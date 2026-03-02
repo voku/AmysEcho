@@ -3,9 +3,9 @@
 ## v0.0.1 Tag Preparation
 
 - [x] Create a dedicated pre-tag checklist in `docs/planning/RELEASE_0.0.1_READINESS.md` so contributors can run a consistent Go/No-Go flow.
-- [ ] Execute the full pre-tag verification command set and attach results to the release notes.
-- [ ] Complete the functional Go/No-Go checklist (auth/session, profile scope, full training loop, health endpoint status, German UX validation).
-- [ ] Draft `v0.0.1` release notes with known limitations and mitigation ownership.
+- [x] Execute the full pre-tag verification command set and attach results to the release notes. (Results in `docs/testing/TEST_COVERAGE_ANALYSIS.md`; all suites pass — 128 webapp files / 1 238 tests, 42 server suites / 272 TS + 113 Py tests, 14 integration tests.)
+- [x] Complete the functional Go/No-Go checklist (auth/session, profile scope, full training loop, health endpoint status, German UX validation). (All five items checked with evidence in `docs/planning/RELEASE_0.0.1_READINESS.md` section 4.)
+- [x] Draft `v0.0.1` release notes with known limitations and mitigation ownership. (See `docs/planning/RELEASE_NOTES_v0.0.1.md`.)
 
 ## Next TODO Focus (Post-v0.0.1)
 
@@ -18,13 +18,13 @@
 
 Use this section to create one GitHub issue per unchecked item. Keep issue titles identical to task text for traceability.
 
-- [ ] **[Release] Run pre-tag verification command set and attach output to release notes**  
+- [x] **[Release] Run pre-tag verification command set and attach output to release notes**  
   Labels: `release`, `quality-gate`  
   Acceptance: command output for webapp/server/integration checks is attached to a `v0.0.1` release prep issue.
-- [ ] **[Release] Complete functional Go/No-Go checks (auth, profile, training flow, health, German UX)**  
+- [x] **[Release] Complete functional Go/No-Go checks (auth, profile, training flow, health, German UX)**  
   Labels: `release`, `qa`  
   Acceptance: each checklist item in `docs/planning/RELEASE_0.0.1_READINESS.md` section 4 is checked with evidence links.
-- [ ] **[Release] Draft and review v0.0.1 release notes with known limitations and mitigations**  
+- [x] **[Release] Draft and review v0.0.1 release notes with known limitations and mitigations**  
   Labels: `release`, `documentation`  
   Acceptance: release notes include scope, known limitations, mitigation owner, and rollback notes.
 - [ ] **[Post-v0.0.1] Add concurrency stress tests for training bundle ingestion/retry storms**  
