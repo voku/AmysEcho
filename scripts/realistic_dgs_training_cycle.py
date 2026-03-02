@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import random
@@ -26,15 +27,22 @@ VIDEO_DIR = SERVER_DATA / "dgs_video_examples"
 TRAINER_SCRIPT = SERVER_DIR / "src" / "amyserver_tools" / "train_mlp.py"
 BASELINE_MODEL_PATH = SERVER_DATA / "models" / "global" / "amy_model.npz"
 
-sys.path.insert(0, str(SERVER_DIR / "training"))
 
-trainer_spec = importlib.util.spec_from_file_location("amy_train_mlp", TRAINER_SCRIPT)
-if trainer_spec is None or trainer_spec.loader is None:
-    raise RuntimeError(f"Unable to load trainer module from {TRAINER_SCRIPT}")
-trainer = importlib.util.module_from_spec(trainer_spec)
-trainer_spec.loader.exec_module(trainer)
+def load_trainer_module() -> Any:
+    sys.path.insert(0, str(SERVER_DIR / "training"))
+    trainer_spec = importlib.util.spec_from_file_location("amy_train_mlp", TRAINER_SCRIPT)
+    if trainer_spec is None or trainer_spec.loader is None:
+        raise RuntimeError(f"Unable to load trainer module from {TRAINER_SCRIPT}")
+    trainer_module = importlib.util.module_from_spec(trainer_spec)
+    trainer_spec.loader.exec_module(trainer_module)
+    return trainer_module
 
-from model_serialization import load_model  # noqa: E402
+
+def load_model_weights(model_path: Path) -> tuple[Any, list[str], dict[str, Any]]:
+    sys.path.insert(0, str(SERVER_DIR / "training"))
+    from model_serialization import load_model
+
+    return load_model(model_path)
 
 
 @dataclass
@@ -61,7 +69,15 @@ class AttemptResult:
 
 
 def extract_label_from_landmark_file(path: Path) -> str:
-    return path.name.removesuffix("_landmarks.json").split("_")[0]
+    stem = path.name.removesuffix("_landmarks.json")
+
+    main_index = stem.find("_main_")
+    var_index = stem.find("_var_")
+    valid_indices = [index for index in (main_index, var_index) if index != -1]
+    if valid_indices:
+        return stem[: min(valid_indices)]
+
+    return stem
 
 
 def landmark_file_has_signal(path: Path) -> bool:
@@ -114,7 +130,9 @@ def split_train_eval(
 
     for label, files in grouped.items():
         shuffled_files = list(files)
-        random.Random(seed + sum(ord(ch) for ch in label)).shuffle(shuffled_files)
+        label_seed_bytes = hashlib.sha256(label.encode("utf-8")).digest()[:8]
+        label_seed = int.from_bytes(label_seed_bytes, "big")
+        random.Random(seed + label_seed).shuffle(shuffled_files)
         files = shuffled_files
         if max_files_per_label is not None and max_files_per_label > 0:
             files = files[:max_files_per_label]
@@ -134,8 +152,18 @@ def split_train_eval(
 
 def parse_epoch_schedule(raw_value: str) -> list[int]:
     values = [chunk.strip() for chunk in raw_value.split(",") if chunk.strip()]
-    epochs = [int(value) for value in values]
-    if not epochs or any(value <= 0 for value in epochs):
+    epochs: list[int] = []
+    for value in values:
+        try:
+            epoch = int(value)
+        except ValueError as exc:
+            raise ValueError("--epoch-schedule must contain positive integers, e.g. '300,600,900'") from exc
+
+        if epoch <= 0:
+            raise ValueError("--epoch-schedule must contain positive integers, e.g. '300,600,900'")
+        epochs.append(epoch)
+
+    if not epochs:
         raise ValueError("--epoch-schedule must contain positive integers, e.g. '300,600,900'")
     return epochs
 
@@ -191,7 +219,13 @@ def run_training_attempt(
     if result.returncode != 0:
         raise RuntimeError(json.dumps(payload, indent=2))
 
-    report = json.loads(result.stdout)
+    try:
+        report = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"Failed to parse trainer output as JSON: {exc}. stdout: {result.stdout}"
+        ) from exc
+
     if "error" in report:
         raise RuntimeError(f"Training returned error payload: {report['error']}")
 
@@ -231,12 +265,13 @@ def macro_f1_from_predictions(targets: np.ndarray, predictions: np.ndarray, clas
 
 
 def evaluate_model(model_path: Path, eval_manifest_path: Path) -> EvaluationResult:
+    trainer = load_trainer_module()
     eval_samples, _ = trainer.build_samples_from_manifest(eval_manifest_path, skip_examples=True)
     if not eval_samples:
         raise RuntimeError("No evaluation samples were generated from held-out files.")
 
     X_eval, y_eval, eval_labels, _ = trainer.dataset_to_arrays(eval_samples, augmentations_per_sample=0)
-    weights, model_labels, _ = load_model(model_path)
+    weights, model_labels, _ = load_model_weights(model_path)
 
     coverage = dict.fromkeys(eval_labels, 0)
     for sample in eval_samples:
@@ -282,7 +317,7 @@ def evaluate_model(model_path: Path, eval_manifest_path: Path) -> EvaluationResu
         known_label_samples=len(known_indices),
         unknown_label_samples=int(X_eval.shape[0]) - len(known_indices),
         top1_accuracy=float(np.mean(predictions == targets)),
-        macro_f1=macro_f1_from_predictions(targets, predictions, len(model_labels)),
+        macro_f1=macro_f1_from_predictions(targets, predictions, len(np.unique(targets))),
         label_coverage=coverage,
         skipped_labels=sorted(skipped_labels),
     )
@@ -363,8 +398,10 @@ def main() -> None:
     datasets_dir = SERVER_DATA / "datasets"
     datasets_dir.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix="realistic_dgs_cycle_", dir=str(datasets_dir)) as temp_dir:
-        temp_root = Path(temp_dir)
+    temp_dir = tempfile.mkdtemp(prefix="realistic_dgs_cycle_", dir=str(datasets_dir))
+    temp_root = Path(temp_dir)
+
+    try:
         train_manifest_path = temp_root / "train_manifest.json"
         eval_manifest_path = temp_root / "eval_manifest.json"
 
@@ -475,6 +512,10 @@ def main() -> None:
                 "artifactMode": artifact_mode,
             },
         }
+
+    finally:
+        if not args.keep_attempt_artifacts:
+            shutil.rmtree(temp_root, ignore_errors=True)
 
     args.report_path.parent.mkdir(parents=True, exist_ok=True)
     args.report_path.write_text(json.dumps(report_payload, indent=2), encoding="utf-8")
