@@ -79,3 +79,13 @@ Validierung nach Implementierung (mit den neuen Defaults):
 - `bestMacroF1`: **0.13248522571830845**
 - `usable`: **true**
 
+
+
+## Integration in den Projekt-Workflow
+
+Die Erkenntnisse wurden in den laufenden Workflow übernommen:
+
+- Preset-Flag `--workflow-preset chat-validated-2026-03` erzwingt die validierten Parameter
+  (`attempts=3`, `epoch-schedule=20,40,80`, `max-files-per-label=3`, `usable-accuracy=0.35`).
+- `--auto-promote-on-usable` übernimmt bei erreichter Nutzbarkeit das beste Modell direkt als globales Modell.
+- Standardisierter Aufruf für Maintainer: `npm run train:mlp:realistic --prefix server`.

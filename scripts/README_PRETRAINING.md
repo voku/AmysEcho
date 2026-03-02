@@ -235,6 +235,27 @@ python3 scripts/realistic_dgs_training_cycle.py \
 Für einen konkreten, nachvollziehbaren Vergleichslauf siehe auch
 `docs/training/REALISTIC_DGS_EXPERIMENT_2026-03-01.md`.
 
+
+### Produktiver Workflow mit Chat-validiertem Preset
+
+Für den echten Projekt-Workflow kann das validierte Preset direkt genutzt werden:
+
+```bash
+npm run train:mlp:realistic --prefix server
+```
+
+Dieser Befehl entspricht:
+
+```bash
+python3 scripts/realistic_dgs_training_cycle.py \
+  --workflow-preset chat-validated-2026-03 \
+  --auto-promote-on-usable
+```
+
+Damit werden die validierten Parameter (`attempts=3`, `epoch-schedule=20,40,80`,
+`max-files-per-label=3`, `usable-accuracy=0.35`) erzwungen und das beste Modell
+bei erreichter Nutzbarkeit automatisch in `server/data/models/global/amy_model.npz` übernommen.
+
 ---
 
 ## Full Pipeline (One Command)

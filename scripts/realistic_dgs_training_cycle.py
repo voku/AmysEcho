@@ -294,9 +294,24 @@ def resolve_epoch_for_attempt(epoch_schedule: list[int], attempt_index: int) -> 
     return epoch_schedule[-1]
 
 
+
+
+def apply_workflow_preset(
+    preset: str,
+    attempts: int,
+    epoch_schedule: list[int],
+    max_files_per_label: int | None,
+    usable_accuracy: float,
+) -> tuple[int, list[int], int | None, float]:
+    if preset != "chat-validated-2026-03":
+        return attempts, epoch_schedule, max_files_per_label, usable_accuracy
+
+    return 3, [20, 40, 80], 3, 0.35
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--attempts", type=int, default=3)
+    parser.add_argument("--workflow-preset", type=str, default="none", choices=["none", "chat-validated-2026-03"])
     parser.add_argument("--holdout-ratio", type=float, default=0.2)
     parser.add_argument("--usable-accuracy", type=float, default=0.35)
     parser.add_argument("--max-files-per-label", type=int, default=3)
@@ -306,6 +321,7 @@ def main() -> None:
     parser.add_argument("--keep-attempt-artifacts", action="store_true")
     parser.add_argument("--save-best-model-to", type=Path, default=None)
     parser.add_argument("--promote-best-global-model", action="store_true")
+    parser.add_argument("--auto-promote-on-usable", action="store_true")
     parser.add_argument(
         "--report-path",
         type=Path,
@@ -314,6 +330,13 @@ def main() -> None:
     args = parser.parse_args()
 
     epoch_schedule = parse_epoch_schedule(args.epoch_schedule)
+    attempts, epoch_schedule, max_files_per_label, usable_accuracy = apply_workflow_preset(
+        args.workflow_preset,
+        args.attempts,
+        epoch_schedule,
+        args.max_files_per_label,
+        args.usable_accuracy,
+    )
 
     landmark_files = sorted(VIDEO_DIR.glob("*_landmarks.json"))
     if not landmark_files:
@@ -326,7 +349,7 @@ def main() -> None:
     train_files, eval_files, label_totals = split_train_eval(
         landmark_files,
         args.holdout_ratio,
-        max_files_per_label=args.max_files_per_label,
+        max_files_per_label=max_files_per_label,
         seed=args.seed,
     )
 
@@ -356,7 +379,7 @@ def main() -> None:
             except RuntimeError as exc:
                 baseline_error = str(exc)
 
-        for attempt_index in range(args.attempts):
+        for attempt_index in range(attempts):
             attempt_number = attempt_index + 1
             epochs = resolve_epoch_for_attempt(epoch_schedule, attempt_index)
             output_dir = temp_root / f"models_attempt_{attempt_number}"
@@ -380,7 +403,7 @@ def main() -> None:
                 timeout_seconds=args.timeout_seconds,
                 training_report=training_payload["report"],
                 evaluation=eval_result,
-                meets_usable_threshold=eval_result.top1_accuracy >= args.usable_accuracy,
+                meets_usable_threshold=eval_result.top1_accuracy >= usable_accuracy,
             )
 
             attempts_payload.append(
@@ -413,7 +436,8 @@ def main() -> None:
             shutil.copy2(best_model_path, args.save_best_model_to)
 
         promoted_model_path = None
-        if args.promote_best_global_model:
+        should_promote = args.promote_best_global_model or (args.auto_promote_on_usable and best_attempt.meets_usable_threshold)
+        if should_promote:
             BASELINE_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(best_model_path, BASELINE_MODEL_PATH)
             promoted_model_path = str(BASELINE_MODEL_PATH)
@@ -427,10 +451,11 @@ def main() -> None:
             "trainFiles": [file.name for file in train_files],
             "evalFiles": [file.name for file in eval_files],
             "labelTotals": label_totals,
-            "usableAccuracyThreshold": args.usable_accuracy,
-            "attemptCountRequested": args.attempts,
+            "usableAccuracyThreshold": usable_accuracy,
+            "attemptCountRequested": attempts,
             "attemptCountExecuted": len(attempts_payload),
             "epochSchedule": epoch_schedule,
+            "workflowPreset": args.workflow_preset,
             "timeoutSeconds": args.timeout_seconds,
             "baselineEvaluation": asdict(baseline_result) if baseline_result else None,
             "baselineEvaluationError": baseline_error,

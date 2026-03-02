@@ -47,3 +47,23 @@ def test_resolve_epoch_for_attempt_uses_last_value_for_overflow() -> None:
     assert module.resolve_epoch_for_attempt([20, 40, 80], 0) == 20
     assert module.resolve_epoch_for_attempt([20, 40, 80], 2) == 80
     assert module.resolve_epoch_for_attempt([20, 40, 80], 4) == 80
+
+
+def test_apply_workflow_preset_keeps_values_for_none() -> None:
+    attempts, schedule, max_files, usable = module.apply_workflow_preset(
+        "none", 4, [10, 20], 5, 0.5
+    )
+    assert attempts == 4
+    assert schedule == [10, 20]
+    assert max_files == 5
+    assert usable == 0.5
+
+
+def test_apply_workflow_preset_enforces_chat_validated_defaults() -> None:
+    attempts, schedule, max_files, usable = module.apply_workflow_preset(
+        "chat-validated-2026-03", 10, [999], 99, 0.9
+    )
+    assert attempts == 3
+    assert schedule == [20, 40, 80]
+    assert max_files == 3
+    assert usable == 0.35
