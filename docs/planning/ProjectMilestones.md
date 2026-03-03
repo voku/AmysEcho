@@ -12,14 +12,14 @@ The core platform is implemented and production-oriented:
 - model distribution and runtime loading
 - reliability, health, and fallback pathways
 
-## Current Milestone: v0.0.1 Stabilization & Tag Readiness
+## Current Milestone: v0.0.2 Stabilization & Tag Readiness
 
 Focus: lock a trustworthy baseline tag for external contributors and reproducible deployments.
 
 ### Exit Criteria
 
 - All major webapp/server/integration checks pass.
-- Release readiness checklist in `docs/planning/RELEASE_0.0.1_READINESS.md` is complete.
+- Release readiness checklist in `docs/planning/RELEASE_0.0.2_READINESS.md` is complete.
 - README/docs/AGENTS guidance reflects actual implementation.
 - TODO list is curated to concrete post-tag priorities.
 

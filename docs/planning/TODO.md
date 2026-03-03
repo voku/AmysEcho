@@ -1,13 +1,13 @@
 # Amy's Echo Sign Language Model — Training & Recognition
 
-## v0.0.1 Tag Preparation
+## v0.0.2 Tag Preparation
 
-- [x] Create a dedicated pre-tag checklist in `docs/planning/RELEASE_0.0.1_READINESS.md` so contributors can run a consistent Go/No-Go flow.
-- [ ] Execute the full pre-tag verification command set and attach results to the release notes.
-- [ ] Complete the functional Go/No-Go checklist (auth/session, profile scope, full training loop, health endpoint status, German UX validation).
-- [ ] Draft `v0.0.1` release notes with known limitations and mitigation ownership.
+- [x] Create a dedicated pre-tag checklist in `docs/planning/RELEASE_0.0.2_READINESS.md` so contributors can run a consistent Go/No-Go flow.
+- [x] Execute the full pre-tag verification command set and attach results to the release notes.
+- [x] Complete the functional Go/No-Go checklist (auth/session, profile scope, full training loop, health endpoint status, German UX validation).
+- [ ] Draft `v0.0.2` release notes with known limitations and mitigation ownership.
 
-## Next TODO Focus (Post-v0.0.1)
+## Next TODO Focus (Post-v0.0.2)
 
 - [ ] Add concurrency stress tests for training bundle ingestion and retry storms.
 - [ ] Add long-session device performance baselines (FPS, thermal, battery) for target caregiver hardware.
@@ -18,22 +18,22 @@
 
 Use this section to create one GitHub issue per unchecked item. Keep issue titles identical to task text for traceability.
 
-- [ ] **[Release] Run pre-tag verification command set and attach output to release notes**  
+- [x] **[Release] Run pre-tag verification command set and attach output to release notes**  
   Labels: `release`, `quality-gate`  
-  Acceptance: command output for webapp/server/integration checks is attached to a `v0.0.1` release prep issue.
-- [ ] **[Release] Complete functional Go/No-Go checks (auth, profile, training flow, health, German UX)**  
+  Acceptance: command output for webapp/server/integration checks is attached to a `v0.0.2` release prep issue.
+- [x] **[Release] Complete functional Go/No-Go checks (auth, profile, training flow, health, German UX)**  
   Labels: `release`, `qa`  
-  Acceptance: each checklist item in `docs/planning/RELEASE_0.0.1_READINESS.md` section 4 is checked with evidence links.
-- [ ] **[Release] Draft and review v0.0.1 release notes with known limitations and mitigations**  
+  Acceptance: each checklist item in `docs/planning/RELEASE_0.0.2_READINESS.md` section 4 is checked with evidence links.
+- [ ] **[Release] Draft and review v0.0.2 release notes with known limitations and mitigations**  
   Labels: `release`, `documentation`  
   Acceptance: release notes include scope, known limitations, mitigation owner, and rollback notes.
-- [ ] **[Post-v0.0.1] Add concurrency stress tests for training bundle ingestion/retry storms**  
+- [ ] **[Post-v0.0.2] Add concurrency stress tests for training bundle ingestion/retry storms**  
   Labels: `testing`, `server`, `reliability`  
   Acceptance: automated stress scenario added and passing in CI with documented thresholds.
-- [ ] **[Post-v0.0.1] Establish long-session device baselines (FPS, thermal, battery)**  
+- [ ] **[Post-v0.0.2] Establish long-session device baselines (FPS, thermal, battery)**  
   Labels: `performance`, `webapp`, `field-validation`  
   Acceptance: baseline matrix published for target caregiver devices and linked from docs.
-- [ ] **[Post-v0.0.1] Expand operations runbook with incident drills and rollback evidence**  
+- [ ] **[Post-v0.0.2] Expand operations runbook with incident drills and rollback evidence**  
   Labels: `operations`, `documentation`  
   Acceptance: runbook contains at least one simulated incident + rollback drill report.
 

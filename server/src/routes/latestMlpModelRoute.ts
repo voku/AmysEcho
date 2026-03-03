@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import type { Request, Response } from "express";
 import { createReadStream, promises as fs } from "fs";
+import { PROFILE_ID_PATTERN } from "../constants/modelPaths.js";
 import type {
 	BaselineSeedMessages,
 	ModelResponseMetadata,
@@ -58,13 +59,17 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 				typeof req.query.profileId === "string"
 					? req.query.profileId
 					: undefined;
+
+			if (rawProfileId && !PROFILE_ID_PATTERN.test(rawProfileId)) {
+				return res.status(400).json({ error: "Ungültige Profil-ID." });
+			}
+
 			const resolved = await deps.resolveProfileId(rawProfileId);
 			const profileId = resolved.profileId ?? undefined;
 
 			if (rawProfileId && !profileId) {
-				await deps.logTraining(
-					`latest-mlp-model profile ${rawProfileId} not found in registry, falling back to global`,
-				);
+				await deps.logTraining(`latest-mlp-model profile ${rawProfileId} not found`);
+				return res.status(404).json({ error: "Profil nicht gefunden." });
 			}
 			if (profileId && !deps.isProfileAuthorized(req, profileId)) {
 				return res.status(403).json({ error: "Zugriff verweigert." });
