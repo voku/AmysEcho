@@ -52,6 +52,9 @@ describe('GET /latest-mlp-model', () => {
   let modelPaths: typeof import('../src/constants/modelPaths.js');
   let baselinePath: string;
   let accessToken: string;
+  const knownProfileId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const unauthorizedProfileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const deniedProfiles = new Set<string>();
   async function expectValidModelResponse(response: request.Response) {
     const body: Buffer = response.body as Buffer;
     expect(Buffer.isBuffer(body)).toBe(true);
@@ -149,16 +152,23 @@ describe('GET /latest-mlp-model', () => {
       sendBinaryModel: artifacts.sendBinaryModel,
       applyModelHeaders: artifacts.applyModelResponseHeaders,
       logTraining,
-      // Mock authorization - always authorize in tests since we're testing
-      // model delivery, not authorization logic (tested separately)
-      isProfileAuthorized: () => true,
-      resolveProfileId: async (pid) => ({ profileId: pid || null }),
+      isProfileAuthorized: (_req, profileId) => !deniedProfiles.has(profileId),
+      resolveProfileId: async (pid) => {
+        if (!pid) {
+          return { profileId: null };
+        }
+        if (pid === knownProfileId || pid === unauthorizedProfileId) {
+          return { profileId: pid };
+        }
+        return { profileId: null };
+      },
     });
 
     app.get('/latest-mlp-model', authMiddleware, handler);
   });
 
   beforeEach(async () => {
+    deniedProfiles.clear();
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
     await ensureBaselineModelFixture(baselinePath);
@@ -272,7 +282,7 @@ describe('GET /latest-mlp-model', () => {
   });
 
   it('requires authorization for profiled requests', async () => {
-    const profileId = '11111111-1111-4111-8111-111111111111';
+    const profileId = knownProfileId;
     const profileModelPath = modelPaths.getMlpModelPath(profileId);
     await fs.mkdir(path.dirname(profileModelPath), { recursive: true });
     await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, profileModelPath);
@@ -292,7 +302,7 @@ describe('GET /latest-mlp-model', () => {
   });
 
   it('falls back to global model when requested profile model is missing', async () => {
-    const profileId = '22222222-2222-4222-8222-222222222222';
+    const profileId = knownProfileId;
     const globalModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(globalModelPath), { recursive: true });
     await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, globalModelPath);
@@ -307,5 +317,34 @@ describe('GET /latest-mlp-model', () => {
 
     expect(response.headers['x-model-source']).toBe('global');
     expect(response.headers['x-model-profile']).toBeUndefined();
+  });
+
+  it('returns 404 when requesting an unknown profile model instead of silently falling back to global', async () => {
+    const response = await request(app)
+      .get('/latest-mlp-model?profileId=cccccccc-cccc-4ccc-8ccc-cccccccccccc')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404);
+
+    expect(response.body).toEqual({ error: 'Profil nicht gefunden.' });
+  });
+
+  it('returns 403 when requesting a known profile model without access', async () => {
+    deniedProfiles.add(unauthorizedProfileId);
+
+    const response = await request(app)
+      .get(`/latest-mlp-model?profileId=${unauthorizedProfileId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(403);
+
+    expect(response.body).toEqual({ error: 'Zugriff verweigert.' });
+  });
+
+  it('returns 400 for malformed profile IDs to avoid ambiguous model fallback', async () => {
+    const response = await request(app)
+      .get('/latest-mlp-model?profileId=invalid-profile-id')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(400);
+
+    expect(response.body).toEqual({ error: 'Ungültige Profil-ID.' });
   });
 });

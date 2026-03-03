@@ -263,10 +263,10 @@ test('Complete multimodal training and model distribution workflow', async () =>
     console.log('  ✓ Fallback to global model works correctly');
     console.log(`    - Model size: ${fallbackBuffer.length} bytes`);
   } else {
-    assert.strictEqual(fallbackRes.status, 403, 'Unknown profiles should be denied explicitly');
+    assert.strictEqual(fallbackRes.status, 404, 'Unknown profiles should return not found explicitly');
     const fallbackBody = await fallbackRes.json();
     assert.ok(typeof fallbackBody.error === 'string' && fallbackBody.error.length > 0);
-    console.log('  ✓ Unknown profile access correctly denied (403)');
+    console.log('  ✓ Unknown profile access correctly rejected as not found (404)');
   }
 
   console.log('\n=== ✅ All Steps Complete ===\n');
