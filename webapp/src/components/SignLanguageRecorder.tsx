@@ -182,7 +182,7 @@ export function SignLanguageRecorder() {
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [showRawVideo, setShowRawVideo] = useState(true);
-  const [demoMode, setDemoMode] = useState(false);
+  const [demoMode] = useState(false);
   const [hasTrainedSigns, setHasTrainedSigns] = useState<boolean | null>(() => {
     try {
       const cached = window.localStorage.getItem('webapp:has-trained-signs');
@@ -602,12 +602,19 @@ export function SignLanguageRecorder() {
   }, [gestureKey, normalizedTrainedSignLabels]);
   const hasKnownTrainedCatalog = normalizedTrainedSignLabels.size > 0;
   const hasManualSuggestion = Boolean(manualSuggestionLabel && normalizeSignLabel(manualSuggestionLabel));
+  const canUseUnfilteredFallbackOutput =
+    Boolean(gestureKey)
+    && !hasKnownTrainedCatalog
+    && canUseProfileRecognition;
   const canUseDirectMlpOutput =
     Boolean(gestureKey) &&
     isProfileModelActive &&
     !hasKnownTrainedCatalog &&
     (lastDetectionMethod === 'mlp' || hasManualSuggestion);
-  const shouldShowGestureOutput = (isTrained && canUseProfileRecognition) || canUseDirectMlpOutput;
+  const shouldShowGestureOutput =
+    (isTrained && canUseProfileRecognition)
+    || canUseDirectMlpOutput
+    || canUseUnfilteredFallbackOutput;
 
   const selectedLabelDescriptor = gestureKey ? labelDescriptorByNormalizedId.get(gestureKey) : undefined;
   const gestureMeaning = (gestureKey && shouldShowGestureOutput)
@@ -893,40 +900,6 @@ export function SignLanguageRecorder() {
     );
   }
 
-  // Prompt to train if no signs found
-  if (hasTrainedSigns === false) {
-    return (
-      <section className="gesture-screen gesture-screen--empty">
-        <div className="gesture-screen__empty-card">
-          <span className="gesture-screen__empty-icon">🖐️</span>
-          <h2>Bringe mir deine Gebärden bei</h2>
-          <p className="gesture-screen__empty-body">
-            Um die Gebärdenkamera zu nutzen, musst du mir zuerst mindestens eine Gebärde beibringen.
-            So kann ich deine Bewegungen zuverlässig verstehen.
-          </p>
-          <p className="gesture-screen__empty-body">
-            Du kannst direkt starten oder im Demo-Modus weitergehen.
-          </p>
-          <div className="gesture-screen__empty-actions">
-            <Link to="/beibringen" className="primary-button">
-              Jetzt Gebärde beibringen
-            </Link>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => {
-                setHasTrainedSigns(true);
-                setDemoMode(true);
-              }}
-            >
-              Trotzdem fortfahren (Demo)
-            </button>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="gesture-screen">
       <div className="video-wrapper gesture-fullscreen">
@@ -963,6 +936,22 @@ export function SignLanguageRecorder() {
       </div>
 
       <div className="gesture-screen__controls">
+        {hasTrainedSigns === false && (
+          <div className="gesture-screen__empty-card">
+            <span className="gesture-screen__empty-icon">🖐️</span>
+            <h2>Basiserkennung ist aktiv</h2>
+            <p className="gesture-screen__empty-body">
+              Du kannst die Kamera direkt nutzen. Für zuverlässigere Ergebnisse empfehlen wir,
+              mindestens eine Gebärde im aktuellen Profil zu trainieren.
+            </p>
+            <div className="gesture-screen__empty-actions">
+              <Link to="/beibringen" className="primary-button">
+                Jetzt Gebärde beibringen
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div className="gesture-screen__banner">
           {gestureLabel ? (
             <div className="gesture-screen__result">

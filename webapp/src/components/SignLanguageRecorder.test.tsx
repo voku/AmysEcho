@@ -223,6 +223,22 @@ describe('SignLanguageRecorder', () => {
     expect(screen.queryByText(/Letzter Erkennungsweg:/)).not.toBeInTheDocument();
   });
 
+
+  it('keeps camera recognition accessible when no trained signs are available', async () => {
+    vi.mocked(apiRetryManager.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ trainedLabels: [] }),
+    } as Response);
+    window.localStorage.setItem('webapp:has-trained-signs', 'false');
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    expect(await screen.findByText('Basiserkennung ist aktiv')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kamera starten' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Jetzt Gebärde beibringen' })).toBeInTheDocument();
+  });
+
   it('shows profile model usage and fallback mode in diagnostics', async () => {
     appStateMock.profileId = 'profile-123';
     detectorState.status = 'running';

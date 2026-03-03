@@ -55,6 +55,11 @@ export type SignLanguageHookResult = {
 };
 
 const UNKNOWN_TYPE = 'unbekannt';
+const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+
+function formatGestureLabelForSummary(label: string): string {
+  return label.trim().replace(TRAILING_UUID_SUFFIX_PATTERN, '').trim();
+}
 
 function isMeaningfulGestureLabel(label: unknown): label is string {
   if (typeof label !== 'string') return false;
@@ -88,20 +93,32 @@ type BatchMessageEntry = {
 };
 
 /**
- * Return the most recent message with a meaningful gesture label, or null.
- * "Meaningful" excludes 'none', '_NULL_', and empty strings.
+ * Return the best message with a meaningful gesture label, or null.
+ * Prefers highest-confidence message; falls back to the latest meaningful entry
+ * when confidences are missing or equal.
  */
 function findSignMessage(messages: BatchMessageEntry[] | undefined): BatchMessageEntry | null {
   if (!Array.isArray(messages)) return null;
 
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (isMeaningfulGestureLabel(message?.gesture)) {
-      return message;
-    }
-  }
+  let selected: BatchMessageEntry | null = null;
+  let selectedConfidence = Number.NEGATIVE_INFINITY;
 
-  return null;
+  messages.forEach((message) => {
+    if (!isMeaningfulGestureLabel(message?.gesture)) {
+      return;
+    }
+
+    const confidence = typeof message.confidence === 'number' && Number.isFinite(message.confidence)
+      ? message.confidence
+      : Number.NEGATIVE_INFINITY;
+
+    if (confidence >= selectedConfidence) {
+      selected = message;
+      selectedConfidence = confidence;
+    }
+  });
+
+  return selected;
 }
 
 function parseIncomingMessage(raw: string): SignLanguageMessage | null {
@@ -127,7 +144,7 @@ function parseIncomingMessage(raw: string): SignLanguageMessage | null {
     }
 
     if (signCandidate) {
-      summaryParts.push(`Gebärde: ${String(signCandidate)}`);
+      summaryParts.push(`Gebärde: ${formatGestureLabelForSummary(String(signCandidate))}`);
     } else if (!hasLandmarks && type !== UNKNOWN_TYPE) {
       // No sign and no landmarks = no hands detected
       summaryParts.push('Keine Hand erkannt');

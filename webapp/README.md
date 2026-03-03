@@ -30,6 +30,7 @@ Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, 
 - Ein Browser-Bridge (`window.ReactNativeWebView`) leitet alle Nachrichten als `CustomEvent` (`webapp:webview-message`) weiter; die UI zeigt letzte Gesten und Bridge-Payloads an.
 - Das Overlay kann ein- oder ausgeblendet werden; Statuschips zeigen „bereit“, „laufend“ oder Fehler an.
 - Die Erkennungsseite enthält eine einklappbare **Diagnose** („🛠️ Diagnose anzeigen“), die verständlich erklärt, warum trainierte Gebärden ggf. noch nicht erkannt werden (z. B. keine Hand im Bild, Sicherheit zu niedrig, falsches Profil).
+- Auch ohne trainierte Profil-Gebärden bleibt die Kamera nutzbar: Die Basiserkennung läuft weiter und zeigt einen klaren Hinweis, dass persönliches Training die Zuverlässigkeit erhöht.
 - Wenn keine sichere Gebärde erkannt wird, zeigt die Erkennungsseite jetzt direkt kontextbasierte MLP-Vorschläge mit niedriger Sicherheit an, damit Betreuungspersonen die passende Bedeutung auswählen können.
 - Die Seite **Einstellungen** zeigt unter „Über Amy’s Echo“ zusätzlich den aktuellen Commit-Hash der ausgelieferten Webapp-Version an.
 - Ein globaler Profil- und Label-Schalter synchronisiert Gestenerkennung und Training. Erkannte Gesten werden als Vorschlag gespeichert und können direkt als neues Trainingslabel übernommen werden.
