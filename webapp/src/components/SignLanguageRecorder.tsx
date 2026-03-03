@@ -10,8 +10,7 @@ import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
 import { MEDIAPIPE_BASELINE_GESTURES, MLP_NULL_LABEL } from '../gesture/core/ProcessingSteps';
-
-const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+import { stripTrailingUuidSuffix } from '../utils/gestureLabel';
 const TRAILING_PUNCTUATION_WITH_OPTIONAL_UUID_PATTERN = /[.,!?;:]+(?=(?:[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?$)/i;
 
 const RECORDER_MLP_CONFIDENCE_FALLBACK = 0.4;
@@ -47,7 +46,7 @@ function normalizeSignLabel(value: string): string {
     .replace(/\s+/g, ' ')
     .toLowerCase();
 
-  const withoutUuidSuffix = normalized.replace(TRAILING_UUID_SUFFIX_PATTERN, '').trim();
+  const withoutUuidSuffix = stripTrailingUuidSuffix(normalized);
   return withoutUuidSuffix.replace(/[.,!?;:]+$/g, '').trim();
 }
 
@@ -182,7 +181,6 @@ export function SignLanguageRecorder() {
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [showRawVideo, setShowRawVideo] = useState(true);
-  const [demoMode] = useState(false);
   const [hasTrainedSigns, setHasTrainedSigns] = useState<boolean | null>(() => {
     try {
       const cached = window.localStorage.getItem('webapp:has-trained-signs');
@@ -465,7 +463,7 @@ export function SignLanguageRecorder() {
     [trainedLabelDescriptors],
   );
 
-  const profileModelRequired = Boolean(profileId && trainedSignLabels.length > 0 && !demoMode);
+  const profileModelRequired = Boolean(profileId && trainedSignLabels.length > 0);
   const isProfileModelActive = modelStatus === 'ready' && modelMeta?.source === 'profile';
   const canUseProfileRecognition = !profileModelRequired || isProfileModelActive || allowGlobalFallbackOutput;
 
@@ -811,14 +809,6 @@ export function SignLanguageRecorder() {
   }, [canUseProfileRecognition, modelMeta?.version, modelStatusLabel, recognitionModeLabel]);
 
   const diagnostics = useMemo(() => {
-    if (demoMode) {
-      return {
-        severity: 'info' as const,
-        title: 'Demo-Modus aktiv',
-        hint: 'Im Demo-Modus ist die echte Erkennung deaktiviert.',
-      };
-    }
-
     if (status === 'error' || error) {
       return {
         severity: 'error' as const,
@@ -878,7 +868,6 @@ export function SignLanguageRecorder() {
       hint: 'Die aktuelle Gebärde passt zu deinem trainierten Profil.',
     };
   }, [
-    demoMode,
     error,
     hasDetectedHands,
     isProfileModelActive,
@@ -964,10 +953,8 @@ export function SignLanguageRecorder() {
             </div>
           ) : (
             <span className="gesture-screen__placeholder">
-              {demoMode
-                ? 'Demo-Modus: Gestenerkennung deaktiviert'
-                : profileModelRequired && !isProfileModelActive && !allowGlobalFallbackOutput
-                  ? 'Profilmodell wird geladen – Ausgaben sind kurz pausiert.'
+              {profileModelRequired && !isProfileModelActive && !allowGlobalFallbackOutput
+                ? 'Profilmodell wird geladen – Ausgaben sind kurz pausiert.'
                 : hasDetectedHands
                   ? 'Hand erkannt – ich suche nach einer passenden Gebärde…'
                   : 'Zeige eine Gebärde in die Kamera…'}

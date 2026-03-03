@@ -483,7 +483,7 @@ describe('useSignLanguageDetector', () => {
       }),
     );
 
-    // Multiple meaningful gestures - latest meaningful one should be selected
+    // Multiple meaningful gestures - highest-confidence one should be selected
     act(() => {
       window.dispatchEvent(
         new CustomEvent(WEBVIEW_MESSAGE_EVENT, {

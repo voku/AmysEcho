@@ -6,6 +6,7 @@ import {
   normalizeHandednessLabels,
   type HandLandmarkStabilizer,
 } from '../utils/landmarkUtils';
+import { stripTrailingUuidSuffix } from '../utils/gestureLabel';
 
 export type SignLanguageMessage = {
   type: string;
@@ -55,10 +56,8 @@ export type SignLanguageHookResult = {
 };
 
 const UNKNOWN_TYPE = 'unbekannt';
-const TRAILING_UUID_SUFFIX_PATTERN = /[-_][0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-
 function formatGestureLabelForSummary(label: string): string {
-  return label.trim().replace(TRAILING_UUID_SUFFIX_PATTERN, '').trim();
+  return stripTrailingUuidSuffix(label);
 }
 
 function isMeaningfulGestureLabel(label: unknown): label is string {
