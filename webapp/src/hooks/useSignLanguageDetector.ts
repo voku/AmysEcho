@@ -149,10 +149,18 @@ function parseIncomingMessage(raw: string): SignLanguageMessage | null {
       summaryParts.push('Keine Hand erkannt');
     }
 
-    if (parsed?.confidence !== undefined) {
-      summaryParts.push(`Score: ${(parsed.confidence as number).toFixed?.(2) ?? parsed.confidence}`);
-    } else if (nestedSignMessage && typeof nestedSignMessage.confidence === 'number') {
-      summaryParts.push(`Score: ${nestedSignMessage.confidence.toFixed(2)}`);
+    const isBatchPayload = type === 'gesture_batch';
+    const messageConfidence = nestedSignMessage && typeof nestedSignMessage.confidence === 'number'
+      ? nestedSignMessage.confidence
+      : null;
+    const payloadConfidence = typeof parsed?.confidence === 'number' ? parsed.confidence : null;
+
+    const summaryConfidence = isBatchPayload
+      ? (messageConfidence ?? payloadConfidence)
+      : (payloadConfidence ?? messageConfidence);
+
+    if (typeof summaryConfidence === 'number') {
+      summaryParts.push(`Score: ${summaryConfidence.toFixed(2)}`);
     }
 
     if (type === 'gesture_batch' && Array.isArray(parsed?.messages)) {
@@ -413,7 +421,10 @@ export function useSignLanguageDetector(
           setLastSign(nestedSignMsg.gesture);
           const batchConfidence = typeof payload.confidence === 'number' ? payload.confidence : null;
           const messageConfidence = typeof nestedSignMsg.confidence === 'number' ? nestedSignMsg.confidence : null;
-          setLastConfidence(batchConfidence ?? messageConfidence);
+          const resolvedConfidence = payload.type === 'gesture_batch'
+            ? (messageConfidence ?? batchConfidence)
+            : (batchConfidence ?? messageConfidence);
+          setLastConfidence(resolvedConfidence);
         }
 
         const messageWithLandmarks = payload.messages
