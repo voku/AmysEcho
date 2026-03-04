@@ -20,15 +20,8 @@ export const MLP_NULL_LABEL = '_NULL_';
 
 const RELAXED_BASELINE_THRESHOLD_MIN = 0.2;
 const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
-const MLP_CHANCE_THRESHOLD_MARGIN = 0.15;
-
-function resolveMlpThreshold(baseThreshold: number, candidateCount: number | null | undefined): number {
-  if (!candidateCount || candidateCount <= 1) {
-    return baseThreshold;
-  }
-
-  const chanceThreshold = (1 / candidateCount) + MLP_CHANCE_THRESHOLD_MARGIN;
-  return Math.max(baseThreshold, chanceThreshold);
+function resolveMlpThreshold(baseThreshold: number, _candidateCount: number | null | undefined): number {
+  return baseThreshold;
 }
 
 export const MEDIAPIPE_BASELINE_GESTURES = new Set([
