@@ -218,7 +218,7 @@ describe('GestureDetectionStep', () => {
   });
 
 
-  it('requires chance-adjusted threshold when only two MLP candidates exist', async () => {
+  it('accepts a balanced binary MLP prediction when only two candidates exist', async () => {
     const step = createStep();
     const context = {
       landmarks: [[[0.1, 0.2, 0.3]]],
@@ -247,16 +247,17 @@ describe('GestureDetectionStep', () => {
 
     const result = await step.execute(context);
 
-    expect(result.gesture).toBeNull();
+    expect(result.gesture).toBe('satt');
+    expect(result.metadata?.method).toBe('mlp');
     expect(result.metadata?.mlpDecision).toMatchObject({
-      selected: false,
-      reason: 'below_threshold',
-      threshold: 0.65,
+      selected: true,
+      reason: 'selected',
+      threshold: 0.4,
       score: 0.5,
     });
   });
 
-  it('still selects MLP when score beats chance-adjusted threshold', async () => {
+  it('still rejects binary MLP predictions below configured confidence threshold', async () => {
     const step = createStep();
     const context = {
       landmarks: [[[0.1, 0.2, 0.3]]],
@@ -276,10 +277,49 @@ describe('GestureDetectionStep', () => {
 
     (window as any).__mlpPredict = vi.fn().mockReturnValue({
       label: 'Satt',
-      score: 0.8,
+      score: 0.39,
       candidates: [
-        { label: 'Satt', score: 0.8 },
-        { label: 'Trinken', score: 0.2 },
+        { label: 'Satt', score: 0.39 },
+        { label: 'Trinken', score: 0.61 },
+      ],
+    });
+
+    const result = await step.execute(context);
+
+    expect(result.gesture).toBeNull();
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_threshold',
+      threshold: 0.4,
+      score: 0.39,
+    });
+  });
+
+  it('accepts three-candidate MLP predictions when confidence clears configured threshold', async () => {
+    const step = createStep();
+    const context = {
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      timestamp: Date.now(),
+      processingStep: 'gesture_detection',
+      skipExpensiveSteps: false,
+      normalizedResults: {
+        hands: [],
+        landmarks: [],
+        handednesses: [],
+      },
+      rawResults: buildResult({
+        gestures: [],
+        handednesses: [],
+      }),
+    } as any;
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Satt',
+      score: 0.41,
+      candidates: [
+        { label: 'Satt', score: 0.41 },
+        { label: 'Trinken', score: 0.31 },
+        { label: 'Bitte', score: 0.28 },
       ],
     });
 
@@ -290,8 +330,128 @@ describe('GestureDetectionStep', () => {
     expect(result.metadata?.mlpDecision).toMatchObject({
       selected: true,
       reason: 'selected',
-      threshold: 0.65,
-      score: 0.8,
+      threshold: 0.4,
+      score: 0.41,
+    });
+  });
+
+  it('still rejects three-candidate MLP predictions below configured threshold', async () => {
+    const step = createStep();
+    const context = {
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      timestamp: Date.now(),
+      processingStep: 'gesture_detection',
+      skipExpensiveSteps: false,
+      normalizedResults: {
+        hands: [],
+        landmarks: [],
+        handednesses: [],
+      },
+      rawResults: buildResult({
+        gestures: [],
+        handednesses: [],
+      }),
+    } as any;
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Satt',
+      score: 0.39,
+      candidates: [
+        { label: 'Satt', score: 0.39 },
+        { label: 'Trinken', score: 0.31 },
+        { label: 'Bitte', score: 0.30 },
+      ],
+    });
+
+    const result = await step.execute(context);
+
+    expect(result.gesture).toBeNull();
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_threshold',
+      threshold: 0.4,
+      score: 0.39,
+    });
+  });
+
+  it('accepts four-candidate MLP predictions when confidence clears configured threshold', async () => {
+    const step = createStep();
+    const context = {
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      timestamp: Date.now(),
+      processingStep: 'gesture_detection',
+      skipExpensiveSteps: false,
+      normalizedResults: {
+        hands: [],
+        landmarks: [],
+        handednesses: [],
+      },
+      rawResults: buildResult({
+        gestures: [],
+        handednesses: [],
+      }),
+    } as any;
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Satt',
+      score: 0.41,
+      candidates: [
+        { label: 'Satt', score: 0.41 },
+        { label: 'Trinken', score: 0.25 },
+        { label: 'Bitte', score: 0.19 },
+        { label: 'Danke', score: 0.14 },
+      ],
+    });
+
+    const result = await step.execute(context);
+
+    expect(result.gesture).toBe('satt');
+    expect(result.metadata?.method).toBe('mlp');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: true,
+      reason: 'selected',
+      threshold: 0.4,
+      score: 0.41,
+    });
+  });
+
+  it('rejects four-candidate MLP predictions below configured threshold', async () => {
+    const step = createStep();
+    const context = {
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      timestamp: Date.now(),
+      processingStep: 'gesture_detection',
+      skipExpensiveSteps: false,
+      normalizedResults: {
+        hands: [],
+        landmarks: [],
+        handednesses: [],
+      },
+      rawResults: buildResult({
+        gestures: [],
+        handednesses: [],
+      }),
+    } as any;
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Satt',
+      score: 0.39,
+      candidates: [
+        { label: 'Satt', score: 0.39 },
+        { label: 'Trinken', score: 0.27 },
+        { label: 'Bitte', score: 0.19 },
+        { label: 'Danke', score: 0.15 },
+      ],
+    });
+
+    const result = await step.execute(context);
+
+    expect(result.gesture).toBeNull();
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_threshold',
+      threshold: 0.4,
+      score: 0.39,
     });
   });
 
