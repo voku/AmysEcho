@@ -407,7 +407,7 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
-  it('prefers batch confidence over nested message confidence', async () => {
+  it('prefers message confidence over batch confidence for gesture_batch payloads', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -418,7 +418,7 @@ describe('useSignLanguageDetector', () => {
       }),
     );
 
-    // When both batch-level and message-level confidence exist, batch takes precedence
+    // When both batch-level and message-level confidence exist in gesture batches, message confidence wins
     act(() => {
       window.dispatchEvent(
         new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
@@ -435,11 +435,11 @@ describe('useSignLanguageDetector', () => {
 
     await waitFor(() => {
       expect(result.current.lastSign).toBe('WINKEN');
-      expect(result.current.lastConfidence).toBeCloseTo(0.95);
+      expect(result.current.lastConfidence).toBeCloseTo(0.60);
     });
   });
 
-  it('handles confidence=0 correctly at batch level', async () => {
+  it('prefers message confidence for gesture_batch payloads', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -450,7 +450,7 @@ describe('useSignLanguageDetector', () => {
       }),
     );
 
-    // confidence=0 is a valid number, so it should be used over message-level
+    // For gesture_batch we now prefer confidence of the selected message
     act(() => {
       window.dispatchEvent(
         new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
@@ -467,12 +467,11 @@ describe('useSignLanguageDetector', () => {
 
     await waitFor(() => {
       expect(result.current.lastSign).toBe('TRINKEN');
-      // confidence=0 at batch level takes precedence (it's a valid number)
-      expect(result.current.lastConfidence).toBe(0);
+      expect(result.current.lastConfidence).toBe(0.88);
     });
   });
 
-  it('chooses the latest meaningful gesture from multiple messages', async () => {
+  it('chooses the highest-confidence meaningful gesture from multiple messages', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
     const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
@@ -483,7 +482,7 @@ describe('useSignLanguageDetector', () => {
       }),
     );
 
-    // Multiple meaningful gestures - latest meaningful one should be selected
+    // Multiple meaningful gestures - highest-confidence one should be selected
     act(() => {
       window.dispatchEvent(
         new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
@@ -494,8 +493,8 @@ describe('useSignLanguageDetector', () => {
             lastSentAt: Date.now(),
             messages: [
               { type: 'gesture', gesture: 'none', confidence: 0.1, landmarks: [] },
-              { type: 'gesture', gesture: 'TRINKEN', confidence: 0.72, landmarks: [[[0.1, 0.2, 0]]] },
-              { type: 'gesture', gesture: 'ESSEN', confidence: 0.85, landmarks: [[[0.3, 0.4, 0]]] },
+              { type: 'gesture', gesture: 'TRINKEN', confidence: 0.9, landmarks: [[[0.1, 0.2, 0]]] },
+              { type: 'gesture', gesture: 'ESSEN', confidence: 0.5, landmarks: [[[0.3, 0.4, 0]]] },
             ],
           }),
         }),
@@ -503,9 +502,9 @@ describe('useSignLanguageDetector', () => {
     });
 
     await waitFor(() => {
-      // Latest meaningful gesture (ESSEN) wins because gesture_batch is ordered oldest->newest
-      expect(result.current.lastSign).toBe('ESSEN');
-      expect(result.current.lastConfidence).toBeCloseTo(0.85);
+      // Highest-confidence gesture should win even if it is not the latest frame in the batch
+      expect(result.current.lastSign).toBe('TRINKEN');
+      expect(result.current.lastConfidence).toBeCloseTo(0.9);
     });
   });
 
@@ -756,6 +755,109 @@ describe('useSignLanguageDetector', () => {
       expect(result.current.lastMlpLabel).toBeNull();
       expect(result.current.lastMlpScore).toBeNull();
       expect(result.current.lastMlpCandidates).toEqual([]);
+    });
+  });
+
+
+
+  it('uses highest-confidence gesture for summary in gesture batches', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              { type: 'gesture', gesture: 'SATT', confidence: 0.83, landmarks: [[[0.1, 0.2, 0]]] },
+              { type: 'gesture', gesture: 'TRINKEN', confidence: 0.5, landmarks: [[[0.2, 0.3, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      const summary = result.current.messageLog[0]?.summary ?? '';
+      expect(summary).toContain('Gebärde: SATT');
+      expect(summary).toContain('Score: 0.83');
+    });
+  });
+
+
+  it('uses latest meaningful entry as tie-breaker when batch confidences are equal', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              { type: 'gesture', gesture: 'SATT', confidence: 0.5, landmarks: [[[0.1, 0.2, 0]]] },
+              { type: 'gesture', gesture: 'TRINKEN', confidence: 0.5, landmarks: [[[0.2, 0.3, 0]]] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      const summary = result.current.messageLog[0]?.summary ?? '';
+      expect(summary).toContain('Gebärde: TRINKEN');
+      expect(summary).toContain('Score: 0.50');
+    });
+  });
+
+  it('strips UUID suffixes from summary gesture labels', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              {
+                type: 'gesture',
+                gesture: 'trinken-485184eb-267e-4340-87d3-55d9bd530437',
+                confidence: 0.5,
+                landmarks: [[[0.1, 0.2, 0]]],
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      const summary = result.current.messageLog[0]?.summary ?? '';
+      expect(summary).toContain('Gebärde: trinken');
+      expect(summary).not.toContain('55d9bd530437');
     });
   });
 

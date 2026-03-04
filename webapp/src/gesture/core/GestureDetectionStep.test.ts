@@ -217,6 +217,84 @@ describe('GestureDetectionStep', () => {
     });
   });
 
+
+  it('requires chance-adjusted threshold when only two MLP candidates exist', async () => {
+    const step = createStep();
+    const context = {
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      timestamp: Date.now(),
+      processingStep: 'gesture_detection',
+      skipExpensiveSteps: false,
+      normalizedResults: {
+        hands: [],
+        landmarks: [],
+        handednesses: [],
+      },
+      rawResults: buildResult({
+        gestures: [],
+        handednesses: [],
+      }),
+    } as any;
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Satt',
+      score: 0.5,
+      candidates: [
+        { label: 'Satt', score: 0.5 },
+        { label: 'Trinken', score: 0.5 },
+      ],
+    });
+
+    const result = await step.execute(context);
+
+    expect(result.gesture).toBeNull();
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_threshold',
+      threshold: 0.65,
+      score: 0.5,
+    });
+  });
+
+  it('still selects MLP when score beats chance-adjusted threshold', async () => {
+    const step = createStep();
+    const context = {
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      timestamp: Date.now(),
+      processingStep: 'gesture_detection',
+      skipExpensiveSteps: false,
+      normalizedResults: {
+        hands: [],
+        landmarks: [],
+        handednesses: [],
+      },
+      rawResults: buildResult({
+        gestures: [],
+        handednesses: [],
+      }),
+    } as any;
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Satt',
+      score: 0.8,
+      candidates: [
+        { label: 'Satt', score: 0.8 },
+        { label: 'Trinken', score: 0.2 },
+      ],
+    });
+
+    const result = await step.execute(context);
+
+    expect(result.gesture).toBe('satt');
+    expect(result.metadata?.method).toBe('mlp');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: true,
+      reason: 'selected',
+      threshold: 0.65,
+      score: 0.8,
+    });
+  });
+
   it('detects audio-only gestures when visual landmarks are missing', async () => {
     const step = createStep();
     const context = {

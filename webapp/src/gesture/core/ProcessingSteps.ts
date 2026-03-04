@@ -20,6 +20,16 @@ export const MLP_NULL_LABEL = '_NULL_';
 
 const RELAXED_BASELINE_THRESHOLD_MIN = 0.2;
 const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
+const MLP_CHANCE_THRESHOLD_MARGIN = 0.15;
+
+function resolveMlpThreshold(baseThreshold: number, candidateCount: number | null | undefined): number {
+  if (!candidateCount || candidateCount <= 1) {
+    return baseThreshold;
+  }
+
+  const chanceThreshold = (1 / candidateCount) + MLP_CHANCE_THRESHOLD_MARGIN;
+  return Math.max(baseThreshold, chanceThreshold);
+}
 
 export const MEDIAPIPE_BASELINE_GESTURES = new Set([
   'none',
@@ -414,7 +424,8 @@ export class GestureDetectionStep implements ProcessingStep {
         }), { sampleIntervalMs: 2000 });
         if (mlpResult && typeof mlpResult.score === 'number') {
           mlpMetadata = mlpResult;
-          const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+          const baseThreshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+          const threshold = resolveMlpThreshold(baseThreshold, mlpResult.candidates?.length);
           gestureDebugLog('mlp', 'MLP threshold check', () => ({
             score: mlpResult.score,
             threshold,
