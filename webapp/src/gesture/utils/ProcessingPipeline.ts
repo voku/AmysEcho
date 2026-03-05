@@ -69,6 +69,7 @@ export interface ProcessingResult {
   };
   metadata?: {
     method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'landmark_template' | 'none';
+    confidenceState?: 'confident' | 'unsure' | 'none';
     perHand: Array<{ hand: string; label: string; score: number }>;
     handednesses: string[];
     mlp: { label: string; score: number; candidates?: MlpCandidate[] } | null;

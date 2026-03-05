@@ -106,6 +106,37 @@ describe('GestureDetectionStep', () => {
     expect(result.metadata?.method).toBe('mediapipe');
   });
 
+
+  it('marks mediapipe detections in calibrated unsure band', async () => {
+    const step = createStep();
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Open_Palm',
+      handScore: 0.5,
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBe('open_palm');
+    expect(result.metadata?.method).toBe('mediapipe');
+    expect(result.metadata?.confidenceState).toBe('unsure');
+  });
+
+  it('returns explicit none state when confidence is below calibrated unsure threshold', async () => {
+    const step = createStep();
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Open_Palm',
+      handScore: 0.2,
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBeNull();
+    expect(result.metadata?.method).toBe('mediapipe');
+    expect(result.metadata?.confidenceState).toBe('none');
+  });
+
   it('prefers a landmark template over baseline MediaPipe output for trained profile gestures', async () => {
     const templateDetector = {
       getTemplateCount: () => 1,
@@ -214,6 +245,7 @@ describe('GestureDetectionStep', () => {
     expect(result.gesture).toBe('wave');
     expect(result.metadata?.mlp).toEqual({ label: 'Wave', score: 0.9 });
     expect(result.metadata?.method).toBe('mlp');
+    expect(result.metadata?.confidenceState).toBe('confident');
   });
 
   it('prefers MLP custom vocabulary labels over baseline MediaPipe labels', async () => {
@@ -377,6 +409,7 @@ describe('GestureDetectionStep', () => {
     expect(result.gesture).toBe('hallo');
     expect(result.confidence).toBeCloseTo(0.6);
     expect(result.metadata?.method).toBe('mlp_audio_only');
+    expect(result.metadata?.confidenceState).toBe('confident');
     expect(result.metadata?.audioOnly).toBe(true);
   });
 });

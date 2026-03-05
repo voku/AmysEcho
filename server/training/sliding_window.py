@@ -34,6 +34,7 @@ class Sample:
     # Audio features for multimodal recognition
     audio_features: list[float] | None = None  # Flattened audio features (MFCC, mel spectrogram)
     audio_metadata: dict[str, Any] | None = None  # Audio quality, duration, etc.
+    mirror_safe: bool = False
 
 
 
@@ -145,7 +146,8 @@ def create_sliding_windows(
             modality_coverage=context.get('modality_coverage'),
             quality_weight=window_weight,
             audio_features=audio_features_list,
-            audio_metadata=audio_metadata
+            audio_metadata=audio_metadata,
+            mirror_safe=bool(context.get('mirror_safe', False)),
         ))
 
     return samples

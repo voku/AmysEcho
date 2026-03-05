@@ -23,6 +23,16 @@ const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
 const TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE = 0.2;
 const MLP_MIN_CANDIDATE_MARGIN = 0.08;
 
+const CONFIDENT_MEDIAPIPE_THRESHOLD = 0.65;
+const UNSURE_MEDIAPIPE_THRESHOLD = 0.35;
+const CONFIDENT_TEMPLATE_THRESHOLD = 0.3;
+const UNSURE_TEMPLATE_THRESHOLD = TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE;
+const CONFIDENT_AUDIO_ONLY_THRESHOLD = 0.6;
+const UNSURE_AUDIO_ONLY_THRESHOLD = 0.4;
+const UNSURE_MLP_DELTA = 0.12;
+
+type DetectionConfidenceState = 'confident' | 'unsure' | 'none';
+
 function normalizeBaselineLabel(label: string): string {
   return label.trim().toLowerCase().replace(/[\s-]+/g, '_');
 }
@@ -335,12 +345,19 @@ export class GestureDetectionStep implements ProcessingStep {
       }
     }
 
+    const confidenceState = this.resolveConfidenceState(
+      detectionMethod,
+      selectedConfidence,
+      Boolean(selectedGesture),
+    );
+
     return {
-      gesture: selectedGesture,
+      gesture: confidenceState === 'none' ? null : selectedGesture,
       confidence: selectedConfidence,
       landmarks: context.landmarks,
       metadata: {
         method: detectionMethod,
+        confidenceState,
         perHand: mediaPipeSelection.perHand.map(({ hand, label, score }) => ({ hand, label, score })),
         handednesses: mediaPipeSelection.handednesses,
         mlp: mlpSelection.mlpMetadata,
@@ -350,6 +367,46 @@ export class GestureDetectionStep implements ProcessingStep {
         templateMatch: templateMatch ?? null,
       }
     };
+  }
+
+
+  private resolveConfidenceState(
+    method: MlpSelection['method'],
+    confidence: number,
+    hasGesture: boolean,
+  ): DetectionConfidenceState {
+    if (!hasGesture) {
+      return 'none';
+    }
+
+    const calibrated = this.getCalibratedThresholds(method);
+    if (confidence >= calibrated.confident) {
+      return 'confident';
+    }
+    if (confidence >= calibrated.unsure) {
+      return 'unsure';
+    }
+    return 'none';
+  }
+
+  private getCalibratedThresholds(method: MlpSelection['method']): { confident: number; unsure: number } {
+    const mlpThreshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+    const unsureMlpThreshold = Math.max(RELAXED_BASELINE_THRESHOLD_MIN, mlpThreshold - UNSURE_MLP_DELTA);
+
+    if (method === 'mlp') {
+      return { confident: mlpThreshold, unsure: unsureMlpThreshold };
+    }
+    if (method === 'mlp_audio_only') {
+      return { confident: CONFIDENT_AUDIO_ONLY_THRESHOLD, unsure: UNSURE_AUDIO_ONLY_THRESHOLD };
+    }
+    if (method === 'landmark_template') {
+      return { confident: CONFIDENT_TEMPLATE_THRESHOLD, unsure: UNSURE_TEMPLATE_THRESHOLD };
+    }
+    if (method === 'mediapipe') {
+      return { confident: CONFIDENT_MEDIAPIPE_THRESHOLD, unsure: UNSURE_MEDIAPIPE_THRESHOLD };
+    }
+
+    return { confident: 1, unsure: 1 };
   }
 
   private detectWithMediaPipe(
