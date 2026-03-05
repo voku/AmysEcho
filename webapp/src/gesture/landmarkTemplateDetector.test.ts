@@ -10,6 +10,7 @@ import {
   distanceToConfidence,
   type LandmarkTemplate,
 } from './landmarkTemplateDetector';
+import { splitHandsFromMultimodalFrame } from './testing/fixtures/splitHandsFromMultimodalFrame';
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, '../../..');
@@ -41,20 +42,6 @@ function makeTemplate(
     createdAt: new Date().toISOString(),
     ...overrides,
   };
-}
-
-function splitHandsFromMultimodalFrame(multimodalLandmarks: number[][]): number[][][] {
-  const handPoints = multimodalLandmarks.slice(0, 42);
-  const leftHand = handPoints.slice(0, 21);
-  const rightHand = handPoints.slice(21, 42);
-
-  const hasLeft = leftHand.some((point) => point.some((value) => value !== 0));
-  const hasRight = rightHand.some((point) => point.some((value) => value !== 0));
-
-  const hands: number[][][] = [];
-  if (hasLeft) hands.push(leftHand);
-  if (hasRight) hands.push(rightHand);
-  return hands;
 }
 
 describe('normalizeLandmarks', () => {

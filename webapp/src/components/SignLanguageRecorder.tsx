@@ -1322,7 +1322,14 @@ export function SignLanguageRecorder() {
                   max={1}
                   step={0.05}
                   value={fixtureExpectedConfidence}
-                  onChange={(event) => setFixtureExpectedConfidence(Number(event.target.value) || 0)}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    if (!Number.isFinite(next)) {
+                      setFixtureExpectedConfidence(0);
+                      return;
+                    }
+                    setFixtureExpectedConfidence(Math.min(1, Math.max(0, next)));
+                  }}
                 />
               </label>
               <p>Aufgenommene Frames: <strong>{fixtureFrames.length}</strong></p>
@@ -1331,8 +1338,12 @@ export function SignLanguageRecorder() {
                   type="button"
                   className="secondary-button"
                   onClick={() => {
-                    setFixtureFrames([]);
-                    setIsFixtureRecording((previous) => !previous);
+                    setIsFixtureRecording((previous) => {
+                      if (!previous) {
+                        setFixtureFrames([]);
+                      }
+                      return !previous;
+                    });
                   }}
                 >
                   {isFixtureRecording ? '⏹️ Fixture-Aufnahme stoppen' : '🎯 Fixture-Aufnahme starten'}

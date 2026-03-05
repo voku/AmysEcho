@@ -23,8 +23,12 @@ const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
 const TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE = 0.2;
 const MLP_MIN_CANDIDATE_MARGIN = 0.08;
 
+function normalizeBaselineLabel(label: string): string {
+  return label.trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
 function isBaselineGesture(label: string | null): boolean {
-  return label !== null && MEDIAPIPE_BASELINE_GESTURES.has(label);
+  return label !== null && MEDIAPIPE_BASELINE_GESTURES.has(normalizeBaselineLabel(label));
 }
 
 function resolveTopCandidateMargin(candidates: MLPPrediction['candidates']): number | null {
@@ -66,6 +70,8 @@ export const MEDIAPIPE_BASELINE_GESTURES = new Set([
   'pointing_up',
   'thumb_down',
   'thumb_up',
+  'thumbs_down',
+  'thumbs_up',
   'victory',
   'iloveyou',
 ]);
@@ -112,7 +118,8 @@ interface MlpSelection {
       | 'null_label'
       | 'invalid_result'
       | 'predictor_unavailable'
-      | 'predictor_error';
+      | 'predictor_error'
+      | 'invalid_label';
     threshold?: number;
     margin?: number;
     score?: number;
@@ -529,6 +536,17 @@ export class GestureDetectionStep implements ProcessingStep {
       }
 
       const normalizedMlpLabel = this.normalizeLabel(mlpResult.label);
+      if (!normalizedMlpLabel) {
+        return buildResult({
+          selected: false,
+          reason: 'invalid_label',
+          threshold,
+          score: mlpResult.score,
+          selectedConfidenceBeforeMlp: selectedConfidence,
+          selectedGestureBeforeMlp: selectedGesture,
+        }, mlpResult);
+      }
+
       const shouldPreferMlpOverBaseline =
         !!normalizedMlpLabel &&
         !!selectedGesture &&

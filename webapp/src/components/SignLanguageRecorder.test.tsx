@@ -219,27 +219,32 @@ describe('SignLanguageRecorder', () => {
     const createObjectUrlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fixture-json');
     const revokeObjectUrlSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 
-    const { rerender } = renderWithProviders(<SignLanguageRecorder />);
+    try {
+      const { rerender } = renderWithProviders(<SignLanguageRecorder />);
 
-    fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
-    fireEvent.click(screen.getByRole('button', { name: '🎯 Fixture-Aufnahme starten' }));
+      fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
+      fireEvent.click(screen.getByRole('button', { name: '🎯 Fixture-Aufnahme starten' }));
 
-    detectorState.lastLandmarks = [[[0.4, 0.5, 0.6]]];
-    rerender(
-      <MemoryRouter>
-        <ApiConfigProvider>
-          <SignLanguageRecorder />
-        </ApiConfigProvider>
-      </MemoryRouter>,
-    );
+      detectorState.lastLandmarks = [[[0.4, 0.5, 0.6]]];
+      rerender(
+        <MemoryRouter>
+          <ApiConfigProvider>
+            <SignLanguageRecorder />
+          </ApiConfigProvider>
+        </MemoryRouter>,
+      );
 
-    expect(screen.getByText(/Aufgenommene Frames:/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '💾 Fixture als JSON speichern' })).not.toBeDisabled();
+      expect(screen.getByText(/Aufgenommene Frames:/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '💾 Fixture als JSON speichern' })).not.toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: '💾 Fixture als JSON speichern' }));
+      fireEvent.click(screen.getByRole('button', { name: '💾 Fixture als JSON speichern' }));
 
-    expect(createObjectUrlSpy).toHaveBeenCalled();
-    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:fixture-json');
+      expect(createObjectUrlSpy).toHaveBeenCalled();
+      expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:fixture-json');
+    } finally {
+      createObjectUrlSpy.mockRestore();
+      revokeObjectUrlSpy.mockRestore();
+    }
   });
 
   it('toggles diagnostics panel visibility', () => {

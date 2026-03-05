@@ -33,12 +33,12 @@ Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, 
 - Die Erkennungsseite enthält eine einklappbare **Diagnose** („🛠️ Diagnose anzeigen“), die verständlich erklärt, warum trainierte Gebärden ggf. noch nicht erkannt werden (z. B. keine Hand im Bild, Sicherheit zu niedrig, falsches Profil).
 - Die Diagnose enthält einen Fixture-Modus: Landmark-Frames aus der echten Kamera können als JSON exportiert und in `webapp/src/gesture/testing/fixtures/` für Integrations-Tests wiederverwendet werden.
 - Fixture-Integrations-Tests können bestehende Server-Landmark-Dateien (aus realen DGS-Videos) direkt referenzieren; dadurch werden keine künstlich generierten Landmark-Arrays benötigt.
-- Für den nächsten Diagnose-Schritt gibt es `npm run diagnose:fixtures`: Das Skript erzeugt unter `webapp/diagnostics/gesture/` einen JSON-Report (Treffer, Confidence, Gap) sowie einen strukturierten LLM-Prompt mit der Regel **"Keine Code-Patches, nur Diagnose"**.
-- Auch ohne trainierte Profil-Gebärden bleibt die Kamera nutzbar: Die Basiserkennung läuft weiter und zeigt einen klaren Hinweis, dass persönliches Training die Zuverlässigkeit erhöht.
-- Wenn keine sichere Gebärde erkannt wird, zeigt die Erkennungsseite jetzt direkt kontextbasierte MLP-Vorschläge mit niedriger Sicherheit an, damit Betreuungspersonen die passende Bedeutung auswählen können.
+- Für den nächsten Diagnose-Schritt gibt es `npm run diagnose:fixtures`: Das Skript erzeugt unter `webapp/diagnostics/gesture/` einen JSON-Report (Treffer, Confidence, Gap) sowie einen strukturierten LLM-Prompt mit der Regel **„Keine Code-Patches, nur Diagnose“**.
+- Auch ohne trainierte Profil-Gebärden bleibt die Kamera nutzbar: Die Basis-Erkennung läuft weiter und zeigt einen klaren Hinweis, dass persönliches Training die Zuverlässigkeit erhöht.
+- Bei keiner sicheren Gebärde zeigt die Erkennungsseite kontextbasierte MLP-Vorschläge mit niedriger Sicherheit an, damit Betreuungspersonen die passende Bedeutung auswählen können.
 - Die MLP-Auswahl orientiert sich bei Profilvorhersagen an der konfigurierten Modell-Sicherheit (Confidence-Threshold) und ist damit nicht an die Anzahl trainierter Gebärden gekoppelt.
 - Bei nahezu gleich starken Top-Kandidaten (z. B. 50 % vs. 50 %) verwirft die Erkennung das MLP-Ergebnis als mehrdeutig, statt zufällig eine falsche trainierte Gebärde zu wählen.
-- Trainierte Landmark-Templates werden gegenüber generischen MediaPipe-Basisgesten bevorzugt (ab Mindest-Sicherheit), damit auch schwach trainierte Profilgebärden sichtbar bleiben.
+- Trainierte Landmark-Templates werden gegenüber generischen MediaPipe-Basisgesten bevorzugt (ab Mindest-Sicherheit), damit auch schwach trainierte Profil-Gebärden sichtbar bleiben.
 - Die Seite **Einstellungen** zeigt unter „Über Amy’s Echo“ zusätzlich den aktuellen Commit-Hash der ausgelieferten Webapp-Version an.
 - Ein globaler Profil- und Label-Schalter synchronisiert Gestenerkennung und Training. Erkannte Gesten werden als Vorschlag gespeichert und können direkt als neues Trainingslabel übernommen werden.
 - Die Seite **Grenzen & Alternativen** listet deaktivierte native Features und Web-Ersatzwege.

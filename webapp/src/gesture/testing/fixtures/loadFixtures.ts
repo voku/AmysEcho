@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { GestureFixture } from './recordFixture';
+import { splitHandsFromMultimodalFrame } from './splitHandsFromMultimodalFrame';
 
 const FIXTURE_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(FIXTURE_DIRECTORY, '../../../../..');
@@ -28,33 +29,36 @@ function isHandsFrame(frame: unknown): frame is { landmarks: number[][] } {
   );
 }
 
-function splitHandsFromMultimodalFrame(multimodalLandmarks: number[][]): number[][][] {
-  const handPoints = multimodalLandmarks.slice(0, 42);
-  const leftHand = handPoints.slice(0, 21);
-  const rightHand = handPoints.slice(21, 42);
+function assertPathInsideRepo(relativeFilePath: string): string {
+  const fullPath = path.resolve(REPO_ROOT, relativeFilePath);
+  const relativeToRoot = path.relative(REPO_ROOT, fullPath);
 
-  const hasLeft = leftHand.some((point) => point.some((value) => value !== 0));
-  const hasRight = rightHand.some((point) => point.some((value) => value !== 0));
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
+    throw new Error(`sourceLandmarksFile escapes repository root: ${relativeFilePath}`);
+  }
 
-  const hands: number[][][] = [];
-  if (hasLeft) hands.push(leftHand);
-  if (hasRight) hands.push(rightHand);
-  return hands;
+  return fullPath;
 }
 
 async function loadFramesFromServerLandmarks(relativeFilePath: string): Promise<number[][][][]> {
-  const fullPath = path.resolve(REPO_ROOT, relativeFilePath);
-  const payload = JSON.parse(await readFile(fullPath, 'utf8')) as unknown;
+  try {
+    const fullPath = assertPathInsideRepo(relativeFilePath);
+    const payload = JSON.parse(await readFile(fullPath, 'utf8')) as unknown;
 
-  if (!payload || typeof payload !== 'object' || !Array.isArray((payload as { frames?: unknown }).frames)) {
+    if (!payload || typeof payload !== 'object' || !Array.isArray((payload as { frames?: unknown }).frames)) {
+      return [];
+    }
+
+    const frames = (payload as { frames: unknown[] }).frames;
+    return frames
+      .filter(isHandsFrame)
+      .map((frame) => splitHandsFromMultimodalFrame(frame.landmarks))
+      .filter((hands) => hands.length > 0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[fixtures] Skipping source landmarks "${relativeFilePath}": ${message}`);
     return [];
   }
-
-  const frames = (payload as { frames: unknown[] }).frames;
-  return frames
-    .filter(isHandsFrame)
-    .map((frame) => splitHandsFromMultimodalFrame(frame.landmarks))
-    .filter((hands) => hands.length > 0);
 }
 
 async function parseFixture(raw: unknown): Promise<GestureFixture | null> {
@@ -102,11 +106,16 @@ export async function loadGestureFixtures(): Promise<GestureFixture[]> {
   const fixtures: GestureFixture[] = [];
 
   for (const fileName of files) {
-    const filePath = path.join(FIXTURE_DIRECTORY, fileName);
-    const payload = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-    const fixture = await parseFixture(payload);
-    if (fixture) {
-      fixtures.push(fixture);
+    try {
+      const filePath = path.join(FIXTURE_DIRECTORY, fileName);
+      const payload = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
+      const fixture = await parseFixture(payload);
+      if (fixture) {
+        fixtures.push(fixture);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[fixtures] Skipping malformed fixture "${fileName}": ${message}`);
     }
   }
 

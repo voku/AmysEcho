@@ -84,7 +84,8 @@ export interface ProcessingResult {
         | 'null_label'
         | 'invalid_result'
         | 'predictor_unavailable'
-        | 'predictor_error';
+        | 'predictor_error'
+        | 'invalid_label';
       threshold?: number;
       margin?: number;
       score?: number;

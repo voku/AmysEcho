@@ -43,16 +43,18 @@ function normalizeLabel(value: string): string {
 }
 
 function toTemplate(fixture: GestureFixture): LandmarkTemplate {
-  const firstFrame = fixture.landmarks[0];
-  const firstHand = firstFrame?.[0] ?? [];
-  const handedness = firstFrame && firstFrame.length >= 2 ? 'both' : 'left';
+  const firstFrame = fixture.landmarks.find((frame) => frame.length > 0);
+  const hasTwoHands = (firstFrame?.length ?? 0) >= 2;
+  const templateLandmarks = hasTwoHands
+    ? [...(firstFrame?.[0] ?? []), ...(firstFrame?.[1] ?? [])]
+    : (firstFrame?.[0] ?? []);
 
   return {
     id: `fixture-${normalizeLabel(fixture.gestureName)}`,
     label: fixture.gestureName,
     profileId: 'integration-fixtures',
-    landmarks: normalizeLandmarks(firstHand as [number, number, number][]),
-    handedness,
+    landmarks: normalizeLandmarks(templateLandmarks as [number, number, number][]),
+    handedness: hasTwoHands ? 'both' : 'left',
     createdAt: fixture.capturedAt,
   };
 }
@@ -128,15 +130,15 @@ export async function generateFixtureDiagnosisReport(fixtures: GestureFixture[])
   for (const fixture of fixtures) {
     const result = await runFixture(step, fixture);
     const expectedLabel = normalizeLabel(fixture.gestureName);
-    const predictedLabel = result?.gesture ?? null;
+    const normalizedPredictedLabel = result?.gesture ? normalizeLabel(result.gesture) : null;
     const confidence = result?.confidence ?? 0;
 
-    const pass = predictedLabel === expectedLabel && confidence >= fixture.expectedConfidence;
+    const pass = normalizedPredictedLabel === expectedLabel && confidence >= fixture.expectedConfidence;
 
     items.push({
       fixtureName: fixture.gestureName,
       expectedLabel,
-      predictedLabel,
+      predictedLabel: normalizedPredictedLabel,
       confidence,
       expectedConfidence: fixture.expectedConfidence,
       pass,

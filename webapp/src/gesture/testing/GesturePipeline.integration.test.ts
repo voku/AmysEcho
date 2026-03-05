@@ -15,17 +15,18 @@ function normalizeLabel(value: string): string {
 }
 
 function toTemplate(fixture: GestureFixture): LandmarkTemplate {
-  const firstFrame = fixture.landmarks[0];
-  const firstHand = firstFrame?.[0] ?? [];
-
-  const handedness = firstFrame && firstFrame.length >= 2 ? 'both' : 'left';
+  const firstFrame = fixture.landmarks.find((frame) => frame.length > 0);
+  const hasTwoHands = (firstFrame?.length ?? 0) >= 2;
+  const templateLandmarks = hasTwoHands
+    ? [...(firstFrame?.[0] ?? []), ...(firstFrame?.[1] ?? [])]
+    : (firstFrame?.[0] ?? []);
 
   return {
     id: `fixture-${normalizeLabel(fixture.gestureName)}`,
     label: fixture.gestureName,
     profileId: 'integration-fixtures',
-    landmarks: normalizeLandmarks(firstHand as [number, number, number][]),
-    handedness,
+    landmarks: normalizeLandmarks(templateLandmarks as [number, number, number][]),
+    handedness: hasTwoHands ? 'both' : 'left',
     createdAt: fixture.capturedAt,
   };
 }
