@@ -68,7 +68,11 @@ from config_constants import (
 from feature_schema import TOTAL_HAND_LANDMARKS
 from frame_normalization import _normalize_frame
 from sliding_window import Sample, create_sliding_windows
-from amyserver_tools.feature_pipeline import augment_temporal_window
+
+try:
+    from feature_pipeline import augment_temporal_window
+except ImportError:
+    from amyserver_tools.feature_pipeline import augment_temporal_window
 
 from ml_shared_utils import filter_by_profile_logic
 
@@ -439,11 +443,13 @@ def apply_hand_focus(
 
 
 def _extract_mirror_safe(metadata: dict) -> bool:
-    aug = metadata.get("augmentation") if isinstance(metadata, dict) else None
+    if not isinstance(metadata, dict):
+        return False
+    aug = metadata.get("augmentation")
     if isinstance(aug, dict) and isinstance(aug.get("mirrorSafe"), bool):
-        return bool(aug.get("mirrorSafe"))
+        return aug["mirrorSafe"]
     if isinstance(metadata.get("mirrorSafe"), bool):
-        return bool(metadata.get("mirrorSafe"))
+        return metadata["mirrorSafe"]
     return False
 
 def _extract_recording_metadata(metadata: dict) -> dict[str, object] | None:
@@ -2141,7 +2147,7 @@ def build_episodic_indices(
                 continue
             replace = cls_idx.size < sample_size
             picks = rand.choice(cls_idx, size=sample_size, replace=replace)
-            selected.extend(int(p) for p in picks)
+            selected.extend(picks.tolist())
 
     return np.array(selected, dtype=np.int64) if selected else np.zeros((0,), dtype=np.int64)
 

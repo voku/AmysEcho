@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+import sys
 
 import numpy as np
+
+# Ensure direct script imports can find shared training constants.
+TRAINING_DIR = Path(__file__).resolve().parents[2] / "training"
+if str(TRAINING_DIR) not in sys.path:
+    sys.path.append(str(TRAINING_DIR))
 
 from config_constants import (
     MAX_AVG_FRAME_DELTA_MS,
@@ -21,16 +28,30 @@ class TemporalAugmentationConfig:
 
 QUALITY_BOUNDED_CONFIG = TemporalAugmentationConfig(
     frame_drop_ratio=min(0.15, max(0.02, (1.0 - MIN_USABLE_FRAME_RATIO) * 0.25)),
-    speed_perturbation=min(0.2, max(0.05, (MAX_AVG_FRAME_DELTA_MS - MIN_AVG_FRAME_DELTA_MS) / max(MAX_AVG_FRAME_DELTA_MS, 1.0) * 0.1)),
+    speed_perturbation=min(
+        0.2,
+        max(
+            0.05,
+            (MAX_AVG_FRAME_DELTA_MS - MIN_AVG_FRAME_DELTA_MS)
+            / max(MAX_AVG_FRAME_DELTA_MS, 1.0)
+            * 0.1,
+        ),
+    ),
     time_warp_strength=0.05,
     landmark_jitter_std=0.008,
 )
 
 
-
 def _resample_window(window: np.ndarray, target_frames: int) -> np.ndarray:
-    if target_frames <= 1:
-        return np.repeat(window[:1], window.shape[0], axis=0)
+    if window.ndim != 2:
+        raise ValueError("window must be shape (frames, features)")
+    if window.shape[0] == 0:
+        raise ValueError("window must include at least one frame")
+    if target_frames < 1:
+        raise ValueError("target_frames must be >= 1")
+    if target_frames == 1:
+        return window[:1].astype(np.float32, copy=True)
+
     src_idx = np.linspace(0, window.shape[0] - 1, num=window.shape[0], dtype=np.float32)
     dst_idx = np.linspace(0, window.shape[0] - 1, num=target_frames, dtype=np.float32)
     out = np.empty((target_frames, window.shape[1]), dtype=np.float32)
@@ -67,22 +88,34 @@ def augment_temporal_window(
     }
 
     max_drop = max(1, int(frames * config.frame_drop_ratio))
-    drop_count = int(rand.integers(0, max_drop + 1)) if hasattr(rand, "integers") else int(rand.randint(0, max_drop + 1))
+    drop_count = (
+        int(rand.integers(0, max_drop + 1))
+        if hasattr(rand, "integers")
+        else int(rand.randint(0, max_drop + 1))
+    )
     min_kept = max(int(np.ceil(frames * MIN_USABLE_FRAME_RATIO)), 2)
     if drop_count > 0 and frames - drop_count >= min_kept:
         keep = np.sort(rand.choice(np.arange(frames), size=frames - drop_count, replace=False))
         augmented = augmented[keep]
         provenance["frame_drop_ratio"] = float(drop_count / frames)
 
-    speed_delta = (rand.uniform(-1.0, 1.0) if hasattr(rand, "uniform") else (rand.rand() * 2.0 - 1.0)) * config.speed_perturbation
+    speed_delta = (
+        rand.uniform(-1.0, 1.0) if hasattr(rand, "uniform") else (rand.rand() * 2.0 - 1.0)
+    ) * config.speed_perturbation
     speed_factor = float(np.clip(1.0 + speed_delta, 0.8, 1.2))
     target_frames = max(2, int(round(augmented.shape[0] / speed_factor)))
     augmented = _resample_window(augmented, target_frames)
     provenance["speed_factor"] = speed_factor
 
-    warp = (rand.uniform(-1.0, 1.0) if hasattr(rand, "uniform") else (rand.rand() * 2.0 - 1.0)) * config.time_warp_strength
+    warp = (
+        rand.uniform(-1.0, 1.0) if hasattr(rand, "uniform") else (rand.rand() * 2.0 - 1.0)
+    ) * config.time_warp_strength
     warp_scale = np.linspace(0.0, 1.0, num=augmented.shape[0], dtype=np.float32)
-    warped_idx = np.clip((warp_scale + (warp * (warp_scale - 0.5) ** 2)) * (augmented.shape[0] - 1), 0, augmented.shape[0] - 1)
+    warped_idx = np.clip(
+        (warp_scale + (warp * (warp_scale - 0.5) ** 2)) * (augmented.shape[0] - 1),
+        0,
+        augmented.shape[0] - 1,
+    )
     src_idx = np.arange(augmented.shape[0], dtype=np.float32)
     warped = np.empty_like(augmented)
     for col in range(augmented.shape[1]):

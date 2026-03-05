@@ -59,3 +59,24 @@ def test_build_episodic_indices_returns_balanced_episode_batches():
     assert idx.ndim == 1
     assert idx.size == 12  # 3 episodes * 2 classes * (1 support + 1 query)
     assert idx.max() < y.size
+
+    sampled_labels = y[idx].reshape(3, 4)
+    for episode_labels in sampled_labels:
+        unique, counts = np.unique(episode_labels, return_counts=True)
+        assert unique.size == 2
+        assert sorted(counts.tolist()) == [2, 2]
+
+
+def test_resample_window_handles_single_target_and_empty_input_guard():
+    feature_pipeline = importlib.import_module("amyserver_tools.feature_pipeline")
+
+    window = np.ones((4, 3), dtype=np.float32)
+    resampled = feature_pipeline._resample_window(window, 1)
+    assert resampled.shape == (1, 3)
+
+    empty_window = np.zeros((0, 3), dtype=np.float32)
+    try:
+        feature_pipeline._resample_window(empty_window, 1)
+        assert False, "Expected ValueError for empty window"
+    except ValueError as error:
+        assert "at least one frame" in str(error)
