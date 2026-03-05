@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   LandmarkTemplateDetector,
   normalizeLandmarks,
@@ -6,6 +10,13 @@ import {
   distanceToConfidence,
   type LandmarkTemplate,
 } from './landmarkTemplateDetector';
+
+const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(THIS_DIR, '../../..');
+const SPIELEN_LANDMARK_FILE = path.join(
+  REPO_ROOT,
+  'server/data/dgs_video_examples/spielen_main_spielplatz_landmarks.json',
+);
 
 // Helper: generate a simple hand with 21 landmarks
 function makeHand(offset = 0): [number, number, number][] {
@@ -30,6 +41,20 @@ function makeTemplate(
     createdAt: new Date().toISOString(),
     ...overrides,
   };
+}
+
+function splitHandsFromMultimodalFrame(multimodalLandmarks: number[][]): number[][][] {
+  const handPoints = multimodalLandmarks.slice(0, 42);
+  const leftHand = handPoints.slice(0, 21);
+  const rightHand = handPoints.slice(21, 42);
+
+  const hasLeft = leftHand.some((point) => point.some((value) => value !== 0));
+  const hasRight = rightHand.some((point) => point.some((value) => value !== 0));
+
+  const hands: number[][][] = [];
+  if (hasLeft) hands.push(leftHand);
+  if (hasRight) hands.push(rightHand);
+  return hands;
 }
 
 describe('normalizeLandmarks', () => {
@@ -204,6 +229,46 @@ describe('LandmarkTemplateDetector', () => {
     expect(result).toBeNull();
   });
 
+
+  it('nutzt bei Händigkeit "both" die bessere von zwei Händen', () => {
+    const detector = new LandmarkTemplateDetector();
+    const matchingHand = makeHand(0.25);
+    const distractingHand = makeHand(-0.8);
+
+    detector.setTemplates([
+      makeTemplate('beidhaendig', normalizeLandmarks(matchingHand), { handedness: 'both' }),
+    ]);
+
+    const result = detector.detect([
+      distractingHand.map(([x, y, z]) => [x, y, z]),
+      matchingHand.map(([x, y, z]) => [x, y, z]),
+    ]);
+
+    expect(result).not.toBeNull();
+    expect(result!.label).toBe('beidhaendig');
+    expect(result!.confidence).toBeGreaterThan(0.8);
+  });
+
+
+  it('nutzt ohne Händigkeitshinweis die beste sichtbare Hand für right/left-Templates', () => {
+    const detector = new LandmarkTemplateDetector();
+    const matchingHand = makeHand(0.25);
+    const distractingHand = makeHand(-0.8);
+
+    detector.setTemplates([
+      makeTemplate('rechts_ohne_handedness', normalizeLandmarks(matchingHand), { handedness: 'right' }),
+    ]);
+
+    const result = detector.detect([
+      distractingHand.map(([x, y, z]) => [x, y, z]),
+      matchingHand.map(([x, y, z]) => [x, y, z]),
+    ]);
+
+    expect(result).not.toBeNull();
+    expect(result!.label).toBe('rechts_ohne_handedness');
+    expect(result!.confidence).toBeGreaterThan(0.8);
+  });
+
   it('erkennt Geste mit passender Händigkeit', () => {
     const detector = new LandmarkTemplateDetector();
     const hand = makeHand();
@@ -218,5 +283,70 @@ describe('LandmarkTemplateDetector', () => {
     );
     expect(result).not.toBeNull();
     expect(result!.label).toBe('rechts_geste');
+  });
+});
+
+describe('LandmarkTemplateDetector mit echten Landmarken aus Repo-Videos', () => {
+  let twoHandFrames: number[][][][] = [];
+
+  beforeAll(async () => {
+    const payload = JSON.parse(await readFile(SPIELEN_LANDMARK_FILE, 'utf8')) as {
+      frames?: Array<{ landmarks?: number[][] }>;
+    };
+
+    twoHandFrames = (payload.frames ?? [])
+      .map((frame) => splitHandsFromMultimodalFrame(frame.landmarks ?? []))
+      .filter((hands) => hands.length >= 2);
+  });
+
+  it('lädt mehrere zwei-Hand-Frames aus der Landmark-Datei', () => {
+    expect(twoHandFrames.length).toBeGreaterThan(1);
+  });
+
+
+  it('erkennt reales right-Template ohne Händigkeitshinweis über die zweite sichtbare Hand', () => {
+    const detector = new LandmarkTemplateDetector();
+    const templateFrame = twoHandFrames[0]!;
+    const probeFrame = twoHandFrames[1]!;
+
+    detector.setTemplates([
+      {
+        id: 'spielen-template-right-no-handedness',
+        label: 'spielen',
+        profileId: 'integration-profile',
+        landmarks: normalizeLandmarks(templateFrame[1]! as [number, number, number][]),
+        handedness: 'right',
+        createdAt: '2026-03-05T00:00:00.000Z',
+      },
+    ]);
+
+    const result = detector.detect(probeFrame);
+
+    expect(result).not.toBeNull();
+    expect(result!.label).toBe('spielen');
+    expect(result!.confidence).toBeGreaterThan(0.6);
+  });
+
+  it('erkennt ein echtes Template auch dann, wenn die beste Hand die zweite sichtbare Hand ist', () => {
+    const detector = new LandmarkTemplateDetector();
+    const templateFrame = twoHandFrames[0]!;
+    const probeFrame = twoHandFrames[1]!;
+
+    detector.setTemplates([
+      {
+        id: 'spielen-template-repo-real',
+        label: 'spielen',
+        profileId: 'integration-profile',
+        landmarks: normalizeLandmarks(templateFrame[1]! as [number, number, number][]),
+        handedness: 'both',
+        createdAt: '2026-03-05T00:00:00.000Z',
+      },
+    ]);
+
+    const result = detector.detect(probeFrame);
+
+    expect(result).not.toBeNull();
+    expect(result!.label).toBe('spielen');
+    expect(result!.confidence).toBeGreaterThan(0.6);
   });
 });

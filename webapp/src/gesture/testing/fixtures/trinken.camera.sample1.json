@@ -1,0 +1,7 @@
+{
+  "gestureName": "trinken",
+  "source": "recorded",
+  "expectedConfidence": 0.75,
+  "capturedAt": "2026-03-05T00:00:00.000Z",
+  "sourceLandmarksFile": "server/data/dgs_video_examples/trinken_var_wasser_0_landmarks.json"
+}

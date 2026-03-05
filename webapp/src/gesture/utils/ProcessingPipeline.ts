@@ -79,6 +79,7 @@ export interface ProcessingResult {
         | 'selected_profile_vocab_priority'
         | 'selected_profile_vocab_relaxed_threshold'
         | 'below_threshold'
+        | 'below_candidate_margin'
         | 'below_override_margin'
         | 'null_label'
         | 'invalid_result'

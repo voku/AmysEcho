@@ -204,7 +204,42 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByText(/Letzte Systemmeldung:/)).toBeInTheDocument();
     expect(screen.getByText(/Aktives Modell:/)).toBeInTheDocument();
     expect(screen.getByText(/Letzter Erkennungsweg:/)).toBeInTheDocument();
+    expect(screen.getByText(/Letzte MLP-Entscheidung:/)).toBeInTheDocument();
+    expect(screen.getByText(/Kandidatenabstand \(Top 1 vs Top 2\):/)).toBeInTheDocument();
     expect(screen.getByText(/Trainierte Beispiele: HALLO, ESSEN/)).toBeInTheDocument();
+  });
+
+
+  it('records fixture frames from real landmarks and exports JSON', () => {
+    detectorState.status = 'running';
+    detectorState.lastSign = 'satt';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+
+    const createObjectUrlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fixture-json');
+    const revokeObjectUrlSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    const { rerender } = renderWithProviders(<SignLanguageRecorder />);
+
+    fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
+    fireEvent.click(screen.getByRole('button', { name: '🎯 Fixture-Aufnahme starten' }));
+
+    detectorState.lastLandmarks = [[[0.4, 0.5, 0.6]]];
+    rerender(
+      <MemoryRouter>
+        <ApiConfigProvider>
+          <SignLanguageRecorder />
+        </ApiConfigProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Aufgenommene Frames:/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '💾 Fixture als JSON speichern' })).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: '💾 Fixture als JSON speichern' }));
+
+    expect(createObjectUrlSpy).toHaveBeenCalled();
+    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:fixture-json');
   });
 
   it('toggles diagnostics panel visibility', () => {
