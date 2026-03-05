@@ -123,6 +123,14 @@ type CustomSignResponse = {
   isReady?: boolean;
 };
 
+type GestureFixtureExport = {
+  gestureName: string;
+  source: 'camera' | 'recorded';
+  expectedConfidence: number;
+  capturedAt: string;
+  landmarks: number[][][][];
+};
+
 type MlpCandidateButtonsProps = {
   choices: SuggestedMlpChoice[];
   normalizedTrainedSignLabels: Set<string>;
@@ -174,6 +182,66 @@ function MlpCandidateButtons({
   );
 }
 
+
+function formatMlpDecisionReason(reason: string | null): string {
+  switch (reason) {
+    case 'selected':
+      return 'MLP-Auswahl übernommen';
+    case 'selected_profile_vocab_priority':
+      return 'Trainierte Profilgebärde bevorzugt';
+    case 'selected_profile_vocab_relaxed_threshold':
+      return 'Profilgebärde mit gelockerter Schwelle übernommen';
+    case 'below_threshold':
+      return 'Unterhalb der Sicherheitsschwelle';
+    case 'below_candidate_margin':
+      return 'Mehrdeutig: Top-Kandidaten zu nah beieinander';
+    case 'below_override_margin':
+      return 'MediaPipe war im Vergleich stabiler';
+    case 'null_label':
+      return 'Hintergrundklasse erkannt (kein gültiges Zeichen)';
+    case 'invalid_result':
+      return 'Ungültige Modellantwort';
+    case 'predictor_unavailable':
+      return 'MLP nicht verfügbar';
+    case 'predictor_error':
+      return 'MLP-Fehler während der Auswertung';
+    default:
+      return 'Keine MLP-Entscheidung vorhanden';
+  }
+}
+
+function resolveCandidateMargin(candidates: SuggestedMlpChoice[]): number | null {
+  if (candidates.length < 2) {
+    return null;
+  }
+
+  const top = candidates[0];
+  const second = candidates[1];
+  if (!top || !second) {
+    return null;
+  }
+
+  return top.score - second.score;
+}
+
+
+function cloneLandmarksFrame(frame: number[][][]): number[][][] {
+  return frame.map((hand) => hand.map((point) => [...point]));
+}
+
+function downloadGestureFixture(fixture: GestureFixtureExport): void {
+  const safeName = fixture.gestureName.trim().toLowerCase().replace(/\s+/g, '-');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const filename = `gesture-fixture-${safeName || 'unbenannt'}-${timestamp}.json`;
+  const blob = new Blob([JSON.stringify(fixture, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function SignLanguageRecorder() {
   const navigate = useNavigate();
   const { apiBaseUrl, apiToken } = useApiConfig();
@@ -219,6 +287,11 @@ export function SignLanguageRecorder() {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [allowGlobalFallbackOutput, setAllowGlobalFallbackOutput] = useState(false);
   const [manualSuggestionLabel, setManualSuggestionLabel] = useState<string | null>(null);
+  const [isFixtureRecording, setIsFixtureRecording] = useState(false);
+  const [fixtureGestureName, setFixtureGestureName] = useState('');
+  const [fixtureSource, setFixtureSource] = useState<'camera' | 'recorded'>('camera');
+  const [fixtureExpectedConfidence, setFixtureExpectedConfidence] = useState(0.75);
+  const [fixtureFrames, setFixtureFrames] = useState<number[][][][]>([]);
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
     [],
@@ -250,6 +323,44 @@ export function SignLanguageRecorder() {
   const latestProfileIdRef = useRef<string | null>(profileId);
   const lastProfileModelLogRef = useRef<string>('');
   const lastFilteredPredictionLogRef = useRef<string>('');
+
+
+  useEffect(() => {
+    if (!isFixtureRecording) {
+      return;
+    }
+
+    if (lastLandmarks.length === 0) {
+      return;
+    }
+
+    setFixtureFrames((previous) => [...previous, cloneLandmarksFrame(lastLandmarks)]);
+  }, [isFixtureRecording, lastLandmarks]);
+
+  useEffect(() => {
+    if (!fixtureGestureName && lastSign) {
+      setFixtureGestureName(lastSign);
+    }
+  }, [fixtureGestureName, lastSign]);
+
+  const handleFixtureExport = useCallback(() => {
+    if (fixtureFrames.length === 0) {
+      return;
+    }
+
+    const name = fixtureGestureName.trim();
+    if (!name) {
+      return;
+    }
+
+    downloadGestureFixture({
+      gestureName: name,
+      source: fixtureSource,
+      expectedConfidence: fixtureExpectedConfidence,
+      capturedAt: new Date().toISOString(),
+      landmarks: fixtureFrames,
+    });
+  }, [fixtureExpectedConfidence, fixtureFrames, fixtureGestureName, fixtureSource]);
 
   useEffect(() => {
     latestProfileIdRef.current = profileId;
@@ -552,6 +663,35 @@ export function SignLanguageRecorder() {
       .filter(candidate => candidate.normalizedLabel.length > 0)
       .sort((left, right) => right.score - left.score);
   }, [lastMlpCandidates, lastMlpLabel, lastMlpScore]);
+
+  const latestMlpDecisionReason = useMemo(() => {
+    const latestPayload = messageLog[0]?.payload;
+    if (!latestPayload || typeof latestPayload !== 'object') {
+      return null;
+    }
+
+    const payload = latestPayload as {
+      mlpDecision?: { reason?: string };
+      messages?: Array<{ mlpDecision?: { reason?: string } }>;
+    };
+
+    if (typeof payload.mlpDecision?.reason === 'string') {
+      return payload.mlpDecision.reason;
+    }
+
+    const nestedDecision = payload.messages
+      ?.slice()
+      .reverse()
+      .find((message) => typeof message?.mlpDecision?.reason === 'string')
+      ?.mlpDecision?.reason;
+
+    return typeof nestedDecision === 'string' ? nestedDecision : null;
+  }, [messageLog]);
+
+  const topCandidateMargin = useMemo(
+    () => resolveCandidateMargin(suggestedMlpChoices),
+    [suggestedMlpChoices],
+  );
 
   const effectiveSign = manualSuggestionLabel ?? (shouldPreferMlpTrainedLabel ? lastMlpLabel : lastSign);
 
@@ -1129,6 +1269,14 @@ export function SignLanguageRecorder() {
                   <strong>{recognitionModeLabel}</strong>
                 </li>
                 <li>
+                  Letzte MLP-Entscheidung:{' '}
+                  <strong>{formatMlpDecisionReason(latestMlpDecisionReason)}</strong>
+                </li>
+                <li>
+                  Kandidatenabstand (Top 1 vs Top 2):{' '}
+                  <strong>{topCandidateMargin != null ? `${(topCandidateMargin * 100).toFixed(1)} %` : 'Nicht verfügbar'}</strong>
+                </li>
+                <li>
                   Ausgabe-Freigabe:{' '}
                   <strong>{canUseProfileRecognition ? 'Aktiv' : 'Pausiert (wartet auf Profilmodell)'}</strong>
                 </li>
@@ -1147,6 +1295,77 @@ export function SignLanguageRecorder() {
                 </div>
               </div>
             )}
+
+            <div className="gesture-screen__diagnostics-hint">
+              <p><strong>Fixture-Aufnahme (für echte Pipeline-Tests)</strong></p>
+              <label>
+                Gebärdenname
+                <input
+                  type="text"
+                  value={fixtureGestureName}
+                  onChange={(event) => setFixtureGestureName(event.target.value)}
+                  placeholder="z. B. satt"
+                />
+              </label>
+              <label>
+                Quelle
+                <select value={fixtureSource} onChange={(event) => setFixtureSource(event.target.value as 'camera' | 'recorded')}>
+                  <option value="camera">Kamera</option>
+                  <option value="recorded">Aufzeichnung</option>
+                </select>
+              </label>
+              <label>
+                Erwartete Mindest-Sicherheit
+                <input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={fixtureExpectedConfidence}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    if (!Number.isFinite(next)) {
+                      setFixtureExpectedConfidence(0);
+                      return;
+                    }
+                    setFixtureExpectedConfidence(Math.min(1, Math.max(0, next)));
+                  }}
+                />
+              </label>
+              <p>Aufgenommene Frames: <strong>{fixtureFrames.length}</strong></p>
+              <div className="gesture-screen__empty-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    setIsFixtureRecording((previous) => {
+                      if (!previous) {
+                        setFixtureFrames([]);
+                      }
+                      return !previous;
+                    });
+                  }}
+                >
+                  {isFixtureRecording ? '⏹️ Fixture-Aufnahme stoppen' : '🎯 Fixture-Aufnahme starten'}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setFixtureFrames([])}
+                  disabled={fixtureFrames.length === 0}
+                >
+                  🧹 Frames löschen
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={handleFixtureExport}
+                  disabled={fixtureFrames.length === 0 || fixtureGestureName.trim().length === 0}
+                >
+                  💾 Fixture als JSON speichern
+                </button>
+              </div>
+            </div>
             {trainedSignLabels.length > 0 && (
               <p className="gesture-screen__diagnostics-hint">
                 Trainierte Beispiele: {trainedSignLabels.slice(0, 6).join(', ')}

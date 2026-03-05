@@ -20,8 +20,46 @@ export const MLP_NULL_LABEL = '_NULL_';
 
 const RELAXED_BASELINE_THRESHOLD_MIN = 0.2;
 const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
-function resolveMlpThreshold(baseThreshold: number, _candidateCount: number | null | undefined): number {
-  return baseThreshold;
+const TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE = 0.2;
+const MLP_MIN_CANDIDATE_MARGIN = 0.08;
+
+function normalizeBaselineLabel(label: string): string {
+  return label.trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function isBaselineGesture(label: string | null): boolean {
+  return label !== null && MEDIAPIPE_BASELINE_GESTURES.has(normalizeBaselineLabel(label));
+}
+
+function resolveTopCandidateMargin(candidates: MLPPrediction['candidates']): number | null {
+  if (!Array.isArray(candidates) || candidates.length < 2) {
+    return null;
+  }
+
+  let bestScore = Number.NEGATIVE_INFINITY;
+  let secondBestScore = Number.NEGATIVE_INFINITY;
+
+  candidates.forEach((candidate) => {
+    if (typeof candidate?.score !== 'number' || !Number.isFinite(candidate.score)) {
+      return;
+    }
+
+    if (candidate.score >= bestScore) {
+      secondBestScore = bestScore;
+      bestScore = candidate.score;
+      return;
+    }
+
+    if (candidate.score > secondBestScore) {
+      secondBestScore = candidate.score;
+    }
+  });
+
+  if (!Number.isFinite(bestScore) || !Number.isFinite(secondBestScore)) {
+    return null;
+  }
+
+  return bestScore - secondBestScore;
 }
 
 export const MEDIAPIPE_BASELINE_GESTURES = new Set([
@@ -32,6 +70,8 @@ export const MEDIAPIPE_BASELINE_GESTURES = new Set([
   'pointing_up',
   'thumb_down',
   'thumb_up',
+  'thumbs_down',
+  'thumbs_up',
   'victory',
   'iloveyou',
 ]);
@@ -73,11 +113,13 @@ interface MlpSelection {
       | 'selected_profile_vocab_priority'
       | 'selected_profile_vocab_relaxed_threshold'
       | 'below_threshold'
+      | 'below_candidate_margin'
       | 'below_override_margin'
       | 'null_label'
       | 'invalid_result'
       | 'predictor_unavailable'
-      | 'predictor_error';
+      | 'predictor_error'
+      | 'invalid_label';
     threshold?: number;
     margin?: number;
     score?: number;
@@ -226,16 +268,29 @@ export class GestureDetectionStep implements ProcessingStep {
         handednesses,
       );
 
-      if (templateMatch && templateMatch.confidence > selectedConfidence) {
-        gestureDebugLog('template', 'Template match selected', () => ({
-          label: templateMatch!.label,
-          confidence: templateMatch!.confidence,
-          distance: templateMatch!.distance,
-        }), { sampleIntervalMs: 2000 });
-        selectedGesture = templateMatch.label;
-        selectedConfidence = templateMatch.confidence;
-        detectionMethod = 'landmark_template';
-        twoHandMetadata = null;
+      if (templateMatch) {
+        const matchedTemplate = templateMatch;
+        const normalizedTemplateLabel = this.normalizeLabel(matchedTemplate.label);
+        const shouldPreferTemplateOverBaseline =
+          !!normalizedTemplateLabel &&
+          !!selectedGesture &&
+          isBaselineGesture(selectedGesture) &&
+          !isBaselineGesture(normalizedTemplateLabel) &&
+          matchedTemplate.confidence >= TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE;
+
+        if (matchedTemplate.confidence > selectedConfidence || shouldPreferTemplateOverBaseline) {
+          gestureDebugLog('template', 'Template match selected', () => ({
+            label: matchedTemplate.label,
+            confidence: matchedTemplate.confidence,
+            distance: matchedTemplate.distance,
+            selectedConfidence,
+            shouldPreferTemplateOverBaseline,
+          }), { sampleIntervalMs: 2000 });
+          selectedGesture = normalizedTemplateLabel ?? matchedTemplate.label;
+          selectedConfidence = matchedTemplate.confidence;
+          detectionMethod = 'landmark_template';
+          twoHandMetadata = null;
+        }
       }
     }
 
@@ -263,6 +318,22 @@ export class GestureDetectionStep implements ProcessingStep {
     selectedConfidence = mlpSelection.confidence;
     detectionMethod = mlpSelection.method;
     twoHandMetadata = mlpSelection.twoHandMetadata;
+
+    const canRescueWithTemplate =
+      templateMatch &&
+      templateMatch.confidence >= TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE &&
+      (!selectedGesture || isBaselineGesture(selectedGesture)) &&
+      mlpSelection.mlpDecision?.selected === false;
+
+    if (canRescueWithTemplate && templateMatch) {
+      const normalizedTemplateLabel = this.normalizeLabel(templateMatch.label);
+      if (normalizedTemplateLabel) {
+        selectedGesture = normalizedTemplateLabel;
+        selectedConfidence = templateMatch.confidence;
+        detectionMethod = 'landmark_template';
+        twoHandMetadata = null;
+      }
+    }
 
     return {
       gesture: selectedGesture,
@@ -383,185 +454,184 @@ export class GestureDetectionStep implements ProcessingStep {
     detectionMethod: MlpSelection['method'],
     twoHandMetadata: TwoHandGesture | null,
   ): MlpSelection {
-    let mlpMetadata: MLPPrediction | null = null;
-    let mlpDecision: MlpSelection['mlpDecision'] = null;
-    let resolvedGesture = selectedGesture;
-    let resolvedConfidence = selectedConfidence;
-    let resolvedMethod = detectionMethod;
-    let resolvedTwoHand = twoHandMetadata;
+    const buildResult = (
+      decision: MlpSelection['mlpDecision'],
+      metadata: MLPPrediction | null,
+      gesture = selectedGesture,
+      confidence = selectedConfidence,
+      method = detectionMethod,
+      twoHand: TwoHandGesture | null = twoHandMetadata,
+    ): MlpSelection => ({
+      gesture,
+      confidence,
+      method,
+      mlpMetadata: metadata,
+      mlpDecision: decision,
+      twoHandMetadata: twoHand,
+    });
 
     gestureDebugLog('mlp', 'Checking MLP availability', () => ({
       available: typeof window.__mlpPredict === 'function',
     }), { sampleIntervalMs: 10000 });
-    if (typeof window.__mlpPredict === 'function') {
-      gestureDebugLog('mlp', 'MLP function available, attempting prediction', () => ({
-        landmarksCount: context.landmarks?.length ?? 0,
-        poseCount: context.poseLandmarks?.length ?? 0,
-        faceCount: context.faceLandmarks?.length ?? 0,
-      }), { sampleIntervalMs: 5000 });
-      try {
-        // The embedded MLP expects MediaPipe's handedness structure to decide which
-        // hand should be mirrored, so prefer the raw array when available. Fall
-        // back to the normalized labels only if MediaPipe omitted handedness
-        // information entirely.
-        const mlpResult = window.__mlpPredict(
-          context.rawLandmarks ?? context.landmarks ?? [],
-          handednessesForMlp,
-          context.poseLandmarks,
-          context.faceLandmarks,
-          context.audioFeatures
-        );
-        gestureDebugLog('mlp', 'MLP prediction result', () => ({
-          label: mlpResult?.label,
-          score: mlpResult?.score,
-        }), { sampleIntervalMs: 2000 });
-        if (mlpResult && typeof mlpResult.score === 'number') {
-          mlpMetadata = mlpResult;
-          const baseThreshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
-          const threshold = resolveMlpThreshold(baseThreshold, mlpResult.candidates?.length);
-          gestureDebugLog('mlp', 'MLP threshold check', () => ({
-            score: mlpResult.score,
-            threshold,
-            selectedConfidence,
-          }), { sampleIntervalMs: 3000 });
-          // Calculate confidence margin - require higher confidence to override mediapipe
-          const isMediaPipeConfident = resolvedConfidence > 0.3;
-          const confidenceMargin = isMediaPipeConfident ? 0.15 : 0;
 
-          if (mlpResult.label === MLP_NULL_LABEL) {
-            mlpDecision = {
-              selected: false,
-              reason: 'null_label',
-              threshold,
-              score: mlpResult.score,
-              selectedConfidenceBeforeMlp: resolvedConfidence,
-              selectedGestureBeforeMlp: resolvedGesture,
-            };
-            gestureDebugLog('mlp', `Ignoring background noise (${MLP_NULL_LABEL})`, undefined, { sampleIntervalMs: 2000 });
-          } else {
-            const normalizedMlpLabel = this.normalizeLabel(mlpResult.label);
-            const mediapipeWinsByMargin =
-              resolvedGesture !== null &&
-              resolvedGesture !== 'none' &&
-              mlpResult.score < (resolvedConfidence + confidenceMargin);
-            const shouldPreferMlpOverBaseline =
-              !!normalizedMlpLabel &&
-              !!resolvedGesture &&
-              MEDIAPIPE_BASELINE_GESTURES.has(resolvedGesture) &&
-              !MEDIAPIPE_BASELINE_GESTURES.has(normalizedMlpLabel);
-            const relaxedBaselineThreshold = Math.max(
-              RELAXED_BASELINE_THRESHOLD_MIN,
-              threshold - RELAXED_BASELINE_THRESHOLD_DELTA,
-            );
-            const canSelectMlpByRelaxedBaseline =
-              shouldPreferMlpOverBaseline &&
-              mlpResult.score < threshold &&
-              mlpResult.score >= relaxedBaselineThreshold;
-            const canSelectMlp =
-              (mlpResult.score >= threshold || canSelectMlpByRelaxedBaseline) &&
-              (
-                resolvedGesture === null ||
-                resolvedGesture === 'none' ||
-                mlpResult.score >= (resolvedConfidence + confidenceMargin) ||
-                (mediapipeWinsByMargin && shouldPreferMlpOverBaseline)
-              );
-
-            if (canSelectMlp) {
-              mlpDecision = {
-                selected: true,
-                reason: canSelectMlpByRelaxedBaseline
-                  ? 'selected_profile_vocab_relaxed_threshold'
-                  : (shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected'),
-                threshold,
-                margin: confidenceMargin,
-                score: mlpResult.score,
-                selectedConfidenceBeforeMlp: resolvedConfidence,
-                selectedGestureBeforeMlp: resolvedGesture,
-              };
-              gestureDebugLog('mlp', 'MLP gesture selected', () => ({
-                label: mlpResult.label,
-                score: mlpResult.score,
-                margin: confidenceMargin,
-              }), { sampleIntervalMs: 2000 });
-              resolvedGesture = this.normalizeLabel(mlpResult.label);
-              resolvedConfidence = mlpResult.score;
-              resolvedMethod = 'mlp';
-              resolvedTwoHand = null;
-            } else {
-              mlpDecision = {
-                selected: false,
-                reason: mlpResult.score < threshold ? 'below_threshold' : 'below_override_margin',
-                threshold,
-                margin: confidenceMargin,
-                score: mlpResult.score,
-                selectedConfidenceBeforeMlp: resolvedConfidence,
-                selectedGestureBeforeMlp: resolvedGesture,
-              };
-              gestureDebugLog('mlp', 'MLP gesture not selected', () => ({
-                score: mlpResult.score,
-                threshold,
-                selectedConfidence: resolvedConfidence,
-                margin: confidenceMargin,
-              }), { sampleIntervalMs: 3000 });
-            }
-          }
-        } else {
-          mlpDecision = {
-            selected: false,
-            reason: 'invalid_result',
-            selectedConfidenceBeforeMlp: resolvedConfidence,
-            selectedGestureBeforeMlp: resolvedGesture,
-          };
-          gestureDebugLog('mlp', 'MLP result invalid', () => ({
-            hasResult: !!mlpResult,
-            hasScore: typeof mlpResult?.score === 'number',
-          }), { sampleIntervalMs: 5000 });
-        }
-      } catch (error) {
-        mlpDecision = {
-          selected: false,
-          reason: 'predictor_error',
-          selectedConfidenceBeforeMlp: resolvedConfidence,
-          selectedGestureBeforeMlp: resolvedGesture,
-        };
-        gestureDebugLog('mlp', 'MLP prediction failed', () => ({
-          error: error instanceof Error ? error.message : String(error),
-        }), { sampleIntervalMs: 5000, level: 'warn' });
-        const predictionPrefix = typeof window.__predictionError === 'string' && window.__predictionError.length > 0
-          ? window.__predictionError
-          : 'MLP prediction failed: ';
-        try {
-          window.ReactNativeWebView?.postMessage?.(
-            JSON.stringify({
-              type: 'error',
-              message: `${predictionPrefix}${error instanceof Error ? error.message : String(error)}`,
-              _technical: {
-                stack: error instanceof Error ? error.stack ?? null : null,
-              }
-            })
-          );
-        } catch {
-          // Silently ignore post message errors to React Native to avoid console spam.
-          // These errors are expected when running in browser environments without the React Native WebView.
-        }
-      }
-    } else {
-      mlpDecision = {
+    if (typeof window.__mlpPredict !== 'function') {
+      return buildResult({
         selected: false,
         reason: 'predictor_unavailable',
-        selectedConfidenceBeforeMlp: resolvedConfidence,
-        selectedGestureBeforeMlp: resolvedGesture,
-      };
+        selectedConfidenceBeforeMlp: selectedConfidence,
+        selectedGestureBeforeMlp: selectedGesture,
+      }, null);
     }
 
-    return {
-      gesture: resolvedGesture,
-      confidence: resolvedConfidence,
-      method: resolvedMethod,
-      mlpMetadata,
-      mlpDecision,
-      twoHandMetadata: resolvedTwoHand,
-    };
+    gestureDebugLog('mlp', 'MLP function available, attempting prediction', () => ({
+      landmarksCount: context.landmarks?.length ?? 0,
+      poseCount: context.poseLandmarks?.length ?? 0,
+      faceCount: context.faceLandmarks?.length ?? 0,
+    }), { sampleIntervalMs: 5000 });
+
+    try {
+      const mlpResult = window.__mlpPredict(
+        context.rawLandmarks ?? context.landmarks ?? [],
+        handednessesForMlp,
+        context.poseLandmarks,
+        context.faceLandmarks,
+        context.audioFeatures,
+      );
+      gestureDebugLog('mlp', 'MLP prediction result', () => ({
+        label: mlpResult?.label,
+        score: mlpResult?.score,
+      }), { sampleIntervalMs: 2000 });
+
+      if (!mlpResult || typeof mlpResult.score !== 'number') {
+        return buildResult({
+          selected: false,
+          reason: 'invalid_result',
+          selectedConfidenceBeforeMlp: selectedConfidence,
+          selectedGestureBeforeMlp: selectedGesture,
+        }, null);
+      }
+
+      const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+      const topCandidateMargin = resolveTopCandidateMargin(mlpResult.candidates);
+      const isCandidateMarginTooSmall =
+        topCandidateMargin !== null && topCandidateMargin < MLP_MIN_CANDIDATE_MARGIN;
+      const confidenceMargin = selectedConfidence > 0.3 ? 0.15 : 0;
+
+      gestureDebugLog('mlp', 'MLP threshold check', () => ({
+        score: mlpResult.score,
+        threshold,
+        selectedConfidence,
+        topCandidateMargin,
+      }), { sampleIntervalMs: 3000 });
+
+      if (mlpResult.label === MLP_NULL_LABEL) {
+        return buildResult({
+          selected: false,
+          reason: 'null_label',
+          threshold,
+          score: mlpResult.score,
+          selectedConfidenceBeforeMlp: selectedConfidence,
+          selectedGestureBeforeMlp: selectedGesture,
+        }, mlpResult);
+      }
+
+      const normalizedMlpLabel = this.normalizeLabel(mlpResult.label);
+      if (!normalizedMlpLabel) {
+        return buildResult({
+          selected: false,
+          reason: 'invalid_label',
+          threshold,
+          score: mlpResult.score,
+          selectedConfidenceBeforeMlp: selectedConfidence,
+          selectedGestureBeforeMlp: selectedGesture,
+        }, mlpResult);
+      }
+
+      const shouldPreferMlpOverBaseline =
+        !!normalizedMlpLabel &&
+        !!selectedGesture &&
+        isBaselineGesture(selectedGesture) &&
+        !isBaselineGesture(normalizedMlpLabel);
+      const relaxedBaselineThreshold = Math.max(
+        RELAXED_BASELINE_THRESHOLD_MIN,
+        threshold - RELAXED_BASELINE_THRESHOLD_DELTA,
+      );
+      const canSelectMlpByRelaxedBaseline =
+        shouldPreferMlpOverBaseline &&
+        mlpResult.score < threshold &&
+        mlpResult.score >= relaxedBaselineThreshold;
+      const isMediaPipeBlockingMlp =
+        selectedGesture !== null &&
+        selectedGesture !== 'none' &&
+        mlpResult.score < (selectedConfidence + confidenceMargin) &&
+        !shouldPreferMlpOverBaseline;
+      const canSelectMlp =
+        !isCandidateMarginTooSmall &&
+        (mlpResult.score >= threshold || canSelectMlpByRelaxedBaseline) &&
+        !isMediaPipeBlockingMlp;
+
+      if (!canSelectMlp) {
+        return buildResult({
+          selected: false,
+          reason: isCandidateMarginTooSmall
+            ? 'below_candidate_margin'
+            : mlpResult.score < threshold
+              ? 'below_threshold'
+              : 'below_override_margin',
+          threshold,
+          margin: confidenceMargin,
+          score: mlpResult.score,
+          selectedConfidenceBeforeMlp: selectedConfidence,
+          selectedGestureBeforeMlp: selectedGesture,
+        }, mlpResult);
+      }
+
+      return buildResult(
+        {
+          selected: true,
+          reason: canSelectMlpByRelaxedBaseline
+            ? 'selected_profile_vocab_relaxed_threshold'
+            : (shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected'),
+          threshold,
+          margin: confidenceMargin,
+          score: mlpResult.score,
+          selectedConfidenceBeforeMlp: selectedConfidence,
+          selectedGestureBeforeMlp: selectedGesture,
+        },
+        mlpResult,
+        normalizedMlpLabel,
+        mlpResult.score,
+        'mlp',
+        null,
+      );
+    } catch (error) {
+      gestureDebugLog('mlp', 'MLP prediction failed', () => ({
+        error: error instanceof Error ? error.message : String(error),
+      }), { sampleIntervalMs: 5000, level: 'warn' });
+      const predictionPrefix = typeof window.__predictionError === 'string' && window.__predictionError.length > 0
+        ? window.__predictionError
+        : 'MLP prediction failed: ';
+      try {
+        window.ReactNativeWebView?.postMessage?.(
+          JSON.stringify({
+            type: 'error',
+            message: `${predictionPrefix}${error instanceof Error ? error.message : String(error)}`,
+            _technical: {
+              stack: error instanceof Error ? error.stack ?? null : null,
+            }
+          }),
+        );
+      } catch {
+        // Ignore postMessage failures in browser-only environments.
+      }
+
+      return buildResult({
+        selected: false,
+        reason: 'predictor_error',
+        selectedConfidenceBeforeMlp: selectedConfidence,
+        selectedGestureBeforeMlp: selectedGesture,
+      }, null);
+    }
   }
 
   private extractPerHandDetections(

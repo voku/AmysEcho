@@ -172,23 +172,31 @@ export class LandmarkTemplateDetector {
     let bestMatch: TemplateMatchResult | null = null;
 
     for (const template of this.templates) {
-      const candidateLandmarks = this.selectCandidateLandmarks(
+      const candidateLandmarksList = this.selectCandidateLandmarks(
         template,
         normalizedHands,
         normalizedTwo,
         lowerHandednesses,
       );
-      if (!candidateLandmarks) continue;
+      if (candidateLandmarksList.length === 0) continue;
 
-      const dist = landmarkDistance(candidateLandmarks, template.landmarks);
-      const confidence = distanceToConfidence(dist, this.distanceThreshold);
+      let templateBestDistance = Infinity;
+
+      for (const candidateLandmarks of candidateLandmarksList) {
+        const dist = landmarkDistance(candidateLandmarks, template.landmarks);
+        if (dist < templateBestDistance) {
+          templateBestDistance = dist;
+        }
+      }
+
+      const confidence = distanceToConfidence(templateBestDistance, this.distanceThreshold);
 
       if (confidence >= this.minConfidence && (!bestMatch || confidence > bestMatch.confidence)) {
         bestMatch = {
           label: template.label,
           confidence,
           templateId: template.id,
-          distance: dist,
+          distance: templateBestDistance,
         };
       }
     }
@@ -205,15 +213,15 @@ export class LandmarkTemplateDetector {
     normalizedHands: ([number, number, number][] | null)[],
     normalizedTwo: [number, number, number][] | null,
     lowerHandednesses: string[],
-  ): [number, number, number][] | null {
+  ): [number, number, number][][] {
     // Two-hand template: use concatenated pair
     if (template.landmarks.length === 42) {
-      return normalizedTwo;
+      return normalizedTwo ? [normalizedTwo] : [];
     }
 
-    // Single-hand template: pick the hand matching the template's handedness
+    // Single-hand template with "both": evaluate all visible hands and use the best match.
     if (template.handedness === 'both') {
-      return normalizedHands[0] ?? null;
+      return normalizedHands.filter((hand): hand is [number, number, number][] => !!hand);
     }
 
     // Find the hand whose handedness matches the template
@@ -221,15 +229,17 @@ export class LandmarkTemplateDetector {
       for (let i = 0; i < lowerHandednesses.length; i++) {
         const hand = normalizedHands[i];
         if (lowerHandednesses[i] === template.handedness && hand) {
-          return hand;
+          return [hand];
         }
       }
       // No matching handedness found
-      return null;
+      return [];
     }
 
-    // No handedness info – fall back to first hand
-    return normalizedHands[0] ?? null;
+    // No handedness info available: evaluate all visible hands and use best match.
+    // This avoids false negatives when MediaPipe landmark sources omit handedness
+    // and the matching hand is not the first visible hand.
+    return normalizedHands.filter((hand): hand is [number, number, number][] => !!hand);
   }
 
   /**

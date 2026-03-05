@@ -1,7 +1,48 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { GestureDetectionStep } from './ProcessingSteps';
+import { LandmarkTemplateDetector } from '../landmarkTemplateDetector';
 import type { GestureDetectorConfig } from '../config/GestureConfig';
 import type { MediaPipeGestureResult } from '../types/MediaPipeTypes';
+
+function createDetectionContext({
+  landmarks = [],
+  handLabel,
+  handScore,
+  audioFeatures,
+}: {
+  landmarks?: number[][][];
+  handLabel?: string;
+  handScore?: number;
+  audioFeatures?: number[];
+} = {}) {
+  const hasHand = typeof handLabel === 'string' && typeof handScore === 'number';
+
+  return {
+    landmarks,
+    timestamp: Date.now(),
+    processingStep: 'gesture_detection',
+    skipExpensiveSteps: false,
+    normalizedResults: {
+      hands: hasHand
+        ? [
+            {
+              handedness: 'Left',
+              landmarks: [],
+              gestures: [{ label: handLabel, score: handScore }],
+            },
+          ]
+        : [],
+      landmarks: [],
+      handednesses: hasHand ? ['Left'] : [],
+    },
+    rawResults: {
+      gestures: hasHand ? [[{ categoryName: handLabel, score: handScore }]] : [],
+      landmarks: [],
+      handednesses: hasHand ? [[{ categoryName: 'Left' }]] : [],
+    } as MediaPipeGestureResult,
+    ...(audioFeatures ? { audioFeatures } : {}),
+  } as const;
+}
 
 describe('GestureDetectionStep', () => {
   const baseConfig = {
@@ -14,41 +55,11 @@ describe('GestureDetectionStep', () => {
     (window as any).__mlpPredict = undefined;
   });
 
-  const buildResult = (overrides: Partial<MediaPipeGestureResult>): MediaPipeGestureResult => ({
-    gestures: [],
-    landmarks: [],
-    handednesses: [],
-    ...overrides,
-  });
-
   it('selects the highest confidence MediaPipe gesture per hand', async () => {
     const step = createStep();
-    const context = {
-      landmarks: [],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [
-          {
-            handedness: 'Left',
-            landmarks: [],
-            gestures: [
-              { label: 'Open_Palm', score: 0.62 },
-              { label: 'Fist', score: 0.3 },
-            ],
-          },
-        ],
-        landmarks: [],
-        handednesses: ['Left'],
-      },
-      rawResults: buildResult({
-        gestures: [[{ categoryName: 'Open_Palm', score: 0.62 }]],
-        handednesses: [[{ categoryName: 'Left' }]],
-      }),
-    } as any;
+    const context = createDetectionContext({ handLabel: 'Open_Palm', handScore: 0.62 });
 
-    const result = await step.execute(context);
+    const result = await step.execute(context as any);
 
     expect(result.gesture).toBe('open_palm');
     expect(result.confidence).toBeCloseTo(0.62);
@@ -58,10 +69,7 @@ describe('GestureDetectionStep', () => {
   it('combines two hands into a normalized gesture string', async () => {
     const step = createStep();
     const context = {
-      landmarks: [],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
+      ...createDetectionContext(),
       normalizedResults: {
         hands: [
           {
@@ -78,16 +86,17 @@ describe('GestureDetectionStep', () => {
         landmarks: [],
         handednesses: ['Left', 'Right'],
       },
-      rawResults: buildResult({
+      rawResults: {
         gestures: [
           [{ categoryName: 'Thumbs_Up', score: 0.8 }],
           [{ categoryName: 'Fist', score: 0.7 }],
         ],
+        landmarks: [],
         handednesses: [
           [{ categoryName: 'Left' }],
           [{ categoryName: 'Right' }],
         ],
-      }),
+      },
     } as any;
 
     const result = await step.execute(context);
@@ -97,42 +106,110 @@ describe('GestureDetectionStep', () => {
     expect(result.metadata?.method).toBe('mediapipe');
   });
 
+  it('prefers a landmark template over baseline MediaPipe output for trained profile gestures', async () => {
+    const templateDetector = {
+      getTemplateCount: () => 1,
+      detect: () => ({ label: 'Satt', confidence: 0.24, templateId: 'tpl-1', distance: 0.31 }),
+    } as unknown as LandmarkTemplateDetector;
+    const step = new GestureDetectionStep(baseConfig, templateDetector);
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Open_Palm',
+      handScore: 0.72,
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBe('satt');
+    expect(result.confidence).toBeCloseTo(0.24);
+    expect(result.metadata?.method).toBe('landmark_template');
+    expect(result.metadata?.templateMatch).toMatchObject({
+      label: 'Satt',
+      confidence: 0.24,
+      templateId: 'tpl-1',
+    });
+  });
+
+
+  it('falls back to landmark template when MLP is rejected and MediaPipe only has baseline output', async () => {
+    const templateDetector = {
+      getTemplateCount: () => 1,
+      detect: () => ({ label: 'Satt', confidence: 0.26, templateId: 'tpl-rescue', distance: 0.29 }),
+    } as unknown as LandmarkTemplateDetector;
+    const step = new GestureDetectionStep(baseConfig, templateDetector);
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Open_Palm',
+      handScore: 0.74,
+    });
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Trinken',
+      score: 0.39,
+      candidates: [
+        { label: 'Trinken', score: 0.39 },
+        { label: 'Satt', score: 0.38 },
+      ],
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBe('satt');
+    expect(result.metadata?.method).toBe('landmark_template');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_candidate_margin',
+    });
+    expect(result.metadata?.templateMatch).toMatchObject({
+      label: 'Satt',
+      confidence: 0.26,
+      templateId: 'tpl-rescue',
+    });
+  });
+
+  it('keeps baseline MediaPipe output when template confidence is too weak', async () => {
+    const templateDetector = {
+      getTemplateCount: () => 1,
+      detect: () => ({ label: 'Satt', confidence: 0.19, templateId: 'tpl-weak', distance: 0.33 }),
+    } as unknown as LandmarkTemplateDetector;
+    const step = new GestureDetectionStep(baseConfig, templateDetector);
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Open_Palm',
+      handScore: 0.72,
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBe('open_palm');
+    expect(result.confidence).toBeCloseTo(0.72);
+    expect(result.metadata?.method).toBe('mediapipe');
+    expect(result.metadata?.templateMatch).toMatchObject({
+      label: 'Satt',
+      confidence: 0.19,
+      templateId: 'tpl-weak',
+    });
+  });
+
   it('prefers MLP predictions when above threshold and stronger than MediaPipe', async () => {
     const step = createStep();
-    const landmarks = [[[0.1, 0.2, 0.3]]] as any;
-    const context = {
+    const landmarks = [[[0.1, 0.2, 0.3]]] as number[][][];
+    const context = createDetectionContext({
       landmarks,
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [
-          {
-            handedness: 'Left',
-            landmarks: [],
-            gestures: [{ label: 'Open_Palm', score: 0.5 }],
-          },
-        ],
-        landmarks: [],
-        handednesses: ['Left'],
-      },
-      rawResults: buildResult({
-        gestures: [[{ categoryName: 'Open_Palm', score: 0.5 }]],
-        handednesses: [[{ categoryName: 'Left' }]],
-      }),
-    } as any;
+      handLabel: 'Open_Palm',
+      handScore: 0.5,
+    });
 
     (window as any).__mlpPredict = vi.fn().mockReturnValue({ label: 'Wave', score: 0.9 });
 
-    const result = await step.execute(context);
+    const result = await step.execute(context as any);
 
-    expect(window.__mlpPredict).toHaveBeenCalled();
     expect(window.__mlpPredict).toHaveBeenCalledWith(
       landmarks,
-      context.rawResults?.handednesses,
-      undefined, // poseLandmarks
-      undefined, // faceLandmarks
-      undefined  // audioFeatures
+      context.rawResults.handednesses,
+      undefined,
+      undefined,
+      undefined,
     );
     expect(result.gesture).toBe('wave');
     expect(result.metadata?.mlp).toEqual({ label: 'Wave', score: 0.9 });
@@ -141,32 +218,15 @@ describe('GestureDetectionStep', () => {
 
   it('prefers MLP custom vocabulary labels over baseline MediaPipe labels', async () => {
     const step = createStep();
-    const landmarks = [[[0.1, 0.2, 0.3]]] as any;
-    const context = {
-      landmarks,
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [
-          {
-            handedness: 'Left',
-            landmarks: [],
-            gestures: [{ label: 'Closed_Fist', score: 0.78 }],
-          },
-        ],
-        landmarks: [],
-        handednesses: ['Left'],
-      },
-      rawResults: buildResult({
-        gestures: [[{ categoryName: 'Closed_Fist', score: 0.78 }]],
-        handednesses: [[{ categoryName: 'Left' }]],
-      }),
-    } as any;
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Closed_Fist',
+      handScore: 0.78,
+    });
 
     (window as any).__mlpPredict = vi.fn().mockReturnValue({ label: 'Trinken', score: 0.65 });
 
-    const result = await step.execute(context);
+    const result = await step.execute(context as any);
 
     expect(result.gesture).toBe('trinken');
     expect(result.metadata?.method).toBe('mlp');
@@ -177,34 +237,17 @@ describe('GestureDetectionStep', () => {
     });
   });
 
-
   it('can select MLP profile vocabulary below threshold when MediaPipe only found baseline gesture', async () => {
     const step = createStep();
-    const context = {
+    const context = createDetectionContext({
       landmarks: [[[0.1, 0.2, 0.3]]],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [
-          {
-            handedness: 'Left',
-            landmarks: [],
-            gestures: [{ label: 'Closed_Fist', score: 0.73 }],
-          },
-        ],
-        landmarks: [],
-        handednesses: ['Left'],
-      },
-      rawResults: buildResult({
-        gestures: [[{ categoryName: 'Closed_Fist', score: 0.73 }]],
-        handednesses: [[{ categoryName: 'Left' }]],
-      }),
-    } as any;
+      handLabel: 'Closed_Fist',
+      handScore: 0.73,
+    });
 
     (window as any).__mlpPredict = vi.fn().mockReturnValue({ label: 'Trinken', score: 0.31 });
 
-    const result = await step.execute(context);
+    const result = await step.execute(context as any);
 
     expect(result.gesture).toBe('trinken');
     expect(result.metadata?.method).toBe('mlp');
@@ -217,24 +260,9 @@ describe('GestureDetectionStep', () => {
     });
   });
 
-
-  it('accepts a balanced binary MLP prediction when only two candidates exist', async () => {
+  it('rejects ambiguous binary MLP predictions when top candidates are tied', async () => {
     const step = createStep();
-    const context = {
-      landmarks: [[[0.1, 0.2, 0.3]]],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [],
-        landmarks: [],
-        handednesses: [],
-      },
-      rawResults: buildResult({
-        gestures: [],
-        handednesses: [],
-      }),
-    } as any;
+    const context = createDetectionContext({ landmarks: [[[0.1, 0.2, 0.3]]] });
 
     (window as any).__mlpPredict = vi.fn().mockReturnValue({
       label: 'Satt',
@@ -245,238 +273,105 @@ describe('GestureDetectionStep', () => {
       ],
     });
 
-    const result = await step.execute(context);
+    const result = await step.execute(context as any);
 
-    expect(result.gesture).toBe('satt');
-    expect(result.metadata?.method).toBe('mlp');
+    expect(result.gesture).toBeNull();
+    expect(result.metadata?.method).toBe('none');
     expect(result.metadata?.mlpDecision).toMatchObject({
-      selected: true,
-      reason: 'selected',
+      selected: false,
+      reason: 'below_candidate_margin',
       threshold: 0.4,
       score: 0.5,
     });
   });
 
-  it('still rejects binary MLP predictions below configured confidence threshold', async () => {
-    const step = createStep();
-    const context = {
-      landmarks: [[[0.1, 0.2, 0.3]]],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [],
-        landmarks: [],
-        handednesses: [],
-      },
-      rawResults: buildResult({
-        gestures: [],
-        handednesses: [],
-      }),
-    } as any;
-
-    (window as any).__mlpPredict = vi.fn().mockReturnValue({
-      label: 'Satt',
-      score: 0.39,
+  it.each([
+    {
+      name: 'rejects binary predictions below threshold',
       candidates: [
         { label: 'Satt', score: 0.39 },
         { label: 'Trinken', score: 0.61 },
       ],
-    });
-
-    const result = await step.execute(context);
-
-    expect(result.gesture).toBeNull();
-    expect(result.metadata?.mlpDecision).toMatchObject({
-      selected: false,
-      reason: 'below_threshold',
-      threshold: 0.4,
-      score: 0.39,
-    });
-  });
-
-  it('accepts three-candidate MLP predictions when confidence clears configured threshold', async () => {
-    const step = createStep();
-    const context = {
-      landmarks: [[[0.1, 0.2, 0.3]]],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [],
-        landmarks: [],
-        handednesses: [],
-      },
-      rawResults: buildResult({
-        gestures: [],
-        handednesses: [],
-      }),
-    } as any;
-
-    (window as any).__mlpPredict = vi.fn().mockReturnValue({
-      label: 'Satt',
-      score: 0.41,
+      expectedGesture: null,
+      expectedMethod: 'none',
+      expectedReason: 'below_threshold',
+    },
+    {
+      name: 'accepts three-candidate predictions above threshold',
       candidates: [
         { label: 'Satt', score: 0.41 },
         { label: 'Trinken', score: 0.31 },
         { label: 'Bitte', score: 0.28 },
       ],
-    });
-
-    const result = await step.execute(context);
-
-    expect(result.gesture).toBe('satt');
-    expect(result.metadata?.method).toBe('mlp');
-    expect(result.metadata?.mlpDecision).toMatchObject({
-      selected: true,
-      reason: 'selected',
-      threshold: 0.4,
-      score: 0.41,
-    });
-  });
-
-  it('still rejects three-candidate MLP predictions below configured threshold', async () => {
-    const step = createStep();
-    const context = {
-      landmarks: [[[0.1, 0.2, 0.3]]],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [],
-        landmarks: [],
-        handednesses: [],
-      },
-      rawResults: buildResult({
-        gestures: [],
-        handednesses: [],
-      }),
-    } as any;
-
-    (window as any).__mlpPredict = vi.fn().mockReturnValue({
-      label: 'Satt',
-      score: 0.39,
+      expectedGesture: 'satt',
+      expectedMethod: 'mlp',
+      expectedReason: 'selected',
+    },
+    {
+      name: 'rejects three-candidate predictions below threshold',
       candidates: [
         { label: 'Satt', score: 0.39 },
         { label: 'Trinken', score: 0.31 },
         { label: 'Bitte', score: 0.30 },
       ],
-    });
-
-    const result = await step.execute(context);
-
-    expect(result.gesture).toBeNull();
-    expect(result.metadata?.mlpDecision).toMatchObject({
-      selected: false,
-      reason: 'below_threshold',
-      threshold: 0.4,
-      score: 0.39,
-    });
-  });
-
-  it('accepts four-candidate MLP predictions when confidence clears configured threshold', async () => {
-    const step = createStep();
-    const context = {
-      landmarks: [[[0.1, 0.2, 0.3]]],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [],
-        landmarks: [],
-        handednesses: [],
-      },
-      rawResults: buildResult({
-        gestures: [],
-        handednesses: [],
-      }),
-    } as any;
-
-    (window as any).__mlpPredict = vi.fn().mockReturnValue({
-      label: 'Satt',
-      score: 0.41,
+      expectedGesture: null,
+      expectedMethod: 'none',
+      expectedReason: 'below_threshold',
+    },
+    {
+      name: 'accepts four-candidate predictions above threshold',
       candidates: [
         { label: 'Satt', score: 0.41 },
         { label: 'Trinken', score: 0.25 },
         { label: 'Bitte', score: 0.19 },
         { label: 'Danke', score: 0.14 },
       ],
-    });
-
-    const result = await step.execute(context);
-
-    expect(result.gesture).toBe('satt');
-    expect(result.metadata?.method).toBe('mlp');
-    expect(result.metadata?.mlpDecision).toMatchObject({
-      selected: true,
-      reason: 'selected',
-      threshold: 0.4,
-      score: 0.41,
-    });
-  });
-
-  it('rejects four-candidate MLP predictions below configured threshold', async () => {
-    const step = createStep();
-    const context = {
-      landmarks: [[[0.1, 0.2, 0.3]]],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [],
-        landmarks: [],
-        handednesses: [],
-      },
-      rawResults: buildResult({
-        gestures: [],
-        handednesses: [],
-      }),
-    } as any;
-
-    (window as any).__mlpPredict = vi.fn().mockReturnValue({
-      label: 'Satt',
-      score: 0.39,
+      expectedGesture: 'satt',
+      expectedMethod: 'mlp',
+      expectedReason: 'selected',
+    },
+    {
+      name: 'rejects four-candidate predictions below threshold',
       candidates: [
         { label: 'Satt', score: 0.39 },
         { label: 'Trinken', score: 0.27 },
         { label: 'Bitte', score: 0.19 },
         { label: 'Danke', score: 0.15 },
       ],
+      expectedGesture: null,
+      expectedMethod: 'none',
+      expectedReason: 'below_threshold',
+    },
+  ])('$name', async ({ candidates, expectedGesture, expectedMethod, expectedReason }) => {
+    const step = createStep();
+    const context = createDetectionContext({ landmarks: [[[0.1, 0.2, 0.3]]] });
+    const topCandidate = candidates[0];
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: topCandidate?.label ?? 'Satt',
+      score: topCandidate?.score ?? 0,
+      candidates,
     });
 
-    const result = await step.execute(context);
+    const result = await step.execute(context as any);
 
-    expect(result.gesture).toBeNull();
+    expect(result.gesture).toBe(expectedGesture);
+    expect(result.metadata?.method).toBe(expectedMethod);
     expect(result.metadata?.mlpDecision).toMatchObject({
-      selected: false,
-      reason: 'below_threshold',
+      selected: expectedReason === 'selected',
+      reason: expectedReason,
       threshold: 0.4,
-      score: 0.39,
+      score: topCandidate?.score,
     });
   });
 
   it('detects audio-only gestures when visual landmarks are missing', async () => {
     const step = createStep();
-    const context = {
-      landmarks: [],
-      timestamp: Date.now(),
-      processingStep: 'gesture_detection',
-      skipExpensiveSteps: false,
-      normalizedResults: {
-        hands: [],
-        landmarks: [],
-        handednesses: [],
-      },
-      rawResults: buildResult({
-        gestures: [],
-        handednesses: [],
-      }),
-      audioFeatures: [0.2, 0.1, 0.05],
-    } as any;
+    const context = createDetectionContext({ audioFeatures: [0.2, 0.1, 0.05] });
 
     (window as any).__mlpPredict = vi.fn().mockReturnValue({ label: 'Hallo', score: 0.6 });
 
-    const result = await step.execute(context);
+    const result = await step.execute(context as any);
 
     expect(window.__mlpPredict).toHaveBeenCalled();
     expect(result.gesture).toBe('hallo');
