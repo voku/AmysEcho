@@ -69,6 +69,11 @@ from feature_schema import TOTAL_HAND_LANDMARKS
 from frame_normalization import _normalize_frame
 from sliding_window import Sample, create_sliding_windows
 
+try:
+    from feature_pipeline import augment_temporal_window
+except ImportError:
+    from amyserver_tools.feature_pipeline import augment_temporal_window
+
 from ml_shared_utils import filter_by_profile_logic
 
 # Re-export architecture constants for module-level access (needed for tests)
@@ -434,6 +439,18 @@ def apply_hand_focus(
 
     return result
 
+
+
+
+def _extract_mirror_safe(metadata: dict) -> bool:
+    if not isinstance(metadata, dict):
+        return False
+    aug = metadata.get("augmentation")
+    if isinstance(aug, dict) and isinstance(aug.get("mirrorSafe"), bool):
+        return aug["mirrorSafe"]
+    if isinstance(metadata.get("mirrorSafe"), bool):
+        return metadata["mirrorSafe"]
+    return False
 
 def _extract_recording_metadata(metadata: dict) -> dict[str, object] | None:
     recording = metadata.get("recording") if isinstance(metadata, dict) else None
@@ -1012,6 +1029,11 @@ class TrainingConfig:
     validation_fraction: float = VALIDATION_FRACTION
     augmentations_per_sample: int = AUGMENTATIONS_PER_SAMPLE
     class_weight_smoothing: float = 0.0
+    sampling_mode: str = "standard"
+    episodic_n_way: int = 4
+    episodic_k_shot: int = 2
+    episodic_queries_per_class: int = 1
+    episodic_num_episodes: int = 8
     early_stopping_patience: int | None = EARLY_STOPPING_PATIENCE
     early_stopping_min_delta: float = EARLY_STOPPING_MIN_DELTA
     return_best_and_final: bool = False
@@ -1795,6 +1817,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
 
         recording_metadata = _extract_recording_metadata(metadata)
         modality_coverage = _extract_modality_coverage(metadata)
+        mirror_safe = _extract_mirror_safe(metadata)
 
         # ========== PATH RESOLUTION (keep existing logic) ==========
         rel_dir = entry.get("storage", {}).get("directory")
@@ -1877,6 +1900,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
             'modality_coverage': modality_coverage,
             'audio_features': audio_features_dict,
             'audio_metadata': audio_metadata_dict,
+            'mirror_safe': mirror_safe,
         }
 
         # 3. Generate "_NULL_" class (background/transition frames)
@@ -2025,31 +2049,9 @@ def dataset_to_arrays(
     augmentations_per_sample: int = 0,
     rng: np.random.RandomState | np.random.Generator | None = None,
     use_multimodal: bool = True,
+    provenance_sink: dict[str, object] | None = None,
 ) -> tuple[np.ndarray, np.ndarray, list[str], np.ndarray]:
-    """
-    Convert Sample objects to training arrays.
-    
-    Amy First: Now supports multimodal training with audio + visual features!
-    
-    CRITICAL: Sample.landmarks now contains pre-normalized window vectors (48,870 floats),
-    so we skip normalization here. Just convert to numpy arrays. 
-    
-    Note: Augmentation is disabled for temporal windows since geometric transforms
-    on flattened vectors would break temporal coherence. Augmentation happens naturally
-    through overlapping sliding windows (stride=1).
-    
-    Args:
-        samples: List of training samples
-        augmentations_per_sample: Deprecated (always 0)
-        rng: Random number generator (not used)
-        use_multimodal: If True, concatenate audio features with visual features
-    
-    Returns:
-        X: Feature matrix (N, 48870) or (N, 48883) if multimodal
-        y: Label indices (N,)
-        label_set: Sorted list of unique labels
-        weights: Per-sample quality weights (N,)
-    """
+    """Convert Sample objects to training arrays with optional temporal augmentation."""
     label_set = sorted({sample.label for sample in samples})
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
 
@@ -2057,12 +2059,10 @@ def dataset_to_arrays(
     y_list: list[int] = []
     weight_list: list[float] = []
     has_any_audio = any(sample.audio_features for sample in samples)
+    augmentation_provenance: list[dict[str, object]] = []
 
     for sample in samples:
-        # Sample.landmarks is already a normalized, flattened window vector
         features = np.array(sample.landmarks, dtype=np.float32)
-
-        # Validate expected dimensions
         if features.size != WINDOW_FEATURE_SIZE:
             LOGGER.warning(
                 f"Unexpected feature size {features.size} for sample {sample.label}. "
@@ -2070,29 +2070,35 @@ def dataset_to_arrays(
             )
             continue
 
-        # Amy First: Multimodal fusion - combine audio + visual features
-        if use_multimodal and has_any_audio:
-            # Prepare fixed-size audio features (zeros if no audio for this sample)
-            audio_features_fixed = _prepare_audio_features(sample.audio_features)
-            
-            # Concatenate: [visual_features | audio_features]
-            features = np.concatenate([features, audio_features_fixed])
-            
-            if sample.audio_features:
-                LOGGER.debug(
-                    f"Multimodal sample {sample.label}: "
-                    f"visual={WINDOW_FEATURE_SIZE}, audio={AUDIO_FEATURE_SIZE}, "
-                    f"total={features.size}"
+        variants: list[np.ndarray] = [features]
+        if augmentations_per_sample > 0:
+            window = features.reshape(WINDOW_SIZE, INPUT_FEATURE_SIZE)
+            for _ in range(augmentations_per_sample):
+                augmented_window, aug_meta = augment_temporal_window(
+                    window,
+                    rng=rng,
+                    mirror_safe=bool(getattr(sample, "mirror_safe", False)),
                 )
+                variants.append(augmented_window.reshape(WINDOW_FEATURE_SIZE))
+                augmentation_provenance.append({
+                    "label": sample.label,
+                    "profile_id": sample.profile_id,
+                    "mirror_safe": bool(getattr(sample, "mirror_safe", False)),
+                    **aug_meta,
+                })
 
-        X_list.append(features)
-        y_list.append(label_to_idx[sample.label])
-        # Combine structural quality weight with aggregated frame weights (e.g. still-frame emphasis)
-        weight_list.append(_compute_quality_weight(sample) * sample.quality_weight)
+        for variant in variants:
+            variant_features = variant
+            if use_multimodal and has_any_audio:
+                audio_features_fixed = _prepare_audio_features(sample.audio_features)
+                variant_features = np.concatenate([variant, audio_features_fixed])
+            X_list.append(variant_features)
+            y_list.append(label_to_idx[sample.label])
+            weight_list.append(_compute_quality_weight(sample) * sample.quality_weight)
 
-        # NOTE: Augmentation disabled for temporal windows
-        # Overlapping windows (stride=1) already provide data augmentation
-        # Geometric augmentation on flattened vectors would break temporal structure
+    if provenance_sink is not None:
+        provenance_sink["temporal_augmentations"] = augmentation_provenance
+        provenance_sink["augmented_sample_count"] = len(augmentation_provenance)
 
     if not X_list:
         feature_dim = MULTIMODAL_FEATURE_SIZE if (use_multimodal and has_any_audio) else WINDOW_FEATURE_SIZE
@@ -2106,9 +2112,44 @@ def dataset_to_arrays(
     X = np.vstack(X_list)
     y = np.array(y_list, dtype=np.int64)
     weights = np.array(weight_list, dtype=np.float32)
-
     return X, y, label_set, weights
 
+
+
+
+def build_episodic_indices(
+    y: np.ndarray,
+    *,
+    n_way: int,
+    k_shot: int,
+    queries_per_class: int,
+    num_episodes: int,
+    rng: np.random.RandomState | np.random.Generator | None = None,
+) -> np.ndarray:
+    """Sample indices in N-way K-shot episodes for sparse-data discrimination."""
+    if y.size == 0:
+        return np.zeros((0,), dtype=np.int64)
+    rand = rng if rng is not None else np.random.default_rng()
+    labels = np.unique(y)
+    if labels.size == 0:
+        return np.zeros((0,), dtype=np.int64)
+
+    per_class: dict[int, np.ndarray] = {int(label): np.where(y == label)[0] for label in labels}
+    sample_size = max(1, int(k_shot) + int(queries_per_class))
+    selected: list[int] = []
+
+    for _ in range(max(1, int(num_episodes))):
+        ways = min(max(1, int(n_way)), labels.size)
+        class_choices = rand.choice(labels, size=ways, replace=False)
+        for cls in class_choices:
+            cls_idx = per_class[int(cls)]
+            if cls_idx.size == 0:
+                continue
+            replace = cls_idx.size < sample_size
+            picks = rand.choice(cls_idx, size=sample_size, replace=replace)
+            selected.extend(picks.tolist())
+
+    return np.array(selected, dtype=np.int64) if selected else np.zeros((0,), dtype=np.int64)
 
 def validate_samples(samples: list[Sample]) -> None:
     if not samples:
@@ -2370,6 +2411,11 @@ def _build_config_snapshot(config: TrainingConfig) -> dict[str, object]:
         "window_feature_size": WINDOW_FEATURE_SIZE,
         "layer_sizes": [MLP_LAYER1_SIZE, MLP_LAYER2_SIZE],
         "random_seed": config.random_seed,
+        "sampling_mode": config.sampling_mode,
+        "episodic_n_way": config.episodic_n_way,
+        "episodic_k_shot": config.episodic_k_shot,
+        "episodic_queries_per_class": config.episodic_queries_per_class,
+        "episodic_num_episodes": config.episodic_num_episodes,
     }
 
 
@@ -2450,10 +2496,12 @@ def run_training_pipeline(
     modalities_used = [key for key in MODALITY_KEYS if modality_counts[key] > 0]
 
     # Global training
+    augmentation_audit: dict[str, object] = {}
     X, y, labels, weights = dataset_to_arrays(
         samples,
         augmentations_per_sample=resolved_config.augmentations_per_sample,
-        rng=rng
+        rng=rng,
+        provenance_sink=augmentation_audit,
     )
 
     if labels != label_set:
@@ -2473,6 +2521,28 @@ def run_training_pipeline(
 
     X_train, y_train = X[train_idx], y[train_idx]
     w_train = weights[train_idx]
+
+    if resolved_config.sampling_mode == "episodic":
+        episode_idx = build_episodic_indices(
+            y_train,
+            n_way=resolved_config.episodic_n_way,
+            k_shot=resolved_config.episodic_k_shot,
+            queries_per_class=resolved_config.episodic_queries_per_class,
+            num_episodes=resolved_config.episodic_num_episodes,
+            rng=rng,
+        )
+        if episode_idx.size > 0:
+            X_train = X_train[episode_idx]
+            y_train = y_train[episode_idx]
+            w_train = w_train[episode_idx]
+            augmentation_audit["episodic_sampling"] = {
+                "enabled": True,
+                "n_way": resolved_config.episodic_n_way,
+                "k_shot": resolved_config.episodic_k_shot,
+                "queries_per_class": resolved_config.episodic_queries_per_class,
+                "num_episodes": resolved_config.episodic_num_episodes,
+                "selected_samples": int(episode_idx.size),
+            }
 
     validation_data = None
     if val_idx.size > 0:
@@ -2507,6 +2577,8 @@ def run_training_pipeline(
     class_counts = np.bincount(y, minlength=num_classes)
 
     metadata_payload = metadata_context or {}
+    if augmentation_audit:
+        metadata_payload = {**metadata_payload, "augmentation_provenance": augmentation_audit}
     if output_dir:
         global_dir = output_dir / "global"
         save_model(global_dir / "amy_model.npz", global_best_weights, label_set, class_counts)

@@ -26,13 +26,19 @@ def test_dataset_to_arrays_includes_augmentations(monkeypatch):
 
     # Use deterministic jitter to make the test repeatable.
     rng = np.random.default_rng(0)
-    # Note: augmentations_per_sample is currently disabled for temporal windows
-    X, y, labels, weights = module.dataset_to_arrays([sample], augmentations_per_sample=2, rng=rng)
+    provenance = {}
+    X, y, labels, weights = module.dataset_to_arrays(
+        [sample],
+        augmentations_per_sample=2,
+        rng=rng,
+        provenance_sink=provenance,
+    )
 
-    assert X.shape[0] == 1
-    assert y.tolist() == [0]
+    assert X.shape[0] == 3
+    assert y.tolist() == [0, 0, 0]
     assert labels == ["HALLO"]
-    assert weights.shape[0] == 1
+    assert weights.shape[0] == 3
+    assert provenance["augmented_sample_count"] == 2
 
 
 def test_validation_loss_guides_best_weights():

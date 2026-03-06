@@ -31,6 +31,7 @@ deterministic way so the checksum can be validated in CI and production.
      - `training_sources` → SHA256 hashes of the input datasets
      - `config_snapshot` → training config + feature schema sizes
      - `stats` → build/sample statistics (including modality counts)
+     - `augmentation_provenance` → temporal augmentation audit trail (frame-drop, speed perturbation, time-warp, jitter, mirror usage) and episodic sampling details when enabled
 
 4. **Write checksum**
    `train_mlp.py` writes `server/data/models/global/amy_model.npz.sha256` alongside
@@ -45,3 +46,6 @@ deterministic way so the checksum can be validated in CI and production.
 - Keep `MLP_RANDOM_SEED` pinned for reproducible baselines.
 - If you change feature sizes, update `spec/feature_schema.json` and re-run the
   checksum step.
+
+- Episodic sampling can be enabled through `TrainingConfig` (`sampling_mode="episodic"`) for N-way/K-shot training on sparse labels.
+- Mirror augmentation is only applied for labels marked `metadata.augmentation.mirrorSafe = true` in the bundle manifest.
