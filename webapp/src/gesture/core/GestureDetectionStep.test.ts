@@ -313,7 +313,76 @@ describe('GestureDetectionStep', () => {
       selected: false,
       reason: 'below_candidate_margin',
       threshold: 0.4,
+      threshold_used: 0.4,
+      top1: 0.5,
+      top2: 0.5,
       score: 0.5,
+    });
+  });
+
+  it('abstains instead of forcing baseline output when MLP confidence is below threshold', async () => {
+    const step = createStep();
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Closed_Fist',
+      handScore: 0.72,
+    });
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Open_Palm',
+      score: 0.34,
+      candidates: [
+        { label: 'Open_Palm', score: 0.34 },
+        { label: 'Satt', score: 0.1 },
+      ],
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBeNull();
+    expect(result.confidence).toBe(0);
+    expect(result.metadata?.method).toBe('none');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_threshold',
+      threshold: 0.4,
+      threshold_used: 0.4,
+      top1: 0.34,
+      top2: 0.1,
+      score: 0.34,
+      selectedGestureBeforeMlp: 'closed_fist',
+    });
+  });
+
+
+  it('keeps baseline output when MLP predicts the same baseline label below threshold', async () => {
+    const step = createStep();
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Closed_Fist',
+      handScore: 0.72,
+    });
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Closed_Fist',
+      score: 0.34,
+      candidates: [
+        { label: 'Closed_Fist', score: 0.34 },
+        { label: 'Open_Palm', score: 0.1 },
+      ],
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBe('closed_fist');
+    expect(result.confidence).toBeCloseTo(0.72);
+    expect(result.metadata?.method).toBe('mediapipe');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_threshold',
+      threshold: 0.4,
+      score: 0.34,
+      selectedGestureBeforeMlp: 'closed_fist',
     });
   });
 
@@ -331,9 +400,9 @@ describe('GestureDetectionStep', () => {
     {
       name: 'accepts three-candidate predictions above threshold',
       candidates: [
-        { label: 'Satt', score: 0.41 },
-        { label: 'Trinken', score: 0.31 },
-        { label: 'Bitte', score: 0.28 },
+        { label: 'Satt', score: 0.58 },
+        { label: 'Trinken', score: 0.36 },
+        { label: 'Bitte', score: 0.06 },
       ],
       expectedGesture: 'satt',
       expectedMethod: 'mlp',
@@ -343,8 +412,8 @@ describe('GestureDetectionStep', () => {
       name: 'rejects three-candidate predictions below threshold',
       candidates: [
         { label: 'Satt', score: 0.39 },
-        { label: 'Trinken', score: 0.31 },
-        { label: 'Bitte', score: 0.30 },
+        { label: 'Trinken', score: 0.2 },
+        { label: 'Bitte', score: 0.18 },
       ],
       expectedGesture: null,
       expectedMethod: 'none',
@@ -353,10 +422,10 @@ describe('GestureDetectionStep', () => {
     {
       name: 'accepts four-candidate predictions above threshold',
       candidates: [
-        { label: 'Satt', score: 0.41 },
-        { label: 'Trinken', score: 0.25 },
-        { label: 'Bitte', score: 0.19 },
-        { label: 'Danke', score: 0.14 },
+        { label: 'Satt', score: 0.61 },
+        { label: 'Trinken', score: 0.38 },
+        { label: 'Bitte', score: 0.14 },
+        { label: 'Danke', score: 0.11 },
       ],
       expectedGesture: 'satt',
       expectedMethod: 'mlp',
@@ -366,9 +435,9 @@ describe('GestureDetectionStep', () => {
       name: 'rejects four-candidate predictions below threshold',
       candidates: [
         { label: 'Satt', score: 0.39 },
-        { label: 'Trinken', score: 0.27 },
-        { label: 'Bitte', score: 0.19 },
-        { label: 'Danke', score: 0.15 },
+        { label: 'Trinken', score: 0.2 },
+        { label: 'Bitte', score: 0.13 },
+        { label: 'Danke', score: 0.1 },
       ],
       expectedGesture: null,
       expectedMethod: 'none',

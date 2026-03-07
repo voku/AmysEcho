@@ -83,6 +83,9 @@ type BatchMessageEntry = {
     reason: string;
     threshold?: number;
     margin?: number;
+    top1?: number;
+    top2?: number | undefined;
+    threshold_used?: number;
     score?: number;
     selectedConfidenceBeforeMlp?: number;
     selectedGestureBeforeMlp?: string | null;
@@ -308,6 +311,9 @@ export function useSignLanguageDetector(
               score: mlpDecision.score ?? null,
               threshold: mlpDecision.threshold ?? null,
               margin: mlpDecision.margin ?? null,
+              top1: mlpDecision.top1 ?? null,
+              top2: mlpDecision.top2 ?? null,
+              thresholdUsed: mlpDecision.threshold_used ?? mlpDecision.threshold ?? null,
               selectedGestureBeforeMlp: mlpDecision.selectedGestureBeforeMlp ?? null,
               selectedConfidenceBeforeMlp: mlpDecision.selectedConfidenceBeforeMlp ?? null,
               finalDetectionMethod: payload.detectionMethod ?? payload.metadata?.method ?? nestedMlpDecisionMessage?.detectionMethod ?? null,

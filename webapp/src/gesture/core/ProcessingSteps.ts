@@ -14,14 +14,23 @@ import {
   ProcessingStep,
 } from '../utils/ProcessingPipeline';
 
-export const MLP_CONFIDENCE_THRESHOLD =
-  typeof window.__mlpThreshold === 'number' ? window.__mlpThreshold : 0.05;
+const DEFAULT_MLP_CONFIDENCE_THRESHOLD = 0.45;
+
+function resolveRuntimeMlpThreshold(): number {
+  if (typeof window.__mlpThreshold !== 'number' || !Number.isFinite(window.__mlpThreshold)) {
+    return DEFAULT_MLP_CONFIDENCE_THRESHOLD;
+  }
+
+  return Math.min(1, Math.max(0, window.__mlpThreshold));
+}
+
+export const MLP_CONFIDENCE_THRESHOLD = resolveRuntimeMlpThreshold();
 export const MLP_NULL_LABEL = '_NULL_';
 
 const RELAXED_BASELINE_THRESHOLD_MIN = 0.2;
 const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
 const TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE = 0.2;
-const MLP_MIN_CANDIDATE_MARGIN = 0.08;
+const MLP_MIN_CANDIDATE_MARGIN = 0.15;
 
 const CONFIDENT_MEDIAPIPE_THRESHOLD = 0.65;
 const UNSURE_MEDIAPIPE_THRESHOLD = 0.35;
@@ -39,37 +48,6 @@ function normalizeBaselineLabel(label: string): string {
 
 function isBaselineGesture(label: string | null): boolean {
   return label !== null && MEDIAPIPE_BASELINE_GESTURES.has(normalizeBaselineLabel(label));
-}
-
-function resolveTopCandidateMargin(candidates: MLPPrediction['candidates']): number | null {
-  if (!Array.isArray(candidates) || candidates.length < 2) {
-    return null;
-  }
-
-  let bestScore = Number.NEGATIVE_INFINITY;
-  let secondBestScore = Number.NEGATIVE_INFINITY;
-
-  candidates.forEach((candidate) => {
-    if (typeof candidate?.score !== 'number' || !Number.isFinite(candidate.score)) {
-      return;
-    }
-
-    if (candidate.score >= bestScore) {
-      secondBestScore = bestScore;
-      bestScore = candidate.score;
-      return;
-    }
-
-    if (candidate.score > secondBestScore) {
-      secondBestScore = candidate.score;
-    }
-  });
-
-  if (!Number.isFinite(bestScore) || !Number.isFinite(secondBestScore)) {
-    return null;
-  }
-
-  return bestScore - secondBestScore;
 }
 
 export const MEDIAPIPE_BASELINE_GESTURES = new Set([
@@ -132,11 +110,36 @@ interface MlpSelection {
       | 'invalid_label';
     threshold?: number;
     margin?: number;
+    top1?: number;
+    top2?: number | undefined;
+    threshold_used?: number;
     score?: number;
     selectedConfidenceBeforeMlp?: number;
     selectedGestureBeforeMlp?: string | null;
   } | null;
   twoHandMetadata: TwoHandGesture | null;
+}
+
+function resolveTopCandidateScores(
+  candidates: MLPPrediction['candidates'],
+): { top1: number | null; top2: number | null; margin: number | null } {
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return { top1: null, top2: null, margin: null };
+  }
+
+  const validScores = candidates
+    .map((candidate) => candidate?.score)
+    .filter((score): score is number => typeof score === 'number' && Number.isFinite(score))
+    .sort((left, right) => right - left);
+
+  const top1 = validScores[0] ?? null;
+  const top2 = validScores[1] ?? null;
+
+  return {
+    top1,
+    top2,
+    margin: top1 !== null && top2 !== null ? top1 - top2 : null,
+  };
 }
 
 interface GestureDetectionResult {
@@ -569,7 +572,8 @@ export class GestureDetectionStep implements ProcessingStep {
       }
 
       const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
-      const topCandidateMargin = resolveTopCandidateMargin(mlpResult.candidates);
+      const candidateScores = resolveTopCandidateScores(mlpResult.candidates);
+      const topCandidateMargin = candidateScores.margin;
       const isCandidateMarginTooSmall =
         topCandidateMargin !== null && topCandidateMargin < MLP_MIN_CANDIDATE_MARGIN;
       const confidenceMargin = selectedConfidence > 0.3 ? 0.15 : 0;
@@ -628,6 +632,12 @@ export class GestureDetectionStep implements ProcessingStep {
         !isMediaPipeBlockingMlp;
 
       if (!canSelectMlp) {
+        const shouldAbstain =
+          selectedGesture !== null &&
+          isBaselineGesture(selectedGesture) &&
+          normalizedMlpLabel !== selectedGesture &&
+          (isCandidateMarginTooSmall || mlpResult.score < threshold);
+
         return buildResult({
           selected: false,
           reason: isCandidateMarginTooSmall
@@ -637,10 +647,19 @@ export class GestureDetectionStep implements ProcessingStep {
               : 'below_override_margin',
           threshold,
           margin: confidenceMargin,
+          top1: candidateScores.top1 ?? mlpResult.score,
+          top2: candidateScores.top2 ?? undefined,
+          threshold_used: threshold,
           score: mlpResult.score,
           selectedConfidenceBeforeMlp: selectedConfidence,
           selectedGestureBeforeMlp: selectedGesture,
-        }, mlpResult);
+        },
+        mlpResult,
+        shouldAbstain ? null : selectedGesture,
+        shouldAbstain ? 0 : selectedConfidence,
+        shouldAbstain ? 'none' : detectionMethod,
+        shouldAbstain ? null : twoHandMetadata,
+      );
       }
 
       return buildResult(
@@ -651,6 +670,9 @@ export class GestureDetectionStep implements ProcessingStep {
             : (shouldPreferMlpOverBaseline ? 'selected_profile_vocab_priority' : 'selected'),
           threshold,
           margin: confidenceMargin,
+          top1: candidateScores.top1 ?? mlpResult.score,
+          top2: candidateScores.top2 ?? undefined,
+          threshold_used: threshold,
           score: mlpResult.score,
           selectedConfidenceBeforeMlp: selectedConfidence,
           selectedGestureBeforeMlp: selectedGesture,

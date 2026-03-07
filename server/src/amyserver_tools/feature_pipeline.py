@@ -1,21 +1,25 @@
 from __future__ import annotations
 
+import importlib
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-import sys
 
 import numpy as np
 
-# Ensure direct script imports can find shared training constants.
-TRAINING_DIR = Path(__file__).resolve().parents[2] / "training"
-if str(TRAINING_DIR) not in sys.path:
-    sys.path.append(str(TRAINING_DIR))
+try:
+    config_constants = importlib.import_module("config_constants")
+except ModuleNotFoundError as exc:
+    if exc.name != "config_constants":
+        raise
+    training_dir = Path(__file__).resolve().parents[2] / "training"
+    if str(training_dir) not in sys.path:
+        sys.path.append(str(training_dir))
+    config_constants = importlib.import_module("config_constants")
 
-from config_constants import (
-    MAX_AVG_FRAME_DELTA_MS,
-    MIN_AVG_FRAME_DELTA_MS,
-    MIN_USABLE_FRAME_RATIO,
-)
+MAX_AVG_FRAME_DELTA_MS = config_constants.MAX_AVG_FRAME_DELTA_MS
+MIN_AVG_FRAME_DELTA_MS = config_constants.MIN_AVG_FRAME_DELTA_MS
+MIN_USABLE_FRAME_RATIO = config_constants.MIN_USABLE_FRAME_RATIO
 
 
 @dataclass(frozen=True)
@@ -103,7 +107,7 @@ def augment_temporal_window(
         rand.uniform(-1.0, 1.0) if hasattr(rand, "uniform") else (rand.rand() * 2.0 - 1.0)
     ) * config.speed_perturbation
     speed_factor = float(np.clip(1.0 + speed_delta, 0.8, 1.2))
-    target_frames = max(2, int(round(augmented.shape[0] / speed_factor)))
+    target_frames = max(2, round(augmented.shape[0] / speed_factor))
     augmented = _resample_window(augmented, target_frames)
     provenance["speed_factor"] = speed_factor
 
