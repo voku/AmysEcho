@@ -36,8 +36,9 @@ Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, 
 - Für den nächsten Diagnose-Schritt gibt es `npm run diagnose:fixtures`: Das Skript erzeugt unter `webapp/diagnostics/gesture/` einen JSON-Report (Treffer, Confidence, Gap) sowie einen strukturierten LLM-Prompt mit der Regel **„Keine Code-Patches, nur Diagnose“**.
 - Auch ohne trainierte Profil-Gebärden bleibt die Kamera nutzbar: Die Basis-Erkennung läuft weiter und zeigt einen klaren Hinweis, dass persönliches Training die Zuverlässigkeit erhöht.
 - Bei keiner sicheren Gebärde zeigt die Erkennungsseite kontextbasierte MLP-Vorschläge mit niedriger Sicherheit an, damit Betreuungspersonen die passende Bedeutung auswählen können.
-- Die MLP-Auswahl orientiert sich bei Profilvorhersagen an der konfigurierten Modell-Sicherheit (Confidence-Threshold) und ist damit nicht an die Anzahl trainierter Gebärden gekoppelt.
-- Bei nahezu gleich starken Top-Kandidaten (z. B. 50 % vs. 50 %) verwirft die Erkennung das MLP-Ergebnis als mehrdeutig, statt zufällig eine falsche trainierte Gebärde zu wählen.
+- Die MLP-Auswahl orientiert sich bei Profilvorhersagen an einer strikteren, zur Laufzeit konfigurierbaren Modell-Sicherheit (Standard: 0,45).
+- Bei zu niedriger Sicherheit oder kleinem Abstand zwischen Top-1 und Top-2 (Margin) enthält sich die Pipeline bewusst („unsicher“), statt eine falsche Klasse zu erzwingen.
+- Für die Feinabstimmung in realen Sitzungen protokolliert die Pipeline zusätzlich `top1`, `top2`, `margin` und `threshold_used` in der MLP-Entscheidungs-Telemetrie.
 - Trainierte Landmark-Templates werden gegenüber generischen MediaPipe-Basisgesten bevorzugt (ab Mindest-Sicherheit), damit auch schwach trainierte Profil-Gebärden sichtbar bleiben.
 - Die Seite **Einstellungen** zeigt unter „Über Amy’s Echo“ zusätzlich den aktuellen Commit-Hash der ausgelieferten Webapp-Version an.
 - Ein globaler Profil- und Label-Schalter synchronisiert Gestenerkennung und Training. Erkannte Gesten werden als Vorschlag gespeichert und können direkt als neues Trainingslabel übernommen werden.

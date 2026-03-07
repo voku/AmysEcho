@@ -694,6 +694,36 @@ describe('SignLanguageRecorder', () => {
     });
   });
 
+
+  it('shows "unsicher" diagnostics when MLP abstains because confidence is too low', async () => {
+    detectorState.status = 'running';
+    detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];
+    detectorState.lastSign = null;
+    detectorState.lastConfidence = 0.31;
+    detectorState.lastDetectionMethod = 'none';
+    detectorState.messageLog = [
+      {
+        type: 'gesture',
+        summary: 'gesture:none',
+        payload: {
+          mlpDecision: {
+            selected: false,
+            reason: 'below_threshold',
+          },
+        },
+        receivedAt: Date.now(),
+        count: 1,
+      } as SignLanguageMessage,
+    ];
+
+    renderWithProviders(<SignLanguageRecorder />);
+
+    const diagnosticsButton = await screen.findByRole('button', { name: '🛠️ Diagnose anzeigen' });
+    fireEvent.click(diagnosticsButton);
+
+    expect(screen.getByText('Unsichere Erkennung – bitte bestätigen')).toBeInTheDocument();
+  });
+
   it('shows low-confidence MLP candidate list so caregivers can decide in context', async () => {
     detectorState.status = 'running';
     detectorState.lastLandmarks = [[[0.1, 0.2, 0.3]]];

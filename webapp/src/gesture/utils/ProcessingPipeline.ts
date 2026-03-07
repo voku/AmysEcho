@@ -89,6 +89,9 @@ export interface ProcessingResult {
         | 'invalid_label';
       threshold?: number;
       margin?: number;
+      top1?: number;
+      top2?: number;
+      threshold_used?: number;
       score?: number;
       selectedConfidenceBeforeMlp?: number;
       selectedGestureBeforeMlp?: string | null;

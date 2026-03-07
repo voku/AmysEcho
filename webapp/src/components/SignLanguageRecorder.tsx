@@ -984,9 +984,13 @@ export function SignLanguageRecorder() {
     if (!effectiveSign) {
       const confidencePercent =
         typeof lastConfidence === 'number' ? `${Math.round(lastConfidence * 100)}%` : null;
+      const isUncertainMlpDecision =
+        latestMlpDecisionReason === 'below_threshold' || latestMlpDecisionReason === 'below_candidate_margin';
       return {
         severity: 'warning' as const,
-        title: 'Hand erkannt, aber keine passende Gebärde',
+        title: isUncertainMlpDecision
+          ? 'Unsichere Erkennung – bitte bestätigen'
+          : 'Hand erkannt, aber keine passende Gebärde',
         hint: confidencePercent
           ? `Aktuelle Sicherheit ist zu niedrig (${confidencePercent}). Bitte Gebärde klarer und langsamer zeigen.`
           : 'Bitte Gebärde klarer und langsamer zeigen oder die Kamera etwas weiter weg positionieren.',
@@ -1018,6 +1022,7 @@ export function SignLanguageRecorder() {
     profileModelRequired,
     status,
     trainedSignLabels,
+    latestMlpDecisionReason,
   ]);
 
   // Loading state
