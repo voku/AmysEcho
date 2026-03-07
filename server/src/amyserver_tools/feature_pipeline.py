@@ -9,7 +9,9 @@ import numpy as np
 
 try:
     config_constants = importlib.import_module("config_constants")
-except ModuleNotFoundError:
+except ModuleNotFoundError as exc:
+    if exc.name != "config_constants":
+        raise
     training_dir = Path(__file__).resolve().parents[2] / "training"
     if str(training_dir) not in sys.path:
         sys.path.append(str(training_dir))

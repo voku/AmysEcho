@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 
 import numpy as np
+import pytest
 
 
 def test_temporal_augmentation_preserves_shape_and_constraints():
@@ -75,8 +76,5 @@ def test_resample_window_handles_single_target_and_empty_input_guard():
     assert resampled.shape == (1, 3)
 
     empty_window = np.zeros((0, 3), dtype=np.float32)
-    try:
+    with pytest.raises(ValueError, match="at least one frame"):
         feature_pipeline._resample_window(empty_window, 1)
-        raise AssertionError("Expected ValueError for empty window")
-    except ValueError as error:
-        assert "at least one frame" in str(error)
