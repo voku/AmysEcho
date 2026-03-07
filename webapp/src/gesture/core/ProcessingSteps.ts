@@ -111,7 +111,7 @@ interface MlpSelection {
     threshold?: number;
     margin?: number;
     top1?: number;
-    top2?: number;
+    top2?: number | undefined;
     threshold_used?: number;
     score?: number;
     selectedConfidenceBeforeMlp?: number;
@@ -635,6 +635,7 @@ export class GestureDetectionStep implements ProcessingStep {
         const shouldAbstain =
           selectedGesture !== null &&
           isBaselineGesture(selectedGesture) &&
+          normalizedMlpLabel !== selectedGesture &&
           (isCandidateMarginTooSmall || mlpResult.score < threshold);
 
         return buildResult({
@@ -647,7 +648,7 @@ export class GestureDetectionStep implements ProcessingStep {
           threshold,
           margin: confidenceMargin,
           top1: candidateScores.top1 ?? mlpResult.score,
-          ...(candidateScores.top2 !== null ? { top2: candidateScores.top2 } : {}),
+          top2: candidateScores.top2 ?? undefined,
           threshold_used: threshold,
           score: mlpResult.score,
           selectedConfidenceBeforeMlp: selectedConfidence,
@@ -670,7 +671,7 @@ export class GestureDetectionStep implements ProcessingStep {
           threshold,
           margin: confidenceMargin,
           top1: candidateScores.top1 ?? mlpResult.score,
-          ...(candidateScores.top2 !== null ? { top2: candidateScores.top2 } : {}),
+          top2: candidateScores.top2 ?? undefined,
           threshold_used: threshold,
           score: mlpResult.score,
           selectedConfidenceBeforeMlp: selectedConfidence,

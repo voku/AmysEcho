@@ -354,6 +354,38 @@ describe('GestureDetectionStep', () => {
     });
   });
 
+
+  it('keeps baseline output when MLP predicts the same baseline label below threshold', async () => {
+    const step = createStep();
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Closed_Fist',
+      handScore: 0.72,
+    });
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Closed_Fist',
+      score: 0.34,
+      candidates: [
+        { label: 'Closed_Fist', score: 0.34 },
+        { label: 'Open_Palm', score: 0.1 },
+      ],
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBe('closed_fist');
+    expect(result.confidence).toBeCloseTo(0.72);
+    expect(result.metadata?.method).toBe('mediapipe');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_threshold',
+      threshold: 0.4,
+      score: 0.34,
+      selectedGestureBeforeMlp: 'closed_fist',
+    });
+  });
+
   it.each([
     {
       name: 'rejects binary predictions below threshold',

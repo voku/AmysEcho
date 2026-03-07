@@ -90,7 +90,7 @@ export interface ProcessingResult {
       threshold?: number;
       margin?: number;
       top1?: number;
-      top2?: number;
+      top2?: number | undefined;
       threshold_used?: number;
       score?: number;
       selectedConfidenceBeforeMlp?: number;
