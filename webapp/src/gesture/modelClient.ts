@@ -1,4 +1,5 @@
 import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
+import { getCachedModel, saveCachedModel } from './modelStorage';
 
 export type MlpModelMeta = {
   version?: string | null;
@@ -97,6 +98,7 @@ async function fetchModel(
       profileId,
       error,
     });
+    // Return null to allow fallback to cache
     return null;
   }
 
@@ -143,6 +145,8 @@ export async function fetchMlpModelWithFallback({
           version: personalized.meta.version ?? 'unbekannt',
           source: personalized.meta.source,
         });
+        // Cache successful profile model
+        void saveCachedModel(trimmedProfile, personalized);
       } else {
         console.warn('[MLP] Profil-Modell angefragt, Server lieferte globales Modell', {
           requestedProfileId: trimmedProfile,
@@ -153,6 +157,18 @@ export async function fetchMlpModelWithFallback({
       emitMlpModelUpdated(personalized.meta);
       return personalized;
     }
+
+    // Attempt to load from cache if offline or 404
+    const cached = await getCachedModel(trimmedProfile);
+    if (cached) {
+      console.info('[MLP] Fallback auf gespeichertes Profil-Modell', {
+        profileId: trimmedProfile,
+        version: cached.meta.version,
+      });
+      emitMlpModelUpdated(cached.meta);
+      return cached as MlpModelResponse;
+    }
+
     console.warn('[MLP] Personalisierte Gewichte nicht verfügbar, wechsle auf globales Modell', {
       profileId: trimmedProfile,
     });
@@ -163,8 +179,20 @@ export async function fetchMlpModelWithFallback({
     console.info('[MLP] Globales Modell geladen', {
       version: globalModel.meta.version ?? 'unbekannt',
     });
+    // Cache successful global model
+    void saveCachedModel('global', globalModel);
     emitMlpModelUpdated(globalModel.meta);
     return globalModel;
+  }
+
+  // Final fallback: global cache
+  const cachedGlobal = await getCachedModel('global');
+  if (cachedGlobal) {
+    console.info('[MLP] Fallback auf gespeichertes globales Modell', {
+      version: cachedGlobal.meta.version,
+    });
+    emitMlpModelUpdated(cachedGlobal.meta);
+    return cachedGlobal as MlpModelResponse;
   }
 
   return null;
@@ -194,10 +222,10 @@ export async function fetchMlpModel(profileId?: string): Promise<string | null> 
 }
 
 /**
- * Get cached MLP model (stub for integration tests).
- * In production, this would return cached model data.
+ * Get cached MLP model from persistent storage.
  */
 export async function getCachedMlpModel(profileId?: string): Promise<string | null> {
-  // For integration tests, just fetch fresh
-  return fetchMlpModel(profileId);
+  const cached = await getCachedModel(profileId ?? 'global');
+  return cached?.b64 ?? null;
 }
+
