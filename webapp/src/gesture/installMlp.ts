@@ -2,6 +2,7 @@ import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
 import { enhancePredictionWithFeedback } from './performanceFeedback';
 import { logger } from '../services/logger';
+import type { MLPPrediction, PrototypePrediction } from './types/MediaPipeTypes';
 
 
 export type ModelMetadata = {
@@ -18,6 +19,16 @@ type ModelInputPlan = {
   featuresPerFrame: number;
   isMultimodal: boolean;
 };
+
+type PrototypeBank = {
+  vectors: Float32Array;
+  shape: number[];
+  labels: string[];
+  support: Float32Array;
+};
+
+const PROTOTYPE_CONFIDENCE_FLOOR = 0.55;
+const PROTOTYPE_BLEND_WEIGHT = 0.2;
 
 export function installMlp(customModelData?: string): Promise<boolean> {
   type Tensor = { data: Float32Array; shape: number[] };
@@ -37,6 +48,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     input_dim?: number;
     audio_feature_size?: number;
     inferredInputPlan?: ModelInputPlan;
+    prototypeBank?: PrototypeBank;
   };
   const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
     void sendTelemetryEvent(event, data ?? {}).catch((err) => {
@@ -91,6 +103,36 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       featuresPerFrame: visualInputSize,
       isMultimodal: visualInputSize === MULTIMODAL_FEATURES_SIZE,
     };
+  }
+
+  function normalizeVector(vec: Float32Array): Float32Array | null {
+    let squaredSum = 0;
+    for (let i = 0; i < vec.length; i++) {
+      const value = vec[i] ?? 0;
+      squaredSum += value * value;
+    }
+
+    if (!Number.isFinite(squaredSum) || squaredSum <= 1e-12) {
+      return null;
+    }
+
+    const norm = Math.sqrt(squaredSum);
+    const normalized = new Float32Array(vec.length);
+    for (let i = 0; i < vec.length; i++) {
+      normalized[i] = (vec[i] ?? 0) / norm;
+    }
+    return normalized;
+  }
+
+  function similarityToConfidence(similarity: number): number {
+    if (!Number.isFinite(similarity) || similarity <= PROTOTYPE_CONFIDENCE_FLOOR) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      Math.min(1, (similarity - PROTOTYPE_CONFIDENCE_FLOOR) / (1 - PROTOTYPE_CONFIDENCE_FLOOR)),
+    );
   }
 
   function parseNPY(buf: Uint8Array) {
@@ -369,6 +411,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       let window_size: number | undefined;
       let input_dim: number | undefined;
       let audio_feature_size: number | undefined;
+      let prototypeBank: PrototypeBank | undefined;
       
       const wsb = npzFind(map, 'window_size');
       if (wsb) {
@@ -397,6 +440,41 @@ export function installMlp(customModelData?: string): Promise<boolean> {
           audio_feature_size = Number(parsed.data[0]);
         } catch (e) {
           console.warn('Failed to parse audio_feature_size:', e);
+        }
+      }
+
+      const prototypeVectorsBuffer = npzFind(map, 'prototype_vectors');
+      const prototypeLabelsBuffer = npzFind(map, 'prototype_labels');
+      const prototypeSupportBuffer = npzFind(map, 'prototype_support');
+      if (prototypeVectorsBuffer && prototypeLabelsBuffer) {
+        try {
+          const parsedVectors = parseNPY(prototypeVectorsBuffer);
+          const parsedLabels = parseNPY(prototypeLabelsBuffer);
+          const parsedSupport = prototypeSupportBuffer ? parseNPY(prototypeSupportBuffer) : null;
+
+          if (
+            parsedVectors.data instanceof Float32Array &&
+            parsedVectors.shape.length === 2 &&
+            Array.isArray(parsedLabels.data)
+          ) {
+            const protoCount = parsedVectors.shape[0] ?? 0;
+            const protoDim = parsedVectors.shape[1] ?? 0;
+            const protoLabels = parsedLabels.data as string[];
+            if (protoCount > 0 && protoDim > 0 && protoLabels.length === protoCount) {
+              const protoSupport =
+                parsedSupport?.data instanceof Float32Array && parsedSupport.shape[0] === protoCount
+                  ? Float32Array.from(parsedSupport.data)
+                  : new Float32Array(protoCount).fill(1);
+              prototypeBank = {
+                vectors: Float32Array.from(parsedVectors.data),
+                shape: [protoCount, protoDim],
+                labels: protoLabels,
+                support: protoSupport,
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse prototype bank:', e);
         }
       }
 
@@ -445,6 +523,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         ...(input_dim !== undefined ? { input_dim } : {}),
         ...(audio_feature_size !== undefined ? { audio_feature_size } : {}),
         inferredInputPlan,
+        ...(prototypeBank ? { prototypeBank } : {}),
       };
       return true;
     } catch (e: any) {
@@ -502,6 +581,69 @@ export function installMlp(customModelData?: string): Promise<boolean> {
 
   function resolveAudioFeatureSize(metadataAudioFeatureSize?: number) {
     return metadataAudioFeatureSize !== undefined ? Math.max(0, metadataAudioFeatureSize) : 0;
+  }
+
+  function predictWithPrototypeBank(input: Float32Array): PrototypePrediction & { candidates: Array<{ label: string; score: number }> } | null {
+    const bank = mlp?.prototypeBank;
+    if (!bank) {
+      return null;
+    }
+
+    const [rows, cols] = bank.shape;
+    if (!rows || !cols || cols !== input.length) {
+      return null;
+    }
+
+    const normalizedInput = normalizeVector(input);
+    if (!normalizedInput) {
+      return null;
+    }
+
+    const labelScores = new Map<string, { score: number; support: number; similarity: number }>();
+    for (let row = 0; row < rows; row++) {
+      let similarity = 0;
+      const baseIndex = row * cols;
+      for (let col = 0; col < cols; col++) {
+        similarity += (bank.vectors[baseIndex + col] ?? 0) * (normalizedInput[col] ?? 0);
+      }
+
+      const confidence = similarityToConfidence(similarity);
+      const label = bank.labels[row];
+      if (!label) {
+        continue;
+      }
+
+      const current = labelScores.get(label);
+      if (!current || confidence > current.score) {
+        labelScores.set(label, {
+          score: confidence,
+          support: bank.support[row] ?? 1,
+          similarity,
+        });
+      }
+    }
+
+    const ranked = Array.from(labelScores.entries())
+      .map(([label, data]) => ({
+        label,
+        score: data.score,
+        support: data.support,
+        similarity: data.similarity,
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    const top = ranked[0];
+    if (!top || top.score <= 0) {
+      return null;
+    }
+
+    return {
+      label: top.label,
+      score: top.score,
+      support: top.support,
+      similarity: top.similarity,
+      candidates: ranked.map(({ label, score }) => ({ label, score })),
+    };
   }
 
   function normalizeLandmarks(all: Hand[], handednesses: Handedness, poseLandmarks?: number[][], faceLandmarks?: number[][]) {
@@ -704,15 +846,64 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         return null;
       }
       const labels = mlp?.labels ?? [];
-      const label = labels[bestI] ?? String(bestI);
-      const rankedCandidates = Array.from(probs)
+      const mlpLabel = labels[bestI] ?? String(bestI);
+      const rankedMlpCandidates = Array.from(probs)
         .map((score, index) => ({
           label: labels[index] ?? String(index),
           score,
         }))
         .sort((a, b) => b.score - a.score);
-      const prediction = { label, score: best, candidates: rankedCandidates };
-      
+      const prototypePrediction = predictWithPrototypeBank(x);
+      const combinedScores = new Map<string, number>();
+
+      for (const candidate of rankedMlpCandidates) {
+        combinedScores.set(candidate.label, candidate.score);
+      }
+
+      if (prototypePrediction) {
+        for (const candidate of prototypePrediction.candidates) {
+          const currentScore = combinedScores.get(candidate.label) ?? 0;
+          const prototypeBoost = candidate.score + ((currentScore > 0 && currentScore < 1)
+            ? Math.min(1 - candidate.score, currentScore * PROTOTYPE_BLEND_WEIGHT)
+            : 0);
+          combinedScores.set(candidate.label, Math.max(currentScore, prototypeBoost));
+        }
+      }
+
+      const rankedCandidates = Array.from(combinedScores.entries())
+        .map(([label, score]) => ({ label, score }))
+        .sort((a, b) => b.score - a.score);
+      const topCandidate = rankedCandidates[0];
+      if (!topCandidate) {
+        return null;
+      }
+
+      // Suppress detection if the top candidate is the explicit NULL class
+      if (topCandidate.label === '_NULL_') {
+        return null;
+      }
+
+      // Filter NULL from candidates list to avoid showing it in UI/debug panels
+      const uiCandidates = rankedCandidates.filter((c) => c.label !== '_NULL_');
+
+      const prediction: MLPPrediction = {
+        label: topCandidate.label,
+        score: topCandidate.score,
+        candidates: uiCandidates,
+        mlpScore: best,
+        prototype: prototypePrediction
+          ? {
+              label: prototypePrediction.label,
+              score: prototypePrediction.score,
+              ...(prototypePrediction.support !== undefined ? { support: prototypePrediction.support } : {}),
+              ...(prototypePrediction.similarity !== undefined ? { similarity: prototypePrediction.similarity } : {}),
+            }
+          : null,
+        source: prototypePrediction
+          ? (prototypePrediction.label === mlpLabel ? 'hybrid' : (prototypePrediction.score > best ? 'prototype' : 'mlp'))
+          : 'mlp',
+      };
+
       // Record prediction for performance feedback
       enhancePredictionWithFeedback(prediction, performance.now() - startTime);
       

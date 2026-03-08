@@ -60,6 +60,8 @@ from config_constants import (
     MIN_USABLE_FRAME_RATIO,
     MLP_LAYER1_SIZE,
     MLP_LAYER2_SIZE,
+    NULL_CLASS_LABEL,
+    NULL_SAMPLES_PER_CLIP,
     STILL_FRAME_WEIGHT,
     VALIDATION_FRACTION,
     WINDOW_FEATURE_SIZE,
@@ -199,6 +201,12 @@ WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
 
 MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
+PROTOTYPE_MAX_VECTORS_PER_LABEL = int(
+    os.environ.get("MLP_PROTOTYPE_MAX_VECTORS_PER_LABEL", "6")
+)
+PROTOTYPE_MIN_VECTOR_NORM = float(
+    os.environ.get("MLP_PROTOTYPE_MIN_VECTOR_NORM", "1e-6")
+)
 
 def _emit_event(payload: dict[str, object]) -> None:
     """Log a structured progress event."""
@@ -1642,7 +1650,71 @@ def create_empty_training_stats() -> dict[str, object]:
         "bundle_fallback_extractions": 0,
         "bundle_missing_landmarks": 0,
         "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY,
+        "label_bundle_summary": [],
     }
+
+
+def _increment_bundle_label_summary(
+    bundle_summary: dict[tuple[str, str | None], dict[str, object]],
+    *,
+    label: str,
+    profile_id: str | None,
+    status: str,
+    reason: str | None = None,
+    window_count: int = 0,
+) -> None:
+    key = (label, profile_id)
+    entry = bundle_summary.setdefault(
+        key,
+        {
+            "label": label,
+            "profile_id": profile_id,
+            "manifest_bundle_count": 0,
+            "accepted_bundle_count": 0,
+            "rejected_bundle_count": 0,
+            "window_count": 0,
+            "rejection_reasons": {},
+        },
+    )
+    entry["manifest_bundle_count"] = int(entry["manifest_bundle_count"]) + 1
+    if status == "accepted":
+        entry["accepted_bundle_count"] = int(entry["accepted_bundle_count"]) + 1
+        entry["window_count"] = int(entry["window_count"]) + max(0, int(window_count))
+        return
+
+    entry["rejected_bundle_count"] = int(entry["rejected_bundle_count"]) + 1
+    if reason:
+        reasons = entry["rejection_reasons"]
+        if isinstance(reasons, dict):
+            reasons[reason] = int(reasons.get(reason, 0)) + 1
+
+
+def _serialize_bundle_label_summary(
+    bundle_summary: dict[tuple[str, str | None], dict[str, object]],
+) -> list[dict[str, object]]:
+    items = []
+    for _key, value in sorted(
+        bundle_summary.items(),
+        key=lambda item: ((item[1].get("profile_id") or ""), str(item[1].get("label") or "")),
+    ):
+        rejection_reasons = value.get("rejection_reasons")
+        serialized_reasons = (
+            dict(sorted(rejection_reasons.items()))
+            if isinstance(rejection_reasons, dict)
+            else {}
+        )
+        items.append(
+            {
+                "label": value.get("label"),
+                "profile_id": value.get("profile_id"),
+                "manifest_bundle_count": int(value.get("manifest_bundle_count", 0)),
+                "accepted_bundle_count": int(value.get("accepted_bundle_count", 0)),
+                "rejected_bundle_count": int(value.get("rejected_bundle_count", 0)),
+                "window_count": int(value.get("window_count", 0)),
+                "rejection_reasons": serialized_reasons,
+            }
+        )
+    return items
 
 
 def load_frame_list_for_bundle(
@@ -1793,6 +1865,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     bundle_missing_landmarks = 0
     modality_counts = dict.fromkeys(MODALITY_KEYS, 0)
     modality_sample_total = 0
+    label_bundle_summary: dict[tuple[str, str | None], dict[str, object]] = {}
 
     for entry in entries:
         label = entry.get("label")
@@ -1806,6 +1879,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
             continue
 
         profile_id = entry.get("profileId") or entry.get("metadata", {}).get("profileId")
+        bundle_id = entry.get("id") if isinstance(entry.get("id"), str) else None
         metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
         hand_focus = metadata.get("handFocus")
 
@@ -1822,6 +1896,13 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         # ========== PATH RESOLUTION (keep existing logic) ==========
         rel_dir = entry.get("storage", {}).get("directory")
         if not rel_dir:
+            _increment_bundle_label_summary(
+                label_bundle_summary,
+                label=label,
+                profile_id=profile_id,
+                status="rejected",
+                reason="missing_storage_directory",
+            )
             continue
 
         bundle_dir = ensure_inside(DATA_DIR, DATA_DIR / rel_dir)
@@ -1829,6 +1910,13 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         try:
             landmarks_path = ensure_inside(bundle_dir, bundle_dir / Path(landmarks_relative))
         except ValueError:
+            _increment_bundle_label_summary(
+                label_bundle_summary,
+                label=label,
+                profile_id=profile_id,
+                status="rejected",
+                reason="invalid_landmarks_path",
+            )
             continue
         cache_path = bundle_dir / CACHE_FILENAME
 
@@ -1862,6 +1950,13 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         modality_presence = _infer_modality_presence(modality_coverage, frame_modality_counts)
 
         if not frame_list:
+            _increment_bundle_label_summary(
+                label_bundle_summary,
+                label=label,
+                profile_id=profile_id,
+                status="rejected",
+                reason="no_frames_loaded",
+            )
             continue
 
         # ========== NEW SLIDING WINDOW PROCESSING ==========
@@ -1886,6 +1981,13 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                 frame_weights.append(w)
 
         if not normalized_frames:
+            _increment_bundle_label_summary(
+                label_bundle_summary,
+                label=label,
+                profile_id=profile_id,
+                status="rejected",
+                reason="no_usable_frames",
+            )
             continue
 
         # 2. Build metadata context
@@ -1901,15 +2003,43 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
             'audio_features': audio_features_dict,
             'audio_metadata': audio_metadata_dict,
             'mirror_safe': mirror_safe,
+            'source_bundle_id': bundle_id,
         }
 
         # 3. Generate "_NULL_" class (background/transition frames)
-        # Skip automatic heuristic for now to avoid class collisions
-        # If explicitly marked negative samples are needed, they should be added via dedicated logic
-        pass
+        if len(normalized_frames) >= 10:
+            null_candidates = normalized_frames[:2] + normalized_frames[-2:]
+            for i, nf in enumerate(null_candidates):
+                null_ctx = ctx.copy()
+                null_ctx['source_bundle_id'] = f"{bundle_id}_null_{i}"
+                # Create a static window by repeating the neutral frame
+                null_samples = create_sliding_windows([nf] * WINDOW_SIZE, NULL_CLASS_LABEL, null_ctx)
+                data.extend(null_samples)
+                modality_sample_total += _update_modality_totals(
+                    null_samples,
+                    modality_presence,
+                    modality_counts,
+                )
 
         # 4. Generate sliding windows for the actual sign
         sign_samples = create_sliding_windows(normalized_frames, label, ctx, frame_weights)
+        if not sign_samples:
+            _increment_bundle_label_summary(
+                label_bundle_summary,
+                label=label,
+                profile_id=profile_id,
+                status="rejected",
+                reason="no_windows_generated",
+            )
+            continue
+
+        _increment_bundle_label_summary(
+            label_bundle_summary,
+            label=label,
+            profile_id=profile_id,
+            status="accepted",
+            window_count=len(sign_samples),
+        )
         data.extend(sign_samples)
         modality_sample_total += _update_modality_totals(
             sign_samples,
@@ -1977,6 +2107,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                             'profile_id': None,
                             'modality_coverage': v_frame_coverage,
                             'video_source': raw_stem,  # Track original video for debugging
+                            'source_bundle_id': f"default-example:{raw_stem}",
                         }  # Global examples
                         v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
                         data.extend(v_samples)
@@ -1996,6 +2127,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         "bundle_fallback_extractions": bundle_fallback_extractions,
         "bundle_missing_landmarks": bundle_missing_landmarks,
         "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY,
+        "label_bundle_summary": _serialize_bundle_label_summary(label_bundle_summary),
     }
     return data, stats
 
@@ -2043,6 +2175,200 @@ def _prepare_audio_features(audio_features_list: list[float] | None) -> np.ndarr
         return np.zeros(AUDIO_FEATURE_SIZE, dtype=np.float32)
 
 
+def _build_sample_input_vector(
+    sample: Sample,
+    *,
+    has_any_audio: bool,
+    use_multimodal: bool,
+) -> np.ndarray | None:
+    """Build the exact inference vector for a sample."""
+
+    features = np.array(sample.landmarks, dtype=np.float32)
+    if features.size != WINDOW_FEATURE_SIZE:
+        LOGGER.warning(
+            "Unexpected feature size %s for sample %s. Expected %s. Skipping.",
+            features.size,
+            sample.label,
+            WINDOW_FEATURE_SIZE,
+        )
+        return None
+
+    if use_multimodal and has_any_audio:
+        audio_features_fixed = _prepare_audio_features(sample.audio_features)
+        return np.concatenate([features, audio_features_fixed])
+
+    return features
+
+
+def _normalize_l2(vector: np.ndarray) -> np.ndarray | None:
+    norm = float(np.linalg.norm(vector))
+    if not np.isfinite(norm) or norm <= PROTOTYPE_MIN_VECTOR_NORM:
+        return None
+    return (vector / norm).astype(np.float32)
+
+
+def _build_weighted_centroid(
+    entries: list[tuple[np.ndarray, float]],
+) -> tuple[np.ndarray, float] | None:
+    if not entries:
+        return None
+
+    vectors = np.vstack([entry[0] for entry in entries]).astype(np.float32)
+    raw_weights = np.array([max(0.0, float(entry[1])) for entry in entries], dtype=np.float32)
+    if float(np.sum(raw_weights)) <= 0:
+        raw_weights = np.ones(len(entries), dtype=np.float32)
+
+    centroid = np.average(vectors, axis=0, weights=raw_weights)
+    normalized = _normalize_l2(centroid.astype(np.float32))
+    if normalized is None:
+        return None
+
+    return normalized, float(len(entries))
+
+
+def _build_label_prototypes(
+    entries: list[tuple[np.ndarray, float, str | None]],
+    *,
+    max_vectors: int,
+) -> tuple[list[np.ndarray], list[float]]:
+    if not entries:
+        return [], []
+
+    clustered_entries: dict[str, list[tuple[np.ndarray, float]]] = {}
+    unclustered_entries: list[tuple[np.ndarray, float]] = []
+    for vector, weight, cluster_id in entries:
+        if cluster_id:
+            clustered_entries.setdefault(cluster_id, []).append((vector, weight))
+        else:
+            unclustered_entries.append((vector, weight))
+
+    prototypes: list[np.ndarray] = []
+    supports: list[float] = []
+
+    if clustered_entries:
+        ranked_clusters = sorted(
+            clustered_entries.values(),
+            key=lambda cluster_entries: sum(max(0.0, float(weight)) for _, weight in cluster_entries),
+            reverse=True,
+        )
+        for cluster_entries in ranked_clusters[:max_vectors]:
+            centroid = _build_weighted_centroid(cluster_entries)
+            if centroid is None:
+                continue
+            prototypes.append(centroid[0])
+            supports.append(centroid[1])
+
+        if len(prototypes) >= max_vectors:
+            return prototypes[:max_vectors], supports[:max_vectors]
+
+    if len(unclustered_entries) <= max_vectors - len(prototypes):
+        for vector, _weight in unclustered_entries:
+            prototypes.append(vector.astype(np.float32))
+            supports.append(1.0)
+        return prototypes[:max_vectors], supports[:max_vectors]
+
+    all_entries = [(vector, weight) for vector, weight, _cluster_id in entries]
+    centroid = _build_weighted_centroid(all_entries)
+    if centroid is not None:
+        prototypes.append(centroid[0])
+        supports.append(centroid[1])
+
+    remaining_slots = max_vectors - len(prototypes)
+    if remaining_slots <= 0:
+        return prototypes[:max_vectors], supports[:max_vectors]
+
+    centroid_vector = prototypes[0] if prototypes else None
+    ranked_entries = all_entries
+    if centroid_vector is not None:
+        ranked_entries = sorted(
+            all_entries,
+            key=lambda entry: float(np.dot(entry[0], centroid_vector)),
+        )
+
+    for vector, _weight in ranked_entries[:remaining_slots]:
+        prototypes.append(vector.astype(np.float32))
+        supports.append(1.0)
+
+    return prototypes[:max_vectors], supports[:max_vectors]
+
+
+def build_prototype_bank(
+    samples: list[Sample],
+    *,
+    use_multimodal: bool = True,
+    max_vectors_per_label: int = PROTOTYPE_MAX_VECTORS_PER_LABEL,
+) -> tuple[np.ndarray, list[str], np.ndarray]:
+    """Build a few-shot friendly prototype bank from normalized training windows."""
+
+    if not samples:
+        return (
+            np.zeros((0, 0), dtype=np.float32),
+            [],
+            np.zeros((0,), dtype=np.float32),
+        )
+
+    has_any_audio = any(sample.audio_features for sample in samples)
+    grouped: dict[str, list[tuple[np.ndarray, float, str | None]]] = {}
+    input_dim = 0
+
+    for sample in samples:
+        vector = _build_sample_input_vector(
+            sample,
+            has_any_audio=has_any_audio,
+            use_multimodal=use_multimodal,
+        )
+        if vector is None:
+            continue
+
+        normalized = _normalize_l2(vector)
+        if normalized is None:
+            continue
+
+        input_dim = normalized.size
+        grouped.setdefault(sample.label, []).append(
+            (
+                normalized,
+                _compute_quality_weight(sample) * sample.quality_weight,
+                sample.variation_cluster_id,
+            )
+        )
+
+    if not grouped:
+        return (
+            np.zeros((0, input_dim), dtype=np.float32),
+            [],
+            np.zeros((0,), dtype=np.float32),
+        )
+
+    prototype_vectors: list[np.ndarray] = []
+    prototype_labels: list[str] = []
+    prototype_support: list[float] = []
+    limited_vectors = max(1, int(max_vectors_per_label))
+
+    for label in sorted(grouped):
+        vectors, supports = _build_label_prototypes(
+            grouped[label],
+            max_vectors=limited_vectors,
+        )
+        for index, vector in enumerate(vectors):
+            prototype_vectors.append(vector.astype(np.float32))
+            prototype_labels.append(label)
+            prototype_support.append(float(supports[index] if index < len(supports) else 1.0))
+
+    if not prototype_vectors:
+        return (
+            np.zeros((0, input_dim), dtype=np.float32),
+            [],
+            np.zeros((0,), dtype=np.float32),
+        )
+
+    return (
+        np.vstack(prototype_vectors).astype(np.float32),
+        prototype_labels,
+        np.array(prototype_support, dtype=np.float32),
+    )
+
+
 def dataset_to_arrays(
     samples: list[Sample],
     *,
@@ -2050,30 +2376,52 @@ def dataset_to_arrays(
     rng: np.random.RandomState | np.random.Generator | None = None,
     use_multimodal: bool = True,
     provenance_sink: dict[str, object] | None = None,
-) -> tuple[np.ndarray, np.ndarray, list[str], np.ndarray]:
+    min_samples_target: int = 0,
+) -> tuple[np.ndarray, np.ndarray, list[str], np.ndarray, np.ndarray]:
     """Convert Sample objects to training arrays with optional temporal augmentation."""
     label_set = sorted({sample.label for sample in samples})
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
 
+    # Calculate counts for adaptive augmentation
+    label_counts = {label: 0 for label in label_set}
+    for s in samples:
+        label_counts[s.label] += 1
+
     X_list: list[np.ndarray] = []
     y_list: list[int] = []
     weight_list: list[float] = []
+    group_list: list[str] = []
     has_any_audio = any(sample.audio_features for sample in samples)
     augmentation_provenance: list[dict[str, object]] = []
 
-    for sample in samples:
-        features = np.array(sample.landmarks, dtype=np.float32)
-        if features.size != WINDOW_FEATURE_SIZE:
-            LOGGER.warning(
-                f"Unexpected feature size {features.size} for sample {sample.label}. "
-                f"Expected {WINDOW_FEATURE_SIZE}. Skipping."
-            )
+    for sample_index, sample in enumerate(samples):
+        features = _build_sample_input_vector(
+            sample,
+            has_any_audio=has_any_audio,
+            use_multimodal=False,
+        )
+        if features is None:
             continue
+        
+        # Adaptive augmentation: boost low-data classes
+        target_aug = augmentations_per_sample
+        current_count = label_counts.get(sample.label, 0)
+        
+        if min_samples_target > 0 and current_count < min_samples_target:
+             # Explicit target requested (e.g. for training mode)
+             boost_factor = max(1, int(min_samples_target / max(1, current_count)))
+             target_aug = max(augmentations_per_sample, boost_factor)
+             target_aug = min(50, target_aug)
+        elif augmentations_per_sample > 0 and current_count < 20:
+             # Legacy/implicit boost if augmentation is globally enabled
+             boost_factor = max(1, int(100 / max(1, current_count)))
+             target_aug = max(augmentations_per_sample, boost_factor)
+             target_aug = min(50, target_aug)
 
         variants: list[np.ndarray] = [features]
-        if augmentations_per_sample > 0:
+        if target_aug > 0:
             window = features.reshape(WINDOW_SIZE, INPUT_FEATURE_SIZE)
-            for _ in range(augmentations_per_sample):
+            for _ in range(target_aug):
                 augmented_window, aug_meta = augment_temporal_window(
                     window,
                     rng=rng,
@@ -2087,6 +2435,10 @@ def dataset_to_arrays(
                     **aug_meta,
                 })
 
+        group_id = getattr(sample, "source_bundle_id", None)
+        if not isinstance(group_id, str) or len(group_id.strip()) == 0:
+            group_id = f"sample:{sample_index}"
+
         for variant in variants:
             variant_features = variant
             if use_multimodal and has_any_audio:
@@ -2095,6 +2447,7 @@ def dataset_to_arrays(
             X_list.append(variant_features)
             y_list.append(label_to_idx[sample.label])
             weight_list.append(_compute_quality_weight(sample) * sample.quality_weight)
+            group_list.append(group_id)
 
     if provenance_sink is not None:
         provenance_sink["temporal_augmentations"] = augmentation_provenance
@@ -2107,12 +2460,14 @@ def dataset_to_arrays(
             np.zeros((0,), dtype=np.int64),
             label_set,
             np.zeros((0,), dtype=np.float32),
+            np.zeros((0,), dtype=object),
         )
 
     X = np.vstack(X_list)
     y = np.array(y_list, dtype=np.int64)
     weights = np.array(weight_list, dtype=np.float32)
-    return X, y, label_set, weights
+    groups = np.array(group_list, dtype=object)
+    return X, y, label_set, weights, groups
 
 
 
@@ -2213,6 +2568,89 @@ def compute_sample_weights(y: np.ndarray, *, smoothing: float = 0.0) -> np.ndarr
     return weights
 
 
+def plan_grouped_train_validation_split(
+    y: np.ndarray,
+    groups: np.ndarray,
+    *,
+    validation_fraction: float,
+    rng: np.random.RandomState | np.random.Generator | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return train/validation indices while keeping bundle groups intact."""
+
+    num_samples = int(y.shape[0])
+    if num_samples == 0:
+        empty = np.zeros((0,), dtype=np.int64)
+        return empty, empty
+
+    if groups.shape[0] != num_samples:
+        raise ValueError("groups must align with y")
+
+    sanitized_fraction = float(np.clip(validation_fraction, 0.0, 1.0))
+    if num_samples < 2 or sanitized_fraction <= 0:
+        indices = np.arange(num_samples, dtype=np.int64)
+        return indices, np.zeros((0,), dtype=np.int64)
+
+    rand = rng if rng is not None else np.random.default_rng()
+
+    train_idx_list: list[int] = []
+    val_idx_list: list[int] = []
+
+    labels = np.unique(y)
+    for label in labels:
+        label_indices = np.where(y == label)[0]
+        if label_indices.size < 2:
+            train_idx_list.extend(label_indices.tolist())
+            continue
+
+        ordered_groups: list[str] = []
+        seen_groups: set[str] = set()
+        for index in label_indices.tolist():
+            group_id = str(groups[index])
+            if group_id in seen_groups:
+                continue
+            seen_groups.add(group_id)
+            ordered_groups.append(group_id)
+
+        if len(ordered_groups) < 2:
+            train_idx_list.extend(label_indices.tolist())
+            continue
+
+        if hasattr(rand, "permutation"):
+            shuffled_groups = np.asarray(rand.permutation(np.array(ordered_groups, dtype=object)), dtype=object).tolist()
+        elif hasattr(rand, "shuffle"):
+            shuffled_groups = list(ordered_groups)
+            rand.shuffle(shuffled_groups)
+        else:
+            raise TypeError("The provided 'rng' object must have a 'permutation' or 'shuffle' method.")
+
+        validation_group_count = max(1, int(len(shuffled_groups) * sanitized_fraction))
+        if validation_group_count >= len(shuffled_groups):
+            validation_group_count = len(shuffled_groups) - 1
+        if validation_group_count <= 0:
+            train_idx_list.extend(label_indices.tolist())
+            continue
+
+        validation_groups = set(shuffled_groups[:validation_group_count])
+        for index in label_indices.tolist():
+            if str(groups[index]) in validation_groups:
+                val_idx_list.append(index)
+            else:
+                train_idx_list.append(index)
+
+    train_idx = np.array(sorted(set(train_idx_list)), dtype=np.int64)
+    val_idx = np.array(sorted(set(val_idx_list)), dtype=np.int64)
+
+    # Guard against edge cases where grouping produced an empty training split.
+    if train_idx.size == 0:
+        return plan_train_validation_split(
+            np.zeros((num_samples, 1), dtype=np.float32),
+            validation_fraction=validation_fraction,
+            rng=rng,
+        )
+
+    return train_idx, val_idx
+
+
 def plan_train_validation_split(
     X: np.ndarray,
     *,
@@ -2271,6 +2709,9 @@ def save_model(
     weights: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     labels: list[str],
     counts: np.ndarray | None = None,
+    prototype_vectors: np.ndarray | None = None,
+    prototype_labels: list[str] | None = None,
+    prototype_support: np.ndarray | None = None,
 ) -> None:
     """
     Save 3-layer MLP weights with metadata for inference.
@@ -2315,6 +2756,15 @@ def save_model(
         save_dict["counts"] = counts
     else:
         save_dict["counts"] = np.zeros(len(labels), dtype=np.float32)
+
+    if prototype_vectors is not None and prototype_labels is not None:
+        save_dict["prototype_vectors"] = prototype_vectors.astype(np.float32)
+        save_dict["prototype_labels"] = np.array(prototype_labels)
+        save_dict["prototype_support"] = (
+            prototype_support.astype(np.float32)
+            if prototype_support is not None
+            else np.ones((len(prototype_labels),), dtype=np.float32)
+        )
 
     with tmp_path.open("wb") as handle:
         np.savez_compressed(handle, **save_dict)
@@ -2476,6 +2926,110 @@ def _compute_confusion_matrix(
     return cm
 
 
+def _merge_bundle_summary_counts(
+    bundle_summary: list[dict[str, object]] | None,
+    *,
+    label: str,
+    profile_id: str | None = None,
+) -> tuple[int, int]:
+    if not bundle_summary:
+        return 0, 0
+
+    accepted = 0
+    rejected = 0
+    for entry in bundle_summary:
+        if entry.get("label") != label:
+            continue
+        if profile_id is not None and entry.get("profile_id") != profile_id:
+            continue
+        accepted += int(entry.get("accepted_bundle_count", 0))
+        rejected += int(entry.get("rejected_bundle_count", 0))
+    return accepted, rejected
+
+
+def _build_label_diagnostics(
+    *,
+    samples: list[Sample],
+    labels: list[str],
+    confusion_matrix: list[list[int]],
+    prototype_labels: list[str],
+    groups: np.ndarray,
+    y: np.ndarray,
+    train_idx: np.ndarray,
+    val_idx: np.ndarray,
+    bundle_summary: list[dict[str, object]] | None = None,
+    profile_id: str | None = None,
+    confusion_scope: str = "none",
+) -> list[dict[str, object]]:
+    diagnostics: list[dict[str, object]] = []
+    prototype_counts: dict[str, int] = {}
+    for label in prototype_labels:
+        prototype_counts[label] = prototype_counts.get(label, 0) + 1
+
+    sample_groups_by_label: dict[str, set[str]] = {label: set() for label in labels}
+    window_counts_by_label: dict[str, int] = {label: 0 for label in labels}
+    for sample_index, sample in enumerate(samples):
+        sample_label = sample.label
+        if sample_label not in window_counts_by_label:
+            continue
+        window_counts_by_label[sample_label] += 1
+        group_id = getattr(sample, "source_bundle_id", None)
+        if isinstance(group_id, str) and len(group_id.strip()) > 0:
+            sample_groups_by_label[sample_label].add(group_id)
+        else:
+            sample_groups_by_label[sample_label].add(f"sample:{sample_index}")
+
+    for label_index, label in enumerate(labels):
+        accepted_bundles, rejected_bundles = _merge_bundle_summary_counts(
+            bundle_summary,
+            label=label,
+            profile_id=profile_id,
+        )
+        fallback_bundle_count = len(sample_groups_by_label.get(label, set()))
+        bundle_count = accepted_bundles if accepted_bundles > 0 else fallback_bundle_count
+
+        train_groups = {
+            str(groups[index])
+            for index in train_idx.tolist()
+            if 0 <= int(index) < y.size and int(y[int(index)]) == label_index
+        }
+        val_groups = {
+            str(groups[index])
+            for index in val_idx.tolist()
+            if 0 <= int(index) < y.size and int(y[int(index)]) == label_index
+        }
+
+        row = confusion_matrix[label_index] if label_index < len(confusion_matrix) else []
+        top_confusions = [
+            {"label": labels[other_index], "count": int(count)}
+            for other_index, count in sorted(
+                (
+                    (other_index, row[other_index])
+                    for other_index in range(min(len(row), len(labels)))
+                    if other_index != label_index and int(row[other_index]) > 0
+                ),
+                key=lambda item: item[1],
+                reverse=True,
+            )[:3]
+        ]
+
+        diagnostics.append(
+            {
+                "label": label,
+                "bundle_count": int(bundle_count),
+                "rejected_bundle_count": int(rejected_bundles),
+                "window_count": int(window_counts_by_label.get(label, 0)),
+                "prototype_count": int(prototype_counts.get(label, 0)),
+                "train_group_count": int(len(train_groups)),
+                "validation_group_count": int(len(val_groups)),
+                "confusion_scope": confusion_scope,
+                "top_confusions": top_confusions,
+            }
+        )
+
+    return diagnostics
+
+
 def run_training_pipeline(
     samples: list[Sample],
     *,
@@ -2497,11 +3051,12 @@ def run_training_pipeline(
 
     # Global training
     augmentation_audit: dict[str, object] = {}
-    X, y, labels, weights = dataset_to_arrays(
+    X, y, labels, weights, groups = dataset_to_arrays(
         samples,
         augmentations_per_sample=resolved_config.augmentations_per_sample,
         rng=rng,
         provenance_sink=augmentation_audit,
+        min_samples_target=100,  # Enable adaptive augmentation for low-data classes
     )
 
     if labels != label_set:
@@ -2513,8 +3068,9 @@ def run_training_pipeline(
         return {"error": "No labels found in training data."}
 
     # Stratified split or simple shuffle
-    train_idx, val_idx = plan_train_validation_split(
-        X,
+    train_idx, val_idx = plan_grouped_train_validation_split(
+        y,
+        groups,
         validation_fraction=resolved_config.validation_fraction,
         rng=rng
     )
@@ -2573,15 +3129,64 @@ def run_training_pipeline(
     global_accuracy = _compute_accuracy(X, y, global_best_weights)
     global_f1 = _compute_f1_score(X, y, global_best_weights, num_classes)
     global_cm = _compute_confusion_matrix(X, y, global_best_weights, num_classes)
+    global_report_X = X[val_idx] if val_idx.size > 0 else np.zeros((0, X.shape[1]), dtype=np.float32)
+    global_report_y = y[val_idx] if val_idx.size > 0 else np.zeros((0,), dtype=np.int64)
+    global_confusion_scope = "validation" if val_idx.size > 0 else "none"
+    global_diagnostic_cm = _compute_confusion_matrix(
+        global_report_X,
+        global_report_y,
+        global_best_weights,
+        num_classes,
+    )
 
     class_counts = np.bincount(y, minlength=num_classes)
+    global_prototype_vectors, global_prototype_labels, global_prototype_support = build_prototype_bank(
+        samples,
+        use_multimodal=True,
+    )
+    bundle_summary = None
+    stats_payload = metadata_context.get("stats") if metadata_context else None
+    if isinstance(stats_payload, dict):
+        bundle_summary_candidate = stats_payload.get("label_bundle_summary")
+        if isinstance(bundle_summary_candidate, list):
+            bundle_summary = [
+                item for item in bundle_summary_candidate if isinstance(item, dict)
+            ]
+    global_label_diagnostics = _build_label_diagnostics(
+        samples=samples,
+        labels=label_set,
+        confusion_matrix=global_diagnostic_cm,
+        prototype_labels=global_prototype_labels,
+        groups=groups,
+        y=y,
+        train_idx=train_idx,
+        val_idx=val_idx,
+        bundle_summary=bundle_summary,
+        confusion_scope=global_confusion_scope,
+    )
 
     metadata_payload = metadata_context or {}
     if augmentation_audit:
         metadata_payload = {**metadata_payload, "augmentation_provenance": augmentation_audit}
+    if len(global_prototype_labels) > 0:
+        metadata_payload = {
+            **metadata_payload,
+            "prototype_bank": {
+                "prototype_count": int(len(global_prototype_labels)),
+                "label_count": int(len(set(global_prototype_labels))),
+            },
+        }
     if output_dir:
         global_dir = output_dir / "global"
-        save_model(global_dir / "amy_model.npz", global_best_weights, label_set, class_counts)
+        save_model(
+            global_dir / "amy_model.npz",
+            global_best_weights,
+            label_set,
+            class_counts,
+            prototype_vectors=global_prototype_vectors,
+            prototype_labels=global_prototype_labels,
+            prototype_support=global_prototype_support,
+        )
         _write_training_metadata(global_dir, training_version, samples, metadata_payload)
 
     # Per-profile models
@@ -2593,15 +3198,20 @@ def run_training_pipeline(
         if len(p_samples) < MIN_SAMPLES_PER_PROFILE:
             continue
 
-        p_X, p_y, p_labels, p_weights = dataset_to_arrays(p_samples, rng=rng)
+        p_X, p_y, p_labels, p_weights, p_groups = dataset_to_arrays(
+            p_samples,
+            rng=rng,
+            min_samples_target=100,  # Enable adaptive augmentation for profiles
+        )
         p_num_classes = len(p_labels)
 
         if p_num_classes < 1:
             continue
 
         # Per-profile split
-        p_train_idx, p_val_idx = plan_train_validation_split(
-            p_X,
+        p_train_idx, p_val_idx = plan_grouped_train_validation_split(
+            p_y,
+            p_groups,
             validation_fraction=resolved_config.validation_fraction,
             rng=rng
         )
@@ -2631,16 +3241,58 @@ def run_training_pipeline(
 
         p_accuracy = _compute_accuracy(p_X, p_y, p_best_weights)
         p_f1 = _compute_f1_score(p_X, p_y, p_best_weights, p_num_classes)
+        p_report_X = p_X[p_val_idx] if p_val_idx.size > 0 else np.zeros((0, p_X.shape[1]), dtype=np.float32)
+        p_report_y = p_y[p_val_idx] if p_val_idx.size > 0 else np.zeros((0,), dtype=np.int64)
+        p_confusion_scope = "validation" if p_val_idx.size > 0 else "none"
 
         p_counts = np.bincount(p_y, minlength=p_num_classes)
+        p_prototype_vectors, p_prototype_labels, p_prototype_support = build_prototype_bank(
+            p_samples,
+            use_multimodal=True,
+        )
+        profile_metadata_payload = metadata_payload
+        if len(p_prototype_labels) > 0:
+            profile_metadata_payload = {
+                **metadata_payload,
+                "prototype_bank": {
+                    "prototype_count": int(len(p_prototype_labels)),
+                    "label_count": int(len(set(p_prototype_labels))),
+                },
+            }
 
         if output_dir:
             profile_dir = output_dir / profile_id
-            save_model(profile_dir / "amy_model.npz", p_best_weights, p_labels, p_counts)
-            _write_training_metadata(profile_dir, training_version, p_samples, metadata_payload)
+            save_model(
+                profile_dir / "amy_model.npz",
+                p_best_weights,
+                p_labels,
+                p_counts,
+                prototype_vectors=p_prototype_vectors,
+                prototype_labels=p_prototype_labels,
+                prototype_support=p_prototype_support,
+            )
+            _write_training_metadata(profile_dir, training_version, p_samples, profile_metadata_payload)
 
         p_modality_counts = _summarize_modality_counts(p_samples)
         p_modalities_used = [key for key in MODALITY_KEYS if p_modality_counts[key] > 0]
+        p_label_diagnostics = _build_label_diagnostics(
+            samples=p_samples,
+            labels=p_labels,
+            confusion_matrix=_compute_confusion_matrix(
+                p_report_X,
+                p_report_y,
+                p_best_weights,
+                p_num_classes,
+            ),
+            prototype_labels=p_prototype_labels,
+            groups=p_groups,
+            y=p_y,
+            train_idx=p_train_idx,
+            val_idx=p_val_idx,
+            bundle_summary=bundle_summary,
+            profile_id=profile_id,
+            confusion_scope=p_confusion_scope,
+        )
 
         profile_reports[profile_id] = {
             "accuracy": p_accuracy,
@@ -2650,6 +3302,8 @@ def run_training_pipeline(
             "class_counts": p_counts.tolist(),
             "modalities": p_modalities_used,
             "modality_counts": p_modality_counts,
+            "prototype_count": int(len(p_prototype_labels)),
+            "label_diagnostics": p_label_diagnostics,
         }
 
     return {
@@ -2662,6 +3316,8 @@ def run_training_pipeline(
             "class_counts": class_counts.tolist(),
             "modalities": modalities_used,
             "modality_counts": modality_counts,
+            "prototype_count": int(len(global_prototype_labels)),
+            "label_diagnostics": global_label_diagnostics,
         },
         "profiles": profile_reports,
         "timestamp": training_version
