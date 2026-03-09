@@ -5,11 +5,13 @@ export type MlpModelMeta = {
   version?: string | null;
   source: 'profile' | 'global';
   profileId?: string | null;
+  etag?: string | null;
 };
 
 export type MlpModelResponse = {
   b64: string;
   meta: MlpModelMeta;
+  notModified?: boolean;
 };
 
 // Event-based model update notifications (domain-driven pattern)
@@ -50,6 +52,7 @@ function parseMeta(resp: Response, fallbackSource: MlpModelMeta['source'], profi
   const version = resp.headers.get('X-Model-Version');
   const sourceHeader = resp.headers.get('X-Model-Source');
   const profileHeader = resp.headers.get('X-Model-Profile');
+  const etag = resp.headers.get('ETag');
 
   const source = sourceHeader === 'profile' || sourceHeader === 'global' ? sourceHeader : fallbackSource;
   const normalizedProfile = profileHeader?.trim() || (source === 'profile' ? profileId ?? null : null);
@@ -58,6 +61,7 @@ function parseMeta(resp: Response, fallbackSource: MlpModelMeta['source'], profi
     source,
     version: version ?? null,
     profileId: normalizedProfile,
+    etag: etag ?? null,
   };
 }
 
@@ -65,6 +69,7 @@ async function fetchModel(
   endpoint: string,
   token: string | undefined,
   profileId?: string,
+  ifNoneMatch?: string | null,
 ): Promise<MlpModelResponse | null> {
   let url: URL;
   try {
@@ -89,6 +94,10 @@ async function fetchModel(
     headers['X-Profile-Id'] = profileId;
   }
 
+  if (ifNoneMatch) {
+    headers['If-None-Match'] = ifNoneMatch;
+  }
+
   let response: Response;
   try {
     response = await fetch(url.toString(), { headers });
@@ -100,6 +109,10 @@ async function fetchModel(
     });
     // Return null to allow fallback to cache
     return null;
+  }
+
+  if (response.status === 304) {
+    return { b64: '', meta: {} as any, notModified: true };
   }
 
   if (!response.ok) {
@@ -137,8 +150,16 @@ export async function fetchMlpModelWithFallback({
   const trimmedProfile = profileId?.trim();
 
   if (trimmedProfile) {
-    const personalized = await fetchModel(endpoint, token, trimmedProfile);
-    if (personalized) {
+    const cached = await getCachedModel(trimmedProfile);
+    const personalized = await fetchModel(endpoint, token, trimmedProfile, cached?.meta?.etag);
+    
+    if (personalized?.notModified && cached) {
+      console.info('[MLP] Profil-Modell unverändert (304), nutze Cache', { profileId: trimmedProfile });
+      emitMlpModelUpdated(cached.meta);
+      return cached as MlpModelResponse;
+    }
+
+    if (personalized && !personalized.notModified) {
       if (personalized.meta.source === 'profile') {
         console.info('[MLP] Personalisiertes Modell geladen', {
           profileId: personalized.meta.profileId ?? trimmedProfile,
@@ -159,7 +180,6 @@ export async function fetchMlpModelWithFallback({
     }
 
     // Attempt to load from cache if offline or 404
-    const cached = await getCachedModel(trimmedProfile);
     if (cached) {
       console.info('[MLP] Fallback auf gespeichertes Profil-Modell', {
         profileId: trimmedProfile,
@@ -174,8 +194,16 @@ export async function fetchMlpModelWithFallback({
     });
   }
 
-  const globalModel = await fetchModel(endpoint, token);
-  if (globalModel) {
+  const cachedGlobal = await getCachedModel('global');
+  const globalModel = await fetchModel(endpoint, token, undefined, cachedGlobal?.meta?.etag);
+
+  if (globalModel?.notModified && cachedGlobal) {
+    console.info('[MLP] Globales Modell unverändert (304), nutze Cache');
+    emitMlpModelUpdated(cachedGlobal.meta);
+    return cachedGlobal as MlpModelResponse;
+  }
+
+  if (globalModel && !globalModel.notModified) {
     console.info('[MLP] Globales Modell geladen', {
       version: globalModel.meta.version ?? 'unbekannt',
     });
@@ -186,7 +214,6 @@ export async function fetchMlpModelWithFallback({
   }
 
   // Final fallback: global cache
-  const cachedGlobal = await getCachedModel('global');
   if (cachedGlobal) {
     console.info('[MLP] Fallback auf gespeichertes globales Modell', {
       version: cachedGlobal.meta.version,
