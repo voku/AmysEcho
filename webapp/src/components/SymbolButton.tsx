@@ -14,12 +14,29 @@ export interface Symbol {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  drink: '#A8E6CF',
-  trinken: '#A8E6CF',
-  eat: '#FFB7B2',
-  essen: '#FFB7B2',
-  play: '#FFDAC1',
-  spielen: '#FFDAC1',
+  // People / Pronouns (Yellow)
+  person: '#FFF176',
+  personen: '#FFF176',
+  ich: '#FFF176',
+  pronoun: '#FFF176',
+  // Actions / Verbs (Green)
+  action: '#81C784',
+  aktion: '#81C784',
+  verb: '#81C784',
+  essen: '#81C784',
+  trinken: '#81C784',
+  spielen: '#81C784',
+  // Adjectives / Feelings (Blue)
+  feeling: '#64B5F6',
+  gefuehle: '#64B5F6',
+  adjective: '#64B5F6',
+  // Nouns / Things / Objects (Orange)
+  object: '#FFB74D',
+  dinge: '#FFB74D',
+  noun: '#FFB74D',
+  // Social / Little Words (White/Grey)
+  social: '#E0E0E0',
+  interjection: '#E0E0E0',
 };
 
 const DEFAULT_COLOR = '#B5B9FF';

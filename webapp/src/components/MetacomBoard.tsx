@@ -347,6 +347,38 @@ export function MetacomBoard() {
     [],
   );
 
+  const breadcrumbs = useMemo(() => {
+    return boardHistory.map((id) => ({
+      id,
+      label: boards[id]?.label ?? id,
+    }));
+  }, [boardHistory, boards]);
+
+  const handleBreadcrumbClick = useCallback((id: string, index: number) => {
+    setBoardHistory((prev) => prev.slice(0, index + 1));
+  }, []);
+
+  const handleImportMetacomBundle = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result;
+        if (typeof content !== 'string') {
+          throw new Error('Die Datei konnte nicht als Text gelesen werden.');
+        }
+        const syncOptions = profileId && apiToken ? { profileId, token: apiToken } : undefined;
+        storeMetacomBundle(content, syncOptions);
+        setBoardHistory([START_BOARD_ID]);
+      } catch (error) {
+        console.error('Metacom-Import fehlgeschlagen:', error);
+      }
+    };
+    reader.readAsText(file);
+  }, [profileId, apiToken]);
+
   return (
     <section className="card metacom-board">
       <a className="skip-link" href="#metacom-main">Zum Inhalt springen</a>
@@ -362,10 +394,27 @@ export function MetacomBoard() {
           </button>
           <div>
             <p className="eyebrow">Metacom</p>
-            <h2>{board.label}</h2>
+            <nav className="metacom-breadcrumbs" aria-label="Breadcrumb">
+              {breadcrumbs.map((crumb, index) => (
+                <React.Fragment key={crumb.id}>
+                  {index > 0 && <span className="breadcrumb-separator">›</span>}
+                  <button
+                    className={`breadcrumb-item ${index === breadcrumbs.length - 1 ? 'active' : ''}`}
+                    onClick={() => handleBreadcrumbClick(crumb.id, index)}
+                    disabled={index === breadcrumbs.length - 1}
+                  >
+                    {crumb.label}
+                  </button>
+                </React.Fragment>
+              ))}
+            </nav>
           </div>
         </div>
         <div className="metacom-topbar-right">
+          <label className="secondary-button" style={{ cursor: 'pointer' }}>
+            📁 Tafel importieren
+            <input type="file" accept=".json,.obf" onChange={handleImportMetacomBundle} hidden />
+          </label>
           <button
             className="secondary-button"
             onClick={() => setSlottingEnabled((prev) => !prev)}

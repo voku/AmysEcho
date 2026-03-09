@@ -297,25 +297,113 @@ function validateBundle(bundle: MetacomBundle): void {
   }
 }
 
+import type {
+  MetacomBoardCell,
+  MetacomBoardDefinition,
+  MetacomCell,
+  MetacomSymbolCell,
+} from '../types/metacom';
+import { getMetacomBoardsForVocabularySet } from '../constants/metacomBoards';
+import type { MetacomVocabularySet } from '../types/metacomVocabulary';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
+
+const METACOM_BUNDLE_STORAGE_KEY = 'amysecho_metacom_bundle';
+export const METACOM_BUNDLE_UPDATED_EVENT = 'amysecho:metacom-bundle-updated';
+
+export interface MetacomBundle {
+  version: string;
+  boards: MetacomBoardDefinition[];
+}
+
+// ... existing interfaces ...
+
+export async function syncMetacomBundleToServer(
+  profileId: string,
+  token: string,
+  bundle: MetacomBundle,
+): Promise<boolean> {
+  try {
+    const baseUrl = process.env['EXPO_PUBLIC_API_URL'] || '';
+    const url = resolveApiUrl(`/api/v1/profiles/${profileId}/metacom-bundle`, baseUrl);
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(bundle),
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn('Failed to sync Metacom bundle to server', error);
+    return false;
+  }
+}
+
+export async function fetchMetacomBundleFromServer(
+  profileId: string,
+  token: string,
+): Promise<MetacomBundle | null> {
+  try {
+    const baseUrl = process.env['EXPO_PUBLIC_API_URL'] || '';
+    const url = resolveApiUrl(`/api/v1/profiles/${profileId}/metacom-bundle`, baseUrl);
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.ok) {
+      return (await response.json()) as MetacomBundle;
+    }
+    return null;
+  } catch (error) {
+    console.warn('Failed to fetch Metacom bundle from server', error);
+    return null;
+  }
+}
+
 export function parseMetacomBundle(raw: string): MetacomBundle {
   const parsed = parseBundlePayload(JSON.parse(raw));
   validateBundle(parsed);
   return parsed;
 }
 
-export function storeMetacomBundle(raw: string): Record<string, MetacomBoardDefinition> {
+export function storeMetacomBundle(
+  raw: string,
+  syncOptions?: { profileId: string; token: string },
+): Record<string, MetacomBoardDefinition> {
   const bundle = parseMetacomBundle(raw);
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(METACOM_BUNDLE_STORAGE_KEY, JSON.stringify(bundle));
     window.dispatchEvent(new Event(METACOM_BUNDLE_UPDATED_EVENT));
+
+    if (syncOptions) {
+      void syncMetacomBundleToServer(syncOptions.profileId, syncOptions.token, bundle);
+    }
   }
   return buildBoardRecord(bundle.boards);
 }
 
-export function clearMetacomBundle(): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(METACOM_BUNDLE_STORAGE_KEY);
-  window.dispatchEvent(new Event(METACOM_BUNDLE_UPDATED_EVENT));
+export async function clearMetacomBundle(syncOptions?: { profileId: string; token: string }): Promise<void> {
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(METACOM_BUNDLE_STORAGE_KEY);
+    window.dispatchEvent(new Event(METACOM_BUNDLE_UPDATED_EVENT));
+
+    if (syncOptions) {
+      try {
+        const baseUrl = process.env['EXPO_PUBLIC_API_URL'] || '';
+        const url = resolveApiUrl(`/api/v1/profiles/${syncOptions.profileId}/metacom-bundle`, baseUrl);
+        await fetch(url, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${syncOptions.token}`,
+          },
+        });
+      } catch (error) {
+        console.warn('Failed to delete Metacom bundle from server', error);
+      }
+    }
+  }
 }
 
 type LoadMetacomBoardsOptions = {

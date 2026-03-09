@@ -4,8 +4,13 @@ import {
   METACOM_BUNDLE_UPDATED_EVENT,
   getMetacomSymbols,
   loadMetacomBoards,
+  fetchMetacomBundleFromServer,
+  parseMetacomBundle,
+  storeMetacomBundle,
 } from '../services/metacomBundleService';
 import type { MetacomVocabularySet } from '../types/metacomVocabulary';
+import { useAppState } from './useAppState';
+import { useApiConfig } from './useApiConfig';
 
 type UseMetacomBundleOptions = {
   vocabularySet?: MetacomVocabularySet;
@@ -13,6 +18,9 @@ type UseMetacomBundleOptions = {
 
 export function useMetacomBundle(options: UseMetacomBundleOptions = {}) {
   const { vocabularySet } = options;
+  const { profileId } = useAppState();
+  const { apiToken } = useApiConfig();
+
   const loadOptions = useMemo(() => {
     const next: UseMetacomBundleOptions = {};
     if (vocabularySet) {
@@ -20,9 +28,23 @@ export function useMetacomBundle(options: UseMetacomBundleOptions = {}) {
     }
     return next;
   }, [vocabularySet]);
+
   const [boards, setBoards] = useState<Record<string, MetacomBoardDefinition>>(() =>
     loadMetacomBoards(loadOptions),
   );
+
+  useEffect(() => {
+    if (!profileId || !apiToken) return;
+
+    const syncFromServer = async () => {
+      const serverBundle = await fetchMetacomBundleFromServer(profileId, apiToken);
+      if (serverBundle) {
+        storeMetacomBundle(JSON.stringify(serverBundle));
+      }
+    };
+
+    void syncFromServer();
+  }, [profileId, apiToken]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

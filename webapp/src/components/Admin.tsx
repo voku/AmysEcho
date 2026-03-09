@@ -180,8 +180,9 @@ export const Admin: React.FC = () => {
         if (typeof content !== 'string') {
           throw new Error('Die Datei konnte nicht als Text gelesen werden.');
         }
-        storeMetacomBundle(content);
-        showToast({ message: 'Metacom-Bundle importiert', tone: 'success' });
+        const syncOptions = profileId && apiToken ? { profileId, token: apiToken } : undefined;
+        storeMetacomBundle(content, syncOptions);
+        showToast({ message: 'Metacom-Bundle importiert und synchronisiert', tone: 'success' });
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'Unbekannter Fehler';
         showToast({ message: `Metacom-Import fehlgeschlagen: ${reason}`, tone: 'error' });
@@ -193,7 +194,8 @@ export const Admin: React.FC = () => {
   const handleClearMetacomBundle = async () => {
     const confirmed = await showConfirmDialog('Metacom-Import zurücksetzen?');
     if (!confirmed) return;
-    clearMetacomBundle();
+    const syncOptions = profileId && apiToken ? { profileId, token: apiToken } : undefined;
+    await clearMetacomBundle(syncOptions);
     showToast({ message: 'Metacom-Import zurückgesetzt', tone: 'success' });
   };
 
