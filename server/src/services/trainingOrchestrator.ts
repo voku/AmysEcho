@@ -27,6 +27,10 @@ import {
 	updateUserLabelLastTrained,
 } from "../sqliteDb.js";
 import type { LabelTrainingMode } from "../types.js";
+import {
+	resolvePythonExecutable,
+	withProjectPythonPath,
+} from "../utils/pythonExecutable.js";
 
 /**
  * Training job status
@@ -366,8 +370,9 @@ async function runTrainingScript(
 	await fs.mkdir(outputDir, { recursive: true });
 
 	return new Promise((resolve, reject) => {
+		const pythonBin = resolvePythonExecutable();
 		const child = spawn(
-			"python3",
+			pythonBin,
 			[
 				config.trainScript,
 				"--manifest",
@@ -376,6 +381,7 @@ async function runTrainingScript(
 				outputDir,
 			],
 			{
+				env: withProjectPythonPath(),
 				stdio: ["ignore", "pipe", "pipe"],
 			},
 		);

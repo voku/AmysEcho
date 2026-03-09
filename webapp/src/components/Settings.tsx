@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
+import { buildProfileLocalDataExport, clearProfileScopedLocalData } from '../services/profileLocalData';
 import { UserSettings } from './UserSettings';
 
 /**
@@ -12,27 +13,28 @@ export function Settings() {
   const commitHash = import.meta.env['VITE_APP_COMMIT_SHA']?.trim() || 'unbekannt';
 
   const handleExportData = useCallback(() => {
-    const data = {
-      profileId,
-      displayName,
-      exportedAt: new Date().toISOString(),
-      progress: localStorage.getItem(`webapp:progress:${profileId}`),
-    };
+    const data = buildProfileLocalDataExport(profileId, displayName);
+    if (!data) {
+      return;
+    }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `amys-echo-export-${profileId}-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `amys-echo-profile-local-${profileId}-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
   }, [profileId, displayName]);
 
   const handleClearData = useCallback(() => {
-    if (window.confirm('Alle lokalen Daten löschen? Dies kann nicht rückgängig gemacht werden.')) {
-      localStorage.clear();
+    if (!profileId) {
+      return;
+    }
+    if (window.confirm('Lokale Daten für dieses Profil löschen? Andere Profile bleiben erhalten.')) {
+      clearProfileScopedLocalData(profileId);
       window.location.reload();
     }
-  }, []);
+  }, [profileId]);
 
   return (
     <section className="card">
@@ -75,13 +77,13 @@ export function Settings() {
       {/* Data Management */}
       <div className="settings-section">
         <h3>Datenverwaltung</h3>
-        <p className="muted">Exportiere oder lösche deine lokalen Daten.</p>
+        <p className="muted">Exportiere oder lösche nur die lokalen Daten des aktuell aktiven Profils.</p>
         <div className="controls settings-actions">
-          <button className="secondary-button" onClick={handleExportData}>
-            Daten exportieren
+          <button className="secondary-button" onClick={handleExportData} disabled={!profileId}>
+            Lokale Profildaten exportieren
           </button>
-          <button className="danger-button" onClick={handleClearData}>
-            Alle Daten löschen
+          <button className="danger-button" onClick={handleClearData} disabled={!profileId}>
+            Lokale Profildaten löschen
           </button>
         </div>
       </div>

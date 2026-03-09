@@ -90,6 +90,7 @@ describe('installMlp', () => {
       audioFeatureSize?: number;
       includeWindowMetadata?: boolean;
       scalarMetadata?: boolean;
+      extraEntries?: Record<string, Uint8Array>;
     } = {},
   ) {
     const windowSize = options.windowSize ?? 1;
@@ -125,6 +126,10 @@ describe('installMlp', () => {
       );
     }
 
+    if (options.extraEntries) {
+      Object.assign(zipEntries, options.extraEntries);
+    }
+
     const zip = zipSync(zipEntries);
 
     return Buffer.from(zip).toString('base64');
@@ -133,6 +138,28 @@ describe('installMlp', () => {
   const MINIMAL_3LAYER_ZIP_B64 = create3LayerZipB64(126, 10, 5, 1, ['hi']);
   const MULTIMODAL_3LAYER_ZIP_B64 = create3LayerZipB64(1629, 10, 5, 1, ['multimodal']);
   const MULTI_LABEL_3LAYER_ZIP_B64 = create3LayerZipB64(126, 10, 5, 3, ['trinken', 'satt', 'mehr']);
+
+  function createSparsePrototypeVector(): Float32Array {
+    const vector = new Float32Array(21 * 2 * 3);
+    let offset = 0;
+    for (let i = 0; i < 21; i++) {
+      vector[offset++] = i === 0 ? 0 : -4;
+      vector[offset++] = 0;
+      vector[offset++] = 0;
+    }
+    return vector;
+  }
+
+  function createOpposingSparsePrototypeVector(): Float32Array {
+    const vector = new Float32Array(21 * 2 * 3);
+    let offset = 0;
+    for (let i = 0; i < 21; i++) {
+      vector[offset++] = i === 0 ? 0 : 4;
+      vector[offset++] = 0;
+      vector[offset++] = 0;
+    }
+    return vector;
+  }
 
   // Helper to create realistic pose data (33 landmarks with x,y,z,visibility)
   function createPoseLandmarks(): number[][] {
@@ -323,6 +350,65 @@ describe('installMlp', () => {
 
     const candidateScores = res?.candidates?.map(candidate => candidate.score) ?? [];
     expect(candidateScores).toEqual([...candidateScores].sort((a, b) => b - a));
+  });
+
+  it('bevorzugt Prototypenbank bei wenig Beispielen, wenn das dichte Modell unklar ist', async () => {
+    const prototypeVector = createSparsePrototypeVector();
+    const prototypeModel = create3LayerZipB64(
+      126,
+      10,
+      5,
+      2,
+      ['mlp_first', 'proto_match'],
+      {
+        extraEntries: {
+          'prototype_vectors.npy': createMockNpy(prototypeVector, [1, 126]),
+          'prototype_labels.npy': createMockNpy(['proto_match'], [1]),
+          'prototype_support.npy': createMockNpy(new Float32Array([2]), [1]),
+        },
+      },
+    );
+
+    const ok = await window.__setMlpModelB64!(prototypeModel);
+    expect(ok).toBe(true);
+
+    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    expect(res).not.toBeNull();
+    expect(res?.label).toBe('proto_match');
+    expect(res?.source).toBe('prototype');
+    expect(res?.prototype).toMatchObject({
+      label: 'proto_match',
+      support: 2,
+    });
+  });
+
+  it('hält sparse satt/trinken-prototypen auseinander, wenn das dichte Modell keine klare Trennung hat', async () => {
+    const sattVector = createSparsePrototypeVector();
+    const trinkenVector = createOpposingSparsePrototypeVector();
+    const prototypeModel = create3LayerZipB64(
+      126,
+      10,
+      5,
+      2,
+      ['trinken', 'satt'],
+      {
+        extraEntries: {
+          'prototype_vectors.npy': createMockNpy(new Float32Array([...trinkenVector, ...sattVector]), [2, 126]),
+          'prototype_labels.npy': createMockNpy(['trinken', 'satt'], [2]),
+          'prototype_support.npy': createMockNpy(new Float32Array([2, 2]), [2]),
+        },
+      },
+    );
+
+    const ok = await window.__setMlpModelB64!(prototypeModel);
+    expect(ok).toBe(true);
+
+    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    expect(res).not.toBeNull();
+    expect(res?.label).toBe('satt');
+    expect(res?.source).toBe('prototype');
+    expect(res?.prototype?.label).toBe('satt');
+    expect(res?.candidates?.[0]?.label).toBe('satt');
   });
 
   describe('Multimodal prediction', () => {

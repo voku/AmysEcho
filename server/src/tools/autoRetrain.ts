@@ -4,6 +4,10 @@ import os from "os";
 import path from "path";
 import config from "../config/index.js";
 import { loadDatabase } from "../db.js";
+import {
+	resolvePythonExecutable,
+	withProjectPythonPath,
+} from "../utils/pythonExecutable.js";
 
 async function autoRetrain(dbPath: string) {
 	const db = await loadDatabase(dbPath);
@@ -26,7 +30,8 @@ async function autoRetrain(dbPath: string) {
 	const script = config.trainScript;
 
 	return new Promise<void>((resolve, reject) => {
-		const child = spawn("python3", [script, tmp], {
+		const child = spawn(resolvePythonExecutable(), [script, tmp], {
+			env: withProjectPythonPath(),
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 

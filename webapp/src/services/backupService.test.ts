@@ -51,6 +51,21 @@ describe('backupService', () => {
     expect(localStorage.getItem('protectedGestures')).toBeTruthy();
   });
 
+  it('restores from an imported backup file', async () => {
+    await backupService.backupProtectedGestures();
+    const backupPayload = localStorage.getItem('protectedGesturesBackupPayload');
+    expect(backupPayload).toBeTruthy();
+    localStorage.removeItem('protectedGestures');
+    localStorage.removeItem('protectedGesturesBackupPayload');
+
+    const ok = await backupService.restoreProtectedGesturesFromFile(
+      new Blob([backupPayload ?? ''], { type: 'application/octet-stream' }),
+    );
+    expect(ok).toBe(true);
+    expect(localStorage.getItem('protectedGestures')).toBeTruthy();
+    expect(localStorage.getItem('protectedGesturesBackupPayload')).toBeTruthy();
+  });
+
   it('exports decrypted gestures for download', async () => {
     const artifact = await backupService.exportProtectedGestures();
     expect(artifact?.fileName).toBe('protectedGesturesExport.json');

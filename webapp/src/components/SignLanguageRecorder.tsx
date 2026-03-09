@@ -8,6 +8,7 @@ import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
+import { getTrainedSignStorageKeys } from '../services/profileLocalData';
 import { getActiveProfile } from '../services/profileRegistry';
 import { MEDIAPIPE_BASELINE_GESTURES, MLP_NULL_LABEL } from '../gesture/core/ProcessingSteps';
 import { stripTrailingUuidSuffix } from '../utils/gestureLabel';
@@ -30,6 +31,13 @@ function formatStatusLabel(status: string): string {
     default:
       return 'Bereit für die Kamera';
   }
+}
+
+function formatRecognitionScore(score: number | null | undefined): string | null {
+  if (typeof score !== 'number' || !Number.isFinite(score)) {
+    return null;
+  }
+  return `${Math.round(score * 100)}%`;
 }
 
 function toTitleCase(value: string): string {
@@ -192,7 +200,7 @@ function formatMlpDecisionReason(reason: string | null): string {
     case 'selected_profile_vocab_relaxed_threshold':
       return 'Profilgebärde mit gelockerter Schwelle übernommen';
     case 'below_threshold':
-      return 'Unterhalb der Sicherheitsschwelle';
+      return 'Unterhalb der Modellschwelle';
     case 'below_candidate_margin':
       return 'Mehrdeutig: Top-Kandidaten zu nah beieinander';
     case 'below_override_margin':
@@ -245,13 +253,15 @@ function downloadGestureFixture(fixture: GestureFixtureExport): void {
 export function SignLanguageRecorder() {
   const navigate = useNavigate();
   const { apiBaseUrl, apiToken } = useApiConfig();
+  const { profileId, recordSign } = useAppState();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
+  const trainedSignStorageKeys = getTrainedSignStorageKeys(profileId);
   const [showOverlay, setShowOverlay] = useState(true);
   const [showRawVideo, setShowRawVideo] = useState(true);
   const [hasTrainedSigns, setHasTrainedSigns] = useState<boolean | null>(() => {
     try {
-      const cached = window.localStorage.getItem('webapp:has-trained-signs');
+      const cached = window.localStorage.getItem(trainedSignStorageKeys.hasTrainedSigns);
       return cached ? cached === 'true' : null;
     } catch {
       return null;
@@ -259,7 +269,7 @@ export function SignLanguageRecorder() {
   });
   const [trainedSignLabels, setTrainedSignLabels] = useState<string[]>(() => {
     try {
-      const cached = window.localStorage.getItem('webapp:trained-sign-labels');
+      const cached = window.localStorage.getItem(trainedSignStorageKeys.trainedSignLabels);
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -267,7 +277,7 @@ export function SignLanguageRecorder() {
   });
   const [trainedLabelDescriptors, setTrainedLabelDescriptors] = useState<TrainedLabelDescriptor[]>(() => {
     try {
-      const cached = window.localStorage.getItem('webapp:trained-label-descriptors');
+      const cached = window.localStorage.getItem(trainedSignStorageKeys.trainedLabelDescriptors);
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -317,7 +327,6 @@ export function SignLanguageRecorder() {
     audioMuted,
     toggleAudioMuted,
   } = useSignLanguageDetector(videoRef, overlayRef);
-  const { profileId, recordSign } = useAppState();
   const { notice: modelNotice, status: modelStatus, lastMeta: modelMeta } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
   const latestProfileIdRef = useRef<string | null>(profileId);
@@ -365,6 +374,25 @@ export function SignLanguageRecorder() {
   useEffect(() => {
     latestProfileIdRef.current = profileId;
   }, [profileId]);
+
+  useEffect(() => {
+    try {
+      const cachedHasTrainedSigns = window.localStorage.getItem(trainedSignStorageKeys.hasTrainedSigns);
+      const cachedLabels = window.localStorage.getItem(trainedSignStorageKeys.trainedSignLabels);
+      const cachedDescriptors = window.localStorage.getItem(trainedSignStorageKeys.trainedLabelDescriptors);
+      setHasTrainedSigns(cachedHasTrainedSigns ? cachedHasTrainedSigns === 'true' : null);
+      setTrainedSignLabels(cachedLabels ? JSON.parse(cachedLabels) : []);
+      setTrainedLabelDescriptors(cachedDescriptors ? JSON.parse(cachedDescriptors) : []);
+    } catch {
+      setHasTrainedSigns(null);
+      setTrainedSignLabels([]);
+      setTrainedLabelDescriptors([]);
+    }
+  }, [
+    trainedSignStorageKeys.hasTrainedSigns,
+    trainedSignStorageKeys.trainedLabelDescriptors,
+    trainedSignStorageKeys.trainedSignLabels,
+  ]);
 
   useEffect(() => {
     setAllowGlobalFallbackOutput(false);
@@ -424,9 +452,9 @@ export function SignLanguageRecorder() {
         const hasAny = labels.length > 0;
         setHasTrainedSigns(hasAny);
         try {
-          window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(labels));
-          window.localStorage.setItem('webapp:trained-label-descriptors', JSON.stringify(descriptors));
-          window.localStorage.setItem('webapp:has-trained-signs', String(hasAny));
+          window.localStorage.setItem(trainedSignStorageKeys.trainedSignLabels, JSON.stringify(labels));
+          window.localStorage.setItem(trainedSignStorageKeys.trainedLabelDescriptors, JSON.stringify(descriptors));
+          window.localStorage.setItem(trainedSignStorageKeys.hasTrainedSigns, String(hasAny));
         } catch {
           // ignore quota errors
         }
@@ -440,9 +468,9 @@ export function SignLanguageRecorder() {
         setTrainedLabelDescriptors([]);
         setHasTrainedSigns(false);
         try {
-          window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify([]));
-          window.localStorage.setItem('webapp:trained-label-descriptors', JSON.stringify([]));
-          window.localStorage.setItem('webapp:has-trained-signs', 'false');
+          window.localStorage.setItem(trainedSignStorageKeys.trainedSignLabels, JSON.stringify([]));
+          window.localStorage.setItem(trainedSignStorageKeys.trainedLabelDescriptors, JSON.stringify([]));
+          window.localStorage.setItem(trainedSignStorageKeys.hasTrainedSigns, 'false');
         } catch {
           // ignore quota errors
         }
@@ -533,7 +561,7 @@ export function SignLanguageRecorder() {
         }
         console.warn('Failed to check profile signs:', err);
         // On network error, prefer the cached value if it exists
-        const cached = window.localStorage.getItem('webapp:has-trained-signs');
+        const cached = window.localStorage.getItem(trainedSignStorageKeys.hasTrainedSigns);
         if (cached !== null) {
           setHasTrainedSigns(cached === 'true');
         } else {
@@ -552,7 +580,7 @@ export function SignLanguageRecorder() {
     return () => {
       isActive = false;
     };
-  }, [profileId, apiBaseUrl, apiToken]);
+  }, [profileId, apiBaseUrl, apiToken, trainedSignStorageKeys.hasTrainedSigns, trainedSignStorageKeys.trainedLabelDescriptors, trainedSignStorageKeys.trainedSignLabels]);
 
   // Auto-start camera when component mounts and camera is supported AND we have trained signs
   useEffect(() => {
@@ -982,8 +1010,7 @@ export function SignLanguageRecorder() {
     }
 
     if (!effectiveSign) {
-      const confidencePercent =
-        typeof lastConfidence === 'number' ? `${Math.round(lastConfidence * 100)}%` : null;
+      const confidencePercent = formatRecognitionScore(lastConfidence);
       const isUncertainMlpDecision =
         latestMlpDecisionReason === 'below_threshold' || latestMlpDecisionReason === 'below_candidate_margin';
       return {
@@ -992,7 +1019,7 @@ export function SignLanguageRecorder() {
           ? 'Unsichere Erkennung – bitte bestätigen'
           : 'Hand erkannt, aber keine passende Gebärde',
         hint: confidencePercent
-          ? `Aktuelle Sicherheit ist zu niedrig (${confidencePercent}). Bitte Gebärde klarer und langsamer zeigen.`
+          ? `Aktueller Modellwert ist zu niedrig (${confidencePercent}). Bitte Gebärde klarer und langsamer zeigen.`
           : 'Bitte Gebärde klarer und langsamer zeigen oder die Kamera etwas weiter weg positionieren.',
       };
     }
@@ -1065,6 +1092,9 @@ export function SignLanguageRecorder() {
             <p>
               Profil <strong>{profileId || '…'}</strong>
             </p>
+            <p>
+              Aktives Modell <strong>{modelStatusLabel}{modelMeta?.version ? ` · v${modelMeta.version}` : ''}</strong>
+            </p>
           </div>
         </div>
       </div>
@@ -1090,9 +1120,9 @@ export function SignLanguageRecorder() {
           {gestureLabel ? (
             <div className="gesture-screen__result">
               <span className="gesture-screen__result-label">{gestureLabel}</span>
-              {lastConfidence != null && (
+              {formatRecognitionScore(lastConfidence) && (
                 <span className="gesture-screen__result-confidence">
-                  {Math.round(lastConfidence * 100)}% Sicherheit
+                  {formatRecognitionScore(lastConfidence)} Erkennungswert
                 </span>
               )}
             </div>
@@ -1251,8 +1281,8 @@ export function SignLanguageRecorder() {
                 <li>Status: <strong>{formatStatusLabel(status)}</strong></li>
                 <li>Hände im Bild: <strong>{hasDetectedHands ? 'Ja' : 'Nein'}</strong></li>
                 <li>
-                  Letzte Sicherheit:{' '}
-                  <strong>{lastConfidence != null ? `${Math.round(lastConfidence * 100)}%` : 'Keine Messung'}</strong>
+                  Letzter Modellwert:{' '}
+                  <strong>{formatRecognitionScore(lastConfidence) ?? 'Keine Messung'}</strong>
                 </li>
                 <li>
                   Trainierte Gebärden im Profil:{' '}
@@ -1320,7 +1350,7 @@ export function SignLanguageRecorder() {
                 </select>
               </label>
               <label>
-                Erwartete Mindest-Sicherheit
+                Erwarteter Mindest-Modellwert
                 <input
                   type="number"
                   min={0}

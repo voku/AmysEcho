@@ -5,7 +5,6 @@ import {
   getMetacomSymbols,
   loadMetacomBoards,
   fetchMetacomBundleFromServer,
-  parseMetacomBundle,
   storeMetacomBundle,
 } from '../services/metacomBundleService';
 import type { MetacomVocabularySet } from '../types/metacomVocabulary';

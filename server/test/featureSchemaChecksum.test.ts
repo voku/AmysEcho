@@ -3,6 +3,8 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 
+import { resolvePythonExecutable, withProjectPythonPath } from '../src/utils/pythonExecutable.js';
+
 describe('feature schema checksum', () => {
   it('matches between Node and Python', async () => {
     const repoRoot = path.basename(process.cwd()) === 'server'
@@ -19,7 +21,10 @@ describe('feature schema checksum', () => {
       'digest = hashlib.sha256(path.read_bytes()).hexdigest()',
       'print(digest)',
     ].join('\n');
-    const result = spawnSync('python3', ['-c', script, schemaPath], { encoding: 'utf8' });
+    const result = spawnSync(resolvePythonExecutable(), ['-c', script, schemaPath], {
+      encoding: 'utf8',
+      env: withProjectPythonPath(),
+    });
 
     expect(result.status).toBe(0);
     const pythonHash = result.stdout.trim();

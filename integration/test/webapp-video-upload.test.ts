@@ -213,7 +213,7 @@ async function ensureProfileModelReady(): Promise<void> {
   await ensureProfileModelReadyPromise;
 }
 
-function predictLabelFromFrames(frames: RepoLandmarkFrame[], maxFrames = 12): MlpPredictResult | null {
+function predictLabelFromFrames(frames: RepoLandmarkFrame[], maxFrames = Number.POSITIVE_INFINITY): MlpPredictResult | null {
   const win = globalThis as any;
   let lastResult: MlpPredictResult | null = null;
 

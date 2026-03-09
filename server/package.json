@@ -43,8 +43,8 @@
     "test": "sh -c 'npm run test:ts -- \"$@\" && npm run test:py' sh \"$@\"",
     "test:ts": "jest --runInBand --detectOpenHandles",
     "pretest:py": "npm run build",
-    "test:py": "PYTHONPATH=./src:./ pytest -q",
-    "train:mlp": "python3 src/amyserver_tools/train_mlp.py",
+    "test:py": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && PYTHONPATH=./src:./ \"$PY_BIN\" -m pytest -q'",
+    "train:mlp": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" src/amyserver_tools/train_mlp.py'",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
@@ -53,12 +53,9 @@
     "download-gesture-task": "ts-node src/tools/getGestureTask.ts",
     "generate-token": "node scripts/generate-token.js",
     "stress-test": "node scripts/stress-test.js",
-    "train:mlp:realistic": "python3 ../scripts/realistic_dgs_training_cycle.py --workflow-preset chat-validated-2026-03 --auto-promote-on-usable"
+    "train:mlp:realistic": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" ../scripts/realistic_dgs_training_cycle.py --workflow-preset chat-validated-2026-03 --auto-promote-on-usable'"
   },
   "engines": {
     "node": ">=18.13.0"
-  },
-  "overrides": {
-    "minimatch": "^10.2.2"
   }
 }

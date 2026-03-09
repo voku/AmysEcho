@@ -149,6 +149,129 @@ const formatQualityLogReason = (reason: string): string => {
   return 'Unbekannter Ablehnungsgrund.';
 };
 
+type ReportConfusion = {
+  label: string;
+  count: number;
+};
+
+type ReportLabelDiagnostic = {
+  label: string;
+  bundleCount: number;
+  rejectedBundleCount: number;
+  windowCount: number;
+  prototypeCount: number;
+  trainGroupCount: number;
+  validationGroupCount: number;
+  confusionScope: string;
+  topConfusions: ReportConfusion[];
+};
+
+function parseReportConfusions(raw: unknown): ReportConfusion[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')
+    .map((entry) => ({
+      label: typeof entry['label'] === 'string' ? entry['label'] : '',
+      count: typeof entry['count'] === 'number' && Number.isFinite(entry['count']) ? entry['count'] : 0,
+    }))
+    .filter((entry) => entry.label.length > 0 && entry.count > 0);
+}
+
+function parseLabelDiagnostics(raw: unknown): ReportLabelDiagnostic[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')
+    .map((entry) => ({
+      label: typeof entry['label'] === 'string' ? entry['label'] : '',
+      bundleCount:
+        typeof entry['bundle_count'] === 'number' && Number.isFinite(entry['bundle_count']) ? entry['bundle_count'] : 0,
+      rejectedBundleCount:
+        typeof entry['rejected_bundle_count'] === 'number' && Number.isFinite(entry['rejected_bundle_count'])
+          ? entry['rejected_bundle_count']
+          : 0,
+      windowCount:
+        typeof entry['window_count'] === 'number' && Number.isFinite(entry['window_count']) ? entry['window_count'] : 0,
+      prototypeCount:
+        typeof entry['prototype_count'] === 'number' && Number.isFinite(entry['prototype_count'])
+          ? entry['prototype_count']
+          : 0,
+      trainGroupCount:
+        typeof entry['train_group_count'] === 'number' && Number.isFinite(entry['train_group_count'])
+          ? entry['train_group_count']
+          : 0,
+      validationGroupCount:
+        typeof entry['validation_group_count'] === 'number' && Number.isFinite(entry['validation_group_count'])
+          ? entry['validation_group_count']
+          : 0,
+      confusionScope: typeof entry['confusion_scope'] === 'string' ? entry['confusion_scope'] : 'none',
+      topConfusions: parseReportConfusions(entry['top_confusions']),
+    }))
+    .filter((entry) => entry.label.length > 0);
+}
+
+function resolveLabelReadiness(entry: ReportLabelDiagnostic): { title: string; hint: string } {
+  if (entry.windowCount === 0) {
+    return {
+      title: 'Noch nicht stabil im Modell',
+      hint: 'Aus den bisherigen Aufnahmen wurden noch keine verwertbaren Trainingsfenster erzeugt.',
+    };
+  }
+  if (entry.rejectedBundleCount > 0) {
+    return {
+      title: 'Mehr saubere Aufnahmen empfohlen',
+      hint: `${entry.rejectedBundleCount} Aufnahme(n) wurden verworfen. Bitte auf Bildausschnitt, Licht und klare Bewegung achten.`,
+    };
+  }
+  if (entry.prototypeCount <= 0 || entry.bundleCount < 2) {
+    return {
+      title: 'Wenig Beispiele',
+      hint: 'Die Gebärde ist im Modell, hat aber noch sehr wenig eigenständige Beispiele.',
+    };
+  }
+  if (entry.validationGroupCount <= 0 || entry.confusionScope !== 'validation') {
+    return {
+      title: 'Noch ohne unabhängige Prüfung',
+      hint: 'Für diese Gebärde gibt es noch keine getrennte Prüf-Aufnahme. Mindestens zwei unterschiedliche Aufnahmen helfen für eine ehrlichere Qualitätsaussage.',
+    };
+  }
+  if (entry.topConfusions.length > 0) {
+    const top = entry.topConfusions[0];
+    if (!top) {
+      return {
+        title: 'Verwechslungsrisiko',
+        hint: 'Das Modell trennt ähnliche Gebärden noch nicht stabil genug.',
+      };
+    }
+    return {
+      title: 'Verwechslungsrisiko',
+      hint: `Das Modell verwechselt diese Gebärde noch am ehesten mit "${top.label}" (${top.count} Treffer im Report).`,
+    };
+  }
+  return {
+    title: 'Bereit',
+    hint: 'Die Gebärde wurde mit eigenen Fenstern und Prototypen ins Modell übernommen.',
+  };
+}
+
+function formatModelSourceLabel(
+  modelStatus: 'idle' | 'loading' | 'ready' | 'error',
+  modelMeta: { source?: 'profile' | 'global' | null; version?: string | null } | null,
+): string {
+  if (modelStatus === 'loading') {
+    return 'Modell wird geladen…';
+  }
+  if (modelStatus === 'ready' && modelMeta?.source === 'profile') {
+    return `Persönliches Profilmodell${modelMeta.version ? ` (Version ${modelMeta.version})` : ''}`;
+  }
+  if (modelStatus === 'ready' && modelMeta?.source === 'global') {
+    return `Globales Ersatzmodell${modelMeta.version ? ` (Version ${modelMeta.version})` : ''}`;
+  }
+  if (modelStatus === 'error') {
+    return 'Modell konnte nicht geladen werden';
+  }
+  return 'Noch kein Modell aktiv';
+}
+
 function TrainingStatusBlock({
   uploader,
   message,
@@ -156,6 +279,9 @@ function TrainingStatusBlock({
   actionSlot,
   onSyncBundle,
   onRemoveBundle,
+  modelStatus,
+  modelMeta,
+  profileId,
 }: {
   uploader: TrainingUploaderHandle;
   message?: string;
@@ -163,6 +289,9 @@ function TrainingStatusBlock({
   actionSlot?: ReactNode;
   onSyncBundle?: (key: string) => Promise<void>;
   onRemoveBundle?: (key: string) => Promise<void>;
+  modelStatus: 'idle' | 'loading' | 'ready' | 'error';
+  modelMeta: { source?: 'profile' | 'global' | null; version?: string | null } | null;
+  profileId: string | null;
 }) {
   const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob, queuedBundles } = uploader;
   const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
@@ -183,6 +312,14 @@ function TrainingStatusBlock({
           Trainingsstatus konnte nicht geladen werden. Bitte versuche es später erneut.
         </div>
       )}
+      <div className="notice info">
+        Aktive Modellquelle: {formatModelSourceLabel(modelStatus, modelMeta)}
+        {profileId && modelMeta?.source === 'global' ? (
+          <p className="muted small mt-xs">
+            Für dieses Profil läuft die Erkennung derzeit auf dem globalen Ersatzmodell, nicht auf einem persönlichen Profilmodell.
+          </p>
+        ) : null}
+      </div>
       {activeTrainingJob && (
         <div className="notice info">
           <p className="eyebrow">Trainingsstatus</p>
@@ -265,9 +402,31 @@ function TrainingStatusBlock({
   );
 }
 
-function TrainingResultCard({ result, trainingJob }: { result: UploadTrainingBundleResponse; trainingJob: TrainingJobInfo | null }) {
+function TrainingResultCard({
+  result,
+  trainingJob,
+  profileId,
+}: {
+  result: UploadTrainingBundleResponse;
+  trainingJob: TrainingJobInfo | null;
+  profileId: string | null;
+}) {
   if (!result) return null;
   const activeTrainingJob = trainingJob ?? result.trainingJob ?? null;
+  const report = activeTrainingJob?.report;
+  const profileReportRaw =
+    profileId && report && typeof report === 'object' && report['profiles'] && typeof report['profiles'] === 'object'
+      ? (report['profiles'] as Record<string, unknown>)[profileId]
+      : null;
+  const hasProfileContext = typeof profileId === 'string' && profileId.length > 0;
+  const profileLabelDiagnostics = profileReportRaw && typeof profileReportRaw === 'object'
+    ? parseLabelDiagnostics((profileReportRaw as Record<string, unknown>)['label_diagnostics'])
+    : [];
+  const globalLabelDiagnostics = report && typeof report === 'object' && report['global'] && typeof report['global'] === 'object'
+    ? parseLabelDiagnostics((report['global'] as Record<string, unknown>)['label_diagnostics'])
+    : [];
+  const labelDiagnostics = hasProfileContext ? profileLabelDiagnostics : globalLabelDiagnostics;
+  const showMissingProfileDiagnosticsNotice = hasProfileContext && labelDiagnostics.length === 0;
 
   return (
     <div className="result-card">
@@ -311,6 +470,29 @@ function TrainingResultCard({ result, trainingJob }: { result: UploadTrainingBun
               ))}
             </ul>
           ) : null}
+        </div>
+      )}
+      {labelDiagnostics.length > 0 && (
+        <div>
+          <p className="eyebrow">Label-Bereitschaft</p>
+          <ul className="muted small bullets">
+            {labelDiagnostics.map((entry) => {
+              const readiness = resolveLabelReadiness(entry);
+              return (
+                <li key={entry.label}>
+                  <strong>{entry.label}</strong>: {readiness.title}. {readiness.hint}{' '}
+                  {`Fenster: ${entry.windowCount}, Bundles: ${entry.bundleCount}, Prototypen: ${entry.prototypeCount}.`}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+      {showMissingProfileDiagnosticsNotice && (
+        <div>
+          <p className="muted small">
+            Für dieses Profil liegen noch keine profilbezogenen Label-Diagnosen vor. Globale Modellwerte werden hier bewusst nicht als Profilbewertung angezeigt.
+          </p>
         </div>
       )}
     </div>
@@ -853,6 +1035,9 @@ export function TrainingUploadWithRecording() {
           onSyncQueued={handleSyncQueued}
           onSyncBundle={handleSyncBundle}
           onRemoveBundle={handleRemoveBundle}
+          modelStatus={modelInjection.status}
+          modelMeta={modelInjection.lastMeta}
+          profileId={profileId}
         />
       </div>
 
@@ -862,7 +1047,7 @@ export function TrainingUploadWithRecording() {
 
       {lastResult && (
         <div className="mt-md">
-          <TrainingResultCard result={lastResult} trainingJob={trainingJob} />
+          <TrainingResultCard result={lastResult} trainingJob={trainingJob} profileId={profileId} />
         </div>
       )}
     </>

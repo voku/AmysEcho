@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSymbolStore } from '../context/SymbolStore';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { audioService } from '../services/audioService';
-import { findMetacomSymbolByLabel } from '../services/metacomBundleService';
+import { findMetacomSymbolByLabel, storeMetacomBundle } from '../services/metacomBundleService';
 import {
   addMetacomMemoryItem,
   clearMetacomMemory,
@@ -354,11 +354,11 @@ export function MetacomBoard() {
     }));
   }, [boardHistory, boards]);
 
-  const handleBreadcrumbClick = useCallback((id: string, index: number) => {
+  const handleBreadcrumbClick = useCallback((_id: string, index: number) => {
     setBoardHistory((prev) => prev.slice(0, index + 1));
   }, []);
 
-  const handleImportMetacomBundle = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportMetacomBundle = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -396,7 +396,7 @@ export function MetacomBoard() {
             <p className="eyebrow">Metacom</p>
             <nav className="metacom-breadcrumbs" aria-label="Breadcrumb">
               {breadcrumbs.map((crumb, index) => (
-                <React.Fragment key={crumb.id}>
+                <Fragment key={crumb.id}>
                   {index > 0 && <span className="breadcrumb-separator">›</span>}
                   <button
                     className={`breadcrumb-item ${index === breadcrumbs.length - 1 ? 'active' : ''}`}
@@ -405,9 +405,10 @@ export function MetacomBoard() {
                   >
                     {crumb.label}
                   </button>
-                </React.Fragment>
+                </Fragment>
               ))}
             </nav>
+            <h2>{board.label}</h2>
           </div>
         </div>
         <div className="metacom-topbar-right">

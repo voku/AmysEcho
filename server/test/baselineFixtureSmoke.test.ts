@@ -4,6 +4,7 @@ import path from 'path';
 import AdmZip from 'adm-zip';
 import { spawnSync } from 'child_process';
 
+import { resolvePythonExecutable, withProjectPythonPath } from '../src/utils/pythonExecutable.js';
 import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel.js';
 
 describe('baseline fixture smoke test', () => {
@@ -33,7 +34,10 @@ describe('baseline fixture smoke test', () => {
         "labels = data['labels'].tolist()",
         "print(json.dumps({'keys': keys, 'labels': labels}))",
       ].join('\n');
-      const result = spawnSync('python3', ['-c', script, modelPath], { encoding: 'utf8' });
+      const result = spawnSync(resolvePythonExecutable(), ['-c', script, modelPath], {
+        encoding: 'utf8',
+        env: withProjectPythonPath(),
+      });
       expect(result.status).toBe(0);
       const parsed = JSON.parse(result.stdout) as { keys: string[]; labels: string[] };
       expect(parsed.keys).toEqual(

@@ -44,7 +44,7 @@ describe('Settings', () => {
       </BrowserRouter>,
     );
 
-    expect(screen.getByRole('button', { name: 'Daten exportieren' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Alle Daten löschen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lokale Profildaten exportieren' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lokale Profildaten löschen' })).toBeInTheDocument();
   });
 });

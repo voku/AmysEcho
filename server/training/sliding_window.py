@@ -35,6 +35,7 @@ class Sample:
     audio_features: list[float] | None = None  # Flattened audio features (MFCC, mel spectrogram)
     audio_metadata: dict[str, Any] | None = None  # Audio quality, duration, etc.
     mirror_safe: bool = False
+    source_bundle_id: str | None = None
 
 
 
@@ -148,6 +149,7 @@ def create_sliding_windows(
             audio_features=audio_features_list,
             audio_metadata=audio_metadata,
             mirror_safe=bool(context.get('mirror_safe', False)),
+            source_bundle_id=context.get('source_bundle_id'),
         ))
 
     return samples

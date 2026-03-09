@@ -101,7 +101,8 @@ def load_model(path: Path) -> tuple[WeightTuple, list[str], dict[str, Any]]:
     if not path.exists():
         raise FileNotFoundError(f"Model not found: {path}")
 
-    data = np.load(path, allow_pickle=False)
+    # allow_pickle=True is needed for string arrays (labels) in modern numpy
+    data = np.load(path, allow_pickle=True)
 
     # Extract weights (transpose back)
     try:

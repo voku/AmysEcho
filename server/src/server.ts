@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import { createHash, randomBytes } from "crypto";
 import express, { type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
-import { existsSync, promises as fs } from "fs";
+import { promises as fs } from "fs";
 import path from "path";
 import { z } from "zod";
 import config from "./config/index.js";
@@ -70,6 +70,7 @@ import { parseEpochSchedule, resolveTrainingScore } from "./services/profileTrai
 import type { Correction, ManifestEntry, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
 import { loadManifestEntries } from "./utils/manifestUtils.js";
+import { resolvePythonExecutable, withProjectPythonPath } from "./utils/pythonExecutable.js";
 import { buildTrainedLabelDescriptors, mergeTrainedLabels } from "./services/trainedLabelsService.js";
 import { isProfileAuthorized } from "./utils/profileAuthorization.js";
 import { httpsEnforcement, hstsHeaders } from "./middleware/httpsEnforcement.js";
@@ -315,19 +316,6 @@ async function getCachedManifestEntries(): Promise<ManifestEntry[]> {
 	return entries;
 }
 
-function resolvePythonExecutableForHealthCheck(): string {
-	if (process.env.AMY_PYTHON_BIN && process.env.AMY_PYTHON_BIN.trim().length > 0) {
-		return process.env.AMY_PYTHON_BIN.trim();
-	}
-
-	const projectVenvPython = path.join(SERVER_DIR, ".venv", "bin", "python");
-	if (existsSync(projectVenvPython)) {
-		return projectVenvPython;
-	}
-
-	return "python3";
-}
-
 async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; message: string }> {
 	// Return cached result if still valid
 	if (pythonDepsCheckCache && Date.now() - pythonDepsCheckCache.timestamp < PYTHON_DEPS_CACHE_TTL_MS) {
@@ -336,9 +324,13 @@ async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; mess
 
 	// Perform actual check
 	try {
-		const pythonExecutable = resolvePythonExecutableForHealthCheck();
+		const pythonExecutable = resolvePythonExecutable();
 		await new Promise<void>((resolve, reject) => {
-			const proc = spawn(pythonExecutable, ["-c", "import numpy, sklearn, mediapipe; print('ok')"]);
+			const proc = spawn(
+				pythonExecutable,
+				["-c", "import numpy, sklearn, mediapipe; print('ok')"],
+				{ env: withProjectPythonPath() },
+			);
 			let stderr = "";
 			proc.stderr.on("data", (data) => { stderr += data; });
 			proc.on("close", (code) => {
@@ -922,8 +914,9 @@ async function runTrainingWorkflow(
 
 		const runReport = await new Promise<{ stdout: string; stderr: string }>(
 			(resolve, reject) => {
-				const proc = spawn("python3", attemptArgs, {
+				const proc = spawn(resolvePythonExecutable(), attemptArgs, {
 					cwd: serverRoot,
+					env: withProjectPythonPath(),
 				});
 				let stdout = "";
 				let stderr = "";

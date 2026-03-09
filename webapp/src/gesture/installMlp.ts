@@ -767,13 +767,13 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       if (isTemporal) {
         // Temporal model: flatten rolling buffer (window_size can be 1)
         const visualFeatures = new Float32Array(windowSize * featureSizePerFrame);
-        for (let i = 0; i < rollingBuffer.length; i++) {
-          const frame = rollingBuffer[i];
-          if (frame) {
-            visualFeatures.set(frame, i * featureSizePerFrame);
-          }
+        const paddingFrame = rollingBuffer[rollingBuffer.length - 1] ?? currentFrameVec;
+        for (let i = 0; i < windowSize; i++) {
+          const frame = rollingBuffer[i] ?? paddingFrame;
+          visualFeatures.set(frame, i * featureSizePerFrame);
         }
-        // Note: If rollingBuffer.length < windowSize, remaining positions stay zero (initial padding)
+        // Match server-side short-clip padding by repeating the latest observed frame
+        // instead of introducing zero-only prefixes that bias startup toward _NULL_.
 
         // Add audio features ONCE per window if multimodal model
         // This matches server training: [visual_window | audio] not [visual+audio] per frame

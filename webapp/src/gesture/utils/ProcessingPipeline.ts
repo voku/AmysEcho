@@ -5,7 +5,7 @@
 
 import { PerformanceOptimizer } from './PerformanceOptimizer';
 import { MemoryOptimizer } from './MemoryOptimizer';
-import { MediaPipeGestureResult, type MlpCandidate, TwoHandGesture } from '../types/MediaPipeTypes';
+import { MediaPipeGestureResult, type MLPPrediction, TwoHandGesture } from '../types/MediaPipeTypes';
 import { NormalizedMediaPipeResult } from './mapMediaPipeResults';
 
 export interface ProcessingContext {
@@ -72,7 +72,7 @@ export interface ProcessingResult {
     confidenceState?: 'confident' | 'unsure' | 'none';
     perHand: Array<{ hand: string; label: string; score: number }>;
     handednesses: string[];
-    mlp: { label: string; score: number; candidates?: MlpCandidate[] } | null;
+    mlp: MLPPrediction | null;
     mlpDecision?: {
       selected: boolean;
       reason:

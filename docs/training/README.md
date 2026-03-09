@@ -72,6 +72,9 @@ The most common issue is **video source mismatch**:
 1. Verify signs match training videos exactly
 2. Record multiple variants of each sign
 3. Add more training examples with Amy
+4. Use the sparse-label path: newer trained models now include a prototype bank in addition to the MLP, so a gesture can start working earlier with fewer caregiver recordings than the dense head alone
+5. Check whether the app is really using the personal profile model or only the global fallback, and inspect the training report's label diagnostics for bundle rejections or strong confusions such as `satt` ↔ `trinken`
+6. If the training UI says a gesture is "Noch ohne unabhängige Prüfung", the profile model still needs at least one separate recording bundle for an honest validation split; the app no longer substitutes global readiness data for a profile result
 
 ### "Starting from scratch"
 
@@ -100,6 +103,11 @@ See: [VIDEO_SOURCE_CONSISTENCY.md](VIDEO_SOURCE_CONSISTENCY.md) for full guidanc
 ### 1. Consistency Over Quantity
 **Better: 10 videos matching Amy's learning**
 **Worse: 100 videos from mismatched source**
+
+### 1b. Quality Windows Beat Long Recording Sessions
+The current trainer keeps the dense MLP, but also exports a few-shot prototype bank from Amy's normalized gesture windows.
+That means a small number of clean, representative recordings is now more valuable than forcing a child through a long one-hour capture session.
+The trainer also keeps windows from the same clip together during validation now, so reported diagnostics are less likely to look artificially better than real-world recognition.
 
 ### 2. Test With Amy
 **The only test that matters is whether Amy can communicate successfully.**

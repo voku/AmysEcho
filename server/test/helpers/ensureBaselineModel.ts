@@ -1,16 +1,17 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { spawnSync } from 'child_process';
+import { promises as fs } from "fs";
+import path from "path";
+import { spawnSync } from "child_process";
 
 import {
   DEFAULT_MLP_FEATURE_SIZE,
   DEFAULT_MLP_LAYER1_SIZE,
   DEFAULT_MLP_LAYER2_SIZE,
   DEFAULT_MLP_WINDOW_SIZE,
-} from '../../src/services/mlpModelArtifacts.js';
+} from "../../src/services/mlpModelArtifacts.js";
+import { resolvePythonExecutable, withProjectPythonPath } from "../../src/utils/pythonExecutable.js";
 
 const MIN_FIXTURE_SIZE_BYTES = Number.parseInt(
-  process.env.AMY_ECHO_TEST_MLP_MIN_SIZE ?? '100000',
+  process.env.AMY_ECHO_TEST_MLP_MIN_SIZE ?? "100000",
   10,
 );
 
@@ -30,7 +31,7 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 async function resolveBaselinePath(): Promise<string> {
-  const { BASELINE_MLP_MODEL_PATH } = await import('../../src/constants/modelPaths.js');
+  const { BASELINE_MLP_MODEL_PATH } = await import("../../src/constants/modelPaths.js");
   return BASELINE_MLP_MODEL_PATH;
 }
 
@@ -91,8 +92,9 @@ finally:
     if os.path.exists(tmp):
         os.remove(tmp)`;
 
-  const result = spawnSync('python3', ['-c', script, baselinePath], {
-    encoding: 'utf8',
+  const result = spawnSync(resolvePythonExecutable(), ["-c", script, baselinePath], {
+    encoding: "utf8",
+    env: withProjectPythonPath(),
   });
 
   if (result.status !== 0) {

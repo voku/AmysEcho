@@ -7,6 +7,10 @@ vi.mock('../hooks/useApiConfig', () => ({
   useApiConfig: () => ({ apiBaseUrl: 'http://localhost:5000', apiToken: '' }),
 }));
 
+vi.mock('../hooks/useAppState', () => ({
+  useAppState: () => ({ profileId: 'amy', displayName: 'Amy' }),
+}));
+
 vi.mock('../context/MessageContext', () => ({
   useMessage: () => ({
     showToast: vi.fn(),
@@ -31,8 +35,10 @@ vi.mock('../context/SymbolStore', () => ({
 
 vi.mock('../services/backupService', () => ({
   backupService: {
-    createBackup: vi.fn(),
-    restoreBackup: vi.fn(),
+    backupProtectedGestures: vi.fn(),
+    restoreProtectedGestures: vi.fn(),
+    restoreProtectedGesturesFromFile: vi.fn(),
+    exportProtectedGestures: vi.fn(),
   },
 }));
 

@@ -9,6 +9,9 @@ const syncQueuedMock = vi.fn();
 const setPreferredSignMock = vi.fn();
 let profileIdMock: string | null = '11111111-1111-4111-8111-111111111111';
 let preferredSignIdMock = '';
+let lastResultMock: any = null;
+let trainingJobMock: any = null;
+let modelMetaMock: any = { source: 'profile', version: 'p-1' };
 
 vi.mock('../hooks/useApiConfig', () => ({
   useApiConfig: () => ({
@@ -24,9 +27,9 @@ vi.mock('../hooks/useTrainingUploader', () => ({
   isAuthFailureReason: () => false,
   useTrainingUploader: () => ({
     upload: uploadMock,
-    lastResult: null,
+    lastResult: lastResultMock,
     state: 'idle',
-    trainingJob: null,
+    trainingJob: trainingJobMock,
     error: null,
     syncError: null,
     trainingJobError: null,
@@ -50,7 +53,12 @@ vi.mock('../hooks/useAppState', () => ({
 }));
 
 vi.mock('../hooks/useMlpModelInjection', () => ({
-  useMlpModelInjection: () => ({ notice: null, refreshModel: vi.fn().mockResolvedValue(undefined) }),
+  useMlpModelInjection: () => ({
+    notice: null,
+    status: 'ready',
+    lastMeta: modelMetaMock,
+    refreshModel: vi.fn().mockResolvedValue(undefined),
+  }),
 }));
 
 vi.mock('../hooks/useMetacomBundle', () => ({
@@ -81,6 +89,9 @@ vi.mock('./TrainingRecorder', () => ({
 beforeEach(() => {
   profileIdMock = '11111111-1111-4111-8111-111111111111';
   preferredSignIdMock = '';
+  lastResultMock = null;
+  trainingJobMock = null;
+  modelMetaMock = { source: 'profile', version: 'p-1' };
   vi.clearAllMocks();
 });
 
@@ -128,5 +139,129 @@ describe('TrainingUpload', () => {
       expect(syncQueuedMock).toHaveBeenCalled();
       expect(screen.getByText('Synchronisierung abgeschlossen (1 Paket(e) übertragen).')).toBeInTheDocument();
     });
+  });
+
+  it('shows active model source and sparse label readiness from the training report', async () => {
+    preferredSignIdMock = 'hilfe';
+    modelMetaMock = { source: 'global', version: 'g-7' };
+    lastResultMock = {
+      id: 'bundle-1',
+      status: 'completed',
+    };
+    trainingJobMock = {
+      jobId: 'job-1',
+      status: 'completed',
+      report: {
+        profiles: {
+          '11111111-1111-4111-8111-111111111111': {
+            label_diagnostics: [
+              {
+                label: 'satt',
+                bundle_count: 2,
+                rejected_bundle_count: 1,
+                window_count: 6,
+                prototype_count: 2,
+                train_group_count: 1,
+                validation_group_count: 1,
+                confusion_scope: 'validation',
+                top_confusions: [{ label: 'trinken', count: 2 }],
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <TrainingUploadWithRecording />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Aktive Modellquelle: Globales Ersatzmodell/)).toBeInTheDocument();
+    expect(screen.getByText(/Für dieses Profil läuft die Erkennung derzeit auf dem globalen Ersatzmodell/)).toBeInTheDocument();
+    expect(screen.getByText(/Label-Bereitschaft/)).toBeInTheDocument();
+    expect(screen.getByText(/satt/)).toBeInTheDocument();
+    expect(screen.getByText(/Mehr saubere Aufnahmen empfohlen/)).toBeInTheDocument();
+  });
+
+  it('does not fall back to global label diagnostics inside a profile training result', async () => {
+    preferredSignIdMock = 'hilfe';
+    lastResultMock = {
+      id: 'bundle-2',
+      status: 'completed',
+    };
+    trainingJobMock = {
+      jobId: 'job-2',
+      status: 'completed',
+      report: {
+        global: {
+          label_diagnostics: [
+            {
+              label: 'global-only',
+              bundle_count: 4,
+              rejected_bundle_count: 0,
+              window_count: 12,
+              prototype_count: 3,
+              train_group_count: 3,
+              validation_group_count: 1,
+              confusion_scope: 'validation',
+              top_confusions: [],
+            },
+          ],
+        },
+        profiles: {},
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <TrainingUploadWithRecording />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Für dieses Profil liegen noch keine profilbezogenen Label-Diagnosen vor/)).toBeInTheDocument();
+    expect(screen.queryByText('global-only')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Label-Bereitschaft/)).not.toBeInTheDocument();
+  });
+
+  it('warns when a label has no independent validation bundle yet', async () => {
+    preferredSignIdMock = 'hilfe';
+    lastResultMock = {
+      id: 'bundle-3',
+      status: 'completed',
+    };
+    trainingJobMock = {
+      jobId: 'job-3',
+      status: 'completed',
+      report: {
+        profiles: {
+          '11111111-1111-4111-8111-111111111111': {
+            label_diagnostics: [
+              {
+                label: 'mehr',
+                bundle_count: 2,
+                rejected_bundle_count: 0,
+                window_count: 5,
+                prototype_count: 2,
+                train_group_count: 2,
+                validation_group_count: 0,
+                confusion_scope: 'none',
+                top_confusions: [],
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <TrainingUploadWithRecording />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Noch ohne unabhängige Prüfung/)).toBeInTheDocument();
+    expect(screen.getByText(/Mindestens zwei unterschiedliche Aufnahmen helfen/)).toBeInTheDocument();
   });
 });

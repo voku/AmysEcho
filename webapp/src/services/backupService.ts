@@ -11,6 +11,13 @@ export interface BackupArtifact {
   fileName: string;
 }
 
+async function readBlobText(blob: Blob): Promise<string> {
+  if (typeof (blob as Blob & { text?: () => Promise<string> }).text === 'function') {
+    return (blob as Blob & { text: () => Promise<string> }).text();
+  }
+  return new Response(blob).text();
+}
+
 async function getOrCreateKey(): Promise<string> {
   const stored = localStorage.getItem(BACKUP_KEY_ID);
   if (stored) return stored;
@@ -57,13 +64,7 @@ export const backupService = {
     return createDownload(cipher, 'protectedGesturesBackup.dat');
   },
 
-  async restoreProtectedGestures(): Promise<boolean> {
-    const cipher = localStorage.getItem(BACKUP_STORAGE_KEY);
-    if (!cipher) {
-      logger.warn('No backup file found.');
-      return false;
-    }
-
+  async restoreProtectedGesturesFromCipher(cipher: string): Promise<boolean> {
     const key = await getOrCreateKey();
     let plain: string;
     try {
@@ -87,12 +88,31 @@ export const backupService = {
     }
 
     try {
+      localStorage.setItem(BACKUP_STORAGE_KEY, cipher);
       localStorage.setItem(PROTECTED_GESTURES_KEY, plain);
       return true;
     } catch (error) {
       logger.error('Failed to save restored data', error);
       return false;
     }
+  },
+
+  async restoreProtectedGestures(): Promise<boolean> {
+    const cipher = localStorage.getItem(BACKUP_STORAGE_KEY);
+    if (!cipher) {
+      logger.warn('No backup file found.');
+      return false;
+    }
+    return this.restoreProtectedGesturesFromCipher(cipher);
+  },
+
+  async restoreProtectedGesturesFromFile(file: Blob): Promise<boolean> {
+    const cipher = (await readBlobText(file)).trim();
+    if (!cipher) {
+      logger.warn('Backup file was empty.');
+      return false;
+    }
+    return this.restoreProtectedGesturesFromCipher(cipher);
   },
 
   async exportProtectedGestures(): Promise<BackupArtifact | null> {

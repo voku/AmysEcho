@@ -71,7 +71,7 @@ describe('MetacomBoard', () => {
   it('renders the start board with core symbols', async () => {
     renderWithProviders(<MetacomBoard />);
 
-    expect(await screen.findByText('Starttafel')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Starttafel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ich' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Essen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Satzbau-Hilfe aus' })).toBeInTheDocument();

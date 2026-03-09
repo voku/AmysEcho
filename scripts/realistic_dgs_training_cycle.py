@@ -31,6 +31,7 @@ STDERR_SUMMARY_LINES = 20
 
 def load_trainer_module() -> Any:
     sys.path.insert(0, str(SERVER_DIR / "training"))
+    sys.path.insert(0, str(SERVER_DIR / "src"))
     trainer_spec = importlib.util.spec_from_file_location("amy_train_mlp", TRAINER_SCRIPT)
     if trainer_spec is None or trainer_spec.loader is None:
         raise RuntimeError(f"Unable to load trainer module from {TRAINER_SCRIPT}")
@@ -41,6 +42,7 @@ def load_trainer_module() -> Any:
 
 def load_model_weights(model_path: Path) -> tuple[Any, list[str], dict[str, Any]]:
     sys.path.insert(0, str(SERVER_DIR / "training"))
+    sys.path.insert(0, str(SERVER_DIR / "src"))
     from model_serialization import load_model
 
     return load_model(model_path)
@@ -210,30 +212,62 @@ def run_training_attempt(
         "--skip-examples",
     ]
 
-    result = subprocess.run(
+    process = subprocess.Popen(
         command,
         cwd=str(PROJECT_ROOT),
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=timeout_s,
-        check=False,
     )
 
+    stdout_captured = []
+    stderr_captured = []
+
+    import threading
+
+    def capture_stderr():
+        for line in process.stderr:
+            stderr_captured.append(line)
+            # Optional: print(f"  [stderr] {line.strip()}", file=sys.stderr)
+
+    stderr_thread = threading.Thread(target=capture_stderr)
+    stderr_thread.start()
+
+    try:
+        # Read stdout in real-time to prevent buffer bloat and provide feedback
+        for line in process.stdout:
+            stdout_captured.append(line)
+            # Only print relevant events to stderr, suppress full final report which is huge
+            if '"type":' in line or "epoch" in line.lower():
+                print(f"  [trainer] {line.strip()}", file=sys.stderr)
+            elif len(line) < 500: # Print short lines (usually status or errors)
+                print(f"  [trainer] {line.strip()}", file=sys.stderr)
+
+        process.wait(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        raise
+
+    stderr_thread.join()
+
+    stdout = "".join(stdout_captured)
+    stderr = "".join(stderr_captured)
+
     payload = {
-        "returncode": result.returncode,
-        "stdout": result.stdout,
-        "stderr": result.stderr,
+        "returncode": process.returncode,
+        "stdout": stdout,
+        "stderr": stderr,
         "command": command,
     }
 
-    if result.returncode != 0:
+    if process.returncode != 0:
         raise RuntimeError(json.dumps(payload, indent=2))
 
     try:
-        report = json.loads(result.stdout)
+        report = json.loads(stdout)
     except json.JSONDecodeError as exc:
         raise RuntimeError(
-            f"Failed to parse trainer output as JSON: {exc}. stdout: {result.stdout}"
+            f"Failed to parse trainer output as JSON: {exc}. stdout: {stdout}"
         ) from exc
 
     if "error" in report:
@@ -280,7 +314,7 @@ def evaluate_model(model_path: Path, eval_manifest_path: Path) -> EvaluationResu
     if not eval_samples:
         raise RuntimeError("No evaluation samples were generated from held-out files.")
 
-    X_eval, y_eval, eval_labels, _ = trainer.dataset_to_arrays(eval_samples, augmentations_per_sample=0)
+    X_eval, y_eval, eval_labels, _weights, _groups = trainer.dataset_to_arrays(eval_samples, augmentations_per_sample=0)
     weights, model_labels, _ = load_model_weights(model_path)
 
     coverage = dict.fromkeys(eval_labels, 0)
@@ -359,8 +393,8 @@ def main() -> None:
     parser.add_argument("--workflow-preset", type=str, default="none", choices=["none", "chat-validated-2026-03"])
     parser.add_argument("--holdout-ratio", type=float, default=0.2)
     parser.add_argument("--usable-accuracy", type=float, default=0.35)
-    parser.add_argument("--max-files-per-label", type=int, default=3)
-    parser.add_argument("--timeout-seconds", type=int, default=14400)
+    parser.add_argument("--max-files-per-label", type=int, default=10)
+    parser.add_argument("--timeout-seconds", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=20260301)
     parser.add_argument("--epoch-schedule", type=str, default="20,40,80")
     parser.add_argument("--keep-attempt-artifacts", action="store_true")

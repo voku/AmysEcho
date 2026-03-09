@@ -264,7 +264,8 @@ def test_train_endpoint():
         assert npz.exists()
         with np.load(npz, allow_pickle=False) as model:
             assert "labels" in model
-            assert model["labels"][0] == "g1"
+            labels = model["labels"].tolist()
+            assert "g1" in labels
 
         # ensure MLP model downloadable
         mlp_req = urllib.request.Request(

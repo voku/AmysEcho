@@ -1315,15 +1315,16 @@ def train_mlp(
         # 5. Progress logging
         monitor_loss = validation_loss if validation_loss is not None else loss
         if epoch % max(1, epochs // 10) == 0:
-            _emit_event(
-                {
-                    "type": "progress",
-                    "epoch": current_epoch,
-                    "total": epochs,
-                    "loss": f"{loss:.4f}",
-                    **({"validationLoss": f"{validation_loss:.4f}"} if validation_loss is not None else {}),
-                }
-            )
+            if LOGGER.isEnabledFor(logging.DEBUG):
+                _emit_event(
+                    {
+                        "type": "progress",
+                        "epoch": current_epoch,
+                        "total": epochs,
+                        "loss": f"{loss:.4f}",
+                        **({"validationLoss": f"{validation_loss:.4f}"} if validation_loss is not None else {}),
+                    }
+                )
 
         # 6. Early stopping check
         stop_after_epoch = False
@@ -1844,14 +1845,6 @@ def load_audio_features_for_bundle(
 
 
 def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False) -> tuple[list[Sample], dict[str, object]]:
-    """
-    Load training data from manifest and generate sliding window samples.
-    
-    Key Changes from Baseline:
-    - Removed frame averaging logic entirely
-    - Each clip generates multiple training samples (sliding windows)
-    - Automatically creates "_NULL_" class from clip starts (background modeling)
-    """
     manifest = load_json(manifest_path)
     if not manifest:
         return [], create_empty_training_stats()

@@ -14,6 +14,44 @@
 - [ ] Expand operational runbooks with incident drills and rollback practice evidence.
 - [ ] Establish accessibility manual verification cadence (screen reader and keyboard-only sessions).
 
+## Stability Hardening Plan (Blind-Spot Analysis 2026-03-09)
+
+Goal: make Amy's personalized communication flow trustworthy in real caregiver use, especially for profile-trained recognition, backup/restore, and multi-child separation.
+
+This section follows the current Amy-first quality bar from `docs/testing/TESTING_STRATEGY.md` and `docs/workflows/DEVELOPMENT_WORKFLOW.md`. Work the items top-to-bottom unless a blocker forces reordering.
+
+- [x] **Fix the real end-to-end profile recognition regression first**  
+  Amy Impact: a finished training run must turn into usable recognition, not only a downloadable model file.  
+  Acceptance: the failing integration scenario in `integration/test/webapp-video-upload.test.ts` ("gesture detection works with downloaded profile model after training") passes with repo fixtures, and the downloaded profile model produces ranked MLP candidates for the expected labels instead of returning `null`. _Done: the real repo-video training flow now passes end to end._
+- [x] **Make Python execution deterministic across app, tests, and integration**  
+  Amy Impact: training must not silently fail because one machine uses a different Python environment than another.  
+  Acceptance: the default `server` and `integration` commands no longer depend on ad-hoc system `python3` state for `numpy`/`sklearn`/`mediapipe`; training jobs, baseline model seeding, and integration startup use one documented interpreter contract and pass on a clean dev machine. _Done: runtime/tools/tests now resolve the project Python explicitly._
+- [x] **Turn backup/export into a real caregiver restore flow**  
+  Amy Impact: Amy's personalized symbols, gestures, and models must survive device loss, browser reset, or caregiver migration without technical improvisation.  
+  Acceptance: a caregiver can import a previously downloaded backup again through the product flow; the UI clearly distinguishes browser-only protected-gesture backup from full profile archive restore; add automated coverage for `/api/v1/profiles/:id/backup`, `/api/v1/profiles/:id/backups`, and `/api/v1/profiles/:id/restore`. _Done: browser backup import, profile archive export/restore, and route coverage are in place._
+- [x] **Repair Metacom/Admin build health before trusting webapp quality gates again**  
+  Amy Impact: caregiver tooling must compile cleanly so support, import, and recovery workflows are reliable when needed.  
+  Acceptance: `npm run type-check --prefix webapp`, `npm run lint --prefix webapp`, `npm run build --prefix webapp`, and `npm run test:coverage --prefix webapp` all pass again; duplicate declarations in the Metacom bundle code are removed; current failing `modelClient` and `useMlpModelInjection` tests are green. _Done: all listed webapp gates are green again._
+- [x] **Make settings and local data actions explicitly multi-profile safe**  
+  Amy Impact: one caregiver account can support multiple children only if local exports, deletes, and model actions never blur profile boundaries.  
+  Acceptance: settings/admin actions clearly state whether they affect the active profile or all local profiles; destructive local actions no longer accidentally wipe unrelated profile data; admin model actions either respect the active `profileId` or clearly present themselves as global-only tools. _Done: local exports/deletes and trained-label caches are now profile-scoped._
+- [x] **Close trainer test drift and publish one stable quality-gate report**  
+  Amy Impact: teams need trustworthy pass/fail evidence before changing Amy's recognition pipeline again.  
+  Acceptance: stale Python expectations are updated to current trainer behavior or the implementation is corrected; Python coverage remains reportable; server TS coverage tooling is repaired; the resulting command set and current pass/fail state are documented in the release/readiness notes. _Done: Python drift was fixed, Python coverage runs again, and server TS coverage was repaired by removing the incompatible global `minimatch` override._
+
+Verification snapshot on 2026-03-09:
+
+- `npm test --prefix integration` passes (`14/14`)
+- `npm run test:coverage --prefix webapp` passes (`1275/1275`, `71.84%` statements)
+- `npm run test:ts --prefix server -- --coverage` passes (`276/276`, `57.01%` statements)
+- `PYTHONPATH=./server/src:./server:./server/training .venv/bin/python -m pytest -q --cov=server/src --cov=server/training --cov-report=term server/test` passes (`122/122`, `52%` total)
+
+Residual watch items after hardening:
+
+- Webapp tests still emit several React `act(...)` warnings in older UI suites; they are noisy but non-blocking.
+- Trainer-side coverage is still shallow in legacy modules such as `generate_zero_model.py`, `data_pipeline.py`, `mlp_architecture.py`, and `model_serialization.py`.
+- Manual second-device backup/restore validation is still worth doing even though the automated archive and browser-import flows now pass.
+
 ## Copilot Issue Queue (Open TODOs → GitHub Issues)
 
 Use this section to create one GitHub issue per unchecked item. Keep issue titles identical to task text for traceability.
@@ -41,6 +79,17 @@ Use this section to create one GitHub issue per unchecked item. Keep issue title
 - [x] Ship a kid-focused, production-ready DGS baseline model: curate the starter vocabulary (colors, food, caregiver phrases), train a balanced multimodal model, and place the resulting `data/amy_model.npz` under `server/data/models/global/` with a recorded SHA256 checksum so deploys always carry working weights. (Baseline artifact + checksum committed, kid starter preset in `server/data/config/kid_starter_preset.json`.)
 - [x] **Finalize quality gates for user-generated training data:** define per-sign minimums, jitter thresholds for hand/pose/face stability, and review steps before promoting caregiver uploads into the global baseline. (Thresholds in `server/src/constants/trainingQuality.ts`, documented in `docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md`.)
 - [x] Close the multimodal feedback loop in production: validate that camera overlay previews (hands + pose + face) match what the server ingests, confirm smoothing/feature metadata is preserved through training, and add an E2E checklist for “record → preview → upload → train → download personalized model”. (Checklist in `docs/operations/PRODUCTION_TRAINING_CHECKLIST.md`.)
+
+### Sparse-Data Gesture Reliability (5-8 Upload Follow-up)
+
+Goal: make custom signs work reliably with a small number of caregiver recordings, without pretending weak model scores are trustworthy.
+
+- [x] **Make active model source explicit during recognition**: show whether the detector is currently using the profile model or the global fallback, including model version/source in the detection screen and training status UI. This should prevent “wrong but confident” profile sessions that are actually running on the global model. _Implemented in `SignLanguageRecorder.tsx` and `TrainingUpload.tsx`._
+- [x] **Stop train/validation leakage across windows from the same clip**: preserve `sourceBundleId` (or an equivalent clip grouping key) through sliding-window sample generation in the Python trainer and switch validation planning from random window shuffle to group-aware split by bundle/clip. _Implemented in `server/training/sliding_window.py` and `server/src/amyserver_tools/train_mlp.py`._
+- [x] **Add post-training per-label diagnostics that reflect real usable data**: extend the training report with accepted bundles, rejected bundles, generated windows, prototype counts, and per-label confusion signals so we can see whether labels like `satt` and `trinken` are collapsing. _Implemented in `server/src/amyserver_tools/train_mlp.py`._
+- [x] **Surface label readiness and sparse-data warnings in the webapp**: expose the new training diagnostics in the training flow so caregivers can see which label still needs cleaner samples, not just whether a bundle upload technically succeeded. _Implemented in `TrainingUpload.tsx`._
+- [x] **Treat recognition score as an uncalibrated model score until calibrated**: review where `%` confidence is shown in the recognition UI and telemetry, and either calibrate it properly or relabel/de-emphasize it so weak predictions do not look like medical-grade certainty. _Implemented by changing recorder wording from certainty to model score / recognition value._
+- [x] **Re-run targeted sparse-vocabulary verification with `satt`/`trinken` fixtures**: add regression coverage for the concrete failure mode (“peace sign collapses to `trinken`”) so threshold, prototype, and split changes are measured against a real sparse-data scenario before deeper model changes. _Implemented in `webapp/src/gesture/installMlp.test.ts` plus trainer/report tests._
 
 ## MediaPipe Blind-Spot Follow-ups (Client, Server, Data, Infra)
 

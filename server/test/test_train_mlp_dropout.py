@@ -1,6 +1,5 @@
 import importlib
 import json
-import sys
 
 import numpy as np
 import pytest
@@ -167,14 +166,7 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
     np.testing.assert_allclose(w3, expected_w3)
     np.testing.assert_allclose(b3, np.zeros(2))
 
-    assert len(printed) == epochs
-    totals = [json.loads(args[0]) for args, _ in printed]
-    assert all(entry["total"] == epochs for entry in totals)
-
-    for _, kwargs in printed:
-        assert kwargs.get("file") is sys.stderr
-        assert kwargs.get("flush") is True
-        assert set(kwargs.keys()) <= {"file", "flush"}
+    assert printed == []
 
 
 def test_plan_train_validation_split_keeps_single_training_sample():

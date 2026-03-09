@@ -6,6 +6,8 @@
  */
 import React, { useMemo, useState } from 'react';
 import { useApiConfig } from '../hooks/useApiConfig';
+import { useAppState } from '../hooks/useAppState';
+import { buildProfileLocalDataExport, clearProfileScopedLocalData } from '../services/profileLocalData';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useMessage } from '../context/MessageContext';
 import { useSymbolStore, type SymbolDefinition } from '../context/SymbolStore';
@@ -48,8 +50,19 @@ const METACOM_TEMPLATE = {
   ],
 };
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  const chunks: string[] = [];
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    chunks.push(String.fromCharCode(...bytes.subarray(i, i + chunkSize)));
+  }
+  return btoa(chunks.join(''));
+}
+
 export const Admin: React.FC = () => {
   const { apiBaseUrl, apiToken } = useApiConfig();
+  const { profileId, displayName } = useAppState();
   const { showToast, showConfirmDialog } = useMessage();
   const { symbols, saveSymbol, removeSymbol, refresh, syncError, loading, lastSyncedAt } = useSymbolStore();
   const [backendToken, setBackendToken] = useState(apiToken || '');
@@ -213,20 +226,50 @@ export const Admin: React.FC = () => {
   };
 
   const handleExportData = () => {
-    const data = {
-      symbols,
-      profiles: JSON.parse(localStorage.getItem('amysecho_profiles') || '[]'),
-      history: JSON.parse(localStorage.getItem('amysecho_gesture_history') || '[]'),
-      progress: JSON.parse(localStorage.getItem('amysecho_progress') || '{}'),
-      exportedAt: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `amysecho-backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    void (async () => {
+      if (profileId && apiToken) {
+        try {
+          const response = await fetch(
+            resolveApiUrl(`/api/v1/profiles/${encodeURIComponent(profileId)}/backup/export`, apiBaseUrl),
+            {
+              headers: {
+                Authorization: `Bearer ${apiToken}`,
+                'X-Profile-Id': profileId,
+              },
+            },
+          );
+          if (!response.ok) {
+            throw new Error(`status ${response.status}`);
+          }
+
+          const blob = new Blob([await response.arrayBuffer()], { type: 'application/zip' });
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = `amysecho-profile-backup-${profileId}-${new Date().toISOString().split('T')[0]}.zip`;
+          anchor.click();
+          URL.revokeObjectURL(url);
+          showToast({ message: 'Profil-Backup heruntergeladen', tone: 'success' });
+          return;
+        } catch (error) {
+          console.warn('Serverseitiger Profil-Backup-Export fehlgeschlagen, nutze lokalen Export', error);
+        }
+      }
+
+      const data = buildProfileLocalDataExport(profileId, displayName);
+      if (!data) {
+        showToast({ message: 'Kein aktives Profil für den Export ausgewählt', tone: 'warning' });
+        return;
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `amysecho-profile-local-${profileId}-${new Date().toISOString().split('T')[0]}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      showToast({ message: 'Lokaler Profil-Export erstellt', tone: 'success' });
+    })();
   };
 
   const triggerDownload = (artifact: { url: string; fileName: string }, message: string) => {
@@ -266,6 +309,29 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const handleImportProtectedGestureBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const ok = await backupService.restoreProtectedGesturesFromFile(file);
+        if (ok) {
+          showToast({ message: 'Backup-Datei importiert', tone: 'success' });
+        } else {
+          showToast({ message: 'Backup-Datei konnte nicht wiederhergestellt werden', tone: 'error' });
+        }
+      } catch (error) {
+        showToast({ message: 'Backup-Datei konnte nicht importiert werden', tone: 'error' });
+        console.warn('Import der Backup-Datei fehlgeschlagen', error);
+      } finally {
+        event.target.value = '';
+      }
+    })();
+  };
+
   const handleExportProtectedGestures = async () => {
     try {
       const artifact = await backupService.exportProtectedGestures();
@@ -280,15 +346,57 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const handleImportProfileBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    void (async () => {
+      if (!profileId || !apiToken) {
+        showToast({ message: 'Profil-Backup benötigt ein aktives Profil und ein gültiges Konto-Login', tone: 'warning' });
+        event.target.value = '';
+        return;
+      }
+
+      try {
+        const archiveBase64 = arrayBufferToBase64(await file.arrayBuffer());
+        const response = await fetch(
+          resolveApiUrl(`/api/v1/profiles/${encodeURIComponent(profileId)}/sync`, apiBaseUrl),
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${apiToken}`,
+              'Content-Type': 'application/json',
+              'X-Profile-Id': profileId,
+            },
+            body: JSON.stringify({ archiveBase64 }),
+          },
+        );
+        if (!response.ok) {
+          throw new Error(`status ${response.status}`);
+        }
+        await refresh();
+        showToast({ message: 'Profil-Backup wiederhergestellt', tone: 'success' });
+      } catch (error) {
+        showToast({ message: 'Profil-Backup konnte nicht importiert werden', tone: 'error' });
+        console.warn('Profil-Backup-Import fehlgeschlagen', error);
+      } finally {
+        event.target.value = '';
+      }
+    })();
+  };
+
   const handleClearData = async () => {
-    const confirmed = await showConfirmDialog('Alle Daten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');
+    if (!profileId) {
+      showToast({ message: 'Kein aktives Profil ausgewählt', tone: 'warning' });
+      return;
+    }
+
+    const confirmed = await showConfirmDialog('Lokale Daten dieses Profils wirklich löschen? Andere Profile bleiben unverändert.');
     if (confirmed) {
-      localStorage.removeItem('amysecho_symbols');
-      localStorage.removeItem('amysecho_profiles');
-      localStorage.removeItem('amysecho_gesture_history');
-      localStorage.removeItem('amysecho_progress');
-      await Promise.all(symbols.map((symbol) => removeSymbol(symbol.id)));
-      showToast({ message: 'Alle Daten gelöscht', tone: 'success' });
+      clearProfileScopedLocalData(profileId);
+      showToast({ message: 'Lokale Profildaten gelöscht', tone: 'success' });
     }
   };
 
@@ -432,7 +540,7 @@ export const Admin: React.FC = () => {
           <button className="secondary-button" onClick={handleBackupProtectedGestures}>
             Geschützte Gebärden sichern
           </button>
-          <p className="muted">Erstellt eine verschlüsselte Sicherung mit Browser-Schlüssel</p>
+          <p className="muted">Erstellt eine verschlüsselte Backup-Datei für diesen Browser</p>
         </div>
 
         <div className="action-group">
@@ -443,24 +551,40 @@ export const Admin: React.FC = () => {
         </div>
 
         <div className="action-group">
+          <label className="file-input-label">
+            <span className="secondary-button">Backup-Datei importieren</span>
+            <input type="file" accept=".dat,.txt" onChange={handleImportProtectedGestureBackup} hidden />
+          </label>
+          <p className="muted">Importiert eine zuvor heruntergeladene Sicherungsdatei wieder in diesen Browser</p>
+        </div>
+
+        <div className="action-group">
           <button className="secondary-button" onClick={handleRestoreProtectedGestures}>
-            Sicherung wiederherstellen
+            Letzte Browser-Sicherung wiederherstellen
           </button>
-          <p className="muted">Stellt die letzte Sicherung geschützter Gebärden wieder her</p>
+          <p className="muted">Stellt die zuletzt lokal gespeicherte Sicherung ohne Dateiauswahl wieder her</p>
+        </div>
+
+        <div className="action-group">
+          <label className="file-input-label">
+            <span className="secondary-button">Profil-Backup importieren</span>
+            <input type="file" accept=".zip" onChange={handleImportProfileBackup} hidden />
+          </label>
+          <p className="muted">Spielt ein vollständiges Profil-Backup mit Trainingsdaten und Modell wieder ein</p>
         </div>
 
         <div className="action-group">
           <button className="secondary-button" onClick={handleExportData}>
-            Vollständiges Backup exportieren
+            Profil-Backup exportieren
           </button>
-          <p className="muted">Exportiert alle Daten (Symbole, Profile, Verlauf, Fortschritt)</p>
+          <p className="muted">Exportiert das aktive Profil inklusive Trainingsdaten und Modell, wenn der Server erreichbar ist</p>
         </div>
 
         <div className="action-group danger">
           <button className="danger-button" onClick={handleClearData}>
-            Alle Daten löschen
+            Lokale Profildaten löschen
           </button>
-          <p className="muted">Entfernt alle gespeicherten Daten dauerhaft</p>
+          <p className="muted">Entfernt nur die lokalen Browser-Daten des aktiven Profils</p>
         </div>
       </section>
 

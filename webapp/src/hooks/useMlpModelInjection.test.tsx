@@ -391,6 +391,9 @@ describe('useMlpModelInjection', () => {
     });
 
     const refreshPromise = result.current.refreshModel();
+    await waitFor(() => {
+      expect(resolveNextFetch).not.toBeNull();
+    });
 
     expect(result.current.status).toBe('ready');
 

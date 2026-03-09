@@ -269,6 +269,43 @@ describe('GestureDetectionStep', () => {
     });
   });
 
+  it('preserves prototype-assisted metadata when sparse custom vocabulary wins', async () => {
+    const step = createStep();
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+      handLabel: 'Closed_Fist',
+      handScore: 0.76,
+    });
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Trinken',
+      score: 0.62,
+      source: 'prototype',
+      prototype: {
+        label: 'Trinken',
+        score: 0.62,
+        support: 2,
+        similarity: 0.91,
+      },
+      candidates: [
+        { label: 'Trinken', score: 0.62 },
+        { label: 'Closed_Fist', score: 0.41 },
+      ],
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBe('trinken');
+    expect(result.metadata?.method).toBe('mlp');
+    expect(result.metadata?.mlp).toMatchObject({
+      source: 'prototype',
+      prototype: {
+        label: 'Trinken',
+        support: 2,
+      },
+    });
+  });
+
   it('can select MLP profile vocabulary below threshold when MediaPipe only found baseline gesture', async () => {
     const step = createStep();
     const context = createDetectionContext({

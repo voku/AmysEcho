@@ -457,6 +457,7 @@ def test_build_samples_from_manifest_returns_policy_stats_when_manifest_missing(
     assert stats["bundle_fallback_extractions"] == 0
     assert stats["bundle_missing_landmarks"] == 0
     assert stats["bundle_landmark_policy"] == "bundle_only"
+    assert stats["label_bundle_summary"] == []
     assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0, "nonManual": 0}
     assert stats["modality_sample_total"] == 0
 

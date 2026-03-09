@@ -15,6 +15,7 @@ import {
 	SERVER_DIR,
 	SRC_DIR,
 } from "../constants/modelPaths.js";
+import { resolvePythonExecutable, withProjectPythonPath } from "../utils/pythonExecutable.js";
 
 export const DEFAULT_MLP_INPUT_SIZE = MULTIMODAL_FEATURE_SIZE * WINDOW_SIZE;
 export const DEFAULT_MLP_WINDOW_SIZE = WINDOW_SIZE;
@@ -182,10 +183,10 @@ async function writeZeroInitializedModel(
 	});
 	await fs.mkdir(path.dirname(filePath), { recursive: true });
 	await new Promise<void>((resolve, reject) => {
-		const proc = spawn("python3", [ZERO_MODEL_SCRIPT_PATH, filePath], {
+		const proc = spawn(resolvePythonExecutable(), [ZERO_MODEL_SCRIPT_PATH, filePath], {
 			cwd: path.join(SERVER_MODULE_DIR, ".."),
 			stdio: ["pipe", "ignore", "pipe"],
-			env: { ...process.env },
+			env: withProjectPythonPath(),
 		});
 		let stderr = "";
 		proc.stderr.on("data", (data) => {
@@ -207,7 +208,7 @@ async function writeZeroInitializedModel(
 						() => {},
 					);
 				}
-				reject(new Error(trimmed || `python3 exited with ${code}`));
+				reject(new Error(trimmed || `python exited with ${code}`));
 			}
 		});
 		proc.stdin.end(payload);

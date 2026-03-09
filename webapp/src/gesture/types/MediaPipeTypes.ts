@@ -60,10 +60,20 @@ export interface MlpCandidate {
   score: number;
 }
 
+export interface PrototypePrediction {
+  label: string;
+  score: number;
+  support?: number;
+  similarity?: number;
+}
+
 export interface MLPPrediction {
   label: string;
   score: number;
   candidates?: MlpCandidate[];
+  source?: 'mlp' | 'prototype' | 'hybrid';
+  mlpScore?: number;
+  prototype?: PrototypePrediction | null;
 }
 
 // Gesture Detection Result

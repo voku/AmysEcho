@@ -255,6 +255,7 @@ describe('fetchMlpModelWithFallback', () => {
       source: 'profile',
       version: 'v1',
       profileId: 'amy',
+      etag: null,
     });
 
     unsub();

@@ -3,14 +3,22 @@ import os from 'os';
 import path from 'path';
 import { spawn } from 'child_process';
 
+import { resolvePythonExecutable, withProjectPythonPath } from '../src/utils/pythonExecutable.js';
+
 describe('config path resolution when started from server directory', () => {
   const serverDir = path.resolve(__dirname, '..');
   const originalCwd = process.cwd();
   const originalPathEnv = process.env.PATH ?? '';
+  const originalPythonBin = process.env.AMY_PYTHON_BIN;
 
   afterEach(() => {
     process.chdir(originalCwd);
     process.env.PATH = originalPathEnv;
+    if (originalPythonBin) {
+      process.env.AMY_PYTHON_BIN = originalPythonBin;
+    } else {
+      delete process.env.AMY_PYTHON_BIN;
+    }
     jest.resetModules();
   });
 
@@ -26,12 +34,13 @@ describe('config path resolution when started from server directory', () => {
 
     const stubDir = await fs.mkdtemp(path.join(os.tmpdir(), 'train-script-'));
     const argsFile = path.join(stubDir, 'spawn-args.json');
-    const stubPath = path.join(stubDir, 'python3');
+    const stubPath = path.join(stubDir, 'python-stub');
     const stubScript = `#!/usr/bin/env node\nconst fs = require('fs');\nconst args = process.argv.slice(2);\nfs.writeFileSync(${JSON.stringify(
       argsFile,
     )}, JSON.stringify(args), 'utf8');\nprocess.exit(0);\n`;
     await fs.writeFile(stubPath, stubScript, { mode: 0o755 });
 
+    process.env.AMY_PYTHON_BIN = stubPath;
     process.env.PATH = `${stubDir}:${originalPathEnv}`;
 
     try {
@@ -49,7 +58,10 @@ describe('config path resolution when started from server directory', () => {
       ];
 
       await new Promise<void>((resolve, reject) => {
-        const proc = spawn('python3', scriptArgs, { cwd: SERVER_DIR, env: { ...process.env } });
+        const proc = spawn(resolvePythonExecutable(), scriptArgs, {
+          cwd: SERVER_DIR,
+          env: withProjectPythonPath({ ...process.env }),
+        });
         let stderr = '';
         proc.stderr?.on('data', (chunk) => {
           stderr += chunk.toString();

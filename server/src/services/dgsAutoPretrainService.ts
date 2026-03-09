@@ -10,6 +10,10 @@ import {
 } from "../constants/modelPaths.js";
 import { getLabelMetadataEntry, loadDgsManifest } from "./labelRegistry.js";
 import { queueTrainingJob } from "./trainingOrchestrator.js";
+import {
+	resolvePythonExecutable,
+	withProjectPythonPath,
+} from "../utils/pythonExecutable.js";
 
 type AutoPretrainStatus = "queued" | "running" | "completed" | "failed";
 
@@ -67,12 +71,12 @@ function pruneOldJobs(): void {
 
 async function runPythonScript(args: string[]): Promise<void> {
 	await new Promise<void>((resolve, reject) => {
-		const child = spawn("python3", args, {
+		const child = spawn(resolvePythonExecutable(), args, {
 			cwd: REPO_ROOT,
-			env: {
+			env: withProjectPythonPath({
 				...process.env,
 				PYTHONPATH: REPO_ROOT,
-			},
+			}),
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 		let stdout = "";

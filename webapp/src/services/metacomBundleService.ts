@@ -6,6 +6,7 @@ import type {
 } from '../types/metacom';
 import { getMetacomBoardsForVocabularySet } from '../constants/metacomBoards';
 import type { MetacomVocabularySet } from '../types/metacomVocabulary';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 const METACOM_BUNDLE_STORAGE_KEY = 'amysecho_metacom_bundle';
 export const METACOM_BUNDLE_UPDATED_EVENT = 'amysecho:metacom-bundle-updated';
@@ -296,26 +297,6 @@ function validateBundle(bundle: MetacomBundle): void {
     }
   }
 }
-
-import type {
-  MetacomBoardCell,
-  MetacomBoardDefinition,
-  MetacomCell,
-  MetacomSymbolCell,
-} from '../types/metacom';
-import { getMetacomBoardsForVocabularySet } from '../constants/metacomBoards';
-import type { MetacomVocabularySet } from '../types/metacomVocabulary';
-import { resolveApiUrl } from '../utils/resolveApiUrl';
-
-const METACOM_BUNDLE_STORAGE_KEY = 'amysecho_metacom_bundle';
-export const METACOM_BUNDLE_UPDATED_EVENT = 'amysecho:metacom-bundle-updated';
-
-export interface MetacomBundle {
-  version: string;
-  boards: MetacomBoardDefinition[];
-}
-
-// ... existing interfaces ...
 
 export async function syncMetacomBundleToServer(
   profileId: string,

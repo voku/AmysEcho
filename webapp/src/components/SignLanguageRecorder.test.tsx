@@ -8,6 +8,7 @@ import type { SignLanguageMessage } from '../hooks/useSignLanguageDetector';
 import { ApiConfigProvider, useApiConfig } from '../hooks/useApiConfig';
 import { apiRetryManager } from '../services/apiRetryManager';
 import { getActiveProfile } from '../services/profileRegistry';
+import { getTrainedSignStorageKeys } from '../services/profileLocalData';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 
@@ -200,7 +201,7 @@ describe('SignLanguageRecorder', () => {
     fireEvent.click(screen.getByRole('button', { name: '🛠️ Diagnose anzeigen' }));
 
     expect(screen.getByText('Hand erkannt, aber keine passende Gebärde')).toBeInTheDocument();
-    expect(screen.getByText(/Aktuelle Sicherheit ist zu niedrig/)).toBeInTheDocument();
+    expect(screen.getByText(/Aktueller Modellwert ist zu niedrig/)).toBeInTheDocument();
     expect(screen.getByText(/Letzte Systemmeldung:/)).toBeInTheDocument();
     expect(screen.getByText(/Aktives Modell:/)).toBeInTheDocument();
     expect(screen.getByText(/Letzter Erkennungsweg:/)).toBeInTheDocument();
@@ -1177,8 +1178,9 @@ describe('SignLanguageRecorder', () => {
 
   it('clears stale label cache when trained-labels endpoint returns 403', async () => {
     appStateMock.profileId = 'amy';
-    window.localStorage.setItem('webapp:trained-sign-labels', JSON.stringify(['HILFE']));
-    window.localStorage.setItem('webapp:has-trained-signs', 'true');
+    const trainedKeys = getTrainedSignStorageKeys('amy');
+    window.localStorage.setItem(trainedKeys.trainedSignLabels, JSON.stringify(['HILFE']));
+    window.localStorage.setItem(trainedKeys.hasTrainedSigns, 'true');
 
     vi.mocked(apiRetryManager.fetch).mockResolvedValue({
       ok: false,
@@ -1196,8 +1198,8 @@ describe('SignLanguageRecorder', () => {
     });
 
     await waitFor(() => {
-      expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('[]');
-      expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('false');
+      expect(window.localStorage.getItem(trainedKeys.trainedSignLabels)).toBe('[]');
+      expect(window.localStorage.getItem(trainedKeys.hasTrainedSigns)).toBe('false');
     });
   });
 
@@ -1230,8 +1232,9 @@ describe('SignLanguageRecorder', () => {
     expect(secondUrl).toContain('profileId=amy-neu');
 
     await waitFor(() => {
-      expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('["HILFE"]');
-      expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
+      const trainedKeys = getTrainedSignStorageKeys('amy-alt');
+      expect(window.localStorage.getItem(trainedKeys.trainedSignLabels)).toBe('["HILFE"]');
+      expect(window.localStorage.getItem(trainedKeys.hasTrainedSigns)).toBe('true');
     });
   });
 
@@ -1334,8 +1337,9 @@ describe('SignLanguageRecorder', () => {
     });
 
     await waitFor(() => {
-      expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('["HALLO"]');
-      expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
+      const trainedKeys = getTrainedSignStorageKeys('amy-new');
+      expect(window.localStorage.getItem(trainedKeys.trainedSignLabels)).toBe('["HALLO"]');
+      expect(window.localStorage.getItem(trainedKeys.hasTrainedSigns)).toBe('true');
     });
 
     const oldResponseResolver = resolveOldResponse as ((value: Response) => void) | null;
@@ -1348,8 +1352,9 @@ describe('SignLanguageRecorder', () => {
     }
 
     await waitFor(() => {
-      expect(window.localStorage.getItem('webapp:trained-sign-labels')).toBe('["HALLO"]');
-      expect(window.localStorage.getItem('webapp:has-trained-signs')).toBe('true');
+      const trainedKeys = getTrainedSignStorageKeys('amy-new');
+      expect(window.localStorage.getItem(trainedKeys.trainedSignLabels)).toBe('["HALLO"]');
+      expect(window.localStorage.getItem(trainedKeys.hasTrainedSigns)).toBe('true');
     });
   });
 

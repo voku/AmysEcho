@@ -539,6 +539,38 @@ export function registerProfileRoutes(
 		}
 	});
 
+	app.get("/api/v1/profiles/:id/backup/export", authMiddleware, async (req, res) => {
+		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
+			return res.status(403).json({ error: "Zugriff verweigert." });
+		}
+
+		const profile = findProfileRecord(registry, req.params.id);
+		if (!profile) {
+			return res.status(404).json({ error: "Profil nicht gefunden." });
+		}
+
+		try {
+			const { buffer, checksum } = await buildProfileExportArchive(
+				profile.id,
+				registry,
+				db,
+			);
+			res.setHeader("Content-Type", "application/zip");
+			res.setHeader(
+				"Content-Disposition",
+				`attachment; filename="profile_${profile.id}_backup.zip"`,
+			);
+			res.setHeader("X-Profile-Checksum", checksum);
+			return res.status(200).send(buffer);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			logError("Profile backup export failed", { error: message });
+			return res
+				.status(500)
+				.json({ error: "Backup konnte nicht exportiert werden." });
+		}
+	});
+
 	app.post("/api/v1/profiles/:id/sync", authMiddleware, async (req, res) => {
 		// Check authorization before restoring sync
 		if (!isProfileAuthorized(req, req.params.id, db, registry)) {

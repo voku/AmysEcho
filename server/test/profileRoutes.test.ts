@@ -13,6 +13,22 @@ const accessToken = AuthService.generateTokens({
   role: 'caregiver',
 }).accessToken;
 
+function collectBinaryResponse(
+  res: NodeJS.ReadableStream,
+  callback: (error: Error | null, body?: Buffer) => void,
+) {
+  const chunks: Buffer[] = [];
+  res.on('data', (chunk) => {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  });
+  res.on('end', () => {
+    callback(null, Buffer.concat(chunks));
+  });
+  res.on('error', (error) => {
+    callback(error as Error);
+  });
+}
+
 describe('Profile registry routes', () => {
   let tmpDir: string;
   let app: express.Express;
@@ -153,5 +169,76 @@ describe('Profile registry routes', () => {
     expect(custom.signs[0]?.profileId).toBe('22222222-2222-4222-8222-222222222222');
 
     expect(db.profiles.find((p) => p.id === '11111111-1111-4111-8111-111111111111')).toBeUndefined();
+  });
+
+  it('exports and restores a full profile archive', async () => {
+    const sourceId = '11111111-1111-4111-8111-111111111111';
+    const { MLP_MODELS_DIR, TRAINING_UPLOADS_DIR } = await import('../src/constants/modelPaths.js');
+    const uploadFile = path.join(TRAINING_UPLOADS_DIR, sourceId, 'HALLO', 'bundle-1_landmarks.json');
+    const modelFile = path.join(MLP_MODELS_DIR, sourceId, 'amy_model.npz');
+
+    await fs.mkdir(path.dirname(uploadFile), { recursive: true });
+    await fs.writeFile(uploadFile, JSON.stringify({ frames: [{ landmarks: [[0.1, 0.2, 0.3]] }] }));
+    await fs.mkdir(path.dirname(modelFile), { recursive: true });
+    await fs.writeFile(modelFile, Buffer.from('profile-model'));
+
+    const exportResponse = await request(app)
+      .get(`/api/v1/profiles/${sourceId}/backup/export`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .parse(collectBinaryResponse)
+      .expect(200);
+    const archiveBuffer = exportResponse.body as Buffer;
+
+    expect(exportResponse.headers['content-type']).toContain('application/zip');
+    expect(archiveBuffer.length).toBeGreaterThan(0);
+
+    db.usageStats = [];
+    db.corrections = [];
+    await fs.writeFile(manifestPath, JSON.stringify({ entries: [] }));
+    await fs.writeFile(path.join(tmpDir, 'dgs_samples.json'), JSON.stringify({ samples: [] }));
+    await fs.writeFile(path.join(datasetsDir, 'custom_signs.json'), JSON.stringify({ signs: [] }));
+    await fs.rm(path.join(TRAINING_UPLOADS_DIR, sourceId), { recursive: true, force: true });
+    await fs.rm(path.join(MLP_MODELS_DIR, sourceId), { recursive: true, force: true });
+
+    await request(app)
+      .post(`/api/v1/profiles/${sourceId}/sync`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ archiveBase64: archiveBuffer.toString('base64') })
+      .expect(200);
+
+    const restoredManifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as {
+      entries: Array<{ profileId: string; label: string }>;
+    };
+    expect(restoredManifest.entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ profileId: sourceId, label: 'HALLO' }),
+      ]),
+    );
+
+    const restoredSamples = JSON.parse(await fs.readFile(path.join(tmpDir, 'dgs_samples.json'), 'utf8')) as {
+      samples: Array<{ profileId: string; label: string }>;
+    };
+    expect(restoredSamples.samples).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ profileId: sourceId, label: 'HALLO' }),
+      ]),
+    );
+
+    const restoredCustomSigns = JSON.parse(await fs.readFile(path.join(datasetsDir, 'custom_signs.json'), 'utf8')) as {
+      signs: Array<{ profileId: string; label: string }>;
+    };
+    expect(restoredCustomSigns.signs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ profileId: sourceId, label: 'Hallo' }),
+      ]),
+    );
+
+    expect(db.profiles.find((profile) => profile.id === sourceId)).toBeDefined();
+    expect(db.usageStats.some((stat) => stat.profileId === sourceId)).toBe(true);
+    expect(db.corrections.some((correction) => correction.profileId === sourceId)).toBe(true);
+
+    await expect(fs.readFile(uploadFile, 'utf8')).resolves.toContain('landmarks');
+    await expect(fs.readFile(modelFile)).resolves.toEqual(Buffer.from('profile-model'));
   });
 });
