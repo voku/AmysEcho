@@ -8,12 +8,10 @@ function createDetectionContext({
   landmarks = [],
   handLabel,
   handScore,
-  audioFeatures,
 }: {
   landmarks?: number[][][];
   handLabel?: string;
   handScore?: number;
-  audioFeatures?: number[];
 } = {}) {
   const hasHand = typeof handLabel === 'string' && typeof handScore === 'number';
 
@@ -34,13 +32,12 @@ function createDetectionContext({
         : [],
       landmarks: [],
       handednesses: hasHand ? ['Left'] : [],
-    },
-    rawResults: {
-      gestures: hasHand ? [[{ categoryName: handLabel, score: handScore }]] : [],
-      landmarks: [],
-      handednesses: hasHand ? [[{ categoryName: 'Left' }]] : [],
-    } as MediaPipeGestureResult,
-    ...(audioFeatures ? { audioFeatures } : {}),
+      },
+      rawResults: {
+        gestures: hasHand ? [[{ categoryName: handLabel, score: handScore }]] : [],
+        landmarks: [],
+        handednesses: hasHand ? [[{ categoryName: 'Left' }]] : [],
+      } as MediaPipeGestureResult,
   } as const;
 }
 
@@ -238,7 +235,6 @@ describe('GestureDetectionStep', () => {
     expect(window.__mlpPredict).toHaveBeenCalledWith(
       landmarks,
       context.rawResults.handednesses,
-      undefined,
       undefined,
       undefined,
     );
@@ -503,19 +499,4 @@ describe('GestureDetectionStep', () => {
     });
   });
 
-  it('detects audio-only gestures when visual landmarks are missing', async () => {
-    const step = createStep();
-    const context = createDetectionContext({ audioFeatures: [0.2, 0.1, 0.05] });
-
-    (window as any).__mlpPredict = vi.fn().mockReturnValue({ label: 'Hallo', score: 0.6 });
-
-    const result = await step.execute(context as any);
-
-    expect(window.__mlpPredict).toHaveBeenCalled();
-    expect(result.gesture).toBe('hallo');
-    expect(result.confidence).toBeCloseTo(0.6);
-    expect(result.metadata?.method).toBe('mlp_audio_only');
-    expect(result.metadata?.confidenceState).toBe('confident');
-    expect(result.metadata?.audioOnly).toBe(true);
-  });
 });
