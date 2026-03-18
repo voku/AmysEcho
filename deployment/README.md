@@ -12,6 +12,7 @@ This directory contains configuration files and scripts for deploying Amy's Echo
 
 ### scripts/
 - `backup.sh` - Automated backup script for data and database
+- `reset-training-data.sh` - Resets training-derived data after incompatible training pipeline refactors
 - `update-server.sh` - Updates server dependencies and restarts the systemd service
 - `monitor.sh` - Health check monitoring script with alerting
 
@@ -74,6 +75,22 @@ sudo PUBLIC_BASE_URL="https://your-domain.com" STRICT_PROXY_RECOMMENDATIONS=true
 ```
 
 Hinweis für ISPConfig: **"Enable PROXY Protocol" muss deaktiviert bleiben**, sonst kann die Route-Erkennung fehlschlagen.
+
+## Resetting Training Data After Breaking Training Refactors
+
+If you intentionally change the training pipeline in an incompatible way and want to start with fresh compatible training data, use:
+
+```bash
+sudo /opt/amysecho/app/deployment/scripts/reset-training-data.sh
+```
+
+By default the script:
+- creates a backup first
+- stops the service
+- removes uploaded training bundles, generated samples, per-user training artifacts, and per-profile trained models
+- clears training-derived SQLite state such as `lastTrainedAt`, corrections, negative samples, and legacy sign training rows
+- preserves caregiver accounts, profiles, and custom sign registrations
+- preserves the global fallback model unless `PRESERVE_GLOBAL_MODEL=false` is set
 
 ### Breaking Changes
 

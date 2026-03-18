@@ -1485,6 +1485,67 @@ export function deleteUserLabelSettingsByUserId(userId: string): void {
 	getDb().prepare("DELETE FROM userLabelSettings WHERE userId = ?").run(userId);
 }
 
+export type TrainingSqliteResetSummary = {
+	signTrainingDataDeleted: number;
+	correctionsDeleted: number;
+	negativeSamplesDeleted: number;
+	labelSettingsReset: number;
+};
+
+/**
+ * Reset training-derived SQLite state while preserving users, profiles,
+ * symbols, and label enablement configuration.
+ */
+export function resetTrainingStateInSqlite(): TrainingSqliteResetSummary {
+	const database = getDb();
+	const resetInTransaction = database.transaction(() => {
+		const signTrainingDataDeleted =
+			(
+				database
+					.prepare("SELECT COUNT(*) AS count FROM signTrainingData")
+					.get() as { count?: number } | undefined
+			)?.count ?? 0;
+		const correctionsDeleted =
+			(
+				database
+					.prepare("SELECT COUNT(*) AS count FROM corrections")
+					.get() as { count?: number } | undefined
+			)?.count ?? 0;
+		const negativeSamplesDeleted =
+			(
+				database
+					.prepare("SELECT COUNT(*) AS count FROM negativeSamples")
+					.get() as { count?: number } | undefined
+			)?.count ?? 0;
+		const labelSettingsReset =
+			(
+				database
+					.prepare(
+						"SELECT COUNT(*) AS count FROM userLabelSettings WHERE lastTrainedAt IS NOT NULL",
+					)
+					.get() as { count?: number } | undefined
+			)?.count ?? 0;
+
+		database.prepare("DELETE FROM signTrainingData").run();
+		database.prepare("DELETE FROM corrections").run();
+		database.prepare("DELETE FROM negativeSamples").run();
+		database
+			.prepare(
+				"UPDATE userLabelSettings SET lastTrainedAt = NULL, updatedAt = ? WHERE lastTrainedAt IS NOT NULL",
+			)
+			.run(new Date().toISOString());
+
+		return {
+			signTrainingDataDeleted,
+			correctionsDeleted,
+			negativeSamplesDeleted,
+			labelSettingsReset,
+		};
+	});
+
+	return resetInTransaction();
+}
+
 /**
  * Update lastTrainedAt for a specific user label
  */

@@ -15,6 +15,8 @@ set -euo pipefail
 # Configuration
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/amysecho}"
 APP_DIR="${APP_DIR:-/opt/amysecho/app/server}"
+DATA_DIR="${DATA_DIR:-$APP_DIR/data}"
+DB_DIR="${DB_DIR:-$APP_DIR}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="$BACKUP_DIR/amysecho_backup_$TIMESTAMP.tar.gz"
@@ -46,13 +48,29 @@ fi
 # log "Stopping amysecho service..."
 # sudo systemctl stop amysecho || error_exit "Failed to stop service"
 
+# Collect database files that may exist in the server root.
+DB_FILES=()
+for candidate in db.sqlite db.sqlite-shm db.sqlite-wal db.json; do
+    if [ -f "$DB_DIR/$candidate" ]; then
+        DB_FILES+=("$candidate")
+    fi
+done
+
+if [ ! -d "$DATA_DIR" ] && [ ${#DB_FILES[@]} -eq 0 ]; then
+    error_exit "Neither data directory nor database files were found to back up"
+fi
+
+TAR_ARGS=(-czf "$BACKUP_FILE")
+if [ -d "$DATA_DIR" ]; then
+    TAR_ARGS+=(-C "$(dirname "$DATA_DIR")" "$(basename "$DATA_DIR")")
+fi
+if [ ${#DB_FILES[@]} -gt 0 ]; then
+    TAR_ARGS+=(-C "$DB_DIR" "${DB_FILES[@]}")
+fi
+
 # Create backup
 log "Creating backup: $BACKUP_FILE"
-tar -czf "$BACKUP_FILE" \
-    -C "$APP_DIR" \
-    data/ \
-    db.json \
-    2>&1 | tee -a "$LOG_FILE" || error_exit "Backup creation failed"
+tar "${TAR_ARGS[@]}" 2>&1 | tee -a "$LOG_FILE" || error_exit "Backup creation failed"
 
 # Optional: Restart service
 # Uncomment if you stopped it above
