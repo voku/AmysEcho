@@ -188,26 +188,6 @@ export class AuthService {
 		};
 	}
 
-	/**
-	 * Legacy refresh without rotation (for backwards compatibility).
-	 * @deprecated Use refreshTokensWithRotation for better security
-	 */
-	static refreshTokens(
-		refreshToken: string,
-		getUserById: (id: string) => StoredUser | undefined,
-	): { user: User; tokens: AuthTokens } | null {
-		const payload = AuthService.verifyRefreshToken(refreshToken);
-		if (!payload) return null;
-
-		const storedUser = getUserById(payload.userId);
-		if (!storedUser) return null;
-
-		const user = AuthService.toUser(storedUser);
-		const tokens = AuthService.generateTokens(user);
-
-		return { user, tokens: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken } };
-	}
-
 	static toUser(stored: StoredUser): User {
 		return { id: stored.id, username: stored.username, role: stored.role };
 	}

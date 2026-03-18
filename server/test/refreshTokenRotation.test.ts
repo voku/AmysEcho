@@ -55,6 +55,12 @@ describe("Refresh Token Rotation", () => {
 	});
 
 	describe("refreshTokensWithRotation", () => {
+		it("should not expose the deprecated non-rotating refresh helper", () => {
+			expect(
+				Object.prototype.hasOwnProperty.call(AuthService, "refreshTokens"),
+			).toBe(false);
+		});
+
 		it("should refresh tokens when hash matches", () => {
 			const user = { id: "user-1", username: "test", role: "caregiver" as const };
 			const originalTokens = AuthService.generateTokens(user);
