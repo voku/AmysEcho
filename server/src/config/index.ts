@@ -44,14 +44,6 @@ function getEnvVar(name: string, defaultValue?: string): string {
 	return value || defaultValue!;
 }
 
-function getRequiredEnv(name: string): string {
-	const value = process.env[name];
-	if (!value) {
-		throw new Error(`Environment variable ${name} is required`);
-	}
-	return value;
-}
-
 function getEnvVarAsNumber(name: string, defaultValue: number): number {
 	const value = process.env[name];
 	if (!value) return defaultValue;
@@ -97,8 +89,8 @@ export const config: ServerConfig = {
 		"GESTURE_TASK_URL",
 		"https://api.github.com/repos/sst/dgs/contents/tasks",
 	),
-	jwtSecret: getRequiredEnv("JWT_SECRET"),
-	jwtRefreshSecret: getRequiredEnv("JWT_REFRESH_SECRET"),
+	jwtSecret: getEnvVar("JWT_SECRET"),
+	jwtRefreshSecret: getEnvVar("JWT_REFRESH_SECRET"),
 	smtpHost: getEnvVar("SMTP_HOST", "localhost"),
 	smtpPort: getEnvVarAsNumber("SMTP_PORT", 1025),
 	smtpSecure: getEnvVar("SMTP_SECURE", "false") === "true",

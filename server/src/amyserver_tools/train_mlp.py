@@ -61,7 +61,6 @@ from config_constants import (
     MLP_LAYER1_SIZE,
     MLP_LAYER2_SIZE,
     NULL_CLASS_LABEL,
-    NULL_SAMPLES_PER_CLIP,
     STILL_FRAME_WEIGHT,
     VALIDATION_FRACTION,
     WINDOW_FEATURE_SIZE,
@@ -2376,7 +2375,7 @@ def dataset_to_arrays(
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
 
     # Calculate counts for adaptive augmentation
-    label_counts = {label: 0 for label in label_set}
+    label_counts = dict.fromkeys(label_set, 0)
     for s in samples:
         label_counts[s.label] += 1
 
@@ -2960,7 +2959,7 @@ def _build_label_diagnostics(
         prototype_counts[label] = prototype_counts.get(label, 0) + 1
 
     sample_groups_by_label: dict[str, set[str]] = {label: set() for label in labels}
-    window_counts_by_label: dict[str, int] = {label: 0 for label in labels}
+    window_counts_by_label: dict[str, int] = dict.fromkeys(labels, 0)
     for sample_index, sample in enumerate(samples):
         sample_label = sample.label
         if sample_label not in window_counts_by_label:
@@ -3013,8 +3012,8 @@ def _build_label_diagnostics(
                 "rejected_bundle_count": int(rejected_bundles),
                 "window_count": int(window_counts_by_label.get(label, 0)),
                 "prototype_count": int(prototype_counts.get(label, 0)),
-                "train_group_count": int(len(train_groups)),
-                "validation_group_count": int(len(val_groups)),
+                "train_group_count": len(train_groups),
+                "validation_group_count": len(val_groups),
                 "confusion_scope": confusion_scope,
                 "top_confusions": top_confusions,
             }
@@ -3165,8 +3164,8 @@ def run_training_pipeline(
         metadata_payload = {
             **metadata_payload,
             "prototype_bank": {
-                "prototype_count": int(len(global_prototype_labels)),
-                "label_count": int(len(set(global_prototype_labels))),
+                "prototype_count": len(global_prototype_labels),
+                "label_count": len(set(global_prototype_labels)),
             },
         }
     if output_dir:
@@ -3248,8 +3247,8 @@ def run_training_pipeline(
             profile_metadata_payload = {
                 **metadata_payload,
                 "prototype_bank": {
-                    "prototype_count": int(len(p_prototype_labels)),
-                    "label_count": int(len(set(p_prototype_labels))),
+                    "prototype_count": len(p_prototype_labels),
+                    "label_count": len(set(p_prototype_labels)),
                 },
             }
 
@@ -3295,7 +3294,7 @@ def run_training_pipeline(
             "class_counts": p_counts.tolist(),
             "modalities": p_modalities_used,
             "modality_counts": p_modality_counts,
-            "prototype_count": int(len(p_prototype_labels)),
+            "prototype_count": len(p_prototype_labels),
             "label_diagnostics": p_label_diagnostics,
         }
 
@@ -3309,7 +3308,7 @@ def run_training_pipeline(
             "class_counts": class_counts.tolist(),
             "modalities": modalities_used,
             "modality_counts": modality_counts,
-            "prototype_count": int(len(global_prototype_labels)),
+            "prototype_count": len(global_prototype_labels),
             "label_diagnostics": global_label_diagnostics,
         },
         "profiles": profile_reports,
