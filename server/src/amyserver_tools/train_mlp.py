@@ -24,6 +24,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+from typing import TypedDict
 
 import numpy as np
 
@@ -1655,8 +1656,30 @@ def create_empty_training_stats() -> dict[str, object]:
     }
 
 
+class BundleLabelSummaryEntry(TypedDict):
+    label: str
+    profile_id: str | None
+    manifest_bundle_count: int
+    accepted_bundle_count: int
+    rejected_bundle_count: int
+    window_count: int
+    rejection_reasons: dict[str, int]
+
+
+def _coerce_int(value: object, default: int = 0) -> int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        return int(value)
+    return default
+
+
 def _increment_bundle_label_summary(
-    bundle_summary: dict[tuple[str, str | None], dict[str, object]],
+    bundle_summary: dict[tuple[str, str | None], BundleLabelSummaryEntry],
     *,
     label: str,
     profile_id: str | None,
@@ -1691,7 +1714,7 @@ def _increment_bundle_label_summary(
 
 
 def _serialize_bundle_label_summary(
-    bundle_summary: dict[tuple[str, str | None], dict[str, object]],
+    bundle_summary: dict[tuple[str, str | None], BundleLabelSummaryEntry],
 ) -> list[dict[str, object]]:
     items = []
     for _key, value in sorted(
@@ -1858,7 +1881,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     bundle_missing_landmarks = 0
     modality_counts = dict.fromkeys(MODALITY_KEYS, 0)
     modality_sample_total = 0
-    label_bundle_summary: dict[tuple[str, str | None], dict[str, object]] = {}
+    label_bundle_summary: dict[tuple[str, str | None], BundleLabelSummaryEntry] = {}
 
     for entry in entries:
         label = entry.get("label")
@@ -2933,8 +2956,8 @@ def _merge_bundle_summary_counts(
             continue
         if profile_id is not None and entry.get("profile_id") != profile_id:
             continue
-        accepted += int(entry.get("accepted_bundle_count", 0))
-        rejected += int(entry.get("rejected_bundle_count", 0))
+        accepted += _coerce_int(entry.get("accepted_bundle_count", 0))
+        rejected += _coerce_int(entry.get("rejected_bundle_count", 0))
     return accepted, rejected
 
 

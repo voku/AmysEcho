@@ -196,3 +196,33 @@ def test_run_training_pipeline_reports_sparse_label_diagnostics(monkeypatch):
     assert profile_diagnostics["satt"]["rejected_bundle_count"] == 1
     assert profile_diagnostics["trinken"]["validation_group_count"] == 1
     assert profile_diagnostics["trinken"]["confusion_scope"] == "validation"
+
+
+def test_merge_bundle_summary_counts_reads_sparse_metadata_entries():
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    accepted, rejected = module._merge_bundle_summary_counts(
+        [
+            {
+                "label": "satt",
+                "profile_id": "profile-1",
+                "accepted_bundle_count": 2,
+            },
+            {
+                "label": "satt",
+                "profile_id": "profile-1",
+                "rejected_bundle_count": 1,
+            },
+            {
+                "label": "trinken",
+                "profile_id": "profile-1",
+                "accepted_bundle_count": 5,
+                "rejected_bundle_count": 4,
+            },
+        ],
+        label="satt",
+        profile_id="profile-1",
+    )
+
+    assert accepted == 2
+    assert rejected == 1
