@@ -19,10 +19,12 @@ import math
 import os
 import re
 import sys
+from collections import Counter
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
+from typing import TypedDict
 
 import numpy as np
 
@@ -61,7 +63,6 @@ from config_constants import (
     MLP_LAYER1_SIZE,
     MLP_LAYER2_SIZE,
     NULL_CLASS_LABEL,
-    NULL_SAMPLES_PER_CLIP,
     STILL_FRAME_WEIGHT,
     VALIDATION_FRACTION,
     WINDOW_FEATURE_SIZE,
@@ -1655,8 +1656,33 @@ def create_empty_training_stats() -> dict[str, object]:
     }
 
 
+class BundleLabelSummaryEntry(TypedDict):
+    label: str
+    profile_id: str | None
+    manifest_bundle_count: int
+    accepted_bundle_count: int
+    rejected_bundle_count: int
+    window_count: int
+    rejection_reasons: dict[str, int]
+
+
+def _coerce_int(value: object, default: int = 0) -> int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return default
+    return default
+
+
 def _increment_bundle_label_summary(
-    bundle_summary: dict[tuple[str, str | None], dict[str, object]],
+    bundle_summary: dict[tuple[str, str | None], BundleLabelSummaryEntry],
     *,
     label: str,
     profile_id: str | None,
@@ -1691,7 +1717,7 @@ def _increment_bundle_label_summary(
 
 
 def _serialize_bundle_label_summary(
-    bundle_summary: dict[tuple[str, str | None], dict[str, object]],
+    bundle_summary: dict[tuple[str, str | None], BundleLabelSummaryEntry],
 ) -> list[dict[str, object]]:
     items = []
     for _key, value in sorted(
@@ -1858,7 +1884,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     bundle_missing_landmarks = 0
     modality_counts = dict.fromkeys(MODALITY_KEYS, 0)
     modality_sample_total = 0
-    label_bundle_summary: dict[tuple[str, str | None], dict[str, object]] = {}
+    label_bundle_summary: dict[tuple[str, str | None], BundleLabelSummaryEntry] = {}
 
     for entry in entries:
         label = entry.get("label")
@@ -2376,9 +2402,7 @@ def dataset_to_arrays(
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
 
     # Calculate counts for adaptive augmentation
-    label_counts = {label: 0 for label in label_set}
-    for s in samples:
-        label_counts[s.label] += 1
+    label_counts = Counter(sample.label for sample in samples)
 
     X_list: list[np.ndarray] = []
     y_list: list[int] = []
@@ -2935,8 +2959,8 @@ def _merge_bundle_summary_counts(
             continue
         if profile_id is not None and entry.get("profile_id") != profile_id:
             continue
-        accepted += int(entry.get("accepted_bundle_count", 0))
-        rejected += int(entry.get("rejected_bundle_count", 0))
+        accepted += _coerce_int(entry.get("accepted_bundle_count", 0))
+        rejected += _coerce_int(entry.get("rejected_bundle_count", 0))
     return accepted, rejected
 
 
@@ -2959,11 +2983,12 @@ def _build_label_diagnostics(
     for label in prototype_labels:
         prototype_counts[label] = prototype_counts.get(label, 0) + 1
 
+    known_labels = set(labels)
     sample_groups_by_label: dict[str, set[str]] = {label: set() for label in labels}
-    window_counts_by_label: dict[str, int] = {label: 0 for label in labels}
+    window_counts_by_label: Counter[str] = Counter()
     for sample_index, sample in enumerate(samples):
         sample_label = sample.label
-        if sample_label not in window_counts_by_label:
+        if sample_label not in known_labels:
             continue
         window_counts_by_label[sample_label] += 1
         group_id = getattr(sample, "source_bundle_id", None)
@@ -3013,8 +3038,8 @@ def _build_label_diagnostics(
                 "rejected_bundle_count": int(rejected_bundles),
                 "window_count": int(window_counts_by_label.get(label, 0)),
                 "prototype_count": int(prototype_counts.get(label, 0)),
-                "train_group_count": int(len(train_groups)),
-                "validation_group_count": int(len(val_groups)),
+                "train_group_count": len(train_groups),
+                "validation_group_count": len(val_groups),
                 "confusion_scope": confusion_scope,
                 "top_confusions": top_confusions,
             }
@@ -3165,8 +3190,8 @@ def run_training_pipeline(
         metadata_payload = {
             **metadata_payload,
             "prototype_bank": {
-                "prototype_count": int(len(global_prototype_labels)),
-                "label_count": int(len(set(global_prototype_labels))),
+                "prototype_count": len(global_prototype_labels),
+                "label_count": len(set(global_prototype_labels)),
             },
         }
     if output_dir:
@@ -3248,8 +3273,8 @@ def run_training_pipeline(
             profile_metadata_payload = {
                 **metadata_payload,
                 "prototype_bank": {
-                    "prototype_count": int(len(p_prototype_labels)),
-                    "label_count": int(len(set(p_prototype_labels))),
+                    "prototype_count": len(p_prototype_labels),
+                    "label_count": len(set(p_prototype_labels)),
                 },
             }
 
@@ -3295,7 +3320,7 @@ def run_training_pipeline(
             "class_counts": p_counts.tolist(),
             "modalities": p_modalities_used,
             "modality_counts": p_modality_counts,
-            "prototype_count": int(len(p_prototype_labels)),
+            "prototype_count": len(p_prototype_labels),
             "label_diagnostics": p_label_diagnostics,
         }
 
@@ -3309,7 +3334,7 @@ def run_training_pipeline(
             "class_counts": class_counts.tolist(),
             "modalities": modalities_used,
             "modality_counts": modality_counts,
-            "prototype_count": int(len(global_prototype_labels)),
+            "prototype_count": len(global_prototype_labels),
             "label_diagnostics": global_label_diagnostics,
         },
         "profiles": profile_reports,

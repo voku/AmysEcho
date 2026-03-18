@@ -421,9 +421,8 @@ this runbook:
 4. If a browser still loops on refresh, clear site storage and log in again.
 
 Compatibility note:
-- Legacy aliases `JWT_ACCESS_SECRET` and `JWT_REFRESH_TOKEN_SECRET` are
-  supported as fallbacks, but should be migrated to canonical names.
-- Monitor server logs for deprecation warnings if legacy aliases are used.
+- Only the canonical env names `JWT_SECRET` and `JWT_REFRESH_SECRET` are
+  supported. Older alias names must be renamed before deployment or restart.
 
 ---
 
