@@ -1,4 +1,4 @@
-describe('config JWT env aliases', () => {
+describe('config JWT environment variables', () => {
   const originalEnv = { ...process.env };
 
   afterEach(() => {
@@ -17,33 +17,24 @@ describe('config JWT env aliases', () => {
     expect(config.jwtRefreshSecret).toBe('primary-refresh-secret');
   });
 
-  it('falls back to legacy JWT alias names with warning', async () => {
+  it('requires canonical JWT env names and ignores removed legacy aliases', async () => {
     delete process.env.JWT_SECRET;
     delete process.env.JWT_REFRESH_SECRET;
     process.env.JWT_ACCESS_SECRET = 'legacy-jwt-secret';
     process.env.JWT_REFRESH_TOKEN_SECRET = 'legacy-refresh-secret';
 
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    const { config } = await import('../src/config/index.js');
-
-    expect(config.jwtSecret).toBe('legacy-jwt-secret');
-    expect(config.jwtRefreshSecret).toBe('legacy-refresh-secret');
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('JWT_ACCESS_SECRET is deprecated'),
-    );
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('JWT_REFRESH_TOKEN_SECRET is deprecated'),
+    await expect(import('../src/config/index.js')).rejects.toThrow(
+      'Environment variable JWT_SECRET is required',
     );
   });
 
-  it('throws when required JWT secret is missing across canonical and alias env names', async () => {
+  it('throws when required JWT secret is missing', async () => {
     process.env.JWT_REFRESH_SECRET = 'some-refresh-secret';
     delete process.env.JWT_SECRET;
     delete process.env.JWT_ACCESS_SECRET;
 
     await expect(import('../src/config/index.js')).rejects.toThrow(
-      'Environment variable JWT_SECRET is required (accepted aliases: JWT_ACCESS_SECRET)',
+      'Environment variable JWT_SECRET is required',
     );
   });
 });

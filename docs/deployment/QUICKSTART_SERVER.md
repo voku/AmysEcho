@@ -349,10 +349,9 @@ Current behavior:
 
 Notes:
 - Canonical names are `JWT_SECRET` and `JWT_REFRESH_SECRET`.
-- Legacy aliases `JWT_ACCESS_SECRET` and `JWT_REFRESH_TOKEN_SECRET` are still
-  accepted temporarily with deprecation warnings.
-- Check server logs for deprecation warnings if you still use legacy aliases,
-  and migrate to canonical names to avoid future breakage.
+- Legacy aliases `JWT_ACCESS_SECRET` and `JWT_REFRESH_TOKEN_SECRET` are no
+  longer supported. Rename them before restart if older deployment files still
+  use them.
 
 ## Manual Deployment (Without Docker)
 
