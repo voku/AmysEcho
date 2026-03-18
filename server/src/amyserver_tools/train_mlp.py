@@ -2957,11 +2957,12 @@ def _build_label_diagnostics(
     for label in prototype_labels:
         prototype_counts[label] = prototype_counts.get(label, 0) + 1
 
+    known_labels = set(labels)
     sample_groups_by_label: dict[str, set[str]] = {label: set() for label in labels}
     window_counts_by_label: Counter[str] = Counter()
     for sample_index, sample in enumerate(samples):
         sample_label = sample.label
-        if sample_label not in sample_groups_by_label:
+        if sample_label not in known_labels:
             continue
         window_counts_by_label[sample_label] += 1
         group_id = getattr(sample, "source_bundle_id", None)
