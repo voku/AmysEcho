@@ -6,7 +6,7 @@ import * as fsSync from "fs";
 import { promises as fs } from "fs";
 import path from "path";
 import {
-	MULTIMODAL_FEATURE_SIZE,
+	WINDOW_FEATURE_SIZE,
 	WINDOW_SIZE,
 } from "../constants/featureSchema.js";
 import {
@@ -17,9 +17,9 @@ import {
 } from "../constants/modelPaths.js";
 import { resolvePythonExecutable, withProjectPythonPath } from "../utils/pythonExecutable.js";
 
-export const DEFAULT_MLP_INPUT_SIZE = MULTIMODAL_FEATURE_SIZE * WINDOW_SIZE;
+export const DEFAULT_MLP_INPUT_SIZE = WINDOW_FEATURE_SIZE;
 export const DEFAULT_MLP_WINDOW_SIZE = WINDOW_SIZE;
-export const DEFAULT_MLP_FEATURE_SIZE = MULTIMODAL_FEATURE_SIZE;
+export const DEFAULT_MLP_FEATURE_SIZE = WINDOW_FEATURE_SIZE / WINDOW_SIZE;
 export const DEFAULT_MLP_LAYER1_SIZE = 512;
 export const DEFAULT_MLP_LAYER2_SIZE = 256;
 const FALLBACK_BASELINE_LABELS = [

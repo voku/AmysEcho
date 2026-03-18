@@ -22,11 +22,4 @@ packages = { find = { where = ["src"], include = ["amyserver_tools*"] } }
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 filterwarnings = [
-    "ignore:'aifc' is deprecated and slated for removal in Python 3.13:DeprecationWarning:audioread.rawread",
-    "ignore:'audioop' is deprecated and slated for removal in Python 3.13:DeprecationWarning:audioread.rawread",
-    "ignore:'sunau' is deprecated and slated for removal in Python 3.13:DeprecationWarning:audioread.rawread",
-    "ignore:.*aifc was removed in Python 3.13.*:DeprecationWarning:audioread.rawread",
-    "ignore:.*sunau was removed in Python 3.13.*:DeprecationWarning:audioread.rawread",
-    "ignore:PySoundFile failed\\. Trying audioread instead\\.:UserWarning:amyserver_tools.audio_preprocessing",
-    "ignore:librosa\\.core\\.audio\\.__audioread_load.*:FutureWarning:librosa.core.audio",
 ]

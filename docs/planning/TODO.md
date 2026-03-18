@@ -161,42 +161,21 @@ We have MediaPipe capture working in the webapp and a Python MLP trainer on the 
 
 ## Additional Roadmap Items (Consolidated)
 
-### Multimodal Audio + Gesture Recognition
+### Visual-only DGS Recognition
 
-#### Training Pipeline ✅ COMPLETE
-- [x] Add audio capture service for recording speech during gesture capture
-- [x] Integrate audio recording with training recorder (captures audio alongside video)
-- [x] Update training bundle types to include audio files
-- [x] Extend training bundle creation to package audio files in ZIP bundles
-- [x] Update server-side bundle ingestion to handle audio files
-- [x] Modify training manifest to track audio data
-- [x] Add comprehensive unit tests for audio capture service (16 tests)
-- [x] Create audio preprocessing utilities for format normalization
-- [x] Update Python training tools to accept and process audio data
-- [x] Audio features extracted and attached to training samples
-- [x] Add integration tests for complete audio+gesture training flow (4 tests)
-- [x] Implement multimodal fusion layer (concatenate audio + visual features)
-- [x] Add zero-padding for samples without audio to maintain consistent dimensions
-- [x] Update MLP input layer to handle combined feature dimensions
-- [x] Document audio capture settings and troubleshooting
+#### Current Direction ✅ ACTIVE
+- [x] Keep training capture focused on visual DGS data (hands, pose, face, still image, clip)
+- [x] Keep live recognition focused on visual DGS inference without microphone input
+- [x] Remove audio files and audio metadata from new training bundles
+- [x] Remove live microphone capture and audio-only inference from the webapp runtime
+- [x] Remove server-side audio preprocessing and multimodal trainer fusion logic
+- [x] Align focused tests with the visual-only contract
 
-#### Live Recognition Pipeline ✅ COMPLETE
-- [x] Create browser-based MFCC extraction service (Web Audio API)
-- [x] Implement live audio recognition service for real-time capture
-- [x] Extend `mlpPredict()` to accept audio features parameter
-- [x] Add audio fusion logic in `installMlp.ts`
-- [x] Create integration guide (`docs/LIVE_AUDIO_INTEGRATION_GUIDE.md`)
-- [x] Integrate live audio service with `GestureRecognitionOrchestrator`
-- [x] Wire up audio extraction in `handleGestureResults()`
-- [x] Pass audio features to MLP in `GestureDetectionStep`
-- [x] Add unit tests for live multimodal recognition
-- [x] End-to-end validation with multimodal model
+**Context:** Amy's Echo now intentionally focuses on Deutsche Gebärdensprache with visual landmark capture and recognition. This reduces moving parts in production, keeps feedback fast and reliable, and centers the product on the strongest communication path already implemented for Amy.
 
-**Context:** Enable Amy to say words (e.g., "Iila" for purple) while signing, creating a richer multimodal recognition system that combines verbal utterances with sign language gestures.
+**Training Status:** ✅ **VISUAL ONLY** - Training bundles now contain landmark, clip, and still-image data only. The trainer consumes visual window features (`48,870` dims) and no longer expects or emits audio feature metadata.
 
-**Training Status:** ✅ **COMPLETE** - Full multimodal fusion layer implemented! Audio features are now combined with visual features for unified MLP training. The system automatically uses multimodal input (48,883 dims) when audio is present, or visual-only (48,870 dims) when not. Zero-padding ensures consistent dimensions across all samples.
-
-**Live Recognition Status:** ✅ **COMPLETE** - Full orchestrator integration implemented! Browser-based MFCC extraction and live audio service working. MLP prediction logic receives audio features. Audio extracted in real-time and passed through processing pipeline to MLP. All three learning scenarios (gesture-only, speech-only, both) now fully functional in live recognition!
+**Live Recognition Status:** ✅ **VISUAL ONLY** - Live recognition now uses camera-based DGS detection only. The recorder and orchestrator no longer capture microphone input or emit audio-only recognition states.
 
 ### Custom Sign Workflow Enhancements
 - [x] Add visual status indicators (registered, training, ready).
