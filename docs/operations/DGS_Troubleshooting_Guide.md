@@ -95,12 +95,8 @@ X_balanced, y_balanced = smote.fit_resample(X, y)
 
 2. **Increase Model Capacity**:
 ```python
-# Increase hidden layer size
-model = MLPClassifier(
-    input_size=126,
-    hidden_size=256,  # Increased from 128
-    output_size=12
-)
+# Increase trainer layer sizes via environment variables
+MLP_LAYER1_SIZE=768 MLP_LAYER2_SIZE=384 python server/src/amyserver_tools/train_mlp.py
 ```
 
 3. **Add Data Augmentation**:

@@ -1031,7 +1031,6 @@ _UNSET = object()
 class TrainingConfig:
     """Configuration values that control the trainer's behaviour."""
 
-    hidden_size: int = 512 # Deprecated but kept for compat
     epochs: int = EPOCHS
     learning_rate: float = LEARNING_RATE
     dropout_rate: float = DROPOUT_RATE
@@ -1120,7 +1119,6 @@ def train_mlp(
     output_size: int,
     *,
     config: TrainingConfig | None = None,
-    hidden_size: int | None = _UNSET,  # Deprecated (hardcoded to 1024/512)
     epochs: int | None = _UNSET,
     learning_rate: float | None = _UNSET,
     dropout_rate: float | None = _UNSET,
@@ -1138,16 +1136,6 @@ def train_mlp(
     Returns:
         Tuple of (w1, b1, w2, b2, w3, b3) - best weights from training
     """
-    import warnings
-
-    if hidden_size is not _UNSET:
-        warnings.warn(
-            "The 'hidden_size' parameter is deprecated and ignored. "
-            "Layer sizes are now controlled by MLP_LAYER1_SIZE and MLP_LAYER2_SIZE constants.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-
     # Resolve configuration
     resolved = config or TrainingConfig()
     overrides = {
