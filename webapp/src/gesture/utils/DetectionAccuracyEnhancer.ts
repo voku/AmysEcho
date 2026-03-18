@@ -26,10 +26,6 @@ export interface ConflictResolutionResult {
 
 export interface AccuracyStats {
   totalGestures: number;
-  /**
-   * @deprecated Use `averageCandidateConfidence` instead. This property will be removed in a future version.
-   */
-  averageConfidence: number;
   averageCandidateConfidence: number;
   averageFinalConfidence: number;
   methodDistribution: Record<string, number>;
@@ -636,7 +632,6 @@ export class DetectionAccuracyEnhancer {
 
     return {
       totalGestures: this.totalGestureObservations,
-      averageConfidence: averageCandidateConfidence,
       averageCandidateConfidence,
       averageFinalConfidence,
       methodDistribution,
