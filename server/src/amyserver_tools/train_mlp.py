@@ -19,6 +19,7 @@ import math
 import os
 import re
 import sys
+from collections import Counter
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -2375,9 +2376,7 @@ def dataset_to_arrays(
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
 
     # Calculate counts for adaptive augmentation
-    label_counts = dict.fromkeys(label_set, 0)
-    for s in samples:
-        label_counts[s.label] += 1
+    label_counts = Counter(sample.label for sample in samples)
 
     X_list: list[np.ndarray] = []
     y_list: list[int] = []
@@ -2959,10 +2958,10 @@ def _build_label_diagnostics(
         prototype_counts[label] = prototype_counts.get(label, 0) + 1
 
     sample_groups_by_label: dict[str, set[str]] = {label: set() for label in labels}
-    window_counts_by_label: dict[str, int] = dict.fromkeys(labels, 0)
+    window_counts_by_label: Counter[str] = Counter()
     for sample_index, sample in enumerate(samples):
         sample_label = sample.label
-        if sample_label not in window_counts_by_label:
+        if sample_label not in sample_groups_by_label:
             continue
         window_counts_by_label[sample_label] += 1
         group_id = getattr(sample, "source_bundle_id", None)
