@@ -1674,7 +1674,10 @@ def _coerce_int(value: object, default: int = 0) -> int:
     if isinstance(value, float):
         return int(value)
     if isinstance(value, str):
-        return int(value)
+        try:
+            return int(value)
+        except ValueError:
+            return default
     return default
 
 

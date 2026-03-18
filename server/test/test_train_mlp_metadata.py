@@ -198,7 +198,7 @@ def test_run_training_pipeline_reports_sparse_label_diagnostics(monkeypatch):
     assert profile_diagnostics["trinken"]["confusion_scope"] == "validation"
 
 
-def test_merge_bundle_summary_counts_reads_sparse_metadata_entries():
+def test_merge_bundle_summary_handles_sparse_entries():
     module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
 
     accepted, rejected = module._merge_bundle_summary_counts(
