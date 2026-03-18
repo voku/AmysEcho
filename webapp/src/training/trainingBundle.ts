@@ -93,7 +93,6 @@ function buildMetadata(
   payload: TrainingBundlePayload,
   clipFilename: string | null,
   stillFilename: string | null,
-  audioFilename: string | null,
   landmarksMetadata: LandmarksMetadata,
   validationSummary: ValidationSummary | null,
   frames: TimelineFrame[],
@@ -102,9 +101,6 @@ function buildMetadata(
   const stillBytes = payload.recording?.stillBytes ?? payload.stillFile?.size;
   const clipMimeType = payload.recording?.clipMimeType ?? payload.clipFile?.type;
   const stillMimeType = payload.recording?.stillMimeType ?? payload.stillFile?.type;
-  const audioBytes = payload.recording?.audioBytes ?? payload.audioFile?.size;
-  const audioMimeType = payload.recording?.audioMimeType ?? payload.audioFile?.type;
-  const audioDurationMs = payload.recording?.audioDurationMs;
   
   const recording = {
     ...(typeof payload.recording?.frameCount === 'number' ? { frameCount: payload.recording.frameCount } : {}),
@@ -114,9 +110,6 @@ function buildMetadata(
     ...(typeof clipMimeType === 'string' && clipMimeType.trim().length > 0 ? { clipMimeType } : {}),
     ...(typeof stillBytes === 'number' ? { stillBytes } : {}),
     ...(typeof stillMimeType === 'string' && stillMimeType.trim().length > 0 ? { stillMimeType } : {}),
-    ...(typeof audioBytes === 'number' ? { audioBytes } : {}),
-    ...(typeof audioMimeType === 'string' && audioMimeType.trim().length > 0 ? { audioMimeType } : {}),
-    ...(typeof audioDurationMs === 'number' ? { audioDurationMs } : {}),
   };
 
   return {
@@ -127,7 +120,6 @@ function buildMetadata(
     source: payload.source ?? 'web://mediapipe',
     ...(clipFilename ? { clipFilename } : {}),
     ...(stillFilename ? { stillFilename } : {}),
-    ...(audioFilename ? { audioFilename } : {}),
     modalities: landmarksMetadata.modalities,
     smoothing: landmarksMetadata.smoothing,
     ...(validationSummary ? { validationSummary } : {}),
@@ -418,7 +410,6 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
 
   const clipFilename = payload.clipFile ? `clip.${extractExtensionFromFile(payload.clipFile, 'mp4')}` : null;
   const stillFilename = payload.stillFile ? `still.${extractExtensionFromFile(payload.stillFile, 'jpg')}` : null;
-  const audioFilename = payload.audioFile ? `audio.${extractExtensionFromFile(payload.audioFile, 'webm')}` : null;
   const usableFrames = payload.frames.filter((frame) => frameHasAnyLandmarks(frame));
   const frames = buildFrameTimeline(usableFrames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
@@ -427,7 +418,6 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
     payload,
     clipFilename,
     stillFilename,
-    audioFilename,
     landmarksMetadata,
     validationSummary,
     frames,
@@ -467,16 +457,6 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
       entries[stillFilename] = [stillBuffer, { level: 0 }];
     } catch (error) {
       console.warn('Still-Bild konnte nicht gelesen werden', error);
-    }
-  }
-
-  // Amy First: Include audio file for multimodal recognition
-  if (payload.audioFile && audioFilename) {
-    try {
-      const audioBuffer = await fileToUint8Array(payload.audioFile);
-      entries[audioFilename] = [audioBuffer, { level: 0 }];
-    } catch (error) {
-      console.warn('Audio-Datei konnte nicht gelesen werden', error);
     }
   }
 

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import type { TrainingFrame } from '../training/types';
-import { AudioCaptureService, type AudioRecordingResult } from '../services/audioCaptureService';
 
 export type RecordingState = 'idle' | 'recording';
 
@@ -26,14 +25,6 @@ interface RecordedData {
   clipSizeBytes: number;
   clipDurationMs: number;
   clipError: string | null;
-  /**
-   * Audio file recorded during gesture capture
-   * Amy First: Contains verbal utterances for multimodal recognition
-   */
-  audioFile: File | null;
-  audioSizeBytes: number;
-  audioDurationMs: number;
-  audioError: string | null;
 }
 
 export interface TrainingRecorderResult {
@@ -42,8 +33,6 @@ export interface TrainingRecorderResult {
   startRecording: () => void;
   stopRecording: () => void;
   resetRecording: () => void;
-  audioMuted: boolean;
-  toggleAudioMuted: () => void;
   framesCaptured: number;
   clipLimitExceeded: boolean;
   maxClipBytes: number;
@@ -102,11 +91,6 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
   const [clipSizeBytes, setClipSizeBytes] = useState(0);
   const [clipDurationMs, setClipDurationMs] = useState(0);
   const [clipError, setClipError] = useState<string | null>(null);
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [audioSizeBytes, setAudioSizeBytes] = useState(0);
-  const [audioDurationMs, setAudioDurationMs] = useState(0);
-  const [audioError, setAudioError] = useState<string | null>(null);
-  const [audioMuted, setAudioMuted] = useState(false);
   const [previewLandmarks, setPreviewLandmarks] = useState<number[][][]>([]);
   const [previewHandedness, setPreviewHandedness] = useState<string[]>([]);
   const [previewPoseLandmarks, setPreviewPoseLandmarks] = useState<number[][]>([]);
@@ -115,56 +99,9 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
   const isRecordingRef = useRef(false);
   const clipRecorderRef = useRef<MediaRecorder | null>(null);
   const clipChunksRef = useRef<Blob[]>([]);
-  const audioServiceRef = useRef<AudioCaptureService | null>(null);
   const clipStartRef = useRef<number | null>(null);
 
   const clipLimitExceeded = useMemo(() => clipSizeBytes > MAX_CLIP_BYTES, [clipSizeBytes]);
-
-  const startAudioCapture = useCallback(() => {
-    if (!audioServiceRef.current) {
-      audioServiceRef.current = new AudioCaptureService();
-    }
-    audioServiceRef.current.startRecording().catch((error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Audio-Aufnahme fehlgeschlagen';
-      setAudioError(errorMessage);
-      console.warn('Audio recording failed to start:', error);
-      // Continue with video recording even if audio fails
-    });
-  }, []);
-
-  const stopAudioCapture = useCallback((notice?: string) => {
-    if (audioServiceRef.current && audioServiceRef.current.isRecording()) {
-      audioServiceRef.current
-        .stopRecording()
-        .then(() => {
-          setAudioFile(null);
-          setAudioSizeBytes(0);
-          setAudioDurationMs(0);
-          if (notice) {
-            setAudioError(notice);
-          }
-        })
-        .catch((error) => {
-          const errorMessage = error instanceof Error ? error.message : 'Audio-Stopp fehlgeschlagen';
-          setAudioError(errorMessage);
-          console.warn('Failed to stop audio recording:', error);
-        });
-    } else if (notice) {
-      setAudioError(notice);
-    }
-  }, []);
-
-  const toggleAudioMuted = useCallback(() => {
-    setAudioMuted((prev) => {
-      const next = !prev;
-      if (next) {
-        stopAudioCapture('Audioaufnahme wurde stummgeschaltet.');
-      } else if (isRecordingRef.current) {
-        startAudioCapture();
-      }
-      return next;
-    });
-  }, [startAudioCapture, stopAudioCapture]);
 
   const handleFrameBatch = useCallback((payload: FrameBatchPayload) => {
     if (!isRecordingRef.current) {
@@ -301,18 +238,8 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     setClipSizeBytes(0);
     setClipDurationMs(0);
     setClipError(null);
-    setAudioFile(null);
-    setAudioSizeBytes(0);
-    setAudioDurationMs(0);
-    setAudioError(null);
     clipChunksRef.current = [];
     clipStartRef.current = Date.now();
-
-    // Start audio recording
-    // Amy First: Capture verbal utterances alongside gestures for multimodal recognition
-    if (!audioMuted) {
-      startAudioCapture();
-    }
 
     const stream = resolveRecordingStream(videoRef?.current ?? null);
     if (!stream || typeof window.MediaRecorder === 'undefined') {
@@ -364,7 +291,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
       const reason = recorderError instanceof Error ? recorderError.message : String(recorderError);
       setClipError(reason);
     }
-  }, [audioMuted, startAudioCapture, videoRef]);
+  }, [videoRef]);
 
   const stopRecording = useCallback(() => {
     isRecordingRef.current = false;
@@ -377,29 +304,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
         console.warn('Fehler beim Stoppen der Videoaufnahme', error);
       }
     }
-    
-    // Stop audio recording
-    // Amy First: Finalize audio capture alongside video
-    if (audioServiceRef.current && audioServiceRef.current.isRecording()) {
-      audioServiceRef.current
-        .stopRecording()
-        .then((result: AudioRecordingResult) => {
-          if (result.audioFile) {
-            setAudioFile(result.audioFile);
-            setAudioSizeBytes(result.audioSizeBytes);
-            setAudioDurationMs(result.audioDurationMs);
-          }
-          if (result.audioError) {
-            setAudioError(result.audioError);
-          }
-        })
-        .catch((error) => {
-          const errorMessage = error instanceof Error ? error.message : 'Audio-Stopp fehlgeschlagen';
-          setAudioError(errorMessage);
-          console.warn('Failed to stop audio recording:', error);
-        });
-    }
-    
+
     // Transition directly to idle - frame processing is synchronous via event listener
     setState('idle');
   }, []);
@@ -422,13 +327,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
       }
       clipRecorderRef.current = null;
     }
-    
-    // Clean up audio recorder
-    if (audioServiceRef.current) {
-      audioServiceRef.current.cancelRecording();
-      audioServiceRef.current = null;
-    }
-    
+
     setRecordedFrames([]);
     setStillImage(null);
     setFramesCaptured(0);
@@ -441,10 +340,6 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     setClipSizeBytes(0);
     setClipDurationMs(0);
     setClipError(null);
-    setAudioFile(null);
-    setAudioSizeBytes(0);
-    setAudioDurationMs(0);
-    setAudioError(null);
     clipChunksRef.current = [];
     clipStartRef.current = null;
   }, []);
@@ -457,10 +352,6 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     clipSizeBytes,
     clipDurationMs,
     clipError,
-    audioFile,
-    audioSizeBytes,
-    audioDurationMs,
-    audioError,
   };
 
   return {
@@ -469,8 +360,6 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     startRecording,
     stopRecording,
     resetRecording,
-    audioMuted,
-    toggleAudioMuted,
     framesCaptured,
     clipLimitExceeded,
     maxClipBytes: MAX_CLIP_BYTES,
