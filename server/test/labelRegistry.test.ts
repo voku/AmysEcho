@@ -33,19 +33,15 @@ expect(manifest?.gestures).toBeDefined();
 expect(manifest?.gestures?.length).toBeGreaterThanOrEqual(12);
 });
 
-it("should include variation data", async () => {
-const manifest = await loadDgsManifest();
-const trinken = manifest?.gestures.find((g) => g.id === "trinken");
-expect(trinken).toBeDefined();
-// Support both old format (variations object) and new format (videos array)
-if (trinken?.videos) {
-expect(trinken.videos.length).toBeGreaterThan(1);
-} else {
-expect(trinken?.variations?.main).toBeDefined();
-expect(trinken?.variations?.var).toBeDefined();
-}
-expect(trinken?.totalVideoCount).toBeGreaterThan(1);
-});
+	it("should include variation data", async () => {
+		const manifest = await loadDgsManifest();
+		const trinken = manifest?.gestures.find((g) => g.id === "trinken");
+		expect(trinken).toBeDefined();
+		expect(trinken?.videos).toBeDefined();
+		expect(trinken?.videos?.length).toBeGreaterThan(1);
+		expect(trinken?.video).toBe("trinken.mp4");
+		expect(trinken?.totalVideoCount).toBeGreaterThan(1);
+	});
 });
 
 describe("buildLabelManifest", () => {

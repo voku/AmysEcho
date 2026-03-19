@@ -65,7 +65,7 @@ function buildFrames(): TrainingFrame[] {
 }
 
 async function readManifest() {
-  const configuredDataDir = process.env.AMY_ECHO_DATA_DIR ?? process.env.AMY_DATA_DIR;
+  const configuredDataDir = process.env.AMY_ECHO_DATA_DIR;
   const manifestPath = configuredDataDir
     ? join(configuredDataDir, 'datasets', 'training_manifest.json')
     : join(repoRoot, 'server', 'data', 'datasets', 'training_manifest.json');

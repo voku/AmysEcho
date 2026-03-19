@@ -34,10 +34,9 @@ def _is_destination_allowed(destination: str) -> bool:
     destination_abs = os.path.realpath(destination)
     server_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", ".."))
     allowed_roots = [os.path.join(server_dir, "data")]
-    for env_key in ("AMY_ECHO_DATA_DIR", "AMY_DATA_DIR"):
-        env_data_dir = os.environ.get(env_key)
-        if env_data_dir:
-            allowed_roots.append(os.path.realpath(env_data_dir))
+    env_data_dir = os.environ.get("AMY_ECHO_DATA_DIR")
+    if env_data_dir:
+        allowed_roots.append(os.path.realpath(env_data_dir))
     return any(
         destination_abs == root or destination_abs.startswith(os.path.join(root, ""))
         for root in allowed_roots

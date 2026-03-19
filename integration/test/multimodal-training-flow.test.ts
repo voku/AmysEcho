@@ -54,7 +54,7 @@ async function waitForTrainingCompletion(pollUrl: string, headers: Record<string
 }
 
 async function readTrainingManifest() {
-  const configuredDataDir = process.env.AMY_ECHO_DATA_DIR ?? process.env.AMY_DATA_DIR;
+  const configuredDataDir = process.env.AMY_ECHO_DATA_DIR;
   const manifestPath = configuredDataDir
     ? join(configuredDataDir, 'datasets', 'training_manifest.json')
     : join(__dirname, '..', '..', 'server', 'data', 'datasets', 'training_manifest.json');

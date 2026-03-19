@@ -18,7 +18,6 @@ import config from "../config/index.js";
 import {
 	getUserLabelLandmarksPath,
 	PROFILE_ID_PATTERN,
-	TRAINING_UPLOADS_DIR,
 	DATA_DIR,
 	MLP_MODELS_DIR,
 } from "../constants/modelPaths.js";
@@ -133,7 +132,7 @@ async function gatherLabelTrainingData(
 			// Directory doesn't exist
 		}
 	} else {
-		// For user_train, look in the user's upload directory
+		// For user_train, only read the canonical user_train landmarks directory
 		const userLandmarksPath = getUserLabelLandmarksPath(
 			userId,
 			labelId,
@@ -144,24 +143,6 @@ async function gatherLabelTrainingData(
 			for (const file of files) {
 				if (file.endsWith(".json")) {
 					landmarkPaths.push(path.join(userLandmarksPath, file));
-				}
-			}
-		} catch {
-			// Directory doesn't exist - try legacy upload path
-		}
-
-		// Also check legacy upload path for backward compatibility
-		const legacyPath = path.join(TRAINING_UPLOADS_DIR, userId, labelId);
-		try {
-			const entries = await fs.readdir(legacyPath, { recursive: true });
-			for (const entry of entries) {
-				if (
-					typeof entry === "string" &&
-					!entry.includes("..") && // Prevent path traversal
-					(entry.endsWith("landmarks.json") ||
-						entry.endsWith("_landmarks.json"))
-				) {
-					landmarkPaths.push(path.join(legacyPath, entry));
 				}
 			}
 		} catch {
