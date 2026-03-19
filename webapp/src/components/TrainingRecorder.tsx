@@ -144,6 +144,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
       return;
     }
     setDetectorStartFeedback('');
+    setHandFocusSuggestion(null);
     if (status !== 'running') {
       setDetectorStartFeedback('Detektor wird gestartet…');
       const started = await startCamera();
@@ -172,6 +173,8 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
           setHandFocusSelection(nextSelection);
         }
       }
+    } else {
+      setHandFocusSuggestion(null);
     }
   }, [stopRecording, recordedData.frames, handFocusSelection]);
 
@@ -246,6 +249,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
       onRecordingComplete(payload);
       resetRecording();
       setManualStillFile(null);
+      setHandFocusSuggestion(null);
     },
     [
       metadataReady,
@@ -311,6 +315,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     setManualStillFile(null);
     setNeedsStillConfirmation(false);
     setDetectorStartFeedback('');
+    setHandFocusSuggestion(null);
   }, [resetRecording]);
 
   const handleManualStillChange = useCallback(
