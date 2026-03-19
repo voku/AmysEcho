@@ -5,6 +5,7 @@ import {
   useTrainingUploader,
   type SyncQueuedResult,
 } from '../hooks/useTrainingUploader';
+import { hasAutomaticUploadAttemptsRemaining } from '../training/trainingQueue';
 import type {
   TrainingBundlePayload,
   TrainingJobInfo,
@@ -66,27 +67,85 @@ const formatDateTime = (timestamp?: number): string | null => {
   }
 };
 
-const formatSyncQueuedMessage = (uploaded: number, remaining: number, blocked: number): string => {
+const formatSyncQueuedMessage = ({ uploaded, remaining, blockedAuth, blockedRetryLimit }: SyncQueuedResult): string => {
+  const blocked = blockedAuth + blockedRetryLimit;
+  const syncSummary = `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen, ${remaining} verbleibend).`;
   if (uploaded > 0 && remaining > 0) {
-    if (blocked > 0) {
-      return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen, ${remaining} verbleibend). ${blocked} Paket(e) benötigen eine neue Anmeldung.`;
+    if (blockedAuth > 0 && blockedRetryLimit > 0) {
+      return `${syncSummary} ${blockedAuth} Paket(e) benötigen eine neue Anmeldung, ${blockedRetryLimit} Paket(e) pausieren nach mehreren Fehlversuchen.`;
     }
-    return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen, ${remaining} verbleibend). Bitte prüfe die Verbindung oder versuche es später erneut.`;
+    if (blockedAuth > 0) {
+      return `${syncSummary} ${blockedAuth} Paket(e) benötigen eine neue Anmeldung.`;
+    }
+    if (blockedRetryLimit > 0) {
+      return `${syncSummary} ${blockedRetryLimit} Paket(e) pausieren nach mehreren Fehlversuchen.`;
+    }
+    return `${syncSummary} Bitte prüfe die Verbindung oder versuche es später erneut.`;
   }
   if (uploaded > 0) {
     return `Synchronisierung abgeschlossen (${uploaded} Paket(e) übertragen).`;
   }
   if (remaining > 0) {
     if (blocked > 0 && blocked === remaining) {
-      return `${blocked} Paket(e) sind durch eine abgelaufene Sitzung blockiert. Bitte melde dich erneut an.`;
+      if (blockedAuth > 0 && blockedRetryLimit > 0) {
+        return `${blockedAuth} Paket(e) sind durch eine abgelaufene Sitzung blockiert, ${blockedRetryLimit} Paket(e) pausieren nach mehreren Fehlversuchen.`;
+      }
+      if (blockedAuth > 0) {
+        return `${blockedAuth} Paket(e) sind durch eine abgelaufene Sitzung blockiert. Bitte melde dich erneut an.`;
+      }
+      return `${blockedRetryLimit} Paket(e) pausieren nach mehreren Fehlversuchen. Bitte prüfe die Verbindung und starte sie bei Bedarf manuell erneut.`;
     }
-    if (blocked > 0) {
-      return `${remaining} Paket(e) verbleiben, davon ${blocked} mit abgelaufener Sitzung. Bitte melde dich erneut an.`;
+    if (blockedAuth > 0 && blockedRetryLimit > 0) {
+      return `${remaining} Paket(e) verbleiben, davon ${blockedAuth} mit abgelaufener Sitzung und ${blockedRetryLimit} nach mehreren Fehlversuchen pausiert.`;
+    }
+    if (blockedAuth > 0) {
+      return `${remaining} Paket(e) verbleiben, davon ${blockedAuth} mit abgelaufener Sitzung. Bitte melde dich erneut an.`;
+    }
+    if (blockedRetryLimit > 0) {
+      return `${remaining} Paket(e) verbleiben, davon ${blockedRetryLimit} nach mehreren Fehlversuchen pausiert. Bitte prüfe die Verbindung und starte sie bei Bedarf manuell erneut.`;
     }
     return `${remaining} Paket(e) warten noch auf Upload. Bitte prüfe die Verbindung oder versuche es später erneut.`;
   }
   return 'Keine Pakete in der Warteschlange gefunden.';
 };
+
+function formatQueueStatusMessage({
+  queuedCount,
+  queueWaitingCount,
+  blockedAuthCount,
+  blockedRetryLimitCount,
+  lastQueuedKey,
+}: {
+  queuedCount: number;
+  queueWaitingCount: number;
+  blockedAuthCount: number;
+  blockedRetryLimitCount: number;
+  lastQueuedKey: string | null;
+}): string {
+  const keySuffix = lastQueuedKey ? ` · ${lastQueuedKey}` : '';
+  if (queuedCount === 0) {
+    return 'Keine offenen Pakete.';
+  }
+  if (queueWaitingCount === 0) {
+    if (blockedAuthCount > 0 && blockedRetryLimitCount > 0) {
+      return `${blockedAuthCount} Paket(e) warten auf neue Anmeldung, ${blockedRetryLimitCount} Paket(e) pausieren nach mehreren Fehlversuchen${keySuffix}`;
+    }
+    if (blockedAuthCount > 0) {
+      return `${blockedAuthCount} Paket(e) warten auf neue Anmeldung${keySuffix}`;
+    }
+    return `${blockedRetryLimitCount} Paket(e) pausieren nach mehreren Fehlversuchen${keySuffix}`;
+  }
+  if (blockedAuthCount > 0 && blockedRetryLimitCount > 0) {
+    return `${queueWaitingCount} Paket(e) warten auf Upload, ${blockedAuthCount} Paket(e) auf neue Anmeldung, ${blockedRetryLimitCount} Paket(e) pausieren${keySuffix}`;
+  }
+  if (blockedAuthCount > 0) {
+    return `${queueWaitingCount} Paket(e) warten auf Upload, ${blockedAuthCount} Paket(e) auf neue Anmeldung${keySuffix}`;
+  }
+  if (blockedRetryLimitCount > 0) {
+    return `${queueWaitingCount} Paket(e) warten auf Upload, ${blockedRetryLimitCount} Paket(e) pausieren${keySuffix}`;
+  }
+  return `${queuedCount} Paket(e) warten auf Upload${keySuffix}`;
+}
 
 
 
@@ -299,7 +358,12 @@ function TrainingStatusBlock({
   const blockedAuthCount = queuedBundles.filter((bundle) =>
     bundle.status === 'failed' && isAuthFailureReason(bundle.lastError),
   ).length;
-  const queueWaitingCount = Math.max(0, queuedBundles.length - blockedAuthCount);
+  const blockedRetryLimitCount = queuedBundles.filter((bundle) =>
+    bundle.status === 'failed'
+    && !isAuthFailureReason(bundle.lastError)
+    && !hasAutomaticUploadAttemptsRemaining(bundle),
+  ).length;
+  const queueWaitingCount = Math.max(0, queuedBundles.length - blockedAuthCount - blockedRetryLimitCount);
 
   return (
     <div className="panel">
@@ -365,13 +429,13 @@ function TrainingStatusBlock({
         <div>
           <p className="eyebrow">Warteschlange</p>
           <p className="muted small">
-            {queuedCount === 0
-              ? 'Keine offenen Pakete.'
-              : queueWaitingCount === 0
-                ? `${blockedAuthCount} Paket(e) warten auf neue Anmeldung${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`
-                : blockedAuthCount > 0
-                  ? `${queueWaitingCount} Paket(e) warten auf Upload, ${blockedAuthCount} Paket(e) auf neue Anmeldung${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`
-                  : `${queuedCount} Paket(e) warten auf Upload${lastQueuedKey ? ` · ${lastQueuedKey}` : ''}`}
+            {formatQueueStatusMessage({
+              queuedCount,
+              queueWaitingCount,
+              blockedAuthCount,
+              blockedRetryLimitCount,
+              lastQueuedKey,
+            })}
           </p>
         </div>
         <button
@@ -897,7 +961,7 @@ export function TrainingUploadWithRecording() {
     try {
       const result = await uploadState.syncQueued(undefined, { includeAuthBlocked: true });
       setLastQueueSyncResult(result);
-      setMessage(formatSyncQueuedMessage(result.uploaded, result.remaining, result.blocked));
+      setMessage(formatSyncQueuedMessage(result));
     } catch (syncErr) {
       const reason = syncErr instanceof Error ? syncErr.message : String(syncErr);
       setMessage(`Synchronisierung fehlgeschlagen: ${reason}`);
@@ -941,10 +1005,11 @@ export function TrainingUploadWithRecording() {
     }
 
     authRetryFiredRef.current = true;
-    uploadState.syncQueued(undefined, { includeAuthBlocked: true }).then(({ uploaded, remaining, blocked }) => {
+    uploadState.syncQueued(undefined, { includeAuthBlocked: true }).then((result) => {
       if (cancelled) return;
-      setLastQueueSyncResult({ uploaded, remaining, blocked });
-      setMessage(formatSyncQueuedMessage(uploaded, remaining, blocked));
+      setLastQueueSyncResult(result);
+      setMessage(formatSyncQueuedMessage(result));
+      const { blocked } = result;
       if (blocked === 0) {
         authRetryFiredRef.current = false;
       }

@@ -8,6 +8,7 @@ import {
 } from '../training/trainingBundle';
 import {
   enqueuePersistedBundle,
+  hasAutomaticUploadAttemptsRemaining,
   listQueuedBundles,
   markBundleFailed,
   markBundleUploading,
@@ -27,7 +28,13 @@ type UploadOptions = TrainingUploadOptions & { apiBase?: string; refreshAccessTo
 type AuthRetryOptions = { token?: string; refreshAccessToken?: () => Promise<string | null> };
 
 export type DefaultUploadOptions = Partial<UploadOptions>;
-export type SyncQueuedResult = { uploaded: number; remaining: number; blocked: number };
+export type SyncQueuedResult = {
+  uploaded: number;
+  remaining: number;
+  blocked: number;
+  blockedAuth: number;
+  blockedRetryLimit: number;
+};
 
 type SyncQueuedOptions = { includeAuthBlocked?: boolean };
 
@@ -130,12 +137,12 @@ export function useTrainingUploader(
     [defaultOptions],
   );
 
-  const isBundleRetryable = useCallback((bundle: PersistedTrainingBundle, includeAuthBlocked = false): boolean => {
+  const isBundleRetryable = useCallback((bundle: PersistedTrainingBundle, includeAuthBlockedForCurrentPass = false): boolean => {
     if (bundle.status === 'pending') return true;
     if (bundle.status !== 'failed') return false;
     const isAuthFailure = isAuthFailureReason(bundle.lastError);
-    if (!isAuthFailure) return true;
-    return includeAuthBlocked;
+    if (isAuthFailure) return includeAuthBlockedForCurrentPass;
+    return hasAutomaticUploadAttemptsRemaining(bundle);
   }, []);
 
   const withAuthRetry = useCallback(
@@ -213,9 +220,22 @@ export function useTrainingUploader(
   const syncQueued = useCallback(
     async (options?: DefaultUploadOptions, syncOptions: SyncQueuedOptions = {}): Promise<SyncQueuedResult> => {
       if (syncingRef.current) {
-        const includeAuthBlocked = syncOptions.includeAuthBlocked === true;
-        const blocked = queuedBundlesRef.current.filter((bundle) => !isBundleRetryable(bundle, includeAuthBlocked)).length;
-        return { uploaded: 0, remaining: queuedCountRef.current, blocked };
+        const blockedAuth = queuedBundlesRef.current.filter(
+          (bundle) => bundle.status === 'failed' && isAuthFailureReason(bundle.lastError),
+        ).length;
+        const blockedRetryLimit = queuedBundlesRef.current.filter(
+          (bundle) =>
+            bundle.status === 'failed'
+            && !isAuthFailureReason(bundle.lastError)
+            && !hasAutomaticUploadAttemptsRemaining(bundle),
+        ).length;
+        return {
+          uploaded: 0,
+          remaining: queuedCountRef.current,
+          blocked: blockedAuth + blockedRetryLimit,
+          blockedAuth,
+          blockedRetryLimit,
+        };
       }
       syncingRef.current = true;
       setSyncing(true);
@@ -228,7 +248,7 @@ export function useTrainingUploader(
         setSyncError(reason);
         setSyncing(false);
         syncingRef.current = false;
-        return { uploaded: 0, remaining: queuedCountRef.current, blocked: 0 };
+        return { uploaded: 0, remaining: queuedCountRef.current, blocked: 0, blockedAuth: 0, blockedRetryLimit: 0 };
       }
       const bundles = await refreshQueue();
       const includeAuthBlocked = syncOptions.includeAuthBlocked === true;
@@ -272,8 +292,17 @@ export function useTrainingUploader(
       }
 
       const remaining = await refreshQueue();
-      const retryableRemaining = remaining.filter((bundle) => isBundleRetryable(bundle, includeAuthBlocked));
-      const blocked = Math.max(0, remaining.length - retryableRemaining.length);
+      const retryableRemaining = remaining.filter((bundle) => isBundleRetryable(bundle, false));
+      const blockedAuth = remaining.filter(
+        (bundle) => bundle.status === 'failed' && isAuthFailureReason(bundle.lastError),
+      ).length;
+      const blockedRetryLimit = remaining.filter(
+        (bundle) =>
+          bundle.status === 'failed'
+          && !isAuthFailureReason(bundle.lastError)
+          && !hasAutomaticUploadAttemptsRemaining(bundle),
+      ).length;
+      const blocked = blockedAuth + blockedRetryLimit;
       const hasPending = retryableRemaining.length > 0;
       if (!encounteredError) {
         retryDelayRef.current = retryConfig.base;
@@ -308,7 +337,7 @@ export function useTrainingUploader(
         await maybeTriggerTrainingJob(resolvedOptions);
       }
 
-      return { uploaded, remaining: remaining.length, blocked };
+      return { uploaded, remaining: remaining.length, blocked, blockedAuth, blockedRetryLimit };
     },
     [
       applyTrainingJob,

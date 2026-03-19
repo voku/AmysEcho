@@ -1,4 +1,5 @@
 export const BUNDLE_KEY_PREFIX = 'trainingBundles:';
+export const MAX_AUTOMATIC_BUNDLE_UPLOAD_ATTEMPTS = 5;
 const DB_NAME = 'training-bundles';
 const DB_VERSION = 1;
 const METADATA_STORE = 'bundles';
@@ -24,6 +25,12 @@ export interface PersistedTrainingBundle {
   status: PersistedBundleStatus;
   lastError?: string;
   attempts: number;
+}
+
+export function hasAutomaticUploadAttemptsRemaining(
+  bundle: Pick<PersistedTrainingBundle, 'attempts'>,
+): boolean {
+  return bundle.attempts < MAX_AUTOMATIC_BUNDLE_UPLOAD_ATTEMPTS;
 }
 
 type StoredTrainingBundle = PersistedTrainingBundle & {
@@ -323,7 +330,9 @@ export async function markBundleFailed(key: string, error: string): Promise<void
     ...bundle,
     status: 'failed',
     lastError: error,
-    attempts: bundle.attempts + 1,
+    // Preserve the current count when the same upload attempt transitions from
+    // "uploading" to "failed" so one failed request counts as one attempt.
+    attempts: bundle.status === 'uploading' ? bundle.attempts : bundle.attempts + 1,
   }));
 }
 

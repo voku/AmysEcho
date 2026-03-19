@@ -125,7 +125,7 @@ describe('TrainingUpload', () => {
   it('syncs queue and shows result message', async () => {
     profileIdMock = '11111111-1111-4111-8111-111111111111';
     preferredSignIdMock = 'hilfe';
-    syncQueuedMock.mockResolvedValue({ uploaded: 1, remaining: 0, blocked: 0 });
+    syncQueuedMock.mockResolvedValue({ uploaded: 1, remaining: 0, blocked: 0, blockedAuth: 0, blockedRetryLimit: 0 });
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -138,6 +138,29 @@ describe('TrainingUpload', () => {
     await waitFor(() => {
       expect(syncQueuedMock).toHaveBeenCalled();
       expect(screen.getByText('Synchronisierung abgeschlossen (1 Paket(e) übertragen).')).toBeInTheDocument();
+    });
+  });
+
+  it('shows retry-pause message when bundles hit the automatic retry limit', async () => {
+    profileIdMock = '11111111-1111-4111-8111-111111111111';
+    preferredSignIdMock = 'hilfe';
+    syncQueuedMock.mockResolvedValue({ uploaded: 0, remaining: 1, blocked: 1, blockedAuth: 0, blockedRetryLimit: 1 });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <TrainingUploadWithRecording />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Jetzt synchronisieren' }));
+
+    await waitFor(() => {
+      expect(syncQueuedMock).toHaveBeenCalled();
+      expect(
+        screen.getByText(
+          '1 Paket(e) pausieren nach mehreren Fehlversuchen. Bitte prüfe die Verbindung und starte sie bei Bedarf manuell erneut.',
+        ),
+      ).toBeInTheDocument();
     });
   });
 

@@ -423,6 +423,14 @@ def apply_hand_focus(
 
 
 def _extract_explicit_mirror_safe(metadata: dict) -> bool | None:
+    """Read explicit mirror-safe metadata from current or legacy bundle fields.
+
+    Newer bundles store the flag under ``metadata["augmentation"]["mirrorSafe"]``.
+    Older metadata can still carry the same boolean directly at
+    ``metadata["mirrorSafe"]``. The nested augmentation value takes priority so
+    the trainer honors the most specific current schema while still accepting
+    legacy uploads.
+    """
     if not isinstance(metadata, dict):
         return None
     aug = metadata.get("augmentation")
@@ -449,6 +457,8 @@ def _resolve_mirror_safe(metadata: dict, hand_focus: str | None) -> bool:
     ``False``.
     """
     explicit = _extract_explicit_mirror_safe(metadata)
+    if hand_focus is None:
+        return explicit if explicit is not None else False
     if hand_focus in ("dominant_only", "both_asymmetric"):
         return False
     if explicit is not None:

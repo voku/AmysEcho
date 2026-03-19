@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
   enqueuePersistedBundle,
+  hasAutomaticUploadAttemptsRemaining,
   listQueuedBundles,
+  MAX_AUTOMATIC_BUNDLE_UPLOAD_ATTEMPTS,
   markBundleUploading,
   markBundleFailed,
   removeQueuedBundle,
@@ -195,6 +197,32 @@ describe('trainingQueue - IndexedDB operations', () => {
     await markBundleFailed(bundle!.key, 'Third error');
     bundles = await listQueuedBundles();
     if (bundles[0]) expect(bundles[0].attempts).toBe(3);
+  });
+
+  it('does not double count one failed upload after marking the bundle as uploading', async () => {
+    const testZip = new TextEncoder().encode('test-data');
+    const bundle = await enqueuePersistedBundle({
+      profileId: 'test',
+      label: 'TEST',
+      capturedAt: '2024-01-01T00:00:00.000Z',
+      source: 'web://test',
+      framesCount: 3,
+      zip: testZip,
+    });
+
+    await markBundleUploading(bundle!.key);
+    await markBundleFailed(bundle!.key, 'Upload fehlgeschlagen');
+
+    const bundles = await listQueuedBundles();
+    if (bundles[0]) {
+      expect(bundles[0].status).toBe('failed');
+      expect(bundles[0].attempts).toBe(1);
+    }
+  });
+
+  it('reports when automatic retries are exhausted', async () => {
+    expect(hasAutomaticUploadAttemptsRemaining({ attempts: MAX_AUTOMATIC_BUNDLE_UPLOAD_ATTEMPTS - 1 })).toBe(true);
+    expect(hasAutomaticUploadAttemptsRemaining({ attempts: MAX_AUTOMATIC_BUNDLE_UPLOAD_ATTEMPTS })).toBe(false);
   });
 
   it('persists bundle data across operations', async () => {
