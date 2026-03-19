@@ -1622,10 +1622,8 @@ app.get(
 				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
-			const { profileCounts } = await collectLabelCounts();
-			const counts = profileCounts.get(profileId) || {};
 			const manifestEntries = await getCachedManifestEntries();
-			const trainedLabels = mergeTrainedLabels(profileId, counts, manifestEntries);
+			const trainedLabels = mergeTrainedLabels(profileId, manifestEntries);
 			const customSigns = await loadCustomSigns();
 			const labelDescriptors = buildTrainedLabelDescriptors(
 				profileId,

@@ -28,7 +28,6 @@ function normalizeMergedLabel(rawLabel: string): string {
 
 export function mergeTrainedLabels(
   profileId: string,
-  profileCounts: Record<string, number>,
   manifestEntries: ManifestEntry[],
 ): string[] {
   const normalizedLabelMap = new Map<string, string>();
@@ -44,12 +43,6 @@ export function mergeTrainedLabels(
       normalizedLabelMap.set(normalizedKey, normalizedLabel);
     }
   };
-
-  for (const [label, count] of Object.entries(profileCounts)) {
-    if (count > 0) {
-      addLabel(label);
-    }
-  }
 
   for (const entry of manifestEntries) {
     if (!entry || typeof entry !== "object") {

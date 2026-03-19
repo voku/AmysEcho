@@ -1,21 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import type { TrainingFrame } from '../training/types';
+import type { FrameBatchPayload } from '../types/frames';
 
 export type RecordingState = 'idle' | 'recording';
-
-/**
- * Local definition matching FrameBatchPayload from app/src/types/frames.ts.
- * Keep this in sync with the canonical definition to avoid payload shape drift.
- */
-interface FrameBatchPayload {
-  frames?: string[];
-  landmarks: number[][][][];
-  handednesses?: string[][];
-  poseLandmarks?: number[][][];
-  faceLandmarks?: number[][][];
-  timestamps?: number[];
-}
 
 interface RecordedData {
   frames: TrainingFrame[];

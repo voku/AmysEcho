@@ -118,6 +118,28 @@ localStorage.setItem('cameraFacingMode', 'environment');
 - Existing databases will not have profiles migrated
 - This is intentional for production readiness
 
+### 6. Trained Labels Endpoint Uses Canonical Manifest Entries Only
+
+**What Changed:**
+- Removed the prelaunch fallback that merged labels from legacy sample-count storage.
+- `/api/v1/dgs/trained-labels` now resolves labels from canonical `training_manifest.json` entries for the active profile.
+
+**Migration:**
+- Ensure training bundles are ingested through `/api/v1/dgs/sample-bundles` so labels appear in trained-label responses.
+- Do not depend on `data/dgs_samples.json` for trained-label discovery.
+
+**Action Required:**
+- Update internal tooling/tests that still expected legacy sample-count fallback behavior.
+
+### 7. Runtime Frame-Batch Payload Contract Centralized
+
+**What Changed:**
+- The frame-batch payload contract is now centralized in `webapp/src/types/frames.ts` and reused by training recorder logic.
+- Contract includes optional multimodal fields (`poseLandmarks`, `faceLandmarks`) to match current runtime payload shape.
+
+**Action Required:**
+- Import `FrameBatchPayload` from `webapp/src/types/frames.ts` instead of duplicating local payload interfaces.
+
 ## Deployment
 
 ### Re-initialization Script
