@@ -13,13 +13,10 @@ import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 
 // Mock the hooks that have external dependencies
-const toggleAudioMutedMock = vi.fn();
 const detectorState = {
   start: vi.fn().mockResolvedValue(true),
   stop: vi.fn().mockResolvedValue(undefined),
   cleanup: vi.fn().mockResolvedValue(undefined),
-  audioMuted: false,
-  toggleAudioMuted: toggleAudioMutedMock,
   status: 'idle',
   error: null as string | null,
   lastSign: null as string | null,
@@ -103,7 +100,6 @@ describe('SignLanguageRecorder', () => {
     vi.mocked(audioService.speak).mockResolvedValue(undefined);
     gestureMeaningService.reset();
     window.localStorage.clear();
-    toggleAudioMutedMock.mockReset();
     detectorState.status = 'idle';
     detectorState.error = null;
     detectorState.lastSign = null;
@@ -145,21 +141,6 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByText('Kamera starten')).toBeInTheDocument();
     expect(screen.getByText('Aussprechen')).toBeInTheDocument();
     expect(screen.getByText('Lernen')).toBeInTheDocument();
-  });
-
-  it('shows audio mute button', () => {
-    renderWithProviders(<SignLanguageRecorder />);
-
-    expect(screen.getByRole('button', { name: '🔇 Audio stumm' })).toBeInTheDocument();
-  });
-
-  it('triggers audio mute toggle', () => {
-    renderWithProviders(<SignLanguageRecorder />);
-
-    const muteButton = screen.getByRole('button', { name: '🔇 Audio stumm' });
-    fireEvent.click(muteButton);
-
-    expect(toggleAudioMutedMock).toHaveBeenCalledTimes(1);
   });
 
   it('shows overlay toggle checkbox', () => {

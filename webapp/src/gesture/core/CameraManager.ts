@@ -33,7 +33,7 @@ export class CameraManager {
       // localStorage might be disabled
     }
     
-    const requestClipAudio = false; // Audio is handled by AudioCaptureService
+    const requestClipAudio = false; // Clip capture remains visual-only
 
     try {
       let stream: MediaStream;

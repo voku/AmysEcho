@@ -4,13 +4,13 @@ import numpy as np
 from sliding_window import Sample
 
 
-def test_save_model_writes_audio_feature_size(monkeypatch, tmp_path):
+def test_save_model_omits_audio_feature_size(monkeypatch, tmp_path):
     module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
     monkeypatch.setattr(module, "WINDOW_FEATURE_SIZE", 4)
     monkeypatch.setattr(module, "INPUT_FEATURE_SIZE", 2)
     monkeypatch.setattr(module, "WINDOW_SIZE", 2)
 
-    input_dim = module.WINDOW_FEATURE_SIZE + 2
+    input_dim = module.WINDOW_FEATURE_SIZE
     layer1 = 3
     layer2 = 2
     output = 1
@@ -23,11 +23,11 @@ def test_save_model_writes_audio_feature_size(monkeypatch, tmp_path):
     b3 = np.zeros((output,), dtype=np.float32)
 
     dest = tmp_path / "model.npz"
-    module.save_model(dest, (w1, b1, w2, b2, w3, b3), labels=["audio"])
+    module.save_model(dest, (w1, b1, w2, b2, w3, b3), labels=["hilfe"])
 
     data = np.load(dest)
     assert int(data["input_dim"].item()) == input_dim
-    assert int(data["audio_feature_size"].item()) == 2
+    assert "audio_feature_size" not in data
     assert int(data["window_size"].item()) == 2
     assert int(data["feature_size"].item()) == 2
 

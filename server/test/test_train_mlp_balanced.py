@@ -56,7 +56,6 @@ def test_validation_loss_guides_best_weights():
         X,
         y,
         2,
-        hidden_size=4,
         epochs=5,
         learning_rate=5.0,
         dropout_rate=0.0,

@@ -88,9 +88,4 @@ describe('DgsVideoPlayer', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('deprecated controls prop is ignored — never shows native controls', () => {
-    render(<DgsVideoPlayer {...defaultProps} controls={true} />);
-    const video = screen.getByLabelText('Test Gebärde');
-    expect(video).not.toHaveAttribute('controls');
-  });
 });

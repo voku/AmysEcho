@@ -36,8 +36,6 @@ const CONFIDENT_MEDIAPIPE_THRESHOLD = 0.65;
 const UNSURE_MEDIAPIPE_THRESHOLD = 0.35;
 const CONFIDENT_TEMPLATE_THRESHOLD = 0.3;
 const UNSURE_TEMPLATE_THRESHOLD = TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE;
-const CONFIDENT_AUDIO_ONLY_THRESHOLD = 0.6;
-const UNSURE_AUDIO_ONLY_THRESHOLD = 0.4;
 const UNSURE_MLP_DELTA = 0.12;
 
 type DetectionConfidenceState = 'confident' | 'unsure' | 'none';
@@ -84,15 +82,10 @@ interface MediaPipeSelection {
   handednesses: string[];
 }
 
-interface AudioOnlySelection {
-  gesture: string;
-  confidence: number;
-}
-
 interface MlpSelection {
   gesture: string | null;
   confidence: number;
-  method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'landmark_template' | 'none';
+  method: 'mediapipe' | 'mlp' | 'landmark_template' | 'none';
   mlpMetadata: MLPPrediction | null;
   mlpDecision: {
     selected: boolean;
@@ -270,7 +263,6 @@ export class GestureDetectionStep implements ProcessingStep {
     let selectedConfidence = mediaPipeSelection.confidence;
     let detectionMethod: MlpSelection['method'] = mediaPipeSelection.method;
     let twoHandMetadata = mediaPipeSelection.twoHandMetadata;
-    let audioOnlyDetection = false;
     let templateMatch: TemplateMatchResult | null = null;
 
     // Try landmark template detection first – it is fast, reliable, and
@@ -305,17 +297,6 @@ export class GestureDetectionStep implements ProcessingStep {
           twoHandMetadata = null;
         }
       }
-    }
-
-    // Check for audio-only detection when no visual landmarks are present
-    // This enables Amy to communicate via speech when she's not signing
-    const audioOnlySelection = this.detectAudioOnly(context);
-    if (audioOnlySelection) {
-      selectedGesture = audioOnlySelection.gesture;
-      selectedConfidence = audioOnlySelection.confidence;
-      detectionMethod = 'mlp_audio_only';
-      twoHandMetadata = null;
-      audioOnlyDetection = true;
     }
 
     const mlpSelection = this.applyMlpDetection(
@@ -366,7 +347,6 @@ export class GestureDetectionStep implements ProcessingStep {
         mlp: mlpSelection.mlpMetadata,
         mlpDecision: mlpSelection.mlpDecision,
         twoHand: twoHandMetadata,
-        audioOnly: audioOnlyDetection,
         templateMatch: templateMatch ?? null,
       }
     };
@@ -398,9 +378,6 @@ export class GestureDetectionStep implements ProcessingStep {
 
     if (method === 'mlp') {
       return { confident: mlpThreshold, unsure: unsureMlpThreshold };
-    }
-    if (method === 'mlp_audio_only') {
-      return { confident: CONFIDENT_AUDIO_ONLY_THRESHOLD, unsure: UNSURE_AUDIO_ONLY_THRESHOLD };
     }
     if (method === 'landmark_template') {
       return { confident: CONFIDENT_TEMPLATE_THRESHOLD, unsure: UNSURE_TEMPLATE_THRESHOLD };
@@ -454,58 +431,6 @@ export class GestureDetectionStep implements ProcessingStep {
     };
   }
 
-  private detectAudioOnly(context: ProcessingContext): AudioOnlySelection | null {
-    const hasVisualLandmarks = (context.landmarks ?? []).some(hand => hand.length > 0);
-    const hasAudioFeatures = context.audioFeatures && context.audioFeatures.some(v => Math.abs(v) > 0.001);
-
-    if (!hasVisualLandmarks && hasAudioFeatures && typeof window.__mlpPredict === 'function') {
-      gestureDebugLog('audio', 'Audio-only detection attempted', () => ({
-        hasAudioFeatures: !!hasAudioFeatures,
-        audioFeaturesLength: context.audioFeatures?.length,
-      }), { sampleIntervalMs: 2000 });
-
-      try {
-        // Call MLP with zero-padded visual landmarks but real audio features
-        // This allows detection based purely on audio (Amy speaking without signing)
-        const emptyLandmarks: number[][][] = [];
-        const emptyHandedness: HandednessCategory[][] = [];
-        const mlpAudioResult = window.__mlpPredict(
-          emptyLandmarks,
-          emptyHandedness,
-          undefined,
-          undefined,
-          context.audioFeatures
-        );
-
-        if (mlpAudioResult && typeof mlpAudioResult.score === 'number') {
-          const audioThreshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
-
-          if (mlpAudioResult.label !== MLP_NULL_LABEL && mlpAudioResult.score >= audioThreshold) {
-            gestureDebugLog('audio', 'Audio-only detection successful', () => ({
-              label: mlpAudioResult.label,
-              score: mlpAudioResult.score,
-              threshold: audioThreshold,
-            }), { sampleIntervalMs: 1000 });
-
-            const normalizedLabel = this.normalizeLabel(mlpAudioResult.label);
-            if (normalizedLabel) {
-              return {
-                gesture: normalizedLabel,
-                confidence: mlpAudioResult.score,
-              };
-            }
-          }
-        }
-      } catch (error) {
-        gestureDebugLog('audio', 'Audio-only detection failed', () => ({
-          error: String(error),
-        }), { sampleIntervalMs: 5000 });
-      }
-    }
-
-    return null;
-  }
-
   private applyMlpDetection(
     context: ProcessingContext,
     handednessesForMlp: HandednessCategory[][],
@@ -555,7 +480,6 @@ export class GestureDetectionStep implements ProcessingStep {
         handednessesForMlp,
         context.poseLandmarks,
         context.faceLandmarks,
-        context.audioFeatures,
       );
       gestureDebugLog('mlp', 'MLP prediction result', () => ({
         label: mlpResult?.label,

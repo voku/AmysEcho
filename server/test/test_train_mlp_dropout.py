@@ -49,7 +49,6 @@ def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
     keep_prob = 0.5
     num_samples = 4
     input_size = 10
-    hidden_size = 6
     output_size = 3
 
     from amyserver_tools.train_mlp import MLP_LAYER1_SIZE, MLP_LAYER2_SIZE
@@ -78,7 +77,6 @@ def test_train_mlp_dropout_uses_per_sample_masks(monkeypatch):
         X,
         y,
         output_size=output_size,
-        hidden_size=hidden_size,
         epochs=1,
         dropout_rate=1.0 - keep_prob,
         rng=stub_rng,
@@ -131,7 +129,6 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
     X = np.ones((2, 4), dtype=np.float32)
     y = np.array([0, 1], dtype=np.int64)
 
-    hidden_size = 5
     epochs = 3
     learning_rate = 0.0
 
@@ -139,7 +136,6 @@ def test_train_mlp_respects_configuration_parameters(monkeypatch):
         X,
         y,
         output_size=2,
-        hidden_size=hidden_size,
         epochs=epochs,
         learning_rate=learning_rate,
         dropout_rate=0.0,
@@ -189,7 +185,6 @@ def test_plan_train_validation_split_keeps_single_training_sample():
         X[train_idx],
         y[train_idx],
         output_size=1,
-        hidden_size=2,
         epochs=1,
         learning_rate=0.0,
         dropout_rate=0.0,

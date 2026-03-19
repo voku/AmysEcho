@@ -20,7 +20,6 @@ export interface ProcessingContext {
   normalizedResults?: NormalizedMediaPipeResult;
   poseLandmarks?: number[][];
   faceLandmarks?: number[][];
-  audioFeatures?: Float32Array;
 }
 
 export interface ProcessingResult {
@@ -68,7 +67,7 @@ export interface ProcessingResult {
     timestamp: number;
   };
   metadata?: {
-    method: 'mediapipe' | 'mlp' | 'mlp_audio_only' | 'landmark_template' | 'none';
+    method: 'mediapipe' | 'mlp' | 'landmark_template' | 'none';
     confidenceState?: 'confident' | 'unsure' | 'none';
     perHand: Array<{ hand: string; label: string; score: number }>;
     handednesses: string[];
@@ -97,7 +96,6 @@ export interface ProcessingResult {
       selectedGestureBeforeMlp?: string | null;
     } | null;
     twoHand: TwoHandGesture | null;
-    audioOnly?: boolean;
     templateMatch?: {
       label: string;
       confidence: number;

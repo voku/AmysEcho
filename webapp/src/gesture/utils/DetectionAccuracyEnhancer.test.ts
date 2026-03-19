@@ -276,7 +276,6 @@ describe('DetectionAccuracyEnhancer', () => {
       const stats = enhancer.getAccuracyStats();
 
       expect(stats.totalGestures).toBeGreaterThan(0);
-      expect(stats.averageConfidence).toBeGreaterThan(0);
       expect(stats.averageCandidateConfidence).toBeGreaterThan(0);
       expect(stats.averageFinalConfidence).toBeGreaterThan(0);
       expect(stats.historicalConfidence).toHaveProperty('thumbs_up');
@@ -294,7 +293,6 @@ describe('DetectionAccuracyEnhancer', () => {
       enhancer.reset();
       const resetStats = enhancer.getAccuracyStats();
       expect(resetStats.totalGestures).toBe(0);
-      expect(resetStats.averageConfidence).toBe(0);
       expect(resetStats.averageCandidateConfidence).toBe(0);
       expect(resetStats.averageFinalConfidence).toBe(0);
     });

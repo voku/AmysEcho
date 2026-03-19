@@ -93,6 +93,5 @@ Primary loop:
 
 - **Codebase overview**: `docs/architecture/CodebaseOverview.md`  
 - **Training loop**: `docs/training/BASELINE_MODEL_PIPELINE.md`, `docs/training/MULTIMODAL_TRAINING_GUIDE.md`  
-- **Audio capture**: `docs/features/AUDIO_CAPTURE.md`  
+- **Training capture**: visual-only DGS bundles now contain landmarks, optional clip, and optional still image
 - **Integration flow**: `docs/integration/API.md`  
-

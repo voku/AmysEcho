@@ -324,8 +324,6 @@ export function SignLanguageRecorder() {
     lastMlpCandidates,
     lastLandmarks,
     messageLog,
-    audioMuted,
-    toggleAudioMuted,
   } = useSignLanguageDetector(videoRef, overlayRef);
   const { notice: modelNotice, status: modelStatus, lastMeta: modelMeta } = useMlpModelInjection(profileId);
   const hasAttemptedAutoStart = useRef(false);
@@ -796,7 +794,6 @@ export function SignLanguageRecorder() {
       normalizedGesture,
     )
     : '';
-  const audioToggleLabel = audioMuted ? '🔊 Audio aktivieren' : '🔇 Audio stumm';
   const hasDetectedHands = status === 'running' && lastLandmarks.length > 0;
 
   useEffect(() => {
@@ -952,9 +949,6 @@ export function SignLanguageRecorder() {
 
     if (lastDetectionMethod === 'mlp') {
       return 'MLP-Modell';
-    }
-    if (lastDetectionMethod === 'mlp_audio_only') {
-      return 'MLP (nur Audio)';
     }
     if (lastDetectionMethod === 'mediapipe') {
       return 'MediaPipe';
@@ -1177,14 +1171,6 @@ export function SignLanguageRecorder() {
             >
               {facingMode === 'user' ? '🔄 Rückkamera' : '🔄 Frontkamera'}
             </button>
-            <button
-              className="ghost-inline"
-              onClick={toggleAudioMuted}
-              type="button"
-              title={audioMuted ? 'Audioaufnahme wieder einschalten' : 'Audioaufnahme stummschalten'}
-            >
-              {audioToggleLabel}
-            </button>
             <label
               className="toggle ghost-inline"
               title={showOverlay ? 'Overlay ausblenden' : 'Overlay anzeigen'}
@@ -1255,11 +1241,6 @@ export function SignLanguageRecorder() {
                   </button>
                 </>
               )}
-            </div>
-          )}
-          {audioMuted && (
-            <div className="gesture-screen__meta-note">
-              <strong>Audio stummgeschaltet.</strong> So stören Umgebungsgeräusche die Erkennung nicht.
             </div>
           )}
           {!cameraSupported && (

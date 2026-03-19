@@ -33,7 +33,6 @@ import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { MultimodalSmoother } from '../utils/MultimodalSmoother';
 import { SignVariationTracker, type GestureLandmarks } from '../../services/signVariationTracker';
-import { LiveAudioRecognitionService } from '../../services/liveAudioRecognitionService';
 import { assessLandmarkConfidence } from '../utils/landmarkConfidencePolicy';
 import {
   FallbackProcessingStep,
@@ -57,7 +56,6 @@ interface GestureMessagePayload {
   handednesses: string[];
   timestamp: number;
   isFallback?: boolean;
-  audioOnly?: boolean;
   systemHealth: ReturnType<ErrorRecoveryManager['getHealthStatus']>;
   processingTime: number;
   stepsExecuted: string[];
@@ -144,7 +142,6 @@ export class GestureRecognitionOrchestrator {
   private handStabilityAssistant!: HandStabilityAssistant;
   private batteryMonitor!: BatteryMonitor;
   private config: GestureDetectorConfig;
-  private liveAudioService: LiveAudioRecognitionService;
 
   private isInitialized = false;
   private isRunning = false;
@@ -158,7 +155,6 @@ export class GestureRecognitionOrchestrator {
   private multimodalSmoother: MultimodalSmoother;
   private variationTracker: SignVariationTracker;
   private variationCleanupCounter = 0;
-  private audioMuted = false;
   private templateDetector: LandmarkTemplateDetector;
   private readonly VARIATION_CLEANUP_INTERVAL = 100; // Run cleanup every 100 gestures
 
@@ -175,7 +171,6 @@ export class GestureRecognitionOrchestrator {
     this.config = loadConfig();
     this.multimodalSmoother = new MultimodalSmoother();
     this.variationTracker = new SignVariationTracker();
-    this.liveAudioService = new LiveAudioRecognitionService();
     this.templateDetector = new LandmarkTemplateDetector();
 
     this.createGestureDetector =
@@ -262,9 +257,6 @@ export class GestureRecognitionOrchestrator {
     if (this.isRunning) return;
 
     await this.gestureDetector?.start();
-    if (!this.audioMuted) {
-      await this.liveAudioService.start();
-    }
     this.isRunning = true;
   }
 
@@ -280,25 +272,10 @@ export class GestureRecognitionOrchestrator {
     this.frameBuffer = [];
 
     await this.gestureDetector?.stop();
-    this.liveAudioService.stop();
     // Force a fresh initialization on the next start so MediaPipe reloads and getUserMedia runs again.
     // Without this reset, restarting after a stop could leave the camera stream detached even though
     // the orchestrator reported a running state.
     this.resetLifecycleState();
-  }
-
-  /**
-   * Toggle live audio capture for multimodal recognition.
-   */
-  async setAudioMuted(muted: boolean): Promise<void> {
-    this.audioMuted = muted;
-    if (muted) {
-      this.liveAudioService.stop();
-      return;
-    }
-    if (this.isRunning && !this.liveAudioService.isRunning()) {
-      await this.liveAudioService.start();
-    }
   }
 
   /**
@@ -323,9 +300,6 @@ export class GestureRecognitionOrchestrator {
       const normalized = mapMediaPipeResult(results);
       this.collectFrameForBatch(normalized);
       const smoothed = this.multimodalSmoother.smooth(normalized, timestamp);
-      
-      // Extract audio features for multimodal recognition
-      const audioData = this.liveAudioService.extractFeatures();
 
       const context: ProcessingContext = {
         landmarks: smoothed.landmarks,
@@ -336,7 +310,6 @@ export class GestureRecognitionOrchestrator {
         rawLandmarks: smoothed.landmarks,
         handednesses: smoothed.handednesses,
         normalizedResults: smoothed,
-        audioFeatures: audioData.mfcc
       };
 
       // Execute processing pipeline
@@ -1199,7 +1172,6 @@ export class GestureRecognitionOrchestrator {
         handednesses: handednessLabels,
         timestamp: processingResult.timestamp ?? Date.now(),
         isFallback: processingResult.isFallback ?? false,
-        audioOnly: processingResult.metadata?.audioOnly ?? false,
         systemHealth: this.errorRecoveryManager.getHealthStatus(),
         processingTime: processingResult.processingTime,
         stepsExecuted: processingResult.stepsExecuted,
