@@ -101,8 +101,8 @@ export async function loadBaselineLabels(): Promise<string[]> {
 }
 
 /**
- * Load the DGS manifest with video mappings
- * Handles both old format (with variations) and new format (with videos array)
+ * Load the DGS manifest with video mappings.
+ * The manifest is expected to use the canonical `videos` array shape.
  */
 export async function loadDgsManifest(): Promise<{
 	gestures: Array<{
@@ -110,7 +110,6 @@ export async function loadDgsManifest(): Promise<{
 		label: string;
 		video: string | null;
 		videos?: string[];
-		variations?: { main: string[]; var: string[] };
 		totalVideoCount?: number;
 	}>;
 	stats?: { totalLabels: number; totalVideos: number; hasLandmarks: number };
@@ -127,11 +126,9 @@ export async function loadDgsManifest(): Promise<{
 					label: string;
 					video?: string;
 					videos?: string[];
-					variations?: { main: string[]; var: string[] };
 					totalVideoCount?: number;
 				}) => {
-					// If we have videos array but no variations, build variations from videos
-					if (g.videos && !g.variations) {
+					if (g.videos) {
 						const mainVideos = g.videos.filter((v: string) =>
 							v.includes("_main_"),
 						);
@@ -198,13 +195,11 @@ export async function buildLabelManifest(): Promise<LabelManifest> {
 	const variations = new Map<string, LabelVariation>();
 	if (dgsManifest?.gestures) {
 		for (const gesture of dgsManifest.gestures) {
-			// Handle both old format (variations object) and new format (videos array)
 			let allVideos: string[];
 			let mainVideo: string | null;
 			let variationVideos: string[];
 
 			if (gesture.videos) {
-				// New format: videos array
 				allVideos = gesture.videos;
 				mainVideo =
 					gesture.video ??
@@ -214,17 +209,7 @@ export async function buildLabelManifest(): Promise<LabelManifest> {
 					allVideos[0] ??
 					null;
 				variationVideos = allVideos.filter((v) => v !== mainVideo);
-			} else if (gesture.variations) {
-				// Old format: variations object
-				const mainVideos = gesture.variations.main ?? [];
-				const varVideos = gesture.variations.var ?? [];
-				allVideos = [gesture.video, ...mainVideos, ...varVideos].filter(
-					(v): v is string => v != null,
-				);
-				mainVideo = gesture.video;
-				variationVideos = [...mainVideos, ...varVideos];
 			} else {
-				// Fallback: just the main video
 				allVideos = gesture.video ? [gesture.video] : [];
 				mainVideo = gesture.video;
 				variationVideos = [];

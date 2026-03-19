@@ -20,7 +20,7 @@ TEST_JWT_REFRESH_SECRET = "test-refresh-secret-with-at-least-32-bytes"
 
 
 def resolve_data_dir() -> Path:
-    data_dir = os.environ.get("AMY_ECHO_DATA_DIR") or os.environ.get("AMY_DATA_DIR")
+    data_dir = os.environ.get("AMY_ECHO_DATA_DIR")
     return Path(data_dir) if data_dir else (SERVER_DIR / "data")
 
 

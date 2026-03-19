@@ -7,7 +7,7 @@
       "overridden": false,
       "dependencies": {
         "@types/node": {
-          "version": "24.10.15"
+          "version": "24.10.9"
         }
       }
     },
@@ -22,13 +22,13 @@
           "overridden": false
         },
         "@types/node": {
-          "version": "24.10.15"
+          "version": "24.10.9"
         }
       }
     },
     "@types/node": {
-      "version": "24.10.15",
-      "resolved": "https://registry.npmjs.org/@types/node/-/node-24.10.15.tgz",
+      "version": "24.10.9",
+      "resolved": "https://registry.npmjs.org/@types/node/-/node-24.10.9.tgz",
       "overridden": false,
       "dependencies": {
         "undici-types": {
