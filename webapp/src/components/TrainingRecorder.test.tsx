@@ -7,6 +7,8 @@ import { TrainingRecorder } from './TrainingRecorder';
 import type { SignLanguageStatus } from '../hooks/useSignLanguageDetector';
 
 const startMock = vi.fn();
+const makeHand = (offset: number) =>
+  Array.from({ length: 21 }, (_, i) => [i + offset, i + offset, i + offset]);
 
 type TrainingState = {
   state: 'idle' | 'recording';
@@ -71,6 +73,7 @@ vi.mock('../hooks/useSignLanguageDetector', () => ({
     lastHandedness: [],
     lastConfidence: null,
     messageLog: [],
+    getVariationMetrics: vi.fn(),
   }),
 }));
 
@@ -233,6 +236,108 @@ describe('TrainingRecorder', () => {
 
     expect(screen.getByText(/Qualitätscheck/)).toBeInTheDocument();
     expect(screen.getByText(/Bewege Finger und Hand deutlich/)).toBeInTheDocument();
+  });
+
+  it('vereinfacht die Handauswahl auf drei klare Optionen', () => {
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByLabelText('Beide Hände zusammen')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nur Haupthand')).toBeInTheDocument();
+    expect(screen.getByLabelText('Egal links oder rechts')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Beide unterschiedlich')).not.toBeInTheDocument();
+  });
+
+  it('verwendet die vereinfachte Auswahl beim Speichern der Aufnahme', async () => {
+    const user = userEvent.setup();
+    const onRecordingComplete = vi.fn();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:manual-still');
+    trainingState.recordedData.frames = [{ landmarks: [[[0.1, 0.2, 0]]], handedness: ['Left'] }];
+
+    render(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
+
+    await user.click(screen.getByLabelText('Egal links oder rechts'));
+    expect(
+      screen.getByText('Links/Rechts-Varianten werden für das Training automatisch gespiegelt, damit wenige Aufnahmen besser genutzt werden.'),
+    ).toBeInTheDocument();
+
+    const fileInput = screen.getByLabelText('Eigenes Referenzbild hochladen (optional)');
+    const manualFile = new File(['inhalt'], 'referenz.jpg', { type: 'image/jpeg' });
+    await user.upload(fileInput, manualFile);
+    await user.click(screen.getByRole('button', { name: 'Aufnahme verwenden' }));
+
+    expect(onRecordingComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        handFocus: 'either_hand',
+      }),
+    );
+  });
+
+  it('lässt keine alte Handsuggestion in die nächste kurze Aufnahme hineinlaufen', async () => {
+    const user = userEvent.setup();
+    const onRecordingComplete = vi.fn();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:manual-still');
+
+    trainingState.state = 'recording';
+    trainingState.recordedData.frames = [
+      { landmarks: [makeHand(0), makeHand(100)], handedness: ['Left', 'Right'] },
+      { landmarks: [makeHand(1), makeHand(102)], handedness: ['Left', 'Right'] },
+      { landmarks: [makeHand(2), makeHand(104)], handedness: ['Left', 'Right'] },
+    ];
+
+    const { rerender } = render(
+      <TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Aufnahme stoppen' }));
+
+    trainingState.state = 'idle';
+    rerender(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
+
+    expect(screen.getByText(/Automatische Erkennung:/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(screen.queryByText(/Automatische Erkennung:/)).not.toBeInTheDocument();
+
+    trainingState.recordedData.frames = [
+      { landmarks: [makeHand(0), makeHand(100)], handedness: ['Left', 'Right'] },
+    ];
+    rerender(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
+
+    const fileInput = screen.getByLabelText('Eigenes Referenzbild hochladen (optional)');
+    const manualFile = new File(['inhalt'], 'referenz.jpg', { type: 'image/jpeg' });
+    await user.upload(fileInput, manualFile);
+    await user.click(screen.getByRole('button', { name: 'Aufnahme verwenden' }));
+
+    expect(onRecordingComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        handFocus: 'both_equal',
+      }),
+    );
+  });
+
+  it('setzt die Handsuggestion beim Start einer neuen Aufnahme zurück', async () => {
+    const user = userEvent.setup();
+
+    trainingState.state = 'recording';
+    trainingState.recordedData.frames = [
+      { landmarks: [makeHand(0), makeHand(100)], handedness: ['Left', 'Right'] },
+      { landmarks: [makeHand(1), makeHand(102)], handedness: ['Left', 'Right'] },
+      { landmarks: [makeHand(2), makeHand(104)], handedness: ['Left', 'Right'] },
+    ];
+
+    const { rerender } = render(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Aufnahme stoppen' }));
+
+    trainingState.state = 'idle';
+    trainingState.recordedData.frames = [];
+    rerender(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByText(/Automatische Erkennung:/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Aufnahme starten' }));
+
+    expect(screen.queryByText(/Automatische Erkennung:/)).not.toBeInTheDocument();
   });
 
 

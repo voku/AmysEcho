@@ -1,3 +1,5 @@
+import type { HandFocus } from './types';
+
 export const HAND_LANDMARKS_PER_HAND = 21;
 
 export function flattenHands(hands: number[][][]): number[][] {
@@ -189,11 +191,50 @@ function handHasLandmarks(frames: ReadonlyArray<{ landmarks?: number[][][]; hand
 }
 
 export type SuggestedHandFocus = {
-  suggestion: import('./types').HandFocus;
+  suggestion: HandFocus;
   confidence: 'high' | 'medium' | 'low';
   reason: string;
   motionRatio?: number;
 };
+
+export type SimplifiedHandFocus = 'dominant_only' | 'both_hands' | 'either_hand';
+
+/**
+ * Map detailed trainer-facing hand focus semantics to the three simplified
+ * caregiver-facing recorder choices.
+ */
+export function simplifyHandFocus(handFocus: HandFocus): SimplifiedHandFocus {
+  if (handFocus === 'dominant_only') {
+    return 'dominant_only';
+  }
+  if (handFocus === 'either_hand') {
+    return 'either_hand';
+  }
+  return 'both_hands';
+}
+
+/**
+ * Resolve the simplified recorder choice back to the detailed hand focus that
+ * gets serialized for training. When the caregiver selects "both hands", an
+ * asymmetric auto-detection from the current recording takes precedence over
+ * the default symmetric interpretation.
+ */
+export function resolveHandFocus(
+  selection: SimplifiedHandFocus,
+  suggestion?: SuggestedHandFocus | null,
+): HandFocus {
+  if (selection === 'dominant_only') {
+    return 'dominant_only';
+  }
+  if (selection === 'either_hand') {
+    return 'either_hand';
+  }
+  return suggestion?.suggestion === 'both_asymmetric' ? 'both_asymmetric' : 'both_equal';
+}
+
+export function handFocusSupportsMirrorAugmentation(handFocus: HandFocus | undefined): boolean {
+  return handFocus === 'both_equal' || handFocus === 'either_hand';
+}
 
 /**
  * Analyze recorded frames and suggest which hand focus setting to use.

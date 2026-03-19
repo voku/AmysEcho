@@ -145,13 +145,23 @@ describe('createTrainingZip', () => {
     expect(metadata.clipFilename).toBe('clip.webm');
   });
 
-  it('speichert handFocus in den Metadaten', async () => {
+  it('speichert handFocus und Mirror-Augmentation in den Metadaten', async () => {
+    const clip = new File([new Uint8Array([1, 2, 3])], 'demo.mp4', { type: 'video/mp4' });
+    const zip = await createTrainingZip({ ...basePayload, clipFile: clip, handFocus: 'either_hand' });
+    const entries = unzipSync(zip);
+    const metadataBytes = entries['metadata.json'];
+    const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array())) as Record<string, unknown>;
+    expect(metadata['handFocus']).toBe('either_hand');
+    expect(metadata['augmentation']).toEqual({ mirrorSafe: true });
+  });
+
+  it('deaktiviert Mirror-Augmentation für asymmetrische Handrollen', async () => {
     const clip = new File([new Uint8Array([1, 2, 3])], 'demo.mp4', { type: 'video/mp4' });
     const zip = await createTrainingZip({ ...basePayload, clipFile: clip, handFocus: 'dominant_only' });
     const entries = unzipSync(zip);
     const metadataBytes = entries['metadata.json'];
     const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array())) as Record<string, unknown>;
-    expect(metadata['handFocus']).toBe('dominant_only');
+    expect(metadata['augmentation']).toEqual({ mirrorSafe: false });
   });
 
   it('übernimmt Aufnahme-Metadaten und Frame-Zeitstempel', async () => {

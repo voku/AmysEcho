@@ -4,7 +4,10 @@ import {
   flattenHandsWithHandedness,
   frameHasAnyLandmarks,
   framesHaveHandLandmarks,
+  handFocusSupportsMirrorAugmentation,
   processFramesForUpload,
+  resolveHandFocus,
+  simplifyHandFocus,
   suggestHandFocus,
 } from './handUtils';
 
@@ -166,5 +169,40 @@ describe('suggestHandFocus', () => {
     const result = suggestHandFocus(frames);
     expect(result.suggestion).toBe('dominant_only');
     expect(result.confidence).toBe('high');
+  });
+});
+
+describe('simplifyHandFocus', () => {
+  it('maps detailed hand focus values to simplified UI choices', () => {
+    expect(simplifyHandFocus('dominant_only')).toBe('dominant_only');
+    expect(simplifyHandFocus('both_equal')).toBe('both_hands');
+    expect(simplifyHandFocus('both_asymmetric')).toBe('both_hands');
+    expect(simplifyHandFocus('either_hand')).toBe('either_hand');
+  });
+});
+
+describe('resolveHandFocus', () => {
+  it('keeps asymmetric two-hand gestures when the suggestion detected them', () => {
+    expect(
+      resolveHandFocus('both_hands', {
+        suggestion: 'both_asymmetric',
+        confidence: 'medium',
+        reason: 'beide Hände mit unterschiedlichen Rollen',
+      }),
+    ).toBe('both_asymmetric');
+  });
+
+  it('defaults two-hand gestures to both_equal without an asymmetric suggestion', () => {
+    expect(resolveHandFocus('both_hands', null)).toBe('both_equal');
+  });
+});
+
+describe('handFocusSupportsMirrorAugmentation', () => {
+  it('allows mirroring only for symmetric or either-hand gestures', () => {
+    expect(handFocusSupportsMirrorAugmentation('both_equal')).toBe(true);
+    expect(handFocusSupportsMirrorAugmentation('either_hand')).toBe(true);
+    expect(handFocusSupportsMirrorAugmentation('dominant_only')).toBe(false);
+    expect(handFocusSupportsMirrorAugmentation('both_asymmetric')).toBe(false);
+    expect(handFocusSupportsMirrorAugmentation(undefined)).toBe(false);
   });
 });

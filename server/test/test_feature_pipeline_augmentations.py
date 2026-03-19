@@ -44,6 +44,22 @@ def test_mirror_augmentation_requires_mirror_safe_label():
     assert all(not bool(entry["mirrored"]) for entry in entries)
 
 
+def test_resolve_mirror_safe_defaults_to_symmetric_hand_focus():
+    train_mlp = importlib.import_module("amyserver_tools.train_mlp")
+
+    assert train_mlp._resolve_mirror_safe({"handFocus": "both_equal"}, "both_equal") is True
+    assert train_mlp._resolve_mirror_safe({"handFocus": "either_hand"}, "either_hand") is True
+    assert train_mlp._resolve_mirror_safe({"handFocus": "dominant_only"}, "dominant_only") is False
+
+
+def test_resolve_mirror_safe_keeps_asymmetric_gestures_unmirrored():
+    train_mlp = importlib.import_module("amyserver_tools.train_mlp")
+
+    metadata = {"handFocus": "both_asymmetric", "augmentation": {"mirrorSafe": True}}
+    assert train_mlp._resolve_mirror_safe(metadata, "both_asymmetric") is False
+    assert train_mlp._resolve_mirror_safe({"augmentation": {"mirrorSafe": False}}, "both_equal") is False
+
+
 def test_build_episodic_indices_returns_balanced_episode_batches():
     train_mlp = importlib.import_module("amyserver_tools.train_mlp")
 

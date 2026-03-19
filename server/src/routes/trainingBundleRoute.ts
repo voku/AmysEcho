@@ -76,6 +76,9 @@ interface TrainingBundleMetadata {
 		| "both_equal"
 		| "both_asymmetric"
 		| "either_hand";
+	augmentation?: {
+		mirrorSafe?: boolean;
+	};
 	variationData?: {
 		clusterId?: string;
 		dominantCluster?: string;
@@ -206,6 +209,12 @@ const VariationDataSchema = z
 	})
 	.passthrough();
 
+const AugmentationSchema = z
+	.object({
+		mirrorSafe: z.boolean().optional(),
+	})
+	.passthrough();
+
 const MetadataSchema = z
 	.object({
 		label: z.string().min(1),
@@ -221,6 +230,7 @@ const MetadataSchema = z
 		recording: RecordingSchema.optional(),
 		validationSummary: ValidationSummarySchema.optional(),
 		handFocus: HandFocusSchema.optional(),
+		augmentation: AugmentationSchema.optional(),
 		variationData: VariationDataSchema.optional(),
 	})
 	.strip();
@@ -1394,6 +1404,9 @@ export function registerTrainingBundleRoute(
 						: {}),
 					...(parsedMetadata.handFocus
 						? { handFocus: parsedMetadata.handFocus }
+						: {}),
+					...(parsedMetadata.augmentation
+						? { augmentation: parsedMetadata.augmentation }
 						: {}),
 					...(variationData ? { variationData } : {}),
 				};

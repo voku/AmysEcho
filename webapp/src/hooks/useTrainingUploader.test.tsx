@@ -7,8 +7,10 @@ import {
   clearBundleStoreForTests,
   enqueuePersistedBundle,
   listQueuedBundles,
+  MAX_AUTOMATIC_BUNDLE_UPLOAD_ATTEMPTS,
   markBundleFailed,
 } from '../training/trainingQueue';
+import type { SyncQueuedResult } from './useTrainingUploader';
 import type { TrainingBundlePayload } from '../training/types';
 import { SESSION_EXPIRED_MESSAGE } from '../utils/http';
 
@@ -290,7 +292,7 @@ describe('useTrainingUploader', () => {
       expect(result.current.queuedBundles[0]?.status).toBe('failed');
     });
 
-    let resultSync!: { uploaded: number; remaining: number; blocked: number };
+    let resultSync!: SyncQueuedResult;
     await act(async () => {
       Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
       resultSync = await result.current.syncQueued();
@@ -299,6 +301,49 @@ describe('useTrainingUploader', () => {
     expect(resultSync.uploaded).toBe(0);
     expect(resultSync.remaining).toBe(1);
     expect(resultSync.blocked).toBe(1);
+    expect(resultSync.blockedAuth).toBe(1);
+    expect(resultSync.blockedRetryLimit).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('pausiert automatische Wiederholungen nach zu vielen fehlgeschlagenen Uploads', async () => {
+    const stored = await enqueuePersistedBundle({
+      profileId: 'demo',
+      label: 'HILFE',
+      capturedAt: '2024-01-01T00:00:00.000Z',
+      source: 'web://mediapipe',
+      framesCount: 1,
+      zip: new TextEncoder().encode('demo-zip'),
+    });
+    expect(stored).not.toBeNull();
+    if (!stored) return;
+
+    for (let attempt = 0; attempt < MAX_AUTOMATIC_BUNDLE_UPLOAD_ATTEMPTS; attempt += 1) {
+      await markBundleFailed(stored.key, `Netzwerkfehler ${attempt}`);
+    }
+
+    const fetchSpy = vi.fn();
+    (globalThis as any).fetch = fetchSpy;
+
+    const { result } = renderHook(() =>
+      useTrainingUploader({ defaultOptions: { endpoint: 'https://example.invalid' } }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.queuedBundles.length).toBe(1);
+      expect(result.current.queuedBundles[0]?.attempts).toBe(MAX_AUTOMATIC_BUNDLE_UPLOAD_ATTEMPTS);
+    });
+
+    let resultSync!: SyncQueuedResult;
+    await act(async () => {
+      resultSync = await result.current.syncQueued();
+    });
+
+    expect(resultSync.uploaded).toBe(0);
+    expect(resultSync.remaining).toBe(1);
+    expect(resultSync.blocked).toBe(1);
+    expect(resultSync.blockedAuth).toBe(0);
+    expect(resultSync.blockedRetryLimit).toBe(1);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
