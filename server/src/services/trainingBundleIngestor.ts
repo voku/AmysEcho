@@ -103,6 +103,12 @@ const TrainingBundleManifestEntrySchema = z
 						"either_hand",
 					])
 					.optional(),
+				augmentation: z
+					.object({
+						mirrorSafe: z.boolean().optional(),
+					})
+					.passthrough()
+					.optional(),
 				recording: z
 					.object({
 						frameCount: z.number().optional(),

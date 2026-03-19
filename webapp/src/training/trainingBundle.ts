@@ -1,6 +1,11 @@
 import { zipSync } from 'fflate';
 import { extractNonManualFeatures } from '../gesture/utils/nonManualFeatures';
-import { flattenHandsWithHandedness, frameHasAnyLandmarks, framesHaveHandLandmarks } from './handUtils';
+import {
+  flattenHandsWithHandedness,
+  frameHasAnyLandmarks,
+  framesHaveHandLandmarks,
+  handFocusSupportsMirrorAugmentation,
+} from './handUtils';
 import { validateLandmarkSequence } from './trainingValidator';
 import { fetchWithRetry, HttpError } from '../utils/http';
 import type {
@@ -125,6 +130,13 @@ function buildMetadata(
     ...(validationSummary ? { validationSummary } : {}),
     ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),
     ...(payload.handFocus ? { handFocus: payload.handFocus } : {}),
+    ...(payload.handFocus
+      ? {
+          augmentation: {
+            mirrorSafe: handFocusSupportsMirrorAugmentation(payload.handFocus),
+          },
+        }
+      : {}),
     ...(payload.variationData ? { variationData: payload.variationData } : {}),
     ...(Object.keys(recording).length > 0 ? { recording } : {}),
   };

@@ -444,13 +444,16 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     });
   });
 
-  it('stores handFocus metadata when provided', async () => {
+  it('stores handFocus and mirror augmentation metadata when provided', async () => {
     const metadata = {
       profileId: '22222222-2222-4222-8222-222222222222',
       label: 'PAPA',
       capturedAt: '2024-05-28T12:03:11Z',
       source: 'app://mediapipe',
-      handFocus: 'dominant_only',  // Only dominant hand is important for this gesture
+      handFocus: 'both_equal',
+      augmentation: {
+        mirrorSafe: true,
+      },
     };
     const landmarks = await loadSampleLandmarks();
 
@@ -485,7 +488,8 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     };
 
     const entry = manifest.entries[0];
-    expect(entry.metadata.handFocus).toBe('dominant_only');
+    expect(entry.metadata.handFocus).toBe('both_equal');
+    expect(entry.metadata.augmentation).toEqual({ mirrorSafe: true });
   });
 
   it('omits training job payload when trigger returns null but keeps queued status', async () => {

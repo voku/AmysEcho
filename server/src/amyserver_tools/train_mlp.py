@@ -422,15 +422,32 @@ def apply_hand_focus(
 
 
 
-def _extract_mirror_safe(metadata: dict) -> bool:
+def _extract_explicit_mirror_safe(metadata: dict) -> bool | None:
     if not isinstance(metadata, dict):
-        return False
+        return None
     aug = metadata.get("augmentation")
     if isinstance(aug, dict) and isinstance(aug.get("mirrorSafe"), bool):
         return aug["mirrorSafe"]
     if isinstance(metadata.get("mirrorSafe"), bool):
         return metadata["mirrorSafe"]
-    return False
+    return None
+
+
+def _resolve_mirror_safe(metadata: dict, hand_focus: str | None) -> bool:
+    """Resolve whether left/right mirror augmentation is safe for this sample.
+
+    Priority order is intentional:
+    1. Asymmetric hand roles always disable mirroring, even if legacy metadata
+       explicitly asked for mirrorSafe=True.
+    2. Explicit metadata is honored for symmetric/either-hand gestures.
+    3. Otherwise, symmetric/either-hand focus defaults to mirrored augmentation.
+    """
+    explicit = _extract_explicit_mirror_safe(metadata)
+    if hand_focus in ("dominant_only", "both_asymmetric"):
+        return False
+    if explicit is not None:
+        return explicit
+    return hand_focus in ("both_equal", "either_hand")
 
 def _extract_recording_metadata(metadata: dict) -> dict[str, object] | None:
     recording = metadata.get("recording") if isinstance(metadata, dict) else None
@@ -1738,7 +1755,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
 
         recording_metadata = _extract_recording_metadata(metadata)
         modality_coverage = _extract_modality_coverage(metadata)
-        mirror_safe = _extract_mirror_safe(metadata)
+        mirror_safe = _resolve_mirror_safe(metadata, hand_focus)
 
         # ========== PATH RESOLUTION (keep existing logic) ==========
         rel_dir = entry.get("storage", {}).get("directory")

@@ -195,6 +195,38 @@ export type SuggestedHandFocus = {
   motionRatio?: number;
 };
 
+export type SimplifiedHandFocus = 'dominant_only' | 'both_hands' | 'either_hand';
+
+export function simplifyHandFocus(handFocus: import('./types').HandFocus): SimplifiedHandFocus {
+  if (handFocus === 'dominant_only') {
+    return 'dominant_only';
+  }
+  if (handFocus === 'either_hand') {
+    return 'either_hand';
+  }
+  return 'both_hands';
+}
+
+export function resolveHandFocus(
+  selection: SimplifiedHandFocus,
+  suggestion?: SuggestedHandFocus | null,
+): import('./types').HandFocus {
+  if (selection === 'dominant_only') {
+    return 'dominant_only';
+  }
+  if (selection === 'either_hand') {
+    return 'either_hand';
+  }
+  return suggestion?.suggestion === 'both_asymmetric' ? 'both_asymmetric' : 'both_equal';
+}
+
+export function handFocusSupportsMirrorAugmentation(handFocus: import('./types').HandFocus | undefined): boolean {
+  if (!handFocus) {
+    return false;
+  }
+  return handFocus === 'both_equal' || handFocus === 'either_hand';
+}
+
 /**
  * Analyze recorded frames and suggest which hand focus setting to use.
  * Based on motion analysis of left vs right hand across the recording.

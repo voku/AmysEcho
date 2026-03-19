@@ -71,6 +71,7 @@ vi.mock('../hooks/useSignLanguageDetector', () => ({
     lastHandedness: [],
     lastConfidence: null,
     messageLog: [],
+    getVariationMetrics: vi.fn(),
   }),
 }));
 
@@ -233,6 +234,40 @@ describe('TrainingRecorder', () => {
 
     expect(screen.getByText(/Qualitätscheck/)).toBeInTheDocument();
     expect(screen.getByText(/Bewege Finger und Hand deutlich/)).toBeInTheDocument();
+  });
+
+  it('vereinfacht die Handauswahl auf drei klare Optionen', () => {
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByLabelText('Beide Hände zusammen')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nur Haupthand')).toBeInTheDocument();
+    expect(screen.getByLabelText('Egal links oder rechts')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Beide unterschiedlich')).not.toBeInTheDocument();
+  });
+
+  it('verwendet die vereinfachte Auswahl beim Speichern der Aufnahme', async () => {
+    const user = userEvent.setup();
+    const onRecordingComplete = vi.fn();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:manual-still');
+    trainingState.recordedData.frames = [{ landmarks: [[[0.1, 0.2, 0]]], handedness: ['Left'] }];
+
+    render(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
+
+    await user.click(screen.getByLabelText('Egal links oder rechts'));
+    expect(
+      screen.getByText('Links/Rechts-Varianten werden für das Training automatisch gespiegelt, damit wenige Aufnahmen besser genutzt werden.'),
+    ).toBeInTheDocument();
+
+    const fileInput = screen.getByLabelText('Eigenes Referenzbild hochladen (optional)');
+    const manualFile = new File(['inhalt'], 'referenz.jpg', { type: 'image/jpeg' });
+    await user.upload(fileInput, manualFile);
+    await user.click(screen.getByRole('button', { name: 'Aufnahme verwenden' }));
+
+    expect(onRecordingComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        handFocus: 'either_hand',
+      }),
+    );
   });
 
 
