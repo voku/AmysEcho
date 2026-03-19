@@ -1,5 +1,5 @@
 {
-  "version": "2026-03-18T22:51:19.726128+00:00",
+  "version": "2026-03-19T18:51:28.074675+00:00",
   "modalities": [
     "hands",
     "pose",
@@ -14,7 +14,7 @@
   },
   "sample_count": 94,
   "training_sources": {
-    "datasets/training_manifest.json": "f8b134f0d413210aba940f09874c9e0cf84b7115b4c32db212c1707be2a1beb0"
+    "datasets/training_manifest.json": "bcee694bd657241317e90e30905aea5d4b5957bb0e156a4019605c7614b121cf"
   },
   "config_snapshot": {
     "epochs": 20,
@@ -2677,7 +2677,7 @@
         "mirrored": false
       },
       {
-        "label": "_NULL_",
+        "label": "trinken",
         "profile_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
         "mirror_safe": false,
         "frame_drop_ratio": 0.0,
@@ -2687,7 +2687,7 @@
         "mirrored": false
       },
       {
-        "label": "_NULL_",
+        "label": "trinken",
         "profile_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
         "mirror_safe": false,
         "frame_drop_ratio": 0.16666666666666666,
@@ -2697,7 +2697,7 @@
         "mirrored": false
       },
       {
-        "label": "_NULL_",
+        "label": "trinken",
         "profile_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
         "mirror_safe": false,
         "frame_drop_ratio": 0.16666666666666666,
@@ -2707,7 +2707,7 @@
         "mirrored": false
       },
       {
-        "label": "_NULL_",
+        "label": "trinken",
         "profile_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
         "mirror_safe": false,
         "frame_drop_ratio": 0.16666666666666666,
@@ -2917,7 +2917,7 @@
         "mirrored": false
       },
       {
-        "label": "trinken",
+        "label": "_NULL_",
         "profile_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
         "mirror_safe": false,
         "frame_drop_ratio": 0.0,
@@ -2927,7 +2927,7 @@
         "mirrored": false
       },
       {
-        "label": "trinken",
+        "label": "_NULL_",
         "profile_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
         "mirror_safe": false,
         "frame_drop_ratio": 0.16666666666666666,
@@ -2937,7 +2937,7 @@
         "mirrored": false
       },
       {
-        "label": "trinken",
+        "label": "_NULL_",
         "profile_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
         "mirror_safe": false,
         "frame_drop_ratio": 0.16666666666666666,
@@ -2947,7 +2947,7 @@
         "mirrored": false
       },
       {
-        "label": "trinken",
+        "label": "_NULL_",
         "profile_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
         "mirror_safe": false,
         "frame_drop_ratio": 0.16666666666666666,
