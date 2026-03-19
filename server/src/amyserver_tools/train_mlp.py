@@ -441,6 +441,12 @@ def _resolve_mirror_safe(metadata: dict, hand_focus: str | None) -> bool:
        explicitly asked for mirrorSafe=True.
     2. Explicit metadata is honored for symmetric/either-hand gestures.
     3. Otherwise, symmetric/either-hand focus defaults to mirrored augmentation.
+
+    When ``hand_focus`` is ``None``, no default mirroring is inferred from hand
+    semantics. In that case only explicit metadata can opt the sample into
+    mirroring; otherwise the final ``hand_focus in ("both_equal",
+    "either_hand")`` check evaluates to ``False`` and the function returns
+    ``False``.
     """
     explicit = _extract_explicit_mirror_safe(metadata)
     if hand_focus in ("dominant_only", "both_asymmetric"):

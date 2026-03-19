@@ -203,5 +203,6 @@ describe('handFocusSupportsMirrorAugmentation', () => {
     expect(handFocusSupportsMirrorAugmentation('either_hand')).toBe(true);
     expect(handFocusSupportsMirrorAugmentation('dominant_only')).toBe(false);
     expect(handFocusSupportsMirrorAugmentation('both_asymmetric')).toBe(false);
+    expect(handFocusSupportsMirrorAugmentation(undefined)).toBe(false);
   });
 });

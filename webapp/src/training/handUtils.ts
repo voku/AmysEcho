@@ -233,9 +233,6 @@ export function resolveHandFocus(
 }
 
 export function handFocusSupportsMirrorAugmentation(handFocus: HandFocus | undefined): boolean {
-  if (!handFocus) {
-    return false;
-  }
   return handFocus === 'both_equal' || handFocus === 'either_hand';
 }
 
