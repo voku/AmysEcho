@@ -1,6 +1,6 @@
 # Caregiver Guide for Amy's Echo
 
-This guide helps caregivers set up and use **Amy's Echo** with a child who communicates using gestures.
+This guide helps caregivers set up and use **Amy's Echo** with a child who communicates using signs.
 
 ## Getting Started
 1. **Charge the device** and ensure the camera lens is clean.
@@ -10,7 +10,7 @@ This guide helps caregivers set up and use **Amy's Echo** with a child who commu
 
 ## Recognizing Gestures
 1. Keep the child’s hands visible in the camera frame.
-2. When a known gesture is detected, the webapp:
+2. When a known sign is detected, the webapp:
    - Speaks the associated word aloud.
    - Shows a large symbol or emoji on screen.
 3. If confidence is low, a **Help Me** panel appears. Select the correct symbol to teach the webapp.
@@ -18,8 +18,8 @@ This guide helps caregivers set up and use **Amy's Echo** with a child who commu
 
 ## Training New Gestures
 1. Go to the **Training** screen.
-2. Follow the on-screen prompts to record the gesture a few times.
-3. Name the gesture and save it. It becomes available after the training loop finishes and the updated model downloads.
+2. Follow the on-screen prompts to record the sign a few times.
+3. Name the sign and save it. It becomes available after the training loop finishes and the updated model downloads.
 
 ## Review and Practice
 - Practice banners occasionally appear to rehearse signs. Tap to begin a guided practice session.
@@ -29,4 +29,4 @@ This guide helps caregivers set up and use **Amy's Echo** with a child who commu
 ## Tips
 - The webapp logs corrections and training data; avoid sharing the device without supervision.
 
-With consistent use, Amy’s gestures become speech and symbols that everyone around her can understand.
+With consistent use, Amy’s signs become speech and symbols that everyone around her can understand.

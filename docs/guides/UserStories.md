@@ -20,7 +20,7 @@ Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen →
   4. Fortgeschrittene Betreuungstools (vertrauenswürdiges Gerät, Gestengrößen-Toleranz, Erfolgsfeedback, Gestenverlauf) sind in aufklappbaren Abschnitten gebündelt, damit die Profilübersicht jederzeit sichtbar bleibt.
 
 ## 3. Amy Communicates a Sign
-- **Story**: As Amy, I want my gesture to be recognised quickly so I can express myself.
+- **Story**: As Amy, I want my sign to be recognised quickly so I can express myself.
 - **Flow**:
   1. **Recognition** opens with the camera active.
   2. Ein Statuschip signalisiert „Hört zu…“, darunter der Kamera-Rahmen wie im Mockup.
@@ -42,16 +42,16 @@ Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen →
   2. Die Auswahl des richtigen Symbols protokolliert eine Korrektur für spätere Trainings.
 
 ## 6. Caregiver Teaches a New Sign (HIP&nbsp;2)
-- **Story**: As a caregiver, I want to record samples so the app learns a new gesture.
+- **Story**: As a caregiver, I want to record samples so the app learns a new sign.
 - **Flow**:
   1. Im Tab **Lernen** führt jede Karte über „Jetzt aufnehmen“ direkt zum **Recording**- bzw. **Training**-Flow.
   2. Der Flow zeichnet fünf Beispiele auf und speichert sie als Trainingsdaten.
   3. Nach Abschluss kehrt die App zum Tab **Lernen** zurück; über `WorkflowSupportLinks` gelangt man bei Bedarf in den Admin- oder Familienbereich.
 
 ## 7. Proactive Maintenance (HIP&nbsp;4)
-- **Story**: As Amy's gestures drift over time, I want the app to gently ask for practice when accuracy drops.
+- **Story**: As Amy's signs drift over time, I want the app to gently ask for practice when accuracy drops.
 - **Flow**:
-  1. If a gesture's health score is low, a non-blocking banner appears in **Learning**.
+  1. If a sign's health score is low, a non-blocking banner appears in **Learning**.
   2. Tapping **Üben** (Practice) navigates directly to the **Training** flow.
 
 ## 8. Reviewing Progress

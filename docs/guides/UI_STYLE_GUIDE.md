@@ -27,7 +27,7 @@ All values originate in `webapp/src/constants/colors.ts` and are re-exported for
 | ---------------------- | --------- | --------------------------------------------------------------- |
 | **primary**            | `#146C6E` | Primary actions, hero pills, confirmation badges.               |
 | **accent**             | `#F8F4E3` | Accent CTAs and alternative actions.                            |
-| **success**            | `#4CD964` | Positive confirmations (e.g. gesture gefunden).                 |
+| **success**            | `#4CD964` | Positive confirmations (e.g. Gebärde erkannt).                 |
 | **warning**            | `#F3C969` | Encouraging warnings (e.g. Aufnahme braucht Ruhe).              |
 | **error**              | `#D9534F` | Critical errors only; soften copy when surfacing.               |
 | **backgroundStart**    | `#1C4A4B` | Gradient start in `ScreenBackground`.                           |
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
 
 ### Correction Panel
 
-The `CorrectionPanel` is a 2x2 grid of large, tappable choices for when the app is unsure about a gesture.
+The `CorrectionPanel` is a 2x2 grid of large, tappable choices for when the app is unsure about a sign.
 
 **StyleSheet Example:**
 

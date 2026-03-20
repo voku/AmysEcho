@@ -41,10 +41,10 @@ This checks dependencies and runs all tests to ensure everything works. Skip thi
 
 ## 3. Communicating
 1. Point the camera at the child's hands.
-2. The app speaks and shows a symbol when it recognizes a gesture.
+2. The app speaks and shows a symbol when it recognizes a sign.
 3. Tippe auf **Hilfe**, wenn eine Gebärde falsch erkannt wurde – so speicherst du eine Korrektur für zukünftiges Lernen.
 
-## 4. Teaching New Gestures
+## 4. Teaching New Signs
 1. Open the **Admin Panel** and choose **Training**.
 2. Record the child performing the new sign several times.
 3. Upload the samples to the server. A personalized model is trained and downloaded automatically.
@@ -52,7 +52,7 @@ This checks dependencies and runs all tests to ensure everything works. Skip thi
 ## 5. Refreshing the Model
 1. After recording new samples, open the **Training** tab and upload them.
 2. The app shows when the server has queued or completed the training job.
-3. Once the model download finishes, Amy immediately benefits from the updated gestures.
+3. Once the model download finishes, Amy immediately benefits from the updated signs.
 
 ## 6. Anmeldung und Tokens
 1. Melde dich im Web- oder Mobil-Client über den Login-Screen mit deinem Nutzerkonto an.
@@ -63,4 +63,4 @@ This checks dependencies and runs all tests to ensure everything works. Skip thi
 If you run into problems during setup or usage, consult the [Troubleshooting Guide](Troubleshooting.md) for common fixes.
 
 ---
-With these steps, caregivers can immediately begin using Amy's Echo to translate gestures into speech and track learning progress.
+With these steps, caregivers can immediately begin using Amy's Echo to translate signs into speech and track learning progress.
