@@ -40,7 +40,9 @@ describe('Training Video Routes', () => {
     const { registerTrainingVideoRoutes } = await import(
       '../src/routes/trainingVideoRoutes.js'
     );
+    const { loadDatabase } = await import('../src/db.js');
     const { auth } = await import('../src/middleware/auth.js');
+    await loadDatabase(path.join(dataDir, 'db.json'));
     app = express();
     app.use(express.json());
     registerTrainingVideoRoutes(app, {
@@ -59,12 +61,8 @@ describe('Training Video Routes', () => {
   });
 
   async function seedManifest(entries: object[]) {
-    const datasetsDir = path.join(dataDir, 'datasets');
-    await fs.mkdir(datasetsDir, { recursive: true });
-    await fs.writeFile(
-      path.join(datasetsDir, 'training_manifest.json'),
-      JSON.stringify({ entries }),
-    );
+    const { saveTrainingManifest } = await import('../src/services/trainingJsonStore.js');
+    saveTrainingManifest({ entries });
   }
 
   async function seedVideoFile(directory: string, filename: string) {

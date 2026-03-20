@@ -39,6 +39,8 @@ describe('auth routes', () => {
       sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
       sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
     };
+    const { loadDatabase } = await import('../src/db.js');
+    await loadDatabase(dbFilePath);
     registerAuthRoutes(app, {
       db,
       dbFilePath,

@@ -50,6 +50,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
   let manifestUpdatedCalls: number;
   let accessToken: string;
+  let dbPath: string;
   let isProfileAuthorized: (profileId: string) => boolean;
   const resolveProfileId = async (profileId: string | null) => ({
     profileId,
@@ -70,6 +71,11 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     }
   }
 
+  async function readManifestEntries(): Promise<Array<Record<string, unknown>>> {
+    const { loadTrainingManifest } = await import('../src/services/trainingJsonStore.js');
+    return loadTrainingManifest<Record<string, unknown>>().entries;
+  }
+
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-bundle-'));
     process.env.AMY_ECHO_DATA_DIR = dataDir;
@@ -82,7 +88,10 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     isProfileAuthorized = () => true;
     const mod = await import('../src/routes/trainingBundleRoute.js');
     const registerRoute = mod.registerTrainingBundleRoute;
+    const { loadDatabase } = await import('../src/db.js');
     const { TRAINING_MANIFEST_PATH } = await import('../src/constants/modelPaths.js');
+    dbPath = path.join(dataDir, `db-${Date.now()}.json`);
+    await loadDatabase(dbPath);
     app = express();
     let counter = 0;
     triggerCalls = [];
@@ -110,6 +119,9 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
     await fs.rm(path.dirname(manifestPath), { recursive: true, force: true });
+    const { loadDatabase } = await import('../src/db.js');
+    dbPath = path.join(dataDir, `db-${Date.now()}.json`);
+    await loadDatabase(dbPath);
     triggerCalls.length = 0;
     triggerOverride = null;
     isProfileAuthorized = () => true;
@@ -212,8 +224,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       { bundleId: response.body.id, profileId: resolvedProfileId, label: metadata.label },
     ]);
 
-    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
-    const manifest = JSON.parse(manifestRaw) as {
+    const manifest = { entries: await readManifestEntries() } as {
       entries: Array<{
         id: string;
         profileId: string | null;
@@ -430,8 +441,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .send(zip.toBuffer())
       .expect(202);
 
-    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
-    const manifest = JSON.parse(manifestRaw) as {
+    const manifest = { entries: await readManifestEntries() } as {
       entries: Array<{
         id: string;
         metadata: {
@@ -486,8 +496,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .send(zip.toBuffer())
       .expect(202);
 
-    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
-    const manifest = JSON.parse(manifestRaw) as {
+    const manifest = { entries: await readManifestEntries() } as {
       entries: Array<{
         id: string;
         metadata: any;
@@ -697,7 +706,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
-  it('returns 500 when existing manifest is corrupted and leaves it untouched', async () => {
+  it('accepts upload even if legacy manifest file is corrupted because SQLite is source of truth', async () => {
     await fs.mkdir(path.dirname(manifestPath), { recursive: true });
     const corrupted = JSON.stringify({ entries: 'not-an-array' });
     await fs.writeFile(manifestPath, corrupted, 'utf8');
@@ -728,42 +737,31 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer());
 
-    expect(response.status).toBe(500);
-    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
-    expect(manifestRaw).toBe(corrupted);
+    expect(response.status).toBe(202);
   });
 
   it('liefert Quality-Gate-Ablehnungen über GET /api/v1/dgs/training-quality', async () => {
-    const qualityLogPath = path.join(dataDir, 'datasets', 'training_quality_log.json');
-    await fs.mkdir(path.dirname(qualityLogPath), { recursive: true });
-    await fs.writeFile(
-      qualityLogPath,
-      JSON.stringify(
+    const { saveTrainingQualityLog } = await import('../src/services/trainingJsonStore.js');
+    saveTrainingQualityLog({
+      entries: [
         {
-          entries: [
-            {
-              bundleId: 'bundle-old',
-              label: 'HILFE',
-              profileId: 'profile-a',
-              reasons: ['too_few_frames'],
-              metrics: { frameCount: 8, handCoverage: 0.4, poseCoverage: 0.8, faceCoverage: 0.7 },
-              recordedAt: '2026-01-01T10:00:00.000Z',
-            },
-            {
-              bundleId: 'bundle-new',
-              label: 'ESSEN',
-              profileId: 'profile-b',
-              reasons: ['hand_jitter_too_high'],
-              metrics: { frameCount: 14, handCoverage: 1, poseCoverage: 1, faceCoverage: 1, handJitter: 0.8 },
-              recordedAt: '2026-01-01T12:00:00.000Z',
-            },
-          ],
+          bundleId: 'bundle-old',
+          label: 'HILFE',
+          profileId: 'profile-a',
+          reasons: ['too_few_frames'],
+          metrics: { frameCount: 8, handCoverage: 0.4, poseCoverage: 0.8, faceCoverage: 0.7 },
+          recordedAt: '2026-01-01T10:00:00.000Z',
         },
-        null,
-        2,
-      ),
-      'utf8',
-    );
+        {
+          bundleId: 'bundle-new',
+          label: 'ESSEN',
+          profileId: 'profile-b',
+          reasons: ['hand_jitter_too_high'],
+          metrics: { frameCount: 14, handCoverage: 1, poseCoverage: 1, faceCoverage: 1, handJitter: 0.8 },
+          recordedAt: '2026-01-01T12:00:00.000Z',
+        },
+      ],
+    });
 
     const response = await request(app)
       .get('/api/v1/dgs/training-quality?profileId=profile-b&limit=5')
@@ -784,44 +782,35 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
 
   it('liefert ohne Profilfilter nur berechtigte Profile', async () => {
-    const qualityLogPath = path.join(dataDir, 'datasets', 'training_quality_log.json');
-    await fs.mkdir(path.dirname(qualityLogPath), { recursive: true });
-    await fs.writeFile(
-      qualityLogPath,
-      JSON.stringify(
+    const { saveTrainingQualityLog } = await import('../src/services/trainingJsonStore.js');
+    saveTrainingQualityLog({
+      entries: [
         {
-          entries: [
-            {
-              bundleId: 'bundle-a',
-              label: 'HILFE',
-              profileId: 'profile-a',
-              reasons: ['too_few_frames'],
-              metrics: { frameCount: 8, handCoverage: 0.4, poseCoverage: 0.8, faceCoverage: 0.7 },
-              recordedAt: '2026-01-01T10:00:00.000Z',
-            },
-            {
-              bundleId: 'bundle-b',
-              label: 'ESSEN',
-              profileId: 'profile-b',
-              reasons: ['hand_jitter_too_high'],
-              metrics: { frameCount: 14, handCoverage: 1, poseCoverage: 1, faceCoverage: 1, handJitter: 0.8 },
-              recordedAt: '2026-01-01T12:00:00.000Z',
-            },
-            {
-              bundleId: 'bundle-null',
-              label: 'TRINKEN',
-              profileId: null,
-              reasons: ['too_few_frames'],
-              metrics: { frameCount: 5, handCoverage: 0.1, poseCoverage: 0.1, faceCoverage: 0.1 },
-              recordedAt: '2026-01-01T13:00:00.000Z',
-            },
-          ],
+          bundleId: 'bundle-a',
+          label: 'HILFE',
+          profileId: 'profile-a',
+          reasons: ['too_few_frames'],
+          metrics: { frameCount: 8, handCoverage: 0.4, poseCoverage: 0.8, faceCoverage: 0.7 },
+          recordedAt: '2026-01-01T10:00:00.000Z',
         },
-        null,
-        2,
-      ),
-      'utf8',
-    );
+        {
+          bundleId: 'bundle-b',
+          label: 'ESSEN',
+          profileId: 'profile-b',
+          reasons: ['hand_jitter_too_high'],
+          metrics: { frameCount: 14, handCoverage: 1, poseCoverage: 1, faceCoverage: 1, handJitter: 0.8 },
+          recordedAt: '2026-01-01T12:00:00.000Z',
+        },
+        {
+          bundleId: 'bundle-null',
+          label: 'TRINKEN',
+          profileId: null,
+          reasons: ['too_few_frames'],
+          metrics: { frameCount: 5, handCoverage: 0.1, poseCoverage: 0.1, faceCoverage: 0.1 },
+          recordedAt: '2026-01-01T13:00:00.000Z',
+        },
+      ],
+    });
 
     isProfileAuthorized = (profileId) => profileId === 'profile-b';
 

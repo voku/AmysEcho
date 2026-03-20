@@ -10,7 +10,6 @@ import {
 	ensureDataDir,
 	PROFILE_ID_PATTERN,
 	TRAINING_DATASETS_DIR,
-	TRAINING_MANIFEST_PATH,
 	TRAINING_UPLOADS_DIR,
 } from "../constants/modelPaths.js";
 import { auth } from "../middleware/auth.js";
@@ -333,26 +332,6 @@ function normalizeClipFilename(value: unknown): string | null {
 }
 
 async function readTrainingManifest(options: { strict: boolean }): Promise<TrainingBundleManifestFile> {
-	if (options.strict) {
-		try {
-			const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
-			const legacyParsed = JSON.parse(raw) as { entries?: unknown };
-			if (
-				!legacyParsed ||
-				typeof legacyParsed !== "object" ||
-				!Array.isArray(legacyParsed.entries)
-			) {
-				throw new Error(
-					"Training manifest file is corrupted and would be overwritten.",
-				);
-			}
-		} catch (error) {
-			if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-				throw error;
-			}
-		}
-	}
-
 	const parsed = loadTrainingManifest<TrainingBundleManifestEntry>();
 	if (!Array.isArray(parsed.entries)) {
 		if (options.strict) {

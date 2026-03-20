@@ -12,12 +12,6 @@
 import Database from "better-sqlite3";
 import { promises as fs } from "fs";
 import path from "path";
-import {
-	DATA_DIR,
-	TRAINING_DATASETS_DIR,
-	TRAINING_MANIFEST_PATH,
-	TRAINING_QUALITY_LOG_PATH,
-} from "./constants/modelPaths.js";
 import type {
 	Correction,
 	InteractionLog,
@@ -108,7 +102,6 @@ export async function initializeDatabase(
 	if (jsonPath) {
 		await migrateFromJson(jsonPath);
 	}
-	await migrateTrainingJsonCollections();
 }
 
 /**
@@ -570,51 +563,6 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
 		console.warn("Could not create migration backup:", error);
 	}
 
-}
-
-async function migrateTrainingJsonCollections(): Promise<void> {
-	const candidates: Array<{ key: string; filePath: string; fallback: unknown }> = [
-		{
-			key: "training.manifest",
-			filePath: TRAINING_MANIFEST_PATH,
-			fallback: { entries: [] },
-		},
-		{
-			key: "training.dgs_samples",
-			filePath: path.join(DATA_DIR, "dgs_samples.json"),
-			fallback: { samples: [] },
-		},
-		{
-			key: "training.custom_signs",
-			filePath: path.join(TRAINING_DATASETS_DIR, "custom_signs.json"),
-			fallback: { signs: [] },
-		},
-		{
-			key: "training.quality_log",
-			filePath: TRAINING_QUALITY_LOG_PATH,
-			fallback: { entries: [] },
-		},
-	];
-
-	for (const candidate of candidates) {
-		const existing = getJsonCollection(candidate.key, null);
-		if (existing !== null) {
-			continue;
-		}
-		let payload: unknown = candidate.fallback;
-		try {
-			const raw = await fs.readFile(candidate.filePath, "utf8");
-			payload = JSON.parse(raw);
-		} catch (error) {
-			if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-				console.warn("Failed to migrate JSON collection; falling back to default", {
-					key: candidate.key,
-					error: error instanceof Error ? error.message : String(error),
-				});
-			}
-		}
-		setJsonCollection(candidate.key, payload);
-	}
 }
 
 export function getJsonCollection<T>(key: string, fallback: T): T;

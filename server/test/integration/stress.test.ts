@@ -3,9 +3,7 @@ import { addUser, type Database } from '../../src/db.js';
 import { app, databaseReady } from '../../src/server.js';
 import { AuthService } from '../../src/services/authService.js';
 import AdmZip from 'adm-zip';
-import fs from 'fs';
 import path from 'path';
-import { DATA_DIR, TRAINING_MANIFEST_PATH } from '../../src/constants/modelPaths.js';
 
 describe('System Stress & Stability Integration', () => {
   let accessToken: string;
@@ -45,14 +43,8 @@ describe('System Stress & Stability Integration', () => {
     ]);
     profiles = profileResponses.map((response) => response.body.profile.id);
 
-    // Ensure clean state
-    if (fs.existsSync(TRAINING_MANIFEST_PATH)) {
-      try {
-        fs.writeFileSync(TRAINING_MANIFEST_PATH, JSON.stringify({ entries: [] }), 'utf8');
-      } catch (err) {
-        console.warn('Could not reset manifest for test', err);
-      }
-    }
+    const { saveTrainingManifest } = await import('../../src/services/trainingJsonStore.js');
+    saveTrainingManifest({ entries: [] });
   });
 
   function createBundleBuffer(profileId: string, label: string): Buffer {
@@ -125,15 +117,10 @@ describe('System Stress & Stability Integration', () => {
 
     // 3. Final Manifest Consistency Check
     try {
-      if (fs.existsSync(TRAINING_MANIFEST_PATH)) {
-        const raw = fs.readFileSync(TRAINING_MANIFEST_PATH, 'utf8');
-        const manifest = JSON.parse(raw);
-        expect(Array.isArray(manifest.entries)).toBe(true);
-        // We expect at least the 4 entries we just uploaded (might be more if other tests ran)
-        expect(manifest.entries.length).toBeGreaterThanOrEqual(4);
-      } else {
-        throw new Error('Manifest file missing after uploads');
-      }
+      const { loadTrainingManifest } = await import('../../src/services/trainingJsonStore.js');
+      const manifest = loadTrainingManifest();
+      expect(Array.isArray(manifest.entries)).toBe(true);
+      expect(manifest.entries.length).toBeGreaterThanOrEqual(4);
     } catch (err) {
       console.error('Failed to verify training manifest:', err);
       throw err;
