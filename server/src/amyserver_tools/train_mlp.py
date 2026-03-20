@@ -2335,7 +2335,7 @@ def validate_samples(samples: list[Sample]) -> None:
     low_labels = [label for label, count in label_counts.items() if count < MIN_SAMPLES_PER_LABEL]
     if low_labels and MIN_SAMPLES_PER_LABEL > 1:
         raise ValueError(
-            "Zu wenige Beispiele pro Geste: "
+            "Zu wenige Beispiele pro Gebärde: "
             + ", ".join(f"{label} ({label_counts[label]})" for label in sorted(low_labels))
         )
 

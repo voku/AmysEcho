@@ -27,7 +27,7 @@ All values originate in `webapp/src/constants/colors.ts` and are re-exported for
 | ---------------------- | --------- | --------------------------------------------------------------- |
 | **primary**            | `#146C6E` | Primary actions, hero pills, confirmation badges.               |
 | **accent**             | `#F8F4E3` | Accent CTAs and alternative actions.                            |
-| **success**            | `#4CD964` | Positive confirmations (e.g. gesture gefunden).                 |
+| **success**            | `#4CD964` | Positive confirmations (e.g. Gebärde erkannt).                 |
 | **warning**            | `#F3C969` | Encouraging warnings (e.g. Aufnahme braucht Ruhe).              |
 | **error**              | `#D9534F` | Critical errors only; soften copy when surfacing.               |
 | **backgroundStart**    | `#1C4A4B` | Gradient start in `ScreenBackground`.                           |
@@ -122,10 +122,10 @@ Wenn noch keine Gebärden trainiert wurden, zeigen wir eine ruhige Einstiegsflä
 
 ### Selbstentdeckungs-Ribbon
 
-Sobald eine Geste sicher erkannt wurde, blendet das Overlay ein zentriertes Ribbon ein:
+Sobald eine Gebärde sicher erkannt wurde, blendet das Overlay ein zentriertes Ribbon ein:
 
 * **Label:** `Amy's Echo` in Versalien mit `overlayTextMuted`, um den Absender zu markieren.
-* **Botschaft:** „Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Geste gleich als Stimme und Symbol zurück.“
+* **Botschaft:** „Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Gebärde gleich als Stimme und Symbol zurück.“
 * **Layout:** Abgerundete Karte (`borderRadius: 28`) mit `overlaySurfaceMuted` und zartem Schatten (`shadowOpacity: 0.12`).
 * **Statuschip:** Der Hauptchip trägt jetzt das Label „Selbstentdeckung“, damit das Mockup-Narrativ direkt sichtbar wird.
 
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
 
 ### Correction Panel
 
-The `CorrectionPanel` is a 2x2 grid of large, tappable choices for when the app is unsure about a gesture.
+The `CorrectionPanel` is a 2x2 grid of large, tappable choices for when the app is unsure about a sign.
 
 **StyleSheet Example:**
 
@@ -218,7 +218,7 @@ in the webapp, keeping durations short and easing smooth.
 The language used in the app should be simple, encouraging, and always in German.
 
 *   **Listening:** "Ich höre zu…"
-*   **Success:** "Super! Das ist [Geste]."
+*   **Success:** "Super! Das ist [Gebärde]."
 *   **Low Confidence:** "Ich bin nicht ganz sicher. Meintest du?"
 *   **Encouragement:** "Das war ein guter Versuch! Probier es noch einmal."
 

@@ -13,6 +13,12 @@ Use this checklist whenever we touch naming or user-facing copy that bridges
 - [ ] `server/data/datasets/training_manifest.json` still parses with current schema
 - [ ] Cached landmarks (`landmarks_cached.json`) remain backward compatible
 
+
+## 📌 Standard-Terminologie (Sign-Language-Erkennung)
+- **User-facing Standardbegriff:** „Gebärde“
+- Verwende in der UI und in Amy-sichtbaren Hinweisen/Formulierungen **nicht** „Geste(n)“ oder „Zeichen“, wenn Sign-Language-Erkennung gemeint ist.
+- Bevorzugte Formulierungen: „Gebärde erkannt“, „keine passende Gebärde“, „keine gültige Gebärde“.
+
 ## ✅ User-Facing German Copy Audit
 - [ ] UI labels and error messages remain in German
 - [ ] Any new copy uses “Gebärde” consistently where user-facing

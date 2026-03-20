@@ -58,7 +58,7 @@ export const Hero: React.FC = () => {
         <span className="hero-pill">Amy's Echo hört zu</span>
         <h1 className="hero-title">Willkommen bei Amy's Echo</h1>
         <p className="hero-subtitle">
-          Die Gebärdenkamera übersetzt jedes Zeichen direkt in Stimme, Symbole und Verlauf.
+          Die Gebärdenkamera übersetzt jede Gebärde direkt in Stimme, Symbole und Verlauf.
           So bleibt das Gespräch mit Amy's Echo nie stehen.
         </p>
       </header>

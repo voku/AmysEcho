@@ -128,7 +128,7 @@ describe('custom signs route', () => {
       .send({ id: 'ärger_zeigen', label: 'Ärger zeigen', emoji: '😠' })
       .expect(400);
 
-    expect(response.body.error).toBe('Ungültige Zeichen-Daten.');
+    expect(response.body.error).toBe('Ungültige Gebärden-Daten.');
   });
 
   it('stores signs with profileId for per-kid isolation', async () => {
