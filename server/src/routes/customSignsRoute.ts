@@ -5,7 +5,8 @@ import {
 } from "../constants/modelPaths.js";
 import { MIN_SAMPLES_FOR_READY } from "../constants/training.js";
 import { auth } from "../middleware/auth.js";
-import { loadCustomSigns, saveCustomSigns } from "../services/profileDataService.js";
+import { loadCustomSigns } from "../services/profileDataService.js";
+import { mutateCustomSigns } from "../services/trainingJsonStore.js";
 import { loadManifestEntries } from "../utils/manifestUtils.js";
 
 const SignRequestSchema = z.object({
@@ -63,10 +64,6 @@ async function readStore(): Promise<SignStore> {
 	return { signs: [] };
 }
 
-async function writeStore(store: SignStore): Promise<void> {
-	await saveCustomSigns(store);
-}
-
 function normalizeSignId(id: string): string {
 	return id.trim().toLowerCase();
 }
@@ -91,7 +88,7 @@ export function registerCustomSignsRoute(
 	deps: CustomSignsDeps = {},
 ): void {
 	app.get("/api/v1/dgs/signs", auth, async (req: Request, res: Response) => {
-		try {
+			try {
 			const store = await readStore();
 			const { profileId } = req.query;
 
@@ -193,44 +190,44 @@ export function registerCustomSignsRoute(
 			if (profileId && !resolved.profileId) {
 				return res.status(404).json({ error: "Profil nicht gefunden." });
 			}
-			const store = await readStore();
-			// Find existing sign with same id AND profileId (if provided)
-			const existing = store.signs.find(
-				(g) =>
-					g.id === normalizedId &&
-					(resolved.profileId
-						? g.profileId === resolved.profileId
-						: !g.profileId),
-			);
-			const now = new Date().toISOString();
-			let result: { sign: CustomSign; created: boolean };
-			if (existing) {
-				existing.label = normalizedLabel;
-				existing.emoji = normalizedEmoji;
-				existing.updatedAt = now;
-				result = { sign: existing, created: false };
-			} else {
-				const newSign = {
-					id: normalizedId,
-					label: normalizedLabel,
-					profileId: resolved.profileId ?? undefined,
-					emoji: normalizedEmoji,
-					createdAt: now,
-					updatedAt: now,
-				};
-				store.signs.push(newSign);
-				result = { sign: newSign, created: true };
-			}
-			await writeStore(store);
+				const now = new Date().toISOString();
+				let result: { sign: CustomSign; created: boolean } | undefined;
+				mutateCustomSigns<CustomSign>((signs) => {
+					const existing = signs.find(
+						(g) =>
+							g.id === normalizedId &&
+							(resolved.profileId
+								? g.profileId === resolved.profileId
+								: !g.profileId),
+					);
+					if (existing) {
+						existing.label = normalizedLabel;
+						existing.emoji = normalizedEmoji;
+						existing.updatedAt = now;
+						result = { sign: existing, created: false };
+						return;
+					}
+					const newSign: CustomSign = {
+						id: normalizedId,
+						label: normalizedLabel,
+						profileId: resolved.profileId ?? undefined,
+						emoji: normalizedEmoji,
+						createdAt: now,
+						updatedAt: now,
+					};
+					signs.push(newSign);
+					result = { sign: newSign, created: true };
+				});
+				if (!result) throw new Error("Custom sign mutation failed");
 
 			// Auto-trigger model training after custom sign registration
-			if (deps.triggerTrainingJob) {
-				deps.triggerTrainingJob({
-					bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
-					profileId: result.sign.profileId ?? null,
-					label: result.sign.id, // Use the unique ID for training
-				});
-			}
+				if (deps.triggerTrainingJob) {
+					deps.triggerTrainingJob({
+						bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
+						profileId: result.sign.profileId ?? null,
+						label: result.sign.id, // Use the unique ID for training
+					});
+				}
 
 			return res.status(result.created ? 201 : 200).json(result.sign);
 		} catch (error: unknown) {

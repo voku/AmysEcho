@@ -133,6 +133,10 @@ export function closeDatabase(): void {
 	}
 }
 
+export function isDatabaseInitialized(): boolean {
+	return db !== null;
+}
+
 /**
  * Create all database tables with proper indexes
  */
@@ -645,6 +649,42 @@ export function setJsonCollection(key: string, value: unknown): void {
 				updatedAt = excluded.updatedAt
 		`)
 		.run(key, JSON.stringify(value), Date.now());
+}
+
+export function mutateJsonCollection<T>(
+	key: string,
+	fallback: T,
+	mutator: (current: T) => T,
+): T {
+	if (!JSON_COLLECTION_KEY_PATTERN.test(key)) {
+		throw new Error(`Invalid json collection key: ${key}`);
+	}
+	const database = getDb();
+	const tx = database.transaction(() => {
+		const row = database
+			.prepare("SELECT value FROM jsonCollections WHERE key = ?")
+			.get(key) as { value: string } | undefined;
+		let current = fallback;
+		if (row) {
+			try {
+				current = JSON.parse(row.value) as T;
+			} catch {
+				current = fallback;
+			}
+		}
+		const next = mutator(current);
+		database
+			.prepare(`
+				INSERT INTO jsonCollections (key, value, updatedAt)
+				VALUES (?, ?, ?)
+				ON CONFLICT(key) DO UPDATE SET
+					value = excluded.value,
+					updatedAt = excluded.updatedAt
+			`)
+			.run(key, JSON.stringify(next), Date.now());
+		return next;
+	});
+	return tx();
 }
 
 // ==================== USER OPERATIONS ====================

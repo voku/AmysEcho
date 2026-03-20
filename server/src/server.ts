@@ -58,9 +58,9 @@ import {
 } from "./services/mlpModelArtifacts.js";
 import { loadCustomSigns, writeProfileBackup } from "./services/profileDataService.js";
 import {
+	appendDgsSamples,
 	loadDgsSamples,
 	loadTrainingManifest,
-	saveDgsSamples,
 } from "./services/trainingJsonStore.js";
 import {
 	ensureProfileRecord,
@@ -778,10 +778,7 @@ async function runTrainingWorkflow(
 	}));
 
 	if (toAdd.length > 0) {
-		const data = loadDgsSamples<unknown>();
-		const existing = Array.isArray(data.samples) ? data.samples : [];
-		existing.push(...toAdd);
-		saveDgsSamples({ samples: existing });
+		appendDgsSamples(toAdd);
 		await logTraining(`job ${id}: samples appended (${toAdd.length})`);
 	} else if (triggeredByBundles) {
 		await logTraining(
@@ -1148,16 +1145,13 @@ app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Resp
 			console.log(
 				`Received DGS sample: label=${label}, profileId=${resolvedProfileId}, landmarks length=${landmarks.length}`,
 			);
-			const data = loadDgsSamples<unknown>();
-			const samples = Array.isArray(data.samples) ? data.samples : [];
-			samples.push({
+			appendDgsSamples([{
 				id: genId(),
 				label,
 				profileId: resolvedProfileId,
 				landmarks,
 				ts: Date.now(),
-			});
-			saveDgsSamples({ samples });
+			}]);
 		res.json({ status: "ok" });
 	} catch (error) {
 		console.error("Error saving DGS sample:", error);

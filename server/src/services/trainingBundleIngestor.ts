@@ -15,11 +15,11 @@ import {
 } from "../constants/trainingQuality.js";
 import { logger } from "./logger.js";
 import {
+	appendTrainingQualityLogEntry,
 	loadDgsSamples,
 	loadTrainingManifest,
 	loadTrainingQualityLog,
 	saveDgsSamples,
-	saveTrainingQualityLog,
 } from "./trainingJsonStore.js";
 
 
@@ -695,7 +695,7 @@ function analyzeTimestampSequence(
 		: undefined;
 }
 
-async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
+function loadManifest(): TrainingBundleManifestEntry[] {
 	const parsed = loadTrainingManifest<unknown>().entries;
 	const validEntries: TrainingBundleManifestEntry[] = [];
 	parsed.forEach((entry, index) => {
@@ -763,15 +763,7 @@ export async function readTrainingQualityLog(): Promise<TrainingQualityLogEntry[
 }
 
 async function appendTrainingQualityLog(entry: TrainingQualityLogEntry): Promise<void> {
-	const entries = await readTrainingQualityLog();
-	entries.push(entry);
-	const deduplicatedByBundle = new Map<string, TrainingQualityLogEntry>();
-	for (const item of entries) {
-		deduplicatedByBundle.set(item.bundleId, item);
-	}
-	saveTrainingQualityLog({
-		entries: Array.from(deduplicatedByBundle.values()),
-	});
+	appendTrainingQualityLogEntry(entry);
 }
 
 function normalizeFlattenedLandmarks(raw: unknown): number[][] {
@@ -1133,7 +1125,7 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 	latestCapturedAt?: string;
 }> {
 	await ensureDataDir();
-	const manifestEntries = await loadManifest();
+	const manifestEntries = loadManifest();
 	const qualityThresholds = await loadQualityThresholds();
 	if (manifestEntries.length === 0) {
 		return { appended: 0 };

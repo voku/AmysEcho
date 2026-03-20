@@ -18,7 +18,10 @@ import { logger } from "../services/logger.js";
 import { readTrainingQualityLog } from "../services/trainingBundleIngestor.js";
 import { atomicWriteBuffer, atomicWriteJson } from "../utils/atomicFs.js";
 import { withFileLock } from "../utils/fileLock.js";
-import { loadTrainingManifest, saveTrainingManifest } from "../services/trainingJsonStore.js";
+import {
+	appendTrainingManifestEntry,
+	loadTrainingManifest,
+} from "../services/trainingJsonStore.js";
 
 interface TrainingJobTriggerContext {
 	bundleId: string;
@@ -1488,9 +1491,8 @@ export function registerTrainingBundleRoute(
 					receivedAt: new Date().toISOString(),
 				};
 
-				const manifest = await readTrainingManifest({ strict: true });
-				manifest.entries.push(manifestEntry);
-				saveTrainingManifest(manifest);
+				await readTrainingManifest({ strict: true });
+				appendTrainingManifestEntry(manifestEntry);
 				if (deps.onManifestUpdated) {
 					try {
 						await deps.onManifestUpdated();
