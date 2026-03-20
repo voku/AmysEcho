@@ -12,6 +12,12 @@
 import Database from "better-sqlite3";
 import { promises as fs } from "fs";
 import path from "path";
+import {
+	DATA_DIR,
+	TRAINING_DATASETS_DIR,
+	TRAINING_MANIFEST_PATH,
+	TRAINING_QUALITY_LOG_PATH,
+} from "./constants/modelPaths.js";
 import type {
 	Correction,
 	InteractionLog,
@@ -34,6 +40,7 @@ let db: Database.Database | null = null;
 let currentDbPath: string | null = null;
 
 type SqliteRow = Record<string, unknown>;
+const JSON_COLLECTION_KEY_PATTERN = /^[a-z0-9_.:-]+$/i;
 
 function getString(row: SqliteRow, key: string): string {
 	return row[key] as string;
@@ -101,6 +108,7 @@ export async function initializeDatabase(
 	if (jsonPath) {
 		await migrateFromJson(jsonPath);
 	}
+	await migrateTrainingJsonCollections();
 }
 
 /**
@@ -312,6 +320,16 @@ function createTables(): void {
 		);
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_userId ON userLabelSettings(userId);
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_labelId ON userLabelSettings(labelId);
+	`);
+
+	// Generic JSON collections for non-relational training workflows migrated from
+	// file-based persistence (training manifest, dgs samples, custom signs, quality log).
+	database.exec(`
+		CREATE TABLE IF NOT EXISTS jsonCollections (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL,
+			updatedAt INTEGER NOT NULL
+		);
 	`);
 }
 
@@ -547,6 +565,86 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
 	} catch (error) {
 		console.warn("Could not create migration backup:", error);
 	}
+
+}
+
+async function migrateTrainingJsonCollections(): Promise<void> {
+	const candidates: Array<{ key: string; filePath: string; fallback: unknown }> = [
+		{
+			key: "training.manifest",
+			filePath: TRAINING_MANIFEST_PATH,
+			fallback: { entries: [] },
+		},
+		{
+			key: "training.dgs_samples",
+			filePath: path.join(DATA_DIR, "dgs_samples.json"),
+			fallback: { samples: [] },
+		},
+		{
+			key: "training.custom_signs",
+			filePath: path.join(TRAINING_DATASETS_DIR, "custom_signs.json"),
+			fallback: { signs: [] },
+		},
+		{
+			key: "training.quality_log",
+			filePath: TRAINING_QUALITY_LOG_PATH,
+			fallback: { entries: [] },
+		},
+	];
+
+	for (const candidate of candidates) {
+		const existing = getJsonCollection(candidate.key, null);
+		if (existing !== null) {
+			continue;
+		}
+		let payload: unknown = candidate.fallback;
+		try {
+			const raw = await fs.readFile(candidate.filePath, "utf8");
+			payload = JSON.parse(raw);
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
+				console.warn("Failed to migrate JSON collection; falling back to default", {
+					key: candidate.key,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
+		setJsonCollection(candidate.key, payload);
+	}
+}
+
+export function getJsonCollection<T>(key: string, fallback: T): T;
+export function getJsonCollection<T>(key: string, fallback: T | null): T | null;
+export function getJsonCollection<T>(key: string, fallback: T | null): T | null {
+	if (!JSON_COLLECTION_KEY_PATTERN.test(key)) {
+		throw new Error(`Invalid json collection key: ${key}`);
+	}
+	const row = getDb()
+		.prepare("SELECT value FROM jsonCollections WHERE key = ?")
+		.get(key) as { value: string } | undefined;
+	if (!row) {
+		return fallback;
+	}
+	try {
+		return JSON.parse(row.value) as T;
+	} catch {
+		return fallback;
+	}
+}
+
+export function setJsonCollection(key: string, value: unknown): void {
+	if (!JSON_COLLECTION_KEY_PATTERN.test(key)) {
+		throw new Error(`Invalid json collection key: ${key}`);
+	}
+	getDb()
+		.prepare(`
+			INSERT INTO jsonCollections (key, value, updatedAt)
+			VALUES (?, ?, ?)
+			ON CONFLICT(key) DO UPDATE SET
+				value = excluded.value,
+				updatedAt = excluded.updatedAt
+		`)
+		.run(key, JSON.stringify(value), Date.now());
 }
 
 // ==================== USER OPERATIONS ====================

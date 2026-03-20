@@ -18,6 +18,7 @@ import { logger } from "../services/logger.js";
 import { readTrainingQualityLog } from "../services/trainingBundleIngestor.js";
 import { atomicWriteBuffer, atomicWriteJson } from "../utils/atomicFs.js";
 import { withFileLock } from "../utils/fileLock.js";
+import { loadTrainingManifest, saveTrainingManifest } from "../services/trainingJsonStore.js";
 
 interface TrainingJobTriggerContext {
 	bundleId: string;
@@ -329,30 +330,36 @@ function normalizeClipFilename(value: unknown): string | null {
 }
 
 async function readTrainingManifest(options: { strict: boolean }): Promise<TrainingBundleManifestFile> {
-	try {
-		const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
-		const parsed = JSON.parse(raw);
-		if (
-			!parsed ||
-			typeof parsed !== "object" ||
-			!Array.isArray((parsed as { entries?: unknown }).entries)
-		) {
-			if (options.strict) {
+	if (options.strict) {
+		try {
+			const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
+			const legacyParsed = JSON.parse(raw) as { entries?: unknown };
+			if (
+				!legacyParsed ||
+				typeof legacyParsed !== "object" ||
+				!Array.isArray(legacyParsed.entries)
+			) {
 				throw new Error(
 					"Training manifest file is corrupted and would be overwritten.",
 				);
 			}
-			return { entries: [] };
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
+				throw error;
+			}
 		}
-		return {
-			entries: (parsed as { entries: TrainingBundleManifestEntry[] }).entries,
-		};
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
-			return { entries: [] };
-		}
-		throw error;
 	}
+
+	const parsed = loadTrainingManifest<TrainingBundleManifestEntry>();
+	if (!Array.isArray(parsed.entries)) {
+		if (options.strict) {
+			throw new Error(
+				"Training manifest storage is corrupted and would be overwritten.",
+			);
+		}
+		return { entries: [] };
+	}
+	return parsed;
 }
 
 function normalizeVariationData(
@@ -1151,10 +1158,7 @@ export function registerTrainingBundleRoute(
 			}
 
 			try {
-				const manifest = await withFileLock(
-					TRAINING_MANIFEST_PATH,
-					() => readTrainingManifest({ strict: false }),
-				);
+				const manifest = await readTrainingManifest({ strict: false });
 
 				const entry = manifest.entries.find((candidate) => candidate.id === bundleId);
 				if (!entry) {
@@ -1484,12 +1488,9 @@ export function registerTrainingBundleRoute(
 					receivedAt: new Date().toISOString(),
 				};
 
-				await withFileLock(TRAINING_MANIFEST_PATH, async () => {
-					await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
-					const manifest = await readTrainingManifest({ strict: true });
-					manifest.entries.push(manifestEntry);
-					await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
-				});
+				const manifest = await readTrainingManifest({ strict: true });
+				manifest.entries.push(manifestEntry);
+				saveTrainingManifest(manifest);
 				if (deps.onManifestUpdated) {
 					try {
 						await deps.onManifestUpdated();

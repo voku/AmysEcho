@@ -58,6 +58,11 @@ import {
 } from "./services/mlpModelArtifacts.js";
 import { loadCustomSigns, writeProfileBackup } from "./services/profileDataService.js";
 import {
+	loadDgsSamples,
+	loadTrainingManifest,
+	saveDgsSamples,
+} from "./services/trainingJsonStore.js";
+import {
 	ensureProfileRecord,
 	loadProfileRegistry,
 	type ProfileRegistry,
@@ -194,30 +199,21 @@ async function collectLabelCounts(): Promise<{
 	globalCounts: Record<string, number>;
 	profileCounts: Map<string, Record<string, number>>;
 }> {
-	const dataPath = path.join(DATA_DIR, "dgs_samples.json");
 	const globalCounts: Record<string, number> = {};
 	const profileCounts = new Map<string, Record<string, number>>();
-
-	try {
-		const raw = await fs.readFile(dataPath, "utf8");
-		const parsed = JSON.parse(raw);
-		const samples = Array.isArray(parsed?.samples) ? parsed.samples : [];
-		for (const sample of samples) {
-			if (!sample || typeof sample !== "object") continue;
-			const label = typeof sample.label === "string" ? sample.label : undefined;
-			if (!label) continue;
-			globalCounts[label] = (globalCounts[label] || 0) + 1;
-			const profileId =
-				typeof sample.profileId === "string" ? sample.profileId : undefined;
-			if (profileId && PROFILE_ID_PATTERN.test(profileId)) {
-				const existing = profileCounts.get(profileId) ?? {};
-				existing[label] = (existing[label] || 0) + 1;
-				profileCounts.set(profileId, existing);
-			}
-		}
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-			throw error;
+	const samples = loadDgsSamples<unknown>().samples;
+	for (const sample of samples) {
+		if (!sample || typeof sample !== "object") continue;
+		const row = sample as { label?: unknown; profileId?: unknown };
+		const label = typeof row.label === "string" ? row.label : undefined;
+		if (!label) continue;
+		globalCounts[label] = (globalCounts[label] || 0) + 1;
+		const profileId =
+			typeof row.profileId === "string" ? row.profileId : undefined;
+		if (profileId && PROFILE_ID_PATTERN.test(profileId)) {
+			const existing = profileCounts.get(profileId) ?? {};
+			existing[label] = (existing[label] || 0) + 1;
+			profileCounts.set(profileId, existing);
 		}
 	}
 
@@ -413,20 +409,11 @@ const healthHandler = async (_req: Request, res: Response) => {
 		overallStatus = "degraded";
 	}
 
-	// Check training manifest
-	try {
-		const manifestExists = await fs.access(TRAINING_MANIFEST_PATH).then(() => true).catch(() => false);
-		checks.trainingManifest = {
-			status: manifestExists ? "ok" : "warning",
-			message: manifestExists ? "Training manifest accessible" : "Training manifest not found (will be created on first bundle upload)",
-		};
-	} catch (error) {
-		checks.trainingManifest = {
-			status: "error",
-			message: error instanceof Error ? error.message : String(error),
-		};
-		overallStatus = "degraded";
-	}
+	const manifestEntries = loadTrainingManifest<unknown>().entries;
+	checks.trainingManifest = {
+		status: "ok",
+		message: `Training manifest entries in SQLite: ${manifestEntries.length}`,
+	};
 
 	res.json({
 		status: overallStatus,
@@ -781,7 +768,6 @@ async function runTrainingWorkflow(
 	const workflowStartMs = Date.now();
 	await ensureDataDir();
 	await logTraining(`job ${id}: data dir ready at ${DATA_DIR}`);
-	const dataPath = path.join(DATA_DIR, "dgs_samples.json");
 
 	const toAdd = samples.map((s) => ({
 		id: genId(),
@@ -792,22 +778,10 @@ async function runTrainingWorkflow(
 	}));
 
 	if (toAdd.length > 0) {
-		await withFileLock(dataPath, async () => {
-			let data: { samples: unknown[] } = { samples: [] };
-			try {
-				const raw = await fs.readFile(dataPath, "utf8");
-				const parsed = JSON.parse(raw) as { samples?: unknown };
-				data = {
-					samples: Array.isArray(parsed.samples) ? parsed.samples : [],
-				};
-			} catch {
-				data = { samples: [] };
-			}
-			data.samples.push(...toAdd);
-			const tmp = `${dataPath}.tmp`;
-			await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-			await fs.rename(tmp, dataPath);
-		});
+		const data = loadDgsSamples<unknown>();
+		const existing = Array.isArray(data.samples) ? data.samples : [];
+		existing.push(...toAdd);
+		saveDgsSamples({ samples: existing });
 		await logTraining(`job ${id}: samples appended (${toAdd.length})`);
 	} else if (triggeredByBundles) {
 		await logTraining(
@@ -866,6 +840,13 @@ async function runTrainingWorkflow(
 
 	const scriptPath = config.mlpScript;
 	const serverRoot = SERVER_DIR;
+	const manifestSnapshot = loadTrainingManifest<unknown>();
+	await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
+	await fs.writeFile(
+		TRAINING_MANIFEST_PATH,
+		JSON.stringify(manifestSnapshot, null, 2),
+		"utf8",
+	);
 	const scriptArgs = [
 		path.isAbsolute(scriptPath)
 			? scriptPath
@@ -1167,29 +1148,16 @@ app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Resp
 			console.log(
 				`Received DGS sample: label=${label}, profileId=${resolvedProfileId}, landmarks length=${landmarks.length}`,
 			);
-			const dataPath = path.join(DATA_DIR, "dgs_samples.json");
-			await withFileLock(dataPath, async () => {
-				let data: { samples: unknown[] } = { samples: [] };
-				try {
-					const raw = await fs.readFile(dataPath, "utf8");
-					const parsed = JSON.parse(raw) as { samples?: unknown };
-					data = {
-						samples: Array.isArray(parsed.samples) ? parsed.samples : [],
-					};
-				} catch (err) {
-					if (getErrnoCode(err) !== "ENOENT") throw err;
-				}
-				data.samples.push({
+			const data = loadDgsSamples<unknown>();
+			const samples = Array.isArray(data.samples) ? data.samples : [];
+			samples.push({
 				id: genId(),
 				label,
 				profileId: resolvedProfileId,
 				landmarks,
 				ts: Date.now(),
 			});
-			const tmp = `${dataPath}.tmp`;
-			await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-			await fs.rename(tmp, dataPath);
-		});
+			saveDgsSamples({ samples });
 		res.json({ status: "ok" });
 	} catch (error) {
 		console.error("Error saving DGS sample:", error);

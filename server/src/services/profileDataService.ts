@@ -3,17 +3,21 @@ import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
 import {
-	DATA_DIR,
 	getProfileMetacomBundlePath,
 	MLP_MODELS_DIR,
-	TRAINING_DATASETS_DIR,
-	TRAINING_MANIFEST_PATH,
 	TRAINING_UPLOADS_DIR,
 } from "../constants/modelPaths.js";
 import { PROFILE_BACKUPS_DIR } from "../constants/profileRegistryPaths.js";
 import type { Database } from "../db.js";
-import { atomicWriteJson } from "../utils/atomicFs.js";
 import type { ProfileRecord, ProfileRegistry } from "./profileRegistry.js";
+import {
+	loadCustomSigns as loadCustomSignsFromSqlite,
+	loadDgsSamples as loadDgsSamplesFromSqlite,
+	loadTrainingManifest as loadTrainingManifestFromSqlite,
+	saveCustomSigns as saveCustomSignsToSqlite,
+	saveDgsSamples as saveDgsSamplesToSqlite,
+	saveTrainingManifest as saveTrainingManifestToSqlite,
+} from "./trainingJsonStore.js";
 
 type TrainingManifestEntry = {
 	profileId?: string | null;
@@ -53,54 +57,34 @@ export type ProfileExportPayload = {
 	customSigns: CustomSignsFile;
 };
 
-async function loadJsonFile<T>(filePath: string, fallback: T): Promise<T> {
-	try {
-		const raw = await fs.readFile(filePath, "utf8");
-		return JSON.parse(raw) as T;
-	} catch (error) {
-		const code = (error as NodeJS.ErrnoException)?.code;
-		if (code === "ENOENT") {
-			return fallback;
-		}
-		throw error;
-	}
-}
-
 async function ensureDir(dirPath: string): Promise<void> {
 	await fs.mkdir(dirPath, { recursive: true });
 }
 
 export async function loadTrainingManifest(): Promise<TrainingManifestFile> {
-	return loadJsonFile(TRAINING_MANIFEST_PATH, { entries: [] });
+	return loadTrainingManifestFromSqlite<TrainingManifestEntry>();
 }
 
 export async function saveTrainingManifest(
 	manifest: TrainingManifestFile,
 ): Promise<void> {
-	await ensureDir(path.dirname(TRAINING_MANIFEST_PATH));
-	await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
+	saveTrainingManifestToSqlite(manifest);
 }
 
 export async function loadDgsSamples(): Promise<DgsSamplesFile> {
-	const filePath = path.join(DATA_DIR, "dgs_samples.json");
-	return loadJsonFile(filePath, { samples: [] });
+	return loadDgsSamplesFromSqlite<DgsSampleEntry>();
 }
 
 export async function saveDgsSamples(samples: DgsSamplesFile): Promise<void> {
-	const filePath = path.join(DATA_DIR, "dgs_samples.json");
-	await ensureDir(path.dirname(filePath));
-	await atomicWriteJson(filePath, samples);
+	saveDgsSamplesToSqlite(samples);
 }
 
 export async function loadCustomSigns(): Promise<CustomSignsFile> {
-	const filePath = path.join(TRAINING_DATASETS_DIR, "custom_signs.json");
-	return loadJsonFile(filePath, { signs: [] });
+	return loadCustomSignsFromSqlite<CustomSignEntry>();
 }
 
 export async function saveCustomSigns(signs: CustomSignsFile): Promise<void> {
-	const filePath = path.join(TRAINING_DATASETS_DIR, "custom_signs.json");
-	await ensureDir(path.dirname(filePath));
-	await atomicWriteJson(filePath, signs);
+	saveCustomSignsToSqlite(signs);
 }
 
 export function filterManifestForProfile(

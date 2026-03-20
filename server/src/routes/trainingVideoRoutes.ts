@@ -6,11 +6,11 @@ import {
 	DATA_DIR,
 	PROFILE_ID_PATTERN,
 	SERVER_DIR,
-	TRAINING_MANIFEST_PATH,
 } from "../constants/modelPaths.js";
 import type { Database } from "../db.js";
 import type { ProfileRegistry } from "../services/profileRegistry.js";
 import { logger } from "../services/logger.js";
+import { loadTrainingManifest } from "../services/trainingJsonStore.js";
 import { isProfileAuthorized } from "../utils/profileAuthorization.js";
 
 type TrainingVideoRouteDeps = {
@@ -122,15 +122,7 @@ async function loadDgsManifest(): Promise<DgsManifest> {
 }
 
 async function loadManifest(): Promise<ManifestFile> {
-	try {
-		const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
-		return JSON.parse(raw) as ManifestFile;
-	} catch (error) {
-		logger.warn("Failed to load training manifest, returning empty.", {
-			error: error instanceof Error ? error.message : String(error),
-		});
-		return { entries: [] };
-	}
+	return loadTrainingManifest<ManifestEntry>() as ManifestFile;
 }
 
 export function registerTrainingVideoRoutes(
