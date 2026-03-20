@@ -113,6 +113,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     triggerCalls.length = 0;
     triggerOverride = null;
     isProfileAuthorized = () => true;
+    manifestUpdatedCalls = 0;
   });
 
   afterAll(async () => {
@@ -547,6 +548,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('landmarks.json missing or invalid');
+    expect(manifestUpdatedCalls).toBe(0);
     await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
 
     const bucketEntries = await getBucketEntries('unassigned');
