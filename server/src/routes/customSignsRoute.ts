@@ -176,7 +176,7 @@ export function registerCustomSignsRoute(
 			return res
 				.status(500)
 				.json({
-					error: "Benutzerdefinierte Zeichen konnten nicht geladen werden.",
+					error: "Benutzerdefinierte Gebärden konnten nicht geladen werden.",
 				});
 		}
 	});
@@ -187,7 +187,7 @@ export function registerCustomSignsRoute(
 			return res
 				.status(400)
 				.json({
-					error: "Ungültige Zeichen-Daten.",
+					error: "Ungültige Gebärden-Daten.",
 					details: parsed.error.flatten(),
 				});
 		}
@@ -256,7 +256,7 @@ export function registerCustomSignsRoute(
 			return res
 				.status(500)
 				.json({
-					error: "Benutzerdefiniertes Zeichen konnte nicht gespeichert werden.",
+					error: "Benutzerdefinierte Gebärde konnte nicht gespeichert werden.",
 				});
 		}
 	});

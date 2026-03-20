@@ -13,6 +13,7 @@
 - [ ] Add long-session device performance baselines (FPS, thermal, battery) for target caregiver hardware.
 - [ ] Expand operational runbooks with incident drills and rollback practice evidence.
 - [ ] Establish accessibility manual verification cadence (screen reader and keyboard-only sessions).
+- [ ] Add an automated terminology quality gate for user-facing copy (webapp + API errors + trainer reports) to enforce "Gebärde" wording in sign-language contexts and prevent regressions.
 
 ## Stability Hardening Plan (Blind-Spot Analysis 2026-03-09)
 
