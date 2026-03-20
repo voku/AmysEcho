@@ -26,10 +26,44 @@ jobs:
       issues: 'write'
       pull-requests: 'write'
     steps:
+      - name: 'Detect Gemini auth configuration'
+        id: 'detect_auth'
+        env:
+          GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
+          GOOGLE_API_KEY: '${{ secrets.GOOGLE_API_KEY }}'
+          GOOGLE_GENAI_USE_VERTEXAI: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
+          GOOGLE_GENAI_USE_GCA: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
+          GOOGLE_CLOUD_PROJECT: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
+          GOOGLE_CLOUD_LOCATION: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
+          SERVICE_ACCOUNT_EMAIL: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
+          GCP_WIF_PROVIDER: '${{ vars.GCP_WIF_PROVIDER }}'
+        run: |-
+          has_key_auth="false"
+          if [[ -n "${GEMINI_API_KEY}" || -n "${GOOGLE_API_KEY}" ]]; then
+            has_key_auth="true"
+          fi
+
+          has_vertex_auth="false"
+          if [[ "${GOOGLE_GENAI_USE_VERTEXAI}" == "true" && -n "${GOOGLE_CLOUD_PROJECT}" && -n "${GOOGLE_CLOUD_LOCATION}" && -n "${SERVICE_ACCOUNT_EMAIL}" && -n "${GCP_WIF_PROVIDER}" ]]; then
+            has_vertex_auth="true"
+          fi
+
+          has_gca_auth="false"
+          if [[ "${GOOGLE_GENAI_USE_GCA}" == "true" ]]; then
+            has_gca_auth="true"
+          fi
+
+          if [[ "${has_key_auth}" == "true" || "${has_vertex_auth}" == "true" || "${has_gca_auth}" == "true" ]]; then
+            echo "configured=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "configured=false" >> "${GITHUB_OUTPUT}"
+            echo "::warning title=Gemini review skipped::No Gemini auth method configured (set GEMINI_API_KEY/GOOGLE_API_KEY or configure Vertex/GCA auth)."
+          fi
+
       - name: 'Mint identity token'
         id: 'mint_identity_token'
         if: |-
-          ${{ vars.APP_ID }}
+          ${{ steps.detect_auth.outputs.configured == 'true' && vars.APP_ID }}
         uses: 'actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf' # ratchet:actions/create-github-app-token@v2
         with:
           app-id: '${{ vars.APP_ID }}'
@@ -39,9 +73,13 @@ jobs:
           permission-pull-requests: 'write'
 
       - name: 'Checkout repository'
+        if: |-
+          ${{ steps.detect_auth.outputs.configured == 'true' }}
         uses: 'actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8' # ratchet:actions/checkout@v6
 
       - name: 'Run Gemini pull request review'
+        if: |-
+          ${{ steps.detect_auth.outputs.configured == 'true' }}
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
         id: 'gemini_pr_review'
         env:
