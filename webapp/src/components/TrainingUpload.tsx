@@ -1066,7 +1066,7 @@ export function TrainingUploadWithRecording() {
       {modelNotice && <div className="notice success compact mb-md">{modelNotice}</div>}
 
       <TrainingRecorder
-        profileId={profileId || 'default'}
+        profileId={metadataReady ? (profileId ?? '') : ''}
         label={canonicalTrainingLabel}
         {...(preferredSignId ? { symbolId: preferredSignId } : {})}
         onRecordingComplete={handleRecordingComplete}

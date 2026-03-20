@@ -8,6 +8,7 @@ export type RecordingState = 'idle' | 'recording';
 interface RecordedData {
   frames: TrainingFrame[];
   stillImage: string | null;
+  capturedFacingMode: 'user' | 'environment' | null;
   frameCount: number;
   clipFile: File | null;
   clipSizeBytes: number;
@@ -18,7 +19,7 @@ interface RecordedData {
 export interface TrainingRecorderResult {
   state: RecordingState;
   recordedData: RecordedData;
-  startRecording: () => void;
+  startRecording: (facingMode?: 'user' | 'environment') => void;
   stopRecording: () => void;
   resetRecording: () => void;
   framesCaptured: number;
@@ -74,6 +75,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
   const [state, setState] = useState<RecordingState>('idle');
   const [recordedFrames, setRecordedFrames] = useState<TrainingFrame[]>([]);
   const [stillImage, setStillImage] = useState<string | null>(null);
+  const [capturedFacingMode, setCapturedFacingMode] = useState<'user' | 'environment' | null>(null);
   const [framesCaptured, setFramesCaptured] = useState(0);
   const [clipFile, setClipFile] = useState<File | null>(null);
   const [clipSizeBytes, setClipSizeBytes] = useState(0);
@@ -211,11 +213,12 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
     };
   }, [handleFrameBatch]);
 
-  const startRecording = useCallback(() => {
+  const startRecording = useCallback((facingMode: 'user' | 'environment' = 'user') => {
     setState('recording');
     isRecordingRef.current = true;
     setRecordedFrames([]);
     setStillImage(null);
+    setCapturedFacingMode(facingMode);
     setFramesCaptured(0);
     setPreviewLandmarks([]);
     setPreviewHandedness([]);
@@ -318,6 +321,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
 
     setRecordedFrames([]);
     setStillImage(null);
+    setCapturedFacingMode(null);
     setFramesCaptured(0);
     setPreviewLandmarks([]);
     setPreviewHandedness([]);
@@ -335,6 +339,7 @@ export function useTrainingRecorder(videoRef?: RefObject<HTMLVideoElement | null
   const recordedData: RecordedData = {
     frames: recordedFrames,
     stillImage,
+    capturedFacingMode,
     frameCount: framesCaptured,
     clipFile,
     clipSizeBytes,

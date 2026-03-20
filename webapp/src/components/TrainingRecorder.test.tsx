@@ -15,6 +15,7 @@ type TrainingState = {
   recordedData: {
     frames: unknown[];
     stillImage: string | null;
+    capturedFacingMode: 'user' | 'environment' | null;
     frameCount: number;
     clipFile: File | null;
     clipSizeBytes: number;
@@ -39,6 +40,7 @@ const createTrainingState = (): TrainingState => ({
   recordedData: {
     frames: [],
     stillImage: null,
+    capturedFacingMode: null,
     frameCount: 0,
     clipFile: null,
     clipSizeBytes: 0,

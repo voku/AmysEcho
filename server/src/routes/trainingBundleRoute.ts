@@ -60,6 +60,7 @@ interface TrainingBundleMetadata {
 		clipMimeType?: string;
 		stillBytes?: number;
 		stillMimeType?: string;
+		previewMirrored?: boolean;
 	};
 	validationSummary?: {
 		frameCount: number;
@@ -179,6 +180,7 @@ const RecordingSchema = z
 		clipMimeType: z.string().optional(),
 		stillBytes: z.number().int().nonnegative().optional(),
 		stillMimeType: z.string().optional(),
+		previewMirrored: z.boolean().optional(),
 	})
 	.strip();
 

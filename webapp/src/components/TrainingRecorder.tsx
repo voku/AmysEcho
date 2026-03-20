@@ -179,9 +179,11 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     previewFaceLandmarks,
     lastFrameReceivedAt,
   } = useTrainingRecorder(videoRef);
+  const recordingFacingMode = recordedData.capturedFacingMode ?? facingMode;
+  const recordingPreviewMirrored = recordingFacingMode === 'user';
   const normalizedRecordedFrames = useMemo(
-    () => (isMirroredPreview ? mirrorFramesForSelfiePreview(recordedData.frames) : recordedData.frames),
-    [isMirroredPreview, recordedData.frames],
+    () => (recordingPreviewMirrored ? mirrorFramesForSelfiePreview(recordedData.frames) : recordedData.frames),
+    [recordingPreviewMirrored, recordedData.frames],
   );
 
   // Auto-start camera when metadata is ready and detector is idle/stopped
@@ -232,8 +234,8 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
       }
       setDetectorStartFeedback('Detektor gestartet. Aufnahme bereit.');
     }
-    startRecording();
-  }, [cameraError, metadataError, metadataReady, startCamera, startRecording, status]);
+    startRecording(facingMode);
+  }, [cameraError, facingMode, metadataError, metadataReady, startCamera, startRecording, status]);
 
   const handleStopRecording = useCallback(() => {
     stopRecording();
@@ -276,7 +278,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
       if (manualStillFile) {
         stillFile = manualStillFile;
       } else if (recordedData.stillImage) {
-        stillFile = await createStillFileFromDataUrl(recordedData.stillImage, isMirroredPreview);
+        stillFile = await createStillFileFromDataUrl(recordedData.stillImage, recordingPreviewMirrored);
       }
 
       const clipBytes = recordedData.clipFile?.size ?? (recordedData.clipSizeBytes > 0 ? recordedData.clipSizeBytes : undefined);
@@ -299,7 +301,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
         ...(clipMimeType ? { clipMimeType } : {}),
         ...(typeof stillBytes === 'number' ? { stillBytes } : {}),
         ...(stillMimeType ? { stillMimeType } : {}),
-        previewMirrored: isMirroredPreview,
+        previewMirrored: recordingPreviewMirrored,
       };
 
       const payload: TrainingBundlePayload = {
@@ -324,7 +326,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     [
       metadataReady,
       recordedData,
-      isMirroredPreview,
+      recordingPreviewMirrored,
       normalizedRecordedFrames,
       profileId,
       label,
@@ -982,7 +984,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
             <img
               src={manualStillPreviewUrl ?? recordedData.stillImage ?? undefined}
               alt={manualStillPreviewUrl ? 'Hochgeladenes Referenzbild' : 'Aufgenommene Gebärde'}
-              className={!manualStillPreviewUrl && isMirroredPreview ? 'mirrored' : undefined}
+              className={!manualStillPreviewUrl && recordingPreviewMirrored ? 'mirrored' : undefined}
             />
           </div>
         )}

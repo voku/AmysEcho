@@ -109,18 +109,19 @@ const TrainingBundleManifestEntrySchema = z
 					})
 					.passthrough()
 					.optional(),
-				recording: z
-					.object({
-						frameCount: z.number().optional(),
-						usableFrameCount: z.number().optional(),
-						clipDurationMs: z.number().optional(),
-						clipBytes: z.number().optional(),
-						clipMimeType: z.string().optional(),
-						stillBytes: z.number().optional(),
-						stillMimeType: z.string().optional(),
-					})
-					.passthrough()
-					.optional(),
+					recording: z
+						.object({
+							frameCount: z.number().optional(),
+							usableFrameCount: z.number().optional(),
+							clipDurationMs: z.number().optional(),
+							clipBytes: z.number().optional(),
+							clipMimeType: z.string().optional(),
+							stillBytes: z.number().optional(),
+							stillMimeType: z.string().optional(),
+							previewMirrored: z.boolean().optional(),
+						})
+						.passthrough()
+						.optional(),
 			})
 			.passthrough()
 			.optional(),
@@ -209,6 +210,7 @@ interface RecordingMetadata {
 	clipMimeType?: string;
 	stillBytes?: number;
 	stillMimeType?: string;
+	previewMirrored?: boolean;
 }
 
 interface TimingMetadata {
