@@ -13,9 +13,11 @@ export interface ClipReadyPayload {
 }
 
 export interface FrameBatchPayload {
-  frames: string[];
+  frames?: string[];
   landmarks: number[][][][];
   handednesses?: string[][];
+  poseLandmarks?: number[][][];
+  faceLandmarks?: number[][][];
   timestamps?: number[];
 }
 

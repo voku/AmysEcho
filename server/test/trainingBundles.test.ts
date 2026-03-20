@@ -48,6 +48,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   };
   let triggerCalls: TriggerCall[];
   let triggerOverride: ((context: TriggerCall) => TriggerResult | null | undefined) | null;
+  let manifestUpdatedCalls: number;
   let accessToken: string;
   let isProfileAuthorized: (profileId: string) => boolean;
   const resolveProfileId = async (profileId: string | null) => ({
@@ -86,6 +87,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     let counter = 0;
     triggerCalls = [];
     triggerOverride = null;
+    manifestUpdatedCalls = 0;
     registerRoute(app, () => `bundle-${++counter}`, {
       triggerTrainingJob: (context: TriggerCall) => {
         triggerCalls.push(context);
@@ -94,6 +96,9 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         }
         const jobId = `job-${triggerCalls.length}`;
         return { jobId, status: 'queued', pollUrl: `/api/v1/train-status/${jobId}` };
+      },
+      onManifestUpdated: () => {
+        manifestUpdatedCalls += 1;
       },
       resolveProfileId,
       isProfileAuthorized: (_req, profileId) => isProfileAuthorized(profileId),
@@ -108,6 +113,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     triggerCalls.length = 0;
     triggerOverride = null;
     isProfileAuthorized = () => true;
+    manifestUpdatedCalls = 0;
   });
 
   afterAll(async () => {
@@ -179,6 +185,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .set('Content-Type', 'application/zip')
       .send(zip.toBuffer())
       .expect(202);
+    expect(manifestUpdatedCalls).toBe(1);
 
     expect(response.body).toHaveProperty('status', 'queued');
     expect(typeof response.body.id).toBe('string');
@@ -541,6 +548,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('landmarks.json missing or invalid');
+    expect(manifestUpdatedCalls).toBe(0);
     await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
 
     const bucketEntries = await getBucketEntries('unassigned');

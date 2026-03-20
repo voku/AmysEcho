@@ -38,6 +38,7 @@ interface TrainingBundleRouteDeps {
 	triggerTrainingJob?: (
 		context: TrainingJobTriggerContext,
 	) => TriggerTrainingJobResult | null | undefined;
+	onManifestUpdated?: () => void | Promise<void>;
 	resolveProfileId?: (
 		profileId: string | null,
 	) => Promise<{ profileId: string | null }>;
@@ -1487,6 +1488,13 @@ export function registerTrainingBundleRoute(
 					manifest.entries.push(manifestEntry);
 					await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
 				});
+				if (deps.onManifestUpdated) {
+					try {
+						await deps.onManifestUpdated();
+					} catch (error) {
+						logger.warn("Failed to execute onManifestUpdated hook", { error });
+					}
+				}
 
 				// Analytics: Log missing modalities for monitoring data quality
 				const missingModalities = MODALITY_KEYS.filter((modality) => {

@@ -1,11 +1,11 @@
 import { buildTrainedLabelDescriptors, mergeTrainedLabels } from "../src/services/trainedLabelsService";
 
 describe("mergeTrainedLabels", () => {
-  it("returns labels from either legacy sample counts or training manifest entries", () => {
+  it("returns labels from canonical training manifest entries", () => {
     const result = mergeTrainedLabels(
       "profile-1",
-      { HALLO: 2 },
       [
+        { profileId: "profile-1", label: "HALLO" },
         { profileId: "profile-1", label: "DANKE" },
         { profileId: "profile-2", label: "BITTE" },
       ],
@@ -18,7 +18,6 @@ describe("mergeTrainedLabels", () => {
   it("deduplicates labels and ignores blank entries", () => {
     const result = mergeTrainedLabels(
       "profile-1",
-      { HALLO: 1, " ": 2 },
       [
         { profileId: "profile-1", label: " HALLO " },
         { profileId: "profile-1", label: "" },
@@ -31,8 +30,8 @@ describe("mergeTrainedLabels", () => {
   it("deduplicates labels case-insensitively across sources", () => {
     const result = mergeTrainedLabels(
       "profile-1",
-      { hallo: 1 },
       [
+        { profileId: "profile-1", label: "hallo" },
         { profileId: "profile-1", label: "HALLO" },
         { profileId: "profile-1", label: "HaLLo" },
       ],
@@ -44,10 +43,8 @@ describe("mergeTrainedLabels", () => {
   it("strips trailing UUID suffixes before deduplication", () => {
     const result = mergeTrainedLabels(
       "profile-1",
-      {
-        "hallo_123e4567-e89b-12d3-a456-426614174000": 1,
-      },
       [
+        { profileId: "profile-1", label: "hallo_123e4567-e89b-12d3-a456-426614174000" },
         { profileId: "profile-1", label: "HALLO-123e4567-e89b-12d3-a456-426614174000" },
         { profileId: "profile-1", label: "HALLO" },
       ],
@@ -60,8 +57,8 @@ describe("mergeTrainedLabels", () => {
     // U+00E9 (precomposed é) vs U+0065 U+0301 (decomposed é)
     const result = mergeTrainedLabels(
       "profile-1",
-      { "caf\u00e9": 1 },
       [
+        { profileId: "profile-1", label: "caf\u00e9" },
         { profileId: "profile-1", label: "caf\u0065\u0301" },
         { profileId: "profile-1", label: "hello  world" },
       ],

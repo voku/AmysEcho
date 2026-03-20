@@ -303,6 +303,10 @@ let trainingManifestCache: {
 	timestamp: number;
 } | null = null;
 
+function invalidateTrainingManifestCache(): void {
+	trainingManifestCache = null;
+}
+
 async function getCachedManifestEntries(): Promise<ManifestEntry[]> {
 	if (trainingManifestCache && Date.now() - trainingManifestCache.timestamp < config.trainingManifestCacheTtlMs) {
 		return trainingManifestCache.entries;
@@ -1080,6 +1084,7 @@ registerTrainingBundleRoute(app, genId, {
 			return null;
 		}
 	},
+	onManifestUpdated: invalidateTrainingManifestCache,
 	resolveProfileId: resolveProfileId,
 	isProfileAuthorized: (req: Request, profileId: string) =>
 		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
@@ -1622,10 +1627,8 @@ app.get(
 				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
-			const { profileCounts } = await collectLabelCounts();
-			const counts = profileCounts.get(profileId) || {};
 			const manifestEntries = await getCachedManifestEntries();
-			const trainedLabels = mergeTrainedLabels(profileId, counts, manifestEntries);
+			const trainedLabels = mergeTrainedLabels(profileId, manifestEntries);
 			const customSigns = await loadCustomSigns();
 			const labelDescriptors = buildTrainedLabelDescriptors(
 				profileId,

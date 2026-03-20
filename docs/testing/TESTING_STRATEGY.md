@@ -123,6 +123,22 @@ To avoid ambiguity in future chats and PRs:
 
 If legacy code uses `user` for both, tests should explicitly assert which identity is intended.
 
+## 📐 Canonical Training/Runtime Contract Guardrails
+
+To prevent cross-layer drift in Amy's training flow, treat these contracts as canonical:
+
+- **Runtime frame batches:** `webapp/src/types/frames.ts` (`FrameBatchPayload`).
+  - Includes `landmarks` and optional `frames`, `handednesses`, `poseLandmarks`, `faceLandmarks`, `timestamps`.
+  - Hooks/components must import this shared type instead of redefining local payload interfaces.
+- **Trained-label source of truth:** `server/data/datasets/training_manifest.json` entries loaded via server manifest APIs.
+  - The trained-label response should be derived from canonical manifest entries for the requested profile.
+  - Avoid reintroducing prelaunch fallback paths that read legacy label stores for this endpoint.
+
+### Contract Regression Checks
+
+- Add/keep unit tests that fail when payload fields are dropped or renamed.
+- Add/keep tests ensuring label normalization/deduplication (case, UUID suffix, Unicode normalization) still works on manifest-derived labels.
+
 ## 🧪 Test Categories
 
 ### 1. Communication Reliability Tests
