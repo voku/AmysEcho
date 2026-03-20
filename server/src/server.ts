@@ -303,6 +303,10 @@ let trainingManifestCache: {
 	timestamp: number;
 } | null = null;
 
+function invalidateTrainingManifestCache(): void {
+	trainingManifestCache = null;
+}
+
 async function getCachedManifestEntries(): Promise<ManifestEntry[]> {
 	if (trainingManifestCache && Date.now() - trainingManifestCache.timestamp < config.trainingManifestCacheTtlMs) {
 		return trainingManifestCache.entries;
@@ -1080,6 +1084,7 @@ registerTrainingBundleRoute(app, genId, {
 			return null;
 		}
 	},
+	onManifestUpdated: invalidateTrainingManifestCache,
 	resolveProfileId: resolveProfileId,
 	isProfileAuthorized: (req: Request, profileId: string) =>
 		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
