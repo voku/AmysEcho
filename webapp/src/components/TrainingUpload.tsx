@@ -788,7 +788,7 @@ export function TrainingUploadWithRecording() {
   const metadataReady = hasProfileContext && hasGestureSelection;
   const metadataError = metadataReady
     ? ''
-    : 'Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.';
+    : 'Bitte wähle ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest oder hochlädst.';
   const [searchParams] = useSearchParams();
   const gestureParam = searchParams.get('gesture');
   const symbolIdParam = searchParams.get('symbolId');
@@ -1074,7 +1074,7 @@ export function TrainingUploadWithRecording() {
 
       <div className="card mt-md">
         <div className="form-group">
-          <label htmlFor="record-profile">Profil-ID</label>
+          <label htmlFor="record-profile">Ausgewähltes Profil</label>
           <input id="record-profile" value={profileId || ''} readOnly />
         </div>
         <SymbolSelector 
