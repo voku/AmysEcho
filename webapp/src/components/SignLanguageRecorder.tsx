@@ -206,7 +206,7 @@ function formatMlpDecisionReason(reason: string | null): string {
     case 'below_override_margin':
       return 'MediaPipe war im Vergleich stabiler';
     case 'null_label':
-      return 'Hintergrundklasse erkannt (kein gültiges Zeichen)';
+      return 'Hintergrundklasse erkannt (keine gültige Gebärde)';
     case 'invalid_result':
       return 'Ungültige Modellantwort';
     case 'predictor_unavailable':
@@ -983,7 +983,7 @@ export function SignLanguageRecorder() {
       return {
         severity: 'warning' as const,
         title: 'Erkennung läuft noch nicht',
-        hint: 'Tippe auf „Kamera starten“, damit Gesten erkannt werden können.',
+        hint: 'Tippe auf „Kamera starten“, damit Gebärden erkannt werden können.',
       };
     }
 
