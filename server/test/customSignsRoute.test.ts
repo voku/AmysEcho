@@ -223,4 +223,26 @@ describe('custom signs route', () => {
     expect(stored.signs[0]).toMatchObject({ id: 'help', label: 'Help from A', profileId: '22222222-2222-4222-8222-222222222222' });
     expect(stored.signs[1]).toMatchObject({ id: 'help', label: 'Help from B', profileId: '33333333-3333-4333-8333-333333333333' });
   });
+
+  it('returns success even if training trigger throws after sign persistence', async () => {
+    const triggerErrorApp = express();
+    triggerErrorApp.use(express.json());
+    const mod = await import('../src/routes/customSignsRoute.js');
+    mod.registerCustomSignsRoute(triggerErrorApp, {
+      triggerTrainingJob: () => {
+        throw new Error('queue unavailable');
+      },
+    });
+
+    const response = await request(triggerErrorApp)
+      .post('/api/v1/dgs/signs')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ id: 'fallback_sign', label: 'Fallback Sign' })
+      .expect(201);
+
+    expect(response.body).toMatchObject({ id: 'fallback_sign', label: 'Fallback Sign' });
+
+    const stored = loadCustomSignsFromStore();
+    expect(stored.signs.some((sign) => sign.id === 'fallback_sign')).toBe(true);
+  });
 });

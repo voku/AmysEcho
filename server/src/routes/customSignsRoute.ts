@@ -222,11 +222,19 @@ export function registerCustomSignsRoute(
 
 			// Auto-trigger model training after custom sign registration
 				if (deps.triggerTrainingJob) {
-					deps.triggerTrainingJob({
-						bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
-						profileId: result.sign.profileId ?? null,
-						label: result.sign.id, // Use the unique ID for training
-					});
+					try {
+						deps.triggerTrainingJob({
+							bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
+							profileId: result.sign.profileId ?? null,
+							label: result.sign.id, // Use the unique ID for training
+						});
+					} catch (trainingError) {
+						console.warn("Failed to trigger training job for custom sign", {
+							signId: result.sign.id,
+							profileId: result.sign.profileId ?? null,
+							error: trainingError,
+						});
+					}
 				}
 
 			return res.status(result.created ? 201 : 200).json(result.sign);
