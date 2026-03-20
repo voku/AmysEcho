@@ -42,7 +42,7 @@ This checks dependencies and runs all tests to ensure everything works. Skip thi
 ## 3. Communicating
 1. Point the camera at the child's hands.
 2. The app speaks and shows a symbol when it recognizes a gesture.
-3. Tippe auf **Hilfe**, wenn eine Geste falsch erkannt wurde – so speicherst du eine Korrektur für zukünftiges Lernen.
+3. Tippe auf **Hilfe**, wenn eine Gebärde falsch erkannt wurde – so speicherst du eine Korrektur für zukünftiges Lernen.
 
 ## 4. Teaching New Gestures
 1. Open the **Admin Panel** and choose **Training**.

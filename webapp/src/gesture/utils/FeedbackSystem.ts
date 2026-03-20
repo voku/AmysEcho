@@ -57,7 +57,7 @@ export class FeedbackSystem {
   // Gesture-specific feedback
   private gestureSpecificFeedback: Record<GestureFeedbackKey, GestureFeedbackCopy> = {
     thumbs_up: {
-      encouragement: 'Daumen hoch ist ein wichtiges Zeichen!',
+      encouragement: 'Daumen hoch ist eine wichtige Gebärde!',
       tip: 'Streck deinen Daumen gerade nach oben'
     },
     point: {

@@ -272,7 +272,7 @@ class AudioService {
   async playEncouragement(gesture?: string): Promise<void> {
     const phrases = gesture
       ? [
-          `Möchtest du das Zeichen ${gesture} nochmal üben?`,
+          `Möchtest du die Gebärde ${gesture} nochmal üben?`,
           `Lass uns ${gesture} nochmal versuchen!`,
           `Wie wäre es mit etwas Übung für ${gesture}?`,
         ]

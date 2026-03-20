@@ -122,10 +122,10 @@ Wenn noch keine Gebärden trainiert wurden, zeigen wir eine ruhige Einstiegsflä
 
 ### Selbstentdeckungs-Ribbon
 
-Sobald eine Geste sicher erkannt wurde, blendet das Overlay ein zentriertes Ribbon ein:
+Sobald eine Gebärde sicher erkannt wurde, blendet das Overlay ein zentriertes Ribbon ein:
 
 * **Label:** `Amy's Echo` in Versalien mit `overlayTextMuted`, um den Absender zu markieren.
-* **Botschaft:** „Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Geste gleich als Stimme und Symbol zurück.“
+* **Botschaft:** „Das ist dein Moment der Selbstentdeckung – Amy spiegelt deine Gebärde gleich als Stimme und Symbol zurück.“
 * **Layout:** Abgerundete Karte (`borderRadius: 28`) mit `overlaySurfaceMuted` und zartem Schatten (`shadowOpacity: 0.12`).
 * **Statuschip:** Der Hauptchip trägt jetzt das Label „Selbstentdeckung“, damit das Mockup-Narrativ direkt sichtbar wird.
 
@@ -218,7 +218,7 @@ in the webapp, keeping durations short and easing smooth.
 The language used in the app should be simple, encouraging, and always in German.
 
 *   **Listening:** "Ich höre zu…"
-*   **Success:** "Super! Das ist [Geste]."
+*   **Success:** "Super! Das ist [Gebärde]."
 *   **Low Confidence:** "Ich bin nicht ganz sicher. Meintest du?"
 *   **Encouragement:** "Das war ein guter Versuch! Probier es noch einmal."
 
