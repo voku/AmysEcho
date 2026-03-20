@@ -34,6 +34,76 @@ const validationIssueLabels: Record<string, string> = {
   face_jitter_high: 'Kopf/Gesicht zu unruhig',
 };
 
+function mirrorCoordinatePoint(point: number[]): number[] {
+  if (!Array.isArray(point) || point.length === 0) return [];
+  const [x = 0, y = 0, z = 0, ...rest] = point;
+  return [1 - x, y, z, ...rest];
+}
+
+function mirrorHandednessLabel(label: string): string {
+  if (label === 'Left') return 'Right';
+  if (label === 'Right') return 'Left';
+  return label;
+}
+
+function mirrorFramesForSelfiePreview(frames: TrainingBundlePayload['frames']): TrainingBundlePayload['frames'] {
+  return frames.map((frame) => ({
+    ...frame,
+    landmarks: Array.isArray(frame.landmarks)
+      ? frame.landmarks.map((hand) => (Array.isArray(hand) ? hand.map((point) => mirrorCoordinatePoint(point)) : []))
+      : [],
+    ...(Array.isArray(frame.poseLandmarks)
+      ? { poseLandmarks: frame.poseLandmarks.map((point) => mirrorCoordinatePoint(point)) }
+      : {}),
+    ...(Array.isArray(frame.faceLandmarks)
+      ? { faceLandmarks: frame.faceLandmarks.map((point) => mirrorCoordinatePoint(point)) }
+      : {}),
+    ...(Array.isArray(frame.handedness)
+      ? { handedness: frame.handedness.map((label) => mirrorHandednessLabel(label)) }
+      : {}),
+  }));
+}
+
+async function createStillFileFromDataUrl(dataUrl: string, mirrored: boolean): Promise<File | null> {
+  let fallbackFile: File | null = null;
+  try {
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    const mimeType = blob.type || 'image/jpeg';
+    fallbackFile = new File([blob], 'still.jpg', { type: mimeType });
+
+    if (!mirrored) {
+      return fallbackFile;
+    }
+
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      bitmap.close();
+      return fallbackFile;
+    }
+
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    context.setTransform(1, 0, 0, 1, 0, 0);
+
+    const mirroredBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mimeType, 0.95));
+    if (!mirroredBlob) {
+      return fallbackFile;
+    }
+
+    return new File([mirroredBlob], 'still.jpg', { type: mirroredBlob.type || mimeType });
+  } catch (error) {
+    console.warn('Failed to convert still image to File', error);
+    return fallbackFile;
+  }
+}
+
 export interface TrainingRecorderProps {
   profileId: string;
   label: string;
@@ -63,6 +133,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     }
   });
   const isMirroredPreview = facingMode === 'user';
+  const [showHandDecisionOptions, setShowHandDecisionOptions] = useState(false);
   const [handFocusSelection, setHandFocusSelection] = useState<SimplifiedHandFocus>('both_hands');
   const [handFocusSuggestion, setHandFocusSuggestion] = useState<ReturnType<typeof suggestHandFocus> | null>(null);
   const resolvedHandFocus = useMemo(
@@ -73,7 +144,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
   const metadataReady = profileId.trim().length > 0 && label.trim().length > 0;
   const metadataError = metadataReady
     ? ''
-    : 'Bitte trage Profil-ID und Gebärden-Name ein, bevor du eine Aufnahme startest oder hochlädst.';
+    : 'Bitte wähle ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest oder hochlädst.';
 
   const cameraSupported = useMemo(
     () => typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia),
@@ -108,6 +179,12 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     previewFaceLandmarks,
     lastFrameReceivedAt,
   } = useTrainingRecorder(videoRef);
+  const recordingFacingMode = recordedData.capturedFacingMode ?? facingMode;
+  const recordingPreviewMirrored = recordingFacingMode === 'user';
+  const normalizedRecordedFrames = useMemo(
+    () => (recordingPreviewMirrored ? mirrorFramesForSelfiePreview(recordedData.frames) : recordedData.frames),
+    [recordingPreviewMirrored, recordedData.frames],
+  );
 
   // Auto-start camera when metadata is ready and detector is idle/stopped
   useEffect(() => {
@@ -157,8 +234,8 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
       }
       setDetectorStartFeedback('Detektor gestartet. Aufnahme bereit.');
     }
-    startRecording();
-  }, [cameraError, metadataError, metadataReady, startCamera, startRecording, status]);
+    startRecording(facingMode);
+  }, [cameraError, facingMode, metadataError, metadataReady, startCamera, startRecording, status]);
 
   const handleStopRecording = useCallback(() => {
     stopRecording();
@@ -201,13 +278,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
       if (manualStillFile) {
         stillFile = manualStillFile;
       } else if (recordedData.stillImage) {
-        try {
-          const response = await fetch(recordedData.stillImage);
-          const blob = await response.blob();
-          stillFile = new File([blob], 'still.jpg', { type: blob.type || 'image/jpeg' });
-        } catch (error) {
-          console.warn('Failed to convert still image to File', error);
-        }
+        stillFile = await createStillFileFromDataUrl(recordedData.stillImage, recordingPreviewMirrored);
       }
 
       const clipBytes = recordedData.clipFile?.size ?? (recordedData.clipSizeBytes > 0 ? recordedData.clipSizeBytes : undefined);
@@ -230,13 +301,14 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
         ...(clipMimeType ? { clipMimeType } : {}),
         ...(typeof stillBytes === 'number' ? { stillBytes } : {}),
         ...(stillMimeType ? { stillMimeType } : {}),
+        previewMirrored: recordingPreviewMirrored,
       };
 
       const payload: TrainingBundlePayload = {
         profileId: profileId.trim(),
         label: label.trim(),
         ...(symbolId?.trim() ? { symbolId: symbolId.trim() } : {}),
-        frames: recordedData.frames,
+        frames: normalizedRecordedFrames,
         capturedAt: new Date().toISOString(),
         source: 'web://mediapipe',
         stillFile,
@@ -254,6 +326,8 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     [
       metadataReady,
       recordedData,
+      recordingPreviewMirrored,
+      normalizedRecordedFrames,
       profileId,
       label,
       symbolId,
@@ -295,10 +369,10 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
   }, []);
 
   const handleSaveLandmarkJson = useCallback(() => {
-    if (recordedData.frames.length === 0) {
+    if (normalizedRecordedFrames.length === 0) {
       return;
     }
-    const blob = new Blob([JSON.stringify({ frames: recordedData.frames }, null, 2)], {
+    const blob = new Blob([JSON.stringify({ frames: normalizedRecordedFrames }, null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
@@ -307,7 +381,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     link.download = 'training-landmarks.json';
     link.click();
     URL.revokeObjectURL(url);
-  }, [recordedData.frames]);
+  }, [normalizedRecordedFrames]);
 
   const handleDiscardRecording = useCallback(() => {
     resetRecording();
@@ -515,7 +589,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     : `Video wird zusammen mit den Landmarks gespeichert (Limit ${formatBytes(maxClipBytes)}).`;
   const uploadDisabled = clipLimitExceeded || !metadataReady || recordedData.frames.length === 0;
   const uploadDisabledReason = !metadataReady
-    ? 'Upload gesperrt, bis Profil-ID und Gebärden-Name ausgefüllt sind.'
+    ? 'Bitte wähle ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest oder hochlädst.'
     : recordedData.frames.length === 0
     ? 'Upload gesperrt, da keine aufgenommenen Frames vorhanden sind.'
     : clipLimitExceeded
@@ -821,55 +895,70 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
           <p className="muted small">Detektorstatus: {detectorStatusLabel} · {recordingStatusLabel}</p>
         </details>
 
-        <fieldset className="form-group mt-sm">
-          <legend>Relevante Hand für diese Gebärde</legend>
-          <div className="radio-group" role="radiogroup">
-            <label className={`radio-label${handFocusSelection === 'both_hands' ? ' selected' : ''}`}>
-              <input
-                type="radio"
-                name="hand-focus"
-                value="both_hands"
-                checked={handFocusSelection === 'both_hands'}
-                onChange={() => setHandFocusSelection('both_hands')}
-              />
-              <span>Beide Hände zusammen</span>
-            </label>
-            <label className={`radio-label${handFocusSelection === 'dominant_only' ? ' selected' : ''}`}>
-              <input
-                type="radio"
-                name="hand-focus"
-                value="dominant_only"
-                checked={handFocusSelection === 'dominant_only'}
-                onChange={() => setHandFocusSelection('dominant_only')}
-              />
-              <span>Nur Haupthand</span>
-            </label>
-            <label className={`radio-label${handFocusSelection === 'either_hand' ? ' selected' : ''}`}>
-              <input
-                type="radio"
-                name="hand-focus"
-                value="either_hand"
-                checked={handFocusSelection === 'either_hand'}
-                onChange={() => setHandFocusSelection('either_hand')}
-              />
-              <span>Egal links oder rechts</span>
-            </label>
-          </div>
-          {handFocusSuggestion && (
-            <div className={`notice ${handFocusSuggestion.confidence === 'high' ? 'info' : 'warning'} compact mt-sm`}>
-              <strong>Automatische Erkennung:</strong> {handFocusSuggestion.reason}
-            </div>
+        <div className="form-group mt-sm">
+          <button
+            className="ghost"
+            type="button"
+            onClick={() => setShowHandDecisionOptions((current) => !current)}
+            aria-expanded={showHandDecisionOptions}
+          >
+            {showHandDecisionOptions ? 'Handoptionen ausblenden' : 'Handoptionen anzeigen (optional)'}
+          </button>
+          <p className="muted small mt-xs">
+            Standardmäßig werden beide Hände gemeinsam trainiert. Passe die Handoptionen nur an, wenn es für diese Gebärde nötig ist.
+          </p>
+          {showHandDecisionOptions && (
+            <fieldset className="form-group mt-sm">
+              <legend>Relevante Hand für diese Gebärde</legend>
+              <div className="radio-group" role="radiogroup">
+                <label className={`radio-label${handFocusSelection === 'both_hands' ? ' selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="hand-focus"
+                    value="both_hands"
+                    checked={handFocusSelection === 'both_hands'}
+                    onChange={() => setHandFocusSelection('both_hands')}
+                  />
+                  <span>Beide Hände zusammen</span>
+                </label>
+                <label className={`radio-label${handFocusSelection === 'dominant_only' ? ' selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="hand-focus"
+                    value="dominant_only"
+                    checked={handFocusSelection === 'dominant_only'}
+                    onChange={() => setHandFocusSelection('dominant_only')}
+                  />
+                  <span>Nur Haupthand</span>
+                </label>
+                <label className={`radio-label${handFocusSelection === 'either_hand' ? ' selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="hand-focus"
+                    value="either_hand"
+                    checked={handFocusSelection === 'either_hand'}
+                    onChange={() => setHandFocusSelection('either_hand')}
+                  />
+                  <span>Egal links oder rechts</span>
+                </label>
+              </div>
+              {handFocusSuggestion && (
+                <div className={`notice ${handFocusSuggestion.confidence === 'high' ? 'info' : 'warning'} compact mt-sm`}>
+                  <strong>Automatische Erkennung:</strong> {handFocusSuggestion.reason}
+                </div>
+              )}
+              <p className="muted small">
+                Wähle nur noch grob aus, ob eine Hand führt, beide Hände zusammengehören oder die Gebärde links wie rechts klappt.
+                Das Training erkennt bei zwei Händen automatisch, ob beide gleich wichtig sind oder unterschiedliche Rollen haben.
+              </p>
+              <p className="muted small">
+                {mirrorAugmentationEnabled
+                  ? 'Links/Rechts-Varianten werden für das Training automatisch gespiegelt, damit wenige Aufnahmen besser genutzt werden.'
+                  : 'Für diese Gebärde bleibt das Training ungespiegelt, damit unterschiedliche Handrollen erhalten bleiben.'}
+              </p>
+            </fieldset>
           )}
-          <p className="muted small">
-            Wähle nur noch grob aus, ob eine Hand führt, beide Hände zusammengehören oder die Gebärde links wie rechts klappt.
-            Das Training erkennt bei zwei Händen automatisch, ob beide gleich wichtig sind oder unterschiedliche Rollen haben.
-          </p>
-          <p className="muted small">
-            {mirrorAugmentationEnabled
-              ? 'Links/Rechts-Varianten werden für das Training automatisch gespiegelt, damit wenige Aufnahmen besser genutzt werden.'
-              : 'Für diese Gebärde bleibt das Training ungespiegelt, damit unterschiedliche Handrollen erhalten bleiben.'}
-          </p>
-        </fieldset>
+        </div>
 
         <div className="form-group mt-sm">
           <label htmlFor="manual-still">Eigenes Referenzbild hochladen (optional)</label>
@@ -895,6 +984,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
             <img
               src={manualStillPreviewUrl ?? recordedData.stillImage ?? undefined}
               alt={manualStillPreviewUrl ? 'Hochgeladenes Referenzbild' : 'Aufgenommene Gebärde'}
+              className={!manualStillPreviewUrl && recordingPreviewMirrored ? 'mirrored' : undefined}
             />
           </div>
         )}

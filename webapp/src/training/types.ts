@@ -54,6 +54,7 @@ export interface TrainingBundlePayload {
     clipMimeType?: string;
     stillBytes?: number;
     stillMimeType?: string;
+    previewMirrored?: boolean;
   };
   /**
    * Specifies which hand(s) are semantically important for this gesture.

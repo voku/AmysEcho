@@ -105,7 +105,7 @@ describe('TrainingUpload', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/ }));
-    expect(screen.getByText('Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.', { selector: 'div.notice.error' })).toBeInTheDocument();
+    expect(screen.getByText('Bitte wähle ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest oder hochlädst.', { selector: 'div.notice.error' })).toBeInTheDocument();
   });
 
   it('shows validation when account is authenticated but profile is missing', async () => {
@@ -119,7 +119,7 @@ describe('TrainingUpload', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /Aufnahme abschicken/ }));
-    expect(screen.getByText('Bitte wähle zuerst ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest.', { selector: 'div.notice.error' })).toBeInTheDocument();
+    expect(screen.getByText('Bitte wähle ein Profil und eine Gebärde aus, bevor du eine Aufnahme startest oder hochlädst.', { selector: 'div.notice.error' })).toBeInTheDocument();
   });
 
   it('syncs queue and shows result message', async () => {

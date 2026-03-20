@@ -147,7 +147,7 @@ describe('TrainingUploadWithRecording', () => {
     expect(uploadMock).not.toHaveBeenCalled();
   }, TEST_TIMEOUT);
 
-  it('submits recordings only with a filled profile ID and label', async () => {
+  it('submits recordings only with a filled profile and label', async () => {
     const user = userEvent.setup();
     
     // Create and set a profile before rendering
@@ -160,7 +160,7 @@ describe('TrainingUploadWithRecording', () => {
     // Wait for profile to be loaded into UI
     await waitFor(
       () => {
-        const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+        const profileInput = screen.getByLabelText('Ausgewähltes Profil') as HTMLInputElement;
         expect(profileInput.value).toBe(TEST_PROFILE_ID);
       },
       { timeout: TEST_TIMEOUT },
@@ -199,7 +199,7 @@ describe('TrainingUploadWithRecording', () => {
     // Wait for async profile loading
     await waitFor(
       () => {
-        const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+        const profileInput = screen.getByLabelText('Ausgewähltes Profil') as HTMLInputElement;
         expect(profileInput.value).toBe(TEST_PROFILE_ID);
       },
       { timeout: TEST_TIMEOUT },
@@ -233,7 +233,7 @@ describe('TrainingUploadWithRecording', () => {
     // Wait for async profile loading
     await waitFor(
       () => {
-        const profileInput = screen.getByLabelText('Profil-ID') as HTMLInputElement;
+        const profileInput = screen.getByLabelText('Ausgewähltes Profil') as HTMLInputElement;
         expect(profileInput.value).toBe(TEST_PROFILE_ID);
       },
       { timeout: TEST_TIMEOUT },

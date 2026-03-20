@@ -109,18 +109,19 @@ const TrainingBundleManifestEntrySchema = z
 					})
 					.passthrough()
 					.optional(),
-				recording: z
-					.object({
-						frameCount: z.number().optional(),
-						usableFrameCount: z.number().optional(),
-						clipDurationMs: z.number().optional(),
-						clipBytes: z.number().optional(),
-						clipMimeType: z.string().optional(),
-						stillBytes: z.number().optional(),
-						stillMimeType: z.string().optional(),
-					})
-					.passthrough()
-					.optional(),
+					recording: z
+						.object({
+							frameCount: z.number().optional(),
+							usableFrameCount: z.number().optional(),
+							clipDurationMs: z.number().optional(),
+							clipBytes: z.number().optional(),
+							clipMimeType: z.string().optional(),
+							stillBytes: z.number().optional(),
+							stillMimeType: z.string().optional(),
+							previewMirrored: z.boolean().optional(),
+						})
+						.passthrough()
+						.optional(),
 			})
 			.passthrough()
 			.optional(),
@@ -209,6 +210,7 @@ interface RecordingMetadata {
 	clipMimeType?: string;
 	stillBytes?: number;
 	stillMimeType?: string;
+	previewMirrored?: boolean;
 }
 
 interface TimingMetadata {
@@ -593,6 +595,10 @@ function normalizeRecordingMetadata(
 		candidate.stillMimeType.trim()
 			? candidate.stillMimeType.trim()
 			: undefined;
+	const previewMirrored =
+		typeof candidate.previewMirrored === "boolean"
+			? candidate.previewMirrored
+			: undefined;
 
 	if (
 		frameCount === undefined &&
@@ -601,7 +607,8 @@ function normalizeRecordingMetadata(
 		clipBytes === undefined &&
 		!clipMimeType &&
 		stillBytes === undefined &&
-		!stillMimeType
+		!stillMimeType &&
+		previewMirrored === undefined
 	) {
 		return undefined;
 	}
@@ -614,6 +621,7 @@ function normalizeRecordingMetadata(
 		...(clipMimeType ? { clipMimeType } : {}),
 		...(stillBytes !== undefined ? { stillBytes } : {}),
 		...(stillMimeType ? { stillMimeType } : {}),
+		...(previewMirrored !== undefined ? { previewMirrored } : {}),
 	};
 }
 

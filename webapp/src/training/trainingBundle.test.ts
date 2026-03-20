@@ -175,6 +175,7 @@ describe('createTrainingZip', () => {
       recording: {
         frameCount: 12,
         clipDurationMs: 1200,
+        previewMirrored: true,
       },
       frames: [
         {
@@ -196,6 +197,7 @@ describe('createTrainingZip', () => {
       clipMimeType: clip.type,
       stillBytes: still.size,
       stillMimeType: still.type,
+      previewMirrored: true,
     });
 
     const landmarksBytes = entries['landmarks.json'];

@@ -15,6 +15,7 @@ type TrainingState = {
   recordedData: {
     frames: unknown[];
     stillImage: string | null;
+    capturedFacingMode: 'user' | 'environment' | null;
     frameCount: number;
     clipFile: File | null;
     clipSizeBytes: number;
@@ -39,6 +40,7 @@ const createTrainingState = (): TrainingState => ({
   recordedData: {
     frames: [],
     stillImage: null,
+    capturedFacingMode: null,
     frameCount: 0,
     clipFile: null,
     clipSizeBytes: 0,
@@ -97,6 +99,7 @@ describe('TrainingRecorder', () => {
         }),
       },
     });
+    window.localStorage.setItem('cameraFacingMode', 'user');
   });
 
   afterEach(() => {
@@ -175,6 +178,16 @@ describe('TrainingRecorder', () => {
     expect(screen.getByRole('button', { name: 'Abbrechen' })).toBeInTheDocument();
   });
 
+  it('zeigt das automatische Referenzbild bei Frontkamera gespiegelt an', () => {
+    window.localStorage.setItem('cameraFacingMode', 'environment');
+    trainingState.recordedData.stillImage = 'data:image/jpeg;base64,abc';
+    trainingState.recordedData.capturedFacingMode = 'user';
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(screen.getByAltText('Aufgenommene Gebärde')).toHaveClass('mirrored');
+  });
+
   it('zeigt Kamera-Wechsel-Button im HUD an', () => {
     render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
 
@@ -238,8 +251,11 @@ describe('TrainingRecorder', () => {
     expect(screen.getByText(/Bewege Finger und Hand deutlich/)).toBeInTheDocument();
   });
 
-  it('vereinfacht die Handauswahl auf drei klare Optionen', () => {
+  it('vereinfacht die Handauswahl auf drei klare Optionen', async () => {
+    const user = userEvent.setup();
     render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Handoptionen anzeigen (optional)' }));
 
     expect(screen.getByLabelText('Beide Hände zusammen')).toBeInTheDocument();
     expect(screen.getByLabelText('Nur Haupthand')).toBeInTheDocument();
@@ -255,6 +271,7 @@ describe('TrainingRecorder', () => {
 
     render(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
 
+    await user.click(screen.getByRole('button', { name: 'Handoptionen anzeigen (optional)' }));
     await user.click(screen.getByLabelText('Egal links oder rechts'));
     expect(
       screen.getByText('Links/Rechts-Varianten werden für das Training automatisch gespiegelt, damit wenige Aufnahmen besser genutzt werden.'),
@@ -270,6 +287,37 @@ describe('TrainingRecorder', () => {
         handFocus: 'either_hand',
       }),
     );
+  });
+
+  it('spiegelt Landmarken und Händigkeit für die Frontkamera beim Speichern', async () => {
+    const user = userEvent.setup();
+    const onRecordingComplete = vi.fn();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:manual-still');
+    window.localStorage.setItem('cameraFacingMode', 'environment');
+    trainingState.recordedData.frames = [
+      {
+        landmarks: [[[0.2, 0.3, 0.4]]],
+        handedness: ['Left'],
+        poseLandmarks: [[0.1, 0.2, 0.3]],
+        faceLandmarks: [[0.9, 0.5, 0.1]],
+      },
+    ];
+    trainingState.recordedData.capturedFacingMode = 'user';
+
+    render(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
+
+    const fileInput = screen.getByLabelText('Eigenes Referenzbild hochladen (optional)');
+    const manualFile = new File(['inhalt'], 'referenz.jpg', { type: 'image/jpeg' });
+    await user.upload(fileInput, manualFile);
+    await user.click(screen.getByRole('button', { name: 'Aufnahme verwenden' }));
+
+    const payload = onRecordingComplete.mock.calls[0]?.[0];
+    expect(payload).toBeDefined();
+    expect(payload.frames?.[0]?.landmarks?.[0]?.[0]?.[0]).toBeCloseTo(0.8, 5);
+    expect(payload.frames?.[0]?.poseLandmarks?.[0]?.[0]).toBeCloseTo(0.9, 5);
+    expect(payload.frames?.[0]?.faceLandmarks?.[0]?.[0]).toBeCloseTo(0.1, 5);
+    expect(payload.frames?.[0]?.handedness).toEqual(['Right']);
+    expect(payload.recording?.previewMirrored).toBe(true);
   });
 
   it('lässt keine alte Handsuggestion in die nächste kurze Aufnahme hineinlaufen', async () => {
@@ -293,6 +341,7 @@ describe('TrainingRecorder', () => {
     trainingState.state = 'idle';
     rerender(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
 
+    await user.click(screen.getByRole('button', { name: 'Handoptionen anzeigen (optional)' }));
     expect(screen.getByText(/Automatische Erkennung:/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Verwerfen' }));
@@ -303,6 +352,10 @@ describe('TrainingRecorder', () => {
     ];
     rerender(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
 
+    const showHandOptionsButton = screen.queryByRole('button', { name: 'Handoptionen anzeigen (optional)' });
+    if (showHandOptionsButton) {
+      await user.click(showHandOptionsButton);
+    }
     const fileInput = screen.getByLabelText('Eigenes Referenzbild hochladen (optional)');
     const manualFile = new File(['inhalt'], 'referenz.jpg', { type: 'image/jpeg' });
     await user.upload(fileInput, manualFile);
@@ -333,6 +386,7 @@ describe('TrainingRecorder', () => {
     trainingState.recordedData.frames = [];
     rerender(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={vi.fn()} />);
 
+    await user.click(screen.getByRole('button', { name: 'Handoptionen anzeigen (optional)' }));
     expect(screen.getByText(/Automatische Erkennung:/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Aufnahme starten' }));

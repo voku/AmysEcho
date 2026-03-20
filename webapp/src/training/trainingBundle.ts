@@ -115,6 +115,9 @@ function buildMetadata(
     ...(typeof clipMimeType === 'string' && clipMimeType.trim().length > 0 ? { clipMimeType } : {}),
     ...(typeof stillBytes === 'number' ? { stillBytes } : {}),
     ...(typeof stillMimeType === 'string' && stillMimeType.trim().length > 0 ? { stillMimeType } : {}),
+    ...(typeof payload.recording?.previewMirrored === 'boolean'
+      ? { previewMirrored: payload.recording.previewMirrored }
+      : {}),
   };
 
   return {
