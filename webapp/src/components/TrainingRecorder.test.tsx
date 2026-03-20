@@ -179,7 +179,9 @@ describe('TrainingRecorder', () => {
   });
 
   it('zeigt das automatische Referenzbild bei Frontkamera gespiegelt an', () => {
+    window.localStorage.setItem('cameraFacingMode', 'environment');
     trainingState.recordedData.stillImage = 'data:image/jpeg;base64,abc';
+    trainingState.recordedData.capturedFacingMode = 'user';
 
     render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
 
@@ -291,6 +293,7 @@ describe('TrainingRecorder', () => {
     const user = userEvent.setup();
     const onRecordingComplete = vi.fn();
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:manual-still');
+    window.localStorage.setItem('cameraFacingMode', 'environment');
     trainingState.recordedData.frames = [
       {
         landmarks: [[[0.2, 0.3, 0.4]]],
@@ -299,6 +302,7 @@ describe('TrainingRecorder', () => {
         faceLandmarks: [[0.9, 0.5, 0.1]],
       },
     ];
+    trainingState.recordedData.capturedFacingMode = 'user';
 
     render(<TrainingRecorder profileId="profil-1" label="winken" onRecordingComplete={onRecordingComplete} />);
 

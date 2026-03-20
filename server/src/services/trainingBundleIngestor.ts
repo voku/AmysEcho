@@ -595,6 +595,10 @@ function normalizeRecordingMetadata(
 		candidate.stillMimeType.trim()
 			? candidate.stillMimeType.trim()
 			: undefined;
+	const previewMirrored =
+		typeof candidate.previewMirrored === "boolean"
+			? candidate.previewMirrored
+			: undefined;
 
 	if (
 		frameCount === undefined &&
@@ -603,7 +607,8 @@ function normalizeRecordingMetadata(
 		clipBytes === undefined &&
 		!clipMimeType &&
 		stillBytes === undefined &&
-		!stillMimeType
+		!stillMimeType &&
+		previewMirrored === undefined
 	) {
 		return undefined;
 	}
@@ -616,6 +621,7 @@ function normalizeRecordingMetadata(
 		...(clipMimeType ? { clipMimeType } : {}),
 		...(stillBytes !== undefined ? { stillBytes } : {}),
 		...(stillMimeType ? { stillMimeType } : {}),
+		...(previewMirrored !== undefined ? { previewMirrored } : {}),
 	};
 }
 
