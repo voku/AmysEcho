@@ -75,6 +75,11 @@ export function loadTrainingManifest<TEntry = Record<string, unknown>>(): Traini
 	);
 }
 
+export function loadTrainingManifestRaw(): unknown {
+	assertDatabaseInitialized();
+	return getJsonCollection(TRAINING_MANIFEST_KEY, { entries: [] });
+}
+
 export function saveTrainingManifest<TEntry = Record<string, unknown>>(
 	manifest: TrainingManifestFile<TEntry>,
 ): void {

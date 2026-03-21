@@ -20,6 +20,7 @@ import { withFileLock } from "../utils/fileLock.js";
 import {
 	appendTrainingManifestEntry,
 	loadTrainingManifest,
+	loadTrainingManifestRaw,
 } from "../services/trainingJsonStore.js";
 
 interface TrainingJobTriggerContext {
@@ -332,13 +333,17 @@ function normalizeClipFilename(value: unknown): string | null {
 }
 
 async function readTrainingManifest(options: { strict: boolean }): Promise<TrainingBundleManifestFile> {
-	const parsed = loadTrainingManifest<TrainingBundleManifestEntry>();
-	if (!Array.isArray(parsed.entries)) {
-		if (options.strict) {
+	if (options.strict) {
+		const raw = loadTrainingManifestRaw();
+		const rawEntries = (raw as { entries?: unknown } | null)?.entries;
+		if (!Array.isArray(rawEntries)) {
 			throw new Error(
 				"Training manifest storage is corrupted and would be overwritten.",
 			);
 		}
+	}
+	const parsed = loadTrainingManifest<TrainingBundleManifestEntry>();
+	if (!Array.isArray(parsed.entries)) {
 		return { entries: [] };
 	}
 	return parsed;

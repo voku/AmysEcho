@@ -525,6 +525,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   });
 
   it('rejects bundles missing landmarks.json and removes partially extracted directory', async () => {
+    const beforeEntries = await readManifestEntries();
     const zip = new AdmZip();
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify({ label: 'HILFE' }, null, 2)));
 
@@ -537,6 +538,8 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('landmarks.json missing or invalid');
     expect(manifestUpdatedCalls).toBe(0);
+    const afterEntries = await readManifestEntries();
+    expect(afterEntries).toHaveLength(beforeEntries.length);
 
     const bucketEntries = await getBucketEntries('unassigned');
     if (bucketEntries) {
@@ -545,6 +548,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   });
 
   it('rejects bundles with invalid nonManualFeatures payload', async () => {
+    const beforeEntries = await readManifestEntries();
     const metadata = {
       profileId: '66666666-6666-4666-8666-666666666666',
       label: 'HILFE',
@@ -574,9 +578,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('landmarks.json missing or invalid');
+    const afterEntries = await readManifestEntries();
+    expect(afterEntries).toHaveLength(beforeEntries.length);
   });
 
   it('rejects bundles whose landmarks.json has no frames and cleans up bundle directory', async () => {
+    const beforeEntries = await readManifestEntries();
     const metadata = { label: 'HILFE', profileId: '44444444-4444-4444-8444-444444444444' };
     const resolvedProfileId = getResolvedProfileId(metadata.profileId);
     const zip = new AdmZip();
@@ -604,6 +611,8 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('landmarks.json missing or invalid');
+    const afterEntries = await readManifestEntries();
+    expect(afterEntries).toHaveLength(beforeEntries.length);
 
     const bucketEntries = await getBucketEntries(resolvedProfileId!);
     if (bucketEntries) {
@@ -636,6 +645,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   });
 
   it('rejects unauthenticated upload', async () => {
+    const beforeEntries = await readManifestEntries();
     const zip = new AdmZip();
     zip.addFile('metadata.json', Buffer.from(JSON.stringify({ label: 'HILFE' })));
 
@@ -645,9 +655,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .send(zip.toBuffer());
 
     expect(response.status).toBe(401);
+    const afterEntries = await readManifestEntries();
+    expect(afterEntries).toHaveLength(beforeEntries.length);
   });
 
   it('rejects bundles containing traversal entries', async () => {
+    const beforeEntries = await readManifestEntries();
     const zip = new AdmZip();
     zip.addFile('../metadata.json', Buffer.from(JSON.stringify({ label: 'BAD' })));
     zip.addFile('../clip.mp4', Buffer.from('bad'));
@@ -661,9 +674,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .send(zip.toBuffer());
 
     expect(response.status).toBe(400);
+    const afterEntries = await readManifestEntries();
+    expect(afterEntries).toHaveLength(beforeEntries.length);
   });
 
   it('rejects bundles that try to overwrite the archived bundle.zip copy', async () => {
+    const beforeEntries = await readManifestEntries();
     const metadata = {
       label: 'HILFE',
     };
@@ -678,6 +694,41 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .send(zip.toBuffer());
 
     expect(response.status).toBe(400);
+    const afterEntries = await readManifestEntries();
+    expect(afterEntries).toHaveLength(beforeEntries.length);
+  });
+
+  it('returns 500 when training manifest storage is corrupted', async () => {
+    const { setJsonCollection } = await import('../src/sqliteDb.js');
+    setJsonCollection('training.manifest', { entries: 'not-an-array' });
+
+    const metadata = {
+      profileId: '11111111-1111-4111-8111-111111111111',
+      label: 'HILFE',
+    };
+    const landmarks = await loadSampleLandmarks();
+    const zip = new AdmZip();
+    zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+    zip.addFile(
+      'landmarks.json',
+      Buffer.from(
+        JSON.stringify(
+          {
+            frames: [{ landmarks }],
+          },
+          null,
+          2,
+        ),
+      ),
+    );
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(500);
   });
 
   it('liefert Quality-Gate-Ablehnungen über GET /api/v1/dgs/training-quality', async () => {
