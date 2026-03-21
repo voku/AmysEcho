@@ -18,7 +18,6 @@ import {
 	getMlpModelPath,
 	PROFILE_ID_PATTERN,
 	SERVER_DIR,
-	TRAINING_MANIFEST_PATH,
 } from "./constants/modelPaths.js";
 import { PROFILE_REGISTRY_PATH } from "./constants/profileRegistryPaths.js";
 import {
@@ -838,9 +837,10 @@ async function runTrainingWorkflow(
 	const scriptPath = config.mlpScript;
 	const serverRoot = SERVER_DIR;
 	const manifestSnapshot = loadTrainingManifest<unknown>();
-	await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
+	const trainingManifestSnapshotDir = path.join(DATA_DIR, "training-snapshots");
+	await fs.mkdir(trainingManifestSnapshotDir, { recursive: true });
 	const trainingManifestSnapshotPath = path.join(
-		path.dirname(TRAINING_MANIFEST_PATH),
+		trainingManifestSnapshotDir,
 		`training-manifest-${id}-${randomBytes(6).toString("hex")}.json`,
 	);
 	await fs.writeFile(

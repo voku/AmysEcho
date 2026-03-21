@@ -18,7 +18,6 @@ async function loadSampleLandmarks(): Promise<number[][]> {
 describe('POST /api/v1/dgs/sample-bundles', () => {
   let app: Express;
   let dataDir: string;
-  let manifestPath: string;
   type TriggerCall = { bundleId: string; profileId: string | null; label: string };
   type TriggerResult = {
     jobId: string;
@@ -68,7 +67,6 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const mod = await import('../src/routes/trainingBundleRoute.js');
     const registerRoute = mod.registerTrainingBundleRoute;
     const { loadDatabase } = await import('../src/db.js');
-    const { TRAINING_MANIFEST_PATH } = await import('../src/constants/modelPaths.js');
     dbPath = path.join(dataDir, `db-${Date.now()}.json`);
     await loadDatabase(dbPath);
     app = express();
@@ -91,13 +89,11 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       resolveProfileId,
       isProfileAuthorized: (_req, profileId) => isProfileAuthorized(profileId),
     });
-    manifestPath = TRAINING_MANIFEST_PATH;
   });
 
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
-    await fs.rm(path.dirname(manifestPath), { recursive: true, force: true });
     const { loadDatabase } = await import('../src/db.js');
     dbPath = path.join(dataDir, `db-${Date.now()}.json`);
     await loadDatabase(dbPath);
@@ -541,7 +537,6 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('landmarks.json missing or invalid');
     expect(manifestUpdatedCalls).toBe(0);
-    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
 
     const bucketEntries = await getBucketEntries('unassigned');
     if (bucketEntries) {
@@ -609,7 +604,6 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('landmarks.json missing or invalid');
-    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
 
     const bucketEntries = await getBucketEntries(resolvedProfileId!);
     if (bucketEntries) {
@@ -651,7 +645,6 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .send(zip.toBuffer());
 
     expect(response.status).toBe(401);
-    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('rejects bundles containing traversal entries', async () => {
@@ -668,7 +661,6 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .send(zip.toBuffer());
 
     expect(response.status).toBe(400);
-    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('rejects bundles that try to overwrite the archived bundle.zip copy', async () => {
@@ -686,41 +678,6 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .send(zip.toBuffer());
 
     expect(response.status).toBe(400);
-    await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: 'ENOENT' });
-  });
-
-  it('accepts upload even if legacy manifest file is corrupted because SQLite is source of truth', async () => {
-    await fs.mkdir(path.dirname(manifestPath), { recursive: true });
-    const corrupted = JSON.stringify({ entries: 'not-an-array' });
-    await fs.writeFile(manifestPath, corrupted, 'utf8');
-
-    const metadata = {
-      profileId: '11111111-1111-4111-8111-111111111111',
-      label: 'HILFE',
-    };
-    const zip = new AdmZip();
-    zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
-    const landmarks = await loadSampleLandmarks();
-    zip.addFile(
-      'landmarks.json',
-      Buffer.from(
-        JSON.stringify(
-          {
-            frames: [{ landmarks }],
-          },
-          null,
-          2,
-        ),
-      ),
-    );
-
-    const response = await request(app)
-      .post('/api/v1/dgs/sample-bundles')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('Content-Type', 'application/zip')
-      .send(zip.toBuffer());
-
-    expect(response.status).toBe(202);
   });
 
   it('liefert Quality-Gate-Ablehnungen über GET /api/v1/dgs/training-quality', async () => {

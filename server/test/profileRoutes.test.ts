@@ -35,7 +35,6 @@ describe('Profile registry routes', () => {
   let db: Database;
   let dbPath: string;
   let registryPath: string;
-  let manifestPath: string;
   let datasetsDir: string;
   let registerProfileRoutes: typeof import('../src/routes/profileRoutes.js').registerProfileRoutes;
 
@@ -50,7 +49,6 @@ describe('Profile registry routes', () => {
 
     dbPath = path.join(tmpDir, 'db.json');
     registryPath = path.join(tmpDir, 'profile_registry.json');
-    manifestPath = path.join(tmpDir, 'datasets', 'training_manifest.json');
     datasetsDir = path.join(tmpDir, 'datasets');
     db = {
       users: [],

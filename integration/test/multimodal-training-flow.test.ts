@@ -183,7 +183,7 @@ test('Complete multimodal training and model distribution workflow', async () =>
         assert.ok(modalities[modality]?.coverage > 0, `modalities.${modality}.coverage should be greater than 0`);
       }
     }
-    console.log('  ✓ Multimodal preview metadata persisted to training manifest');
+    console.log('  ✓ Multimodal preview metadata persisted in bundle details API');
   }
 
   console.log('\n=== Step 2: Trigger Model Training ===');

@@ -189,18 +189,6 @@ export async function buildProfileExportArchive(
 		"profile.json",
 		Buffer.from(JSON.stringify(payload, null, 2), "utf8"),
 	);
-	zip.addFile(
-		"training_manifest.json",
-		Buffer.from(JSON.stringify(manifest, null, 2), "utf8"),
-	);
-	zip.addFile(
-		"dgs_samples.json",
-		Buffer.from(JSON.stringify(samples, null, 2), "utf8"),
-	);
-	zip.addFile(
-		"custom_signs.json",
-		Buffer.from(JSON.stringify(filteredCustomSigns, null, 2), "utf8"),
-	);
 
 	const uploadsDir = path.join(TRAINING_UPLOADS_DIR, profileId);
 	const modelsDir = path.join(MLP_MODELS_DIR, profileId);
