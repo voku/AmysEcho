@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   formatBytes,
   formatRecordingTime,
-  getDetectorStartLabel,
   getDetectorStatusLabel,
   getDetectorStatusTone,
   getPhotoStatusPill,
@@ -29,7 +28,6 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'previewing',
         isRecording: false,
         hasRecording: false,
-        showDetectorStart: false,
         detectorRunning: false,
       }),
     ).toBe('Vorschau aktiv. Positioniere dich für das Foto.');
@@ -39,7 +37,6 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'captured',
         isRecording: false,
         hasRecording: false,
-        showDetectorStart: false,
         detectorRunning: false,
       }),
     ).toBe('Foto aufgenommen. Bestätige oder nimm ein neues auf.');
@@ -49,7 +46,6 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'idle',
         isRecording: true,
         hasRecording: false,
-        showDetectorStart: false,
         detectorRunning: false,
       }),
     ).toBe('Aufnahme läuft. Tippe auf „Aufnahme stoppen“, wenn du fertig bist.');
@@ -59,7 +55,6 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'idle',
         isRecording: false,
         hasRecording: true,
-        showDetectorStart: false,
         detectorRunning: false,
       }),
     ).toBe('Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.');
@@ -69,17 +64,6 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'idle',
         isRecording: false,
         hasRecording: false,
-        showDetectorStart: true,
-        detectorRunning: false,
-      }),
-    ).toBe('Starte die Kamera, um eine Gebärde aufzunehmen.');
-
-    expect(
-      getTrainingRecorderBannerMessage({
-        photoMode: 'idle',
-        isRecording: false,
-        hasRecording: false,
-        showDetectorStart: false,
         detectorRunning: true,
       }),
     ).toBe('Zeige die Gebärde gut sichtbar vor der Kamera.');
@@ -89,10 +73,9 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'idle',
         isRecording: false,
         hasRecording: false,
-        showDetectorStart: false,
         detectorRunning: false,
       }),
-    ).toBe('Kamera ist pausiert. Starte sie, um aufzunehmen.');
+    ).toBe('Kamera wird vorbereitet…');
   });
 
   it('liefert Statuslabels und Pills konsistent', () => {
@@ -104,10 +87,6 @@ describe('trainingRecorderUtils', () => {
     expect(getDetectorStatusTone('running')).toBe('running');
     expect(getDetectorStatusTone('error')).toBe('error');
     expect(getDetectorStatusTone('idle')).toBe('idle');
-
-    expect(getDetectorStartLabel('error')).toBe('Kamera erneut versuchen');
-    expect(getDetectorStartLabel('initializing')).toBe('Startet…');
-    expect(getDetectorStartLabel('idle')).toBe('Kamera starten');
 
     expect(getRecordingStatusLabel({ isRecording: true, hasRecording: false })).toBe('Aufnahme läuft');
     expect(getRecordingStatusLabel({ isRecording: false, hasRecording: true })).toBe('Aufnahme bereit');

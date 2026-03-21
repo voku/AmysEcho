@@ -132,12 +132,17 @@ describe('TrainingRecorder', () => {
     expect(video).toHaveClass('video-hidden');
   });
 
-  it('deaktiviert den Start bei laufender Initialisierung', () => {
+  it('deaktiviert die Aufnahme während der Initialisierung', () => {
     gestureState.status = 'initializing';
     render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
 
     const startButton = screen.getByRole('button', { name: 'Aufnahme starten' });
     expect(startButton).toBeDisabled();
+  });
+
+  it('startet die Kamera automatisch beim Laden', () => {
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+    expect(startMock).toHaveBeenCalledTimes(1);
   });
 
   it('zeigt einen einzigen Statuschip im HUD', () => {
@@ -413,12 +418,12 @@ describe('TrainingRecorder', () => {
     expect(screen.getByText('Zeige die Gebärde gut sichtbar vor der Kamera.')).toBeInTheDocument();
   });
 
-  it('zeigt die Banner-Message wenn die Kamera noch nicht gestartet ist', () => {
+  it('zeigt die Banner-Message während die Kamera vorbereitet wird', () => {
     gestureState.status = 'idle';
 
     render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
 
-    expect(screen.getByText('Starte die Kamera, um eine Gebärde aufzunehmen.')).toBeInTheDocument();
+    expect(screen.getAllByText('Kamera wird vorbereitet…').length).toBeGreaterThan(0);
   });
 
   it('behält das manuell gewählte Foto beim Start der Aufnahme bei', async () => {

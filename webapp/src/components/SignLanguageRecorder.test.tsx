@@ -113,6 +113,7 @@ describe('SignLanguageRecorder', () => {
     detectorState.lastMlpThreshold = null;
     detectorState.lastMlpCandidates = [];
     detectorState.messageLog = [];
+    detectorState.start.mockReset().mockResolvedValue(true);
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -135,12 +136,28 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByText(/Profil/, { selector: '.gesture-screen__status-meta p' })).toBeInTheDocument();
   });
 
-  it('shows camera action buttons', () => {
+  it('shows primary action buttons without a manual camera start button', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
-    expect(screen.getByText('Kamera starten')).toBeInTheDocument();
+    expect(screen.queryByText('Kamera starten')).not.toBeInTheDocument();
     expect(screen.getByText('Aussprechen')).toBeInTheDocument();
     expect(screen.getByText('Lernen')).toBeInTheDocument();
+  });
+
+  it('starts camera automatically on mount', async () => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      writable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({
+          getTracks: () => [],
+        }),
+      },
+    });
+    renderWithProviders(<SignLanguageRecorder />);
+    await waitFor(() => {
+      expect(detectorState.start).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('shows overlay toggle checkbox', () => {
@@ -257,7 +274,7 @@ describe('SignLanguageRecorder', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
     expect(await screen.findByText('Basiserkennung ist aktiv')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Kamera starten' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kamera starten' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Jetzt Gebärde beibringen' })).toBeInTheDocument();
   });
 

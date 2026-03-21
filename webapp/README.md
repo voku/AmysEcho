@@ -35,6 +35,7 @@ Wenn du versehentlich eine URL mit angehängtem `/api` oder `/api/v1` eingibst, 
 - Fixture-Integrations-Tests können bestehende Server-Landmark-Dateien (aus realen DGS-Videos) direkt referenzieren; dadurch werden keine künstlich generierten Landmark-Arrays benötigt.
 - Für den nächsten Diagnose-Schritt gibt es `npm run diagnose:fixtures`: Das Skript erzeugt unter `webapp/diagnostics/gesture/` einen JSON-Report (Treffer, Confidence, Gap) sowie einen strukturierten LLM-Prompt mit der Regel **„Keine Code-Patches, nur Diagnose“**.
 - Auch ohne trainierte Profil-Gebärden bleibt die Kamera nutzbar: Die Basis-Erkennung läuft weiter und zeigt einen klaren Hinweis, dass persönliches Training die Zuverlässigkeit erhöht.
+- Erkennungs- und Trainingsansicht starten die Kamera automatisch beim Öffnen der Seite, damit keine separate „Kamera starten“-Interaktion nötig ist.
 - Bei keiner sicheren Gebärde zeigt die Erkennungsseite kontextbasierte MLP-Vorschläge mit niedriger Sicherheit an, damit Betreuungspersonen die passende Bedeutung auswählen können.
 - Die MLP-Auswahl orientiert sich bei Profilvorhersagen an einer strikteren, zur Laufzeit konfigurierbaren Modell-Sicherheit (Standard: 0,45).
 - Bei zu niedriger Sicherheit oder kleinem Abstand zwischen Top-1 und Top-2 (Margin) enthält sich die Pipeline bewusst („unsicher“), statt eine falsche Klasse zu erzwingen.

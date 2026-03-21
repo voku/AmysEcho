@@ -18,13 +18,11 @@ export function getTrainingRecorderBannerMessage({
   photoMode,
   isRecording,
   hasRecording,
-  showDetectorStart,
   detectorRunning,
 }: {
   photoMode: PhotoMode;
   isRecording: boolean;
   hasRecording: boolean;
-  showDetectorStart: boolean;
   detectorRunning: boolean;
 }): string {
   if (photoMode === 'previewing') {
@@ -39,13 +37,10 @@ export function getTrainingRecorderBannerMessage({
   if (hasRecording) {
     return 'Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.';
   }
-  if (showDetectorStart) {
-    return 'Starte die Kamera, um eine Gebärde aufzunehmen.';
-  }
   if (detectorRunning) {
     return 'Zeige die Gebärde gut sichtbar vor der Kamera.';
   }
-  return 'Kamera ist pausiert. Starte sie, um aufzunehmen.';
+  return 'Kamera wird vorbereitet…';
 }
 
 export function getDetectorStatusLabel(status: SignLanguageStatus): string {
@@ -72,16 +67,6 @@ export function getDetectorStatusTone(status: SignLanguageStatus): 'running' | '
     case 'stopped':
       return 'idle';
   }
-}
-
-export function getDetectorStartLabel(status: SignLanguageStatus): string {
-  if (status === 'error') {
-    return 'Kamera erneut versuchen';
-  }
-  if (status === 'initializing') {
-    return 'Startet…';
-  }
-  return 'Kamera starten';
 }
 
 export function getRecordingStatusLabel({

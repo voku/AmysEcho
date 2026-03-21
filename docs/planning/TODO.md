@@ -9,6 +9,36 @@
 
 ## Next TODO Focus (Post-v0.0.2)
 
+- [ ] **P0: Add startup telemetry milestones for camera and detector readiness**
+  - **Goal:** make startup regressions measurable in production-like sessions.
+  - **Implement in:** `webapp/src/hooks/useSignLanguageDetector.ts`, `webapp/src/components/TrainingRecorder.tsx`, telemetry utilities under `webapp/src/telemetry/*`.
+  - **Track events:** `camera_start_requested_at`, `camera_stream_ready_at`, `detector_first_frame_at`, plus derived `startup_latency_ms`.
+  - **Definition of done:** values are emitted once per startup attempt, visible in local telemetry dump, and documented in `docs/training/TRAINING_METRICS_DASHBOARD.md`.
+
+- [ ] **P0: Run a realistic device performance protocol and publish evidence**
+  - **Goal:** validate real-world behavior beyond CI/unit tests.
+  - **Scenarios (run each 3x per device):** first launch, route switch into detection, camera flip, 20-minute continuous session.
+  - **Minimum device matrix:** low-end Android tablet, mid-range Android phone, laptop webcam.
+  - **Capture metrics:** startup latency (p50/p95), FPS (avg/p95), frame processing time p95, thermal warnings, battery delta.
+  - **Definition of done:** results are committed as a dated report in `docs/testing/benchmarks/` and linked from `docs/planning/TODO.md`.
+
+- [ ] **P1: Implement adaptive camera constraints policy**
+  - **Goal:** keep communication responsive on weak hardware by degrading quality gracefully.
+  - **Implement in:** `webapp/src/gesture/core/CameraManager.ts` (or central camera config location) with clear fallback order.
+  - **Policy baseline:** start with `ideal` constraints; step down resolution/FPS after sustained lag threshold.
+  - **Definition of done:** policy is documented, unit-tested, and verified not to break camera switching (`facingMode`).
+
+- [ ] **P1: Prototype worker offload for synchronous detection processing**
+  - **Goal:** reduce main-thread blocking from per-frame landmark/detection work.
+  - **Prototype scope:** move frame processing path (or critical subset) off main thread and compare to current baseline.
+  - **Compare:** dropped-frame rate, UI responsiveness (interaction delay), recognition stability.
+  - **Definition of done:** benchmark comparison doc with recommendation (keep/iterate/reject) is added under `docs/testing/benchmarks/`.
+
+- [ ] **P1: Add automated non-manual marker quality checks**
+  - **Goal:** protect pose/face signal quality while tuning performance.
+  - **Implement checks for:** pose availability threshold, face availability threshold, and guidance message assertions when below threshold.
+  - **Test locations:** `webapp/src/components/TrainingRecorder.test.tsx` and relevant gesture/landmark quality tests.
+  - **Definition of done:** failing tests catch regressions where optimization silently degrades non-manual modalities.
 - [ ] Add concurrency stress tests for training bundle ingestion and retry storms.
 - [ ] Add long-session device performance baselines (FPS, thermal, battery) for target caregiver hardware.
 - [ ] Expand operational runbooks with incident drills and rollback practice evidence.
