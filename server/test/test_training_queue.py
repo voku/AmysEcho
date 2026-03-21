@@ -11,8 +11,13 @@ from conftest import TEST_JWT_REFRESH_SECRET, TEST_JWT_SECRET, create_access_tok
 
 SERVER_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 PORT = "5055"
-DB_SQLITE_PATH = os.path.join(SERVER_DIR, 'db.sqlite')
 ACCESS_TOKEN = ""
+
+
+def resolve_db_sqlite_path() -> str:
+    data_dir = os.environ.get("AMY_ECHO_DATA_DIR")
+    root = data_dir if data_dir else os.path.join(SERVER_DIR, "data")
+    return os.path.join(root, "db.sqlite")
 
 
 def start_server():
@@ -82,24 +87,33 @@ def post_correction(payload):
 
 def load_training_count():
     """Load the count of training data entries from SQLite database."""
-    # Use timeout to prevent indefinite blocking if database is locked
-    conn = sqlite3.connect(DB_SQLITE_PATH, timeout=10.0)
-    try:
-        cursor = conn.execute("SELECT COUNT(*) FROM signTrainingData")
-        count = cursor.fetchone()[0]
-        return count
-    finally:
-        conn.close()
+    deadline = time.time() + 10
+    while True:
+        conn = sqlite3.connect(resolve_db_sqlite_path(), timeout=10.0)
+        try:
+            cursor = conn.execute(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='signTrainingData'",
+            )
+            table_exists = cursor.fetchone()[0] == 1
+            if table_exists:
+                count_cursor = conn.execute("SELECT COUNT(*) FROM signTrainingData")
+                return count_cursor.fetchone()[0]
+        finally:
+            conn.close()
+        if time.time() >= deadline:
+            raise AssertionError("signTrainingData table was not initialized in time")
+        time.sleep(0.2)
 
 
 def backup_sqlite_db():
     """Create a backup of the SQLite database file and its WAL/SHM files."""
-    backup_path = DB_SQLITE_PATH + '.test_backup'
-    if os.path.exists(DB_SQLITE_PATH):
-        shutil.copy2(DB_SQLITE_PATH, backup_path)
+    db_sqlite_path = resolve_db_sqlite_path()
+    backup_path = db_sqlite_path + '.test_backup'
+    if os.path.exists(db_sqlite_path):
+        shutil.copy2(db_sqlite_path, backup_path)
         # Also backup WAL and SHM files if they exist (WAL mode)
         for suffix in ['-shm', '-wal']:
-            original_path = DB_SQLITE_PATH + suffix
+            original_path = db_sqlite_path + suffix
             if os.path.exists(original_path):
                 shutil.copy2(original_path, backup_path + suffix)
         return backup_path
@@ -108,13 +122,14 @@ def backup_sqlite_db():
 
 def restore_sqlite_db(backup_path):
     """Restore the SQLite database from backup and clean up WAL/SHM files."""
+    db_sqlite_path = resolve_db_sqlite_path()
     if backup_path and os.path.exists(backup_path):
-        shutil.copy2(backup_path, DB_SQLITE_PATH)
+        shutil.copy2(backup_path, db_sqlite_path)
         os.remove(backup_path)
         # Restore or remove WAL and SHM files
         for suffix in ['-shm', '-wal']:
             backup_suffixed_path = backup_path + suffix
-            original_path = DB_SQLITE_PATH + suffix
+            original_path = db_sqlite_path + suffix
             if os.path.exists(backup_suffixed_path):
                 shutil.copy2(backup_suffixed_path, original_path)
                 os.remove(backup_suffixed_path)
@@ -149,4 +164,3 @@ def test_training_queue_increment_object():
     finally:
         stop_server(proc)
         restore_sqlite_db(backup_path)
-
