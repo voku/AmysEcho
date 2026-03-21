@@ -264,6 +264,7 @@ export class GestureDetector {
         const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
         const recognitionTime = performance.now() - recognitionStart;
         this.performanceOptimizer.recordProcessingTime(recognitionTime);
+        this.cameraManager.reportProcessingTime(recognitionTime);
 
         gestureDebugLog('recognizer', 'MediaPipe recognition results', () => ({
           hasResults: !!results,

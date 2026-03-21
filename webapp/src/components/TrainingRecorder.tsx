@@ -28,6 +28,8 @@ const validationIssueLabels: Record<string, string> = {
   landmarks_missing: 'Hand-Landmarks fehlen teilweise',
   values_out_of_range: 'Hände waren zeitweise außerhalb des Bildes',
   hand_coverage_low: 'Hände nicht durchgängig im Bild',
+  pose_coverage_low: 'Oberkörper nicht durchgängig im Bild',
+  face_coverage_low: 'Gesicht nicht durchgängig im Bild',
   hand_jitter_high: 'Handbewegung zu unruhig',
   pose_jitter_high: 'Körperhaltung zu unruhig',
   face_jitter_high: 'Kopf/Gesicht zu unruhig',
@@ -161,6 +163,7 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
   const { start: startCamera, stop: stopCamera, status, error: cameraError, lastLandmarks, getVariationMetrics } = useSignLanguageDetector(
     videoRef,
     overlayRef,
+    { telemetrySource: 'training_recorder' },
   );
 
   const {

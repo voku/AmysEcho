@@ -44,6 +44,10 @@ Die folgenden Metriken werden bereits vom `performanceMonitor` und `TelemetryRec
 - `medianProcessingTime`: Median der Verarbeitungszeiten
 - `p95ProcessingTime`: 95. Perzentil der Verarbeitungszeiten
 - `maxProcessingTime`: Maximale Verarbeitungszeit
+- `camera_start_requested_at`: Zeitstempel, wenn der Kamera-Start angefordert wurde
+- `camera_stream_ready_at`: Zeitstempel, wenn der Kamera-Stream bereit ist
+- `detector_first_frame_at`: Zeitstempel des ersten verwerteten Detektor-Frames
+- `startup_latency_ms`: Abgeleitete Startlatenz (`detector_first_frame_at - camera_start_requested_at`)
 
 #### 2. Genauigkeit
 - `overallAccuracy`: Gesamtgenauigkeit der Gebärdenerkennung
@@ -94,7 +98,36 @@ telemetry.add('model_loaded', {
   source: 'model_client',
   details: { version: '2026-02-03', source: 'profile' }
 });
+
+telemetry.add('startup_latency_ms', {
+  latencyMs: 320,
+  source: 'training_recorder',
+  details: {
+    startupAttempt: 3,
+    cameraStartRequestedAt: 1760000000000,
+    cameraStreamReadyAt: 1760000000180,
+    detectorFirstFrameAt: 1760000000320
+  }
+});
 ```
+
+### Startup-Milestone-Semantik (seit März 2026)
+
+- Pro Startversuch werden die vier Startup-Events genau einmal emittiert.
+- `startupAttempt` erhöht sich bei jedem neuen Startversuch und erlaubt die Korrelation im Telemetrie-Dump.
+- In der Trainingsaufnahme (`TrainingRecorder`) werden diese Events mit `source: training_recorder` markiert.
+
+### Adaptive Kamera-Constraint-Policy (seit März 2026)
+
+- Jede neue Kamera-Session startet mit dem Idealprofil `1280x720 @ 30fps`.
+- Wenn die Erkennungsverarbeitung über ein nachhaltiges Fenster hinweg zu langsam ist (Ø > 45ms), wird schrittweise reduziert:
+  1. `960x540 @ 24fps`
+  2. `640x480 @ 20fps`
+  3. `426x240 @ 15fps`
+- Wenn die Erkennung danach über ein nachhaltiges Fenster stabil schnell bleibt (Ø ≤ 28ms), wird die Qualität wieder schrittweise hochgefahren.
+- `facingMode` bleibt beim Downgrade erhalten (Front-/Rückkamera wird nicht ungefragt gewechselt).
+- Bei jedem erfolgreichen Downgrade wird `camera_constraints_adapted` in die Telemetrie geschrieben, inklusive Tier und Profil.
+- Bei erfolgreicher Erholung wird zusätzlich `camera_constraints_recovered` emittiert.
 
 ### Performance-Berichte abrufen
 

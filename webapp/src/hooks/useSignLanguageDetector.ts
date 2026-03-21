@@ -7,6 +7,7 @@ import {
   type HandLandmarkStabilizer,
 } from '../utils/landmarkUtils';
 import { stripTrailingUuidSuffix } from '../utils/gestureLabel';
+import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 
 export type SignLanguageMessage = {
   type: string;
@@ -21,6 +22,7 @@ export type SignLanguageHookOptions = {
     video: HTMLVideoElement,
     overlay: HTMLCanvasElement,
   ) => GestureRecognitionOrchestrator;
+  telemetrySource?: string;
 };
 
 export type SignLanguageStatus = 'idle' | 'initializing' | 'running' | 'stopped' | 'error';
@@ -90,6 +92,13 @@ type BatchMessageEntry = {
   };
   mlp?: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
   thresholds?: { mlp?: number };
+};
+
+type StartupTelemetryAttempt = {
+  requestedAt: number;
+  streamReadyAt: number | null;
+  firstFrameAt: number | null;
+  sequence: number;
 };
 
 /**
@@ -210,6 +219,8 @@ export function useSignLanguageDetector(
   const handStabilizerRef = useRef<HandLandmarkStabilizer>(
     createHandLandmarkStabilizer({ ttlMs: 250, maxHands: 2 }),
   );
+  const startupTelemetryAttemptRef = useRef<StartupTelemetryAttempt | null>(null);
+  const startupAttemptSequenceRef = useRef(0);
 
   const orchestratorFactory = useMemo(
     () =>
@@ -218,6 +229,31 @@ export function useSignLanguageDetector(
         new GestureRecognitionOrchestrator(video, overlay)),
     [options.orchestratorFactory],
   );
+  const telemetrySource = options.telemetrySource ?? 'sign_language_detector';
+
+  const markDetectorFirstFrame = useCallback((timestamp: number) => {
+    const startupAttempt = startupTelemetryAttemptRef.current;
+    if (!startupAttempt || startupAttempt.firstFrameAt !== null) {
+      return;
+    }
+
+    startupAttempt.firstFrameAt = timestamp;
+    const startupLatencyMs = Math.max(0, Math.round(timestamp - startupAttempt.requestedAt));
+    void sendTelemetryEvent('detector_first_frame_at', {
+      source: telemetrySource,
+      timestamp,
+      startupAttempt: startupAttempt.sequence,
+      startupLatencyMs,
+    });
+    void sendTelemetryEvent('startup_latency_ms', {
+      source: telemetrySource,
+      latencyMs: startupLatencyMs,
+      startupAttempt: startupAttempt.sequence,
+      cameraStartRequestedAt: startupAttempt.requestedAt,
+      cameraStreamReadyAt: startupAttempt.streamReadyAt,
+      detectorFirstFrameAt: startupAttempt.firstFrameAt,
+    });
+  }, [telemetrySource]);
 
   useEffect(() => {
     const handleBridgeMessage = (event: Event) => {
@@ -417,6 +453,10 @@ export function useSignLanguageDetector(
           setLastUsedFallback(resolvedFallback);
         }
 
+        if (hasGesturePayload) {
+          markDetectorFirstFrame(parsed.receivedAt);
+        }
+
         if (isMeaningfulGestureLabel(payload.gesture)) {
           setLastSign(payload.gesture);
           setLastConfidence(typeof payload.confidence === 'number' ? payload.confidence : null);
@@ -448,6 +488,7 @@ export function useSignLanguageDetector(
           const stabilized = stabilizer.update(landmarksCandidate as number[][][], normalizedHandedness);
           setLastLandmarks(stabilized.landmarks);
           setLastHandedness(stabilized.handedness);
+          markDetectorFirstFrame(parsed.receivedAt);
         }
       }
     };
@@ -456,7 +497,7 @@ export function useSignLanguageDetector(
     return () => {
       window.removeEventListener(WEBVIEW_MESSAGE_EVENT, handleBridgeMessage as EventListener);
     };
-  }, []);
+  }, [markDetectorFirstFrame]);
 
   const ensureOrchestrator = useCallback(async () => {
     if (orchestratorInitPromiseRef.current) {
@@ -504,10 +545,33 @@ export function useSignLanguageDetector(
 
   const start = useCallback(async () => {
     try {
+      const requestedAt = Date.now();
+      const startupAttempt: StartupTelemetryAttempt = {
+        requestedAt,
+        streamReadyAt: null,
+        firstFrameAt: null,
+        sequence: startupAttemptSequenceRef.current + 1,
+      };
+      startupAttemptSequenceRef.current = startupAttempt.sequence;
+      startupTelemetryAttemptRef.current = startupAttempt;
+      void sendTelemetryEvent('camera_start_requested_at', {
+        source: telemetrySource,
+        timestamp: requestedAt,
+        startupAttempt: startupAttempt.sequence,
+      });
+
       setStatus('initializing');
       setError(null);
       const orchestrator = await ensureOrchestrator();
       await orchestrator.start();
+      const streamReadyAt = Date.now();
+      startupAttempt.streamReadyAt = streamReadyAt;
+      void sendTelemetryEvent('camera_stream_ready_at', {
+        source: telemetrySource,
+        timestamp: streamReadyAt,
+        startupAttempt: startupAttempt.sequence,
+        startupStreamLatencyMs: Math.max(0, Math.round(streamReadyAt - startupAttempt.requestedAt)),
+      });
       if ('vibrate' in navigator) {
         navigator.vibrate?.(30);
       }
@@ -519,7 +583,7 @@ export function useSignLanguageDetector(
       setStatus('error');
       return false;
     }
-  }, [ensureOrchestrator]);
+  }, [ensureOrchestrator, telemetrySource]);
 
   const stop = useCallback(async () => {
     if (!orchestratorRef.current) {
@@ -538,6 +602,7 @@ export function useSignLanguageDetector(
     } finally {
       orchestratorRef.current = null;
       orchestratorInitPromiseRef.current = null;
+      startupTelemetryAttemptRef.current = null;
       handStabilizerRef.current.reset();
       setStatus('idle');
       setLastSign(null);

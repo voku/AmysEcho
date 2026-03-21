@@ -9,11 +9,11 @@
 
 ## Next TODO Focus (Post-v0.0.2)
 
-- [ ] **P0: Add startup telemetry milestones for camera and detector readiness**
+- [x] **P0: Add startup telemetry milestones for camera and detector readiness**
   - **Goal:** make startup regressions measurable in production-like sessions.
   - **Implement in:** `webapp/src/hooks/useSignLanguageDetector.ts`, `webapp/src/components/TrainingRecorder.tsx`, telemetry utilities under `webapp/src/telemetry/*`.
   - **Track events:** `camera_start_requested_at`, `camera_stream_ready_at`, `detector_first_frame_at`, plus derived `startup_latency_ms`.
-  - **Definition of done:** values are emitted once per startup attempt, visible in local telemetry dump, and documented in `docs/training/TRAINING_METRICS_DASHBOARD.md`.
+  - **Definition of done:** values are emitted once per startup attempt, visible in local telemetry dump, and documented in `docs/training/TRAINING_METRICS_DASHBOARD.md`. _Done: `useSignLanguageDetector` now emits `camera_start_requested_at`, `camera_stream_ready_at`, `detector_first_frame_at`, and derived `startup_latency_ms` with per-attempt sequencing; `TrainingRecorder` tags these events with source `training_recorder`._
 
 - [ ] **P0: Run a realistic device performance protocol and publish evidence**
   - **Goal:** validate real-world behavior beyond CI/unit tests.
@@ -22,11 +22,11 @@
   - **Capture metrics:** startup latency (p50/p95), FPS (avg/p95), frame processing time p95, thermal warnings, battery delta.
   - **Definition of done:** results are committed as a dated report in `docs/testing/benchmarks/` and linked from `docs/planning/TODO.md`.
 
-- [ ] **P1: Implement adaptive camera constraints policy**
+- [x] **P1: Implement adaptive camera constraints policy**
   - **Goal:** keep communication responsive on weak hardware by degrading quality gracefully.
   - **Implement in:** `webapp/src/gesture/core/CameraManager.ts` (or central camera config location) with clear fallback order.
   - **Policy baseline:** start with `ideal` constraints; step down resolution/FPS after sustained lag threshold.
-  - **Definition of done:** policy is documented, unit-tested, and verified not to break camera switching (`facingMode`).
+  - **Definition of done:** policy is documented, unit-tested, and verified not to break camera switching (`facingMode`). _Done: `CameraManager` now starts each session with ideal constraints and degrades stepwise (1280x720@30 → 960x540@24 → 640x480@20 → 426x240@15) after sustained lag; `CameraManager.test.ts` covers initial ideal profile, adaptive downgrade, and facing-mode preservation during fallback._
 
 - [ ] **P1: Prototype worker offload for synchronous detection processing**
   - **Goal:** reduce main-thread blocking from per-frame landmark/detection work.
@@ -34,12 +34,12 @@
   - **Compare:** dropped-frame rate, UI responsiveness (interaction delay), recognition stability.
   - **Definition of done:** benchmark comparison doc with recommendation (keep/iterate/reject) is added under `docs/testing/benchmarks/`.
 
-- [ ] **P1: Add automated non-manual marker quality checks**
+- [x] **P1: Add automated non-manual marker quality checks**
   - **Goal:** protect pose/face signal quality while tuning performance.
   - **Implement checks for:** pose availability threshold, face availability threshold, and guidance message assertions when below threshold.
   - **Test locations:** `webapp/src/components/TrainingRecorder.test.tsx` and relevant gesture/landmark quality tests.
-  - **Definition of done:** failing tests catch regressions where optimization silently degrades non-manual modalities.
-- [ ] Add concurrency stress tests for training bundle ingestion and retry storms.
+  - **Definition of done:** failing tests catch regressions where optimization silently degrades non-manual modalities. _Done: `trainingValidator` now enforces pose/face coverage thresholds (`pose_coverage_low`, `face_coverage_low`), and tests in `TrainingRecorder.test.tsx` + `trainingValidator.test.ts` assert German guidance and quality issues when non-manual modalities are missing._
+- [x] Add concurrency stress tests for training bundle ingestion and retry storms. _Done: `server/test/trainingBundles.test.ts` now includes both (a) a 12-upload success burst and (b) a mixed success/failure burst, asserting no manifest-entry loss/corruption, unique IDs for successful uploads, and hook invocation counts only for accepted bundles._
 - [ ] Add long-session device performance baselines (FPS, thermal, battery) for target caregiver hardware.
 - [ ] Expand operational runbooks with incident drills and rollback practice evidence.
 - [ ] Establish accessibility manual verification cadence (screen reader and keyboard-only sessions).

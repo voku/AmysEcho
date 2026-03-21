@@ -426,6 +426,34 @@ describe('TrainingRecorder', () => {
     expect(screen.getAllByText('Kamera wird vorbereitet…').length).toBeGreaterThan(0);
   });
 
+  it('zeigt Pose-Hinweis bei fehlenden Pose-Landmarks im Live-Betrieb', () => {
+    gestureState.status = 'running';
+    trainingState.lastFrameReceivedAt = Date.now();
+    trainingState.previewLandmarks = [[[0.1, 0.2, 0]]];
+    trainingState.previewFaceLandmarks = [[0.3, 0.3, 0]];
+    trainingState.previewPoseLandmarks = [];
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(
+      screen.getByText('Bitte halte deinen Oberkörper im Bild, damit Pose-Landmarks erkannt werden.'),
+    ).toBeInTheDocument();
+  });
+
+  it('zeigt Gesichts-Hinweis bei fehlenden Face-Landmarks im Live-Betrieb', () => {
+    gestureState.status = 'running';
+    trainingState.lastFrameReceivedAt = Date.now();
+    trainingState.previewLandmarks = [[[0.1, 0.2, 0]]];
+    trainingState.previewPoseLandmarks = [[0.3, 0.3, 0]];
+    trainingState.previewFaceLandmarks = [];
+
+    render(<TrainingRecorder profileId="p1" label="TEST" onRecordingComplete={vi.fn()} />);
+
+    expect(
+      screen.getByText('Bitte halte dein Gesicht im Bild, damit Gesichts-Landmarks erkannt werden.'),
+    ).toBeInTheDocument();
+  });
+
   it('behält das manuell gewählte Foto beim Start der Aufnahme bei', async () => {
     const user = userEvent.setup();
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:manual-still');

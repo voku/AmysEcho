@@ -6,12 +6,39 @@
 import { ResourceManager } from '../utils/ResourceManager';
 import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 
+type FacingMode = 'user' | 'environment';
+
+type CameraConstraintProfile = {
+  width: number;
+  height: number;
+  frameRate: number;
+  label: 'ideal' | 'balanced' | 'low' | 'minimal';
+};
+
+const CAMERA_CONSTRAINT_PROFILES: CameraConstraintProfile[] = [
+  { width: 1280, height: 720, frameRate: 30, label: 'ideal' },
+  { width: 960, height: 540, frameRate: 24, label: 'balanced' },
+  { width: 640, height: 480, frameRate: 20, label: 'low' },
+  { width: 426, height: 240, frameRate: 15, label: 'minimal' },
+];
+
+const PROCESSING_HISTORY_LIMIT = 60;
+const ADAPTIVE_WINDOW_SIZE = 30;
+const SUSTAINED_LAG_THRESHOLD_MS = 45;
+const SUSTAINED_RECOVERY_THRESHOLD_MS = 28;
+const ADAPTIVE_COOLDOWN_MS = 5_000;
+
 export class CameraManager {
   private video: HTMLVideoElement;
   private resourceManager: ResourceManager;
   private lastVideoWidth = 0;
   private lastVideoHeight = 0;
   private stream: MediaStream | null = null;
+  private activeFacingMode: FacingMode = 'user';
+  private activeConstraintTier = 0;
+  private processingHistory: number[] = [];
+  private lastAdaptiveUpdateAt = 0;
+  private adaptingConstraints = false;
 
   constructor(video: HTMLVideoElement, resourceManager: ResourceManager) {
     this.video = video;
@@ -22,42 +49,16 @@ export class CameraManager {
    * Start camera stream
    */
   async startCamera(): Promise<void> {
-    // Check localStorage for facing mode, default to 'user'
-    let facingMode: 'user' | 'environment' = 'user';
-    try {
-      const persisted = window.localStorage.getItem('cameraFacingMode');
-      if (persisted === 'user' || persisted === 'environment') {
-        facingMode = persisted;
-      }
-    } catch {
-      // localStorage might be disabled
-    }
-    
+    this.activeFacingMode = this.resolveFacingModePreference();
+    this.activeConstraintTier = 0;
+    this.processingHistory = [];
+    this.lastAdaptiveUpdateAt = 0;
+    this.adaptingConstraints = false;
+
     const requestClipAudio = false; // Clip capture remains visual-only
 
     try {
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: requestClipAudio
-            ? {
-                echoCancellation: true,
-                noiseSuppression: true,
-              }
-            : false,
-        });
-      } catch (mediaError) {
-        if (requestClipAudio) {
-          console.warn('getUserMedia with audio failed, retrying without audio:', mediaError);
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: false,
-          });
-        } else {
-          throw mediaError;
-        }
-      }
+      const stream = await this.requestStreamWithFallback(this.activeFacingMode, this.activeConstraintTier, requestClipAudio);
 
       this.stream = stream;
       this.video.srcObject = stream;
@@ -90,6 +91,8 @@ export class CameraManager {
       const tracks = stream.getVideoTracks();
       void sendTelemetryEvent('camera_started', {
         tracks: tracks.map((t) => t.label),
+        constraintTier: this.activeConstraintTier,
+        constraintProfile: CAMERA_CONSTRAINT_PROFILES[this.activeConstraintTier]?.label ?? 'unknown',
       });
     } catch (error) {
       // Provide specific error handling for camera access issues
@@ -104,7 +107,7 @@ export class CameraManager {
             message: 'CAMERA_ERROR',
             details: {
               reason: errorMessage,
-              facingMode,
+              facingMode: this.activeFacingMode,
               userAgent: navigator.userAgent,
               hasGetUserMedia: !!navigator.mediaDevices?.getUserMedia,
             },
@@ -116,6 +119,40 @@ export class CameraManager {
 
       // Re-throw to allow caller to handle
       throw error;
+    }
+  }
+
+  reportProcessingTime(processingTimeMs: number): void {
+    if (!Number.isFinite(processingTimeMs) || processingTimeMs <= 0 || !this.stream) {
+      return;
+    }
+
+    this.processingHistory.push(processingTimeMs);
+    if (this.processingHistory.length > PROCESSING_HISTORY_LIMIT) {
+      this.processingHistory = this.processingHistory.slice(-PROCESSING_HISTORY_LIMIT);
+    }
+
+    if (this.processingHistory.length < ADAPTIVE_WINDOW_SIZE || this.adaptingConstraints) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - this.lastAdaptiveUpdateAt < ADAPTIVE_COOLDOWN_MS) {
+      return;
+    }
+
+    const recentWindow = this.processingHistory.slice(-ADAPTIVE_WINDOW_SIZE);
+    const averageProcessingTime = recentWindow.reduce((total, value) => total + value, 0) / recentWindow.length;
+    if (
+      this.activeConstraintTier < CAMERA_CONSTRAINT_PROFILES.length - 1 &&
+      averageProcessingTime > SUSTAINED_LAG_THRESHOLD_MS
+    ) {
+      void this.degradeCameraConstraints(averageProcessingTime);
+      return;
+    }
+
+    if (this.activeConstraintTier > 0 && averageProcessingTime <= SUSTAINED_RECOVERY_THRESHOLD_MS) {
+      void this.upgradeCameraConstraints(averageProcessingTime);
     }
   }
 
@@ -146,6 +183,8 @@ export class CameraManager {
     } catch (e) {
       console.warn('Failed to stop camera stream:', e);
     }
+    this.processingHistory = [];
+    this.adaptingConstraints = false;
   }
 
   /**
@@ -190,5 +229,133 @@ export class CameraManager {
       !this.video.ended &&
       this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
     );
+  }
+
+  private resolveFacingModePreference(): FacingMode {
+    try {
+      const persisted = window.localStorage.getItem('cameraFacingMode');
+      if (persisted === 'user' || persisted === 'environment') {
+        return persisted;
+      }
+    } catch {
+      // localStorage might be disabled
+    }
+    return 'user';
+  }
+
+  private getVideoConstraints(facingMode: FacingMode, tier: number): MediaTrackConstraints {
+    const profileIndex = Math.min(tier, CAMERA_CONSTRAINT_PROFILES.length - 1);
+    const profile = CAMERA_CONSTRAINT_PROFILES[profileIndex] ?? CAMERA_CONSTRAINT_PROFILES[0]!;
+    return {
+      facingMode,
+      width: { ideal: profile.width },
+      height: { ideal: profile.height },
+      frameRate: { ideal: profile.frameRate, max: profile.frameRate },
+    };
+  }
+
+  private async requestStreamWithFallback(
+    facingMode: FacingMode,
+    startTier: number,
+    requestClipAudio: boolean,
+  ): Promise<MediaStream> {
+    let lastError: unknown = null;
+
+    for (let tier = startTier; tier < CAMERA_CONSTRAINT_PROFILES.length; tier += 1) {
+      const constraints: MediaStreamConstraints = {
+        video: this.getVideoConstraints(facingMode, tier),
+        audio: requestClipAudio
+          ? {
+              echoCancellation: true,
+              noiseSuppression: true,
+            }
+          : false,
+      };
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        this.activeConstraintTier = tier;
+        return stream;
+      } catch (error) {
+        lastError = error;
+        if (requestClipAudio) {
+          try {
+            const streamWithoutAudio = await navigator.mediaDevices.getUserMedia({
+              video: this.getVideoConstraints(facingMode, tier),
+              audio: false,
+            });
+            this.activeConstraintTier = tier;
+            return streamWithoutAudio;
+          } catch (withoutAudioError) {
+            lastError = withoutAudioError;
+          }
+        }
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Keine unterstützten Kamera-Constraints verfügbar');
+  }
+
+  private async degradeCameraConstraints(averageProcessingTime: number): Promise<void> {
+    this.adaptingConstraints = true;
+    this.lastAdaptiveUpdateAt = Date.now();
+    const nextTier = Math.min(this.activeConstraintTier + 1, CAMERA_CONSTRAINT_PROFILES.length - 1);
+    try {
+      const nextStream = await this.requestStreamWithFallback(this.activeFacingMode, nextTier, false);
+      this.stopCurrentStreamTracks();
+      this.stream = nextStream;
+      this.video.srcObject = nextStream;
+      this.resourceManager.registerMediaStream(nextStream);
+      this.processingHistory = [];
+
+      void sendTelemetryEvent('camera_constraints_adapted', {
+        source: 'camera_manager',
+        averageProcessingTimeMs: Math.round(averageProcessingTime),
+        constraintTier: this.activeConstraintTier,
+        constraintProfile: CAMERA_CONSTRAINT_PROFILES[this.activeConstraintTier]?.label ?? 'unknown',
+        facingMode: this.activeFacingMode,
+      });
+    } catch (error) {
+      console.warn('Adaptive camera downgrade failed:', error);
+    } finally {
+      this.adaptingConstraints = false;
+    }
+  }
+
+  private async upgradeCameraConstraints(averageProcessingTime: number): Promise<void> {
+    this.adaptingConstraints = true;
+    this.lastAdaptiveUpdateAt = Date.now();
+    const preferredTier = Math.max(0, this.activeConstraintTier - 1);
+    try {
+      const nextStream = await this.requestStreamWithFallback(this.activeFacingMode, preferredTier, false);
+      this.stopCurrentStreamTracks();
+      this.stream = nextStream;
+      this.video.srcObject = nextStream;
+      this.resourceManager.registerMediaStream(nextStream);
+      this.processingHistory = [];
+
+      void sendTelemetryEvent('camera_constraints_recovered', {
+        source: 'camera_manager',
+        averageProcessingTimeMs: Math.round(averageProcessingTime),
+        constraintTier: this.activeConstraintTier,
+        constraintProfile: CAMERA_CONSTRAINT_PROFILES[this.activeConstraintTier]?.label ?? 'unknown',
+        facingMode: this.activeFacingMode,
+      });
+    } catch (error) {
+      console.warn('Adaptive camera recovery failed:', error);
+    } finally {
+      this.adaptingConstraints = false;
+    }
+  }
+
+  private stopCurrentStreamTracks(): void {
+    const current = this.video.srcObject as MediaStream | null;
+    if (current) {
+      current.getTracks().forEach((track) => track.stop());
+    }
+    if (this.stream && this.stream !== current) {
+      this.stream.getTracks().forEach((track) => track.stop());
+    }
+    this.video.srcObject = null;
   }
 }

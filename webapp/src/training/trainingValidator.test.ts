@@ -56,6 +56,34 @@ describe('TrainingDataValidator', () => {
     expect(result.suggestions).toContain('Halte deine Hände während der gesamten Aufnahme sichtbar im Bild.');
   });
 
+  it('flags low pose coverage', () => {
+    const seq = Array.from({ length: 10 }, (_, index) =>
+      makeMultiModalFrame({ includePose: index < 5 }),
+    );
+
+    const result = validateLandmarkSequence(seq);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toContain('pose_coverage_low');
+    expect(result.suggestions).toContain(
+      'Halte deinen Oberkörper im Bild, damit Pose-Landmarks zuverlässig erkannt werden.',
+    );
+  });
+
+  it('flags low face coverage', () => {
+    const seq = Array.from({ length: 10 }, (_, index) =>
+      makeMultiModalFrame({ includeFace: index < 5 }),
+    );
+
+    const result = validateLandmarkSequence(seq);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toContain('face_coverage_low');
+    expect(result.suggestions).toContain(
+      'Halte dein Gesicht möglichst durchgängig im Bild für stabile Gesichts-Landmarks.',
+    );
+  });
+
   it('flags high hand jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
       makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : MAX_HAND_JITTER + 1.2 }),

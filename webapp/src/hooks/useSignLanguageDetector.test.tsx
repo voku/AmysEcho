@@ -1,9 +1,14 @@
 import { waitFor } from '@testing-library/dom';
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WEBVIEW_MESSAGE_EVENT } from '../utils/reactNativeBridge';
 import type { GestureRecognitionOrchestrator } from '../gesture/core/GestureRecognitionOrchestrator';
 import { useSignLanguageDetector } from './useSignLanguageDetector';
+
+const sendTelemetryEventMock = vi.fn().mockResolvedValue(undefined);
+vi.mock('../telemetry/sendTelemetryEvent', () => ({
+  sendTelemetryEvent: (...args: unknown[]) => sendTelemetryEventMock(...args),
+}));
 
 function createStubOrchestrator() {
   return {
@@ -15,6 +20,68 @@ function createStubOrchestrator() {
 }
 
 describe('useSignLanguageDetector', () => {
+  beforeEach(() => {
+    sendTelemetryEventMock.mockClear();
+  });
+
+  it('emits startup telemetry milestones once per startup attempt', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+        telemetrySource: 'training_recorder',
+      }),
+    );
+
+    await act(async () => {
+      const ok = await result.current.start();
+      expect(ok).toBe(true);
+    });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [{ gesture: 'WINKEN', confidence: 0.91, landmarks: [[[0.2, 0.3, 0]]] }],
+          }),
+        }),
+      );
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'landmarks',
+            landmarks: [[[0.4, 0.5, 0]]],
+            handednesses: ['Left'],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      const eventNames = sendTelemetryEventMock.mock.calls.map(([name]) => name);
+      expect(eventNames).toContain('camera_start_requested_at');
+      expect(eventNames).toContain('camera_stream_ready_at');
+      expect(eventNames).toContain('detector_first_frame_at');
+      expect(eventNames).toContain('startup_latency_ms');
+      expect(eventNames.filter((name) => name === 'detector_first_frame_at')).toHaveLength(1);
+      expect(eventNames.filter((name) => name === 'startup_latency_ms')).toHaveLength(1);
+    });
+
+    const startupLatencyCall = sendTelemetryEventMock.mock.calls.find(
+      ([eventName]) => eventName === 'startup_latency_ms',
+    );
+    expect(startupLatencyCall?.[1]).toEqual(
+      expect.objectContaining({
+        source: 'training_recorder',
+        startupAttempt: 1,
+      }),
+    );
+  });
+
   it('starts and stops the orchestrator', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
