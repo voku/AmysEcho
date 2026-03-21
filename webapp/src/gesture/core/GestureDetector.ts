@@ -264,7 +264,6 @@ export class GestureDetector {
         const results = this.gestureRecognizer.recognizeForVideo(this.video, frameStart);
         const recognitionTime = performance.now() - recognitionStart;
         this.performanceOptimizer.recordProcessingTime(recognitionTime);
-        this.cameraManager.reportProcessingTime(recognitionTime);
 
         gestureDebugLog('recognizer', 'MediaPipe recognition results', () => ({
           hasResults: !!results,
@@ -299,6 +298,9 @@ export class GestureDetector {
               gestureDebugLog('recognizer', 'Face detection error', () => ({ error: String(faceErr) }));
             }
           }
+
+          const totalDetectorTime = performance.now() - recognitionStart;
+          this.cameraManager.reportProcessingTime(totalDetectorTime);
 
           this.resultCallback(results, frameStart);
         }

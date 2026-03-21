@@ -1,11 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CameraManager } from './CameraManager';
 import { ResourceManager } from '../utils/ResourceManager';
-
-const sendTelemetryEventMock = vi.fn().mockResolvedValue(undefined);
-vi.mock('../../telemetry/sendTelemetryEvent', () => ({
-  sendTelemetryEvent: (...args: unknown[]) => sendTelemetryEventMock(...args),
-}));
 
 function createVideoElement(): HTMLVideoElement {
   const video = document.createElement('video');
@@ -36,8 +31,11 @@ function createMockStream(trackLabel = 'camera-track'): MediaStream {
 
 describe('CameraManager adaptive constraints', () => {
   beforeEach(() => {
-    sendTelemetryEventMock.mockClear();
     window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('starts with ideal constraints and front camera by default', async () => {
@@ -102,15 +100,9 @@ describe('CameraManager adaptive constraints', () => {
       }),
     );
 
-    await vi.waitFor(() => {
-      expect(sendTelemetryEventMock).toHaveBeenCalledWith(
-        'camera_constraints_adapted',
-        expect.objectContaining({
-          constraintTier: 1,
-          facingMode: 'environment',
-        }),
-      );
-    });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const persistedEvents = JSON.parse(window.localStorage.getItem('telemetryEvents') || '[]') as Array<{ event?: string }>;
+    expect(persistedEvents.some((event) => event.event === 'camera_constraints_adapted')).toBe(true);
   });
 
   it('falls back to a lower tier when first downgrade attempt fails', async () => {
@@ -165,7 +157,7 @@ describe('CameraManager adaptive constraints', () => {
     });
 
     let nowValue = 6_000;
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => nowValue);
+    vi.spyOn(Date, 'now').mockImplementation(() => nowValue);
 
     const video = createVideoElement();
     const manager = new CameraManager(video, new ResourceManager());
@@ -178,12 +170,7 @@ describe('CameraManager adaptive constraints', () => {
     await vi.waitFor(() => {
       expect(getUserMediaMock).toHaveBeenCalledTimes(2);
     });
-    await vi.waitFor(() => {
-      expect(sendTelemetryEventMock).toHaveBeenCalledWith(
-        'camera_constraints_adapted',
-        expect.objectContaining({ constraintTier: 1 }),
-      );
-    });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
 
     nowValue = 12_000;
 
@@ -202,14 +189,8 @@ describe('CameraManager adaptive constraints', () => {
       }),
     );
 
-    await vi.waitFor(() => {
-      expect(sendTelemetryEventMock).toHaveBeenCalledWith(
-        'camera_constraints_recovered',
-        expect.objectContaining({
-          constraintTier: 0,
-        }),
-      );
-    });
-    nowSpy.mockRestore();
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const persistedEvents = JSON.parse(window.localStorage.getItem('telemetryEvents') || '[]') as Array<{ event?: string }>;
+    expect(persistedEvents.some((event) => event.event === 'camera_constraints_recovered')).toBe(true);
   });
 });

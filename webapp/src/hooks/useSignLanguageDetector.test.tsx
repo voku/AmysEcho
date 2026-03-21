@@ -108,6 +108,46 @@ describe('useSignLanguageDetector', () => {
     expect(orchestrator.stop).toHaveBeenCalled();
   });
 
+  it('serializes concurrent start calls and avoids double orchestrator starts', async () => {
+    let resolveStart: (() => void) | null = null;
+    const orchestrator = {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      start: vi.fn().mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveStart = resolve;
+          }),
+      ),
+      stop: vi.fn().mockResolvedValue(undefined),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+    } as unknown as GestureRecognitionOrchestrator;
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    let first: Promise<boolean>;
+    let second: Promise<boolean>;
+    await act(async () => {
+      first = result.current.start();
+      second = result.current.start();
+      await Promise.resolve();
+    });
+
+    expect(orchestrator.start).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveStart?.();
+      await Promise.all([first!, second!]);
+    });
+    await expect(first!).resolves.toBe(true);
+    await expect(second!).resolves.toBe(true);
+    expect(orchestrator.start).toHaveBeenCalledTimes(1);
+  });
+
   it('aggregates bridge messages and stores gesture state', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;

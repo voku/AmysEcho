@@ -767,18 +767,22 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     });
 
     const responses = await Promise.all(uploadPromises);
+    const expectedLabels = new Set(
+      Array.from({ length: uploadCount }, (_, index) => `STRESS_${index}`),
+    );
+    const responseIds = new Set(responses.map((response) => String(response.body.id)));
     responses.forEach((response) => {
       expect(response.status).toBe(202);
     });
 
     const entries = await readManifestEntries();
     const matchingEntries = entries.filter((entry) => entry.profileId === profileId);
-    const labels = matchingEntries.map((entry) => String(entry.label));
-    const ids = matchingEntries.map((entry) => String(entry.id));
+    const persistedLabels = new Set(matchingEntries.map((entry) => String(entry.label)));
+    const persistedIds = new Set(matchingEntries.map((entry) => String(entry.id)));
 
     expect(matchingEntries).toHaveLength(uploadCount);
-    expect(new Set(labels).size).toBe(uploadCount);
-    expect(new Set(ids).size).toBe(uploadCount);
+    expect(persistedLabels).toEqual(expectedLabels);
+    expect(persistedIds).toEqual(responseIds);
     expect(triggerCalls.filter((call) => call.profileId === profileId)).toHaveLength(uploadCount);
     expect(manifestUpdatedCalls).toBe(uploadCount);
   });
@@ -813,7 +817,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .set('Content-Type', 'application/zip')
         .send(zip.toBuffer())
-        .then((response) => ({ response, isInvalid }));
+        .then((response) => ({ response, isInvalid, label: metadata.label }));
     });
 
     const results = await Promise.all(burst);
@@ -831,8 +835,15 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const entries = await readManifestEntries();
     const matchingEntries = entries.filter((entry) => entry.profileId === profileId);
     const successfulCount = successful.length;
+    const persistedLabels = new Set(matchingEntries.map((entry) => String(entry.label)));
+    const expectedSuccessfulLabels = new Set(successful.map((result) => result.label));
+    const rejectedLabels = new Set(rejected.map((result) => result.label));
 
     expect(matchingEntries).toHaveLength(successfulCount);
+    expect(persistedLabels).toEqual(expectedSuccessfulLabels);
+    rejectedLabels.forEach((label) => {
+      expect(persistedLabels.has(label)).toBe(false);
+    });
     expect(new Set(matchingEntries.map((entry) => String(entry.id))).size).toBe(successfulCount);
     expect(triggerCalls.filter((call) => call.profileId === profileId)).toHaveLength(successfulCount);
     expect(manifestUpdatedCalls).toBe(successfulCount);

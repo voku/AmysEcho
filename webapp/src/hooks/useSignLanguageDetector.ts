@@ -221,6 +221,7 @@ export function useSignLanguageDetector(
   );
   const startupTelemetryAttemptRef = useRef<StartupTelemetryAttempt | null>(null);
   const startupAttemptSequenceRef = useRef(0);
+  const startPromiseRef = useRef<Promise<boolean> | null>(null);
 
   const orchestratorFactory = useMemo(
     () =>
@@ -234,6 +235,9 @@ export function useSignLanguageDetector(
   const markDetectorFirstFrame = useCallback((timestamp: number) => {
     const startupAttempt = startupTelemetryAttemptRef.current;
     if (!startupAttempt || startupAttempt.firstFrameAt !== null) {
+      return;
+    }
+    if (startupAttempt.sequence !== startupAttemptSequenceRef.current) {
       return;
     }
 
@@ -544,48 +548,72 @@ export function useSignLanguageDetector(
   }, [ensureOrchestrator, overlayRef, videoRef]);
 
   const start = useCallback(async () => {
-    try {
-      const requestedAt = Date.now();
-      const startupAttempt: StartupTelemetryAttempt = {
-        requestedAt,
-        streamReadyAt: null,
-        firstFrameAt: null,
-        sequence: startupAttemptSequenceRef.current + 1,
-      };
-      startupAttemptSequenceRef.current = startupAttempt.sequence;
-      startupTelemetryAttemptRef.current = startupAttempt;
-      void sendTelemetryEvent('camera_start_requested_at', {
-        source: telemetrySource,
-        timestamp: requestedAt,
-        startupAttempt: startupAttempt.sequence,
-      });
-
-      setStatus('initializing');
-      setError(null);
-      const orchestrator = await ensureOrchestrator();
-      await orchestrator.start();
-      const streamReadyAt = Date.now();
-      startupAttempt.streamReadyAt = streamReadyAt;
-      void sendTelemetryEvent('camera_stream_ready_at', {
-        source: telemetrySource,
-        timestamp: streamReadyAt,
-        startupAttempt: startupAttempt.sequence,
-        startupStreamLatencyMs: Math.max(0, Math.round(streamReadyAt - startupAttempt.requestedAt)),
-      });
-      if ('vibrate' in navigator) {
-        navigator.vibrate?.(30);
-      }
-      setStatus('running');
+    if (status === 'running') {
       return true;
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      setError(reason);
-      setStatus('error');
-      return false;
     }
-  }, [ensureOrchestrator, telemetrySource]);
+    if (startPromiseRef.current) {
+      return startPromiseRef.current;
+    }
+
+    const startPromise = (async () => {
+      try {
+        const requestedAt = Date.now();
+        const attemptSeq = startupAttemptSequenceRef.current + 1;
+        startupAttemptSequenceRef.current = attemptSeq;
+        const startupAttempt: StartupTelemetryAttempt = {
+          requestedAt,
+          streamReadyAt: null,
+          firstFrameAt: null,
+          sequence: attemptSeq,
+        };
+        if (attemptSeq === startupAttemptSequenceRef.current) {
+          startupTelemetryAttemptRef.current = startupAttempt;
+        }
+        void sendTelemetryEvent('camera_start_requested_at', {
+          source: telemetrySource,
+          timestamp: requestedAt,
+          startupAttempt: startupAttempt.sequence,
+        });
+
+        setStatus('initializing');
+        setError(null);
+        const orchestrator = await ensureOrchestrator();
+        await orchestrator.start();
+        if (attemptSeq !== startupAttemptSequenceRef.current) {
+          return false;
+        }
+        const streamReadyAt = Date.now();
+        startupAttempt.streamReadyAt = streamReadyAt;
+        void sendTelemetryEvent('camera_stream_ready_at', {
+          source: telemetrySource,
+          timestamp: streamReadyAt,
+          startupAttempt: startupAttempt.sequence,
+          startupStreamLatencyMs: Math.max(0, Math.round(streamReadyAt - startupAttempt.requestedAt)),
+        });
+        if ('vibrate' in navigator) {
+          navigator.vibrate?.(30);
+        }
+        setStatus('running');
+        return true;
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        startupTelemetryAttemptRef.current = null;
+        setError(reason);
+        setStatus('error');
+        return false;
+      } finally {
+        startPromiseRef.current = null;
+      }
+    })();
+
+    startPromiseRef.current = startPromise;
+    return startPromise;
+  }, [ensureOrchestrator, status, telemetrySource]);
 
   const stop = useCallback(async () => {
+    startupAttemptSequenceRef.current += 1;
+    startupTelemetryAttemptRef.current = null;
+    startPromiseRef.current = null;
     if (!orchestratorRef.current) {
       setStatus('stopped');
       return;
@@ -602,6 +630,7 @@ export function useSignLanguageDetector(
     } finally {
       orchestratorRef.current = null;
       orchestratorInitPromiseRef.current = null;
+      startPromiseRef.current = null;
       startupTelemetryAttemptRef.current = null;
       handStabilizerRef.current.reset();
       setStatus('idle');

@@ -96,9 +96,9 @@ Use this section to create one GitHub issue per unchecked item. Keep issue title
 - [ ] **[Release] Draft and review v0.0.2 release notes with known limitations and mitigations**  
   Labels: `release`, `documentation`  
   Acceptance: release notes include scope, known limitations, mitigation owner, and rollback notes.
-- [ ] **[Post-v0.0.2] Add concurrency stress tests for training bundle ingestion/retry storms**  
+- [x] **[Post-v0.0.2] Add concurrency stress tests for training bundle ingestion/retry storms**  
   Labels: `testing`, `server`, `reliability`  
-  Acceptance: automated stress scenario added and passing in CI with documented thresholds.
+  Acceptance: automated stress scenario added and passing in CI with documented thresholds. _Done via `server/test/trainingBundles.test.ts` success-burst and mixed-burst cases._
 - [ ] **[Post-v0.0.2] Establish long-session device baselines (FPS, thermal, battery)**  
   Labels: `performance`, `webapp`, `field-validation`  
   Acceptance: baseline matrix published for target caregiver devices and linked from docs.

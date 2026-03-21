@@ -34,11 +34,13 @@ export class CameraManager {
   private lastVideoWidth = 0;
   private lastVideoHeight = 0;
   private stream: MediaStream | null = null;
+  private registeredStream: MediaStream | null = null;
   private activeFacingMode: FacingMode = 'user';
   private activeConstraintTier = 0;
   private processingHistory: number[] = [];
   private lastAdaptiveUpdateAt = 0;
   private adaptingConstraints = false;
+  private cameraSessionId = 0;
 
   constructor(video: HTMLVideoElement, resourceManager: ResourceManager) {
     this.video = video;
@@ -49,6 +51,7 @@ export class CameraManager {
    * Start camera stream
    */
   async startCamera(): Promise<void> {
+    const sessionId = ++this.cameraSessionId;
     this.activeFacingMode = this.resolveFacingModePreference();
     this.activeConstraintTier = 0;
     this.processingHistory = [];
@@ -58,11 +61,20 @@ export class CameraManager {
     const requestClipAudio = false; // Clip capture remains visual-only
 
     try {
-      const stream = await this.requestStreamWithFallback(this.activeFacingMode, this.activeConstraintTier, requestClipAudio);
+      const { stream, tier } = await this.requestStreamWithFallback(
+        this.activeFacingMode,
+        this.activeConstraintTier,
+        requestClipAudio,
+      );
+      if (sessionId !== this.cameraSessionId) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      this.activeConstraintTier = tier;
 
       this.stream = stream;
       this.video.srcObject = stream;
-      this.resourceManager.registerMediaStream(stream);
+      this.replaceRegisteredStream(stream);
 
       if (requestClipAudio) {
         try {
@@ -160,6 +172,7 @@ export class CameraManager {
    * Stop camera stream
    */
   async stopCamera(): Promise<void> {
+    this.cameraSessionId += 1;
     try {
       this.video.pause();
     } catch (e) {
@@ -258,7 +271,7 @@ export class CameraManager {
     facingMode: FacingMode,
     startTier: number,
     requestClipAudio: boolean,
-  ): Promise<MediaStream> {
+  ): Promise<{ stream: MediaStream; tier: number }> {
     let lastError: unknown = null;
 
     for (let tier = startTier; tier < CAMERA_CONSTRAINT_PROFILES.length; tier += 1) {
@@ -274,8 +287,7 @@ export class CameraManager {
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        this.activeConstraintTier = tier;
-        return stream;
+        return { stream, tier };
       } catch (error) {
         lastError = error;
         if (requestClipAudio) {
@@ -284,8 +296,7 @@ export class CameraManager {
               video: this.getVideoConstraints(facingMode, tier),
               audio: false,
             });
-            this.activeConstraintTier = tier;
-            return streamWithoutAudio;
+            return { stream: streamWithoutAudio, tier };
           } catch (withoutAudioError) {
             lastError = withoutAudioError;
           }
@@ -297,15 +308,26 @@ export class CameraManager {
   }
 
   private async degradeCameraConstraints(averageProcessingTime: number): Promise<void> {
+    const sessionId = this.cameraSessionId;
     this.adaptingConstraints = true;
     this.lastAdaptiveUpdateAt = Date.now();
-    const nextTier = Math.min(this.activeConstraintTier + 1, CAMERA_CONSTRAINT_PROFILES.length - 1);
+    const previousTier = this.activeConstraintTier;
+    const nextTier = Math.min(previousTier + 1, CAMERA_CONSTRAINT_PROFILES.length - 1);
     try {
-      const nextStream = await this.requestStreamWithFallback(this.activeFacingMode, nextTier, false);
+      const { stream: nextStream, tier: acquiredTier } = await this.requestStreamWithFallback(
+        this.activeFacingMode,
+        nextTier,
+        false,
+      );
+      if (sessionId !== this.cameraSessionId || !this.stream) {
+        nextStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       this.stopCurrentStreamTracks();
       this.stream = nextStream;
       this.video.srcObject = nextStream;
-      this.resourceManager.registerMediaStream(nextStream);
+      this.replaceRegisteredStream(nextStream);
+      this.activeConstraintTier = acquiredTier;
       this.processingHistory = [];
 
       void sendTelemetryEvent('camera_constraints_adapted', {
@@ -323,15 +345,30 @@ export class CameraManager {
   }
 
   private async upgradeCameraConstraints(averageProcessingTime: number): Promise<void> {
+    const sessionId = this.cameraSessionId;
     this.adaptingConstraints = true;
     this.lastAdaptiveUpdateAt = Date.now();
-    const preferredTier = Math.max(0, this.activeConstraintTier - 1);
+    const previousTier = this.activeConstraintTier;
+    const preferredTier = Math.max(0, previousTier - 1);
     try {
-      const nextStream = await this.requestStreamWithFallback(this.activeFacingMode, preferredTier, false);
+      const { stream: nextStream, tier: acquiredTier } = await this.requestStreamWithFallback(
+        this.activeFacingMode,
+        preferredTier,
+        false,
+      );
+      if (sessionId !== this.cameraSessionId || !this.stream) {
+        nextStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      if (acquiredTier >= previousTier) {
+        nextStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       this.stopCurrentStreamTracks();
       this.stream = nextStream;
       this.video.srcObject = nextStream;
-      this.resourceManager.registerMediaStream(nextStream);
+      this.replaceRegisteredStream(nextStream);
+      this.activeConstraintTier = acquiredTier;
       this.processingHistory = [];
 
       void sendTelemetryEvent('camera_constraints_recovered', {
@@ -356,6 +393,20 @@ export class CameraManager {
     if (this.stream && this.stream !== current) {
       this.stream.getTracks().forEach((track) => track.stop());
     }
+    if (this.stream) {
+      this.resourceManager.unregisterMediaStream(this.stream);
+      if (this.registeredStream === this.stream) {
+        this.registeredStream = null;
+      }
+    }
     this.video.srcObject = null;
+  }
+
+  private replaceRegisteredStream(stream: MediaStream): void {
+    if (this.registeredStream) {
+      this.resourceManager.unregisterMediaStream(this.registeredStream);
+    }
+    this.resourceManager.registerMediaStream(stream);
+    this.registeredStream = stream;
   }
 }

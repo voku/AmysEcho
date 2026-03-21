@@ -119,12 +119,12 @@ telemetry.add('startup_latency_ms', {
 
 ### Adaptive Kamera-Constraint-Policy (seit März 2026)
 
-- Jede neue Kamera-Session startet mit dem Idealprofil `1280x720 @ 30fps`.
-- Wenn die Erkennungsverarbeitung über ein nachhaltiges Fenster hinweg zu langsam ist (Ø > 45ms), wird schrittweise reduziert:
-  1. `960x540 @ 24fps`
-  2. `640x480 @ 20fps`
-  3. `426x240 @ 15fps`
-- Wenn die Erkennung danach über ein nachhaltiges Fenster stabil schnell bleibt (Ø ≤ 28ms), wird die Qualität wieder schrittweise hochgefahren.
+- Jede neue Kamera-Session startet mit dem Idealprofil `1280×720, 30 fps`.
+- Wenn die Erkennungsverarbeitung über ein nachhaltiges Fenster hinweg zu langsam ist (Ø > 45 ms), wird schrittweise reduziert:
+  1. `960×540, 24 fps`
+  2. `640×480, 20 fps`
+  3. `426×240, 15 fps`
+- Wenn die Erkennung danach über ein nachhaltiges Fenster stabil schnell bleibt (Ø ≤ 28 ms), wird die Qualität wieder schrittweise hochgefahren.
 - `facingMode` bleibt beim Downgrade erhalten (Front-/Rückkamera wird nicht ungefragt gewechselt).
 - Bei jedem erfolgreichen Downgrade wird `camera_constraints_adapted` in die Telemetrie geschrieben, inklusive Tier und Profil.
 - Bei erfolgreicher Erholung wird zusätzlich `camera_constraints_recovered` emittiert.

@@ -28,6 +28,11 @@ export interface ValidationResult {
   confidence: number;
 }
 
+export interface ValidationCapabilities {
+  poseEnabled?: boolean;
+  faceEnabled?: boolean;
+}
+
 function toPoint(point: unknown): [number, number, number] | null {
   if (!Array.isArray(point) || point.length < 2) {
     return null;
@@ -172,7 +177,10 @@ function computeOverallQualityScore(
 
 // Basic quality checks for recorded gesture samples used in training.
 // Assumes landmarks are normalized to [0,1] if available.
-export function validateLandmarkSequence(samples: number[][][][]): ValidationResult {
+export function validateLandmarkSequence(
+  samples: number[][][][],
+  capabilities: ValidationCapabilities = {},
+): ValidationResult {
   const issues: ValidationIssue[] = [];
   const suggestions: string[] = [];
 
@@ -263,12 +271,12 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
     suggestions.push('Halte deine Hände während der gesamten Aufnahme sichtbar im Bild.');
   }
   const poseCoverage = frameCount > 0 ? poseFrames / frameCount : 0;
-  if (poseCoverage < MIN_POSE_FRAME_COVERAGE) {
+  if (capabilities.poseEnabled === true && poseCoverage < MIN_POSE_FRAME_COVERAGE) {
     issues.push('pose_coverage_low');
     suggestions.push('Halte deinen Oberkörper im Bild, damit Pose-Landmarks zuverlässig erkannt werden.');
   }
   const faceCoverage = frameCount > 0 ? faceFrames / frameCount : 0;
-  if (faceCoverage < MIN_FACE_FRAME_COVERAGE) {
+  if (capabilities.faceEnabled === true && faceCoverage < MIN_FACE_FRAME_COVERAGE) {
     issues.push('face_coverage_low');
     suggestions.push('Halte dein Gesicht möglichst durchgängig im Bild für stabile Gesichts-Landmarks.');
   }

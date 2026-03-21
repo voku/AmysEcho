@@ -584,7 +584,14 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
 
   const isRecording = state === 'recording';
   const hasRecording = state === 'idle' && recordedData.frames.length > 0;
-  const validationSummary = useMemo(() => buildValidationSummary(recordedData.frames), [recordedData.frames]);
+  const validationSummary = useMemo(
+    () =>
+      buildValidationSummary(recordedData.frames, {
+        poseEnabled: poseLandmarksAvailable,
+        faceEnabled: faceLandmarksAvailable,
+      }),
+    [faceLandmarksAvailable, poseLandmarksAvailable, recordedData.frames],
+  );
   const clipStatus = recordedData.clipFile
     ? `${recordedData.clipFile.name} (${formatBytes(recordedData.clipFile.size)})`
     : `${formatBytes(recordedData.clipSizeBytes)} aufgenommen`;

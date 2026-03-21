@@ -60,7 +60,10 @@ const createTrainingState = (): TrainingState => ({
   lastFrameReceivedAt: null,
 });
 
-let gestureState: { status: SignLanguageStatus } = { status: 'idle' };
+let gestureState: { status: SignLanguageStatus; lastLandmarks: number[][][] } = {
+  status: 'idle',
+  lastLandmarks: [],
+};
 let trainingState: TrainingState = createTrainingState();
 
 vi.mock('../hooks/useSignLanguageDetector', () => ({
@@ -71,7 +74,7 @@ vi.mock('../hooks/useSignLanguageDetector', () => ({
     status: gestureState.status,
     error: null,
     lastSign: null,
-    lastLandmarks: [],
+    lastLandmarks: gestureState.lastLandmarks,
     lastHandedness: [],
     lastConfidence: null,
     messageLog: [],
@@ -85,7 +88,7 @@ vi.mock('../hooks/useTrainingRecorder', () => ({
 
 describe('TrainingRecorder', () => {
   beforeEach(() => {
-    gestureState = { status: 'idle' };
+    gestureState = { status: 'idle', lastLandmarks: [] };
     startMock.mockReset().mockResolvedValue(true);
     trainingState = createTrainingState();
 
@@ -428,6 +431,7 @@ describe('TrainingRecorder', () => {
 
   it('zeigt Pose-Hinweis bei fehlenden Pose-Landmarks im Live-Betrieb', () => {
     gestureState.status = 'running';
+    gestureState.lastLandmarks = [[[0.1, 0.2, 0]]];
     trainingState.lastFrameReceivedAt = Date.now();
     trainingState.previewLandmarks = [[[0.1, 0.2, 0]]];
     trainingState.previewFaceLandmarks = [[0.3, 0.3, 0]];
@@ -438,10 +442,12 @@ describe('TrainingRecorder', () => {
     expect(
       screen.getByText('Bitte halte deinen Oberkörper im Bild, damit Pose-Landmarks erkannt werden.'),
     ).toBeInTheDocument();
+    expect(screen.queryByText('Es kommen noch keine Live-Frames an. Positioniere dich vor der Kamera oder warte einen Moment.')).not.toBeInTheDocument();
   });
 
   it('zeigt Gesichts-Hinweis bei fehlenden Face-Landmarks im Live-Betrieb', () => {
     gestureState.status = 'running';
+    gestureState.lastLandmarks = [[[0.1, 0.2, 0]]];
     trainingState.lastFrameReceivedAt = Date.now();
     trainingState.previewLandmarks = [[[0.1, 0.2, 0]]];
     trainingState.previewPoseLandmarks = [[0.3, 0.3, 0]];
@@ -452,6 +458,7 @@ describe('TrainingRecorder', () => {
     expect(
       screen.getByText('Bitte halte dein Gesicht im Bild, damit Gesichts-Landmarks erkannt werden.'),
     ).toBeInTheDocument();
+    expect(screen.queryByText('Es kommen noch keine Live-Frames an. Positioniere dich vor der Kamera oder warte einen Moment.')).not.toBeInTheDocument();
   });
 
   it('behält das manuell gewählte Foto beim Start der Aufnahme bei', async () => {
