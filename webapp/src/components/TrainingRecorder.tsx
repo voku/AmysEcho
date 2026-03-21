@@ -615,9 +615,10 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
         photoMode,
         isRecording,
         hasRecording,
+        detectorStatus: status,
         detectorRunning,
       }),
-    [photoMode, isRecording, hasRecording, detectorRunning],
+    [photoMode, isRecording, hasRecording, detectorRunning, status],
   );
 
   return (

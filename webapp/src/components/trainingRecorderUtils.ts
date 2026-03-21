@@ -18,11 +18,13 @@ export function getTrainingRecorderBannerMessage({
   photoMode,
   isRecording,
   hasRecording,
+  detectorStatus,
   detectorRunning,
 }: {
   photoMode: PhotoMode;
   isRecording: boolean;
   hasRecording: boolean;
+  detectorStatus: SignLanguageStatus;
   detectorRunning: boolean;
 }): string {
   if (photoMode === 'previewing') {
@@ -36,6 +38,9 @@ export function getTrainingRecorderBannerMessage({
   }
   if (hasRecording) {
     return 'Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.';
+  }
+  if (detectorStatus === 'error') {
+    return 'Die Kamera konnte nicht gestartet werden. Prüfe den Kamerazugriff und versuche es erneut.';
   }
   if (detectorRunning) {
     return 'Zeige die Gebärde gut sichtbar vor der Kamera.';

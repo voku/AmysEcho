@@ -28,6 +28,7 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'previewing',
         isRecording: false,
         hasRecording: false,
+        detectorStatus: 'idle',
         detectorRunning: false,
       }),
     ).toBe('Vorschau aktiv. Positioniere dich für das Foto.');
@@ -37,6 +38,7 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'captured',
         isRecording: false,
         hasRecording: false,
+        detectorStatus: 'idle',
         detectorRunning: false,
       }),
     ).toBe('Foto aufgenommen. Bestätige oder nimm ein neues auf.');
@@ -46,6 +48,7 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'idle',
         isRecording: true,
         hasRecording: false,
+        detectorStatus: 'idle',
         detectorRunning: false,
       }),
     ).toBe('Aufnahme läuft. Tippe auf „Aufnahme stoppen“, wenn du fertig bist.');
@@ -55,6 +58,7 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'idle',
         isRecording: false,
         hasRecording: true,
+        detectorStatus: 'idle',
         detectorRunning: false,
       }),
     ).toBe('Aufnahme bereit. Prüfe sie und verwende oder verwerfe sie.');
@@ -64,6 +68,7 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'idle',
         isRecording: false,
         hasRecording: false,
+        detectorStatus: 'running',
         detectorRunning: true,
       }),
     ).toBe('Zeige die Gebärde gut sichtbar vor der Kamera.');
@@ -73,6 +78,17 @@ describe('trainingRecorderUtils', () => {
         photoMode: 'idle',
         isRecording: false,
         hasRecording: false,
+        detectorStatus: 'error',
+        detectorRunning: false,
+      }),
+    ).toBe('Die Kamera konnte nicht gestartet werden. Prüfe den Kamerazugriff und versuche es erneut.');
+
+    expect(
+      getTrainingRecorderBannerMessage({
+        photoMode: 'idle',
+        isRecording: false,
+        hasRecording: false,
+        detectorStatus: 'idle',
         detectorRunning: false,
       }),
     ).toBe('Kamera wird vorbereitet…');
