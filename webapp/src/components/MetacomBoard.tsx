@@ -394,7 +394,7 @@ export function MetacomBoard() {
           </button>
           <div>
             <p className="eyebrow">Metacom</p>
-            <nav className="metacom-breadcrumbs" aria-label="Breadcrumb">
+            <nav className="metacom-breadcrumbs" aria-label="Navigationspfad">
               {breadcrumbs.map((crumb, index) => (
                 <Fragment key={crumb.id}>
                   {index > 0 && <span className="breadcrumb-separator">›</span>}
@@ -563,10 +563,10 @@ export function MetacomBoard() {
           <button
             className="metacom-side-button"
             onClick={() => setBoardHistory([START_BOARD_ID])}
-            aria-label="Home"
+            aria-label="Start"
           >
             <span className="metacom-side-emoji">🏠</span>
-            <span className="metacom-side-label">Home</span>
+            <span className="metacom-side-label">Start</span>
           </button>
           {quickActionCells.map((item) => (
             <div key={`quick-${item.label}`} className="metacom-side-cell">
@@ -610,7 +610,7 @@ export function MetacomBoard() {
           ❓ Hilfe
         </button>
         <button className="metacom-toolbar-button" onClick={() => navigate('/auswahl')}>
-          👥 Profile
+          👥 Profile verwalten
         </button>
       </nav>
     </section>

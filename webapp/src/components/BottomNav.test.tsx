@@ -25,7 +25,7 @@ describe('BottomNav', () => {
       </BrowserRouter>
     );
 
-    const nav = screen.getByRole('navigation');
+    const nav = screen.getByRole('navigation', { name: 'Hauptnavigation' });
     expect(nav).toBeInTheDocument();
   });
 

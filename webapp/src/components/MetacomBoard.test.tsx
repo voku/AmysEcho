@@ -75,6 +75,9 @@ describe('MetacomBoard', () => {
     expect(screen.getByRole('button', { name: 'Ich' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Essen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Satzbau-Hilfe aus' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '👥 Profile verwalten' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Navigationspfad' })).toBeInTheDocument();
   });
 
   it('navigates to a category board and back', async () => {
