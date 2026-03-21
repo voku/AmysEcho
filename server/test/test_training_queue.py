@@ -16,7 +16,7 @@ ACCESS_TOKEN = ""
 
 def resolve_db_sqlite_path() -> str:
     data_dir = os.environ.get("AMY_ECHO_DATA_DIR")
-    root = data_dir if data_dir else os.path.join(SERVER_DIR, "data")
+    root = os.path.abspath(data_dir) if data_dir else os.path.join(os.getcwd(), "data")
     return os.path.join(root, "db.sqlite")
 
 

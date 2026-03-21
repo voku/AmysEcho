@@ -1151,6 +1151,21 @@ export function registerTrainingBundleRoute(
 				if (!entry) {
 					return res.status(404).json({ error: "Bundle nicht gefunden" });
 				}
+				if (entry.profileId) {
+					const requestedProfileId = req.get("X-Profile-Id")?.trim();
+					if (!requestedProfileId || requestedProfileId !== entry.profileId) {
+						return res.status(404).json({ error: "Bundle nicht gefunden" });
+					}
+					if (
+						deps.isProfileAuthorized &&
+						!deps.isProfileAuthorized(req, entry.profileId)
+					) {
+						return res.status(403).json({
+							error: "Kein Zugriff auf dieses Profil.",
+							code: "PROFILE_UNAUTHORIZED",
+						});
+					}
+				}
 
 				const qualityGate = buildQualityGateResult(entry.metadata?.validationSummary);
 				return res.status(200).json({

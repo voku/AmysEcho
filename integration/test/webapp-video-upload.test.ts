@@ -272,6 +272,16 @@ test('webapp helpers upload a real repo video and server serves stored clip', as
   assert.strictEqual(entry?.label, 'VIDEO_TEST');
   assert.strictEqual(entry?.profileId, profileId);
 
+  const otherProfileId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  await createProfile({ id: otherProfileId, displayName: 'Video Upload Other Profile' });
+  const crossProfileResponse = await fetch(`${serverBaseUrl()}/api/v1/dgs/sample-bundles/${uploadResult.id}`, {
+    headers: serverHeaders({ 'X-Profile-Id': otherProfileId }),
+  });
+  assert.ok(
+    crossProfileResponse.status === 403 || crossProfileResponse.status === 404,
+    'bundle details should not be accessible across profiles',
+  );
+
   const clipResponse = await fetch(`${serverBaseUrl()}/api/v1/training-videos/${uploadResult.id}/clip`, {
     headers: serverHeaders(),
   });

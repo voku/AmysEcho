@@ -345,6 +345,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const detailResponse = await request(app)
       .get(`/api/v1/dgs/sample-bundles/${uploadResponse.body.id}`)
       .set('Authorization', `Bearer ${accessToken}`)
+      .set('X-Profile-Id', metadata.profileId)
       .expect(200);
 
     expect(detailResponse.body.id).toBe(uploadResponse.body.id);
@@ -364,6 +365,40 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(detailResponse.body.qualityGate).toEqual({
       outcome: 'review',
       reasons: expect.arrayContaining(['landmarks_missing', 'too_few_frames']),
+    });
+  });
+
+  it('rejects bundle details access for unauthorized profile', async () => {
+    const metadata = {
+      profileId: '99999999-9999-4999-8999-999999999999',
+      label: 'HALLO',
+    };
+    const landmarks = await loadSampleLandmarks();
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(JSON.stringify({ frames: [{ landmarks }, { landmarks }] }, null, 2)),
+    );
+
+    const uploadResponse = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer())
+      .expect(202);
+
+    isProfileAuthorized = (profileId) => profileId !== metadata.profileId;
+
+    const detailResponse = await request(app)
+      .get(`/api/v1/dgs/sample-bundles/${uploadResponse.body.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('X-Profile-Id', metadata.profileId)
+      .expect(403);
+
+    expect(detailResponse.body).toMatchObject({
+      error: 'Kein Zugriff auf dieses Profil.',
+      code: 'PROFILE_UNAUTHORIZED',
     });
   });
 
