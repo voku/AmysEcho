@@ -252,7 +252,7 @@ export function LearningHub() {
         <div className="summary-card">
           <div className="summary-content">
             <span className="summary-value">{stats.training}</span>
-            <span className="summary-label">In Training</span>
+            <span className="summary-label">Im Training</span>
           </div>
         </div>
       </div>

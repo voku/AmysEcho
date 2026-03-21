@@ -98,6 +98,7 @@ export function BottomNav() {
   return (
     <nav
       className={`bottom-nav${isHidden ? ' bottom-nav-hidden' : ''}`}
+      aria-label="Hauptnavigation"
       onMouseEnter={revealNav}
       onFocusCapture={revealNav}
       onTouchStart={revealNav}

@@ -36,12 +36,13 @@ describe('Dashboard', () => {
       </MemoryRouter>,
     );
 
+    expect(await screen.findByText('Analysen')).toBeInTheDocument();
     expect(await screen.findByText('Gebärden erkannt')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(screen.getByText('Essen')).toBeInTheDocument();
   });
 
-  it('zeigt Server-Insights bei erfolgreichem API-Abruf', async () => {
+  it('zeigt Server-Einblicke bei erfolgreichem API-Abruf', async () => {
     mockUseAppState.mockReturnValue({ profileId: 'amy', recentSigns: [] });
     mockUseApiConfig.mockReturnValue({ apiBaseUrl: 'http://localhost:5000', apiToken: 'token' });
 
@@ -62,7 +63,7 @@ describe('Dashboard', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('🔍 Server-Insights')).toBeInTheDocument();
+    expect(await screen.findByText('🔍 Server-Einblicke')).toBeInTheDocument();
     expect(screen.getByText('67%')).toBeInTheDocument();
     expect(screen.getByText('2x')).toBeInTheDocument();
   });

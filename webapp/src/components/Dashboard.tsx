@@ -173,10 +173,10 @@ export function Dashboard() {
     <section className="card">
       <div className="card-header">
         <div>
-          <p className="eyebrow">Dashboard</p>
+          <p className="eyebrow">Analysen</p>
           <h2>Übersicht</h2>
           <p className="muted">
-            Zusammenfassung der Nutzung und Lernfortschritte für {profileId || 'N/A'}.
+            Zusammenfassung der Nutzung und Lernfortschritte für {profileId || 'kein Profil'}.
           </p>
         </div>
       </div>
@@ -225,7 +225,7 @@ export function Dashboard() {
       {/* Server Insights */}
       {serverInsights && (
         <div className="dashboard-section">
-          <h3>🔍 Server-Insights</h3>
+          <h3>🔍 Server-Einblicke</h3>
           <div className="insights-grid">
             <div className="insight-card">
               <p className="insight-title">Erfolgsrate</p>
