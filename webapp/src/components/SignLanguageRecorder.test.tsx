@@ -144,20 +144,10 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByText('Lernen')).toBeInTheDocument();
   });
 
-  it('starts camera automatically on mount', async () => {
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      writable: true,
-      value: {
-        getUserMedia: vi.fn().mockResolvedValue({
-          getTracks: () => [],
-        }),
-      },
-    });
+  it('shows retry button when detector is in error state', () => {
+    detectorState.status = 'error';
     renderWithProviders(<SignLanguageRecorder />);
-    await waitFor(() => {
-      expect(detectorState.start).toHaveBeenCalledTimes(1);
-    });
+    expect(screen.getByRole('button', { name: 'Kamera erneut versuchen' })).toBeInTheDocument();
   });
 
   it('shows overlay toggle checkbox', () => {

@@ -557,7 +557,9 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
   const poseLandmarksAvailable = previewPoseLandmarks.length > 0;
   const faceLandmarksAvailable = previewFaceLandmarks.length > 0;
   const handLandmarksAvailable = latestHandCount > 0;
-  const detectorInactiveNotice = !detectorRunning
+  const detectorInactiveNotice = status === 'error'
+    ? 'Die Kameraerkennung konnte nicht gestartet werden. Prüfe den Kamerazugriff und versuche es erneut.'
+    : !detectorRunning
     ? 'Die Kameraerkennung wird vorbereitet. Frames und Standbilder erscheinen gleich.'
     : !hasLiveFrames
     ? 'Es kommen noch keine Live-Frames an. Positioniere dich vor der Kamera oder warte einen Moment.'
@@ -604,6 +606,8 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     ? `${framesCaptured} Frames erfasst`
     : detectorRunning
     ? 'Noch keine verwertbaren Frames empfangen'
+    : status === 'error'
+    ? 'Kamera nicht verfügbar'
     : 'Kamera wird vorbereitet…';
   const bannerMessage = useMemo(
     () =>

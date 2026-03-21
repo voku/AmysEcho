@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useSignLanguageDetector, type SignLanguageStatus } from '../hooks/useSignLanguageDetector';
+import { useSignLanguageDetector } from '../hooks/useSignLanguageDetector';
 import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
@@ -326,7 +326,6 @@ export function SignLanguageRecorder() {
     messageLog,
   } = useSignLanguageDetector(videoRef, overlayRef);
   const { notice: modelNotice, status: modelStatus, lastMeta: modelMeta } = useMlpModelInjection(profileId);
-  const lastAutoStartStatusRef = useRef<SignLanguageStatus | null>(null);
   const latestProfileIdRef = useRef<string | null>(profileId);
   const lastProfileModelLogRef = useRef<string>('');
   const lastFilteredPredictionLogRef = useRef<string>('');
@@ -585,15 +584,9 @@ export function SignLanguageRecorder() {
     if (!cameraSupported) {
       return;
     }
-    if (status === 'running' || status === 'initializing' || status === 'error') {
-      return;
+    if (status === 'idle' || status === 'stopped') {
+      void start();
     }
-    if (lastAutoStartStatusRef.current === status) {
-      return;
-    }
-
-    lastAutoStartStatusRef.current = status;
-    void start();
   }, [cameraSupported, status, start]);
 
   const normalizedTrainedSignLabels = useMemo(
@@ -918,6 +911,10 @@ export function SignLanguageRecorder() {
     navigate('/lernen');
   }, [navigate]);
 
+  const handleRetryCamera = useCallback(async () => {
+    await start();
+  }, [start]);
+
   const latestMessageSummary = messageLog[0]?.summary ?? null;
 
   const modelStatusLabel = useMemo(() => {
@@ -1132,6 +1129,16 @@ export function SignLanguageRecorder() {
         </div>
 
         <div className="gesture-screen__actions">
+          {status === 'error' && (
+            <button
+              className="gesture-screen__action gesture-screen__action--alt"
+              onClick={handleRetryCamera}
+              disabled={!cameraSupported}
+              title="Kamera erneut versuchen"
+            >
+              Kamera erneut versuchen
+            </button>
+          )}
           <button
             className="gesture-screen__action gesture-screen__action--confirm"
             onClick={handleConfirm}

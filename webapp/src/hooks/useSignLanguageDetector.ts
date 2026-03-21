@@ -459,11 +459,11 @@ export function useSignLanguageDetector(
   }, []);
 
   const ensureOrchestrator = useCallback(async () => {
-    if (orchestratorRef.current) {
-      return orchestratorRef.current;
-    }
     if (orchestratorInitPromiseRef.current) {
       return orchestratorInitPromiseRef.current;
+    }
+    if (orchestratorRef.current) {
+      return orchestratorRef.current;
     }
 
     const video = videoRef.current;
@@ -474,17 +474,19 @@ export function useSignLanguageDetector(
 
     const initPromise = (async () => {
       const orchestrator = orchestratorFactory(video, overlay);
-      orchestratorRef.current = orchestrator;
-      await orchestrator.initialize();
-      return orchestrator;
+      try {
+        await orchestrator.initialize();
+        orchestratorRef.current = orchestrator;
+        return orchestrator;
+      } catch (initError) {
+        await orchestrator.cleanup().catch(() => undefined);
+        throw initError;
+      }
     })();
     orchestratorInitPromiseRef.current = initPromise;
 
     try {
       return await initPromise;
-    } catch (initError) {
-      orchestratorRef.current = null;
-      throw initError;
     } finally {
       orchestratorInitPromiseRef.current = null;
     }
