@@ -1154,6 +1154,7 @@ export function registerTrainingBundleRoute(
 					label: entry.label,
 					profileId: entry.profileId,
 					receivedAt: entry.receivedAt,
+					metadata: entry.metadata,
 					validationSummary: entry.metadata?.validationSummary,
 					qualityGate,
 				});

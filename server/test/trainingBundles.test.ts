@@ -8,32 +8,11 @@ import type { Express } from 'express';
 import type { registerTrainingBundleRoute as RegisterTrainingBundleRoute } from '../src/routes/trainingBundleRoute.js';
 import { AuthService } from '../src/services/authService.js';
 
-const repoRoot = path.basename(process.cwd()) === 'server'
-  ? path.resolve(process.cwd(), '..')
-  : process.cwd();
-const SAMPLES_PATH = path.join(repoRoot, 'server', 'data', 'dgs_samples.json');
-
 async function loadSampleLandmarks(): Promise<number[][]> {
-  try {
-    const raw = await fs.readFile(SAMPLES_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (!parsed?.samples || parsed.samples.length === 0) {
-      throw new Error('No sample landmarks available');
-    }
-    const first = parsed.samples[0];
-    if (!Array.isArray(first.landmarks)) {
-      throw new Error('Sample landmarks missing');
-    }
-    return first.landmarks as number[][];
-  } catch (error: any) {
-    if (error?.code !== 'ENOENT') {
-      throw error;
-    }
-    return Array.from({ length: 42 }, (_, idx) => {
-      const base = idx / 100;
-      return [base, base, base / 2];
-    });
-  }
+  return Array.from({ length: 42 }, (_, idx) => {
+    const base = idx / 100;
+    return [base, base, base / 2];
+  });
 }
 
 describe('POST /api/v1/dgs/sample-bundles', () => {
@@ -381,6 +360,10 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       qualityScore: 82,
       confidence: 0.8,
       landmarksPath: 'bundle/landmarks.json',
+    });
+    expect(detailResponse.body.metadata).toMatchObject({
+      label: metadata.label,
+      profileId: metadata.profileId,
     });
     expect(detailResponse.body.qualityGate).toEqual({
       outcome: 'review',
