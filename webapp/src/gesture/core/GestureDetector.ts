@@ -299,11 +299,11 @@ export class GestureDetector {
             }
           }
 
-          const totalDetectorTime = performance.now() - recognitionStart;
-          this.cameraManager.reportProcessingTime(totalDetectorTime);
-
           this.resultCallback(results, frameStart);
         }
+
+        const totalDetectorTime = performance.now() - frameStart;
+        this.cameraManager.reportProcessingTime(totalDetectorTime);
 
         const normalizedLandmarks: number[][][] = results?.landmarks
           ? results.landmarks.map((hand: HandLandmark[]) =>

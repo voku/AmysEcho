@@ -95,6 +95,15 @@ export class CameraManager {
       this.video.setAttribute('muted', '');
 
       await this.video.play();
+      if (sessionId !== this.cameraSessionId) {
+        stream.getTracks().forEach((track) => track.stop());
+        this.video.srcObject = null;
+        this.resourceManager.unregisterMediaStream(stream);
+        if (this.registeredStream === stream) {
+          this.registeredStream = null;
+        }
+        return;
+      }
 
       // Update dimensions
       this.updateVideoDimensions();
@@ -193,6 +202,10 @@ export class CameraManager {
         }
       }
       this.stream = null;
+      if (this.registeredStream) {
+        this.resourceManager.unregisterMediaStream(this.registeredStream);
+        this.registeredStream = null;
+      }
     } catch (e) {
       console.warn('Failed to stop camera stream:', e);
     }

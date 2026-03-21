@@ -193,4 +193,23 @@ describe('CameraManager adaptive constraints', () => {
     const persistedEvents = JSON.parse(window.localStorage.getItem('telemetryEvents') || '[]') as Array<{ event?: string }>;
     expect(persistedEvents.some((event) => event.event === 'camera_constraints_recovered')).toBe(true);
   });
+
+  it('unregisters stream references when camera is stopped', async () => {
+    const stream = createMockStream('cleanup-track');
+    const getUserMediaMock = vi.fn().mockResolvedValue(stream);
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: getUserMediaMock },
+    });
+
+    const resourceManager = new ResourceManager();
+    const unregisterSpy = vi.spyOn(resourceManager, 'unregisterMediaStream');
+    const video = createVideoElement();
+    const manager = new CameraManager(video, resourceManager);
+
+    await manager.startCamera();
+    await manager.stopCamera();
+
+    expect(unregisterSpy).toHaveBeenCalledWith(stream);
+  });
 });

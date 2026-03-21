@@ -555,10 +555,11 @@ export function useSignLanguageDetector(
       return startPromiseRef.current;
     }
 
-    const startPromise = (async () => {
+    const attemptSeq = startupAttemptSequenceRef.current + 1;
+    let startPromise: Promise<boolean> | null = null;
+    startPromise = (async () => {
       try {
         const requestedAt = Date.now();
-        const attemptSeq = startupAttemptSequenceRef.current + 1;
         startupAttemptSequenceRef.current = attemptSeq;
         const startupAttempt: StartupTelemetryAttempt = {
           requestedAt,
@@ -596,13 +597,18 @@ export function useSignLanguageDetector(
         setStatus('running');
         return true;
       } catch (err) {
+        if (attemptSeq !== startupAttemptSequenceRef.current) {
+          return false;
+        }
         const reason = err instanceof Error ? err.message : String(err);
         startupTelemetryAttemptRef.current = null;
         setError(reason);
         setStatus('error');
         return false;
       } finally {
-        startPromiseRef.current = null;
+        if (startPromise && startPromiseRef.current === startPromise) {
+          startPromiseRef.current = null;
+        }
       }
     })();
 

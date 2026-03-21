@@ -148,6 +148,54 @@ describe('useSignLanguageDetector', () => {
     expect(orchestrator.start).toHaveBeenCalledTimes(1);
   });
 
+  it('ignores stale startup failures after stop and allows a clean restart', async () => {
+    let rejectFirstStart: ((reason?: unknown) => void) | null = null;
+    const orchestrator = {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      start: vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((_resolve, reject) => {
+              rejectFirstStart = reject;
+            }),
+        )
+        .mockResolvedValueOnce(undefined),
+      stop: vi.fn().mockResolvedValue(undefined),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+    } as unknown as GestureRecognitionOrchestrator;
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    let firstStart: Promise<boolean> | null = null;
+    await act(async () => {
+      firstStart = result.current.start();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await result.current.stop();
+    });
+
+    await act(async () => {
+      rejectFirstStart?.(new Error('stale-start-failure'));
+      await firstStart;
+    });
+
+    await act(async () => {
+      const restarted = await result.current.start();
+      expect(restarted).toBe(true);
+    });
+
+    expect(result.current.status).toBe('running');
+    expect(result.current.error).toBeNull();
+  });
+
   it('aggregates bridge messages and stores gesture state', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
