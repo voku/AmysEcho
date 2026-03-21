@@ -326,7 +326,6 @@ export function SignLanguageRecorder() {
     messageLog,
   } = useSignLanguageDetector(videoRef, overlayRef);
   const { notice: modelNotice, status: modelStatus, lastMeta: modelMeta } = useMlpModelInjection(profileId);
-  const hasAttemptedAutoStart = useRef(false);
   const latestProfileIdRef = useRef<string | null>(profileId);
   const lastProfileModelLogRef = useRef<string>('');
   const lastFilteredPredictionLogRef = useRef<string>('');
@@ -580,16 +579,15 @@ export function SignLanguageRecorder() {
     };
   }, [profileId, apiBaseUrl, apiToken, trainedSignStorageKeys.hasTrainedSigns, trainedSignStorageKeys.trainedLabelDescriptors, trainedSignStorageKeys.trainedSignLabels]);
 
-  // Auto-start camera when component mounts and camera is supported AND we have trained signs
+  // Auto-start camera as soon as detector is idle/stopped to avoid manual startup friction.
   useEffect(() => {
-    if (cameraSupported && status === 'idle' && !hasAttemptedAutoStart.current && hasTrainedSigns === true) {
-      start().then((success) => {
-        if (success) {
-          hasAttemptedAutoStart.current = true;
-        }
-      });
+    if (!cameraSupported) {
+      return;
     }
-  }, [cameraSupported, status, start, hasTrainedSigns]);
+    if (status === 'idle' || status === 'stopped') {
+      void start();
+    }
+  }, [cameraSupported, status, start]);
 
   const normalizedTrainedSignLabels = useMemo(
     () => new Set(trainedSignLabels.map(label => normalizeSignLabel(label)).filter(Boolean)),
@@ -858,10 +856,6 @@ export function SignLanguageRecorder() {
     effectiveSign,
   ]);
 
-  const handleStart = async () => {
-    await start();
-  };
-
   const handleSwitchCamera = useCallback(async () => {
     const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
     
@@ -917,7 +911,10 @@ export function SignLanguageRecorder() {
     navigate('/lernen');
   }, [navigate]);
 
-  const needsCameraStart = status === 'idle' || status === 'stopped' || status === 'error';
+  const handleRetryCamera = useCallback(async () => {
+    await start();
+  }, [start]);
+
   const latestMessageSummary = messageLog[0]?.summary ?? null;
 
   const modelStatusLabel = useMemo(() => {
@@ -983,7 +980,7 @@ export function SignLanguageRecorder() {
       return {
         severity: 'warning' as const,
         title: 'Erkennung läuft noch nicht',
-        hint: 'Tippe auf „Kamera starten“, damit Gebärden erkannt werden können.',
+        hint: 'Die Kamera startet automatisch. Falls es länger dauert, prüfe bitte die Berechtigung.',
       };
     }
 
@@ -1131,19 +1128,17 @@ export function SignLanguageRecorder() {
           )}
         </div>
 
-
-        {needsCameraStart && (
-          <button
-            className="gesture-screen__start"
-            onClick={handleStart}
-            disabled={!cameraSupported}
-            title="Kamera starten"
-          >
-            Kamera starten
-          </button>
-        )}
-
         <div className="gesture-screen__actions">
+          {status === 'error' && (
+            <button
+              className="gesture-screen__action gesture-screen__action--alt"
+              onClick={handleRetryCamera}
+              disabled={!cameraSupported}
+              title="Kamera erneut versuchen"
+            >
+              Kamera erneut versuchen
+            </button>
+          )}
           <button
             className="gesture-screen__action gesture-screen__action--confirm"
             onClick={handleConfirm}

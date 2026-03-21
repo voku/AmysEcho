@@ -13,7 +13,6 @@ import {
 import { buildValidationSummary } from '../training/trainingBundle';
 import {
   formatBytes,
-  getDetectorStartLabel,
   getDetectorStatusLabel,
   getDetectorStatusTone,
   getPhotoStatusPill,
@@ -186,15 +185,15 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     [recordingPreviewMirrored, recordedData.frames],
   );
 
-  // Auto-start camera when metadata is ready and detector is idle/stopped
+  // Auto-start camera immediately when detector is idle/stopped.
   useEffect(() => {
-    if (!cameraSupported || !metadataReady) {
+    if (!cameraSupported) {
       return;
     }
     if (status === 'idle' || status === 'stopped') {
-      startCamera();
+      void startCamera();
     }
-  }, [cameraSupported, metadataReady, status, startCamera]);
+  }, [cameraSupported, status, startCamera]);
 
   // Update recording duration
   useEffect(() => {
@@ -558,8 +557,10 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
   const poseLandmarksAvailable = previewPoseLandmarks.length > 0;
   const faceLandmarksAvailable = previewFaceLandmarks.length > 0;
   const handLandmarksAvailable = latestHandCount > 0;
-  const detectorInactiveNotice = !detectorRunning
-    ? 'Die Kameraerkennung ist angehalten. Starte sie erneut, damit Frames und Standbilder gesammelt werden.'
+  const detectorInactiveNotice = status === 'error'
+    ? 'Die Kameraerkennung konnte nicht gestartet werden. Prüfe den Kamerazugriff und versuche es erneut.'
+    : !detectorRunning
+    ? 'Die Kameraerkennung wird vorbereitet. Frames und Standbilder erscheinen gleich.'
     : !hasLiveFrames
     ? 'Es kommen noch keine Live-Frames an. Positioniere dich vor der Kamera oder warte einen Moment.'
     : '';
@@ -595,9 +596,6 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     : clipLimitExceeded
     ? 'Upload gesperrt, weil die maximale Dateigröße überschritten wurde.'
     : '';
-  const showDetectorStart = !isRecording && status !== 'running';
-  const detectorStartDisabled = status === 'initializing';
-  const detectorStartLabel = getDetectorStartLabel(status);
   const displayedLabel = label.trim() || 'Keine Gebärdenauswahl vorhanden';
   const detectorStatusLabel = getDetectorStatusLabel(status);
   const detectorStatusTone = getDetectorStatusTone(status);
@@ -608,17 +606,19 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
     ? `${framesCaptured} Frames erfasst`
     : detectorRunning
     ? 'Noch keine verwertbaren Frames empfangen'
-    : 'Kamera noch nicht gestartet';
+    : status === 'error'
+    ? 'Kamera nicht verfügbar'
+    : 'Kamera wird vorbereitet…';
   const bannerMessage = useMemo(
     () =>
       getTrainingRecorderBannerMessage({
         photoMode,
         isRecording,
         hasRecording,
-        showDetectorStart,
+        detectorStatus: status,
         detectorRunning,
       }),
-    [photoMode, isRecording, hasRecording, showDetectorStart, detectorRunning],
+    [photoMode, isRecording, hasRecording, detectorRunning, status],
   );
 
   return (
@@ -668,16 +668,6 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
           <div className="gesture-screen__banner">
             <span>{bannerMessage}</span>
           </div>
-
-          {showDetectorStart && (
-            <button
-              className="gesture-screen__start"
-              onClick={startCamera}
-              disabled={!cameraSupported || detectorStartDisabled}
-            >
-              {detectorStartLabel}
-            </button>
-          )}
 
           <div className="gesture-screen__actions training-recorder__actions">
             {photoMode === 'idle' && (

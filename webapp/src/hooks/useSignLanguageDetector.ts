@@ -205,6 +205,7 @@ export function useSignLanguageDetector(
   const [lastMlpCandidates, setLastMlpCandidates] = useState<Array<{ label: string; score: number }>>([]);
   const [messageLog, setMessageLog] = useState<SignLanguageMessage[]>([]);
   const orchestratorRef = useRef<GestureRecognitionOrchestrator | null>(null);
+  const orchestratorInitPromiseRef = useRef<Promise<GestureRecognitionOrchestrator> | null>(null);
   const lastMlpDecisionLogRef = useRef<string>('');
   const handStabilizerRef = useRef<HandLandmarkStabilizer>(
     createHandLandmarkStabilizer({ ttlMs: 250, maxHands: 2 }),
@@ -458,6 +459,9 @@ export function useSignLanguageDetector(
   }, []);
 
   const ensureOrchestrator = useCallback(async () => {
+    if (orchestratorInitPromiseRef.current) {
+      return orchestratorInitPromiseRef.current;
+    }
     if (orchestratorRef.current) {
       return orchestratorRef.current;
     }
@@ -468,11 +472,35 @@ export function useSignLanguageDetector(
       throw new Error('Video- oder Overlay-Element fehlt');
     }
 
-    const orchestrator = orchestratorFactory(video, overlay);
-    orchestratorRef.current = orchestrator;
-    await orchestrator.initialize();
-    return orchestrator;
+    const initPromise = (async () => {
+      const orchestrator = orchestratorFactory(video, overlay);
+      try {
+        await orchestrator.initialize();
+        orchestratorRef.current = orchestrator;
+        return orchestrator;
+      } catch (initError) {
+        await orchestrator.cleanup().catch(() => undefined);
+        throw initError;
+      }
+    })();
+    orchestratorInitPromiseRef.current = initPromise;
+
+    try {
+      return await initPromise;
+    } finally {
+      orchestratorInitPromiseRef.current = null;
+    }
   }, [videoRef, overlayRef, orchestratorFactory]);
+
+  useEffect(() => {
+    if (!videoRef.current || !overlayRef.current || orchestratorRef.current || orchestratorInitPromiseRef.current) {
+      return;
+    }
+
+    void ensureOrchestrator().catch((warmupError) => {
+      console.debug('[Detector] Warmup skipped:', warmupError);
+    });
+  }, [ensureOrchestrator, overlayRef, videoRef]);
 
   const start = useCallback(async () => {
     try {
@@ -509,6 +537,7 @@ export function useSignLanguageDetector(
       }
     } finally {
       orchestratorRef.current = null;
+      orchestratorInitPromiseRef.current = null;
       handStabilizerRef.current.reset();
       setStatus('idle');
       setLastSign(null);

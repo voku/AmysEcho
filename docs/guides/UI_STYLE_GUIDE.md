@@ -108,7 +108,7 @@ Die Web-Gebärdenkamera nutzt ein Vollbild-Layout, damit Hände und Oberkörper 
 
 * **Statuskapsel oben:** Zeigt „Ich höre zu…“, Initialisierung und Fehler klar und ruhig an, inkl. farbigem Punkt.
 * **Profilzeile im HUD:** Kleine, dezente Zeile für das Profil, damit Betreuungspersonen Kontext behalten.
-* **Unteres Steuerdock:** Erkennungs-Banner, die drei Hauptaktionen sowie optionales „Kamera starten“, falls die Erkennung pausiert ist.
+* **Unteres Steuerdock:** Erkennungs-Banner und die drei Hauptaktionen; die Kamera startet automatisch beim Öffnen der Ansicht.
 * **Korrekturfläche:** „Alternativen“ öffnet die Korrektur direkt im Dock, damit Amy im gleichen Fokus bleibt.
 
 ### Leerer Zustand – Gebärdenkamera
