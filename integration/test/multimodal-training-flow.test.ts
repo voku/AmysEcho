@@ -1,7 +1,4 @@
 import assert from 'node:assert';
-import { promises as fs } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { test, before, after } from 'node:test';
 
@@ -17,8 +14,6 @@ before(async () => {
   await createProfile({ id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', displayName: 'Hand-Only Test Profile' });
 });
 after(stopServer);
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function waitForTrainingCompletion(pollUrl: string, headers: Record<string, string>) {
   const start = Date.now();
@@ -53,37 +48,35 @@ async function waitForTrainingCompletion(pollUrl: string, headers: Record<string
   assert.fail(`training job did not complete before timeout (last status: ${lastStatus})`);
 }
 
-async function readTrainingManifest() {
-  const configuredDataDir = process.env.AMY_ECHO_DATA_DIR;
-  const manifestPath = configuredDataDir
-    ? join(configuredDataDir, 'datasets', 'training_manifest.json')
-    : join(__dirname, '..', '..', 'server', 'data', 'datasets', 'training_manifest.json');
-  const raw = await fs.readFile(manifestPath, 'utf8');
-  return JSON.parse(raw) as { entries?: Array<Record<string, any>> };
-}
-
-async function waitForTrainingManifestEntries(profileId: string, labels: string[]) {
+async function waitForTrainingBundleMetadata(bundleIds: string[]) {
   const timeoutMs = 15_000;
   const start = Date.now();
   while (Date.now() - start <= timeoutMs) {
-    try {
-      const manifest = await readTrainingManifest();
-      if (manifest?.entries?.length) {
-        const matches = manifest.entries.filter((entry) => entry.profileId === profileId && labels.includes(entry.label));
-        const foundLabels = new Set(matches.map((entry) => entry.label));
-        if (labels.every((label) => foundLabels.has(label))) {
-          return matches;
+    const results = await Promise.all(
+      bundleIds.map(async (bundleId) => {
+        const response = await fetch(`${serverBaseUrl()}/api/v1/dgs/sample-bundles/${bundleId}`, {
+          headers: serverHeaders(),
+        }).catch(() => null);
+        if (!response || response.status !== 200) {
+          return null;
         }
-      }
-    } catch (error: any) {
-      if (error?.code !== 'ENOENT') {
-        assert.fail(`Failed to read or parse training manifest: ${error?.message ?? error}`);
+        return response.json() as Promise<Record<string, any>>;
+      }),
+    );
+    if (results.every((entry) => !!entry)) {
+      const entries = results.filter((entry): entry is Record<string, any> => !!entry);
+      const allHaveModalities = entries.every((entry) => {
+        const modalities = entry?.metadata?.modalities;
+        return !!modalities?.hands?.present && !!modalities?.pose?.present && !!modalities?.face?.present;
+      });
+      if (allHaveModalities) {
+        return entries;
       }
     }
     await delay(500);
   }
 
-  assert.fail('training manifest was not populated with multimodal entries in time');
+  assert.fail('training bundle details did not expose multimodal metadata in time');
 }
 
 /**
@@ -180,9 +173,9 @@ test('Complete multimodal training and model distribution workflow', async () =>
 
   if (!isLiveServer()) {
     console.log('\n=== Step 1b: Verify Preview Modalities Persisted ===');
-    const manifestEntries = await waitForTrainingManifestEntries(profileId, signs);
-    for (const entry of manifestEntries) {
-      assert.ok(entry?.metadata?.validationSummary?.landmarksPath, 'manifest entry should include landmarks path');
+    const bundleEntries = await waitForTrainingBundleMetadata(bundleIds);
+    for (const entry of bundleEntries) {
+      assert.ok(entry?.validationSummary?.landmarksPath, 'bundle details should include landmarks path');
       const modalities = entry?.metadata?.modalities;
       assert.ok(modalities, 'modalities object should be present in metadata');
       for (const modality of ['hands', 'pose', 'face'] as const) {
@@ -190,7 +183,7 @@ test('Complete multimodal training and model distribution workflow', async () =>
         assert.ok(modalities[modality]?.coverage > 0, `modalities.${modality}.coverage should be greater than 0`);
       }
     }
-    console.log('  ✓ Multimodal preview metadata persisted to training manifest');
+    console.log('  ✓ Multimodal preview metadata persisted in bundle details API');
   }
 
   console.log('\n=== Step 2: Trigger Model Training ===');

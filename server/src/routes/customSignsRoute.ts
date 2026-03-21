@@ -1,19 +1,13 @@
 import type { Express, Request, Response } from "express";
-import { promises as fs } from "fs";
-import path from "path";
 import { z } from "zod";
 import {
-	ensureDataDir,
 	PROFILE_ID_PATTERN,
-	TRAINING_DATASETS_DIR,
 } from "../constants/modelPaths.js";
 import { MIN_SAMPLES_FOR_READY } from "../constants/training.js";
 import { auth } from "../middleware/auth.js";
-import { atomicWriteJson } from "../utils/atomicFs.js";
-import { withFileLock } from "../utils/fileLock.js";
+import { loadCustomSigns } from "../services/profileDataService.js";
+import { mutateCustomSigns } from "../services/trainingJsonStore.js";
 import { loadManifestEntries } from "../utils/manifestUtils.js";
-
-const CUSTOM_SIGNS_PATH = path.join(TRAINING_DATASETS_DIR, "custom_signs.json");
 
 const SignRequestSchema = z.object({
 	id: z
@@ -62,26 +56,12 @@ interface CustomSignResponse extends CustomSign {
 }
 
 async function readStore(): Promise<SignStore> {
-	await ensureDataDir();
-	await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
-	try {
-		const raw = await fs.readFile(CUSTOM_SIGNS_PATH, "utf8");
-		const parsed = JSON.parse(raw);
-		const result = SignStoreSchema.safeParse(parsed);
-		if (result.success) {
-			return result.data;
-		}
-	} catch (error: unknown) {
-		if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-			throw error;
-		}
+	const parsed = await loadCustomSigns();
+	const result = SignStoreSchema.safeParse(parsed);
+	if (result.success) {
+		return result.data;
 	}
 	return { signs: [] };
-}
-
-async function writeStore(store: SignStore): Promise<void> {
-	await fs.mkdir(path.dirname(CUSTOM_SIGNS_PATH), { recursive: true });
-	await atomicWriteJson(CUSTOM_SIGNS_PATH, store);
 }
 
 function normalizeSignId(id: string): string {
@@ -108,7 +88,7 @@ export function registerCustomSignsRoute(
 	deps: CustomSignsDeps = {},
 ): void {
 	app.get("/api/v1/dgs/signs", auth, async (req: Request, res: Response) => {
-		try {
+			try {
 			const store = await readStore();
 			const { profileId } = req.query;
 
@@ -210,45 +190,52 @@ export function registerCustomSignsRoute(
 			if (profileId && !resolved.profileId) {
 				return res.status(404).json({ error: "Profil nicht gefunden." });
 			}
-			const result = await withFileLock(CUSTOM_SIGNS_PATH, async () => {
-				const store = await readStore();
-				// Find existing sign with same id AND profileId (if provided)
-				const existing = store.signs.find(
-					(g) =>
-						g.id === normalizedId &&
-						(resolved.profileId
-							? g.profileId === resolved.profileId
-							: !g.profileId),
-				);
 				const now = new Date().toISOString();
-				if (existing) {
-					existing.label = normalizedLabel;
-					existing.emoji = normalizedEmoji;
-					existing.updatedAt = now;
-					await writeStore(store);
-					return { sign: existing, created: false };
-				}
-				const newSign = {
-					id: normalizedId,
-					label: normalizedLabel,
-					profileId: resolved.profileId ?? undefined,
-					emoji: normalizedEmoji,
-					createdAt: now,
-					updatedAt: now,
-				};
-				store.signs.push(newSign);
-				await writeStore(store);
-				return { sign: newSign, created: true };
-			});
+				let result: { sign: CustomSign; created: boolean } | undefined;
+				mutateCustomSigns<CustomSign>((signs) => {
+					const existing = signs.find(
+						(g) =>
+							g.id === normalizedId &&
+							(resolved.profileId
+								? g.profileId === resolved.profileId
+								: !g.profileId),
+					);
+					if (existing) {
+						existing.label = normalizedLabel;
+						existing.emoji = normalizedEmoji;
+						existing.updatedAt = now;
+						result = { sign: existing, created: false };
+						return;
+					}
+					const newSign: CustomSign = {
+						id: normalizedId,
+						label: normalizedLabel,
+						profileId: resolved.profileId ?? undefined,
+						emoji: normalizedEmoji,
+						createdAt: now,
+						updatedAt: now,
+					};
+					signs.push(newSign);
+					result = { sign: newSign, created: true };
+				});
+				if (!result) throw new Error("Custom sign mutation failed");
 
 			// Auto-trigger model training after custom sign registration
-			if (deps.triggerTrainingJob) {
-				deps.triggerTrainingJob({
-					bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
-					profileId: result.sign.profileId ?? null,
-					label: result.sign.id, // Use the unique ID for training
-				});
-			}
+				if (deps.triggerTrainingJob) {
+					try {
+						deps.triggerTrainingJob({
+							bundleId: `sign-reg-${result.sign.id}-${Date.now()}`,
+							profileId: result.sign.profileId ?? null,
+							label: result.sign.id, // Use the unique ID for training
+						});
+					} catch (trainingError) {
+						console.warn("Failed to trigger training job for custom sign", {
+							signId: result.sign.id,
+							profileId: result.sign.profileId ?? null,
+							error: trainingError,
+						});
+					}
+				}
 
 			return res.status(result.created ? 201 : 200).json(result.sign);
 		} catch (error: unknown) {

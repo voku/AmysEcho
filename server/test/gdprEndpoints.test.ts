@@ -77,6 +77,8 @@ describe('GDPR profile endpoints', () => {
     const db = JSON.parse(JSON.stringify(baseDb)) as Database;
     const dbPath = path.join(caseDir, 'db.json');
     await fs.writeFile(dbPath, JSON.stringify(db, null, 2));
+    const { loadDatabase } = await import('../src/db.js');
+    await loadDatabase(dbPath);
     const registryPath = path.join(caseDir, 'profile_registry.json');
     const registry = createEmptyRegistry();
     ensureProfileRecord(registry, {

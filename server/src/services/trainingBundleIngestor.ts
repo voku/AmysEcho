@@ -5,8 +5,6 @@ import { FACE_LANDMARKS, POSE_LANDMARKS } from "../constants/featureSchema.js";
 import {
 	DATA_DIR,
 	ensureDataDir,
-	TRAINING_MANIFEST_PATH,
-	TRAINING_QUALITY_LOG_PATH,
 } from "../constants/modelPaths.js";
 import {
 	MAX_FACE_JITTER,
@@ -15,9 +13,14 @@ import {
 	MIN_HAND_FRAME_COVERAGE,
 	MIN_SIGN_SAMPLE_FRAMES,
 } from "../constants/trainingQuality.js";
-import { atomicWriteJson } from "../utils/atomicFs.js";
-import { withFileLock } from "../utils/fileLock.js";
 import { logger } from "./logger.js";
+import {
+	appendTrainingQualityLogEntry,
+	loadDgsSamples,
+	loadTrainingManifest,
+	loadTrainingQualityLog,
+	saveDgsSamples,
+} from "./trainingJsonStore.js";
 
 
 const KID_STARTER_PRESET_PATH = process.env.AMY_ECHO_KID_STARTER_PRESET_PATH
@@ -692,50 +695,21 @@ function analyzeTimestampSequence(
 		: undefined;
 }
 
-async function loadManifest(): Promise<TrainingBundleManifestEntry[]> {
-	try {
-		const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(raw);
-		} catch (parseError) {
-			logger.warn(
-				"Training bundle manifest is not valid JSON – ignoring file",
-				{
-					error:
-						parseError instanceof Error
-							? parseError.message
-							: String(parseError),
-					path: TRAINING_MANIFEST_PATH,
-				},
-			);
-			return [];
+function loadManifest(): TrainingBundleManifestEntry[] {
+	const parsed = loadTrainingManifest<unknown>().entries;
+	const validEntries: TrainingBundleManifestEntry[] = [];
+	parsed.forEach((entry, index) => {
+		const result = TrainingBundleManifestEntrySchema.safeParse(entry);
+		if (result.success) {
+			validEntries.push(result.data);
+		} else {
+			logger.warn("Skipping invalid training bundle manifest entry", {
+				index,
+				issues: result.error.issues,
+			});
 		}
-		if (!parsed || typeof parsed !== "object") {
-			return [];
-		}
-		const entries = Array.isArray((parsed as { entries?: unknown }).entries)
-			? (parsed as { entries: unknown[] }).entries
-			: [];
-		const validEntries: TrainingBundleManifestEntry[] = [];
-		entries.forEach((entry, index) => {
-			const result = TrainingBundleManifestEntrySchema.safeParse(entry);
-			if (result.success) {
-				validEntries.push(result.data);
-			} else {
-				logger.warn("Skipping invalid training bundle manifest entry", {
-					index,
-					issues: result.error.issues,
-				});
-			}
-		});
-		return validEntries;
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
-			return [];
-		}
-		throw error;
-	}
+	});
+	return validEntries;
 }
 
 function isQualityMetrics(value: unknown): value is QualityMetrics {
@@ -784,43 +758,12 @@ function normalizeTrainingQualityLogEntries(raw: unknown): TrainingQualityLogEnt
 }
 
 export async function readTrainingQualityLog(): Promise<TrainingQualityLogEntry[]> {
-	try {
-		const raw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, "utf8");
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(raw);
-		} catch (parseError) {
-			logger.warn("Training quality log is not valid JSON", {
-				error:
-					parseError instanceof Error
-						? parseError.message
-						: String(parseError),
-				path: TRAINING_QUALITY_LOG_PATH,
-			});
-			throw parseError;
-		}
-		return normalizeTrainingQualityLogEntries(parsed);
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
-			return [];
-		}
-		throw error;
-	}
+	const payload = loadTrainingQualityLog<unknown>();
+	return normalizeTrainingQualityLogEntries(payload);
 }
 
 async function appendTrainingQualityLog(entry: TrainingQualityLogEntry): Promise<void> {
-	await withFileLock(TRAINING_QUALITY_LOG_PATH, async () => {
-		await fs.mkdir(path.dirname(TRAINING_QUALITY_LOG_PATH), { recursive: true });
-		const entries = await readTrainingQualityLog();
-		entries.push(entry);
-		const deduplicatedByBundle = new Map<string, TrainingQualityLogEntry>();
-		for (const item of entries) {
-			deduplicatedByBundle.set(item.bundleId, item);
-		}
-		await atomicWriteJson(TRAINING_QUALITY_LOG_PATH, {
-			entries: Array.from(deduplicatedByBundle.values()),
-		});
-	});
+	appendTrainingQualityLogEntry(entry);
 }
 
 function normalizeFlattenedLandmarks(raw: unknown): number[][] {
@@ -1182,57 +1125,30 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 	latestCapturedAt?: string;
 }> {
 	await ensureDataDir();
-	const manifestEntries = await loadManifest();
+	const manifestEntries = loadManifest();
 	const qualityThresholds = await loadQualityThresholds();
 	if (manifestEntries.length === 0) {
 		return { appended: 0 };
 	}
 
-	const dataPath = path.join(DATA_DIR, "dgs_samples.json");
-	await fs.mkdir(path.dirname(dataPath), { recursive: true });
-
-	return withFileLock(dataPath, async () => {
-		let dataset: DatasetFile = { samples: [] };
-		let datasetReset = false;
-		try {
-			const raw = await fs.readFile(dataPath, "utf8");
-			try {
-				const parsed: unknown = JSON.parse(raw);
-				const samples = (parsed as Record<string, unknown>)?.samples;
-				if (Array.isArray(samples)) {
-					const normalizedSamples = samples
-						.filter(isDatasetSample)
-						.map((sample) => ({ ...sample }));
-					if (normalizedSamples.length !== samples.length) {
-						datasetReset = true;
-						logger.warn(
-							"Training dataset file contained invalid samples – pruning entries",
-							{
-								discarded: samples.length - normalizedSamples.length,
-								path: dataPath,
-							},
-						);
-					}
-					dataset = { samples: normalizedSamples };
-				}
-			} catch (parseError) {
-				datasetReset = true;
-				logger.warn(
-					"Training dataset file is corrupted – resetting to empty dataset",
-					{
-						error:
-							parseError instanceof Error
-								? parseError.message
-								: String(parseError),
-						path: dataPath,
-					},
-				);
-			}
-		} catch (error) {
-			if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-				throw error;
-			}
+	let dataset: DatasetFile = { samples: [] };
+	let datasetReset = false;
+	const rawDataset = loadDgsSamples<unknown>().samples;
+	if (Array.isArray(rawDataset)) {
+		const normalizedSamples = rawDataset
+			.filter(isDatasetSample)
+			.map((sample) => ({ ...sample }));
+		if (normalizedSamples.length !== rawDataset.length) {
+			datasetReset = true;
+			logger.warn(
+				"Training dataset storage contained invalid samples – pruning entries",
+				{
+					discarded: rawDataset.length - normalizedSamples.length,
+				},
+			);
 		}
+		dataset = { samples: normalizedSamples };
+	}
 
 		if (!Array.isArray(dataset.samples)) {
 			dataset.samples = [];
@@ -1316,14 +1232,13 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 			});
 		}
 
-		if (appended === 0) {
-			if (datasetReset) {
-				await atomicWriteJson(dataPath, dataset);
-			}
-			return { appended: 0, latestCapturedAt };
+	if (appended === 0) {
+		if (datasetReset) {
+			saveDgsSamples(dataset);
 		}
+		return { appended: 0, latestCapturedAt };
+	}
 
-		await atomicWriteJson(dataPath, dataset);
-		return { appended, latestCapturedAt };
-	});
+	saveDgsSamples(dataset);
+	return { appended, latestCapturedAt };
 }

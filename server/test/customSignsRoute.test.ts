@@ -8,8 +8,9 @@ import { AuthService } from '../src/services/authService.js';
 describe('custom signs route', () => {
   let app: Express;
   let dataDir: string;
-  let signsPath: string;
+  let dbPath: string;
   let accessToken: string;
+  let loadCustomSignsFromStore: typeof import('../src/services/trainingJsonStore.js').loadCustomSigns;
 
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-signs-'));
@@ -24,9 +25,11 @@ describe('custom signs route', () => {
     app.use(express.json());
     const mod = await import('../src/routes/customSignsRoute.js');
     const registerCustomSignsRoute = mod.registerCustomSignsRoute;
-    const { TRAINING_DATASETS_DIR } = await import('../src/constants/modelPaths.js');
+    const { loadDatabase } = await import('../src/db.js');
+    ({ loadCustomSigns: loadCustomSignsFromStore } = await import('../src/services/trainingJsonStore.js'));
+    dbPath = path.join(dataDir, 'db.json');
+    await loadDatabase(dbPath);
     registerCustomSignsRoute(app);
-    signsPath = path.join(TRAINING_DATASETS_DIR, 'custom_signs.json');
   });
 
   afterAll(async () => {
@@ -37,7 +40,9 @@ describe('custom signs route', () => {
   beforeEach(async () => {
     await fs.rm(dataDir, { recursive: true, force: true }).catch(() => {});
     await fs.mkdir(dataDir, { recursive: true });
-    await fs.rm(path.dirname(signsPath), { recursive: true, force: true }).catch(() => {});
+    const { loadDatabase } = await import('../src/db.js');
+    dbPath = path.join(dataDir, `db-${Date.now()}.json`);
+    await loadDatabase(dbPath);
   });
 
   it('stores a new custom sign and persists metadata', async () => {
@@ -50,8 +55,7 @@ describe('custom signs route', () => {
     expect(response.body).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' });
     expect(typeof response.body.createdAt).toBe('string');
 
-    const raw = await fs.readFile(signsPath, 'utf8');
-    const stored = JSON.parse(raw);
+    const stored = loadCustomSignsFromStore();
     expect(stored.signs).toHaveLength(1);
     expect(stored.signs[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe zeigen', emoji: '🖐️' });
   });
@@ -71,8 +75,7 @@ describe('custom signs route', () => {
 
     expect(response.body).toMatchObject({ id: 'hilfe', label: 'Hilfe jetzt', emoji: null });
 
-    const raw = await fs.readFile(signsPath, 'utf8');
-    const stored = JSON.parse(raw);
+    const stored = loadCustomSignsFromStore();
     expect(stored.signs).toHaveLength(1);
     expect(stored.signs[0]).toMatchObject({ id: 'hilfe', label: 'Hilfe jetzt', emoji: null });
   });
@@ -115,8 +118,7 @@ describe('custom signs route', () => {
     expect(response2.body).toMatchObject({ id: 'fuss_wackeln', label: 'Fuß wackeln', emoji: '🦶' });
 
     // Verify both are stored
-    const raw = await fs.readFile(signsPath, 'utf8');
-    const stored = JSON.parse(raw);
+    const stored = loadCustomSignsFromStore();
     expect(stored.signs).toHaveLength(2);
   });
 
@@ -147,8 +149,7 @@ describe('custom signs route', () => {
       .expect(201);
 
     // Verify both are stored
-    const raw = await fs.readFile(signsPath, 'utf8');
-    const stored = JSON.parse(raw);
+    const stored = loadCustomSignsFromStore();
     expect(stored.signs).toHaveLength(2);
     expect(stored.signs[0]).toMatchObject({ id: 'mein_zeichen', profileId: '22222222-2222-4222-8222-222222222222' });
     expect(stored.signs[1]).toMatchObject({ id: 'dein_zeichen', profileId: '33333333-3333-4333-8333-333333333333' });
@@ -217,10 +218,31 @@ describe('custom signs route', () => {
       .expect(201);
 
     // Both should be stored
-    const raw = await fs.readFile(signsPath, 'utf8');
-    const stored = JSON.parse(raw);
+    const stored = loadCustomSignsFromStore();
     expect(stored.signs).toHaveLength(2);
     expect(stored.signs[0]).toMatchObject({ id: 'help', label: 'Help from A', profileId: '22222222-2222-4222-8222-222222222222' });
     expect(stored.signs[1]).toMatchObject({ id: 'help', label: 'Help from B', profileId: '33333333-3333-4333-8333-333333333333' });
+  });
+
+  it('returns success even if training trigger throws after sign persistence', async () => {
+    const triggerErrorApp = express();
+    triggerErrorApp.use(express.json());
+    const mod = await import('../src/routes/customSignsRoute.js');
+    mod.registerCustomSignsRoute(triggerErrorApp, {
+      triggerTrainingJob: () => {
+        throw new Error('queue unavailable');
+      },
+    });
+
+    const response = await request(triggerErrorApp)
+      .post('/api/v1/dgs/signs')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ id: 'fallback_sign', label: 'Fallback Sign' })
+      .expect(201);
+
+    expect(response.body).toMatchObject({ id: 'fallback_sign', label: 'Fallback Sign' });
+
+    const stored = loadCustomSignsFromStore();
+    expect(stored.signs.some((sign) => sign.id === 'fallback_sign')).toBe(true);
   });
 });

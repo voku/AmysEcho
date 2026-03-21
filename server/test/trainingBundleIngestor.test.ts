@@ -11,10 +11,12 @@ import {
 let ingestTrainingBundlesIntoDataset: (
   typeof import('../src/services/trainingBundleIngestor.js')
 )['ingestTrainingBundlesIntoDataset'];
-let TRAINING_MANIFEST_PATH: string;
 let DATA_DIR: string;
-let TRAINING_QUALITY_LOG_PATH: string;
 let KID_STARTER_PRESET_PATH: string;
+let DB_PATH: string;
+let saveTrainingManifestToStore: typeof import('../src/services/trainingJsonStore.js').saveTrainingManifest;
+let loadDgsSamplesFromStore: typeof import('../src/services/trainingJsonStore.js').loadDgsSamples;
+let loadTrainingQualityLogFromStore: typeof import('../src/services/trainingJsonStore.js').loadTrainingQualityLog;
 
 function resolveDataPath(relativePath: string): string {
   if (!DATA_DIR) {
@@ -66,11 +68,13 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-bundles-'));
     process.env.AMY_ECHO_DATA_DIR = tempDir;
     const constants = await import('../src/constants/modelPaths.js');
+    const { loadDatabase } = await import('../src/db.js');
+    ({ saveTrainingManifest: saveTrainingManifestToStore, loadDgsSamples: loadDgsSamplesFromStore, loadTrainingQualityLog: loadTrainingQualityLogFromStore } = await import('../src/services/trainingJsonStore.js'));
     DATA_DIR = constants.DATA_DIR;
-    TRAINING_MANIFEST_PATH = constants.TRAINING_MANIFEST_PATH;
-    TRAINING_QUALITY_LOG_PATH = constants.TRAINING_QUALITY_LOG_PATH;
     KID_STARTER_PRESET_PATH = path.join(tempDir, 'config', 'kid_starter_preset.json');
     process.env.AMY_ECHO_KID_STARTER_PRESET_PATH = KID_STARTER_PRESET_PATH;
+    DB_PATH = path.join(tempDir, 'db.json');
+    await loadDatabase(DB_PATH);
     ({ ingestTrainingBundlesIntoDataset } = await import('../src/services/trainingBundleIngestor.js'));
   });
 
@@ -83,6 +87,9 @@ describe('ingestTrainingBundlesIntoDataset', () => {
   beforeEach(async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
     await fs.mkdir(tempDir, { recursive: true });
+    const { loadDatabase } = await import('../src/db.js');
+    DB_PATH = path.join(tempDir, `db-${Date.now()}.json`);
+    await loadDatabase(DB_PATH);
   });
 
   it('copies unique bundle frames into the dataset and avoids duplicates', async () => {
@@ -91,9 +98,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const firstRun = await ingestTrainingBundlesIntoDataset();
     expect(firstRun.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
-    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const dataset = loadDgsSamplesFromStore<any>();
     expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
     expect(dataset.samples[0]).toMatchObject({
       label: 'HALLO',
@@ -115,13 +120,13 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const secondRun = await ingestTrainingBundlesIntoDataset();
     expect(secondRun.appended).toBe(0);
 
-    const datasetAfter = JSON.parse(await fs.readFile(datasetPath, 'utf8')) as { samples: any[] };
+    const datasetAfter = loadDgsSamplesFromStore<any>();
     expect(datasetAfter.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
   });
 
   it('ignores corrupted manifest files instead of throwing', async () => {
-    await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
-    await fs.writeFile(TRAINING_MANIFEST_PATH, '{"entries": [');
+    const { setJsonCollection } = await import('../src/sqliteDb.js');
+    setJsonCollection('training.manifest', { entries: 'broken' });
 
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(0);
@@ -130,15 +135,13 @@ describe('ingestTrainingBundlesIntoDataset', () => {
   it('recovers when the existing dataset JSON is invalid', async () => {
     await writeBundleFixture('bundle-2');
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    await fs.mkdir(path.dirname(datasetPath), { recursive: true });
-    await fs.writeFile(datasetPath, '{invalid json');
+    const { setJsonCollection } = await import('../src/sqliteDb.js');
+    setJsonCollection('training.dgs_samples', { samples: 'broken' });
 
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
-    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
-    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const dataset = loadDgsSamplesFromStore<any>();
     expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
   });
 
@@ -163,9 +166,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
-    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const dataset = loadDgsSamplesFromStore<any>();
     expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
     expect(dataset.samples[0].landmarks[0][0]).toBeCloseTo(0.11, 6);
     expect(dataset.samples[0].landmarks[0][1]).toBeCloseTo(0.12, 6);
@@ -194,9 +195,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
-    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const dataset = loadDgsSamplesFromStore<any>();
     expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
     expect(dataset.samples[0].landmarks[0][0]).toBeCloseTo(0.21, 6);
     expect(dataset.samples[0].landmarks[0][1]).toBeCloseTo(0.22, 6);
@@ -215,8 +214,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(0);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    await expect(fs.readFile(datasetPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    expect(loadDgsSamplesFromStore<any>().samples).toHaveLength(0);
   });
 
   it('skips bundles with excessive hand jitter', async () => {
@@ -232,8 +230,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(0);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    await expect(fs.readFile(datasetPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    expect(loadDgsSamplesFromStore<any>().samples).toHaveLength(0);
   });
 
 
@@ -357,8 +354,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(0);
 
-    const qualityLogRaw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, 'utf8');
-    const qualityLog = JSON.parse(qualityLogRaw) as { entries: Array<{ reasons: string[] }> };
+    const qualityLog = loadTrainingQualityLogFromStore<{ reasons: string[] }>();
     expect(qualityLog.entries[0]?.reasons.some((reason) => reason.includes('> 0.05'))).toBe(true);
   });
 
@@ -389,8 +385,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(0);
 
-    const qualityLogRaw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, 'utf8');
-    const qualityLog = JSON.parse(qualityLogRaw) as { entries: Array<{ bundleId: string; reasons: string[] }> };
+    const qualityLog = loadTrainingQualityLogFromStore<{ bundleId: string; reasons: string[] }>();
     const entry = qualityLog.entries.find((item) => item.bundleId === 'bundle-generic-threshold');
     expect(entry?.reasons.some((reason) => reason.includes('> 0.05'))).toBe(true);
   });
@@ -408,16 +403,13 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(0);
 
-    const qualityLogRaw = await fs.readFile(TRAINING_QUALITY_LOG_PATH, 'utf8');
-    const qualityLog = JSON.parse(qualityLogRaw) as {
-      entries: Array<{
-        bundleId: string;
-        label: string;
-        profileId: string | null;
-        reasons: string[];
-        metrics: Record<string, number>;
-      }>;
-    };
+    const qualityLog = loadTrainingQualityLogFromStore<{
+      bundleId: string;
+      label: string;
+      profileId: string | null;
+      reasons: string[];
+      metrics: Record<string, number>;
+    }>();
 
     expect(qualityLog.entries).toHaveLength(1);
     expect(qualityLog.entries[0]).toMatchObject({
@@ -448,14 +440,13 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     };
     await writeBundleFixture('bundle-rejected-corrupt-log', { frames });
 
-    await fs.mkdir(path.dirname(TRAINING_QUALITY_LOG_PATH), { recursive: true });
-    await fs.writeFile(TRAINING_QUALITY_LOG_PATH, '{invalid json');
+    const { setJsonCollection } = await import('../src/sqliteDb.js');
+    setJsonCollection('training.quality_log', { entries: 'broken' });
 
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(0);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    await expect(fs.readFile(datasetPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    expect(loadDgsSamplesFromStore<any>().samples).toHaveLength(0);
   });
 
   it('persists multimodal landmarks and handedness', async () => {
@@ -488,9 +479,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
-    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const dataset = loadDgsSamplesFromStore<any>();
     expect(dataset.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
     const sample = dataset.samples[0];
 
@@ -524,9 +513,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
-    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const dataset = loadDgsSamplesFromStore<any>();
     const sample = dataset.samples[0];
 
     expect(sample.captureMetadata).toEqual({
@@ -559,9 +546,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
 
-    const datasetPath = resolveDataPath('dgs_samples.json');
-    const datasetRaw = await fs.readFile(datasetPath, 'utf8');
-    const dataset = JSON.parse(datasetRaw) as { samples: any[] };
+    const dataset = loadDgsSamplesFromStore<any>();
     const sample = dataset.samples[0];
 
     expect(sample.ts).toBe(1716897791000);
@@ -656,7 +641,6 @@ describe('ingestTrainingBundlesIntoDataset', () => {
         },
       ],
     };
-    await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
-    await fs.writeFile(TRAINING_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+    saveTrainingManifestToStore(manifest);
   }
 });

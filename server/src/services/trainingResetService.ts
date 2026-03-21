@@ -5,7 +5,6 @@ import {
 	DATA_DIR,
 	MLP_MODELS_DIR,
 	TRAINING_DATASETS_DIR,
-	TRAINING_QUALITY_LOG_PATH,
 	TRAINING_UPLOADS_DIR,
 	USER_TRAINING_DATA_DIR,
 	ensureDataDir,
@@ -17,8 +16,11 @@ import {
 	saveDgsSamples,
 	saveTrainingManifest,
 } from "./profileDataService.js";
-import { atomicWriteJson } from "../utils/atomicFs.js";
 import { resetTrainingStateInSqlite, type TrainingSqliteResetSummary } from "../sqliteDb.js";
+import {
+	loadTrainingQualityLog,
+	saveTrainingQualityLog,
+} from "./trainingJsonStore.js";
 
 const INGESTION_METRICS_PATH = path.join(
 	TRAINING_DATASETS_DIR,
@@ -85,21 +87,10 @@ async function inspectDirectory(targetPath: string): Promise<ResetDirectorySumma
 }
 
 async function writeEmptyTrainingQualityLog(dryRun: boolean): Promise<number> {
-	const existed = await pathExists(TRAINING_QUALITY_LOG_PATH);
-	if (!existed) {
-		if (!dryRun) {
-			await fs.mkdir(path.dirname(TRAINING_QUALITY_LOG_PATH), { recursive: true });
-			await atomicWriteJson(TRAINING_QUALITY_LOG_PATH, { entries: [] });
-		}
-		return 0;
-	}
-
-	const raw = JSON.parse(
-		await fs.readFile(TRAINING_QUALITY_LOG_PATH, "utf8"),
-	) as { entries?: unknown[] };
-	const count = Array.isArray(raw.entries) ? raw.entries.length : 0;
+	const entries = loadTrainingQualityLog<unknown>().entries;
+	const count = Array.isArray(entries) ? entries.length : 0;
 	if (!dryRun) {
-		await atomicWriteJson(TRAINING_QUALITY_LOG_PATH, { entries: [] });
+		saveTrainingQualityLog({ entries: [] });
 	}
 	return count;
 }

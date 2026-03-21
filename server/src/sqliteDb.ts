@@ -34,6 +34,7 @@ let db: Database.Database | null = null;
 let currentDbPath: string | null = null;
 
 type SqliteRow = Record<string, unknown>;
+const JSON_COLLECTION_KEY_PATTERN = /^[a-z0-9_.:-]+$/i;
 
 function getString(row: SqliteRow, key: string): string {
 	return row[key] as string;
@@ -123,6 +124,10 @@ export function closeDatabase(): void {
 		db = null;
 		currentDbPath = null;
 	}
+}
+
+export function isDatabaseInitialized(): boolean {
+	return db !== null;
 }
 
 /**
@@ -312,6 +317,16 @@ function createTables(): void {
 		);
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_userId ON userLabelSettings(userId);
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_labelId ON userLabelSettings(labelId);
+	`);
+
+	// Generic JSON collections for non-relational training workflows migrated from
+	// file-based persistence (training manifest, dgs samples, custom signs, quality log).
+	database.exec(`
+		CREATE TABLE IF NOT EXISTS jsonCollections (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL,
+			updatedAt INTEGER NOT NULL
+		);
 	`);
 }
 
@@ -547,6 +562,77 @@ async function migrateFromJson(jsonPath: string): Promise<void> {
 	} catch (error) {
 		console.warn("Could not create migration backup:", error);
 	}
+
+}
+
+export function getJsonCollection<T>(key: string, fallback: T): T;
+export function getJsonCollection<T>(key: string, fallback: T | null): T | null;
+export function getJsonCollection<T>(key: string, fallback: T | null): T | null {
+	if (!JSON_COLLECTION_KEY_PATTERN.test(key)) {
+		throw new Error(`Invalid json collection key: ${key}`);
+	}
+	const row = getDb()
+		.prepare("SELECT value FROM jsonCollections WHERE key = ?")
+		.get(key) as { value: string } | undefined;
+	if (!row) {
+		return fallback;
+	}
+	try {
+		return JSON.parse(row.value) as T;
+	} catch {
+		return fallback;
+	}
+}
+
+export function setJsonCollection(key: string, value: unknown): void {
+	if (!JSON_COLLECTION_KEY_PATTERN.test(key)) {
+		throw new Error(`Invalid json collection key: ${key}`);
+	}
+	getDb()
+		.prepare(`
+			INSERT INTO jsonCollections (key, value, updatedAt)
+			VALUES (?, ?, ?)
+			ON CONFLICT(key) DO UPDATE SET
+				value = excluded.value,
+				updatedAt = excluded.updatedAt
+		`)
+		.run(key, JSON.stringify(value), Date.now());
+}
+
+export function mutateJsonCollection<T>(
+	key: string,
+	fallback: T,
+	mutator: (current: T) => T,
+): T {
+	if (!JSON_COLLECTION_KEY_PATTERN.test(key)) {
+		throw new Error(`Invalid json collection key: ${key}`);
+	}
+	const database = getDb();
+	const tx = database.transaction(() => {
+		const row = database
+			.prepare("SELECT value FROM jsonCollections WHERE key = ?")
+			.get(key) as { value: string } | undefined;
+		let current = fallback;
+		if (row) {
+			try {
+				current = JSON.parse(row.value) as T;
+			} catch {
+				current = fallback;
+			}
+		}
+		const next = mutator(current);
+		database
+			.prepare(`
+				INSERT INTO jsonCollections (key, value, updatedAt)
+				VALUES (?, ?, ?)
+				ON CONFLICT(key) DO UPDATE SET
+					value = excluded.value,
+					updatedAt = excluded.updatedAt
+			`)
+			.run(key, JSON.stringify(next), Date.now());
+		return next;
+	});
+	return tx();
 }
 
 // ==================== USER OPERATIONS ====================

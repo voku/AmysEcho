@@ -25,9 +25,9 @@ describe("resetTrainingData", () => {
 		const { resetTrainingData } = await import(
 			"../src/services/trainingResetService.js"
 		);
+		const { saveTrainingManifest, saveDgsSamples, saveCustomSigns, saveTrainingQualityLog, loadTrainingManifest, loadDgsSamples, loadCustomSigns, loadTrainingQualityLog } =
+			await import("../src/services/trainingJsonStore.js");
 		const {
-			TRAINING_MANIFEST_PATH,
-			TRAINING_QUALITY_LOG_PATH,
 			TRAINING_UPLOADS_DIR,
 			TRAINING_DATASETS_DIR,
 			MLP_MODELS_DIR,
@@ -60,23 +60,11 @@ describe("resetTrainingData", () => {
 			timestamp: Date.now(),
 		});
 
-		await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
-		await fs.writeFile(
-			TRAINING_MANIFEST_PATH,
-			JSON.stringify({ entries: [{ id: "bundle-1", profileId: "11111111-1111-4111-8111-111111111111" }] }),
-		);
-		await fs.writeFile(
-			path.join(tempDir, "data", "dgs_samples.json"),
-			JSON.stringify({ samples: [{ id: "sample-1", profileId: "11111111-1111-4111-8111-111111111111" }] }),
-		);
-		await fs.writeFile(
-			path.join(TRAINING_DATASETS_DIR, "custom_signs.json"),
-			JSON.stringify({ signs: [{ id: "custom-1", profileId: "11111111-1111-4111-8111-111111111111" }] }),
-		);
-		await fs.writeFile(
-			TRAINING_QUALITY_LOG_PATH,
-			JSON.stringify({ entries: [{ bundleId: "bundle-1" }] }),
-		);
+		saveTrainingManifest({ entries: [{ id: "bundle-1", profileId: "11111111-1111-4111-8111-111111111111" }] });
+		saveDgsSamples({ samples: [{ id: "sample-1", profileId: "11111111-1111-4111-8111-111111111111" }] });
+		saveCustomSigns({ signs: [{ id: "custom-1", profileId: "11111111-1111-4111-8111-111111111111" }] });
+		saveTrainingQualityLog({ entries: [{ bundleId: "bundle-1" }] });
+		await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
 		await fs.writeFile(
 			path.join(TRAINING_DATASETS_DIR, "ingestion_metrics.json"),
 			JSON.stringify({ totals: { uploads: 1 }, profiles: {} }),
@@ -123,17 +111,10 @@ describe("resetTrainingData", () => {
 			preserveGlobalModel: true,
 		});
 
-		const manifest = JSON.parse(await fs.readFile(TRAINING_MANIFEST_PATH, "utf8"));
-		const dgsSamples = JSON.parse(
-			await fs.readFile(path.join(tempDir, "data", "dgs_samples.json"), "utf8"),
-		);
-		const customSigns = JSON.parse(
-			await fs.readFile(
-				path.join(TRAINING_DATASETS_DIR, "custom_signs.json"),
-				"utf8",
-			),
-		);
-		const qualityLog = JSON.parse(await fs.readFile(TRAINING_QUALITY_LOG_PATH, "utf8"));
+		const manifest = loadTrainingManifest();
+		const dgsSamples = loadDgsSamples();
+		const customSigns = loadCustomSigns();
+		const qualityLog = loadTrainingQualityLog();
 
 		expect(summary.trainingManifestEntriesCleared).toBe(1);
 		expect(summary.dgsSamplesCleared).toBe(1);
@@ -172,14 +153,10 @@ describe("resetTrainingData", () => {
 		const { resetTrainingData } = await import(
 			"../src/services/trainingResetService.js"
 		);
-		const { TRAINING_MANIFEST_PATH } = await import("../src/constants/modelPaths.js");
+		const { saveTrainingManifest, loadTrainingManifest } = await import("../src/services/trainingJsonStore.js");
 
 		await loadDatabase(dbPath);
-		await fs.mkdir(path.dirname(TRAINING_MANIFEST_PATH), { recursive: true });
-		await fs.writeFile(
-			TRAINING_MANIFEST_PATH,
-			JSON.stringify({ entries: [{ id: "bundle-1" }] }),
-		);
+		saveTrainingManifest({ entries: [{ id: "bundle-1" }] });
 
 		const summary = await resetTrainingData({
 			dbPath,
@@ -189,7 +166,7 @@ describe("resetTrainingData", () => {
 		expect(summary.dryRun).toBe(true);
 		expect(summary.trainingManifestEntriesCleared).toBe(1);
 		expect(summary.sqlite.correctionsDeleted).toBe(0);
-		expect(JSON.parse(await fs.readFile(TRAINING_MANIFEST_PATH, "utf8"))).toEqual({
+		expect(loadTrainingManifest()).toEqual({
 			entries: [{ id: "bundle-1" }],
 		});
 	});

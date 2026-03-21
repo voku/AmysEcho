@@ -10,7 +10,6 @@ import {
 	ensureDataDir,
 	PROFILE_ID_PATTERN,
 	TRAINING_DATASETS_DIR,
-	TRAINING_MANIFEST_PATH,
 	TRAINING_UPLOADS_DIR,
 } from "../constants/modelPaths.js";
 import { auth } from "../middleware/auth.js";
@@ -18,6 +17,11 @@ import { logger } from "../services/logger.js";
 import { readTrainingQualityLog } from "../services/trainingBundleIngestor.js";
 import { atomicWriteBuffer, atomicWriteJson } from "../utils/atomicFs.js";
 import { withFileLock } from "../utils/fileLock.js";
+import {
+	appendTrainingManifestEntry,
+	loadTrainingManifest,
+	loadTrainingManifestRaw,
+} from "../services/trainingJsonStore.js";
 
 interface TrainingJobTriggerContext {
 	bundleId: string;
@@ -329,30 +333,20 @@ function normalizeClipFilename(value: unknown): string | null {
 }
 
 async function readTrainingManifest(options: { strict: boolean }): Promise<TrainingBundleManifestFile> {
-	try {
-		const raw = await fs.readFile(TRAINING_MANIFEST_PATH, "utf8");
-		const parsed = JSON.parse(raw);
-		if (
-			!parsed ||
-			typeof parsed !== "object" ||
-			!Array.isArray((parsed as { entries?: unknown }).entries)
-		) {
-			if (options.strict) {
-				throw new Error(
-					"Training manifest file is corrupted and would be overwritten.",
-				);
-			}
-			return { entries: [] };
+	if (options.strict) {
+		const raw = loadTrainingManifestRaw();
+		const rawEntries = (raw as { entries?: unknown } | null)?.entries;
+		if (!Array.isArray(rawEntries)) {
+			throw new Error(
+				"Training manifest storage is corrupted and would be overwritten.",
+			);
 		}
-		return {
-			entries: (parsed as { entries: TrainingBundleManifestEntry[] }).entries,
-		};
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
-			return { entries: [] };
-		}
-		throw error;
 	}
+	const parsed = loadTrainingManifest<TrainingBundleManifestEntry>();
+	if (!Array.isArray(parsed.entries)) {
+		return { entries: [] };
+	}
+	return parsed;
 }
 
 function normalizeVariationData(
@@ -1151,14 +1145,26 @@ export function registerTrainingBundleRoute(
 			}
 
 			try {
-				const manifest = await withFileLock(
-					TRAINING_MANIFEST_PATH,
-					() => readTrainingManifest({ strict: false }),
-				);
+				const manifest = await readTrainingManifest({ strict: false });
 
 				const entry = manifest.entries.find((candidate) => candidate.id === bundleId);
 				if (!entry) {
 					return res.status(404).json({ error: "Bundle nicht gefunden" });
+				}
+				if (entry.profileId) {
+					const requestedProfileId = req.get("X-Profile-Id")?.trim();
+					if (!requestedProfileId || requestedProfileId !== entry.profileId) {
+						return res.status(404).json({ error: "Bundle nicht gefunden" });
+					}
+					if (
+						deps.isProfileAuthorized &&
+						!deps.isProfileAuthorized(req, entry.profileId)
+					) {
+						return res.status(403).json({
+							error: "Kein Zugriff auf dieses Profil.",
+							code: "PROFILE_UNAUTHORIZED",
+						});
+					}
 				}
 
 				const qualityGate = buildQualityGateResult(entry.metadata?.validationSummary);
@@ -1168,6 +1174,7 @@ export function registerTrainingBundleRoute(
 					label: entry.label,
 					profileId: entry.profileId,
 					receivedAt: entry.receivedAt,
+					metadata: entry.metadata,
 					validationSummary: entry.metadata?.validationSummary,
 					qualityGate,
 				});
@@ -1484,12 +1491,8 @@ export function registerTrainingBundleRoute(
 					receivedAt: new Date().toISOString(),
 				};
 
-				await withFileLock(TRAINING_MANIFEST_PATH, async () => {
-					await fs.mkdir(TRAINING_DATASETS_DIR, { recursive: true });
-					const manifest = await readTrainingManifest({ strict: true });
-					manifest.entries.push(manifestEntry);
-					await atomicWriteJson(TRAINING_MANIFEST_PATH, manifest);
-				});
+				await readTrainingManifest({ strict: true });
+				appendTrainingManifestEntry(manifestEntry);
 				if (deps.onManifestUpdated) {
 					try {
 						await deps.onManifestUpdated();

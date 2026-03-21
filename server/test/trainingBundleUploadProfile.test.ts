@@ -64,6 +64,8 @@ describe('Training bundle upload profile resolution', () => {
     const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-upload-'));
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     jest.resetModules();
+    const { loadDatabase } = await import('../src/db.js');
+    await loadDatabase(path.join(dataDir, 'db.json'));
 
     const mod = await import('../src/routes/trainingBundleRoute.js');
     const app = express();
@@ -91,6 +93,8 @@ describe('Training bundle upload profile resolution', () => {
     const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-upload-'));
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     jest.resetModules();
+    const { loadDatabase } = await import('../src/db.js');
+    await loadDatabase(path.join(dataDir, 'db.json'));
 
     const mod = await import('../src/routes/trainingBundleRoute.js');
     const app = express();

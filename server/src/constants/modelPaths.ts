@@ -76,14 +76,6 @@ export const BASELINE_MLP_MODEL_PATH = path.join(DATA_DIR, "amy_model.npz");
 
 export const TRAINING_UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 export const TRAINING_DATASETS_DIR = path.join(DATA_DIR, "datasets");
-export const TRAINING_MANIFEST_PATH = path.join(
-	TRAINING_DATASETS_DIR,
-	"training_manifest.json",
-);
-export const TRAINING_QUALITY_LOG_PATH = path.join(
-	TRAINING_DATASETS_DIR,
-	"training_quality_log.json",
-);
 
 // Per-user training data directory structure
 // data/users/{userId}/labels/{labelId}/{mode}/[videos|landmarks]/

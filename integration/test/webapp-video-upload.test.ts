@@ -64,15 +64,6 @@ function buildFrames(): TrainingFrame[] {
   ];
 }
 
-async function readManifest() {
-  const configuredDataDir = process.env.AMY_ECHO_DATA_DIR;
-  const manifestPath = configuredDataDir
-    ? join(configuredDataDir, 'datasets', 'training_manifest.json')
-    : join(repoRoot, 'server', 'data', 'datasets', 'training_manifest.json');
-  const raw = await fs.readFile(manifestPath, 'utf8');
-  return JSON.parse(raw) as { entries?: Array<Record<string, any>> };
-}
-
 async function waitForTrainingCompletion(pollUrl: string) {
   const start = Date.now();
   const timeoutMs = TRAINING_COMPLETION_TIMEOUT_MS;
@@ -271,12 +262,25 @@ test('webapp helpers upload a real repo video and server serves stored clip', as
 
   assert.ok(uploadResult.id.length > 0, 'server should return bundle id');
 
-  const manifest = await readManifest();
-  const entry = manifest.entries?.find((candidate) => candidate.id === uploadResult.id);
-  assert.ok(entry, 'uploaded bundle should be recorded in training manifest');
-  assert.strictEqual(entry?.metadata?.recording?.clipMimeType, 'video/mp4');
-  assert.strictEqual(entry?.metadata?.recording?.clipBytes, clipBytes.length);
-  assert.ok(typeof entry?.storage?.clip === 'string' && entry.storage.clip.length > 0, 'manifest should keep clip storage path');
+  const bundleResponse = await fetch(`${serverBaseUrl()}/api/v1/dgs/sample-bundles/${uploadResult.id}`, {
+    headers: serverHeaders({ 'X-Profile-Id': profileId }),
+  });
+  assert.strictEqual(bundleResponse.status, 200);
+  const entry = await bundleResponse.json() as Record<string, any>;
+  assert.ok(entry, 'uploaded bundle should be retrievable via bundle endpoint');
+  assert.strictEqual(entry?.id, uploadResult.id);
+  assert.strictEqual(entry?.label, 'VIDEO_TEST');
+  assert.strictEqual(entry?.profileId, profileId);
+
+  const otherProfileId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  await createProfile({ id: otherProfileId, displayName: 'Video Upload Other Profile' });
+  const crossProfileResponse = await fetch(`${serverBaseUrl()}/api/v1/dgs/sample-bundles/${uploadResult.id}`, {
+    headers: serverHeaders({ 'X-Profile-Id': otherProfileId }),
+  });
+  assert.ok(
+    crossProfileResponse.status === 403 || crossProfileResponse.status === 404,
+    'bundle details should not be accessible across profiles',
+  );
 
   const clipResponse = await fetch(`${serverBaseUrl()}/api/v1/training-videos/${uploadResult.id}/clip`, {
     headers: serverHeaders(),

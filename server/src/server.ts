@@ -18,7 +18,6 @@ import {
 	getMlpModelPath,
 	PROFILE_ID_PATTERN,
 	SERVER_DIR,
-	TRAINING_MANIFEST_PATH,
 } from "./constants/modelPaths.js";
 import { PROFILE_REGISTRY_PATH } from "./constants/profileRegistryPaths.js";
 import {
@@ -57,6 +56,11 @@ import {
 	writeMinimalMlpModel,
 } from "./services/mlpModelArtifacts.js";
 import { loadCustomSigns, writeProfileBackup } from "./services/profileDataService.js";
+import {
+	appendDgsSamples,
+	loadDgsSamples,
+	loadTrainingManifest,
+} from "./services/trainingJsonStore.js";
 import {
 	ensureProfileRecord,
 	loadProfileRegistry,
@@ -194,30 +198,21 @@ async function collectLabelCounts(): Promise<{
 	globalCounts: Record<string, number>;
 	profileCounts: Map<string, Record<string, number>>;
 }> {
-	const dataPath = path.join(DATA_DIR, "dgs_samples.json");
 	const globalCounts: Record<string, number> = {};
 	const profileCounts = new Map<string, Record<string, number>>();
-
-	try {
-		const raw = await fs.readFile(dataPath, "utf8");
-		const parsed = JSON.parse(raw);
-		const samples = Array.isArray(parsed?.samples) ? parsed.samples : [];
-		for (const sample of samples) {
-			if (!sample || typeof sample !== "object") continue;
-			const label = typeof sample.label === "string" ? sample.label : undefined;
-			if (!label) continue;
-			globalCounts[label] = (globalCounts[label] || 0) + 1;
-			const profileId =
-				typeof sample.profileId === "string" ? sample.profileId : undefined;
-			if (profileId && PROFILE_ID_PATTERN.test(profileId)) {
-				const existing = profileCounts.get(profileId) ?? {};
-				existing[label] = (existing[label] || 0) + 1;
-				profileCounts.set(profileId, existing);
-			}
-		}
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-			throw error;
+	const samples = loadDgsSamples<unknown>().samples;
+	for (const sample of samples) {
+		if (!sample || typeof sample !== "object") continue;
+		const row = sample as { label?: unknown; profileId?: unknown };
+		const label = typeof row.label === "string" ? row.label : undefined;
+		if (!label) continue;
+		globalCounts[label] = (globalCounts[label] || 0) + 1;
+		const profileId =
+			typeof row.profileId === "string" ? row.profileId : undefined;
+		if (profileId && PROFILE_ID_PATTERN.test(profileId)) {
+			const existing = profileCounts.get(profileId) ?? {};
+			existing[label] = (existing[label] || 0) + 1;
+			profileCounts.set(profileId, existing);
 		}
 	}
 
@@ -413,20 +408,11 @@ const healthHandler = async (_req: Request, res: Response) => {
 		overallStatus = "degraded";
 	}
 
-	// Check training manifest
-	try {
-		const manifestExists = await fs.access(TRAINING_MANIFEST_PATH).then(() => true).catch(() => false);
-		checks.trainingManifest = {
-			status: manifestExists ? "ok" : "warning",
-			message: manifestExists ? "Training manifest accessible" : "Training manifest not found (will be created on first bundle upload)",
-		};
-	} catch (error) {
-		checks.trainingManifest = {
-			status: "error",
-			message: error instanceof Error ? error.message : String(error),
-		};
-		overallStatus = "degraded";
-	}
+	const manifestEntries = loadTrainingManifest<unknown>().entries;
+	checks.trainingManifest = {
+		status: "ok",
+		message: `Training manifest entries in SQLite: ${manifestEntries.length}`,
+	};
 
 	res.json({
 		status: overallStatus,
@@ -781,7 +767,6 @@ async function runTrainingWorkflow(
 	const workflowStartMs = Date.now();
 	await ensureDataDir();
 	await logTraining(`job ${id}: data dir ready at ${DATA_DIR}`);
-	const dataPath = path.join(DATA_DIR, "dgs_samples.json");
 
 	const toAdd = samples.map((s) => ({
 		id: genId(),
@@ -792,22 +777,7 @@ async function runTrainingWorkflow(
 	}));
 
 	if (toAdd.length > 0) {
-		await withFileLock(dataPath, async () => {
-			let data: { samples: unknown[] } = { samples: [] };
-			try {
-				const raw = await fs.readFile(dataPath, "utf8");
-				const parsed = JSON.parse(raw) as { samples?: unknown };
-				data = {
-					samples: Array.isArray(parsed.samples) ? parsed.samples : [],
-				};
-			} catch {
-				data = { samples: [] };
-			}
-			data.samples.push(...toAdd);
-			const tmp = `${dataPath}.tmp`;
-			await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-			await fs.rename(tmp, dataPath);
-		});
+		appendDgsSamples(toAdd);
 		await logTraining(`job ${id}: samples appended (${toAdd.length})`);
 	} else if (triggeredByBundles) {
 		await logTraining(
@@ -866,12 +836,24 @@ async function runTrainingWorkflow(
 
 	const scriptPath = config.mlpScript;
 	const serverRoot = SERVER_DIR;
+	const manifestSnapshot = loadTrainingManifest<unknown>();
+	const trainingManifestSnapshotDir = path.join(DATA_DIR, "training-snapshots");
+	await fs.mkdir(trainingManifestSnapshotDir, { recursive: true });
+	const trainingManifestSnapshotPath = path.join(
+		trainingManifestSnapshotDir,
+		`training-manifest-${id}-${randomBytes(6).toString("hex")}.json`,
+	);
+	await fs.writeFile(
+		trainingManifestSnapshotPath,
+		JSON.stringify(manifestSnapshot, null, 2),
+		"utf8",
+	);
 	const scriptArgs = [
 		path.isAbsolute(scriptPath)
 			? scriptPath
 			: path.join(serverRoot, scriptPath),
 		"--manifest",
-		TRAINING_MANIFEST_PATH,
+		trainingManifestSnapshotPath,
 		"--data-dir",
 		DATA_DIR,
 	];
@@ -902,96 +884,100 @@ async function runTrainingWorkflow(
 	let bestAttempt = 0;
 	let lastStderr = "";
 
-	for (let attemptIndex = 0; attemptIndex < trainingSchedule.length; attemptIndex += 1) {
-		const attempt = attemptIndex + 1;
-		const epochs = trainingSchedule[attemptIndex];
-		const attemptArgs = [
-			...scriptArgs,
-			"--epochs",
-			String(epochs),
-			"--seed",
-			String(20260301 + attempt),
-		];
-		await logTraining(
-			`job ${id}: train attempt ${attempt}/${trainingSchedule.length} (epochs=${epochs})`,
-		);
-
-		const runReport = await new Promise<{ stdout: string; stderr: string }>(
-			(resolve, reject) => {
-				const proc = spawn(resolvePythonExecutable(), attemptArgs, {
-					cwd: serverRoot,
-					env: withProjectPythonPath(),
-				});
-				let stdout = "";
-				let stderr = "";
-				let settled = false;
-				const timer = setTimeout(() => {
-					if (settled) return;
-					settled = true;
-					proc.kill("SIGKILL");
-					reject(
-						new Error(`train_mlp timed out after ${config.trainingTimeoutMs}ms`),
-					);
-				}, config.trainingTimeoutMs);
-				timer.unref();
-				proc.stdout?.on("data", (chunk: Buffer) => {
-					stdout += chunk.toString();
-				});
-				proc.stderr?.on("data", (chunk: Buffer) => {
-					stderr += chunk.toString();
-				});
-				proc.on("error", (error) => {
-					if (settled) return;
-					settled = true;
-					clearTimeout(timer);
-					reject(error);
-				});
-				proc.on("close", (code) => {
-					if (settled) return;
-					settled = true;
-					clearTimeout(timer);
-					if (code === 0) {
-						resolve({ stdout, stderr });
-					} else {
-						reject(new Error(stderr || `train_mlp exited with code ${code}`));
-					}
-				});
-			},
-		);
-
-		lastStderr = runReport.stderr.trim();
-		if (lastStderr.length > 0) {
+	try {
+		for (let attemptIndex = 0; attemptIndex < trainingSchedule.length; attemptIndex += 1) {
+			const attempt = attemptIndex + 1;
+			const epochs = trainingSchedule[attemptIndex];
+			const attemptArgs = [
+				...scriptArgs,
+				"--epochs",
+				String(epochs),
+				"--seed",
+				String(20260301 + attempt),
+			];
 			await logTraining(
-				`job ${id}: train_mlp stderr attempt ${attempt} ${lastStderr}`,
+				`job ${id}: train attempt ${attempt}/${trainingSchedule.length} (epochs=${epochs})`,
 			);
-		}
 
-		let parsedReport: Record<string, unknown> = {};
-		const stdoutText = runReport.stdout.trim();
-		if (stdoutText.length > 0) {
-			try {
-				const lines = stdoutText.split(/\r?\n/).filter(Boolean);
-				parsedReport = JSON.parse(lines[lines.length - 1]);
-			} catch (err) {
+			const runReport = await new Promise<{ stdout: string; stderr: string }>(
+				(resolve, reject) => {
+					const proc = spawn(resolvePythonExecutable(), attemptArgs, {
+						cwd: serverRoot,
+						env: withProjectPythonPath(),
+					});
+					let stdout = "";
+					let stderr = "";
+					let settled = false;
+					const timer = setTimeout(() => {
+						if (settled) return;
+						settled = true;
+						proc.kill("SIGKILL");
+						reject(
+							new Error(`train_mlp timed out after ${config.trainingTimeoutMs}ms`),
+						);
+					}, config.trainingTimeoutMs);
+					timer.unref();
+					proc.stdout?.on("data", (chunk: Buffer) => {
+						stdout += chunk.toString();
+					});
+					proc.stderr?.on("data", (chunk: Buffer) => {
+						stderr += chunk.toString();
+					});
+					proc.on("error", (error) => {
+						if (settled) return;
+						settled = true;
+						clearTimeout(timer);
+						reject(error);
+					});
+					proc.on("close", (code) => {
+						if (settled) return;
+						settled = true;
+						clearTimeout(timer);
+						if (code === 0) {
+							resolve({ stdout, stderr });
+						} else {
+							reject(new Error(stderr || `train_mlp exited with code ${code}`));
+						}
+					});
+				},
+			);
+
+			lastStderr = runReport.stderr.trim();
+			if (lastStderr.length > 0) {
 				await logTraining(
-					`job ${id}: failed to parse training report attempt ${attempt} (${String(err)})`,
+					`job ${id}: train_mlp stderr attempt ${attempt} ${lastStderr}`,
 				);
 			}
-		}
 
-		const score = resolveTrainingScore(parsedReport, scoreProfileId);
-		if (score > bestScore) {
-			bestScore = score;
-			bestReport = parsedReport;
-			bestAttempt = attempt;
+			let parsedReport: Record<string, unknown> = {};
+			const stdoutText = runReport.stdout.trim();
+			if (stdoutText.length > 0) {
+				try {
+					const lines = stdoutText.split(/\r?\n/).filter(Boolean);
+					parsedReport = JSON.parse(lines[lines.length - 1]);
+				} catch (err) {
+					await logTraining(
+						`job ${id}: failed to parse training report attempt ${attempt} (${String(err)})`,
+					);
+				}
+			}
+
+			const score = resolveTrainingScore(parsedReport, scoreProfileId);
+			if (score > bestScore) {
+				bestScore = score;
+				bestReport = parsedReport;
+				bestAttempt = attempt;
+			}
+			await logTraining(`job ${id}: attempt ${attempt} score=${score.toFixed(4)}`);
+			if (score >= usableAccuracyThreshold) {
+				await logTraining(
+					`job ${id}: usable score reached (${score.toFixed(4)} >= ${usableAccuracyThreshold})`,
+				);
+				break;
+			}
 		}
-		await logTraining(`job ${id}: attempt ${attempt} score=${score.toFixed(4)}`);
-		if (score >= usableAccuracyThreshold) {
-			await logTraining(
-				`job ${id}: usable score reached (${score.toFixed(4)} >= ${usableAccuracyThreshold})`,
-			);
-			break;
-		}
+	} finally {
+		await fs.rm(trainingManifestSnapshotPath, { force: true }).catch(() => {});
 	}
 
 	const trainDurationMs = Date.now() - trainStartMs;
@@ -1167,29 +1153,13 @@ app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Resp
 			console.log(
 				`Received DGS sample: label=${label}, profileId=${resolvedProfileId}, landmarks length=${landmarks.length}`,
 			);
-			const dataPath = path.join(DATA_DIR, "dgs_samples.json");
-			await withFileLock(dataPath, async () => {
-				let data: { samples: unknown[] } = { samples: [] };
-				try {
-					const raw = await fs.readFile(dataPath, "utf8");
-					const parsed = JSON.parse(raw) as { samples?: unknown };
-					data = {
-						samples: Array.isArray(parsed.samples) ? parsed.samples : [],
-					};
-				} catch (err) {
-					if (getErrnoCode(err) !== "ENOENT") throw err;
-				}
-				data.samples.push({
+			appendDgsSamples([{
 				id: genId(),
 				label,
 				profileId: resolvedProfileId,
 				landmarks,
 				ts: Date.now(),
-			});
-			const tmp = `${dataPath}.tmp`;
-			await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-			await fs.rename(tmp, dataPath);
-		});
+			}]);
 		res.json({ status: "ok" });
 	} catch (error) {
 		console.error("Error saving DGS sample:", error);

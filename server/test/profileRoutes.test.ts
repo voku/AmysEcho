@@ -35,7 +35,6 @@ describe('Profile registry routes', () => {
   let db: Database;
   let dbPath: string;
   let registryPath: string;
-  let manifestPath: string;
   let datasetsDir: string;
   let registerProfileRoutes: typeof import('../src/routes/profileRoutes.js').registerProfileRoutes;
 
@@ -50,7 +49,6 @@ describe('Profile registry routes', () => {
 
     dbPath = path.join(tmpDir, 'db.json');
     registryPath = path.join(tmpDir, 'profile_registry.json');
-    manifestPath = path.join(tmpDir, 'datasets', 'training_manifest.json');
     datasetsDir = path.join(tmpDir, 'datasets');
     db = {
       users: [],
@@ -66,6 +64,8 @@ describe('Profile registry routes', () => {
       corrections: [],
       negativeSamples: [],
     };
+    const { loadDatabase } = await import('../src/db.js');
+    await loadDatabase(dbPath);
 
     const registry = createEmptyRegistry();
     const source = ensureProfileRecord(registry, {
@@ -107,19 +107,17 @@ describe('Profile registry routes', () => {
     await fs.writeFile(dbPath, JSON.stringify(db, null, 2));
     await saveProfileRegistry(registryPath, registry);
 
-    await fs.mkdir(path.dirname(manifestPath), { recursive: true });
-    await fs.writeFile(manifestPath, JSON.stringify({
+    const { saveTrainingManifest, saveDgsSamples, saveCustomSigns } = await import('../src/services/trainingJsonStore.js');
+    saveTrainingManifest({
       entries: [{ id: 'bundle-1', profileId: source.id, label: 'HALLO' }],
-    }));
-    await fs.writeFile(path.join(tmpDir, 'dgs_samples.json'), JSON.stringify({
+    });
+    saveDgsSamples({
       samples: [{ id: 'sample-1', profileId: source.id, label: 'HALLO', landmarks: [], ts: Date.now() }],
-    }));
-    await fs.mkdir(datasetsDir, { recursive: true });
-    await fs.writeFile(path.join(datasetsDir, 'custom_signs.json'), JSON.stringify({
+    });
+    saveCustomSigns({
       signs: [{ id: 'custom-1', label: 'Hallo', profileId: source.id }],
-    }));
+    });
 
-    jest.resetModules();
     const module = await import('../src/routes/profileRoutes.js');
     registerProfileRoutes = module.registerProfileRoutes;
     app = express();
@@ -156,16 +154,14 @@ describe('Profile registry routes', () => {
       .send({ sourceProfileId: '11111111-1111-4111-8111-111111111111' })
       .expect(200);
 
-    const manifestRaw = await fs.readFile(manifestPath, 'utf8');
-    const manifest = JSON.parse(manifestRaw) as { entries: Array<{ profileId: string }> };
+    const { loadTrainingManifest, loadDgsSamples, loadCustomSigns } = await import('../src/services/trainingJsonStore.js');
+    const manifest = loadTrainingManifest() as { entries: Array<{ profileId: string }> };
     expect(manifest.entries[0]?.profileId).toBe('22222222-2222-4222-8222-222222222222');
 
-    const samplesRaw = await fs.readFile(path.join(tmpDir, 'dgs_samples.json'), 'utf8');
-    const samples = JSON.parse(samplesRaw) as { samples: Array<{ profileId: string }> };
+    const samples = loadDgsSamples() as { samples: Array<{ profileId: string }> };
     expect(samples.samples[0]?.profileId).toBe('22222222-2222-4222-8222-222222222222');
 
-    const customRaw = await fs.readFile(path.join(datasetsDir, 'custom_signs.json'), 'utf8');
-    const custom = JSON.parse(customRaw) as { signs: Array<{ profileId: string }> };
+    const custom = loadCustomSigns() as { signs: Array<{ profileId: string }> };
     expect(custom.signs[0]?.profileId).toBe('22222222-2222-4222-8222-222222222222');
 
     expect(db.profiles.find((p) => p.id === '11111111-1111-4111-8111-111111111111')).toBeUndefined();
@@ -195,9 +191,10 @@ describe('Profile registry routes', () => {
 
     db.usageStats = [];
     db.corrections = [];
-    await fs.writeFile(manifestPath, JSON.stringify({ entries: [] }));
-    await fs.writeFile(path.join(tmpDir, 'dgs_samples.json'), JSON.stringify({ samples: [] }));
-    await fs.writeFile(path.join(datasetsDir, 'custom_signs.json'), JSON.stringify({ signs: [] }));
+    const { saveTrainingManifest, saveDgsSamples, saveCustomSigns, loadTrainingManifest, loadDgsSamples, loadCustomSigns } = await import('../src/services/trainingJsonStore.js');
+    saveTrainingManifest({ entries: [] });
+    saveDgsSamples({ samples: [] });
+    saveCustomSigns({ signs: [] });
     await fs.rm(path.join(TRAINING_UPLOADS_DIR, sourceId), { recursive: true, force: true });
     await fs.rm(path.join(MLP_MODELS_DIR, sourceId), { recursive: true, force: true });
 
@@ -207,7 +204,7 @@ describe('Profile registry routes', () => {
       .send({ archiveBase64: archiveBuffer.toString('base64') })
       .expect(200);
 
-    const restoredManifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as {
+    const restoredManifest = loadTrainingManifest() as {
       entries: Array<{ profileId: string; label: string }>;
     };
     expect(restoredManifest.entries).toEqual(
@@ -216,7 +213,7 @@ describe('Profile registry routes', () => {
       ]),
     );
 
-    const restoredSamples = JSON.parse(await fs.readFile(path.join(tmpDir, 'dgs_samples.json'), 'utf8')) as {
+    const restoredSamples = loadDgsSamples() as {
       samples: Array<{ profileId: string; label: string }>;
     };
     expect(restoredSamples.samples).toEqual(
@@ -225,7 +222,7 @@ describe('Profile registry routes', () => {
       ]),
     );
 
-    const restoredCustomSigns = JSON.parse(await fs.readFile(path.join(datasetsDir, 'custom_signs.json'), 'utf8')) as {
+    const restoredCustomSigns = loadCustomSigns() as {
       signs: Array<{ profileId: string; label: string }>;
     };
     expect(restoredCustomSigns.signs).toEqual(
