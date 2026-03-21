@@ -619,7 +619,6 @@ export function useSignLanguageDetector(
   const stop = useCallback(async () => {
     startupAttemptSequenceRef.current += 1;
     startupTelemetryAttemptRef.current = null;
-    startPromiseRef.current = null;
     if (!orchestratorRef.current) {
       setStatus('stopped');
       return;
@@ -634,9 +633,9 @@ export function useSignLanguageDetector(
         await orchestratorRef.current.cleanup();
       }
     } finally {
+      startupAttemptSequenceRef.current += 1;
       orchestratorRef.current = null;
       orchestratorInitPromiseRef.current = null;
-      startPromiseRef.current = null;
       startupTelemetryAttemptRef.current = null;
       handStabilizerRef.current.reset();
       setStatus('idle');

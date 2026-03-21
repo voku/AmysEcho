@@ -212,4 +212,54 @@ describe('CameraManager adaptive constraints', () => {
 
     expect(unregisterSpy).toHaveBeenCalledWith(stream);
   });
+
+  it('cleans up partially initialized streams when video playback fails during start', async () => {
+    const stream = createMockStream('play-failure-track');
+    const getUserMediaMock = vi.fn().mockResolvedValue(stream);
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: getUserMediaMock },
+    });
+
+    const resourceManager = new ResourceManager();
+    const unregisterSpy = vi.spyOn(resourceManager, 'unregisterMediaStream');
+    const video = createVideoElement();
+    Object.defineProperty(video, 'play', {
+      configurable: true,
+      value: vi.fn().mockRejectedValue(new Error('play failed')),
+    });
+    const manager = new CameraManager(video, resourceManager);
+
+    await expect(manager.startCamera()).rejects.toThrow('play failed');
+
+    expect(unregisterSpy).toHaveBeenCalledWith(stream);
+    expect(video.srcObject).toBeNull();
+  });
+
+  it('restarts playback after adaptive stream swaps', async () => {
+    const getUserMediaMock = vi
+      .fn()
+      .mockResolvedValueOnce(createMockStream('initial-track'))
+      .mockResolvedValueOnce(createMockStream('downgraded-track'));
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: getUserMediaMock },
+    });
+
+    const video = createVideoElement();
+    const manager = new CameraManager(video, new ResourceManager());
+    await manager.startCamera();
+
+    for (let i = 0; i < 30; i += 1) {
+      manager.reportProcessingTime(60);
+    }
+    await vi.waitFor(() => {
+      expect(getUserMediaMock).toHaveBeenCalledTimes(2);
+    });
+
+    const playMock = video.play as unknown as { mock: { calls: unknown[][] } };
+    await vi.waitFor(() => {
+      expect(playMock.mock.calls.length).toBe(2);
+    });
+  });
 });

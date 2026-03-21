@@ -147,7 +147,7 @@ function buildMetadata(
 
 export function buildValidationSummary(
   frames: TrainingFrame[],
-  capabilities: ValidationCapabilities = {},
+  capabilities: ValidationCapabilities,
 ): ValidationSummary | null {
   if (!Array.isArray(frames) || frames.length === 0) {
     return null;
@@ -431,7 +431,10 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const usableFrames = payload.frames.filter((frame) => frameHasAnyLandmarks(frame));
   const frames = buildFrameTimeline(usableFrames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
-  const validationSummary = buildValidationSummary(usableFrames);
+  const validationSummary = buildValidationSummary(usableFrames, {
+    poseEnabled: true,
+    faceEnabled: true,
+  });
   const metadata = buildMetadata(
     payload,
     clipFilename,

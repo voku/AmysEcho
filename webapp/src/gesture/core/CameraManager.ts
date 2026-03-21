@@ -59,6 +59,7 @@ export class CameraManager {
     this.adaptingConstraints = false;
 
     const requestClipAudio = false; // Clip capture remains visual-only
+    let pendingStream: MediaStream | null = null;
 
     try {
       const { stream, tier } = await this.requestStreamWithFallback(
@@ -66,15 +67,12 @@ export class CameraManager {
         this.activeConstraintTier,
         requestClipAudio,
       );
+      pendingStream = stream;
       if (sessionId !== this.cameraSessionId) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
-      this.activeConstraintTier = tier;
-
-      this.stream = stream;
       this.video.srcObject = stream;
-      this.replaceRegisteredStream(stream);
 
       if (requestClipAudio) {
         try {
@@ -97,13 +95,15 @@ export class CameraManager {
       await this.video.play();
       if (sessionId !== this.cameraSessionId) {
         stream.getTracks().forEach((track) => track.stop());
-        this.video.srcObject = null;
-        this.resourceManager.unregisterMediaStream(stream);
-        if (this.registeredStream === stream) {
-          this.registeredStream = null;
+        if (this.video.srcObject === stream) {
+          this.video.srcObject = null;
         }
         return;
       }
+      this.activeConstraintTier = tier;
+      this.stream = stream;
+      this.replaceRegisteredStream(stream);
+      pendingStream = null;
 
       // Update dimensions
       this.updateVideoDimensions();
@@ -116,6 +116,13 @@ export class CameraManager {
         constraintProfile: CAMERA_CONSTRAINT_PROFILES[this.activeConstraintTier]?.label ?? 'unknown',
       });
     } catch (error) {
+      if (pendingStream) {
+        pendingStream.getTracks().forEach((track) => track.stop());
+        this.resourceManager.unregisterMediaStream(pendingStream);
+        if (this.video.srcObject === pendingStream) {
+          this.video.srcObject = null;
+        }
+      }
       // Provide specific error handling for camera access issues
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Camera access failed:', errorMessage);
@@ -336,9 +343,21 @@ export class CameraManager {
         nextStream.getTracks().forEach((track) => track.stop());
         return;
       }
-      this.stopCurrentStreamTracks();
-      this.stream = nextStream;
+      const previousStream = this.stream;
       this.video.srcObject = nextStream;
+      await this.video.play();
+      if (sessionId !== this.cameraSessionId || !this.stream) {
+        nextStream.getTracks().forEach((track) => track.stop());
+        if (this.video.srcObject === nextStream) {
+          this.video.srcObject = previousStream;
+        }
+        return;
+      }
+      if (previousStream) {
+        previousStream.getTracks().forEach((track) => track.stop());
+        this.resourceManager.unregisterMediaStream(previousStream);
+      }
+      this.stream = nextStream;
       this.replaceRegisteredStream(nextStream);
       this.activeConstraintTier = acquiredTier;
       this.processingHistory = [];
@@ -377,9 +396,21 @@ export class CameraManager {
         nextStream.getTracks().forEach((track) => track.stop());
         return;
       }
-      this.stopCurrentStreamTracks();
-      this.stream = nextStream;
+      const previousStream = this.stream;
       this.video.srcObject = nextStream;
+      await this.video.play();
+      if (sessionId !== this.cameraSessionId || !this.stream) {
+        nextStream.getTracks().forEach((track) => track.stop());
+        if (this.video.srcObject === nextStream) {
+          this.video.srcObject = previousStream;
+        }
+        return;
+      }
+      if (previousStream) {
+        previousStream.getTracks().forEach((track) => track.stop());
+        this.resourceManager.unregisterMediaStream(previousStream);
+      }
+      this.stream = nextStream;
       this.replaceRegisteredStream(nextStream);
       this.activeConstraintTier = acquiredTier;
       this.processingHistory = [];
@@ -396,23 +427,6 @@ export class CameraManager {
     } finally {
       this.adaptingConstraints = false;
     }
-  }
-
-  private stopCurrentStreamTracks(): void {
-    const current = this.video.srcObject as MediaStream | null;
-    if (current) {
-      current.getTracks().forEach((track) => track.stop());
-    }
-    if (this.stream && this.stream !== current) {
-      this.stream.getTracks().forEach((track) => track.stop());
-    }
-    if (this.stream) {
-      this.resourceManager.unregisterMediaStream(this.stream);
-      if (this.registeredStream === this.stream) {
-        this.registeredStream = null;
-      }
-    }
-    this.video.srcObject = null;
   }
 
   private replaceRegisteredStream(stream: MediaStream): void {
