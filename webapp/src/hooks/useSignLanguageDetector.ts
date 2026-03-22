@@ -101,6 +101,49 @@ type StartupTelemetryAttempt = {
   sequence: number;
 };
 
+function isVideoElementReady(video: HTMLVideoElement): boolean {
+  return (
+    video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+    !video.paused &&
+    video.currentTime > 0
+  );
+}
+
+async function waitForVideoReady(video: HTMLVideoElement, timeoutMs = 1200): Promise<number> {
+  if (!video.srcObject || isVideoElementReady(video)) {
+    return Date.now();
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let timeoutId = 0;
+    let cleanup = () => {
+      video.removeEventListener('playing', onReady);
+      video.removeEventListener('loadeddata', onReady);
+      video.removeEventListener('canplay', onReady);
+      window.clearTimeout(timeoutId);
+    };
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(Date.now());
+    };
+    const onReady = () => {
+      if (isVideoElementReady(video) || video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        settle();
+      }
+    };
+
+    video.addEventListener('playing', onReady);
+    video.addEventListener('loadeddata', onReady);
+    video.addEventListener('canplay', onReady);
+    timeoutId = window.setTimeout(settle, timeoutMs);
+
+    onReady();
+  });
+}
+
 /**
  * Return the best message with a meaningful gesture label, or null.
  * Prefers highest-confidence message; falls back to the latest meaningful entry
@@ -263,6 +306,7 @@ export function useSignLanguageDetector(
     const handleBridgeMessage = (event: Event) => {
       const detail = (event as CustomEvent<string>).detail;
       if (!detail) return;
+      markDetectorFirstFrame(Date.now());
       const parsed = parseIncomingMessage(detail);
       if (!parsed) return;
       setMessageLog((prev) => {
@@ -279,7 +323,6 @@ export function useSignLanguageDetector(
 
         return [parsed, ...prev].slice(0, 10);
       });
-
       if (parsed.payload && typeof parsed.payload === 'object') {
         const payload = parsed.payload as {
           gesture?: string;
@@ -457,10 +500,6 @@ export function useSignLanguageDetector(
           setLastUsedFallback(resolvedFallback);
         }
 
-        if (hasGesturePayload) {
-          markDetectorFirstFrame(parsed.receivedAt);
-        }
-
         if (isMeaningfulGestureLabel(payload.gesture)) {
           setLastSign(payload.gesture);
           setLastConfidence(typeof payload.confidence === 'number' ? payload.confidence : null);
@@ -492,7 +531,6 @@ export function useSignLanguageDetector(
           const stabilized = stabilizer.update(landmarksCandidate as number[][][], normalizedHandedness);
           setLastLandmarks(stabilized.landmarks);
           setLastHandedness(stabilized.handedness);
-          markDetectorFirstFrame(parsed.receivedAt);
         }
       }
     };
@@ -503,7 +541,7 @@ export function useSignLanguageDetector(
     };
   }, [markDetectorFirstFrame]);
 
-  const ensureOrchestrator = useCallback(async () => {
+  const ensureOrchestrator = useCallback(async (attemptSeq?: number) => {
     if (orchestratorInitPromiseRef.current) {
       return orchestratorInitPromiseRef.current;
     }
@@ -521,6 +559,10 @@ export function useSignLanguageDetector(
       const orchestrator = orchestratorFactory(video, overlay);
       try {
         await orchestrator.initialize();
+        if (typeof attemptSeq === 'number' && attemptSeq !== startupAttemptSequenceRef.current) {
+          await orchestrator.cleanup().catch(() => undefined);
+          throw new Error('startup_attempt_aborted');
+        }
         orchestratorRef.current = orchestrator;
         return orchestrator;
       } catch (initError) {
@@ -578,12 +620,18 @@ export function useSignLanguageDetector(
 
         setStatus('initializing');
         setError(null);
-        const orchestrator = await ensureOrchestrator();
-        await orchestrator.start();
+        const orchestrator = await ensureOrchestrator(attemptSeq);
         if (attemptSeq !== startupAttemptSequenceRef.current) {
+          await orchestrator.stop().catch(() => undefined);
           return false;
         }
-        const streamReadyAt = Date.now();
+        await orchestrator.start();
+        if (attemptSeq !== startupAttemptSequenceRef.current) {
+          await orchestrator.stop().catch(() => undefined);
+          return false;
+        }
+        const video = videoRef.current;
+        const streamReadyAt = video ? await waitForVideoReady(video) : Date.now();
         startupAttempt.streamReadyAt = streamReadyAt;
         void sendTelemetryEvent('camera_stream_ready_at', {
           source: telemetrySource,
@@ -614,7 +662,7 @@ export function useSignLanguageDetector(
 
     startPromiseRef.current = startPromise;
     return startPromise;
-  }, [ensureOrchestrator, status, telemetrySource]);
+  }, [ensureOrchestrator, status, telemetrySource, videoRef]);
 
   const stop = useCallback(async () => {
     startupAttemptSequenceRef.current += 1;

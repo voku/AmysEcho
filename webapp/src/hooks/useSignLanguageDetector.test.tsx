@@ -82,6 +82,39 @@ describe('useSignLanguageDetector', () => {
     );
   });
 
+  it('marks detector_first_frame_at on the first detector bridge message even without landmarks', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [{ gesture: null, landmarks: [] }],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      const eventNames = sendTelemetryEventMock.mock.calls.map(([name]) => name);
+      expect(eventNames).toContain('detector_first_frame_at');
+      expect(eventNames).toContain('startup_latency_ms');
+    });
+  });
+
   it('starts and stops the orchestrator', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
@@ -194,6 +227,44 @@ describe('useSignLanguageDetector', () => {
 
     expect(result.current.status).toBe('running');
     expect(result.current.error).toBeNull();
+  });
+
+  it('does not call orchestrator.start when startup gets aborted before orchestrator init resolves', async () => {
+    let resolveInitialize: (() => void) | null = null;
+    const orchestrator = {
+      initialize: vi.fn().mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveInitialize = resolve;
+          }),
+      ),
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+    } as unknown as GestureRecognitionOrchestrator;
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    const { result } = renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+      }),
+    );
+
+    let startPromise: Promise<boolean> | null = null;
+    await act(async () => {
+      startPromise = result.current.start();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await result.current.stop();
+    });
+    await act(async () => {
+      resolveInitialize?.();
+      await startPromise;
+    });
+
+    expect(orchestrator.start).not.toHaveBeenCalled();
   });
 
   it('aggregates bridge messages and stores gesture state', async () => {

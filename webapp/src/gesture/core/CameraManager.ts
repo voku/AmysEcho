@@ -345,7 +345,15 @@ export class CameraManager {
       }
       const previousStream = this.stream;
       this.video.srcObject = nextStream;
-      await this.video.play();
+      try {
+        await this.video.play();
+      } catch (playError) {
+        nextStream.getTracks().forEach((track) => track.stop());
+        if (this.video.srcObject === nextStream) {
+          this.video.srcObject = previousStream;
+        }
+        throw playError;
+      }
       if (sessionId !== this.cameraSessionId || !this.stream) {
         nextStream.getTracks().forEach((track) => track.stop());
         if (this.video.srcObject === nextStream) {
@@ -398,7 +406,15 @@ export class CameraManager {
       }
       const previousStream = this.stream;
       this.video.srcObject = nextStream;
-      await this.video.play();
+      try {
+        await this.video.play();
+      } catch (playError) {
+        nextStream.getTracks().forEach((track) => track.stop());
+        if (this.video.srcObject === nextStream) {
+          this.video.srcObject = previousStream;
+        }
+        throw playError;
+      }
       if (sessionId !== this.cameraSessionId || !this.stream) {
         nextStream.getTracks().forEach((track) => track.stop());
         if (this.video.srcObject === nextStream) {
