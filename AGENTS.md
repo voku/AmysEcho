@@ -16,12 +16,12 @@ For guidelines specific to the server, see the `AGENTS.md` file within the `serv
 ## Rule Priority (Conflict Resolution)
 
 When instructions conflict, apply this precedence order:
-1. **Safety and correctness constraints**
-2. **System/developer/runtime constraints**
+1. **Safety and correctness constraints** (no unsafe fabrication, no destructive or unverifiable behavior)
+2. **System/developer/runtime constraints** (tooling, environment, execution restrictions)
 3. **Direct user task requirements**
 4. **Directory-scoped AGENTS.md rules** (root first, then deeper nested files)
-5. **Project workflow/process requirements**
-6. **Style, naming, and formatting preferences**
+5. **Project workflow requirements** (discovery/planning/testing/documentation)
+6. **Style and preference guidance** (naming, abstraction preferences, formatting suggestions)
 
 ### Amy First Commitments
 - ✅ **Zero interruption** - Amy's communication never pauses
