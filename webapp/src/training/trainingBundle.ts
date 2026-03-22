@@ -6,7 +6,7 @@ import {
   framesHaveHandLandmarks,
   handFocusSupportsMirrorAugmentation,
 } from './handUtils';
-import { validateLandmarkSequence } from './trainingValidator';
+import { type ValidationCapabilities, validateLandmarkSequence } from './trainingValidator';
 import { fetchWithRetry, HttpError } from '../utils/http';
 import type {
   TrainingBundlePayload,
@@ -145,7 +145,10 @@ function buildMetadata(
   };
 }
 
-export function buildValidationSummary(frames: TrainingFrame[]): ValidationSummary | null {
+export function buildValidationSummary(
+  frames: TrainingFrame[],
+  capabilities: ValidationCapabilities,
+): ValidationSummary | null {
   if (!Array.isArray(frames) || frames.length === 0) {
     return null;
   }
@@ -159,7 +162,7 @@ export function buildValidationSummary(frames: TrainingFrame[]): ValidationSumma
       Array.isArray(frame.faceLandmarks) ? frame.faceLandmarks : [],
     ];
   });
-  const result = validateLandmarkSequence(sequence);
+  const result = validateLandmarkSequence(sequence, capabilities);
   return {
     frameCount: frames.length,
     issues: result.issues,
@@ -428,7 +431,10 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const usableFrames = payload.frames.filter((frame) => frameHasAnyLandmarks(frame));
   const frames = buildFrameTimeline(usableFrames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
-  const validationSummary = buildValidationSummary(usableFrames);
+  const validationSummary = buildValidationSummary(usableFrames, {
+    poseEnabled: true,
+    faceEnabled: true,
+  });
   const metadata = buildMetadata(
     payload,
     clipFilename,

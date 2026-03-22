@@ -2,6 +2,10 @@
 export const MIN_SIGN_SAMPLE_FRAMES = 8;
 /** Mindestanteil an Frames mit Hand-Landmarks (0.0-1.0). */
 export const MIN_HAND_FRAME_COVERAGE = 0.7;
+/** Mindestanteil an Frames mit Pose-Landmarks (0.0-1.0). */
+export const MIN_POSE_FRAME_COVERAGE = 0.6;
+/** Mindestanteil an Frames mit Face-Landmarks (0.0-1.0). */
+export const MIN_FACE_FRAME_COVERAGE = 0.6;
 /** Maximale mittlere Frame-zu-Frame-Distanz für Hand-Landmarks (normalisierte Koordinaten). */
 export const MAX_HAND_JITTER = 0.3;
 /** Maximale mittlere Frame-zu-Frame-Distanz für Pose-Landmarks (normalisierte Koordinaten). */

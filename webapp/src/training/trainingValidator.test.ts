@@ -56,6 +56,34 @@ describe('TrainingDataValidator', () => {
     expect(result.suggestions).toContain('Halte deine Hände während der gesamten Aufnahme sichtbar im Bild.');
   });
 
+  it('flags low pose coverage', () => {
+    const seq = Array.from({ length: 10 }, (_, index) =>
+      makeMultiModalFrame({ includePose: index < 5 }),
+    );
+
+    const result = validateLandmarkSequence(seq, { poseEnabled: true });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toContain('pose_coverage_low');
+    expect(result.suggestions).toContain(
+      'Halte deinen Oberkörper im Bild, damit Pose-Landmarks zuverlässig erkannt werden.',
+    );
+  });
+
+  it('flags low face coverage', () => {
+    const seq = Array.from({ length: 10 }, (_, index) =>
+      makeMultiModalFrame({ includeFace: index < 5 }),
+    );
+
+    const result = validateLandmarkSequence(seq, { faceEnabled: true });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toContain('face_coverage_low');
+    expect(result.suggestions).toContain(
+      'Halte dein Gesicht möglichst durchgängig im Bild für stabile Gesichts-Landmarks.',
+    );
+  });
+
   it('flags high hand jitter', () => {
     const seq = Array.from({ length: 12 }, (_, index) =>
       makeMultiModalFrame({ handOffset: index % 2 === 0 ? 0 : MAX_HAND_JITTER + 1.2 }),
@@ -73,7 +101,7 @@ describe('TrainingDataValidator', () => {
       makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : MAX_POSE_JITTER + 1.2 }),
     );
 
-    const result = validateLandmarkSequence(seq);
+    const result = validateLandmarkSequence(seq, { poseEnabled: true });
 
     expect(result.ok).toBe(false);
     expect(result.issues).toContain('pose_jitter_high');
@@ -86,7 +114,7 @@ describe('TrainingDataValidator', () => {
       makeMultiModalFrame({ poseOffset: index % 2 === 0 ? 0 : MAX_POSE_JITTER * 0.5 }),
     );
 
-    const result = validateLandmarkSequence(seq);
+    const result = validateLandmarkSequence(seq, { poseEnabled: true });
 
     expect(result.issues).not.toContain('pose_jitter_high');
   });
@@ -118,7 +146,7 @@ describe('TrainingDataValidator', () => {
       makeMultiModalFrame({ faceOffset: index % 2 === 0 ? 0 : MAX_FACE_JITTER * 0.5 }),
     );
 
-    const result = validateLandmarkSequence(seq);
+    const result = validateLandmarkSequence(seq, { faceEnabled: true });
 
     expect(result.issues).not.toContain('face_jitter_high');
   });
@@ -128,7 +156,7 @@ describe('TrainingDataValidator', () => {
       makeMultiModalFrame({ faceOffset: index % 2 === 0 ? 0 : MAX_FACE_JITTER + 1.2 }),
     );
 
-    const result = validateLandmarkSequence(seq);
+    const result = validateLandmarkSequence(seq, { faceEnabled: true });
 
     expect(result.ok).toBe(false);
     expect(result.issues).toContain('face_jitter_high');
@@ -144,8 +172,15 @@ describe('TrainingDataValidator', () => {
         faceOffset: i * 0.0008,
       }));
     }
-    const result = validateLandmarkSequence(seq);
+    const result = validateLandmarkSequence(seq, { poseEnabled: true, faceEnabled: true });
     expect(result.ok).toBe(true);
     expect(result.issues).toHaveLength(0);
+  });
+
+  it('does not emit pose/face coverage issues for hand-only capability sessions', () => {
+    const seq = Array.from({ length: 10 }, () => makeMultiModalFrame({ includePose: false, includeFace: false }));
+    const result = validateLandmarkSequence(seq, { poseEnabled: false, faceEnabled: false });
+    expect(result.issues).not.toContain('pose_coverage_low');
+    expect(result.issues).not.toContain('face_coverage_low');
   });
 });
