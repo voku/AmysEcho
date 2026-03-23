@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from config_constants import INPUT_FEATURE_SIZE, WINDOW_SIZE
 from sliding_window import create_sliding_windows, normalize_frame_sequence
 
