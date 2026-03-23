@@ -29,6 +29,44 @@ type PrototypeBank = {
 
 const PROTOTYPE_CONFIDENCE_FLOOR = 0.55;
 const PROTOTYPE_BLEND_WEIGHT = 0.2;
+export type MlpFeatureMode = 'absolute' | 'relative_delta';
+
+export function buildWindowedVisualFeatures({
+  rollingBuffer,
+  currentFrameVec,
+  windowSize,
+  featureSizePerFrame,
+  featureMode,
+}: {
+  rollingBuffer: Float32Array[];
+  currentFrameVec: Float32Array;
+  windowSize: number;
+  featureSizePerFrame: number;
+  featureMode: MlpFeatureMode;
+}): Float32Array {
+  const visualFeatures = new Float32Array(windowSize * featureSizePerFrame);
+  const paddingFrame = rollingBuffer[rollingBuffer.length - 1] ?? currentFrameVec;
+
+  for (let i = 0; i < windowSize; i++) {
+    const frame = rollingBuffer[i] ?? paddingFrame;
+    const offset = i * featureSizePerFrame;
+
+    if (featureMode === 'relative_delta') {
+      if (i === 0) {
+        continue;
+      }
+      const previous = rollingBuffer[i - 1] ?? paddingFrame;
+      for (let j = 0; j < featureSizePerFrame; j++) {
+        visualFeatures[offset + j] = (frame[j] ?? 0) - (previous[j] ?? 0);
+      }
+      continue;
+    }
+
+    visualFeatures.set(frame, offset);
+  }
+
+  return visualFeatures;
+}
 
 export function installMlp(customModelData?: string): Promise<boolean> {
   type Tensor = { data: Float32Array; shape: number[] };
@@ -58,6 +96,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   let mlp: MlpModel | null = null; // { w1,b1,w2,b2,w3,b3,labels }
   let WINDOW_SIZE = 30; // Default, will be updated from model metadata
   let rollingBuffer: Float32Array[] = [];
+  let activeFeatureMode: MlpFeatureMode = 'absolute';
 
   function inferInputPlan(
     inputSize: number,
@@ -766,12 +805,13 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       
       if (isTemporal) {
         // Temporal model: flatten rolling buffer (window_size can be 1)
-        const visualFeatures = new Float32Array(windowSize * featureSizePerFrame);
-        const paddingFrame = rollingBuffer[rollingBuffer.length - 1] ?? currentFrameVec;
-        for (let i = 0; i < windowSize; i++) {
-          const frame = rollingBuffer[i] ?? paddingFrame;
-          visualFeatures.set(frame, i * featureSizePerFrame);
-        }
+        const visualFeatures = buildWindowedVisualFeatures({
+          rollingBuffer,
+          currentFrameVec,
+          windowSize,
+          featureSizePerFrame,
+          featureMode: activeFeatureMode,
+        });
         // Match server-side short-clip padding by repeating the latest observed frame
         // instead of introducing zero-only prefixes that bias startup toward _NULL_.
 
@@ -914,6 +954,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     }
   }
   window.__setMlpModelB64 = async (b64: string) => {
+    activeFeatureMode = window.__mlpFeatureMode === 'relative_delta' ? 'relative_delta' : 'absolute';
     const ok = await loadMlpFromB64(b64);
     if (ok) {
       forwardTelemetry('mlp_loaded');
@@ -966,6 +1007,9 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   return (async () => {
     // Try custom model data first (for profile models)
     if (customModelData) {
+      // Resolve activeFeatureMode from global state before loading,
+      // same as __setMlpModelB64 does, to avoid stale feature mode.
+      activeFeatureMode = window.__mlpFeatureMode === 'relative_delta' ? 'relative_delta' : 'absolute';
       if (await loadMlpFromB64(customModelData)) {
         forwardTelemetry('mlp_custom_loaded', { size: customModelData.length });
         return true;

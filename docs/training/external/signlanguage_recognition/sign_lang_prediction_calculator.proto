@@ -1,0 +1,53 @@
+syntax = "proto2";
+
+package signlang;
+
+import "mediapipe/framework/calculator.proto";
+
+// IMPORTANT: Currently not in use, because not supported by mediapipe framework.
+// Full Example:
+// node {
+//   calculator: "SignLangPredictionCalculator"
+//   input_stream: "DETECTIONS:output_detections"
+//   input_stream: "NORM_LANDMARKS:multi_hand_landmarks"
+//   output_stream: "TEXT:prediction"
+//  options {
+//      [signlang.SignLangPredictionCalculatorOptions.ext] {
+//          verbose: true
+//          maxFrames: 20
+//          thresholdFramesCount = 60
+//          minFramesForInference = 10
+//      }
+//   }
+// }
+
+message SignLangPredictionCalculatorOptions {
+  extend mediapipe.CalculatorOptions {
+    optional SignLangPredictionCalculatorOptions ext = 23081994;
+  }
+  // If true, the log output will be more verbose.
+  optional bool verbose = 1 [default = false];
+
+  // Defines the frames window size to predict.
+  optional int32 framesWindowSize = 2 [default = 100];
+
+  // To detect single signs, we seperate them by detecting no hands for a given number of frames.
+  // Is the threshould reached, a prediction will be made. After that the frames will be deleted.
+  optional int32 thresholdFramesCount = 3 [default = 60];
+
+  // The minimum count of frames, that are required for prediction.
+  // This excludes the frames that are filled to reach [maxFrames].
+  optional int32 minFramesForInference = 4 [default = 10];
+
+  // If true, use 3D coordinates and inference with 3D model.
+  optional bool use3D = 5 [default = false];
+
+  // A threshold for prediction probabilities.
+  optional float probabilityThreshold = 6 [default = 0.5];
+
+  optional string tfLiteModelPath = 7 [default = "models/sign_lang_recognition_2D.tflite"];
+
+  optional bool fluentPrediction = 8 [default = false];
+
+  optional bool useRelative = 9 [default = false];
+}

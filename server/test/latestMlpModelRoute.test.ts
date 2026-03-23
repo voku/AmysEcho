@@ -49,6 +49,8 @@ describe('GET /latest-mlp-model', () => {
   let dataDir: string;
   let app: Express;
   let originalDataDir: string | undefined;
+  let originalContractEnv: string | undefined;
+  let originalRelativeModeEnv: string | undefined;
   let modelPaths: typeof import('../src/constants/modelPaths.js');
   let baselinePath: string;
   let accessToken: string;
@@ -112,11 +114,18 @@ describe('GET /latest-mlp-model', () => {
     expect(response.headers['x-resolved-path']).toBe(storedModelPath);
     expect(response.headers['x-model-source']).toBe('global');
     expect(response.headers['x-model-profile']).toBeUndefined();
+    expect(response.headers['x-feature-schema-version']).toBe('1');
+    expect(response.headers['x-model-window-size']).toBe('30');
+    expect(response.headers['x-model-window-feature-size']).toBe('48870');
+    expect(response.headers['x-model-frame-feature-size']).toBe('1629');
+    expect(response.headers['x-model-contract-status']).toBe('missing');
   }
 
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-mlp-endpoint-'));
     originalDataDir = process.env.AMY_ECHO_DATA_DIR;
+    originalContractEnv = process.env.MLP_REQUIRE_VALID_CONTRACT;
+    originalRelativeModeEnv = process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE;
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     jest.resetModules();
 
@@ -169,6 +178,8 @@ describe('GET /latest-mlp-model', () => {
 
   beforeEach(async () => {
     deniedProfiles.clear();
+    delete process.env.MLP_REQUIRE_VALID_CONTRACT;
+    delete process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE;
     await fs.rm(dataDir, { recursive: true, force: true });
     await fs.mkdir(dataDir, { recursive: true });
     await ensureBaselineModelFixture(baselinePath);
@@ -180,6 +191,16 @@ describe('GET /latest-mlp-model', () => {
       process.env.AMY_ECHO_DATA_DIR = originalDataDir;
     } else {
       delete process.env.AMY_ECHO_DATA_DIR;
+    }
+    if (originalContractEnv !== undefined) {
+      process.env.MLP_REQUIRE_VALID_CONTRACT = originalContractEnv;
+    } else {
+      delete process.env.MLP_REQUIRE_VALID_CONTRACT;
+    }
+    if (originalRelativeModeEnv !== undefined) {
+      process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE = originalRelativeModeEnv;
+    } else {
+      delete process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE;
     }
   });
 
@@ -207,6 +228,19 @@ describe('GET /latest-mlp-model', () => {
         pose: 8,
         face: 0,
       },
+      config_snapshot: {
+        epochs: 120,
+        learning_rate: 0.003,
+        dropout_rate: 0.25,
+      },
+      artifact_contract: {
+        feature_schema_version: 1,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+        feature_mode: 'absolute',
+      },
     };
     const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
     await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
@@ -224,6 +258,185 @@ describe('GET /latest-mlp-model', () => {
     expect(response.headers['x-training-modalities-counts']).toBe(
       JSON.stringify({ hands: 12, pose: 8, face: 0 }),
     );
+    expect(response.headers['x-training-epochs']).toBe('120');
+    expect(response.headers['x-training-learning-rate']).toBe('0.003');
+    expect(response.headers['x-training-dropout-rate']).toBe('0.25');
+    expect(response.headers['x-model-contract-status']).toBe('valid');
+    expect(response.headers['x-model-contract-reason']).toBeUndefined();
+    expect(response.headers['x-model-label-count']).toBe('12');
+    expect(response.headers['x-model-feature-mode']).toBe('absolute');
+  });
+
+  it('returns invalid contract headers when artifact contract mismatches local schema', async () => {
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    const trainingMetadata = {
+      artifact_contract: {
+        feature_schema_version: 999,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+      },
+    };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-contract-status']).toBe('invalid');
+    expect(response.headers['x-model-contract-reason']).toBe('schema_version_mismatch');
+  });
+
+  it('returns invalid contract headers for unsupported feature mode metadata', async () => {
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    const trainingMetadata = {
+      artifact_contract: {
+        feature_schema_version: 1,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+        feature_mode: 'mystery_mode',
+      },
+    };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-contract-status']).toBe('invalid');
+    expect(response.headers['x-model-contract-reason']).toBe('unsupported_feature_mode');
+    expect(response.headers['x-model-feature-mode']).toBeUndefined();
+  });
+
+  it('returns invalid contract headers when feature mode is missing', async () => {
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    const trainingMetadata = {
+      artifact_contract: {
+        feature_schema_version: 1,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+      },
+    };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-contract-status']).toBe('invalid');
+    expect(response.headers['x-model-contract-reason']).toBe('missing_feature_mode');
+    expect(response.headers['x-model-feature-mode']).toBeUndefined();
+  });
+
+  it('returns invalid contract headers when relative feature mode is disabled', async () => {
+    process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE = '0';
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    const trainingMetadata = {
+      artifact_contract: {
+        feature_schema_version: 1,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+        feature_mode: 'relative_delta',
+      },
+    };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-contract-status']).toBe('invalid');
+    expect(response.headers['x-model-contract-reason']).toBe('relative_feature_mode_disabled');
+  });
+
+  it('rejects invalid contracts when strict contract mode is enabled', async () => {
+    process.env.MLP_REQUIRE_VALID_CONTRACT = '1';
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    const trainingMetadata = {
+      artifact_contract: {
+        feature_schema_version: 999,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+      },
+    };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(404);
+
+    const decoded = JSON.parse((response.body as Buffer).toString('utf8'));
+    expect(decoded).toEqual({ error: 'Model not found' });
+  });
+
+  it('rejects missing contracts when strict contract mode is enabled', async () => {
+    process.env.MLP_REQUIRE_VALID_CONTRACT = '1';
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    // Write metadata WITHOUT artifact_contract → contract status = "missing"
+    const trainingMetadata = { version: 'v-no-contract' };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(404);
+
+    const decoded = JSON.parse((response.body as Buffer).toString('utf8'));
+    expect(decoded).toEqual({ error: 'Model not found' });
   });
 
   it('returns 304 for matching If-None-Match after a model upload', async () => {
@@ -253,6 +466,50 @@ describe('GET /latest-mlp-model', () => {
     expect(secondResponse.headers['x-checksum-sha256']).toBe(firstResponse.headers['x-checksum-sha256']);
     expect(secondResponse.headers['cache-control']).toBe(firstResponse.headers['cache-control']);
     expect(secondResponse.headers['cdn-cache-control']).toBe(firstResponse.headers['cdn-cache-control']);
+  });
+
+  it('returns 404 (not 500) on 304 path when strict contract mode rejects the model', async () => {
+    process.env.MLP_REQUIRE_VALID_CONTRACT = '1';
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    // Write metadata with a mismatched schema so contract is "invalid"
+    const trainingMetadata = {
+      artifact_contract: {
+        feature_schema_version: 999,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+      },
+    };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    // First request gets the ETag (headers are set before contract rejection)
+    const firstResponse = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(404);
+
+    const etag = firstResponse.headers['etag'];
+    expect(typeof etag).toBe('string');
+
+    // Second request uses If-None-Match → hits the 304 path which should
+    // also reject with 404, not 500
+    const secondResponse = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('If-None-Match', etag as string)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(404);
+
+    const decoded = JSON.parse((secondResponse.body as Buffer).toString('utf8'));
+    expect(decoded).toEqual({ error: 'Model not found' });
   });
 
   it('returns 404 when baseline seeding fails', async () => {
