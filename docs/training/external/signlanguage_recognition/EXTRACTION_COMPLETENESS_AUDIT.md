@@ -53,3 +53,12 @@ All high-value reusable code concepts from the upstream repository have been eit
 - converted into explicit, scoped follow-up work.
 
 Empirical benchmark execution for relative vs absolute feature mode is now complete, and current evidence supports keeping absolute mode as default while preserving relative mode as an opt-in experiment.
+
+
+---
+
+## 2026-03-23 follow-up validation update
+
+A follow-up blind-spot review found that the local copied upstream snapshot was too narrow for fully offline continuation. This was remediated by copying additional training/runtime reference files (sweeps, stable training script, key calculators, key graphs, conversion scripts, and label map) into this extraction folder.
+
+See `CODE_REVIEW_BLIND_SPOT_VALIDATION_2026-03-23.md` and folder `runtime/` for the expanded extraction set.
