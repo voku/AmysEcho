@@ -90,11 +90,13 @@ def _parse_training_report(stdout: str) -> dict[str, object]:
 
 
 def _extract_score(report: dict[str, object]) -> tuple[float, float]:
-    training = report.get("training")
-    if not isinstance(training, dict):
+    global_metrics = report.get("global")
+    if not isinstance(global_metrics, dict):
+        global_metrics = report.get("training")
+    if not isinstance(global_metrics, dict):
         return (0.0, 0.0)
-    accuracy = float(training.get("accuracy", 0.0) or 0.0)
-    f1_score = float(training.get("f1_score", 0.0) or 0.0)
+    accuracy = float(global_metrics.get("accuracy", 0.0) or 0.0)
+    f1_score = float(global_metrics.get("f1_score", 0.0) or 0.0)
     return (accuracy, f1_score)
 
 
@@ -137,7 +139,7 @@ def main() -> None:
     results: list[dict[str, object]] = []
 
     for config_index, config in enumerate(sweep_configs):
-        trial_scores: list[dict[str, float]] = []
+        trial_scores: list[dict[str, float | int]] = []
         for trial in range(args.trials):
             seed = args.seed + (config_index * 1000) + trial
             with tempfile.TemporaryDirectory(prefix="amy-mlp-sweep-") as tmp_dir:
@@ -162,12 +164,15 @@ def main() -> None:
                 if run.returncode != 0:
                     raise RuntimeError(
                         "Sweep run failed for config "
-                        f"{config} (seed={seed}). stderr:\n{run.stderr}"
+                        f"{config} (seed={seed}).\n"
+                        f"command: {' '.join(command)}\n"
+                        f"stdout:\n{run.stdout}\n"
+                        f"stderr:\n{run.stderr}"
                     )
                 report = _parse_training_report(run.stdout)
                 accuracy, f1_score = _extract_score(report)
                 trial_scores.append(
-                    {"accuracy": accuracy, "f1_score": f1_score, "seed": float(seed)}
+                    {"accuracy": accuracy, "f1_score": f1_score, "seed": seed}
                 )
 
         result = {

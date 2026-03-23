@@ -13,6 +13,8 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 
 import numpy as np
@@ -48,12 +50,18 @@ def main() -> None:
     parser.add_argument(
         "--report-path",
         type=Path,
-        default=Path("/tmp/training_workflow_smoke_report.json"),
+        default=None,
     )
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--max-files-per-label", type=int, default=2)
     parser.add_argument("--holdout-ratio", type=float, default=0.5)
     args = parser.parse_args()
+    report_path = (
+        args.report_path
+        if args.report_path is not None
+        else Path(tempfile.gettempdir())
+        / f"training_workflow_smoke_report_{int(time.time() * 1000)}.json"
+    )
 
     realistic_command = [
         sys.executable,
@@ -72,12 +80,12 @@ def main() -> None:
         "600",
         "--keep-attempt-artifacts",
         "--report-path",
-        str(args.report_path),
+        str(report_path),
     ]
     realistic_stdout = run_command(realistic_command)
     realistic_summary = parse_json_output(realistic_stdout)
 
-    report = json.loads(args.report_path.read_text(encoding="utf-8"))
+    report = json.loads(report_path.read_text(encoding="utf-8"))
     model_rel = report["bestAttempt"]["evaluation"]["model_path"]
     model_path = PROJECT_ROOT / str(model_rel)
     metadata_path = model_path.parent / "training_metadata.json"
@@ -90,7 +98,7 @@ def main() -> None:
     if not manifest_path.exists():
         raise RuntimeError(f"Generated train manifest missing: {manifest_path}")
 
-    model_data = np.load(model_path, allow_pickle=True)
+    model_data = np.load(model_path, allow_pickle=False)
     required_keys = {"w1", "b1", "w2", "b2", "w3", "b3", "labels"}
     if not required_keys.issubset(set(model_data.files)):
         raise RuntimeError(f"Generated model missing required keys: {required_keys - set(model_data.files)}")
@@ -132,7 +140,7 @@ def main() -> None:
     output = {
         "status": "ok",
         "realisticSummary": realistic_summary,
-        "reportPath": str(args.report_path),
+        "reportPath": str(report_path),
         "modelPath": str(model_path),
         "trainManifestPath": str(manifest_path),
         "labelsCount": len(labels),

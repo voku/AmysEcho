@@ -505,9 +505,13 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 				)
 			: undefined;
 		const labels = Array.isArray(parsed.labels)
-			? parsed.labels.filter(
-					(entry): entry is string =>
-						typeof entry === "string" && entry.trim().length > 0,
+			? Array.from(
+					new Set(
+						parsed.labels
+							.filter((entry): entry is string => typeof entry === "string")
+							.map((entry) => entry.trim())
+							.filter((entry) => entry.length > 0),
+					),
 				)
 			: undefined;
 		const modalityCounts =

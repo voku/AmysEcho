@@ -21,11 +21,11 @@ def test_parse_training_report_from_last_json_line() -> None:
     stdout = "\n".join(
         [
             "debug line",
-            '{"training": {"accuracy": 0.5, "f1_score": 0.4}}',
+            '{"global": {"accuracy": 0.5, "f1_score": 0.4}}',
         ]
     )
     report = _parse_training_report(stdout)
-    assert report["training"] == {"accuracy": 0.5, "f1_score": 0.4}
+    assert report["global"] == {"accuracy": 0.5, "f1_score": 0.4}
 
 
 def test_parse_training_report_raises_when_no_json() -> None:
@@ -35,6 +35,11 @@ def test_parse_training_report_raises_when_no_json() -> None:
 
 def test_extract_score_with_missing_training_section() -> None:
     assert _extract_score({}) == (0.0, 0.0)
+
+
+def test_extract_score_uses_global_metrics() -> None:
+    report = {"global": {"accuracy": 0.75, "f1_score": 0.5}}
+    assert _extract_score(report) == (0.75, 0.5)
 
 
 def test_build_command_includes_expected_arguments() -> None:

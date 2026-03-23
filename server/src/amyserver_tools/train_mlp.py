@@ -2642,7 +2642,7 @@ def _write_training_metadata(
 ) -> None:
     counts = _summarize_modality_counts(samples)
     modalities = [key for key in MODALITY_KEYS if counts[key] > 0]
-    unique_labels = sorted({str(label) for label in labels if str(label)})
+    unique_labels = sorted({str(label).strip() for label in labels if str(label).strip()})
     label_count = len(unique_labels)
     payload = {
         "version": version,
