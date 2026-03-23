@@ -303,6 +303,7 @@ export async function writeMinimalMlpModel(
 
 type TrainingMetadata = {
 	version?: string;
+	labels?: string[];
 	modalities?: ModalityKey[];
 	modalityCounts?: Partial<Record<ModalityKey, number>>;
 	configSnapshot?: {
@@ -436,6 +437,7 @@ type ContractStatus = "missing" | "invalid" | "valid";
 
 function evaluateArtifactContract(
 	contract: TrainingMetadata["artifactContract"] | undefined,
+	labels: string[] | undefined,
 ): { status: ContractStatus; reason?: string } {
 	if (!contract) {
 		return { status: "missing" };
@@ -466,6 +468,14 @@ function evaluateArtifactContract(
 	) {
 		return { status: "invalid", reason: "invalid_label_count" };
 	}
+	if (
+		typeof contract.labelCount === "number" &&
+		Array.isArray(labels) &&
+		labels.length > 0 &&
+		contract.labelCount !== labels.length
+	) {
+		return { status: "invalid", reason: "label_count_mismatch" };
+	}
 	const featureMode = contract.featureMode;
 	if (typeof featureMode === "undefined") {
 		return { status: "invalid", reason: "missing_feature_mode" };
@@ -494,6 +504,12 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 					MODALITY_KEYS.includes(entry as ModalityKey),
 				)
 			: undefined;
+		const labels = Array.isArray(parsed.labels)
+			? parsed.labels.filter(
+					(entry): entry is string =>
+						typeof entry === "string" && entry.trim().length > 0,
+				)
+			: undefined;
 		const modalityCounts =
 			normalizeModalityCounts(parsed.modality_counts) ?? undefined;
 		const configSnapshot =
@@ -502,6 +518,7 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 			normalizeArtifactContract(parsed.artifact_contract) ?? undefined;
 		if (
 			!version &&
+			(!labels || labels.length === 0) &&
 			(!modalities || modalities.length === 0) &&
 			!modalityCounts &&
 			!configSnapshot &&
@@ -511,6 +528,7 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 		}
 		return {
 			version,
+			labels,
 			modalities,
 			modalityCounts,
 			configSnapshot,
@@ -632,6 +650,7 @@ export function applyModelResponseHeaders(
 	const trainingMetadata = readTrainingMetadata(filePath);
 	const contractEvaluation = evaluateArtifactContract(
 		trainingMetadata?.artifactContract,
+		trainingMetadata?.labels,
 	);
 	res.setHeader("X-Model-Contract-Status", contractEvaluation.status);
 	if (contractEvaluation.reason) {

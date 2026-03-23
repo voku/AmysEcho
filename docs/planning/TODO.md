@@ -612,17 +612,15 @@ Remaining items are recommendations for future improvement, not blockers.
 
 ---
 
-## External DGS Reuse Extraction (SignLanguageRecognition)
+## External DGS Reuse Consolidation (SignLanguageRecognition)
 
-- [x] Import reusable upstream reference assets into `docs/training/external/signlanguage_recognition/` with provenance and license notes.
 - [x] Publish adaptation blueprint in `docs/training/DGS_SIGNLANG_REUSE_IMPLEMENTATION_PLAN.md` with concrete Amy's Echo integration tasks.
-- [x] Build upstream source index in `docs/training/external/signlanguage_recognition/SOURCE_FILE_INDEX.md` so future contributors can locate migration-relevant files fast.
-- [x] Build detailed handoff map in `docs/training/external/signlanguage_recognition/HANDOFF_IMPLEMENTATION_MAP.md` with prioritized backlog and acceptance criteria.
 - [x] Expose model artifact schema/runtime headers (`X-Feature-Schema-Version`, window sizes, frame feature size, and optional training config snapshot fields) in `/latest-mlp-model` responses to make inference contract explicit for clients and diagnostics.
 - [x] Implement artifact contract validation metadata for model serving (`artifact_contract` in `training_metadata.json`) and expose contract status/reason headers in `/latest-mlp-model`.
 - [x] Consume contract status in webapp `modelClient` and reject `invalid` profile responses to force safe fallback to global/cached models. _Extended: client now parses `X-Model-Feature-Mode`, rejects `relative_delta` by default for safety, and allows explicit opt-in experiments via `VITE_ENABLE_RELATIVE_DELTA_MODEL=1`._
 - [x] Implement fixed-window normalization utility in `server/training/sliding_window.py` (`normalize_frame_sequence`) with Python tests for padding/truncation/weight validation and short-clip window generation.
 - [x] Add unknown-threshold inference gating telemetry assertions (`mlp_prediction_rejected` with score/threshold/reason payload) in `useSignLanguageDetector` tests.
-- [x] Publish extraction completeness + blind-spot audit in `docs/training/external/signlanguage_recognition/EXTRACTION_COMPLETENESS_AUDIT.md` to confirm implemented vs pending value.
 - [x] Benchmark optional relative-motion features against current absolute baseline. _Done: `docs/testing/benchmarks/relative_vs_absolute_sparse_profile_report_2026-03-23.md` shows `absolute` (0.2464) outperforming `relative_delta` (0.1739) on sparse-profile clip split; default remains absolute._
-- [x] Expand offline extraction snapshot with additional upstream training/runtime files (sweeps, stable training script, calculators, graph configs, conversion scripts, label map) and publish final blind-spot validation handoff doc for no-upstream-access continuation. _Done: `docs/training/external/signlanguage_recognition/CODE_REVIEW_BLIND_SPOT_VALIDATION_2026-03-23.md`._
+- [x] Merge reusable extraction insights into maintained project docs (`docs/training/SIGNLANG_REUSE_PLAYBOOK.md`) and remove the unmaintained raw snapshot directory `docs/training/external/signlanguage_recognition/`.
+- [x] Harden artifact label consistency by persisting `labels` in `training_metadata.json` and rejecting `/latest-mlp-model` responses when `artifact_contract.label_count` does not match the metadata label list length.
+- [x] Re-check every removed external snapshot file and record adaptation decisions in `docs/training/SIGNLANG_EXTERNAL_RECHECK_2026-03-23.md`; port additional reusable code where justified. _Done: added maintained sweep orchestration script `server/src/amyserver_tools/train_mlp_sweep.py`._

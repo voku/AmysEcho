@@ -2636,14 +2636,17 @@ def _write_training_metadata(
     model_dir: Path,
     version: str,
     samples: list[Sample],
+    labels: list[str],
     metadata_context: dict[str, object],
     feature_mode: str,
 ) -> None:
     counts = _summarize_modality_counts(samples)
     modalities = [key for key in MODALITY_KEYS if counts[key] > 0]
-    label_count = len({sample.label for sample in samples})
+    unique_labels = sorted({str(label) for label in labels if str(label)})
+    label_count = len(unique_labels)
     payload = {
         "version": version,
+        "labels": unique_labels,
         "modalities": modalities,
         "modality_counts": counts,
         "sample_count": len(samples),
@@ -3043,6 +3046,7 @@ def run_training_pipeline(
             global_dir,
             training_version,
             samples,
+            label_set,
             metadata_payload,
             FEATURE_MODE,
         )
@@ -3133,6 +3137,7 @@ def run_training_pipeline(
                 profile_dir,
                 training_version,
                 p_samples,
+                p_labels,
                 profile_metadata_payload,
                 FEATURE_MODE,
             )

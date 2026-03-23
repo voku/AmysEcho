@@ -84,6 +84,21 @@ function activatePendingModel(): Promise<boolean> {
 
 ## 🧪 Testing Strategy
 
+### DGS Training Workflow Smoke Check (Server)
+
+For integration-sensitive training changes (trainer, metadata contract, model serving, sweep tooling), run:
+
+```bash
+npm run train:workflow:smoke --prefix server
+```
+
+This command runs a lightweight end-to-end workflow using repository DGS landmark videos:
+- realistic training cycle (small config),
+- generated model artifact + metadata contract checks,
+- sweep-tool execution against the generated manifest.
+
+Use this before larger/full training runs to catch obvious regressions quickly.
+
 ### Test Categories
 1. **Communication Tests** - Does Amy's gesture recognition work?
 2. **Reliability Tests** - Does it work under stress/failure?

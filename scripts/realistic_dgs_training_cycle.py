@@ -457,7 +457,7 @@ def main() -> None:
         if BASELINE_MODEL_PATH.exists():
             try:
                 baseline_result = evaluate_model(BASELINE_MODEL_PATH, eval_manifest_path)
-            except RuntimeError as exc:
+            except Exception as exc:  # noqa: BLE001
                 baseline_error = str(exc)
 
         for attempt_index in range(attempts):
