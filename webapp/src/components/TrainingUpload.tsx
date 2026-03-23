@@ -26,6 +26,7 @@ import { SymbolButton } from './SymbolButton';
 import { syncAllProfilesToServer } from '../services/profileRegistry';
 import { dedupeSymbolsByName, normalizeSymbolName } from '../utils/symbolDedup';
 import { normalizeGestureLabel } from '../utils/stringUtils';
+import type { MlpModelMeta } from '../gesture/modelClient';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -314,7 +315,7 @@ function resolveLabelReadiness(entry: ReportLabelDiagnostic): { title: string; h
 
 function formatModelSourceLabel(
   modelStatus: 'idle' | 'loading' | 'ready' | 'error',
-  modelMeta: { source?: 'profile' | 'global' | null; version?: string | null } | null,
+  modelMeta: Pick<MlpModelMeta, 'source' | 'version'> | null,
 ): string {
   if (modelStatus === 'loading') {
     return 'Modell wird geladen…';
@@ -329,6 +330,19 @@ function formatModelSourceLabel(
     return 'Modell konnte nicht geladen werden';
   }
   return 'Noch kein Modell aktiv';
+}
+
+function formatModelContractHint(modelMeta: MlpModelMeta | null): string | null {
+  if (!modelMeta || modelMeta.contractStatus === 'valid') {
+    return null;
+  }
+  if (modelMeta.contractStatus === 'missing') {
+    return 'Der Modellvertrag fehlt. Das Modell bleibt nutzbar, wird aber als Übergangslösung behandelt.';
+  }
+  if (modelMeta.contractStatus === 'invalid') {
+    return `Der Modellvertrag ist ungültig (${modelMeta.contractReason ?? 'unbekannt'}).`;
+  }
+  return null;
 }
 
 function TrainingStatusBlock({
@@ -349,11 +363,12 @@ function TrainingStatusBlock({
   onSyncBundle?: (key: string) => Promise<void>;
   onRemoveBundle?: (key: string) => Promise<void>;
   modelStatus: 'idle' | 'loading' | 'ready' | 'error';
-  modelMeta: { source?: 'profile' | 'global' | null; version?: string | null } | null;
+  modelMeta: MlpModelMeta | null;
   profileId: string | null;
 }) {
   const { error, syncError, trainingJobError, queuedCount, syncing, lastQueuedKey, lastResult, trainingJob, queuedBundles } = uploader;
   const activeTrainingJob = trainingJob ?? lastResult?.trainingJob ?? null;
+  const modelContractHint = formatModelContractHint(modelMeta);
 
   const blockedAuthCount = queuedBundles.filter((bundle) =>
     bundle.status === 'failed' && isAuthFailureReason(bundle.lastError),
@@ -382,6 +397,12 @@ function TrainingStatusBlock({
           <p className="muted small mt-xs">
             Für dieses Profil läuft die Erkennung derzeit auf dem globalen Ersatzmodell, nicht auf einem persönlichen Profilmodell.
           </p>
+        ) : null}
+        {typeof modelMeta?.labelCount === 'number' ? (
+          <p className="muted small mt-xs">Aktive Modell-Labels: {modelMeta.labelCount}</p>
+        ) : null}
+        {modelContractHint ? (
+          <p className="muted small mt-xs">{modelContractHint}</p>
         ) : null}
       </div>
       {activeTrainingJob && (
