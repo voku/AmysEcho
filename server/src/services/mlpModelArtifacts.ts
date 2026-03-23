@@ -638,11 +638,12 @@ export function applyModelResponseHeaders(
 		res.setHeader("X-Model-Contract-Reason", contractEvaluation.reason);
 	}
 	if (
-		contractEvaluation.status === "invalid" &&
+		(contractEvaluation.status === "invalid" ||
+			contractEvaluation.status === "missing") &&
 		requiresValidModelContract()
 	) {
 		throw new Error(
-			`Ungültiger Modellvertrag: ${contractEvaluation.reason ?? "unknown"}`,
+			`Ungültiger Modellvertrag: ${contractEvaluation.reason ?? contractEvaluation.status}`,
 		);
 	}
 	if (trainingMetadata) {
@@ -681,15 +682,15 @@ export function applyModelResponseHeaders(
 				String(trainingMetadata.artifactContract.labelCount),
 			);
 		}
-			if (
-				trainingMetadata.artifactContract?.featureMode === "absolute" ||
-				trainingMetadata.artifactContract?.featureMode === "relative_delta"
-			) {
-				res.setHeader(
-					"X-Model-Feature-Mode",
-					trainingMetadata.artifactContract.featureMode,
-				);
-			}
+		if (
+			trainingMetadata.artifactContract?.featureMode === "absolute" ||
+			trainingMetadata.artifactContract?.featureMode === "relative_delta"
+		) {
+			res.setHeader(
+				"X-Model-Feature-Mode",
+				trainingMetadata.artifactContract.featureMode,
+			);
+		}
 	}
 	res.setHeader(
 		"Content-Disposition",

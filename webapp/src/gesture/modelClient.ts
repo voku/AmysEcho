@@ -44,6 +44,21 @@ function isRelativeDeltaModelEnabled(): boolean {
   return import.meta.env['VITE_ENABLE_RELATIVE_DELTA_MODEL'] === '1';
 }
 
+/**
+ * Centralized model acceptance predicate.
+ * Applied to fresh responses, 304 reuse, and cached fallback paths.
+ * Returns `{ accepted: true }` or `{ accepted: false, reason: string }`.
+ */
+export function isAcceptedModel(meta: MlpModelMeta): { accepted: true } | { accepted: false; reason: string } {
+  if (meta.contractStatus === 'invalid') {
+    return { accepted: false, reason: `invalid_contract: ${meta.contractReason ?? 'unknown'}` };
+  }
+  if (meta.featureMode === 'relative_delta' && !isRelativeDeltaModelEnabled()) {
+    return { accepted: false, reason: 'relative_delta_disabled' };
+  }
+  return { accepted: true };
+}
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   const CHUNK_SIZE = 0x8000;
@@ -133,7 +148,7 @@ async function fetchModel(
   }
 
   if (response.status === 304) {
-    return { b64: '', meta: {} as any, notModified: true };
+    return { b64: '', meta: {} as MlpModelMeta, notModified: true };
   }
 
   if (!response.ok) {
@@ -151,26 +166,21 @@ async function fetchModel(
     return null;
   }
 
-  const buffer = await response.arrayBuffer();
+  // Evaluate contract/feature-mode headers BEFORE downloading the body
+  // to avoid wasting bandwidth on models that will be rejected.
   const meta = parseMeta(response, profileId ? 'profile' : 'global', profileId);
-  if (meta.contractStatus === 'invalid') {
-    console.warn('[MLP] Server meldet ungültigen Modellvertrag, verwerfe Antwort', {
+  const acceptance = isAcceptedModel(meta);
+  if (!acceptance.accepted) {
+    console.warn('[MLP] Modell-Antwort abgelehnt, verwerfe', {
       url: url.toString(),
       profileId,
       source: meta.source,
-      reason: meta.contractReason,
+      reason: acceptance.reason,
     });
     return null;
   }
-  if (meta.featureMode === 'relative_delta' && !isRelativeDeltaModelEnabled()) {
-    console.warn('[MLP] Relative Delta Feature-Modus wird im Web-Client noch nicht unterstützt, verwerfe Antwort', {
-      url: url.toString(),
-      profileId,
-      source: meta.source,
-      featureMode: meta.featureMode,
-    });
-    return null;
-  }
+
+  const buffer = await response.arrayBuffer();
   return {
     b64: arrayBufferToBase64(buffer),
     meta,
@@ -193,9 +203,19 @@ export async function fetchMlpModelWithFallback({
     const personalized = await fetchModel(endpoint, token, trimmedProfile, cached?.meta?.etag);
     
     if (personalized?.notModified && cached) {
-      console.info('[MLP] Profil-Modell unverändert (304), nutze Cache', { profileId: trimmedProfile });
-      emitMlpModelUpdated(cached.meta);
-      return cached as MlpModelResponse;
+      // Validate the cached model against current acceptance rules even on 304,
+      // because contract status or feature-mode policy may have changed.
+      const cachedAcceptance = isAcceptedModel(cached.meta);
+      if (!cachedAcceptance.accepted) {
+        console.warn('[MLP] Gespeichertes Profil-Modell nach 304 abgelehnt', {
+          profileId: trimmedProfile,
+          reason: cachedAcceptance.reason,
+        });
+      } else {
+        console.info('[MLP] Profil-Modell unverändert (304), nutze Cache', { profileId: trimmedProfile });
+        emitMlpModelUpdated(cached.meta);
+        return cached as MlpModelResponse;
+      }
     }
 
     if (personalized && !personalized.notModified) {
@@ -220,12 +240,20 @@ export async function fetchMlpModelWithFallback({
 
     // Attempt to load from cache if offline or 404
     if (cached) {
-      console.info('[MLP] Fallback auf gespeichertes Profil-Modell', {
-        profileId: trimmedProfile,
-        version: cached.meta.version,
-      });
-      emitMlpModelUpdated(cached.meta);
-      return cached as MlpModelResponse;
+      const cachedAcceptance = isAcceptedModel(cached.meta);
+      if (!cachedAcceptance.accepted) {
+        console.warn('[MLP] Gespeichertes Profil-Modell abgelehnt', {
+          profileId: trimmedProfile,
+          reason: cachedAcceptance.reason,
+        });
+      } else {
+        console.info('[MLP] Fallback auf gespeichertes Profil-Modell', {
+          profileId: trimmedProfile,
+          version: cached.meta.version,
+        });
+        emitMlpModelUpdated(cached.meta);
+        return cached as MlpModelResponse;
+      }
     }
 
     console.warn('[MLP] Personalisierte Gewichte nicht verfügbar, wechsle auf globales Modell', {
@@ -237,9 +265,16 @@ export async function fetchMlpModelWithFallback({
   const globalModel = await fetchModel(endpoint, token, undefined, cachedGlobal?.meta?.etag);
 
   if (globalModel?.notModified && cachedGlobal) {
-    console.info('[MLP] Globales Modell unverändert (304), nutze Cache');
-    emitMlpModelUpdated(cachedGlobal.meta);
-    return cachedGlobal as MlpModelResponse;
+    const cachedGlobalAcceptance = isAcceptedModel(cachedGlobal.meta);
+    if (!cachedGlobalAcceptance.accepted) {
+      console.warn('[MLP] Gespeichertes globales Modell nach 304 abgelehnt', {
+        reason: cachedGlobalAcceptance.reason,
+      });
+    } else {
+      console.info('[MLP] Globales Modell unverändert (304), nutze Cache');
+      emitMlpModelUpdated(cachedGlobal.meta);
+      return cachedGlobal as MlpModelResponse;
+    }
   }
 
   if (globalModel && !globalModel.notModified) {
@@ -254,11 +289,18 @@ export async function fetchMlpModelWithFallback({
 
   // Final fallback: global cache
   if (cachedGlobal) {
-    console.info('[MLP] Fallback auf gespeichertes globales Modell', {
-      version: cachedGlobal.meta.version,
-    });
-    emitMlpModelUpdated(cachedGlobal.meta);
-    return cachedGlobal as MlpModelResponse;
+    const cachedGlobalAcceptance = isAcceptedModel(cachedGlobal.meta);
+    if (!cachedGlobalAcceptance.accepted) {
+      console.warn('[MLP] Gespeichertes globales Modell abgelehnt', {
+        reason: cachedGlobalAcceptance.reason,
+      });
+    } else {
+      console.info('[MLP] Fallback auf gespeichertes globales Modell', {
+        version: cachedGlobal.meta.version,
+      });
+      emitMlpModelUpdated(cachedGlobal.meta);
+      return cachedGlobal as MlpModelResponse;
+    }
   }
 
   return null;

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { fetchMlpModelWithFallback, onMlpModelUpdated } from './modelClient';
+import { fetchMlpModelWithFallback, isAcceptedModel, onMlpModelUpdated } from './modelClient';
+import type { MlpModelMeta } from './modelClient';
+
+vi.mock('./modelStorage', () => ({
+  getCachedModel: vi.fn().mockResolvedValue(null),
+  saveCachedModel: vi.fn().mockResolvedValue(undefined),
+}));
 
 function createResponse(body: Uint8Array, init: ResponseInit = {}) {
   return new Response(body as BodyInit, init);
@@ -365,10 +371,10 @@ describe('fetchMlpModelWithFallback', () => {
     expect(result?.meta.contractStatus).toBe('valid');
     expect(result?.meta.featureMode).toBe('absolute');
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[MLP] Server meldet ungültigen Modellvertrag, verwerfe Antwort',
+      '[MLP] Modell-Antwort abgelehnt, verwerfe',
       expect.objectContaining({
         profileId: 'amy',
-        reason: 'schema_version_mismatch',
+        reason: 'invalid_contract: schema_version_mismatch',
       }),
     );
     consoleWarnSpy.mockRestore();
@@ -414,13 +420,117 @@ describe('fetchMlpModelWithFallback', () => {
     expect(result?.meta.version).toBe('global-v3');
     expect(result?.meta.featureMode).toBe('absolute');
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[MLP] Relative Delta Feature-Modus wird im Web-Client noch nicht unterstützt, verwerfe Antwort',
+      '[MLP] Modell-Antwort abgelehnt, verwerfe',
       expect.objectContaining({
         profileId: 'amy',
-        featureMode: 'relative_delta',
+        reason: 'relative_delta_disabled',
       }),
     );
     consoleWarnSpy.mockRestore();
   });
 
+  it('lehnt gespeichertes Modell bei 304 ab, wenn Vertrag ungültig geworden ist', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { getCachedModel } = await import('./modelStorage');
+    const cachedModel = {
+      b64: btoa('cached-data'),
+      meta: {
+        source: 'profile' as const,
+        version: 'v-old',
+        profileId: 'amy',
+        etag: '"sha256-abc"',
+        contractStatus: 'invalid' as const,
+        contractReason: 'schema_version_mismatch',
+        featureMode: 'absolute' as const,
+      },
+    };
+    vi.mocked(getCachedModel).mockResolvedValueOnce(cachedModel);
+
+    const fetchMock = vi
+      .fn()
+      // profile fetch returns 304 (not modified)
+      .mockResolvedValueOnce(createResponse(new Uint8Array(), { status: 304 }))
+      // global fetch returns a valid model
+      .mockResolvedValueOnce(
+        createResponse(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'global-v5',
+            'X-Model-Source': 'global',
+            'X-Model-Contract-Status': 'valid',
+            'X-Model-Feature-Mode': 'absolute',
+          },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const result = await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/api/v1/models/latest',
+      profileId: 'amy',
+    });
+
+    // Should reject cached model and fall back to global
+    expect(result?.meta.source).toBe('global');
+    expect(result?.meta.version).toBe('global-v5');
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[MLP] Gespeichertes Profil-Modell nach 304 abgelehnt',
+      expect.objectContaining({
+        profileId: 'amy',
+        reason: 'invalid_contract: schema_version_mismatch',
+      }),
+    );
+    consoleWarnSpy.mockRestore();
+    vi.mocked(getCachedModel).mockResolvedValue(null);
+  });
+
+});
+
+describe('isAcceptedModel', () => {
+  const originalRelativeEnv = (import.meta as any).env?.VITE_ENABLE_RELATIVE_DELTA_MODEL;
+
+  afterEach(() => {
+    (import.meta as any).env.VITE_ENABLE_RELATIVE_DELTA_MODEL = originalRelativeEnv;
+  });
+
+  it('akzeptiert gültige absolute Modelle', () => {
+    const meta: MlpModelMeta = { source: 'global', contractStatus: 'valid', featureMode: 'absolute' };
+    expect(isAcceptedModel(meta)).toEqual({ accepted: true });
+  });
+
+  it('lehnt ungültige Verträge ab', () => {
+    const meta: MlpModelMeta = {
+      source: 'global',
+      contractStatus: 'invalid',
+      contractReason: 'schema_version_mismatch',
+      featureMode: 'absolute',
+    };
+    const result = isAcceptedModel(meta);
+    expect(result.accepted).toBe(false);
+    if (!result.accepted) {
+      expect(result.reason).toContain('invalid_contract');
+    }
+  });
+
+  it('lehnt relative_delta ab, wenn nicht aktiviert', () => {
+    (import.meta as any).env.VITE_ENABLE_RELATIVE_DELTA_MODEL = '0';
+    const meta: MlpModelMeta = { source: 'global', contractStatus: 'valid', featureMode: 'relative_delta' };
+    const result = isAcceptedModel(meta);
+    expect(result.accepted).toBe(false);
+    if (!result.accepted) {
+      expect(result.reason).toContain('relative_delta_disabled');
+    }
+  });
+
+  it('akzeptiert relative_delta, wenn aktiviert', () => {
+    const env = import.meta.env as Record<string, string>;
+    env['VITE_ENABLE_RELATIVE_DELTA_MODEL'] = '1';
+    const meta: MlpModelMeta = { source: 'global', contractStatus: 'valid', featureMode: 'relative_delta' };
+    expect(isAcceptedModel(meta)).toEqual({ accepted: true });
+    env['VITE_ENABLE_RELATIVE_DELTA_MODEL'] = originalRelativeEnv ?? '';
+  });
+
+  it('akzeptiert Modelle mit fehlendem contractStatus', () => {
+    const meta: MlpModelMeta = { source: 'global' };
+    expect(isAcceptedModel(meta)).toEqual({ accepted: true });
+  });
 });

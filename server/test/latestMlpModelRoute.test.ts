@@ -403,6 +403,28 @@ describe('GET /latest-mlp-model', () => {
     expect(decoded).toEqual({ error: 'Model not found' });
   });
 
+  it('rejects missing contracts when strict contract mode is enabled', async () => {
+    process.env.MLP_REQUIRE_VALID_CONTRACT = '1';
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    // Write metadata WITHOUT artifact_contract → contract status = "missing"
+    const trainingMetadata = { version: 'v-no-contract' };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(404);
+
+    const decoded = JSON.parse((response.body as Buffer).toString('utf8'));
+    expect(decoded).toEqual({ error: 'Model not found' });
+  });
+
   it('returns 304 for matching If-None-Match after a model upload', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });

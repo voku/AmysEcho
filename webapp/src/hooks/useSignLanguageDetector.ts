@@ -560,7 +560,7 @@ export function useSignLanguageDetector(
     return () => {
       window.removeEventListener(WEBVIEW_MESSAGE_EVENT, handleBridgeMessage as EventListener);
     };
-  }, [markDetectorFirstFrame]);
+  }, [markDetectorFirstFrame, telemetrySource]);
 
   const ensureOrchestrator = useCallback(async (attemptSeq?: number) => {
     if (orchestratorInitPromiseRef.current) {

@@ -1007,6 +1007,9 @@ export function installMlp(customModelData?: string): Promise<boolean> {
   return (async () => {
     // Try custom model data first (for profile models)
     if (customModelData) {
+      // Resolve activeFeatureMode from global state before loading,
+      // same as __setMlpModelB64 does, to avoid stale feature mode.
+      activeFeatureMode = window.__mlpFeatureMode === 'relative_delta' ? 'relative_delta' : 'absolute';
       if (await loadMlpFromB64(customModelData)) {
         forwardTelemetry('mlp_custom_loaded', { size: customModelData.length });
         return true;

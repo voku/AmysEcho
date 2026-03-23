@@ -115,3 +115,37 @@ def test_create_sliding_windows_rejects_unknown_feature_mode():
             context={},
             feature_mode="invalid_mode",
         )
+
+
+def test_relative_delta_computed_per_window_not_globally():
+    """Verify that relative_delta is computed independently per extracted window,
+    so that each window's first row is always zero.  This matches the web
+    inference rolling-buffer behaviour."""
+    from config_constants import WINDOW_STRIDE
+
+    # Create WINDOW_SIZE + WINDOW_STRIDE distinct frames so we get 2 windows
+    num_frames = WINDOW_SIZE + WINDOW_STRIDE
+    frames = [np.full((INPUT_FEATURE_SIZE,), float(i), dtype=np.float32) for i in range(num_frames)]
+    context = {"profile_id": "p1", "source_bundle_id": "b1"}
+
+    samples = create_sliding_windows(
+        frame_vectors=frames,
+        label="test",
+        context=context,
+        feature_mode="relative_delta",
+    )
+
+    assert len(samples) >= 2, f"Expected at least 2 windows, got {len(samples)}"
+
+    for idx, sample in enumerate(samples):
+        reshaped = np.array(sample.landmarks, dtype=np.float32).reshape(
+            (WINDOW_SIZE, INPUT_FEATURE_SIZE)
+        )
+        # First row of every window must be zero (per-window delta)
+        assert float(reshaped[0, 0]) == pytest.approx(0.0), (
+            f"Window {idx}: first-row delta should be 0.0, got {reshaped[0, 0]}"
+        )
+        # Second row should be the delta between consecutive frames (always 1.0)
+        assert float(reshaped[1, 0]) == pytest.approx(1.0), (
+            f"Window {idx}: second-row delta should be 1.0, got {reshaped[1, 0]}"
+        )

@@ -60,11 +60,7 @@ def create_sliding_windows(
             f"Expected frame vectors of size {INPUT_FEATURE_SIZE}, got {feature_dim}"
         )
 
-    if feature_mode == "relative_delta":
-        deltas = np.zeros_like(arr)
-        deltas[1:, :] = arr[1:, :] - arr[:-1, :]
-        arr = deltas
-    elif feature_mode != "absolute":
+    if feature_mode not in {"absolute", "relative_delta"}:
         raise ValueError("feature_mode must be one of: absolute, relative_delta")
 
     # ========================================================================
@@ -80,6 +76,13 @@ def create_sliding_windows(
 
         # Extract window: (30, 1629)
         window = arr[start_idx:end_idx, :]
+
+        # Apply relative_delta per-window so that each window's first row is
+        # always zero – matching the web inference rolling-buffer behaviour.
+        if feature_mode == "relative_delta":
+            deltas = np.zeros_like(window)
+            deltas[1:, :] = window[1:, :] - window[:-1, :]
+            window = deltas
 
         # Flatten: (48,870,)
         flat_vector = window.flatten()
