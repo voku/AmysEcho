@@ -10,7 +10,9 @@ Before permanently removing the copied `docs/training/external/signlanguage_reco
 
 ## Re-check result
 
-- ✅ **One additional code adaptation was added** from the removed snapshot: sweep orchestration for trainer experiments is now available as `server/src/amyserver_tools/train_mlp_sweep.py`.
+- ✅ **Additional code adaptations were added** from the removed snapshot:
+  - sweep orchestration for trainer experiments in `server/src/amyserver_tools/train_mlp_sweep.py`
+  - runtime label-map compatibility via `sign_lang_label_map.txt` generation in `train_mlp.py` and fallback loading in `mlpModelArtifacts.ts`
 - ✅ **Previously implemented core adaptations remain in place** (contract validation, unknown-threshold behavior, fixed-window normalization, relative-feature benchmarking/guardrails).
 - ✅ **Runtime C++ MediaPipe graph/calculator files were intentionally not ported** because Amy's Echo runtime is TypeScript + Python and those files depended on old MediaPipe/Bazel wiring and local-path assumptions.
 
@@ -32,7 +34,7 @@ Before permanently removing the copied `docs/training/external/signlanguage_reco
 | `runtime/video_processing_cpu.pbtxt` | Not adopted directly; same rationale as above. |
 | `runtime/convert_files.py` | Not adopted directly; Amy pipeline already ingests bundle + landmarks with profile-aware metadata. |
 | `runtime/convert_files_pose.py` | Not adopted directly; redundant with maintained training ingestion. |
-| `runtime/sign_lang_label_map.txt` | Label-map discipline now represented via `training_metadata.json` labels + contract validation. |
+| `runtime/sign_lang_label_map.txt` | **Adapted** as compatibility bridge: trainer now writes `sign_lang_label_map.txt`, and serving falls back to this map when `training_metadata.json` has no labels. |
 | `CODE_REVIEW_BLIND_SPOT_VALIDATION_2026-03-23.md` | Merged conceptually into maintained playbook/docs; no code artifact needed. |
 | `EXTRACTION_COMPLETENESS_AUDIT.md` | Merged conceptually into maintained playbook/docs. |
 | `HANDOFF_IMPLEMENTATION_MAP.md` | Merged into maintained plan/playbook and TODO tracking. |
@@ -43,5 +45,5 @@ Before permanently removing the copied `docs/training/external/signlanguage_reco
 
 The external copied snapshot can remain removed. Useful value is now either:
 
-- merged into maintained Amy code (`train_mlp_sweep.py`, artifact contract checks), or
+- merged into maintained Amy code (`train_mlp_sweep.py`, label-map compatibility bridge, artifact contract checks), or
 - documented as intentionally not portable to the current architecture.
