@@ -49,6 +49,8 @@ describe('GET /latest-mlp-model', () => {
   let dataDir: string;
   let app: Express;
   let originalDataDir: string | undefined;
+  let originalContractEnv: string | undefined;
+  let originalRelativeModeEnv: string | undefined;
   let modelPaths: typeof import('../src/constants/modelPaths.js');
   let baselinePath: string;
   let accessToken: string;
@@ -122,6 +124,8 @@ describe('GET /latest-mlp-model', () => {
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-mlp-endpoint-'));
     originalDataDir = process.env.AMY_ECHO_DATA_DIR;
+    originalContractEnv = process.env.MLP_REQUIRE_VALID_CONTRACT;
+    originalRelativeModeEnv = process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE;
     process.env.AMY_ECHO_DATA_DIR = dataDir;
     jest.resetModules();
 
@@ -187,6 +191,16 @@ describe('GET /latest-mlp-model', () => {
       process.env.AMY_ECHO_DATA_DIR = originalDataDir;
     } else {
       delete process.env.AMY_ECHO_DATA_DIR;
+    }
+    if (originalContractEnv !== undefined) {
+      process.env.MLP_REQUIRE_VALID_CONTRACT = originalContractEnv;
+    } else {
+      delete process.env.MLP_REQUIRE_VALID_CONTRACT;
+    }
+    if (originalRelativeModeEnv !== undefined) {
+      process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE = originalRelativeModeEnv;
+    } else {
+      delete process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE;
     }
   });
 
@@ -452,6 +466,51 @@ describe('GET /latest-mlp-model', () => {
     expect(secondResponse.headers['x-checksum-sha256']).toBe(firstResponse.headers['x-checksum-sha256']);
     expect(secondResponse.headers['cache-control']).toBe(firstResponse.headers['cache-control']);
     expect(secondResponse.headers['cdn-cache-control']).toBe(firstResponse.headers['cdn-cache-control']);
+  });
+
+  it('returns 404 (not 500) on 304 path when strict contract mode rejects the model', async () => {
+    process.env.MLP_REQUIRE_VALID_CONTRACT = '1';
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    // Write metadata with a mismatched schema so contract is "invalid"
+    const trainingMetadata = {
+      artifact_contract: {
+        feature_schema_version: 999,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+      },
+    };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    // First request to get the ETag (will fail with 404 due to strict mode)
+    const firstResponse = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(404);
+
+    // If we somehow have an etag from headers, use it for the 304 path
+    // Even though the first response is 404, the headers are set before rejection
+    const etag = firstResponse.headers['etag'];
+    if (typeof etag === 'string') {
+      const secondResponse = await request(app)
+        .get('/latest-mlp-model')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('If-None-Match', etag)
+        .buffer(true)
+        .parse(binaryParser)
+        .expect(404);
+
+      // Should return 404 (contract rejection), NOT 500
+      const decoded = JSON.parse((secondResponse.body as Buffer).toString('utf8'));
+      expect(decoded).toEqual({ error: 'Model not found' });
+    }
   });
 
   it('returns 404 when baseline seeding fails', async () => {

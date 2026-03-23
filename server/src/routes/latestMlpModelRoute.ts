@@ -140,7 +140,18 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 					: [];
 
 			if (candidates.includes("*") || candidates.includes(precomputed.etag)) {
-				deps.applyModelHeaders(res, chosen, downloadName, precomputed);
+				try {
+					deps.applyModelHeaders(res, chosen, downloadName, precomputed);
+				} catch (headerError) {
+					// Contract validation failure (e.g. strict mode rejects
+					// invalid/missing contracts).  Return 404 consistent with
+					// sendBinaryModel instead of letting it become a 500.
+					console.error(
+						`latest-mlp-model 304 contract rejection: ${String(headerError)}`,
+					);
+					res.status(404).json({ error: "Model not found" });
+					return;
+				}
 				res.status(304).end();
 				return;
 			}
