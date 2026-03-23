@@ -38,5 +38,6 @@ export interface GestureWindowAugmentations {
   __pushMlpChunk?: (chunk: string) => void;
   __commitMlpTransfer?: () => Promise<void>;
   __setMlpModelB64?: (b64: string) => Promise<boolean>;
+  __mlpFeatureMode?: 'absolute' | 'relative_delta';
   fflate?: { unzip: typeof unzip; unzipSync: typeof unzipSync };
 }

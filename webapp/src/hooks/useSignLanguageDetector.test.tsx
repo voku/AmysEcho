@@ -608,6 +608,60 @@ describe('useSignLanguageDetector', () => {
     });
   });
 
+  it('emits telemetry when MLP prediction is rejected below threshold', async () => {
+    const orchestrator = createStubOrchestrator();
+    const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;
+    const overlayRef = { current: document.createElement('canvas') } as React.RefObject<HTMLCanvasElement>;
+
+    renderHook(() =>
+      useSignLanguageDetector(videoRef, overlayRef, {
+        orchestratorFactory: () => orchestrator,
+        telemetrySource: 'training_recorder',
+      }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(WEBVIEW_MESSAGE_EVENT, {
+          detail: JSON.stringify({
+            type: 'gesture_batch',
+            messages: [
+              {
+                type: 'gesture',
+                gesture: 'open_palm',
+                detectionMethod: 'mediapipe',
+                mlpDecision: {
+                  selected: false,
+                  reason: 'below_threshold',
+                  score: 0.32,
+                  threshold: 0.4,
+                  threshold_used: 0.4,
+                  selectedGestureBeforeMlp: 'open_palm',
+                  selectedConfidenceBeforeMlp: 0.78,
+                },
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(sendTelemetryEventMock).toHaveBeenCalledWith(
+        'mlp_prediction_rejected',
+        expect.objectContaining({
+          source: 'training_recorder',
+          reason: 'below_threshold',
+          score: 0.32,
+          threshold: 0.4,
+          selectedGestureBeforeMlp: 'open_palm',
+          selectedConfidenceBeforeMlp: 0.78,
+          finalDetectionMethod: 'mediapipe',
+        }),
+      );
+    });
+  });
+
   it('prefers message confidence over batch confidence for gesture_batch payloads', async () => {
     const orchestrator = createStubOrchestrator();
     const videoRef = { current: document.createElement('video') } as React.RefObject<HTMLVideoElement>;

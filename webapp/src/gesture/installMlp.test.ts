@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { unzip, zipSync, strToU8 } from 'fflate';
-import { installMlp } from './installMlp';
+import { buildWindowedVisualFeatures, installMlp } from './installMlp';
 import { MULTIMODAL_FEATURES_SIZE } from './utils/featureSchema';
 
 describe('installMlp', () => {
@@ -138,6 +138,35 @@ describe('installMlp', () => {
   const MINIMAL_3LAYER_ZIP_B64 = create3LayerZipB64(126, 10, 5, 1, ['hi']);
   const MULTIMODAL_3LAYER_ZIP_B64 = create3LayerZipB64(1629, 10, 5, 1, ['multimodal']);
   const MULTI_LABEL_3LAYER_ZIP_B64 = create3LayerZipB64(126, 10, 5, 3, ['trinken', 'satt', 'mehr']);
+
+  it('erstellt absolute Fenster-Features mit Last-Frame-Padding', () => {
+    const frame1 = new Float32Array([1, 2]);
+    const frame2 = new Float32Array([3, 4]);
+    const output = buildWindowedVisualFeatures({
+      rollingBuffer: [frame1, frame2],
+      currentFrameVec: frame2,
+      windowSize: 3,
+      featureSizePerFrame: 2,
+      featureMode: 'absolute',
+    });
+
+    expect(Array.from(output)).toEqual([1, 2, 3, 4, 3, 4]);
+  });
+
+  it('erstellt relative_delta Fenster-Features analog zur Server-Logik', () => {
+    const frame1 = new Float32Array([1, 2]);
+    const frame2 = new Float32Array([3, 7]);
+    const output = buildWindowedVisualFeatures({
+      rollingBuffer: [frame1, frame2],
+      currentFrameVec: frame2,
+      windowSize: 4,
+      featureSizePerFrame: 2,
+      featureMode: 'relative_delta',
+    });
+
+    // row0 = zeros, row1 = frame2-frame1, padded rows compare against padding frame => zeros
+    expect(Array.from(output)).toEqual([0, 0, 2, 5, 0, 0, 0, 0]);
+  });
 
   function createSparsePrototypeVector(): Float32Array {
     const vector = new Float32Array(21 * 2 * 3);

@@ -8,6 +8,7 @@ declare global {
     fflate?: { unzip: typeof unzip; unzipSync: typeof unzipSync };
     ReactNativeWebView?: { postMessage?: (message: string) => void };
     __setMlpModelB64?: (b64: string) => Promise<boolean>;
+    __mlpFeatureMode?: 'absolute' | 'relative_delta';
     __beginMlpTransfer?: () => boolean;
     __pushMlpChunk?: (chunk: string) => void;
     __commitMlpTransfer?: () => Promise<void>;

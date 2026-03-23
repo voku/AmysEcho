@@ -78,6 +78,7 @@ export function useMlpModelInjection(
       console.warn('[MLP] __setMlpModelB64 fehlt, Modell kann nicht geladen werden');
       return false;
     }
+    window.__mlpFeatureMode = payload.meta.featureMode ?? 'absolute';
     return window.__setMlpModelB64(payload.b64);
   }, []);
 
