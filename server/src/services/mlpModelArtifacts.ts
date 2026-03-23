@@ -471,7 +471,6 @@ function evaluateArtifactContract(
 	if (
 		typeof contract.labelCount === "number" &&
 		Array.isArray(labels) &&
-		labels.length > 0 &&
 		contract.labelCount !== labels.length
 	) {
 		return { status: "invalid", reason: "label_count_mismatch" };

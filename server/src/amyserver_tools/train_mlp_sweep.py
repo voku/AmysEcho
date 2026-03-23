@@ -94,9 +94,25 @@ def _extract_score(report: dict[str, object]) -> tuple[float, float]:
     if not isinstance(global_metrics, dict):
         global_metrics = report.get("training")
     if not isinstance(global_metrics, dict):
-        return (0.0, 0.0)
-    accuracy = float(global_metrics.get("accuracy", 0.0) or 0.0)
-    f1_score = float(global_metrics.get("f1_score", 0.0) or 0.0)
+        raise ValueError("Sweep report missing metrics section: expected 'global' or 'training'")
+
+    if "accuracy" not in global_metrics:
+        raise ValueError("Sweep report missing required metric: accuracy")
+    if "f1_score" not in global_metrics:
+        raise ValueError("Sweep report missing required metric: f1_score")
+
+    try:
+        accuracy = float(global_metrics["accuracy"])
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"Sweep report has invalid accuracy value: {global_metrics['accuracy']}"
+        ) from error
+    try:
+        f1_score = float(global_metrics["f1_score"])
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"Sweep report has invalid f1_score value: {global_metrics['f1_score']}"
+        ) from error
     return (accuracy, f1_score)
 
 

@@ -34,12 +34,23 @@ def test_parse_training_report_raises_when_no_json() -> None:
 
 
 def test_extract_score_with_missing_training_section() -> None:
-    assert _extract_score({}) == (0.0, 0.0)
+    with pytest.raises(ValueError, match="missing metrics section"):
+        _extract_score({})
 
 
 def test_extract_score_uses_global_metrics() -> None:
     report = {"global": {"accuracy": 0.75, "f1_score": 0.5}}
     assert _extract_score(report) == (0.75, 0.5)
+
+
+def test_extract_score_raises_for_missing_metric() -> None:
+    with pytest.raises(ValueError, match="missing required metric: f1_score"):
+        _extract_score({"global": {"accuracy": 0.75}})
+
+
+def test_extract_score_raises_for_invalid_metric() -> None:
+    with pytest.raises(ValueError, match="invalid accuracy value"):
+        _extract_score({"global": {"accuracy": "not-a-number", "f1_score": 0.1}})
 
 
 def test_build_command_includes_expected_arguments() -> None:

@@ -45,6 +45,23 @@ def parse_json_output(raw: str) -> dict[str, object]:
     return json.loads(raw)
 
 
+def normalize_loaded_labels(raw_labels: object) -> list[str]:
+    if isinstance(raw_labels, np.ndarray):
+        values = raw_labels.tolist()
+    elif isinstance(raw_labels, list):
+        values = raw_labels
+    else:
+        raise RuntimeError(f"Model labels have unsupported type: {type(raw_labels)}")
+
+    normalized: list[str] = []
+    for value in values:
+        if isinstance(value, bytes):
+            normalized.append(value.decode("utf-8"))
+        else:
+            normalized.append(str(value))
+    return normalized
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -111,6 +128,12 @@ def main() -> None:
     if label_count != len(labels):
         raise RuntimeError(
             f"label_count mismatch in metadata: contract={label_count}, labels={len(labels)}"
+        )
+    loaded_labels = normalize_loaded_labels(model_data["labels"])
+    if loaded_labels != labels:
+        raise RuntimeError(
+            "model labels mismatch between npz and metadata: "
+            f"npz={loaded_labels}, metadata={labels}"
         )
 
     sweep_command = [
