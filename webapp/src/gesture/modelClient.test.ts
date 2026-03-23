@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { fetchMlpModelWithFallback, onMlpModelUpdated } from './modelClient';
 
 function createResponse(body: Uint8Array, init: ResponseInit = {}) {
@@ -6,8 +6,15 @@ function createResponse(body: Uint8Array, init: ResponseInit = {}) {
 }
 
 describe('fetchMlpModelWithFallback', () => {
+  const originalRelativeEnv = (import.meta as any).env?.VITE_ENABLE_RELATIVE_DELTA_MODEL;
+
   beforeEach(() => {
     vi.restoreAllMocks();
+    (import.meta as any).env.VITE_ENABLE_RELATIVE_DELTA_MODEL = '0';
+  });
+
+  afterEach(() => {
+    (import.meta as any).env.VITE_ENABLE_RELATIVE_DELTA_MODEL = originalRelativeEnv;
   });
 
   it('fragt personalisiertes Modell zuerst ab und fällt auf global zurück', async () => {
@@ -46,6 +53,8 @@ describe('fetchMlpModelWithFallback', () => {
           'X-Model-Version': 'p-2',
           'X-Model-Source': 'profile',
           'X-Model-Profile': 'amy',
+          'X-Model-Contract-Status': 'valid',
+          'X-Model-Feature-Mode': 'absolute',
         },
       }),
     );
@@ -61,6 +70,8 @@ describe('fetchMlpModelWithFallback', () => {
     expect(result?.meta.source).toBe('profile');
     expect(result?.meta.profileId).toBe('amy');
     expect(result?.meta.version).toBe('p-2');
+    expect(result?.meta.contractStatus).toBe('valid');
+    expect(result?.meta.featureMode).toBe('absolute');
   });
 
   it('fällt auf übergebenes Profil zurück, wenn Header fehlen', async () => {
@@ -237,6 +248,7 @@ describe('fetchMlpModelWithFallback', () => {
           'X-Model-Source': 'profile',
           'X-Model-Version': 'v1',
           'X-Model-Profile': 'amy',
+          'X-Model-Contract-Status': 'valid',
         },
       }),
     );
@@ -256,6 +268,9 @@ describe('fetchMlpModelWithFallback', () => {
       version: 'v1',
       profileId: 'amy',
       etag: null,
+      contractStatus: 'valid',
+      contractReason: null,
+      featureMode: null,
     });
 
     unsub();
@@ -308,4 +323,104 @@ describe('fetchMlpModelWithFallback', () => {
     unsub1();
     unsub2();
   });
+
+  it('verwirft ungültige Modellverträge und fällt auf globales Modell zurück', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createResponse(new Uint8Array([9, 9]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-invalid',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+            'X-Model-Contract-Status': 'invalid',
+            'X-Model-Contract-Reason': 'schema_version_mismatch',
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        createResponse(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'global-v2',
+            'X-Model-Source': 'global',
+            'X-Model-Contract-Status': 'valid',
+            'X-Model-Feature-Mode': 'absolute',
+          },
+        }),
+      );
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const result = await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/api/v1/models/latest',
+      profileId: 'amy',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result?.meta.source).toBe('global');
+    expect(result?.meta.version).toBe('global-v2');
+    expect(result?.meta.contractStatus).toBe('valid');
+    expect(result?.meta.featureMode).toBe('absolute');
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[MLP] Server meldet ungültigen Modellvertrag, verwerfe Antwort',
+      expect.objectContaining({
+        profileId: 'amy',
+        reason: 'schema_version_mismatch',
+      }),
+    );
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('verwirft relative_delta Modelle und fällt auf globales Modell zurück', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createResponse(new Uint8Array([9, 9]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'p-relative',
+            'X-Model-Source': 'profile',
+            'X-Model-Profile': 'amy',
+            'X-Model-Contract-Status': 'valid',
+            'X-Model-Feature-Mode': 'relative_delta',
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        createResponse(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: {
+            'X-Model-Version': 'global-v3',
+            'X-Model-Source': 'global',
+            'X-Model-Contract-Status': 'valid',
+            'X-Model-Feature-Mode': 'absolute',
+          },
+        }),
+      );
+
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const result = await fetchMlpModelWithFallback({
+      endpoint: 'https://api.example.com/api/v1/models/latest',
+      profileId: 'amy',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result?.meta.source).toBe('global');
+    expect(result?.meta.version).toBe('global-v3');
+    expect(result?.meta.featureMode).toBe('absolute');
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[MLP] Relative Delta Feature-Modus wird im Web-Client noch nicht unterstützt, verwerfe Antwort',
+      expect.objectContaining({
+        profileId: 'amy',
+        featureMode: 'relative_delta',
+      }),
+    );
+    consoleWarnSpy.mockRestore();
+  });
+
 });

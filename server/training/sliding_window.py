@@ -37,7 +37,8 @@ def create_sliding_windows(
     frame_vectors: list[np.ndarray],
     label: str,
     context: dict[str, Any],
-    frame_weights: list[float] | None = None
+    frame_weights: list[float] | None = None,
+    feature_mode: str = "absolute",
 ) -> list[Sample]:
     """
     Convert sequence of normalized frame vectors into sliding window samples.
@@ -46,40 +47,25 @@ def create_sliding_windows(
     if not frame_vectors:
         return []
 
-    # Convert to array
-    arr = np.array(frame_vectors, dtype=np.float32)  # Shape: (T, 1629)
+    arr, weights_arr = normalize_frame_sequence(
+        frame_vectors,
+        target_frames=WINDOW_SIZE,
+        frame_weights=frame_weights,
+        truncate_strategy="none",
+    )
     seq_len, feature_dim = arr.shape
 
-    # Handle weights
-    if frame_weights is None:
-        weights_arr = np.ones(seq_len, dtype=np.float32)
-    else:
-        weights_arr = np.array(frame_weights, dtype=np.float32)
-
-    # Validate feature dimension
     if feature_dim != INPUT_FEATURE_SIZE:
         raise ValueError(
             f"Expected frame vectors of size {INPUT_FEATURE_SIZE}, got {feature_dim}"
         )
 
-    # ========================================================================
-    # STEP 1: PADDING FOR SHORT CLIPS
-    # ========================================================================
-
-    if seq_len < WINDOW_SIZE:
-        pad_qty = WINDOW_SIZE - seq_len
-        last_frame = arr[-1:, :]  # Shape: (1, 1629)
-        last_weight = weights_arr[-1]
-
-        # Repeat last frame
-        padding = np.repeat(last_frame, pad_qty, axis=0)
-        arr = np.vstack([arr, padding])
-
-        # Repeat last weight
-        padding_weights = np.repeat(last_weight, pad_qty)
-        weights_arr = np.concatenate([weights_arr, padding_weights])
-
-        seq_len = WINDOW_SIZE
+    if feature_mode == "relative_delta":
+        deltas = np.zeros_like(arr)
+        deltas[1:, :] = arr[1:, :] - arr[:-1, :]
+        arr = deltas
+    elif feature_mode != "absolute":
+        raise ValueError("feature_mode must be one of: absolute, relative_delta")
 
     # ========================================================================
     # STEP 2: GENERATE SLIDING WINDOWS
@@ -127,3 +113,63 @@ def create_sliding_windows(
         ))
 
     return samples
+
+
+def normalize_frame_sequence(
+    frame_vectors: list[np.ndarray],
+    target_frames: int,
+    frame_weights: list[float] | None = None,
+    truncate_strategy: str = "none",
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Normalize a frame sequence to a fixed length.
+
+    - Pads short sequences by repeating the last frame/weight.
+    - Optionally truncates long sequences via `truncate_strategy`:
+      - "none": keep all frames (default)
+      - "head": keep the first `target_frames`
+      - "tail": keep the last `target_frames`
+    """
+
+    if target_frames < 1:
+        raise ValueError("target_frames must be >= 1")
+    if not frame_vectors:
+        raise ValueError("frame_vectors must contain at least one frame")
+
+    arr = np.array(frame_vectors, dtype=np.float32)
+    if arr.ndim != 2:
+        raise ValueError("frame_vectors must resolve to a 2D array [frames, features]")
+    seq_len, feature_dim = arr.shape
+
+    if feature_dim != INPUT_FEATURE_SIZE:
+        raise ValueError(
+            f"Expected frame vectors of size {INPUT_FEATURE_SIZE}, got {feature_dim}"
+        )
+
+    if frame_weights is None:
+        weights_arr = np.ones(seq_len, dtype=np.float32)
+    else:
+        weights_arr = np.array(frame_weights, dtype=np.float32)
+        if weights_arr.shape[0] != seq_len:
+            raise ValueError(
+                "frame_weights length must equal number of input frames"
+            )
+
+    if seq_len < target_frames:
+        pad_qty = target_frames - seq_len
+        last_frame = arr[-1:, :]
+        last_weight = weights_arr[-1]
+        arr = np.vstack([arr, np.repeat(last_frame, pad_qty, axis=0)])
+        weights_arr = np.concatenate([weights_arr, np.repeat(last_weight, pad_qty)])
+        return arr, weights_arr
+
+    if seq_len > target_frames and truncate_strategy != "none":
+        if truncate_strategy == "head":
+            return arr[:target_frames, :], weights_arr[:target_frames]
+        if truncate_strategy == "tail":
+            return arr[-target_frames:, :], weights_arr[-target_frames:]
+        raise ValueError(
+            "truncate_strategy must be one of: none, head, tail"
+        )
+
+    return arr, weights_arr

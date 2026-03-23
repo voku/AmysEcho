@@ -6,6 +6,9 @@ export type MlpModelMeta = {
   source: 'profile' | 'global';
   profileId?: string | null;
   etag?: string | null;
+  contractStatus?: 'missing' | 'invalid' | 'valid' | null;
+  contractReason?: string | null;
+  featureMode?: 'absolute' | 'relative_delta' | null;
 };
 
 export type MlpModelResponse = {
@@ -37,6 +40,10 @@ function emitMlpModelUpdated(meta: MlpModelMeta): void {
   });
 }
 
+function isRelativeDeltaModelEnabled(): boolean {
+  return import.meta.env['VITE_ENABLE_RELATIVE_DELTA_MODEL'] === '1';
+}
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   const CHUNK_SIZE = 0x8000;
@@ -53,15 +60,29 @@ function parseMeta(resp: Response, fallbackSource: MlpModelMeta['source'], profi
   const sourceHeader = resp.headers.get('X-Model-Source');
   const profileHeader = resp.headers.get('X-Model-Profile');
   const etag = resp.headers.get('ETag');
+  const contractStatusHeader = resp.headers.get('X-Model-Contract-Status');
+  const contractReason = resp.headers.get('X-Model-Contract-Reason');
+  const featureModeHeader = resp.headers.get('X-Model-Feature-Mode');
 
   const source = sourceHeader === 'profile' || sourceHeader === 'global' ? sourceHeader : fallbackSource;
   const normalizedProfile = profileHeader?.trim() || (source === 'profile' ? profileId ?? null : null);
+  const contractStatus =
+    contractStatusHeader === 'missing' || contractStatusHeader === 'invalid' || contractStatusHeader === 'valid'
+      ? contractStatusHeader
+      : null;
+  const featureMode =
+    featureModeHeader === 'absolute' || featureModeHeader === 'relative_delta'
+      ? featureModeHeader
+      : null;
 
   return {
     source,
     version: version ?? null,
     profileId: normalizedProfile,
     etag: etag ?? null,
+    contractStatus,
+    contractReason: contractReason ?? null,
+    featureMode,
   };
 }
 
@@ -132,6 +153,24 @@ async function fetchModel(
 
   const buffer = await response.arrayBuffer();
   const meta = parseMeta(response, profileId ? 'profile' : 'global', profileId);
+  if (meta.contractStatus === 'invalid') {
+    console.warn('[MLP] Server meldet ungültigen Modellvertrag, verwerfe Antwort', {
+      url: url.toString(),
+      profileId,
+      source: meta.source,
+      reason: meta.contractReason,
+    });
+    return null;
+  }
+  if (meta.featureMode === 'relative_delta' && !isRelativeDeltaModelEnabled()) {
+    console.warn('[MLP] Relative Delta Feature-Modus wird im Web-Client noch nicht unterstützt, verwerfe Antwort', {
+      url: url.toString(),
+      profileId,
+      source: meta.source,
+      featureMode: meta.featureMode,
+    });
+    return null;
+  }
   return {
     b64: arrayBufferToBase64(buffer),
     meta,
@@ -255,4 +294,3 @@ export async function getCachedMlpModel(profileId?: string): Promise<string | nu
   const cached = await getCachedModel(profileId ?? 'global');
   return cached?.b64 ?? null;
 }
-
