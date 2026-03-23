@@ -5,7 +5,7 @@
 - [x] Create a dedicated pre-tag checklist in `docs/planning/RELEASE_0.0.2_READINESS.md` so contributors can run a consistent Go/No-Go flow.
 - [x] Execute the full pre-tag verification command set and attach results to the release notes.
 - [x] Complete the functional Go/No-Go checklist (auth/session, profile scope, full training loop, health endpoint status, German UX validation).
-- [ ] Draft `v0.0.2` release notes with known limitations and mitigation ownership.
+- [x] Draft `v0.0.2` release notes with known limitations and mitigation ownership. _Done: draft published in `docs/planning/RELEASE_0.0.2_NOTES.md` with scope, limitations, mitigations/owners, and rollback notes._
 
 ## Next TODO Focus (Post-v0.0.2)
 
@@ -93,9 +93,9 @@ Use this section to create one GitHub issue per unchecked item. Keep issue title
 - [x] **[Release] Complete functional Go/No-Go checks (auth, profile, training flow, health, German UX)**  
   Labels: `release`, `qa`  
   Acceptance: each checklist item in `docs/planning/RELEASE_0.0.2_READINESS.md` section 4 is checked with evidence links.
-- [ ] **[Release] Draft and review v0.0.2 release notes with known limitations and mitigations**  
+- [x] **[Release] Draft and review v0.0.2 release notes with known limitations and mitigations**  
   Labels: `release`, `documentation`  
-  Acceptance: release notes include scope, known limitations, mitigation owner, and rollback notes.
+  Acceptance: release notes include scope, known limitations, mitigation owner, and rollback notes. _Done via `docs/planning/RELEASE_0.0.2_NOTES.md` draft._
 - [x] **[Post-v0.0.2] Add concurrency stress tests for training bundle ingestion/retry storms**  
   Labels: `testing`, `server`, `reliability`  
   Acceptance: automated stress scenario added and passing in CI with documented thresholds. _Done via `server/test/trainingBundles.test.ts` success-burst and mixed-burst cases._
