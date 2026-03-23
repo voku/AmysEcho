@@ -99,6 +99,9 @@ This command runs a lightweight end-to-end workflow using repository DGS landmar
 
 Use this before larger/full training runs to catch obvious regressions quickly.
 
+Detailed helper workflow commands and interpretation guidance are documented in:
+- `docs/training/TRAINING_HELPER_WORKFLOWS.md`
+
 ### Test Categories
 1. **Communication Tests** - Does Amy's gesture recognition work?
 2. **Reliability Tests** - Does it work under stress/failure?
