@@ -487,7 +487,7 @@ describe('GET /latest-mlp-model', () => {
     const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
     await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
 
-    // First request to get the ETag (will fail with 404 due to strict mode)
+    // First request gets the ETag (headers are set before contract rejection)
     const firstResponse = await request(app)
       .get('/latest-mlp-model')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -495,22 +495,21 @@ describe('GET /latest-mlp-model', () => {
       .parse(binaryParser)
       .expect(404);
 
-    // If we somehow have an etag from headers, use it for the 304 path
-    // Even though the first response is 404, the headers are set before rejection
     const etag = firstResponse.headers['etag'];
-    if (typeof etag === 'string') {
-      const secondResponse = await request(app)
-        .get('/latest-mlp-model')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .set('If-None-Match', etag)
-        .buffer(true)
-        .parse(binaryParser)
-        .expect(404);
+    expect(typeof etag).toBe('string');
 
-      // Should return 404 (contract rejection), NOT 500
-      const decoded = JSON.parse((secondResponse.body as Buffer).toString('utf8'));
-      expect(decoded).toEqual({ error: 'Model not found' });
-    }
+    // Second request uses If-None-Match → hits the 304 path which should
+    // also reject with 404, not 500
+    const secondResponse = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('If-None-Match', etag as string)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(404);
+
+    const decoded = JSON.parse((secondResponse.body as Buffer).toString('utf8'));
+    expect(decoded).toEqual({ error: 'Model not found' });
   });
 
   it('returns 404 when baseline seeding fails', async () => {
