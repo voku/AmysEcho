@@ -49,7 +49,7 @@ async function waitForTrainingCompletion(pollUrl: string, headers: Record<string
 }
 
 async function waitForTrainingBundleMetadata(bundleIds: string[]) {
-  const timeoutMs = 15_000;
+  const timeoutMs = 30_000;
   const start = Date.now();
   while (Date.now() - start <= timeoutMs) {
     const results = await Promise.all(
