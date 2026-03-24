@@ -128,6 +128,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--skip-examples", action="store_true")
     args = parser.parse_args()
+    if args.trials < 1:
+        parser.error("--trials must be >= 1")
 
     train_script = _resolve_train_script()
     epochs_values = _parse_int_list(args.epochs)

@@ -457,7 +457,7 @@ def main() -> None:
         if BASELINE_MODEL_PATH.exists():
             try:
                 baseline_result = evaluate_model(BASELINE_MODEL_PATH, eval_manifest_path)
-            except Exception as exc:  # noqa: BLE001
+            except (RuntimeError, FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
                 baseline_error = str(exc)
 
         for attempt_index in range(attempts):

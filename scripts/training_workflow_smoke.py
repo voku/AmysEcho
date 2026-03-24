@@ -115,26 +115,26 @@ def main() -> None:
     if not manifest_path.exists():
         raise RuntimeError(f"Generated train manifest missing: {manifest_path}")
 
-    model_data = np.load(model_path, allow_pickle=False)
     required_keys = {"w1", "b1", "w2", "b2", "w3", "b3", "labels"}
-    if not required_keys.issubset(set(model_data.files)):
-        raise RuntimeError(f"Generated model missing required keys: {required_keys - set(model_data.files)}")
+    with np.load(model_path, allow_pickle=False) as model_data:
+        if not required_keys.issubset(set(model_data.files)):
+            raise RuntimeError(f"Generated model missing required keys: {required_keys - set(model_data.files)}")
 
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    labels = metadata.get("labels", [])
-    label_count = metadata.get("artifact_contract", {}).get("label_count")
-    if not isinstance(labels, list) or not labels:
-        raise RuntimeError("Generated metadata has no labels list")
-    if label_count != len(labels):
-        raise RuntimeError(
-            f"label_count mismatch in metadata: contract={label_count}, labels={len(labels)}"
-        )
-    loaded_labels = normalize_loaded_labels(model_data["labels"])
-    if loaded_labels != labels:
-        raise RuntimeError(
-            "model labels mismatch between npz and metadata: "
-            f"npz={loaded_labels}, metadata={labels}"
-        )
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        labels = metadata.get("labels", [])
+        label_count = metadata.get("artifact_contract", {}).get("label_count")
+        if not isinstance(labels, list) or not labels:
+            raise RuntimeError("Generated metadata has no labels list")
+        if label_count != len(labels):
+            raise RuntimeError(
+                f"label_count mismatch in metadata: contract={label_count}, labels={len(labels)}"
+            )
+        loaded_labels = normalize_loaded_labels(model_data["labels"])
+        if loaded_labels != labels:
+            raise RuntimeError(
+                "model labels mismatch between npz and metadata: "
+                f"npz={loaded_labels}, metadata={labels}"
+            )
 
     sweep_command = [
         sys.executable,
