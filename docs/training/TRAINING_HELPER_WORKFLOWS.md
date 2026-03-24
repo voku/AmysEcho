@@ -56,6 +56,7 @@ Runs `server/src/amyserver_tools/train_mlp_sweep.py` and prints ranked JSON:
 - `results`: all tested configs and per-trial metrics.
 
 The sweep is strict: it fails if the training report does not contain valid numeric `accuracy` and `f1_score`.
+It also fails fast when `--trials < 1` (`--trials must be >= 1`).
 
 ---
 
@@ -85,3 +86,17 @@ npm run train:workflow:smoke --prefix server
 ```
 
 If all three pass, helper workflows + label-contract checks are operational.
+
+---
+
+## 5) Full integration confidence gate before tag
+
+For release readiness (beyond trainer-only checks), run:
+
+```bash
+cd integration && node test-runner.js ci
+```
+
+Notes:
+- The integration runner timeout is configurable via `INTEGRATION_GLOBAL_TIMEOUT_MS`.
+- Default timeout is CI-aware (30 minutes when `CI=true`, 15 minutes locally).

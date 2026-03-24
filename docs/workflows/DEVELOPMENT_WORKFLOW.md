@@ -102,6 +102,15 @@ Use this before larger/full training runs to catch obvious regressions quickly.
 Detailed helper workflow commands and interpretation guidance are documented in:
 - `docs/training/TRAINING_HELPER_WORKFLOWS.md`
 
+For pre-tag/full-stack confidence, also run:
+
+```bash
+cd integration && node test-runner.js ci
+```
+
+The integration runner supports `INTEGRATION_GLOBAL_TIMEOUT_MS` for explicit timeout budgets
+(defaults: 30 minutes on CI, 15 minutes locally).
+
 ### Test Categories
 1. **Communication Tests** - Does Amy's gesture recognition work?
 2. **Reliability Tests** - Does it work under stress/failure?

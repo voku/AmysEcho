@@ -44,6 +44,11 @@ v0.0.2 focuses on reliability and production-readiness for Amy's visual DGS comm
   - German guidance messaging assertions
 - Added stress tests for concurrent training-bundle ingestion/retry bursts.
 
+### 6. Full-stack integration reliability hardening
+- Integration runner timeout handling is now CI-aware/configurable (`INTEGRATION_GLOBAL_TIMEOUT_MS`).
+- Video-upload integration setup now waits on the latest unique training poll job, reducing redundant wait loops while preserving end-to-end coverage.
+- Full integration command `cd integration && node test-runner.js ci` completed with 14/14 passing in pre-tag verification.
+
 ## Known Limitations (v0.0.2)
 
 1. **Field-device performance evidence is incomplete**
