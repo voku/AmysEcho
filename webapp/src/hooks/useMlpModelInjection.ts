@@ -11,6 +11,7 @@ const MODEL_FETCH_ERROR_MESSAGE = 'MLP-Modell konnte nicht geladen werden. Bitte
 const MODEL_GENERIC_ERROR_MESSAGE = 'Bei der Verbindung zum MLP-Modell ist ein Fehler aufgetreten. Bitte Verbindung prüfen und erneut versuchen.';
 const MODEL_PROFILE_FALLBACK_NOTICE = 'Für dieses Profil ist noch kein persönliches Modell verfügbar. Ich nutze vorübergehend das globale Modell.';
 const MODEL_CONTRACT_MISSING_NOTICE = 'Hinweis: Dieses Modell hat keinen vollständigen Modellvertrag. Die Erkennung läuft weiter, wird aber beobachtet.';
+const MODEL_CONTRACT_INVALID_NOTICE_SUFFIX = 'Die Erkennung läuft weiter, wird aber beobachtet.';
 
 function contractNoticeFor(meta: MlpModelMeta | null): string | null {
   if (!meta) {
@@ -20,7 +21,7 @@ function contractNoticeFor(meta: MlpModelMeta | null): string | null {
     return MODEL_CONTRACT_MISSING_NOTICE;
   }
   if (meta.contractStatus === 'invalid') {
-    return `Modellvertrag ungültig (${formatContractReason(meta.contractReason)}). Die Erkennung läuft weiter, wird aber beobachtet.`;
+    return `Modellvertrag ungültig (${formatContractReason(meta.contractReason)}). ${MODEL_CONTRACT_INVALID_NOTICE_SUFFIX}`;
   }
   return null;
 }
