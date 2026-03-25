@@ -82,6 +82,28 @@ describe('fetchMlpModelWithFallback', () => {
     expect(result?.meta.labelCount).toBe(12);
   });
 
+  it('normalisiert ungültige oder nicht-positive Label-Count Header auf null', async () => {
+    const cases = ['0', '-1', 'abc'];
+    for (const value of cases) {
+      const fetchMock = vi.fn().mockResolvedValue(
+        createResponse(new Uint8Array([1]), {
+          status: 200,
+          headers: {
+            'X-Model-Source': 'global',
+            'X-Model-Label-Count': value,
+          },
+        }),
+      );
+      vi.stubGlobal('fetch', fetchMock as any);
+
+      const result = await fetchMlpModelWithFallback({
+        endpoint: 'https://api.example.com/api/v1/models/latest',
+      });
+
+      expect(result?.meta.labelCount).toBeNull();
+    }
+  });
+
   it('fällt auf übergebenes Profil zurück, wenn Header fehlen', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       createResponse(new Uint8Array([9]), {

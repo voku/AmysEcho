@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { unzip, unzipSync } from 'fflate';
 import { installMlp } from '../gesture/installMlp';
-import { fetchMlpModelWithFallback, type MlpModelMeta, type MlpModelResponse } from '../gesture/modelClient';
+import { fetchMlpModelWithFallback, formatContractReason, type MlpModelMeta, type MlpModelResponse } from '../gesture/modelClient';
 import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { useApiConfig } from './useApiConfig';
 
@@ -18,6 +18,9 @@ function contractNoticeFor(meta: MlpModelMeta | null): string | null {
   }
   if (meta.contractStatus === 'missing') {
     return MODEL_CONTRACT_MISSING_NOTICE;
+  }
+  if (meta.contractStatus === 'invalid') {
+    return `Modellvertrag ungültig (${formatContractReason(meta.contractReason)}). Die Erkennung läuft weiter, wird aber beobachtet.`;
   }
   return null;
 }
