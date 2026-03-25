@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+
 from amyserver_tools.train_mlp_sweep import (
     SweepConfig,
     _build_command,
