@@ -239,10 +239,41 @@ export class GestureDetectionStep implements ProcessingStep {
   isExpensive = true; // MediaPipe processing can be expensive
   private config: GestureDetectorConfig;
   private templateDetector: LandmarkTemplateDetector | null;
+  /**
+   * Optional injectable raw-landmark predictor. When set, replaces the
+   * `window.__mlpPredict` fallback. This enables unit testing without touching
+   * window globals and allows alternative predictor implementations to be
+   * swapped in at runtime.
+   *
+   * The signature matches `window.__mlpPredict` exactly so the same call site
+   * works for both. For the higher-level feature-vector boundary see
+   * `GestureModelAdapter` in `../GestureModelAdapter.ts`.
+   */
+  private rawPredictor: (
+    all: any[],
+    handednesses: any[],
+    poseLandmarks?: number[][],
+    faceLandmarks?: number[][],
+  ) => { label: string; score: number; candidates?: any[] } | null = null as any;
 
   constructor(config: GestureDetectorConfig, templateDetector?: LandmarkTemplateDetector) {
     this.config = config;
     this.templateDetector = templateDetector ?? null;
+  }
+
+  /**
+   * Inject a raw-landmark predictor function. Pass `null` to revert to
+   * the `window.__mlpPredict` global fallback.
+   */
+  setModelAdapter(
+    adapter: ((
+      all: any[],
+      handednesses: any[],
+      poseLandmarks?: number[][],
+      faceLandmarks?: number[][],
+    ) => { label: string; score: number; candidates?: any[] } | null) | null,
+  ): void {
+    this.rawPredictor = adapter as any;
   }
 
   async execute(context: ProcessingContext): Promise<GestureDetectionResult> {
@@ -456,10 +487,13 @@ export class GestureDetectionStep implements ProcessingStep {
     });
 
     gestureDebugLog('mlp', 'Checking MLP availability', () => ({
-      available: typeof window.__mlpPredict === 'function',
+      available: this.rawPredictor !== null || typeof window.__mlpPredict === 'function',
+      source: this.rawPredictor !== null ? 'injected' : 'window',
     }), { sampleIntervalMs: 10000 });
 
-    if (typeof window.__mlpPredict !== 'function') {
+    const predictor = this.rawPredictor ?? (typeof window.__mlpPredict === 'function' ? window.__mlpPredict : null);
+
+    if (!predictor) {
       return buildResult({
         selected: false,
         reason: 'predictor_unavailable',
@@ -475,7 +509,7 @@ export class GestureDetectionStep implements ProcessingStep {
     }), { sampleIntervalMs: 5000 });
 
     try {
-      const mlpResult = window.__mlpPredict(
+      const mlpResult = predictor(
         context.rawLandmarks ?? context.landmarks ?? [],
         handednessesForMlp,
         context.poseLandmarks,

@@ -119,18 +119,22 @@ export class GestureDetector {
         delegate: 'GPU' as const,
       };
 
+      const gestureOptions = {
+        baseOptions,
+        runningMode: 'VIDEO' as const,
+        numHands: this.config.mediapipe.numHands,
+        minHandDetectionConfidence: this.config.mediapipe.minDetectionConfidence,
+        minHandPresenceConfidence: this.config.mediapipe.minDetectionConfidence,
+        minTrackingConfidence: this.config.mediapipe.minTrackingConfidence,
+      };
+
       try {
-        this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
-          baseOptions,
-          runningMode: 'VIDEO',
-          numHands: 2,
-        });
+        this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, gestureOptions);
       } catch (gpuErr) {
         console.warn('GPU delegate failed, falling back to CPU:', gpuErr);
         this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
+          ...gestureOptions,
           baseOptions: { ...baseOptions, delegate: 'CPU' as const },
-          runningMode: 'VIDEO',
-          numHands: 2,
         });
       }
 

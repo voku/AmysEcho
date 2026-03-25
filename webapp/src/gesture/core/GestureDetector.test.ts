@@ -84,6 +84,7 @@ describe('GestureDetector', () => {
       performance: { telemetrySampleRate: 1000 },
       thresholds: { mlpConfidence: 0.8 },
       camera: { mirrorOverlay: true },
+      mediapipe: { minDetectionConfidence: 0.7, minTrackingConfidence: 0.5, numHands: 2 },
     } as any);
 
     mockLoadTasksVision = vi.fn().mockResolvedValue(mockComponents);
@@ -107,6 +108,9 @@ describe('GestureDetector', () => {
           baseOptions: expect.objectContaining({ delegate: 'GPU' }),
           runningMode: 'VIDEO',
           numHands: 2,
+          minHandDetectionConfidence: 0.7,
+          minHandPresenceConfidence: 0.7,
+          minTrackingConfidence: 0.5,
         })
       );
     });
