@@ -6,6 +6,7 @@ export type MlpModelMeta = {
   source: 'profile' | 'global';
   profileId?: string | null;
   etag?: string | null;
+  labelCount?: number | null;
   contractStatus?: 'missing' | 'invalid' | 'valid' | null;
   contractReason?: string | null;
   featureMode?: 'absolute' | 'relative_delta' | null;
@@ -75,6 +76,7 @@ function parseMeta(resp: Response, fallbackSource: MlpModelMeta['source'], profi
   const sourceHeader = resp.headers.get('X-Model-Source');
   const profileHeader = resp.headers.get('X-Model-Profile');
   const etag = resp.headers.get('ETag');
+  const labelCountHeader = resp.headers.get('X-Model-Label-Count');
   const contractStatusHeader = resp.headers.get('X-Model-Contract-Status');
   const contractReason = resp.headers.get('X-Model-Contract-Reason');
   const featureModeHeader = resp.headers.get('X-Model-Feature-Mode');
@@ -89,12 +91,17 @@ function parseMeta(resp: Response, fallbackSource: MlpModelMeta['source'], profi
     featureModeHeader === 'absolute' || featureModeHeader === 'relative_delta'
       ? featureModeHeader
       : null;
+  const parsedLabelCount = labelCountHeader ? Number.parseInt(labelCountHeader, 10) : NaN;
+  const labelCount = Number.isInteger(parsedLabelCount) && parsedLabelCount > 0
+    ? parsedLabelCount
+    : null;
 
   return {
     source,
     version: version ?? null,
     profileId: normalizedProfile,
     etag: etag ?? null,
+    labelCount,
     contractStatus,
     contractReason: contractReason ?? null,
     featureMode,

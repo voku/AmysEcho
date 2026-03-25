@@ -61,6 +61,7 @@ describe('fetchMlpModelWithFallback', () => {
           'X-Model-Profile': 'amy',
           'X-Model-Contract-Status': 'valid',
           'X-Model-Feature-Mode': 'absolute',
+          'X-Model-Label-Count': '12',
         },
       }),
     );
@@ -78,6 +79,7 @@ describe('fetchMlpModelWithFallback', () => {
     expect(result?.meta.version).toBe('p-2');
     expect(result?.meta.contractStatus).toBe('valid');
     expect(result?.meta.featureMode).toBe('absolute');
+    expect(result?.meta.labelCount).toBe(12);
   });
 
   it('fällt auf übergebenes Profil zurück, wenn Header fehlen', async () => {
@@ -274,6 +276,7 @@ describe('fetchMlpModelWithFallback', () => {
       version: 'v1',
       profileId: 'amy',
       etag: null,
+      labelCount: null,
       contractStatus: 'valid',
       contractReason: null,
       featureMode: null,
