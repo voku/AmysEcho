@@ -26,7 +26,7 @@ import { SymbolButton } from './SymbolButton';
 import { syncAllProfilesToServer } from '../services/profileRegistry';
 import { dedupeSymbolsByName, normalizeSymbolName } from '../utils/symbolDedup';
 import { normalizeGestureLabel } from '../utils/stringUtils';
-import type { MlpModelMeta } from '../gesture/modelClient';
+import { formatContractReason, type MlpModelMeta } from '../gesture/modelClient';
 
 type TrainingUploaderHandle = ReturnType<typeof useTrainingUploader>;
 
@@ -340,7 +340,7 @@ function formatModelContractHint(modelMeta: MlpModelMeta | null): string | null 
     return 'Der Modellvertrag fehlt. Das Modell bleibt nutzbar, wird aber als Übergangslösung behandelt.';
   }
   if (modelMeta.contractStatus === 'invalid') {
-    return `Der Modellvertrag ist ungültig (${modelMeta.contractReason ?? 'unbekannt'}).`;
+    return `Der Modellvertrag ist ungültig (${formatContractReason(modelMeta.contractReason)}).`;
   }
   return null;
 }
