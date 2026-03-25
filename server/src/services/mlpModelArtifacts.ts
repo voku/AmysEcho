@@ -93,6 +93,7 @@ const EXPECTED_BASELINE_SHA = (
 	process.env.MLP_BASELINE_SHA256 ?? ""
 ).toLowerCase();
 const TRAINING_METADATA_FILENAME = "training_metadata.json";
+const SIGN_LANG_LABEL_MAP_FILENAME = "sign_lang_label_map.txt";
 const MODALITY_KEYS = ["hands", "pose", "face"] as const;
 type ModalityKey = (typeof MODALITY_KEYS)[number];
 
@@ -303,6 +304,7 @@ export async function writeMinimalMlpModel(
 
 type TrainingMetadata = {
 	version?: string;
+	labels?: string[];
 	modalities?: ModalityKey[];
 	modalityCounts?: Partial<Record<ModalityKey, number>>;
 	configSnapshot?: {
@@ -436,6 +438,7 @@ type ContractStatus = "missing" | "invalid" | "valid";
 
 function evaluateArtifactContract(
 	contract: TrainingMetadata["artifactContract"] | undefined,
+	labels: string[] | undefined,
 ): { status: ContractStatus; reason?: string } {
 	if (!contract) {
 		return { status: "missing" };
@@ -466,6 +469,13 @@ function evaluateArtifactContract(
 	) {
 		return { status: "invalid", reason: "invalid_label_count" };
 	}
+	if (
+		typeof contract.labelCount === "number" &&
+		Array.isArray(labels) &&
+		contract.labelCount !== labels.length
+	) {
+		return { status: "invalid", reason: "label_count_mismatch" };
+	}
 	const featureMode = contract.featureMode;
 	if (typeof featureMode === "undefined") {
 		return { status: "invalid", reason: "missing_feature_mode" };
@@ -484,6 +494,10 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 		path.dirname(filePath),
 		TRAINING_METADATA_FILENAME,
 	);
+	const labelMapPath = path.join(
+		path.dirname(filePath),
+		SIGN_LANG_LABEL_MAP_FILENAME,
+	);
 	try {
 		const raw = fsSync.readFileSync(metadataPath, "utf8");
 		const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -494,6 +508,21 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 					MODALITY_KEYS.includes(entry as ModalityKey),
 				)
 			: undefined;
+		const rawLabels = parsed.labels;
+		const hasExplicitLabels = Array.isArray(rawLabels);
+		let labels = hasExplicitLabels
+			? Array.from(
+					new Set(
+						rawLabels
+							.filter((entry): entry is string => typeof entry === "string")
+							.map((entry) => entry.trim())
+							.filter((entry) => entry.length > 0),
+					),
+				)
+			: undefined;
+		if (!hasExplicitLabels && (!labels || labels.length === 0)) {
+			labels = readSignLangLabelMap(labelMapPath) ?? undefined;
+		}
 		const modalityCounts =
 			normalizeModalityCounts(parsed.modality_counts) ?? undefined;
 		const configSnapshot =
@@ -502,6 +531,7 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 			normalizeArtifactContract(parsed.artifact_contract) ?? undefined;
 		if (
 			!version &&
+			(!labels || labels.length === 0) &&
 			(!modalities || modalities.length === 0) &&
 			!modalityCounts &&
 			!configSnapshot &&
@@ -511,6 +541,7 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 		}
 		return {
 			version,
+			labels,
 			modalities,
 			modalityCounts,
 			configSnapshot,
@@ -520,11 +551,37 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 			return null;
 		}
-			if (process.env.NODE_ENV !== "production") {
-				console.warn(
-					`[mlpModelArtifacts] Failed to read training metadata at ${metadataPath}:`,
-					error,
-				);
+		if (process.env.NODE_ENV !== "production") {
+			console.warn(
+				`[mlpModelArtifacts] Failed to read training metadata at ${metadataPath}:`,
+				error,
+			);
+		}
+		return null;
+	}
+}
+
+function readSignLangLabelMap(filePath: string): string[] | null {
+	try {
+		const raw = fsSync.readFileSync(filePath, "utf8");
+		const labels = Array.from(
+			new Set(
+				raw
+					.split(/\r?\n/u)
+					.map((entry) => entry.trim())
+					.filter((entry) => entry.length > 0),
+			),
+		);
+		return labels.length > 0 ? labels : null;
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
+			return null;
+		}
+		if (process.env.NODE_ENV !== "production") {
+			console.warn(
+				`[mlpModelArtifacts] Failed to read label map at ${filePath}:`,
+				error,
+			);
 		}
 		return null;
 	}
@@ -632,6 +689,7 @@ export function applyModelResponseHeaders(
 	const trainingMetadata = readTrainingMetadata(filePath);
 	const contractEvaluation = evaluateArtifactContract(
 		trainingMetadata?.artifactContract,
+		trainingMetadata?.labels,
 	);
 	res.setHeader("X-Model-Contract-Status", contractEvaluation.status);
 	if (contractEvaluation.reason) {

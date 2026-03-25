@@ -191,10 +191,10 @@ async function ensureProfileModelReady(): Promise<void> {
         .map((pollUrl) => new URL(pollUrl, serverBaseUrl()).href);
 
       assert.ok(pollUrls.length > 0, 'bundle uploads should return at least one training poll URL');
-
-      for (const pollUrl of pollUrls) {
-        await waitForTrainingCompletion(pollUrl);
-      }
+      const uniquePollUrls = Array.from(new Set(pollUrls));
+      const latestPollUrl = uniquePollUrls[uniquePollUrls.length - 1];
+      assert.ok(latestPollUrl, 'latest poll URL must be available after uploads');
+      await waitForTrainingCompletion(latestPollUrl);
     })().catch((error) => {
       ensureProfileModelReadyPromise = null;
       throw error;

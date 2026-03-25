@@ -222,6 +222,7 @@ describe('GET /latest-mlp-model', () => {
 
     const trainingMetadata = {
       version: '2025-02-10T08:00:00Z',
+      labels: ['alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen', 'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken'],
       modalities: ['hands', 'pose'],
       modality_counts: {
         hands: 12,
@@ -265,6 +266,104 @@ describe('GET /latest-mlp-model', () => {
     expect(response.headers['x-model-contract-reason']).toBeUndefined();
     expect(response.headers['x-model-label-count']).toBe('12');
     expect(response.headers['x-model-feature-mode']).toBe('absolute');
+  });
+
+  it('returns invalid contract headers when label count mismatches labels list length', async () => {
+    const storedModelPath = modelPaths.getMlpModelPath();
+    await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    const trainingMetadata = {
+      labels: ['alle', 'blau', 'essen'],
+      artifact_contract: {
+        feature_schema_version: 1,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+        feature_mode: 'absolute',
+      },
+    };
+    const metadataPath = path.join(path.dirname(storedModelPath), 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-contract-status']).toBe('invalid');
+    expect(response.headers['x-model-contract-reason']).toBe('label_count_mismatch');
+  });
+
+  it('returns invalid contract headers when labels list is empty but contract label_count is positive', async () => {
+    const storedModelPath = modelPaths.getMlpModelPath();
+    const modelDir = path.dirname(storedModelPath);
+    await fs.mkdir(modelDir, { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await fs.rm(path.join(modelDir, 'sign_lang_label_map.txt'), { force: true });
+
+    const trainingMetadata = {
+      labels: [],
+      artifact_contract: {
+        feature_schema_version: 1,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 12,
+        feature_mode: 'absolute',
+      },
+    };
+    const metadataPath = path.join(modelDir, 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-contract-status']).toBe('invalid');
+    expect(response.headers['x-model-contract-reason']).toBe('label_count_mismatch');
+  });
+
+  it('uses sign_lang_label_map.txt when metadata labels are missing', async () => {
+    const storedModelPath = modelPaths.getMlpModelPath();
+    const modelDir = path.dirname(storedModelPath);
+    await fs.mkdir(modelDir, { recursive: true });
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+
+    const trainingMetadata = {
+      artifact_contract: {
+        feature_schema_version: 1,
+        window_size: 30,
+        frame_feature_size: 1629,
+        window_feature_size: 48870,
+        label_count: 3,
+        feature_mode: 'absolute',
+      },
+    };
+    const metadataPath = path.join(modelDir, 'training_metadata.json');
+    await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
+    const labelMapPath = path.join(modelDir, 'sign_lang_label_map.txt');
+    await fs.writeFile(labelMapPath, 'eins\nzwei\ndrei\n', 'utf8');
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-contract-status']).toBe('valid');
+    expect(response.headers['x-model-contract-reason']).toBeUndefined();
+    expect(response.headers['x-model-label-count']).toBe('3');
   });
 
   it('returns invalid contract headers when artifact contract mismatches local schema', async () => {

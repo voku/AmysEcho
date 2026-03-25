@@ -181,6 +181,7 @@ WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
 
 MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
+SIGN_LANG_LABEL_MAP_FILENAME = "sign_lang_label_map.txt"
 PROTOTYPE_MAX_VECTORS_PER_LABEL = int(
     os.environ.get("MLP_PROTOTYPE_MAX_VECTORS_PER_LABEL", "6")
 )
@@ -2636,14 +2637,24 @@ def _write_training_metadata(
     model_dir: Path,
     version: str,
     samples: list[Sample],
+    labels: list[str],
     metadata_context: dict[str, object],
     feature_mode: str,
 ) -> None:
     counts = _summarize_modality_counts(samples)
     modalities = [key for key in MODALITY_KEYS if counts[key] > 0]
-    label_count = len({sample.label for sample in samples})
+    unique_labels: list[str] = []
+    seen_labels: set[str] = set()
+    for label in labels:
+        normalized = str(label).strip()
+        if not normalized or normalized in seen_labels:
+            continue
+        seen_labels.add(normalized)
+        unique_labels.append(normalized)
+    label_count = len(unique_labels)
     payload = {
         "version": version,
+        "labels": unique_labels,
         "modalities": modalities,
         "modality_counts": counts,
         "sample_count": len(samples),
@@ -2671,6 +2682,17 @@ def _write_training_metadata(
     os.replace(tmp_path, path)
     try:
         os.chmod(path, 0o640)
+    except OSError:
+        pass
+
+    label_map_path = model_dir / SIGN_LANG_LABEL_MAP_FILENAME
+    label_map_tmp_path = label_map_path.with_suffix(label_map_path.suffix + ".tmp")
+    with label_map_tmp_path.open("w", encoding="utf-8") as handle:
+        handle.write("\n".join(unique_labels))
+        handle.write("\n")
+    os.replace(label_map_tmp_path, label_map_path)
+    try:
+        os.chmod(label_map_path, 0o640)
     except OSError:
         pass
 
@@ -3043,6 +3065,7 @@ def run_training_pipeline(
             global_dir,
             training_version,
             samples,
+            label_set,
             metadata_payload,
             FEATURE_MODE,
         )
@@ -3133,6 +3156,7 @@ def run_training_pipeline(
                 profile_dir,
                 training_version,
                 p_samples,
+                p_labels,
                 profile_metadata_payload,
                 FEATURE_MODE,
             )
