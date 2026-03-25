@@ -7,6 +7,7 @@ import {
   POSE_FEATURES_SIZE,
   POSE_LANDMARKS,
 } from './featureSchema';
+import { buildDualHandFeatureVector } from '../../training/landmarkFeatureContract';
 
 /**
  * Landmark Normalizer - Amy First
@@ -179,23 +180,9 @@ export function prepareMultimodalForMLP(
  * Normalize both hands for MLP input.
  */
 function prepareHandsForMLP(hands: number[][]): Float32Array {
-  const result = new Float32Array(HAND_FEATURES_SIZE);
-  
-  // Normalize left hand (first 21 landmarks)
-  if (hands.length > 0) {
-    const leftHand = hands.slice(0, MEDIAPIPE_HAND_LANDMARKS);
-    const leftNorm = prepareLandmarksForMLP(leftHand);
-    result.set(leftNorm, 0);
-  }
-  
-  // Normalize right hand (next 21 landmarks)
-  if (hands.length > MEDIAPIPE_HAND_LANDMARKS) {
-    const rightHand = hands.slice(MEDIAPIPE_HAND_LANDMARKS, MEDIAPIPE_HAND_LANDMARKS * 2);
-    const rightNorm = prepareLandmarksForMLP(rightHand);
-    result.set(rightNorm, HAND_FEATURES_SIZE / 2);
-  }
-  
-  return result;
+  const leftHand = hands.slice(0, MEDIAPIPE_HAND_LANDMARKS);
+  const rightHand = hands.slice(MEDIAPIPE_HAND_LANDMARKS, MEDIAPIPE_HAND_LANDMARKS * 2);
+  return new Float32Array(buildDualHandFeatureVector([leftHand, rightHand]));
 }
 
 /**

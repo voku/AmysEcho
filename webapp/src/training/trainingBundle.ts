@@ -6,8 +6,13 @@ import {
   framesHaveHandLandmarks,
   handFocusSupportsMirrorAugmentation,
 } from './handUtils';
-import { validateLandmarkSequence } from './trainingValidator';
+import { type ValidationCapabilities, validateLandmarkSequence } from './trainingValidator';
 import { fetchWithRetry, HttpError } from '../utils/http';
+import {
+  buildDualHandFeatureVector,
+  CONTRACT_COORDS_PER_POINT,
+  CONTRACT_HAND_LANDMARK_COUNT,
+} from './landmarkFeatureContract';
 import type {
   TrainingBundlePayload,
   TrainingFrame,
@@ -120,6 +125,10 @@ function buildMetadata(
       : {}),
   };
 
+  const firstFrameFeaturePreview = frames.length > 0
+    ? buildDualHandFeatureVector(frames[0]?.handLandmarks ?? []).slice(0, 12)
+    : [];
+
   return {
     profileId: payload.profileId,
     label: payload.label,
@@ -130,6 +139,13 @@ function buildMetadata(
     ...(stillFilename ? { stillFilename } : {}),
     modalities: landmarksMetadata.modalities,
     smoothing: landmarksMetadata.smoothing,
+    featureContract: {
+      version: 'wrist_relative_max_abs_v1',
+      pointsPerHand: CONTRACT_HAND_LANDMARK_COUNT,
+      coordinatesPerPoint: CONTRACT_COORDS_PER_POINT,
+      vectorLength: CONTRACT_HAND_LANDMARK_COUNT * CONTRACT_COORDS_PER_POINT * 2,
+      featurePreview: firstFrameFeaturePreview,
+    },
     ...(validationSummary ? { validationSummary } : {}),
     ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),
     ...(payload.handFocus ? { handFocus: payload.handFocus } : {}),
@@ -145,7 +161,10 @@ function buildMetadata(
   };
 }
 
-export function buildValidationSummary(frames: TrainingFrame[]): ValidationSummary | null {
+export function buildValidationSummary(
+  frames: TrainingFrame[],
+  capabilities: ValidationCapabilities,
+): ValidationSummary | null {
   if (!Array.isArray(frames) || frames.length === 0) {
     return null;
   }
@@ -159,7 +178,7 @@ export function buildValidationSummary(frames: TrainingFrame[]): ValidationSumma
       Array.isArray(frame.faceLandmarks) ? frame.faceLandmarks : [],
     ];
   });
-  const result = validateLandmarkSequence(sequence);
+  const result = validateLandmarkSequence(sequence, capabilities);
   return {
     frameCount: frames.length,
     issues: result.issues,
@@ -428,7 +447,10 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const usableFrames = payload.frames.filter((frame) => frameHasAnyLandmarks(frame));
   const frames = buildFrameTimeline(usableFrames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
-  const validationSummary = buildValidationSummary(usableFrames);
+  const validationSummary = buildValidationSummary(usableFrames, {
+    poseEnabled: true,
+    faceEnabled: true,
+  });
   const metadata = buildMetadata(
     payload,
     clipFilename,

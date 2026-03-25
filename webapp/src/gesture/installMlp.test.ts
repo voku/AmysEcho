@@ -2,11 +2,13 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { unzip, zipSync, strToU8 } from 'fflate';
 import { installMlp } from './installMlp';
 import { MULTIMODAL_FEATURES_SIZE } from './utils/featureSchema';
+import { buildDualHandFeatureVector } from '../training/landmarkFeatureContract';
 
 describe('installMlp', () => {
   const TEST_HAND = Array.from({ length: 21 }, (_, i) =>
     i === 0 ? ([1, 0, 0] as number[]) : ([0, 0, 0] as number[]),
   ) as number[][];
+  const CONTRACT_HAND = Array.from({ length: 21 }, (_, i) => [i * 0.01, i * 0.005, i * 0.002]) as number[][];
 
   // Helper to generate a mock NPY buffer for tests
   function createMockNpy(data: Float32Array | string[], shape: number[], scalar = false): Uint8Array {
@@ -140,25 +142,12 @@ describe('installMlp', () => {
   const MULTI_LABEL_3LAYER_ZIP_B64 = create3LayerZipB64(126, 10, 5, 3, ['trinken', 'satt', 'mehr']);
 
   function createSparsePrototypeVector(): Float32Array {
-    const vector = new Float32Array(21 * 2 * 3);
-    let offset = 0;
-    for (let i = 0; i < 21; i++) {
-      vector[offset++] = i === 0 ? 0 : -4;
-      vector[offset++] = 0;
-      vector[offset++] = 0;
-    }
-    return vector;
+    return new Float32Array(buildDualHandFeatureVector([CONTRACT_HAND, []]));
   }
 
   function createOpposingSparsePrototypeVector(): Float32Array {
-    const vector = new Float32Array(21 * 2 * 3);
-    let offset = 0;
-    for (let i = 0; i < 21; i++) {
-      vector[offset++] = i === 0 ? 0 : 4;
-      vector[offset++] = 0;
-      vector[offset++] = 0;
-    }
-    return vector;
+    const leftHand = CONTRACT_HAND.map(([x, y, z]) => [-x, -y, -z]);
+    return new Float32Array(buildDualHandFeatureVector([leftHand, []]));
   }
 
   // Helper to create realistic pose data (33 landmarks with x,y,z,visibility)
@@ -241,7 +230,7 @@ describe('installMlp', () => {
       expect(evt.event).toBe('mlp_loaded');
     }
 
-    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    const res = window.__mlpPredict!([CONTRACT_HAND], [[{ categoryName: 'Left' }]]);
     expect(res?.label).toBe('hi');
     expect(res?.score).toBeDefined();
   });
@@ -257,7 +246,7 @@ describe('installMlp', () => {
     const events = postMessage.mock.calls.map((c) => c[0] ? JSON.parse(c[0]).event : null);
     expect(events).toEqual(['mlp_transfer', 'mlp_loaded', 'mlp_transfer_complete']);
 
-    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    const res = window.__mlpPredict!([CONTRACT_HAND], [[{ categoryName: 'Left' }]]);
     expect(res?.label).toBe('hi');
     expect(res?.score).toBeDefined();
   });
@@ -342,7 +331,7 @@ describe('installMlp', () => {
     const ok = await window.__setMlpModelB64!(MULTI_LABEL_3LAYER_ZIP_B64);
     expect(ok).toBe(true);
 
-    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    const res = window.__mlpPredict!([CONTRACT_HAND], [[{ categoryName: 'Left' }]]);
     expect(res).not.toBeNull();
     expect(res?.candidates).toBeDefined();
     expect(res?.candidates?.length).toBe(3);
@@ -372,7 +361,7 @@ describe('installMlp', () => {
     const ok = await window.__setMlpModelB64!(prototypeModel);
     expect(ok).toBe(true);
 
-    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    const res = window.__mlpPredict!([CONTRACT_HAND], [[{ categoryName: 'Left' }]]);
     expect(res).not.toBeNull();
     expect(res?.label).toBe('proto_match');
     expect(res?.source).toBe('prototype');
@@ -403,7 +392,7 @@ describe('installMlp', () => {
     const ok = await window.__setMlpModelB64!(prototypeModel);
     expect(ok).toBe(true);
 
-    const res = window.__mlpPredict!([TEST_HAND], [[{ categoryName: 'Left' }]]);
+    const res = window.__mlpPredict!([CONTRACT_HAND], [[{ categoryName: 'Left' }]]);
     expect(res).not.toBeNull();
     expect(res?.label).toBe('satt');
     expect(res?.source).toBe('prototype');

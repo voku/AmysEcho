@@ -1,5 +1,6 @@
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { prepareMultimodalForMLP, MULTIMODAL_FEATURES_SIZE, HAND_PRIORITY_FACTOR } from './utils/landmarkNormalizer';
+import { buildDualHandFeatureVector } from '../training/landmarkFeatureContract';
 import { enhancePredictionWithFeedback } from './performanceFeedback';
 import { logger } from '../services/logger';
 import type { MLPPrediction, PrototypePrediction } from './types/MediaPipeTypes';
@@ -577,8 +578,6 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     }
     return out;
   }
-  const EMPTY_HAND = new Array(21).fill(0).map(() => [0, 0, 0] as const);
-
   function resolveAudioFeatureSize(metadataAudioFeatureSize?: number) {
     return metadataAudioFeatureSize !== undefined ? Math.max(0, metadataAudioFeatureSize) : 0;
   }
@@ -681,40 +680,17 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       
       frameFeatures = prepareMultimodalForMLP(handsFlat, poseLandmarks, faceLandmarks);
     } else {
-      // Use hand-only normalization (legacy)
-      const flat = new Float32Array(21 * 2 * 3);
-      function normHand(hand: Hand | null): Hand | null {
-        if (!hand || hand.length < 21) return null;
-        const wrist = hand[0];
-        if (!wrist) return null;
-        const [wx = 0, wy = 0, wzRaw = 0] = wrist;
-        const centered = hand.map((p) => {
-          const [x = 0, y = 0, z = 0] = p ?? [0, 0, 0];
-          return [x - wx, y - wy, z - wzRaw] as const;
-        });
-        const maxd = centered.reduce(
-          (currentMax, [x, y, z]) => Math.max(currentMax, Math.abs(x) + Math.abs(y) + Math.abs(z)),
-          0,
-        );
-        if (maxd === 0) return null;
-        return centered.map(([x, y, z]) => [x / maxd, y / maxd, z / maxd] as const);
-      }
-
+      // Keep hand-only inference aligned with the canonical training feature contract.
       const leftHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Left');
       const rightHandIndex = handednesses?.findIndex((h) => h?.[0]?.categoryName === 'Right');
 
-      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? null : null;
-      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? null : null;
+      const leftHand = leftHandIndex > -1 ? all[leftHandIndex] ?? [] : [];
+      const rightHand = rightHandIndex > -1 ? all[rightHandIndex] ?? [] : [];
+      const dualHandVector = buildDualHandFeatureVector([leftHand, rightHand]);
 
-      const left = normHand(leftHand) ?? EMPTY_HAND;
-      const right = normHand(rightHand) ?? EMPTY_HAND;
-      const both = [...left, ...right];
-      let k = 0;
-      for (const p of both) {
-        const [px = 0, py = 0, pz = 0] = p ?? [0, 0, 0];
-        flat[k++] = px * HAND_PRIORITY_FACTOR; // Apply priority factor matching backend
-        flat[k++] = py * HAND_PRIORITY_FACTOR;
-        flat[k++] = pz * HAND_PRIORITY_FACTOR;
+      const flat = new Float32Array(dualHandVector.length);
+      for (let i = 0; i < dualHandVector.length; i++) {
+        flat[i] = (dualHandVector[i] ?? 0) * HAND_PRIORITY_FACTOR;
       }
       frameFeatures = flat;
     }

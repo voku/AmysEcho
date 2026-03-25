@@ -28,7 +28,16 @@ export class ResourceManager {
    * Register a media stream for cleanup
    */
   registerMediaStream(stream: MediaStream): void {
-    this.mediaStreams.push(stream);
+    if (!this.mediaStreams.includes(stream)) {
+      this.mediaStreams.push(stream);
+    }
+  }
+
+  /**
+   * Remove a previously registered media stream.
+   */
+  unregisterMediaStream(stream: MediaStream): void {
+    this.mediaStreams = this.mediaStreams.filter((candidate) => candidate !== stream);
   }
 
   /**

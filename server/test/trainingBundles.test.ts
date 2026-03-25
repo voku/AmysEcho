@@ -733,6 +733,122 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(afterEntries).toHaveLength(beforeEntries.length);
   });
 
+  it('handles concurrent upload bursts without losing manifest entries', async () => {
+    const uploadCount = 12;
+    const profileId = '77777777-7777-4777-8777-777777777777';
+    const landmarks = await loadSampleLandmarks();
+
+    const uploadPromises = Array.from({ length: uploadCount }, async (_, index) => {
+      const metadata = {
+        profileId,
+        label: `STRESS_${index}`,
+        capturedAt: `2026-03-01T12:${String(index).padStart(2, '0')}:00.000Z`,
+      };
+      const zip = new AdmZip();
+      zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+      zip.addFile(
+        'landmarks.json',
+        Buffer.from(
+          JSON.stringify(
+            {
+              frames: [{ landmarks, handedness: ['Left'] }],
+            },
+            null,
+            2,
+          ),
+        ),
+      );
+
+      return request(app)
+        .post('/api/v1/dgs/sample-bundles')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Content-Type', 'application/zip')
+        .send(zip.toBuffer());
+    });
+
+    const responses = await Promise.all(uploadPromises);
+    const expectedLabels = new Set(
+      Array.from({ length: uploadCount }, (_, index) => `STRESS_${index}`),
+    );
+    const responseIds = new Set(responses.map((response) => String(response.body.id)));
+    responses.forEach((response) => {
+      expect(response.status).toBe(202);
+    });
+
+    const entries = await readManifestEntries();
+    const matchingEntries = entries.filter((entry) => entry.profileId === profileId);
+    const persistedLabels = new Set(matchingEntries.map((entry) => String(entry.label)));
+    const persistedIds = new Set(matchingEntries.map((entry) => String(entry.id)));
+
+    expect(matchingEntries).toHaveLength(uploadCount);
+    expect(persistedLabels).toEqual(expectedLabels);
+    expect(persistedIds).toEqual(responseIds);
+    expect(triggerCalls.filter((call) => call.profileId === profileId)).toHaveLength(uploadCount);
+    expect(manifestUpdatedCalls).toBe(uploadCount);
+  });
+
+  it('handles mixed concurrent success/failure bursts without corrupting manifest state', async () => {
+    const profileId = '88888888-8888-4888-8888-888888888888';
+    const landmarks = await loadSampleLandmarks();
+    const burst = Array.from({ length: 10 }, (_, index) => {
+      const isInvalid = index % 3 === 0;
+      const metadata = {
+        profileId,
+        label: `MIXED_${index}`,
+        capturedAt: `2026-03-01T13:${String(index).padStart(2, '0')}:00.000Z`,
+      };
+      const zip = new AdmZip();
+      zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+      zip.addFile(
+        'landmarks.json',
+        Buffer.from(
+          JSON.stringify(
+            {
+              frames: isInvalid ? [{ landmarks: [] }] : [{ landmarks, handedness: ['Right'] }],
+            },
+            null,
+            2,
+          ),
+        ),
+      );
+
+      return request(app)
+        .post('/api/v1/dgs/sample-bundles')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .set('Content-Type', 'application/zip')
+        .send(zip.toBuffer())
+        .then((response) => ({ response, isInvalid, label: metadata.label }));
+    });
+
+    const results = await Promise.all(burst);
+    const successful = results.filter((result) => !result.isInvalid);
+    const rejected = results.filter((result) => result.isInvalid);
+
+    successful.forEach(({ response }) => {
+      expect(response.status).toBe(202);
+    });
+    rejected.forEach(({ response }) => {
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('landmarks.json missing or invalid');
+    });
+
+    const entries = await readManifestEntries();
+    const matchingEntries = entries.filter((entry) => entry.profileId === profileId);
+    const successfulCount = successful.length;
+    const persistedLabels = new Set(matchingEntries.map((entry) => String(entry.label)));
+    const expectedSuccessfulLabels = new Set(successful.map((result) => result.label));
+    const rejectedLabels = new Set(rejected.map((result) => result.label));
+
+    expect(matchingEntries).toHaveLength(successfulCount);
+    expect(persistedLabels).toEqual(expectedSuccessfulLabels);
+    rejectedLabels.forEach((label) => {
+      expect(persistedLabels.has(label)).toBe(false);
+    });
+    expect(new Set(matchingEntries.map((entry) => String(entry.id))).size).toBe(successfulCount);
+    expect(triggerCalls.filter((call) => call.profileId === profileId)).toHaveLength(successfulCount);
+    expect(manifestUpdatedCalls).toBe(successfulCount);
+  });
+
   it('returns 500 when training manifest storage is corrupted', async () => {
     const { setJsonCollection } = await import('../src/sqliteDb.js');
     setJsonCollection('training.manifest', { entries: 'not-an-array' });

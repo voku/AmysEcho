@@ -7,6 +7,7 @@ import {
   type HandLandmarkStabilizer,
 } from '../utils/landmarkUtils';
 import { stripTrailingUuidSuffix } from '../utils/gestureLabel';
+import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 
 export type SignLanguageMessage = {
   type: string;
@@ -21,6 +22,7 @@ export type SignLanguageHookOptions = {
     video: HTMLVideoElement,
     overlay: HTMLCanvasElement,
   ) => GestureRecognitionOrchestrator;
+  telemetrySource?: string;
 };
 
 export type SignLanguageStatus = 'idle' | 'initializing' | 'running' | 'stopped' | 'error';
@@ -91,6 +93,56 @@ type BatchMessageEntry = {
   mlp?: { label: string; score: number; candidates?: Array<{ label: string; score: number }> } | null;
   thresholds?: { mlp?: number };
 };
+
+type StartupTelemetryAttempt = {
+  requestedAt: number;
+  streamReadyAt: number | null;
+  firstFrameAt: number | null;
+  sequence: number;
+};
+
+function isVideoElementReady(video: HTMLVideoElement): boolean {
+  return (
+    video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+    !video.paused &&
+    video.currentTime > 0
+  );
+}
+
+async function waitForVideoReady(video: HTMLVideoElement, timeoutMs = 1200): Promise<number> {
+  if (!video.srcObject || isVideoElementReady(video)) {
+    return Date.now();
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let timeoutId = 0;
+    let cleanup = () => {
+      video.removeEventListener('playing', onReady);
+      video.removeEventListener('loadeddata', onReady);
+      video.removeEventListener('canplay', onReady);
+      window.clearTimeout(timeoutId);
+    };
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(Date.now());
+    };
+    const onReady = () => {
+      if (isVideoElementReady(video) || video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        settle();
+      }
+    };
+
+    video.addEventListener('playing', onReady);
+    video.addEventListener('loadeddata', onReady);
+    video.addEventListener('canplay', onReady);
+    timeoutId = window.setTimeout(settle, timeoutMs);
+
+    onReady();
+  });
+}
 
 /**
  * Return the best message with a meaningful gesture label, or null.
@@ -210,6 +262,9 @@ export function useSignLanguageDetector(
   const handStabilizerRef = useRef<HandLandmarkStabilizer>(
     createHandLandmarkStabilizer({ ttlMs: 250, maxHands: 2 }),
   );
+  const startupTelemetryAttemptRef = useRef<StartupTelemetryAttempt | null>(null);
+  const startupAttemptSequenceRef = useRef(0);
+  const startPromiseRef = useRef<Promise<boolean> | null>(null);
 
   const orchestratorFactory = useMemo(
     () =>
@@ -218,11 +273,40 @@ export function useSignLanguageDetector(
         new GestureRecognitionOrchestrator(video, overlay)),
     [options.orchestratorFactory],
   );
+  const telemetrySource = options.telemetrySource ?? 'sign_language_detector';
+
+  const markDetectorFirstFrame = useCallback((timestamp: number) => {
+    const startupAttempt = startupTelemetryAttemptRef.current;
+    if (!startupAttempt || startupAttempt.firstFrameAt !== null) {
+      return;
+    }
+    if (startupAttempt.sequence !== startupAttemptSequenceRef.current) {
+      return;
+    }
+
+    startupAttempt.firstFrameAt = timestamp;
+    const startupLatencyMs = Math.max(0, Math.round(timestamp - startupAttempt.requestedAt));
+    void sendTelemetryEvent('detector_first_frame_at', {
+      source: telemetrySource,
+      timestamp,
+      startupAttempt: startupAttempt.sequence,
+      startupLatencyMs,
+    });
+    void sendTelemetryEvent('startup_latency_ms', {
+      source: telemetrySource,
+      latencyMs: startupLatencyMs,
+      startupAttempt: startupAttempt.sequence,
+      cameraStartRequestedAt: startupAttempt.requestedAt,
+      cameraStreamReadyAt: startupAttempt.streamReadyAt,
+      detectorFirstFrameAt: startupAttempt.firstFrameAt,
+    });
+  }, [telemetrySource]);
 
   useEffect(() => {
     const handleBridgeMessage = (event: Event) => {
       const detail = (event as CustomEvent<string>).detail;
       if (!detail) return;
+      markDetectorFirstFrame(Date.now());
       const parsed = parseIncomingMessage(detail);
       if (!parsed) return;
       setMessageLog((prev) => {
@@ -239,7 +323,6 @@ export function useSignLanguageDetector(
 
         return [parsed, ...prev].slice(0, 10);
       });
-
       if (parsed.payload && typeof parsed.payload === 'object') {
         const payload = parsed.payload as {
           gesture?: string;
@@ -456,9 +539,9 @@ export function useSignLanguageDetector(
     return () => {
       window.removeEventListener(WEBVIEW_MESSAGE_EVENT, handleBridgeMessage as EventListener);
     };
-  }, []);
+  }, [markDetectorFirstFrame]);
 
-  const ensureOrchestrator = useCallback(async () => {
+  const ensureOrchestrator = useCallback(async (attemptSeq?: number) => {
     if (orchestratorInitPromiseRef.current) {
       return orchestratorInitPromiseRef.current;
     }
@@ -476,6 +559,10 @@ export function useSignLanguageDetector(
       const orchestrator = orchestratorFactory(video, overlay);
       try {
         await orchestrator.initialize();
+        if (typeof attemptSeq === 'number' && attemptSeq !== startupAttemptSequenceRef.current) {
+          await orchestrator.cleanup().catch(() => undefined);
+          throw new Error('startup_attempt_aborted');
+        }
         orchestratorRef.current = orchestrator;
         return orchestrator;
       } catch (initError) {
@@ -503,25 +590,83 @@ export function useSignLanguageDetector(
   }, [ensureOrchestrator, overlayRef, videoRef]);
 
   const start = useCallback(async () => {
-    try {
-      setStatus('initializing');
-      setError(null);
-      const orchestrator = await ensureOrchestrator();
-      await orchestrator.start();
-      if ('vibrate' in navigator) {
-        navigator.vibrate?.(30);
-      }
-      setStatus('running');
+    if (status === 'running') {
       return true;
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      setError(reason);
-      setStatus('error');
-      return false;
     }
-  }, [ensureOrchestrator]);
+    if (startPromiseRef.current) {
+      return startPromiseRef.current;
+    }
+
+    const attemptSeq = startupAttemptSequenceRef.current + 1;
+    let startPromise: Promise<boolean> | null = null;
+    startPromise = (async () => {
+      try {
+        const requestedAt = Date.now();
+        startupAttemptSequenceRef.current = attemptSeq;
+        const startupAttempt: StartupTelemetryAttempt = {
+          requestedAt,
+          streamReadyAt: null,
+          firstFrameAt: null,
+          sequence: attemptSeq,
+        };
+        if (attemptSeq === startupAttemptSequenceRef.current) {
+          startupTelemetryAttemptRef.current = startupAttempt;
+        }
+        void sendTelemetryEvent('camera_start_requested_at', {
+          source: telemetrySource,
+          timestamp: requestedAt,
+          startupAttempt: startupAttempt.sequence,
+        });
+
+        setStatus('initializing');
+        setError(null);
+        const orchestrator = await ensureOrchestrator(attemptSeq);
+        if (attemptSeq !== startupAttemptSequenceRef.current) {
+          await orchestrator.stop().catch(() => undefined);
+          return false;
+        }
+        await orchestrator.start();
+        if (attemptSeq !== startupAttemptSequenceRef.current) {
+          await orchestrator.stop().catch(() => undefined);
+          return false;
+        }
+        const video = videoRef.current;
+        const streamReadyAt = video ? await waitForVideoReady(video) : Date.now();
+        startupAttempt.streamReadyAt = streamReadyAt;
+        void sendTelemetryEvent('camera_stream_ready_at', {
+          source: telemetrySource,
+          timestamp: streamReadyAt,
+          startupAttempt: startupAttempt.sequence,
+          startupStreamLatencyMs: Math.max(0, Math.round(streamReadyAt - startupAttempt.requestedAt)),
+        });
+        if ('vibrate' in navigator) {
+          navigator.vibrate?.(30);
+        }
+        setStatus('running');
+        return true;
+      } catch (err) {
+        if (attemptSeq !== startupAttemptSequenceRef.current) {
+          return false;
+        }
+        const reason = err instanceof Error ? err.message : String(err);
+        startupTelemetryAttemptRef.current = null;
+        setError(reason);
+        setStatus('error');
+        return false;
+      } finally {
+        if (startPromise && startPromiseRef.current === startPromise) {
+          startPromiseRef.current = null;
+        }
+      }
+    })();
+
+    startPromiseRef.current = startPromise;
+    return startPromise;
+  }, [ensureOrchestrator, status, telemetrySource, videoRef]);
 
   const stop = useCallback(async () => {
+    startupAttemptSequenceRef.current += 1;
+    startupTelemetryAttemptRef.current = null;
     if (!orchestratorRef.current) {
       setStatus('stopped');
       return;
@@ -536,8 +681,10 @@ export function useSignLanguageDetector(
         await orchestratorRef.current.cleanup();
       }
     } finally {
+      startupAttemptSequenceRef.current += 1;
       orchestratorRef.current = null;
       orchestratorInitPromiseRef.current = null;
+      startupTelemetryAttemptRef.current = null;
       handStabilizerRef.current.reset();
       setStatus('idle');
       setLastSign(null);

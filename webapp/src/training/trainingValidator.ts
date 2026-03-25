@@ -2,7 +2,9 @@ import {
   MAX_FACE_JITTER,
   MAX_HAND_JITTER,
   MAX_POSE_JITTER,
+  MIN_FACE_FRAME_COVERAGE,
   MIN_HAND_FRAME_COVERAGE,
+  MIN_POSE_FRAME_COVERAGE,
   MIN_SIGN_SAMPLE_FRAMES,
 } from './trainingQuality';
 
@@ -12,6 +14,8 @@ export type ValidationIssue =
   | 'landmarks_missing'
   | 'values_out_of_range'
   | 'hand_coverage_low'
+  | 'pose_coverage_low'
+  | 'face_coverage_low'
   | 'hand_jitter_high'
   | 'pose_jitter_high'
   | 'face_jitter_high';
@@ -22,6 +26,11 @@ export interface ValidationResult {
   suggestions: string[];
   qualityScore: number;
   confidence: number;
+}
+
+export interface ValidationCapabilities {
+  poseEnabled?: boolean;
+  faceEnabled?: boolean;
 }
 
 function toPoint(point: unknown): [number, number, number] | null {
@@ -168,7 +177,10 @@ function computeOverallQualityScore(
 
 // Basic quality checks for recorded gesture samples used in training.
 // Assumes landmarks are normalized to [0,1] if available.
-export function validateLandmarkSequence(samples: number[][][][]): ValidationResult {
+export function validateLandmarkSequence(
+  samples: number[][][][],
+  capabilities: ValidationCapabilities = {},
+): ValidationResult {
   const issues: ValidationIssue[] = [];
   const suggestions: string[] = [];
 
@@ -183,6 +195,8 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
   let totalMotion = 0;
   let motionSamples = 0;
   let handFrames = 0;
+  let poseFrames = 0;
+  let faceFrames = 0;
 
   for (let i = 0; i < frameCount; i++) {
     const currentFrame = samples[i];
@@ -190,13 +204,23 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
       hasMissing = true;
       continue;
     }
-    const { handPoints } = extractFramePoints(currentFrame);
+    const { handPoints, posePoints, facePoints } = extractFramePoints(currentFrame);
 
     if (handPoints.length === 0) {
       hasMissing = true;
+    } else {
+      handFrames += 1;
+    }
+    if (posePoints.length > 0) {
+      poseFrames += 1;
+    }
+    if (facePoints.length > 0) {
+      faceFrames += 1;
+    }
+
+    if (handPoints.length === 0) {
       continue;
     }
-    handFrames += 1;
 
     // Range check and motion calculation
     for (let j = 0; j < handPoints.length; j++) {
@@ -245,6 +269,16 @@ export function validateLandmarkSequence(samples: number[][][][]): ValidationRes
   if (handCoverage < MIN_HAND_FRAME_COVERAGE) {
     issues.push('hand_coverage_low');
     suggestions.push('Halte deine Hände während der gesamten Aufnahme sichtbar im Bild.');
+  }
+  const poseCoverage = frameCount > 0 ? poseFrames / frameCount : 0;
+  if (capabilities.poseEnabled === true && poseCoverage < MIN_POSE_FRAME_COVERAGE) {
+    issues.push('pose_coverage_low');
+    suggestions.push('Halte deinen Oberkörper im Bild, damit Pose-Landmarks zuverlässig erkannt werden.');
+  }
+  const faceCoverage = frameCount > 0 ? faceFrames / frameCount : 0;
+  if (capabilities.faceEnabled === true && faceCoverage < MIN_FACE_FRAME_COVERAGE) {
+    issues.push('face_coverage_low');
+    suggestions.push('Halte dein Gesicht möglichst durchgängig im Bild für stabile Gesichts-Landmarks.');
   }
 
   const handJitter = computeAverageJitter(samples, (frame) => extractFramePoints(frame).handPoints, { useSmoothing: true });
