@@ -12,6 +12,16 @@ const MODEL_GENERIC_ERROR_MESSAGE = 'Bei der Verbindung zum MLP-Modell ist ein F
 const MODEL_PROFILE_FALLBACK_NOTICE = 'Für dieses Profil ist noch kein persönliches Modell verfügbar. Ich nutze vorübergehend das globale Modell.';
 const MODEL_CONTRACT_MISSING_NOTICE = 'Hinweis: Dieses Modell hat keinen vollständigen Modellvertrag. Die Erkennung läuft weiter, wird aber beobachtet.';
 
+function contractNoticeFor(meta: MlpModelMeta | null): string | null {
+  if (!meta) {
+    return null;
+  }
+  if (meta.contractStatus === 'missing') {
+    return MODEL_CONTRACT_MISSING_NOTICE;
+  }
+  return null;
+}
+
 function toModelNotice(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   const normalized = message.toLowerCase();
@@ -219,7 +229,6 @@ export function useMlpModelInjection(
     profileId,
     refreshAccessToken,
     signatureFor,
-    contractNoticeFor,
   ]);
 
   useEffect(() => {
@@ -242,12 +251,3 @@ export function useMlpModelInjection(
     [lastMeta, notice, refreshModel, status],
   );
 }
-  const contractNoticeFor = useCallback((meta: MlpModelMeta | null): string | null => {
-    if (!meta) {
-      return null;
-    }
-    if (meta.contractStatus === 'missing') {
-      return MODEL_CONTRACT_MISSING_NOTICE;
-    }
-    return null;
-  }, []);
