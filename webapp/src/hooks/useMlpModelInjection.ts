@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { unzip, unzipSync } from 'fflate';
 import { installMlp } from '../gesture/installMlp';
-import { fetchMlpModelWithFallback, type MlpModelMeta, type MlpModelResponse } from '../gesture/modelClient';
+import { fetchMlpModelWithFallback, formatContractReason, type MlpModelMeta, type MlpModelResponse } from '../gesture/modelClient';
 import { HttpError, SESSION_EXPIRED_MESSAGE } from '../utils/http';
 import { useApiConfig } from './useApiConfig';
 
@@ -10,6 +10,21 @@ export type ModelInjectionStatus = 'idle' | 'loading' | 'ready' | 'error';
 const MODEL_FETCH_ERROR_MESSAGE = 'MLP-Modell konnte nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.';
 const MODEL_GENERIC_ERROR_MESSAGE = 'Bei der Verbindung zum MLP-Modell ist ein Fehler aufgetreten. Bitte Verbindung prüfen und erneut versuchen.';
 const MODEL_PROFILE_FALLBACK_NOTICE = 'Für dieses Profil ist noch kein persönliches Modell verfügbar. Ich nutze vorübergehend das globale Modell.';
+const MODEL_CONTRACT_MISSING_NOTICE = 'Hinweis: Dieses Modell hat keinen vollständigen Modellvertrag. Die Erkennung läuft weiter, wird aber beobachtet.';
+const MODEL_CONTRACT_INVALID_NOTICE_SUFFIX = 'Die Erkennung läuft weiter, wird aber beobachtet.';
+
+function contractNoticeFor(meta: MlpModelMeta | null): string | null {
+  if (!meta) {
+    return null;
+  }
+  if (meta.contractStatus === 'missing') {
+    return MODEL_CONTRACT_MISSING_NOTICE;
+  }
+  if (meta.contractStatus === 'invalid') {
+    return `Modellvertrag ungültig (${formatContractReason(meta.contractReason)}). ${MODEL_CONTRACT_INVALID_NOTICE_SUFFIX}`;
+  }
+  return null;
+}
 
 function toModelNotice(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -160,7 +175,10 @@ export function useMlpModelInjection(
     if (!isNewModel) {
       setLastMeta(result.meta);
       setStatus('ready');
-      if (result.meta.source === 'global' && profileId) {
+      const contractNotice = contractNoticeFor(result.meta);
+      if (contractNotice) {
+        setNotice(contractNotice);
+      } else if (result.meta.source === 'global' && profileId) {
         setNotice(MODEL_PROFILE_FALLBACK_NOTICE);
       } else {
         setNotice(null);
@@ -182,7 +200,10 @@ export function useMlpModelInjection(
         version: result.meta.version ?? 'unbekannt',
       });
       if (isNewModel) {
-        if (result.meta.source === 'global' && profileId) {
+        const contractNotice = contractNoticeFor(result.meta);
+        if (contractNotice) {
+          setNotice(contractNotice);
+        } else if (result.meta.source === 'global' && profileId) {
           setNotice(MODEL_PROFILE_FALLBACK_NOTICE);
         } else {
           setNotice('Modell aktualisiert');
@@ -190,6 +211,11 @@ export function useMlpModelInjection(
       } else if (result.meta.source === 'global' && profileId) {
         // Keep this hint visible even when there is no version change.
         setNotice(MODEL_PROFILE_FALLBACK_NOTICE);
+      } else {
+        const contractNotice = contractNoticeFor(result.meta);
+        if (contractNotice) {
+          setNotice(contractNotice);
+        }
       }
       refreshInFlightRef.current = false;
       return result;

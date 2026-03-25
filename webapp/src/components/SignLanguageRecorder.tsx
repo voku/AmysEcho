@@ -5,6 +5,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
+import { formatContractReason } from '../gesture/modelClient';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
@@ -967,6 +968,19 @@ export function SignLanguageRecorder() {
     return `${modelPart} · ${recognitionPart} · ${communicationPart}`;
   }, [canUseProfileRecognition, modelMeta?.version, modelStatusLabel, recognitionModeLabel]);
 
+  const modelContractStatusLabel = useMemo(() => {
+    if (!modelMeta || modelMeta.contractStatus === 'valid') {
+      return null;
+    }
+    if (modelMeta.contractStatus === 'missing') {
+      return 'Modellvertrag fehlt (Übergangsmodus)';
+    }
+    if (modelMeta.contractStatus === 'invalid') {
+      return `Modellvertrag ungültig (${formatContractReason(modelMeta.contractReason)})`;
+    }
+    return null;
+  }, [modelMeta]);
+
   const diagnostics = useMemo(() => {
     if (status === 'error' || error) {
       return {
@@ -1086,6 +1100,12 @@ export function SignLanguageRecorder() {
             <p>
               Aktives Modell <strong>{modelStatusLabel}{modelMeta?.version ? ` · v${modelMeta.version}` : ''}</strong>
             </p>
+            {typeof modelMeta?.labelCount === 'number' ? (
+              <p>
+                Modell-Labels <strong>{modelMeta.labelCount}</strong>
+              </p>
+            ) : null}
+            {modelContractStatusLabel ? <p>{modelContractStatusLabel}</p> : null}
           </div>
         </div>
       </div>

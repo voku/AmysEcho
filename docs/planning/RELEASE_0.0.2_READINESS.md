@@ -22,7 +22,7 @@ npm run build --prefix server
 npm test --prefix integration
 ```
 
-### Current pre-tag execution evidence (2026-03-03)
+### Current pre-tag execution evidence (2026-03-24)
 
 - [x] `npm run type-check --prefix webapp`
 - [x] `npm run lint --prefix webapp`
@@ -33,15 +33,18 @@ npm test --prefix integration
 - [x] `npm test --prefix server`
 - [x] `npm run build --prefix server`
 - [x] `npm test --prefix integration`
+- [x] `cd integration && node test-runner.js ci` (full suite: 14/14 passing, ~652s)
 
 Known environment notes:
 
 - npm prints `Unknown env config "http-proxy"` warnings in this environment. Builds/tests still pass.
 - `npm test --prefix integration` reports a pre-existing high-severity npm audit finding in integration dependencies; tests still pass and the issue should be tracked as a post-tag security follow-up.
+- Integration runner timeout is now configurable through `INTEGRATION_GLOBAL_TIMEOUT_MS`; default is 30 minutes when `CI=true` and 15 minutes locally.
 
 ## 2) Coverage & Quality Gates
 
 - Automated quality gate status: **PASS** for webapp, server, and integration suites.
+- Integration full-stack CI command (`cd integration && node test-runner.js ci`) completed in a single run with 14/14 passing on 2026-03-24.
 - Coverage confidence snapshot is documented in `docs/testing/TEST_COVERAGE_ANALYSIS.md`.
 - Critical flow evidence includes:
   - auth/session and refresh rotation tests,

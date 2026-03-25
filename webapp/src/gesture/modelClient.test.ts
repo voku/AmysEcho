@@ -61,6 +61,7 @@ describe('fetchMlpModelWithFallback', () => {
           'X-Model-Profile': 'amy',
           'X-Model-Contract-Status': 'valid',
           'X-Model-Feature-Mode': 'absolute',
+          'X-Model-Label-Count': '12',
         },
       }),
     );
@@ -78,6 +79,29 @@ describe('fetchMlpModelWithFallback', () => {
     expect(result?.meta.version).toBe('p-2');
     expect(result?.meta.contractStatus).toBe('valid');
     expect(result?.meta.featureMode).toBe('absolute');
+    expect(result?.meta.labelCount).toBe(12);
+  });
+
+  it('normalisiert ungültige oder nicht-positive Label-Count Header auf null', async () => {
+    const cases = ['0', '-1', 'abc'];
+    for (const value of cases) {
+      const fetchMock = vi.fn().mockResolvedValue(
+        createResponse(new Uint8Array([1]), {
+          status: 200,
+          headers: {
+            'X-Model-Source': 'global',
+            'X-Model-Label-Count': value,
+          },
+        }),
+      );
+      vi.stubGlobal('fetch', fetchMock as any);
+
+      const result = await fetchMlpModelWithFallback({
+        endpoint: 'https://api.example.com/api/v1/models/latest',
+      });
+
+      expect(result?.meta.labelCount).toBeNull();
+    }
   });
 
   it('fällt auf übergebenes Profil zurück, wenn Header fehlen', async () => {
@@ -274,6 +298,7 @@ describe('fetchMlpModelWithFallback', () => {
       version: 'v1',
       profileId: 'amy',
       etag: null,
+      labelCount: null,
       contractStatus: 'valid',
       contractReason: null,
       featureMode: null,
