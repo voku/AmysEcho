@@ -5,6 +5,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
+import { formatContractReason } from '../gesture/modelClient';
 import { audioService } from '../services/audioService';
 import { gestureMeaningService } from '../services/gestureMeaningService';
 import { apiRetryManager } from '../services/apiRetryManager';
@@ -975,7 +976,7 @@ export function SignLanguageRecorder() {
       return 'Modellvertrag fehlt (Übergangsmodus)';
     }
     if (modelMeta.contractStatus === 'invalid') {
-      return `Modellvertrag ungültig (${modelMeta.contractReason ?? 'unbekannt'})`;
+      return `Modellvertrag ungültig (${formatContractReason(modelMeta.contractReason)})`;
     }
     return null;
   }, [modelMeta]);

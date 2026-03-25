@@ -67,16 +67,17 @@ async function waitForTrainingBundleMetadata(bundleIds: string[], profileId: str
         return response.json() as Promise<Record<string, any>>;
       }),
     );
+    const snapshot = results.map((entry, index) => ({
+      bundleId: bundleIds[index],
+      status: entry ? 'ok' : 'missing',
+      hands: !!entry?.metadata?.modalities?.hands?.present,
+      pose: !!entry?.metadata?.modalities?.pose?.present,
+      face: !!entry?.metadata?.modalities?.face?.present,
+    }));
+    lastObservedState = JSON.stringify(snapshot);
+
     if (results.every((entry) => !!entry)) {
       const entries = results.filter((entry): entry is Record<string, any> => !!entry);
-      lastObservedState = JSON.stringify(
-        entries.map((entry) => ({
-          id: String(entry?.id ?? ''),
-          hands: !!entry?.metadata?.modalities?.hands?.present,
-          pose: !!entry?.metadata?.modalities?.pose?.present,
-          face: !!entry?.metadata?.modalities?.face?.present,
-        })),
-      );
       const allHaveModalities = entries.every((entry) => {
         const modalities = entry?.metadata?.modalities;
         return !!modalities?.hands?.present && !!modalities?.pose?.present && !!modalities?.face?.present;

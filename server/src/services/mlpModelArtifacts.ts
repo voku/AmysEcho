@@ -476,6 +476,9 @@ function evaluateArtifactContract(
 	) {
 		return { status: "invalid", reason: "label_count_mismatch" };
 	}
+	if (Array.isArray(labels) && new Set(labels).size !== labels.length) {
+		return { status: "invalid", reason: "duplicate_labels" };
+	}
 	const featureMode = contract.featureMode;
 	if (typeof featureMode === "undefined") {
 		return { status: "invalid", reason: "missing_feature_mode" };
@@ -511,14 +514,10 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 		const rawLabels = parsed.labels;
 		const hasExplicitLabels = Array.isArray(rawLabels);
 		let labels = hasExplicitLabels
-			? Array.from(
-					new Set(
-						rawLabels
-							.filter((entry): entry is string => typeof entry === "string")
-							.map((entry) => entry.trim())
-							.filter((entry) => entry.length > 0),
-					),
-				)
+			? rawLabels
+					.filter((entry): entry is string => typeof entry === "string")
+					.map((entry) => entry.trim())
+					.filter((entry) => entry.length > 0)
 			: undefined;
 		if (!hasExplicitLabels && (!labels || labels.length === 0)) {
 			labels = readSignLangLabelMap(labelMapPath) ?? undefined;
@@ -564,14 +563,10 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 function readSignLangLabelMap(filePath: string): string[] | null {
 	try {
 		const raw = fsSync.readFileSync(filePath, "utf8");
-		const labels = Array.from(
-			new Set(
-				raw
-					.split(/\r?\n/u)
-					.map((entry) => entry.trim())
-					.filter((entry) => entry.length > 0),
-			),
-		);
+		const labels = raw
+			.split(/\r?\n/u)
+			.map((entry) => entry.trim())
+			.filter((entry) => entry.length > 0);
 		return labels.length > 0 ? labels : null;
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {

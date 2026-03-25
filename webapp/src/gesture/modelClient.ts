@@ -12,6 +12,28 @@ export type MlpModelMeta = {
   featureMode?: 'absolute' | 'relative_delta' | null;
 };
 
+const CONTRACT_REASON_LABELS: Record<string, string> = {
+  incomplete_contract: 'Vertragsdaten unvollständig',
+  schema_version_mismatch: 'Feature-Schema-Version stimmt nicht überein',
+  window_size_mismatch: 'Fenstergröße stimmt nicht überein',
+  frame_feature_size_mismatch: 'Frame-Feature-Größe stimmt nicht überein',
+  window_feature_size_mismatch: 'Fenster-Feature-Größe stimmt nicht überein',
+  invalid_label_count: 'Ungültige Label-Anzahl',
+  label_count_mismatch: 'Label-Anzahl stimmt nicht überein',
+  duplicate_labels: 'Doppelte Labels im Artefakt',
+  missing_feature_mode: 'Feature-Modus fehlt',
+  unsupported_feature_mode: 'Feature-Modus nicht unterstützt',
+  relative_feature_mode_disabled: 'Relativer Feature-Modus ist deaktiviert',
+};
+
+/** Map a server-side contract reason code to a user-friendly German label. */
+export function formatContractReason(reason: string | null | undefined): string {
+  if (!reason) {
+    return 'unbekannt';
+  }
+  return CONTRACT_REASON_LABELS[reason] ?? reason;
+}
+
 export type MlpModelResponse = {
   b64: string;
   meta: MlpModelMeta;
