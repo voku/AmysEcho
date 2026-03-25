@@ -21,8 +21,13 @@ export type Point = [number, number, number];
 const WRIST_INDEX = 0;
 
 /**
- * Normalize landmarks for a single hand.
- * Translates to wrist origin and scales uniformly.
+ * Normalize landmarks for a single hand (streaming / template-matcher path).
+ * Translates to wrist origin and scales by max per-point L1 norm.
+ *
+ * NOTE: This is used by the streaming hand-size normalizer and
+ * `landmarkTemplateDetector.ts`. It is NOT the canonical MLP training/inference
+ * normalization. For MLP features use `normalizeHandLandmarksWristRelative`
+ * from `../../training/landmarkFeatureContract.ts` (global max-abs).
  */
 export function normalizeLandmarks(landmarks: Point[]): Point[] {
   if (!landmarks || landmarks.length === 0) {

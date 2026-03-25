@@ -36,7 +36,7 @@ Unit tests live in `webapp/src/gesture/__tests__/GestureProcessing.test.ts` and 
 
 ## Hand landmark normalization (MLP inputs)
 
-When preparing features for the MLP, each hand is translated to the wrist and scaled so the maximum L1-ish extent is `1`.
+When preparing features for the MLP, each hand is translated to the wrist and scaled so the maximum absolute value across the entire flattened coordinate vector is `1`. This is the **canonical contract** used by both webapp inference and server training.
 
 ### Translation
 
@@ -44,14 +44,21 @@ When preparing features for the MLP, each hand is translated to the wrist and sc
 translated = point - wrist
 ```
 
-### Scale
+### Scale (canonical: global max-abs)
 
 ```text
-scale = max(|x| + |y| + |z|) over translated points
-normalized = translated / max(scale, 1)
+flat = flatten(translated)               # 63 values: x0,y0,z0,x1,y1,z1,...
+maxAbs = max(|flat[i]|) for all i
+normalized = flat / maxAbs               # all values in [-1, 1]
 ```
 
-This ensures the full hand fits in a consistent normalized volume. See `webapp/src/gesture/utils/landmarkNormalizer.ts` and `webapp/src/gesture/utils/__tests__/landmarkNormalizer.test.ts`.
+This ensures the full hand fits in a consistent normalized volume with a fixed `[-1, 1]` range.  
+Canonical implementation: `webapp/src/training/landmarkFeatureContract.ts::normalizeHandLandmarksWristRelative`.  
+Server mirror: `server/training/frame_normalization.py::_normalize_hand`.
+
+> **Note**: `webapp/src/gesture/utils/landmarkNormalizer.ts::normalizeLandmarks` uses a **different** metric — `max(|x|+|y|+|z|)` per-point (max L1-per-point). That function is only used for the streaming hand-size template matcher (`landmarkTemplateDetector.ts`). It is **not** the canonical MLP normalization; do not use it when building training features or MLP inference features.
+
+See `webapp/src/training/landmarkFeatureContract.test.ts` for canonical fixture tests.
 
 ## Pose normalization (body-relative coordinates)
 
