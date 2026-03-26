@@ -1183,11 +1183,11 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 					(typeof entry.metadata?.capturedAt === "string" && entry.metadata.capturedAt) ||
 					(typeof entry.receivedAt === "string" && entry.receivedAt) ||
 					new Date().toISOString();
-					const reasons = [
-						featureContractVersion
-							? `featureContract.version '${featureContractVersion}' != '${EXPECTED_FEATURE_CONTRACT_VERSION}'`
-							: `featureContract.version missing (expected '${EXPECTED_FEATURE_CONTRACT_VERSION}')`,
-					];
+				const reasons = [
+					featureContractVersion
+						? `featureContract.version '${featureContractVersion}' != '${EXPECTED_FEATURE_CONTRACT_VERSION}'`
+						: `featureContract.version missing (expected '${EXPECTED_FEATURE_CONTRACT_VERSION}')`,
+				];
 				const qualityLogEntry: TrainingQualityLogEntry = {
 					bundleId: entry.id,
 					label: entry.label,
