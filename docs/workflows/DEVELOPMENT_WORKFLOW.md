@@ -84,6 +84,52 @@ function activatePendingModel(): Promise<boolean> {
 
 ## 🧪 Testing Strategy
 
+### DGS Training Workflow Smoke Check (Server)
+
+For integration-sensitive training changes (trainer, metadata contract, model serving, sweep tooling), run:
+
+```bash
+npm run train:workflow:smoke --prefix server
+```
+
+This command runs a lightweight end-to-end workflow using repository DGS landmark videos:
+- realistic training cycle (small config),
+- generated model artifact + metadata contract checks,
+- sweep-tool execution against the generated manifest.
+
+Use this before larger/full training runs to catch obvious regressions quickly.
+
+Detailed helper workflow commands and interpretation guidance are documented in:
+- `docs/training/TRAINING_HELPER_WORKFLOWS.md`
+
+For pre-tag/full-stack confidence, also run:
+
+```bash
+cd integration && node test-runner.js ci
+```
+
+The integration runner supports `INTEGRATION_GLOBAL_TIMEOUT_MS` for explicit timeout budgets
+(defaults: 30 minutes on CI, 15 minutes locally).
+
+### Manual Runtime Smoke (Build + Server + Demo Login + Navigation)
+
+When you need a quick “does the real app wire together?” check (outside unit tests), run:
+
+1. Build both deployable artifacts:
+   - `npm run build --prefix webapp`
+   - `npm run build --prefix server`
+2. Start backend from `server/` and frontend via `webapp` Vite (dev or preview).
+3. Login through `/api/v1/auth/login` with the demo credentials used in integration docs.
+4. Validate authenticated API paths used by the app (for example `/api/v1/profiles`, `/api/v1/models/version`).
+5. Open core app routes and ensure HTTP 200 responses:
+   - `/AmysEcho/`
+   - `/AmysEcho/lernen`
+   - `/AmysEcho/training`
+   - `/AmysEcho/symbole`
+   - `/AmysEcho/einstellungen`
+
+This is the fastest repeatable end-to-end sanity pass before deeper integration or full-check runs.
+
 ### Test Categories
 1. **Communication Tests** - Does Amy's gesture recognition work?
 2. **Reliability Tests** - Does it work under stress/failure?

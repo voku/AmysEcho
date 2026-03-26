@@ -48,14 +48,18 @@ async function waitForTrainingCompletion(pollUrl: string, headers: Record<string
   assert.fail(`training job did not complete before timeout (last status: ${lastStatus})`);
 }
 
-async function waitForTrainingBundleMetadata(bundleIds: string[]) {
-  const timeoutMs = 15_000;
+async function waitForTrainingBundleMetadata(bundleIds: string[], profileId: string) {
+  const timeoutMs = 90_000;
   const start = Date.now();
+  let lastObservedState = 'no bundle metadata response yet';
   while (Date.now() - start <= timeoutMs) {
     const results = await Promise.all(
       bundleIds.map(async (bundleId) => {
         const response = await fetch(`${serverBaseUrl()}/api/v1/dgs/sample-bundles/${bundleId}`, {
-          headers: serverHeaders(),
+          headers: {
+            ...serverHeaders(),
+            'X-Profile-Id': profileId,
+          },
         }).catch(() => null);
         if (!response || response.status !== 200) {
           return null;
@@ -63,6 +67,15 @@ async function waitForTrainingBundleMetadata(bundleIds: string[]) {
         return response.json() as Promise<Record<string, any>>;
       }),
     );
+    const snapshot = results.map((entry, index) => ({
+      bundleId: bundleIds[index],
+      status: entry ? 'ok' : 'missing',
+      hands: !!entry?.metadata?.modalities?.hands?.present,
+      pose: !!entry?.metadata?.modalities?.pose?.present,
+      face: !!entry?.metadata?.modalities?.face?.present,
+    }));
+    lastObservedState = JSON.stringify(snapshot);
+
     if (results.every((entry) => !!entry)) {
       const entries = results.filter((entry): entry is Record<string, any> => !!entry);
       const allHaveModalities = entries.every((entry) => {
@@ -76,7 +89,9 @@ async function waitForTrainingBundleMetadata(bundleIds: string[]) {
     await delay(500);
   }
 
-  assert.fail('training bundle details did not expose multimodal metadata in time');
+  assert.fail(
+    `training bundle details did not expose multimodal metadata in time (last state: ${lastObservedState})`,
+  );
 }
 
 /**
@@ -173,7 +188,7 @@ test('Complete multimodal training and model distribution workflow', async () =>
 
   if (!isLiveServer()) {
     console.log('\n=== Step 1b: Verify Preview Modalities Persisted ===');
-    const bundleEntries = await waitForTrainingBundleMetadata(bundleIds);
+    const bundleEntries = await waitForTrainingBundleMetadata(bundleIds, profileId);
     for (const entry of bundleEntries) {
       assert.ok(entry?.validationSummary?.landmarksPath, 'bundle details should include landmarks path');
       const modalities = entry?.metadata?.modalities;

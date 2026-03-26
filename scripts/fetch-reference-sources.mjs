@@ -68,6 +68,16 @@ async function main() {
     for (const filePath of repo.files) {
       const relativeFile = String(filePath);
       const targetPath = path.join(outDir, repoName, relativeFile);
+
+      // Guard against path traversal: both repoName and filePath must resolve
+      // to a descendant of outDir. Entries containing '..' or absolute paths
+      // in sources.json could otherwise overwrite arbitrary checkout files.
+      const resolvedOutDir = path.resolve(outDir);
+      if (!path.resolve(targetPath).startsWith(resolvedOutDir + path.sep) &&
+          path.resolve(targetPath) !== resolvedOutDir) {
+        throw new Error(`Path traversal detected in sources.json entry: ${JSON.stringify({ repo: repo.name, file: filePath })}`);
+      }
+
       const rawUrl = buildRawUrl(repo.url, repo.commit, relativeFile);
 
       if (dryRun) {

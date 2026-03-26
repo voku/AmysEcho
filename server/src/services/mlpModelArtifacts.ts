@@ -6,6 +6,7 @@ import * as fsSync from "fs";
 import { promises as fs } from "fs";
 import path from "path";
 import {
+	FEATURE_SCHEMA,
 	WINDOW_FEATURE_SIZE,
 	WINDOW_SIZE,
 } from "../constants/featureSchema.js";
@@ -92,8 +93,18 @@ const EXPECTED_BASELINE_SHA = (
 	process.env.MLP_BASELINE_SHA256 ?? ""
 ).toLowerCase();
 const TRAINING_METADATA_FILENAME = "training_metadata.json";
+const SIGN_LANG_LABEL_MAP_FILENAME = "sign_lang_label_map.txt";
 const MODALITY_KEYS = ["hands", "pose", "face"] as const;
 type ModalityKey = (typeof MODALITY_KEYS)[number];
+
+function requiresValidModelContract(): boolean {
+	return ["1", "true", "yes"].includes(
+		(
+			process.env.MLP_REQUIRE_VALID_CONTRACT ??
+			(process.env.NODE_ENV === "production" ? "1" : "0")
+		).toLowerCase(),
+	);
+}
 
 async function assertBaselineIntegrity(): Promise<void> {
 	if (!EXPECTED_BASELINE_SHA) {
@@ -293,8 +304,22 @@ export async function writeMinimalMlpModel(
 
 type TrainingMetadata = {
 	version?: string;
+	labels?: string[];
 	modalities?: ModalityKey[];
 	modalityCounts?: Partial<Record<ModalityKey, number>>;
+	configSnapshot?: {
+		epochs?: number;
+		learningRate?: number;
+		dropoutRate?: number;
+	};
+	artifactContract?: {
+		featureSchemaVersion?: number;
+		windowSize?: number;
+		frameFeatureSize?: number;
+		windowFeatureSize?: number;
+		labelCount?: number;
+		featureMode?: "absolute" | "relative_delta" | "unsupported";
+	};
 };
 
 function normalizeModalityCounts(
@@ -314,10 +339,167 @@ function normalizeModalityCounts(
 	return Object.keys(counts).length > 0 ? counts : null;
 }
 
+type TrainingConfigSnapshot = {
+	epochs?: number;
+	learning_rate?: number;
+	dropout_rate?: number;
+};
+
+type ArtifactContractSnapshot = {
+	feature_schema_version?: number;
+	window_size?: number;
+	frame_feature_size?: number;
+	window_feature_size?: number;
+	label_count?: number;
+	feature_mode?: string;
+};
+
+function allowsRelativeFeatureMode(): boolean {
+	return ["1", "true", "yes"].includes(
+		(
+			process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE ??
+			(process.env.NODE_ENV === "production" ? "0" : "1")
+		).toLowerCase(),
+	);
+}
+
+function normalizeFiniteNumber(value: unknown): number | undefined {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return undefined;
+	}
+	return value;
+}
+
+function normalizeTrainingConfigSnapshot(
+	raw: unknown,
+): TrainingMetadata["configSnapshot"] | null {
+	if (!raw || typeof raw !== "object") {
+		return null;
+	}
+	const record = raw as TrainingConfigSnapshot;
+	const epochs = normalizeFiniteNumber(record.epochs);
+	const learningRate = normalizeFiniteNumber(record.learning_rate);
+	const dropoutRate = normalizeFiniteNumber(record.dropout_rate);
+	if (
+		typeof epochs === "undefined" &&
+		typeof learningRate === "undefined" &&
+		typeof dropoutRate === "undefined"
+	) {
+		return null;
+	}
+	return {
+		epochs,
+		learningRate,
+		dropoutRate,
+	};
+}
+
+function normalizeArtifactContract(
+	raw: unknown,
+): TrainingMetadata["artifactContract"] | null {
+	if (!raw || typeof raw !== "object") {
+		return null;
+	}
+	const record = raw as ArtifactContractSnapshot;
+	const featureSchemaVersion = normalizeFiniteNumber(
+		record.feature_schema_version,
+	);
+	const windowSize = normalizeFiniteNumber(record.window_size);
+	const frameFeatureSize = normalizeFiniteNumber(record.frame_feature_size);
+	const windowFeatureSize = normalizeFiniteNumber(record.window_feature_size);
+	const labelCount = normalizeFiniteNumber(record.label_count);
+	const featureMode =
+		typeof record.feature_mode === "undefined"
+			? undefined
+			: record.feature_mode === "absolute" || record.feature_mode === "relative_delta"
+				? record.feature_mode
+				: "unsupported";
+	if (
+		typeof featureSchemaVersion === "undefined" &&
+		typeof windowSize === "undefined" &&
+		typeof frameFeatureSize === "undefined" &&
+		typeof windowFeatureSize === "undefined" &&
+		typeof labelCount === "undefined" &&
+		typeof featureMode === "undefined"
+	) {
+		return null;
+	}
+	return {
+		featureSchemaVersion,
+		windowSize,
+		frameFeatureSize,
+		windowFeatureSize,
+		labelCount,
+		featureMode,
+	};
+}
+
+type ContractStatus = "missing" | "invalid" | "valid";
+
+function evaluateArtifactContract(
+	contract: TrainingMetadata["artifactContract"] | undefined,
+	labels: string[] | undefined,
+): { status: ContractStatus; reason?: string } {
+	if (!contract) {
+		return { status: "missing" };
+	}
+	if (
+		typeof contract.featureSchemaVersion !== "number" ||
+		typeof contract.windowSize !== "number" ||
+		typeof contract.frameFeatureSize !== "number" ||
+		typeof contract.windowFeatureSize !== "number"
+	) {
+		return { status: "invalid", reason: "incomplete_contract" };
+	}
+	if (contract.featureSchemaVersion !== FEATURE_SCHEMA.version) {
+		return { status: "invalid", reason: "schema_version_mismatch" };
+	}
+	if (contract.windowSize !== WINDOW_SIZE) {
+		return { status: "invalid", reason: "window_size_mismatch" };
+	}
+	if (contract.frameFeatureSize !== DEFAULT_MLP_FEATURE_SIZE) {
+		return { status: "invalid", reason: "frame_feature_size_mismatch" };
+	}
+	if (contract.windowFeatureSize !== WINDOW_FEATURE_SIZE) {
+		return { status: "invalid", reason: "window_feature_size_mismatch" };
+	}
+	if (
+		typeof contract.labelCount === "number" &&
+		(!Number.isInteger(contract.labelCount) || contract.labelCount < 1)
+	) {
+		return { status: "invalid", reason: "invalid_label_count" };
+	}
+	if (
+		typeof contract.labelCount === "number" &&
+		Array.isArray(labels) &&
+		contract.labelCount !== labels.length
+	) {
+		return { status: "invalid", reason: "label_count_mismatch" };
+	}
+	if (Array.isArray(labels) && new Set(labels).size !== labels.length) {
+		return { status: "invalid", reason: "duplicate_labels" };
+	}
+	const featureMode = contract.featureMode;
+	if (typeof featureMode === "undefined") {
+		return { status: "invalid", reason: "missing_feature_mode" };
+	}
+	if (featureMode === "unsupported") {
+		return { status: "invalid", reason: "unsupported_feature_mode" };
+	}
+	if (featureMode === "relative_delta" && !allowsRelativeFeatureMode()) {
+		return { status: "invalid", reason: "relative_feature_mode_disabled" };
+	}
+	return { status: "valid" };
+}
+
 function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 	const metadataPath = path.join(
 		path.dirname(filePath),
 		TRAINING_METADATA_FILENAME,
+	);
+	const labelMapPath = path.join(
+		path.dirname(filePath),
+		SIGN_LANG_LABEL_MAP_FILENAME,
 	);
 	try {
 		const raw = fsSync.readFileSync(metadataPath, "utf8");
@@ -329,25 +511,72 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 					MODALITY_KEYS.includes(entry as ModalityKey),
 				)
 			: undefined;
+		const rawLabels = parsed.labels;
+		const hasExplicitLabels = Array.isArray(rawLabels);
+		let labels = hasExplicitLabels
+			? rawLabels
+					.filter((entry): entry is string => typeof entry === "string")
+					.map((entry) => entry.trim())
+					.filter((entry) => entry.length > 0)
+			: undefined;
+		if (!hasExplicitLabels && (!labels || labels.length === 0)) {
+			labels = readSignLangLabelMap(labelMapPath) ?? undefined;
+		}
 		const modalityCounts =
 			normalizeModalityCounts(parsed.modality_counts) ?? undefined;
+		const configSnapshot =
+			normalizeTrainingConfigSnapshot(parsed.config_snapshot) ?? undefined;
+		const artifactContract =
+			normalizeArtifactContract(parsed.artifact_contract) ?? undefined;
 		if (
 			!version &&
+			(!labels || labels.length === 0) &&
 			(!modalities || modalities.length === 0) &&
-			!modalityCounts
+			!modalityCounts &&
+			!configSnapshot &&
+			!artifactContract
 		) {
 			return null;
 		}
-		return { version, modalities, modalityCounts };
+		return {
+			version,
+			labels,
+			modalities,
+			modalityCounts,
+			configSnapshot,
+			artifactContract,
+		};
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
 			return null;
 		}
-			if (process.env.NODE_ENV !== "production") {
-				console.warn(
-					`[mlpModelArtifacts] Failed to read training metadata at ${metadataPath}:`,
-					error,
-				);
+		if (process.env.NODE_ENV !== "production") {
+			console.warn(
+				`[mlpModelArtifacts] Failed to read training metadata at ${metadataPath}:`,
+				error,
+			);
+		}
+		return null;
+	}
+}
+
+function readSignLangLabelMap(filePath: string): string[] | null {
+	try {
+		const raw = fsSync.readFileSync(filePath, "utf8");
+		const labels = raw
+			.split(/\r?\n/u)
+			.map((entry) => entry.trim())
+			.filter((entry) => entry.length > 0);
+		return labels.length > 0 ? labels : null;
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
+			return null;
+		}
+		if (process.env.NODE_ENV !== "production") {
+			console.warn(
+				`[mlpModelArtifacts] Failed to read label map at ${filePath}:`,
+				error,
+			);
 		}
 		return null;
 	}
@@ -445,10 +674,31 @@ export function applyModelResponseHeaders(
 	res.setHeader("X-Checksum-SHA256", metadata.sha256);
 	res.setHeader("X-Model-Version", String(Math.floor(metadata.stat.mtimeMs)));
 	res.setHeader("X-Model-Source", profileId ? "profile" : "global");
+	res.setHeader("X-Feature-Schema-Version", String(FEATURE_SCHEMA.version));
+	res.setHeader("X-Model-Window-Size", String(WINDOW_SIZE));
+	res.setHeader("X-Model-Window-Feature-Size", String(WINDOW_FEATURE_SIZE));
+	res.setHeader("X-Model-Frame-Feature-Size", String(DEFAULT_MLP_FEATURE_SIZE));
 	if (profileId) {
 		res.setHeader("X-Model-Profile", profileId);
 	}
 	const trainingMetadata = readTrainingMetadata(filePath);
+	const contractEvaluation = evaluateArtifactContract(
+		trainingMetadata?.artifactContract,
+		trainingMetadata?.labels,
+	);
+	res.setHeader("X-Model-Contract-Status", contractEvaluation.status);
+	if (contractEvaluation.reason) {
+		res.setHeader("X-Model-Contract-Reason", contractEvaluation.reason);
+	}
+	if (
+		(contractEvaluation.status === "invalid" ||
+			contractEvaluation.status === "missing") &&
+		requiresValidModelContract()
+	) {
+		throw new Error(
+			`Ungültiger Modellvertrag: ${contractEvaluation.reason ?? contractEvaluation.status}`,
+		);
+	}
 	if (trainingMetadata) {
 		if (trainingMetadata.version) {
 			res.setHeader("X-Training-Version", trainingMetadata.version);
@@ -465,6 +715,34 @@ export function applyModelResponseHeaders(
 		);
 		if (modalityCountsHeader) {
 			res.setHeader("X-Training-Modalities-Counts", modalityCountsHeader);
+		}
+		if (trainingMetadata.configSnapshot) {
+			const { epochs, learningRate, dropoutRate } =
+				trainingMetadata.configSnapshot;
+			if (typeof epochs !== "undefined") {
+				res.setHeader("X-Training-Epochs", String(epochs));
+			}
+			if (typeof learningRate !== "undefined") {
+				res.setHeader("X-Training-Learning-Rate", String(learningRate));
+			}
+			if (typeof dropoutRate !== "undefined") {
+				res.setHeader("X-Training-Dropout-Rate", String(dropoutRate));
+			}
+		}
+		if (trainingMetadata.artifactContract?.labelCount) {
+			res.setHeader(
+				"X-Model-Label-Count",
+				String(trainingMetadata.artifactContract.labelCount),
+			);
+		}
+		if (
+			trainingMetadata.artifactContract?.featureMode === "absolute" ||
+			trainingMetadata.artifactContract?.featureMode === "relative_delta"
+		) {
+			res.setHeader(
+				"X-Model-Feature-Mode",
+				trainingMetadata.artifactContract.featureMode,
+			);
 		}
 	}
 	res.setHeader(

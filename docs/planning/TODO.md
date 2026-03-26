@@ -5,7 +5,7 @@
 - [x] Create a dedicated pre-tag checklist in `docs/planning/RELEASE_0.0.2_READINESS.md` so contributors can run a consistent Go/No-Go flow.
 - [x] Execute the full pre-tag verification command set and attach results to the release notes.
 - [x] Complete the functional Go/No-Go checklist (auth/session, profile scope, full training loop, health endpoint status, German UX validation).
-- [ ] Draft `v0.0.2` release notes with known limitations and mitigation ownership.
+- [x] Draft `v0.0.2` release notes with known limitations and mitigation ownership. _Done: draft published in `docs/planning/RELEASE_0.0.2_NOTES.md` with scope, limitations, mitigations/owners, and rollback notes._
 
 ## Next TODO Focus (Post-v0.0.2)
 
@@ -93,9 +93,9 @@ Use this section to create one GitHub issue per unchecked item. Keep issue title
 - [x] **[Release] Complete functional Go/No-Go checks (auth, profile, training flow, health, German UX)**  
   Labels: `release`, `qa`  
   Acceptance: each checklist item in `docs/planning/RELEASE_0.0.2_READINESS.md` section 4 is checked with evidence links.
-- [ ] **[Release] Draft and review v0.0.2 release notes with known limitations and mitigations**  
+- [x] **[Release] Draft and review v0.0.2 release notes with known limitations and mitigations**  
   Labels: `release`, `documentation`  
-  Acceptance: release notes include scope, known limitations, mitigation owner, and rollback notes.
+  Acceptance: release notes include scope, known limitations, mitigation owner, and rollback notes. _Done via `docs/planning/RELEASE_0.0.2_NOTES.md` draft._
 - [x] **[Post-v0.0.2] Add concurrency stress tests for training bundle ingestion/retry storms**  
   Labels: `testing`, `server`, `reliability`  
   Acceptance: automated stress scenario added and passing in CI with documented thresholds. _Done via `server/test/trainingBundles.test.ts` success-burst and mixed-burst cases._
@@ -611,3 +611,16 @@ This blind spot analysis identified and resolved critical verification gaps in r
 Remaining items are recommendations for future improvement, not blockers.
 
 ---
+
+## External DGS Reuse Consolidation (SignLanguageRecognition)
+
+- [x] Publish adaptation blueprint in `docs/training/DGS_SIGNLANG_REUSE_IMPLEMENTATION_PLAN.md` with concrete Amy's Echo integration tasks.
+- [x] Expose model artifact schema/runtime headers (`X-Feature-Schema-Version`, window sizes, frame feature size, and optional training config snapshot fields) in `/latest-mlp-model` responses to make inference contract explicit for clients and diagnostics.
+- [x] Implement artifact contract validation metadata for model serving (`artifact_contract` in `training_metadata.json`) and expose contract status/reason headers in `/latest-mlp-model`.
+- [x] Consume contract status in webapp `modelClient` and reject `invalid` profile responses to force safe fallback to global/cached models. _Extended: client now parses `X-Model-Feature-Mode`, rejects `relative_delta` by default for safety, and allows explicit opt-in experiments via `VITE_ENABLE_RELATIVE_DELTA_MODEL=1`._
+- [x] Implement fixed-window normalization utility in `server/training/sliding_window.py` (`normalize_frame_sequence`) with Python tests for padding/truncation/weight validation and short-clip window generation.
+- [x] Add unknown-threshold inference gating telemetry assertions (`mlp_prediction_rejected` with score/threshold/reason payload) in `useSignLanguageDetector` tests.
+- [x] Benchmark optional relative-motion features against current absolute baseline. _Done: `docs/testing/benchmarks/relative_vs_absolute_sparse_profile_report_2026-03-23.md` shows `absolute` (0.2464) outperforming `relative_delta` (0.1739) on sparse-profile clip split; default remains absolute._
+- [x] Merge reusable extraction insights into maintained project docs (`docs/training/SIGNLANG_REUSE_PLAYBOOK.md`) and remove the unmaintained raw snapshot directory `docs/training/external/signlanguage_recognition/`.
+- [x] Harden artifact label consistency by persisting `labels` in `training_metadata.json` and rejecting `/latest-mlp-model` responses when `artifact_contract.label_count` does not match the metadata label list length.
+- [x] Re-check every removed external snapshot file and record adaptation decisions in `docs/training/SIGNLANG_EXTERNAL_RECHECK_2026-03-23.md`; port additional reusable code where justified. _Done: added maintained sweep orchestration script `server/src/amyserver_tools/train_mlp_sweep.py`._

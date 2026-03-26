@@ -8,17 +8,20 @@ function toPoint(point: unknown): [number, number, number] | null {
   const x = point[0];
   const y = point[1];
   const z = point[2] ?? 0;
-  if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
+  if (![x, y, z].every((value) => typeof value === 'number' && Number.isFinite(value))) {
     return null;
   }
   return [x, y, z];
 }
 
 export function normalizeHandLandmarksWristRelative(handLandmarks: unknown[]): number[] {
+  // Replace invalid/non-finite landmark slots with [0, 0, 0] in-place rather than
+  // filtering them out. Filtering would compact the array, shifting downstream landmark
+  // indices (e.g. index 4 ends up at slot 3 when landmark 3 is dropped), breaking the
+  // canonical "index → landmark" contract used by the server training pipeline.
   const points = handLandmarks
-    .map((point) => toPoint(point))
-    .filter((point): point is [number, number, number] => point !== null)
-    .slice(0, CONTRACT_HAND_LANDMARK_COUNT);
+    .slice(0, CONTRACT_HAND_LANDMARK_COUNT)
+    .map((point): [number, number, number] => toPoint(point) ?? [0, 0, 0]);
 
   if (points.length === 0) {
     return [];

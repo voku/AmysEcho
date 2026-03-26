@@ -6,7 +6,33 @@ export type MlpModelMeta = {
   source: 'profile' | 'global';
   profileId?: string | null;
   etag?: string | null;
+  labelCount?: number | null;
+  contractStatus?: 'missing' | 'invalid' | 'valid' | null;
+  contractReason?: string | null;
+  featureMode?: 'absolute' | 'relative_delta' | null;
 };
+
+const CONTRACT_REASON_LABELS: Record<string, string> = {
+  incomplete_contract: 'Vertragsdaten unvollständig',
+  schema_version_mismatch: 'Feature-Schema-Version stimmt nicht überein',
+  window_size_mismatch: 'Fenstergröße stimmt nicht überein',
+  frame_feature_size_mismatch: 'Frame-Feature-Größe stimmt nicht überein',
+  window_feature_size_mismatch: 'Fenster-Feature-Größe stimmt nicht überein',
+  invalid_label_count: 'Ungültige Label-Anzahl',
+  label_count_mismatch: 'Label-Anzahl stimmt nicht überein',
+  duplicate_labels: 'Doppelte Labels im Artefakt',
+  missing_feature_mode: 'Feature-Modus fehlt',
+  unsupported_feature_mode: 'Feature-Modus nicht unterstützt',
+  relative_feature_mode_disabled: 'Relativer Feature-Modus ist deaktiviert',
+};
+
+/** Map a server-side contract reason code to a user-friendly German label. */
+export function formatContractReason(reason: string | null | undefined): string {
+  if (!reason) {
+    return 'unbekannt';
+  }
+  return CONTRACT_REASON_LABELS[reason] ?? reason;
+}
 
 export type MlpModelResponse = {
   b64: string;
@@ -37,6 +63,25 @@ function emitMlpModelUpdated(meta: MlpModelMeta): void {
   });
 }
 
+function isRelativeDeltaModelEnabled(): boolean {
+  return import.meta.env['VITE_ENABLE_RELATIVE_DELTA_MODEL'] === '1';
+}
+
+/**
+ * Centralized model acceptance predicate.
+ * Applied to fresh responses, 304 reuse, and cached fallback paths.
+ * Returns `{ accepted: true }` or `{ accepted: false, reason: string }`.
+ */
+export function isAcceptedModel(meta: MlpModelMeta): { accepted: true } | { accepted: false; reason: string } {
+  if (meta.contractStatus === 'invalid') {
+    return { accepted: false, reason: `invalid_contract: ${meta.contractReason ?? 'unknown'}` };
+  }
+  if (meta.featureMode === 'relative_delta' && !isRelativeDeltaModelEnabled()) {
+    return { accepted: false, reason: 'relative_delta_disabled' };
+  }
+  return { accepted: true };
+}
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   const CHUNK_SIZE = 0x8000;
@@ -53,15 +98,35 @@ function parseMeta(resp: Response, fallbackSource: MlpModelMeta['source'], profi
   const sourceHeader = resp.headers.get('X-Model-Source');
   const profileHeader = resp.headers.get('X-Model-Profile');
   const etag = resp.headers.get('ETag');
+  const labelCountHeader = resp.headers.get('X-Model-Label-Count');
+  const contractStatusHeader = resp.headers.get('X-Model-Contract-Status');
+  const contractReason = resp.headers.get('X-Model-Contract-Reason');
+  const featureModeHeader = resp.headers.get('X-Model-Feature-Mode');
 
   const source = sourceHeader === 'profile' || sourceHeader === 'global' ? sourceHeader : fallbackSource;
   const normalizedProfile = profileHeader?.trim() || (source === 'profile' ? profileId ?? null : null);
+  const contractStatus =
+    contractStatusHeader === 'missing' || contractStatusHeader === 'invalid' || contractStatusHeader === 'valid'
+      ? contractStatusHeader
+      : null;
+  const featureMode =
+    featureModeHeader === 'absolute' || featureModeHeader === 'relative_delta'
+      ? featureModeHeader
+      : null;
+  const parsedLabelCount = labelCountHeader ? Number.parseInt(labelCountHeader, 10) : NaN;
+  const labelCount = Number.isInteger(parsedLabelCount) && parsedLabelCount > 0
+    ? parsedLabelCount
+    : null;
 
   return {
     source,
     version: version ?? null,
     profileId: normalizedProfile,
     etag: etag ?? null,
+    labelCount,
+    contractStatus,
+    contractReason: contractReason ?? null,
+    featureMode,
   };
 }
 
@@ -112,7 +177,7 @@ async function fetchModel(
   }
 
   if (response.status === 304) {
-    return { b64: '', meta: {} as any, notModified: true };
+    return { b64: '', meta: {} as MlpModelMeta, notModified: true };
   }
 
   if (!response.ok) {
@@ -130,8 +195,21 @@ async function fetchModel(
     return null;
   }
 
-  const buffer = await response.arrayBuffer();
+  // Evaluate contract/feature-mode headers BEFORE downloading the body
+  // to avoid wasting bandwidth on models that will be rejected.
   const meta = parseMeta(response, profileId ? 'profile' : 'global', profileId);
+  const acceptance = isAcceptedModel(meta);
+  if (!acceptance.accepted) {
+    console.warn('[MLP] Modell-Antwort abgelehnt, verwerfe', {
+      url: url.toString(),
+      profileId,
+      source: meta.source,
+      reason: acceptance.reason,
+    });
+    return null;
+  }
+
+  const buffer = await response.arrayBuffer();
   return {
     b64: arrayBufferToBase64(buffer),
     meta,
@@ -154,9 +232,19 @@ export async function fetchMlpModelWithFallback({
     const personalized = await fetchModel(endpoint, token, trimmedProfile, cached?.meta?.etag);
     
     if (personalized?.notModified && cached) {
-      console.info('[MLP] Profil-Modell unverändert (304), nutze Cache', { profileId: trimmedProfile });
-      emitMlpModelUpdated(cached.meta);
-      return cached as MlpModelResponse;
+      // Validate the cached model against current acceptance rules even on 304,
+      // because contract status or feature-mode policy may have changed.
+      const cachedAcceptance = isAcceptedModel(cached.meta);
+      if (!cachedAcceptance.accepted) {
+        console.warn('[MLP] Gespeichertes Profil-Modell nach 304 abgelehnt', {
+          profileId: trimmedProfile,
+          reason: cachedAcceptance.reason,
+        });
+      } else {
+        console.info('[MLP] Profil-Modell unverändert (304), nutze Cache', { profileId: trimmedProfile });
+        emitMlpModelUpdated(cached.meta);
+        return cached as MlpModelResponse;
+      }
     }
 
     if (personalized && !personalized.notModified) {
@@ -181,12 +269,20 @@ export async function fetchMlpModelWithFallback({
 
     // Attempt to load from cache if offline or 404
     if (cached) {
-      console.info('[MLP] Fallback auf gespeichertes Profil-Modell', {
-        profileId: trimmedProfile,
-        version: cached.meta.version,
-      });
-      emitMlpModelUpdated(cached.meta);
-      return cached as MlpModelResponse;
+      const cachedAcceptance = isAcceptedModel(cached.meta);
+      if (!cachedAcceptance.accepted) {
+        console.warn('[MLP] Gespeichertes Profil-Modell abgelehnt', {
+          profileId: trimmedProfile,
+          reason: cachedAcceptance.reason,
+        });
+      } else {
+        console.info('[MLP] Fallback auf gespeichertes Profil-Modell', {
+          profileId: trimmedProfile,
+          version: cached.meta.version,
+        });
+        emitMlpModelUpdated(cached.meta);
+        return cached as MlpModelResponse;
+      }
     }
 
     console.warn('[MLP] Personalisierte Gewichte nicht verfügbar, wechsle auf globales Modell', {
@@ -198,9 +294,16 @@ export async function fetchMlpModelWithFallback({
   const globalModel = await fetchModel(endpoint, token, undefined, cachedGlobal?.meta?.etag);
 
   if (globalModel?.notModified && cachedGlobal) {
-    console.info('[MLP] Globales Modell unverändert (304), nutze Cache');
-    emitMlpModelUpdated(cachedGlobal.meta);
-    return cachedGlobal as MlpModelResponse;
+    const cachedGlobalAcceptance = isAcceptedModel(cachedGlobal.meta);
+    if (!cachedGlobalAcceptance.accepted) {
+      console.warn('[MLP] Gespeichertes globales Modell nach 304 abgelehnt', {
+        reason: cachedGlobalAcceptance.reason,
+      });
+    } else {
+      console.info('[MLP] Globales Modell unverändert (304), nutze Cache');
+      emitMlpModelUpdated(cachedGlobal.meta);
+      return cachedGlobal as MlpModelResponse;
+    }
   }
 
   if (globalModel && !globalModel.notModified) {
@@ -215,11 +318,18 @@ export async function fetchMlpModelWithFallback({
 
   // Final fallback: global cache
   if (cachedGlobal) {
-    console.info('[MLP] Fallback auf gespeichertes globales Modell', {
-      version: cachedGlobal.meta.version,
-    });
-    emitMlpModelUpdated(cachedGlobal.meta);
-    return cachedGlobal as MlpModelResponse;
+    const cachedGlobalAcceptance = isAcceptedModel(cachedGlobal.meta);
+    if (!cachedGlobalAcceptance.accepted) {
+      console.warn('[MLP] Gespeichertes globales Modell abgelehnt', {
+        reason: cachedGlobalAcceptance.reason,
+      });
+    } else {
+      console.info('[MLP] Fallback auf gespeichertes globales Modell', {
+        version: cachedGlobal.meta.version,
+      });
+      emitMlpModelUpdated(cachedGlobal.meta);
+      return cachedGlobal as MlpModelResponse;
+    }
   }
 
   return null;
@@ -255,4 +365,3 @@ export async function getCachedMlpModel(profileId?: string): Promise<string | nu
   const cached = await getCachedModel(profileId ?? 'global');
   return cached?.b64 ?? null;
 }
-

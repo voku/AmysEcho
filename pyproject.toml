@@ -5,6 +5,7 @@ exclude = [
     "venv",
     ".venv",
     "node_modules",
+    "docs/training/external",
 ]
 
 [tool.ruff.lint]

@@ -320,9 +320,6 @@ export class GestureDetector {
           this.resultCallback(results, frameStart);
         }
 
-        const totalDetectorTime = performance.now() - frameStart;
-        this.cameraManager.reportProcessingTime(totalDetectorTime);
-
         const normalizedLandmarks: number[][][] = results?.landmarks
           ? results.landmarks.map((hand: HandLandmark[]) =>
               hand.map((landmark) => [landmark.x, landmark.y, landmark.z ?? 0]),
@@ -385,6 +382,11 @@ export class GestureDetector {
 
         // Record successful frame with performance metrics
         this.healthMonitor.recordFrame(frameStart);
+
+        // Report total frame cost (detection + overlay + capture) to the camera
+        // manager so the adaptive-constraint logic sees accurate per-frame cost.
+        const totalDetectorTime = performance.now() - frameStart;
+        this.cameraManager.reportProcessingTime(totalDetectorTime);
 
         // Log performance warnings for slow frames (throttled to avoid log spam)
         if (recognitionTime > SLOW_FRAME_THRESHOLD_MS) {

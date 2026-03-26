@@ -54,7 +54,7 @@ from config_constants import (
     WINDOW_FEATURE_SIZE,
     WINDOW_SIZE,
 )
-from feature_schema import TOTAL_HAND_LANDMARKS
+from feature_schema import SCHEMA, TOTAL_HAND_LANDMARKS
 from frame_normalization import _normalize_frame
 from sliding_window import Sample, create_sliding_windows
 
@@ -165,6 +165,14 @@ if BUNDLE_LANDMARK_POLICY not in {"bundle_only", "prefer_bundle", "prefer_server
     )
     BUNDLE_LANDMARK_POLICY = "bundle_only"
 
+FEATURE_MODE = os.environ.get("MLP_FEATURE_MODE", "absolute").strip().lower()
+if FEATURE_MODE not in {"absolute", "relative_delta"}:
+    LOGGER.warning(
+        "Unknown MLP_FEATURE_MODE=%s, falling back to absolute",
+        FEATURE_MODE,
+    )
+    FEATURE_MODE = "absolute"
+
 # Hand landmark constants for processing
 LANDMARKS_PER_HAND = TOTAL_HAND_LANDMARKS // 2
 SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
@@ -173,6 +181,7 @@ WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
 
 MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
+SIGN_LANG_LABEL_MAP_FILENAME = "sign_lang_label_map.txt"
 PROTOTYPE_MAX_VECTORS_PER_LABEL = int(
     os.environ.get("MLP_PROTOTYPE_MAX_VECTORS_PER_LABEL", "6")
 )
@@ -1883,7 +1892,12 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                 null_ctx = ctx.copy()
                 null_ctx['source_bundle_id'] = f"{bundle_id}_null_{i}"
                 # Create a static window by repeating the neutral frame
-                null_samples = create_sliding_windows([nf] * WINDOW_SIZE, NULL_CLASS_LABEL, null_ctx)
+                null_samples = create_sliding_windows(
+                    [nf] * WINDOW_SIZE,
+                    NULL_CLASS_LABEL,
+                    null_ctx,
+                    feature_mode=FEATURE_MODE,
+                )
                 data.extend(null_samples)
                 modality_sample_total += _update_modality_totals(
                     null_samples,
@@ -1892,7 +1906,13 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                 )
 
         # 4. Generate sliding windows for the actual sign
-        sign_samples = create_sliding_windows(normalized_frames, label, ctx, frame_weights)
+        sign_samples = create_sliding_windows(
+            normalized_frames,
+            label,
+            ctx,
+            frame_weights,
+            feature_mode=FEATURE_MODE,
+        )
         if not sign_samples:
             _increment_bundle_label_summary(
                 label_bundle_summary,
@@ -1979,7 +1999,13 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
                             'video_source': raw_stem,  # Track original video for debugging
                             'source_bundle_id': f"default-example:{raw_stem}",
                         }  # Global examples
-                        v_samples = create_sliding_windows(v_normalized, label, v_ctx, v_weights)
+                        v_samples = create_sliding_windows(
+                            v_normalized,
+                            label,
+                            v_ctx,
+                            v_weights,
+                            feature_mode=FEATURE_MODE,
+                        )
                         data.extend(v_samples)
                         modality_sample_total += _update_modality_totals(
                             v_samples,
@@ -2611,15 +2637,41 @@ def _write_training_metadata(
     model_dir: Path,
     version: str,
     samples: list[Sample],
+    labels: list[str],
     metadata_context: dict[str, object],
+    feature_mode: str,
 ) -> None:
     counts = _summarize_modality_counts(samples)
     modalities = [key for key in MODALITY_KEYS if counts[key] > 0]
+    unique_labels: list[str] = []
+    seen_labels: set[str] = set()
+    for label in labels:
+        normalized = str(label).strip()
+        if not normalized or normalized in seen_labels:
+            continue
+        seen_labels.add(normalized)
+        unique_labels.append(normalized)
+    label_count = len(unique_labels)
     payload = {
         "version": version,
+        "labels": unique_labels,
         "modalities": modalities,
         "modality_counts": counts,
         "sample_count": len(samples),
+        "artifact_contract": {
+            "feature_schema_version": int(SCHEMA.get("version", 0)),
+            "window_size": int(WINDOW_SIZE),
+            "frame_feature_size": int(INPUT_FEATURE_SIZE),
+            "window_feature_size": int(WINDOW_FEATURE_SIZE),
+            "label_count": int(label_count),
+            "feature_mode": feature_mode,
+            "quality_thresholds": {
+                "min_hands_coverage": float(MIN_HANDS_COVERAGE),
+                "min_pose_coverage": float(MIN_POSE_COVERAGE),
+                "min_face_coverage": float(MIN_FACE_COVERAGE),
+                "min_usable_frame_ratio": float(MIN_USABLE_FRAME_RATIO),
+            },
+        },
         **metadata_context,
     }
     path = model_dir / TRAINING_METADATA_FILENAME
@@ -2630,6 +2682,17 @@ def _write_training_metadata(
     os.replace(tmp_path, path)
     try:
         os.chmod(path, 0o640)
+    except OSError:
+        pass
+
+    label_map_path = model_dir / SIGN_LANG_LABEL_MAP_FILENAME
+    label_map_tmp_path = label_map_path.with_suffix(label_map_path.suffix + ".tmp")
+    with label_map_tmp_path.open("w", encoding="utf-8") as handle:
+        handle.write("\n".join(unique_labels))
+        handle.write("\n")
+    os.replace(label_map_tmp_path, label_map_path)
+    try:
+        os.chmod(label_map_path, 0o640)
     except OSError:
         pass
 
@@ -2668,6 +2731,7 @@ def _build_config_snapshot(config: TrainingConfig) -> dict[str, object]:
         "window_size": WINDOW_SIZE,
         "input_feature_size": INPUT_FEATURE_SIZE,
         "window_feature_size": WINDOW_FEATURE_SIZE,
+        "feature_mode": FEATURE_MODE,
         "layer_sizes": [MLP_LAYER1_SIZE, MLP_LAYER2_SIZE],
         "random_seed": config.random_seed,
         "sampling_mode": config.sampling_mode,
@@ -2997,7 +3061,14 @@ def run_training_pipeline(
             prototype_labels=global_prototype_labels,
             prototype_support=global_prototype_support,
         )
-        _write_training_metadata(global_dir, training_version, samples, metadata_payload)
+        _write_training_metadata(
+            global_dir,
+            training_version,
+            samples,
+            label_set,
+            metadata_payload,
+            FEATURE_MODE,
+        )
 
     # Per-profile models
     profile_reports = {}
@@ -3081,7 +3152,14 @@ def run_training_pipeline(
                 prototype_labels=p_prototype_labels,
                 prototype_support=p_prototype_support,
             )
-            _write_training_metadata(profile_dir, training_version, p_samples, profile_metadata_payload)
+            _write_training_metadata(
+                profile_dir,
+                training_version,
+                p_samples,
+                p_labels,
+                profile_metadata_payload,
+                FEATURE_MODE,
+            )
 
         p_modality_counts = _summarize_modality_counts(p_samples)
         p_modalities_used = [key for key in MODALITY_KEYS if p_modality_counts[key] > 0]

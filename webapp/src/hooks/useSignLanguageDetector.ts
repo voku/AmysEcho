@@ -400,6 +400,27 @@ export function useSignLanguageDetector(
               finalGesture: payload.gesture ?? nestedMlpDecisionMessage?.gesture ?? null,
               finalConfidence: typeof payload.confidence === 'number' ? payload.confidence : null,
             });
+            void sendTelemetryEvent('mlp_prediction_rejected', {
+              source: telemetrySource,
+              reason: mlpDecision.reason ?? null,
+              score: typeof mlpDecision.score === 'number' ? mlpDecision.score : null,
+              threshold:
+                typeof mlpDecision.threshold_used === 'number'
+                  ? mlpDecision.threshold_used
+                  : typeof mlpDecision.threshold === 'number'
+                    ? mlpDecision.threshold
+                    : null,
+              selectedGestureBeforeMlp: mlpDecision.selectedGestureBeforeMlp ?? null,
+              selectedConfidenceBeforeMlp:
+                typeof mlpDecision.selectedConfidenceBeforeMlp === 'number'
+                  ? mlpDecision.selectedConfidenceBeforeMlp
+                  : null,
+              finalDetectionMethod:
+                payload.detectionMethod ??
+                payload.metadata?.method ??
+                nestedMlpDecisionMessage?.detectionMethod ??
+                null,
+            });
           }
         }
 
@@ -539,7 +560,7 @@ export function useSignLanguageDetector(
     return () => {
       window.removeEventListener(WEBVIEW_MESSAGE_EVENT, handleBridgeMessage as EventListener);
     };
-  }, [markDetectorFirstFrame]);
+  }, [markDetectorFirstFrame, telemetrySource]);
 
   const ensureOrchestrator = useCallback(async (attemptSeq?: number) => {
     if (orchestratorInitPromiseRef.current) {
@@ -632,6 +653,13 @@ export function useSignLanguageDetector(
         }
         const video = videoRef.current;
         const streamReadyAt = video ? await waitForVideoReady(video) : Date.now();
+        // Re-check after the async wait — a stop() during waitForVideoReady() would
+        // have bumped startupAttemptSequenceRef. Without this check, a cancelled
+        // startup would be reported as successful.
+        if (attemptSeq !== startupAttemptSequenceRef.current) {
+          await orchestrator.stop().catch(() => undefined);
+          return false;
+        }
         startupAttempt.streamReadyAt = streamReadyAt;
         void sendTelemetryEvent('camera_stream_ready_at', {
           source: telemetrySource,
@@ -667,6 +695,7 @@ export function useSignLanguageDetector(
   const stop = useCallback(async () => {
     startupAttemptSequenceRef.current += 1;
     startupTelemetryAttemptRef.current = null;
+    startPromiseRef.current = null;
     if (!orchestratorRef.current) {
       setStatus('stopped');
       return;
@@ -684,6 +713,7 @@ export function useSignLanguageDetector(
       startupAttemptSequenceRef.current += 1;
       orchestratorRef.current = null;
       orchestratorInitPromiseRef.current = null;
+      startPromiseRef.current = null;
       startupTelemetryAttemptRef.current = null;
       handStabilizerRef.current.reset();
       setStatus('idle');

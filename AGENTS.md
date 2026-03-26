@@ -2,7 +2,7 @@
 
 Amy's Echo is a multimodal communication platform for non-verbal children. This guide defines how to work in this repository. Favor real implementations over mocks and do not skip tests.
 
-For guidelines specific to the server, see the `AGENTS.md` file within the `server/` directory. Paths in this document are relative to the repository root unless noted otherwise.
+For guidelines specific to the server, see the `AGENTS.md` file within the `server/` directory. Those rules are mandatory for files under `server/` and its subdirectories, unless a task explicitly says otherwise. Paths in this document are relative to the repository root unless noted otherwise.
 
 ### Additional Resources
 - **Development Workflow**: See `docs/workflows/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
@@ -11,7 +11,17 @@ For guidelines specific to the server, see the `AGENTS.md` file within the `serv
 
 ## 🚨 AMY FIRST DEVELOPMENT PRINCIPLES
 
-**CRITICAL**: Every line of code must enhance Amy's ability to communicate. When in doubt, choose reliability over elegance, simplicity over features, and Amy's needs over technical metrics.
+**CRITICAL**: Every code change must either (a) directly improve Amy's communication experience, or (b) improve the reliability, safety, performance, or maintainability of communication features. When in doubt, choose reliability over elegance, simplicity over features, and Amy's needs over technical metrics.
+
+## Rule Priority (Conflict Resolution)
+
+When instructions conflict, apply this precedence order:
+1. **Safety and correctness constraints** (no unsafe fabrication, no destructive or unverifiable behavior)
+2. **System/developer/runtime constraints** (tooling, environment, execution restrictions)
+3. **Direct user task requirements**
+4. **Directory-scoped AGENTS.md rules** (root first, then deeper nested files)
+5. **Project workflow requirements** (discovery/planning/testing/documentation)
+6. **Style and preference guidance** (naming, abstraction preferences, formatting suggestions)
 
 ### Amy First Commitments
 - ✅ **Zero interruption** - Amy's communication never pauses

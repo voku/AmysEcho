@@ -447,9 +447,14 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const usableFrames = payload.frames.filter((frame) => frameHasAnyLandmarks(frame));
   const frames = buildFrameTimeline(usableFrames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
+  // Derive pose/face availability from the actual recorded frames rather than
+  // hardcoding true. Recordings captured without one modality would otherwise
+  // receive false quality issues and misleading coverage scores.
+  const poseEnabled = usableFrames.some((f) => Array.isArray(f.poseLandmarks) && f.poseLandmarks.length > 0);
+  const faceEnabled = usableFrames.some((f) => Array.isArray(f.faceLandmarks) && f.faceLandmarks.length > 0);
   const validationSummary = buildValidationSummary(usableFrames, {
-    poseEnabled: true,
-    faceEnabled: true,
+    poseEnabled,
+    faceEnabled,
   });
   const metadata = buildMetadata(
     payload,
