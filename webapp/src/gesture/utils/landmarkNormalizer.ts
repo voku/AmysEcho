@@ -7,6 +7,7 @@ import {
   POSE_FEATURES_SIZE,
   POSE_LANDMARKS,
 } from './featureSchema';
+import { buildDualHandFeatureVector } from '../../training/landmarkFeatureContract';
 
 /**
  * Landmark Normalizer - Amy First
@@ -20,8 +21,13 @@ export type Point = [number, number, number];
 const WRIST_INDEX = 0;
 
 /**
- * Normalize landmarks for a single hand.
- * Translates to wrist origin and scales uniformly.
+ * Normalize landmarks for a single hand (streaming / template-matcher path).
+ * Translates to wrist origin and scales by max per-point L1 norm.
+ *
+ * NOTE: This is used by the streaming hand-size normalizer and
+ * `landmarkTemplateDetector.ts`. It is NOT the canonical MLP training/inference
+ * normalization. For MLP features use `normalizeHandLandmarksWristRelative`
+ * from `../../training/landmarkFeatureContract.ts` (global max-abs).
  */
 export function normalizeLandmarks(landmarks: Point[]): Point[] {
   if (!landmarks || landmarks.length === 0) {
@@ -179,23 +185,9 @@ export function prepareMultimodalForMLP(
  * Normalize both hands for MLP input.
  */
 function prepareHandsForMLP(hands: number[][]): Float32Array {
-  const result = new Float32Array(HAND_FEATURES_SIZE);
-  
-  // Normalize left hand (first 21 landmarks)
-  if (hands.length > 0) {
-    const leftHand = hands.slice(0, MEDIAPIPE_HAND_LANDMARKS);
-    const leftNorm = prepareLandmarksForMLP(leftHand);
-    result.set(leftNorm, 0);
-  }
-  
-  // Normalize right hand (next 21 landmarks)
-  if (hands.length > MEDIAPIPE_HAND_LANDMARKS) {
-    const rightHand = hands.slice(MEDIAPIPE_HAND_LANDMARKS, MEDIAPIPE_HAND_LANDMARKS * 2);
-    const rightNorm = prepareLandmarksForMLP(rightHand);
-    result.set(rightNorm, HAND_FEATURES_SIZE / 2);
-  }
-  
-  return result;
+  const leftHand = hands.slice(0, MEDIAPIPE_HAND_LANDMARKS);
+  const rightHand = hands.slice(MEDIAPIPE_HAND_LANDMARKS, MEDIAPIPE_HAND_LANDMARKS * 2);
+  return new Float32Array(buildDualHandFeatureVector([leftHand, rightHand]));
 }
 
 /**

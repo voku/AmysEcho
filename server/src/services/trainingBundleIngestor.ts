@@ -248,6 +248,7 @@ function isDatasetSample(value: unknown): value is DatasetSample {
 
 const BUNDLE_SAMPLE_PREFIX = "bundle:";
 const MAX_FLATTENED_LANDMARK_POINTS = 543;
+const EXPECTED_FEATURE_CONTRACT_VERSION = "wrist_relative_max_abs_v1";
 const MAX_HANDS = 2;
 const HAND_LANDMARKS_PER_HAND = 21;
 const MAX_POSE_POINTS = POSE_LANDMARKS;
@@ -1169,6 +1170,57 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 		let latestCapturedAt: string | undefined;
 
 		for (const entry of manifestEntries) {
+			const featureContractVersion =
+				typeof entry.metadata?.featureContract === "object" &&
+				entry.metadata.featureContract &&
+				typeof (entry.metadata.featureContract as Record<string, unknown>).version === "string"
+					? ((entry.metadata.featureContract as Record<string, unknown>).version as string)
+					: null;
+			if (
+				featureContractVersion &&
+				featureContractVersion !== EXPECTED_FEATURE_CONTRACT_VERSION
+			) {
+				const recordedAt =
+					(typeof entry.capturedAt === "string" && entry.capturedAt) ||
+					(typeof entry.metadata?.capturedAt === "string" && entry.metadata.capturedAt) ||
+					(typeof entry.receivedAt === "string" && entry.receivedAt) ||
+					new Date().toISOString();
+				const reasons = [
+					`featureContract.version '${featureContractVersion}' != '${EXPECTED_FEATURE_CONTRACT_VERSION}'`,
+				];
+				const qualityLogEntry: TrainingQualityLogEntry = {
+					bundleId: entry.id,
+					label: entry.label,
+					profileId: entry.profileId ?? null,
+					reasons,
+					metrics: {
+						frameCount: 0,
+						handCoverage: 0,
+						poseCoverage: 0,
+						faceCoverage: 0,
+					},
+					recordedAt,
+				};
+				try {
+					await appendTrainingQualityLog(qualityLogEntry);
+				} catch (appendError) {
+					logger.error("Failed to append training quality log entry", {
+						bundleId: entry.id,
+						error:
+							appendError instanceof Error
+								? appendError.message
+								: String(appendError),
+					});
+				}
+				logger.warn("Training bundle rejected due to feature contract mismatch", {
+					bundleId: entry.id,
+					profileId: entry.profileId ?? null,
+					label: entry.label,
+					reasons,
+				});
+				continue;
+			}
+
 			const frames = await readLandmarks(entry).catch((error) => {
 				logger.warn("Failed to read landmarks for training bundle", {
 					error: error instanceof Error ? error.message : String(error),

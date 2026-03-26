@@ -1,0 +1,35 @@
+{
+  "repos": [
+    {
+      "name": "google-ai-edge/mediapipe",
+      "url": "https://github.com/google-ai-edge/mediapipe",
+      "commit": "9d38d191b060cbfeaeb0c1aa20e47201f032ea35",
+      "files": [
+        "docs/solutions/hands.md",
+        "docs/solutions/pose.md",
+        "docs/solutions/face_mesh.md"
+      ]
+    },
+    {
+      "name": "kinivi/hand-gesture-recognition-mediapipe",
+      "url": "https://github.com/kinivi/hand-gesture-recognition-mediapipe",
+      "commit": "0e737bb8c45ea03f6fafb1f5dbfe9246c34a8003",
+      "files": [
+        "README.md",
+        "app.py",
+        "utils/cvfpscalc.py",
+        "model/keypoint_classifier/keypoint_classifier.py"
+      ]
+    },
+    {
+      "name": "kevinjosethomas/sign-language-processing",
+      "url": "https://github.com/kevinjosethomas/sign-language-processing",
+      "commit": "c292039b77fecfad3821c71bff1de06e3fe559ec",
+      "files": [
+        "README.md",
+        "src/client/README.md",
+        "src/client/src/app/components/Avatar.tsx"
+      ]
+    }
+  ]
+}

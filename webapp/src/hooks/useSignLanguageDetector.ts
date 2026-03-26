@@ -653,6 +653,13 @@ export function useSignLanguageDetector(
         }
         const video = videoRef.current;
         const streamReadyAt = video ? await waitForVideoReady(video) : Date.now();
+        // Re-check after the async wait — a stop() during waitForVideoReady() would
+        // have bumped startupAttemptSequenceRef. Without this check, a cancelled
+        // startup would be reported as successful.
+        if (attemptSeq !== startupAttemptSequenceRef.current) {
+          await orchestrator.stop().catch(() => undefined);
+          return false;
+        }
         startupAttempt.streamReadyAt = streamReadyAt;
         void sendTelemetryEvent('camera_stream_ready_at', {
           source: telemetrySource,
@@ -688,6 +695,7 @@ export function useSignLanguageDetector(
   const stop = useCallback(async () => {
     startupAttemptSequenceRef.current += 1;
     startupTelemetryAttemptRef.current = null;
+    startPromiseRef.current = null;
     if (!orchestratorRef.current) {
       setStatus('stopped');
       return;
@@ -705,6 +713,7 @@ export function useSignLanguageDetector(
       startupAttemptSequenceRef.current += 1;
       orchestratorRef.current = null;
       orchestratorInitPromiseRef.current = null;
+      startPromiseRef.current = null;
       startupTelemetryAttemptRef.current = null;
       handStabilizerRef.current.reset();
       setStatus('idle');

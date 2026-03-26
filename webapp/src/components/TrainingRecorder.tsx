@@ -584,13 +584,18 @@ export function TrainingRecorder({ profileId, label, symbolId, onRecordingComple
 
   const isRecording = state === 'recording';
   const hasRecording = state === 'idle' && recordedData.frames.length > 0;
+  // Derive pose/face availability from the recorded frames themselves so that
+  // the validation summary remains stable after stopping or leaving frame.
+  // The live preview flags (poseLandmarksAvailable/faceLandmarksAvailable) are
+  // only used for live guidance, not for validating the stored recording.
   const validationSummary = useMemo(
-    () =>
-      buildValidationSummary(recordedData.frames, {
-        poseEnabled: poseLandmarksAvailable,
-        faceEnabled: faceLandmarksAvailable,
-      }),
-    [faceLandmarksAvailable, poseLandmarksAvailable, recordedData.frames],
+    () => {
+      const frames = recordedData.frames;
+      const poseEnabled = frames.some((f) => Array.isArray(f.poseLandmarks) && f.poseLandmarks.length > 0);
+      const faceEnabled = frames.some((f) => Array.isArray(f.faceLandmarks) && f.faceLandmarks.length > 0);
+      return buildValidationSummary(frames, { poseEnabled, faceEnabled });
+    },
+    [recordedData.frames],
   );
   const clipStatus = recordedData.clipFile
     ? `${recordedData.clipFile.name} (${formatBytes(recordedData.clipFile.size)})`

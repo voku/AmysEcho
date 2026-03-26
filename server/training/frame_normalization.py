@@ -49,8 +49,9 @@ def _normalize_frame(
         wrist = hand_points[0]
         centered = hand_points - wrist
 
-        # L1 norm: sum of absolute coordinates
-        max_dist = np.max(np.sum(np.abs(centered), axis=1))
+        # Keep in sync with webapp/src/training/landmarkFeatureContract.ts:
+        # scale each hand by the maximum absolute coordinate value.
+        max_dist = np.max(np.abs(centered))
 
         if max_dist < 1e-8:
             return centered  # Avoid division by zero
