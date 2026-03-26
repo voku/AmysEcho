@@ -1170,23 +1170,23 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 		let latestCapturedAt: string | undefined;
 
 		for (const entry of manifestEntries) {
+			const featureContract = entry.metadata?.featureContract as {
+				version?: unknown;
+			} | null | undefined;
 			const featureContractVersion =
-				typeof entry.metadata?.featureContract === "object" &&
-				entry.metadata.featureContract &&
-				typeof (entry.metadata.featureContract as Record<string, unknown>).version === "string"
-					? ((entry.metadata.featureContract as Record<string, unknown>).version as string)
+				typeof featureContract?.version === "string"
+					? featureContract.version.trim()
 					: null;
-			if (
-				featureContractVersion &&
-				featureContractVersion !== EXPECTED_FEATURE_CONTRACT_VERSION
-			) {
+			if (featureContractVersion !== EXPECTED_FEATURE_CONTRACT_VERSION) {
 				const recordedAt =
 					(typeof entry.capturedAt === "string" && entry.capturedAt) ||
 					(typeof entry.metadata?.capturedAt === "string" && entry.metadata.capturedAt) ||
 					(typeof entry.receivedAt === "string" && entry.receivedAt) ||
 					new Date().toISOString();
 				const reasons = [
-					`featureContract.version '${featureContractVersion}' != '${EXPECTED_FEATURE_CONTRACT_VERSION}'`,
+					featureContractVersion
+						? `featureContract.version '${featureContractVersion}' != '${EXPECTED_FEATURE_CONTRACT_VERSION}'`
+						: `featureContract.version missing (expected '${EXPECTED_FEATURE_CONTRACT_VERSION}')`,
 				];
 				const qualityLogEntry: TrainingQualityLogEntry = {
 					bundleId: entry.id,

@@ -41,7 +41,19 @@ function parseArgs(argv) {
 }
 
 function buildRawUrl(repoUrl, commit, filePath) {
-  const [owner, repo] = repoUrl.replace('https://github.com/', '').split('/');
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(repoUrl);
+  } catch {
+    throw new Error(`Invalid GitHub URL format: ${repoUrl}`);
+  }
+  const isGithubHost = parsedUrl.hostname === 'github.com' || parsedUrl.hostname === 'www.github.com';
+  const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+  if (!isGithubHost || pathParts.length < 2 || !pathParts[0] || !pathParts[1]) {
+    throw new Error(`Invalid GitHub URL format: ${repoUrl}`);
+  }
+  const owner = pathParts[0];
+  const repo = pathParts[1];
   return `https://raw.githubusercontent.com/${owner}/${repo}/${commit}/${filePath}`;
 }
 

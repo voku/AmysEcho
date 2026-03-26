@@ -362,6 +362,36 @@ export function validateConfig(config: GestureDetectorConfig): { valid: boolean;
     errors.push('Load timeout must be at least 1000ms');
   }
 
+  const mediapipeConfig = config.mediapipe;
+  if (!mediapipeConfig || typeof mediapipeConfig !== 'object') {
+    errors.push('MediaPipe config is required');
+  } else {
+    const { minDetectionConfidence, minTrackingConfidence, numHands } = mediapipeConfig;
+    if (
+      typeof minDetectionConfidence !== 'number' ||
+      !Number.isFinite(minDetectionConfidence) ||
+      minDetectionConfidence < 0 ||
+      minDetectionConfidence > 1
+    ) {
+      errors.push(`mediapipe.minDetectionConfidence must be a finite number between 0 and 1, got: ${String(minDetectionConfidence)}`);
+    }
+    if (
+      typeof minTrackingConfidence !== 'number' ||
+      !Number.isFinite(minTrackingConfidence) ||
+      minTrackingConfidence < 0 ||
+      minTrackingConfidence > 1
+    ) {
+      errors.push(`mediapipe.minTrackingConfidence must be a finite number between 0 and 1, got: ${String(minTrackingConfidence)}`);
+    }
+    if (
+      typeof numHands !== 'number' ||
+      !Number.isInteger(numHands) ||
+      numHands < 1
+    ) {
+      errors.push(`mediapipe.numHands must be an integer >= 1, got: ${String(numHands)}`);
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors

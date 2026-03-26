@@ -2,6 +2,10 @@
 Date: 2026-03-25  
 Status: **Completed with actual downloaded files** (all 10 source files fetched successfully)
 
+> **Status note (2026-03-26):** this document began as a pre-implementation snapshot.
+> Some previously listed gaps (for example `GestureModelAdapter` and explicit MediaPipe confidence settings)
+> are now implemented and retained here for historical traceability.
+
 ---
 
 ## 1. Fetch summary
@@ -75,14 +79,12 @@ class KeyPointClassifier(object):
 - Returns raw class index, not score/confidence.
 - No warmup step; interpreter allocates tensors once at construction.
 
-**Amy's Echo implementation** (`webapp/src/gesture/installMlp.ts`):
-- MLP model is loaded and invoked inline within the orchestrator function.
-- No standalone adapter class or interface.
+**Amy's Echo implementation** (`webapp/src/gesture/installMlp.ts`, `webapp/src/gesture/GestureModelAdapter.ts`):
+- MLP invocation still lives in `installMlp.ts`.
+- A standalone `GestureModelAdapter` interface now exists.
 - Returns full `{ label, score, candidates }` result.
 
-**Gap**: ❌ **Missing standalone model adapter contract**.
-
-No `GestureModelAdapter` interface exists. The MLP invocation is embedded in `installMlp.ts`, making it impossible to swap classifiers (e.g., TFLite, ONNX, or a second-tier static-gesture model) without modifying inference code.
+**Gap**: ✅ **Closed in current code** (kept as historical trace from the original snapshot).
 
 > **Adaptation opportunity**: Define a `GestureModelAdapter` interface:
 > ```typescript
@@ -135,9 +137,9 @@ Two different normalization metrics exist within Amy's Echo:
 
 | Location | Metric | Output |
 |---|---|---|
-| `landmarkFeatureContract.ts` | `max(|all flat values|)` — global max-abs | 63 values/hand |
-| `landmarkNormalizer.ts::normalizeLandmarks` | `max(|x|+|y|+|z| per point)` — max L1-per-point | 63 values/hand |
-| `server/training/frame_normalization.py` | `max(|all flat values|)` — global max-abs ✅ | 63 values/hand |
+| `landmarkFeatureContract.ts` | `max(\|all flat values\|)` — global max-abs | 63 values/hand |
+| `landmarkNormalizer.ts::normalizeLandmarks` | `max(\|x\|+\|y\|+\|z\| per point)` — max L1-per-point | 63 values/hand |
+| `server/training/frame_normalization.py` | `max(\|all flat values\|)` — global max-abs ✅ | 63 values/hand |
 
 The `installMlp.ts` inference pipeline correctly routes to `buildDualHandFeatureVector` (which uses the canonical max-abs contract) for both multimodal and hand-only paths. The `landmarkNormalizer.ts::normalizeLandmarks` function with the L1 metric is used only in the streaming size-normalization path (`prepareLandmarksForMLP` → `landmarkTemplateDetector.ts`), which is a *different stage* from MLP training/inference.
 
@@ -269,9 +271,9 @@ From kinivi `app.py`:
 --min_tracking_confidence = 0.5
 ```
 
-**Amy's Echo**: Uses MediaPipe GestureRecognizer `createFromOptions` without explicit `minDetectionConfidence`/`minTrackingConfidence` overrides — inherits whatever the Tasks Vision API defaults are for the Gesture Recognizer task.
+**Amy's Echo (current)**: Uses explicit `minDetectionConfidence`/`minTrackingConfidence` from `GestureConfig` and forwards them into `GestureRecognizer.createFromOptions`.
 
-**Gap**: ❌ **No tuning matrix for detection/tracking confidence per device class**.
+**Gap**: ✅ **Explicit controls implemented**; real-device tuning remains an evidence/documentation task.
 
 The MediaPipe docs note: "Setting [minTrackingConfidence] to a higher value can increase robustness of the solution, at the expense of a higher latency." No documentation or code maps this tradeoff to Amy's device tiers (low-end tablet, mid phone, laptop webcam).
 
@@ -341,7 +343,7 @@ If future pose normalization needs to compare across sessions, world coordinates
 | Coordinate system | Pixel (image space) | Normalized 0–1 (MediaPipe output) | Normalized 0–1 | ✅ equivalent post-wrist-centering |
 | Dimensions | 2D (x, y) | 3D (x, y, z) | 3D (x, y, z) | ⚠️ z included (deliberate for DGS) |
 | Origin | Wrist (landmark 0) | Wrist (landmark 0) | Wrist (landmark 0) | ✅ |
-| Scale metric | `max(|flat values|)` | `max(|flat values|)` | `max(|flat values|)` | ✅ |
+| Scale metric | `max(\|flat values\|)` | `max(\|flat values\|)` | `max(\|flat values\|)` | ✅ |
 | Hands | 1 hand | 2 hands (left + right, padded) | 2 hands (left + right, padded) | ✅ |
 | Output length | 42 (21×2) | 126 (21×3×2) | 126 (21×3×2) | ✅ |
 
@@ -354,8 +356,8 @@ The `landmarkNormalizer.ts::normalizeLandmarks` function (streaming path) uses a
 | Blind spot | Previously documented? | Found by live analysis? |
 |---|---|---|
 | Normalization documentation drift (L1 vs max-abs) | ❌ No | ✅ Yes |
-| No `GestureModelAdapter` interface | ✅ Partially (gap analysis) | ✅ Confirmed with code trace |
-| No confidence threshold tuning matrix | ✅ Partially (gap analysis) | ✅ Confirmed with MediaPipe defaults |
+| No `GestureModelAdapter` interface | ✅ Previously listed | ❌ Not current (implemented) |
+| No confidence threshold tuning controls | ✅ Previously listed | ❌ Not current (implemented) |
 | kinivi produces 2D features only | ❌ No | ✅ Yes |
 | Avatar data format compatibility with `TimelineFrame` | ❌ No | ✅ Yes |
 | No static vs dynamic gesture routing | ❌ No | ✅ Yes |

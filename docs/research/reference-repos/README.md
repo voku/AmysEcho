@@ -12,7 +12,10 @@ Why:
 1. https://github.com/google-ai-edge/mediapipe @ `9d38d191b060cbfeaeb0c1aa20e47201f032ea35`
 2. https://github.com/kinivi/hand-gesture-recognition-mediapipe @ `0e737bb8c45ea03f6fafb1f5dbfe9246c34a8003`
 3. https://github.com/kevinjosethomas/sign-language-processing @ `c292039b77fecfad3821c71bff1de06e3fe559ec`
-4. https://github.com/TomasGonzalez/hand-gesture-recognition-using-mediapipe-in-react (tracked as browser React integration reference)
+
+## Unpinned references (context only)
+
+- https://github.com/TomasGonzalez/hand-gesture-recognition-using-mediapipe-in-react (tracked as browser React integration reference; not part of the pinned reproducible fetch set)
 
 ## Relevant upstream files to adapt
 

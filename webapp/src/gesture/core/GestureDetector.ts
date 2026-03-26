@@ -257,19 +257,18 @@ export class GestureDetector {
   private detectFrame(): void {
     if (!this.running || !this.gestureRecognizer) return;
 
-    const frameStart = performance.now();
-    this.frameCount += 1;
-    const fpsStats = this.fpsMeter.recordFrame(frameStart);
-    if (fpsStats && this.frameCount % FPS_TELEMETRY_INTERVAL_FRAMES === 0) {
-      void sendTelemetryEvent('detector_fps_sample', {
-        fpsAvg: Number(fpsStats.fpsAvg.toFixed(2)),
-        fpsP95Window: Number(fpsStats.fpsP95Window.toFixed(2)),
-        sampleCount: fpsStats.sampleCount,
-      });
-    }
-
     try {
       if (this.cameraManager.isVideoReady()) {
+        const frameStart = performance.now();
+        this.frameCount += 1;
+        const fpsStats = this.fpsMeter.recordFrame(frameStart);
+        if (fpsStats && this.frameCount % FPS_TELEMETRY_INTERVAL_FRAMES === 0) {
+          void sendTelemetryEvent('detector_fps_sample', {
+            fpsAvg: Number(fpsStats.fpsAvg.toFixed(2)),
+            fpsP95Window: Number(fpsStats.fpsP95Window.toFixed(2)),
+            sampleCount: fpsStats.sampleCount,
+          }).catch(() => {});
+        }
         // Update overlay size and alignment to match video and container
         if (this.cameraManager.hasDimensionsChanged()) {
           this.cameraManager.updateVideoDimensions();

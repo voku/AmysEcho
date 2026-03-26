@@ -25,11 +25,11 @@ Source: [MediaPipe Hands solution docs](https://github.com/google-ai-edge/mediap
 |---|---|---|---|
 | MediaPipe default | 0.5 | 0.5 | Balanced for demos |
 | kinivi production | 0.7 | 0.5 | Higher detection threshold, fewer false starts |
-| Amy's Echo (current) | Not set (API default) | Not set (API default) | Inherits Tasks Vision defaults |
+| Amy's Echo (current) | 0.7 | 0.5 | Explicitly set in `GestureConfig` and consumed by detector options |
 
-**Action**: Amy's Echo should explicitly set both values in `GestureDetectorConfig` to
-avoid inheriting unpredictable API defaults across MediaPipe versions.
-Recommended starting point: `minDetectionConfidence=0.7`, `minTrackingConfidence=0.5` (kinivi production values).
+**Current baseline**: Amy's Echo now sets explicit detector defaults in `GestureDetectorConfig`
+(`minDetectionConfidence=0.7`, `minTrackingConfidence=0.5`) and passes them into
+`GestureRecognizer.createFromOptions`.
 
 ---
 
@@ -95,8 +95,8 @@ Run the following benchmark for each new device class before adjusting defaults:
 
 | Action | Status |
 |---|---|
-| Expose `minDetectionConfidence` / `minTrackingConfidence` in `GestureDetectorConfig` | ⬜ Pending (P1) |
-| Pass thresholds into `GestureRecognizer.createFromOptions` | ⬜ Pending (P1) |
+| Expose `minDetectionConfidence` / `minTrackingConfidence` in `GestureDetectorConfig` | ✅ Done |
+| Pass thresholds into `GestureRecognizer.createFromOptions` | ✅ Done |
 | Auto-adjust thresholds when `CameraManager` changes tier | ⬜ Pending (P2) |
 | Benchmark results for low-end tablet | ⬜ Not yet captured |
 | Benchmark results for mid-range phone | ⬜ Not yet captured |

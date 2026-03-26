@@ -584,6 +584,21 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(entry?.reasons.some((reason) => reason.includes("featureContract.version"))).toBe(true);
   });
 
+  it('rejects bundles when feature contract version is missing/empty', async () => {
+    await writeBundleFixture('bundle-missing-contract', {
+      featureContractVersion: '',
+    });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+    expect(loadDgsSamplesFromStore<any>().samples).toHaveLength(0);
+
+    const qualityLog = loadTrainingQualityLogFromStore<{ bundleId: string; reasons: string[] }>();
+    const entry = qualityLog.entries.find((item) => item.bundleId === 'bundle-missing-contract');
+    expect(entry).toBeDefined();
+    expect(entry?.reasons.some((reason) => reason.includes('missing'))).toBe(true);
+  });
+
   async function writeBundleFixture(
     bundleId: string,
     options: BundleFixtureOptions = {},

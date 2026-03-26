@@ -6,11 +6,11 @@
  */
 
 import { installMlp } from './installMlp';
+import { fetchMlpModelWithFallback } from './modelClient';
 import { sendTelemetryEvent } from '../telemetry/sendTelemetryEvent';
 import { updatePriorityFactors } from './utils/landmarkNormalizer';
 import { logger } from '../services/logger';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
-import { arrayBufferToBase64 } from '../utils/arrayBufferToBase64';
 
 export interface ProfileModelInfo {
   profileId: string;
@@ -61,23 +61,19 @@ class ModelManager {
    */
   async loadProfileModel(profileId: string): Promise<boolean> {
     try {
-      // Check if profile model file exists
-      const modelPath = resolveApiUrl(`/api/v1/models/latest?profileId=${encodeURIComponent(profileId)}`);
-      const response = await fetch(modelPath);
-      
-      if (!response.ok) {
+      const endpoint = resolveApiUrl('/api/v1/models/latest');
+      const modelResponse = await fetchMlpModelWithFallback({
+        endpoint,
+        profileId,
+      });
+      if (!modelResponse) {
         console.log(`📝 Profile model not found for ${profileId}, will use global`);
         this.profileModels.set(profileId, false);
         return false;
       }
 
-      // Load and install profile-specific model
-      const modelData = await response.arrayBuffer();
-      // Convert ArrayBuffer to base64
-      const b64 = arrayBufferToBase64(modelData);
-
       // Install the profile model
-      const installed = await installMlp(b64);
+      const installed = await installMlp(modelResponse.b64);
       
       if (installed) {
         this.profileModels.set(profileId, true);
@@ -86,7 +82,8 @@ class ModelManager {
         await this.sendTelemetry('profile_model_loaded', { 
           profileId, 
           success: true,
-          modelSize: modelData.byteLength 
+          modelSize: modelResponse.b64.length,
+          modelSource: modelResponse.meta.source,
         });
         
         console.log(`👤 Profile model loaded for ${profileId}`);
