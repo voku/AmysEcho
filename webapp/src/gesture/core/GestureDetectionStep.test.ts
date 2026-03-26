@@ -499,4 +499,49 @@ describe('GestureDetectionStep', () => {
     });
   });
 
+  describe('setModelAdapter()', () => {
+    afterEach(() => {
+      delete (window as any).__mlpPredict;
+    });
+
+    it('falls back to window.__mlpPredict when no adapter is set', async () => {
+      const step = createStep();
+      step.setModelAdapter(null);
+
+      const windowPredict = vi.fn().mockReturnValue({
+        label: 'Satt',
+        score: 0.8,
+        candidates: [{ label: 'Satt', score: 0.8 }],
+      });
+      (window as any).__mlpPredict = windowPredict;
+
+      const context = createDetectionContext({ landmarks: [[[0.1, 0.2, 0.3]]] });
+      await step.execute(context as any);
+
+      expect(windowPredict).toHaveBeenCalled();
+    });
+
+    it('does not call window.__mlpPredict when adapter is injected', async () => {
+      const step = createStep();
+      const mockPredict = vi.fn().mockReturnValue({
+        label: 'Hallo',
+        score: 0.95,
+        candidates: [{ label: 'Hallo', score: 0.95 }],
+      });
+
+      step.setModelAdapter(mockPredict);
+
+      const windowPredict = vi.fn();
+      (window as any).__mlpPredict = windowPredict;
+
+      const context = createDetectionContext({ landmarks: [[[0.1, 0.2, 0.3]]] });
+      await step.execute(context as any);
+
+      // window.__mlpPredict must not have been invoked when an injected predictor is set
+      expect(windowPredict).not.toHaveBeenCalled();
+      expect(mockPredict).toHaveBeenCalled();
+    });
+  });
+
+
 });

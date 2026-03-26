@@ -28,11 +28,11 @@
   - **Policy baseline:** start with `ideal` constraints; step down resolution/FPS after sustained lag threshold.
   - **Definition of done:** policy is documented, unit-tested, and verified not to break camera switching (`facingMode`). _Done: `CameraManager` now starts each session with ideal constraints and degrades stepwise (1280x720@30 → 960x540@24 → 640x480@20 → 426x240@15) after sustained lag; `CameraManager.test.ts` covers initial ideal profile, adaptive downgrade, and facing-mode preservation during fallback._
 
-- [ ] **P1: Prototype worker offload for synchronous detection processing**
+- [x] **P1: Prototype worker offload for synchronous detection processing**
   - **Goal:** reduce main-thread blocking from per-frame landmark/detection work.
   - **Prototype scope:** move frame processing path (or critical subset) off main thread and compare to current baseline.
   - **Compare:** dropped-frame rate, UI responsiveness (interaction delay), recognition stability.
-  - **Definition of done:** benchmark comparison doc with recommendation (keep/iterate/reject) is added under `docs/testing/benchmarks/`.
+  - **Definition of done:** benchmark comparison doc with recommendation (keep/iterate/reject) is added under `docs/testing/benchmarks/`. _Done: `DetectionWorker.ts` + `WorkerDetectionBridge.ts` prototype implemented; unit tests for bridge (7/7); benchmark protocol and decision criteria documented in `docs/testing/benchmarks/worker_offload_2026-03-25.md`. Real-device benchmark run still pending._
 
 - [x] **P1: Add automated non-manual marker quality checks**
   - **Goal:** protect pose/face signal quality while tuning performance.
@@ -44,6 +44,37 @@
 - [ ] Expand operational runbooks with incident drills and rollback practice evidence.
 - [ ] Establish accessibility manual verification cadence (screen reader and keyboard-only sessions).
 - [ ] Add an automated terminology quality gate for user-facing copy (webapp + API errors + trainer reports) to enforce "Gebärde" wording in sign-language contexts and prevent regressions.
+
+- [ ] **P0: Establish a reproducible few-shot benchmark protocol (profile-aware)**
+  - **Goal:** make sparse-data improvements measurable and comparable across profiles before changing model architecture.
+  - **Implement in:** `docs/testing/benchmarks/few_shot_protocol.md`.
+  - **Protocol requirements:**
+    - fixed shot levels per label (`5/10/20`)
+    - bundle-aware split rules to avoid train/validation leakage (`sourceBundleId` grouping)
+    - mandatory metrics (`Top-1`, `Top-3`, `Macro-F1`, per-label diagnostics, top confusions)
+    - reproducibility contract (seed, commit SHA, dataset snapshot path).
+  - **Definition of done:** protocol doc is committed, linked from benchmark docs, and referenced from this TODO section.
+
+- [ ] **P0: Add a few-shot benchmark runner on top of `train_mlp.py`**
+  - **Goal:** generate deterministic, repeatable reports per profile and shot level without ad-hoc scripts.
+  - **Implement in:** `server/src/amyserver_tools/train_mlp_fewshot.py` (or equivalent maintained runner path).
+  - **Runner scope:**
+    - execute profile × shot-level × seed training runs via existing trainer entrypoint
+    - parse structured JSON reports robustly
+    - aggregate mean/std results and persist both machine-readable + human-readable outputs.
+  - **Output paths:** `docs/testing/benchmarks/results/<date>/few_shot_summary.json` and `few_shot_summary.md`.
+  - **Definition of done:** one benchmark batch can be executed locally with documented commands and reproducible outputs.
+
+- [ ] **P0: Standardize few-shot report schema and add parser/aggregation tests**
+  - **Goal:** prevent silent metric drift and keep benchmark outputs machine-usable for future model comparisons.
+  - **Implement in:** runner module + server tests (`server/test/*fewshot*`).
+  - **Schema baseline fields:** `profile_id`, `shot_level`, `seed`, `accuracy_top1`, `accuracy_top3`, `macro_f1`, `label_diagnostics`, `top_confusions`, `train_duration_ms`.
+  - **Test scope:**
+    - parser extracts the final JSON payload reliably
+    - aggregation computes mean/std correctly
+    - invalid/missing metrics are surfaced as explicit failures (not silently ignored)
+    - smoke scenario (single profile, single shot level, single seed) writes expected artifacts.
+  - **Definition of done:** tests pass and the schema is documented in `few_shot_protocol.md`.
 
 ## Stability Hardening Plan (Blind-Spot Analysis 2026-03-09)
 

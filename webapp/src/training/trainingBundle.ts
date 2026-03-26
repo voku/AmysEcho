@@ -8,6 +8,11 @@ import {
 } from './handUtils';
 import { type ValidationCapabilities, validateLandmarkSequence } from './trainingValidator';
 import { fetchWithRetry, HttpError } from '../utils/http';
+import {
+  buildDualHandFeatureVector,
+  CONTRACT_COORDS_PER_POINT,
+  CONTRACT_HAND_LANDMARK_COUNT,
+} from './landmarkFeatureContract';
 import type {
   TrainingBundlePayload,
   TrainingFrame,
@@ -120,6 +125,10 @@ function buildMetadata(
       : {}),
   };
 
+  const firstFrameFeaturePreview = frames.length > 0
+    ? buildDualHandFeatureVector(frames[0]?.handLandmarks ?? []).slice(0, 12)
+    : [];
+
   return {
     profileId: payload.profileId,
     label: payload.label,
@@ -130,6 +139,13 @@ function buildMetadata(
     ...(stillFilename ? { stillFilename } : {}),
     modalities: landmarksMetadata.modalities,
     smoothing: landmarksMetadata.smoothing,
+    featureContract: {
+      version: 'wrist_relative_max_abs_v1',
+      pointsPerHand: CONTRACT_HAND_LANDMARK_COUNT,
+      coordinatesPerPoint: CONTRACT_COORDS_PER_POINT,
+      vectorLength: CONTRACT_HAND_LANDMARK_COUNT * CONTRACT_COORDS_PER_POINT * 2,
+      featurePreview: firstFrameFeaturePreview,
+    },
     ...(validationSummary ? { validationSummary } : {}),
     ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),
     ...(payload.handFocus ? { handFocus: payload.handFocus } : {}),
@@ -431,9 +447,14 @@ export async function createTrainingZip(payload: TrainingBundlePayload): Promise
   const usableFrames = payload.frames.filter((frame) => frameHasAnyLandmarks(frame));
   const frames = buildFrameTimeline(usableFrames);
   const landmarksMetadata = buildLandmarksMetadata(frames, payload);
+  // Derive pose/face availability from the actual recorded frames rather than
+  // hardcoding true. Recordings captured without one modality would otherwise
+  // receive false quality issues and misleading coverage scores.
+  const poseEnabled = usableFrames.some((f) => Array.isArray(f.poseLandmarks) && f.poseLandmarks.length > 0);
+  const faceEnabled = usableFrames.some((f) => Array.isArray(f.faceLandmarks) && f.faceLandmarks.length > 0);
   const validationSummary = buildValidationSummary(usableFrames, {
-    poseEnabled: true,
-    faceEnabled: true,
+    poseEnabled,
+    faceEnabled,
   });
   const metadata = buildMetadata(
     payload,

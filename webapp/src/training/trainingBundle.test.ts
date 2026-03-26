@@ -123,6 +123,13 @@ describe('createTrainingZip', () => {
       modalities: landmarks.metadata.modalities,
       smoothing: landmarks.metadata.smoothing,
       handedness: landmarks.metadata.handedness,
+      featureContract: {
+        version: 'wrist_relative_max_abs_v1',
+        pointsPerHand: 21,
+        coordinatesPerPoint: 3,
+        vectorLength: 126,
+        featurePreview: expect.any(Array),
+      },
       validationSummary: expect.objectContaining({
         frameCount: 1,
         qualityScore: expect.any(Number),
@@ -131,6 +138,7 @@ describe('createTrainingZip', () => {
         suggestions: expect.any(Array),
       }),
     });
+    expect((metadata.featureContract as { featurePreview?: unknown[] }).featurePreview?.length ?? 0).toBe(12);
     expect(entries['clip.mp4']).toBeDefined();
   });
 

@@ -43,6 +43,7 @@ type BundleFixtureOptions = {
   frames?: LandmarksPayload;
   includeValidationSummary?: boolean;
   recordingMetadata?: Record<string, unknown>;
+  featureContractVersion?: string;
   extraFiles?: ExtraFile[];
 };
 
@@ -566,6 +567,23 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     });
   });
 
+  it('rejects bundles with unsupported feature contract version', async () => {
+    await writeBundleFixture('bundle-bad-contract', {
+      featureContractVersion: 'legacy_sum_abs_v0',
+    });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(0);
+
+    const dataset = loadDgsSamplesFromStore<any>();
+    expect(dataset.samples).toHaveLength(0);
+
+    const qualityLog = loadTrainingQualityLogFromStore<{ bundleId: string; reasons: string[] }>();
+    const entry = qualityLog.entries.find((item) => item.bundleId === 'bundle-bad-contract');
+    expect(entry).toBeDefined();
+    expect(entry?.reasons.some((reason) => reason.includes("featureContract.version"))).toBe(true);
+  });
+
   async function writeBundleFixture(
     bundleId: string,
     options: BundleFixtureOptions = {},
@@ -627,6 +645,9 @@ describe('ingestTrainingBundlesIntoDataset', () => {
             source: 'app://mediapipe',
             clipFilename: 'clip.webm',
             stillFilename: 'still.jpg',
+            featureContract: {
+              version: options.featureContractVersion ?? 'wrist_relative_max_abs_v1',
+            },
             ...(options.recordingMetadata ? { recording: options.recordingMetadata } : {}),
             ...(options.includeValidationSummary === false
               ? {}

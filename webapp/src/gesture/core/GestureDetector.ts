@@ -21,11 +21,13 @@ import { sendTelemetryEvent } from '../../telemetry/sendTelemetryEvent';
 import { gestureDebugLog } from '../utils/DebugLogger';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
 import { TemporalGestureAnalyzer } from '../utils/TemporalGestureAnalyzer';
+import { SmoothedFpsMeter } from '../utils/SmoothedFpsMeter';
 
 // Performance thresholds
 const SLOW_FRAME_THRESHOLD_MS = 50;
 const OVERLAY_CLEAR_INTERVAL_MS = 300;
 const FAST_PROCESSING_THRESHOLD_MS = 20; // Same as PerformanceOptimizer.shouldRedrawOverlay
+const FPS_TELEMETRY_INTERVAL_FRAMES = 60;
 
 // MediaPipe model URLs
 const GESTURE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
@@ -42,6 +44,7 @@ export class GestureDetector {
   private healthMonitor: HealthMonitor;
   private performanceOptimizer: PerformanceOptimizer;
   private temporalAnalyzer: TemporalGestureAnalyzer;
+  private fpsMeter: SmoothedFpsMeter;
   private video: HTMLVideoElement;
   private gestureRecognizer: GestureRecognizerLike | null = null;
   private poseLandmarker: PoseLandmarkerLike | null = null;
@@ -50,6 +53,7 @@ export class GestureDetector {
   private resultCallback?: (results: MediaPipeGestureResult, timestamp: number) => void;
   private lastCaptureAttempt = 0;
   private lastOverlayClearTime = 0;
+  private frameCount = 0;
 
   constructor(video: HTMLVideoElement, overlay: HTMLCanvasElement) {
     this.video = video;
@@ -60,6 +64,7 @@ export class GestureDetector {
     this.healthMonitor = new HealthMonitor();
     this.performanceOptimizer = new PerformanceOptimizer();
     this.temporalAnalyzer = new TemporalGestureAnalyzer();
+    this.fpsMeter = new SmoothedFpsMeter();
 
     if (this.config.performance?.targetFrameRate) {
       this.performanceOptimizer.setTargetFrameRate(this.config.performance.targetFrameRate);
@@ -114,18 +119,22 @@ export class GestureDetector {
         delegate: 'GPU' as const,
       };
 
+      const gestureOptions = {
+        baseOptions,
+        runningMode: 'VIDEO' as const,
+        numHands: this.config.mediapipe.numHands,
+        minHandDetectionConfidence: this.config.mediapipe.minDetectionConfidence,
+        minHandPresenceConfidence: this.config.mediapipe.minDetectionConfidence,
+        minTrackingConfidence: this.config.mediapipe.minTrackingConfidence,
+      };
+
       try {
-        this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
-          baseOptions,
-          runningMode: 'VIDEO',
-          numHands: 2,
-        });
+        this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, gestureOptions);
       } catch (gpuErr) {
         console.warn('GPU delegate failed, falling back to CPU:', gpuErr);
         this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
+          ...gestureOptions,
           baseOptions: { ...baseOptions, delegate: 'CPU' as const },
-          runningMode: 'VIDEO',
-          numHands: 2,
         });
       }
 
@@ -249,6 +258,15 @@ export class GestureDetector {
     if (!this.running || !this.gestureRecognizer) return;
 
     const frameStart = performance.now();
+    this.frameCount += 1;
+    const fpsStats = this.fpsMeter.recordFrame(frameStart);
+    if (fpsStats && this.frameCount % FPS_TELEMETRY_INTERVAL_FRAMES === 0) {
+      void sendTelemetryEvent('detector_fps_sample', {
+        fpsAvg: Number(fpsStats.fpsAvg.toFixed(2)),
+        fpsP95Window: Number(fpsStats.fpsP95Window.toFixed(2)),
+        sampleCount: fpsStats.sampleCount,
+      });
+    }
 
     try {
       if (this.cameraManager.isVideoReady()) {
@@ -301,9 +319,6 @@ export class GestureDetector {
 
           this.resultCallback(results, frameStart);
         }
-
-        const totalDetectorTime = performance.now() - frameStart;
-        this.cameraManager.reportProcessingTime(totalDetectorTime);
 
         const normalizedLandmarks: number[][][] = results?.landmarks
           ? results.landmarks.map((hand: HandLandmark[]) =>
@@ -367,6 +382,11 @@ export class GestureDetector {
 
         // Record successful frame with performance metrics
         this.healthMonitor.recordFrame(frameStart);
+
+        // Report total frame cost (detection + overlay + capture) to the camera
+        // manager so the adaptive-constraint logic sees accurate per-frame cost.
+        const totalDetectorTime = performance.now() - frameStart;
+        this.cameraManager.reportProcessingTime(totalDetectorTime);
 
         // Log performance warnings for slow frames (throttled to avoid log spam)
         if (recognitionTime > SLOW_FRAME_THRESHOLD_MS) {
@@ -454,6 +474,8 @@ export class GestureDetector {
    */
   async stop(): Promise<void> {
     this.running = false;
+    this.frameCount = 0;
+    this.fpsMeter.reset();
 
     if (this.gestureRecognizer?.close) {
       await this.gestureRecognizer.close();

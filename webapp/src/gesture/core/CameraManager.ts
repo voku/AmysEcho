@@ -92,6 +92,7 @@ export class CameraManager {
       this.video.setAttribute('playsinline', '');
       this.video.setAttribute('muted', '');
 
+      await this.ensureVideoMetadataReady();
       await this.video.play();
       if (sessionId !== this.cameraSessionId) {
         stream.getTracks().forEach((track) => track.stop());
@@ -346,6 +347,7 @@ export class CameraManager {
       const previousStream = this.stream;
       this.video.srcObject = nextStream;
       try {
+        await this.ensureVideoMetadataReady();
         await this.video.play();
       } catch (playError) {
         nextStream.getTracks().forEach((track) => track.stop());
@@ -407,6 +409,7 @@ export class CameraManager {
       const previousStream = this.stream;
       this.video.srcObject = nextStream;
       try {
+        await this.ensureVideoMetadataReady();
         await this.video.play();
       } catch (playError) {
         nextStream.getTracks().forEach((track) => track.stop());
@@ -451,5 +454,41 @@ export class CameraManager {
     }
     this.resourceManager.registerMediaStream(stream);
     this.registeredStream = stream;
+  }
+
+  private async ensureVideoMetadataReady(timeoutMs = 50): Promise<void> {
+    if (this.video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      let timeoutId = 0;
+      const cleanup = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeoutId);
+        this.video.removeEventListener('loadedmetadata', onLoadedMetadata);
+        this.video.removeEventListener('canplay', onCanPlay);
+      };
+      const onLoadedMetadata = () => {
+        cleanup();
+        resolve();
+      };
+      const onCanPlay = () => {
+        cleanup();
+        resolve();
+      };
+
+      this.video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+      this.video.addEventListener('canplay', onCanPlay, { once: true });
+
+      timeoutId = window.setTimeout(() => {
+        cleanup();
+        resolve();
+      }, timeoutMs);
+    });
   }
 }

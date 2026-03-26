@@ -15,6 +15,15 @@ export interface GestureDetectorConfig {
     fallbackConfidence: number;
     emergencyConfidence: number;
   };
+  /** MediaPipe detector construction parameters. */
+  mediapipe: {
+    /** Minimum confidence from the palm-detection model. Default: 0.7 (kinivi production value). */
+    minDetectionConfidence: number;
+    /** Minimum confidence from the landmark-tracking model. Default: 0.5. */
+    minTrackingConfidence: number;
+    /** Number of hands to detect simultaneously. Default: 2. */
+    numHands: number;
+  };
   camera: {
     facingMode: string;
     mirrorOverlay: boolean;
@@ -73,6 +82,14 @@ export const defaultConfig: GestureDetectorConfig = {
     mlpConfidence: 0.4,
     fallbackConfidence: 0.3,
     emergencyConfidence: 0.3,
+  },
+  // MediaPipe detector construction parameters.
+  // minDetectionConfidence=0.7 matches the kinivi production setting (vs MediaPipe default of 0.5).
+  // See docs/testing/MODALITY_TUNING_MATRIX.md for per-device-tier guidance.
+  mediapipe: {
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.5,
+    numHands: 2,
   },
   camera: {
     facingMode: 'user',
