@@ -20,7 +20,6 @@ import type {
   WorkerDetectionResult,
   WorkerErrorResponse,
   WorkerInitRequest,
-  WorkerReadyResponse,
   WorkerResponse,
 } from './DetectionWorker';
 

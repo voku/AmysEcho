@@ -29,8 +29,6 @@
 
 /// <reference lib="webworker" />
 
-import type { GestureModelAdapterResult } from '../GestureModelAdapter';
-
 // ── Message shapes ────────────────────────────────────────────────────────────
 
 export interface WorkerDetectRequest {
