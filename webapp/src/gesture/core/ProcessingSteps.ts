@@ -248,13 +248,13 @@ export class GestureDetectionStep implements ProcessingStep {
    * The signature matches `window.__mlpPredict` exactly so the same call site
    * works for both. For the higher-level feature-vector boundary see
    * `GestureModelAdapter` in `../GestureModelAdapter.ts`.
-   */
+  */
   private rawPredictor: (
-    all: any[],
-    handednesses: any[],
+    all: unknown[],
+    handednesses: HandednessCategory[][],
     poseLandmarks?: number[][],
     faceLandmarks?: number[][],
-  ) => { label: string; score: number; candidates?: any[] } | null = null as any;
+  ) => MLPPrediction | null = () => null;
 
   constructor(config: GestureDetectorConfig, templateDetector?: LandmarkTemplateDetector) {
     this.config = config;
@@ -267,13 +267,13 @@ export class GestureDetectionStep implements ProcessingStep {
    */
   setModelAdapter(
     adapter: ((
-      all: any[],
-      handednesses: any[],
+      all: unknown[],
+      handednesses: HandednessCategory[][],
       poseLandmarks?: number[][],
       faceLandmarks?: number[][],
-    ) => { label: string; score: number; candidates?: any[] } | null) | null,
+    ) => MLPPrediction | null) | null,
   ): void {
-    this.rawPredictor = adapter as any;
+    this.rawPredictor = adapter ?? (() => null);
   }
 
   async execute(context: ProcessingContext): Promise<GestureDetectionResult> {

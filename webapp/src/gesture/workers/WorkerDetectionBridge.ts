@@ -24,6 +24,7 @@ import type {
 } from './DetectionWorker';
 
 export interface WorkerBridgeOptions {
+  visionBundleUrl?: string;
   wasmBase: string;
   gestureModelUrl: string;
   minDetectionConfidence?: number;
@@ -47,12 +48,18 @@ interface PendingDetect {
 
 export class WorkerDetectionBridge {
   private worker: Worker | null = null;
+  private ready = false;
+  private initTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private initReject: ((error: Error) => void) | null = null;
+  private initMessageListener: ((event: MessageEvent<WorkerResponse>) => void) | null = null;
+  private initErrorListener: ((event: ErrorEvent) => void) | null = null;
   private nextId = 1;
   private pending = new Map<number, PendingDetect>();
   private readonly options: Required<WorkerBridgeOptions>;
 
   constructor(options: WorkerBridgeOptions) {
     this.options = {
+      visionBundleUrl: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs',
       minDetectionConfidence: 0.7,
       minTrackingConfidence: 0.5,
       numHands: 2,
@@ -68,51 +75,81 @@ export class WorkerDetectionBridge {
    */
   init(): Promise<void> {
     return new Promise((resolve, reject) => {
+      this.ready = false;
+      this.initReject = reject;
+      let candidateWorker: Worker;
       try {
         // Use the injected factory (default: Vite ?worker URL import).
         // Vite resolves `new URL('./DetectionWorker.ts', import.meta.url)` as a
         // worker module at build time. In test environments pass a `workerFactory`
         // option to inject a mock instead of touching global Worker.
-        this.worker = this.options.workerFactory();
+        candidateWorker = this.options.workerFactory();
       } catch (err) {
         reject(err instanceof Error ? err : new Error(String(err)));
         return;
       }
 
-      const timeoutId = setTimeout(() => {
-        reject(new Error('WorkerDetectionBridge: init timed out'));
+      const cleanupInitState = () => {
+        if (this.initTimeoutId) {
+          clearTimeout(this.initTimeoutId);
+          this.initTimeoutId = null;
+        }
+        if (this.initMessageListener) {
+          candidateWorker.removeEventListener('message', this.initMessageListener);
+          this.initMessageListener = null;
+        }
+        if (this.initErrorListener) {
+          candidateWorker.removeEventListener('error', this.initErrorListener);
+          this.initErrorListener = null;
+        }
+      };
+
+      this.initTimeoutId = setTimeout(() => {
+        cleanupInitState();
+        this.initReject = null;
         this.dispose();
+        reject(new Error('WorkerDetectionBridge: init timed out'));
       }, this.options.initTimeoutMs);
 
       const onInit = (event: MessageEvent<WorkerResponse>) => {
         const msg = event.data;
         if (msg.type === 'ready') {
-          clearTimeout(timeoutId);
-          this.worker!.removeEventListener('message', onInit);
-          this.worker!.addEventListener('message', this.handleMessage.bind(this));
+          cleanupInitState();
+          this.worker = candidateWorker;
+          this.ready = true;
+          this.worker.addEventListener('message', this.handleMessage.bind(this));
+          this.initReject = null;
           resolve();
         } else if (msg.type === 'error') {
-          clearTimeout(timeoutId);
-          this.worker!.removeEventListener('message', onInit);
+          cleanupInitState();
+          this.initReject = null;
+          this.dispose();
           reject(new Error(`Worker init error: ${msg.message}`));
         }
       };
+      this.initMessageListener = onInit;
 
-      this.worker.addEventListener('message', onInit);
-      this.worker.addEventListener('error', (ev: ErrorEvent) => {
-        clearTimeout(timeoutId);
+      const onInitError = (ev: ErrorEvent) => {
+        cleanupInitState();
+        this.initReject = null;
+        this.dispose();
         reject(new Error(`Worker runtime error: ${ev.message}`));
-      });
+      };
+      this.initErrorListener = onInitError;
+
+      candidateWorker.addEventListener('message', onInit);
+      candidateWorker.addEventListener('error', onInitError);
 
       const initMsg: WorkerInitRequest = {
         type: 'init',
+        visionBundleUrl: this.options.visionBundleUrl,
         wasmBase: this.options.wasmBase,
         gestureModelUrl: this.options.gestureModelUrl,
         minDetectionConfidence: this.options.minDetectionConfidence,
         minTrackingConfidence: this.options.minTrackingConfidence,
         numHands: this.options.numHands,
       };
-      this.worker.postMessage(initMsg);
+      candidateWorker.postMessage(initMsg);
     });
   }
 
@@ -123,7 +160,7 @@ export class WorkerDetectionBridge {
    * @returns Detected landmarks/gestures, or null if nothing was detected.
    */
   detect(bitmap: ImageBitmap, timestampMs: number): Promise<WorkerDetectionResult | null> {
-    if (!this.worker) {
+    if (!this.worker || !this.ready) {
       bitmap.close();
       return Promise.reject(new Error('WorkerDetectionBridge: worker not initialized'));
     }
@@ -149,10 +186,27 @@ export class WorkerDetectionBridge {
    * Check whether the bridge has been initialised (worker spawned and ready).
    */
   get isReady(): boolean {
-    return this.worker !== null;
+    return this.ready;
   }
 
   dispose(): void {
+    this.ready = false;
+    if (this.initTimeoutId) {
+      clearTimeout(this.initTimeoutId);
+      this.initTimeoutId = null;
+    }
+    if (this.initReject) {
+      this.initReject(new Error('WorkerDetectionBridge: initialization cancelled'));
+      this.initReject = null;
+    }
+    if (this.worker && this.initMessageListener) {
+      this.worker.removeEventListener('message', this.initMessageListener);
+      this.initMessageListener = null;
+    }
+    if (this.worker && this.initErrorListener) {
+      this.worker.removeEventListener('error', this.initErrorListener);
+      this.initErrorListener = null;
+    }
     for (const { resolve, timeoutId } of this.pending.values()) {
       clearTimeout(timeoutId);
       resolve(null);

@@ -54,6 +54,24 @@ describe('landmarkFeatureContract', () => {
     expect(rightSlot.every((v) => v === 0)).toBe(true);
   });
 
+  it('maps explicit handedness metadata into fixed [left,right] vector order', () => {
+    const perHandLength = CONTRACT_HAND_LANDMARK_COUNT * CONTRACT_COORDS_PER_POINT;
+    const rightFirst = [
+      { landmarks: CONTRACT_FIXTURE_FRAME[1], handedness: 'Right' },
+      { landmarks: CONTRACT_FIXTURE_FRAME[0], handedness: 'Left' },
+    ];
+    const vector = buildDualHandFeatureVector(rightFirst);
+    expect(vector).toHaveLength(perHandLength * 2);
+    expectApproxArray(
+      vector.slice(0, CONTRACT_FIXTURE_LEFT_NORMALIZED_PREFIX.length),
+      CONTRACT_FIXTURE_LEFT_NORMALIZED_PREFIX,
+    );
+    expectApproxArray(
+      vector.slice(perHandLength, perHandLength + CONTRACT_FIXTURE_RIGHT_NORMALIZED_PREFIX.length),
+      CONTRACT_FIXTURE_RIGHT_NORMALIZED_PREFIX,
+    );
+  });
+
   it('zero-fills an invalid landmark slot without shifting subsequent indices', () => {
     const perHandLength = CONTRACT_HAND_LANDMARK_COUNT * CONTRACT_COORDS_PER_POINT;
     // Build a 21-point hand where landmark at index 2 has NaN coordinates

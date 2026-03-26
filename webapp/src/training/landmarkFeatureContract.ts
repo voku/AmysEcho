@@ -17,20 +17,21 @@ function toPoint(point: unknown): [number, number, number] | null {
 }
 
 export function normalizeHandLandmarksWristRelative(handLandmarks: unknown[]): number[] {
-  // Replace invalid/non-finite landmark slots with [0, 0, 0] in-place rather than
-  // filtering them out. Filtering would compact the array, shifting downstream landmark
-  // indices (e.g. index 4 ends up at slot 3 when landmark 3 is dropped), breaking the
-  // canonical "index → landmark" contract used by the server training pipeline.
-  const points = handLandmarks
-    .slice(0, CONTRACT_HAND_LANDMARK_COUNT)
-    .map((point): [number, number, number] => toPoint(point) ?? [0, 0, 0]);
-
-  if (points.length === 0) {
+  const slots = handLandmarks.slice(0, CONTRACT_HAND_LANDMARK_COUNT);
+  if (slots.length === 0) {
     return [];
   }
 
-  const wrist = points[0] ?? [0, 0, 0];
-  const centered = points.map(([x, y, z]) => [x - wrist[0], y - wrist[1], z - wrist[2]] as const);
+  // Keep invalid slots at zero even after centering to avoid fabricating motion
+  // from missing coordinates.
+  const wrist = toPoint(slots[0]) ?? [0, 0, 0];
+  const centered = slots.map((point): [number, number, number] => {
+    const parsed = toPoint(point);
+    if (!parsed) {
+      return [0, 0, 0];
+    }
+    return [parsed[0] - wrist[0], parsed[1] - wrist[1], parsed[2] - wrist[2]];
+  });
   const flat = centered.flatMap((point) => point);
   const maxAbs = Math.max(...flat.map((value) => Math.abs(value)), 0);
   if (maxAbs === 0) {
@@ -39,9 +40,54 @@ export function normalizeHandLandmarksWristRelative(handLandmarks: unknown[]): n
   return flat.map((value) => value / maxAbs);
 }
 
+type HandSlot = { landmarks: unknown[]; handedness: 'Left' | 'Right' | null };
+
+function parseHandSlot(hand: unknown): HandSlot | null {
+  if (Array.isArray(hand)) {
+    return { landmarks: hand, handedness: null };
+  }
+  if (!hand || typeof hand !== 'object') {
+    return null;
+  }
+  const candidate = hand as Record<string, unknown>;
+  const rawLandmarks = candidate['landmarks'];
+  if (!Array.isArray(rawLandmarks)) {
+    return null;
+  }
+  const handednessCandidate = candidate['handedness'] ?? candidate['label'] ?? candidate['categoryName'];
+  const handedness =
+    handednessCandidate === 'Left' || handednessCandidate === 'Right'
+      ? handednessCandidate
+      : null;
+  return { landmarks: rawLandmarks, handedness };
+}
+
 export function buildDualHandFeatureVector(frameHands: unknown[]): number[] {
-  const left = normalizeHandLandmarksWristRelative(Array.isArray(frameHands[0]) ? frameHands[0] : []);
-  const right = normalizeHandLandmarksWristRelative(Array.isArray(frameHands[1]) ? frameHands[1] : []);
+  let leftLandmarks: unknown[] = [];
+  let rightLandmarks: unknown[] = [];
+
+  for (const hand of frameHands) {
+    const parsed = parseHandSlot(hand);
+    if (!parsed) continue;
+    if (parsed.handedness === 'Left' && leftLandmarks.length === 0) {
+      leftLandmarks = parsed.landmarks;
+      continue;
+    }
+    if (parsed.handedness === 'Right' && rightLandmarks.length === 0) {
+      rightLandmarks = parsed.landmarks;
+      continue;
+    }
+    if (leftLandmarks.length === 0) {
+      leftLandmarks = parsed.landmarks;
+      continue;
+    }
+    if (rightLandmarks.length === 0) {
+      rightLandmarks = parsed.landmarks;
+    }
+  }
+
+  const left = normalizeHandLandmarksWristRelative(leftLandmarks);
+  const right = normalizeHandLandmarksWristRelative(rightLandmarks);
   const expectedLength = CONTRACT_HAND_LANDMARK_COUNT * CONTRACT_COORDS_PER_POINT;
 
   const leftPadded = left.length >= expectedLength

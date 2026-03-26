@@ -28,11 +28,16 @@
   - **Policy baseline:** start with `ideal` constraints; step down resolution/FPS after sustained lag threshold.
   - **Definition of done:** policy is documented, unit-tested, and verified not to break camera switching (`facingMode`). _Done: `CameraManager` now starts each session with ideal constraints and degrades stepwise (1280x720@30 → 960x540@24 → 640x480@20 → 426x240@15) after sustained lag; `CameraManager.test.ts` covers initial ideal profile, adaptive downgrade, and facing-mode preservation during fallback._
 
-- [x] **P1: Prototype worker offload for synchronous detection processing**
+- [ ] **P1: Prototype worker offload for synchronous detection processing**
   - **Goal:** reduce main-thread blocking from per-frame landmark/detection work.
   - **Prototype scope:** move frame processing path (or critical subset) off main thread and compare to current baseline.
   - **Compare:** dropped-frame rate, UI responsiveness (interaction delay), recognition stability.
-  - **Definition of done:** benchmark comparison doc with recommendation (keep/iterate/reject) is added under `docs/testing/benchmarks/`. _Done: `DetectionWorker.ts` + `WorkerDetectionBridge.ts` prototype implemented; unit tests for bridge (7/7); benchmark protocol and decision criteria documented in `docs/testing/benchmarks/worker_offload_2026-03-25.md`. Real-device benchmark run still pending._
+  - **Definition of done:** benchmark comparison doc with recommendation (keep/iterate/reject) is added under `docs/testing/benchmarks/`.
+  - **Current status:** `DetectionWorker.ts` + `WorkerDetectionBridge.ts` prototype and unit tests are in place, but the real-device benchmark run and final keep/iterate/reject decision are still pending.
+- [ ] **P1: Run real-device worker-offload benchmark and publish decision**
+  - **Goal:** complete the missing benchmark evidence for the worker-offload prototype.
+  - **Implement in:** `docs/testing/benchmarks/worker_offload_2026-03-25.md` (append measured results + recommendation).
+  - **Definition of done:** includes measured baseline vs worker comparison on target devices and a clear `keep` / `iterate` / `reject` recommendation.
 
 - [x] **P1: Add automated non-manual marker quality checks**
   - **Goal:** protect pose/face signal quality while tuning performance.

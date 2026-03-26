@@ -15,7 +15,7 @@ For each hand:
 For two-hand frames:
 
 - Build one normalized vector per hand.
-- Pad each hand vector to `21 * 3 = 63` values.
+- Pad missing landmark coordinates with zeros so each hand vector has `21 * 3 = 63` values.
 - Concatenate left then right => 126-length vector.
 
 ## Implementation

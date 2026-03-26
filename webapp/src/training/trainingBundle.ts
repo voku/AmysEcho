@@ -125,8 +125,9 @@ function buildMetadata(
       : {}),
   };
 
-  const firstFrameFeaturePreview = frames.length > 0
-    ? buildDualHandFeatureVector(frames[0]?.handLandmarks ?? []).slice(0, 12)
+  const firstHandFrame = frames.find((frame) => frame.handLandmarks?.some((hand) => hand.length > 0));
+  const firstFrameFeaturePreview = firstHandFrame
+    ? buildDualHandFeatureVector(firstHandFrame.handLandmarks).slice(0, 12)
     : [];
 
   return {

@@ -28,6 +28,7 @@
  */
 
 /// <reference lib="webworker" />
+import type { HandLandmark, MediaPipeGestureResult } from '../types/MediaPipeTypes';
 
 // ── Message shapes ────────────────────────────────────────────────────────────
 
@@ -42,6 +43,8 @@ export interface WorkerDetectRequest {
 
 export interface WorkerInitRequest {
   type: 'init';
+  /** Tasks Vision bundle URL, e.g. https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs */
+  visionBundleUrl: string;
   /** Tasks Vision WASM CDN base URL, e.g. https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm */
   wasmBase: string;
   /** GestureRecognizer model URL. */
@@ -87,9 +90,13 @@ export interface WorkerDetectionResult {
   handednesses: Array<Array<{ categoryName: string }>>;
 }
 
+interface ImageModeRecognizer {
+  recognize(input: ImageBitmap): MediaPipeGestureResult;
+}
+
 // ── Worker implementation ─────────────────────────────────────────────────────
 
-let recognizer: any = null;
+let recognizer: ImageModeRecognizer | null = null;
 let isInitialized = false;
 let pendingFrameId = 0;
 
@@ -98,7 +105,7 @@ async function initRecognizer(req: WorkerInitRequest): Promise<void> {
     // Load MediaPipe Tasks Vision dynamically inside the worker.
     // importScripts() works for non-module workers; for module workers use import().
     const { FilesetResolver, GestureRecognizer } = await import(
-      /* @vite-ignore */ `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs`
+      /* @vite-ignore */ req.visionBundleUrl
     );
 
     const vision = await FilesetResolver.forVisionTasks(req.wasmBase);
@@ -151,8 +158,8 @@ function processFrame(req: WorkerDetectRequest): void {
       mpResult && mpResult.landmarks?.length
         ? {
             gestures: mpResult.gestures ?? [],
-            landmarks: (mpResult.landmarks ?? []).map((hand: any[]) =>
-              hand.map((lm: any) => ({ x: lm.x, y: lm.y, z: lm.z ?? 0 })),
+            landmarks: (mpResult.landmarks ?? []).map((hand: HandLandmark[]) =>
+              hand.map((lm: HandLandmark) => ({ x: lm.x, y: lm.y, z: lm.z ?? 0 })),
             ),
             handednesses: mpResult.handednesses ?? [],
           }
@@ -183,6 +190,13 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
     // Drop stale frames if the worker is falling behind
     if (req.id < pendingFrameId) {
       req.bitmap.close();
+      self.postMessage({
+        type: 'detect_result',
+        id: req.id,
+        timestampMs: req.timestampMs,
+        result: null,
+        workerProcessingMs: 0,
+      } satisfies WorkerDetectResponse);
       return;
     }
     pendingFrameId = req.id;
