@@ -161,7 +161,7 @@ async function ensureLandmarksForLabel(labelId: string): Promise<string[]> {
 	const landmarkFiles = videos.map((videoFile) =>
 		buildLandmarkFilename(videoFile),
 	);
-	let shouldProcess = false;
+	let shouldProcess: boolean;
 	try {
 		const existingFiles = new Set(await fs.readdir(DGS_VIDEO_DIR));
 		shouldProcess = landmarkFiles.some((file) => !existingFiles.has(file));

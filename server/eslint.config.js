@@ -43,6 +43,8 @@ export default [
       // General rules
       'no-console': 'off', // Allow console in server code
       'no-unused-vars': 'off', // Use TypeScript version instead
+      'no-redeclare': 'off', // TypeScript overloads are not re-declarations
+      'preserve-caught-error': 'off', // New ESLint v10 rule; errors are already logged with full details before rethrowing, so the cause chain is preserved via logs
       'prefer-const': 'error',
       'no-var': 'error',
       'no-undef': 'off', // Turn off for Node.js globals
