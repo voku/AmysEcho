@@ -249,12 +249,12 @@ export class GestureDetectionStep implements ProcessingStep {
    * works for both. For the higher-level feature-vector boundary see
    * `GestureModelAdapter` in `../GestureModelAdapter.ts`.
   */
-  private rawPredictor: (
+  private rawPredictor: ((
     all: unknown[],
     handednesses: HandednessCategory[][],
     poseLandmarks?: number[][],
     faceLandmarks?: number[][],
-  ) => MLPPrediction | null = () => null;
+  ) => MLPPrediction | null) | null = null;
 
   constructor(config: GestureDetectorConfig, templateDetector?: LandmarkTemplateDetector) {
     this.config = config;
@@ -273,7 +273,7 @@ export class GestureDetectionStep implements ProcessingStep {
       faceLandmarks?: number[][],
     ) => MLPPrediction | null) | null,
   ): void {
-    this.rawPredictor = adapter ?? (() => null);
+    this.rawPredictor = adapter;
   }
 
   async execute(context: ProcessingContext): Promise<GestureDetectionResult> {
