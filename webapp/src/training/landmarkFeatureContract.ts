@@ -8,7 +8,9 @@ function toPoint(point: unknown): [number, number, number] | null {
   const x = point[0];
   const y = point[1];
   const z = point[2] ?? 0;
-  if (![x, y, z].every((value) => typeof value === 'number' && Number.isFinite(value))) {
+  if (typeof x !== 'number' || !Number.isFinite(x) ||
+      typeof y !== 'number' || !Number.isFinite(y) ||
+      typeof z !== 'number' || !Number.isFinite(z)) {
     return null;
   }
   return [x, y, z];

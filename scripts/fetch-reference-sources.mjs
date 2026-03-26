@@ -72,9 +72,10 @@ async function main() {
       // Guard against path traversal: both repoName and filePath must resolve
       // to a descendant of outDir. Entries containing '..' or absolute paths
       // in sources.json could otherwise overwrite arbitrary checkout files.
+      // Use path.relative() so the check is cross-platform (no path.sep fragility).
       const resolvedOutDir = path.resolve(outDir);
-      if (!path.resolve(targetPath).startsWith(resolvedOutDir + path.sep) &&
-          path.resolve(targetPath) !== resolvedOutDir) {
+      const rel = path.relative(resolvedOutDir, path.resolve(targetPath));
+      if (rel.startsWith('..') || path.isAbsolute(rel)) {
         throw new Error(`Path traversal detected in sources.json entry: ${JSON.stringify({ repo: repo.name, file: filePath })}`);
       }
 
