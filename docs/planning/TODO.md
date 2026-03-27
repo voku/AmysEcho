@@ -99,7 +99,46 @@ Package performance, reliability, and governance improvements into a release-rea
 
 ---
 
-## 5) Rules for contributors/LLMs
+## 5) MediaPipe + Sign-Language R&D watchlist (deep-dive refresh)
+
+### Goal
+Convert recent MediaPipe release changes (v0.10.20–v0.10.33) and external sign-language best practices into actionable, testable improvements for Amy’s production path.
+
+### Planned deliverables (pull into Apr–Jul execution as capacity allows)
+
+- [ ] **RD-P0-1:** Run an A/B benchmark for `ImageProcessingOptions` + ROI handling to reduce landmark jitter and crop failures.
+  - Why now: MediaPipe added stronger ROI validation and broader task-level image processing support in recent releases.
+  - Entry points: `webapp/src/gesture/core/GestureDetector.ts`, `webapp/src/hooks/useSignLanguageDetector.ts`, `docs/testing/benchmarks/`
+  - Evidence: benchmark artifact comparing baseline vs tuned ROI/crop settings (FPS, drop rate, confidence stability).
+
+- [ ] **RD-P0-2:** Evaluate `FULL_RANGE` face detector mode impact on sign recognition robustness in non-frontal caregiver/device setups.
+  - Why now: full-range face detection support/tests landed in newer MediaPipe tasks; facial context is relevant for multi-modal sign interpretation.
+  - Entry points: `webapp/src/gesture/`, `integration/test/`, `docs/testing/benchmarks/`
+  - Evidence: side-angle/partial-face benchmark matrix and recommendation (`enable` / `keep default`).
+
+- [ ] **RD-P0-3:** Add signer-independent evaluation gate to few-shot workflow (no signer leakage in train/val/test manifests).
+  - Why now: external best-practice review consistently flags signer leakage as the highest-risk quality trap in sign-language ML.
+  - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`
+  - Evidence: manifest validator + failing test for leakage + report metric split by known/new signer.
+
+- [ ] **RD-P1-1:** Add confidence calibration and abstention policy for low-confidence predictions.
+  - Why now: best-practice review emphasizes calibrated confidence thresholds to avoid incorrect sign output under noisy conditions.
+  - Entry points: `webapp/src/gesture/installMlp.ts`, `webapp/src/gesture/modelClient.ts`, `webapp/src/hooks/useSignLanguageDetector.ts`
+  - Evidence: documented threshold policy + offline reliability plot or bin-based calibration table in `docs/testing/benchmarks/`.
+
+- [ ] **RD-P1-2:** Prototype temporal smoothing/sequence modeling upgrade path (beyond per-frame classification) with strict latency budget.
+  - Why now: best-practice review repeatedly shows temporal context is high-value for sign disambiguation.
+  - Entry points: `webapp/src/gesture/core/ProcessingSteps.ts`, `server/training/sliding_window.py`, `docs/testing/benchmarks/`
+  - Evidence: prototype comparison report (accuracy deltas + p95 latency + battery/thermal impact).
+
+- [ ] **RD-P1-3:** Improve runtime diagnosability by surfacing MediaPipe task/backend/error context into existing logs/health diagnostics.
+  - Why now: recent MediaPipe releases improved status/error propagation; we should consume that signal for faster production triage.
+  - Entry points: `webapp/src/gesture/`, `server/src/routes/health.ts`, `docs/operations/`
+  - Evidence: incident-style drill showing faster root-cause identification from enriched diagnostics.
+
+---
+
+## 6) Rules for contributors/LLMs
 
 Planning hygiene note: outdated-doc decisions are logged in `docs/planning/OUTDATED_DOCS_AUDIT_2026-03-27.md`.
 
