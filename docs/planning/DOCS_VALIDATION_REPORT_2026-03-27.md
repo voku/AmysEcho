@@ -21,6 +21,11 @@ python scripts/validate_docs_links.py
    - `docs/guides/CaregiverQuickStartGuide.md`
    - `docs/guides/VideoTutorials.md`
 3. Replaced missing screenshot markdown link in `docs/workflows/DEVELOPMENT_WORKFLOW.md` with a non-broken placeholder note.
+4. Hardened `scripts/validate_docs_links.py` to:
+   - decode URL-encoded local links,
+   - resolve leading `/...` links from the repository root,
+   - read markdown with `errors='replace'` so encoding problems remain visible,
+   - ignore fenced code blocks to avoid false positives from documentation examples.
 
 ## Follow-up recommendation
 

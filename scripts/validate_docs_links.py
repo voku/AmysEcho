@@ -10,16 +10,26 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+from urllib.parse import unquote
 
-DOCS_ROOT = Path('docs')
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DOCS_ROOT = REPO_ROOT / 'docs'
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+FENCED_CODE_BLOCK_RE = re.compile(
+    r"(^|\n)(`{3,}|~{3,})[^\n]*\n.*?\n\2[^\n]*(?=\n|$)",
+    re.DOTALL,
+)
 
 
 def normalize_link(link: str) -> str:
     link = link.strip()
     if link.startswith('<') and link.endswith('>'):
         link = link[1:-1].strip()
-    return link.split('#', 1)[0].split('?', 1)[0]
+    return unquote(link).split('#', 1)[0].split('?', 1)[0]
+
+
+def strip_fenced_code_blocks(text: str) -> str:
+    return FENCED_CODE_BLOCK_RE.sub('\n', text)
 
 
 def is_external(link: str) -> bool:
@@ -34,14 +44,17 @@ def is_external(link: str) -> bool:
 def validate() -> list[tuple[Path, str]]:
     broken: list[tuple[Path, str]] = []
     for md_file in DOCS_ROOT.rglob('*.md'):
-        text = md_file.read_text(encoding='utf-8', errors='ignore')
+        text = strip_fenced_code_blocks(md_file.read_text(encoding='utf-8', errors='replace'))
         for match in LINK_RE.finditer(text):
             raw_link = normalize_link(match.group(1))
             if not raw_link or is_external(raw_link):
                 continue
-            target = (md_file.parent / raw_link).resolve() if not raw_link.startswith('/') else Path(raw_link)
+            if raw_link.startswith('/'):
+                target = (REPO_ROOT / raw_link.lstrip('/')).resolve()
+            else:
+                target = (md_file.parent / raw_link).resolve()
             if not target.exists():
-                broken.append((md_file, raw_link))
+                broken.append((md_file.relative_to(REPO_ROOT), raw_link))
     return broken
 
 

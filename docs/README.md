@@ -16,3 +16,5 @@ Use this file as the primary entry point for documentation.
 ## Consolidation rule
 
 If a top-level quick-reference doc conflicts with a detailed document, the detailed document above is authoritative.
+
+Top-level files such as `docs/architecture.md` and `docs/testing.md` remain only as compatibility pointers for older links/bookmarks; do not expand them back into parallel canonical guides.

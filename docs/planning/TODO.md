@@ -22,7 +22,7 @@ Lock down measurement discipline so model/runtime decisions are evidence-driven,
 ### Planned deliverables
 
 - [ ] **APR-P0-1:** Run real-device worker-offload benchmark and publish decision (`keep` / `iterate` / `reject`).
-  - Entry points: `webapp/src/gesture/core/DetectionWorker.ts`, `webapp/src/gesture/core/WorkerDetectionBridge.ts`, `docs/testing/benchmarks/worker_offload_2026-03-25.md`
+  - Entry points: `webapp/src/gesture/workers/DetectionWorker.ts`, `webapp/src/gesture/workers/WorkerDetectionBridge.ts`, `docs/testing/benchmarks/worker_offload_2026-03-25.md`
   - Evidence: updated benchmark doc with device matrix (low-end tablet, mid-range phone, laptop).
 
 - [ ] **APR-P0-2:** Publish realistic device performance protocol report (first launch, route switch, camera flip, 20-min run).
@@ -107,3 +107,5 @@ Planning hygiene note: outdated-doc decisions are logged in `docs/planning/OUTDA
 2. Move completed tasks to a monthly “Done” subsection under the relevant month; do not delete history.
 3. Mark tasks done only when evidence artifacts are committed.
 4. If code reality diverges, update this plan first, then execute.
+5. Verify every listed entry point still exists before starting work; fix the roadmap immediately if a path has moved.
+6. Start each task by writing down one concrete first command in the PR/report so the next LLM can resume without rediscovery.
