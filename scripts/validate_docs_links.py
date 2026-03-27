@@ -15,10 +15,7 @@ from urllib.parse import unquote
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_ROOT = REPO_ROOT / 'docs'
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-FENCED_CODE_BLOCK_RE = re.compile(
-    r"(^|\n)(`{3,}|~{3,})[^\n]*\n.*?\n\2[^\n]*(?=\n|$)",
-    re.DOTALL,
-)
+FENCED_CODE_BLOCK_START_RE = re.compile(r"^[ \t]*([`~]{3,})")
 
 
 def normalize_link(link: str) -> str:
@@ -29,7 +26,30 @@ def normalize_link(link: str) -> str:
 
 
 def strip_fenced_code_blocks(text: str) -> str:
-    return FENCED_CODE_BLOCK_RE.sub('\n', text)
+    stripped_lines: list[str] = []
+    active_fence_char = ''
+    active_fence_len = 0
+
+    for line in text.splitlines(keepends=True):
+        fence_match = FENCED_CODE_BLOCK_START_RE.match(line)
+        if active_fence_char:
+            if (
+                fence_match
+                and fence_match.group(1).startswith(active_fence_char)
+                and len(fence_match.group(1)) >= active_fence_len
+            ):
+                active_fence_char = ''
+                active_fence_len = 0
+            continue
+
+        if fence_match:
+            active_fence_char = fence_match.group(1)[0]
+            active_fence_len = len(fence_match.group(1))
+            continue
+
+        stripped_lines.append(line)
+
+    return ''.join(stripped_lines)
 
 
 def is_external(link: str) -> bool:
@@ -41,10 +61,14 @@ def is_external(link: str) -> bool:
     )
 
 
-def validate() -> list[tuple[Path, str]]:
+def validate() -> tuple[list[tuple[Path, str]], list[Path]]:
     broken: list[tuple[Path, str]] = []
+    encoding_warnings: list[Path] = []
     for md_file in DOCS_ROOT.rglob('*.md'):
-        text = strip_fenced_code_blocks(md_file.read_text(encoding='utf-8', errors='replace'))
+        raw_text = md_file.read_text(encoding='utf-8', errors='replace')
+        if '\ufffd' in raw_text:
+            encoding_warnings.append(md_file.relative_to(REPO_ROOT))
+        text = strip_fenced_code_blocks(raw_text)
         for match in LINK_RE.finditer(text):
             raw_link = normalize_link(match.group(1))
             if not raw_link or is_external(raw_link):
@@ -55,11 +79,16 @@ def validate() -> list[tuple[Path, str]]:
                 target = (md_file.parent / raw_link).resolve()
             if not target.exists():
                 broken.append((md_file.relative_to(REPO_ROOT), raw_link))
-    return broken
+    return broken, encoding_warnings
 
 
 def main() -> int:
-    broken = validate()
+    broken, encoding_warnings = validate()
+    if encoding_warnings:
+        print(f'Docs link validation: WARNING ({len(encoding_warnings)} markdown file(s) contain replacement characters).')
+        for md_file in encoding_warnings:
+            print(f'- encoding issue detected while reading {md_file}')
+
     if not broken:
         print('Docs link validation: OK (no broken local links found).')
         return 0
