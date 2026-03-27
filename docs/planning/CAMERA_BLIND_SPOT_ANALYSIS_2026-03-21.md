@@ -1,6 +1,9 @@
 # Camera & DGS Detection Blind-Spot Analysis (2026-03-21)
 
 ## Context
+**Status:** Archived analysis context (dated 2026-03-21).
+**Execution source of truth:** `docs/planning/TODO.md`.
+
 This analysis reviews the previous camera auto-start refactor (commit `e48fd6f`) and identifies blind spots against current web best practices for browser camera capture and real-time sign-language detection.
 
 ## Sources reviewed

@@ -60,7 +60,7 @@ This checks dependencies and runs all tests to ensure everything works. Skip thi
 3. Für eine Registrierung benötigst du Nutzername, E-Mail-Adresse und Passwort.
 
 ## 7. Need Help?
-If you run into problems during setup or usage, consult the [Troubleshooting Guide](Troubleshooting.md) for common fixes.
+If you run into problems during setup or usage, consult the [Troubleshooting Guide](../operations/Troubleshooting.md) for common fixes.
 
 ---
 With these steps, caregivers can immediately begin using Amy's Echo to translate signs into speech and track learning progress.

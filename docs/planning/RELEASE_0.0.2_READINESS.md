@@ -58,7 +58,7 @@ Confirm the following files are current and internally consistent before tag cre
 
 - `README.md`
 - `docs/planning/TODO.md`
-- `docs/planning/ProjectMilestones.md`
+- `docs/README.md`
 - `docs/testing/TEST_COVERAGE_ANALYSIS.md`
 - `AGENTS.md`, `webapp/AGENTS.md`, `server/AGENTS.md`
 

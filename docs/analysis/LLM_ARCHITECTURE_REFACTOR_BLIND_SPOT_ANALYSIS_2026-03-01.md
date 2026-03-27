@@ -1,3 +1,9 @@
+---
+scope: llm-refactor-process
+status: active
+superseded_by: null
+tracked_in: docs/planning/TODO.md
+---
 # Blind Spot Detector Report: LLM Advice for Architecture Refactors (2026-03-01)
 
 This report is intentionally direct. It is meant to expose failure patterns in how architecture-refactor advice from LLMs is accepted or rejected.
