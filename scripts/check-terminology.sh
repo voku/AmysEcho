@@ -7,6 +7,16 @@
 #
 # Exit 0 = clean, Exit 1 = violations found.
 #
+# False-positive notes:
+#   - Only string literals (text inside quotes) are checked, not variable
+#     names or code identifiers. This avoids matching English "gesture" or
+#     camelCase identifiers like "gestureDetector".
+#   - Test files (*.test.ts, *.test.tsx) and type definitions (*.d.ts) are
+#     excluded since they are developer-facing, not user-facing.
+#   - If a legitimate use of "Geste" in a string literal is needed (e.g.,
+#     quoting an external source), add "# terminology-ok" as a comment on
+#     the same line and extend the grep with --invert-match for that marker.
+#
 # Reference: docs/guides/TERMINOLOGY_COMPATIBILITY_CHECKLIST.md
 
 set -euo pipefail
@@ -58,7 +68,7 @@ for dir in "${SCAN_PATHS[@]}"; do
     # Use grep; exclude test files and type definitions
     matches=$(grep -rn --include="*.ts" --include="*.tsx" \
       --exclude="*.test.ts" --exclude="*.test.tsx" --exclude="*.d.ts" \
-      -E "$pattern" "$dir" 2>/dev/null || true)
+      -E "$pattern" "$dir" 2>/dev/null | grep -v "terminology-ok" || true)
 
     if [ -n "$matches" ]; then
       echo "❌ Prohibited terminology found:"
