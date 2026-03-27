@@ -24,8 +24,8 @@ python scripts/validate_docs_links.py
 4. Hardened `scripts/validate_docs_links.py` to:
    - decode URL-encoded local links,
    - resolve leading `/...` links from the repository root,
-   - read markdown with `errors='replace'` so encoding problems remain visible,
-   - ignore fenced code blocks to avoid false positives from documentation examples.
+   - read markdown with `errors='replace'` so encoding problems remain visible and warn on replacement characters,
+   - ignore fenced code blocks to avoid false positives from documentation examples while warning on unclosed fences.
 
 ## Follow-up recommendation
 
