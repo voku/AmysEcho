@@ -107,6 +107,7 @@ if (process.env.NODE_ENV !== "production") {
 			res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, If-None-Match");
 			res.setHeader("Access-Control-Allow-Credentials", "true");
 			res.setHeader("Access-Control-Expose-Headers", "ETag, X-Model-Feature-Mode, X-Model-Label-Count, X-Model-Contract-Status");
+			// Preflight requests complete here; no next() needed.
 			if (req.method === "OPTIONS") {
 				res.sendStatus(204);
 				return;

@@ -65,10 +65,11 @@ for dir in "${SCAN_PATHS[@]}"; do
   fi
 
   for pattern in "${PROHIBITED_PATTERNS[@]}"; do
-    # Use grep; exclude test files and type definitions
+    # Use grep; exclude test files and type definitions.
+    # Lines containing "// terminology-ok" are intentional exceptions.
     matches=$(grep -rn --include="*.ts" --include="*.tsx" \
       --exclude="*.test.ts" --exclude="*.test.tsx" --exclude="*.d.ts" \
-      -E "$pattern" "$dir" 2>/dev/null | grep -v "terminology-ok" || true)
+      -E "$pattern" "$dir" 2>/dev/null | grep -vE '//.*terminology-ok' || true)
 
     if [ -n "$matches" ]; then
       echo "❌ Prohibited terminology found:"
