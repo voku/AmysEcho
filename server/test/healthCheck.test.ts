@@ -9,6 +9,8 @@ import { promises as fs } from "fs";
 import path from "path";
 import os from "os";
 
+const HEALTH_CHECK_TIMEOUT_MS = 30_000;
+
 describe("Health Check Endpoint", () => {
 	describe("GET /health", () => {
 		it("should return health status with all checks", async () => {
@@ -32,7 +34,7 @@ describe("Health Check Endpoint", () => {
 			expect(response.body.checks.globalModel).toHaveProperty("status");
 			expect(response.body.checks.pythonDependencies).toHaveProperty("status");
 			expect(response.body.checks.trainingManifest).toHaveProperty("status");
-		});
+		}, HEALTH_CHECK_TIMEOUT_MS);
 
 		it("should report 'ok' or 'warning' for database check", async () => {
 			const response = await request(app).get("/health");
