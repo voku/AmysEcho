@@ -21,7 +21,7 @@ It complements the detailed implementation plan in
 ## Related Docs
 - `docs/planning/METACOM_INTEGRATION_PLAN.md`
 - `docs/planning/TODO.md`
-- `docs/analysis/FULL_WORKFLOW_BLIND_SPOT_ANALYSIS.md`
+- `docs/analysis/CONSOLIDATED_WORKFLOW_ALIGNMENT_BLIND_SPOT_ANALYSIS_2026-03.md`
 
 
 ## Multimodal Recognition Hand-off
@@ -32,4 +32,4 @@ Metacom-Integration ist der Bedeutungs-Layer hinter der Erkennung. Damit die Ket
 - Für Kernwörter muss ein stabiler Fallback existieren (wenn ein Symbolpaket unvollständig importiert wurde).
 - Release-Freigabe sollte sowohl Erkennungsqualität als auch Mapping-Korrektheit enthalten (nicht nur Modellmetriken).
 
-Siehe vollständige End-to-End-Risikoanalyse: `docs/analysis/FULL_WORKFLOW_BLIND_SPOT_ANALYSIS.md`.
+Siehe vollständige End-to-End-Risikoanalyse: `docs/analysis/CONSOLIDATED_WORKFLOW_ALIGNMENT_BLIND_SPOT_ANALYSIS_2026-03.md`.

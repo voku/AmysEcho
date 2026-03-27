@@ -239,7 +239,7 @@ When UI changes need a screenshot, follow this flow and document it directly in 
 - **Save file as**: `docs/training/screenshots/training-preview-toggle.png`
 - **Reference in docs** (Markdown):
   ```md
-  ![Training view with raw/skeleton toggle](./screenshots/training-preview-toggle.png)
+  _(Screenshot artifact path expected: `docs/training/screenshots/training-preview-toggle.png`)_
   ```
 
 ## 🎯 Remember: Amy's Communication Is Sacred

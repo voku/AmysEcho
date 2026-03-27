@@ -14,7 +14,7 @@ This page links to short walkthrough videos that help caregivers get started qui
 
 ## 3. Troubleshooting Basics
 - Highlights common setup mistakes and where to find fixes.
-- Directs viewers to the full [Troubleshooting Guide](Troubleshooting.md).
+- Directs viewers to the full [Troubleshooting Guide](../operations/Troubleshooting.md).
 - **Video:** _Coming soon_
 
 These videos will be produced and embedded in the documentation portal once finalized.
