@@ -1,6 +1,6 @@
 # Amy's Echo TODO — 4-Month Delivery Plan (Apr–Jul 2026)
 
-**Last refreshed:** 2026-03-27
+**Last refreshed:** 2026-03-27 (updated)
 **Scope:** next ~4 months of execution, aligned to current codebase state and external best-practice review.
 
 ## 0) Current baseline (already implemented)
@@ -25,11 +25,17 @@ Lock down measurement discipline so model/runtime decisions are evidence-driven,
   - Entry points: `webapp/src/gesture/workers/DetectionWorker.ts`, `webapp/src/gesture/workers/WorkerDetectionBridge.ts`, `docs/testing/benchmarks/worker_offload_2026-03-25.md`
   - Evidence: updated benchmark doc with device matrix (low-end tablet, mid-range phone, laptop).
 
-- [ ] **APR-P0-2:** Publish realistic device performance protocol report (first launch, route switch, camera flip, 20-min run).
+- [ ] **APR-P0-2:** Run first device performance measurement cycle using protocol.
   - Entry points: `webapp/src/hooks/useSignLanguageDetector.ts`, `webapp/src/components/TrainingRecorder.tsx`
-  - Evidence: new dated report in `docs/testing/benchmarks/` with startup/FPS/p95/thermal/battery.
+  - Evidence: result artefacts under `docs/testing/benchmarks/results/` following the device performance protocol.
+  - Protocol: `docs/testing/benchmarks/device_performance_protocol.md`
 
-- [ ] **APR-P0-3:** Create reproducible few-shot protocol doc with leakage-safe split contract.
+### Done (March 2026 — early delivery)
+
+- [x] **APR-P0-2 (protocol):** Publish realistic device performance protocol (first launch, route switch, camera flip, 20-min run).
+  - Evidence: `docs/testing/benchmarks/device_performance_protocol.md` with scenarios, measurement setup, device matrix, decision criteria, and result artefact format.
+
+- [x] **APR-P0-3:** Create reproducible few-shot protocol doc with leakage-safe split contract.
   - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/training/`, `docs/testing/benchmarks/`
   - Evidence: `docs/testing/benchmarks/few_shot_protocol.md` including seeds, commit SHA, dataset snapshot, split-manifest requirements.
 
@@ -71,9 +77,11 @@ Reduce operational risk before next release cycle.
   - Entry points: `docs/testing/TESTING_STRATEGY.md`, `docs/testing/REAL_WORLD_VALIDATION_GUIDE.md`
   - Evidence: cadence doc + first completed cycle artifact in `docs/testing/`.
 
-- [ ] **JUN-P1-3:** Establish terminology quality gate for sign-language wording (“Gebärde”) across user-visible copy.
+### Done (March 2026 — early delivery)
+
+- [x] **JUN-P1-3:** Establish terminology quality gate for sign-language wording (“Gebärde”) across user-visible copy.
   - Entry points: `docs/guides/TERMINOLOGY_COMPATIBILITY_CHECKLIST.md`, `webapp/src`, `server/src/routes`
-  - Evidence: script/check documented and wired into CI or pre-merge docs workflow.
+  - Evidence: `scripts/check-terminology.sh` scans user-facing source for prohibited terms; wired into `scripts/full-check.sh` CI step.
 
 ---
 
