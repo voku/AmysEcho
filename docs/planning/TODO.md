@@ -35,6 +35,10 @@ Lock down measurement discipline so model/runtime decisions are evidence-driven,
 - [x] **APR-P0-2 (protocol):** Publish realistic device performance protocol (first launch, route switch, camera flip, 20-min run).
   - Evidence: `docs/testing/benchmarks/device_performance_protocol.md` with scenarios, measurement setup, device matrix, decision criteria, and result artefact format.
 
+- [x] **APR-P0-2 (CI baseline):** Run first performance measurement cycle (server + webapp, CI runner).
+  - Evidence: `docs/testing/benchmarks/performance_report_2026-03-27.md` — full API latency benchmarks, bundle size analysis, browser navigation timing, interactive user flow verification with Playwright.
+  - Finding: Added development CORS middleware to enable local webapp↔server testing.
+
 - [x] **APR-P0-3:** Create reproducible few-shot protocol doc with leakage-safe split contract.
   - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/training/`, `docs/testing/benchmarks/`
   - Evidence: `docs/testing/benchmarks/few_shot_protocol.md` including seeds, commit SHA, dataset snapshot, split-manifest requirements.
