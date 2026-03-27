@@ -89,6 +89,34 @@ app.set("trust proxy", 1);
 app.use(httpsEnforcement);
 app.use(hstsHeaders);
 
+// Development CORS: allow local webapp origins when not in production
+if (process.env.NODE_ENV !== "production") {
+	const DEV_ORIGINS = new Set([
+		"http://localhost:5173",
+		"http://127.0.0.1:5173",
+		"http://localhost:4173",
+		"http://127.0.0.1:4173",
+		"http://localhost:3000",
+		"http://127.0.0.1:3000",
+	]);
+	app.use((req, res, next) => {
+		const origin = req.headers.origin;
+		if (origin && DEV_ORIGINS.has(origin)) {
+			res.setHeader("Access-Control-Allow-Origin", origin);
+			res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+			res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, If-None-Match");
+			res.setHeader("Access-Control-Allow-Credentials", "true");
+			res.setHeader("Access-Control-Expose-Headers", "ETag, X-Model-Feature-Mode, X-Model-Label-Count, X-Model-Contract-Status");
+			// Preflight requests complete here; no next() needed.
+			if (req.method === "OPTIONS") {
+				res.sendStatus(204);
+				return;
+			}
+		}
+		next();
+	});
+}
+
 function getErrnoCode(error: unknown): string | undefined {
 	return (error as NodeJS.ErrnoException | undefined)?.code;
 }

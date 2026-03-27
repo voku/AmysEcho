@@ -139,3 +139,8 @@ fi
 if [ -f scripts/check-pins.js ]; then
   run_step "Verify pinned dependencies" node scripts/check-pins.js
 fi
+
+# Terminology quality gate: ensure user-facing copy uses "Gebärde"
+if [ -f scripts/check-terminology.sh ]; then
+  run_step "Check terminology" bash scripts/check-terminology.sh
+fi
