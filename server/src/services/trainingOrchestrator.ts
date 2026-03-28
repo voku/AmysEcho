@@ -314,7 +314,7 @@ async function startTrainingJob(jobId: string): Promise<void> {
 		await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
 
 		// Run training script (if configured)
-		if (config.trainScript) {
+		if (config.mlpScript) {
 			await runTrainingScript(manifestPath, job.userId);
 		}
 
@@ -355,7 +355,7 @@ async function runTrainingScript(
 		const child = spawn(
 			pythonBin,
 			[
-				config.trainScript,
+				config.mlpScript,
 				"--manifest",
 				manifestPath,
 				"--output-dir",

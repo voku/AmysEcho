@@ -56,13 +56,18 @@ Turn few-shot evaluation from ad-hoc effort into repeatable tooling.
   - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/src/amyserver_tools/train_mlp_sweep.py`
   - Evidence: runner script committed + generated artifacts under `docs/testing/benchmarks/results/<date>/`.
 
-- [ ] **MAY-P0-2:** Add few-shot parser/aggregation tests and strict schema checks.
+- [x] **MAY-P0-2:** Add few-shot parser/aggregation tests and strict schema checks.
   - Entry points: `server/test/`, `server/src/amyserver_tools/`
   - Evidence: new tests (`server/test/*fewshot*`) passing for mean/std aggregation and invalid-metric failures.
 
 - [ ] **MAY-P1-1:** Define capture metadata protocol (signer/device/camera/lighting) and enforce persistence through upload/ingestion.
   - Entry points: `webapp/src/training/trainingBundle.ts`, `server/src/routes/trainingBundleRoute.ts`, `docs/training/LANDMARK_STREAM_SCHEMA.md`
   - Evidence: schema update + tests proving metadata survives end-to-end.
+
+### Done (March 2026 — few-shot validation hardening)
+
+- [x] **MAY-P0-2:** Added few-shot parser/aggregation tests with strict metric-schema failures.
+  - Evidence: `server/test/test_train_mlp_fewshot.py`, `server/test/test_train_mlp_sweep.py`.
 
 ---
 
@@ -73,19 +78,23 @@ Reduce operational risk before next release cycle.
 
 ### Planned deliverables
 
-- [ ] **JUN-P1-1:** Expand operations runbook with at least one incident drill and rollback evidence.
-  - Entry points: `docs/operations/`, `docs/planning/RELEASE_0.0.2_READINESS.md`
-  - Evidence: drill report in `docs/operations/` with timeline, detection, mitigation, rollback, postmortem.
-
-- [ ] **JUN-P1-2:** Establish recurring manual accessibility verification cadence (screen reader + keyboard + reduced motion) and run first cycle.
-  - Entry points: `docs/testing/TESTING_STRATEGY.md`, `docs/testing/REAL_WORLD_VALIDATION_GUIDE.md`
-  - Evidence: cadence doc + first completed cycle artifact in `docs/testing/`.
+- ✅ No remaining open June deliverables.
 
 ### Done (March 2026 — early delivery)
 
 - [x] **JUN-P1-3:** Establish terminology quality gate for sign-language wording (“Gebärde”) across user-visible copy.
   - Entry points: `docs/guides/TERMINOLOGY_COMPATIBILITY_CHECKLIST.md`, `webapp/src`, `server/src/routes`
   - Evidence: `scripts/check-terminology.sh` scans user-facing source for prohibited terms; wired into `scripts/full-check.sh` CI step.
+
+### Done (March 2026 — governance/accessibility cycle)
+
+- [x] **JUN-P1-2:** Established recurring manual accessibility verification cadence and completed first cycle.
+  - Evidence: `docs/security/GOVERNANCE_CADENCE.md` (cadence + owners + evidence templates), `docs/testing/ACCESSIBILITY_CYCLE_2026-Q1.md` (first completed cycle artifact).
+
+### Done (March 2026 — operations hardening)
+
+- [x] **JUN-P1-1:** Expanded operations runbook with incident drill and rollback evidence.
+  - Evidence: `docs/operations/INCIDENT_DRILL_2026-03-27.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`.
 
 ---
 
@@ -99,15 +108,19 @@ Package performance, reliability, and governance improvements into a release-rea
 - [ ] **JUL-P1-1:** Publish long-session hardware baselines (FPS/thermal/battery deltas) for target caregiver devices.
   - Evidence: benchmark table in `docs/testing/benchmarks/`.
 
-- [ ] **JUL-P1-2:** Production health monitoring ownership + thresholds documented.
-  - Evidence: ownership matrix and alert thresholds in `docs/operations/`.
-
 - [ ] **JUL-P2-1:** Break Metacom sentence-composition roadmap into implementation slices with acceptance criteria.
   - Entry points: `docs/metacom/METACOM_SENTENCE_COMPOSITION.md`
   - Evidence: updated roadmap with milestone checkpoints.
 
-- [ ] **JUL-P2-2:** Governance cadence doc (monthly security + quarterly accessibility) with owners and evidence template.
-  - Evidence: governance doc in `docs/security/` and/or `docs/testing/`.
+### Done (March 2026 — governance baseline)
+
+- [x] **JUL-P2-2:** Published governance cadence with ownership and reusable evidence templates.
+  - Evidence: `docs/security/GOVERNANCE_CADENCE.md`, `docs/security/evidence/SECURITY_MONTHLY_RECORD_2026-03.md`.
+
+### Done (March 2026 — operations monitoring baseline)
+
+- [x] **JUL-P1-2:** Documented production health monitoring ownership and threshold policy.
+  - Evidence: `docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`.
 
 ---
 

@@ -4,6 +4,14 @@ This directory contains security-related documentation for the Amy's Echo projec
 
 ## Documents
 
+### [GOVERNANCE_CADENCE.md](./GOVERNANCE_CADENCE.md)
+**Security + Accessibility Governance Cadence**
+
+Defines the operational quality gate for:
+- monthly security verification with named owners,
+- quarterly accessibility verification cadence with owners,
+- standardized evidence templates for repeatable reporting.
+
 ### [SECURITY_AUDIT_2026-02-02.md](./SECURITY_AUDIT_2026-02-02.md)
 **Comprehensive Security Audit Report**
 
@@ -107,6 +115,11 @@ npm test -- profileAuthorization.test.ts
 ```
 
 All 12 tests must pass before deployment.
+
+### Governance Evidence
+
+- Monthly security records are stored in `docs/security/evidence/`.
+- Quarterly accessibility cycle artifacts are stored in `docs/testing/`.
 
 ### Verification After Deployment
 

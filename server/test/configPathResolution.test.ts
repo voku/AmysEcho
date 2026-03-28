@@ -29,7 +29,7 @@ describe('config path resolution when started from server directory', () => {
     const { config } = await import('../src/config/index.js');
     await expect(fs.access(config.mlpScript)).resolves.toBeUndefined();
     expect(path.relative(serverDir, config.mlpScript)).toBe(
-      path.join('src', 'amyserver_tools', 'train_mlp.py'),
+      path.join('src', 'amyserver_tools', 'train_mlp_fewshot.py'),
     );
 
     const stubDir = await fs.mkdtemp(path.join(os.tmpdir(), 'train-script-'));

@@ -14,7 +14,6 @@ export interface ServerConfig {
 	trainingSlaMs: number;
 	trainingManifestCacheTtlMs: number;
 	backupSecret: string;
-	trainScript: string;
 	dbPath: string;
 	cloudApiUrl: string;
 	offlineModelPath: string;
@@ -67,7 +66,7 @@ export const config: ServerConfig = {
 	),
 	mlpScript: getEnvVar(
 		"MLP_SCRIPT",
-		path.join(SRC_DIR, "amyserver_tools", "train_mlp.py"),
+		path.join(SRC_DIR, "amyserver_tools", "train_mlp_fewshot.py"),
 	),
 	trainingTimeoutMs: getEnvVarAsNumber("TRAINING_JOB_TIMEOUT_MS", 600_000),
 	trainingSlaMs: getEnvVarAsNumber("TRAINING_JOB_SLA_MS", 120_000),
@@ -75,10 +74,6 @@ export const config: ServerConfig = {
 	// SECURITY: No default value for BACKUP_SECRET - must be explicitly configured
 	// to prevent using a known default password for backups
 	backupSecret: getEnvVar("BACKUP_SECRET"),
-	trainScript: getEnvVar(
-		"TRAIN_SCRIPT",
-		path.join(SRC_DIR, "amyserver_tools", "train_mlp.py"),
-	),
 	dbPath: getEnvVar("DB_PATH", path.join(SERVER_DIR, "db.json")),
 	cloudApiUrl: getEnvVar("CLOUD_API_URL", "http://localhost:4000/classify"),
 	offlineModelPath: getEnvVar(

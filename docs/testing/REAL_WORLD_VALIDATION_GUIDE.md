@@ -3,6 +3,12 @@
 ## Overview
 This guide provides a comprehensive framework for validating the enhanced gesture detection system with Amy in real-world usage scenarios. The validation focuses on Amy First principles: zero interruption, reliability, and immediate feedback.
 
+## Governance Cadence Alignment
+
+- Quarterly accessibility execution and ownership are defined in `docs/security/GOVERNANCE_CADENCE.md`.
+- The latest completed manual cycle artifact is `docs/testing/ACCESSIBILITY_CYCLE_2026-Q1.md`.
+- New validation sessions should reference the current quarterly artifact and append new findings to the next cycle report.
+
 ## Pre-Validation Preparation
 
 ### 1. System Readiness Checklist

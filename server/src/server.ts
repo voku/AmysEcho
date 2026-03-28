@@ -16,6 +16,7 @@ import {
 	DATA_DIR,
 	ensureDataDir,
 	getMlpModelPath,
+	MLP_MODELS_DIR,
 	PROFILE_ID_PATTERN,
 	SERVER_DIR,
 } from "./constants/modelPaths.js";
@@ -885,6 +886,11 @@ async function runTrainingWorkflow(
 		"--data-dir",
 		DATA_DIR,
 	];
+	const useFewShotRunner =
+		path.basename(scriptPath).includes("train_mlp_fewshot");
+	const fewShotShots = "1,3,5";
+	const fewShotSeeds = "42,1337,2025";
+	const fewShotTestProfileFraction = "0.2";
 
 	if (process.env.AMY_SKIP_DGS_EXAMPLES === "true") {
 		scriptArgs.push("--skip-examples");
@@ -913,20 +919,7 @@ async function runTrainingWorkflow(
 	let lastStderr = "";
 
 	try {
-		for (let attemptIndex = 0; attemptIndex < trainingSchedule.length; attemptIndex += 1) {
-			const attempt = attemptIndex + 1;
-			const epochs = trainingSchedule[attemptIndex];
-			const attemptArgs = [
-				...scriptArgs,
-				"--epochs",
-				String(epochs),
-				"--seed",
-				String(20260301 + attempt),
-			];
-			await logTraining(
-				`job ${id}: train attempt ${attempt}/${trainingSchedule.length} (epochs=${epochs})`,
-			);
-
+		const executeAttempt = async (attempt: number, attemptArgs: string[]) => {
 			const runReport = await new Promise<{ stdout: string; stderr: string }>(
 				(resolve, reject) => {
 					const proc = spawn(resolvePythonExecutable(), attemptArgs, {
@@ -989,19 +982,87 @@ async function runTrainingWorkflow(
 					);
 				}
 			}
+			return parsedReport;
+		};
 
-			const score = resolveTrainingScore(parsedReport, scoreProfileId);
-			if (score > bestScore) {
-				bestScore = score;
-				bestReport = parsedReport;
-				bestAttempt = attempt;
-			}
-			await logTraining(`job ${id}: attempt ${attempt} score=${score.toFixed(4)}`);
-			if (score >= usableAccuracyThreshold) {
+		if (useFewShotRunner) {
+			const fewShotOutputDir = path.join(
+				DATA_DIR,
+				"fewshot-runs",
+				`${id}-${randomBytes(4).toString("hex")}`,
+			);
+				const fewShotArgs = [
+					...scriptArgs,
+					"--output-dir",
+					fewShotOutputDir,
+					"--shots",
+					fewShotShots,
+					"--seeds",
+					fewShotSeeds,
+					"--test-profile-fraction",
+					fewShotTestProfileFraction,
+					"--promote-best-model-dir",
+					MLP_MODELS_DIR,
+				];
 				await logTraining(
-					`job ${id}: usable score reached (${score.toFixed(4)} >= ${usableAccuracyThreshold})`,
+					`job ${id}: few-shot runner enabled (shots=${fewShotShots}, seeds=${fewShotSeeds})`,
 				);
-				break;
+				const parsedReport = await executeAttempt(1, fewShotArgs);
+				bestScore = resolveTrainingScore(parsedReport, scoreProfileId);
+				bestReport = parsedReport;
+				bestAttempt = 1;
+				const diagnostics =
+					parsedReport.diagnostics as
+						| { fallback_metric_count?: number; fallback_metric_trials?: unknown[] }
+						| undefined;
+				const fallbackMetricCount =
+					typeof diagnostics?.fallback_metric_count === "number"
+						? diagnostics.fallback_metric_count
+						: 0;
+				if (fallbackMetricCount > 0) {
+					await logTraining(
+						`job ${id}: few-shot diagnostics fallback_metric_count=${fallbackMetricCount}`,
+					);
+				}
+				const promotion =
+					parsedReport.promotion as
+						| { promoted?: boolean; reason?: string; source?: string; destination?: string }
+						| undefined;
+				if (promotion && promotion.promoted === false) {
+					await logTraining(
+						`job ${id}: few-shot promotion skipped reason=${promotion.reason ?? "unknown"}`,
+					);
+				}
+				await logTraining(`job ${id}: few-shot best score=${bestScore.toFixed(4)}`);
+			} else {
+			for (let attemptIndex = 0; attemptIndex < trainingSchedule.length; attemptIndex += 1) {
+				const attempt = attemptIndex + 1;
+				const epochs = trainingSchedule[attemptIndex];
+				const attemptArgs = [
+					...scriptArgs,
+					"--epochs",
+					String(epochs),
+					"--seed",
+					String(20260301 + attempt),
+				];
+				await logTraining(
+					`job ${id}: train attempt ${attempt}/${trainingSchedule.length} (epochs=${epochs})`,
+				);
+				const parsedReport = await executeAttempt(attempt, attemptArgs);
+
+				const score = resolveTrainingScore(parsedReport, scoreProfileId);
+				if (score > bestScore) {
+					bestScore = score;
+					bestReport = parsedReport;
+					bestAttempt = attempt;
+				}
+				await logTraining(`job ${id}: attempt ${attempt} score=${score.toFixed(4)}`);
+				if (score >= usableAccuracyThreshold) {
+					await logTraining(
+						`job ${id}: usable score reached (${score.toFixed(4)} >= ${usableAccuracyThreshold})`,
+					);
+					break;
+				}
 			}
 		}
 	} finally {
@@ -1057,6 +1118,17 @@ async function runTrainingWorkflow(
 		trainingDurationMs: trainDurationMs,
 		captureToTrainMs,
 		workflowDurationMs: Date.now() - workflowStartMs,
+		fewShotFallbackMetricCount:
+			typeof (parsedReport.diagnostics as { fallback_metric_count?: unknown } | undefined)
+				?.fallback_metric_count === "number"
+				? ((parsedReport.diagnostics as { fallback_metric_count: number })
+						.fallback_metric_count ?? 0)
+				: 0,
+		fewShotPromoted:
+			typeof (parsedReport.promotion as { promoted?: unknown } | undefined)?.promoted ===
+			"boolean"
+				? ((parsedReport.promotion as { promoted: boolean }).promoted ?? false)
+				: false,
 	};
 	job.report = parsedReport;
 	job.message = "Dein Modell ist jetzt aktualisiert";
