@@ -77,6 +77,8 @@ Prepare and attach before creating the tag:
 - `v0.0.2` release notes (scope, Amy impact, known limitations)
 - command evidence summary (pass/fail + warnings)
 - known risk register items and owners (security audit warning, operational manual checks)
+- production health monitoring ownership + thresholds (`docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`)
+- latest incident drill artifact with rollback evidence (`docs/operations/INCIDENT_DRILL_2026-03-27.md`)
 
 ## 6) Immediate Post-v0.0.2 Priorities
 

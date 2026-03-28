@@ -38,6 +38,14 @@ The gate runs in CI via `npm --prefix webapp run test:coverage` and fails the bu
 
 The branch threshold is intentionally lower as a **current floor** (close to measured baseline) to prevent regressions while the suite is still expanding. Treat it as transitional, and raise it incrementally (target: **65% branches** in the next quality-improvement cycle).
 
+## ♿ Manual Accessibility Verification Cadence
+
+- Governance source: `docs/security/GOVERNANCE_CADENCE.md`
+- First completed cycle artifact: `docs/testing/ACCESSIBILITY_CYCLE_2026-Q1.md`
+- Required cadence:
+  - monthly security governance record (release gate input),
+  - quarterly manual accessibility cycle (keyboard + screen reader + reduced motion).
+
 
 ## 🔍 Bug-Finding Workflow (TDD + Context-Driven)
 

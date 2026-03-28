@@ -27,7 +27,7 @@ async function autoRetrain(dbPath: string) {
 	);
 	await fs.writeFile(tmp, JSON.stringify(trainingData));
 
-	const script = config.trainScript;
+	const script = config.mlpScript;
 
 	return new Promise<void>((resolve, reject) => {
 		const child = spawn(resolvePythonExecutable(), [script, tmp], {

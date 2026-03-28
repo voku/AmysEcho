@@ -168,7 +168,7 @@ results/2026-04-XX/
 
 ## 6) Runner design (MAY-P0-1 target)
 
-The planned `train_mlp_fewshot.py` runner will automate:
+`server/src/amyserver_tools/train_mlp_fewshot.py` now provides the baseline orchestration path and automates:
 
 1. Load manifest, group entries by `profileId`.
 2. For each seed:
@@ -182,7 +182,7 @@ The planned `train_mlp_fewshot.py` runner will automate:
       - Collect and write `report_seed{S}_shot{K}.json`.
 3. Aggregate across seeds → `summary.md`.
 
-The runner should accept:
+Runner CLI:
 
 ```
 python train_mlp_fewshot.py \
@@ -191,8 +191,16 @@ python train_mlp_fewshot.py \
   --shots 1,3,5,10 \
   --seeds 42,1337,2025 \
   --test-profiles <comma-list or fraction> \
+  --promote-best-model-dir <optional-model-dir> \
   --output-dir docs/testing/benchmarks/results/<date>/
 ```
+
+Optional runtime integration (server-side default behavior):
+
+- The server training workflow now routes through `train_mlp_fewshot.py` by default.
+- The live server path uses `1,3,5` shots and automatically skips infeasible shot values when the current data volume is too small.
+- To force the legacy path for experiments, set `MLP_SCRIPT` to `src/amyserver_tools/train_mlp.py`.
+- Runner summaries now include `promotion` status and `diagnostics.fallback_metric_count` for observability.
 
 ---
 
