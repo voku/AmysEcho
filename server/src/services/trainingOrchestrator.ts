@@ -358,6 +358,8 @@ async function runTrainingScript(
 				config.mlpScript,
 				"--manifest",
 				manifestPath,
+				"--data-dir",
+				DATA_DIR,
 				"--output-dir",
 				outputDir,
 			],

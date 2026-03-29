@@ -417,7 +417,7 @@ def main() -> None:
     }
     summary_path = args.output_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps(summary, indent=2, sort_keys=True))
+    print(json.dumps(summary, sort_keys=True))
 
 
 if __name__ == "__main__":

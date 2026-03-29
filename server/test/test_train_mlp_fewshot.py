@@ -9,8 +9,8 @@ from amyserver_tools.train_mlp_fewshot import (
     _load_manifest_entries,
     _partition_profiles,
     _promote_best_model,
-    _select_best_trial,
     _sample_train_entries,
+    _select_best_trial,
     _validate_split_manifest,
 )
 

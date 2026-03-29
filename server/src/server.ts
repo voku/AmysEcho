@@ -917,6 +917,7 @@ async function runTrainingWorkflow(
 	let bestScore = -1;
 	let bestAttempt = 0;
 	let lastStderr = "";
+	let fewShotOutputDir: string | null = null;
 
 	try {
 		const executeAttempt = async (attempt: number, attemptArgs: string[]) => {
@@ -974,67 +975,74 @@ async function runTrainingWorkflow(
 			const stdoutText = runReport.stdout.trim();
 			if (stdoutText.length > 0) {
 				try {
-					const lines = stdoutText.split(/\r?\n/).filter(Boolean);
-					parsedReport = JSON.parse(lines[lines.length - 1]);
-				} catch (err) {
-					await logTraining(
-						`job ${id}: failed to parse training report attempt ${attempt} (${String(err)})`,
-					);
+					parsedReport = JSON.parse(stdoutText);
+				} catch (fullParseError) {
+					try {
+						const lines = stdoutText.split(/\r?\n/).filter(Boolean);
+						parsedReport = JSON.parse(lines[lines.length - 1]);
+					} catch (lastLineParseError) {
+						await logTraining(
+							`job ${id}: failed to parse training report attempt ${attempt} (full text: ${String(fullParseError)}, last line: ${String(lastLineParseError)})`,
+						);
+						throw new Error(
+							`job ${id}: failed to parse training report JSON for attempt ${attempt}`,
+						);
+					}
 				}
 			}
 			return parsedReport;
 		};
 
 		if (useFewShotRunner) {
-			const fewShotOutputDir = path.join(
+			fewShotOutputDir = path.join(
 				DATA_DIR,
 				"fewshot-runs",
 				`${id}-${randomBytes(4).toString("hex")}`,
 			);
-				const fewShotArgs = [
-					...scriptArgs,
-					"--output-dir",
-					fewShotOutputDir,
-					"--shots",
-					fewShotShots,
-					"--seeds",
-					fewShotSeeds,
-					"--test-profile-fraction",
-					fewShotTestProfileFraction,
-					"--promote-best-model-dir",
-					MLP_MODELS_DIR,
-				];
+			const fewShotArgs = [
+				...scriptArgs,
+				"--output-dir",
+				fewShotOutputDir,
+				"--shots",
+				fewShotShots,
+				"--seeds",
+				fewShotSeeds,
+				"--test-profile-fraction",
+				fewShotTestProfileFraction,
+				"--promote-best-model-dir",
+				MLP_MODELS_DIR,
+			];
+			await logTraining(
+				`job ${id}: few-shot runner enabled (shots=${fewShotShots}, seeds=${fewShotSeeds})`,
+			);
+			const parsedReport = await executeAttempt(1, fewShotArgs);
+			bestScore = resolveTrainingScore(parsedReport, scoreProfileId);
+			bestReport = parsedReport;
+			bestAttempt = 1;
+			const diagnostics =
+				parsedReport.diagnostics as
+					| { fallback_metric_count?: number; fallback_metric_trials?: unknown[] }
+					| undefined;
+			const fallbackMetricCount =
+				typeof diagnostics?.fallback_metric_count === "number"
+					? diagnostics.fallback_metric_count
+					: 0;
+			if (fallbackMetricCount > 0) {
 				await logTraining(
-					`job ${id}: few-shot runner enabled (shots=${fewShotShots}, seeds=${fewShotSeeds})`,
+					`job ${id}: few-shot diagnostics fallback_metric_count=${fallbackMetricCount}`,
 				);
-				const parsedReport = await executeAttempt(1, fewShotArgs);
-				bestScore = resolveTrainingScore(parsedReport, scoreProfileId);
-				bestReport = parsedReport;
-				bestAttempt = 1;
-				const diagnostics =
-					parsedReport.diagnostics as
-						| { fallback_metric_count?: number; fallback_metric_trials?: unknown[] }
-						| undefined;
-				const fallbackMetricCount =
-					typeof diagnostics?.fallback_metric_count === "number"
-						? diagnostics.fallback_metric_count
-						: 0;
-				if (fallbackMetricCount > 0) {
-					await logTraining(
-						`job ${id}: few-shot diagnostics fallback_metric_count=${fallbackMetricCount}`,
-					);
-				}
-				const promotion =
-					parsedReport.promotion as
-						| { promoted?: boolean; reason?: string; source?: string; destination?: string }
-						| undefined;
-				if (promotion && promotion.promoted === false) {
-					await logTraining(
-						`job ${id}: few-shot promotion skipped reason=${promotion.reason ?? "unknown"}`,
-					);
-				}
-				await logTraining(`job ${id}: few-shot best score=${bestScore.toFixed(4)}`);
-			} else {
+			}
+			const promotion =
+				parsedReport.promotion as
+					| { promoted?: boolean; reason?: string; source?: string; destination?: string }
+					| undefined;
+			if (promotion && promotion.promoted === false) {
+				await logTraining(
+					`job ${id}: few-shot promotion skipped reason=${promotion.reason ?? "unknown"}`,
+				);
+			}
+			await logTraining(`job ${id}: few-shot best score=${bestScore.toFixed(4)}`);
+		} else {
 			for (let attemptIndex = 0; attemptIndex < trainingSchedule.length; attemptIndex += 1) {
 				const attempt = attemptIndex + 1;
 				const epochs = trainingSchedule[attemptIndex];
@@ -1067,6 +1075,9 @@ async function runTrainingWorkflow(
 		}
 	} finally {
 		await fs.rm(trainingManifestSnapshotPath, { force: true }).catch(() => {});
+		if (fewShotOutputDir) {
+			await fs.rm(fewShotOutputDir, { recursive: true, force: true }).catch(() => {});
+		}
 	}
 
 	const trainDurationMs = Date.now() - trainStartMs;
@@ -1099,36 +1110,40 @@ async function runTrainingWorkflow(
 			`Training überschreitet das SLA (${trainDurationMs}ms > ${config.trainingSlaMs}ms)`,
 		);
 	}
+	const globalMetrics = parsedReport.global as
+		| { accuracy?: unknown; samples?: unknown }
+		| undefined;
+	const diagnostics = parsedReport.diagnostics as
+		| { fallback_metric_count?: unknown }
+		| undefined;
+	const promotion = parsedReport.promotion as { promoted?: unknown } | undefined;
+	const bestTrialGlobalMetrics = (
+		parsedReport.best_trial as
+			| { raw_report?: { global?: { samples?: unknown } } }
+			| undefined
+	)?.raw_report?.global;
+
 	job.metrics = {
 		bestAttempt,
 		usableAccuracyThreshold,
 		trainingSchedule,
 		targetProfileId: scoreProfileId,
-		accuracy:
-			typeof (parsedReport.global as { accuracy?: unknown } | undefined)
-				?.accuracy === "number"
-				? ((parsedReport.global as { accuracy: number }).accuracy ?? 0)
-				: 0,
+		accuracy: typeof globalMetrics?.accuracy === "number" ? globalMetrics.accuracy : 0,
 		samples:
-			typeof (parsedReport.global as { samples?: unknown } | undefined)
-				?.samples === "number"
-				? ((parsedReport.global as { samples: number }).samples ?? 0)
-				: 0,
+			typeof globalMetrics?.samples === "number"
+				? globalMetrics.samples
+				: typeof bestTrialGlobalMetrics?.samples === "number"
+					? bestTrialGlobalMetrics.samples
+					: 0,
 		bundleFrames,
 		trainingDurationMs: trainDurationMs,
 		captureToTrainMs,
 		workflowDurationMs: Date.now() - workflowStartMs,
 		fewShotFallbackMetricCount:
-			typeof (parsedReport.diagnostics as { fallback_metric_count?: unknown } | undefined)
-				?.fallback_metric_count === "number"
-				? ((parsedReport.diagnostics as { fallback_metric_count: number })
-						.fallback_metric_count ?? 0)
+			typeof diagnostics?.fallback_metric_count === "number"
+				? diagnostics.fallback_metric_count
 				: 0,
-		fewShotPromoted:
-			typeof (parsedReport.promotion as { promoted?: unknown } | undefined)?.promoted ===
-			"boolean"
-				? ((parsedReport.promotion as { promoted: boolean }).promoted ?? false)
-				: false,
+		fewShotPromoted: typeof promotion?.promoted === "boolean" ? promotion.promoted : false,
 	};
 	job.report = parsedReport;
 	job.message = "Dein Modell ist jetzt aktualisiert";
