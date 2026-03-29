@@ -1,6 +1,6 @@
 ---
 name: amy-first-delivery
-description: Apply Amy's Echo Amy-first delivery workflow for implementation and review tasks. Use when changing code, tests, or docs in this repository and you need to enforce discovery, planning, Amy-impact validation, and mandatory verification before merge.
+description: Apply Amy's Echo Amy-first delivery workflow for implementation and review tasks. Use when changing code, tests, or docs in this repository. Enforce discovery, planning, Amy-impact validation, and mandatory verification before merge.
 ---
 
 # Amy First Delivery

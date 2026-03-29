@@ -7,6 +7,14 @@ description: Execute Amy's Echo model training workflows end-to-end with reprodu
 
 Run this workflow for any server-side model training or evaluation change.
 
+## 0) Discovery & planning preflight
+
+Before running training/evaluation commands:
+
+1. Read `docs/planning/TODO.md` and confirm current roadmap priorities.
+2. Inspect existing implementation in `server/src/amyserver_tools/`, `server/training/`, and related tests.
+3. Define a short plan using Discovery → Planning → Implementation → Verification workflow.
+
 ## 1) Scope the training surface
 
 Inspect changed files and map to these areas:
@@ -21,7 +29,7 @@ Inspect changed files and map to these areas:
 Start with the smoke workflow, then targeted tests, then broader checks as needed.
 
 1. `npm run train:workflow:smoke --prefix server`
-2. `PYTHONPATH=./server/src:./server:./server/training python -m pytest -q server/test/test_train_mlp_sweep.py`
+2. `PY_BIN=$(node ./server/scripts/resolve-python-bin.mjs) && PYTHONPATH=./server/src:./server:./server/training "$PY_BIN" -m pytest -q server/test/test_train_mlp_sweep.py`
 3. `npm run test:ts --prefix server -- latestMlpModelRoute.test.ts`
 4. Add `npm test --prefix server` when contract risk is broad.
 
@@ -34,7 +42,7 @@ For few-shot or benchmark claims, require:
 - manifest snapshot and commit SHA evidence,
 - deterministic seeds,
 - split manifests with empty train/test profile and bundle intersections,
-- summary artefacts under `docs/testing/benchmarks/results/<date>/`.
+- summary artefacts under `docs/testing/benchmarks/results/YYYY-MM-DD/`.
 
 Use `references/few-shot-evidence.md` before accepting results.
 

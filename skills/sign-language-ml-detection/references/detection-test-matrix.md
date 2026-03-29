@@ -8,7 +8,7 @@
 
 ## Targeted detection evidence
 
-- `npm run diagnose:fixtures --prefix webapp`
+- `npm --prefix webapp run diagnose:fixtures`
 - Run focused tests in changed files under:
   - `webapp/src/gesture/`
   - `webapp/src/hooks/`
@@ -21,3 +21,14 @@ Also include at least one failure-path check for:
 - expired session (`401`),
 - missing or stale `profileId`,
 - no false success state in UI after server failure.
+
+## Final PR gate (before merge)
+
+Recommended order: type-checks first, then lint, then tests.
+
+- `npm run type-check --prefix webapp`
+- `npm run type-check --prefix server`
+- `npm run lint --prefix webapp`
+- `npm test --prefix webapp`
+- `npm test --prefix server`
+- `npm test --prefix integration`

@@ -13,13 +13,13 @@ Prioritize these components:
 
 - runtime detector and processing: `webapp/src/gesture/core/`, `webapp/src/hooks/useSignLanguageDetector.ts`
 - model load/inference: `webapp/src/gesture/installMlp.ts`, `webapp/src/gesture/modelClient.ts`
-- diagnostics and fixtures: `webapp/src/gesture/testing/fixtures/`, `npm run diagnose:fixtures`
+- diagnostics and fixtures: `webapp/src/gesture/testing/fixtures/`, `npm --prefix webapp run diagnose:fixtures`
 - training-to-runtime contracts: shared frame/label types and server model version endpoints
 
 ## 2) Reproduce with deterministic fixtures first
 
 1. Run focused tests for the changed detection module.
-2. Run `npm run diagnose:fixtures --prefix webapp` to generate comparison evidence.
+2. Run `npm --prefix webapp run diagnose:fixtures` to generate comparison evidence.
 3. Validate confidence and margin behavior with fixture outputs before manual camera runs.
 
 Use the checklist in `references/detection-debug-checklist.md`.

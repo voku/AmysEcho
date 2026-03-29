@@ -33,7 +33,7 @@ Inspect these files first:
 ## 4) Validate end-to-end behavior
 
 - Run focused tests for touched detection files.
-- Run `npm run diagnose:fixtures --prefix webapp`.
+- Run `npm --prefix webapp run diagnose:fixtures`.
 - Run `npm test --prefix webapp` for regression confidence.
 
 ## References

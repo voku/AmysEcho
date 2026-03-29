@@ -9,9 +9,9 @@ Use this skill to keep webapp testing signals trustworthy and enforceable.
 
 ## 1) Choose the right test scope
 
-- For local fast iteration: run focused file tests first.
-- For merge confidence: run full `npm test --prefix webapp`.
-- For gate verification: run `npm run test:coverage --prefix webapp`.
+- Local iteration: run focused file tests first.
+- Merge confidence: run full `npm test --prefix webapp`.
+- Coverage gate verification: run `npm run test:coverage --prefix webapp`.
 
 ## 2) Keep coverage config intentional
 

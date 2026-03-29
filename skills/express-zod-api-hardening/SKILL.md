@@ -26,7 +26,7 @@ Apply this skill for server route work to keep API behavior safe and predictable
 
 - Never allow partial success states after validation/auth failure.
 - Keep rate limiting and input size limits in place for mutation endpoints.
-- Preserve current behavior for `401` and profile-missing paths.
+- Enforce `401` for expired/invalid auth and `4xx` rejection for missing profile context, and terminate the flow before any success response path.
 
 ## 4) Verify route changes
 

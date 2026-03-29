@@ -38,5 +38,5 @@ Cover at least these cases when relevant:
 
 ## References
 
-- Identity architecture map: `references/identity-map.md`
-- Regression checklist: `references/identity-test-checklist.md`
+- Identity architecture map: `references/identity-map.md` — High-level identity architecture and component relationships; consult for design and integration decisions.
+- Regression checklist: `references/identity-test-checklist.md` — Step-by-step regression checklist; use during testing and release validation.

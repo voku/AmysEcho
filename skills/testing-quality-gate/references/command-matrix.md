@@ -14,7 +14,7 @@ Run from repository root unless stated otherwise.
 
 - `npm ci --prefix server`
 - `npm run type-check --prefix server`
-- `pip install -r server/requirements.txt`
+- `PY_BIN=$(node ./server/scripts/resolve-python-bin.mjs) && "$PY_BIN" -m pip install -r server/requirements.txt`
 - `npm test --prefix server`
 
 ## Integration
