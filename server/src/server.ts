@@ -917,6 +917,7 @@ async function runTrainingWorkflow(
 	let bestScore = -1;
 	let bestAttempt = 0;
 	let lastStderr = "";
+	let fewShotOutputDir: string | null = null;
 
 	try {
 		const executeAttempt = async (attempt: number, attemptArgs: string[]) => {
@@ -975,13 +976,13 @@ async function runTrainingWorkflow(
 			if (stdoutText.length > 0) {
 				try {
 					parsedReport = JSON.parse(stdoutText);
-				} catch {
+				} catch (fullParseError) {
 					try {
 						const lines = stdoutText.split(/\r?\n/).filter(Boolean);
 						parsedReport = JSON.parse(lines[lines.length - 1]);
-					} catch (err) {
+					} catch (lastLineParseError) {
 						await logTraining(
-							`job ${id}: failed to parse training report attempt ${attempt} (${String(err)})`,
+							`job ${id}: failed to parse training report attempt ${attempt} (full text: ${String(fullParseError)}, last line: ${String(lastLineParseError)})`,
 						);
 					}
 				}
@@ -990,7 +991,7 @@ async function runTrainingWorkflow(
 		};
 
 		if (useFewShotRunner) {
-			const fewShotOutputDir = path.join(
+			fewShotOutputDir = path.join(
 				DATA_DIR,
 				"fewshot-runs",
 				`${id}-${randomBytes(4).toString("hex")}`,
@@ -1071,6 +1072,9 @@ async function runTrainingWorkflow(
 		}
 	} finally {
 		await fs.rm(trainingManifestSnapshotPath, { force: true }).catch(() => {});
+		if (fewShotOutputDir) {
+			await fs.rm(fewShotOutputDir, { recursive: true, force: true }).catch(() => {});
+		}
 	}
 
 	const trainDurationMs = Date.now() - trainStartMs;
@@ -1110,6 +1114,11 @@ async function runTrainingWorkflow(
 		| { fallback_metric_count?: unknown }
 		| undefined;
 	const promotion = parsedReport.promotion as { promoted?: unknown } | undefined;
+	const bestTrialGlobalMetrics = (
+		parsedReport.best_trial as
+			| { raw_report?: { global?: { samples?: unknown } } }
+			| undefined
+	)?.raw_report?.global;
 
 	job.metrics = {
 		bestAttempt,
@@ -1117,7 +1126,12 @@ async function runTrainingWorkflow(
 		trainingSchedule,
 		targetProfileId: scoreProfileId,
 		accuracy: typeof globalMetrics?.accuracy === "number" ? globalMetrics.accuracy : 0,
-		samples: typeof globalMetrics?.samples === "number" ? globalMetrics.samples : 0,
+		samples:
+			typeof globalMetrics?.samples === "number"
+				? globalMetrics.samples
+				: typeof bestTrialGlobalMetrics?.samples === "number"
+					? bestTrialGlobalMetrics.samples
+					: 0,
 		bundleFrames,
 		trainingDurationMs: trainDurationMs,
 		captureToTrainMs,
