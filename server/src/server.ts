@@ -984,6 +984,9 @@ async function runTrainingWorkflow(
 						await logTraining(
 							`job ${id}: failed to parse training report attempt ${attempt} (full text: ${String(fullParseError)}, last line: ${String(lastLineParseError)})`,
 						);
+						throw new Error(
+							`job ${id}: failed to parse training report JSON for attempt ${attempt}`,
+						);
 					}
 				}
 			}
