@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vitest Coverage Governor"
+  short_description: "Apply Vitest coverage strategy for reliable webapp tests"
+  default_prompt: "Use $vitest-coverage-governor to configure and enforce Vitest coverage gates with actionable failure triage."

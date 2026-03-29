@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testing Quality Gate"
+  short_description: "Select and run Amys Echo quality gates with evidence"
+  default_prompt: "Use $testing-quality-gate to run the minimum safe test matrix and report pass-warning-fail evidence."

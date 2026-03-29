@@ -1,0 +1,4 @@
+interface:
+  display_name: "Identity Boundary Guard"
+  short_description: "Prevent account/profile mixups in Amys Echo flows"
+  default_prompt: "Use $identity-boundary-guard to enforce auth token and profileId boundaries in Amys Echo changes."

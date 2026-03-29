@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amy First Delivery"
+  short_description: "Amy-first workflow and verification for safe changes"
+  default_prompt: "Use $amy-first-delivery to plan, implement, and verify Amys Echo changes with explicit Amy impact."

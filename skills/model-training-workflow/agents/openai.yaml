@@ -1,0 +1,4 @@
+interface:
+  display_name: "Model Training Workflow"
+  short_description: "Run Amy training workflows with reproducible evidence"
+  default_prompt: "Use $model-training-workflow to execute and verify Amys Echo training pipelines with reproducible artifacts."
