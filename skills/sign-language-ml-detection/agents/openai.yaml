@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sign Language ML Detection"
+  short_description: "Diagnose and tune ML sign detection in the webapp"
+  default_prompt: "Use $sign-language-ml-detection to debug, tune, and verify the webapp sign language detection pipeline."

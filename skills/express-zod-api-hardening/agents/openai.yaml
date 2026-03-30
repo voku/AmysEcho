@@ -1,0 +1,4 @@
+interface:
+  display_name: "Express Zod API Hardening"
+  short_description: "Build safer Express 5 routes with strict Zod validation"
+  default_prompt: "Use $express-zod-api-hardening to implement or refactor Express 5 routes with robust Zod validation and error handling."

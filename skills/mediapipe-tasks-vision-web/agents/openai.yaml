@@ -1,0 +1,4 @@
+interface:
+  display_name: "MediaPipe Tasks Vision Web"
+  short_description: "Implement and debug web gesture recognition with Tasks"
+  default_prompt: "Use $mediapipe-tasks-vision-web to implement or debug MediaPipe Tasks Vision gesture recognition in the webapp."
