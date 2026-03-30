@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { createHash, randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 import express, { type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import { promises as fs } from "fs";
@@ -32,15 +32,18 @@ import {
 import { auth } from "./middleware/auth.js";
 import { registerAuthRoutes } from "./routes/authRoutes.js";
 import { registerCustomSignsRoute } from "./routes/customSignsRoute.js";
+import { registerDiagnosticsRoutes } from "./routes/diagnosticsRoutes.js";
 import { registerGdprRoutes } from "./routes/gdprRoutes.js";
 import { registerLandmarkTemplateRoute } from "./routes/landmarkTemplateRoute.js";
 import { createLatestMlpModelHandler } from "./routes/latestMlpModelRoute.js";
 import { registerMetacomRoutes } from "./routes/metacomRoutes.js";
 import { registerMetacomSentenceRoutes } from "./routes/metacomSentenceRoutes.js";
+import { registerModelMetadataRoutes } from "./routes/modelMetadataRoutes.js";
 import { registerPretrainingRoutes } from "./routes/pretrainingRoutes.js";
 import { registerProfileRoutes } from "./routes/profileRoutes.js";
 import { registerSymbolRoutes } from "./routes/symbolRoutes.js";
 import { registerTrainingBundleRoute } from "./routes/trainingBundleRoute.js";
+import { registerTrainingJobsRoutes } from "./routes/trainingJobsRoutes.js";
 import { registerTrainingVideoRoutes } from "./routes/trainingVideoRoutes.js";
 import { registerUserLabelRoutes } from "./routes/userLabelRoutes.js";
 import { registerUserRoutes } from "./routes/userRoutes.js";
@@ -314,14 +317,6 @@ interface TrainingQueueEntry {
 const trainingQueue: TrainingQueueEntry[] = [];
 let isProcessingTrainingQueue = false;
 
-// Cache for Python dependency check to avoid spawning process on every health check
-let pythonDepsCheckCache: {
-	status: "ok" | "error";
-	message: string;
-	timestamp: number;
-} | null = null;
-const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
 let trainingManifestCache: {
 	entries: ManifestEntry[];
 	timestamp: number;
@@ -344,119 +339,11 @@ async function getCachedManifestEntries(): Promise<ManifestEntry[]> {
 	return entries;
 }
 
-async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; message: string }> {
-	// Return cached result if still valid
-	if (pythonDepsCheckCache && Date.now() - pythonDepsCheckCache.timestamp < PYTHON_DEPS_CACHE_TTL_MS) {
-		return { status: pythonDepsCheckCache.status, message: pythonDepsCheckCache.message };
-	}
-
-	// Perform actual check
-	try {
-		const pythonExecutable = resolvePythonExecutable();
-		await new Promise<void>((resolve, reject) => {
-			const proc = spawn(
-				pythonExecutable,
-				["-c", "import numpy, sklearn, mediapipe; print('ok')"],
-				{ env: withProjectPythonPath() },
-			);
-			let stderr = "";
-			proc.stderr.on("data", (data) => { stderr += data; });
-			proc.on("close", (code) => {
-				if (code === 0) {
-					resolve();
-				} else {
-					reject(new Error(`Python check failed with code ${code} using ${pythonExecutable}: ${stderr}`));
-				}
-			});
-			proc.on("error", reject);
-		});
-		
-		const result = {
-			status: "ok" as const,
-			message: `Required Python packages installed (numpy, sklearn, mediapipe) via ${pythonExecutable}`,
-		};
-		
-		// Update cache
-		pythonDepsCheckCache = { ...result, timestamp: Date.now() };
-		return result;
-	} catch (error) {
-		const result = {
-			status: "error" as const,
-			message: error instanceof Error ? error.message : String(error),
-		};
-		
-		// Cache error result too, but with shorter TTL (don't retry on every request)
-		pythonDepsCheckCache = { ...result, timestamp: Date.now() };
-		return result;
-	}
-}
-
-const healthHandler = async (_req: Request, res: Response) => {
-	const checks: Record<string, { status: string; message?: string; details?: unknown }> = {};
-	let overallStatus = "ok";
-
-	// Check database connectivity
-	try {
-		const dbExists = await fs.access(DB_FILE_PATH).then(() => true).catch(() => false);
-		checks.database = {
-			status: dbExists ? "ok" : "warning",
-			message: dbExists ? "Database file accessible" : "Database file not found (will be created on first write)",
-		};
-	} catch (error) {
-		checks.database = {
-			status: "error",
-			message: error instanceof Error ? error.message : String(error),
-		};
-		overallStatus = "degraded";
-	}
-
-	// Check global model availability
-	try {
-		const globalModelPath = getMlpModelPath();
-		const modelExists = await fs.access(globalModelPath).then(() => true).catch(() => false);
-		checks.globalModel = {
-			status: modelExists ? "ok" : "warning",
-			message: modelExists ? "Global model available" : "Global model not found (will be created on first training)",
-			details: { path: globalModelPath },
-		};
-	} catch (error) {
-		checks.globalModel = {
-			status: "error",
-			message: error instanceof Error ? error.message : String(error),
-		};
-		overallStatus = "degraded";
-	}
-
-	// Check Python dependencies (with caching)
-	const pythonCheck = await checkPythonDependencies();
-	checks.pythonDependencies = {
-		status: pythonCheck.status,
-		message: pythonCheck.message,
-	};
-	if (pythonCheck.status === "error") {
-		overallStatus = "degraded";
-	}
-
-	const manifestEntries = loadTrainingManifest<unknown>().entries;
-	checks.trainingManifest = {
-		status: "ok",
-		message: `Training manifest entries in SQLite: ${manifestEntries.length}`,
-	};
-
-	res.json({
-		status: overallStatus,
-		uptime: process.uptime(),
-		pendingTrainingJobs: trainingQueue.length,
-		checks,
-		timestamp: new Date().toISOString(),
-	});
-};
-
-app.use("/health", healthLimiter);
-app.get("/health", healthHandler);
-
-app.use("/api/v1/health", healthLimiter);
-app.get("/api/v1/health", healthHandler);
+registerDiagnosticsRoutes(app, {
+	healthLimiter,
+	getPendingTrainingJobs: () => trainingQueue.length,
+	getTrainingManifestEntries: getCachedManifestEntries,
+});
 
 // ========== Label Registry Endpoint ==========
 // Amy First: Exposes the unified label registry for training data
@@ -1390,289 +1277,30 @@ app.post(
 	},
 );
 
-app.post(
-	"/api/v1/train-model",
-	auth,
+registerTrainingJobsRoutes(app, {
+	authMiddleware: auth,
 	trainingLimiter,
-	async (req: Request, res: Response) => {
-		const SampleSchema = z.object({
-			signId: z.string().min(1),
-			profileId: z.string().optional(),
-			landmarkData: z.union([
-				z
-					.array(LandmarkTupleSchema)
-					.refine(
-						(arr) =>
-							arr.length === HAND_LANDMARKS_PER_HAND ||
-							arr.length === TOTAL_HAND_LANDMARKS ||
-							arr.length === MULTIMODAL_LANDMARKS,
-						{
-							message: "landmarks must be 21, 42 or 543 points",
-						},
-					),
-				z
-					.array(FrameSchema)
-					.refine(
-						(frames) =>
-							frames.every(
-								(f) =>
-									f.landmarks.length === HAND_LANDMARKS_PER_HAND ||
-									f.landmarks.length === TOTAL_HAND_LANDMARKS ||
-									f.landmarks.length === MULTIMODAL_LANDMARKS,
-							),
-						{ message: "each frame must contain 21, 42 or 543 landmarks" },
-					),
-			]),
-		});
-		const BodySchema = z.object({
-			samples: z.array(SampleSchema).optional(),
-			trigger: z.enum(["bundles"]).optional(),
-		});
-		const parsed = BodySchema.safeParse(req.body);
-		if (!parsed.success) {
-			return res
-				.status(400)
-				.json({
-					error: "Invalid samples payload.",
-					details: parsed.error.flatten(),
-				});
-		}
-		type Sample = z.infer<typeof SampleSchema>;
-		const samples: Sample[] = parsed.data.samples ?? [];
-		const triggeredByBundles = parsed.data.trigger === "bundles";
-		if (samples.length === 0 && !triggeredByBundles) {
-			return res.status(400).json({ error: "Samples array cannot be empty." });
-		}
-		
-		// Check authorization for all profile-specific samples
-		for (const sample of samples) {
-			if (sample.profileId && !isProfileAuthorized(req, sample.profileId, dbInstance, profileRegistry)) {
-				return res.status(403).json({ error: "Zugriff auf Profil verweigert." });
-			}
-		}
-		
-		const trainingSamples: TrainingSample[] = samples.map((sample) => ({
-			signId: sample.signId,
-			profileId: sample.profileId ?? null,
-			landmarkData: sample.landmarkData,
-		}));
-
-		const { jobId, status, queueDepth, retryAfterMs } = startTrainingJob(
-			trainingSamples,
-			triggeredByBundles ? "bundles" : null,
-		);
-
-		const message =
-			status === "queued"
-				? "Trainingsauftrag wurde in die Warteschlange gestellt"
-				: "Trainingsauftrag gestartet";
-
-		if (retryAfterMs > 0) {
-			res.setHeader("Retry-After", Math.ceil(retryAfterMs / 1000).toString());
-		}
-
-		res.status(202).json({
-			status,
-			jobId,
-			pollUrl: `/api/v1/train-status/${jobId}`,
-			message,
-			queueDepth,
-			...(retryAfterMs > 0 ? { retryAfterMs } : {}),
-		});
-	},
-);
-
-// Query training job status (explicit id)
-app.get(
-	"/api/v1/train-status/:id",
-	auth,
 	healthLimiter,
-	(req: Request, res: Response) => {
-		const id = req.params.id;
-		const job = trainingJobs.get(id);
-		if (!job) {
-			return res.status(404).json({ id, status: "not_found" });
-		}
-		res.json(job);
-	},
-);
+	landmarkTupleSchema: LandmarkTupleSchema,
+	frameSchema: FrameSchema,
+	handLandmarksPerHand: HAND_LANDMARKS_PER_HAND,
+	totalHandLandmarks: TOTAL_HAND_LANDMARKS,
+	multimodalLandmarks: MULTIMODAL_LANDMARKS,
+	startTrainingJob,
+	trainingJobs,
+	isProfileAuthorized: (req: Request, profileId: string) =>
+		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
+});
 
-// Gracefully handle accidental empty-id requests
-app.get(
-	"/api/v1/train-status",
-	auth,
-	healthLimiter,
-	(_req: Request, res: Response) => {
-		res.status(400).json({ error: "Training job id is required." });
-	},
-);
-
-app.get(
-	"/api/v1/models/version",
-	auth,
+registerModelMetadataRoutes(app, {
+	authMiddleware: auth,
 	modelMetadataLimiter,
-	async (_req: Request, res: Response) => {
-		try {
-			const pkg = await readServerPackageJson();
-			const { version } = pkg;
-			res.json({ version, modelPath: "/api/v1/models/latest" });
-		} catch (err) {
-			console.error("Failed to read model version:", err);
-			res.status(500).json({ error: "Failed to read model version" });
-		}
-	},
-);
-
-async function resolveModelFile(
-	profileId: string | undefined,
-	res: Response,
-	getPath: (profileId?: string) => string,
-): Promise<string | undefined> {
-	let file: string;
-	try {
-		file = getPath(profileId);
-	} catch {
-		res.status(400).json({ error: "Invalid profileId" });
-		return;
-	}
-
-	// Resolve base directory first
-	const base = await fs.realpath(DATA_DIR).catch(() => path.resolve(DATA_DIR));
-
-	// Normalize the file path to remove any ".." segments
-	// This prevents path traversal attacks
-	const normalizedFile = path.resolve(file);
-
-	// Check path containment BEFORE resolving symlinks
-	const preCheckRelative = path.relative(base, normalizedFile);
-	if (preCheckRelative.startsWith("..") || path.isAbsolute(preCheckRelative)) {
-		res.status(403).json({ error: "Forbidden" });
-		return;
-	}
-
-	// Resolve any symbolic links if the file exists
-	const resolvedFile = await fs
-		.realpath(normalizedFile)
-		.catch(() => normalizedFile);
-
-	// Check path containment again after resolving symlinks
-	// This prevents symlink attacks that point outside the base directory
-	const postCheckRelative = path.relative(base, resolvedFile);
-	if (
-		postCheckRelative.startsWith("..") ||
-		path.isAbsolute(postCheckRelative)
-	) {
-		res.status(403).json({ error: "Forbidden" });
-		return;
-	}
-
-	return resolvedFile;
-}
-
-// Model metadata: version, size, sha256
-app.get(
-	"/api/v1/models/metadata",
-	auth,
-	modelMetadataLimiter,
-	async (req: Request, res: Response) => {
-		const profileId =
-			typeof req.query.profileId === "string" ? req.query.profileId : undefined;
-		
-		// Check authorization if accessing profile-specific model
-		if (profileId && !isProfileAuthorized(req, profileId, dbInstance, profileRegistry)) {
-			return res.status(403).json({ error: "Zugriff verweigert." });
-		}
-		
-		const resolvedFile = await resolveModelFile(
-			profileId,
-			res,
-			getMlpModelPath,
-		);
-		if (!resolvedFile) return;
-		try {
-			const pkg = await readServerPackageJson();
-			const { version } = pkg;
-			const stat = await fs.stat(resolvedFile);
-			const buf = await fs.readFile(resolvedFile);
-			const sha256 = createHash("sha256").update(buf).digest("hex");
-			res.json({ version, size: stat.size, sha256 });
-		} catch (err) {
-			console.error("Failed to read model metadata:", err);
-			res.status(404).json({ error: "Model not found" });
-		}
-	},
-);
-
-// List available profile models and their status
-app.get("/api/v1/models/profiles", auth, modelMetadataLimiter, async (req: Request, res: Response) => {
-	try {
-		const { profileCounts } = await collectLabelCounts();
-		interface ProfileInfo {
-			profileId: string;
-			modelAvailable: boolean;
-			signCount: number;
-			lastUpdated?: Date;
-		}
-		const profiles: ProfileInfo[] = [];
-
-		const modelsDir = path.join(DATA_DIR, "models");
-		let modelDirs: string[] = [];
-		try {
-			modelDirs = await fs.readdir(modelsDir);
-			} catch {
-				// Models dir might not exist yet
-			}
-
-		for (const pid of modelDirs) {
-			if (pid === "global" || !PROFILE_ID_PATTERN.test(pid)) continue;
-			
-			// Only include profiles the user has access to
-			if (!isProfileAuthorized(req, pid, dbInstance, profileRegistry)) {
-				continue;
-			}
-
-			const modelPath = getMlpModelPath(pid);
-			let modelAvailable = false;
-			let lastUpdated: Date | undefined;
-
-			try {
-				const stat = await fs.stat(modelPath);
-				modelAvailable = true;
-				lastUpdated = stat.mtime;
-				} catch {
-					// Model not built yet
-				}
-
-			const counts = profileCounts.get(pid) || {};
-			const signCount = Object.values(counts).reduce((a, b) => a + b, 0);
-
-			profiles.push({
-				profileId: pid,
-				modelAvailable,
-				signCount,
-				...(lastUpdated ? { lastUpdated } : {}),
-			});
-		}
-
-		// Add profiles that have data but no model file yet
-		for (const [pid, counts] of profileCounts.entries()) {
-			if (!profiles.find((p) => p.profileId === pid)) {
-				// Only include if user has access to this profile
-				if (isProfileAuthorized(req, pid, dbInstance, profileRegistry)) {
-					profiles.push({
-						profileId: pid,
-						modelAvailable: false,
-						signCount: Object.values(counts).reduce((a, b) => a + b, 0),
-					});
-				}
-			}
-		}
-
-		res.json(profiles);
-	} catch (error) {
-		console.error("Failed to list profile models:", error);
-		res.status(500).json({ error: "Internal server error" });
-	}
+	readServerPackageJson,
+	collectLabelCounts,
+	getMlpModelPath,
+	isProfileAuthorized: (req: Request, profileId: string) =>
+		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
+	profileIdPattern: PROFILE_ID_PATTERN,
 });
 
 // Get labels that have at least one sample for a profile
