@@ -230,7 +230,7 @@ export const Admin: React.FC = () => {
       if (profileId && apiToken) {
         try {
           const response = await fetch(
-            resolveApiUrl(`/api/v1/profiles/${encodeURIComponent(profileId)}/backup/export`, apiBaseUrl),
+            resolveApiUrl(`/api/v1/profiles/${encodeURIComponent(profileId)}/export`, apiBaseUrl),
             {
               headers: {
                 Authorization: `Bearer ${apiToken}`,
@@ -246,13 +246,13 @@ export const Admin: React.FC = () => {
           const url = URL.createObjectURL(blob);
           const anchor = document.createElement('a');
           anchor.href = url;
-          anchor.download = `amysecho-profile-backup-${profileId}-${new Date().toISOString().split('T')[0]}.zip`;
+          anchor.download = `amysecho-profile-export-${profileId}-${new Date().toISOString().split('T')[0]}.zip`;
           anchor.click();
           URL.revokeObjectURL(url);
-          showToast({ message: 'Profil-Backup heruntergeladen', tone: 'success' });
+          showToast({ message: 'Profil-Export heruntergeladen', tone: 'success' });
           return;
         } catch (error) {
-          console.warn('Serverseitiger Profil-Backup-Export fehlgeschlagen, nutze lokalen Export', error);
+          console.warn('Serverseitiger Profil-Export fehlgeschlagen, nutze lokalen Export', error);
         }
       }
 
@@ -362,7 +362,7 @@ export const Admin: React.FC = () => {
       try {
         const archiveBase64 = arrayBufferToBase64(await file.arrayBuffer());
         const response = await fetch(
-          resolveApiUrl(`/api/v1/profiles/${encodeURIComponent(profileId)}/sync`, apiBaseUrl),
+          resolveApiUrl(`/api/v1/profiles/${encodeURIComponent(profileId)}/import`, apiBaseUrl),
           {
             method: 'POST',
             headers: {
