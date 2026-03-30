@@ -144,3 +144,8 @@ fi
 if [ -f scripts/check-terminology.sh ]; then
   run_step "Check terminology" bash scripts/check-terminology.sh
 fi
+
+# API documentation gate: route inventory must match docs index
+if [ -f scripts/check-api-doc-routes.mjs ]; then
+  run_step "Check API docs route coverage" node scripts/check-api-doc-routes.mjs
+fi

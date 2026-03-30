@@ -1,0 +1,418 @@
+{
+  "generatedAt": "2026-03-30T13:38:26.098Z",
+  "sourceGlobs": [
+    "server/src/server.ts",
+    "server/src/routes/*.ts"
+  ],
+  "routeCount": 68,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/pretraining/labels/:labelId",
+      "source": "server/src/routes/pretrainingRoutes.ts",
+      "line": 165
+    },
+    {
+      "method": "GET",
+      "path": "/api/pretraining/status",
+      "source": "server/src/routes/pretrainingRoutes.ts",
+      "line": 67
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/auth/account",
+      "source": "server/src/routes/authRoutes.ts",
+      "line": 86
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "source": "server/src/routes/authRoutes.ts",
+      "line": 43
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password-reset/confirm",
+      "source": "server/src/routes/authRoutes.ts",
+      "line": 61
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password-reset/request",
+      "source": "server/src/routes/authRoutes.ts",
+      "line": 53
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/refresh",
+      "source": "server/src/routes/authRoutes.ts",
+      "line": 48
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "source": "server/src/routes/authRoutes.ts",
+      "line": 38
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/verify-email/confirm",
+      "source": "server/src/routes/authRoutes.ts",
+      "line": 78
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/verify-email/request",
+      "source": "server/src/routes/authRoutes.ts",
+      "line": 70
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/config/normalization",
+      "source": "server/src/server.ts",
+      "line": 1715
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/corrections",
+      "source": "server/src/server.ts",
+      "line": 1333
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/crash-reports",
+      "source": "server/src/server.ts",
+      "line": 1277
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dgs-videos",
+      "source": "server/src/routes/trainingVideoRoutes.ts",
+      "line": 416
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dgs-videos/:filename",
+      "source": "server/src/routes/trainingVideoRoutes.ts",
+      "line": 454
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/dgs/sample-bundles",
+      "source": "server/src/routes/trainingBundleRoute.ts",
+      "line": 1188
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dgs/sample-bundles/:id",
+      "source": "server/src/routes/trainingBundleRoute.ts",
+      "line": 1138
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/dgs/samples",
+      "source": "server/src/server.ts",
+      "line": 1205
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dgs/signs",
+      "source": "server/src/routes/customSignsRoute.ts",
+      "line": 90
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/dgs/signs",
+      "source": "server/src/routes/customSignsRoute.ts",
+      "line": 164
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dgs/trained-labels",
+      "source": "server/src/server.ts",
+      "line": 1679
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dgs/training-quality",
+      "source": "server/src/routes/trainingBundleRoute.ts",
+      "line": 1094
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/health",
+      "source": "server/src/server.ts",
+      "line": 459
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/labels",
+      "source": "server/src/server.ts",
+      "line": 463
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/labels/:labelId/videos",
+      "source": "server/src/server.ts",
+      "line": 480
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/landmarks/templates",
+      "source": "server/src/routes/landmarkTemplateRoute.ts",
+      "line": 160
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/landmarks/templates",
+      "source": "server/src/routes/landmarkTemplateRoute.ts",
+      "line": 60
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/landmarks/templates",
+      "source": "server/src/routes/landmarkTemplateRoute.ts",
+      "line": 92
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/landmarks/templates/:id",
+      "source": "server/src/routes/landmarkTemplateRoute.ts",
+      "line": 130
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/metacom/sentence-improve",
+      "source": "server/src/routes/metacomSentenceRoutes.ts",
+      "line": 36
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/models/latest",
+      "source": "server/src/server.ts",
+      "line": 1153
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/models/metadata",
+      "source": "server/src/server.ts",
+      "line": 1573
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/models/profiles",
+      "source": "server/src/server.ts",
+      "line": 1607
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/models/version",
+      "source": "server/src/server.ts",
+      "line": 1510
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/negative-samples",
+      "source": "server/src/server.ts",
+      "line": 1363
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/profiles",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 215
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/profiles",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 229
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/profiles/:id",
+      "source": "server/src/routes/gdprRoutes.ts",
+      "line": 86
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/profiles/:id",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 292
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/profiles/:id",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 305
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/profiles/:id/data",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 568
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/profiles/:id/export",
+      "source": "server/src/routes/gdprRoutes.ts",
+      "line": 51
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/profiles/:id/import",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 535
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/profiles/:id/merge",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 341
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/profiles/:id/metacom-bundle",
+      "source": "server/src/routes/metacomRoutes.ts",
+      "line": 140
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/profiles/:id/metacom-bundle",
+      "source": "server/src/routes/metacomRoutes.ts",
+      "line": 44
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/profiles/:id/metacom-bundle",
+      "source": "server/src/routes/metacomRoutes.ts",
+      "line": 85
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/profiles/:id/share",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 404
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/profiles/:id/sync-token",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 461
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/profiles/:id/training-videos",
+      "source": "server/src/routes/trainingVideoRoutes.ts",
+      "line": 148
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/profiles/share/accept",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 429
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/profiles/sync",
+      "source": "server/src/routes/profileRoutes.ts",
+      "line": 487
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/symbols",
+      "source": "server/src/routes/symbolRoutes.ts",
+      "line": 89
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/symbols",
+      "source": "server/src/routes/symbolRoutes.ts",
+      "line": 182
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/symbols/:id",
+      "source": "server/src/routes/symbolRoutes.ts",
+      "line": 326
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/symbols/:id",
+      "source": "server/src/routes/symbolRoutes.ts",
+      "line": 259
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/train-model",
+      "source": "server/src/server.ts",
+      "line": 1393
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/train-status",
+      "source": "server/src/server.ts",
+      "line": 1501
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/train-status/:id",
+      "source": "server/src/server.ts",
+      "line": 1486
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/training-videos/:bundleId/clip",
+      "source": "server/src/routes/trainingVideoRoutes.ts",
+      "line": 211
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/training-videos/:bundleId/still",
+      "source": "server/src/routes/trainingVideoRoutes.ts",
+      "line": 333
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/user/password",
+      "source": "server/src/routes/userRoutes.ts",
+      "line": 104
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/user/profile",
+      "source": "server/src/routes/userRoutes.ts",
+      "line": 43
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/:userId/labels",
+      "source": "server/src/routes/userLabelRoutes.ts",
+      "line": 71
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/users/:userId/labels/:labelId",
+      "source": "server/src/routes/userLabelRoutes.ts",
+      "line": 132
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/users/:userId/labels/:labelId",
+      "source": "server/src/routes/userLabelRoutes.ts",
+      "line": 192
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/users/:userId/labels/initialize",
+      "source": "server/src/routes/userLabelRoutes.ts",
+      "line": 295
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "source": "server/src/server.ts",
+      "line": 456
+    }
+  ]
+}
