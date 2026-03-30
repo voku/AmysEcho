@@ -10,19 +10,19 @@ const TARGET_FILES = ['server/src/server.ts'].concat(
     .map((name) => 'server/src/routes/' + name),
 );
 
-const METHOD_PATTERN = "\\b(?<target>app|router)\\.(?<method>get|post|put|patch|delete)\\(\\s*(?<quote>[\"'])(?<route>[^\"']+)\\k<quote>";
+const METHOD_PATTERN = "\\b(?<target>[a-zA-Z0-9_$]+)\\.(?<method>get|post|put|patch|delete)\\(\\s*(?<quote>[\"'])(?<route>[^\"']+)\\k<quote>";
 const MOUNT_PATTERN = "\\bapp\\.use\\(\\s*([\"'])([^\"']+)\\1\\s*,\\s*([a-zA-Z_$][\\w$]*)\\s*\\)";
 
 function indexToLine(text, index) {
   return text.slice(0, index).split('\n').length;
 }
 
-function parseRoutes(filePath, text, targetName) {
+function parseRoutes(filePath, text, targetName = null) {
   const routePattern = new RegExp(METHOD_PATTERN, 'g');
   const routes = [];
   let match;
   while ((match = routePattern.exec(text)) !== null) {
-    if (match.groups?.target !== targetName) continue;
+    if (targetName && match.groups?.target !== targetName) continue;
     routes.push({
       method: match.groups.method.toUpperCase(),
       path: match.groups.route,
@@ -62,9 +62,9 @@ function buildInventory() {
 
     const mounts = parseRouterMounts(text);
     if (mounts.size > 0) {
-      const routerRoutes = parseRoutes(relPath, text, 'router');
-      for (const route of routerRoutes) {
-        for (const basePath of mounts.values()) {
+      for (const [routerName, basePath] of mounts.entries()) {
+        const routerRoutes = parseRoutes(relPath, text, routerName);
+        for (const route of routerRoutes) {
           inventory.push({ ...route, path: joinPaths(basePath, route.path) });
         }
       }
