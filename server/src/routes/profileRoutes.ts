@@ -8,13 +8,11 @@ import {
 	PROFILE_ID_PATTERN,
 	TRAINING_UPLOADS_DIR,
 } from "../constants/modelPaths.js";
-import { PROFILE_BACKUPS_DIR } from "../constants/profileRegistryPaths.js";
 import type { Database } from "../db.js";
 import { saveDatabase } from "../db.js";
 import {
 	buildProfileExportArchive,
 	deleteProfileTrainingData,
-	listProfileBackups,
 	loadCustomSigns,
 	loadDgsSamples,
 	loadTrainingManifest,
@@ -22,7 +20,6 @@ import {
 	saveCustomSigns,
 	saveDgsSamples,
 	saveTrainingManifest,
-	writeProfileBackup,
 } from "../services/profileDataService.js";
 import {
 	attachCaregiver,
@@ -101,12 +98,8 @@ const SyncRedeemSchema = z.object({
 	deviceName: z.string().optional(),
 });
 
-const SyncRestoreSchema = z.object({
+const ImportProfileSchema = z.object({
 	archiveBase64: z.string().min(1),
-});
-
-const BackupRestoreSchema = z.object({
-	backupPath: z.string().min(1),
 });
 
 async function mergeProfileDirectories(
@@ -212,9 +205,9 @@ export function registerProfileRoutes(
 		logError,
 	} = deps;
 
-	const backupRestoreRateLimiter = rateLimit({
+	const profileImportRateLimiter = rateLimit({
 		windowMs: 15 * 60 * 1000, // 15 minutes
-		max: 20, // limit each IP to 20 backup/restore requests per windowMs
+		max: 20, // limit each IP to 20 profile import requests per windowMs
 		standardHeaders: true,
 		legacyHeaders: false,
 	});
@@ -539,47 +532,19 @@ export function registerProfileRoutes(
 		}
 	});
 
-	app.get("/api/v1/profiles/:id/backup/export", authMiddleware, async (req, res) => {
-		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
-			return res.status(403).json({ error: "Zugriff verweigert." });
-		}
-
-		const profile = findProfileRecord(registry, req.params.id);
-		if (!profile) {
-			return res.status(404).json({ error: "Profil nicht gefunden." });
-		}
-
-		try {
-			const { buffer, checksum } = await buildProfileExportArchive(
-				profile.id,
-				registry,
-				db,
-			);
-			res.setHeader("Content-Type", "application/zip");
-			res.setHeader(
-				"Content-Disposition",
-				`attachment; filename="profile_${profile.id}_backup.zip"`,
-			);
-			res.setHeader("X-Profile-Checksum", checksum);
-			return res.status(200).send(buffer);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			logError("Profile backup export failed", { error: message });
-			return res
-				.status(500)
-				.json({ error: "Backup konnte nicht exportiert werden." });
-		}
-	});
-
-	app.post("/api/v1/profiles/:id/sync", authMiddleware, async (req, res) => {
-		// Check authorization before restoring sync
+	app.post(
+		"/api/v1/profiles/:id/import",
+		authMiddleware,
+		profileImportRateLimiter,
+		async (req, res) => {
+		// Check authorization before importing profile archive
 		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
 			return res.status(403).json({ error: "Zugriff verweigert." });
 		}
 		
-		const parsed = SyncRestoreSchema.safeParse(req.body);
+		const parsed = ImportProfileSchema.safeParse(req.body);
 		if (!parsed.success) {
-			return res.status(400).json({ error: "Synchronisierungs-Paket fehlt." });
+			return res.status(400).json({ error: "Profil-Archiv fehlt." });
 		}
 		const profile = findProfileRecord(registry, req.params.id);
 		if (!profile) {
@@ -589,108 +554,14 @@ export function registerProfileRoutes(
 			const buffer = Buffer.from(parsed.data.archiveBase64, "base64");
 			await restoreProfileFromArchive(profile.id, buffer, db);
 			await withFileLock(dbFilePath, async () => saveDatabase(db, dbFilePath));
-			return res.json({ status: "synced", profileId: profile.id });
+			return res.json({ status: "imported", profileId: profile.id });
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			logError("Profile sync restore failed", { error: message });
+			logError("Profile import failed", { error: message });
 			return res
 				.status(500)
-				.json({ error: "Synchronisierung konnte nicht eingespielt werden." });
+				.json({ error: "Profil-Archiv konnte nicht importiert werden." });
 		}
-	});
-
-	app.post("/api/v1/profiles/:id/backup", authMiddleware, async (req, res) => {
-		// Check authorization before allowing backup
-		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
-			return res.status(403).json({ error: "Zugriff verweigert." });
-		}
-		
-		const profile = findProfileRecord(registry, req.params.id);
-		if (!profile) {
-			return res.status(404).json({ error: "Profil nicht gefunden." });
-		}
-		try {
-			const backup = await writeProfileBackup(profile.id, registry, db);
-			registry.backups.push({
-				profileId: profile.id,
-				createdAt: new Date().toISOString(),
-				path: backup.path,
-				sizeBytes: backup.sizeBytes,
-				checksum: backup.checksum,
-			});
-			await withFileLock(registryPath, async () =>
-				saveRegistry(registryPath, registry),
-			);
-			return res.json({ status: "backup_created", backup });
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			logError("Profile backup failed", { error: message });
-			return res
-				.status(500)
-				.json({ error: "Backup konnte nicht erstellt werden." });
-		}
-	});
-
-	app.get("/api/v1/profiles/:id/backups", authMiddleware, async (req, res) => {
-		// Check authorization before showing backups
-		if (!isProfileAuthorized(req, req.params.id, db, registry)) {
-			return res.status(403).json({ error: "Zugriff verweigert." });
-		}
-		
-		const profile = findProfileRecord(registry, req.params.id);
-		if (!profile) {
-			return res.status(404).json({ error: "Profil nicht gefunden." });
-		}
-		const backups = await listProfileBackups(profile.id);
-		return res.json({ backups });
-	});
-
-	app.post(
-		"/api/v1/profiles/:id/restore",
-		authMiddleware,
-		backupRestoreRateLimiter,
-		async (req, res) => {
-			// Check authorization before restoring backup
-			if (!isProfileAuthorized(req, req.params.id, db, registry)) {
-				return res.status(403).json({ error: "Zugriff verweigert." });
-			}
-			
-			const parsed = BackupRestoreSchema.safeParse(req.body);
-			if (!parsed.success) {
-				return res.status(400).json({ error: "Backup-Pfad fehlt." });
-			}
-			const profile = findProfileRecord(registry, req.params.id);
-			if (!profile) {
-				return res.status(404).json({ error: "Profil nicht gefunden." });
-			}
-			try {
-				const backupDir = path.resolve(PROFILE_BACKUPS_DIR, profile.id);
-				const safeBackupPath = path.resolve(
-					backupDir,
-					path.basename(parsed.data.backupPath),
-				);
-
-				if (!safeBackupPath.startsWith(backupDir)) {
-					logError("Path traversal attempt detected in profile restore", {
-						profileId: profile.id,
-						requestedPath: parsed.data.backupPath,
-					});
-					return res.status(400).json({ error: "Ungültiger Backup-Pfad." });
-				}
-
-				const buffer = await fs.readFile(safeBackupPath);
-				await restoreProfileFromArchive(profile.id, buffer, db);
-				await withFileLock(dbFilePath, async () =>
-					saveDatabase(db, dbFilePath),
-				);
-				return res.json({ status: "restored", profileId: profile.id });
-			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error);
-				logError("Profile restore failed", { error: message });
-				return res
-					.status(500)
-					.json({ error: "Backup konnte nicht wiederhergestellt werden." });
-			}
 		},
 	);
 
