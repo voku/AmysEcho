@@ -8,10 +8,10 @@ import { buildAuthHeaders } from './apiClient';
 import { logger } from './logger';
 import { resolveApiUrl } from './resolveApiUrl';
 
-export interface ExportedProfileData {
-  profile: unknown;
-  usageStats: unknown[];
-  corrections: unknown[];
+export interface ExportedProfileArchive {
+  blob: Blob;
+  checksum: string | null;
+  fileName: string;
 }
 
 async function request(url: string, token: string | null | undefined, options: RequestInit = {}): Promise<Response | null> {
@@ -36,7 +36,7 @@ async function request(url: string, token: string | null | undefined, options: R
 }
 
 export const gdprService = {
-  async exportProfile(profileId: string, config: ApiClientConfig): Promise<ExportedProfileData | null> {
+  async exportProfile(profileId: string, config: ApiClientConfig): Promise<ExportedProfileArchive | null> {
     const apiUrl = config.apiBaseUrl;
     const token = config.apiToken ?? null;
     if (!apiUrl) {
@@ -46,10 +46,14 @@ export const gdprService = {
     const resp = await request(resolveApiUrl(`/api/v1/profiles/${profileId}/export`, apiUrl), token);
     if (!resp) return null;
     try {
-      const data = (await resp.json()) as ExportedProfileData;
-      return data;
+      const blob = new Blob([await resp.arrayBuffer()], { type: 'application/zip' });
+      return {
+        blob,
+        checksum: resp.headers.get('X-Profile-Checksum'),
+        fileName: `profile_${profileId}_export.zip`,
+      };
     } catch (e) {
-      logger.error('[gdprService] Failed to parse export', e);
+      logger.error('[gdprService] Failed to read export archive', e);
       return null;
     }
   },

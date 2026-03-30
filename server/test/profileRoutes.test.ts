@@ -4,7 +4,12 @@ import path from 'path';
 import express from 'express';
 import request from 'supertest';
 import type { Database } from '../src/db.js';
-import { createEmptyRegistry, ensureProfileRecord, saveProfileRegistry } from '../src/services/profileRegistry.js';
+import {
+  createEmptyRegistry,
+  ensureProfileRecord,
+  saveProfileRegistry,
+  type ProfileRegistry,
+} from '../src/services/profileRegistry.js';
 import { AuthService } from '../src/services/authService.js';
 
 const accessToken = AuthService.generateTokens({
@@ -13,29 +18,13 @@ const accessToken = AuthService.generateTokens({
   role: 'caregiver',
 }).accessToken;
 
-function collectBinaryResponse(
-  res: NodeJS.ReadableStream,
-  callback: (error: Error | null, body?: Buffer) => void,
-) {
-  const chunks: Buffer[] = [];
-  res.on('data', (chunk) => {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  });
-  res.on('end', () => {
-    callback(null, Buffer.concat(chunks));
-  });
-  res.on('error', (error) => {
-    callback(error as Error);
-  });
-}
-
 describe('Profile registry routes', () => {
   let tmpDir: string;
   let app: express.Express;
   let db: Database;
   let dbPath: string;
   let registryPath: string;
-  let datasetsDir: string;
+  let registry: ProfileRegistry;
   let registerProfileRoutes: typeof import('../src/routes/profileRoutes.js').registerProfileRoutes;
 
   beforeAll(async () => {
@@ -49,7 +38,6 @@ describe('Profile registry routes', () => {
 
     dbPath = path.join(tmpDir, 'db.json');
     registryPath = path.join(tmpDir, 'profile_registry.json');
-    datasetsDir = path.join(tmpDir, 'datasets');
     db = {
       users: [],
       symbols: [],
@@ -67,7 +55,7 @@ describe('Profile registry routes', () => {
     const { loadDatabase } = await import('../src/db.js');
     await loadDatabase(dbPath);
 
-    const registry = createEmptyRegistry();
+    registry = createEmptyRegistry();
     const source = ensureProfileRecord(registry, {
       id: '11111111-1111-4111-8111-111111111111',
       displayName: 'Quelle',
@@ -178,15 +166,9 @@ describe('Profile registry routes', () => {
     await fs.mkdir(path.dirname(modelFile), { recursive: true });
     await fs.writeFile(modelFile, Buffer.from('profile-model'));
 
-    const exportResponse = await request(app)
-      .get(`/api/v1/profiles/${sourceId}/backup/export`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .buffer(true)
-      .parse(collectBinaryResponse)
-      .expect(200);
-    const archiveBuffer = exportResponse.body as Buffer;
-
-    expect(exportResponse.headers['content-type']).toContain('application/zip');
+    const { buildProfileExportArchive } = await import('../src/services/profileDataService.js');
+    const archive = await buildProfileExportArchive(sourceId, registry, db);
+    const archiveBuffer = archive.buffer;
     expect(archiveBuffer.length).toBeGreaterThan(0);
 
     db.usageStats = [];
@@ -198,11 +180,12 @@ describe('Profile registry routes', () => {
     await fs.rm(path.join(TRAINING_UPLOADS_DIR, sourceId), { recursive: true, force: true });
     await fs.rm(path.join(MLP_MODELS_DIR, sourceId), { recursive: true, force: true });
 
-    await request(app)
-      .post(`/api/v1/profiles/${sourceId}/sync`)
+    const importResponse = await request(app)
+      .post(`/api/v1/profiles/${sourceId}/import`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ archiveBase64: archiveBuffer.toString('base64') })
       .expect(200);
+    expect(importResponse.body).toMatchObject({ status: 'imported', profileId: sourceId });
 
     const restoredManifest = loadTrainingManifest() as {
       entries: Array<{ profileId: string; label: string }>;

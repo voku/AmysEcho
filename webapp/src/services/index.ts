@@ -18,7 +18,7 @@ export { gestureDataProtector } from './dataProtection';
 export { backupService } from './backupService';
 
 export { gdprService } from './gdprService';
-export type { ExportedProfileData } from './gdprService';
+export type { ExportedProfileArchive } from './gdprService';
 
 export { announceGestureRecognition, announceAccessibilityMessage, createGestureAccessibilityLabel, prefersReducedMotion, prefersHighContrast } from './accessibilityService';
 

@@ -10,6 +10,13 @@ vi.mock('../hooks/useAppState', () => ({
   }),
 }));
 
+vi.mock('../hooks/useApiConfig', () => ({
+  useApiConfig: () => ({
+    apiBaseUrl: 'http://localhost:5000',
+    apiToken: '',
+  }),
+}));
+
 vi.mock('./UserSettings', () => ({
   UserSettings: () => <div>Benutzereinstellungen Platzhalter</div>,
 }));
