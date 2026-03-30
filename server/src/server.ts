@@ -342,6 +342,7 @@ async function getCachedManifestEntries(): Promise<ManifestEntry[]> {
 registerDiagnosticsRoutes(app, {
 	healthLimiter,
 	getPendingTrainingJobs: () => trainingQueue.length,
+	getTrainingManifestEntries: getCachedManifestEntries,
 });
 
 // ========== Label Registry Endpoint ==========

@@ -8,6 +8,7 @@ describe("registerDiagnosticsRoutes", () => {
 		registerDiagnosticsRoutes(app, {
 			healthLimiter: (_req, _res, next) => next(),
 			getPendingTrainingJobs: () => 3,
+			getTrainingManifestEntries: async () => [],
 		});
 
 		const rootResponse = await request(app).get("/health").expect(200);

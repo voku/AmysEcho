@@ -20,7 +20,14 @@ export interface TrainingJob {
 interface TrainingSample {
 	signId: string;
 	profileId?: string | null;
-	landmarkData: number[][];
+	landmarkData:
+		| [number, number, number][]
+		| {
+				timestampMs: number;
+				landmarks: [number, number, number][];
+				poseLandmarks?: number[][];
+				faceLandmarks?: number[][];
+		  }[];
 }
 
 interface RegisterTrainingJobsRoutesDeps {
@@ -66,7 +73,7 @@ export function registerTrainingJobsRoutes(
 						arr.length === deps.totalHandLandmarks ||
 						arr.length === deps.multimodalLandmarks,
 					{
-						message: "landmarks must be 21, 42 or 543 points",
+						message: "Landmarken müssen 21, 42 oder 543 Punkte enthalten",
 					},
 				),
 			z
@@ -80,7 +87,7 @@ export function registerTrainingJobsRoutes(
 								frame.landmarks.length === deps.multimodalLandmarks,
 						),
 					{
-						message: "each frame must contain 21, 42 or 543 landmarks",
+						message: "Jeder Frame muss 21, 42 oder 543 Landmarken enthalten",
 					},
 				),
 		]),
@@ -98,7 +105,7 @@ export function registerTrainingJobsRoutes(
 			const parsed = BodySchema.safeParse(req.body);
 			if (!parsed.success) {
 				return res.status(400).json({
-					error: "Invalid samples payload.",
+					error: "Ungültige Trainingsdaten.",
 					details: parsed.error.flatten(),
 				});
 			}
@@ -107,7 +114,7 @@ export function registerTrainingJobsRoutes(
 			const samples: Sample[] = parsed.data.samples ?? [];
 			const triggeredByBundles = parsed.data.trigger === "bundles";
 			if (samples.length === 0 && !triggeredByBundles) {
-				return res.status(400).json({ error: "Samples array cannot be empty." });
+				return res.status(400).json({ error: "Samples-Liste darf nicht leer sein." });
 			}
 
 			for (const sample of samples) {
@@ -119,7 +126,7 @@ export function registerTrainingJobsRoutes(
 			const trainingSamples: TrainingSample[] = samples.map((sample) => ({
 				signId: sample.signId,
 				profileId: sample.profileId ?? null,
-				landmarkData: sample.landmarkData as number[][],
+				landmarkData: sample.landmarkData,
 			}));
 
 			const { jobId, status, queueDepth, retryAfterMs } = deps.startTrainingJob(
@@ -166,7 +173,7 @@ export function registerTrainingJobsRoutes(
 		deps.authMiddleware,
 		deps.healthLimiter,
 		(_req: Request, res: Response) => {
-			res.status(400).json({ error: "Training job id is required." });
+			res.status(400).json({ error: "Training-Job-ID ist erforderlich." });
 		},
 	);
 }

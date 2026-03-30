@@ -95,4 +95,36 @@ describe("registerTrainingJobsRoutes", () => {
 			})
 			.expect(403);
 	});
+
+	it("returns German validation error messages for empty payloads", async () => {
+		const app = express();
+		app.use(express.json());
+		registerTrainingJobsRoutes(app, {
+			authMiddleware: (_req, _res, next) => next(),
+			trainingLimiter: (_req, _res, next) => next(),
+			healthLimiter: (_req, _res, next) => next(),
+			landmarkTupleSchema: z.tuple([z.number(), z.number(), z.number()]),
+			frameSchema: z.object({
+				timestampMs: z.number(),
+				landmarks: z.array(z.tuple([z.number(), z.number(), z.number()])),
+			}),
+			handLandmarksPerHand: 21,
+			totalHandLandmarks: 42,
+			multimodalLandmarks: 543,
+			startTrainingJob: () => ({
+				jobId: "job-2",
+				status: "running",
+				queueDepth: 0,
+				retryAfterMs: 0,
+			}),
+			trainingJobs: new Map(),
+			isProfileAuthorized: () => true,
+		});
+
+		const response = await request(app).post("/api/v1/train-model").send({}).expect(400);
+		expect(response.body.error).toBe("Samples-Liste darf nicht leer sein.");
+
+		const noIdResponse = await request(app).get("/api/v1/train-status").expect(400);
+		expect(noIdResponse.body.error).toBe("Training-Job-ID ist erforderlich.");
+	});
 });

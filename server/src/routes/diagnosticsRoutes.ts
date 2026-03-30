@@ -3,12 +3,12 @@ import type { Express, Request, RequestHandler, Response } from "express";
 import { promises as fs } from "fs";
 import { DB_FILE_PATH } from "../constants/dbPaths.js";
 import { getMlpModelPath } from "../constants/modelPaths.js";
-import { loadTrainingManifest } from "../services/trainingJsonStore.js";
 import { resolvePythonExecutable, withProjectPythonPath } from "../utils/pythonExecutable.js";
 
 interface RegisterDiagnosticsRoutesDeps {
 	healthLimiter: RequestHandler;
 	getPendingTrainingJobs: () => number;
+	getTrainingManifestEntries: () => Promise<unknown[]>;
 }
 
 let pythonDepsCheckCache: {
@@ -18,6 +18,7 @@ let pythonDepsCheckCache: {
 } | null = null;
 
 const PYTHON_DEPS_CACHE_TTL_MS = 5 * 60 * 1000;
+const PYTHON_DEPS_CHECK_TIMEOUT_MS = 5_000;
 
 async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; message: string }> {
 	if (
@@ -38,11 +39,21 @@ async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; mess
 				["-c", "import numpy, sklearn, mediapipe; print('ok')"],
 				{ env: withProjectPythonPath() },
 			);
+			const timeout = setTimeout(() => {
+				proc.kill("SIGKILL");
+				reject(
+					new Error(
+						`Python dependency check timed out after ${PYTHON_DEPS_CHECK_TIMEOUT_MS}ms`,
+					),
+				);
+			}, PYTHON_DEPS_CHECK_TIMEOUT_MS);
+			timeout.unref();
 			let stderr = "";
 			proc.stderr.on("data", (data) => {
 				stderr += data;
 			});
 			proc.on("close", (code) => {
+				clearTimeout(timeout);
 				if (code === 0) {
 					resolve();
 				} else {
@@ -53,7 +64,10 @@ async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; mess
 					);
 				}
 			});
-			proc.on("error", reject);
+			proc.on("error", (error) => {
+				clearTimeout(timeout);
+				reject(error);
+			});
 		});
 
 		const result = {
@@ -72,7 +86,10 @@ async function checkPythonDependencies(): Promise<{ status: "ok" | "error"; mess
 	}
 }
 
-function createHealthHandler(getPendingTrainingJobs: () => number) {
+function createHealthHandler(
+	getPendingTrainingJobs: () => number,
+	getTrainingManifestEntries: () => Promise<unknown[]>,
+) {
 	return async (_req: Request, res: Response) => {
 		const checks: Record<string, { status: string; message?: string; details?: unknown }> = {};
 		let overallStatus = "ok";
@@ -120,11 +137,11 @@ function createHealthHandler(getPendingTrainingJobs: () => number) {
 			overallStatus = "degraded";
 		}
 
-		try {
-			const manifestEntries = loadTrainingManifest<unknown>().entries;
-			checks.trainingManifest = {
-				status: "ok",
-				message: `Training manifest entries in SQLite: ${manifestEntries.length}`,
+			try {
+				const manifestEntries = await getTrainingManifestEntries();
+				checks.trainingManifest = {
+					status: "ok",
+					message: `Training manifest entries in SQLite: ${manifestEntries.length}`,
 			};
 		} catch (error) {
 			checks.trainingManifest = {
@@ -148,11 +165,10 @@ export function registerDiagnosticsRoutes(
 	app: Express,
 	deps: RegisterDiagnosticsRoutesDeps,
 ): void {
-	const healthHandler = createHealthHandler(deps.getPendingTrainingJobs);
-
-	app.use("/health", deps.healthLimiter);
-	app.get("/health", healthHandler);
-
-	app.use("/api/v1/health", deps.healthLimiter);
-	app.get("/api/v1/health", healthHandler);
+	const healthHandler = createHealthHandler(
+		deps.getPendingTrainingJobs,
+		deps.getTrainingManifestEntries,
+	);
+	app.get("/health", deps.healthLimiter, healthHandler);
+	app.get("/api/v1/health", deps.healthLimiter, healthHandler);
 }
