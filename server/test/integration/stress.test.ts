@@ -103,7 +103,7 @@ describe('System Stress & Stability Integration', () => {
     // 2. Concurrent Training Triggers
     const triggerPromises = [1, 2].map(() => 
       request(app)
-        .post('/train-model')
+        .post('/api/v1/train-model')
         .set('Authorization', `Bearer ${accessToken}`)
         .set('Content-Type', 'application/json')
         .send({ trigger: 'bundles' })

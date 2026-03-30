@@ -41,7 +41,7 @@ export function registerUserRoutes(
 	deps: UserRouteDeps,
 ) {
 	app.put(
-		"/api/user/profile",
+		"/api/v1/user/profile",
 		deps.authMiddleware,
 		async (req: Request, res: Response) => {
 			const parsed = ProfileUpdateSchema.safeParse(req.body);
@@ -102,7 +102,7 @@ export function registerUserRoutes(
 	);
 
 	app.put(
-		"/api/user/password",
+		"/api/v1/user/password",
 		deps.authMiddleware,
 		async (req: Request, res: Response) => {
 			const parsed = PasswordUpdateSchema.safeParse(req.body);

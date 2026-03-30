@@ -48,7 +48,7 @@ describe('user routes', () => {
     const token = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' }).accessToken;
 
     const response = await request(app)
-      .put('/api/user/profile')
+      .put('/api/v1/user/profile')
       .set('Authorization', `Bearer ${token}`)
       .send({ displayName: 'Amy Doe' })
       .expect(200);
@@ -81,7 +81,7 @@ describe('user routes', () => {
     const token = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' }).accessToken;
 
     const response = await request(app)
-      .put('/api/user/profile')
+      .put('/api/v1/user/profile')
       .set('Authorization', `Bearer ${token}`)
       .send({ displayName: 'Hacked', userId: 'user-2' })
       .expect(403);
@@ -105,7 +105,7 @@ describe('user routes', () => {
     const token = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' }).accessToken;
 
     const response = await request(app)
-      .put('/api/user/password')
+      .put('/api/v1/user/password')
       .set('Authorization', `Bearer ${token}`)
       .send({ currentPassword: 'wrongpw', newPassword: 'new-secret-123' })
       .expect(400);

@@ -290,7 +290,7 @@ def test_train_endpoint_without_baseline_file():
     data_dir: Path | None = None
     try:
         proc, access_token, data_dir, port = start_server()
-        url = f"http://localhost:{port}/train-model"
+        url = f"http://localhost:{port}/api/v1/train-model"
         payload = json.dumps({"samples": [], "trigger": "bundles"}).encode("utf-8")
         headers = {
             **_make_auth_headers(access_token),
@@ -323,7 +323,7 @@ def test_train_endpoint_returns_queue_metadata():
     data_dir: Path | None = None
     try:
         proc, access_token, data_dir, port = start_server()
-        url = f"http://localhost:{port}/train-model"
+        url = f"http://localhost:{port}/api/v1/train-model"
         landmarks_sequence = []
         for f in range(30):
             frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
@@ -375,7 +375,7 @@ def test_train_requests_are_serialized():
     data_dir: Path | None = None
     try:
         proc, access_token, data_dir, port = start_server()
-        url = f"http://localhost:{port}/train-model"
+        url = f"http://localhost:{port}/api/v1/train-model"
         landmarks_sequence = []
         for f in range(30):
             frame = [[(i + f) * 0.001, 0.1, 0.1] for i in range(42)]
@@ -437,7 +437,7 @@ def test_train_model_rejects_out_of_range_landmarks():
     data_dir: Path | None = None
     try:
         proc, access_token, data_dir, port = start_server()
-        url = f"http://localhost:{port}/train-model"
+        url = f"http://localhost:{port}/api/v1/train-model"
         headers = {
             **_make_auth_headers(access_token),
             "Content-Type": "application/json",

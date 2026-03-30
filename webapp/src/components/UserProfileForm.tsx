@@ -27,7 +27,7 @@ export function UserProfileForm({ initialDisplayName = '' }: UserProfileFormProp
       setMessage('Profil wird gespeichert…');
 
       try {
-        const response = await fetch(resolveApiUrl('/api/user/profile', apiBaseUrl), {
+        const response = await fetch(resolveApiUrl('/api/v1/user/profile', apiBaseUrl), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
