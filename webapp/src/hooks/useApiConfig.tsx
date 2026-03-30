@@ -561,5 +561,5 @@ export function resolvePollUrl(baseUrl: string, pollUrl: string | undefined, job
     return `${trimmedBase}/${trimmedPollUrl.replace(/^\/+/, '')}`;
   }
 
-  return `${trimmedBase}/api/v1/training-status/${encodeURIComponent(jobId)}`;
+  return `${trimmedBase}/api/v1/train-status/${encodeURIComponent(jobId)}`;
 }

@@ -106,7 +106,7 @@ describe('uploadTrainingBundle integration', () => {
         JSON.stringify({
           id: 'bundle-stub-1',
           status: 'queued',
-          trainingJob: { jobId: 'job-1', status: 'queued', pollUrl: '/train-status/job-1' },
+          trainingJob: { jobId: 'job-1', status: 'queued', pollUrl: '/api/v1/train-status/job-1' },
         }),
         { status: 202, headers: { 'Content-Type': 'application/json' } },
       );
@@ -120,7 +120,7 @@ describe('uploadTrainingBundle integration', () => {
     expect(response).toEqual({
       id: 'bundle-stub-1',
       status: 'queued',
-      trainingJob: { jobId: 'job-1', status: 'queued', pollUrl: '/train-status/job-1' },
+      trainingJob: { jobId: 'job-1', status: 'queued', pollUrl: '/api/v1/train-status/job-1' },
     });
 
     expect(manifestEntries).toHaveLength(1);
