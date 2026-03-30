@@ -1391,7 +1391,7 @@ app.post(
 );
 
 app.post(
-	"/train-model",
+	"/api/v1/train-model",
 	auth,
 	trainingLimiter,
 	async (req: Request, res: Response) => {
@@ -1604,7 +1604,7 @@ app.get(
 );
 
 // List available profile models and their status
-app.get("/api/models/profiles", auth, modelMetadataLimiter, async (req: Request, res: Response) => {
+app.get("/api/v1/models/profiles", auth, modelMetadataLimiter, async (req: Request, res: Response) => {
 	try {
 		const { profileCounts } = await collectLabelCounts();
 		interface ProfileInfo {

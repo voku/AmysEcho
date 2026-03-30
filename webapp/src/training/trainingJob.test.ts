@@ -39,7 +39,7 @@ describe('triggerTrainingJob', () => {
     fetchWithRetryMock.mockReset();
   });
 
-  it('normalisiert API-Basis mit /api oder /api/v1 und ruft /train-model auf', async () => {
+  it('normalisiert API-Basis mit /api oder /api/v1 und ruft /api/v1/train-model auf', async () => {
     fetchWithRetryMock.mockResolvedValue(
       new Response(JSON.stringify({ jobId: 'job-77', status: 'queued' }), {
         status: 202,
@@ -51,7 +51,7 @@ describe('triggerTrainingJob', () => {
 
     expect(result).toMatchObject({ jobId: 'job-77', status: 'queued' });
     expect(fetchWithRetryMock).toHaveBeenCalledWith(
-      'https://api.example.com/train-model',
+      'https://api.example.com/api/v1/train-model',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({ Authorization: 'Bearer token-123' }),

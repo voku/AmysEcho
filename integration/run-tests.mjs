@@ -45,6 +45,7 @@ const tsxArgs = [
   '--test',
   ...nodeFlags,
   'test/dgs-auto-pretrain-sources.test.ts',
+  'test/contract-smoke.test.ts',
   'test/api.test.js',
   'test/training-flow.test.ts',
   'test/webapp-video-upload.test.ts',

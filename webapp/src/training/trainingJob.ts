@@ -98,7 +98,7 @@ export async function triggerTrainingJob(
     return null;
   }
 
-  const endpoint = resolveApiUrl('/train-model', base);
+  const endpoint = resolveApiUrl('/api/v1/train-model', base);
 
   let response: Response;
   try {

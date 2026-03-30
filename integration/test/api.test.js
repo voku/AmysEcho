@@ -47,8 +47,8 @@ before(async () => {
 });
 after(stopServer);
 
-test('POST /train-model invalid payload', async () => {
-  const res = await fetch(`${baseUrl}/train-model`, {
+test('POST /api/v1/train-model invalid payload', async () => {
+  const res = await fetch(`${baseUrl}/api/v1/train-model`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -61,8 +61,8 @@ test('POST /train-model invalid payload', async () => {
   assert.ok(typeof body.error === 'string');
 });
 
-test('POST /train-model invalid sample items', async () => {
-  const res = await fetch(`${baseUrl}/train-model`, {
+test('POST /api/v1/train-model invalid sample items', async () => {
+  const res = await fetch(`${baseUrl}/api/v1/train-model`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -76,14 +76,14 @@ test('POST /train-model invalid sample items', async () => {
   assert.ok(body.details);
 });
 
-test('POST /train-model processes samples and returns model', async () => {
+test('POST /api/v1/train-model processes samples and returns model', async () => {
   const sample = {
     signId: 'g1',
     landmarkData: Array.from({ length: 42 }, (_, i) => [i * 0.01, 0.1, 0.1]),
     profileId: '11111111-1111-4111-8111-111111111111',
   };
   const res = await fetchWithRetry(
-    `${baseUrl}/train-model`,
+    `${baseUrl}/api/v1/train-model`,
     {
       method: 'POST',
       headers: {
