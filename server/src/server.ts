@@ -556,17 +556,6 @@ async function executeTrainingQueueEntry(
 	}
 }
 
-export function buildTrainingStatusResponse(
-	jobStore: Map<string, TrainingJob>,
-	id: string,
-): { status: number; body: Partial<TrainingJob> | { error: string } } {
-	const job = jobStore.get(id);
-	if (!job) {
-		return { status: 404, body: { error: "Training job not found" } };
-	}
-	return { status: 200, body: job };
-}
-
 // Utility to generate cryptographically secure unique ids
 const genId = () => Date.now().toString(36) + randomBytes(4).toString("hex");
 
@@ -1517,13 +1506,6 @@ app.get(
 		res.status(400).json({ error: "Training job id is required." });
 	},
 );
-
-// Query video training job status
-app.get("/api/v1/training-status/:id", auth, apiLimiter, (req: Request, res: Response) => {
-	const id = req.params.id;
-	const result = buildTrainingStatusResponse(trainingJobs, id);
-	res.status(result.status).json(result.body);
-});
 
 app.get(
 	"/api/v1/models/version",
