@@ -1,11 +1,17 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { z } from "zod";
 import { FACE_LANDMARKS, POSE_LANDMARKS } from "../constants/featureSchema.js";
 import {
 	DATA_DIR,
 	ensureDataDir,
 } from "../constants/modelPaths.js";
+import { type TrainingManifestEntry } from "./trainingManifestSchema.js";
+
+interface IngestibleTrainingManifestEntry extends TrainingManifestEntry {
+	id: string;
+	receivedAt: string;
+}
+
 import {
 	MAX_FACE_JITTER,
 	MAX_HAND_JITTER,
@@ -71,69 +77,6 @@ async function loadQualityThresholds(): Promise<QualityThresholds> {
 		return DEFAULT_QUALITY_THRESHOLDS;
 	}
 }
-
-const TrainingBundleManifestEntrySchema = z
-	.object({
-		id: z.string(),
-		profileId: z.string().nullable().optional(),
-		label: z.string().trim().min(1),
-		symbolId: z.string().trim().min(1).optional(),
-		capturedAt: z.string().nullable().optional(),
-		source: z.string().nullable().optional(),
-		storage: z
-			.object({
-				directory: z.string(),
-				bundle: z.string().optional(),
-				files: z.array(z.string()),
-			})
-			.passthrough(),
-		receivedAt: z.string(),
-		metadata: z
-			.object({
-				profileId: z.string().nullable().optional(),
-				validationSummary: z
-					.object({
-						frameCount: z.number().optional(),
-						landmarksPath: z.string().optional(),
-					})
-					.passthrough()
-					.optional(),
-				handFocus: z
-					.enum([
-						"dominant_only",
-						"both_equal",
-						"both_asymmetric",
-						"either_hand",
-					])
-					.optional(),
-				augmentation: z
-					.object({
-						mirrorSafe: z.boolean().optional(),
-					})
-					.passthrough()
-					.optional(),
-					recording: z
-						.object({
-							frameCount: z.number().optional(),
-							usableFrameCount: z.number().optional(),
-							clipDurationMs: z.number().optional(),
-							clipBytes: z.number().optional(),
-							clipMimeType: z.string().optional(),
-							stillBytes: z.number().optional(),
-							stillMimeType: z.string().optional(),
-							previewMirrored: z.boolean().optional(),
-						})
-						.passthrough()
-						.optional(),
-			})
-			.passthrough()
-			.optional(),
-	})
-	.passthrough();
-
-type TrainingBundleManifestEntry = z.infer<
-	typeof TrainingBundleManifestEntrySchema
->;
 
 interface LandmarksFrameEntry {
 	landmarks?: unknown;
@@ -282,7 +225,7 @@ function normalizeRelativePath(relativePath: string): string | null {
 }
 
 function selectLandmarksRelativePath(
-	entry: TrainingBundleManifestEntry,
+	entry: IngestibleTrainingManifestEntry,
 ): string | null {
 	const summaryPath =
 		entry.metadata && typeof entry.metadata === "object"
@@ -696,19 +639,14 @@ function analyzeTimestampSequence(
 		: undefined;
 }
 
-function loadManifest(): TrainingBundleManifestEntry[] {
-	const parsed = loadTrainingManifest<unknown>().entries;
-	const validEntries: TrainingBundleManifestEntry[] = [];
+function loadManifest(): IngestibleTrainingManifestEntry[] {
+	const parsed = loadTrainingManifest<TrainingManifestEntry>().entries;
+	const validEntries: IngestibleTrainingManifestEntry[] = [];
 	parsed.forEach((entry, index) => {
-		const result = TrainingBundleManifestEntrySchema.safeParse(entry);
-		if (result.success) {
-			validEntries.push(result.data);
-		} else {
-			logger.warn("Skipping invalid training bundle manifest entry", {
-				index,
-				issues: result.error.issues,
-			});
+		if (!entry.id || !entry.receivedAt) {
+			throw new Error(`Invalid training manifest entry at index ${index}: id and receivedAt are required for ingestion`);
 		}
+		validEntries.push(entry as IngestibleTrainingManifestEntry);
 	});
 	return validEntries;
 }
@@ -983,7 +921,7 @@ function evaluateBundleQuality(frames: NormalizedFrameData[], thresholds: Qualit
 }
 
 async function readLandmarks(
-	entry: TrainingBundleManifestEntry,
+	entry: IngestibleTrainingManifestEntry,
 ): Promise<NormalizedFrameData[]> {
 	if (!entry.storage || typeof entry.storage.directory !== "string") {
 		return [];
@@ -1074,7 +1012,7 @@ async function readLandmarks(
 }
 
 function buildDatasetSample(
-	entry: TrainingBundleManifestEntry,
+	entry: IngestibleTrainingManifestEntry,
 	frameIndex: number,
 	frameData: NormalizedFrameData,
 ): DatasetSample {

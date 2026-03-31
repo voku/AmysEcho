@@ -60,7 +60,7 @@ describe("resetTrainingData", () => {
 			timestamp: Date.now(),
 		});
 
-		saveTrainingManifest({ entries: [{ id: "bundle-1", profileId: "11111111-1111-4111-8111-111111111111" }] });
+		saveTrainingManifest({ entries: [{ id: "bundle-1", profileId: "11111111-1111-4111-8111-111111111111", label: "hilfe", storage: { directory: "training_uploads/11111111-1111-4111-8111-111111111111/bundle-1", files: ["landmarks.json"] } }] });
 		saveDgsSamples({ samples: [{ id: "sample-1", profileId: "11111111-1111-4111-8111-111111111111" }] });
 		saveCustomSigns({ signs: [{ id: "custom-1", profileId: "11111111-1111-4111-8111-111111111111" }] });
 		saveTrainingQualityLog({ entries: [{ bundleId: "bundle-1" }] });
@@ -156,7 +156,7 @@ describe("resetTrainingData", () => {
 		const { saveTrainingManifest, loadTrainingManifest } = await import("../src/services/trainingJsonStore.js");
 
 		await loadDatabase(dbPath);
-		saveTrainingManifest({ entries: [{ id: "bundle-1" }] });
+		saveTrainingManifest({ entries: [{ id: "bundle-1", label: "hilfe", storage: { directory: "training_uploads/test/bundle-1", files: ["landmarks.json"] } }] });
 
 		const summary = await resetTrainingData({
 			dbPath,
@@ -167,7 +167,7 @@ describe("resetTrainingData", () => {
 		expect(summary.trainingManifestEntriesCleared).toBe(1);
 		expect(summary.sqlite.correctionsDeleted).toBe(0);
 		expect(loadTrainingManifest()).toEqual({
-			entries: [{ id: "bundle-1" }],
+			entries: [{ id: "bundle-1", label: "hilfe", storage: { directory: "training_uploads/test/bundle-1", files: ["landmarks.json"] } }],
 		});
 	});
 });

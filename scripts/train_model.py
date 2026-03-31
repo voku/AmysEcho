@@ -28,6 +28,7 @@ from typing import Any
 import numpy as np
 
 from ml_shared_utils import filter_by_profile_logic
+from training_manifest_schema import load_training_manifest
 
 # Try importing sklearn for advanced validation
 try:
@@ -226,8 +227,7 @@ def augment_sample(sample: dict[str, Any], num_augmentations: int = 3) -> list[d
     return augmented
 
 def prepare_data(manifest_file: str, augmentation_factor: int, test_split: float, profile_id_filter: str | None = None, window_size: int = 5) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int], np.ndarray, np.ndarray]:
-    with open(manifest_file) as f:
-        manifest = json.load(f)
+    manifest = load_training_manifest(manifest_file)
 
     all_entries = manifest.get("entries", [])
     if profile_id_filter is None:
@@ -453,8 +453,7 @@ def main():
             deploy_model(args.output_model, "app/assets")
 
         # 2. Train Per-Profile Models
-        with open(args.manifest) as f:
-            manifest = json.load(f)
+        manifest = load_training_manifest(args.manifest)
 
         profile_ids = sorted({e.get("profileId") for e in manifest.get("entries", []) if e.get("profileId")})
 

@@ -24,6 +24,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from training_manifest_schema import save_training_manifest
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
@@ -125,8 +127,7 @@ def create_training_manifest(max_per_label: int = 15) -> dict:
         "entries": entries
     }
     
-    with open(MANIFEST_PATH, "w") as f:
-        json.dump(manifest, f, indent=2)
+    save_training_manifest(MANIFEST_PATH, manifest)
     
     print(f"Created manifest with {len(entries)} entries.")
     print("\nLabel distribution:")
