@@ -7,7 +7,7 @@ import {
 import {
 	parseTrainingManifest,
 	parseTrainingManifestEntry,
-	type TrainingManifest,
+	type TrainingManifest
 } from "./trainingManifestSchema.js";
 
 const TRAINING_MANIFEST_KEY = "training.manifest";
@@ -15,7 +15,7 @@ const DGS_SAMPLES_KEY = "training.dgs_samples";
 const CUSTOM_SIGNS_KEY = "training.custom_signs";
 const TRAINING_QUALITY_LOG_KEY = "training.quality_log";
 
-export type TrainingManifestFile<TEntry = Record<string, unknown>> = {
+export type TrainingManifestFile<TEntry = Record<string, unknown>> = Omit<TrainingManifest, "entries"> & {
 	entries: TEntry[];
 };
 

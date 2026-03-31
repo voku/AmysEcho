@@ -72,6 +72,12 @@ def _require_nullable_string(value: Any, name: str) -> str | None:
     return value
 
 
+def _require_non_negative_number(value: Any, name: str) -> float:
+    if not isinstance(value, (int, float)) or value < 0:
+        raise ValueError(f"{name} must be a non-negative number")
+    return float(value)
+
+
 def _parse_storage(raw: Any) -> dict[str, Any]:
     storage = _require_dict(raw, "entry.storage")
     _reject_unknown_keys(storage, ALLOWED_STORAGE_KEYS, "entry.storage")
@@ -80,6 +86,8 @@ def _parse_storage(raw: Any) -> dict[str, Any]:
     files = storage.get("files")
     if not isinstance(files, list):
         raise ValueError("entry.storage.files must be an array")
+    if len(files) == 0:
+        raise ValueError("entry.storage.files must not be empty")
 
     normalized_files = [_require_non_empty_string(item, "entry.storage.files[]") for item in files]
 
@@ -87,6 +95,24 @@ def _parse_storage(raw: Any) -> dict[str, Any]:
     for optional_key in ("bundle", "clip", "still"):
         if optional_key in storage:
             parsed[optional_key] = _require_non_empty_string(storage[optional_key], f"entry.storage.{optional_key}")
+    return parsed
+
+
+def _parse_modality_stats(raw: Any, name: str) -> dict[str, Any]:
+    stats = _require_dict(raw, name)
+    _reject_unknown_keys(stats, {"present", "frameCount", "coverage"}, name)
+
+    parsed: dict[str, Any] = {}
+    if "present" in stats:
+        if not isinstance(stats["present"], bool):
+            raise ValueError(f"{name}.present must be a boolean")
+        parsed["present"] = stats["present"]
+    if "frameCount" in stats:
+        parsed["frameCount"] = _require_non_negative_number(stats["frameCount"], f"{name}.frameCount")
+    if "coverage" in stats:
+        if not isinstance(stats["coverage"], (int, float)):
+            raise ValueError(f"{name}.coverage must be a number")
+        parsed["coverage"] = float(stats["coverage"])
     return parsed
 
 
@@ -99,9 +125,17 @@ def _parse_metadata(raw: Any) -> dict[str, Any]:
         if key in metadata:
             parsed[key] = _require_nullable_string(metadata[key], f"entry.metadata.{key}")
 
-    for key in ("label", "symbolId", "clipFilename", "stillFilename"):
+    for key in ("label", "symbolId"):
         if key in metadata:
             parsed[key] = _require_non_empty_string(metadata[key], f"entry.metadata.{key}")
+
+    for key in ("clipFilename", "stillFilename"):
+        if key in metadata:
+            value = metadata[key]
+            if value is None:
+                parsed[key] = None
+            else:
+                parsed[key] = _require_non_empty_string(value, f"entry.metadata.{key}")
 
     if "handFocus" in metadata:
         hand_focus = _require_non_empty_string(metadata["handFocus"], "entry.metadata.handFocus")
@@ -116,10 +150,60 @@ def _parse_metadata(raw: Any) -> dict[str, Any]:
             raise ValueError("entry.metadata.augmentation.mirrorSafe must be a boolean")
         parsed["augmentation"] = augmentation
 
+    if "modalities" in metadata:
+        modalities = _require_dict(metadata["modalities"], "entry.metadata.modalities")
+        _reject_unknown_keys(modalities, {"hands", "pose", "face", "nonManual"}, "entry.metadata.modalities")
+        parsed_modalities: dict[str, Any] = {}
+        for key in ("hands", "pose", "face", "nonManual"):
+            if key in modalities:
+                parsed_modalities[key] = _parse_modality_stats(modalities[key], f"entry.metadata.modalities.{key}")
+        parsed["modalities"] = parsed_modalities
 
-    for object_key in ("modalities", "smoothing", "handedness", "validationSummary", "variationData", "recording"):
-        if object_key in metadata:
-            parsed[object_key] = _require_dict(metadata[object_key], f"entry.metadata.{object_key}")
+    if "smoothing" in metadata:
+        smoothing = _require_dict(metadata["smoothing"], "entry.metadata.smoothing")
+        _reject_unknown_keys(smoothing, {"method", "minCutOff", "beta", "dCutOff"}, "entry.metadata.smoothing")
+        parsed["smoothing"] = smoothing
+
+    if "handedness" in metadata:
+        handedness = _require_dict(metadata["handedness"], "entry.metadata.handedness")
+        _reject_unknown_keys(handedness, {"labels", "frameCount"}, "entry.metadata.handedness")
+        parsed["handedness"] = handedness
+
+    if "validationSummary" in metadata:
+        validation = _require_dict(metadata["validationSummary"], "entry.metadata.validationSummary")
+        _reject_unknown_keys(
+            validation,
+            {"frameCount", "landmarksPath", "issues", "suggestions", "qualityScore", "confidence"},
+            "entry.metadata.validationSummary",
+        )
+        parsed["validationSummary"] = validation
+
+    if "variationData" in metadata:
+        variation = _require_dict(metadata["variationData"], "entry.metadata.variationData")
+        _reject_unknown_keys(
+            variation,
+            {"clusterId", "dominantCluster", "variationDiversity", "canonicalTemplates"},
+            "entry.metadata.variationData",
+        )
+        parsed["variationData"] = variation
+
+    if "recording" in metadata:
+        recording = _require_dict(metadata["recording"], "entry.metadata.recording")
+        _reject_unknown_keys(
+            recording,
+            {
+                "frameCount",
+                "usableFrameCount",
+                "clipDurationMs",
+                "clipBytes",
+                "clipMimeType",
+                "stillBytes",
+                "stillMimeType",
+                "previewMirrored",
+            },
+            "entry.metadata.recording",
+        )
+        parsed["recording"] = recording
 
     if "featureContract" in metadata:
         contract = _require_dict(metadata["featureContract"], "entry.metadata.featureContract")

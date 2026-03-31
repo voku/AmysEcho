@@ -453,8 +453,7 @@ def main():
             deploy_model(args.output_model, "app/assets")
 
         # 2. Train Per-Profile Models
-        with open(args.manifest) as f:
-            manifest = json.load(f)
+        manifest = load_training_manifest(args.manifest)
 
         profile_ids = sorted({e.get("profileId") for e in manifest.get("entries", []) if e.get("profileId")})
 

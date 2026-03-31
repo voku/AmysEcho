@@ -29,69 +29,83 @@ const HandFocusSchema = z.enum([
 	"either_hand",
 ]);
 
+const ModalityStatsSchema = z.object({
+	present: z.boolean().optional(),
+	frameCount: z.number().nonnegative().optional(),
+	coverage: z.number().optional(),
+}).strict();
+
+const ModalitiesSchema = z.object({
+	hands: ModalityStatsSchema.optional(),
+	pose: ModalityStatsSchema.optional(),
+	face: ModalityStatsSchema.optional(),
+	nonManual: ModalityStatsSchema.optional(),
+}).strict();
+
+const SmoothingSchema = z.object({
+	method: z.string().optional(),
+	minCutOff: z.number().optional(),
+	beta: z.number().optional(),
+	dCutOff: z.number().optional(),
+}).strict();
+
+const HandednessSchema = z.object({
+	labels: z.array(z.string()).optional(),
+	frameCount: z.number().nonnegative().optional(),
+}).strict();
+
+const VariationDataSchema = z.object({
+	clusterId: z.string().optional(),
+	dominantCluster: z.string().optional(),
+	variationDiversity: z.number().optional(),
+	canonicalTemplates: z.number().optional(),
+}).strict();
+
 const MetadataSchema = z.object({
-	label: z.string().optional(),
+	label: NonEmptyString.optional(),
 	profileId: z.string().nullable().optional(),
-	symbolId: z.string().optional(),
+	symbolId: NonEmptyString.optional(),
 	source: z.string().nullable().optional(),
 	capturedAt: z.string().nullable().optional(),
-	clipFilename: z.string().optional(),
-	stillFilename: z.string().optional(),
-	modalities: z.object({
-		hands: z.unknown().optional(),
-		pose: z.unknown().optional(),
-		face: z.unknown().optional(),
-		nonManual: z.unknown().optional(),
-	}).strict().optional(),
-	smoothing: z.object({
-		method: z.string().optional(),
-		minCutOff: z.number().optional(),
-		beta: z.number().optional(),
-		dCutOff: z.number().optional(),
-	}).strict().optional(),
-	handedness: z.object({
-		labels: z.array(z.string()).optional(),
-		frameCount: z.number().optional(),
-	}).strict().optional(),
+	clipFilename: NonEmptyString.nullable().optional(),
+	stillFilename: NonEmptyString.nullable().optional(),
+	modalities: ModalitiesSchema.optional(),
+	smoothing: SmoothingSchema.optional(),
+	handedness: HandednessSchema.optional(),
 	validationSummary: ValidationSummarySchema.optional(),
 	handFocus: HandFocusSchema.optional(),
 	augmentation: z.object({ mirrorSafe: z.boolean().optional() }).strict().optional(),
-	variationData: z.object({
-		clusterId: z.string().optional(),
-		dominantCluster: z.string().optional(),
-		variationDiversity: z.number().optional(),
-		canonicalTemplates: z.number().optional(),
-	}).strict().optional(),
+	variationData: VariationDataSchema.optional(),
 	recording: RecordingSchema.optional(),
 	featureContract: z.object({ version: z.string().optional() }).strict().optional(),
 }).strict();
 
 const StorageSchema = z.object({
 	directory: NonEmptyString,
-	bundle: z.string().optional(),
-	files: z.array(NonEmptyString),
-	clip: z.string().optional(),
-	still: z.string().optional(),
+	bundle: NonEmptyString.optional(),
+	files: z.array(NonEmptyString).min(1),
+	clip: NonEmptyString.optional(),
+	still: NonEmptyString.optional(),
 }).strict();
 
 export const TrainingManifestEntrySchema = z.object({
-	id: z.string().optional(),
+	id: NonEmptyString.optional(),
 	profileId: z.string().nullable().optional(),
 	label: NonEmptyString,
 	symbolId: NonEmptyString.optional(),
 	capturedAt: z.string().nullable().optional(),
 	source: z.string().nullable().optional(),
 	storage: StorageSchema,
-	receivedAt: z.string().optional(),
+	receivedAt: NonEmptyString.optional(),
 	metadata: MetadataSchema.optional(),
 }).strict();
 
 export type TrainingManifestEntry = z.infer<typeof TrainingManifestEntrySchema>;
 
 export const TrainingManifestSchema = z.object({
-	version: z.string().optional(),
-	generatedAt: z.string().optional(),
-	jobId: z.string().optional(),
+	version: NonEmptyString.optional(),
+	generatedAt: NonEmptyString.optional(),
+	jobId: NonEmptyString.optional(),
 	entries: z.array(TrainingManifestEntrySchema),
 }).strict();
 

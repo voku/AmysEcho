@@ -5,10 +5,7 @@ import {
 	DATA_DIR,
 	ensureDataDir,
 } from "../constants/modelPaths.js";
-import {
-	TrainingManifestEntrySchema,
-	type TrainingManifestEntry,
-} from "./trainingManifestSchema.js";
+import { type TrainingManifestEntry } from "./trainingManifestSchema.js";
 
 interface IngestibleTrainingManifestEntry extends TrainingManifestEntry {
 	id: string;
@@ -643,17 +640,13 @@ function analyzeTimestampSequence(
 }
 
 function loadManifest(): IngestibleTrainingManifestEntry[] {
-	const parsed = loadTrainingManifest<unknown>().entries;
+	const parsed = loadTrainingManifest<TrainingManifestEntry>().entries;
 	const validEntries: IngestibleTrainingManifestEntry[] = [];
 	parsed.forEach((entry, index) => {
-		const result = TrainingManifestEntrySchema.safeParse(entry);
-		if (!result.success) {
-			throw new Error(`Invalid training manifest entry at index ${index}: ${result.error.message}`);
-		}
-		if (!result.data.id || !result.data.receivedAt) {
+		if (!entry.id || !entry.receivedAt) {
 			throw new Error(`Invalid training manifest entry at index ${index}: id and receivedAt are required for ingestion`);
 		}
-		validEntries.push(result.data as IngestibleTrainingManifestEntry);
+		validEntries.push(entry as IngestibleTrainingManifestEntry);
 	});
 	return validEntries;
 }

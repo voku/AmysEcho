@@ -97,7 +97,7 @@ describe('Profile registry routes', () => {
 
     const { saveTrainingManifest, saveDgsSamples, saveCustomSigns } = await import('../src/services/trainingJsonStore.js');
     saveTrainingManifest({
-      entries: [{ id: 'bundle-1', profileId: source.id, label: 'HALLO' }],
+      entries: [{ id: 'bundle-1', profileId: source.id, label: 'HALLO', storage: { directory: `training_uploads/${source.id}/bundle-1`, files: ['landmarks.json'] } }],
     });
     saveDgsSamples({
       samples: [{ id: 'sample-1', profileId: source.id, label: 'HALLO', landmarks: [], ts: Date.now() }],
