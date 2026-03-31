@@ -6,7 +6,7 @@
 import type { ApiClientConfig } from './apiClient';
 import { buildAuthHeaders } from './apiClient';
 import { logger } from './logger';
-import { resolveApiUrl } from './resolveApiUrl';
+import { resolveApiUrl } from '../utils/resolveApiUrl';
 
 export interface ExportedProfileArchive {
   blob: Blob;
