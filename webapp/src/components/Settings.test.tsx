@@ -13,7 +13,7 @@ vi.mock('../hooks/useAppState', () => ({
 vi.mock('../hooks/useApiConfig', () => ({
   useApiConfig: () => ({
     apiBaseUrl: 'http://localhost:5000',
-    apiToken: '',
+    apiToken: 'token-123',
   }),
 }));
 
@@ -51,7 +51,13 @@ describe('Settings', () => {
       </BrowserRouter>,
     );
 
-    expect(screen.getByRole('button', { name: 'Lokale Profildaten exportieren' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Server-Profil exportieren (ZIP)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lokale Browserdaten exportieren (JSON)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lokale Profildaten löschen' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Server-Profil-Export benötigt eine aktive Anmeldung. Der JSON-Export enthält nur lokal gespeicherte Profildaten dieses Browsers.',
+      ),
+    ).toBeInTheDocument();
   });
 });

@@ -15,34 +15,43 @@ export function Settings() {
   const { apiBaseUrl, apiToken } = useApiConfig();
   const commitHash = import.meta.env['VITE_APP_COMMIT_SHA']?.trim() || 'unbekannt';
 
-  const handleExportData = useCallback(() => {
-    void (async () => {
-      if (profileId && apiToken) {
-        try {
-          const response = await fetch(
-            resolveApiUrl(`/api/v1/profiles/${encodeURIComponent(profileId)}/export`, apiBaseUrl),
-            {
-              headers: {
-                Authorization: `Bearer ${apiToken}`,
-                'X-Profile-Id': profileId,
-              },
-            },
-          );
-          if (response.ok) {
-            const blob = new Blob([await response.arrayBuffer()], { type: 'application/zip' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `amys-echo-profile-export-${profileId}-${new Date().toISOString().split('T')[0]}.zip`;
-            link.click();
-            URL.revokeObjectURL(url);
-            return;
-          }
-        } catch (error) {
-          console.warn('[Settings] Profil-Export vom Server fehlgeschlagen, nutze lokalen Export.', error);
-        }
-      }
+  const handleExportServerProfileData = useCallback(() => {
+    if (!profileId || !apiToken) {
+      return;
+    }
 
+    void (async () => {
+      try {
+        const response = await fetch(
+          resolveApiUrl(`/api/v1/profiles/${encodeURIComponent(profileId)}/export`, apiBaseUrl),
+          {
+            headers: {
+              Authorization: `Bearer ${apiToken}`,
+              'X-Profile-Id': profileId,
+            },
+          },
+        );
+
+        if (!response.ok) {
+          console.warn('[Settings] Profil-Export vom Server fehlgeschlagen.');
+          return;
+        }
+
+        const blob = new Blob([await response.arrayBuffer()], { type: 'application/zip' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `amys-echo-profile-export-${profileId}-${new Date().toISOString().split('T')[0]}.zip`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.warn('[Settings] Profil-Export vom Server fehlgeschlagen.', error);
+      }
+    })();
+  }, [apiBaseUrl, apiToken, profileId]);
+
+  const handleExportLocalBrowserData = useCallback(() => {
+    void (async () => {
       const data = buildProfileLocalDataExport(profileId, displayName);
       if (!data) {
         return;
@@ -55,7 +64,7 @@ export function Settings() {
       link.click();
       URL.revokeObjectURL(url);
     })();
-  }, [apiBaseUrl, apiToken, profileId, displayName]);
+  }, [profileId, displayName]);
 
   const handleClearData = useCallback(() => {
     if (!profileId) {
@@ -108,15 +117,23 @@ export function Settings() {
       {/* Data Management */}
       <div className="settings-section">
         <h3>Datenverwaltung</h3>
-        <p className="muted">Exportiere oder lösche nur die lokalen Daten des aktuell aktiven Profils.</p>
+        <p className="muted">
+          Wähle den passenden Export: Server-Profilarchiv als ZIP oder lokale Browserdaten als JSON.
+        </p>
         <div className="controls settings-actions">
-          <button className="secondary-button" onClick={handleExportData} disabled={!profileId}>
-            Lokale Profildaten exportieren
+          <button className="secondary-button" onClick={handleExportServerProfileData} disabled={!profileId || !apiToken}>
+            Server-Profil exportieren (ZIP)
+          </button>
+          <button className="secondary-button" onClick={handleExportLocalBrowserData} disabled={!profileId}>
+            Lokale Browserdaten exportieren (JSON)
           </button>
           <button className="danger-button" onClick={handleClearData} disabled={!profileId}>
             Lokale Profildaten löschen
           </button>
         </div>
+        <p className="muted small">
+          Server-Profil-Export benötigt eine aktive Anmeldung. Der JSON-Export enthält nur lokal gespeicherte Profildaten dieses Browsers.
+        </p>
       </div>
 
       {/* About */}
