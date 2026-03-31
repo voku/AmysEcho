@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import os
@@ -5,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from datetime import datetime, timezone
@@ -23,9 +25,26 @@ def _auth_headers(token: str) -> dict[str, str]:
 
 
 def _request_json(url: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
+    if not url.startswith("http://127.0.0.1:"):
+        raise ValueError(f"unsupported URL for integration test: {url}")
     req = urllib.request.Request(url, headers=headers or {})
-    with urllib.request.urlopen(req, timeout=20) as response:
+    with urllib.request.urlopen(req, timeout=20) as response:  # nosec B310 - localhost test server only
         return json.loads(response.read().decode("utf-8"))
+
+
+def _open_http_request(request: urllib.request.Request, timeout: int = 20):
+    full_url = request.full_url
+    if not full_url.startswith("http://127.0.0.1:"):
+        raise ValueError(f"unsupported URL for integration test: {full_url}")
+    return urllib.request.urlopen(request, timeout=timeout)  # nosec B310 - localhost test server only
+
+
+def _sha256_file(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(8192), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 
 def _load_fixture() -> dict[str, Any]:
@@ -98,41 +117,70 @@ def _start_server() -> tuple[subprocess.Popen, str, Path, str]:
     data_dir = Path(tempfile.mkdtemp(prefix="amy-training-pipeline-"))
     env["AMY_ECHO_DATA_DIR"] = str(data_dir)
 
-    subprocess.run(["npm", "run", "build"], cwd=SERVER_DIR, env=env, check=True, stdout=subprocess.DEVNULL)
-    process = subprocess.Popen(
-        ["node", "dist/server.js"],
-        cwd=SERVER_DIR,
-        env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    npm_executable = shutil.which("npm")
+    node_executable = shutil.which("node")
+    if npm_executable is None or node_executable is None:
+        missing = "npm" if npm_executable is None else "node"
+        raise RuntimeError(f"{missing} executable not found in PATH")
 
-    token = create_access_token(env["JWT_SECRET"], user_id="training-fixture-tester")
-    base_url = f"http://127.0.0.1:{port}"
+    process: subprocess.Popen | None = None
+    try:
+        if not (SERVER_DIR / "dist" / "server.js").exists():
+            subprocess.run(
+                [npm_executable, "run", "build"],
+                cwd=SERVER_DIR,
+                env=env,
+                check=True,
+                stdout=subprocess.DEVNULL,
+            )
 
-    started = time.time()
-    while True:
-        if process.poll() is not None:
-            raise RuntimeError("server failed to start")
-        try:
-            _request_json(f"{base_url}/api/v1/models/version", headers=_auth_headers(token))
-            break
-        except Exception:
-            if time.time() - started > 30:
-                raise RuntimeError("server did not start")
-            time.sleep(0.5)
+        process = subprocess.Popen(
+            [node_executable, "dist/server.js"],
+            cwd=SERVER_DIR,
+            env=env,
+            stdout=None,
+            stderr=None,
+        )
 
-    profile_payload = json.dumps({"id": PROFILE_ID, "displayName": "Fixture Profile"}).encode("utf-8")
-    create_profile_req = urllib.request.Request(
-        f"{base_url}/api/v1/profiles",
-        data=profile_payload,
-        headers={**_auth_headers(token), "Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(create_profile_req, timeout=10) as response:
-        assert response.getcode() == 201
+        token = create_access_token(env["JWT_SECRET"], user_id="training-fixture-tester")
+        base_url = f"http://127.0.0.1:{port}"
 
-    return process, token, data_dir, base_url
+        started = time.time()
+        while True:
+            if process.poll() is not None:
+                raise RuntimeError("server failed to start")
+            try:
+                _request_json(f"{base_url}/api/v1/models/version", headers=_auth_headers(token))
+                break
+            except urllib.error.HTTPError as err:
+                if time.time() - started > 30:
+                    raise RuntimeError("server did not start") from err
+                time.sleep(0.5)
+            except urllib.error.URLError as err:
+                if time.time() - started > 30:
+                    raise RuntimeError("server did not start") from err
+                time.sleep(0.5)
+
+        profile_payload = json.dumps({"id": PROFILE_ID, "displayName": "Fixture Profile"}).encode("utf-8")
+        create_profile_req = urllib.request.Request(
+            f"{base_url}/api/v1/profiles",
+            data=profile_payload,
+            headers={**_auth_headers(token), "Content-Type": "application/json"},
+            method="POST",
+        )
+        with _open_http_request(create_profile_req, timeout=10) as response:
+            assert response.getcode() == 201
+
+        return process, token, data_dir, base_url
+    except Exception as err:
+        if process is not None:
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+        shutil.rmtree(data_dir, ignore_errors=True)
+        raise RuntimeError("failed to start integration test server") from err
 
 
 def _stop_server(process: subprocess.Popen, data_dir: Path) -> None:
@@ -151,7 +199,7 @@ def test_training_pipeline_with_fixture_dataset() -> None:
     process, token, data_dir, base_url = _start_server()
     try:
         readiness = _request_json(f"{base_url}/api/v1/health")
-        assert readiness.get("status") in {expected["readinessStatus"], "degraded"}
+        assert readiness.get("status") == expected["readinessStatus"]
         assert readiness.get("checks", {}).get("trainingManifest", {}).get("status") == "ok"
 
         upload_request = urllib.request.Request(
@@ -160,7 +208,7 @@ def test_training_pipeline_with_fixture_dataset() -> None:
             headers={**_auth_headers(token), "Content-Type": "application/zip"},
             method="POST",
         )
-        with urllib.request.urlopen(upload_request, timeout=30) as upload_response:
+        with _open_http_request(upload_request, timeout=30) as upload_response:
             assert upload_response.getcode() == 202
             upload_payload = json.loads(upload_response.read().decode("utf-8"))
 
@@ -175,7 +223,7 @@ def test_training_pipeline_with_fixture_dataset() -> None:
             f"{base_url}/api/v1/models/latest",
             headers=_auth_headers(token),
         )
-        with urllib.request.urlopen(model_download_request, timeout=20) as model_response:
+        with _open_http_request(model_download_request, timeout=20) as model_response:
             body = model_response.read()
             assert len(body) > 0
             assert model_response.headers.get("X-Model-Contract-Status") == expected["artifactContractStatus"]
@@ -196,7 +244,10 @@ def test_training_pipeline_with_fixture_dataset() -> None:
             f"{base_url}/api/v1/models/metadata",
             headers=_auth_headers(token),
         )
+        assert isinstance(model_metadata_response.get("version"), str)
         assert isinstance(model_metadata_response.get("size"), int)
         assert isinstance(model_metadata_response.get("sha256"), str)
+        assert model_metadata_response.get("size") == model_path.stat().st_size
+        assert model_metadata_response.get("sha256") == _sha256_file(model_path)
     finally:
         _stop_server(process, data_dir)

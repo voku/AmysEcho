@@ -44,6 +44,9 @@ jobs:
 
 
   server-training-readiness-gate:
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -54,6 +57,10 @@ jobs:
         with:
           filters: |
             training_related:
+              - '.github/workflows/ci.yml'
+              - 'server/test/test_training_pipeline_fixture.py'
+              - 'server/test/fixtures/training_integration_fixture.json'
+              - 'server/src/routes/latestMlpModelRoute.ts'
               - 'server/src/**/training*.ts'
               - 'server/src/**/*training*.ts'
               - 'server/src/**/*manifest*.ts'
