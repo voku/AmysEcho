@@ -41,3 +41,49 @@ jobs:
         run: npm audit --prefix server --audit-level=high
       - name: Security audit (integration)
         run: npm audit --prefix integration --audit-level=high
+
+
+  server-training-readiness-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            training_related:
+              - 'server/src/**/training*.ts'
+              - 'server/src/**/*training*.ts'
+              - 'server/src/**/*manifest*.ts'
+              - 'server/src/routes/diagnosticsRoutes.ts'
+              - 'server/src/routes/training*.ts'
+              - 'server/src/services/training*.ts'
+              - 'server/src/services/*manifest*.ts'
+              - 'server/src/services/mlpModelArtifacts.ts'
+              - 'server/src/server.ts'
+              - 'server/src/amyserver_tools/train_mlp.py'
+              - 'server/src/amyserver_tools/train_mlp_fewshot.py'
+      - uses: actions/setup-node@v6
+        if: steps.changes.outputs.training_related == 'true'
+        with:
+          node-version: 24.14.1
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - uses: actions/setup-python@v6
+        if: steps.changes.outputs.training_related == 'true'
+        with:
+          python-version: '3.14'
+      - name: Install server dependencies
+        if: steps.changes.outputs.training_related == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r server/requirements.txt
+          npm ci --prefix server
+      - name: Run required training integration fixture test
+        if: steps.changes.outputs.training_related == 'true'
+        run: pytest server/test/test_training_pipeline_fixture.py -q
+      - name: Skip when unrelated files changed
+        if: steps.changes.outputs.training_related != 'true'
+        run: echo "No training/manifest/readiness/promotion server changes detected; gate test skipped."
