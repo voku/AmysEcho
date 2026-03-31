@@ -125,12 +125,11 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(datasetAfter.samples).toHaveLength(MIN_SIGN_SAMPLE_FRAMES);
   });
 
-  it('ignores corrupted manifest files instead of throwing', async () => {
+  it('rejects corrupted manifest files at read boundary', async () => {
     const { setJsonCollection } = await import('../src/sqliteDb.js');
     setJsonCollection('training.manifest', { entries: 'broken' });
 
-    const result = await ingestTrainingBundlesIntoDataset();
-    expect(result.appended).toBe(0);
+    await expect(ingestTrainingBundlesIntoDataset()).rejects.toThrow('Invalid input: expected array, received string');
   });
 
   it('recovers when the existing dataset JSON is invalid', async () => {

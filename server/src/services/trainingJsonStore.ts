@@ -4,6 +4,11 @@ import {
 	mutateJsonCollection,
 	setJsonCollection,
 } from "../sqliteDb.js";
+import {
+	parseTrainingManifest,
+	parseTrainingManifestEntry,
+	type TrainingManifest,
+} from "./trainingManifestSchema.js";
 
 const TRAINING_MANIFEST_KEY = "training.manifest";
 const DGS_SAMPLES_KEY = "training.dgs_samples";
@@ -36,12 +41,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return !!value && typeof value === "object";
 }
 
-function normalizeEntriesPayload<TEntry>(value: unknown): TrainingManifestFile<TEntry> {
-	if (!isRecord(value)) {
-		return { entries: [] };
-	}
-	const entries = (value as { entries?: unknown }).entries;
-	return { entries: Array.isArray(entries) ? (entries as TEntry[]) : [] };
+function normalizeEntriesPayload(value: unknown): TrainingManifest {
+	return parseTrainingManifest(value);
 }
 
 function normalizeSamplesPayload<TSample>(value: unknown): DgsSamplesFile<TSample> {
@@ -70,9 +71,10 @@ function normalizeQualityPayload<TEntry>(value: unknown): TrainingQualityLogFile
 
 export function loadTrainingManifest<TEntry = Record<string, unknown>>(): TrainingManifestFile<TEntry> {
 	assertDatabaseInitialized();
-	return normalizeEntriesPayload<TEntry>(
+	const parsed = normalizeEntriesPayload(
 		getJsonCollection(TRAINING_MANIFEST_KEY, { entries: [] }),
 	);
+	return parsed as unknown as TrainingManifestFile<TEntry>;
 }
 
 export function loadTrainingManifestRaw(): unknown {
@@ -84,18 +86,19 @@ export function saveTrainingManifest<TEntry = Record<string, unknown>>(
 	manifest: TrainingManifestFile<TEntry>,
 ): void {
 	assertDatabaseInitialized();
-	setJsonCollection(TRAINING_MANIFEST_KEY, normalizeEntriesPayload<TEntry>(manifest));
+	setJsonCollection(TRAINING_MANIFEST_KEY, normalizeEntriesPayload(manifest));
 }
 
 export function appendTrainingManifestEntry<TEntry>(entry: TEntry): TrainingManifestFile<TEntry> {
 	assertDatabaseInitialized();
+	const parsedEntry = parseTrainingManifestEntry(entry);
 	return mutateJsonCollection<TrainingManifestFile<TEntry>>(
 		TRAINING_MANIFEST_KEY,
 		{ entries: [] },
 		(current) => {
-			const normalized = normalizeEntriesPayload<TEntry>(current);
-			normalized.entries.push(entry);
-			return normalized;
+			const normalized = normalizeEntriesPayload(current);
+			normalized.entries.push(parsedEntry);
+			return normalized as unknown as TrainingManifestFile<TEntry>;
 		},
 	);
 }

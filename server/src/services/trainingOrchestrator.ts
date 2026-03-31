@@ -30,6 +30,7 @@ import {
 	resolvePythonExecutable,
 	withProjectPythonPath,
 } from "../utils/pythonExecutable.js";
+import { parseTrainingManifest } from "./trainingManifestSchema.js";
 
 /**
  * Training job status
@@ -298,12 +299,12 @@ async function startTrainingJob(jobId: string): Promise<void> {
 			throw new Error("Keine Trainingsdaten gefunden");
 		}
 
-		const manifest = {
+		const manifest = parseTrainingManifest({
 			version: "1.0",
 			entries,
 			generatedAt: new Date().toISOString(),
 			jobId,
-		};
+		});
 
 		// Write manifest to temp file
 		const manifestPath = path.join(
