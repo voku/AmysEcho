@@ -26,9 +26,9 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from training_manifest_schema import load_training_manifest
 
 from ml_shared_utils import filter_by_profile_logic
-from training_manifest_schema import load_training_manifest
 
 # Try importing sklearn for advanced validation
 try:

@@ -1033,42 +1033,52 @@ async function runTrainingWorkflow(
 	};
 	job.report = parsedReport;
 	job.message = "Dein Modell ist jetzt aktualisiert";
-	const profileReportsRaw =
-		parsedReport.profiles && typeof parsedReport.profiles === "object"
-			? (parsedReport.profiles as Record<string, Record<string, unknown>>)
-			: {};
-	const profileSummaries: TrainingRunProfileSummary[] = Object.entries(profileReportsRaw)
-		.map(([profileId, profileReport]) => {
-			const confusionRaw = profileReport.confusion_matrix;
-			const labelsRaw = profileReport.labels;
-			return {
-				profileId,
-				accuracy:
-					typeof profileReport.accuracy === "number" ? profileReport.accuracy : 0,
-				f1Score:
-					typeof profileReport.f1_score === "number" ? profileReport.f1_score : 0,
-				samples:
-					typeof profileReport.samples === "number" ? profileReport.samples : 0,
-				confusionMatrix: Array.isArray(confusionRaw)
-					? confusionRaw.filter((row): row is number[] =>
-						Array.isArray(row) && row.every((value) => typeof value === "number"),
-					)
-					: [],
-				labels: Array.isArray(labelsRaw)
-					? labelsRaw.filter((label): label is string => typeof label === "string")
-					: [],
-			};
-		})
-		.filter((entry) => entry.profileId.length > 0);
-	appendTrainingReportEntry({
-		runId: id,
-		recordedAt: new Date().toISOString(),
-		globalAccuracy:
-			typeof globalMetrics?.accuracy === "number" ? globalMetrics.accuracy : 0,
-		globalSamples:
-			typeof globalMetrics?.samples === "number" ? globalMetrics.samples : 0,
-		profiles: profileSummaries,
-	});
+	try {
+		const rawProfileReports = parsedReport.profiles;
+		const profileReportsRaw =
+			rawProfileReports &&
+			typeof rawProfileReports === "object" &&
+			!Array.isArray(rawProfileReports)
+				? (rawProfileReports as Record<string, Record<string, unknown>>)
+				: {};
+		const profileSummaries: TrainingRunProfileSummary[] = Object.entries(profileReportsRaw)
+			.map(([profileId, profileReport]) => {
+				const confusionRaw = profileReport.confusion_matrix;
+				const labelsRaw = profileReport.labels;
+				return {
+					profileId,
+					accuracy:
+						typeof profileReport.accuracy === "number" ? profileReport.accuracy : 0,
+					f1Score:
+						typeof profileReport.f1_score === "number" ? profileReport.f1_score : 0,
+					samples:
+						typeof profileReport.samples === "number" ? profileReport.samples : 0,
+					confusionMatrix: Array.isArray(confusionRaw)
+						? confusionRaw.filter((row): row is number[] =>
+							Array.isArray(row) && row.every((value) => typeof value === "number"),
+						)
+						: [],
+					labels: Array.isArray(labelsRaw)
+						? labelsRaw.filter((label): label is string => typeof label === "string")
+						: [],
+				};
+			})
+			.filter((entry) => entry.profileId.length > 0);
+		appendTrainingReportEntry({
+			runId: id,
+			recordedAt: new Date().toISOString(),
+			globalAccuracy:
+				typeof globalMetrics?.accuracy === "number" ? globalMetrics.accuracy : 0,
+			globalSamples:
+				typeof globalMetrics?.samples === "number" ? globalMetrics.samples : 0,
+			profiles: profileSummaries,
+		});
+	} catch (error) {
+		logger.warn("Training report persistence failed", {
+			jobId: id,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
 	await logTraining(`job ${id}: completed synchronously`);
 }
 

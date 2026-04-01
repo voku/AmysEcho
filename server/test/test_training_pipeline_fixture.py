@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-
 from conftest import TEST_JWT_REFRESH_SECRET, TEST_JWT_SECRET, _get_free_port, create_access_token
 
 SERVER_DIR = Path(__file__).resolve().parents[1]

@@ -15,6 +15,7 @@ const DGS_SAMPLES_KEY = "training.dgs_samples";
 const CUSTOM_SIGNS_KEY = "training.custom_signs";
 const TRAINING_QUALITY_LOG_KEY = "training.quality_log";
 const TRAINING_REPORTS_KEY = "training.reports";
+const MAX_TRAINING_REPORT_ENTRIES = 500;
 
 export type TrainingManifestFile<TEntry = Record<string, unknown>> = Omit<TrainingManifest, "entries"> & {
 	entries: TEntry[];
@@ -221,12 +222,19 @@ export function appendTrainingReportEntry<TEntry extends { runId: string }>(
 		{ entries: [] },
 		(current) => {
 			const normalized = normalizeQualityPayload<TEntry>(current);
-			normalized.entries.push(entry);
-			const dedup = new Map<string, TEntry>();
-			for (const item of normalized.entries) {
-				dedup.set(item.runId, item);
+			const existingIndex = normalized.entries.findIndex(
+				(item) => item.runId === entry.runId,
+			);
+			if (existingIndex >= 0) {
+				normalized.entries[existingIndex] = entry;
+			} else {
+				normalized.entries.push(entry);
 			}
-			normalized.entries = Array.from(dedup.values());
+			if (normalized.entries.length > MAX_TRAINING_REPORT_ENTRIES) {
+				normalized.entries = normalized.entries.slice(
+					normalized.entries.length - MAX_TRAINING_REPORT_ENTRIES,
+				);
+			}
 			return normalized;
 		},
 	);

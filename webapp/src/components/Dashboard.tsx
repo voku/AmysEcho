@@ -110,13 +110,12 @@ export function Dashboard() {
         headers: { Authorization: `Bearer ${authToken}` },
       });
 
-      if (!qualityRes.ok || !reportsRes.ok) {
+      if (!qualityRes.ok) {
         setServerInsights(null);
         const responseText = await qualityRes.text().catch(() => '');
         const errorDetail = responseText ? `: ${responseText.slice(0, 120)}` : '';
         console.warn('Server insights request failed', {
           qualityStatus: qualityRes.status,
-          reportsStatus: reportsRes.status,
           endpoint: qualityUrl.toString(),
         });
         setError(`Server-Insights konnten nicht geladen werden (HTTP ${qualityRes.status})${errorDetail}`);
@@ -124,9 +123,17 @@ export function Dashboard() {
       }
 
       const payload = (await qualityRes.json()) as TrainingQualityPayload;
-      const reportsPayload = (await reportsRes.json()) as TrainingReportsPayload;
+      const reportsPayload = reportsRes.ok
+        ? ((await reportsRes.json()) as TrainingReportsPayload)
+        : undefined;
+      if (!reportsRes.ok) {
+        console.warn('Training reports request failed', {
+          reportsStatus: reportsRes.status,
+          endpoint: reportsUrl.toString(),
+        });
+      }
       const items = Array.isArray(payload.items) ? payload.items : [];
-      const profileTrends = Array.isArray(reportsPayload.profileTrends)
+      const profileTrends = Array.isArray(reportsPayload?.profileTrends)
         ? reportsPayload.profileTrends.filter((item) => typeof item.profileId === 'string')
         : [];
       const labelCounts = new Map<string, number>();

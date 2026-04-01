@@ -1054,4 +1054,24 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(response.body.profileTrends[0].accuracyDelta).toBeCloseTo(0.15, 6);
   });
 
+  it('verweigert Training-Report-Antworten ohne Profilberechtigung', async () => {
+    isProfileAuthorized = () => false;
+
+    const response = await request(app)
+      .get('/api/v1/dgs/training-reports?profileId=profile-b')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(403);
+
+    expect(response.body).toEqual({
+      error: 'Kein Zugriff auf dieses Profil.',
+      code: 'PROFILE_UNAUTHORIZED',
+    });
+  });
+
+  it('verweigert Training-Report-Antworten ohne Anmeldung', async () => {
+    await request(app)
+      .get('/api/v1/dgs/training-reports?profileId=profile-b')
+      .expect(401);
+  });
+
 });

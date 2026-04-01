@@ -83,4 +83,34 @@ describe('Dashboard', () => {
     expect(screen.getByText('2x')).toBeInTheDocument();
     expect(screen.getByText(/Profil amy: Genauigkeit 75%/)).toBeInTheDocument();
   });
+
+  it('zeigt weiterhin Quality-Einblicke, wenn Trainings-Reports fehlschlagen', async () => {
+    mockUseAppState.mockReturnValue({ profileId: 'amy', recentSigns: [] });
+    mockUseApiConfig.mockReturnValue({ apiBaseUrl: 'http://localhost:5000', apiToken: 'token' });
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            { label: 'Essen', reasons: [] },
+            { label: 'Trinken', reasons: [] },
+          ],
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+      } as Response);
+
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('🔍 Server-Einblicke')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('Noch keine Trainings-Trenddaten verfügbar.')).toBeInTheDocument();
+  });
 });

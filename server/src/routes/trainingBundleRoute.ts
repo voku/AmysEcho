@@ -144,6 +144,27 @@ type StoredTrainingRunReport = {
 	profiles?: StoredTrainingProfileReport[];
 };
 
+const MAX_TRAINING_REPORT_RUN_SCAN = 400;
+
+function sumDiagonal(matrix: number[][]): number {
+	return matrix.reduce((total, row, index) => total + (row[index] ?? 0), 0);
+}
+
+function sumAll(matrix: number[][]): number {
+	return matrix.reduce(
+		(total, row) => total + row.reduce((rowTotal, value) => rowTotal + value, 0),
+		0,
+	);
+}
+
+function safeParseTimestamp(value: string | null): number {
+	if (!value) {
+		return 0;
+	}
+	const parsed = Date.parse(value);
+	return Number.isFinite(parsed) ? parsed : 0;
+}
+
 const trainingBundleUpload = express.raw({
 	type: [
 		"application/zip",
@@ -1178,27 +1199,32 @@ export function registerTrainingBundleRoute(
 			return;
 		}
 
-		const sumDiagonal = (matrix: number[][]): number =>
-			matrix.reduce((total, row, index) => total + (row[index] ?? 0), 0);
-		const sumAll = (matrix: number[][]): number =>
-			matrix.reduce(
-				(total, row) => total + row.reduce((rowTotal, value) => rowTotal + value, 0),
-				0,
-			);
-
 		try {
 			const runs = loadTrainingReports<StoredTrainingRunReport>().entries;
-			const selectedProfiles = runs.flatMap((run) => {
+			const scannedRuns =
+				runs.length > MAX_TRAINING_REPORT_RUN_SCAN
+					? runs.slice(runs.length - MAX_TRAINING_REPORT_RUN_SCAN)
+					: runs;
+			const authorizationCache = new Map<string, boolean>();
+			const isAuthorizedForProfile = (profileId: string): boolean => {
+				if (!deps.isProfileAuthorized) {
+					return true;
+				}
+				const cached = authorizationCache.get(profileId);
+				if (typeof cached === "boolean") {
+					return cached;
+				}
+				const resolved = deps.isProfileAuthorized(req, profileId);
+				authorizationCache.set(profileId, resolved);
+				return resolved;
+			};
+			const selectedProfiles = scannedRuns.flatMap((run) => {
 				const recordedAt = typeof run.recordedAt === "string" ? run.recordedAt : null;
 				const profiles = Array.isArray(run.profiles) ? run.profiles : [];
 				return profiles
 					.filter((profile) => typeof profile.profileId === "string" && profile.profileId.length > 0)
 					.filter((profile) => !profileIdFilter || profile.profileId === profileIdFilter)
-					.filter(
-						(profile) =>
-							!deps.isProfileAuthorized ||
-							deps.isProfileAuthorized(req, profile.profileId),
-					)
+					.filter((profile) => isAuthorizedForProfile(profile.profileId))
 					.map((profile) => {
 						const matrix = Array.isArray(profile.confusionMatrix)
 							? profile.confusionMatrix.filter((row) =>
@@ -1226,8 +1252,8 @@ export function registerTrainingBundleRoute(
 			});
 
 			selectedProfiles.sort((a, b) => {
-				const aTime = a.recordedAt ? Date.parse(a.recordedAt) : 0;
-				const bTime = b.recordedAt ? Date.parse(b.recordedAt) : 0;
+				const aTime = safeParseTimestamp(a.recordedAt);
+				const bTime = safeParseTimestamp(b.recordedAt);
 				return bTime - aTime;
 			});
 
@@ -1250,8 +1276,10 @@ export function registerTrainingBundleRoute(
 				}
 			}
 
-			const profileTrends = Array.from(latestByProfile.entries()).map(
-				([profileId, trend]) => ({
+			const itemProfileIds = new Set(items.map((item) => item.profileId));
+			const profileTrends = Array.from(latestByProfile.entries())
+				.filter(([profileId]) => itemProfileIds.has(profileId))
+				.map(([profileId, trend]) => ({
 					profileId,
 					latestRunId: trend.latest.runId,
 					latestRecordedAt: trend.latest.recordedAt,
@@ -1262,8 +1290,7 @@ export function registerTrainingBundleRoute(
 						trend.previous ? trend.latest.accuracy - trend.previous.accuracy : null,
 					f1Delta:
 						trend.previous ? trend.latest.f1Score - trend.previous.f1Score : null,
-				}),
-			);
+				}));
 
 			res.json({ items, profileTrends });
 		} catch (error) {
