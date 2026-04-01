@@ -996,4 +996,62 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     });
   });
 
+  it('liefert Trainingstrends pro Profil über GET /api/v1/dgs/training-reports', async () => {
+    const { saveTrainingReports } = await import('../src/services/trainingJsonStore.js');
+    saveTrainingReports({
+      entries: [
+        {
+          runId: 'run-old',
+          recordedAt: '2026-03-01T10:00:00.000Z',
+          profiles: [
+            {
+              profileId: 'profile-b',
+              accuracy: 0.6,
+              f1Score: 0.55,
+              samples: 20,
+              confusionMatrix: [[8, 2], [3, 7]],
+              labels: ['hallo', 'danke'],
+            },
+          ],
+        },
+        {
+          runId: 'run-new',
+          recordedAt: '2026-03-05T10:00:00.000Z',
+          profiles: [
+            {
+              profileId: 'profile-b',
+              accuracy: 0.75,
+              f1Score: 0.72,
+              samples: 30,
+              confusionMatrix: [[12, 1], [2, 15]],
+              labels: ['hallo', 'danke'],
+            },
+          ],
+        },
+      ],
+    });
+
+    isProfileAuthorized = (profileId) => profileId === 'profile-b';
+
+    const response = await request(app)
+      .get('/api/v1/dgs/training-reports?profileId=profile-b&limit=5')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.items[0]).toEqual(
+      expect.objectContaining({
+        runId: 'run-new',
+        profileId: 'profile-b',
+        accuracy: 0.75,
+      }),
+    );
+    expect(response.body.profileTrends[0]).toEqual(
+      expect.objectContaining({
+        profileId: 'profile-b',
+        latestRunId: 'run-new',
+      }),
+    );
+    expect(response.body.profileTrends[0].accuracyDelta).toBeCloseTo(0.15, 6);
+  });
+
 });

@@ -46,16 +46,31 @@ describe('Dashboard', () => {
     mockUseAppState.mockReturnValue({ profileId: 'amy', recentSigns: [] });
     mockUseApiConfig.mockReturnValue({ apiBaseUrl: 'http://localhost:5000', apiToken: 'token' });
 
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        items: [
-          { label: 'Essen', reasons: [] },
-          { label: 'Essen', reasons: ['blur'] },
-          { label: 'Trinken', reasons: [] },
-        ],
-      }),
-    } as Response);
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            { label: 'Essen', reasons: [] },
+            { label: 'Essen', reasons: ['blur'] },
+            { label: 'Trinken', reasons: [] },
+          ],
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          profileTrends: [
+            {
+              profileId: 'amy',
+              latestAccuracy: 0.75,
+              latestF1Score: 0.72,
+              accuracyDelta: 0.1,
+              f1Delta: 0.08,
+            },
+          ],
+        }),
+      } as Response);
 
     render(
       <MemoryRouter>
@@ -66,5 +81,6 @@ describe('Dashboard', () => {
     expect(await screen.findByText('🔍 Server-Einblicke')).toBeInTheDocument();
     expect(screen.getByText('67%')).toBeInTheDocument();
     expect(screen.getByText('2x')).toBeInTheDocument();
+    expect(screen.getByText(/Profil amy: Genauigkeit 75%/)).toBeInTheDocument();
   });
 });

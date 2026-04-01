@@ -14,6 +14,7 @@ const TRAINING_MANIFEST_KEY = "training.manifest";
 const DGS_SAMPLES_KEY = "training.dgs_samples";
 const CUSTOM_SIGNS_KEY = "training.custom_signs";
 const TRAINING_QUALITY_LOG_KEY = "training.quality_log";
+const TRAINING_REPORTS_KEY = "training.reports";
 
 export type TrainingManifestFile<TEntry = Record<string, unknown>> = Omit<TrainingManifest, "entries"> & {
 	entries: TEntry[];
@@ -28,6 +29,10 @@ export type CustomSignsFile<TSign = Record<string, unknown>> = {
 };
 
 export type TrainingQualityLogFile<TEntry = Record<string, unknown>> = {
+	entries: TEntry[];
+};
+
+export type TrainingReportsFile<TEntry = Record<string, unknown>> = {
 	entries: TEntry[];
 };
 
@@ -186,6 +191,40 @@ export function appendTrainingQualityLogEntry<TEntry extends { bundleId: string 
 			const dedup = new Map<string, TEntry>();
 			for (const item of normalized.entries) {
 				dedup.set(item.bundleId, item);
+			}
+			normalized.entries = Array.from(dedup.values());
+			return normalized;
+		},
+	);
+}
+
+export function loadTrainingReports<TEntry = Record<string, unknown>>(): TrainingReportsFile<TEntry> {
+	assertDatabaseInitialized();
+	return normalizeQualityPayload<TEntry>(
+		getJsonCollection(TRAINING_REPORTS_KEY, { entries: [] }),
+	);
+}
+
+export function saveTrainingReports<TEntry = Record<string, unknown>>(
+	entries: TrainingReportsFile<TEntry>,
+): void {
+	assertDatabaseInitialized();
+	setJsonCollection(TRAINING_REPORTS_KEY, normalizeQualityPayload<TEntry>(entries));
+}
+
+export function appendTrainingReportEntry<TEntry extends { runId: string }>(
+	entry: TEntry,
+): TrainingReportsFile<TEntry> {
+	assertDatabaseInitialized();
+	return mutateJsonCollection<TrainingReportsFile<TEntry>>(
+		TRAINING_REPORTS_KEY,
+		{ entries: [] },
+		(current) => {
+			const normalized = normalizeQualityPayload<TEntry>(current);
+			normalized.entries.push(entry);
+			const dedup = new Map<string, TEntry>();
+			for (const item of normalized.entries) {
+				dedup.set(item.runId, item);
 			}
 			normalized.entries = Array.from(dedup.values());
 			return normalized;

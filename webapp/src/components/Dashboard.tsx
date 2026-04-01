@@ -16,6 +16,13 @@ interface ServerInsights {
   topGestures: { label: string; count: number }[];
   recentActivity: { date: string; count: number }[];
   successRate: number;
+  profileTrends: {
+    profileId: string;
+    latestAccuracy: number;
+    latestF1Score: number;
+    accuracyDelta: number | null;
+    f1Delta: number | null;
+  }[];
 }
 
 interface TrainingQualityItem {
@@ -26,6 +33,18 @@ interface TrainingQualityItem {
 
 interface TrainingQualityPayload {
   items?: TrainingQualityItem[];
+}
+
+interface TrainingReportItem {
+  profileId: string;
+  latestAccuracy: number;
+  latestF1Score: number;
+  accuracyDelta: number | null;
+  f1Delta: number | null;
+}
+
+interface TrainingReportsPayload {
+  profileTrends?: TrainingReportItem[];
 }
 
 /**
@@ -83,14 +102,21 @@ export function Dashboard() {
       const qualityRes = await fetch(qualityUrl.toString(), {
         headers: { Authorization: `Bearer ${authToken}` },
       });
+      const reportsEndpoint = resolveApiUrl('/api/v1/dgs/training-reports', apiBaseUrl);
+      const reportsUrl = new URL(reportsEndpoint, window.location.origin);
+      reportsUrl.searchParams.set('profileId', profileId);
+      reportsUrl.searchParams.set('limit', '20');
+      const reportsRes = await fetch(reportsUrl.toString(), {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
 
-      if (!qualityRes.ok) {
+      if (!qualityRes.ok || !reportsRes.ok) {
         setServerInsights(null);
         const responseText = await qualityRes.text().catch(() => '');
         const errorDetail = responseText ? `: ${responseText.slice(0, 120)}` : '';
         console.warn('Server insights request failed', {
-          status: qualityRes.status,
-          statusText: qualityRes.statusText,
+          qualityStatus: qualityRes.status,
+          reportsStatus: reportsRes.status,
           endpoint: qualityUrl.toString(),
         });
         setError(`Server-Insights konnten nicht geladen werden (HTTP ${qualityRes.status})${errorDetail}`);
@@ -98,7 +124,11 @@ export function Dashboard() {
       }
 
       const payload = (await qualityRes.json()) as TrainingQualityPayload;
+      const reportsPayload = (await reportsRes.json()) as TrainingReportsPayload;
       const items = Array.isArray(payload.items) ? payload.items : [];
+      const profileTrends = Array.isArray(reportsPayload.profileTrends)
+        ? reportsPayload.profileTrends.filter((item) => typeof item.profileId === 'string')
+        : [];
       const labelCounts = new Map<string, number>();
       let acceptedCount = 0;
 
@@ -123,6 +153,7 @@ export function Dashboard() {
         topGestures,
         recentActivity: [],
         successRate: items.length > 0 ? acceptedCount / items.length : 0,
+        profileTrends,
       });
       setError(null);
     } catch (e) {
@@ -237,6 +268,23 @@ export function Dashboard() {
                 <p className="insight-value">{gesture.count}x</p>
               </div>
             ))}
+          </div>
+
+          <div className="dashboard-section">
+            <h3>📈 Trainingsqualität</h3>
+            {serverInsights.profileTrends.length > 0 ? (
+              <ul className="list">
+                {serverInsights.profileTrends.map((trend) => (
+                  <li key={trend.profileId} className="list-item">
+                    Profil {trend.profileId}: Genauigkeit {Math.round(trend.latestAccuracy * 100)}% (Δ{' '}
+                    {trend.accuracyDelta === null ? '—' : `${Math.round(trend.accuracyDelta * 100)}%`}), F1{' '}
+                    {Math.round(trend.latestF1Score * 100)}%
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">Noch keine Trainings-Trenddaten verfügbar.</p>
+            )}
           </div>
         </div>
       )}
