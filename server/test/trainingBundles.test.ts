@@ -1054,6 +1054,53 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(response.body.profileTrends[0].accuracyDelta).toBeCloseTo(0.15, 6);
   });
 
+  it('ignoriert ungültige Profil-Einträge in Training-Reports', async () => {
+    const { saveTrainingReports } = await import('../src/services/trainingJsonStore.js');
+    saveTrainingReports({
+      entries: [
+        {
+          runId: 'run-valid',
+          recordedAt: '2026-03-10T10:00:00.000Z',
+          profiles: [
+            {
+              profileId: 'profile-b',
+              accuracy: 0.81,
+              f1Score: 0.78,
+              samples: 40,
+              confusionMatrix: [[18, 2], [4, 16]],
+              labels: ['hallo', 'danke'],
+            },
+            {
+              profileId: '',
+              accuracy: 0.99,
+              f1Score: 0.99,
+              samples: 1,
+              confusionMatrix: [[1]],
+              labels: ['invalid'],
+            },
+            null,
+          ],
+        },
+      ],
+    });
+
+    isProfileAuthorized = (profileId) => profileId === 'profile-b';
+
+    const response = await request(app)
+      .get('/api/v1/dgs/training-reports?profileId=profile-b&limit=5')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.items).toHaveLength(1);
+    expect(response.body.items[0]).toEqual(
+      expect.objectContaining({
+        runId: 'run-valid',
+        profileId: 'profile-b',
+        accuracy: 0.81,
+      }),
+    );
+  });
+
   it('verweigert Training-Report-Antworten ohne Profilberechtigung', async () => {
     isProfileAuthorized = () => false;
 

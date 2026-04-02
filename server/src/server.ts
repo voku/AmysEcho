@@ -1041,11 +1041,21 @@ async function runTrainingWorkflow(
 			!Array.isArray(rawProfileReports)
 				? (rawProfileReports as Record<string, Record<string, unknown>>)
 				: {};
-		const profileSummaries: TrainingRunProfileSummary[] = Object.entries(profileReportsRaw)
-			.map(([profileId, profileReport]) => {
+		const profileSummaries: TrainingRunProfileSummary[] = Object.entries(
+			profileReportsRaw,
+		)
+			.flatMap(([profileId, profileReport]) => {
+				if (
+					typeof profileId !== "string" ||
+					profileId.trim().length === 0 ||
+					!profileReport ||
+					typeof profileReport !== "object"
+				) {
+					return [];
+				}
 				const confusionRaw = profileReport.confusion_matrix;
 				const labelsRaw = profileReport.labels;
-				return {
+				return [{
 					profileId,
 					accuracy:
 						typeof profileReport.accuracy === "number" ? profileReport.accuracy : 0,
@@ -1061,7 +1071,7 @@ async function runTrainingWorkflow(
 					labels: Array.isArray(labelsRaw)
 						? labelsRaw.filter((label): label is string => typeof label === "string")
 						: [],
-				};
+				}];
 			})
 			.filter((entry) => entry.profileId.length > 0);
 		appendTrainingReportEntry({

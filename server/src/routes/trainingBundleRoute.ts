@@ -1221,34 +1221,44 @@ export function registerTrainingBundleRoute(
 			const selectedProfiles = scannedRuns.flatMap((run) => {
 				const recordedAt = typeof run.recordedAt === "string" ? run.recordedAt : null;
 				const profiles = Array.isArray(run.profiles) ? run.profiles : [];
-				return profiles
-					.filter((profile) => typeof profile.profileId === "string" && profile.profileId.length > 0)
-					.filter((profile) => !profileIdFilter || profile.profileId === profileIdFilter)
-					.filter((profile) => isAuthorizedForProfile(profile.profileId))
-					.map((profile) => {
-						const matrix = Array.isArray(profile.confusionMatrix)
-							? profile.confusionMatrix.filter((row) =>
-								Array.isArray(row) && row.every((value) => typeof value === "number"),
-							)
-							: [];
-						const total = sumAll(matrix);
-						const correct = sumDiagonal(matrix);
-						return {
-							runId: run.runId,
-							recordedAt,
-							profileId: profile.profileId,
-							accuracy:
-								typeof profile.accuracy === "number" ? profile.accuracy : 0,
-							f1Score:
-								typeof profile.f1Score === "number" ? profile.f1Score : 0,
-							samples:
-								typeof profile.samples === "number" ? profile.samples : 0,
-							confusionAccuracy: total > 0 ? correct / total : null,
-							labels: Array.isArray(profile.labels)
-								? profile.labels.filter((label): label is string => typeof label === "string")
-								: [],
-						};
-					});
+				return profiles.flatMap((profile) => {
+					if (!profile || typeof profile !== "object") {
+						return [];
+					}
+					const profileId =
+						typeof profile.profileId === "string" ? profile.profileId.trim() : "";
+					if (!profileId) {
+						return [];
+					}
+					if (profileIdFilter && profileId !== profileIdFilter) {
+						return [];
+					}
+					if (!isAuthorizedForProfile(profileId)) {
+						return [];
+					}
+					const matrix = Array.isArray(profile.confusionMatrix)
+						? profile.confusionMatrix.filter((row) =>
+							Array.isArray(row) && row.every((value) => typeof value === "number"),
+						)
+						: [];
+					const total = sumAll(matrix);
+					const correct = sumDiagonal(matrix);
+					return [{
+						runId: run.runId,
+						recordedAt,
+						profileId,
+						accuracy:
+							typeof profile.accuracy === "number" ? profile.accuracy : 0,
+						f1Score:
+							typeof profile.f1Score === "number" ? profile.f1Score : 0,
+						samples:
+							typeof profile.samples === "number" ? profile.samples : 0,
+						confusionAccuracy: total > 0 ? correct / total : null,
+						labels: Array.isArray(profile.labels)
+							? profile.labels.filter((label): label is string => typeof label === "string")
+							: [],
+					}];
+				});
 			});
 
 			selectedProfiles.sort((a, b) => {
