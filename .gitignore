@@ -80,3 +80,6 @@ server/.coverage
 # local server script artifacts
 server/scripts/dev-artifacts/*.jpg
 server/scripts/dev-artifacts/*.png
+
+# Large local inventory exports (use --include-files for local deep analysis only)
+docs/analysis/repo-inventory-*.full.json

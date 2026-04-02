@@ -1,0 +1,507 @@
+{
+  "generated_at_utc": "2026-04-02T18:17:11.368722+00:00",
+  "tracked_file_count": 1431,
+  "tracked_total_size_bytes": 916433326,
+  "tracked_total_size_mb": 873.98,
+  "summary": {
+    "by_extension": [
+      {
+        "key": ".ts",
+        "count": 364
+      },
+      {
+        "key": ".mp4",
+        "count": 315
+      },
+      {
+        "key": ".md",
+        "count": 214
+      },
+      {
+        "key": ".json",
+        "count": 173
+      },
+      {
+        "key": ".tsx",
+        "count": 118
+      },
+      {
+        "key": ".zip",
+        "count": 83
+      },
+      {
+        "key": ".py",
+        "count": 75
+      },
+      {
+        "key": ".sh",
+        "count": 19
+      },
+      {
+        "key": ".js",
+        "count": 12
+      },
+      {
+        "key": ".yml",
+        "count": 10
+      },
+      {
+        "key": ".yaml",
+        "count": 8
+      },
+      {
+        "key": ".toml",
+        "count": 7
+      },
+      {
+        "key": ".mjs",
+        "count": 5
+      },
+      {
+        "key": ".gitignore",
+        "count": 3
+      },
+      {
+        "key": ".task",
+        "count": 3
+      },
+      {
+        "key": ".svg",
+        "count": 3
+      },
+      {
+        "key": "[no_ext]",
+        "count": 2
+      },
+      {
+        "key": ".npz",
+        "count": 2
+      },
+      {
+        "key": ".sha256",
+        "count": 2
+      },
+      {
+        "key": ".txt",
+        "count": 2
+      },
+      {
+        "key": ".html",
+        "count": 2
+      },
+      {
+        "key": ".css",
+        "count": 2
+      },
+      {
+        "key": ".example",
+        "count": 1
+      },
+      {
+        "key": ".gitattributes",
+        "count": 1
+      },
+      {
+        "key": ".whitesource",
+        "count": 1
+      },
+      {
+        "key": ".conf",
+        "count": 1
+      },
+      {
+        "key": ".service",
+        "count": 1
+      },
+      {
+        "key": ".cjs",
+        "count": 1
+      },
+      {
+        "key": ".gitkeep",
+        "count": 1
+      }
+    ],
+    "by_top_level": [
+      {
+        "key": "server",
+        "count": 744
+      },
+      {
+        "key": "webapp",
+        "count": 369
+      },
+      {
+        "key": "docs",
+        "count": 181
+      },
+      {
+        "key": "scripts",
+        "count": 49
+      },
+      {
+        "key": "skills",
+        "count": 32
+      },
+      {
+        "key": ".github",
+        "count": 15
+      },
+      {
+        "key": "integration",
+        "count": 13
+      },
+      {
+        "key": "deployment",
+        "count": 11
+      },
+      {
+        "key": "data",
+        "count": 2
+      },
+      {
+        "key": "spec",
+        "count": 2
+      },
+      {
+        "key": ".env.example",
+        "count": 1
+      },
+      {
+        "key": ".gitattributes",
+        "count": 1
+      },
+      {
+        "key": ".gitignore",
+        "count": 1
+      },
+      {
+        "key": ".idea",
+        "count": 1
+      },
+      {
+        "key": ".whitesource",
+        "count": 1
+      },
+      {
+        "key": "AGENTS.md",
+        "count": 1
+      },
+      {
+        "key": "LICENSE",
+        "count": 1
+      },
+      {
+        "key": "README.md",
+        "count": 1
+      },
+      {
+        "key": "docker-compose.yml",
+        "count": 1
+      },
+      {
+        "key": "package-lock.json",
+        "count": 1
+      },
+      {
+        "key": "package.json",
+        "count": 1
+      },
+      {
+        "key": "pyproject.toml",
+        "count": 1
+      },
+      {
+        "key": "renovate.json",
+        "count": 1
+      }
+    ],
+    "by_size_bucket": [
+      {
+        "key": "<10KB",
+        "count": 1143
+      },
+      {
+        "key": "10KB-100KB",
+        "count": 154
+      },
+      {
+        "key": "1MB-10MB",
+        "count": 88
+      },
+      {
+        "key": "100KB-1MB",
+        "count": 38
+      },
+      {
+        "key": ">10MB",
+        "count": 8
+      }
+    ],
+    "by_age_bucket": [
+      {
+        "key": "31-90d",
+        "count": 1031
+      },
+      {
+        "key": "0-30d",
+        "count": 358
+      },
+      {
+        "key": "unknown",
+        "count": 42
+      }
+    ]
+  },
+  "root_notes": {
+    "webapp": "Frontend React + TypeScript communication UI",
+    "server": "API + ML/training services and datasets",
+    "integration": "End-to-end/integration tests",
+    "docs": "Architecture, planning, operations, and runbooks",
+    "scripts": "Automation and validation helpers",
+    "data": "Shared baseline model/data assets",
+    "deployment": "Deployment and environment configs",
+    "spec": "Design/protocol specs",
+    ".github": "CI and automation workflows",
+    "skills": "Codex skill definitions"
+  },
+  "cleanup_candidates": {
+    "tracked_large_artifacts": [
+      {
+        "path": "server/data/backups/profiles/fc558821-e321-4dd6-9ca5-be89e00aa43a/1767032611811_1762f5754e4c7921ce30154aa674ad427945f928a0f397e4a0153c35a4dcb0ae.zip",
+        "size_bytes": 94169122
+      },
+      {
+        "path": "server/data/backups/profiles/fc558821-e321-4dd6-9ca5-be89e00aa43a/1767125552643_e7e15bc6832484bc69eb860d232cae1b4c5487c412bddcf1dd830d8e991d0dd8.zip",
+        "size_bytes": 94169034
+      },
+      {
+        "path": "server/data/backups/profiles/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/1767047581063_1206331cf888f87375adf9a664a117ff3a1d8a866a6204c55bd3972589548be9.zip",
+        "size_bytes": 93826682
+      },
+      {
+        "path": "server/data/backups/profiles/a75031a7-2902-4d43-b3c8-d537728fceef/1767125548387_10a2016c960fa5f778dc411e10070b1e94af620c48f6a786b0c4192ac3e134b2.zip",
+        "size_bytes": 93490341
+      },
+      {
+        "path": "server/data/backups/profiles/e3251d3e-1ab8-4bc1-93af-4d3e924e4272/1767032617075_f223967f47c3d9f2eebc826867b223f56064440b9c373536dd3e4f22f1c3bd29.zip",
+        "size_bytes": 93488150
+      },
+      {
+        "path": "server/data/backups/profiles/e3251d3e-1ab8-4bc1-93af-4d3e924e4272/1767125557096_9de25a32a69b54baff35465ffd097498a3db5d39b66d74d47b683b1ed4883f41.zip",
+        "size_bytes": 93486478
+      },
+      {
+        "path": "server/data/backups/profiles/14f61335-0b6d-4c47-aac9-021a0932a5ae/1767125544040_1a08f512c1c220b9bf057bd5b5ddba938f9dd08fdec95442787ef6ccd1754ee4.zip",
+        "size_bytes": 93484957
+      },
+      {
+        "path": "data/amy_model.npz",
+        "size_bytes": 34469110
+      }
+    ],
+    "suspicious_filenames": [],
+    "likely_generated_or_backup": [
+      "server/data/backups/profiles/06482dc2-8539-45df-bb5a-fe853cc6cbd8/1767080113491_3bd8aaf6411ef4612684319022204cdb2386f6222ce320caec6fe3a5d7d891ce.zip",
+      "server/data/backups/profiles/0884bc74-47e4-4bcd-b5f6-3962d3a27dfe/1767047158720_a95152a83ebf183d3a3b4484ae43a532951e1ed39ecf5312bff5be26eb3fb706.zip",
+      "server/data/backups/profiles/0897adf7-b5a1-49b6-b008-b1396645b238/1767082768190_22248e54b7b1f3b6f7ee8f480c4a47873af42e57c6afc035f2854b63458c4fc5.zip",
+      "server/data/backups/profiles/09ca9e83-48e0-4f5f-9064-ffd2cd86196a/1767087963593_5e0194c91ef5ad192eda8edf72d656758c1513628fa05f98b2e5a249ca4f4310.zip",
+      "server/data/backups/profiles/0be53273-3fa7-444e-95e4-9e38e65d0277/1767079851673_8a378b30107847840398e665d08fbc7fbb17806bd9d1b6bddaade75b6bd2fc1e.zip",
+      "server/data/backups/profiles/11111111-1111-4111-8111-111111111111/1767047328942_10320643258a478939a89ce875e6fc3dcea6c12d9345cc0dee89d011ee4b9d2e.zip",
+      "server/data/backups/profiles/137222f6-b239-4336-b398-dfe14be3e1c6/1767047024281_1fb5c24b14af106c56650dd9cc1e417da28cffd9010cb4b17f5df088a12424e5.zip",
+      "server/data/backups/profiles/14f61335-0b6d-4c47-aac9-021a0932a5ae/1767032607131_d11c72b5a78b7cc8a99ef16cf946ffeecb8b5f2f6c1c1382196913a71d9926f1.zip",
+      "server/data/backups/profiles/14f61335-0b6d-4c47-aac9-021a0932a5ae/1767125544040_1a08f512c1c220b9bf057bd5b5ddba938f9dd08fdec95442787ef6ccd1754ee4.zip",
+      "server/data/backups/profiles/19e8329c-6451-48f9-a84c-cb0cf5d4c854/1767047131044_289ab00d64c85087fca63d8add5a32f7e85f438c74fdce0dc3fff9a4959db1dd.zip",
+      "server/data/backups/profiles/2107b858-e5c6-4d0d-b44e-a3ed36807a13/1767032607122_b19f938ec6715410f9e4b0973c7c917927e72994c526383b45adcce0a77ad1c0.zip",
+      "server/data/backups/profiles/2107b858-e5c6-4d0d-b44e-a3ed36807a13/1767125540392_0efdb1c18f8a9fb530613d633fbfeb256abb07e6551131aa7b1aa59dfddd1c46.zip",
+      "server/data/backups/profiles/293ad82c-f6e5-44f3-8b31-40e8cddbd7db/1767082640265_007d768865dfc3bca38b61ae526b982b4673f05d9ef65417482b578355126277.zip",
+      "server/data/backups/profiles/30ab82e4-f439-44ca-b28a-19a87a864f3e/1767032709210_93421a7974bf43a78d084e66978a614a975cac1c031f618221d9b38a0f235e11.zip",
+      "server/data/backups/profiles/30ab82e4-f439-44ca-b28a-19a87a864f3e/1767125557480_8a37213c029d248b1b716290aa5070c0aefdc27467b5c99f1a1820e6e35a14cc.zip",
+      "server/data/backups/profiles/32957a2d-187d-4b67-ab5a-620df40c8b55/1767095385367_9bb59357483e266b01bfe8d9055de5235bc29723a51fd2bcf9c46397817d6174.zip",
+      "server/data/backups/profiles/34e9f42e-4980-4457-97c8-573d93c8fbd9/1767047151847_3bce0d4cc9f84164e8b7bb904292fd4551c8b5291ccb3daf295a4499919349cf.zip",
+      "server/data/backups/profiles/36fd6b84-6d72-480d-b4ee-68756285be5e/1767047151858_2a3e4521a53e7ce51cc4c983047a24c043bda25086dad3594f66890b6ce49300.zip",
+      "server/data/backups/profiles/379f582b-c41e-4f41-b333-aff41b74500d/1767091684401_b8460dda69293f06e1be78b85fd68df2b7b9fbe7086bb742432414cdf3a85e98.zip",
+      "server/data/backups/profiles/41ffcb4d-3eb6-436a-ad73-263a5e63bc58/1767048080595_8823ac0d9ff9131bf1257ab4ee5562924928f7b60722db4ad9bc3ee6f2ba457e.zip",
+      "server/data/backups/profiles/497616e4-fc6c-4f54-9f6d-6404469e8c8c/1767085851696_ca6e87f92e66a446f1686b882abd3ac69cc65e1ae3baca8eebb3054d277c77ea.zip",
+      "server/data/backups/profiles/4a4814a3-2a05-4e5a-947c-8822a3fc0e4d/1767047158730_22e901ed73a76c236c8d164951e799f4b0795f8cf2c4f13741805786eaaeed80.zip",
+      "server/data/backups/profiles/4a7cd5a9-48f7-495c-9a9f-bb12b9519334/1767047205756_db8b7a24083b389cbec25ad877cd6718ddc62201077417364dc42e7eddace078.zip",
+      "server/data/backups/profiles/4fac5da1-c787-47fb-b891-bfb4562c10ed/1767086266308_475aab692e322cae64f2a97da94c95a0809dec38e64f86a392dca7cde71c5ea4.zip",
+      "server/data/backups/profiles/52f6e300-cc60-415d-a6f3-b74935ebe80c/1767087844411_71030c0dfedace555d320566dd1c603beed2a183f01b3a918ecaa593d758ee4e.zip",
+      "server/data/backups/profiles/635aa27b-f03f-4dd8-908a-55d15ee5fee6/1767032729245_94b0e8eae43ca3892fe6eb399f34154110cd7269e30c5fd35fc45bba5929ab55.zip",
+      "server/data/backups/profiles/635aa27b-f03f-4dd8-908a-55d15ee5fee6/1767125557507_2a587686db816c242f441d38f28e26b42bf1355cc07504dea205b89faf01e329.zip",
+      "server/data/backups/profiles/683c3406-575e-459f-87c9-1462f532763a/1767047030844_e4860d5999f7c15165fae6cc67e2c41ff2810c64421f15992303d04375fecc78.zip",
+      "server/data/backups/profiles/720e9f3c-cf56-40a8-be8f-eeaf8316f628/1767088921994_72ea322e056e42c10d7b32c38250a30a439efa7e5dc4c84fbce75ed69b5679ac.zip",
+      "server/data/backups/profiles/74f26a6e-ccf6-4d5a-bec4-7c3283a2c365/1767086651533_88b79ad12b3bd7f18267b0a1f60a4e9d704da9f8fad774d31d50f91b2f3afcef.zip",
+      "server/data/backups/profiles/74fff59d-aaa4-4b99-92c6-54f7c35de6f2/1767091566944_b9a544600b90e13e7bde900f1eb6a1891a4305e72322bcdd32d9e72fe3bdfa60.zip",
+      "server/data/backups/profiles/75c1c87d-1d10-483c-82fe-6e7aeefc159b/1767047024291_80cbc523176dad9dcbfda2c2d752c74de771fe0801750ee489635f96850998cf.zip",
+      "server/data/backups/profiles/7d333fcb-af1a-4474-baee-2d16132910ab/1767095012509_704c88b6e985a7c21ed8b13479802af41eaa14e84a0d79d8d2c715669df4574b.zip",
+      "server/data/backups/profiles/7db25be9-a7dc-4c04-8074-920d5260818c/1767089168625_d7c76733223d10cefb0e209f95d1015bf21ac94bd95bc463a7bec6fc930690b4.zip",
+      "server/data/backups/profiles/80deb1ea-c536-4c16-be30-2a9f64a5778a/1767079720581_f4aff6db37806d283b947306fe54f4f916291135a8da193d0dd0dd59ce189d07.zip",
+      "server/data/backups/profiles/8351a820-b029-40b0-b10f-0a7fe1787c04/1767048907653_26641a2a0a5453e0af7592ecc5b21c19367e3e8b84714bd35a954b6932f26668.zip",
+      "server/data/backups/profiles/855ee052-d962-477e-a014-5e1921a46030/1767047205746_43dd3dbe2234302c48d711e29410bf3eff3dd4a0d4968e841e32e4951830fc36.zip",
+      "server/data/backups/profiles/8f8351f8-cb26-472f-b8d9-b6b225905013/1767091929410_fc4c485c50dc808d794cbdfe34b6c3d560555a880062e55762b2cc46154dbf1c.zip",
+      "server/data/backups/profiles/90f60966-0d02-4230-bcf9-2677c84b3d89/1767125953907_bf72284deb130354212e328fa366f6467d554ebc37eb3b49d7a97e940abfb8ba.zip",
+      "server/data/backups/profiles/95e40519-223c-46f6-8b7d-586399f1f8b7/1767047151832_635d4aee7e97ceb959cfe3ab5e29dd213b75f03365f6c67153ab6eba7f1b5cf7.zip",
+      "server/data/backups/profiles/9da80832-7c26-4807-bb46-731a5e174ac7/1767049150585_600113db0a74c6634760cff408d23bf1ddc13e3a0022fde4b154fedbc4ef2beb.zip",
+      "server/data/backups/profiles/a1171e03-0881-4bd7-8f47-f6bc2ea81c2a/1767047003158_df485d76985c7f214c89284790ed7d1b6108a9d92bca7d53ec58e4255e4e1682.zip",
+      "server/data/backups/profiles/a75031a7-2902-4d43-b3c8-d537728fceef/1767032607147_840a8520f4d3997f4fbdcb05c8d2316ebd4becac6e32ef78032f13326c8b2af7.zip",
+      "server/data/backups/profiles/a75031a7-2902-4d43-b3c8-d537728fceef/1767125548387_10a2016c960fa5f778dc411e10070b1e94af620c48f6a786b0c4192ac3e134b2.zip",
+      "server/data/backups/profiles/aa5abba1-a7f7-4a7f-9071-66c97bee4cec/1767032736058_bf64faa12d00754818a7a60e7962da06b0b0efc70b01078e4b51d10513726730.zip",
+      "server/data/backups/profiles/aa5abba1-a7f7-4a7f-9071-66c97bee4cec/1767125557528_d39f281c8969180bcd40b8e0d7f1e474916050268606e74ed121a3837fbb0c0b.zip",
+      "server/data/backups/profiles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/1767047328930_6f4e2de7ffa9a0d2d41ff61c3c3aae7ba2ad2c46f10500e41ce4a2d6471b567a.zip",
+      "server/data/backups/profiles/ac7d3761-e34e-4a75-98f0-ccb569948983/1767047813822_cf8bf41340fcd4752495edd3668501ead920112c2ef14dc0f1f921d68d5df708.zip",
+      "server/data/backups/profiles/b0800ae6-f9ed-4ef5-84ce-52369cc02ff2/1767048788190_09e21adbeba05181ad800cf2542d7e1c63177653b5ce0e6cb97bdc206a6047c2.zip",
+      "server/data/backups/profiles/b3d744f2-6873-45e3-8c78-3fee00e1ca09/1767085595536_7b281565cf05592c8d11e575cc113632f5e94f45d75924ed7d34c70ee8bc3211.zip",
+      "server/data/backups/profiles/b8848a1f-975c-45e0-abb3-8f38cf9aac23/1767125687890_72d110e3831ec81d3831470c20869514f63e709830067b631d4e57994e7b8c3d.zip",
+      "server/data/backups/profiles/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/1767047581063_1206331cf888f87375adf9a664a117ff3a1d8a866a6204c55bd3972589548be9.zip",
+      "server/data/backups/profiles/bcae101f-f65c-40d6-be87-58482d4058e2/1767088801196_5b75d9d5c274bcb82eb9a9c826999f953029494e6dc1e58e180ce3440ea2384b.zip",
+      "server/data/backups/profiles/bd93b4c9-390b-4d3f-8e8e-36805350c33a/1767086385697_7d0135084ac74a56b86bb2ed0404bacecb3ae423b44df9c39de17abc2df469ef.zip",
+      "server/data/backups/profiles/be6a6bcd-7c3b-417c-89f8-a03ed8b2b71b/1767047024304_faa83f375894cbf5a9831549d3467377d86f581e2defee21aff1732ff28a86e4.zip",
+      "server/data/backups/profiles/c2d07fab-ca14-47ba-9cc4-b10ce3e4b59c/1767095136867_95c0790e22fe7a72d36f9599530ffec5f9b52ad8151d322aa8af7b43b69f84d2.zip",
+      "server/data/backups/profiles/c6e01a27-bc33-4269-908c-933217e45564/1767083021897_a1209aeb2e14f604edd4b452ea6cc4f2018d9f2cccb7a4ef1e5f90f82592b6fc.zip",
+      "server/data/backups/profiles/cccccccc-cccc-4ccc-8ccc-cccccccccccc/1767047581342_17b203a2a79b5cde5c9fe2c28a6f36356b853c633ea40a9e09d725a4c5b2ce6c.zip",
+      "server/data/backups/profiles/cf12da91-d269-4436-bc36-143875135a09/1767047158752_16b22e247a1049d2ba2cf92a68625b4c0f75268cd7e66a28d2f1ffdc79ba3970.zip",
+      "server/data/backups/profiles/d61db4bb-471f-4773-b6a4-898b9a343d11/1767047131035_49c61f971d7141affe266b2091ff97d379d021cf79482badff307cb68e8a497c.zip",
+      "server/data/backups/profiles/d82cd86a-1f6c-4be6-ab1e-88f535607275/1767047030854_9d9c834d42c33323bda24d394a17cfe8201f5f1dde1a85b3217d214f804a9b3b.zip",
+      "server/data/backups/profiles/dddddddd-dddd-4ddd-8ddd-dddddddddddd/1767047581395_50a60e24a84c86c1089b99175e2a4620f6b9f4facbe8f2ee5a1217817535a87d.zip",
+      "server/data/backups/profiles/ddecb639-3ab5-40bb-af28-5de13af93d22/1767032633271_99b4018f63ff00d7a57fb853544da9c3f0c9e0ccf8d35a0dc611757b3d82ec09.zip",
+      "server/data/backups/profiles/ddecb639-3ab5-40bb-af28-5de13af93d22/1767125557400_fd1f41939132a516b20715f45d685ebadc6476c2e380d479f80a91dfbf160fc9.zip",
+      "server/data/backups/profiles/de545d1b-bd85-44cc-95ad-21bd56b2bbca/1767047158741_65a29b85557c5eeefeb90f173129448a6221f5470e75b3aac87041c68e2e3575.zip",
+      "server/data/backups/profiles/e0f87a06-bdf6-452c-aafc-1305087a388f/1767032640308_3da157a2a170677eca2e20d359660fc6b35f7c5c44220db25465fe097646f09a.zip",
+      "server/data/backups/profiles/e0f87a06-bdf6-452c-aafc-1305087a388f/1767125557452_5ad1b06761b5e8738f4cb2cfc59c3e5e6ed835f89e2ea14131d52cdf6facc60a.zip",
+      "server/data/backups/profiles/e21e6c85-bdc5-4957-9979-b53384c28b4f/1767085469333_4c8e70bf62f4dde3ce9cee7d65a18b8d2e1e149d5e71a836a081014900f43a67.zip",
+      "server/data/backups/profiles/e2276dfd-e4d8-44be-abc1-4b39b1b9f313/1767125557540_4b1a7ac8c2e8ff89bbe104c1b4c64a112775c3f0743f93d26cd7cb90c41da155.zip",
+      "server/data/backups/profiles/e3251d3e-1ab8-4bc1-93af-4d3e924e4272/1767032617075_f223967f47c3d9f2eebc826867b223f56064440b9c373536dd3e4f22f1c3bd29.zip",
+      "server/data/backups/profiles/e3251d3e-1ab8-4bc1-93af-4d3e924e4272/1767125557096_9de25a32a69b54baff35465ffd097498a3db5d39b66d74d47b683b1ed4883f41.zip",
+      "server/data/backups/profiles/e7b2a59b-52f3-4762-a0b6-577e0588c20f/1767050005664_420cf46ebe289f00db815d32b79f94bdac28a3d0e5f5f847bde61c39fcfa958a.zip",
+      "server/data/backups/profiles/ea72fc66-a644-4f93-af2d-46baa8d60c99/1767047694217_7a97b60995e90580d6f6713699edb7185f75ace32229ce9917bafcb50d5035ce.zip",
+      "server/data/backups/profiles/ed7365a7-dcc9-45b4-bfe4-e45a29618a23/1767047030865_b95090a92e5fa2ea3d7d5e2405b278a670eb59b7207b58afb50f55638dcb49e4.zip",
+      "server/data/backups/profiles/f073153a-9c4a-4f77-b841-a5a1ee72edfe/1767049626179_fa8857432f99fbfbfea0a94a81c104661d3da70310c42566f8f8954df3dd1ed3.zip",
+      "server/data/backups/profiles/f30324a5-268a-4a13-9074-71c2c238f2b9/1767047328952_8570b1016fe370a3e211b1539ec79abeaee4ed4efce4c14363b844ab92762e4d.zip",
+      "server/data/backups/profiles/f68e6932-393e-498c-8e33-910ae378d2cf/1767047581409_b3a9205299f8b311738d76cad49e22aa9645199ae342d27e246395a9d203feb0.zip",
+      "server/data/backups/profiles/f874daaf-7689-4018-a991-515f64f2739d/1767049749845_808d3f05c00e1cff76e5aa6621937bd3b45af9a66bab80bd60b0afa289351b34.zip",
+      "server/data/backups/profiles/f9440915-78a4-4a5b-83fd-5e4f081646cc/1767047030875_b7f2fc41a4443b34a6611753be4aa24a41271b83ce4c812e13411365db81cf72.zip",
+      "server/data/backups/profiles/fc558821-e321-4dd6-9ca5-be89e00aa43a/1767032611811_1762f5754e4c7921ce30154aa674ad427945f928a0f397e4a0153c35a4dcb0ae.zip",
+      "server/data/backups/profiles/fc558821-e321-4dd6-9ca5-be89e00aa43a/1767125552643_e7e15bc6832484bc69eb860d232cae1b4c5487c412bddcf1dd830d8e991d0dd8.zip",
+      "server/data/backups/profiles/ffa3f16a-8fb6-4f3c-ae8b-b93e7b5b4304/1767088213404_83fba2819a26df325c6094f32a713bdfdec91a4650d1d3f0fe20ddbd7aa8f16c.zip",
+      "server/data/dgs_video_examples/README.md",
+      "server/data/dgs_video_examples/alle.mp4",
+      "server/data/dgs_video_examples/alle_landmarks.json",
+      "server/data/dgs_video_examples/alle_main_alle.mp4",
+      "server/data/dgs_video_examples/alle_main_alle_landmarks.json",
+      "server/data/dgs_video_examples/alle_main_alles.mp4",
+      "server/data/dgs_video_examples/alle_main_alles_landmarks.json",
+      "server/data/dgs_video_examples/alle_main_jeder.mp4",
+      "server/data/dgs_video_examples/alle_main_jeder_landmarks.json",
+      "server/data/dgs_video_examples/alle_var_alle_0.mp4",
+      "server/data/dgs_video_examples/alle_var_alle_0_landmarks.json",
+      "server/data/dgs_video_examples/alle_var_alles_0.mp4",
+      "server/data/dgs_video_examples/alle_var_alles_0_landmarks.json",
+      "server/data/dgs_video_examples/alle_var_jeder_0.mp4",
+      "server/data/dgs_video_examples/alle_var_jeder_0_landmarks.json",
+      "server/data/dgs_video_examples/angst_main_angst.mp4",
+      "server/data/dgs_video_examples/angst_main_ängstlich.mp4",
+      "server/data/dgs_video_examples/angst_var_angst_0.mp4",
+      "server/data/dgs_video_examples/angst_var_ängstlich_0.mp4",
+      "server/data/dgs_video_examples/apfel_main_apfel.mp4",
+      "server/data/dgs_video_examples/apfel_main_äpfel.mp4",
+      "server/data/dgs_video_examples/apfel_var_apfel_0.mp4",
+      "server/data/dgs_video_examples/apfel_var_apfel_1.mp4",
+      "server/data/dgs_video_examples/apfel_var_apfel_2.mp4",
+      "server/data/dgs_video_examples/apfel_var_äpfel_0.mp4",
+      "server/data/dgs_video_examples/apfel_var_äpfel_1.mp4",
+      "server/data/dgs_video_examples/apfel_var_äpfel_2.mp4",
+      "server/data/dgs_video_examples/banane_main_banane.mp4",
+      "server/data/dgs_video_examples/banane_var_banane_0.mp4",
+      "server/data/dgs_video_examples/banane_var_banane_1.mp4",
+      "server/data/dgs_video_examples/banane_var_banane_2.mp4",
+      "server/data/dgs_video_examples/banane_var_banane_3.mp4",
+      "server/data/dgs_video_examples/bitte_main_bitte.mp4",
+      "server/data/dgs_video_examples/bitte_main_bitten.mp4",
+      "server/data/dgs_video_examples/bitte_var_bitte_0.mp4",
+      "server/data/dgs_video_examples/bitte_var_bitten_0.mp4",
+      "server/data/dgs_video_examples/blau.mp4",
+      "server/data/dgs_video_examples/blau_landmarks.json",
+      "server/data/dgs_video_examples/blau_main_blau.mp4",
+      "server/data/dgs_video_examples/blau_main_blau_landmarks.json",
+      "server/data/dgs_video_examples/blau_var_blau_0.mp4",
+      "server/data/dgs_video_examples/blau_var_blau_0_landmarks.json",
+      "server/data/dgs_video_examples/blau_var_blau_1.mp4",
+      "server/data/dgs_video_examples/blau_var_blau_1_landmarks.json",
+      "server/data/dgs_video_examples/blau_var_blau_2.mp4",
+      "server/data/dgs_video_examples/blau_var_blau_2_landmarks.json",
+      "server/data/dgs_video_examples/blau_var_blau_3.mp4",
+      "server/data/dgs_video_examples/blau_var_blau_3_landmarks.json",
+      "server/data/dgs_video_examples/brot_main_brot.mp4",
+      "server/data/dgs_video_examples/brot_main_brötchen.mp4",
+      "server/data/dgs_video_examples/brot_var_brot_0.mp4",
+      "server/data/dgs_video_examples/brot_var_brot_1.mp4",
+      "server/data/dgs_video_examples/brot_var_brötchen_0.mp4",
+      "server/data/dgs_video_examples/brot_var_brötchen_1.mp4",
+      "server/data/dgs_video_examples/bruder_main_bruder.mp4",
+      "server/data/dgs_video_examples/bruder_var_bruder_0.mp4",
+      "server/data/dgs_video_examples/bruder_var_bruder_1.mp4",
+      "server/data/dgs_video_examples/bruder_var_bruder_2.mp4",
+      "server/data/dgs_video_examples/danke_main_danke.mp4",
+      "server/data/dgs_video_examples/danke_main_danken.mp4",
+      "server/data/dgs_video_examples/danke_var_danke_0.mp4",
+      "server/data/dgs_video_examples/danke_var_danke_1.mp4",
+      "server/data/dgs_video_examples/danke_var_danke_2.mp4",
+      "server/data/dgs_video_examples/danke_var_danken_0.mp4",
+      "server/data/dgs_video_examples/du_main_dich.mp4",
+      "server/data/dgs_video_examples/du_main_du.mp4",
+      "server/data/dgs_video_examples/du_var_dich_0.mp4",
+      "server/data/dgs_video_examples/du_var_du_0.mp4",
+      "server/data/dgs_video_examples/durst_main_durst.mp4",
+      "server/data/dgs_video_examples/durst_var_durst_0.mp4",
+      "server/data/dgs_video_examples/durst_var_durst_1.mp4",
+      "server/data/dgs_video_examples/essen.mp4",
+      "server/data/dgs_video_examples/essen_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_abendessen.mp4",
+      "server/data/dgs_video_examples/essen_main_abendessen_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_essen.mp4",
+      "server/data/dgs_video_examples/essen_main_essen_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_frühstück.mp4",
+      "server/data/dgs_video_examples/essen_main_frühstück_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_hunger.mp4",
+      "server/data/dgs_video_examples/essen_main_hunger_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_mittagessen.mp4",
+      "server/data/dgs_video_examples/essen_main_mittagessen_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_abendessen_0.mp4",
+      "server/data/dgs_video_examples/essen_var_abendessen_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_essen_0.mp4",
+      "server/data/dgs_video_examples/essen_var_essen_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_essen_1.mp4",
+      "server/data/dgs_video_examples/essen_var_essen_1_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_essen_2.mp4",
+      "server/data/dgs_video_examples/essen_var_essen_2_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_frühstück_0.mp4",
+      "server/data/dgs_video_examples/essen_var_frühstück_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_hunger_0.mp4",
+      "server/data/dgs_video_examples/essen_var_hunger_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_hunger_1.mp4",
+      "server/data/dgs_video_examples/essen_var_hunger_1_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_hunger_2.mp4",
+      "server/data/dgs_video_examples/essen_var_hunger_2_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_mittagessen_0.mp4",
+      "server/data/dgs_video_examples/essen_var_mittagessen_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_mittagessen_1.mp4",
+      "server/data/dgs_video_examples/essen_var_mittagessen_1_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_mittagessen_2.mp4",
+      "server/data/dgs_video_examples/essen_var_mittagessen_2_landmarks.json",
+      "server/data/dgs_video_examples/fertig.mp4",
+      "server/data/dgs_video_examples/fertig_landmarks.json",
+      "server/data/dgs_video_examples/fertig_main_ende.mp4",
+      "server/data/dgs_video_examples/fertig_main_ende_landmarks.json",
+      "server/data/dgs_video_examples/fertig_main_fertig.mp4",
+      "server/data/dgs_video_examples/fertig_main_fertig_landmarks.json",
+      "server/data/dgs_video_examples/fertig_main_schluss.mp4",
+      "server/data/dgs_video_examples/fertig_main_schluss_landmarks.json",
+      "server/data/dgs_video_examples/fertig_main_vorbei.mp4",
+      "server/data/dgs_video_examples/fertig_main_vorbei_landmarks.json",
+      "server/data/dgs_video_examples/fertig_var_ende_0.mp4",
+      "server/data/dgs_video_examples/fertig_var_ende_0_landmarks.json",
+      "server/data/dgs_video_examples/fertig_var_fertig_0.mp4"
+    ]
+  }
+}
