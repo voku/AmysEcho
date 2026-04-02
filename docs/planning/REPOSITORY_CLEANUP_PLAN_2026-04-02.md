@@ -11,8 +11,8 @@
 
 ## 1) Current state snapshot (from tracked Git files)
 
-- **Tracked files:** 1,427
-- **Tracked size:** 873.93 MB
+- **Tracked files:** 1,432
+- **Tracked size:** 873.98 MB
 - **Largest top-level area by far:** `server/` (~836.34 MB)
 - **Largest subtrees:**
   - `server/data/backups/` (~625.81 MB, mostly `.zip` backups)
@@ -127,8 +127,11 @@ If you continue this plan, start with these commands:
 ```bash
 python scripts/repo_inventory.py
 python - <<'PY'
+import glob
 import json
-p=json.load(open('docs/analysis/repo-inventory-2026-04-02.summary.json'))
+latest = sorted(glob.glob('docs/analysis/repo-inventory-*.summary.json'))[-1]
+p=json.load(open(latest))
+print('inventory_file', latest)
 print('tracked', p['tracked_file_count'])
 print('size_mb', p['tracked_total_size_mb'])
 print('largest tracked artifact', p['cleanup_candidates']['tracked_large_artifacts'][0])

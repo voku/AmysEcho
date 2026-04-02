@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-04-02T18:17:11.368722+00:00",
-  "tracked_file_count": 1431,
-  "tracked_total_size_bytes": 916433326,
+  "generated_at_utc": "2026-04-02T19:18:09.041468+00:00",
+  "tracked_file_count": 1432,
+  "tracked_total_size_bytes": 916439231,
   "tracked_total_size_mb": 873.98,
   "summary": {
     "by_extension": [
@@ -15,7 +15,7 @@
       },
       {
         "key": ".md",
-        "count": 214
+        "count": 215
       },
       {
         "key": ".json",
@@ -133,7 +133,7 @@
       },
       {
         "key": "docs",
-        "count": 181
+        "count": 182
       },
       {
         "key": "scripts",
@@ -223,7 +223,7 @@
       },
       {
         "key": "10KB-100KB",
-        "count": 154
+        "count": 155
       },
       {
         "key": "1MB-10MB",
@@ -241,15 +241,15 @@
     "by_age_bucket": [
       {
         "key": "31-90d",
-        "count": 1031
+        "count": 1083
       },
       {
         "key": "0-30d",
-        "count": 358
+        "count": 330
       },
       {
         "key": "unknown",
-        "count": 42
+        "count": 19
       }
     ]
   },

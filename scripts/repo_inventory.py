@@ -61,19 +61,30 @@ def age_bucket(last_commit: dt.datetime, now: dt.datetime) -> str:
 
 
 def collect_last_touch_timestamps() -> dict[str, int]:
-    out = run_git("log", "--name-only", "--pretty=format:COMMIT %ct")
+    out = subprocess.check_output(
+        [
+            "git",
+            "-c",
+            "core.quotePath=false",
+            "log",
+            "--name-only",
+            "-z",
+            "--pretty=format:COMMIT %ct%x00",
+        ],
+        cwd=REPO_ROOT,
+    )
     current_ts: int | None = None
     first_seen: dict[str, int] = {}
 
-    for raw_line in out.splitlines():
-        line = raw_line.strip()
-        if not line:
+    for raw_token in out.split(b"\0"):
+        if not raw_token:
             continue
-        if line.startswith("COMMIT "):
-            current_ts = int(line.split()[1])
+        token = raw_token.decode("utf-8", errors="replace")
+        if token.startswith("COMMIT "):
+            current_ts = int(token.split()[1])
             continue
-        if current_ts is not None and line not in first_seen:
-            first_seen[line] = current_ts
+        if current_ts is not None and token not in first_seen:
+            first_seen[token] = current_ts
     return first_seen
 
 
@@ -97,7 +108,10 @@ def generate_report(output_json: Path, output_md: Path, include_files: bool = Fa
 
     for file_path in files:
         abs_path = REPO_ROOT / file_path
-        size = abs_path.stat().st_size
+        try:
+            size = abs_path.stat().st_size
+        except FileNotFoundError:
+            continue
         ext = normalize_extension(file_path)
         top = top_level(file_path)
 
@@ -200,6 +214,11 @@ def generate_report(output_json: Path, output_md: Path, include_files: bool = Fa
             f"| `{root}` | {root_notes.get(root, 'Unclassified / utility')} | {row['count']} |"
         )
 
+    try:
+        output_json_display = output_json.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        output_json_display = output_json.as_posix()
+
     md_lines.extend(
         [
             "",
@@ -277,7 +296,7 @@ def generate_report(output_json: Path, output_md: Path, include_files: bool = Fa
             "",
             "## Machine-readable data",
             "",
-            f"See `{output_json.as_posix()}` for aggregated metadata.",
+            f"See `{output_json_display}` for aggregated metadata.",
             "",
         ]
     )
@@ -286,15 +305,16 @@ def generate_report(output_json: Path, output_md: Path, include_files: bool = Fa
 
 
 def main() -> None:
+    today = dt.datetime.now(dt.timezone.utc).date().isoformat()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--json",
-        default="docs/analysis/repo-inventory-2026-04-02.summary.json",
+        default=f"docs/analysis/repo-inventory-{today}.summary.json",
         help="Path for machine-readable output",
     )
     parser.add_argument(
         "--md",
-        default="docs/analysis/repo-inventory-2026-04-02.md",
+        default=f"docs/analysis/repo-inventory-{today}.md",
         help="Path for markdown summary",
     )
     parser.add_argument(
@@ -306,6 +326,10 @@ def main() -> None:
 
     output_json = REPO_ROOT / args.json
     output_md = REPO_ROOT / args.md
+    if args.include_files and not output_json.name.endswith(".full.json"):
+        raise SystemExit(
+            "When using --include-files, --json must end with '.full.json' to avoid committing large artifacts."
+        )
     output_json.parent.mkdir(parents=True, exist_ok=True)
     output_md.parent.mkdir(parents=True, exist_ok=True)
 

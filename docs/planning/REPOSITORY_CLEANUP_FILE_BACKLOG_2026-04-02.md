@@ -12,8 +12,8 @@ Reviewed:
 - `docs/analysis/repo-inventory-2026-04-02.summary.json`
 
 Current tracked baseline from summary inventory:
-- tracked files: **1430**
-- tracked size: **873.95 MB**
+- tracked files: **1432**
+- tracked size: **873.98 MB**
 - dominant area: `server/` due to `server/data/backups/` and `server/data/dgs_video_examples/`
 
 ## 2) Concrete cleanup targets (with file groups)
@@ -21,7 +21,7 @@ Current tracked baseline from summary inventory:
 | Priority | Group | Current footprint | Problem | Planned operation |
 |---|---|---:|---|---|
 | P0 | `server/data/backups/` | 82 files / ~625.81 MB | Generated backups are tracked even though path is ignored | `git rm -r --cached server/data/backups` and keep only local/runtime backups |
-| P0 | `server/data/dgs_video_examples/` | 403 files / ~177.40 MB | Runtime + test usage mixed; test coupling to production data | Split into runtime-required subset vs test fixtures; move fixture subset to `server/test/fixtures/dgs_video_examples/` |
+| P0 | `server/data/dgs_video_examples/` | 445 files / ~192.39 MB | Runtime + test usage mixed; test coupling to production data | Split into runtime-required subset vs test fixtures; move fixture subset to `server/test/fixtures/dgs_video_examples/` |
 | P1 | large binary roots (`data/amy_model.npz`, `server/data/models/*.task`) | 3 files / ~45.84 MB | no explicit artifact policy in one place | create tracked-binary allowlist doc + enforce by CI inventory budget |
 | P1 | IDE artifact `.idea/workspace.xml` | 1 file | editor-local noise in repo root | remove from tracking and add scoped ignore rule if still needed |
 | P1 | docs naming asymmetry (`docs/**/*.md`) | 175 markdown files with mixed naming styles | hard to predict paths (UPPERCASE, PascalCase, kebab mixed) | standardize naming convention + staged rename map with redirects/index links |

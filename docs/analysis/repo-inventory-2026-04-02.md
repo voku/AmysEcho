@@ -1,8 +1,8 @@
 # Repository Inventory Baseline
 
-Generated: 2026-04-02 18:17:11 UTC
+Generated: 2026-04-02 19:18:09 UTC
 
-Tracked files: **1431**
+Tracked files: **1432**
 Tracked size: **873.98 MB**
 
 ## Top-level fit map
@@ -11,7 +11,7 @@ Tracked size: **873.98 MB**
 |---|---|---:|
 | `server` | API + ML/training services and datasets | 744 |
 | `webapp` | Frontend React + TypeScript communication UI | 369 |
-| `docs` | Architecture, planning, operations, and runbooks | 181 |
+| `docs` | Architecture, planning, operations, and runbooks | 182 |
 | `scripts` | Automation and validation helpers | 49 |
 | `skills` | Codex skill definitions | 32 |
 | `.github` | CI and automation workflows | 15 |
@@ -41,7 +41,7 @@ Tracked size: **873.98 MB**
 |---|---:|
 | `.ts` | 364 |
 | `.mp4` | 315 |
-| `.md` | 214 |
+| `.md` | 215 |
 | `.json` | 173 |
 | `.tsx` | 118 |
 | `.zip` | 83 |
@@ -60,7 +60,7 @@ Tracked size: **873.98 MB**
 | Size bucket | Count |
 |---|---:|
 | <10KB | 1143 |
-| 10KB-100KB | 154 |
+| 10KB-100KB | 155 |
 | 1MB-10MB | 88 |
 | 100KB-1MB | 38 |
 | >10MB | 8 |
@@ -69,9 +69,9 @@ Tracked size: **873.98 MB**
 
 | Age | Count |
 |---|---:|
-| 31-90d | 1031 |
-| 0-30d | 358 |
-| unknown | 42 |
+| 31-90d | 1083 |
+| 0-30d | 330 |
+| unknown | 19 |
 
 ## Cleanup-first candidates
 
@@ -102,4 +102,4 @@ Tracked size: **873.98 MB**
 
 ## Machine-readable data
 
-See `/workspace/AmysEcho/docs/analysis/repo-inventory-2026-04-02.summary.json` for aggregated metadata.
+See `docs/analysis/repo-inventory-2026-04-02.summary.json` for aggregated metadata.
