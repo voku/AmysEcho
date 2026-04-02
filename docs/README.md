@@ -10,6 +10,7 @@ Use this file as the primary entry point for documentation.
 - **Architecture**: `docs/architecture/CodebaseOverview.md`, `docs/architecture/SYSTEM_ARCHITECTURE_MAP.md`
 - **Testing strategy**: `docs/testing/TESTING_STRATEGY.md`
 - **Deployment**: `docs/deployment/DEPLOYMENT.md`, `docs/deployment/SERVER_DEPLOYMENT.md`
+- **Developer quick start + DB init**: `docs/guides/DeveloperQuickStartAndDbInit.md`
 - **Training pipeline**: `docs/training/README.md`
 - **Blind-spot decisions**: `docs/analysis/README.md`
 

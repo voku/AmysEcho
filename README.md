@@ -85,6 +85,7 @@ Use these shell helpers for clean output during checks:
 ### Detailed Guides
 
 - [Caregiver Guide](docs/guides/CaregiverGuide.md) — For parents and caregivers
+- [Developer Quick Start + DB Init](docs/guides/DeveloperQuickStartAndDbInit.md) — Local setup, verification, SQLite re-init
 - [Training Workflow](docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md) — Recording and training gestures
 - [Server Deployment](docs/deployment/SERVER_DEPLOYMENT.md) — Production deployment
 - [Testing Strategy](docs/testing/TESTING_STRATEGY.md) — Comprehensive testing approach
