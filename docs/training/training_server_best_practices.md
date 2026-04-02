@@ -5,6 +5,7 @@ This memo distills training-focused guidance for the Amy's Echo MLP trainer (`se
 ## 1. Data & Preprocessing Discipline
 - **Immutable bundle storage**: Keep uploads under `data/uploads/<profileId>/<timestamp>/` read-only post-ingest to avoid label drift.
 - **Manifest validation**: Validate `training_manifest.json` entries before queuing training; require `landmarks.json` or cached `landmarks_cached.json`, reject path traversal, and flag missing `metadata.json` fields (gesture label, fps, duration).
+- **Feature contract gating**: Reject bundles that explicitly declare a non-matching `metadata.featureContract.version` so outdated preprocessing cannot silently contaminate current models (`wrist_relative_max_abs_v1`).
 - **Deterministic sampling**: Record the sampling strategy (frame stride, STILL_FRAME_WEIGHT) alongside each training run and seed RNGs (NumPy, Python) to make runs reproducible.
 - **Feature normalization parity**: Persist the scaling parameters (e.g., landmark centering/normalization) used during training inside the model bundle so inference and retraining stay aligned.
 
@@ -14,6 +15,7 @@ This memo distills training-focused guidance for the Amy's Echo MLP trainer (`se
 - **Curriculum-friendly ordering**: When mixing stills and video frames, sort examples chronologically and start with stills to stabilize early gradients.
 
 ## 3. Training Loop Reliability
+- **Dependency-aware defaults**: If MediaPipe/OpenCV are unavailable, skip uncached default example extraction in one fail-fast step instead of iterating every video with repeated warnings.
 - **Warm start vs. cold start**: Detect whether `data/models/<profileId>/amy_model.npz` exists and warm-start from it; otherwise fall back to the global model to accelerate convergence.
 - **Gradient clipping & NaN guards**: Clip gradients and check loss for NaN/inf each step; abort with a structured error event if encountered.
 - **Early-stopping reporting**: Emit the patience counter and best validation loss at each epoch to make stopping decisions transparent.

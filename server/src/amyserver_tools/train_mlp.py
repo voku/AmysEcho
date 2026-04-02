@@ -182,6 +182,7 @@ WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
 MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
 SIGN_LANG_LABEL_MAP_FILENAME = "sign_lang_label_map.txt"
+EXPECTED_FEATURE_CONTRACT_VERSION = "wrist_relative_max_abs_v1"
 PROTOTYPE_MAX_VECTORS_PER_LABEL = int(
     os.environ.get("MLP_PROTOTYPE_MAX_VECTORS_PER_LABEL", "6")
 )
@@ -1572,6 +1573,7 @@ def create_empty_training_stats() -> dict[str, object]:
         "modality_sample_total": 0,
         "bundle_fallback_extractions": 0,
         "bundle_missing_landmarks": 0,
+        "bundle_contract_mismatches": 0,
         "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY,
         "label_bundle_summary": [],
     }
@@ -1665,6 +1667,10 @@ def _serialize_bundle_label_summary(
     return items
 
 
+def has_hand_landmark_dependencies() -> bool:
+    return cv2 is not None and mp is not None
+
+
 def load_frame_list_for_bundle(
     landmarks_path: Path,
     cache_path: Path,
@@ -1752,6 +1758,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     cache_writes = 0
     bundle_fallback_extractions = 0
     bundle_missing_landmarks = 0
+    bundle_contract_mismatches = 0
     modality_counts = dict.fromkeys(MODALITY_KEYS, 0)
     modality_sample_total = 0
     label_bundle_summary: dict[tuple[str, str | None], BundleLabelSummaryEntry] = {}
@@ -1771,6 +1778,30 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         bundle_id = entry.get("id") if isinstance(entry.get("id"), str) else None
         metadata = entry.get("metadata", {}) if isinstance(entry.get("metadata"), dict) else {}
         hand_focus = metadata.get("handFocus")
+        feature_contract = metadata.get("featureContract")
+        feature_contract_version = (
+            feature_contract.get("version")
+            if isinstance(feature_contract, dict)
+            else None
+        )
+        if (
+            isinstance(feature_contract, dict)
+            and feature_contract_version != EXPECTED_FEATURE_CONTRACT_VERSION
+        ):
+            bundle_contract_mismatches += 1
+            _increment_bundle_label_summary(
+                label_bundle_summary,
+                label=label,
+                profile_id=profile_id,
+                status="rejected",
+                reason="feature_contract_mismatch",
+            )
+            LOGGER.warning(
+                "Skipping bundle %s due to feature contract mismatch: %s",
+                entry.get("id"),
+                feature_contract_version,
+            )
+            continue
 
         # Extract variation tracking data
         variation_data = metadata.get("variationData", {}) if isinstance(metadata.get("variationData"), dict) else {}
@@ -1941,6 +1972,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
     if not skip_examples:
         video_examples_dir = DATA_DIR / "dgs_video_examples"
         if video_examples_dir.exists():
+            missing_dependency_warning_emitted = False
             for video_file in video_examples_dir.glob("*.mp4"):
                 # Extract base label from filename to handle variations properly
                 # e.g., "alle_main_alle.mp4" → "alle", "trinken_var_wasser_0.mp4" → "trinken"
@@ -1959,8 +1991,12 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
 
                 if not v_frames:
                     # If dependencies are missing, we can't extract new landmarks
-                    if cv2 is None or mp is None:
-                        LOGGER.warning(f"MediaPipe unavailable, skipping extraction for {video_file.name}")
+                    if not has_hand_landmark_dependencies():
+                        if not missing_dependency_warning_emitted:
+                            LOGGER.warning(
+                                "MediaPipe unavailable, skipping uncached default-example extraction."
+                            )
+                            missing_dependency_warning_emitted = True
                         continue
                         
                     LOGGER.info(f"Extracting landmarks from default example: {video_file.name} (label: {label})")
@@ -2022,6 +2058,7 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
         "modality_sample_total": modality_sample_total,
         "bundle_fallback_extractions": bundle_fallback_extractions,
         "bundle_missing_landmarks": bundle_missing_landmarks,
+        "bundle_contract_mismatches": bundle_contract_mismatches,
         "bundle_landmark_policy": BUNDLE_LANDMARK_POLICY,
         "label_bundle_summary": _serialize_bundle_label_summary(label_bundle_summary),
     }
@@ -3185,6 +3222,12 @@ def run_training_pipeline(
         profile_reports[profile_id] = {
             "accuracy": p_accuracy,
             "f1_score": p_f1,
+            "confusion_matrix": _compute_confusion_matrix(
+                p_X,
+                p_y,
+                p_best_weights,
+                p_num_classes,
+            ),
             "samples": len(p_samples),
             "labels": p_labels,
             "class_counts": p_counts.tolist(),

@@ -456,8 +456,54 @@ def test_build_samples_from_manifest_returns_policy_stats_when_manifest_missing(
     assert stats["entries"] == 0
     assert stats["bundle_fallback_extractions"] == 0
     assert stats["bundle_missing_landmarks"] == 0
+    assert stats["bundle_contract_mismatches"] == 0
     assert stats["bundle_landmark_policy"] == "bundle_only"
     assert stats["label_bundle_summary"] == []
+
+
+def test_build_samples_from_manifest_rejects_feature_contract_mismatch(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-contract-1")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+    landmarks_path = bundle_dir / "landmarks.json"
+    landmarks_path.write_text(
+        json.dumps({"frames": [{"landmarks": [[0.1, 0.1, 0.1] for _ in range(42)]}]}),
+        encoding="utf-8",
+    )
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-contract-1",
+                "profileId": None,
+                "label": "HALLO",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "files": ["landmarks.json"],
+                },
+                "metadata": {
+                    "label": "HALLO",
+                    "featureContract": {"version": "legacy_v0"},
+                    "validationSummary": {"landmarksPath": "landmarks.json"},
+                },
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert samples == []
+    assert stats["bundle_contract_mismatches"] == 1
+    assert stats["label_bundle_summary"][0]["rejection_reasons"]["feature_contract_mismatch"] == 1
     assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0, "nonManual": 0}
     assert stats["modality_sample_total"] == 0
 
@@ -678,4 +724,3 @@ def test_load_frame_list_for_bundle_skips_clip_when_dependencies_missing(monkeyp
     assert stats["cache_misses"] == 1
     assert stats["bundle_missing_landmarks"] == 1
     assert stats["bundle_fallback_extractions"] == 0
-

@@ -21,6 +21,7 @@ import {
 	appendTrainingManifestEntry,
 	loadTrainingManifest,
 	loadTrainingManifestRaw,
+	loadTrainingReports,
 } from "../services/trainingJsonStore.js";
 
 interface TrainingJobTriggerContext {
@@ -125,6 +126,44 @@ const TrainingQualityQuerySchema = z.object({
 	profileId: z.string().trim().min(1).optional(),
 	limit: z.coerce.number().int().positive().max(200).optional(),
 });
+
+type StoredTrainingProfileReport = {
+	profileId: string;
+	accuracy?: number;
+	f1Score?: number;
+	samples?: number;
+	confusionMatrix?: number[][];
+	labels?: string[];
+};
+
+type StoredTrainingRunReport = {
+	runId: string;
+	recordedAt?: string;
+	globalAccuracy?: number;
+	globalSamples?: number;
+	profiles?: StoredTrainingProfileReport[];
+};
+
+const MAX_TRAINING_REPORT_RUN_SCAN = 400;
+
+function sumDiagonal(matrix: number[][]): number {
+	return matrix.reduce((total, row, index) => total + (row[index] ?? 0), 0);
+}
+
+function sumAll(matrix: number[][]): number {
+	return matrix.reduce(
+		(total, row) => total + row.reduce((rowTotal, value) => rowTotal + value, 0),
+		0,
+	);
+}
+
+function safeParseTimestamp(value: string | null): number {
+	if (!value) {
+		return 0;
+	}
+	const parsed = Date.parse(value);
+	return Number.isFinite(parsed) ? parsed : 0;
+}
 
 const trainingBundleUpload = express.raw({
 	type: [
@@ -1132,6 +1171,141 @@ export function registerTrainingBundleRoute(
 		} catch (error) {
 			logger.error("Failed to load training quality log", { error });
 			res.status(500).json({ error: "Qualitätsprotokoll konnte nicht geladen werden" });
+		}
+	});
+
+	app.get("/api/v1/dgs/training-reports", auth, async (req: Request, res: Response) => {
+		const parsedQuery = TrainingQualityQuerySchema.safeParse(req.query);
+		if (!parsedQuery.success) {
+			res.status(400).json({
+				error: "Ungültige Anfrageparameter",
+				code: "INVALID_QUERY",
+				issues: parsedQuery.error.issues,
+			});
+			return;
+		}
+
+		const profileIdFilter = parsedQuery.data.profileId ?? null;
+		const limit = parsedQuery.data.limit ?? 30;
+		if (
+			profileIdFilter &&
+			deps.isProfileAuthorized &&
+			!deps.isProfileAuthorized(req, profileIdFilter)
+		) {
+			res.status(403).json({
+				error: "Kein Zugriff auf dieses Profil.",
+				code: "PROFILE_UNAUTHORIZED",
+			});
+			return;
+		}
+
+		try {
+			const runs = loadTrainingReports<StoredTrainingRunReport>().entries;
+			const scannedRuns =
+				runs.length > MAX_TRAINING_REPORT_RUN_SCAN
+					? runs.slice(runs.length - MAX_TRAINING_REPORT_RUN_SCAN)
+					: runs;
+			const authorizationCache = new Map<string, boolean>();
+			const isAuthorizedForProfile = (profileId: string): boolean => {
+				if (!deps.isProfileAuthorized) {
+					return true;
+				}
+				const cached = authorizationCache.get(profileId);
+				if (typeof cached === "boolean") {
+					return cached;
+				}
+				const resolved = deps.isProfileAuthorized(req, profileId);
+				authorizationCache.set(profileId, resolved);
+				return resolved;
+			};
+			const selectedProfiles = scannedRuns.flatMap((run) => {
+				const recordedAt = typeof run.recordedAt === "string" ? run.recordedAt : null;
+				const profiles = Array.isArray(run.profiles) ? run.profiles : [];
+				return profiles.flatMap((profile) => {
+					if (!profile || typeof profile !== "object") {
+						return [];
+					}
+					const profileId =
+						typeof profile.profileId === "string" ? profile.profileId.trim() : "";
+					if (!profileId) {
+						return [];
+					}
+					if (profileIdFilter && profileId !== profileIdFilter) {
+						return [];
+					}
+					if (!isAuthorizedForProfile(profileId)) {
+						return [];
+					}
+					const matrix = Array.isArray(profile.confusionMatrix)
+						? profile.confusionMatrix.filter((row) =>
+							Array.isArray(row) && row.every((value) => typeof value === "number"),
+						)
+						: [];
+					const total = sumAll(matrix);
+					const correct = sumDiagonal(matrix);
+					return [{
+						runId: run.runId,
+						recordedAt,
+						profileId,
+						accuracy:
+							typeof profile.accuracy === "number" ? profile.accuracy : 0,
+						f1Score:
+							typeof profile.f1Score === "number" ? profile.f1Score : 0,
+						samples:
+							typeof profile.samples === "number" ? profile.samples : 0,
+						confusionAccuracy: total > 0 ? correct / total : null,
+						labels: Array.isArray(profile.labels)
+							? profile.labels.filter((label): label is string => typeof label === "string")
+							: [],
+					}];
+				});
+			});
+
+			selectedProfiles.sort((a, b) => {
+				const aTime = safeParseTimestamp(a.recordedAt);
+				const bTime = safeParseTimestamp(b.recordedAt);
+				return bTime - aTime;
+			});
+
+			const items = selectedProfiles.slice(0, limit);
+			const latestByProfile = new Map<
+				string,
+				{
+					latest: (typeof items)[number];
+					previous: (typeof items)[number] | null;
+				}
+			>();
+			for (const item of selectedProfiles) {
+				const existing = latestByProfile.get(item.profileId);
+				if (!existing) {
+					latestByProfile.set(item.profileId, { latest: item, previous: null });
+					continue;
+				}
+				if (!existing.previous) {
+					existing.previous = item;
+				}
+			}
+
+			const itemProfileIds = new Set(items.map((item) => item.profileId));
+			const profileTrends = Array.from(latestByProfile.entries())
+				.filter(([profileId]) => itemProfileIds.has(profileId))
+				.map(([profileId, trend]) => ({
+					profileId,
+					latestRunId: trend.latest.runId,
+					latestRecordedAt: trend.latest.recordedAt,
+					latestAccuracy: trend.latest.accuracy,
+					latestF1Score: trend.latest.f1Score,
+					latestSamples: trend.latest.samples,
+					accuracyDelta:
+						trend.previous ? trend.latest.accuracy - trend.previous.accuracy : null,
+					f1Delta:
+						trend.previous ? trend.latest.f1Score - trend.previous.f1Score : null,
+				}));
+
+			res.json({ items, profileTrends });
+		} catch (error) {
+			logger.error("Failed to load training reports", { error });
+			res.status(500).json({ error: "Trainingsberichte konnten nicht geladen werden" });
 		}
 	});
 

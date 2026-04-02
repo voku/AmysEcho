@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from conftest import TEST_JWT_REFRESH_SECRET, TEST_JWT_SECRET, _get_free_port, create_access_token
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
@@ -50,6 +51,54 @@ def _sha256_file(path: Path) -> str:
 def _load_fixture() -> dict[str, Any]:
     with FIXTURE_PATH.open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def _assert_runtime_inference_shape_compatibility(model_path: Path) -> None:
+    with np.load(model_path, allow_pickle=False) as model:
+        w1 = model["w1"].astype(np.float32)
+        b1 = model["b1"].astype(np.float32)
+        w2 = model["w2"].astype(np.float32)
+        b2 = model["b2"].astype(np.float32)
+        w3 = model["w3"].astype(np.float32)
+        b3 = model["b3"].astype(np.float32)
+        labels = model["labels"]
+        window_size = int(model["window_size"].item())
+        input_dim = int(model["input_dim"].item())
+        feature_size = int(model["feature_size"].item())
+
+    assert window_size > 0
+    assert feature_size > 0
+    assert input_dim == window_size * feature_size
+
+    assert w1.ndim == 2 and b1.ndim == 1
+    assert w2.ndim == 2 and b2.ndim == 1
+    assert w3.ndim == 2 and b3.ndim == 1
+    assert w1.shape[1] == input_dim
+    assert w1.shape[0] == b1.shape[0]
+    assert w2.shape[1] == w1.shape[0]
+    assert w2.shape[0] == b2.shape[0]
+    assert w3.shape[1] == w2.shape[0]
+    assert w3.shape[0] == b3.shape[0]
+    assert w3.shape[0] == len(labels)
+
+    # Runtime-style affine/relu forward pass using exact expected input shape.
+    inference_input = np.zeros((input_dim,), dtype=np.float32)
+    z1 = np.matmul(w1, inference_input) + b1
+    a1 = np.maximum(z1, 0)
+    z2 = np.matmul(w2, a1) + b2
+    a2 = np.maximum(z2, 0)
+    logits = np.matmul(w3, a2) + b3
+    assert logits.shape == (len(labels),)
+    assert np.isfinite(logits).all()
+
+    # Negative-path check: runtime must reject mismatched input shape.
+    wrong_shape_input = np.zeros((input_dim + 1,), dtype=np.float32)
+    try:
+        np.matmul(w1, wrong_shape_input)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Expected shape mismatch to fail runtime matmul")
 
 
 def _expand_frames(seed_frames: list[dict[str, Any]], minimum_count: int = 30) -> list[dict[str, Any]]:
@@ -234,6 +283,7 @@ def test_training_pipeline_with_fixture_dataset() -> None:
         metadata_path = data_dir / "models" / "global" / "training_metadata.json"
         assert model_path.exists()
         assert metadata_path.exists()
+        _assert_runtime_inference_shape_compatibility(model_path)
 
         with metadata_path.open("r", encoding="utf-8") as handle:
             metadata = json.load(handle)

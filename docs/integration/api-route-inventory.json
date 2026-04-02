@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-03-30T13:55:33.880Z",
+  "generatedAt": "2026-04-01T07:30:38.481Z",
   "sourceGlobs": [
     "server/src/server.ts",
     "server/src/routes/*.ts"
   ],
-  "routeCount": 68,
+  "routeCount": 69,
   "routes": [
     {
       "method": "GET",
@@ -70,19 +70,19 @@
       "method": "GET",
       "path": "/api/v1/config/normalization",
       "source": "server/src/server.ts",
-      "line": 1715
+      "line": 1399
     },
     {
       "method": "POST",
       "path": "/api/v1/corrections",
       "source": "server/src/server.ts",
-      "line": 1333
+      "line": 1276
     },
     {
       "method": "POST",
       "path": "/api/v1/crash-reports",
       "source": "server/src/server.ts",
-      "line": 1277
+      "line": 1220
     },
     {
       "method": "GET",
@@ -100,19 +100,19 @@
       "method": "POST",
       "path": "/api/v1/dgs/sample-bundles",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1188
+      "line": 1352
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/sample-bundles/:id",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1138
+      "line": 1302
     },
     {
       "method": "POST",
       "path": "/api/v1/dgs/samples",
       "source": "server/src/server.ts",
-      "line": 1205
+      "line": 1148
     },
     {
       "method": "GET",
@@ -130,31 +130,37 @@
       "method": "GET",
       "path": "/api/v1/dgs/trained-labels",
       "source": "server/src/server.ts",
-      "line": 1679
+      "line": 1363
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/training-quality",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1094
+      "line": 1133
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dgs/training-reports",
+      "source": "server/src/routes/trainingBundleRoute.ts",
+      "line": 1177
     },
     {
       "method": "GET",
       "path": "/api/v1/health",
-      "source": "server/src/server.ts",
-      "line": 459
+      "source": "server/src/routes/diagnosticsRoutes.ts",
+      "line": 173
     },
     {
       "method": "GET",
       "path": "/api/v1/labels",
       "source": "server/src/server.ts",
-      "line": 463
+      "line": 360
     },
     {
       "method": "GET",
       "path": "/api/v1/labels/:labelId/videos",
       "source": "server/src/server.ts",
-      "line": 480
+      "line": 377
     },
     {
       "method": "DELETE",
@@ -190,31 +196,31 @@
       "method": "GET",
       "path": "/api/v1/models/latest",
       "source": "server/src/server.ts",
-      "line": 1153
+      "line": 1096
     },
     {
       "method": "GET",
       "path": "/api/v1/models/metadata",
-      "source": "server/src/server.ts",
-      "line": 1573
+      "source": "server/src/routes/modelMetadataRoutes.ts",
+      "line": 93
     },
     {
       "method": "GET",
       "path": "/api/v1/models/profiles",
-      "source": "server/src/server.ts",
-      "line": 1607
+      "source": "server/src/routes/modelMetadataRoutes.ts",
+      "line": 128
     },
     {
       "method": "GET",
       "path": "/api/v1/models/version",
-      "source": "server/src/server.ts",
-      "line": 1510
+      "source": "server/src/routes/modelMetadataRoutes.ts",
+      "line": 77
     },
     {
       "method": "POST",
       "path": "/api/v1/negative-samples",
       "source": "server/src/server.ts",
-      "line": 1363
+      "line": 1306
     },
     {
       "method": "GET",
@@ -345,20 +351,20 @@
     {
       "method": "POST",
       "path": "/api/v1/train-model",
-      "source": "server/src/server.ts",
-      "line": 1393
+      "source": "server/src/routes/trainingJobsRoutes.ts",
+      "line": 100
     },
     {
       "method": "GET",
       "path": "/api/v1/train-status",
-      "source": "server/src/server.ts",
-      "line": 1501
+      "source": "server/src/routes/trainingJobsRoutes.ts",
+      "line": 171
     },
     {
       "method": "GET",
       "path": "/api/v1/train-status/:id",
-      "source": "server/src/server.ts",
-      "line": 1486
+      "source": "server/src/routes/trainingJobsRoutes.ts",
+      "line": 157
     },
     {
       "method": "GET",
@@ -411,8 +417,8 @@
     {
       "method": "GET",
       "path": "/health",
-      "source": "server/src/server.ts",
-      "line": 456
+      "source": "server/src/routes/diagnosticsRoutes.ts",
+      "line": 172
     }
   ]
 }

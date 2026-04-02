@@ -38,6 +38,7 @@ The route list below is machine-checked in CI against code route inventory.
 - POST /api/v1/dgs/signs
 - GET /api/v1/dgs/trained-labels
 - GET /api/v1/dgs/training-quality
+- GET /api/v1/dgs/training-reports
 - GET /api/v1/health
 - GET /api/v1/labels
 - GET /api/v1/labels/:labelId/videos
@@ -161,6 +162,7 @@ The route list below is machine-checked in CI against code route inventory.
 | `POST /api/v1/dgs/sample-bundles` | Required | raw ZIP (`application/zip`/octet-stream), must include `metadata.json` validated by `MetadataSchema` and valid `landmarks.json` | `202 { status:"queued", id, trainingJob?, validationSummary, qualityGate }` | `400`, `403`, `422`, `500` |
 | `GET /api/v1/dgs/sample-bundles/:id` | Required | path `id`, optional header `X-Profile-Id` used for scoped bundles | `{ id,status,label,profileId,receivedAt,metadata,validationSummary,qualityGate }` | `400`, `403`, `404`, `500` |
 | `GET /api/v1/dgs/training-quality` | Required | query `{ profileId?, limit?:1..200 }` | `{ items:[...] }` | `400` (`code: INVALID_QUERY`), `403` (`PROFILE_UNAUTHORIZED`), `500` |
+| `GET /api/v1/dgs/training-reports` | Required | query `{ profileId?, limit?:1..200 }` | `{ items:[{ runId, recordedAt, profileId, accuracy, f1Score, samples, confusionAccuracy, labels }], profileTrends:[{ profileId, latestRunId, latestRecordedAt, latestAccuracy, latestF1Score, latestSamples, accuracyDelta, f1Delta }] }` | `400` (`code: INVALID_QUERY`), `403` (`PROFILE_UNAUTHORIZED`), `500` |
 | `POST /api/v1/train-model` | Required | `{ samples?:[{signId,profileId?,landmarkData:(points[]\|frames[])}], trigger?:"bundles" }` | `202 { status, jobId, pollUrl, message, queueDepth, retryAfterMs? }` | `400`, `403`, `429`, `500` |
 | `GET /api/v1/train-status/:id` | Required | path `id` | training job object | `404 { id, status:"not_found" }` |
 | `GET /api/v1/train-status` | Required | none | `{ error:"Training job id is required." }` | `400` |
