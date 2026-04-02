@@ -318,7 +318,6 @@ function createTables(): void {
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_profileId ON userLabelSettings(profileId);
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_labelId ON userLabelSettings(labelId);
 	`);
-	ensureUserLabelSettingsProfileSchema(database);
 
 	// Generic JSON collections for non-relational training workflows migrated from
 	// file-based persistence (training manifest, dgs samples, custom signs, quality log).
@@ -329,51 +328,6 @@ function createTables(): void {
 			updatedAt INTEGER NOT NULL
 		);
 	`);
-}
-
-function ensureUserLabelSettingsProfileSchema(database: Database.Database): void {
-	const tableExists = database
-		.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'userLabelSettings'")
-		.get();
-	if (!tableExists) {
-		return;
-	}
-
-	const columns = database.prepare("PRAGMA table_info(userLabelSettings)").all() as Array<{ name: string }>;
-	const hasProfileId = columns.some((column) => column.name === "profileId");
-	if (hasProfileId) {
-		return;
-	}
-
-	const migrateLegacySchema = database.transaction(() => {
-		database.exec(`
-			CREATE TABLE userLabelSettings_new (
-				id TEXT PRIMARY KEY,
-				profileId TEXT NOT NULL,
-				labelId TEXT NOT NULL,
-				mode TEXT NOT NULL DEFAULT 'user_train',
-				enabled INTEGER NOT NULL DEFAULT 1,
-				updatedAt TEXT NOT NULL,
-				lastTrainedAt TEXT,
-				UNIQUE(profileId, labelId)
-			);
-		`);
-
-		database.exec(`
-			INSERT INTO userLabelSettings_new (id, profileId, labelId, mode, enabled, updatedAt, lastTrainedAt)
-			SELECT id, userId, labelId, mode, enabled, updatedAt, lastTrainedAt
-			FROM userLabelSettings;
-		`);
-
-		database.exec("DROP TABLE userLabelSettings;");
-		database.exec("ALTER TABLE userLabelSettings_new RENAME TO userLabelSettings;");
-		database.exec(`
-			CREATE INDEX IF NOT EXISTS idx_userLabelSettings_profileId ON userLabelSettings(profileId);
-			CREATE INDEX IF NOT EXISTS idx_userLabelSettings_labelId ON userLabelSettings(labelId);
-		`);
-	});
-
-	migrateLegacySchema();
 }
 
 /**
