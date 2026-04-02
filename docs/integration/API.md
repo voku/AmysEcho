@@ -19,6 +19,8 @@ The route list below is machine-checked in CI against code route inventory.
 - GET /api/pretraining/labels/:labelId
 - GET /api/pretraining/status
 - DELETE /api/v1/auth/account
+- PUT /api/v1/account/password
+- PUT /api/v1/account/profile
 - POST /api/v1/auth/login
 - POST /api/v1/auth/password-reset/confirm
 - POST /api/v1/auth/password-reset/request
@@ -78,12 +80,10 @@ The route list below is machine-checked in CI against code route inventory.
 - GET /api/v1/train-status/:id
 - GET /api/v1/training-videos/:bundleId/clip
 - GET /api/v1/training-videos/:bundleId/still
-- PUT /api/v1/user/password
-- PUT /api/v1/user/profile
-- GET /api/v1/users/:userId/labels
-- GET /api/v1/users/:userId/labels/:labelId
-- PATCH /api/v1/users/:userId/labels/:labelId
-- POST /api/v1/users/:userId/labels/initialize
+- GET /api/v1/profiles/:profileId/labels
+- GET /api/v1/profiles/:profileId/labels/:labelId
+- PATCH /api/v1/profiles/:profileId/labels/:labelId
+- POST /api/v1/profiles/:profileId/labels/initialize
 - GET /health
 <!-- END ROUTE INDEX -->
 
@@ -109,8 +109,8 @@ The route list below is machine-checked in CI against code route inventory.
 | `POST /api/v1/auth/verify-email/request` | No | `{ email }` | `202 { message }` | `400`, `500` |
 | `POST /api/v1/auth/verify-email/confirm` | No | `{ email, verificationToken }` | `200 { message }` | `400` invalid/expired code, `500` |
 | `DELETE /api/v1/auth/account` | Required | `{ username, password, confirmText:"KONTO LÖSCHEN" }` | `200 { message }` | `400`, `401`, `403`, `500` |
-| `PUT /api/v1/user/profile` | Required | `{ displayName?:string(1-120) }` (`userId` forbidden) | `200 { user:{id,username,email,displayName} }` | `400`, `401`, `403`, `404`, `500` |
-| `PUT /api/v1/user/password` | Required | `{ currentPassword, newPassword }` (`userId` forbidden) | `200 { message }` | `400`, `401`, `403`, `404`, `500` |
+| `PUT /api/v1/account/profile` | Required | `{ displayName?:string(1-120) }` (`userId` forbidden) | `200 { user:{id,username,email,displayName} }` | `400`, `401`, `403`, `404`, `500` |
+| `PUT /api/v1/account/password` | Required | `{ currentPassword, newPassword }` (`userId` forbidden) | `200 { message }` | `400`, `401`, `403`, `404`, `500` |
 
 ### Label registry and pretraining status
 
@@ -190,14 +190,14 @@ The route list below is machine-checked in CI against code route inventory.
 | `GET /api/v1/dgs-videos` | Required | none | `{ videos:[{label,filename,clipUrl}] }` | `500` |
 | `GET /api/v1/dgs-videos/:filename` | Required | path `filename` (extension and traversal checks) + optional `Range` | video stream (`200` or `206`) | `400`, `403`, `404`, `416`, `500` |
 
-### User label settings
+### Profile label settings
 
 | Endpoint | Auth | Request schema | Response schema | Error codes/status |
 |---|---|---|---|---|
-| `GET /api/v1/users/:userId/labels` | Required | path `userId` profile-id regex | `{ labels:[...], stats:{totalLabels,enabledLabels,serverPretrainLabels,userTrainLabels,readyLabels} }` | `400`, `403`, `500` |
-| `GET /api/v1/users/:userId/labels/:labelId` | Required | path `userId` regex; `labelId` regex `^[a-zA-Z0-9_-]+$` | merged readiness + setting fields | `400`, `403`, `404`, `500` |
-| `PATCH /api/v1/users/:userId/labels/:labelId` | Required | path validation + body `{ mode?:"server_pretrain"\|"user_train", enabled?:boolean }` with at least one field | updated readiness payload + `updatedAt` + optional `autoPretrainJob` | `400`, `403`, `404`, `500` |
-| `POST /api/v1/users/:userId/labels/initialize` | Required | path `userId` regex | `{ status:"initialized", labelCount, labels }` | `400`, `403`, `500` |
+| `GET /api/v1/profiles/:profileId/labels` | Required | path `profileId` profile-id regex | `{ labels:[...], stats:{totalLabels,enabledLabels,serverPretrainLabels,userTrainLabels,readyLabels} }` | `400`, `403`, `500` |
+| `GET /api/v1/profiles/:profileId/labels/:labelId` | Required | path `profileId` regex; `labelId` regex `^[a-zA-Z0-9_-]+$` | merged readiness + setting fields | `400`, `403`, `404`, `500` |
+| `PATCH /api/v1/profiles/:profileId/labels/:labelId` | Required | path validation + body `{ mode?:"server_pretrain"\|"user_train", enabled?:boolean }` with at least one field | updated readiness payload + `updatedAt` + optional `autoPretrainJob` | `400`, `403`, `404`, `500` |
+| `POST /api/v1/profiles/:profileId/labels/initialize` | Required | path `profileId` regex | `{ status:"initialized", labelCount, labels }` | `400`, `403`, `500` |
 
 ## Route inventory artifact
 

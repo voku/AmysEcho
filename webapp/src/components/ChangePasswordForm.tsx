@@ -29,7 +29,7 @@ export function ChangePasswordForm() {
       setMessage('Passwort wird aktualisiert…');
 
       try {
-        const response = await fetch(resolveApiUrl('/api/v1/user/password', apiBaseUrl), {
+        const response = await fetch(resolveApiUrl('/api/v1/account/password', apiBaseUrl), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

@@ -147,13 +147,13 @@ export interface NegativeSample {
 export type LabelTrainingMode = "server_pretrain" | "user_train";
 
 /**
- * Per-user, per-label training settings
+ * Per-profile, per-label training settings
  * Amy First: Each child can have their own personalized label collection
  */
 export interface UserLabelSetting {
 	id: string;
-	/** User/profile ID that owns this setting */
-	userId: string;
+	/** Profile ID that owns this setting */
+	profileId: string;
 	/** Label ID (e.g., "rot", "blau") */
 	labelId: string;
 	/** Training mode: server_pretrain or user_train */

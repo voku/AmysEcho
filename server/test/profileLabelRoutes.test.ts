@@ -1,7 +1,7 @@
 /**
- * User Label Routes API Tests
+ * Profile Label Routes API Tests
  *
- * Integration tests for the user label settings API endpoints.
+ * Integration tests for the profile label settings API endpoints.
  * Amy First: Each child can configure their own label training modes.
  */
 
@@ -10,7 +10,7 @@ import express, { type Express } from "express";
 import request from "supertest";
 import path from "path";
 import { promises as fs } from "fs";
-import { registerUserLabelRoutes } from "../src/routes/userLabelRoutes";
+import { registerProfileLabelRoutes } from "../src/routes/profileLabelRoutes";
 import { closeDatabase, initializeDatabase } from "../src/sqliteDb";
 import type { Database } from "../src/db";
 import type { ProfileRegistry } from "../src/services/profileRegistry";
@@ -18,9 +18,10 @@ import type { ProfileRegistry } from "../src/services/profileRegistry";
 // Create mock dependencies
 const TEST_DB_PATH = path.join(__dirname, "../data/test-user-label-routes.sqlite");
 
-describe("User Label Routes API", () => {
+describe("Profile Label Routes API", () => {
 	let app: Express;
-	let testUserId: string;
+	let unauthorizedApp: Express;
+	let testProfileId: string;
 	let mockDb: Database;
 	let mockRegistry: ProfileRegistry;
 
@@ -33,13 +34,13 @@ describe("User Label Routes API", () => {
 		}
 		await initializeDatabase(TEST_DB_PATH);
 
-		testUserId = randomUUID();
+		testProfileId = randomUUID();
 
 		// Create mock database
 		mockDb = {
 			profiles: [
 				{
-					id: testUserId,
+					id: testProfileId,
 					userId: "test-owner",
 					displayName: "Test Profile",
 					createdAt: new Date().toISOString(),
@@ -67,7 +68,7 @@ describe("User Label Routes API", () => {
 			updatedAt: new Date().toISOString(),
 			profiles: [
 				{
-					id: testUserId,
+					id: testProfileId,
 					displayName: "Test Profile",
 					createdAt: new Date().toISOString(),
 					updatedAt: new Date().toISOString(),
@@ -113,8 +114,26 @@ describe("User Label Routes API", () => {
 			status: "queued",
 		});
 
-		registerUserLabelRoutes(app, {
+		registerProfileLabelRoutes(app, {
 			authMiddleware: mockAuth,
+			db: mockDb,
+			registry: mockRegistry,
+			logError: () => {},
+			queueAutoPretrainJob: mockQueueAutoPretrainJob,
+		});
+
+		unauthorizedApp = express();
+		unauthorizedApp.use(express.json());
+		const unauthorizedAuth = (
+			req: express.Request,
+			_res: express.Response,
+			next: express.NextFunction,
+		) => {
+			req.user = { id: "outsider-user", username: "outsider", role: "caregiver" };
+			next();
+		};
+		registerProfileLabelRoutes(unauthorizedApp, {
+			authMiddleware: unauthorizedAuth,
 			db: mockDb,
 			registry: mockRegistry,
 			logError: () => {},
@@ -126,10 +145,10 @@ describe("User Label Routes API", () => {
 		closeDatabase();
 	});
 
-	describe("POST /api/v1/users/:userId/labels/initialize", () => {
-		it("should initialize default label settings for a user", async () => {
+	describe("POST /api/v1/profiles/:profileId/labels/initialize", () => {
+		it("should initialize default label settings for a profile", async () => {
 			const response = await request(app)
-				.post(`/api/v1/users/${testUserId}/labels/initialize`)
+				.post(`/api/v1/profiles/${testProfileId}/labels/initialize`)
 				.expect(200);
 
 			expect(response.body.status).toBe("initialized");
@@ -137,19 +156,19 @@ describe("User Label Routes API", () => {
 			expect(response.body.labels).toBeInstanceOf(Array);
 		});
 
-		it("should reject invalid user ID", async () => {
+		it("should reject invalid profile ID", async () => {
 			const response = await request(app)
-				.post("/api/v1/users/invalid-id/labels/initialize")
+				.post("/api/v1/profiles/invalid-id/labels/initialize")
 				.expect(400);
 
-			expect(response.body.error).toBe("Ungültige Benutzer-ID.");
+			expect(response.body.error).toBe("Ungültige Profil-ID.");
 		});
 	});
 
-	describe("GET /api/v1/users/:userId/labels", () => {
+	describe("GET /api/v1/profiles/:profileId/labels", () => {
 		it("should return all labels with settings and readiness", async () => {
 			const response = await request(app)
-				.get(`/api/v1/users/${testUserId}/labels`)
+				.get(`/api/v1/profiles/${testProfileId}/labels`)
 				.expect(200);
 
 			expect(response.body.labels).toBeInstanceOf(Array);
@@ -167,19 +186,27 @@ describe("User Label Routes API", () => {
 			}
 		});
 
-		it("should reject invalid user ID", async () => {
+		it("should reject invalid profile ID", async () => {
 			const response = await request(app)
-				.get("/api/v1/users/invalid-id/labels")
+				.get("/api/v1/profiles/invalid-id/labels")
 				.expect(400);
 
-			expect(response.body.error).toBe("Ungültige Benutzer-ID.");
+			expect(response.body.error).toBe("Ungültige Profil-ID.");
+		});
+
+		it("should reject valid auth with unauthorized profile access", async () => {
+			const response = await request(unauthorizedApp)
+				.get(`/api/v1/profiles/${testProfileId}/labels`)
+				.expect(403);
+
+			expect(response.body.error).toBe("Zugriff verweigert.");
 		});
 	});
 
-	describe("GET /api/v1/users/:userId/labels/:labelId", () => {
+	describe("GET /api/v1/profiles/:profileId/labels/:labelId", () => {
 		it("should return specific label details", async () => {
 			const response = await request(app)
-				.get(`/api/v1/users/${testUserId}/labels/blau`)
+				.get(`/api/v1/profiles/${testProfileId}/labels/blau`)
 				.expect(200);
 
 			expect(response.body.labelId).toBe("blau");
@@ -191,17 +218,17 @@ describe("User Label Routes API", () => {
 
 		it("should return 404 for non-existent label", async () => {
 			const response = await request(app)
-				.get(`/api/v1/users/${testUserId}/labels/nonexistent123`)
+				.get(`/api/v1/profiles/${testProfileId}/labels/nonexistent123`)
 				.expect(404);
 
 			expect(response.body.error).toBe("Label nicht gefunden.");
 		});
 	});
 
-	describe("PATCH /api/v1/users/:userId/labels/:labelId", () => {
+	describe("PATCH /api/v1/profiles/:profileId/labels/:labelId", () => {
 		it("should update label mode", async () => {
 			const response = await request(app)
-				.patch(`/api/v1/users/${testUserId}/labels/blau`)
+				.patch(`/api/v1/profiles/${testProfileId}/labels/blau`)
 				.send({ mode: "server_pretrain" })
 				.expect(200);
 
@@ -210,7 +237,7 @@ describe("User Label Routes API", () => {
 
 		it("should update label enabled status", async () => {
 			const response = await request(app)
-				.patch(`/api/v1/users/${testUserId}/labels/blau`)
+				.patch(`/api/v1/profiles/${testProfileId}/labels/blau`)
 				.send({ enabled: false })
 				.expect(200);
 
@@ -219,7 +246,7 @@ describe("User Label Routes API", () => {
 
 		it("should update both mode and enabled", async () => {
 			const response = await request(app)
-				.patch(`/api/v1/users/${testUserId}/labels/rot`)
+				.patch(`/api/v1/profiles/${testProfileId}/labels/rot`)
 				.send({ mode: "user_train", enabled: true })
 				.expect(200);
 
@@ -229,7 +256,7 @@ describe("User Label Routes API", () => {
 
 		it("should allow new labels and queue auto-pretrain jobs", async () => {
 			const response = await request(app)
-				.patch(`/api/v1/users/${testUserId}/labels/kindergarten`)
+				.patch(`/api/v1/profiles/${testProfileId}/labels/kindergarten`)
 				.send({ mode: "server_pretrain", enabled: true })
 				.expect(200);
 
@@ -240,7 +267,7 @@ describe("User Label Routes API", () => {
 
 		it("should reject invalid mode", async () => {
 			const response = await request(app)
-				.patch(`/api/v1/users/${testUserId}/labels/blau`)
+				.patch(`/api/v1/profiles/${testProfileId}/labels/blau`)
 				.send({ mode: "invalid_mode" })
 				.expect(400);
 
@@ -249,7 +276,7 @@ describe("User Label Routes API", () => {
 
 		it("should require at least one field", async () => {
 			const response = await request(app)
-				.patch(`/api/v1/users/${testUserId}/labels/blau`)
+				.patch(`/api/v1/profiles/${testProfileId}/labels/blau`)
 				.send({})
 				.expect(400);
 

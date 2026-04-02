@@ -302,20 +302,20 @@ function createTables(): void {
 		CREATE INDEX IF NOT EXISTS idx_negativeSamples_timestamp ON negativeSamples(timestamp);
 	`);
 
-	// User label settings table - per-user, per-label training configuration
+	// User label settings table - per-profile, per-label training configuration
 	// Amy First: Each child can have their own personalized label collection
 	database.exec(`
 		CREATE TABLE IF NOT EXISTS userLabelSettings (
 			id TEXT PRIMARY KEY,
-			userId TEXT NOT NULL,
+			profileId TEXT NOT NULL,
 			labelId TEXT NOT NULL,
 			mode TEXT NOT NULL DEFAULT 'user_train',
 			enabled INTEGER NOT NULL DEFAULT 1,
 			updatedAt TEXT NOT NULL,
 			lastTrainedAt TEXT,
-			UNIQUE(userId, labelId)
+			UNIQUE(profileId, labelId)
 		);
-		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_userId ON userLabelSettings(userId);
+		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_profileId ON userLabelSettings(profileId);
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_labelId ON userLabelSettings(labelId);
 	`);
 
@@ -734,10 +734,10 @@ export function deleteUserById(id: string): void {
 export function deleteUserAndLabelSettingsByUserId(userId: string): void {
 	const database = getDb();
 	const deleteInTransaction = database.transaction(() => {
-		database.prepare("DELETE FROM users WHERE id = ?").run(userId);
 		database
-			.prepare("DELETE FROM userLabelSettings WHERE userId = ?")
+			.prepare("DELETE FROM userLabelSettings WHERE profileId IN (SELECT id FROM profiles WHERE userId = ?)")
 			.run(userId);
+		database.prepare("DELETE FROM users WHERE id = ?").run(userId);
 	});
 	deleteInTransaction();
 }
@@ -779,7 +779,9 @@ export function deleteAccountDataByUserId(userId: string): void {
 			database.prepare("DELETE FROM corrections WHERE profileId = ?").run(profile.id);
 			database.prepare("DELETE FROM profiles WHERE id = ?").run(profile.id);
 		}
-		database.prepare("DELETE FROM userLabelSettings WHERE userId = ?").run(userId);
+		for (const profile of profileRows) {
+			database.prepare("DELETE FROM userLabelSettings WHERE profileId = ?").run(profile.id);
+		}
 		database.prepare("DELETE FROM users WHERE id = ?").run(userId);
 	});
 	deleteInTransaction();
@@ -1473,39 +1475,41 @@ export function deleteNegativeSampleById(id: string): void {
 /**
  * Get all user label settings for a specific user
  */
-export function getUserLabelSettingsByUserId(userId: string): UserLabelSetting[] {
-	const rows = getDb().prepare("SELECT * FROM userLabelSettings WHERE userId = ?").all(userId) as SqliteRow[];
-	return rows.map(rowToUserLabelSetting);
+export function getProfileLabelSettingsByProfileId(profileId: string): UserLabelSetting[] {
+	const rows = getDb()
+		.prepare("SELECT * FROM userLabelSettings WHERE profileId = ?")
+		.all(profileId) as SqliteRow[];
+	return rows.map(rowToProfileLabelSetting);
 }
 
 /**
  * Get a specific user label setting by user and label
  */
-export function getUserLabelSetting(userId: string, labelId: string): UserLabelSetting | undefined {
+export function getProfileLabelSetting(profileId: string, labelId: string): UserLabelSetting | undefined {
 	const row = getDb().prepare(
-		"SELECT * FROM userLabelSettings WHERE userId = ? AND labelId = ?"
-	).get(userId, labelId) as SqliteRow | undefined;
-	return row ? rowToUserLabelSetting(row) : undefined;
+		"SELECT * FROM userLabelSettings WHERE profileId = ? AND labelId = ?"
+	).get(profileId, labelId) as SqliteRow | undefined;
+	return row ? rowToProfileLabelSetting(row) : undefined;
 }
 
 /**
  * Get user label setting by ID
  */
-export function getUserLabelSettingById(id: string): UserLabelSetting | undefined {
+export function getProfileLabelSettingById(id: string): UserLabelSetting | undefined {
 	const row = getDb().prepare("SELECT * FROM userLabelSettings WHERE id = ?").get(id) as SqliteRow | undefined;
-	return row ? rowToUserLabelSetting(row) : undefined;
+	return row ? rowToProfileLabelSetting(row) : undefined;
 }
 
 /**
  * Insert a new user label setting
  */
-export function insertUserLabelSetting(setting: UserLabelSetting): void {
+export function insertProfileLabelSetting(setting: UserLabelSetting): void {
 	getDb().prepare(`
-		INSERT INTO userLabelSettings (id, userId, labelId, mode, enabled, updatedAt, lastTrainedAt)
+		INSERT INTO userLabelSettings (id, profileId, labelId, mode, enabled, updatedAt, lastTrainedAt)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`).run(
 		setting.id,
-		setting.userId,
+		setting.profileId,
 		setting.labelId,
 		setting.mode,
 		setting.enabled ? 1 : 0,
@@ -1517,18 +1521,18 @@ export function insertUserLabelSetting(setting: UserLabelSetting): void {
 /**
  * Upsert a user label setting (insert or update on conflict)
  */
-export function upsertUserLabelSetting(setting: UserLabelSetting): void {
+export function upsertProfileLabelSetting(setting: UserLabelSetting): void {
 	getDb().prepare(`
-		INSERT INTO userLabelSettings (id, userId, labelId, mode, enabled, updatedAt, lastTrainedAt)
+		INSERT INTO userLabelSettings (id, profileId, labelId, mode, enabled, updatedAt, lastTrainedAt)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(userId, labelId) DO UPDATE SET
+		ON CONFLICT(profileId, labelId) DO UPDATE SET
 			mode = excluded.mode,
 			enabled = excluded.enabled,
 			updatedAt = excluded.updatedAt,
 			lastTrainedAt = COALESCE(excluded.lastTrainedAt, lastTrainedAt)
 	`).run(
 		setting.id,
-		setting.userId,
+		setting.profileId,
 		setting.labelId,
 		setting.mode,
 		setting.enabled ? 1 : 0,
@@ -1540,7 +1544,7 @@ export function upsertUserLabelSetting(setting: UserLabelSetting): void {
 /**
  * Update an existing user label setting
  */
-export function updateUserLabelSettingInDb(setting: UserLabelSetting): void {
+export function updateProfileLabelSettingInDb(setting: UserLabelSetting): void {
 	getDb().prepare(`
 		UPDATE userLabelSettings SET
 			mode = ?,
@@ -1560,15 +1564,15 @@ export function updateUserLabelSettingInDb(setting: UserLabelSetting): void {
 /**
  * Delete a user label setting by ID
  */
-export function deleteUserLabelSettingById(id: string): void {
+export function deleteProfileLabelSettingById(id: string): void {
 	getDb().prepare("DELETE FROM userLabelSettings WHERE id = ?").run(id);
 }
 
 /**
  * Delete all user label settings for a user
  */
-export function deleteUserLabelSettingsByUserId(userId: string): void {
-	getDb().prepare("DELETE FROM userLabelSettings WHERE userId = ?").run(userId);
+export function deleteProfileLabelSettingsByProfileId(profileId: string): void {
+	getDb().prepare("DELETE FROM userLabelSettings WHERE profileId = ?").run(profileId);
 }
 
 export type TrainingSqliteResetSummary = {
@@ -1635,26 +1639,26 @@ export function resetTrainingStateInSqlite(): TrainingSqliteResetSummary {
 /**
  * Update lastTrainedAt for a specific user label
  */
-export function updateUserLabelLastTrained(userId: string, labelId: string, trainedAt: string): void {
+export function updateProfileLabelLastTrained(profileId: string, labelId: string, trainedAt: string): void {
 	getDb().prepare(`
-		UPDATE userLabelSettings SET lastTrainedAt = ?, updatedAt = ? WHERE userId = ? AND labelId = ?
-	`).run(trainedAt, trainedAt, userId, labelId);
+		UPDATE userLabelSettings SET lastTrainedAt = ?, updatedAt = ? WHERE profileId = ? AND labelId = ?
+	`).run(trainedAt, trainedAt, profileId, labelId);
 }
 
 /**
  * Get all enabled labels for a user with a specific mode
  */
-export function getEnabledUserLabelsByMode(userId: string, mode: string): UserLabelSetting[] {
+export function getEnabledProfileLabelsByMode(profileId: string, mode: string): UserLabelSetting[] {
 	const rows = getDb().prepare(
-		"SELECT * FROM userLabelSettings WHERE userId = ? AND mode = ? AND enabled = 1"
-	).all(userId, mode) as SqliteRow[];
-	return rows.map(rowToUserLabelSetting);
+		"SELECT * FROM userLabelSettings WHERE profileId = ? AND mode = ? AND enabled = 1"
+	).all(profileId, mode) as SqliteRow[];
+	return rows.map(rowToProfileLabelSetting);
 }
 
-function rowToUserLabelSetting(row: SqliteRow): UserLabelSetting {
+function rowToProfileLabelSetting(row: SqliteRow): UserLabelSetting {
 	return {
 		id: getString(row, "id"),
-		userId: getString(row, "userId"),
+		profileId: getString(row, "profileId"),
 		labelId: getString(row, "labelId"),
 		mode: getString(row, "mode") as UserLabelSetting["mode"],
 		enabled: getBooleanFromInt(row, "enabled"),
@@ -1675,7 +1679,7 @@ export function deleteProfileDataFromSqlite(profileId: string): void {
 		database.prepare("DELETE FROM usageStats WHERE profileId = ?").run(profileId);
 		database.prepare("DELETE FROM corrections WHERE profileId = ?").run(profileId);
 		database.prepare("DELETE FROM symbols WHERE profileId = ?").run(profileId);
-		database.prepare("DELETE FROM userLabelSettings WHERE userId = ?").run(profileId);
+		database.prepare("DELETE FROM userLabelSettings WHERE profileId = ?").run(profileId);
 	});
 	deleteInTransaction();
 }
