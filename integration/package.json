@@ -3,8 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "pretest": "sh -c 'PY_BIN=$(node ../server/scripts/resolve-python-bin.mjs) && npm ci --include=dev && npm ci --prefix ../webapp && npm ci --prefix ../server && \"$PY_BIN\" -m pip install -r ../server/requirements.txt && npm run build --prefix ../server'",
-    "test": "node ./run-tests.mjs"
+    "pretest": "npm run build:server",
+    "build:server": "npm run build --prefix ../server",
+    "test": "npm run test:full",
+    "test:full": "node ./run-tests.mjs",
+    "test:fast": "INTEGRATION_TEST_PROFILE=fast node ./run-tests.mjs"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",

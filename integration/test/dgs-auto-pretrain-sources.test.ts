@@ -74,7 +74,7 @@ after(async () => {
 
 test('auto-pretrain uses custom DGS sources for new German labels', async () => {
   const res = await fetch(
-    `${baseUrl}/api/v1/users/${TEST_PROFILE_ID}/labels/${TEST_LABEL}`,
+    `${baseUrl}/api/v1/profiles/${TEST_PROFILE_ID}/labels/${TEST_LABEL}`,
     {
       method: 'PATCH',
       headers: {

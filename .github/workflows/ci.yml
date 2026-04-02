@@ -30,6 +30,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
       - name: Run full check
+        env:
+          SKIP_WEBAPP_TEST: "true"
+          INTEGRATION_TEST_PROFILE: "fast"
         run: NODE_OPTIONS=--max_old_space_size=4096 ./scripts/full-check.sh
 
       - name: Coverage gate (webapp)
@@ -41,6 +44,58 @@ jobs:
         run: npm audit --prefix server --audit-level=high
       - name: Security audit (integration)
         run: npm audit --prefix integration --audit-level=high
+
+  integration-heavy-training:
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: heavy_changes
+        with:
+          filters: |
+            heavy_integration_related:
+              - '.github/workflows/ci.yml'
+              - 'integration/run-tests.mjs'
+              - 'integration/test/training-flow.test.ts'
+              - 'integration/test/webapp-video-upload.test.ts'
+              - 'integration/test/multimodal-training-flow.test.ts'
+              - 'server/src/routes/training*.ts'
+              - 'server/src/services/training*.ts'
+              - 'server/src/amyserver_tools/train_mlp.py'
+              - 'server/src/amyserver_tools/train_mlp_fewshot.py'
+              - 'server/src/server.ts'
+      - uses: actions/setup-node@v6
+        if: steps.heavy_changes.outputs.heavy_integration_related == 'true'
+        with:
+          node-version: 24.14.1
+          cache: npm
+          cache-dependency-path: |
+            webapp/package-lock.json
+            server/package-lock.json
+            integration/package-lock.json
+      - uses: actions/setup-python@v6
+        if: steps.heavy_changes.outputs.heavy_integration_related == 'true'
+        with:
+          python-version: '3.14'
+      - name: Install dependencies for heavy integration profile
+        if: steps.heavy_changes.outputs.heavy_integration_related == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r server/requirements.txt
+          npm ci --prefix webapp
+          npm ci --prefix server
+          npm ci --prefix integration
+      - name: Run heavy integration profile
+        if: steps.heavy_changes.outputs.heavy_integration_related == 'true'
+        run: npm run test:full --prefix integration
+      - name: Skip heavy integration profile when unrelated files changed
+        if: steps.heavy_changes.outputs.heavy_integration_related != 'true'
+        run: echo "No heavy training/integration related changes detected; heavy integration profile skipped."
 
 
   server-training-readiness-gate:

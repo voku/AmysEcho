@@ -110,7 +110,11 @@ EOF
 # Run lint/type-check/tests for the browser webapp
 run_step "Lint webapp" npm run lint --prefix webapp
 run_step "Type-check webapp" npm run type-check --prefix webapp
-run_step "Test webapp" npm test --prefix webapp
+if [ "${SKIP_WEBAPP_TEST:-false}" = "true" ]; then
+  echo "Skipping webapp tests because SKIP_WEBAPP_TEST=true"
+else
+  run_step "Test webapp" npm test --prefix webapp
+fi
 run_step "Build webapp" npm run build --prefix webapp
 
 # Install backend Python deps (if needed)
@@ -128,7 +132,11 @@ run_step "Type-check Python (scripts)" sh -c 'cd scripts && mypy .'
 # Run type check and run server tests
 run_step "Type-check server" npm run type-check --prefix server
 run_step "Test server" npm test --prefix server
-run_step "Test integration package" npm test --prefix integration
+if [ "${INTEGRATION_TEST_PROFILE:-full}" = "fast" ]; then
+  run_step "Test integration package (fast profile)" npm run test:fast --prefix integration
+else
+  run_step "Test integration package" npm test --prefix integration
+fi
 
 # Export dependency snapshots for reproducibility diagnostics
 if [ -f scripts/deps-snapshot.sh ]; then
