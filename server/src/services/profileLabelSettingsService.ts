@@ -1,11 +1,11 @@
 /**
- * UserLabelSettingsService - Manages per-user, per-label training settings
+ * ProfileLabelSettingsService - Manages per-profile, per-label training settings
  *
  * Amy First: Each child can have their own personalized label collection with
  * different training modes (server_pretrain vs user_train) per label.
  *
  * This service provides:
- * - CRUD for user label settings
+ * - CRUD for profile label settings
  * - Readiness computation per label
  * - Training source validation
  */
@@ -21,12 +21,12 @@ import {
 	ensureUserLabelDirs,
 } from "../constants/modelPaths.js";
 import {
-	getEnabledUserLabelsByMode,
-	getUserLabelSetting,
-	getUserLabelSettingsByUserId,
-	insertUserLabelSetting,
-	updateUserLabelLastTrained,
-	upsertUserLabelSetting,
+	getEnabledProfileLabelsByMode,
+	getProfileLabelSetting,
+	getProfileLabelSettingsByProfileId,
+	insertProfileLabelSetting,
+	updateProfileLabelLastTrained,
+	upsertProfileLabelSetting,
 } from "../sqliteDb.js";
 import type {
 	LabelReadinessStatus,
@@ -41,49 +41,49 @@ const MIN_VIDEOS_FOR_SERVER_PRETRAIN = 3;
 const MIN_SAMPLES_FOR_USER_TRAIN = 5;
 
 /**
- * Get all label settings for a user
- * @param userId The user/profile ID
+ * Get all label settings for a profile
+ * @param profileId The profile ID
  * @returns Array of user label settings
  */
-export function getUserLabelSettings(userId: string): UserLabelSetting[] {
-	if (!PROFILE_ID_PATTERN.test(userId)) {
-		throw new Error("Ungültige Benutzer-ID.");
+export function getProfileLabelSettings(profileId: string): UserLabelSetting[] {
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
+		throw new Error("Ungültige Profil-ID.");
 	}
-	return getUserLabelSettingsByUserId(userId);
+	return getProfileLabelSettingsByProfileId(profileId);
 }
 
 /**
- * Get a specific label setting for a user
- * @param userId The user/profile ID
+ * Get a specific label setting for a profile
+ * @param profileId The profile ID
  * @param labelId The label ID
  * @returns The user label setting or undefined
  */
 export function getLabelSetting(
-	userId: string,
+	profileId: string,
 	labelId: string,
 ): UserLabelSetting | undefined {
-	if (!PROFILE_ID_PATTERN.test(userId)) {
-		throw new Error("Ungültige Benutzer-ID.");
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
+		throw new Error("Ungültige Profil-ID.");
 	}
-	return getUserLabelSetting(userId, labelId);
+	return getProfileLabelSetting(profileId, labelId);
 }
 
 /**
- * Create or update a label setting for a user
- * @param userId The user/profile ID
+ * Create or update a label setting for a profile
+ * @param profileId The profile ID
  * @param labelId The label ID
  * @param mode Training mode (server_pretrain or user_train)
  * @param enabled Whether training is enabled for this label
  * @returns The created/updated setting
  */
 export function setLabelSetting(
-	userId: string,
+	profileId: string,
 	labelId: string,
 	mode: LabelTrainingMode,
 	enabled: boolean,
 ): UserLabelSetting {
-	if (!PROFILE_ID_PATTERN.test(userId)) {
-		throw new Error("Ungültige Benutzer-ID.");
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
+		throw new Error("Ungültige Profil-ID.");
 	}
 	if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
 		throw new Error("Ungültige Label-ID.");
@@ -92,12 +92,12 @@ export function setLabelSetting(
 		throw new Error("Ungültiger Trainingsmodus.");
 	}
 
-	const existing = getUserLabelSetting(userId, labelId);
+	const existing = getProfileLabelSetting(profileId, labelId);
 	const now = new Date().toISOString();
 
 	const setting: UserLabelSetting = {
 		id: existing?.id ?? randomUUID(),
-		userId,
+		profileId,
 		labelId,
 		mode,
 		enabled,
@@ -105,7 +105,7 @@ export function setLabelSetting(
 		lastTrainedAt: existing?.lastTrainedAt,
 	};
 
-	upsertUserLabelSetting(setting);
+	upsertProfileLabelSetting(setting);
 	return setting;
 }
 
@@ -113,37 +113,37 @@ export function setLabelSetting(
  * Update the lastTrainedAt timestamp for a label
  */
 export function markLabelTrained(
-	userId: string,
+	profileId: string,
 	labelId: string,
 	trainedAt?: string,
 ): void {
 	const timestamp = trainedAt ?? new Date().toISOString();
-	updateUserLabelLastTrained(userId, labelId, timestamp);
+	updateProfileLabelLastTrained(profileId, labelId, timestamp);
 }
 
 /**
- * Get enabled labels for a user with a specific training mode
+ * Get enabled labels for a profile with a specific training mode
  */
 export function getEnabledLabels(
-	userId: string,
+	profileId: string,
 	mode: LabelTrainingMode,
 ): UserLabelSetting[] {
-	if (!PROFILE_ID_PATTERN.test(userId)) {
-		throw new Error("Ungültige Benutzer-ID.");
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
+		throw new Error("Ungültige Profil-ID.");
 	}
-	return getEnabledUserLabelsByMode(userId, mode);
+	return getEnabledProfileLabelsByMode(profileId, mode);
 }
 
 /**
- * Validate and get a safe path for user training directory
+ * Validate and get a safe path for profile training directory
  * Prevents path traversal attacks by validating inputs and checking path containment
  */
-function getSafeUserTrainingDir(
-	userId: string,
+function getSafeProfileTrainingDir(
+	profileId: string,
 	labelId: string,
 ): string | null {
-	// Validate userId against UUID pattern
-	if (!PROFILE_ID_PATTERN.test(userId)) {
+	// Validate profileId against UUID pattern
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
 		return null;
 	}
 	// Validate labelId to allow only safe characters and ensure non-empty
@@ -153,7 +153,7 @@ function getSafeUserTrainingDir(
 
 	// Resolve paths to prevent traversal
 	const rootDir = path.resolve(TRAINING_UPLOADS_DIR);
-	const userTrainDir = path.resolve(rootDir, userId, labelId);
+	const userTrainDir = path.resolve(rootDir, profileId, labelId);
 
 	// Ensure the resolved path is a proper subdirectory of the root directory
 	// Must start with rootDir + separator to be a valid subdirectory
@@ -166,13 +166,13 @@ function getSafeUserTrainingDir(
 }
 
 /**
- * Count user training samples for a label
+ * Count profile training samples for a label
  */
-export async function countUserSamples(
-	userId: string,
+export async function countProfileSamples(
+	profileId: string,
 	labelId: string,
 ): Promise<number> {
-	const userTrainDir = getSafeUserTrainingDir(userId, labelId);
+	const userTrainDir = getSafeProfileTrainingDir(profileId, labelId);
 	if (!userTrainDir) {
 		return 0;
 	}
@@ -203,13 +203,13 @@ export async function countUserSamples(
 }
 
 /**
- * Count user landmarks for a label
+ * Count profile landmarks for a label
  */
-export async function countUserLandmarks(
-	userId: string,
+export async function countProfileLandmarks(
+	profileId: string,
 	labelId: string,
 ): Promise<number> {
-	const userTrainDir = getSafeUserTrainingDir(userId, labelId);
+	const userTrainDir = getSafeProfileTrainingDir(profileId, labelId);
 	if (!userTrainDir) {
 		return 0;
 	}
@@ -232,11 +232,11 @@ export async function countUserLandmarks(
  * These are landmarks extracted from curated internet DGS videos
  */
 export async function countServerLandmarks(
-	userId: string,
+	profileId: string,
 	labelId: string,
 ): Promise<number> {
 	// Validate inputs
-	if (!PROFILE_ID_PATTERN.test(userId)) {
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
 		return 0;
 	}
 	if (!labelId || !/^[a-zA-Z0-9_-]+$/.test(labelId)) {
@@ -245,7 +245,7 @@ export async function countServerLandmarks(
 
 	try {
 		const serverLandmarksPath = getUserLabelLandmarksPath(
-			userId,
+			profileId,
 			labelId,
 			"server_pretrain",
 		);
@@ -262,19 +262,19 @@ export async function countServerLandmarks(
 }
 
 /**
- * Get readiness status for all labels for a user
+ * Get readiness status for all labels for a profile
  * Amy First: Transparent visibility into training readiness
  */
-export async function getLabelReadinessForUser(
-	userId: string,
+export async function getLabelReadinessForProfile(
+	profileId: string,
 ): Promise<LabelReadinessStatus[]> {
-	if (!PROFILE_ID_PATTERN.test(userId)) {
-		throw new Error("Ungültige Benutzer-ID.");
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
+		throw new Error("Ungültige Profil-ID.");
 	}
 
 	const baselineLabels = await loadBaselineLabels();
 	const dgsManifest = await loadDgsManifest();
-	const userSettings = getUserLabelSettingsByUserId(userId);
+	const userSettings = getProfileLabelSettingsByProfileId(profileId);
 	const labelIds = new Set<string>(baselineLabels);
 	for (const setting of userSettings) {
 		labelIds.add(setting.labelId);
@@ -298,11 +298,11 @@ export async function getLabelReadinessForUser(
 		const serverVideoCount = gesture?.totalVideoCount ?? gesture?.videos?.length ?? 0;
 
 		// Get user sample and landmark counts
-		const userSampleCount = await countUserSamples(userId, labelId);
-		const userLandmarkCount = await countUserLandmarks(userId, labelId);
+		const profileSampleCount = await countProfileSamples(profileId, labelId);
+		const profileLandmarkCount = await countProfileLandmarks(profileId, labelId);
 
 		// Get server landmark count for server_pretrain mode
-		const serverLandmarkCount = await countServerLandmarks(userId, labelId);
+		const serverLandmarkCount = await countServerLandmarks(profileId, labelId);
 
 		// Compute readiness
 		const reasons: string[] = [];
@@ -327,15 +327,15 @@ export async function getLabelReadinessForUser(
 			}
 		} else {
 			// user_train mode
-			if (userSampleCount < MIN_SAMPLES_FOR_USER_TRAIN) {
+			if (profileSampleCount < MIN_SAMPLES_FOR_USER_TRAIN) {
 				reasons.push(
-					`Zu wenige Benutzeraufnahmen (${userSampleCount}/${MIN_SAMPLES_FOR_USER_TRAIN})`,
+					`Zu wenige Benutzeraufnahmen (${profileSampleCount}/${MIN_SAMPLES_FOR_USER_TRAIN})`,
 				);
 				ready = false;
 			}
-			if (userLandmarkCount < userSampleCount) {
+			if (profileLandmarkCount < profileSampleCount) {
 				reasons.push(
-					`Landmarks fehlen (${userLandmarkCount}/${userSampleCount})`,
+					`Landmarks fehlen (${profileLandmarkCount}/${profileSampleCount})`,
 				);
 				ready = false;
 			}
@@ -355,8 +355,8 @@ export async function getLabelReadinessForUser(
 			mode,
 			enabled,
 			serverVideoCount,
-			userSampleCount,
-			landmarkCount: mode === "server_pretrain" ? serverLandmarkCount : userLandmarkCount,
+			userSampleCount: profileSampleCount,
+			landmarkCount: mode === "server_pretrain" ? serverLandmarkCount : profileLandmarkCount,
 			ready,
 			reasons,
 			lastTrainedAt: setting?.lastTrainedAt,
@@ -370,62 +370,62 @@ export async function getLabelReadinessForUser(
  * Get readiness status for a single label
  */
 export async function getLabelReadiness(
-	userId: string,
+	profileId: string,
 	labelId: string,
 ): Promise<LabelReadinessStatus | undefined> {
-	const allReadiness = await getLabelReadinessForUser(userId);
+	const allReadiness = await getLabelReadinessForProfile(profileId);
 	return allReadiness.find((r) => r.labelId === labelId);
 }
 
 /**
- * Initialize default label settings for a new user
+ * Initialize default label settings for a new profile
  * Copies from baseline labels with user_train mode by default
  */
-export async function initializeUserLabelSettings(
-	userId: string,
+export async function initializeProfileLabelSettings(
+	profileId: string,
 ): Promise<void> {
-	if (!PROFILE_ID_PATTERN.test(userId)) {
-		throw new Error("Ungültige Benutzer-ID.");
+	if (!PROFILE_ID_PATTERN.test(profileId)) {
+		throw new Error("Ungültige Profil-ID.");
 	}
 
 	const baselineLabels = await loadBaselineLabels();
 	const now = new Date().toISOString();
 
 	for (const labelId of baselineLabels) {
-		const existing = getUserLabelSetting(userId, labelId);
+		const existing = getProfileLabelSetting(profileId, labelId);
 		if (!existing) {
 			const setting: UserLabelSetting = {
 				id: randomUUID(),
-				userId,
+				profileId,
 				labelId,
-				mode: "user_train", // Default to user training
+				mode: "user_train", // Default to profile training
 				enabled: true,
 				updatedAt: now,
 			};
-			insertUserLabelSetting(setting);
+			insertProfileLabelSetting(setting);
 		}
 	}
 }
 
 /**
- * Get the training data directory for a user and label based on mode
+ * Get the training data directory for a profile and label based on mode
  * Re-exports from modelPaths for convenience
  */
 export function getTrainingDataPath(
-	userId: string,
+	profileId: string,
 	labelId: string,
 	mode: LabelTrainingMode,
 ): string {
-	return getUserLabelTrainingPath(userId, labelId, mode);
+	return getUserLabelTrainingPath(profileId, labelId, mode);
 }
 
 /**
- * Ensure training directories exist for a user and label
+ * Ensure training directories exist for a profile and label
  * Re-exports from modelPaths for convenience
  */
 export async function ensureTrainingDirectories(
-	userId: string,
+	profileId: string,
 	labelId: string,
 ): Promise<void> {
-	await ensureUserLabelDirs(userId, labelId);
+	await ensureUserLabelDirs(profileId, labelId);
 }

@@ -1,4 +1,4 @@
-# Blind Spot Analysis: Per-User Label Training Feature
+# Blind Spot Analysis: Per-Profile Label Training Feature
 
 This document captures a self-analysis of potential issues that may have been overlooked during the implementation of the per-user label training feature.
 
@@ -7,7 +7,7 @@ This document captures a self-analysis of potential issues that may have been ov
 | Issue | Status | Solution |
 |-------|--------|----------|
 | Path traversal in trainingOrchestrator.ts | ✅ Fixed | Added `!entry.includes("..")` check |
-| Path traversal in userLabelSettingsService.ts | ✅ Fixed | Added `getSafeUserTrainingDir()` with containment check |
+| Path traversal in profileLabelSettingsService.ts | ✅ Fixed | Added `getSafeProfileTrainingDir()` with containment check |
 | Unknown label validation in PATCH | ✅ Fixed | Check against baseline labels before update |
 | Case sensitivity inconsistency | ✅ Fixed | Normalize labelId to lowercase in routes |
 
@@ -17,7 +17,7 @@ This document captures a self-analysis of potential issues that may have been ov
 |-------|--------|----------|
 | TOCTOU race condition in job queueing | ✅ Fixed | Added `jobCreationLock` Set to prevent concurrent job creation |
 | DRY violation in modelPaths.ts | ✅ Fixed | Refactored `getUserLabelTrainingPath` to reuse `getUserTrainingDir` |
-| O(N*M) lookup in userLabelRoutes.ts | ✅ Fixed | Using Map for O(1) lookups in settings merge |
+| O(N*M) lookup in profileLabelRoutes.ts | ✅ Fixed | Using Map for O(1) lookups in settings merge |
 | Sequential awaits in getLabelReadinessForUser | ✅ Fixed | Using `Promise.all` for parallel processing |
 
 ## Potential Remaining Issues
@@ -99,7 +99,7 @@ logError("Failed to update label setting", { userId, labelId, error: message });
 describe("Security", () => {
   it("should reject path traversal in labelId", async () => {
     const response = await request(app)
-      .get(`/api/v1/users/${testUserId}/labels/..%2F..%2Fetc%2Fpasswd`)
+      .get(`/api/v1/profiles/${testProfileId}/labels/..%2F..%2Fetc%2Fpasswd`)
       .expect(400);
     expect(response.body.error).toBe("Ungültige Label-ID.");
   });

@@ -48,12 +48,19 @@ describe('user routes', () => {
     const token = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' }).accessToken;
 
     const response = await request(app)
-      .put('/api/v1/user/profile')
+      .put('/api/v1/account/profile')
       .set('Authorization', `Bearer ${token}`)
       .send({ displayName: 'Amy Doe' })
       .expect(200);
 
     expect(response.body.user).toMatchObject({ id: 'user-1', displayName: 'Amy Doe' });
+  });
+
+  it('rejects account profile updates without authentication', async () => {
+    await request(app)
+      .put('/api/v1/account/profile')
+      .send({ displayName: 'Amy Doe' })
+      .expect(401);
   });
 
   it('rejects IDOR attempts to change another user', async () => {
@@ -81,7 +88,7 @@ describe('user routes', () => {
     const token = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' }).accessToken;
 
     const response = await request(app)
-      .put('/api/v1/user/profile')
+      .put('/api/v1/account/profile')
       .set('Authorization', `Bearer ${token}`)
       .send({ displayName: 'Hacked', userId: 'user-2' })
       .expect(403);
@@ -105,7 +112,7 @@ describe('user routes', () => {
     const token = AuthService.generateTokens({ id: 'user-1', username: 'amy', role: 'caregiver' }).accessToken;
 
     const response = await request(app)
-      .put('/api/v1/user/password')
+      .put('/api/v1/account/password')
       .set('Authorization', `Bearer ${token}`)
       .send({ currentPassword: 'wrongpw', newPassword: 'new-secret-123' })
       .expect(400);

@@ -36,13 +36,13 @@ describe("trainingOrchestrator", () => {
 		await fs.mkdir(path.dirname(legacyLandmarksPath), { recursive: true });
 		await fs.writeFile(legacyLandmarksPath, JSON.stringify({ frames: [] }));
 
-		const { initializeDatabase, insertUserLabelSetting } = await import(
+		const { initializeDatabase, insertProfileLabelSetting } = await import(
 			"../src/sqliteDb.js"
 		);
 		await initializeDatabase(dbPath);
-		insertUserLabelSetting({
+		insertProfileLabelSetting({
 			id: randomUUID(),
-			userId,
+			profileId: userId,
 			labelId,
 			mode: "user_train",
 			enabled: true,

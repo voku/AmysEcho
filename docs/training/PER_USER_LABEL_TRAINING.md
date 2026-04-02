@@ -1,4 +1,6 @@
-# Per-User Label Training Guide
+# Per-Profile Label Training Guide
+
+> Hinweis: Der Dateiname ist historisch (`PER_USER_*`), der Inhalt und die API sind profilbasiert.
 
 > Amy First: Jedes Kind hat seine eigene personalisierte Gebärdensammlung.
 
@@ -13,14 +15,14 @@ This enables a jump-start with a baseline model while allowing caregivers to add
 
 ## Data Model
 
-### User Label Settings
+### Profile Label Settings
 
-Each user has per-label settings stored in the database:
+Each profile has per-label settings stored in the database:
 
 ```typescript
-interface UserLabelSetting {
+interface ProfileLabelSetting {
   id: string;           // Unique setting ID
-  userId: string;       // User/profile ID
+  profileId: string;    // Profile ID
   labelId: string;      // Label ID (e.g., "rot", "blau")
   mode: "server_pretrain" | "user_train";
   enabled: boolean;     // Whether training for this label is enabled
@@ -31,7 +33,7 @@ interface UserLabelSetting {
 
 ### Folder Structure
 
-Training data is organized per user, per label, and per mode:
+Training data is organized per profile, per label, and per mode:
 
 ```
 server/data/
@@ -57,7 +59,7 @@ server/data/
 ### List Labels with Settings
 
 ```
-GET /api/v1/users/:userId/labels
+GET /api/v1/profiles/:profileId/labels
 ```
 
 Returns all labels with their settings and readiness status:
@@ -91,7 +93,7 @@ Returns all labels with their settings and readiness status:
 ### Get Label Details
 
 ```
-GET /api/v1/users/:userId/labels/:labelId
+GET /api/v1/profiles/:profileId/labels/:labelId
 ```
 
 Returns detailed settings and readiness for a specific label.
@@ -99,7 +101,7 @@ Returns detailed settings and readiness for a specific label.
 ### Update Label Settings
 
 ```
-PATCH /api/v1/users/:userId/labels/:labelId
+PATCH /api/v1/profiles/:profileId/labels/:labelId
 
 {
   "mode": "server_pretrain" | "user_train",
@@ -112,10 +114,10 @@ Updates the training mode and/or enabled status.
 ### Initialize Labels
 
 ```
-POST /api/v1/users/:userId/labels/initialize
+POST /api/v1/profiles/:profileId/labels/initialize
 ```
 
-Initializes default label settings for a new user (all labels enabled with `user_train` mode by default).
+Initializes default label settings for a new profile (all labels enabled with `user_train` mode by default).
 
 ## Training Readiness
 
@@ -146,7 +148,7 @@ When a label is not ready, the API returns reasons in German:
    - Enable/disable training
    - Choose mode (server_pretrain or user_train)
    - View readiness status
-3. **Training is triggered** when the user or system requests it
+3. **Training is triggered** when the profile workflow or system requests it
 4. **Training orchestrator:**
    - Gathers data only from enabled labels
    - Uses the correct data source based on mode
@@ -213,15 +215,15 @@ can surface progress if desired:
 
 - `server/src/types.ts` - TypeScript types for label settings
 - `server/src/sqliteDb.ts` - SQLite table and CRUD operations
-- `server/src/services/userLabelSettingsService.ts` - Service layer
+- `server/src/services/profileLabelSettingsService.ts` - Service layer
 - `server/src/services/trainingOrchestrator.ts` - Training orchestration
-- `server/src/routes/userLabelRoutes.ts` - API endpoints
+- `server/src/routes/profileLabelRoutes.ts` - API endpoints
 - `server/src/constants/modelPaths.ts` - Path utilities
 
 ### Tests
 
-- `server/test/userLabelSettings.test.ts` - Unit tests for SQLite operations
-- `server/test/userLabelRoutes.test.ts` - API integration tests
+- `server/test/profileLabelSettings.test.ts` - Unit tests for SQLite operations
+- `server/test/profileLabelRoutes.test.ts` - API integration tests
 
 
 ## Verbesserter Workflow für personalisierte Kind-Modelle

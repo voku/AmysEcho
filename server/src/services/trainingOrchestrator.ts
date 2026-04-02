@@ -22,8 +22,8 @@ import {
 	MLP_MODELS_DIR,
 } from "../constants/modelPaths.js";
 import {
-	getUserLabelSettingsByUserId,
-	updateUserLabelLastTrained,
+	getProfileLabelSettingsByProfileId,
+	updateProfileLabelLastTrained,
 } from "../sqliteDb.js";
 import type { LabelTrainingMode } from "../types.js";
 import {
@@ -85,7 +85,7 @@ export async function gatherTrainingData(
 		throw new Error("Ungültige Benutzer-ID");
 	}
 
-	const settings = getUserLabelSettingsByUserId(userId);
+	const settings = getProfileLabelSettingsByProfileId(userId);
 	const enabledSettings = settings.filter((s) => s.enabled);
 
 	const trainingData: LabelTrainingData[] = [];
@@ -326,7 +326,7 @@ async function startTrainingJob(jobId: string): Promise<void> {
 		// Update lastTrainedAt for all labels in this job
 		const trainedAt = job.completedAt;
 		for (const label of job.labels) {
-			updateUserLabelLastTrained(job.userId, label.labelId, trainedAt);
+			updateProfileLabelLastTrained(job.userId, label.labelId, trainedAt);
 		}
 
 		// Clean up manifest file
@@ -415,7 +415,7 @@ export async function getTrainingSummary(userId: string): Promise<{
 		throw new Error("Ungültige Benutzer-ID");
 	}
 
-	const settings = getUserLabelSettingsByUserId(userId);
+	const settings = getProfileLabelSettingsByProfileId(userId);
 	const enabledSettings = settings.filter((s) => s.enabled);
 	const trainingData = await gatherTrainingData(userId);
 

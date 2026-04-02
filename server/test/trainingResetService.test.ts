@@ -20,7 +20,7 @@ describe("resetTrainingData", () => {
 
 	it("clears training artifacts while preserving custom signs and global model", async () => {
 		const { loadDatabase } = await import("../src/db.js");
-		const { insertUserLabelSetting, insertCorrection, insertNegativeSample } =
+		const { insertProfileLabelSetting, insertCorrection, insertNegativeSample } =
 			await import("../src/sqliteDb.js");
 		const { resetTrainingData } = await import(
 			"../src/services/trainingResetService.js"
@@ -36,9 +36,9 @@ describe("resetTrainingData", () => {
 		} = await import("../src/constants/modelPaths.js");
 
 		await loadDatabase(dbPath);
-		insertUserLabelSetting({
+		insertProfileLabelSetting({
 			id: "setting-1",
-			userId: "11111111-1111-4111-8111-111111111111",
+			profileId: "11111111-1111-4111-8111-111111111111",
 			labelId: "hilfe",
 			mode: "user_train",
 			enabled: true,

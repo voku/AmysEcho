@@ -41,12 +41,12 @@ export function registerUserRoutes(
 	deps: UserRouteDeps,
 ) {
 	app.put(
-		"/api/v1/user/profile",
+		"/api/v1/account/profile",
 		deps.authMiddleware,
 		async (req: Request, res: Response) => {
-			const parsed = ProfileUpdateSchema.safeParse(req.body);
-			if (!parsed.success) {
-				return res
+				const parsed = ProfileUpdateSchema.safeParse(req.body);
+				if (!parsed.success) {
+					return res
 					.status(400)
 					.json({
 						error: "Ungültige Profildaten.",
@@ -90,10 +90,10 @@ export function registerUserRoutes(
 				}
 
 				return res.json({ user: toUserProfile(updated) });
-				} catch (error) {
-					logger.error("Profile update failed", {
-						error: error instanceof Error ? error.message : String(error),
-					});
+			} catch (error) {
+				logger.error("Profile update failed", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 				return res
 					.status(500)
 					.json({ error: "Profilaktualisierung fehlgeschlagen." });
@@ -102,12 +102,12 @@ export function registerUserRoutes(
 	);
 
 	app.put(
-		"/api/v1/user/password",
+		"/api/v1/account/password",
 		deps.authMiddleware,
 		async (req: Request, res: Response) => {
-			const parsed = PasswordUpdateSchema.safeParse(req.body);
-			if (!parsed.success) {
-				return res
+				const parsed = PasswordUpdateSchema.safeParse(req.body);
+				if (!parsed.success) {
+					return res
 					.status(400)
 					.json({
 						error: "Ungültige Passwortdaten.",
@@ -162,10 +162,10 @@ export function registerUserRoutes(
 				}
 
 				return res.json({ message: "Passwort wurde aktualisiert." });
-				} catch (error) {
-					logger.error("Password update failed", {
-						error: error instanceof Error ? error.message : String(error),
-					});
+			} catch (error) {
+				logger.error("Password update failed", {
+					error: error instanceof Error ? error.message : String(error),
+				});
 				return res
 					.status(500)
 					.json({ error: "Passwortänderung fehlgeschlagen." });

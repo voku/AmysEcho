@@ -50,7 +50,7 @@ describe('UserSettings', () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/user/profile'),
+      expect.stringContaining('/api/v1/account/profile'),
       expect.objectContaining({ method: 'PUT' }),
     );
     await screen.findByText('Profil gespeichert.');

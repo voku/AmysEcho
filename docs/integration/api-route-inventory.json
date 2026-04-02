@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-01T07:30:38.481Z",
+  "generatedAt": "2026-04-02T04:55:28.357Z",
   "sourceGlobs": [
     "server/src/server.ts",
     "server/src/routes/*.ts"
@@ -17,6 +17,18 @@
       "path": "/api/pretraining/status",
       "source": "server/src/routes/pretrainingRoutes.ts",
       "line": 67
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/account/password",
+      "source": "server/src/routes/userRoutes.ts",
+      "line": 104
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/account/profile",
+      "source": "server/src/routes/userRoutes.ts",
+      "line": 43
     },
     {
       "method": "DELETE",
@@ -70,19 +82,19 @@
       "method": "GET",
       "path": "/api/v1/config/normalization",
       "source": "server/src/server.ts",
-      "line": 1399
+      "line": 1409
     },
     {
       "method": "POST",
       "path": "/api/v1/corrections",
       "source": "server/src/server.ts",
-      "line": 1276
+      "line": 1286
     },
     {
       "method": "POST",
       "path": "/api/v1/crash-reports",
       "source": "server/src/server.ts",
-      "line": 1220
+      "line": 1230
     },
     {
       "method": "GET",
@@ -100,19 +112,19 @@
       "method": "POST",
       "path": "/api/v1/dgs/sample-bundles",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1352
+      "line": 1362
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/sample-bundles/:id",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1302
+      "line": 1312
     },
     {
       "method": "POST",
       "path": "/api/v1/dgs/samples",
       "source": "server/src/server.ts",
-      "line": 1148
+      "line": 1158
     },
     {
       "method": "GET",
@@ -130,7 +142,7 @@
       "method": "GET",
       "path": "/api/v1/dgs/trained-labels",
       "source": "server/src/server.ts",
-      "line": 1363
+      "line": 1373
     },
     {
       "method": "GET",
@@ -196,7 +208,7 @@
       "method": "GET",
       "path": "/api/v1/models/latest",
       "source": "server/src/server.ts",
-      "line": 1096
+      "line": 1106
     },
     {
       "method": "GET",
@@ -220,7 +232,7 @@
       "method": "POST",
       "path": "/api/v1/negative-samples",
       "source": "server/src/server.ts",
-      "line": 1306
+      "line": 1316
     },
     {
       "method": "GET",
@@ -313,6 +325,30 @@
       "line": 148
     },
     {
+      "method": "GET",
+      "path": "/api/v1/profiles/:profileId/labels",
+      "source": "server/src/routes/profileLabelRoutes.ts",
+      "line": 71
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/profiles/:profileId/labels/:labelId",
+      "source": "server/src/routes/profileLabelRoutes.ts",
+      "line": 132
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/profiles/:profileId/labels/:labelId",
+      "source": "server/src/routes/profileLabelRoutes.ts",
+      "line": 192
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/profiles/:profileId/labels/initialize",
+      "source": "server/src/routes/profileLabelRoutes.ts",
+      "line": 295
+    },
+    {
       "method": "POST",
       "path": "/api/v1/profiles/share/accept",
       "source": "server/src/routes/profileRoutes.ts",
@@ -377,42 +413,6 @@
       "path": "/api/v1/training-videos/:bundleId/still",
       "source": "server/src/routes/trainingVideoRoutes.ts",
       "line": 333
-    },
-    {
-      "method": "PUT",
-      "path": "/api/v1/user/password",
-      "source": "server/src/routes/userRoutes.ts",
-      "line": 104
-    },
-    {
-      "method": "PUT",
-      "path": "/api/v1/user/profile",
-      "source": "server/src/routes/userRoutes.ts",
-      "line": 43
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/users/:userId/labels",
-      "source": "server/src/routes/userLabelRoutes.ts",
-      "line": 71
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/users/:userId/labels/:labelId",
-      "source": "server/src/routes/userLabelRoutes.ts",
-      "line": 132
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/users/:userId/labels/:labelId",
-      "source": "server/src/routes/userLabelRoutes.ts",
-      "line": 192
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/users/:userId/labels/initialize",
-      "source": "server/src/routes/userLabelRoutes.ts",
-      "line": 295
     },
     {
       "method": "GET",

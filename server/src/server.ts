@@ -45,7 +45,7 @@ import { registerSymbolRoutes } from "./routes/symbolRoutes.js";
 import { registerTrainingBundleRoute } from "./routes/trainingBundleRoute.js";
 import { registerTrainingJobsRoutes } from "./routes/trainingJobsRoutes.js";
 import { registerTrainingVideoRoutes } from "./routes/trainingVideoRoutes.js";
-import { registerUserLabelRoutes } from "./routes/userLabelRoutes.js";
+import { registerProfileLabelRoutes } from "./routes/profileLabelRoutes.js";
 import { registerUserRoutes } from "./routes/userRoutes.js";
 import {
 	appendCrashReports,
@@ -526,7 +526,7 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 			dbFilePath: DB_FILE_PATH,
 			authMiddleware: auth,
 		});
-		registerUserLabelRoutes(app, {
+		registerProfileLabelRoutes(app, {
 			authMiddleware: auth,
 			db,
 			registry: profileRegistry,

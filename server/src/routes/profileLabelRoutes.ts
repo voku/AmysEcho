@@ -1,14 +1,14 @@
 /**
- * User Label Settings Routes
+ * Profile Label Settings Routes
  *
- * Amy First: API endpoints for managing per-user, per-label training settings.
+ * Amy First: API endpoints for managing per-profile, per-label training settings.
  * Each child can configure their own label collection with different training modes.
  *
  * Endpoints:
- * - GET /api/v1/users/:userId/labels - List all labels with settings and readiness
- * - GET /api/v1/users/:userId/labels/:labelId - Get specific label details
- * - PATCH /api/v1/users/:userId/labels/:labelId - Update label mode/enabled
- * - POST /api/v1/users/:userId/labels/initialize - Initialize default settings
+ * - GET /api/v1/profiles/:profileId/labels - List all labels with settings and readiness
+ * - GET /api/v1/profiles/:profileId/labels/:labelId - Get specific label details
+ * - PATCH /api/v1/profiles/:profileId/labels/:labelId - Update label mode/enabled
+ * - POST /api/v1/profiles/:profileId/labels/initialize - Initialize default settings
  */
 
 import type { Express, Request, Response, NextFunction } from "express";
@@ -18,12 +18,12 @@ import type { Database } from "../db.js";
 import type { ProfileRegistry } from "../services/profileRegistry.js";
 import {
 	getLabelReadiness,
-	getLabelReadinessForUser,
+	getLabelReadinessForProfile,
 	getLabelSetting,
-	getUserLabelSettings,
-	initializeUserLabelSettings,
+	getProfileLabelSettings,
+	initializeProfileLabelSettings,
 	setLabelSetting,
-} from "../services/userLabelSettingsService.js";
+} from "../services/profileLabelSettingsService.js";
 import { getLabelMetadataEntry } from "../services/labelRegistry.js";
 import { queueAutoPretrainJob } from "../services/dgsAutoPretrainService.js";
 import { isProfileAuthorized } from "../utils/profileAuthorization.js";
@@ -38,7 +38,7 @@ const UpdateLabelSettingSchema = z.object({
 	enabled: z.boolean().optional(),
 });
 
-interface UserLabelRouteDeps {
+interface ProfileLabelRouteDeps {
 	authMiddleware: (req: Request, res: Response, next: NextFunction) => void;
 	db: Database;
 	registry: ProfileRegistry;
@@ -55,39 +55,39 @@ const labelSettingsLimiter = rateLimit({
 	message: { error: "Zu viele Anfragen. Bitte später erneut versuchen." },
 });
 
-export function registerUserLabelRoutes(
+export function registerProfileLabelRoutes(
 	app: Express,
-	deps: UserLabelRouteDeps,
+	deps: ProfileLabelRouteDeps,
 ): void {
 	const { authMiddleware, db, registry, logError } = deps;
 	const autoPretrainQueue = deps.queueAutoPretrainJob ?? queueAutoPretrainJob;
 
 	/**
-	 * GET /api/v1/users/:userId/labels
+	 * GET /api/v1/profiles/:profileId/labels
 	 *
-	 * List all labels with their settings and readiness status for a user.
+	 * List all labels with their settings and readiness status for a profile.
 	 * Returns combined data: setting (mode, enabled) + readiness (counts, reasons)
 	 */
 	app.get(
-		"/api/v1/users/:userId/labels",
+		"/api/v1/profiles/:profileId/labels",
 		labelSettingsLimiter,
 		authMiddleware,
 		async (req: Request, res: Response) => {
-			const { userId } = req.params;
+			const { profileId } = req.params;
 
-			// Validate userId format
-			if (!userId || !PROFILE_ID_PATTERN.test(userId)) {
-				return res.status(400).json({ error: "Ungültige Benutzer-ID." });
+			// Validate profileId format
+			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
+				return res.status(400).json({ error: "Ungültige Profil-ID." });
 			}
 
 			// Check authorization
-			if (!isProfileAuthorized(req, userId, db, registry)) {
+			if (!isProfileAuthorized(req, profileId, db, registry)) {
 				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
 			try {
-				const readinessStatuses = await getLabelReadinessForUser(userId);
-				const settings = getUserLabelSettings(userId);
+				const readinessStatuses = await getLabelReadinessForProfile(profileId);
+				const settings = getProfileLabelSettings(profileId);
 
 				// Use Map for O(1) lookups instead of O(N) find in loop
 				const settingsMap = new Map(settings.map(s => [s.labelId, s]));
@@ -116,7 +116,7 @@ export function registerUserLabelRoutes(
 				return res.json({ labels, stats });
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
-				logError("Failed to get user labels", { userId, error: message });
+				logError("Failed to get profile labels", { profileId, error: message });
 				return res.status(500).json({
 					error: "Label-Einstellungen konnten nicht geladen werden.",
 				});
@@ -125,20 +125,20 @@ export function registerUserLabelRoutes(
 	);
 
 	/**
-	 * GET /api/v1/users/:userId/labels/:labelId
+	 * GET /api/v1/profiles/:profileId/labels/:labelId
 	 *
 	 * Get detailed settings and readiness for a specific label.
 	 */
 	app.get(
-		"/api/v1/users/:userId/labels/:labelId",
+		"/api/v1/profiles/:profileId/labels/:labelId",
 		labelSettingsLimiter,
 		authMiddleware,
 		async (req: Request, res: Response) => {
-			const { userId, labelId } = req.params;
+			const { profileId, labelId } = req.params;
 
-			// Validate userId format
-			if (!userId || !PROFILE_ID_PATTERN.test(userId)) {
-				return res.status(400).json({ error: "Ungültige Benutzer-ID." });
+			// Validate profileId format
+			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
+				return res.status(400).json({ error: "Ungültige Profil-ID." });
 			}
 
 			// Validate labelId format
@@ -147,7 +147,7 @@ export function registerUserLabelRoutes(
 			}
 
 			// Check authorization
-			if (!isProfileAuthorized(req, userId, db, registry)) {
+			if (!isProfileAuthorized(req, profileId, db, registry)) {
 				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
@@ -159,12 +159,12 @@ export function registerUserLabelRoutes(
 					return res.status(404).json({ error: "Label nicht gefunden." });
 				}
 
-				const readiness = await getLabelReadiness(userId, normalizedLabelId);
+				const readiness = await getLabelReadiness(profileId, normalizedLabelId);
 				if (!readiness) {
 					return res.status(404).json({ error: "Label nicht gefunden." });
 				}
 
-				const setting = getLabelSetting(userId, normalizedLabelId);
+				const setting = getLabelSetting(profileId, normalizedLabelId);
 
 				return res.json({
 					...readiness,
@@ -173,7 +173,7 @@ export function registerUserLabelRoutes(
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				logError("Failed to get label setting", {
-					userId,
+					profileId,
 					labelId,
 					error: message,
 				});
@@ -185,20 +185,20 @@ export function registerUserLabelRoutes(
 	);
 
 	/**
-	 * PATCH /api/v1/users/:userId/labels/:labelId
+	 * PATCH /api/v1/profiles/:profileId/labels/:labelId
 	 *
 	 * Update mode and/or enabled status for a specific label.
 	 */
 	app.patch(
-		"/api/v1/users/:userId/labels/:labelId",
+		"/api/v1/profiles/:profileId/labels/:labelId",
 		labelSettingsLimiter,
 		authMiddleware,
 		async (req: Request, res: Response) => {
-			const { userId, labelId } = req.params;
+			const { profileId, labelId } = req.params;
 
-			// Validate userId format
-			if (!userId || !PROFILE_ID_PATTERN.test(userId)) {
-				return res.status(400).json({ error: "Ungültige Benutzer-ID." });
+			// Validate profileId format
+			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
+				return res.status(400).json({ error: "Ungültige Profil-ID." });
 			}
 
 			// Validate labelId format
@@ -207,7 +207,7 @@ export function registerUserLabelRoutes(
 			}
 
 			// Check authorization
-			if (!isProfileAuthorized(req, userId, db, registry)) {
+			if (!isProfileAuthorized(req, profileId, db, registry)) {
 				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
@@ -241,23 +241,23 @@ export function registerUserLabelRoutes(
 				}
 				
 				// Get existing setting or use defaults
-				const existing = getLabelSetting(userId, normalizedLabelId);
+				const existing = getLabelSetting(profileId, normalizedLabelId);
 				const mode = parsed.data.mode ?? existing?.mode ?? "user_train";
 				const enabled = parsed.data.enabled ?? existing?.enabled ?? true;
 
-				const setting = setLabelSetting(userId, normalizedLabelId, mode, enabled);
+				const setting = setLabelSetting(profileId, normalizedLabelId, mode, enabled);
 				let autoPretrainJob = null;
 				if (mode === "server_pretrain" && enabled) {
 					try {
 						autoPretrainJob = autoPretrainQueue({
-							userId,
+							userId: profileId,
 							labelId: normalizedLabelId,
 							triggerTraining: true,
 						});
 					} catch (error) {
 						const message = error instanceof Error ? error.message : String(error);
 						logError("Failed to queue auto pretrain", {
-							userId,
+							profileId,
 							labelId: normalizedLabelId,
 							error: message,
 						});
@@ -265,7 +265,7 @@ export function registerUserLabelRoutes(
 				}
 
 				// Return updated readiness as well
-				const readiness = await getLabelReadiness(userId, normalizedLabelId);
+				const readiness = await getLabelReadiness(profileId, normalizedLabelId);
 
 				return res.json({
 					...readiness,
@@ -275,7 +275,7 @@ export function registerUserLabelRoutes(
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				logError("Failed to update label setting", {
-					userId,
+					profileId,
 					labelId,
 					error: message,
 				});
@@ -287,31 +287,31 @@ export function registerUserLabelRoutes(
 	);
 
 	/**
-	 * POST /api/v1/users/:userId/labels/initialize
+	 * POST /api/v1/profiles/:profileId/labels/initialize
 	 *
-	 * Initialize default label settings for a user.
+	 * Initialize default label settings for a profile.
 	 * This copies baseline labels with user_train mode by default.
 	 */
 	app.post(
-		"/api/v1/users/:userId/labels/initialize",
+		"/api/v1/profiles/:profileId/labels/initialize",
 		labelSettingsLimiter,
 		authMiddleware,
 		async (req: Request, res: Response) => {
-			const { userId } = req.params;
+			const { profileId } = req.params;
 
-			// Validate userId format
-			if (!userId || !PROFILE_ID_PATTERN.test(userId)) {
-				return res.status(400).json({ error: "Ungültige Benutzer-ID." });
+			// Validate profileId format
+			if (!profileId || !PROFILE_ID_PATTERN.test(profileId)) {
+				return res.status(400).json({ error: "Ungültige Profil-ID." });
 			}
 
 			// Check authorization
-			if (!isProfileAuthorized(req, userId, db, registry)) {
+			if (!isProfileAuthorized(req, profileId, db, registry)) {
 				return res.status(403).json({ error: "Zugriff verweigert." });
 			}
 
 			try {
-				await initializeUserLabelSettings(userId);
-				const labels = await getLabelReadinessForUser(userId);
+				await initializeProfileLabelSettings(profileId);
+				const labels = await getLabelReadinessForProfile(profileId);
 
 				return res.json({
 					status: "initialized",
@@ -321,7 +321,7 @@ export function registerUserLabelRoutes(
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				logError("Failed to initialize label settings", {
-					userId,
+					profileId,
 					error: message,
 				});
 				return res.status(500).json({

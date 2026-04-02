@@ -7,6 +7,15 @@
 - [x] `PUT /api/user/profile` **removed** → `PUT /api/v1/user/profile`
 - [x] `PUT /api/user/password` **removed** → `PUT /api/v1/user/password`
 
+## Addendum (2026-04-02)
+
+- [x] Canonical account endpoints moved to:
+  - `PUT /api/v1/account/profile`
+  - `PUT /api/v1/account/password`
+- [x] Breaking cleanup applied: legacy aliases removed from runtime route registration:
+  - `PUT /api/v1/user/profile`
+  - `PUT /api/v1/user/password`
+
 ## Required call-site migrations
 
 - [x] Webapp `resolveApiUrl` callsites updated for training and account flows.
