@@ -318,6 +318,7 @@ function createTables(): void {
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_profileId ON userLabelSettings(profileId);
 		CREATE INDEX IF NOT EXISTS idx_userLabelSettings_labelId ON userLabelSettings(labelId);
 	`);
+	ensureUserLabelSettingsProfileSchema(database);
 
 	// Generic JSON collections for non-relational training workflows migrated from
 	// file-based persistence (training manifest, dgs samples, custom signs, quality log).
@@ -328,6 +329,51 @@ function createTables(): void {
 			updatedAt INTEGER NOT NULL
 		);
 	`);
+}
+
+function ensureUserLabelSettingsProfileSchema(database: Database.Database): void {
+	const tableExists = database
+		.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'userLabelSettings'")
+		.get();
+	if (!tableExists) {
+		return;
+	}
+
+	const columns = database.prepare("PRAGMA table_info(userLabelSettings)").all() as Array<{ name: string }>;
+	const hasProfileId = columns.some((column) => column.name === "profileId");
+	if (hasProfileId) {
+		return;
+	}
+
+	const migrateLegacySchema = database.transaction(() => {
+		database.exec(`
+			CREATE TABLE userLabelSettings_new (
+				id TEXT PRIMARY KEY,
+				profileId TEXT NOT NULL,
+				labelId TEXT NOT NULL,
+				mode TEXT NOT NULL DEFAULT 'user_train',
+				enabled INTEGER NOT NULL DEFAULT 1,
+				updatedAt TEXT NOT NULL,
+				lastTrainedAt TEXT,
+				UNIQUE(profileId, labelId)
+			);
+		`);
+
+		database.exec(`
+			INSERT INTO userLabelSettings_new (id, profileId, labelId, mode, enabled, updatedAt, lastTrainedAt)
+			SELECT id, userId, labelId, mode, enabled, updatedAt, lastTrainedAt
+			FROM userLabelSettings;
+		`);
+
+		database.exec("DROP TABLE userLabelSettings;");
+		database.exec("ALTER TABLE userLabelSettings_new RENAME TO userLabelSettings;");
+		database.exec(`
+			CREATE INDEX IF NOT EXISTS idx_userLabelSettings_profileId ON userLabelSettings(profileId);
+			CREATE INDEX IF NOT EXISTS idx_userLabelSettings_labelId ON userLabelSettings(labelId);
+		`);
+	});
+
+	migrateLegacySchema();
 }
 
 /**
@@ -734,14 +780,9 @@ export function deleteUserById(id: string): void {
 export function deleteUserAndLabelSettingsByUserId(userId: string): void {
 	const database = getDb();
 	const deleteInTransaction = database.transaction(() => {
-		const profileRows = database
-			.prepare("SELECT id FROM profiles WHERE userId = ?")
-			.all(userId) as Array<{ id: string }>;
-		for (const profile of profileRows) {
-			database
-				.prepare("DELETE FROM userLabelSettings WHERE profileId = ?")
-				.run(profile.id);
-		}
+		database
+			.prepare("DELETE FROM userLabelSettings WHERE profileId IN (SELECT id FROM profiles WHERE userId = ?)")
+			.run(userId);
 		database.prepare("DELETE FROM users WHERE id = ?").run(userId);
 	});
 	deleteInTransaction();
@@ -1683,8 +1724,8 @@ export function deleteProfileDataFromSqlite(profileId: string): void {
 		database.prepare("DELETE FROM profiles WHERE id = ?").run(profileId);
 		database.prepare("DELETE FROM usageStats WHERE profileId = ?").run(profileId);
 		database.prepare("DELETE FROM corrections WHERE profileId = ?").run(profileId);
-			database.prepare("DELETE FROM symbols WHERE profileId = ?").run(profileId);
-			database.prepare("DELETE FROM userLabelSettings WHERE profileId = ?").run(profileId);
+		database.prepare("DELETE FROM symbols WHERE profileId = ?").run(profileId);
+		database.prepare("DELETE FROM userLabelSettings WHERE profileId = ?").run(profileId);
 	});
 	deleteInTransaction();
 }
