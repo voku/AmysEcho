@@ -11,6 +11,23 @@ const tsxExecutable = process.platform === 'win32' ? 'tsx.cmd' : 'tsx';
 const tsxPath = path.join(binDir, tsxExecutable);
 
 const rawArgs = process.argv.slice(2);
+const requestedProfile = (process.env.INTEGRATION_TEST_PROFILE || 'full').toLowerCase();
+const integrationProfiles = {
+  fast: [
+    'test/dgs-auto-pretrain-sources.test.ts',
+    'test/contract-smoke.test.ts',
+    'test/api.test.js',
+  ],
+  full: [
+    'test/dgs-auto-pretrain-sources.test.ts',
+    'test/contract-smoke.test.ts',
+    'test/api.test.js',
+    'test/training-flow.test.ts',
+    'test/webapp-video-upload.test.ts',
+    'test/multimodal-training-flow.test.ts',
+  ],
+};
+const selectedProfile = requestedProfile in integrationProfiles ? requestedProfile : 'full';
 
 const nodeFlags = [];
 const hasConcurrencyFlag = rawArgs.some(
@@ -44,12 +61,7 @@ for (let i = 0; i < rawArgs.length; i += 1) {
 const tsxArgs = [
   '--test',
   ...nodeFlags,
-  'test/dgs-auto-pretrain-sources.test.ts',
-  'test/contract-smoke.test.ts',
-  'test/api.test.js',
-  'test/training-flow.test.ts',
-  'test/webapp-video-upload.test.ts',
-  'test/multimodal-training-flow.test.ts',
+  ...integrationProfiles[selectedProfile],
 ];
 
 const child = spawn(tsxPath, tsxArgs, {

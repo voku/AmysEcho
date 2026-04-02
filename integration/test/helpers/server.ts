@@ -92,8 +92,14 @@ async function cleanServerArtifacts() {
   if (isLiveServer()) {
     return;
   }
-  const dbPath = join(serverDir, 'db.json');
-  await fs.rm(dbPath, { force: true }).catch(() => {});
+  const dbJsonPath = join(serverDir, 'db.json');
+  const sqlitePath = join(serverDir, 'data', 'db.sqlite');
+  const sqliteWalPath = join(serverDir, 'data', 'db.sqlite-wal');
+  const sqliteShmPath = join(serverDir, 'data', 'db.sqlite-shm');
+  await fs.rm(dbJsonPath, { force: true }).catch(() => {});
+  await fs.rm(sqlitePath, { force: true }).catch(() => {});
+  await fs.rm(sqliteWalPath, { force: true }).catch(() => {});
+  await fs.rm(sqliteShmPath, { force: true }).catch(() => {});
   // Only delete generated model files, not tracked baseline files
   await fs.rm(join(serverDir, 'data', 'models', '11111111-1111-4111-8111-111111111111'), { recursive: true, force: true }).catch(() => {});
   await fs.rm(join(serverDir, 'data', 'models', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'), { recursive: true, force: true }).catch(() => {});

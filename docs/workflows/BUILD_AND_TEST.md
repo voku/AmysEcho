@@ -10,7 +10,38 @@ To verify your setup is working correctly, run the automated verification script
 ./scripts/full-check.sh
 ```
 
-This script checks dependencies, runs all tests (webapp, server, and integration), and validates the training pipeline. It's the fastest way to confirm everything is working.
+This script checks dependencies, runs all tests (webapp, server, and integration), and validates the training pipeline. It is the most complete local validation pass.
+
+## CI-Style Fast Feedback Loop
+
+For day-to-day development, use the CI-like local runner:
+
+```bash
+./scripts/ci-feedback.sh
+```
+
+This script compares your branch against `origin/main` (fallback: `main`). If neither ref exists locally (for example in a shallow checkout), it falls back to staged + unstaged working-tree changes. It then runs only the checks relevant to changed paths:
+
+- `webapp/**` → lint, type-check, test, build
+- `server/**` → type-check, tests
+- `integration/**` → integration tests
+- training/manifest-critical server files → required fixture gate (`pytest server/test/test_training_pipeline_fixture.py -q`)
+
+Use full CI parity mode when preparing to push:
+
+```bash
+./scripts/ci-feedback.sh --mode full
+```
+
+That adds webapp coverage and all npm security audits from `.github/workflows/ci.yml`.
+
+By default, dependency installs are skipped when `node_modules` already exists to keep the loop fast. Force clean installs with:
+
+```bash
+./scripts/ci-feedback.sh --install always
+```
+
+`quick` mode runs the integration **fast profile** (`npm run test:fast --prefix integration`), while `full` mode runs the complete integration suite (`npm run test:full --prefix integration`).
 
 ## Building the Webapp
 
@@ -76,6 +107,8 @@ npm test --prefix integration
 ```
 
 The tests will build the server and exercise key endpoints. The integration runner forces `node --test` to use a single worker (`--test-concurrency=1`) so the shared test server stays stable. They are also executed by `./scripts/full-check.sh`.
+
+Integration scripts no longer reinstall webapp/server/Python dependencies in `pretest`; they now rely on job-level installs/caches and only rebuild the server before running tests.
 
 ## Production Deployment
 
