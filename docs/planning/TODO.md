@@ -148,12 +148,6 @@ Convert best-practice opportunities into practical improvements without losing d
   - Entry points: `webapp/src/gesture/core/ProcessingSteps.ts`, `server/training/sliding_window.py`, `docs/testing/benchmarks/`
   - Evidence: prototype comparison report (accuracy deltas + p95 latency + battery/thermal impact).
 
-- [ ] **RD-P1-3:** Improve runtime diagnosability by surfacing MediaPipe task/backend/error context into existing logs/health diagnostics.
-  - Topic board: `docs/planning/topics/RD-P1-3/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Why now: recent MediaPipe releases improved status/error propagation; we should consume that signal for faster production triage.
-  - Entry points: `webapp/src/gesture/`, `server/src/routes/health.ts`, `docs/operations/`
-  - Evidence: incident-style drill showing faster root-cause identification from enriched diagnostics.
-
 ---
 
 ## 6) Rules for contributors/LLMs

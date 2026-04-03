@@ -1327,13 +1327,15 @@ export class GestureRecognitionOrchestrator {
     performance: ReturnType<PerformanceOptimizer['getDiagnostics']>;
     memory: ReturnType<MemoryOptimizer['getMemoryStatus']>;
     health: ReturnType<ErrorRecoveryManager['getHealthStatus']>;
+    detectorRuntime: ReturnType<GestureDetector['getRuntimeDiagnostics']> | null;
   } {
     return {
       initialized: this.isInitialized,
       running: this.isRunning,
       performance: this.performanceOptimizer.getDiagnostics(),
       memory: this.memoryOptimizer.getMemoryStatus(),
-      health: this.errorRecoveryManager.getHealthStatus()
+      health: this.errorRecoveryManager.getHealthStatus(),
+      detectorRuntime: this.gestureDetector?.getRuntimeDiagnostics() ?? null,
     };
   }
 

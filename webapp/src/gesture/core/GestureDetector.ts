@@ -54,6 +54,16 @@ export class GestureDetector {
   private lastCaptureAttempt = 0;
   private lastOverlayClearTime = 0;
   private frameCount = 0;
+  private runtimeDelegates: {
+    gesture: 'GPU' | 'CPU' | null;
+    pose: 'GPU' | 'CPU' | 'disabled';
+    face: 'GPU' | 'CPU' | 'disabled';
+  } = {
+    gesture: null,
+    pose: 'disabled',
+    face: 'disabled',
+  };
+  private lastInitializationError: string | null = null;
 
   constructor(video: HTMLVideoElement, overlay: HTMLCanvasElement) {
     this.video = video;
@@ -130,8 +140,10 @@ export class GestureDetector {
 
       try {
         this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, gestureOptions);
+        this.runtimeDelegates.gesture = 'GPU';
       } catch (gpuErr) {
         console.warn('GPU delegate failed, falling back to CPU:', gpuErr);
+        this.runtimeDelegates.gesture = 'CPU';
         this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
           ...gestureOptions,
           baseOptions: { ...baseOptions, delegate: 'CPU' as const },
@@ -151,6 +163,7 @@ export class GestureDetector {
               runningMode: 'VIDEO',
               numPoses: 1,
             });
+            this.runtimeDelegates.pose = 'GPU';
             gestureDebugLog('init', 'PoseLandmarker initialized successfully', undefined, { sampleIntervalMs: 0 });
           } catch (gpuErr) {
             gestureDebugLog('init', 'PoseLandmarker GPU delegate failed, falling back to CPU', () => ({
@@ -161,14 +174,17 @@ export class GestureDetector {
               runningMode: 'VIDEO',
               numPoses: 1,
             });
+            this.runtimeDelegates.pose = 'CPU';
             gestureDebugLog('init', 'PoseLandmarker initialized with CPU fallback', undefined, { sampleIntervalMs: 0 });
           }
         } catch (poseErr) {
+          this.runtimeDelegates.pose = 'disabled';
           gestureDebugLog('init', 'PoseLandmarker initialization failed, pose detection disabled', () => ({
             error: poseErr instanceof Error ? poseErr.message : String(poseErr),
           }), { sampleIntervalMs: 0, level: 'warn' });
         }
       } else {
+        this.runtimeDelegates.pose = 'disabled';
         gestureDebugLog('init', 'PoseLandmarker not available in MediaPipe bundle', undefined, { sampleIntervalMs: 0 });
       }
 
@@ -185,6 +201,7 @@ export class GestureDetector {
               runningMode: 'VIDEO',
               numFaces: 1,
             });
+            this.runtimeDelegates.face = 'GPU';
             gestureDebugLog('init', 'FaceLandmarker initialized successfully', undefined, { sampleIntervalMs: 0 });
           } catch (gpuErr) {
             gestureDebugLog('init', 'FaceLandmarker GPU delegate failed, falling back to CPU', () => ({
@@ -195,14 +212,17 @@ export class GestureDetector {
               runningMode: 'VIDEO',
               numFaces: 1,
             });
+            this.runtimeDelegates.face = 'CPU';
             gestureDebugLog('init', 'FaceLandmarker initialized with CPU fallback', undefined, { sampleIntervalMs: 0 });
           }
         } catch (faceErr) {
+          this.runtimeDelegates.face = 'disabled';
           gestureDebugLog('init', 'FaceLandmarker initialization failed, face detection disabled', () => ({
             error: faceErr instanceof Error ? faceErr.message : String(faceErr),
           }), { sampleIntervalMs: 0, level: 'warn' });
         }
       } else {
+        this.runtimeDelegates.face = 'disabled';
         gestureDebugLog('init', 'FaceLandmarker not available in MediaPipe bundle', undefined, { sampleIntervalMs: 0 });
       }
 
@@ -214,9 +234,11 @@ export class GestureDetector {
       };
       this.video.addEventListener('loadeddata', onLoadedData);
       this.resourceManager.registerEventListener(this.video, 'loadeddata', onLoadedData);
+      this.lastInitializationError = null;
 
     } catch (error) {
       console.error('Failed to initialize gesture detector:', error);
+      this.lastInitializationError = error instanceof Error ? error.message : String(error);
       throw error;
     }
   }
@@ -398,6 +420,7 @@ export class GestureDetector {
     } catch (error) {
       gestureDebugLog('error', 'Gesture detection error', () => ({
         error: error instanceof Error ? error.message : String(error),
+        runtime: this.getRuntimeDiagnostics(),
       }), { sampleIntervalMs: 1000, level: 'error' });
       this.healthMonitor.recordError();
 
@@ -504,5 +527,43 @@ export class GestureDetector {
    */
   getConfig(): GestureDetectorConfig {
     return this.config;
+  }
+
+  getRuntimeDiagnostics(): {
+    running: boolean;
+    frameCount: number;
+    delegates: {
+      gesture: 'GPU' | 'CPU' | null;
+      pose: 'GPU' | 'CPU' | 'disabled';
+      face: 'GPU' | 'CPU' | 'disabled';
+    };
+    modules: {
+      gestureRecognizerReady: boolean;
+      poseLandmarkerReady: boolean;
+      faceLandmarkerReady: boolean;
+    };
+    modelUrls: {
+      gesture: string;
+      pose: string;
+      face: string;
+    };
+    lastInitializationError: string | null;
+  } {
+    return {
+      running: this.running,
+      frameCount: this.frameCount,
+      delegates: { ...this.runtimeDelegates },
+      modules: {
+        gestureRecognizerReady: Boolean(this.gestureRecognizer),
+        poseLandmarkerReady: Boolean(this.poseLandmarker),
+        faceLandmarkerReady: Boolean(this.faceLandmarker),
+      },
+      modelUrls: {
+        gesture: GESTURE_MODEL_URL,
+        pose: POSE_MODEL_URL,
+        face: FACE_MODEL_URL,
+      },
+      lastInitializationError: this.lastInitializationError,
+    };
   }
 }
