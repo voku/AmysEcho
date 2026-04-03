@@ -146,6 +146,7 @@ Release-Entscheidung aufzubauen, ohne Amy im Alltag zu blockieren.
 
 **Test-Gates**
 - Unit-Tests für Rollenreihenfolge und Fallback bei freier Eingabe.
+- Unit-Tests für robuste Schnellsatz-Aufbereitung (mehrfache Leerzeichen/Zeilenumbrüche, Label-Fallback bei leerem Sprachtext).
 - UI-Tests für Satzvorschau und „Nächster Schritt“-Hinweise.
 - Regressionstest: bestehende Symbolauswahl/Sprachausgabe bleibt unverändert.
 
