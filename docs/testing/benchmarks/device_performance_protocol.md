@@ -181,7 +181,35 @@ If any P0 metric fails:
 
 ---
 
-## 8) Relationship to worker-offload decision (APR-P0-1)
+## 8) Release gate mapping for APR-P0-4
+
+The table below is the **release authority** for APR-P0-4 go/no-go decisions.
+Use measured medians from §5 and compare them against §7 thresholds.
+
+| Gate | Metric source | P0 decision rule | P1 decision rule |
+|------|---------------|------------------|------------------|
+| G1 — Startup readiness | §3.1 + §3.2 | Cold-start and warm restart must both pass | Cold-start and warm restart must both pass |
+| G2 — Real-time loop continuity | §3.4 FPS + drop rate | Sustained FPS p50/p95 and dropped-frame % must all pass | Sustained FPS p50/p95 and dropped-frame % must all pass |
+| G3 — Long-session stability | §3.4 memory + thermal + battery | Memory growth, thermal state, and battery drain must all pass | Memory growth, thermal state, and battery drain must all pass |
+| G4 — Camera transition resilience | §3.3 | Camera flip re-init passes and dropped frames stay within P0 drop-rate threshold | Camera flip re-init passes and dropped frames stay within P1 drop-rate threshold |
+
+### 8.1 Go/no-go rubric
+
+- **GO:** all P0 gates pass on every required P0 device in the matrix.
+- **CONDITIONAL GO:** all P0 gates pass, but one or more P1 gates fail; release can proceed with a tracked P1 remediation item.
+- **NO-GO:** any required P0 gate fails on any required P0 device.
+
+### 8.2 Required interpretation output format
+
+Each benchmark summary must include:
+
+1. A per-device gate verdict table (`Pass` / `Fail`) for G1–G4.
+2. A fleet verdict (`GO`, `CONDITIONAL GO`, or `NO-GO`) with one-sentence rationale.
+3. Explicit remediation owners and target dates for every failed gate.
+
+---
+
+## 9) Relationship to worker-offload decision (APR-P0-1)
 
 The sustained-session scenario (§3.4) should be run **twice** per device:
 

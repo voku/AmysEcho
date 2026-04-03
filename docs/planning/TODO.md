@@ -42,11 +42,6 @@ Close the last evidence gap between prototype performance and release confidence
   - Entry points: `webapp/src/hooks/useSignLanguageDetector.ts`, `webapp/src/components/TrainingRecorder.tsx`, `docs/testing/benchmarks/device_performance_protocol.md`
   - Evidence: result artefacts under `docs/testing/benchmarks/results/<date>/` following protocol structure.
 
-- [ ] **APR-P0-4:** Define release performance gates (p50/p95 latency, sustained FPS, thermal, battery) and go/no-go rules.
-  - Topic board: `docs/planning/topics/APR-P0-4/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `docs/testing/benchmarks/device_performance_protocol.md`, `docs/testing/benchmarks/performance_report_2026-03-27.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`
-  - Evidence: documented gate table + explicit pass/fail interpretation for target device classes.
-
 ---
 
 ## 2) May 2026 — Few-shot quality gates + metadata integrity
