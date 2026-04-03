@@ -52,3 +52,46 @@ The client applies a visibility policy before streaming frames:
 - A hand must include at least 6 visible points.
 - Visible point ratio per hand must be at least 0.25.
 - At least one hand must meet these thresholds before a frame is streamed.
+
+## Training Bundle Capture Context (MAY-P1-1)
+
+In addition to the live stream payload, training bundle `metadata.json` may
+include `captureContext` so signer/device/camera/lighting quality signals are
+preserved through ingestion and training analysis.
+
+```json
+{
+  "captureContext": {
+    "signer": {
+      "signerId": "amy-main",
+      "dominantHand": "right",
+      "ageGroup": "child"
+    },
+    "device": {
+      "deviceModel": "iPad13,4",
+      "platform": "ios",
+      "osVersion": "17.5",
+      "appVersion": "1.2.3"
+    },
+    "camera": {
+      "facingMode": "user",
+      "width": 1280,
+      "height": 720,
+      "fps": 30
+    },
+    "lighting": {
+      "condition": "mixed",
+      "confidence": 0.82,
+      "source": "auto"
+    }
+  }
+}
+```
+
+Allowed enum values:
+
+- `signer.dominantHand`: `left | right | both | unknown`
+- `signer.ageGroup`: `child | teen | adult | unknown`
+- `camera.facingMode`: `user | environment | left | right | unknown`
+- `lighting.condition`: `low | mixed | bright | backlit | unknown`
+- `lighting.source`: `manual | auto | unknown`

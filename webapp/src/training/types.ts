@@ -32,6 +32,30 @@ export interface TrainingBundlePayload {
   frames: TrainingFrame[];
   capturedAt?: string;
   source?: string;
+  captureContext?: {
+    signer?: {
+      signerId?: string;
+      dominantHand?: 'left' | 'right' | 'both' | 'unknown';
+      ageGroup?: 'child' | 'teen' | 'adult' | 'unknown';
+    };
+    device?: {
+      deviceModel?: string;
+      platform?: string;
+      osVersion?: string;
+      appVersion?: string;
+    };
+    camera?: {
+      facingMode?: 'user' | 'environment' | 'left' | 'right' | 'unknown';
+      width?: number;
+      height?: number;
+      fps?: number;
+    };
+    lighting?: {
+      condition?: 'low' | 'mixed' | 'bright' | 'backlit' | 'unknown';
+      confidence?: number;
+      source?: 'manual' | 'auto' | 'unknown';
+    };
+  };
   /**
    * Optional Metacom symbol identifier linking this gesture to a symbol on a
    * Metacom board.  Persisted in the training bundle metadata so recognition

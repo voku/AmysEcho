@@ -146,6 +146,30 @@ interface CaptureMetadata {
 		| "either_hand";
 	recording?: RecordingMetadata;
 	timing?: TimingMetadata;
+	captureContext?: {
+		signer?: {
+			signerId?: string;
+			dominantHand?: "left" | "right" | "both" | "unknown";
+			ageGroup?: "child" | "teen" | "adult" | "unknown";
+		};
+		device?: {
+			deviceModel?: string;
+			platform?: string;
+			osVersion?: string;
+			appVersion?: string;
+		};
+		camera?: {
+			facingMode?: "user" | "environment" | "left" | "right" | "unknown";
+			width?: number;
+			height?: number;
+			fps?: number;
+		};
+		lighting?: {
+			condition?: "low" | "mixed" | "bright" | "backlit" | "unknown";
+			confidence?: number;
+			source?: "manual" | "auto" | "unknown";
+		};
+	};
 }
 
 interface RecordingMetadata {
@@ -500,6 +524,131 @@ function normalizeCaptureMetadata(raw: unknown): CaptureMetadata | undefined {
 	return {
 		...(modalities ? { modalities } : {}),
 		...(smoothing ? { smoothing } : {}),
+	};
+}
+
+function normalizeCaptureContext(
+	raw: unknown,
+): CaptureMetadata["captureContext"] {
+	if (!raw || typeof raw !== "object") return undefined;
+	const candidate = raw as Record<string, unknown>;
+	const signerRaw =
+		candidate.signer && typeof candidate.signer === "object"
+			? (candidate.signer as Record<string, unknown>)
+			: null;
+	const deviceRaw =
+		candidate.device && typeof candidate.device === "object"
+			? (candidate.device as Record<string, unknown>)
+			: null;
+	const cameraRaw =
+		candidate.camera && typeof candidate.camera === "object"
+			? (candidate.camera as Record<string, unknown>)
+			: null;
+	const lightingRaw =
+		candidate.lighting && typeof candidate.lighting === "object"
+			? (candidate.lighting as Record<string, unknown>)
+			: null;
+
+	const DOMINANT_HAND_VALUES = ["left", "right", "both", "unknown"] as const;
+	const AGE_GROUP_VALUES = ["child", "teen", "adult", "unknown"] as const;
+	const FACING_MODE_VALUES = ["user", "environment", "left", "right", "unknown"] as const;
+	const LIGHTING_CONDITION_VALUES = ["low", "mixed", "bright", "backlit", "unknown"] as const;
+	const LIGHTING_SOURCE_VALUES = ["manual", "auto", "unknown"] as const;
+
+	const trimmedString = (value: unknown): string | undefined =>
+		typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+	const finiteNumber = (value: unknown): number | undefined =>
+		typeof value === "number" && Number.isFinite(value) ? value : undefined;
+	const enumValue = <T extends string>(
+		value: unknown,
+		allowed: readonly T[],
+	): T | undefined =>
+		typeof value === "string" && allowed.includes(value as T)
+			? (value as T)
+			: undefined;
+
+	const signer = signerRaw
+		? {
+				...(trimmedString(signerRaw.signerId)
+					? { signerId: trimmedString(signerRaw.signerId) }
+					: {}),
+				...(enumValue(signerRaw.dominantHand, DOMINANT_HAND_VALUES)
+					? {
+							dominantHand: enumValue(
+								signerRaw.dominantHand,
+								DOMINANT_HAND_VALUES,
+							),
+						}
+					: {}),
+				...(enumValue(signerRaw.ageGroup, AGE_GROUP_VALUES)
+					? { ageGroup: enumValue(signerRaw.ageGroup, AGE_GROUP_VALUES) }
+					: {}),
+			}
+		: undefined;
+
+	const device = deviceRaw
+		? {
+				...(trimmedString(deviceRaw.deviceModel)
+					? { deviceModel: trimmedString(deviceRaw.deviceModel) }
+					: {}),
+				...(trimmedString(deviceRaw.platform)
+					? { platform: trimmedString(deviceRaw.platform) }
+					: {}),
+				...(trimmedString(deviceRaw.osVersion)
+					? { osVersion: trimmedString(deviceRaw.osVersion) }
+					: {}),
+				...(trimmedString(deviceRaw.appVersion)
+					? { appVersion: trimmedString(deviceRaw.appVersion) }
+					: {}),
+			}
+		: undefined;
+
+	const camera = cameraRaw
+		? {
+				...(enumValue(cameraRaw.facingMode, FACING_MODE_VALUES)
+					? { facingMode: enumValue(cameraRaw.facingMode, FACING_MODE_VALUES) }
+					: {}),
+				...(finiteNumber(cameraRaw.width) !== undefined
+					? { width: finiteNumber(cameraRaw.width) }
+					: {}),
+				...(finiteNumber(cameraRaw.height) !== undefined
+					? { height: finiteNumber(cameraRaw.height) }
+					: {}),
+				...(finiteNumber(cameraRaw.fps) !== undefined
+					? { fps: finiteNumber(cameraRaw.fps) }
+					: {}),
+			}
+		: undefined;
+
+	const lighting = lightingRaw
+		? {
+				...(enumValue(lightingRaw.condition, LIGHTING_CONDITION_VALUES)
+					? {
+							condition: enumValue(
+								lightingRaw.condition,
+								LIGHTING_CONDITION_VALUES,
+							),
+						}
+					: {}),
+				...(finiteNumber(lightingRaw.confidence) !== undefined
+					? { confidence: finiteNumber(lightingRaw.confidence) }
+					: {}),
+				...(enumValue(lightingRaw.source, LIGHTING_SOURCE_VALUES)
+					? { source: enumValue(lightingRaw.source, LIGHTING_SOURCE_VALUES) }
+					: {}),
+			}
+		: undefined;
+
+	const hasValues = (value: unknown): boolean =>
+		!!value && typeof value === "object" && Object.keys(value as Record<string, unknown>).length > 0;
+	if (!hasValues(signer) && !hasValues(device) && !hasValues(camera) && !hasValues(lighting)) {
+		return undefined;
+	}
+	return {
+		...(hasValues(signer) ? { signer } : {}),
+		...(hasValues(device) ? { device } : {}),
+		...(hasValues(camera) ? { camera } : {}),
+		...(hasValues(lighting) ? { lighting } : {}),
 	};
 }
 
@@ -958,6 +1107,11 @@ async function readLandmarks(
 				? (entry.metadata as Record<string, unknown>).recording
 				: null,
 		);
+		const captureContext = normalizeCaptureContext(
+			entry.metadata && typeof entry.metadata === "object"
+				? (entry.metadata as Record<string, unknown>).captureContext
+				: null,
+		);
 		const timingMetadata = analyzeTimestampSequence(parsed.frames);
 		if (timingMetadata?.nonMonotonic) {
 			logger.warn("Training bundle contains non-monotonic frame timestamps", {
@@ -971,6 +1125,12 @@ async function readLandmarks(
 			recordingMetadata,
 			timingMetadata,
 		);
+		const finalCaptureMetadata =
+			captureContext && !mergedCaptureMetadata
+				? { captureContext }
+				: captureContext && mergedCaptureMetadata
+					? { ...mergedCaptureMetadata, captureContext }
+					: mergedCaptureMetadata;
 		const frames: NormalizedFrameData[] = [];
 		parsed.frames.forEach((frame) => {
 			const handedness = normalizeHandedness(frame?.handedness);
@@ -996,8 +1156,8 @@ async function readLandmarks(
 				poseLandmarks,
 				faceLandmarks,
 				handedness,
-				...(mergedCaptureMetadata
-					? { captureMetadata: mergedCaptureMetadata }
+				...(finalCaptureMetadata
+					? { captureMetadata: finalCaptureMetadata }
 					: {}),
 				...(timestampMs !== undefined ? { timestampMs } : {}),
 			});

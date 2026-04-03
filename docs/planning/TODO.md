@@ -56,11 +56,6 @@ Move few-shot from ad-hoc analysis to enforceable, signer-safe, production-quali
   - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp.py`, `docs/testing/benchmarks/few_shot_protocol.md`
   - Evidence: runner execution evidence under `docs/testing/benchmarks/results/<date>/` with summary and diagnostics.
 
-- [ ] **MAY-P1-1:** Enforce capture metadata protocol (signer/device/camera/lighting) end-to-end through bundle creation and ingestion.
-  - Topic board: `docs/planning/topics/MAY-P1-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `webapp/src/training/trainingBundle.ts`, `webapp/src/training/types.ts`, `server/src/routes/trainingBundleRoute.ts`, `docs/training/LANDMARK_STREAM_SCHEMA.md`
-  - Evidence: schema update + tests proving metadata persistence from client bundle to server manifest and reports.
-
 - [ ] **MAY-P1-2:** Promote signer-leakage validation into a hard quality gate for few-shot outputs.
   - Topic board: `docs/planning/topics/MAY-P1-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
   - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`

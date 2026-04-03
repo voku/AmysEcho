@@ -141,6 +141,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         qualityScore: 58,
         confidence: 0.7,
       },
+      captureContext: {
+        signer: { signerId: 'amy-main', dominantHand: 'right', ageGroup: 'child' },
+        device: { deviceModel: 'iPad13,4', platform: 'ios', osVersion: '17.5', appVersion: '1.2.3' },
+        camera: { facingMode: 'user', width: 1280, height: 720, fps: 30 },
+        lighting: { condition: 'mixed', confidence: 0.82, source: 'auto' },
+      },
     };
     const landmarks = await loadSampleLandmarks();
 
@@ -242,6 +248,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       modalities: metadata.modalities,
       smoothing: expect.objectContaining({ method: 'one_euro' }),
       handedness: metadata.handedness,
+      captureContext: metadata.captureContext,
       validationSummary: {
         frameCount: 1,
         landmarksPath: 'bundle/landmarks.json',
