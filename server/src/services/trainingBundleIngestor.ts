@@ -549,115 +549,106 @@ function normalizeCaptureContext(
 			? (candidate.lighting as Record<string, unknown>)
 			: null;
 
-	const signer: NonNullable<CaptureMetadata["captureContext"]>["signer"] = signerRaw
-		? {}
-		: undefined;
-	if (signer && typeof signerRaw?.signerId === "string" && signerRaw.signerId.trim()) {
-		signer.signerId = signerRaw.signerId.trim();
-	}
-	if (
-		signer &&
-		(signerRaw?.dominantHand === "left" ||
-			signerRaw?.dominantHand === "right" ||
-			signerRaw?.dominantHand === "both" ||
-			signerRaw?.dominantHand === "unknown")
-	) {
-		signer.dominantHand = signerRaw.dominantHand;
-	}
-	if (
-		signer &&
-		(signerRaw?.ageGroup === "child" ||
-			signerRaw?.ageGroup === "teen" ||
-			signerRaw?.ageGroup === "adult" ||
-			signerRaw?.ageGroup === "unknown")
-	) {
-		signer.ageGroup = signerRaw.ageGroup;
-	}
+	const DOMINANT_HAND_VALUES = ["left", "right", "both", "unknown"] as const;
+	const AGE_GROUP_VALUES = ["child", "teen", "adult", "unknown"] as const;
+	const FACING_MODE_VALUES = ["user", "environment", "left", "right", "unknown"] as const;
+	const LIGHTING_CONDITION_VALUES = ["low", "mixed", "bright", "backlit", "unknown"] as const;
+	const LIGHTING_SOURCE_VALUES = ["manual", "auto", "unknown"] as const;
 
-	const device: NonNullable<CaptureMetadata["captureContext"]>["device"] = deviceRaw
-		? {}
-		: undefined;
-	if (device && typeof deviceRaw?.deviceModel === "string" && deviceRaw.deviceModel.trim()) {
-		device.deviceModel = deviceRaw.deviceModel.trim();
-	}
-	if (device && typeof deviceRaw?.platform === "string" && deviceRaw.platform.trim()) {
-		device.platform = deviceRaw.platform.trim();
-	}
-	if (device && typeof deviceRaw?.osVersion === "string" && deviceRaw.osVersion.trim()) {
-		device.osVersion = deviceRaw.osVersion.trim();
-	}
-	if (device && typeof deviceRaw?.appVersion === "string" && deviceRaw.appVersion.trim()) {
-		device.appVersion = deviceRaw.appVersion.trim();
-	}
+	const trimmedString = (value: unknown): string | undefined =>
+		typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+	const finiteNumber = (value: unknown): number | undefined =>
+		typeof value === "number" && Number.isFinite(value) ? value : undefined;
+	const enumValue = <T extends string>(
+		value: unknown,
+		allowed: readonly T[],
+	): T | undefined =>
+		typeof value === "string" && allowed.includes(value as T)
+			? (value as T)
+			: undefined;
 
-	const camera: NonNullable<CaptureMetadata["captureContext"]>["camera"] = cameraRaw
-		? {}
+	const signer = signerRaw
+		? {
+				...(trimmedString(signerRaw.signerId)
+					? { signerId: trimmedString(signerRaw.signerId) }
+					: {}),
+				...(enumValue(signerRaw.dominantHand, DOMINANT_HAND_VALUES)
+					? {
+							dominantHand: enumValue(
+								signerRaw.dominantHand,
+								DOMINANT_HAND_VALUES,
+							),
+						}
+					: {}),
+				...(enumValue(signerRaw.ageGroup, AGE_GROUP_VALUES)
+					? { ageGroup: enumValue(signerRaw.ageGroup, AGE_GROUP_VALUES) }
+					: {}),
+			}
 		: undefined;
-	if (
-		camera &&
-		(cameraRaw?.facingMode === "user" ||
-			cameraRaw?.facingMode === "environment" ||
-			cameraRaw?.facingMode === "left" ||
-			cameraRaw?.facingMode === "right" ||
-			cameraRaw?.facingMode === "unknown")
-	) {
-		camera.facingMode = cameraRaw.facingMode;
-	}
-	if (camera && typeof cameraRaw?.width === "number" && Number.isFinite(cameraRaw.width)) {
-		camera.width = cameraRaw.width;
-	}
-	if (
-		camera &&
-		typeof cameraRaw?.height === "number" &&
-		Number.isFinite(cameraRaw.height)
-	) {
-		camera.height = cameraRaw.height;
-	}
-	if (camera && typeof cameraRaw?.fps === "number" && Number.isFinite(cameraRaw.fps)) {
-		camera.fps = cameraRaw.fps;
-	}
 
-	const lighting: NonNullable<CaptureMetadata["captureContext"]>["lighting"] = lightingRaw
-		? {}
+	const device = deviceRaw
+		? {
+				...(trimmedString(deviceRaw.deviceModel)
+					? { deviceModel: trimmedString(deviceRaw.deviceModel) }
+					: {}),
+				...(trimmedString(deviceRaw.platform)
+					? { platform: trimmedString(deviceRaw.platform) }
+					: {}),
+				...(trimmedString(deviceRaw.osVersion)
+					? { osVersion: trimmedString(deviceRaw.osVersion) }
+					: {}),
+				...(trimmedString(deviceRaw.appVersion)
+					? { appVersion: trimmedString(deviceRaw.appVersion) }
+					: {}),
+			}
 		: undefined;
-	if (
-		lighting &&
-		(lightingRaw?.condition === "low" ||
-			lightingRaw?.condition === "mixed" ||
-			lightingRaw?.condition === "bright" ||
-			lightingRaw?.condition === "backlit" ||
-			lightingRaw?.condition === "unknown")
-	) {
-		lighting.condition = lightingRaw.condition;
-	}
-	if (
-		lighting &&
-		typeof lightingRaw?.confidence === "number" &&
-		Number.isFinite(lightingRaw.confidence)
-	) {
-		lighting.confidence = lightingRaw.confidence;
-	}
-	if (
-		lighting &&
-		(lightingRaw?.source === "manual" ||
-			lightingRaw?.source === "auto" ||
-			lightingRaw?.source === "unknown")
-	) {
-		lighting.source = lightingRaw.source;
-	}
-	if (
-		(!signer || Object.keys(signer).length === 0) &&
-		(!device || Object.keys(device).length === 0) &&
-		(!camera || Object.keys(camera).length === 0) &&
-		(!lighting || Object.keys(lighting).length === 0)
-	) {
+
+	const camera = cameraRaw
+		? {
+				...(enumValue(cameraRaw.facingMode, FACING_MODE_VALUES)
+					? { facingMode: enumValue(cameraRaw.facingMode, FACING_MODE_VALUES) }
+					: {}),
+				...(finiteNumber(cameraRaw.width) !== undefined
+					? { width: finiteNumber(cameraRaw.width) }
+					: {}),
+				...(finiteNumber(cameraRaw.height) !== undefined
+					? { height: finiteNumber(cameraRaw.height) }
+					: {}),
+				...(finiteNumber(cameraRaw.fps) !== undefined
+					? { fps: finiteNumber(cameraRaw.fps) }
+					: {}),
+			}
+		: undefined;
+
+	const lighting = lightingRaw
+		? {
+				...(enumValue(lightingRaw.condition, LIGHTING_CONDITION_VALUES)
+					? {
+							condition: enumValue(
+								lightingRaw.condition,
+								LIGHTING_CONDITION_VALUES,
+							),
+						}
+					: {}),
+				...(finiteNumber(lightingRaw.confidence) !== undefined
+					? { confidence: finiteNumber(lightingRaw.confidence) }
+					: {}),
+				...(enumValue(lightingRaw.source, LIGHTING_SOURCE_VALUES)
+					? { source: enumValue(lightingRaw.source, LIGHTING_SOURCE_VALUES) }
+					: {}),
+			}
+		: undefined;
+
+	const hasValues = (value: unknown): boolean =>
+		!!value && typeof value === "object" && Object.keys(value as Record<string, unknown>).length > 0;
+	if (!hasValues(signer) && !hasValues(device) && !hasValues(camera) && !hasValues(lighting)) {
 		return undefined;
 	}
 	return {
-		...(signer && Object.keys(signer).length > 0 ? { signer } : {}),
-		...(device && Object.keys(device).length > 0 ? { device } : {}),
-		...(camera && Object.keys(camera).length > 0 ? { camera } : {}),
-		...(lighting && Object.keys(lighting).length > 0 ? { lighting } : {}),
+		...(hasValues(signer) ? { signer } : {}),
+		...(hasValues(device) ? { device } : {}),
+		...(hasValues(camera) ? { camera } : {}),
+		...(hasValues(lighting) ? { lighting } : {}),
 	};
 }
 
@@ -1134,9 +1125,12 @@ async function readLandmarks(
 			recordingMetadata,
 			timingMetadata,
 		);
-		if (mergedCaptureMetadata && captureContext) {
-			mergedCaptureMetadata.captureContext = captureContext;
-		}
+		const finalCaptureMetadata =
+			captureContext && !mergedCaptureMetadata
+				? { captureContext }
+				: captureContext && mergedCaptureMetadata
+					? { ...mergedCaptureMetadata, captureContext }
+					: mergedCaptureMetadata;
 		const frames: NormalizedFrameData[] = [];
 		parsed.frames.forEach((frame) => {
 			const handedness = normalizeHandedness(frame?.handedness);
@@ -1162,8 +1156,8 @@ async function readLandmarks(
 				poseLandmarks,
 				faceLandmarks,
 				handedness,
-				...(mergedCaptureMetadata
-					? { captureMetadata: mergedCaptureMetadata }
+				...(finalCaptureMetadata
+					? { captureMetadata: finalCaptureMetadata }
 					: {}),
 				...(timestampMs !== undefined ? { timestampMs } : {}),
 			});

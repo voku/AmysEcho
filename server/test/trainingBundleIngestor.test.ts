@@ -537,6 +537,35 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     });
   });
 
+  it('preserves captureContext even when no other capture metadata is present', async () => {
+    const frames: LandmarksPayload = {
+      frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, () => ({
+        landmarks: Array.from({ length: 42 }, (_, idx) => [idx * 0.01, idx * 0.02, idx * 0.03]),
+      })),
+    };
+
+    await writeBundleFixture('bundle-context-only', {
+      frames,
+      includeValidationSummary: false,
+      captureContext: {
+        signer: { signerId: 'amy-main', dominantHand: 'right', ageGroup: 'child' },
+        camera: { facingMode: 'user', width: 1280, height: 720, fps: 30 },
+      },
+    });
+
+    const result = await ingestTrainingBundlesIntoDataset();
+    expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
+
+    const dataset = loadDgsSamplesFromStore<any>();
+    const sample = dataset.samples[0];
+    expect(sample.captureMetadata).toEqual({
+      captureContext: {
+        signer: { signerId: 'amy-main', dominantHand: 'right', ageGroup: 'child' },
+        camera: { facingMode: 'user', width: 1280, height: 720, fps: 30 },
+      },
+    });
+  });
+
   it('prefers per-frame timestamps and includes recording metadata', async () => {
     const frames: LandmarksPayload = {
       frames: Array.from({ length: MIN_SIGN_SAMPLE_FRAMES }, (_, idx) => ({

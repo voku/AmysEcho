@@ -55,9 +55,9 @@ The client applies a visibility policy before streaming frames:
 
 ## Training Bundle Capture Context (MAY-P1-1)
 
-Zusätzlich zum Live-Stream darf `metadata.json` in Trainings-Bundles einen
-`captureContext` enthalten, damit Qualitätssignale für Signer, Gerät, Kamera
-und Lichtbedingungen bis in die Trainingsdaten erhalten bleiben.
+In addition to the live stream payload, training bundle `metadata.json` may
+include `captureContext` so signer/device/camera/lighting quality signals are
+preserved through ingestion and training analysis.
 
 ```json
 {
@@ -88,7 +88,7 @@ und Lichtbedingungen bis in die Trainingsdaten erhalten bleiben.
 }
 ```
 
-Erlaubte Werte:
+Allowed enum values:
 
 - `signer.dominantHand`: `left | right | both | unknown`
 - `signer.ageGroup`: `child | teen | adult | unknown`
