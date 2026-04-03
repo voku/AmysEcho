@@ -146,6 +146,30 @@ interface CaptureMetadata {
 		| "either_hand";
 	recording?: RecordingMetadata;
 	timing?: TimingMetadata;
+	captureContext?: {
+		signer?: {
+			signerId?: string;
+			dominantHand?: "left" | "right" | "both" | "unknown";
+			ageGroup?: "child" | "teen" | "adult" | "unknown";
+		};
+		device?: {
+			deviceModel?: string;
+			platform?: string;
+			osVersion?: string;
+			appVersion?: string;
+		};
+		camera?: {
+			facingMode?: "user" | "environment" | "left" | "right" | "unknown";
+			width?: number;
+			height?: number;
+			fps?: number;
+		};
+		lighting?: {
+			condition?: "low" | "mixed" | "bright" | "backlit" | "unknown";
+			confidence?: number;
+			source?: "manual" | "auto" | "unknown";
+		};
+	};
 }
 
 interface RecordingMetadata {
@@ -500,6 +524,140 @@ function normalizeCaptureMetadata(raw: unknown): CaptureMetadata | undefined {
 	return {
 		...(modalities ? { modalities } : {}),
 		...(smoothing ? { smoothing } : {}),
+	};
+}
+
+function normalizeCaptureContext(
+	raw: unknown,
+): CaptureMetadata["captureContext"] {
+	if (!raw || typeof raw !== "object") return undefined;
+	const candidate = raw as Record<string, unknown>;
+	const signerRaw =
+		candidate.signer && typeof candidate.signer === "object"
+			? (candidate.signer as Record<string, unknown>)
+			: null;
+	const deviceRaw =
+		candidate.device && typeof candidate.device === "object"
+			? (candidate.device as Record<string, unknown>)
+			: null;
+	const cameraRaw =
+		candidate.camera && typeof candidate.camera === "object"
+			? (candidate.camera as Record<string, unknown>)
+			: null;
+	const lightingRaw =
+		candidate.lighting && typeof candidate.lighting === "object"
+			? (candidate.lighting as Record<string, unknown>)
+			: null;
+
+	const signer: NonNullable<CaptureMetadata["captureContext"]>["signer"] = signerRaw
+		? {}
+		: undefined;
+	if (signer && typeof signerRaw?.signerId === "string" && signerRaw.signerId.trim()) {
+		signer.signerId = signerRaw.signerId.trim();
+	}
+	if (
+		signer &&
+		(signerRaw?.dominantHand === "left" ||
+			signerRaw?.dominantHand === "right" ||
+			signerRaw?.dominantHand === "both" ||
+			signerRaw?.dominantHand === "unknown")
+	) {
+		signer.dominantHand = signerRaw.dominantHand;
+	}
+	if (
+		signer &&
+		(signerRaw?.ageGroup === "child" ||
+			signerRaw?.ageGroup === "teen" ||
+			signerRaw?.ageGroup === "adult" ||
+			signerRaw?.ageGroup === "unknown")
+	) {
+		signer.ageGroup = signerRaw.ageGroup;
+	}
+
+	const device: NonNullable<CaptureMetadata["captureContext"]>["device"] = deviceRaw
+		? {}
+		: undefined;
+	if (device && typeof deviceRaw?.deviceModel === "string" && deviceRaw.deviceModel.trim()) {
+		device.deviceModel = deviceRaw.deviceModel.trim();
+	}
+	if (device && typeof deviceRaw?.platform === "string" && deviceRaw.platform.trim()) {
+		device.platform = deviceRaw.platform.trim();
+	}
+	if (device && typeof deviceRaw?.osVersion === "string" && deviceRaw.osVersion.trim()) {
+		device.osVersion = deviceRaw.osVersion.trim();
+	}
+	if (device && typeof deviceRaw?.appVersion === "string" && deviceRaw.appVersion.trim()) {
+		device.appVersion = deviceRaw.appVersion.trim();
+	}
+
+	const camera: NonNullable<CaptureMetadata["captureContext"]>["camera"] = cameraRaw
+		? {}
+		: undefined;
+	if (
+		camera &&
+		(cameraRaw?.facingMode === "user" ||
+			cameraRaw?.facingMode === "environment" ||
+			cameraRaw?.facingMode === "left" ||
+			cameraRaw?.facingMode === "right" ||
+			cameraRaw?.facingMode === "unknown")
+	) {
+		camera.facingMode = cameraRaw.facingMode;
+	}
+	if (camera && typeof cameraRaw?.width === "number" && Number.isFinite(cameraRaw.width)) {
+		camera.width = cameraRaw.width;
+	}
+	if (
+		camera &&
+		typeof cameraRaw?.height === "number" &&
+		Number.isFinite(cameraRaw.height)
+	) {
+		camera.height = cameraRaw.height;
+	}
+	if (camera && typeof cameraRaw?.fps === "number" && Number.isFinite(cameraRaw.fps)) {
+		camera.fps = cameraRaw.fps;
+	}
+
+	const lighting: NonNullable<CaptureMetadata["captureContext"]>["lighting"] = lightingRaw
+		? {}
+		: undefined;
+	if (
+		lighting &&
+		(lightingRaw?.condition === "low" ||
+			lightingRaw?.condition === "mixed" ||
+			lightingRaw?.condition === "bright" ||
+			lightingRaw?.condition === "backlit" ||
+			lightingRaw?.condition === "unknown")
+	) {
+		lighting.condition = lightingRaw.condition;
+	}
+	if (
+		lighting &&
+		typeof lightingRaw?.confidence === "number" &&
+		Number.isFinite(lightingRaw.confidence)
+	) {
+		lighting.confidence = lightingRaw.confidence;
+	}
+	if (
+		lighting &&
+		(lightingRaw?.source === "manual" ||
+			lightingRaw?.source === "auto" ||
+			lightingRaw?.source === "unknown")
+	) {
+		lighting.source = lightingRaw.source;
+	}
+	if (
+		(!signer || Object.keys(signer).length === 0) &&
+		(!device || Object.keys(device).length === 0) &&
+		(!camera || Object.keys(camera).length === 0) &&
+		(!lighting || Object.keys(lighting).length === 0)
+	) {
+		return undefined;
+	}
+	return {
+		...(signer && Object.keys(signer).length > 0 ? { signer } : {}),
+		...(device && Object.keys(device).length > 0 ? { device } : {}),
+		...(camera && Object.keys(camera).length > 0 ? { camera } : {}),
+		...(lighting && Object.keys(lighting).length > 0 ? { lighting } : {}),
 	};
 }
 
@@ -958,6 +1116,11 @@ async function readLandmarks(
 				? (entry.metadata as Record<string, unknown>).recording
 				: null,
 		);
+		const captureContext = normalizeCaptureContext(
+			entry.metadata && typeof entry.metadata === "object"
+				? (entry.metadata as Record<string, unknown>).captureContext
+				: null,
+		);
 		const timingMetadata = analyzeTimestampSequence(parsed.frames);
 		if (timingMetadata?.nonMonotonic) {
 			logger.warn("Training bundle contains non-monotonic frame timestamps", {
@@ -971,6 +1134,9 @@ async function readLandmarks(
 			recordingMetadata,
 			timingMetadata,
 		);
+		if (mergedCaptureMetadata && captureContext) {
+			mergedCaptureMetadata.captureContext = captureContext;
+		}
 		const frames: NormalizedFrameData[] = [];
 		parsed.frames.forEach((frame) => {
 			const handedness = normalizeHandedness(frame?.handedness);

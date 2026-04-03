@@ -92,6 +92,30 @@ interface TrainingBundleMetadata {
 		variationDiversity?: number;
 		canonicalTemplates?: number;
 	};
+	captureContext?: {
+		signer?: {
+			signerId?: string;
+			dominantHand?: "left" | "right" | "both" | "unknown";
+			ageGroup?: "child" | "teen" | "adult" | "unknown";
+		};
+		device?: {
+			deviceModel?: string;
+			platform?: string;
+			osVersion?: string;
+			appVersion?: string;
+		};
+		camera?: {
+			facingMode?: "user" | "environment" | "left" | "right" | "unknown";
+			width?: number;
+			height?: number;
+			fps?: number;
+		};
+		lighting?: {
+			condition?: "low" | "mixed" | "bright" | "backlit" | "unknown";
+			confidence?: number;
+			source?: "manual" | "auto" | "unknown";
+		};
+	};
 }
 
 interface TrainingBundleManifestEntry {
@@ -261,6 +285,47 @@ const AugmentationSchema = z
 	})
 	.passthrough();
 
+const CaptureContextSchema = z
+	.object({
+		signer: z
+			.object({
+				signerId: z.string().optional(),
+				dominantHand: z
+					.enum(["left", "right", "both", "unknown"])
+					.optional(),
+				ageGroup: z.enum(["child", "teen", "adult", "unknown"]).optional(),
+			})
+			.optional(),
+		device: z
+			.object({
+				deviceModel: z.string().optional(),
+				platform: z.string().optional(),
+				osVersion: z.string().optional(),
+				appVersion: z.string().optional(),
+			})
+			.optional(),
+		camera: z
+			.object({
+				facingMode: z
+					.enum(["user", "environment", "left", "right", "unknown"])
+					.optional(),
+				width: z.number().optional(),
+				height: z.number().optional(),
+				fps: z.number().optional(),
+			})
+			.optional(),
+		lighting: z
+			.object({
+				condition: z
+					.enum(["low", "mixed", "bright", "backlit", "unknown"])
+					.optional(),
+				confidence: z.number().optional(),
+				source: z.enum(["manual", "auto", "unknown"]).optional(),
+			})
+			.optional(),
+	})
+	.strip();
+
 const MetadataSchema = z
 	.object({
 		label: z.string().min(1),
@@ -278,6 +343,7 @@ const MetadataSchema = z
 		handFocus: HandFocusSchema.optional(),
 		augmentation: AugmentationSchema.optional(),
 		variationData: VariationDataSchema.optional(),
+		captureContext: CaptureContextSchema.optional(),
 	})
 	.strip();
 
@@ -1593,6 +1659,9 @@ export function registerTrainingBundleRoute(
 						? { augmentation: parsedMetadata.augmentation }
 						: {}),
 					...(variationData ? { variationData } : {}),
+					...(parsedMetadata.captureContext
+						? { captureContext: parsedMetadata.captureContext }
+						: {}),
 				};
 
 				const files = Array.from(new Set(storedFiles));

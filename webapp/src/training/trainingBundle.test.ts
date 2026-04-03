@@ -218,6 +218,45 @@ describe('createTrainingZip', () => {
     }
   });
 
+  it('übernimmt signer-, geräte-, kamera- und lichtkontext in metadata.json', async () => {
+    const payload: TrainingBundlePayload = {
+      ...basePayload,
+      captureContext: {
+        signer: {
+          signerId: 'amy-main',
+          dominantHand: 'right',
+          ageGroup: 'child',
+        },
+        device: {
+          deviceModel: 'iPad13,4',
+          platform: 'ios',
+          osVersion: '17.5',
+          appVersion: '1.2.3',
+        },
+        camera: {
+          facingMode: 'user',
+          width: 1280,
+          height: 720,
+          fps: 30,
+        },
+        lighting: {
+          condition: 'mixed',
+          confidence: 0.82,
+          source: 'auto',
+        },
+      },
+    };
+
+    const zip = await createTrainingZip(payload);
+    const entries = unzipSync(zip);
+    const metadataBytes = entries['metadata.json'];
+    const metadata = JSON.parse(strFromU8(metadataBytes ?? new Uint8Array())) as {
+      captureContext?: Record<string, unknown>;
+    };
+
+    expect(metadata.captureContext).toEqual(payload.captureContext);
+  });
+
   it('bricht ab, wenn keine Hand-Landmarks enthalten sind', async () => {
     const payload: TrainingBundlePayload = {
       ...basePayload,

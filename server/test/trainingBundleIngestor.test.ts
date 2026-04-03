@@ -43,6 +43,7 @@ type BundleFixtureOptions = {
   frames?: LandmarksPayload;
   includeValidationSummary?: boolean;
   recordingMetadata?: Record<string, unknown>;
+  captureContext?: Record<string, unknown>;
   featureContractVersion?: string;
   extraFiles?: ExtraFile[];
 };
@@ -508,7 +509,15 @@ describe('ingestTrainingBundlesIntoDataset', () => {
       })),
     };
 
-    await writeBundleFixture('bundle-metadata', { frames });
+    await writeBundleFixture('bundle-metadata', {
+      frames,
+      captureContext: {
+        signer: { signerId: 'amy-main', dominantHand: 'right', ageGroup: 'child' },
+        device: { deviceModel: 'iPad13,4', platform: 'ios' },
+        camera: { facingMode: 'user', width: 1280, height: 720, fps: 30 },
+        lighting: { condition: 'mixed', confidence: 0.82, source: 'auto' },
+      },
+    });
 
     const result = await ingestTrainingBundlesIntoDataset();
     expect(result.appended).toBe(MIN_SIGN_SAMPLE_FRAMES);
@@ -519,6 +528,12 @@ describe('ingestTrainingBundlesIntoDataset', () => {
     expect(sample.captureMetadata).toEqual({
       modalities: { hands: true, pose: true, face: false },
       smoothing: { method: 'one_euro', minCutOff: 1.2, beta: 0.01 },
+      captureContext: {
+        signer: { signerId: 'amy-main', dominantHand: 'right', ageGroup: 'child' },
+        device: { deviceModel: 'iPad13,4', platform: 'ios' },
+        camera: { facingMode: 'user', width: 1280, height: 720, fps: 30 },
+        lighting: { condition: 'mixed', confidence: 0.82, source: 'auto' },
+      },
     });
   });
 
@@ -663,6 +678,7 @@ describe('ingestTrainingBundlesIntoDataset', () => {
               version: options.featureContractVersion ?? 'wrist_relative_max_abs_v1',
             },
             ...(options.recordingMetadata ? { recording: options.recordingMetadata } : {}),
+            ...(options.captureContext ? { captureContext: options.captureContext } : {}),
             ...(options.includeValidationSummary === false
               ? {}
               : {

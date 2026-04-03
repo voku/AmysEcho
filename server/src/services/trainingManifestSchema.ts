@@ -61,6 +61,31 @@ const VariationDataSchema = z.object({
 	canonicalTemplates: z.number().optional(),
 }).strict();
 
+const CaptureContextSchema = z.object({
+	signer: z.object({
+		signerId: z.string().optional(),
+		dominantHand: z.enum(["left", "right", "both", "unknown"]).optional(),
+		ageGroup: z.enum(["child", "teen", "adult", "unknown"]).optional(),
+	}).strict().optional(),
+	device: z.object({
+		deviceModel: z.string().optional(),
+		platform: z.string().optional(),
+		osVersion: z.string().optional(),
+		appVersion: z.string().optional(),
+	}).strict().optional(),
+	camera: z.object({
+		facingMode: z.enum(["user", "environment", "left", "right", "unknown"]).optional(),
+		width: z.number().optional(),
+		height: z.number().optional(),
+		fps: z.number().optional(),
+	}).strict().optional(),
+	lighting: z.object({
+		condition: z.enum(["low", "mixed", "bright", "backlit", "unknown"]).optional(),
+		confidence: z.number().optional(),
+		source: z.enum(["manual", "auto", "unknown"]).optional(),
+	}).strict().optional(),
+}).strict();
+
 const MetadataSchema = z.object({
 	label: NonEmptyString.optional(),
 	profileId: z.string().nullable().optional(),
@@ -76,6 +101,7 @@ const MetadataSchema = z.object({
 	handFocus: HandFocusSchema.optional(),
 	augmentation: z.object({ mirrorSafe: z.boolean().optional() }).strict().optional(),
 	variationData: VariationDataSchema.optional(),
+	captureContext: CaptureContextSchema.optional(),
 	recording: RecordingSchema.optional(),
 	featureContract: z.object({ version: z.string().optional() }).strict().optional(),
 }).strict();
