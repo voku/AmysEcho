@@ -13,6 +13,7 @@
 - Define post-training operations that should run on cadence (reconciliation, retention cleanup, summary generation).
 - Keep upload-triggered training as primary low-latency path; cron handles only non-interactive follow-up tasks.
 - Document deployment scheduling approach (system timer/cron) and failure-handling expectations.
+- Depends on `JUN-P1-7` for unified training-job ownership and restart-safe source-of-truth signals that cron tasks can trust.
 - Out of scope: replacing the existing upload-triggered training workflow.
 
 ## Entry points
@@ -32,7 +33,7 @@
 - [ ] Evidence committed
 
 ## Next command
-- `rg -n "train-status|training queue|backup|monitor" server/src docs/operations docs/deployment`
+- `rg -ni "train-status|trainingQueue|jobQueue|backup|monitor" server/src docs/operations docs/deployment`
 
 ## Sync rule
 - Update `TODO.md` first for status changes, then refresh this topic file details.

@@ -92,13 +92,15 @@ Prevent regression by turning one-time hardening work into repeatable operationa
 
 - [ ] **JUN-P1-6:** Define and implement a cron-backed post-training operations cadence (reconciliation, retention, summaries) without delaying upload-triggered training.
   - Topic board: `docs/planning/topics/JUN-P1-6/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
+  - Sequencing: depends on `JUN-P1-7` for unified training-job ownership and restart-safe reconciliation signals.
   - Entry points: `server/src/server.ts`, `server/src/routes/trainingJobsRoutes.ts`, `docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`, `docs/deployment/QUICKSTART_SERVER.md`
-  - Evidence: ops runbook covering schedule/failure handling + committed dry-run report from at least one cadence cycle.
+  - Evidence: ops runbook covering schedule/failure handling + committed dry-run report from at least one cadence cycle, using `JUN-P1-7` source-of-truth job semantics.
 
 - [ ] **JUN-P1-7:** Consolidate training job ownership and restart recovery so post-training cron jobs have a single reliable source of truth.
   - Topic board: `docs/planning/topics/JUN-P1-7/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
+  - Sequencing: foundational for `JUN-P1-6`; complete ownership/recovery contract before enabling cron reconciliation/retention/summaries.
   - Entry points: `server/src/server.ts`, `server/src/services/trainingOrchestrator.ts`, `server/src/services/dgsAutoPretrainService.ts`, `server/test/`
-  - Evidence: architecture decision note + tests proving dedupe/recovery behavior across restarts and concurrent triggers.
+  - Evidence: architecture decision note + tests proving dedupe/recovery behavior across restarts and concurrent triggers, with explicit handoff contract for `JUN-P1-6`.
 
 ---
 

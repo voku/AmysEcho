@@ -13,6 +13,7 @@
 - Establish one authoritative training job ownership model across current queueing paths.
 - Define deduplication and recovery behavior for concurrent/duplicate triggers.
 - Add restart-safe recovery behavior needed by post-training cron reconciliation.
+- Enables `JUN-P1-6` by providing a stable job source-of-truth for safe cron reconciliation, retention, and summary tasks.
 - Out of scope: introducing new model architectures or changing gesture UX.
 
 ## Entry points
@@ -32,7 +33,7 @@
 - [ ] Evidence committed
 
 ## Next command
-- `rg -n "queueTrainingJob|startTrainingJob|train-status|autoPretrain" server/src server/test`
+- `rg -ni "queueTrainingJob|startTrainingJob|train-status|autoPretrain" server/src server/test`
 
 ## Sync rule
 - Update `TODO.md` first for status changes, then refresh this topic file details.
