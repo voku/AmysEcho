@@ -1,7 +1,7 @@
 # Amy's Echo TODO — 4-Month Delivery Plan (Apr–Jul 2026)
 
-**Last refreshed:** 2026-04-02 (updated)
-**Scope:** next ~4 months of execution, aligned to current codebase state and external best-practice review.
+**Last refreshed:** 2026-04-03 (updated)
+**Scope:** next ~4 months of execution, aligned to current codebase state and the project prime directive from `spec/AmysEcho.md`.
 **Done archive:** completed roadmap items now live in `docs/planning/TODO_DONE.md`.
 
 ## Topic board structure (Kanban-style)
@@ -25,78 +25,99 @@ When you add a new TODO entry in this file, create its topic board directory imm
 
 ---
 
-## 1) April 2026 — Performance truth + reproducibility foundation
+## 1) April 2026 — Performance truth and production gate definition
 
 ### Goal
-Lock down measurement discipline so model/runtime decisions are evidence-driven, not intuition-driven.
+Close the last evidence gap between prototype performance and release confidence on real caregiver devices.
 
 ### Planned deliverables
 
-- [ ] **APR-P0-1:** Run real-device worker-offload benchmark and publish decision (`keep` / `iterate` / `reject`).
+- [ ] **APR-P0-1:** Complete real-device worker-offload benchmark and publish decision (`keep` / `iterate` / `reject`).
   - Topic board: `docs/planning/topics/APR-P0-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
   - Entry points: `webapp/src/gesture/workers/DetectionWorker.ts`, `webapp/src/gesture/workers/WorkerDetectionBridge.ts`, `docs/testing/benchmarks/worker_offload_2026-03-25.md`
-  - Evidence: updated benchmark doc with device matrix (low-end tablet, mid-range phone, laptop).
+  - Evidence: benchmark update with real device matrix + final recommendation and risk notes.
 
-- [ ] **APR-P0-2:** Run first device performance measurement cycle using protocol.
+- [ ] **APR-P0-2:** Run full real-device performance protocol cycle and publish reproducible artifacts.
   - Topic board: `docs/planning/topics/APR-P0-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `webapp/src/hooks/useSignLanguageDetector.ts`, `webapp/src/components/TrainingRecorder.tsx`
-  - Evidence: result artefacts under `docs/testing/benchmarks/results/` following the device performance protocol.
-  - Protocol: `docs/testing/benchmarks/device_performance_protocol.md`
+  - Entry points: `webapp/src/hooks/useSignLanguageDetector.ts`, `webapp/src/components/TrainingRecorder.tsx`, `docs/testing/benchmarks/device_performance_protocol.md`
+  - Evidence: result artefacts under `docs/testing/benchmarks/results/<date>/` following protocol structure.
+
+- [ ] **APR-P0-4:** Define release performance gates (p50/p95 latency, sustained FPS, thermal, battery) and go/no-go rules.
+  - Topic board: `docs/planning/topics/APR-P0-4/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
+  - Entry points: `docs/testing/benchmarks/device_performance_protocol.md`, `docs/testing/benchmarks/performance_report_2026-03-27.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`
+  - Evidence: documented gate table + explicit pass/fail interpretation for target device classes.
 
 ---
 
-## 2) May 2026 — Few-shot automation + data quality contracts
+## 2) May 2026 — Few-shot quality gates + metadata integrity
 
 ### Goal
-Turn few-shot evaluation from ad-hoc effort into repeatable tooling.
+Move few-shot from ad-hoc analysis to enforceable, signer-safe, production-quality evaluation.
 
 ### Planned deliverables
 
-- [ ] **MAY-P0-1:** Implement `train_mlp_fewshot.py` runner (profile × shot × seed execution).
+- [ ] **MAY-P0-1:** Operationalize `train_mlp_fewshot.py` as the default repeatable evaluation runner (artifacts, determinism, reporting).
   - Topic board: `docs/planning/topics/MAY-P0-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/src/amyserver_tools/train_mlp_sweep.py`
-  - Evidence: runner script committed + generated artifacts under `docs/testing/benchmarks/results/<date>`.
+  - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp.py`, `docs/testing/benchmarks/few_shot_protocol.md`
+  - Evidence: runner execution evidence under `docs/testing/benchmarks/results/<date>/` with summary and diagnostics.
 
-- [ ] **MAY-P1-1:** Define capture metadata protocol (signer/device/camera/lighting) and enforce persistence through upload/ingestion.
+- [ ] **MAY-P1-1:** Enforce capture metadata protocol (signer/device/camera/lighting) end-to-end through bundle creation and ingestion.
   - Topic board: `docs/planning/topics/MAY-P1-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `webapp/src/training/trainingBundle.ts`, `server/src/routes/trainingBundleRoute.ts`, `docs/training/LANDMARK_STREAM_SCHEMA.md`
-  - Evidence: schema update + tests proving metadata survives end-to-end.
+  - Entry points: `webapp/src/training/trainingBundle.ts`, `webapp/src/training/types.ts`, `server/src/routes/trainingBundleRoute.ts`, `docs/training/LANDMARK_STREAM_SCHEMA.md`
+  - Evidence: schema update + tests proving metadata persistence from client bundle to server manifest and reports.
+
+- [ ] **MAY-P1-2:** Promote signer-leakage validation into a hard quality gate for few-shot outputs.
+  - Topic board: `docs/planning/topics/MAY-P1-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
+  - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`
+  - Evidence: failing leakage test + passing validator + report split by known/new signer.
 
 ---
 
-## 3) June 2026 — Operations hardening + accessibility cadence
+## 3) June 2026 — Operational continuity and governance cadence
 
 ### Goal
-Reduce operational risk before next release cycle.
+Prevent regression by turning one-time hardening work into repeatable operational cadence.
 
 ### Planned deliverables
 
-- ✅ No remaining open June deliverables.
+- [ ] **JUN-P1-4:** Run and publish Q2 accessibility verification cycle with ownership sign-off.
+  - Topic board: `docs/planning/topics/JUN-P1-4/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
+  - Entry points: `docs/security/GOVERNANCE_CADENCE.md`, `docs/testing/`
+  - Evidence: completed `docs/testing/ACCESSIBILITY_CYCLE_2026-Q2.md` report with tracked findings.
+
+- [ ] **JUN-P1-5:** Execute operations readiness refresh (incident drill + rollback + monitoring ownership review).
+  - Topic board: `docs/planning/topics/JUN-P1-5/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
+  - Entry points: `docs/operations/INCIDENT_DRILL_2026-03-27.md`, `docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`
+  - Evidence: refreshed drill artifact + updated ownership checklist + remediation log.
 
 ---
 
 ## 4) July 2026 — Release readiness for next milestone
 
 ### Goal
-Package performance, reliability, and governance improvements into a release-ready quality gate.
+Package measured reliability improvements into a clear release gate for Amy-facing production confidence.
 
 ### Planned deliverables
 
-- [ ] **JUL-P1-1:** Publish long-session hardware baselines (FPS/thermal/battery deltas) for target caregiver devices.
+- [ ] **JUL-P1-1:** Publish long-session hardware baselines (FPS/thermal/battery deltas) for target caregiver devices and compare against release gates.
   - Topic board: `docs/planning/topics/JUL-P1-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Evidence: benchmark table in `docs/testing/benchmarks/`.
+  - Evidence: benchmark table + threshold pass/fail statement in `docs/testing/benchmarks/`.
 
-- [ ] **JUL-P2-1:** Break Metacom sentence-composition roadmap into implementation slices with acceptance criteria.
+- [ ] **JUL-P2-1:** Re-scope Metacom sentence-composition roadmap into release slices with acceptance criteria and test gates.
   - Topic board: `docs/planning/topics/JUL-P2-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `docs/metacom/METACOM_SENTENCE_COMPOSITION.md`
-  - Evidence: updated roadmap with milestone checkpoints.
+  - Entry points: `docs/metacom/METACOM_SENTENCE_COMPOSITION.md`, `webapp/src/services/metacomSentenceFlowService.ts`, `webapp/src/services/metacomRecommendationService.ts`
+  - Evidence: updated roadmap with implementation sequence, acceptance criteria, and verification plan.
 
 ---
 
-## 5) MediaPipe + Sign-Language R&D watchlist (deep-dive refresh)
+## 5) MediaPipe + Sign-Language R&D watchlist (capacity-limited)
 
 ### Goal
-Convert recent MediaPipe release changes (v0.10.20–v0.10.33) and external sign-language best practices into actionable, testable improvements for Amy’s production path.
+Convert best-practice opportunities into practical improvements without losing delivery focus.
+
+### Active policy
+- Keep at most **2 active R&D P0 topics** in progress at the same time.
+- Prioritize signer-safety and runtime stability before exploratory model complexity.
 
 ### Planned deliverables (pull into Apr–Jul execution as capacity allows)
 
@@ -106,27 +127,27 @@ Convert recent MediaPipe release changes (v0.10.20–v0.10.33) and external sign
   - Entry points: `webapp/src/gesture/core/GestureDetector.ts`, `webapp/src/hooks/useSignLanguageDetector.ts`, `docs/testing/benchmarks/`
   - Evidence: benchmark artifact comparing baseline vs tuned ROI/crop settings (FPS, drop rate, confidence stability).
 
-- [ ] **RD-P0-2:** Evaluate `FULL_RANGE` face detector mode impact on sign recognition robustness in non-frontal caregiver/device setups.
-  - Topic board: `docs/planning/topics/RD-P0-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Why now: full-range face detection support/tests landed in newer MediaPipe tasks; facial context is relevant for multi-modal sign interpretation.
-  - Entry points: `webapp/src/gesture/`, `integration/test/`, `docs/testing/benchmarks/`
-  - Evidence: side-angle/partial-face benchmark matrix and recommendation (`enable` / `keep default`).
-
 - [ ] **RD-P0-3:** Add signer-independent evaluation gate to few-shot workflow (no signer leakage in train/val/test manifests).
   - Topic board: `docs/planning/topics/RD-P0-3/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Why now: external best-practice review consistently flags signer leakage as the highest-risk quality trap in sign-language ML.
+  - Why now: signer leakage remains the highest-risk quality trap in sign-language ML.
   - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`
   - Evidence: manifest validator + failing test for leakage + report metric split by known/new signer.
 
+- [ ] **RD-P0-2:** Evaluate `FULL_RANGE` face detector mode impact on sign recognition robustness in non-frontal caregiver/device setups.
+  - Topic board: `docs/planning/topics/RD-P0-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
+  - Why now: full-range face detection support/tests landed in newer MediaPipe tasks; facial context is relevant for multimodal sign interpretation.
+  - Entry points: `webapp/src/gesture/`, `integration/test/`, `docs/testing/benchmarks/`
+  - Evidence: side-angle/partial-face benchmark matrix and recommendation (`enable` / `keep default`).
+
 - [ ] **RD-P1-1:** Add confidence calibration and abstention policy for low-confidence predictions.
   - Topic board: `docs/planning/topics/RD-P1-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Why now: best-practice review emphasizes calibrated confidence thresholds to avoid incorrect sign output under noisy conditions.
+  - Why now: calibrated thresholds reduce wrong outputs in noisy conditions.
   - Entry points: `webapp/src/gesture/installMlp.ts`, `webapp/src/gesture/modelClient.ts`, `webapp/src/hooks/useSignLanguageDetector.ts`
-  - Evidence: documented threshold policy + offline reliability plot or bin-based calibration table in `docs/testing/benchmarks/`.
+  - Evidence: documented threshold policy + reliability calibration table in `docs/testing/benchmarks/`.
 
 - [ ] **RD-P1-2:** Prototype temporal smoothing/sequence modeling upgrade path (beyond per-frame classification) with strict latency budget.
   - Topic board: `docs/planning/topics/RD-P1-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Why now: best-practice review repeatedly shows temporal context is high-value for sign disambiguation.
+  - Why now: temporal context is high-value for sign disambiguation.
   - Entry points: `webapp/src/gesture/core/ProcessingSteps.ts`, `server/training/sliding_window.py`, `docs/testing/benchmarks/`
   - Evidence: prototype comparison report (accuracy deltas + p95 latency + battery/thermal impact).
 
