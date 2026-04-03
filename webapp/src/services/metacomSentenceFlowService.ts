@@ -120,7 +120,12 @@ export function getSentenceFlowSuggestions(
  * Converts a quick phrase into sentence symbols for the sentence queue.
  */
 export function quickPhraseToSentenceSymbols(phrase: QuickPhrase): SentenceSymbol[] {
-  return phrase.speech.split(' ').map((word, index) => ({
+  const sourceText = phrase.speech.trim() || phrase.label.trim();
+  const words = sourceText
+    .split(/\s+/)
+    .filter((word) => word.length > 0);
+
+  return words.map((word, index) => ({
     id: `${phrase.id}_word_${index}`,
     label: word,
     emoji: index === 0 ? phrase.emoji : '',

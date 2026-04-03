@@ -105,11 +105,6 @@ Package measured reliability improvements into a clear release gate for Amy-faci
   - Topic board: `docs/planning/topics/JUL-P1-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
   - Evidence: benchmark table + threshold pass/fail statement in `docs/testing/benchmarks/`.
 
-- [ ] **JUL-P2-1:** Re-scope Metacom sentence-composition roadmap into release slices with acceptance criteria and test gates.
-  - Topic board: `docs/planning/topics/JUL-P2-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `docs/metacom/METACOM_SENTENCE_COMPOSITION.md`, `webapp/src/services/metacomSentenceFlowService.ts`, `webapp/src/services/metacomRecommendationService.ts`
-  - Evidence: updated roadmap with implementation sequence, acceptance criteria, and verification plan.
-
 ---
 
 ## 5) MediaPipe + Sign-Language R&D watchlist (capacity-limited)

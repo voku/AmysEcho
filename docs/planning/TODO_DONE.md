@@ -87,6 +87,13 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
 
 ## 4) July 2026 — Release readiness for next milestone
 
+### Done (April 2026 — Metacom roadmap slicing)
+
+- [x] **JUL-P2-1:** Re-scope Metacom sentence-composition roadmap into release slices with acceptance criteria and test gates.
+  - Topic board: `docs/planning/topics/JUL-P2-1/TOPIC.md` (details + evidence).
+  - Entry points: `docs/metacom/METACOM_SENTENCE_COMPOSITION.md`, `webapp/src/services/metacomSentenceFlowService.ts`, `webapp/src/services/metacomRecommendationService.ts`
+  - Evidence: release-slice roadmap with implementation sequence, acceptance criteria, test gates, and verification plan in `docs/metacom/METACOM_SENTENCE_COMPOSITION.md` (`Release-Slices (JUL-P2-1)` + `Verifikationsplan` sections).
+
 ### Done (March 2026 — governance baseline)
 
 - [x] **JUL-P2-2:** Published governance cadence with ownership and reusable evidence templates.

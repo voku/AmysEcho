@@ -168,6 +168,42 @@ describe('metacomSentenceFlowService', () => {
       expect(symbols[1]?.emoji).toBe('');
       expect(symbols[2]?.emoji).toBe('');
     });
+
+    it('normalizes extra whitespace in phrase speech', () => {
+      const symbols = quickPhraseToSentenceSymbols({
+        id: 'qp_spacing',
+        label: 'Spacing',
+        emoji: '🧪',
+        speech: '  Ich   brauche \n Hilfe  ',
+      });
+
+      expect(symbols).toHaveLength(3);
+      expect(symbols.map((symbol) => symbol.label)).toEqual(['Ich', 'brauche', 'Hilfe']);
+      expect(symbols[0]?.emoji).toBe('🧪');
+      expect(symbols[1]?.emoji).toBe('');
+      expect(symbols[2]?.emoji).toBe('');
+    });
+
+    it('falls back to phrase label when speech is empty', () => {
+      const symbols = quickPhraseToSentenceSymbols({
+        id: 'qp_label_fallback',
+        label: 'Bitte helfen',
+        emoji: '🆘',
+        speech: '   ',
+      });
+
+      expect(symbols).toHaveLength(2);
+      expect(symbols[0]).toEqual({
+        id: 'qp_label_fallback_word_0',
+        label: 'Bitte',
+        emoji: '🆘',
+      });
+      expect(symbols[1]).toEqual({
+        id: 'qp_label_fallback_word_1',
+        label: 'helfen',
+        emoji: '',
+      });
+    });
   });
 
   describe('QUICK_PHRASES', () => {

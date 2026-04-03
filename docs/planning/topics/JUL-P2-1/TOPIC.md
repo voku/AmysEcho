@@ -1,7 +1,7 @@
 # JUL-P2-1 — Metacom roadmap slicing
 
 ## Kanban Status
-- **Column:** In Progress
+- **Column:** Done
 - **Owner:** Codex (LLM)
 - **Last updated:** 2026-04-03
 
@@ -24,4 +24,4 @@
 - [x] Evidence committed
 
 ## Next command
-- `npm test --prefix webapp -- --runInBand`
+- `rg -n "JUL-P2-1" docs/planning/TODO.md docs/planning/TODO_DONE.md docs/planning/topics/JUL-P2-1/TOPIC.md`
