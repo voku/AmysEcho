@@ -124,10 +124,91 @@ Wir brauchen eine leichte Rollen-Zuordnung, die optional ist:
 }
 ```
 
-## Nächste Schritte (Plan)
+## Release-Slices (JUL-P2-1)
 
-1. **Quellen verifizieren** (Lizenz & Inhalt).
-2. **Rollenmodell** im Metacom-Schema ergänzen (optional).
-3. **Slotting/Komposition** als UI-Option im Satzkomponisten testen.
-4. **Admin-Konfiguration** für Follow-on Kategorien (pro Profil).
-5. **Tests**: Satzbau-Reihenfolge, Modifier-Bindung, Export/Import.
+Ziel der Slices ist, die Satz-Komposition in klaren, testbaren Etappen bis zur
+Release-Entscheidung aufzubauen, ohne Amy im Alltag zu blockieren.
+
+### Slice 1 — Stabiler Satzkern (MVP)
+**Umfang**
+- Rollen-gestützte Reihenfolge für Person → Aktion → Objekt als **optional**
+  aktivierbarer Hinweis.
+- Freie Eingabe bleibt jederzeit möglich (kein hartes Blockieren).
+- Satzvorschau mit sofortigem Feedback nach jeder Symbolauswahl.
+
+**Akzeptanzkriterien**
+- Ein Satz mit Person, Aktion und Objekt wird in der Vorschau konsistent
+  aufgebaut.
+- Nutzer können Symbole weiterhin frei platzieren, ohne dass bestehende Reihen
+  gelöscht oder umsortiert werden.
+- Bei unvollständigem Satz zeigt der „Nächster Schritt“-Hinweis die zuerst
+  fehlende Kernrolle.
+
+**Test-Gates**
+- Unit-Tests für Rollenreihenfolge und Fallback bei freier Eingabe.
+- UI-Tests für Satzvorschau und „Nächster Schritt“-Hinweise.
+- Regressionstest: bestehende Symbolauswahl/Sprachausgabe bleibt unverändert.
+
+### Slice 2 — Modifier & Negation sicher anbinden
+**Umfang**
+- Modifier-Boards pro Objekt nutzbar machen (z. B. Pizza → Ohne Käse).
+- Negationssymbole konsistent an nächste semantische Einheit koppeln.
+- Konfliktarme Darstellung bei mehreren Modifiers im Satzstreifen.
+
+**Akzeptanzkriterien**
+- Objektgebundene Modifier werden nach Objekt positioniert und bleiben bei
+  Bearbeitung stabil.
+- Negationen werden in der Vorschau sprachlich sinnvoll platziert
+  (z. B. „nicht essen“, „ohne Käse“).
+- Entfernen eines Objekts entfernt oder entkoppelt zugehörige Modifier ohne
+  defekte Restzustände.
+
+**Test-Gates**
+- Unit-Tests für Modifier-Bindung und Negationsregeln.
+- Integrationstests für Hinzufügen/Entfernen/Umsortieren im Satzstreifen.
+- Snapshot/Rendering-Tests für mehrteilige Sätze mit Modifiers.
+
+### Slice 3 — Profil- und Konfigurationsfähigkeit
+**Umfang**
+- Profilabhängige Follow-on-Konfiguration für Objekt → Modifier-Beziehungen.
+- Sichere Default-Fallbacks bei fehlender oder veralteter Konfiguration.
+- Import/Export der Satzbau-relevanten Konfigurationsdaten.
+
+**Akzeptanzkriterien**
+- Profilwechsel lädt jeweils die passende Modifier-Konfiguration.
+- Fehlende Konfiguration führt zu nutzbarer Standarddarstellung statt Fehler.
+- Exportierte Konfiguration kann ohne Datenverlust reimportiert werden.
+
+**Test-Gates**
+- Persistenztests für Profilwechsel und Registry-Synchronisierung.
+- Schema-Validierungstests für Import/Export.
+- Fehlertests für unvollständige Konfigurationsobjekte (robuster Fallback).
+
+### Slice 4 — Vorschlagslogik & Release-Gate
+**Umfang**
+- LLM-Satzverbesserung als optionale, klar getrennte Hilfsfunktion.
+- Sichtbare Zustände für nicht angemeldete Konten und Serverfehler.
+- Release-Entscheidung anhand definierter Qualitäts- und Stabilitätsmetriken.
+
+**Akzeptanzkriterien**
+- Ohne Auth bleibt die Kernkommunikation nutzbar; nur Vorschlagsfunktion ist
+  deaktiviert.
+- Serverfehler bei Satzverbesserung blockieren weder Satzaufbau noch Sprechen.
+- Release-Freigabe erfolgt nur bei bestandenem Test-Gate über alle Slices.
+
+**Test-Gates**
+- API-Integrationstests für Erfolgs- und Fehlerpfade der Verbesserung.
+- E2E-Tests für „ohne Login“, „mit Login“ und „Serverfehler“-Szenarien.
+- Dokumentierter Release-Check mit Pass/Fail pro Kriterium.
+
+## Verifikationsplan (projektweit)
+
+1. **Technische Verifikation**
+   - Alle neuen Unit-, Integrations- und E2E-Tests sind grün.
+   - Type-Check und Lint bleiben ohne neue Warnungen/Fehler.
+2. **Produktverifikation (Amy First)**
+   - Keine zusätzliche Eingabeverzögerung im Satzaufbau.
+   - Keine regressiven Änderungen an bestehender Symbolkommunikation.
+3. **Dokumentationsverifikation**
+   - Jede Slice-Änderung aktualisiert diese Roadmap und den Topic-Board-Status.
+   - Testevidenz wird in `docs/testing/` oder verlinkten Artefakten abgelegt.
