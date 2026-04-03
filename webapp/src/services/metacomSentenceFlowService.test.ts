@@ -192,11 +192,16 @@ describe('metacomSentenceFlowService', () => {
         speech: '   ',
       });
 
-      expect(symbols).toHaveLength(1);
+      expect(symbols).toHaveLength(2);
       expect(symbols[0]).toEqual({
         id: 'qp_label_fallback_word_0',
-        label: 'Bitte helfen',
+        label: 'Bitte',
         emoji: '🆘',
+      });
+      expect(symbols[1]).toEqual({
+        id: 'qp_label_fallback_word_1',
+        label: 'helfen',
+        emoji: '',
       });
     });
   });
