@@ -1,10 +1,10 @@
 # APR-P0-4 — Release performance gate definition
 
 ## Kanban Status
-- **Column:** Backlog
+- **Column:** Done
 - **Owner:** Unassigned
-- **Last updated:** 2026-04-03
-- **Status authority:** `docs/planning/TODO.md`
+- **Last updated:** 2026-04-03 (done)
+- **Status authority:** `docs/planning/TODO_DONE.md` (archived completion)
 
 ## Amy impact
 - Prevents regressions that could break Amy's real-time communication loop during long sessions.
@@ -22,13 +22,19 @@
 - A published gate table with thresholds and at least one interpreted benchmark run.
 
 ## Checklist
-- [ ] Discovery complete
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Evidence committed
+- [x] Discovery complete
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Evidence committed
 
 ## Next command
 - `rg -n "p50|p95|fps|thermal|battery|threshold" docs/testing/benchmarks docs/planning/RELEASE_0.0.2_READINESS.md`
 
 ## Sync rule
 - Update `TODO.md` first for status changes, then refresh this topic file details.
+
+
+## Progress notes
+- 2026-04-03: Added canonical G1–G4 gate mapping and GO/CONDITIONAL GO/NO-GO rubric to `docs/testing/benchmarks/device_performance_protocol.md`.
+- 2026-04-03: Added release-readiness interpretation guardrails that disallow CI-only performance evidence for final gate decisions.
+- 2026-04-03: Interpreted benchmark evidence committed in `docs/testing/benchmarks/results/2026-04-03/apr_p0_4_gate_interpretation.md`.

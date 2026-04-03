@@ -86,3 +86,24 @@ Prepare and attach before creating the tag:
 2. Add CI-published line/branch coverage percentages for webapp and server.
 3. Execute manual device and accessibility validation cadence and attach results to release notes.
 4. Continue stress/performance hardening for long-session caregiver usage.
+
+
+## 7) Performance gate interpretation (APR-P0-4)
+
+Release decisions must use the canonical gate mapping in
+`docs/testing/benchmarks/device_performance_protocol.md` (§8).
+
+### 7.1 Current interpretation status (as of 2026-04-03)
+
+| Evidence artifact | Device class coverage | Gate verdict quality | Release verdict contribution |
+|-------------------|-----------------------|----------------------|------------------------------|
+| `docs/testing/benchmarks/performance_report_2026-03-27.md` | CI cloud VM only (not caregiver devices) | **Informational only**; not valid for G1–G4 sign-off | Does **not** satisfy GO/NO-GO authority |
+| `docs/testing/benchmarks/results/<date>/...` (protocol run) | Real P0/P1 matrix | Required for formal gate verdicts | Required for final GO/CONDITIONAL GO/NO-GO |
+
+### 7.2 Go/no-go decision policy
+
+- Do not approve release readiness based only on CI VM performance evidence.
+- Require completed APR-P0-2 protocol artefacts across the P0 matrix before granting GO.
+- Latest interpreted snapshot: `docs/testing/benchmarks/results/2026-04-03/apr_p0_4_gate_interpretation.md` (current verdict: NO-GO pending P0 measurements).
+- If P0 gates pass and any P1 gate fails, record a CONDITIONAL GO with a dated remediation owner.
+- If any P0 gate fails, mark release as NO-GO until remediation is re-tested and documented.

@@ -1,6 +1,6 @@
 # Amy's Echo TODO_DONE — Completed Roadmap Archive
 
-**Last refreshed:** 2026-04-02 (updated)
+**Last refreshed:** 2026-04-03 (updated)
 **Purpose:** archive completed roadmap items moved from `docs/planning/TODO.md` by cut/paste.
 
 ## Topic board structure (Kanban-style)
@@ -16,6 +16,13 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
 ## 1) April 2026 — Performance truth + reproducibility foundation
 
 ### Done (March 2026 — early delivery)
+
+### Done (April 2026 — release gate governance hardening)
+
+- [x] **APR-P0-4:** Define release performance gates (p50/p95 latency, sustained FPS, thermal, battery) and go/no-go rules.
+  - Topic board: `docs/planning/topics/APR-P0-4/TOPIC.md` (details + evidence).
+  - Entry points: `docs/testing/benchmarks/device_performance_protocol.md`, `docs/testing/benchmarks/performance_report_2026-03-27.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`
+  - Evidence: canonical gate mapping + rubric in `docs/testing/benchmarks/device_performance_protocol.md` (§8), readiness interpretation policy in `docs/planning/RELEASE_0.0.2_READINESS.md` (§7), and interpreted benchmark snapshot in `docs/testing/benchmarks/results/2026-04-03/apr_p0_4_gate_interpretation.md`.
 
 - [x] **APR-P0-2 (protocol):** Publish realistic device performance protocol (first launch, route switch, camera flip, 20-min run).
   - Topic board: `docs/planning/topics/APR-P0-2-PROTOCOL/TOPIC.md` (details + evidence).
