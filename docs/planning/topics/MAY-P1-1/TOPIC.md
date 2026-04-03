@@ -1,9 +1,10 @@
 # MAY-P1-1 — Capture metadata protocol enforcement
 
 ## Kanban Status
-- **Column:** In Progress
+- **Column:** Done
 - **Owner:** Codex (LLM)
-- **Last updated:** 2026-04-03
+- **Last updated:** 2026-04-03 (done)
+- **Status authority:** `docs/planning/TODO_DONE.md` (archived completion)
 
 ## Amy impact
 - Improves training data quality and prevents silent model quality drops for Amy.
@@ -26,4 +27,4 @@
 - [x] Evidence committed
 
 ## Next command
-- `npm test --prefix webapp -- trainingBundle.test.ts --runInBand`
+- `rg -n "captureContext|signer|device|camera|lighting" webapp/src/training server/src/routes server/src/services docs/training`

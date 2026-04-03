@@ -53,6 +53,13 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Topic board: `docs/planning/topics/MAY-P0-2/TOPIC.md` (details + evidence).
   - Evidence: `server/test/test_train_mlp_fewshot.py`, `server/test/test_train_mlp_sweep.py`.
 
+### Done (April 2026 — capture metadata protocol enforcement)
+
+- [x] **MAY-P1-1:** Enforce capture metadata protocol (signer/device/camera/lighting) end-to-end through bundle creation and ingestion.
+  - Topic board: `docs/planning/topics/MAY-P1-1/TOPIC.md` (details + evidence).
+  - Entry points: `webapp/src/training/trainingBundle.ts`, `webapp/src/training/types.ts`, `server/src/routes/trainingBundleRoute.ts`, `docs/training/LANDMARK_STREAM_SCHEMA.md`
+  - Evidence: schema extension for `captureContext` + tests proving persistence from client ZIP metadata to server manifest and ingested dataset samples.
+
 ---
 
 ## 3) June 2026 — Operations hardening + accessibility cadence
