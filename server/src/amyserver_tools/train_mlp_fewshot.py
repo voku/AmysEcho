@@ -11,14 +11,26 @@ import shutil
 import statistics
 import subprocess
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 try:
+    from amyserver_tools import train_mlp as train_mlp_module
     from amyserver_tools.train_mlp_sweep import _extract_score, _parse_training_report
+    from amyserver_tools.train_mlp import (
+        _compute_accuracy,
+        _compute_f1_score,
+        build_samples_from_manifest,
+        dataset_to_arrays,
+    )
 except ModuleNotFoundError:
+    import train_mlp as train_mlp_module
     from train_mlp_sweep import _extract_score, _parse_training_report
+    from train_mlp import _compute_accuracy, _compute_f1_score, build_samples_from_manifest, dataset_to_arrays
 
 
 NULL_CLASS_LABEL = "_null_"
@@ -141,13 +153,37 @@ def _validate_split_manifest(split_manifest: dict[str, Any]) -> None:
     if missing:
         raise ValueError(f"Split manifest missing required fields: {', '.join(missing)}")
 
-    train_profiles = set(split_manifest["train_profiles"])
-    test_profiles = set(split_manifest["test_profiles"])
+    train_profiles_raw = split_manifest["train_profiles"]
+    test_profiles_raw = split_manifest["test_profiles"]
+    train_bundles_raw = split_manifest["train_bundles"]
+    test_bundles_raw = split_manifest["test_bundles"]
+
+    if not isinstance(train_profiles_raw, list) or not isinstance(test_profiles_raw, list):
+        raise ValueError("Split manifest invalid signer split: train_profiles and test_profiles must be lists")
+    if not isinstance(train_bundles_raw, list) or not isinstance(test_bundles_raw, list):
+        raise ValueError("Split manifest invalid bundle split: train_bundles and test_bundles must be lists")
+
+    if not train_profiles_raw or not test_profiles_raw:
+        raise ValueError("Split manifest invalid signer split: train_profiles and test_profiles must be non-empty")
+    if not train_bundles_raw or not test_bundles_raw:
+        raise ValueError("Split manifest invalid bundle split: train_bundles and test_bundles must be non-empty")
+
+    if any(not isinstance(profile, str) or not profile.strip() for profile in train_profiles_raw):
+        raise ValueError("Split manifest invalid signer split: train_profiles entries must be non-empty strings")
+    if any(not isinstance(profile, str) or not profile.strip() for profile in test_profiles_raw):
+        raise ValueError("Split manifest invalid signer split: test_profiles entries must be non-empty strings")
+    if any(not isinstance(bundle, str) or not bundle.strip() for bundle in train_bundles_raw):
+        raise ValueError("Split manifest invalid bundle split: train_bundles entries must be non-empty strings")
+    if any(not isinstance(bundle, str) or not bundle.strip() for bundle in test_bundles_raw):
+        raise ValueError("Split manifest invalid bundle split: test_bundles entries must be non-empty strings")
+
+    train_profiles = set(train_profiles_raw)
+    test_profiles = set(test_profiles_raw)
     if train_profiles.intersection(test_profiles):
         raise ValueError("Split manifest signer leakage: train_profiles and test_profiles overlap")
 
-    train_bundles = set(split_manifest["train_bundles"])
-    test_bundles = set(split_manifest["test_bundles"])
+    train_bundles = set(train_bundles_raw)
+    test_bundles = set(test_bundles_raw)
     if train_bundles.intersection(test_bundles):
         raise ValueError("Split manifest bundle leakage: train_bundles and test_bundles overlap")
 
@@ -258,6 +294,79 @@ def _extract_trial_metrics(report: dict[str, object]) -> tuple[float, float, boo
         return (0.0, 0.0, True)
 
 
+def _load_global_model_artifact(
+    model_output_dir: Path,
+) -> tuple[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray], list[str]]:
+    artifact_path = model_output_dir / "global" / "amy_model.npz"
+    if not artifact_path.exists():
+        raise ValueError(f"Missing trained model artifact for few-shot evaluation: {artifact_path}")
+
+    with np.load(artifact_path) as artifact:
+        labels = [str(label) for label in artifact["labels"].tolist()]
+        weights = (
+            artifact["w1"].T.astype(np.float32),
+            artifact["b1"].astype(np.float32),
+            artifact["w2"].T.astype(np.float32),
+            artifact["b2"].astype(np.float32),
+            artifact["w3"].T.astype(np.float32),
+            artifact["b3"].astype(np.float32),
+        )
+    return weights, labels
+
+
+def _build_heldout_test_samples(
+    *,
+    test_pool: list[dict[str, Any]],
+    data_dir: Path,
+) -> list[Any]:
+    with tempfile.TemporaryDirectory(prefix="amy-fewshot-heldout-") as temp_dir:
+        temp_manifest = Path(temp_dir) / "heldout_test_manifest.json"
+        temp_manifest.write_text(json.dumps({"entries": test_pool}, indent=2), encoding="utf-8")
+        original_data_dir = train_mlp_module.DATA_DIR
+        train_mlp_module.DATA_DIR = data_dir
+        try:
+            test_samples, _ = build_samples_from_manifest(temp_manifest, skip_examples=True)
+        finally:
+            train_mlp_module.DATA_DIR = original_data_dir
+    return test_samples
+
+
+def _evaluate_heldout_test_pool(
+    *,
+    test_samples: list[Any],
+    model_output_dir: Path,
+) -> tuple[float, float, dict[str, int]]:
+    model_weights, model_labels = _load_global_model_artifact(model_output_dir)
+    model_label_set = set(model_labels)
+    model_label_to_index = {label: index for index, label in enumerate(model_labels)}
+
+    known_label_samples = [sample for sample in test_samples if sample.label in model_label_set]
+    dropped_count = len(test_samples) - len(known_label_samples)
+    if not known_label_samples:
+        raise ValueError("Held-out test pool has no samples with labels known to the trained model")
+
+    X_test, y_test, test_labels, _, _ = dataset_to_arrays(
+        known_label_samples,
+        augmentations_per_sample=0,
+        use_multimodal=True,
+    )
+    if X_test.size == 0 or y_test.size == 0:
+        raise ValueError("Held-out test pool could not be converted into evaluation arrays")
+
+    y_remapped = np.array(
+        [model_label_to_index[test_labels[int(label_index)]] for label_index in y_test],
+        dtype=np.int64,
+    )
+    accuracy = _compute_accuracy(X_test, y_remapped, model_weights)
+    f1_score = _compute_f1_score(X_test, y_remapped, model_weights, len(model_labels))
+    diagnostics = {
+        "total_test_samples": len(test_samples),
+        "evaluated_test_samples": len(known_label_samples),
+        "dropped_unknown_label_samples": dropped_count,
+    }
+    return accuracy, f1_score, diagnostics
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
@@ -305,6 +414,7 @@ def main() -> None:
 
         train_pool = [entry for entry in entries if _entry_profile(entry) in set(train_profiles)]
         test_pool = [entry for entry in entries if _entry_profile(entry) in set(test_profiles)]
+        test_samples = _build_heldout_test_samples(test_pool=test_pool, data_dir=args.data_dir)
 
         for shot in shots:
             try:
@@ -371,6 +481,10 @@ def main() -> None:
 
             parsed_report = _parse_training_report(run.stdout)
             accuracy, f1_score, used_fallback_metrics = _extract_trial_metrics(parsed_report)
+            heldout_accuracy, heldout_f1_score, heldout_diagnostics = _evaluate_heldout_test_pool(
+                test_samples=test_samples,
+                model_output_dir=run_output_dir,
+            )
             if used_fallback_metrics:
                 fallback_metric_count += 1
                 fallback_metric_trials.append({"seed": seed, "shot": shot})
@@ -378,8 +492,10 @@ def main() -> None:
             report_payload = {
                 "seed": seed,
                 "shot": shot,
-                "metrics": {"accuracy": accuracy, "f1_score": f1_score},
+                "metrics": {"accuracy": heldout_accuracy, "f1_score": heldout_f1_score},
+                "training_metrics": {"accuracy": accuracy, "f1_score": f1_score},
                 "used_fallback_metrics": used_fallback_metrics,
+                "heldout_test_diagnostics": heldout_diagnostics,
                 "model_output_dir": str(run_output_dir),
                 "raw_report": parsed_report,
             }
