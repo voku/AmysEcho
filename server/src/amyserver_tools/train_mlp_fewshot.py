@@ -19,6 +19,7 @@ from typing import Any
 import numpy as np
 
 try:
+    from amyserver_tools import train_mlp as train_mlp_module
     from amyserver_tools.train_mlp_sweep import _extract_score, _parse_training_report
     from amyserver_tools.train_mlp import (
         _compute_accuracy,
@@ -27,6 +28,7 @@ try:
         dataset_to_arrays,
     )
 except ModuleNotFoundError:
+    import train_mlp as train_mlp_module
     from train_mlp_sweep import _extract_score, _parse_training_report
     from train_mlp import _compute_accuracy, _compute_f1_score, build_samples_from_manifest, dataset_to_arrays
 
@@ -312,20 +314,31 @@ def _load_global_model_artifact(
     return weights, labels
 
 
-def _evaluate_heldout_test_pool(
+def _build_heldout_test_samples(
     *,
     test_pool: list[dict[str, Any]],
+    data_dir: Path,
+) -> list[Any]:
+    with tempfile.TemporaryDirectory(prefix="amy-fewshot-heldout-") as temp_dir:
+        temp_manifest = Path(temp_dir) / "heldout_test_manifest.json"
+        temp_manifest.write_text(json.dumps({"entries": test_pool}, indent=2), encoding="utf-8")
+        original_data_dir = train_mlp_module.DATA_DIR
+        train_mlp_module.DATA_DIR = data_dir
+        try:
+            test_samples, _ = build_samples_from_manifest(temp_manifest, skip_examples=True)
+        finally:
+            train_mlp_module.DATA_DIR = original_data_dir
+    return test_samples
+
+
+def _evaluate_heldout_test_pool(
+    *,
+    test_samples: list[Any],
     model_output_dir: Path,
-    skip_examples: bool,
 ) -> tuple[float, float, dict[str, int]]:
     model_weights, model_labels = _load_global_model_artifact(model_output_dir)
     model_label_set = set(model_labels)
     model_label_to_index = {label: index for index, label in enumerate(model_labels)}
-
-    with tempfile.TemporaryDirectory(prefix="amy-fewshot-heldout-") as temp_dir:
-        temp_manifest = Path(temp_dir) / "heldout_test_manifest.json"
-        temp_manifest.write_text(json.dumps({"entries": test_pool}, indent=2), encoding="utf-8")
-        test_samples, _ = build_samples_from_manifest(temp_manifest, skip_examples=skip_examples)
 
     known_label_samples = [sample for sample in test_samples if sample.label in model_label_set]
     dropped_count = len(test_samples) - len(known_label_samples)
@@ -401,6 +414,7 @@ def main() -> None:
 
         train_pool = [entry for entry in entries if _entry_profile(entry) in set(train_profiles)]
         test_pool = [entry for entry in entries if _entry_profile(entry) in set(test_profiles)]
+        test_samples = _build_heldout_test_samples(test_pool=test_pool, data_dir=args.data_dir)
 
         for shot in shots:
             try:
@@ -468,9 +482,8 @@ def main() -> None:
             parsed_report = _parse_training_report(run.stdout)
             accuracy, f1_score, used_fallback_metrics = _extract_trial_metrics(parsed_report)
             heldout_accuracy, heldout_f1_score, heldout_diagnostics = _evaluate_heldout_test_pool(
-                test_pool=test_pool,
+                test_samples=test_samples,
                 model_output_dir=run_output_dir,
-                skip_examples=args.skip_examples,
             )
             if used_fallback_metrics:
                 fallback_metric_count += 1

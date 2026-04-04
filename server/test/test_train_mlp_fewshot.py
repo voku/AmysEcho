@@ -4,8 +4,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import amyserver_tools.train_mlp_fewshot as fewshot_module
 from amyserver_tools.train_mlp_fewshot import (
     _aggregate_trials,
+    _build_heldout_test_samples,
     _evaluate_heldout_test_pool,
     _extract_trial_metrics,
     _load_global_model_artifact,
@@ -173,9 +175,7 @@ def test_load_global_model_artifact_reads_weights_and_labels(tmp_path: Path) -> 
     assert weights[4].shape == (2, 2)
 
 
-def test_evaluate_heldout_test_pool_rejects_unknown_labels(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_evaluate_heldout_test_pool_rejects_unknown_labels(tmp_path: Path) -> None:
     model_path = tmp_path / "models" / "global"
     model_path.mkdir(parents=True)
     np.savez_compressed(
@@ -193,14 +193,41 @@ def test_evaluate_heldout_test_pool_rejects_unknown_labels(
         def __init__(self, label: str) -> None:
             self.label = label
 
-    monkeypatch.setattr(
-        "amyserver_tools.train_mlp_fewshot.build_samples_from_manifest",
-        lambda _path, skip_examples=False: ([FakeSample("danke")], {}),
-    )
-
     with pytest.raises(ValueError, match="no samples with labels known"):
         _evaluate_heldout_test_pool(
-            test_pool=[{"id": "bundle-1", "profileId": "p2", "label": "danke"}],
+            test_samples=[FakeSample("danke")],
             model_output_dir=tmp_path / "models",
-            skip_examples=True,
         )
+
+
+def test_build_heldout_test_samples_forces_skip_examples_and_uses_data_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, object] = {}
+    original_data_dir = tmp_path / "original-data"
+    original_data_dir.mkdir()
+    overridden_data_dir = tmp_path / "override-data"
+    overridden_data_dir.mkdir()
+
+    class FakeSample:
+        def __init__(self, label: str) -> None:
+            self.label = label
+
+    monkeypatch.setattr("amyserver_tools.train_mlp_fewshot.train_mlp_module.DATA_DIR", original_data_dir)
+
+    def _fake_build_samples(_manifest_path: Path, skip_examples: bool = False) -> tuple[list[FakeSample], dict]:
+        captured["skip_examples"] = skip_examples
+        captured["data_dir_during_call"] = str(fewshot_module.train_mlp_module.DATA_DIR)
+        return [FakeSample("hallo")], {}
+
+    monkeypatch.setattr("amyserver_tools.train_mlp_fewshot.build_samples_from_manifest", _fake_build_samples)
+
+    samples = _build_heldout_test_samples(
+        test_pool=[{"id": "bundle-1", "profileId": "p2", "label": "hallo"}],
+        data_dir=overridden_data_dir,
+    )
+
+    assert len(samples) == 1
+    assert captured["skip_examples"] is True
+    assert captured["data_dir_during_call"] == str(overridden_data_dir)
+    assert fewshot_module.train_mlp_module.DATA_DIR == original_data_dir
