@@ -22,9 +22,9 @@
 - Leakage validator + failing regression test + passing run with signer-split report.
 
 ## Checklist
-- [ ] Discovery complete
-- [ ] Implementation complete
-- [ ] Tests pass
+- [x] Discovery complete
+- [x] Implementation complete (incremental hardening: stricter split-manifest validation plus held-out signer metrics wired into few-shot trial reports)
+- [x] Tests pass (`pytest server/test/test_train_mlp_fewshot.py server/test/test_train_mlp_sweep.py -q`)
 - [ ] Evidence committed
 
 ## Next command

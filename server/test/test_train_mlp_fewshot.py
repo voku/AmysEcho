@@ -1,11 +1,14 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from amyserver_tools.train_mlp_fewshot import (
     _aggregate_trials,
+    _evaluate_heldout_test_pool,
     _extract_trial_metrics,
+    _load_global_model_artifact,
     _load_manifest_entries,
     _partition_profiles,
     _promote_best_model,
@@ -47,6 +50,38 @@ def test_validate_split_manifest_rejects_bundle_overlap() -> None:
                 "test_profiles": ["p2"],
                 "train_bundles": ["bundle-1"],
                 "test_bundles": ["bundle-1"],
+                "train_samples_per_label": {"hallo": 1},
+                "test_samples_per_label": {"hallo": 1},
+            }
+        )
+
+
+def test_validate_split_manifest_rejects_signer_overlap() -> None:
+    with pytest.raises(ValueError, match="signer leakage"):
+        _validate_split_manifest(
+            {
+                "seed": 42,
+                "shot": 1,
+                "train_profiles": ["p1", "p2"],
+                "test_profiles": ["p2", "p3"],
+                "train_bundles": ["bundle-1"],
+                "test_bundles": ["bundle-2"],
+                "train_samples_per_label": {"hallo": 1},
+                "test_samples_per_label": {"hallo": 1},
+            }
+        )
+
+
+def test_validate_split_manifest_rejects_empty_signer_split() -> None:
+    with pytest.raises(ValueError, match="must be non-empty"):
+        _validate_split_manifest(
+            {
+                "seed": 42,
+                "shot": 1,
+                "train_profiles": [],
+                "test_profiles": ["p2"],
+                "train_bundles": ["bundle-1"],
+                "test_bundles": ["bundle-2"],
                 "train_samples_per_label": {"hallo": 1},
                 "test_samples_per_label": {"hallo": 1},
             }
@@ -115,3 +150,57 @@ def test_promote_best_model_reports_missing_source(tmp_path: Path) -> None:
     result = _promote_best_model({"model_output_dir": str(missing)}, tmp_path / "destination")
     assert result["promoted"] is False
     assert result["reason"] == "missing_model_output_dir"
+
+
+def test_load_global_model_artifact_reads_weights_and_labels(tmp_path: Path) -> None:
+    model_path = tmp_path / "global"
+    model_path.mkdir(parents=True)
+    np.savez_compressed(
+        model_path / "amy_model.npz",
+        w1=np.ones((2, 3), dtype=np.float32),
+        b1=np.zeros((2,), dtype=np.float32),
+        w2=np.ones((2, 2), dtype=np.float32),
+        b2=np.zeros((2,), dtype=np.float32),
+        w3=np.ones((2, 2), dtype=np.float32),
+        b3=np.zeros((2,), dtype=np.float32),
+        labels=np.array(["hallo", "bitte"]),
+    )
+
+    weights, labels = _load_global_model_artifact(tmp_path)
+
+    assert labels == ["hallo", "bitte"]
+    assert weights[0].shape == (3, 2)
+    assert weights[4].shape == (2, 2)
+
+
+def test_evaluate_heldout_test_pool_rejects_unknown_labels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model_path = tmp_path / "models" / "global"
+    model_path.mkdir(parents=True)
+    np.savez_compressed(
+        model_path / "amy_model.npz",
+        w1=np.ones((2, 3), dtype=np.float32),
+        b1=np.zeros((2,), dtype=np.float32),
+        w2=np.ones((2, 2), dtype=np.float32),
+        b2=np.zeros((2,), dtype=np.float32),
+        w3=np.ones((2, 2), dtype=np.float32),
+        b3=np.zeros((2,), dtype=np.float32),
+        labels=np.array(["hallo", "bitte"]),
+    )
+
+    class FakeSample:
+        def __init__(self, label: str) -> None:
+            self.label = label
+
+    monkeypatch.setattr(
+        "amyserver_tools.train_mlp_fewshot.build_samples_from_manifest",
+        lambda _path, skip_examples=False: ([FakeSample("danke")], {}),
+    )
+
+    with pytest.raises(ValueError, match="no samples with labels known"):
+        _evaluate_heldout_test_pool(
+            test_pool=[{"id": "bundle-1", "profileId": "p2", "label": "danke"}],
+            model_output_dir=tmp_path / "models",
+            skip_examples=True,
+        )
