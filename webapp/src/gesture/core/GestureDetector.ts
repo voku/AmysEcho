@@ -257,6 +257,8 @@ export class GestureDetector {
 
     } catch (error) {
       console.error('Failed to initialize gesture detector:', error);
+      this.gestureRecognizer = null;
+      this.runtimeDelegates.gesture = null;
       this.lastInitializationError = error instanceof Error ? error.message : String(error);
       throw error;
     }
