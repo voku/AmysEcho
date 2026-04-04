@@ -112,7 +112,11 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
 
 ### Done
 
-- ✅ No completed R&D watchlist items archived yet.
+- [x] **RD-P1-3:** Improve runtime diagnosability by surfacing MediaPipe task/backend/error context into existing logs/health diagnostics.
+  - Topic board: `docs/planning/topics/RD-P1-3/TOPIC.md` (details + evidence).
+  - Why now: recent MediaPipe releases improved status/error propagation; we should consume that signal for faster production triage.
+  - Entry points: `webapp/src/gesture/`, `server/src/routes/health.ts`, `docs/operations/`
+  - Evidence: incident-style drill showing faster root-cause identification from enriched diagnostics in `docs/operations/INCIDENT_DRILL_RD-P1-3_2026-04-03.md`.
 
 <!-- AUTO-GENERATED-DONE-HISTORY:START -->
 

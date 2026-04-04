@@ -578,6 +578,8 @@ describe('GestureRecognitionOrchestrator', () => {
       expect(status.performance).toBeDefined();
       expect(status.memory).toBeDefined();
       expect(status.health).toBeDefined();
+      expect(status.detectorRuntime).toBeDefined();
+      expect(status.detectorRuntime?.modelUrls.gesture).toContain('gesture_recognizer.task');
     });
   });
 

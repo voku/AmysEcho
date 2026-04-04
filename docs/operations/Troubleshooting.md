@@ -24,4 +24,10 @@ This guide lists common issues encountered when setting up or running **Amy's Ec
 - Make sure there is adequate lighting and the hand is fully within the camera frame.
 - Re-run the gesture teaching flow from the **Admin Panel** to add more samples.
 
+## Gesture runtime diagnostics
+- In the web gesture runtime, call `window.__getGestureSystemStatus?.()` in the browser console.
+- Check `detectorRuntime.delegates` to confirm whether MediaPipe is running on `GPU` or CPU fallback.
+- Check `detectorRuntime.modules` to verify whether gesture, pose, and face modules were initialized.
+- If startup fails, inspect `detectorRuntime.lastInitializationError` for the latest initialization error message.
+
 If problems persist, please open an issue in the repository with logs or screenshots so the team can assist.

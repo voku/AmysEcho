@@ -1,9 +1,9 @@
 # RD-P1-3 — Runtime diagnosability enhancements
 
 ## Kanban Status
-- **Column:** Backlog
+- **Column:** Done
 - **Owner:** Unassigned
-- **Last updated:** 2026-04-02
+- **Last updated:** 2026-04-03
 
 ## Amy impact
 - Faster incident triage minimizes downtime risk for Amy's communication features.
@@ -18,12 +18,13 @@
 
 ## Evidence required for Done
 - Incident-style drill artifact showing faster root-cause identification.
+  - Evidence: `docs/operations/INCIDENT_DRILL_RD-P1-3_2026-04-03.md`
 
 ## Checklist
-- [ ] Discovery complete
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Evidence committed
+- [x] Discovery complete
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Evidence committed
 
 ## Next command
-- `rg -n "diagnostic|MediaPipe|health" webapp/src/gesture server/src/routes/health.ts docs/operations`
+- `sed -n '1,220p' docs/operations/INCIDENT_DRILL_RD-P1-3_2026-04-03.md`

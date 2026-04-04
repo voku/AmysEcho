@@ -113,6 +113,8 @@ describe('GestureDetector', () => {
           minTrackingConfidence: 0.5,
         })
       );
+
+      expect(detector.getRuntimeDiagnostics().delegates.gesture).toBe('GPU');
     });
 
     it('should fallback to CPU when GPU fails', async () => {
@@ -132,6 +134,7 @@ describe('GestureDetector', () => {
           baseOptions: expect.objectContaining({ delegate: 'CPU' }),
         })
       );
+      expect(detector.getRuntimeDiagnostics().delegates.gesture).toBe('CPU');
     });
 
     it('should throw error when both GPU and CPU fail', async () => {
@@ -141,6 +144,8 @@ describe('GestureDetector', () => {
       const detector = new GestureDetector(mockVideo, mockOverlay);
 
       await expect(detector.initialize()).rejects.toThrow('Hardware not supported');
+      expect(detector.getRuntimeDiagnostics().lastInitializationError).toBe('Hardware not supported');
+      expect(detector.getRuntimeDiagnostics().delegates.gesture).toBeNull();
     });
 
     it('should register video event listener', async () => {
