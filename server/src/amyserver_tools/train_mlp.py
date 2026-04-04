@@ -290,6 +290,68 @@ def load_json(path: Path) -> dict | None:
         return None
 
 
+def collect_manifest_signer_scope(manifest: dict[str, object]) -> tuple[set[str], set[str]]:
+    """Return profile and bundle identities present in a training manifest."""
+    entries_raw = manifest.get("entries", [])
+    if not isinstance(entries_raw, list):
+        raise ValueError("Manifest must include an entries list")
+
+    profile_ids: set[str] = set()
+    bundle_ids: set[str] = set()
+    for entry in entries_raw:
+        if not isinstance(entry, dict):
+            continue
+        profile_id = entry.get("profileId")
+        if not isinstance(profile_id, str):
+            metadata = entry.get("metadata")
+            if isinstance(metadata, dict):
+                metadata_profile = metadata.get("profileId")
+                if isinstance(metadata_profile, str):
+                    profile_id = metadata_profile
+        if isinstance(profile_id, str) and profile_id.strip():
+            profile_ids.add(profile_id.strip())
+
+        bundle_id = entry.get("id")
+        if isinstance(bundle_id, str) and bundle_id.strip():
+            bundle_ids.add(bundle_id.strip())
+
+    return profile_ids, bundle_ids
+
+
+def validate_manifest_signer_split(
+    train_manifest: dict[str, object], test_manifest: dict[str, object]
+) -> dict[str, int]:
+    """Hard-gate signer leakage between train/test manifests."""
+    train_profiles, train_bundles = collect_manifest_signer_scope(train_manifest)
+    test_profiles, test_bundles = collect_manifest_signer_scope(test_manifest)
+
+    if not train_profiles or not test_profiles:
+        raise ValueError(
+            "Signer split requires non-empty profile sets in both train and test manifests"
+        )
+
+    overlapping_profiles = sorted(train_profiles.intersection(test_profiles))
+    if overlapping_profiles:
+        raise ValueError(
+            "Split manifest signer leakage: train/test manifests share profiles "
+            + ", ".join(overlapping_profiles)
+        )
+
+    overlapping_bundles = sorted(train_bundles.intersection(test_bundles))
+    if overlapping_bundles:
+        raise ValueError(
+            "Split manifest bundle leakage: train/test manifests share bundle ids "
+            + ", ".join(overlapping_bundles)
+        )
+
+    return {
+        "train_profile_count": len(train_profiles),
+        "test_profile_count": len(test_profiles),
+        "train_bundle_count": len(train_bundles),
+        "test_bundle_count": len(test_bundles),
+    }
+
+
 def sha256_file(path: Path) -> str | None:
     try:
         data = path.read_bytes()
