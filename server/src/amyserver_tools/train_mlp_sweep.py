@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Run a lightweight hyperparameter sweep for train_mlp.py.
 
-This keeps the useful orchestration idea from the legacy SignLanguageRecognition
-`sweep.py` / `sweep_cv.py` scripts, but uses Amy's Echo training entrypoint and
-artifact layout.
+Uses Amy's Echo training entrypoint and artifact layout.
 """
 
 from __future__ import annotations
@@ -18,6 +16,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
 
+PACKAGE_ROOT = Path(__file__).resolve().parent.parent
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
+
+from amyserver_tools.train_mlp import load_json, validate_manifest_signer_split
 
 @dataclass(frozen=True)
 class SweepConfig:
@@ -118,8 +121,14 @@ def _extract_score(report: dict[str, object]) -> tuple[float, float]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--train-manifest", type=Path, required=True)
     parser.add_argument("--data-dir", type=Path, required=True)
+    parser.add_argument(
+        "--heldout-manifest",
+        type=Path,
+        required=True,
+        help="Heldout test manifest used to hard-gate signer leakage.",
+    )
     parser.add_argument("--epochs", default="80,120")
     parser.add_argument("--learning-rates", default="0.001,0.003")
     parser.add_argument("--dropouts", default="0.2,0.3")
@@ -130,6 +139,17 @@ def main() -> None:
     args = parser.parse_args()
     if args.trials < 1:
         parser.error("--trials must be >= 1")
+
+    train_manifest_payload = load_json(args.train_manifest)
+    heldout_manifest_payload = load_json(args.heldout_manifest)
+    if not isinstance(train_manifest_payload, dict):
+        raise ValueError(f"Could not read training manifest: {args.train_manifest}")
+    if not isinstance(heldout_manifest_payload, dict):
+        raise ValueError(f"Could not read heldout manifest: {args.heldout_manifest}")
+    signer_split_validation = validate_manifest_signer_split(
+        train_manifest=train_manifest_payload,
+        test_manifest=heldout_manifest_payload,
+    )
 
     train_script = _resolve_train_script()
     epochs_values = _parse_int_list(args.epochs)
@@ -164,7 +184,7 @@ def main() -> None:
                 output_dir = Path(tmp_dir) / "models"
                 command = _build_command(
                     train_script=train_script,
-                    manifest=args.manifest,
+                    manifest=args.train_manifest,
                     data_dir=args.data_dir,
                     output_dir=output_dir,
                     config=config,
@@ -212,7 +232,9 @@ def main() -> None:
         key=lambda item: (item["mean_f1_score"], item["mean_accuracy"]),
         reverse=True,
     )
-    print(json.dumps({"best": ranked[0], "results": ranked}, indent=2))
+    payload: dict[str, object] = {"best": ranked[0], "results": ranked}
+    payload["signer_split_validation"] = signer_split_validation
+    print(json.dumps(payload, indent=2))
 
 
 if __name__ == "__main__":
