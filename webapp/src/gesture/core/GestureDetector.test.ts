@@ -145,6 +145,7 @@ describe('GestureDetector', () => {
 
       await expect(detector.initialize()).rejects.toThrow('Hardware not supported');
       expect(detector.getRuntimeDiagnostics().lastInitializationError).toBe('Hardware not supported');
+      expect(detector.getRuntimeDiagnostics().delegates.gesture).toBeNull();
     });
 
     it('should register video event listener', async () => {

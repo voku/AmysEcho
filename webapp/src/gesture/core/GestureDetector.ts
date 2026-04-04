@@ -34,6 +34,29 @@ const GESTURE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/gestu
 const POSE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 const FACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 
+export interface GestureRuntimeDelegates {
+  gesture: 'GPU' | 'CPU' | null;
+  pose: 'GPU' | 'CPU' | 'disabled';
+  face: 'GPU' | 'CPU' | 'disabled';
+}
+
+export interface GestureRuntimeDiagnostics {
+  running: boolean;
+  frameCount: number;
+  delegates: GestureRuntimeDelegates;
+  modules: {
+    gestureRecognizerReady: boolean;
+    poseLandmarkerReady: boolean;
+    faceLandmarkerReady: boolean;
+  };
+  modelUrls: {
+    gesture: string;
+    pose: string;
+    face: string;
+  };
+  lastInitializationError: string | null;
+}
+
 export class GestureDetector {
   private static loadTasksVisionImpl: () => Promise<MediaPipeComponents | undefined> = loadTasksVision;
 
@@ -54,11 +77,7 @@ export class GestureDetector {
   private lastCaptureAttempt = 0;
   private lastOverlayClearTime = 0;
   private frameCount = 0;
-  private runtimeDelegates: {
-    gesture: 'GPU' | 'CPU' | null;
-    pose: 'GPU' | 'CPU' | 'disabled';
-    face: 'GPU' | 'CPU' | 'disabled';
-  } = {
+  private runtimeDelegates: GestureRuntimeDelegates = {
     gesture: null,
     pose: 'disabled',
     face: 'disabled',
@@ -143,11 +162,11 @@ export class GestureDetector {
         this.runtimeDelegates.gesture = 'GPU';
       } catch (gpuErr) {
         console.warn('GPU delegate failed, falling back to CPU:', gpuErr);
-        this.runtimeDelegates.gesture = 'CPU';
         this.gestureRecognizer = await components.GestureRecognizer.createFromOptions(vision, {
           ...gestureOptions,
           baseOptions: { ...baseOptions, delegate: 'CPU' as const },
         });
+        this.runtimeDelegates.gesture = 'CPU';
       }
 
       // Initialize PoseLandmarker for pose detection (body skeleton)
@@ -529,26 +548,7 @@ export class GestureDetector {
     return this.config;
   }
 
-  getRuntimeDiagnostics(): {
-    running: boolean;
-    frameCount: number;
-    delegates: {
-      gesture: 'GPU' | 'CPU' | null;
-      pose: 'GPU' | 'CPU' | 'disabled';
-      face: 'GPU' | 'CPU' | 'disabled';
-    };
-    modules: {
-      gestureRecognizerReady: boolean;
-      poseLandmarkerReady: boolean;
-      faceLandmarkerReady: boolean;
-    };
-    modelUrls: {
-      gesture: string;
-      pose: string;
-      face: string;
-    };
-    lastInitializationError: string | null;
-  } {
+  getRuntimeDiagnostics(): GestureRuntimeDiagnostics {
     return {
       running: this.running,
       frameCount: this.frameCount,

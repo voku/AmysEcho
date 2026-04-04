@@ -3,7 +3,7 @@
  * Coordinates all gesture detection components and manages the processing pipeline
  */
 
-import { GestureDetector } from './GestureDetector';
+import { GestureDetector, type GestureRuntimeDiagnostics } from './GestureDetector';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
 import { MemoryOptimizer } from '../utils/MemoryOptimizer';
 import {
@@ -1327,7 +1327,7 @@ export class GestureRecognitionOrchestrator {
     performance: ReturnType<PerformanceOptimizer['getDiagnostics']>;
     memory: ReturnType<MemoryOptimizer['getMemoryStatus']>;
     health: ReturnType<ErrorRecoveryManager['getHealthStatus']>;
-    detectorRuntime: ReturnType<GestureDetector['getRuntimeDiagnostics']> | null;
+    detectorRuntime: GestureRuntimeDiagnostics | null;
   } {
     return {
       initialized: this.isInitialized,
