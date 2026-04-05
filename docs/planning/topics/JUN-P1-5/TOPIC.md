@@ -1,9 +1,9 @@
 # JUN-P1-5 — Ops readiness refresh drill
 
 ## Kanban Status
-- **Column:** Backlog
-- **Owner:** Unassigned
-- **Last updated:** 2026-04-03
+- **Column:** Done
+- **Owner:** Backend on-call (ops rotation)
+- **Last updated:** 2026-04-04
 - **Status authority:** `docs/planning/TODO.md`
 
 ## Amy impact
@@ -22,13 +22,13 @@
 - Updated drill evidence + ownership review checklist + remediation tracking notes.
 
 ## Checklist
-- [ ] Discovery complete
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Evidence committed
+- [x] Discovery complete
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Evidence committed
 
 ## Next command
-- `rg -n "incident|rollback|ownership|threshold" docs/operations docs/planning/RELEASE_0.0.2_READINESS.md`
+- `npm test --prefix server -- healthCheck`
 
 ## Sync rule
 - Update `TODO.md` first for status changes, then refresh this topic file details.

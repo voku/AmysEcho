@@ -1,6 +1,6 @@
 # Production Health Monitoring Ownership & Thresholds
 
-**Last updated:** 2026-03-27  
+**Last updated:** 2026-04-04  
 **Scope:** release and runtime monitoring ownership for Amy's Echo webapp/server/integration flows.
 
 ## 1) Ownership matrix
@@ -39,3 +39,17 @@ Before release approval:
 - no unresolved critical threshold breach without explicit mitigation + ETA,
 - latest incident drill artifact exists in `docs/operations/`,
 - latest accessibility cycle artifact is linked from release readiness docs.
+
+
+## 5) 2026-04 ownership review checklist (JUN-P1-5)
+
+- Review date: 2026-04-04
+- Reviewed by: Release captain + Backend on-call
+
+| Check | Result | Notes |
+| --- | --- | --- |
+| Primary/backup owners confirmed reachable | ✅ | No owner gaps identified in current rotation. |
+| Escalation SLAs still match operational expectations | ✅ | Existing 15/30/60 minute SLAs retained. |
+| Alert thresholds still aligned with current release gate policy | ✅ | No threshold changes required after Q2 network-impairment drill. |
+| Latest drill and remediation artifacts linked | ✅ | `INCIDENT_DRILL_2026-04-04.md`, `OPS_READINESS_REMEDIATION_LOG_2026-04.md`. |
+

@@ -1,6 +1,6 @@
 # Amy's Echo TODO — 4-Month Delivery Plan (Apr–Jul 2026)
 
-**Last refreshed:** 2026-04-03 (updated)
+**Last refreshed:** 2026-04-04 (updated)
 **Scope:** next ~4 months of execution, aligned to current codebase state and the project prime directive from `spec/AmysEcho.md`.
 **Done archive:** completed roadmap items now live in `docs/planning/TODO_DONE.md`.
 
@@ -56,11 +56,6 @@ Move few-shot from ad-hoc analysis to enforceable, signer-safe, production-quali
   - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp.py`, `docs/testing/benchmarks/few_shot_protocol.md`
   - Evidence: runner execution evidence under `docs/testing/benchmarks/results/<date>/` with summary and diagnostics.
 
-- [ ] **MAY-P1-2:** Promote signer-leakage validation into a hard quality gate for few-shot outputs.
-  - Topic board: `docs/planning/topics/MAY-P1-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`
-  - Evidence: failing leakage test + passing validator + report split by known/new signer.
-
 ---
 
 ## 3) June 2026 — Operational continuity and governance cadence
@@ -69,16 +64,6 @@ Move few-shot from ad-hoc analysis to enforceable, signer-safe, production-quali
 Prevent regression by turning one-time hardening work into repeatable operational cadence.
 
 ### Planned deliverables
-
-- [ ] **JUN-P1-4:** Run and publish Q2 accessibility verification cycle with ownership sign-off.
-  - Topic board: `docs/planning/topics/JUN-P1-4/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `docs/security/GOVERNANCE_CADENCE.md`, `docs/testing/`
-  - Evidence: completed `docs/testing/ACCESSIBILITY_CYCLE_2026-Q2.md` report with tracked findings.
-
-- [ ] **JUN-P1-5:** Execute operations readiness refresh (incident drill + rollback + monitoring ownership review).
-  - Topic board: `docs/planning/topics/JUN-P1-5/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `docs/operations/INCIDENT_DRILL_2026-03-27.md`, `docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`
-  - Evidence: refreshed drill artifact + updated ownership checklist + remediation log.
 
 - [ ] **JUN-P1-6:** Define and implement a cron-backed post-training operations cadence (reconciliation, retention, summaries) without delaying upload-triggered training.
   - Topic board: `docs/planning/topics/JUN-P1-6/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).

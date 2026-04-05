@@ -78,13 +78,14 @@ Prepare and attach before creating the tag:
 - command evidence summary (pass/fail + warnings)
 - known risk register items and owners (security audit warning, operational manual checks)
 - production health monitoring ownership + thresholds (`docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`)
-- latest incident drill artifact with rollback evidence (`docs/operations/INCIDENT_DRILL_2026-03-27.md`)
+- latest incident drill artifact with rollback evidence (`docs/operations/INCIDENT_DRILL_2026-04-04.md`)
+- active operations remediation tracker (`docs/operations/OPS_READINESS_REMEDIATION_LOG_2026-04.md`)
 
 ## 6) Immediate Post-v0.0.2 Priorities
 
 1. Resolve/truncate high-severity integration dependency findings and record remediation evidence.
 2. Add CI-published line/branch coverage percentages for webapp and server.
-3. Execute manual device and accessibility validation cadence and attach results to release notes.
+3. Execute manual device validation cadence and attach results to release notes (latest accessibility cycle: `docs/testing/ACCESSIBILITY_CYCLE_2026-Q2.md`).
 4. Continue stress/performance hardening for long-session caregiver usage.
 
 

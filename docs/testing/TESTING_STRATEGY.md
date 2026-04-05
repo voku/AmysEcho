@@ -42,6 +42,7 @@ The branch threshold is intentionally lower as a **current floor** (close to mea
 
 - Governance source: `docs/security/GOVERNANCE_CADENCE.md`
 - First completed cycle artifact: `docs/testing/ACCESSIBILITY_CYCLE_2026-Q1.md`
+- Latest completed cycle artifact: `docs/testing/ACCESSIBILITY_CYCLE_2026-Q2.md`
 - Required cadence:
   - monthly security governance record (release gate input),
   - quarterly manual accessibility cycle (keyboard + screen reader + reduced motion).
