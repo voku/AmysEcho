@@ -3,8 +3,8 @@
 **Status:** Deprecated quick-reference.
 
 Use these canonical docs instead:
-- `docs/architecture/CodebaseOverview.md`
-- `docs/architecture/SYSTEM_ARCHITECTURE_MAP.md`
-- `docs/architecture/PROFILE_IDENTITY_ARCHITECTURE.md`
+- `docs/architecture/codebase-overview.md`
+- `docs/architecture/system-architecture-map.md`
+- `docs/architecture/profile-identity-architecture.md`
 
-For architecture-related active tasks, use `docs/planning/TODO.md`.
+For architecture-related active tasks, use `docs/planning/todo.md`.

@@ -1,7 +1,7 @@
 /**
  * WorkerDetectionBridge — main-thread bridge to the DetectionWorker.
  *
- * PROTOTYPE STATUS: See docs/testing/benchmarks/worker_offload_2026-03-25.md.
+ * PROTOTYPE STATUS: See docs/testing/benchmarks/worker-offload-2026-03-25.md.
  *
  * Usage:
  *   const bridge = new WorkerDetectionBridge({ wasmBase, gestureModelUrl, ... });

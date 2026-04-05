@@ -3,5 +3,5 @@
   "source": "recorded",
   "expectedConfidence": 0.75,
   "capturedAt": "2026-03-05T00:00:00.000Z",
-  "sourceLandmarksFile": "server/data/dgs_video_examples/satt_var_genug_0_landmarks.json"
+  "sourceLandmarksFile": "server/test/fixtures/dgs_video_examples/satt_var_genug_0_landmarks.json"
 }

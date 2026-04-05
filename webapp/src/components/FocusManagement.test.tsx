@@ -4,7 +4,7 @@
  * Tests focus trapping, focus order, and keyboard navigation in modals and interactive components.
  * Ensures WCAG 2.1 compliance for keyboard accessibility.
  * 
- * Reference: docs/planning/TODO.md - Accessibility Testing section
+ * Reference: docs/planning/todo.md - Accessibility Testing section
  */
 
 import { render, screen, waitFor } from '@testing-library/react';

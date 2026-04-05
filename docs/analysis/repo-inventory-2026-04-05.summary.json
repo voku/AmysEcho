@@ -1,0 +1,466 @@
+{
+  "generated_at_utc": "2026-04-05T21:13:53.078963+00:00",
+  "tracked_file_count": 1436,
+  "tracked_total_size_bytes": 234336460,
+  "tracked_total_size_mb": 223.48,
+  "summary": {
+    "by_extension": [
+      {
+        "key": ".ts",
+        "count": 364
+      },
+      {
+        "key": ".mp4",
+        "count": 329
+      },
+      {
+        "key": ".md",
+        "count": 257
+      },
+      {
+        "key": ".json",
+        "count": 202
+      },
+      {
+        "key": ".tsx",
+        "count": 118
+      },
+      {
+        "key": ".py",
+        "count": 77
+      },
+      {
+        "key": ".sh",
+        "count": 19
+      },
+      {
+        "key": ".js",
+        "count": 12
+      },
+      {
+        "key": ".yml",
+        "count": 10
+      },
+      {
+        "key": ".yaml",
+        "count": 8
+      },
+      {
+        "key": ".toml",
+        "count": 7
+      },
+      {
+        "key": ".mjs",
+        "count": 5
+      },
+      {
+        "key": ".gitignore",
+        "count": 3
+      },
+      {
+        "key": ".task",
+        "count": 3
+      },
+      {
+        "key": ".svg",
+        "count": 3
+      },
+      {
+        "key": "[no_ext]",
+        "count": 2
+      },
+      {
+        "key": ".sha256",
+        "count": 2
+      },
+      {
+        "key": ".txt",
+        "count": 2
+      },
+      {
+        "key": ".html",
+        "count": 2
+      },
+      {
+        "key": ".css",
+        "count": 2
+      },
+      {
+        "key": ".example",
+        "count": 1
+      },
+      {
+        "key": ".gitattributes",
+        "count": 1
+      },
+      {
+        "key": ".whitesource",
+        "count": 1
+      },
+      {
+        "key": ".conf",
+        "count": 1
+      },
+      {
+        "key": ".service",
+        "count": 1
+      },
+      {
+        "key": ".cjs",
+        "count": 1
+      },
+      {
+        "key": ".npz",
+        "count": 1
+      },
+      {
+        "key": ".gitkeep",
+        "count": 1
+      },
+      {
+        "key": ".zip",
+        "count": 1
+      }
+    ],
+    "by_top_level": [
+      {
+        "key": "server",
+        "count": 692
+      },
+      {
+        "key": "webapp",
+        "count": 369
+      },
+      {
+        "key": "docs",
+        "count": 238
+      },
+      {
+        "key": "scripts",
+        "count": 50
+      },
+      {
+        "key": "skills",
+        "count": 32
+      },
+      {
+        "key": ".github",
+        "count": 15
+      },
+      {
+        "key": "integration",
+        "count": 13
+      },
+      {
+        "key": "deployment",
+        "count": 11
+      },
+      {
+        "key": "spec",
+        "count": 2
+      },
+      {
+        "key": ".env.example",
+        "count": 1
+      },
+      {
+        "key": ".gitattributes",
+        "count": 1
+      },
+      {
+        "key": ".gitignore",
+        "count": 1
+      },
+      {
+        "key": ".idea",
+        "count": 1
+      },
+      {
+        "key": ".whitesource",
+        "count": 1
+      },
+      {
+        "key": "LICENSE",
+        "count": 1
+      },
+      {
+        "key": "readme.md",
+        "count": 1
+      },
+      {
+        "key": "agents.md",
+        "count": 1
+      },
+      {
+        "key": "data",
+        "count": 1
+      },
+      {
+        "key": "docker-compose.yml",
+        "count": 1
+      },
+      {
+        "key": "package-lock.json",
+        "count": 1
+      },
+      {
+        "key": "package.json",
+        "count": 1
+      },
+      {
+        "key": "pyproject.toml",
+        "count": 1
+      },
+      {
+        "key": "renovate.json",
+        "count": 1
+      }
+    ],
+    "by_size_bucket": [
+      {
+        "key": "<10KB",
+        "count": 1141
+      },
+      {
+        "key": "10KB-100KB",
+        "count": 165
+      },
+      {
+        "key": "1MB-10MB",
+        "count": 91
+      },
+      {
+        "key": "100KB-1MB",
+        "count": 39
+      }
+    ],
+    "by_age_bucket": [
+      {
+        "key": "0-30d",
+        "count": 1389
+      },
+      {
+        "key": "unknown",
+        "count": 47
+      }
+    ]
+  },
+  "root_notes": {
+    "webapp": "Frontend React + TypeScript communication UI",
+    "server": "API + ML/training services and datasets",
+    "integration": "End-to-end/integration tests",
+    "docs": "Architecture, planning, operations, and runbooks",
+    "scripts": "Automation and validation helpers",
+    "data": "Shared baseline model/data assets",
+    "deployment": "Deployment and environment configs",
+    "spec": "Design/protocol specs",
+    ".github": "CI and automation workflows",
+    "skills": "Codex skill definitions"
+  },
+  "cleanup_candidates": {
+    "tracked_large_artifacts": [],
+    "suspicious_filenames": [],
+    "likely_generated_or_backup": [
+      "server/data/dgs_video_examples/readme.md",
+      "server/data/dgs_video_examples/alle.mp4",
+      "server/data/dgs_video_examples/alle_landmarks.json",
+      "server/data/dgs_video_examples/alle_main_alle.mp4",
+      "server/data/dgs_video_examples/alle_main_alle_landmarks.json",
+      "server/data/dgs_video_examples/alle_main_alles.mp4",
+      "server/data/dgs_video_examples/alle_main_alles_landmarks.json",
+      "server/data/dgs_video_examples/alle_main_jeder.mp4",
+      "server/data/dgs_video_examples/alle_main_jeder_landmarks.json",
+      "server/data/dgs_video_examples/alle_var_alle_0.mp4",
+      "server/data/dgs_video_examples/alle_var_alle_0_landmarks.json",
+      "server/data/dgs_video_examples/alle_var_alles_0.mp4",
+      "server/data/dgs_video_examples/alle_var_alles_0_landmarks.json",
+      "server/data/dgs_video_examples/alle_var_jeder_0.mp4",
+      "server/data/dgs_video_examples/alle_var_jeder_0_landmarks.json",
+      "server/data/dgs_video_examples/angst_main_angst.mp4",
+      "server/data/dgs_video_examples/angst_main_ängstlich.mp4",
+      "server/data/dgs_video_examples/angst_var_angst_0.mp4",
+      "server/data/dgs_video_examples/angst_var_ängstlich_0.mp4",
+      "server/data/dgs_video_examples/apfel_main_apfel.mp4",
+      "server/data/dgs_video_examples/apfel_main_äpfel.mp4",
+      "server/data/dgs_video_examples/apfel_var_apfel_0.mp4",
+      "server/data/dgs_video_examples/apfel_var_apfel_1.mp4",
+      "server/data/dgs_video_examples/apfel_var_apfel_2.mp4",
+      "server/data/dgs_video_examples/apfel_var_äpfel_0.mp4",
+      "server/data/dgs_video_examples/apfel_var_äpfel_1.mp4",
+      "server/data/dgs_video_examples/apfel_var_äpfel_2.mp4",
+      "server/data/dgs_video_examples/banane_main_banane.mp4",
+      "server/data/dgs_video_examples/banane_var_banane_0.mp4",
+      "server/data/dgs_video_examples/banane_var_banane_1.mp4",
+      "server/data/dgs_video_examples/banane_var_banane_2.mp4",
+      "server/data/dgs_video_examples/banane_var_banane_3.mp4",
+      "server/data/dgs_video_examples/bitte_main_bitte.mp4",
+      "server/data/dgs_video_examples/bitte_main_bitten.mp4",
+      "server/data/dgs_video_examples/bitte_var_bitte_0.mp4",
+      "server/data/dgs_video_examples/bitte_var_bitten_0.mp4",
+      "server/data/dgs_video_examples/blau.mp4",
+      "server/data/dgs_video_examples/blau_landmarks.json",
+      "server/data/dgs_video_examples/blau_main_blau.mp4",
+      "server/data/dgs_video_examples/blau_main_blau_landmarks.json",
+      "server/data/dgs_video_examples/blau_var_blau_0.mp4",
+      "server/data/dgs_video_examples/blau_var_blau_0_landmarks.json",
+      "server/data/dgs_video_examples/blau_var_blau_1.mp4",
+      "server/data/dgs_video_examples/blau_var_blau_1_landmarks.json",
+      "server/data/dgs_video_examples/blau_var_blau_2.mp4",
+      "server/data/dgs_video_examples/blau_var_blau_2_landmarks.json",
+      "server/data/dgs_video_examples/blau_var_blau_3.mp4",
+      "server/data/dgs_video_examples/blau_var_blau_3_landmarks.json",
+      "server/data/dgs_video_examples/brot_main_brot.mp4",
+      "server/data/dgs_video_examples/brot_main_brötchen.mp4",
+      "server/data/dgs_video_examples/brot_var_brot_0.mp4",
+      "server/data/dgs_video_examples/brot_var_brot_1.mp4",
+      "server/data/dgs_video_examples/brot_var_brötchen_0.mp4",
+      "server/data/dgs_video_examples/brot_var_brötchen_1.mp4",
+      "server/data/dgs_video_examples/bruder_main_bruder.mp4",
+      "server/data/dgs_video_examples/bruder_var_bruder_0.mp4",
+      "server/data/dgs_video_examples/bruder_var_bruder_1.mp4",
+      "server/data/dgs_video_examples/bruder_var_bruder_2.mp4",
+      "server/data/dgs_video_examples/danke_main_danke.mp4",
+      "server/data/dgs_video_examples/danke_main_danken.mp4",
+      "server/data/dgs_video_examples/danke_var_danke_0.mp4",
+      "server/data/dgs_video_examples/danke_var_danke_1.mp4",
+      "server/data/dgs_video_examples/danke_var_danke_2.mp4",
+      "server/data/dgs_video_examples/danke_var_danken_0.mp4",
+      "server/data/dgs_video_examples/du_main_dich.mp4",
+      "server/data/dgs_video_examples/du_main_du.mp4",
+      "server/data/dgs_video_examples/du_var_dich_0.mp4",
+      "server/data/dgs_video_examples/du_var_du_0.mp4",
+      "server/data/dgs_video_examples/durst_main_durst.mp4",
+      "server/data/dgs_video_examples/durst_var_durst_0.mp4",
+      "server/data/dgs_video_examples/durst_var_durst_1.mp4",
+      "server/data/dgs_video_examples/essen.mp4",
+      "server/data/dgs_video_examples/essen_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_abendessen.mp4",
+      "server/data/dgs_video_examples/essen_main_abendessen_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_essen.mp4",
+      "server/data/dgs_video_examples/essen_main_essen_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_frühstück.mp4",
+      "server/data/dgs_video_examples/essen_main_frühstück_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_hunger.mp4",
+      "server/data/dgs_video_examples/essen_main_hunger_landmarks.json",
+      "server/data/dgs_video_examples/essen_main_mittagessen.mp4",
+      "server/data/dgs_video_examples/essen_main_mittagessen_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_abendessen_0.mp4",
+      "server/data/dgs_video_examples/essen_var_abendessen_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_essen_0.mp4",
+      "server/data/dgs_video_examples/essen_var_essen_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_essen_1.mp4",
+      "server/data/dgs_video_examples/essen_var_essen_1_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_essen_2.mp4",
+      "server/data/dgs_video_examples/essen_var_essen_2_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_frühstück_0.mp4",
+      "server/data/dgs_video_examples/essen_var_frühstück_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_hunger_0.mp4",
+      "server/data/dgs_video_examples/essen_var_hunger_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_hunger_1.mp4",
+      "server/data/dgs_video_examples/essen_var_hunger_1_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_hunger_2.mp4",
+      "server/data/dgs_video_examples/essen_var_hunger_2_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_mittagessen_0.mp4",
+      "server/data/dgs_video_examples/essen_var_mittagessen_0_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_mittagessen_1.mp4",
+      "server/data/dgs_video_examples/essen_var_mittagessen_1_landmarks.json",
+      "server/data/dgs_video_examples/essen_var_mittagessen_2.mp4",
+      "server/data/dgs_video_examples/essen_var_mittagessen_2_landmarks.json",
+      "server/data/dgs_video_examples/fertig.mp4",
+      "server/data/dgs_video_examples/fertig_landmarks.json",
+      "server/data/dgs_video_examples/fertig_main_ende.mp4",
+      "server/data/dgs_video_examples/fertig_main_ende_landmarks.json",
+      "server/data/dgs_video_examples/fertig_main_fertig.mp4",
+      "server/data/dgs_video_examples/fertig_main_fertig_landmarks.json",
+      "server/data/dgs_video_examples/fertig_main_schluss.mp4",
+      "server/data/dgs_video_examples/fertig_main_schluss_landmarks.json",
+      "server/data/dgs_video_examples/fertig_main_vorbei.mp4",
+      "server/data/dgs_video_examples/fertig_main_vorbei_landmarks.json",
+      "server/data/dgs_video_examples/fertig_var_ende_0.mp4",
+      "server/data/dgs_video_examples/fertig_var_ende_0_landmarks.json",
+      "server/data/dgs_video_examples/fertig_var_fertig_0.mp4",
+      "server/data/dgs_video_examples/fertig_var_fertig_0_landmarks.json",
+      "server/data/dgs_video_examples/fertig_var_fertig_1.mp4",
+      "server/data/dgs_video_examples/fertig_var_fertig_1_landmarks.json",
+      "server/data/dgs_video_examples/fertig_var_fertig_2.mp4",
+      "server/data/dgs_video_examples/fertig_var_fertig_2_landmarks.json",
+      "server/data/dgs_video_examples/fertig_var_schluss_0.mp4",
+      "server/data/dgs_video_examples/fertig_var_schluss_0_landmarks.json",
+      "server/data/dgs_video_examples/fertig_var_vorbei_0.mp4",
+      "server/data/dgs_video_examples/fertig_var_vorbei_0_landmarks.json",
+      "server/data/dgs_video_examples/gelb.mp4",
+      "server/data/dgs_video_examples/gelb_landmarks.json",
+      "server/data/dgs_video_examples/gelb_main_gelb.mp4",
+      "server/data/dgs_video_examples/gelb_main_gelb_landmarks.json",
+      "server/data/dgs_video_examples/gelb_var_gelb_0.mp4",
+      "server/data/dgs_video_examples/gelb_var_gelb_0_landmarks.json",
+      "server/data/dgs_video_examples/gelb_var_gelb_1.mp4",
+      "server/data/dgs_video_examples/gelb_var_gelb_1_landmarks.json",
+      "server/data/dgs_video_examples/gelb_var_gelb_2.mp4",
+      "server/data/dgs_video_examples/gelb_var_gelb_2_landmarks.json",
+      "server/data/dgs_video_examples/gelb_var_gelb_3.mp4",
+      "server/data/dgs_video_examples/gelb_var_gelb_3_landmarks.json",
+      "server/data/dgs_video_examples/gluecklich_main_freude.mp4",
+      "server/data/dgs_video_examples/gluecklich_main_froh.mp4",
+      "server/data/dgs_video_examples/gluecklich_main_fröhlich.mp4",
+      "server/data/dgs_video_examples/gluecklich_main_glücklich.mp4",
+      "server/data/dgs_video_examples/gluecklich_var_freude_0.mp4",
+      "server/data/dgs_video_examples/gluecklich_var_froh_0.mp4",
+      "server/data/dgs_video_examples/gluecklich_var_froh_1.mp4",
+      "server/data/dgs_video_examples/gluecklich_var_fröhlich_0.mp4",
+      "server/data/dgs_video_examples/gluecklich_var_glücklich_0.mp4",
+      "server/data/dgs_video_examples/gruen.mp4",
+      "server/data/dgs_video_examples/gruen_landmarks.json",
+      "server/data/dgs_video_examples/gruen_main_grün.mp4",
+      "server/data/dgs_video_examples/gruen_main_grün_landmarks.json",
+      "server/data/dgs_video_examples/gruen_var_grün_0.mp4",
+      "server/data/dgs_video_examples/gruen_var_grün_0_landmarks.json",
+      "server/data/dgs_video_examples/gruen_var_grün_1.mp4",
+      "server/data/dgs_video_examples/gruen_var_grün_1_landmarks.json",
+      "server/data/dgs_video_examples/gruen_var_grün_2.mp4",
+      "server/data/dgs_video_examples/gruen_var_grün_2_landmarks.json",
+      "server/data/dgs_video_examples/hilfe_main_helfen.mp4",
+      "server/data/dgs_video_examples/hilfe_main_hilfe.mp4",
+      "server/data/dgs_video_examples/hilfe_var_helfen_0.mp4",
+      "server/data/dgs_video_examples/hilfe_var_hilfe_0.mp4",
+      "server/data/dgs_video_examples/hunger_main_hunger.mp4",
+      "server/data/dgs_video_examples/hunger_var_hunger_0.mp4",
+      "server/data/dgs_video_examples/hunger_var_hunger_1.mp4",
+      "server/data/dgs_video_examples/hunger_var_hunger_2.mp4",
+      "server/data/dgs_video_examples/ich_main_ich.mp4",
+      "server/data/dgs_video_examples/ich_main_mich.mp4",
+      "server/data/dgs_video_examples/ich_main_selbst.mp4",
+      "server/data/dgs_video_examples/ich_var_ich_0.mp4",
+      "server/data/dgs_video_examples/ich_var_ich_1.mp4",
+      "server/data/dgs_video_examples/ich_var_mich_0.mp4",
+      "server/data/dgs_video_examples/ich_var_selbst_0.mp4",
+      "server/data/dgs_video_examples/ich_var_selbst_1.mp4",
+      "server/data/dgs_video_examples/ja_main_ja.mp4",
+      "server/data/dgs_video_examples/ja_main_richtig.mp4",
+      "server/data/dgs_video_examples/ja_var_ja_0.mp4",
+      "server/data/dgs_video_examples/ja_var_ja_1.mp4",
+      "server/data/dgs_video_examples/ja_var_richtig_0.mp4",
+      "server/data/dgs_video_examples/kindergarten_integration_0.mp4",
+      "server/data/dgs_video_examples/kindergarten_integration_0_landmarks.json",
+      "server/data/dgs_video_examples/kindergarten_var_kindergarten_0.mp4",
+      "server/data/dgs_video_examples/kindergarten_var_kindergarten_0_landmarks.json",
+      "server/data/dgs_video_examples/kindergarten_var_kindergarten_1.mp4",
+      "server/data/dgs_video_examples/kindergarten_var_kindergarten_1_landmarks.json",
+      "server/data/dgs_video_examples/kindergarten_var_kindergarten_2.mp4",
+      "server/data/dgs_video_examples/kindergarten_var_kindergarten_2_landmarks.json",
+      "server/data/dgs_video_examples/liebe_main_liebe.mp4",
+      "server/data/dgs_video_examples/liebe_main_lieben.mp4",
+      "server/data/dgs_video_examples/liebe_var_liebe_0.mp4",
+      "server/data/dgs_video_examples/liebe_var_lieben_0.mp4",
+      "server/data/dgs_video_examples/liebe_var_lieben_1.mp4",
+      "server/data/dgs_video_examples/liebe_var_lieben_2.mp4",
+      "server/data/dgs_video_examples/lila_main_lila.mp4",
+      "server/data/dgs_video_examples/lila_var_lila_0.mp4",
+      "server/data/dgs_video_examples/lila_var_lila_1.mp4",
+      "server/data/dgs_video_examples/mama_main_mama.mp4",
+      "server/data/dgs_video_examples/mama_main_mutter.mp4",
+      "server/data/dgs_video_examples/mama_var_mama_0.mp4",
+      "server/data/dgs_video_examples/mama_var_mama_1.mp4"
+    ]
+  }
+}

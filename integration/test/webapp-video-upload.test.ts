@@ -125,8 +125,8 @@ function toTrainingFrame(frame: RepoLandmarkFrame): TrainingFrame {
 }
 
 async function createBundleFromRepoVideo(clipName: string, landmarksName: string, label: string) {
-  const clipBytes = await fs.readFile(join(repoRoot, 'server', 'data', 'dgs_video_examples', clipName));
-  const landmarksRaw = await fs.readFile(join(repoRoot, 'server', 'data', 'dgs_video_examples', landmarksName), 'utf8');
+  const clipBytes = await fs.readFile(join(repoRoot, 'server', 'test', 'fixtures', 'dgs_video_examples', clipName));
+  const landmarksRaw = await fs.readFile(join(repoRoot, 'server', 'test', 'fixtures', 'dgs_video_examples', landmarksName), 'utf8');
   const landmarks = JSON.parse(landmarksRaw) as RepoLandmarkFile;
   const frames = Array.isArray(landmarks.frames)
     ? landmarks.frames.map(toTrainingFrame).filter((frame) => frame.landmarks.some((hand) => hand.length > 0))
@@ -171,7 +171,7 @@ function loadRepoLandmarkFrames(landmarks: RepoLandmarkFile): RepoLandmarkFrame[
 }
 
 async function loadLandmarkFile(fileName: string): Promise<RepoLandmarkFile> {
-  const landmarksRaw = await fs.readFile(join(repoRoot, 'server', 'data', 'dgs_video_examples', fileName), 'utf8');
+  const landmarksRaw = await fs.readFile(join(repoRoot, 'server', 'test', 'fixtures', 'dgs_video_examples', fileName), 'utf8');
   return JSON.parse(landmarksRaw) as RepoLandmarkFile;
 }
 

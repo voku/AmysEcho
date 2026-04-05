@@ -8,7 +8,7 @@ This directory contains Deutsche Gebärdensprache (DGS) sign language videos for
 
 If Amy learned with the **Kestner system** (https://www.kestner.app/) or a different DGS resource, these videos may not match her signs. This will cause recognition failures even when Amy signs correctly.
 
-**See [docs/training/VIDEO_SOURCE_CONSISTENCY.md](../../docs/training/VIDEO_SOURCE_CONSISTENCY.md) for:**
+**See [docs/training/video-source-consistency.md](../../docs/training/video-source-consistency.md) for:**
 - How to verify if videos match Amy's learning
 - How to record custom videos matching Amy's signs
 - How to replace mismatched videos

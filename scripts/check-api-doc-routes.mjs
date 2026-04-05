@@ -4,7 +4,7 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 
 const REPO_ROOT = process.cwd();
-const DOC_PATH = path.join(REPO_ROOT, 'docs/integration/API.md');
+const DOC_PATH = path.join(REPO_ROOT, 'docs/integration/api.md');
 const INVENTORY_PATH = path.join(REPO_ROOT, 'docs/integration/api-route-inventory.json');
 
 function fail(message) {
@@ -18,7 +18,7 @@ function parseIndexRoutes(docText) {
   const start = docText.indexOf(begin);
   const finish = docText.indexOf(end);
   if (start === -1 || finish === -1 || finish <= start) {
-    fail('Route index markers are missing in docs/integration/API.md');
+    fail('Route index markers are missing in docs/integration/api.md');
   }
 
   const block = docText.slice(start + begin.length, finish);

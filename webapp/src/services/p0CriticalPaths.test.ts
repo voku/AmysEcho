@@ -4,7 +4,7 @@
  * These tests verify 100% coverage for the most critical communication paths.
  * All tests in this file are P0 priority - if they fail, Amy cannot communicate.
  * 
- * Coverage Goals (per docs/testing/TESTING_STRATEGY.md):
+ * Coverage Goals (per docs/testing/testing-strategy.md):
  * - Emergency gesture detection: 100% coverage, sub-50ms threshold
  * - Gesture history & replay: Full coverage for last 10 gestures with audio
  * - Automatic recovery: Pipeline recovers from crashes without user intervention

@@ -18,7 +18,7 @@ This directory contains configuration files and scripts for deploying Amy's Echo
 
 ## Quick Start
 
-For complete deployment instructions, see **[docs/deployment/SERVER_DEPLOYMENT.md](../docs/deployment/SERVER_DEPLOYMENT.md)**.
+For complete deployment instructions, see **[docs/deployment/SERVER_deployment.md](../docs/deployment/SERVER_deployment.md)**.
 
 ### Using Docker (Recommended)
 
@@ -107,7 +107,7 @@ This script will:
 - Rebuild the application
 - Restart services and verify health
 
-See `docs/BREAKING_CHANGES.md` for details on what changed and why.
+See `docs/breaking-changes.md` for details on what changed and why.
 
 ## Configuration Files
 
@@ -135,4 +135,4 @@ Update nginx configuration with the certificate paths.
 
 ## Support
 
-For issues or questions, see the [Troubleshooting section](../docs/deployment/SERVER_DEPLOYMENT.md#troubleshooting) in the deployment guide.
+For issues or questions, see the [Troubleshooting section](../docs/deployment/SERVER_deployment.md#troubleshooting) in the deployment guide.

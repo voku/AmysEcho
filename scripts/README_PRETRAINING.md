@@ -233,7 +233,7 @@ python3 scripts/realistic_dgs_training_cycle.py \
 ```
 
 Für einen konkreten, nachvollziehbaren Vergleichslauf siehe auch
-`docs/training/REALISTIC_DGS_EXPERIMENT_2026-03-01.md`.
+`docs/training/realistic-dgs-experiment-2026-03-01.md`.
 
 
 ### Produktiver Workflow mit Chat-validiertem Preset

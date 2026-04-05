@@ -3,8 +3,8 @@
 **Status:** Deprecated quick-reference.
 
 Use these canonical docs instead:
-- `docs/workflows/BUILD_AND_TEST.md`
-- `docs/workflows/DEVELOPMENT_WORKFLOW.md`
-- `docs/README.md`
+- `docs/workflows/build-and-test.md`
+- `docs/workflows/development-workflow.md`
+- `docs/readme.md`
 
-For current CI/verification priorities, use `docs/planning/TODO.md`.
+For current CI/verification priorities, use `docs/planning/todo.md`.

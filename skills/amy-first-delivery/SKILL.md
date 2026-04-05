@@ -9,7 +9,7 @@ Follow this workflow every time you implement or review a repository change.
 
 ## 1) Run discovery before editing
 
-1. Read `docs/planning/TODO.md` to align with active roadmap priorities.
+1. Read `docs/planning/todo.md` to align with active roadmap priorities.
 2. Read the workflow/testing docs listed in `references/discovery-sources.md`.
 3. Inspect existing code paths before creating new patterns.
 4. Note a one-sentence **Amy impact** statement in your plan.

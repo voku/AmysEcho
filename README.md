@@ -79,16 +79,16 @@ Use these shell helpers for clean output during checks:
 | [Development](docs/development.md) | Code style, workflows, patterns |
 | [Deployment](docs/deployment.md) | Server/webapp deployment, Docker |
 | [Files Catalog](docs/files.md) | Complete file reference |
-| [TODO](docs/planning/TODO.md) | Current priorities, roadmap |
-| [Release Readiness v0.0.2](docs/planning/RELEASE_0.0.2_READINESS.md) | Go/No-Go checklist for the next version tag |
+| [TODO](docs/planning/todo.md) | Current priorities, roadmap |
+| [Release Readiness v0.0.2](docs/planning/release-0.0.2-readiness.md) | Go/No-Go checklist for the next version tag |
 
 ### Detailed Guides
 
-- [Caregiver Guide](docs/guides/CaregiverGuide.md) — For parents and caregivers
-- [Developer Quick Start + DB Init](docs/guides/DeveloperQuickStartAndDbInit.md) — Local setup, verification, SQLite re-init
-- [Training Workflow](docs/training/VIDEO_RECORDING_AND_TRAINING_WORKFLOW.md) — Recording and training gestures
-- [Server Deployment](docs/deployment/SERVER_DEPLOYMENT.md) — Production deployment
-- [Testing Strategy](docs/testing/TESTING_STRATEGY.md) — Comprehensive testing approach
+- [Caregiver Guide](docs/guides/caregiver-guide.md) — For parents and caregivers
+- [Developer Quick Start + DB Init](docs/guides/developer-quick-start-and-db-init.md) — Local setup, verification, SQLite re-init
+- [Training Workflow](docs/training/video-recording-and-training-workflow.md) — Recording and training gestures
+- [Server Deployment](docs/deployment/SERVER_deployment.md) — Production deployment
+- [Testing Strategy](docs/testing/testing-strategy.md) — Comprehensive testing approach
 
 ---
 
@@ -155,7 +155,7 @@ If you have a **GitHub Copilot** subscription (Individual, Business, or Enterpri
 
 ## Contributing
 
-See [AGENTS.md](AGENTS.md) for development guidelines. German for user-facing text, tests colocated with source (webapp) or in `test/` (server).
+See [agents.md](agents.md) for development guidelines. German for user-facing text, tests colocated with source (webapp) or in `test/` (server).
 
 ---
 

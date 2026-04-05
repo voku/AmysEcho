@@ -1,7 +1,7 @@
 /**
  * GestureModelAdapter — canonical interface for MLP gesture classifiers.
  *
- * Motivation (from docs/research/reference-repos/BLIND_SPOT_ANALYSIS_LIVE_2026-03-25.md):
+ * Motivation (from docs/research/reference-repos/blind-spot-analysis-live-2026-03-25.md):
  * The kinivi reference pipeline uses a clean, minimal `KeyPointClassifier` wrapper
  * (construct once, call to predict). Amy's Echo historically embedded MLP invocation
  * directly in the orchestrator, making it impossible to swap classifier backends

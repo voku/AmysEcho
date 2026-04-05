@@ -130,7 +130,7 @@ async function ensureDgsFixtureSources() {
   };
   await fs.writeFile(configPath, JSON.stringify(configPayload, null, 2));
 
-  const dgsVideoDir = join(serverDir, 'data', 'dgs_video_examples');
+  const dgsVideoDir = join(serverDir, 'test', 'fixtures', 'dgs_video_examples');
   await fs.mkdir(dgsVideoDir, { recursive: true });
   await fs.writeFile(join(dgsVideoDir, dgsFixtureLandmarkName), JSON.stringify({ frames: [] }, null, 2));
 }

@@ -116,4 +116,4 @@ When modifying code, check existing patterns in similar files first. User-facing
 | How is training data stored? | `webapp/src/training/trainingQueue.ts` (IndexedDB) |
 | Where are API routes defined? | `server/src/routes/` |
 | How are models trained? | `server/src/amyserver_tools/train_mlp.py` |
-| What are current priorities? | `docs/planning/TODO.md` |
+| What are current priorities? | `docs/planning/todo.md` |

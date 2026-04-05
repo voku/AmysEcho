@@ -15,7 +15,7 @@
       "url": "https://github.com/kinivi/hand-gesture-recognition-mediapipe",
       "commit": "0e737bb8c45ea03f6fafb1f5dbfe9246c34a8003",
       "files": [
-        "README.md",
+        "readme.md",
         "app.py",
         "utils/cvfpscalc.py",
         "model/keypoint_classifier/keypoint_classifier.py"
@@ -26,8 +26,8 @@
       "url": "https://github.com/kevinjosethomas/sign-language-processing",
       "commit": "c292039b77fecfad3821c71bff1de06e3fe559ec",
       "files": [
-        "README.md",
-        "src/client/README.md",
+        "readme.md",
+        "src/client/readme.md",
         "src/client/src/app/components/Avatar.tsx"
       ]
     }

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
-const docPath = path.join(repoRoot, 'docs', 'VisionBundleSource.md');
+const docPath = path.join(repoRoot, 'docs', 'vision-bundle-source.md');
 const checksumPath = path.join(repoRoot, 'app', 'webview', 'vision_bundle.sha256');
 const bundlePath = path.join(repoRoot, 'app', 'webview', 'vision_bundle.js');
 

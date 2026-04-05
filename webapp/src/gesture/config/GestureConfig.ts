@@ -85,7 +85,7 @@ export const defaultConfig: GestureDetectorConfig = {
   },
   // MediaPipe detector construction parameters.
   // minDetectionConfidence=0.7 matches the kinivi production setting (vs MediaPipe default of 0.5).
-  // See docs/testing/MODALITY_TUNING_MATRIX.md for per-device-tier guidance.
+  // See docs/testing/modality-tuning-matrix.md for per-device-tier guidance.
   mediapipe: {
     minDetectionConfidence: 0.7,
     minTrackingConfidence: 0.5,

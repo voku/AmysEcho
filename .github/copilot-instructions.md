@@ -19,7 +19,7 @@
 
 ### Additional Resources
 - **Development Workflow**: See `docs/workflows/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
-- **Testing Strategy**: See `docs/testing/TESTING_STRATEGY.md` for comprehensive testing guidelines
+- **Testing Strategy**: See `docs/testing/testing-strategy.md` for comprehensive testing guidelines
 - **Current Status**: See `docs/planning/TODO.md` for up-to-date implementation status
 
 ## 🚨 AMY FIRST DEVELOPMENT PRINCIPLES

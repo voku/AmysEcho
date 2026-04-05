@@ -77,10 +77,10 @@ def test_dgs_video_samples_integrity():
 
 def test_individual_landmark_files_integrity(tmp_path):
     """
-    Verify that the individual *_landmarks.json files in server/data/dgs_video_examples
+    Verify that the individual *_landmarks.json files in server/test/fixtures/dgs_video_examples
     contain valid non-zero landmarks. These are likely used by the training manifest.
     """
-    examples_dir = Path("server/data/dgs_video_examples")
+    examples_dir = Path("server/test/fixtures/dgs_video_examples")
     if examples_dir.exists():
         files = [f for f in os.listdir(examples_dir) if f.endswith("_landmarks.json")]
     else:

@@ -11,7 +11,7 @@ const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, '../../../..');
 const LANDMARK_FILE = path.join(
   REPO_ROOT,
-  'server/data/dgs_video_examples/spielen_main_spielplatz_landmarks.json',
+  'server/test/fixtures/dgs_video_examples/spielen_landmarks.json',
 );
 
 async function loadTwoHandFrames(): Promise<number[][][][]> {

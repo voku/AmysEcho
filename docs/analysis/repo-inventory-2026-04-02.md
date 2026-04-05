@@ -26,7 +26,7 @@ Tracked size: **873.98 MB**
 | `.whitesource` | Unclassified / utility | 1 |
 | `AGENTS.md` | Unclassified / utility | 1 |
 | `LICENSE` | Unclassified / utility | 1 |
-| `README.md` | Unclassified / utility | 1 |
+| `readme.md` | Unclassified / utility | 1 |
 | `docker-compose.yml` | Unclassified / utility | 1 |
 | `package-lock.json` | Unclassified / utility | 1 |
 | `package.json` | Unclassified / utility | 1 |

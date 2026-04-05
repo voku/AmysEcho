@@ -434,7 +434,7 @@
     }
   ],
   "expected": {
-    "readinessStatus": "degraded",
+    "readinessStatus": "ok",
     "trainingStatus": "completed",
     "artifactContractStatus": "valid",
     "fewShotPromoted": false,

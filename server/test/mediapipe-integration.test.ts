@@ -146,7 +146,7 @@ describe('MediaPipe Integration Tests', () => {
 
   describe('DGS Dataset Validation', () => {
     it('should have proper DGS video examples', async () => {
-      const videoDir = path.join(__dirname, '../data/dgs_video_examples');
+      const videoDir = path.join(__dirname, 'fixtures/dgs_video_examples');
       
       if (await shouldSkipFixtureCheck([videoDir], 'DGS video directory')) {
         return;
@@ -159,7 +159,7 @@ describe('MediaPipe Integration Tests', () => {
     });
 
     it('should have corresponding landmark files', async () => {
-      const videoDir = path.join(__dirname, '../data/dgs_video_examples');
+      const videoDir = path.join(__dirname, 'fixtures/dgs_video_examples');
       
       if (await shouldSkipFixtureCheck([videoDir], 'DGS landmark directory')) {
         return;
@@ -188,7 +188,7 @@ describe('MediaPipe Integration Tests', () => {
     });
 
     it('should have valid DGS manifest', async () => {
-      const manifestPath = path.join(__dirname, '../data/dgs_manifest.json');
+      const manifestPath = path.join(__dirname, 'fixtures/dgs_manifest.json');
       
       if (await shouldSkipFixtureCheck([manifestPath], 'DGS manifest')) {
         return;

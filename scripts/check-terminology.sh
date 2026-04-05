@@ -17,7 +17,7 @@
 #     quoting an external source), add "# terminology-ok" as a comment on
 #     the same line and extend the grep with --invert-match for that marker.
 #
-# Reference: docs/guides/TERMINOLOGY_COMPATIBILITY_CHECKLIST.md
+# Reference: docs/guides/terminology-compatibility-checklist.md
 
 set -euo pipefail
 
@@ -88,7 +88,7 @@ if [ "$violations" -gt 0 ]; then
   echo "terminology standard."
   echo ""
   echo 'User-facing term must be "Gebärde" (not "Geste" or "Gesten").'
-  echo "See: docs/guides/TERMINOLOGY_COMPATIBILITY_CHECKLIST.md"
+  echo "See: docs/guides/terminology-compatibility-checklist.md"
   echo "============================================"
   exit 1
 fi

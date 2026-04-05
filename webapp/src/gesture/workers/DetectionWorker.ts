@@ -2,7 +2,7 @@
  * DetectionWorker — Web Worker prototype for offloading MediaPipe detection.
  *
  * PROTOTYPE STATUS: This module implements the worker-side of the detection
- * offload described in docs/testing/benchmarks/worker_offload_2026-03-25.md.
+ * offload described in docs/testing/benchmarks/worker-offload-2026-03-25.md.
  *
  * Architecture:
  *   Main thread          Worker thread

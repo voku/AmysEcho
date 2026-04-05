@@ -3,9 +3,9 @@
 **Status:** Deprecated quick-reference.
 
 Use these canonical docs instead:
-- `docs/README.md`
-- `docs/architecture/CodebaseOverview.md`
-- `docs/training/README.md`
-- `docs/planning/TODO.md`
+- `docs/readme.md`
+- `docs/architecture/codebase-overview.md`
+- `docs/training/readme.md`
+- `docs/planning/todo.md`
 
 This file remains only as a compatibility pointer for older links.

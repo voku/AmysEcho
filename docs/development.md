@@ -3,9 +3,9 @@
 **Status:** Deprecated quick-reference.
 
 Use these canonical docs instead:
-- `docs/workflows/DEVELOPMENT_WORKFLOW.md`
-- `docs/workflows/BUILD_AND_TEST.md`
-- `docs/testing/TESTING_STRATEGY.md`
-- `docs/README.md`
+- `docs/workflows/development-workflow.md`
+- `docs/workflows/build-and-test.md`
+- `docs/testing/testing-strategy.md`
+- `docs/readme.md`
 
-For active implementation priorities, use `docs/planning/TODO.md`.
+For active implementation priorities, use `docs/planning/todo.md`.

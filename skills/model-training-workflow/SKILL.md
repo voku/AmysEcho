@@ -11,7 +11,7 @@ Run this workflow for any server-side model training or evaluation change.
 
 Before running training/evaluation commands:
 
-1. Read `docs/planning/TODO.md` and confirm current roadmap priorities.
+1. Read `docs/planning/todo.md` and confirm current roadmap priorities.
 2. Inspect existing implementation in `server/src/amyserver_tools/`, `server/training/`, and related tests.
 3. Define a short plan using Discovery → Planning → Implementation → Verification workflow.
 

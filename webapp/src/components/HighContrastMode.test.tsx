@@ -5,7 +5,7 @@
  * and visual consistency when high contrast is enabled.
  * Ensures WCAG 2.1 compliance for contrast requirements.
  * 
- * Reference: docs/planning/TODO.md - Accessibility Testing section
+ * Reference: docs/planning/todo.md - Accessibility Testing section
  */
 
 import { render, screen, waitFor } from '@testing-library/react';
