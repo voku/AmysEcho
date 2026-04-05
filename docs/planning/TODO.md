@@ -1,6 +1,6 @@
 # Amy's Echo TODO — 4-Month Delivery Plan (Apr–Jul 2026)
 
-**Last refreshed:** 2026-04-04 (updated)
+**Last refreshed:** 2026-04-05 (updated)
 **Scope:** next ~4 months of execution, aligned to current codebase state and the project prime directive from `spec/AmysEcho.md`.
 **Done archive:** completed roadmap items now live in `docs/planning/TODO_DONE.md`.
 
@@ -67,12 +67,6 @@ Prevent regression by turning one-time hardening work into repeatable operationa
   - Entry points: `server/src/server.ts`, `server/src/routes/trainingJobsRoutes.ts`, `docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`, `docs/deployment/QUICKSTART_SERVER.md`
   - Evidence: ops runbook covering schedule/failure handling + committed dry-run report from at least one cadence cycle, using `JUN-P1-7` source-of-truth job semantics.
 
-- [ ] **JUN-P1-7:** Consolidate training job ownership and restart recovery so post-training cron jobs have a single reliable source of truth.
-  - Topic board: `docs/planning/topics/JUN-P1-7/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Sequencing: foundational for `JUN-P1-6`; complete ownership/recovery contract before enabling cron reconciliation/retention/summaries.
-  - Entry points: `server/src/server.ts`, `server/src/services/trainingOrchestrator.ts`, `server/src/services/dgsAutoPretrainService.ts`, `server/test/`
-  - Evidence: architecture decision note + tests proving dedupe/recovery behavior across restarts and concurrent triggers, with explicit handoff contract for `JUN-P1-6`.
-
 ---
 
 ## 4) July 2026 — Release readiness for next milestone
@@ -105,23 +99,11 @@ Convert best-practice opportunities into practical improvements without losing d
   - Entry points: `webapp/src/gesture/core/GestureDetector.ts`, `webapp/src/hooks/useSignLanguageDetector.ts`, `docs/testing/benchmarks/`
   - Evidence: benchmark artifact comparing baseline vs tuned ROI/crop settings (FPS, drop rate, confidence stability).
 
-- [ ] **RD-P0-3:** Add signer-independent evaluation gate to few-shot workflow (no signer leakage in train/val/test manifests).
-  - Topic board: `docs/planning/topics/RD-P0-3/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Why now: signer leakage remains the highest-risk quality trap in sign-language ML.
-  - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`
-  - Evidence: manifest validator + failing test for leakage + report metric split by known/new signer.
-
 - [ ] **RD-P0-2:** Evaluate `FULL_RANGE` face detector mode impact on sign recognition robustness in non-frontal caregiver/device setups.
   - Topic board: `docs/planning/topics/RD-P0-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
   - Why now: full-range face detection support/tests landed in newer MediaPipe tasks; facial context is relevant for multimodal sign interpretation.
   - Entry points: `webapp/src/gesture/`, `integration/test/`, `docs/testing/benchmarks/`
   - Evidence: side-angle/partial-face benchmark matrix and recommendation (`enable` / `keep default`).
-
-- [ ] **RD-P1-1:** Add confidence calibration and abstention policy for low-confidence predictions.
-  - Topic board: `docs/planning/topics/RD-P1-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Why now: calibrated thresholds reduce wrong outputs in noisy conditions.
-  - Entry points: `webapp/src/gesture/installMlp.ts`, `webapp/src/gesture/modelClient.ts`, `webapp/src/hooks/useSignLanguageDetector.ts`
-  - Evidence: documented threshold policy + reliability calibration table in `docs/testing/benchmarks/`.
 
 - [ ] **RD-P1-2:** Prototype temporal smoothing/sequence modeling upgrade path (beyond per-frame classification) with strict latency budget.
   - Topic board: `docs/planning/topics/RD-P1-2/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).

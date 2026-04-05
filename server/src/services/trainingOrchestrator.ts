@@ -12,6 +12,7 @@
 import { spawn } from "child_process";
 import { randomUUID } from "crypto";
 import { promises as fs } from "fs";
+import { existsSync, readFileSync } from "fs";
 import os from "os";
 import path from "path";
 import config from "../config/index.js";
@@ -69,10 +70,62 @@ export interface LabelTrainingData {
 
 // In-memory job queue (simple implementation)
 const jobQueue: Map<string, TrainingJobStatus> = new Map();
+const JOB_STATE_FILE = path.join(DATA_DIR, "training-orchestrator-jobs.json");
+let jobStateLoaded = false;
 
 // Lock set to prevent TOCTOU race condition when queueing jobs
 // Tracks users with in-flight job creation
 const jobCreationLock: Set<string> = new Set();
+
+function persistJobQueue(): void {
+	try {
+		const jobs = Array.from(jobQueue.values());
+		const payload = {
+			version: 1,
+			savedAt: new Date().toISOString(),
+			jobs,
+		};
+		if (!existsSync(DATA_DIR)) {
+			return;
+		}
+		const encoded = JSON.stringify(payload, null, 2);
+		void fs.writeFile(JOB_STATE_FILE, encoded);
+	} catch (error) {
+		console.warn("Could not persist training job state", error);
+	}
+}
+
+function recoverPersistedJobsOnce(): void {
+	if (jobStateLoaded) {
+		return;
+	}
+	jobStateLoaded = true;
+	if (!existsSync(JOB_STATE_FILE)) {
+		return;
+	}
+
+	try {
+		const encoded = readFileSync(JOB_STATE_FILE, "utf8");
+		const parsed = JSON.parse(encoded) as {
+			jobs?: TrainingJobStatus[];
+		};
+		const savedJobs = Array.isArray(parsed.jobs) ? parsed.jobs : [];
+		const recoveredAt = new Date().toISOString();
+		for (const job of savedJobs) {
+			if (!job?.jobId || !PROFILE_ID_PATTERN.test(job.userId)) {
+				continue;
+			}
+			if (job.status === "queued" || job.status === "running") {
+				job.status = "failed";
+				job.error = "Training durch Server-Neustart unterbrochen. Bitte erneut starten.";
+				job.completedAt = recoveredAt;
+			}
+			jobQueue.set(job.jobId, job);
+		}
+	} catch (error) {
+		console.warn("Could not recover persisted training jobs", error);
+	}
+}
 
 /**
  * Get training data paths for a user's enabled labels
@@ -165,6 +218,7 @@ async function gatherLabelTrainingData(
  * Uses locking to prevent TOCTOU race conditions
  */
 export function queueTrainingJob(userId: string): string {
+	recoverPersistedJobsOnce();
 	if (!PROFILE_ID_PATTERN.test(userId)) {
 		throw new Error("Ungültige Benutzer-ID");
 	}
@@ -209,6 +263,7 @@ export function queueTrainingJob(userId: string): string {
 		};
 
 		jobQueue.set(jobId, job);
+		persistJobQueue();
 
 		// Start the job asynchronously
 		void startTrainingJob(jobId).catch((error) => {
@@ -217,6 +272,7 @@ export function queueTrainingJob(userId: string): string {
 				job.status = "failed";
 				job.error = error instanceof Error ? error.message : String(error);
 				job.completedAt = new Date().toISOString();
+				persistJobQueue();
 			}
 		});
 
@@ -233,6 +289,7 @@ export function queueTrainingJob(userId: string): string {
 export function getTrainingJobStatus(
 	jobId: string,
 ): TrainingJobStatus | undefined {
+	recoverPersistedJobsOnce();
 	return jobQueue.get(jobId);
 }
 
@@ -240,6 +297,7 @@ export function getTrainingJobStatus(
  * Get all training jobs for a user
  */
 export function getUserTrainingJobs(userId: string): TrainingJobStatus[] {
+	recoverPersistedJobsOnce();
 	return Array.from(jobQueue.values()).filter((job) => job.userId === userId);
 }
 
@@ -247,6 +305,7 @@ export function getUserTrainingJobs(userId: string): TrainingJobStatus[] {
  * Start a training job
  */
 async function startTrainingJob(jobId: string): Promise<void> {
+	recoverPersistedJobsOnce();
 	const job = jobQueue.get(jobId);
 	if (!job) {
 		throw new Error("Job nicht gefunden");
@@ -254,6 +313,7 @@ async function startTrainingJob(jobId: string): Promise<void> {
 
 	job.status = "running";
 	job.startedAt = new Date().toISOString();
+	persistJobQueue();
 
 	try {
 		// Gather training data respecting user settings
@@ -322,6 +382,7 @@ async function startTrainingJob(jobId: string): Promise<void> {
 		// Update job status
 		job.status = "completed";
 		job.completedAt = new Date().toISOString();
+		persistJobQueue();
 
 		// Update lastTrainedAt for all labels in this job
 		const trainedAt = job.completedAt;
@@ -335,6 +396,7 @@ async function startTrainingJob(jobId: string): Promise<void> {
 		job.status = "failed";
 		job.error = error instanceof Error ? error.message : String(error);
 		job.completedAt = new Date().toISOString();
+		persistJobQueue();
 		throw error;
 	}
 }
@@ -411,6 +473,7 @@ export async function getTrainingSummary(userId: string): Promise<{
 	readyForTraining: boolean;
 	activeJob?: TrainingJobStatus;
 }> {
+	recoverPersistedJobsOnce();
 	if (!PROFILE_ID_PATTERN.test(userId)) {
 		throw new Error("Ungültige Benutzer-ID");
 	}

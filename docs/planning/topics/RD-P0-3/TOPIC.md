@@ -1,9 +1,10 @@
 # RD-P0-3 — Signer-independent evaluation gate
 
 ## Kanban Status
-- **Column:** In Progress
+- **Column:** Done
 - **Owner:** Codex (GPT-5.3-Codex)
-- **Last updated:** 2026-04-04
+- **Last updated:** 2026-04-05
+- **Status authority:** `docs/planning/TODO_DONE.md` (archived completion)
 
 ## Amy impact
 - Prevents inflated metrics and protects Amy from brittle models in real use.
