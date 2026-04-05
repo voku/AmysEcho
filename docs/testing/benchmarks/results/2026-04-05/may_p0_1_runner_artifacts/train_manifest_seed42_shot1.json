@@ -1,0 +1,38 @@
+{
+  "entries": [
+    {
+      "id": "profile-a-bitte-1",
+      "profileId": "profile-a",
+      "label": "bitte",
+      "storage": {
+        "directory": "uploads/profile-a/profile-a-bitte-1",
+        "files": [
+          "landmarks.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "profile-a",
+        "validationSummary": {
+          "landmarksPath": "landmarks.json"
+        }
+      }
+    },
+    {
+      "id": "profile-a-hallo-0",
+      "profileId": "profile-a",
+      "label": "hallo",
+      "storage": {
+        "directory": "uploads/profile-a/profile-a-hallo-0",
+        "files": [
+          "landmarks.json"
+        ]
+      },
+      "metadata": {
+        "profileId": "profile-a",
+        "validationSummary": {
+          "landmarksPath": "landmarks.json"
+        }
+      }
+    }
+  ]
+}

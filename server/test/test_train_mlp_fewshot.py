@@ -14,6 +14,7 @@ from amyserver_tools.train_mlp_fewshot import (
     _load_manifest_entries,
     _partition_profiles,
     _promote_best_model,
+    _render_summary_markdown,
     _sample_train_entries,
     _select_best_trial,
     _validate_split_manifest,
@@ -129,6 +130,42 @@ def test_select_best_trial_prefers_f1_then_accuracy() -> None:
     )
     assert best["seed"] == 3
     assert best["shot"] == 5
+
+
+def test_render_summary_markdown_includes_aggregated_table() -> None:
+    markdown = _render_summary_markdown(
+        {
+            "protocol": "few_shot_v1",
+            "shots": [1, 3],
+            "seeds": [42, 1337],
+            "aggregated": {
+                "3": {
+                    "trial_count": 2.0,
+                    "mean_accuracy": 0.71,
+                    "std_accuracy": 0.04,
+                    "mean_f1_score": 0.66,
+                    "std_f1_score": 0.03,
+                    "worst_seed_accuracy": 0.67,
+                },
+                "1": {
+                    "trial_count": 2.0,
+                    "mean_accuracy": 0.62,
+                    "std_accuracy": 0.02,
+                    "mean_f1_score": 0.58,
+                    "std_f1_score": 0.01,
+                    "worst_seed_accuracy": 0.60,
+                },
+            },
+            "best_trial": {"seed": 1337, "shot": 3, "metrics": {"accuracy": 0.73, "f1_score": 0.68}},
+            "promotion": {"promoted": False, "reason": "promotion_not_requested"},
+            "diagnostics": {"fallback_metric_count": 1},
+        }
+    )
+
+    assert "| Shot | Trials | Mean accuracy |" in markdown
+    assert "| 1 | 2 | 0.6200 | 0.0200 | 0.6000 | 0.5800 | 0.0100 |" in markdown
+    assert "| 3 | 2 | 0.7100 | 0.0400 | 0.6700 | 0.6600 | 0.0300 |" in markdown
+    assert "Best trial: seed=1337, shot=3, accuracy=0.7300, f1=0.6800" in markdown
 
 
 def test_promote_best_model_copies_directory(tmp_path: Path) -> None:

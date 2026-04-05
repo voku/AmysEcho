@@ -51,10 +51,6 @@ Move few-shot from ad-hoc analysis to enforceable, signer-safe, production-quali
 
 ### Planned deliverables
 
-- [ ] **MAY-P0-1:** Operationalize `train_mlp_fewshot.py` as the default repeatable evaluation runner (artifacts, determinism, reporting).
-  - Topic board: `docs/planning/topics/MAY-P0-1/TOPIC.md` (details + evidence; status authority: `docs/planning/TODO.md`).
-  - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp.py`, `docs/testing/benchmarks/few_shot_protocol.md`
-  - Evidence: runner execution evidence under `docs/testing/benchmarks/results/<date>/` with summary and diagnostics.
 
 ---
 

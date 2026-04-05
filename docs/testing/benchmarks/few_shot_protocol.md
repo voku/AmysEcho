@@ -166,7 +166,7 @@ results/2026-04-XX/
 
 ---
 
-## 6) Runner design (MAY-P0-1 target)
+## 6) Runner design (MAY-P0-1 delivered)
 
 `server/src/amyserver_tools/train_mlp_fewshot.py` now provides the baseline orchestration path and automates:
 
@@ -180,7 +180,7 @@ results/2026-04-XX/
       - Invoke `train_mlp.py --manifest <filtered> --seed {S}`.
       - Evaluate on held-out bundles.
       - Collect and write `report_seed{S}_shot{K}.json`.
-3. Aggregate across seeds → `summary.md`.
+3. Aggregate across seeds → `summary.json` + `summary.md`.
 
 Runner CLI:
 
@@ -201,6 +201,7 @@ Optional runtime integration (server-side default behavior):
 - The live server path uses `1,3,5` shots and automatically skips infeasible shot values when the current data volume is too small.
 - To force the legacy path for experiments, set `MLP_SCRIPT` to `src/amyserver_tools/train_mlp.py`.
 - Runner summaries now include `promotion` status and `diagnostics.fallback_metric_count` for observability.
+- Reference execution artifact: `docs/testing/benchmarks/results/2026-04-05/may_p0_1_runner_execution.md`.
 
 ---
 

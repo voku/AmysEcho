@@ -65,6 +65,11 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`
   - Evidence: leakage-rejection tests + signer-split report assertions verified in `docs/testing/benchmarks/results/2026-04-04/may_p1_2_signer_leakage_gate.md`.
 
+- [x] **MAY-P0-1:** Operationalize `train_mlp_fewshot.py` as the default repeatable evaluation runner (artifacts, determinism, reporting).
+  - Topic board: `docs/planning/topics/MAY-P0-1/TOPIC.md` (details + evidence).
+  - Entry points: `server/src/config/index.ts`, `server/src/server.ts`, `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/test/test_train_mlp_fewshot.py`, `docs/testing/benchmarks/few_shot_protocol.md`
+  - Evidence: deterministic fixture-backed runner execution and artifacts in `docs/testing/benchmarks/results/2026-04-05/may_p0_1_runner_artifacts/` with execution note in `docs/testing/benchmarks/results/2026-04-05/may_p0_1_runner_execution.md`.
+
 
 ---
 
