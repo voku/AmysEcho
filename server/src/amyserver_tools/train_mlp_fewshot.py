@@ -237,6 +237,76 @@ def _select_best_trial(trials: list[dict[str, Any]]) -> dict[str, Any]:
     return ranked[0]
 
 
+def _render_summary_markdown(summary: dict[str, Any]) -> str:
+    aggregated_raw = summary.get("aggregated", {})
+    aggregated: dict[int, dict[str, float]] = {}
+    if isinstance(aggregated_raw, dict):
+        for shot_raw, metrics in aggregated_raw.items():
+            try:
+                shot = int(shot_raw)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(metrics, dict):
+                aggregated[shot] = {
+                    "trial_count": float(metrics.get("trial_count", 0.0)),
+                    "mean_accuracy": float(metrics.get("mean_accuracy", 0.0)),
+                    "std_accuracy": float(metrics.get("std_accuracy", 0.0)),
+                    "mean_f1_score": float(metrics.get("mean_f1_score", 0.0)),
+                    "std_f1_score": float(metrics.get("std_f1_score", 0.0)),
+                    "worst_seed_accuracy": float(metrics.get("worst_seed_accuracy", 0.0)),
+                }
+
+    diagnostics = summary.get("diagnostics") if isinstance(summary.get("diagnostics"), dict) else {}
+    promotion = summary.get("promotion") if isinstance(summary.get("promotion"), dict) else {}
+    best_trial = summary.get("best_trial") if isinstance(summary.get("best_trial"), dict) else {}
+    best_metrics = best_trial.get("metrics") if isinstance(best_trial.get("metrics"), dict) else {}
+    best_seed = best_trial.get("seed")
+    best_shot = best_trial.get("shot")
+
+    lines = [
+        "# Few-shot runner summary",
+        "",
+        f"- Protocol: `{summary.get('protocol', 'few_shot_v1')}`",
+        f"- Shots: `{','.join(str(value) for value in summary.get('shots', []))}`",
+        f"- Seeds: `{','.join(str(value) for value in summary.get('seeds', []))}`",
+        (
+            "- Best trial: "
+            f"seed={best_seed}, shot={best_shot}, "
+            f"accuracy={float(best_metrics.get('accuracy', 0.0)):.4f}, "
+            f"f1={float(best_metrics.get('f1_score', 0.0)):.4f}"
+        ),
+        (
+            "- Promotion: "
+            f"promoted={bool(promotion.get('promoted', False))}, "
+            f"reason={promotion.get('reason', 'n/a')}"
+        ),
+        (
+            "- Diagnostics: "
+            f"fallback_metric_count={int(diagnostics.get('fallback_metric_count', 0))}"
+        ),
+        "",
+        "## Aggregated metrics by shot",
+        "",
+        "| Shot | Trials | Mean accuracy | Std accuracy | Worst-seed accuracy | Mean F1 | Std F1 |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+
+    for shot in sorted(aggregated.keys()):
+        metrics = aggregated[shot]
+        lines.append(
+            "| "
+            f"{shot} | "
+            f"{int(metrics['trial_count'])} | "
+            f"{metrics['mean_accuracy']:.4f} | "
+            f"{metrics['std_accuracy']:.4f} | "
+            f"{metrics['worst_seed_accuracy']:.4f} | "
+            f"{metrics['mean_f1_score']:.4f} | "
+            f"{metrics['std_f1_score']:.4f} |"
+        )
+
+    return "\n".join(lines) + "\n"
+
+
 def _promote_best_model(best_trial: dict[str, Any], destination_dir: Path) -> dict[str, Any]:
     model_output_dir = best_trial.get("model_output_dir")
     if not isinstance(model_output_dir, str) or not model_output_dir:
@@ -533,6 +603,8 @@ def main() -> None:
     }
     summary_path = args.output_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+    summary_markdown_path = args.output_dir / "summary.md"
+    summary_markdown_path.write_text(_render_summary_markdown(summary), encoding="utf-8")
     print(json.dumps(summary, sort_keys=True))
 
 
