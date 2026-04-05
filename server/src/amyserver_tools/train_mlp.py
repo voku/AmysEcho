@@ -54,7 +54,17 @@ from config_constants import (
     WINDOW_FEATURE_SIZE,
     WINDOW_SIZE,
 )
-from feature_schema import SCHEMA, TOTAL_HAND_LANDMARKS
+from feature_schema import (
+    HAND_FEATURE_CONTRACT_VERSION,
+    HAND_FEATURE_COORDINATES_PER_POINT,
+    HAND_FEATURE_HAND_ORDER,
+    HAND_FEATURE_MISSING_HAND_STRATEGY,
+    HAND_FEATURE_NORMALIZATION,
+    HAND_FEATURE_POINTS_PER_HAND,
+    HAND_FEATURE_VECTOR_LENGTH,
+    SCHEMA,
+    TOTAL_HAND_LANDMARKS,
+)
 from frame_normalization import _normalize_frame
 from sliding_window import Sample, create_sliding_windows
 
@@ -182,7 +192,6 @@ WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
 MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
 SIGN_LANG_LABEL_MAP_FILENAME = "sign_lang_label_map.txt"
-EXPECTED_FEATURE_CONTRACT_VERSION = "wrist_relative_max_abs_v1"
 PROTOTYPE_MAX_VECTORS_PER_LABEL = int(
     os.environ.get("MLP_PROTOTYPE_MAX_VECTORS_PER_LABEL", "6")
 )
@@ -288,6 +297,38 @@ def load_json(path: Path) -> dict | None:
     except json.JSONDecodeError as err:
         print(f"warning: failed to parse JSON from {path}: {err}", file=sys.stderr)
         return None
+
+
+def has_expected_feature_contract(feature_contract: object) -> bool:
+    if not isinstance(feature_contract, dict):
+        return False
+
+    version = feature_contract.get("version")
+    normalization = feature_contract.get("normalization")
+    hand_order = feature_contract.get("handOrder")
+    missing_hand_strategy = feature_contract.get("missingHandStrategy")
+    points_per_hand = feature_contract.get("pointsPerHand")
+    coordinates_per_point = feature_contract.get("coordinatesPerPoint")
+    vector_length = feature_contract.get("vectorLength")
+
+    if version != HAND_FEATURE_CONTRACT_VERSION:
+        return False
+    if normalization != HAND_FEATURE_NORMALIZATION:
+        return False
+    if missing_hand_strategy != HAND_FEATURE_MISSING_HAND_STRATEGY:
+        return False
+    if points_per_hand != HAND_FEATURE_POINTS_PER_HAND:
+        return False
+    if coordinates_per_point != HAND_FEATURE_COORDINATES_PER_POINT:
+        return False
+    if vector_length != HAND_FEATURE_VECTOR_LENGTH:
+        return False
+    if not isinstance(hand_order, list):
+        return False
+    if tuple(str(entry) for entry in hand_order) != HAND_FEATURE_HAND_ORDER:
+        return False
+
+    return True
 
 
 def collect_manifest_signer_scope(manifest: dict[str, object]) -> tuple[set[str], set[str]]:
@@ -1846,22 +1887,23 @@ def build_samples_from_manifest(manifest_path: Path, skip_examples: bool = False
             if isinstance(feature_contract, dict)
             else None
         )
-        if (
-            isinstance(feature_contract, dict)
-            and feature_contract_version != EXPECTED_FEATURE_CONTRACT_VERSION
-        ):
+        if not has_expected_feature_contract(feature_contract):
             bundle_contract_mismatches += 1
             _increment_bundle_label_summary(
                 label_bundle_summary,
                 label=label,
                 profile_id=profile_id,
                 status="rejected",
-                reason="feature_contract_mismatch",
+                reason=(
+                    "feature_contract_mismatch"
+                    if isinstance(feature_contract, dict)
+                    else "feature_contract_missing"
+                ),
             )
             LOGGER.warning(
-                "Skipping bundle %s due to feature contract mismatch: %s",
+                "Skipping bundle %s due to invalid feature contract: %s",
                 entry.get("id"),
-                feature_contract_version,
+                feature_contract_version if feature_contract_version is not None else "<missing>",
             )
             continue
 
@@ -2327,6 +2369,8 @@ def dataset_to_arrays(
     """Convert Sample objects to training arrays with optional temporal augmentation."""
     label_set = sorted({sample.label for sample in samples})
     label_to_idx = {label: idx for idx, label in enumerate(label_set)}
+    real_label_count = len([label for label in label_set if label != NULL_CLASS_LABEL])
+    supports_discriminative_training = real_label_count > 1
 
     # Calculate counts for adaptive augmentation
     label_counts = Counter(sample.label for sample in samples)
@@ -2349,12 +2393,12 @@ def dataset_to_arrays(
         target_aug = augmentations_per_sample
         current_count = label_counts.get(sample.label, 0)
         
-        if min_samples_target > 0 and current_count < min_samples_target:
+        if supports_discriminative_training and min_samples_target > 0 and current_count < min_samples_target:
              # Explicit target requested (e.g. for training mode)
              boost_factor = max(1, int(min_samples_target / max(1, current_count)))
              target_aug = max(augmentations_per_sample, boost_factor)
              target_aug = min(50, target_aug)
-        elif augmentations_per_sample > 0 and current_count < 20:
+        elif supports_discriminative_training and augmentations_per_sample > 0 and current_count < 20:
              # Legacy/implicit boost if augmentation is globally enabled
              boost_factor = max(1, int(100 / max(1, current_count)))
              target_aug = max(augmentations_per_sample, boost_factor)
@@ -2759,6 +2803,13 @@ def _write_training_metadata(
         "sample_count": len(samples),
         "artifact_contract": {
             "feature_schema_version": int(SCHEMA.get("version", 0)),
+            "feature_contract_version": HAND_FEATURE_CONTRACT_VERSION,
+            "hand_feature_normalization": HAND_FEATURE_NORMALIZATION,
+            "hand_feature_hand_order": list(HAND_FEATURE_HAND_ORDER),
+            "hand_feature_missing_hand_strategy": HAND_FEATURE_MISSING_HAND_STRATEGY,
+            "hand_feature_points_per_hand": int(HAND_FEATURE_POINTS_PER_HAND),
+            "hand_feature_coordinates_per_point": int(HAND_FEATURE_COORDINATES_PER_POINT),
+            "hand_feature_vector_length": int(HAND_FEATURE_VECTOR_LENGTH),
             "window_size": int(WINDOW_SIZE),
             "frame_feature_size": int(INPUT_FEATURE_SIZE),
             "window_feature_size": int(WINDOW_FEATURE_SIZE),
@@ -3003,6 +3054,117 @@ def _build_label_diagnostics(
     return diagnostics
 
 
+def _build_dataset_health(
+    *,
+    labels: list[str],
+    class_counts: np.ndarray,
+    label_diagnostics: list[dict[str, object]],
+) -> dict[str, object]:
+    counts_by_label = {
+        label: int(class_counts[index]) if index < class_counts.size else 0
+        for index, label in enumerate(labels)
+    }
+    for entry in label_diagnostics:
+        label = str(entry.get("label", "")).strip()
+        if not label:
+            continue
+        counts_by_label[label] = _coerce_int(
+            entry.get("window_count", counts_by_label.get(label, 0))
+        )
+
+    normalized_counts = [counts_by_label.get(label, 0) for label in labels]
+    min_class_count = min(normalized_counts) if normalized_counts else 0
+    max_class_count = max(normalized_counts) if normalized_counts else 0
+    sorted_counts = sorted(normalized_counts)
+    if not sorted_counts:
+        median_class_count = 0.0
+    elif len(sorted_counts) % 2 == 1:
+        median_class_count = float(sorted_counts[len(sorted_counts) // 2])
+    else:
+        upper_index = len(sorted_counts) // 2
+        median_class_count = float(
+            (sorted_counts[upper_index - 1] + sorted_counts[upper_index]) / 2
+        )
+
+    imbalance_ratio = (
+        float(max_class_count / min_class_count)
+        if min_class_count > 0
+        else None
+    )
+
+    low_support_labels = [
+        {"label": label, "count": count}
+        for label, count in zip(labels, normalized_counts, strict=True)
+        if count < 16
+    ]
+
+    labels_without_validation = sorted(
+        [
+            str(entry.get("label"))
+            for entry in label_diagnostics
+            if _coerce_int(entry.get("validation_group_count", 0)) <= 0
+        ]
+    )
+    rejected_bundle_labels = [
+        {
+            "label": str(entry.get("label")),
+            "rejected_bundle_count": _coerce_int(entry.get("rejected_bundle_count", 0)),
+        }
+        for entry in label_diagnostics
+        if _coerce_int(entry.get("rejected_bundle_count", 0)) > 0
+    ]
+    confusion_hotspots = [
+        {
+            "label": str(entry.get("label")),
+            "confused_with": str(top_confusions[0].get("label")),
+            "count": _coerce_int(top_confusions[0].get("count", 0)),
+        }
+        for entry in label_diagnostics
+        for top_confusions in [[
+            item for item in entry.get("top_confusions", [])
+            if isinstance(item, dict)
+        ]]
+        if top_confusions
+        and isinstance(top_confusions[0].get("label"), str)
+        and _coerce_int(top_confusions[0].get("count", 0)) > 0
+    ]
+
+    return {
+        "label_count": len(labels),
+        "insufficient_label_variety": len(labels) < 2,
+        "min_class_count": int(min_class_count),
+        "max_class_count": int(max_class_count),
+        "median_class_count": float(median_class_count),
+        "imbalance_ratio": imbalance_ratio,
+        "low_support_label_count": len(low_support_labels),
+        "low_support_labels": low_support_labels,
+        "labels_without_validation": labels_without_validation,
+        "rejected_bundle_labels": rejected_bundle_labels,
+        "confusion_hotspots": confusion_hotspots,
+    }
+
+
+def _build_zero_initialized_weights(
+    input_dim: int,
+    num_classes: int,
+    *,
+    layer1_size: int = 64,
+    layer2_size: int = 32,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    resolved_input_dim = max(1, int(input_dim))
+    resolved_classes = max(1, int(num_classes))
+    resolved_layer1 = max(1, int(layer1_size))
+    resolved_layer2 = max(1, int(layer2_size))
+    return (
+        np.zeros((resolved_input_dim, resolved_layer1), dtype=np.float32),
+        np.zeros((resolved_layer1,), dtype=np.float32),
+        np.zeros((resolved_layer1, resolved_layer2), dtype=np.float32),
+        np.zeros((resolved_layer2,), dtype=np.float32),
+        np.zeros((resolved_layer2, resolved_classes), dtype=np.float32),
+        np.zeros((resolved_classes,), dtype=np.float32),
+    )
+
+
 def run_training_pipeline(
     samples: list[Sample],
     *,
@@ -3080,6 +3242,195 @@ def run_training_pipeline(
     else:
         val_weights = None
 
+    bundle_summary = None
+    stats_payload = metadata_context.get("stats") if metadata_context else None
+    if isinstance(stats_payload, dict):
+        bundle_summary_candidate = stats_payload.get("label_bundle_summary")
+        if isinstance(bundle_summary_candidate, list):
+            bundle_summary = [
+                item for item in bundle_summary_candidate if isinstance(item, dict)
+            ]
+
+    if num_classes == 1:
+        class_counts = np.bincount(y, minlength=num_classes)
+        global_confusion_scope = "validation" if val_idx.size > 0 else "none"
+        global_diagnostic_cm = [[int(val_idx.size) if val_idx.size > 0 else int(y.size)]]
+        global_prototype_vectors, global_prototype_labels, global_prototype_support = build_prototype_bank(
+            samples,
+            use_multimodal=True,
+        )
+        global_label_diagnostics = _build_label_diagnostics(
+            samples=samples,
+            labels=label_set,
+            confusion_matrix=global_diagnostic_cm,
+            prototype_labels=global_prototype_labels,
+            groups=groups,
+            y=y,
+            train_idx=train_idx,
+            val_idx=val_idx,
+            bundle_summary=bundle_summary,
+            confusion_scope=global_confusion_scope,
+        )
+        global_dataset_health = _build_dataset_health(
+            labels=label_set,
+            class_counts=class_counts,
+            label_diagnostics=global_label_diagnostics,
+        )
+        metadata_payload = metadata_context or {}
+        if augmentation_audit:
+            metadata_payload = {**metadata_payload, "augmentation_provenance": augmentation_audit}
+        if len(global_prototype_labels) > 0:
+            metadata_payload = {
+                **metadata_payload,
+                "prototype_bank": {
+                    "prototype_count": len(global_prototype_labels),
+                    "label_count": len(set(global_prototype_labels)),
+                },
+            }
+        metadata_payload = {
+            **metadata_payload,
+            "dataset_health": global_dataset_health,
+            "training_mode": "single_label_seeded",
+        }
+        if output_dir:
+            global_dir = output_dir / "global"
+            save_model(
+                global_dir / "amy_model.npz",
+                _build_zero_initialized_weights(X.shape[1], num_classes),
+                label_set,
+                class_counts,
+                prototype_vectors=global_prototype_vectors,
+                prototype_labels=global_prototype_labels,
+                prototype_support=global_prototype_support,
+            )
+            _write_training_metadata(
+                global_dir,
+                training_version,
+                samples,
+                label_set,
+                metadata_payload,
+                FEATURE_MODE,
+            )
+
+        profile_reports = {}
+        profiles = {s.profile_id for s in samples if s.profile_id}
+        for profile_id in profiles:
+            p_samples = filter_samples_by_profile(samples, profile_id)
+            if len(p_samples) < MIN_SAMPLES_PER_PROFILE:
+                continue
+
+            p_X, p_y, p_labels, _p_weights, p_groups = dataset_to_arrays(
+                p_samples,
+                rng=rng,
+                min_samples_target=100,
+            )
+            p_num_classes = len(p_labels)
+            if p_num_classes < 1:
+                continue
+
+            p_train_idx, p_val_idx = plan_grouped_train_validation_split(
+                p_y,
+                p_groups,
+                validation_fraction=resolved_config.validation_fraction,
+                rng=rng,
+            )
+            p_counts = np.bincount(p_y, minlength=p_num_classes)
+            p_confusion_scope = "validation" if p_val_idx.size > 0 else "none"
+            p_prototype_vectors, p_prototype_labels, p_prototype_support = build_prototype_bank(
+                p_samples,
+                use_multimodal=True,
+            )
+            p_label_diagnostics = _build_label_diagnostics(
+                samples=p_samples,
+                labels=p_labels,
+                confusion_matrix=[[
+                    int(p_val_idx.size) if p_val_idx.size > 0 else int(p_y.size)
+                ]],
+                prototype_labels=p_prototype_labels,
+                groups=p_groups,
+                y=p_y,
+                train_idx=p_train_idx,
+                val_idx=p_val_idx,
+                bundle_summary=bundle_summary,
+                profile_id=profile_id,
+                confusion_scope=p_confusion_scope,
+            )
+            p_dataset_health = _build_dataset_health(
+                labels=p_labels,
+                class_counts=p_counts,
+                label_diagnostics=p_label_diagnostics,
+            )
+            profile_metadata_payload = metadata_payload
+            if len(p_prototype_labels) > 0:
+                profile_metadata_payload = {
+                    **metadata_payload,
+                    "prototype_bank": {
+                        "prototype_count": len(p_prototype_labels),
+                        "label_count": len(set(p_prototype_labels)),
+                    },
+                }
+            profile_metadata_payload = {
+                **profile_metadata_payload,
+                "dataset_health": p_dataset_health,
+                "training_mode": "single_label_seeded",
+            }
+
+            if output_dir:
+                profile_dir = output_dir / profile_id
+                save_model(
+                    profile_dir / "amy_model.npz",
+                    _build_zero_initialized_weights(p_X.shape[1], p_num_classes),
+                    p_labels,
+                    p_counts,
+                    prototype_vectors=p_prototype_vectors,
+                    prototype_labels=p_prototype_labels,
+                    prototype_support=p_prototype_support,
+                )
+                _write_training_metadata(
+                    profile_dir,
+                    training_version,
+                    p_samples,
+                    p_labels,
+                    profile_metadata_payload,
+                    FEATURE_MODE,
+                )
+
+            p_modality_counts = _summarize_modality_counts(p_samples)
+            p_modalities_used = [key for key in MODALITY_KEYS if p_modality_counts[key] > 0]
+            profile_reports[profile_id] = {
+                "accuracy": 1.0,
+                "f1_score": 1.0,
+                "confusion_matrix": [[int(p_y.size)]],
+                "samples": len(p_samples),
+                "labels": p_labels,
+                "class_counts": p_counts.tolist(),
+                "modalities": p_modalities_used,
+                "modality_counts": p_modality_counts,
+                "prototype_count": len(p_prototype_labels),
+                "label_diagnostics": p_label_diagnostics,
+                "dataset_health": p_dataset_health,
+                "training_mode": "single_label_seeded",
+            }
+
+        return {
+            "global": {
+                "accuracy": 1.0,
+                "f1_score": 1.0,
+                "confusion_matrix": [[int(y.size)]],
+                "samples": len(samples),
+                "labels": label_set,
+                "class_counts": class_counts.tolist(),
+                "modalities": modalities_used,
+                "modality_counts": modality_counts,
+                "prototype_count": len(global_prototype_labels),
+                "label_diagnostics": global_label_diagnostics,
+                "dataset_health": global_dataset_health,
+                "training_mode": "single_label_seeded",
+            },
+            "profiles": profile_reports,
+            "timestamp": training_version,
+        }
+
     # Train global model
     global_weights = train_mlp(
         X_train,
@@ -3117,14 +3468,6 @@ def run_training_pipeline(
         samples,
         use_multimodal=True,
     )
-    bundle_summary = None
-    stats_payload = metadata_context.get("stats") if metadata_context else None
-    if isinstance(stats_payload, dict):
-        bundle_summary_candidate = stats_payload.get("label_bundle_summary")
-        if isinstance(bundle_summary_candidate, list):
-            bundle_summary = [
-                item for item in bundle_summary_candidate if isinstance(item, dict)
-            ]
     global_label_diagnostics = _build_label_diagnostics(
         samples=samples,
         labels=label_set,
@@ -3136,6 +3479,11 @@ def run_training_pipeline(
         val_idx=val_idx,
         bundle_summary=bundle_summary,
         confusion_scope=global_confusion_scope,
+    )
+    global_dataset_health = _build_dataset_health(
+        labels=label_set,
+        class_counts=class_counts,
+        label_diagnostics=global_label_diagnostics,
     )
 
     metadata_payload = metadata_context or {}
@@ -3149,6 +3497,10 @@ def run_training_pipeline(
                 "label_count": len(set(global_prototype_labels)),
             },
         }
+    metadata_payload = {
+        **metadata_payload,
+        "dataset_health": global_dataset_health,
+    }
     if output_dir:
         global_dir = output_dir / "global"
         save_model(
@@ -3280,6 +3632,15 @@ def run_training_pipeline(
             profile_id=profile_id,
             confusion_scope=p_confusion_scope,
         )
+        p_dataset_health = _build_dataset_health(
+            labels=p_labels,
+            class_counts=p_counts,
+            label_diagnostics=p_label_diagnostics,
+        )
+        profile_metadata_payload = {
+            **profile_metadata_payload,
+            "dataset_health": p_dataset_health,
+        }
 
         profile_reports[profile_id] = {
             "accuracy": p_accuracy,
@@ -3297,6 +3658,7 @@ def run_training_pipeline(
             "modality_counts": p_modality_counts,
             "prototype_count": len(p_prototype_labels),
             "label_diagnostics": p_label_diagnostics,
+            "dataset_health": p_dataset_health,
         }
 
     return {
@@ -3311,6 +3673,7 @@ def run_training_pipeline(
             "modality_counts": modality_counts,
             "prototype_count": len(global_prototype_labels),
             "label_diagnostics": global_label_diagnostics,
+            "dataset_health": global_dataset_health,
         },
         "profiles": profile_reports,
         "timestamp": training_version

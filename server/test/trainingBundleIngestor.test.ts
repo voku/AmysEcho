@@ -18,6 +18,16 @@ let saveTrainingManifestToStore: typeof import('../src/services/trainingJsonStor
 let loadDgsSamplesFromStore: typeof import('../src/services/trainingJsonStore.js').loadDgsSamples;
 let loadTrainingQualityLogFromStore: typeof import('../src/services/trainingJsonStore.js').loadTrainingQualityLog;
 
+const FEATURE_CONTRACT = {
+  version: 'wrist_relative_max_abs_v1',
+  normalization: 'wrist_relative_max_abs',
+  handOrder: ['Left', 'Right'],
+  missingHandStrategy: 'zero_pad',
+  pointsPerHand: 21,
+  coordinatesPerPoint: 3,
+  vectorLength: 126,
+} as const;
+
 function resolveDataPath(relativePath: string): string {
   if (!DATA_DIR) {
     throw new Error('DATA_DIR not initialized');
@@ -704,7 +714,8 @@ describe('ingestTrainingBundlesIntoDataset', () => {
             clipFilename: 'clip.webm',
             stillFilename: 'still.jpg',
             featureContract: {
-              version: options.featureContractVersion ?? 'wrist_relative_max_abs_v1',
+              ...FEATURE_CONTRACT,
+              version: options.featureContractVersion ?? FEATURE_CONTRACT.version,
             },
             ...(options.recordingMetadata ? { recording: options.recordingMetadata } : {}),
             ...(options.captureContext ? { captureContext: options.captureContext } : {}),

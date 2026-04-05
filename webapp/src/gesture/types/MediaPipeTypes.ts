@@ -58,6 +58,7 @@ export interface HolisticLandmarkerResult {
 export interface MlpCandidate {
   label: string;
   score: number;
+  supportCount?: number;
 }
 
 export interface PrototypePrediction {
@@ -74,6 +75,7 @@ export interface MLPPrediction {
   source?: 'mlp' | 'prototype' | 'hybrid';
   mlpScore?: number;
   prototype?: PrototypePrediction | null;
+  labelSupportCount?: number;
 }
 
 // Gesture Detection Result

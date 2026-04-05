@@ -31,6 +31,15 @@ const LOCAL_TEST_TOKEN = jwt.sign(
 
 export const TEST_TOKEN = process.env.LIVE_SERVER_TOKEN ?? LOCAL_TEST_TOKEN;
 const BASE_URL = LIVE_SERVER_URL ?? `http://localhost:${TEST_PORT}`;
+const FEATURE_CONTRACT = {
+  version: 'wrist_relative_max_abs_v1',
+  normalization: 'wrist_relative_max_abs',
+  handOrder: ['Left', 'Right'],
+  missingHandStrategy: 'zero_pad',
+  pointsPerHand: 21,
+  coordinatesPerPoint: 3,
+  vectorLength: 126,
+} as const;
 
 process.env.AMY_DGS_SOURCES_PATH = process.env.AMY_DGS_SOURCES_PATH ?? dgsFixtureConfig;
 process.env.AMY_DGS_SKIP_SIGNDICT = process.env.AMY_DGS_SKIP_SIGNDICT ?? 'true';
@@ -65,6 +74,7 @@ export function buildTestTrainingBundleZipBuffer({
     source: 'app://integration-test',
     clipFilename: 'clip.webm',
     stillFilename: 'still.jpg',
+    featureContract: FEATURE_CONTRACT,
   };
 
   const landmarks = buildLandmarks();

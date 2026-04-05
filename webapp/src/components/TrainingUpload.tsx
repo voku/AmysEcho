@@ -226,6 +226,19 @@ type ReportLabelDiagnostic = {
   topConfusions: ReportConfusion[];
 };
 
+type ReportDatasetHealth = {
+  labelCount: number;
+  minClassCount: number;
+  maxClassCount: number;
+  medianClassCount: number;
+  imbalanceRatio: number | null;
+  lowSupportLabelCount: number;
+  lowSupportLabels: Array<{ label: string; count: number }>;
+  labelsWithoutValidation: string[];
+  rejectedBundleLabels: Array<{ label: string; rejectedBundleCount: number }>;
+  confusionHotspots: Array<{ label: string; confusedWith: string; count: number }>;
+};
+
 function parseReportConfusions(raw: unknown): ReportConfusion[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -267,6 +280,71 @@ function parseLabelDiagnostics(raw: unknown): ReportLabelDiagnostic[] {
       topConfusions: parseReportConfusions(entry['top_confusions']),
     }))
     .filter((entry) => entry.label.length > 0);
+}
+
+function parseDatasetHealth(raw: unknown): ReportDatasetHealth | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const entry = raw as Record<string, unknown>;
+  const parseLabelCounts = (value: unknown) =>
+    Array.isArray(value)
+      ? value
+          .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+          .map((item) => ({
+            label: typeof item['label'] === 'string' ? item['label'] : '',
+            count: typeof item['count'] === 'number' && Number.isFinite(item['count']) ? item['count'] : 0,
+          }))
+          .filter((item) => item.label.length > 0 && item.count > 0)
+      : [];
+  const parseRejectedLabels = (value: unknown) =>
+    Array.isArray(value)
+      ? value
+          .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+          .map((item) => ({
+            label: typeof item['label'] === 'string' ? item['label'] : '',
+            rejectedBundleCount:
+              typeof item['rejected_bundle_count'] === 'number' && Number.isFinite(item['rejected_bundle_count'])
+                ? item['rejected_bundle_count']
+                : 0,
+          }))
+          .filter((item) => item.label.length > 0 && item.rejectedBundleCount > 0)
+      : [];
+  const parseHotspots = (value: unknown) =>
+    Array.isArray(value)
+      ? value
+          .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+          .map((item) => ({
+            label: typeof item['label'] === 'string' ? item['label'] : '',
+            confusedWith: typeof item['confused_with'] === 'string' ? item['confused_with'] : '',
+            count: typeof item['count'] === 'number' && Number.isFinite(item['count']) ? item['count'] : 0,
+          }))
+          .filter((item) => item.label.length > 0 && item.confusedWith.length > 0 && item.count > 0)
+      : [];
+
+  return {
+    labelCount: typeof entry['label_count'] === 'number' && Number.isFinite(entry['label_count']) ? entry['label_count'] : 0,
+    minClassCount:
+      typeof entry['min_class_count'] === 'number' && Number.isFinite(entry['min_class_count']) ? entry['min_class_count'] : 0,
+    maxClassCount:
+      typeof entry['max_class_count'] === 'number' && Number.isFinite(entry['max_class_count']) ? entry['max_class_count'] : 0,
+    medianClassCount:
+      typeof entry['median_class_count'] === 'number' && Number.isFinite(entry['median_class_count'])
+        ? entry['median_class_count']
+        : 0,
+    imbalanceRatio:
+      typeof entry['imbalance_ratio'] === 'number' && Number.isFinite(entry['imbalance_ratio'])
+        ? entry['imbalance_ratio']
+        : null,
+    lowSupportLabelCount:
+      typeof entry['low_support_label_count'] === 'number' && Number.isFinite(entry['low_support_label_count'])
+        ? entry['low_support_label_count']
+        : 0,
+    lowSupportLabels: parseLabelCounts(entry['low_support_labels']),
+    labelsWithoutValidation: Array.isArray(entry['labels_without_validation'])
+      ? entry['labels_without_validation'].filter((value): value is string => typeof value === 'string' && value.length > 0)
+      : [],
+    rejectedBundleLabels: parseRejectedLabels(entry['rejected_bundle_labels']),
+    confusionHotspots: parseHotspots(entry['confusion_hotspots']),
+  };
 }
 
 function resolveLabelReadiness(entry: ReportLabelDiagnostic): { title: string; hint: string } {
@@ -510,7 +588,14 @@ function TrainingResultCard({
   const globalLabelDiagnostics = report && typeof report === 'object' && report['global'] && typeof report['global'] === 'object'
     ? parseLabelDiagnostics((report['global'] as Record<string, unknown>)['label_diagnostics'])
     : [];
+  const profileDatasetHealth = profileReportRaw && typeof profileReportRaw === 'object'
+    ? parseDatasetHealth((profileReportRaw as Record<string, unknown>)['dataset_health'])
+    : null;
+  const globalDatasetHealth = report && typeof report === 'object' && report['global'] && typeof report['global'] === 'object'
+    ? parseDatasetHealth((report['global'] as Record<string, unknown>)['dataset_health'])
+    : null;
   const labelDiagnostics = hasProfileContext ? profileLabelDiagnostics : globalLabelDiagnostics;
+  const datasetHealth = hasProfileContext ? profileDatasetHealth : globalDatasetHealth;
   const showMissingProfileDiagnosticsNotice = hasProfileContext && labelDiagnostics.length === 0;
 
   return (
@@ -570,6 +655,42 @@ function TrainingResultCard({
                 </li>
               );
             })}
+          </ul>
+        </div>
+      )}
+      {datasetHealth && (
+        <div>
+          <p className="eyebrow">Datensatz-Check</p>
+          <p className="muted small">
+            Labels: {datasetHealth.labelCount}
+            {` · Klassenfenster: ${datasetHealth.minClassCount} bis ${datasetHealth.maxClassCount}`}
+            {datasetHealth.imbalanceRatio !== null ? ` · Ungleichgewicht: ${datasetHealth.imbalanceRatio.toFixed(1)}x` : ''}
+          </p>
+          <ul className="muted small bullets">
+            {datasetHealth.lowSupportLabels.length > 0 ? (
+              <li>
+                Wenig Beispiele: {datasetHealth.lowSupportLabels.map((entry) => `${entry.label} (${entry.count})`).join(', ')}.
+              </li>
+            ) : null}
+            {datasetHealth.labelsWithoutValidation.length > 0 ? (
+              <li>
+                Ohne unabhängige Prüfung: {datasetHealth.labelsWithoutValidation.join(', ')}.
+              </li>
+            ) : null}
+            {datasetHealth.rejectedBundleLabels.length > 0 ? (
+              <li>
+                Verworfene Aufnahmen: {datasetHealth.rejectedBundleLabels
+                  .map((entry) => `${entry.label} (${entry.rejectedBundleCount})`)
+                  .join(', ')}.
+              </li>
+            ) : null}
+            {datasetHealth.confusionHotspots.length > 0 ? (
+              <li>
+                Häufige Verwechslungen: {datasetHealth.confusionHotspots
+                  .map((entry) => `${entry.label} → ${entry.confusedWith} (${entry.count})`)
+                  .join(', ')}.
+              </li>
+            ) : null}
           </ul>
         </div>
       )}

@@ -31,6 +31,12 @@ const RELAXED_BASELINE_THRESHOLD_MIN = 0.2;
 const RELAXED_BASELINE_THRESHOLD_DELTA = 0.12;
 const TEMPLATE_BASELINE_OVERRIDE_MIN_CONFIDENCE = 0.2;
 const MLP_MIN_CANDIDATE_MARGIN = 0.15;
+const MLP_SUPPORT_AWARE_LOW_COUNT = 8;
+const MLP_SUPPORT_AWARE_MEDIUM_COUNT = 16;
+const MLP_SUPPORT_AWARE_LOW_THRESHOLD = 0.72;
+const MLP_SUPPORT_AWARE_MEDIUM_THRESHOLD = 0.58;
+const MLP_SUPPORT_AWARE_LOW_MARGIN = 0.28;
+const MLP_SUPPORT_AWARE_MEDIUM_MARGIN = 0.2;
 
 const CONFIDENT_MEDIAPIPE_THRESHOLD = 0.65;
 const UNSURE_MEDIAPIPE_THRESHOLD = 0.35;
@@ -94,7 +100,9 @@ interface MlpSelection {
       | 'selected_profile_vocab_priority'
       | 'selected_profile_vocab_relaxed_threshold'
       | 'below_threshold'
+      | 'below_label_support_threshold'
       | 'below_candidate_margin'
+      | 'below_label_support_margin'
       | 'below_override_margin'
       | 'null_label'
       | 'invalid_result'
@@ -133,6 +141,32 @@ function resolveTopCandidateScores(
     top2,
     margin: top1 !== null && top2 !== null ? top1 - top2 : null,
   };
+}
+
+function resolveSupportAwareMlpAcceptance(
+  baseThreshold: number,
+  labelSupportCount?: number,
+): { threshold: number; candidateMargin: number } {
+  const baseCandidateMargin = MLP_MIN_CANDIDATE_MARGIN;
+  if (typeof labelSupportCount !== 'number' || !Number.isFinite(labelSupportCount) || labelSupportCount <= 0) {
+    return { threshold: baseThreshold, candidateMargin: baseCandidateMargin };
+  }
+
+  if (labelSupportCount < MLP_SUPPORT_AWARE_LOW_COUNT) {
+    return {
+      threshold: Math.max(baseThreshold, MLP_SUPPORT_AWARE_LOW_THRESHOLD),
+      candidateMargin: Math.max(baseCandidateMargin, MLP_SUPPORT_AWARE_LOW_MARGIN),
+    };
+  }
+
+  if (labelSupportCount < MLP_SUPPORT_AWARE_MEDIUM_COUNT) {
+    return {
+      threshold: Math.max(baseThreshold, MLP_SUPPORT_AWARE_MEDIUM_THRESHOLD),
+      candidateMargin: Math.max(baseCandidateMargin, MLP_SUPPORT_AWARE_MEDIUM_MARGIN),
+    };
+  }
+
+  return { threshold: baseThreshold, candidateMargin: baseCandidateMargin };
 }
 
 interface GestureDetectionResult {
@@ -530,17 +564,26 @@ export class GestureDetectionStep implements ProcessingStep {
       }
 
       const threshold = this.config?.thresholds?.mlpConfidence ?? MLP_CONFIDENCE_THRESHOLD;
+      const supportAwareAcceptance = resolveSupportAwareMlpAcceptance(
+        threshold,
+        mlpResult.labelSupportCount,
+      );
+      const effectiveThreshold = supportAwareAcceptance.threshold;
+      const requiredCandidateMargin = supportAwareAcceptance.candidateMargin;
       const candidateScores = resolveTopCandidateScores(mlpResult.candidates);
       const topCandidateMargin = candidateScores.margin;
       const isCandidateMarginTooSmall =
-        topCandidateMargin !== null && topCandidateMargin < MLP_MIN_CANDIDATE_MARGIN;
+        topCandidateMargin !== null && topCandidateMargin < requiredCandidateMargin;
       const confidenceMargin = selectedConfidence > 0.3 ? 0.15 : 0;
 
       gestureDebugLog('mlp', 'MLP threshold check', () => ({
         score: mlpResult.score,
         threshold,
+        threshold_used: effectiveThreshold,
         selectedConfidence,
         topCandidateMargin,
+        labelSupportCount: mlpResult.labelSupportCount,
+        requiredCandidateMargin,
       }), { sampleIntervalMs: 3000 });
 
       if (mlpResult.label === MLP_NULL_LABEL) {
@@ -548,6 +591,7 @@ export class GestureDetectionStep implements ProcessingStep {
           selected: false,
           reason: 'null_label',
           threshold,
+          threshold_used: effectiveThreshold,
           score: mlpResult.score,
           selectedConfidenceBeforeMlp: selectedConfidence,
           selectedGestureBeforeMlp: selectedGesture,
@@ -560,6 +604,7 @@ export class GestureDetectionStep implements ProcessingStep {
           selected: false,
           reason: 'invalid_label',
           threshold,
+          threshold_used: effectiveThreshold,
           score: mlpResult.score,
           selectedConfidenceBeforeMlp: selectedConfidence,
           selectedGestureBeforeMlp: selectedGesture,
@@ -573,11 +618,11 @@ export class GestureDetectionStep implements ProcessingStep {
         !isBaselineGesture(normalizedMlpLabel);
       const relaxedBaselineThreshold = Math.max(
         RELAXED_BASELINE_THRESHOLD_MIN,
-        threshold - RELAXED_BASELINE_THRESHOLD_DELTA,
+        effectiveThreshold - RELAXED_BASELINE_THRESHOLD_DELTA,
       );
       const canSelectMlpByRelaxedBaseline =
         shouldPreferMlpOverBaseline &&
-        mlpResult.score < threshold &&
+        mlpResult.score < effectiveThreshold &&
         mlpResult.score >= relaxedBaselineThreshold;
       const isMediaPipeBlockingMlp =
         selectedGesture !== null &&
@@ -586,7 +631,7 @@ export class GestureDetectionStep implements ProcessingStep {
         !shouldPreferMlpOverBaseline;
       const canSelectMlp =
         !isCandidateMarginTooSmall &&
-        (mlpResult.score >= threshold || canSelectMlpByRelaxedBaseline) &&
+        (mlpResult.score >= effectiveThreshold || canSelectMlpByRelaxedBaseline) &&
         !isMediaPipeBlockingMlp;
 
       if (!canSelectMlp) {
@@ -594,20 +639,22 @@ export class GestureDetectionStep implements ProcessingStep {
           selectedGesture !== null &&
           isBaselineGesture(selectedGesture) &&
           normalizedMlpLabel !== selectedGesture &&
-          (isCandidateMarginTooSmall || mlpResult.score < threshold);
+          (isCandidateMarginTooSmall || mlpResult.score < effectiveThreshold);
+        const usesSupportAwareThreshold = effectiveThreshold > threshold;
+        const usesSupportAwareMargin = requiredCandidateMargin > MLP_MIN_CANDIDATE_MARGIN;
 
         return buildResult({
           selected: false,
           reason: isCandidateMarginTooSmall
-            ? 'below_candidate_margin'
-            : mlpResult.score < threshold
-              ? 'below_threshold'
+            ? (usesSupportAwareMargin ? 'below_label_support_margin' : 'below_candidate_margin')
+            : mlpResult.score < effectiveThreshold
+              ? (usesSupportAwareThreshold ? 'below_label_support_threshold' : 'below_threshold')
               : 'below_override_margin',
           threshold,
-          margin: confidenceMargin,
+          margin: isCandidateMarginTooSmall ? requiredCandidateMargin : confidenceMargin,
           top1: candidateScores.top1 ?? mlpResult.score,
           top2: candidateScores.top2 ?? undefined,
-          threshold_used: threshold,
+          threshold_used: effectiveThreshold,
           score: mlpResult.score,
           selectedConfidenceBeforeMlp: selectedConfidence,
           selectedGestureBeforeMlp: selectedGesture,
@@ -630,7 +677,7 @@ export class GestureDetectionStep implements ProcessingStep {
           margin: confidenceMargin,
           top1: candidateScores.top1 ?? mlpResult.score,
           top2: candidateScores.top2 ?? undefined,
-          threshold_used: threshold,
+          threshold_used: effectiveThreshold,
           score: mlpResult.score,
           selectedConfidenceBeforeMlp: selectedConfidence,
           selectedGestureBeforeMlp: selectedGesture,

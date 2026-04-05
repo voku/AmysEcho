@@ -177,6 +177,18 @@ describe('TrainingUpload', () => {
       report: {
         profiles: {
           '11111111-1111-4111-8111-111111111111': {
+            dataset_health: {
+              label_count: 2,
+              min_class_count: 2,
+              max_class_count: 6,
+              median_class_count: 4,
+              imbalance_ratio: 3,
+              low_support_label_count: 1,
+              low_support_labels: [{ label: 'satt', count: 2 }],
+              labels_without_validation: ['mehr'],
+              rejected_bundle_labels: [{ label: 'satt', rejected_bundle_count: 1 }],
+              confusion_hotspots: [{ label: 'satt', confused_with: 'trinken', count: 2 }],
+            },
             label_diagnostics: [
               {
                 label: 'satt',
@@ -204,7 +216,10 @@ describe('TrainingUpload', () => {
     expect(screen.getByText(/Aktive Modellquelle: Globales Ersatzmodell/)).toBeInTheDocument();
     expect(screen.getByText(/Für dieses Profil läuft die Erkennung derzeit auf dem globalen Ersatzmodell/)).toBeInTheDocument();
     expect(screen.getByText(/Label-Bereitschaft/)).toBeInTheDocument();
-    expect(screen.getByText(/satt/)).toBeInTheDocument();
+    expect(screen.getByText(/Datensatz-Check/)).toBeInTheDocument();
+    expect(screen.getByText(/Wenig Beispiele: satt \(2\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Häufige Verwechslungen: satt → trinken \(2\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/satt/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Mehr saubere Aufnahmen empfohlen/)).toBeInTheDocument();
   });
 

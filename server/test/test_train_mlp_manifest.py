@@ -2,6 +2,16 @@ import importlib
 import json
 from pathlib import Path
 
+FEATURE_CONTRACT = {
+    "version": "wrist_relative_max_abs_v1",
+    "normalization": "wrist_relative_max_abs",
+    "handOrder": ["Left", "Right"],
+    "missingHandStrategy": "zero_pad",
+    "pointsPerHand": 21,
+    "coordinatesPerPoint": 3,
+    "vectorLength": 126,
+}
+
 
 def test_build_samples_from_manifest_uses_video_extension(monkeypatch, tmp_path):
     data_dir = tmp_path / "data"
@@ -37,6 +47,7 @@ def test_build_samples_from_manifest_uses_video_extension(monkeypatch, tmp_path)
                     "label": "HALLO",
                     "profileId": None,
                     "clipFilename": clip_rel,
+                    "featureContract": FEATURE_CONTRACT,
                 },
                 "receivedAt": "2024-05-28T12:05:00Z",
             }
@@ -98,6 +109,7 @@ def test_build_samples_from_manifest_uses_still_image(monkeypatch, tmp_path):
                     "label": "BITTE",
                     "profileId": None,
                     "stillFilename": still_rel,
+                    "featureContract": FEATURE_CONTRACT,
                 },
                 "receivedAt": "2024-05-28T12:05:00Z",
             }
@@ -161,6 +173,7 @@ def test_build_samples_from_manifest_appends_still_to_clip(monkeypatch, tmp_path
                     "profileId": None,
                     "clipFilename": clip_rel,
                     "stillFilename": still_rel,
+                    "featureContract": FEATURE_CONTRACT,
                 },
                 "receivedAt": "2024-05-28T12:05:00Z",
             }
@@ -222,6 +235,7 @@ def test_still_frames_are_included_in_samples(monkeypatch, tmp_path):
                     "label": "TEST",
                     "clipFilename": clip_rel,
                     "stillFilename": still_rel,
+                    "featureContract": FEATURE_CONTRACT,
                 }
             }
         ]
@@ -295,6 +309,7 @@ def test_cached_frames_do_not_duplicate_still_frame(monkeypatch, tmp_path):
                     "label": "TEST",
                     "clipFilename": clip_rel,
                     "stillFilename": still_rel,
+                    "featureContract": FEATURE_CONTRACT,
                 }
             }
         ]
@@ -359,6 +374,7 @@ def test_build_samples_bundle_only_does_not_extract_clip_without_landmarks(monke
                     "label": "HALLO",
                     "profileId": None,
                     "clipFilename": clip_rel,
+                    "featureContract": FEATURE_CONTRACT,
                 },
             }
         ]
@@ -416,6 +432,7 @@ def test_build_samples_prefer_bundle_extracts_clip_without_landmarks(monkeypatch
                     "label": "HALLO",
                     "profileId": None,
                     "clipFilename": clip_rel,
+                    "featureContract": FEATURE_CONTRACT,
                 },
             }
         ]
@@ -490,7 +507,10 @@ def test_build_samples_from_manifest_rejects_feature_contract_mismatch(monkeypat
                 },
                 "metadata": {
                     "label": "HALLO",
-                    "featureContract": {"version": "legacy_v0"},
+                    "featureContract": {
+                        **FEATURE_CONTRACT,
+                        "version": "legacy_v0",
+                    },
                     "validationSummary": {"landmarksPath": "landmarks.json"},
                 },
             }
@@ -506,6 +526,50 @@ def test_build_samples_from_manifest_rejects_feature_contract_mismatch(monkeypat
     assert stats["label_bundle_summary"][0]["rejection_reasons"]["feature_contract_mismatch"] == 1
     assert stats["modality_counts"] == {"hands": 0, "pose": 0, "face": 0, "nonManual": 0}
     assert stats["modality_sample_total"] == 0
+
+
+def test_build_samples_from_manifest_rejects_missing_feature_contract(monkeypatch, tmp_path):
+    data_dir = tmp_path / "data"
+    manifest_path = data_dir / "datasets" / "training_manifest.json"
+    monkeypatch.setenv("MLP_DATA_DIR", str(data_dir))
+    monkeypatch.setenv("MLP_MANIFEST_PATH", str(manifest_path))
+
+    module = importlib.reload(importlib.import_module("amyserver_tools.train_mlp"))
+
+    bundle_rel = Path("training_uploads/unassigned/bundle-contract-missing")
+    bundle_dir = data_dir / bundle_rel
+    bundle_dir.mkdir(parents=True)
+    landmarks_path = bundle_dir / "landmarks.json"
+    landmarks_path.write_text(
+        json.dumps({"frames": [{"landmarks": [[0.1, 0.1, 0.1] for _ in range(42)]}]}),
+        encoding="utf-8",
+    )
+
+    manifest = {
+        "entries": [
+            {
+                "id": "bundle-contract-missing",
+                "profileId": None,
+                "label": "HALLO",
+                "storage": {
+                    "directory": str(bundle_rel),
+                    "files": ["landmarks.json"],
+                },
+                "metadata": {
+                    "label": "HALLO",
+                    "validationSummary": {"landmarksPath": "landmarks.json"},
+                },
+            }
+        ]
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    samples, stats = module.build_samples_from_manifest(module.MANIFEST_PATH, skip_examples=True)
+
+    assert samples == []
+    assert stats["bundle_contract_mismatches"] == 1
+    assert stats["label_bundle_summary"][0]["rejection_reasons"]["feature_contract_missing"] == 1
 
 
 def test_build_samples_prefer_bundle_counts_missing_when_clip_extraction_returns_no_frames(monkeypatch, tmp_path):
@@ -541,6 +605,7 @@ def test_build_samples_prefer_bundle_counts_missing_when_clip_extraction_returns
                     "label": "HALLO",
                     "profileId": None,
                     "clipFilename": clip_rel,
+                    "featureContract": FEATURE_CONTRACT,
                 },
             }
         ]

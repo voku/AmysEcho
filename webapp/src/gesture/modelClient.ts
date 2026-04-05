@@ -15,6 +15,13 @@ export type MlpModelMeta = {
 const CONTRACT_REASON_LABELS: Record<string, string> = {
   incomplete_contract: 'Vertragsdaten unvollständig',
   schema_version_mismatch: 'Feature-Schema-Version stimmt nicht überein',
+  feature_contract_version_mismatch: 'Hand-Feature-Vertrag stimmt nicht überein',
+  feature_normalization_mismatch: 'Feature-Normalisierung stimmt nicht überein',
+  missing_hand_strategy_mismatch: 'Fehlende-Hand-Strategie stimmt nicht überein',
+  points_per_hand_mismatch: 'Anzahl der Handpunkte stimmt nicht überein',
+  coordinates_per_point_mismatch: 'Koordinatenanzahl pro Punkt stimmt nicht überein',
+  hand_vector_length_mismatch: 'Hand-Vektorlänge stimmt nicht überein',
+  hand_order_mismatch: 'Hand-Reihenfolge stimmt nicht überein',
   window_size_mismatch: 'Fenstergröße stimmt nicht überein',
   frame_feature_size_mismatch: 'Frame-Feature-Größe stimmt nicht überein',
   window_feature_size_mismatch: 'Fenster-Feature-Größe stimmt nicht überein',

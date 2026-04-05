@@ -20,10 +20,23 @@ For two-hand frames:
 
 ## Implementation
 
+- Shared spec: `spec/feature_schema.json` (`handFeatureContract`)
 - Utility: `webapp/src/training/landmarkFeatureContract.ts`
+- Upload validation: `server/src/routes/trainingBundleRoute.ts`
+- Trainer enforcement: `server/src/amyserver_tools/train_mlp.py`
 - Fixture tests: `webapp/src/training/landmarkFeatureContract.test.ts`
+
+## Enforcement
+
+- Training bundle uploads must include the exact `featureContract` metadata written by the webapp.
+- The server persists that contract into the training manifest without rewriting it.
+- The Python trainer rejects manifest entries whose contract is missing or mismatched.
+- Trained artifacts record the contract again in `training_metadata.json` so runtime model validation can diagnose drift quickly.
+- Trained `.npz` artifacts also carry per-label `counts.npy` support counts.
+- Runtime MLP selection uses those support counts to apply stricter acceptance thresholds and candidate margins for sparse labels instead of treating every label as equally trustworthy.
 
 ## Notes
 
 - This contract mirrors the same wrist-relative + max-abs normalization strategy used by the external kinivi reference pipeline.
+- Training reports and `training_metadata.json` now also include `dataset_health` summaries (class spread, low-support labels, missing validation coverage, top confusion hotspots) so dataset hygiene problems are visible before a weak model reaches Amy.
 - The goal is deterministic feature parity across future training/inference integration points.

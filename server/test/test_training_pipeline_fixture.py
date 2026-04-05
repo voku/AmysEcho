@@ -19,6 +19,15 @@ from conftest import TEST_JWT_REFRESH_SECRET, TEST_JWT_SECRET, _get_free_port, c
 SERVER_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_PATH = SERVER_DIR / "test" / "fixtures" / "training_integration_fixture.json"
 PROFILE_ID = "11111111-1111-4111-8111-111111111111"
+FEATURE_CONTRACT = {
+    "version": "wrist_relative_max_abs_v1",
+    "normalization": "wrist_relative_max_abs",
+    "handOrder": ["Left", "Right"],
+    "missingHandStrategy": "zero_pad",
+    "pointsPerHand": 21,
+    "coordinatesPerPoint": 3,
+    "vectorLength": 126,
+}
 
 
 def _auth_headers(token: str) -> dict[str, str]:
@@ -122,6 +131,7 @@ def _make_training_bundle(fixture: dict[str, Any]) -> bytes:
         "label": label,
         "capturedAt": datetime.now(timezone.utc).isoformat(),
         "source": "test://training_pipeline_fixture",
+        "featureContract": FEATURE_CONTRACT,
     }
     if isinstance(profile_id, str) and profile_id:
         metadata["profileId"] = profile_id
@@ -157,7 +167,7 @@ def _start_server() -> tuple[subprocess.Popen, str, Path, str]:
     env.setdefault("BACKUP_SECRET", "test-backup-secret-DO-NOT-USE-IN-PRODUCTION")
     env.setdefault("NODE_ENV", "test")
     env.setdefault("MLP_SCRIPT", "src/amyserver_tools/train_mlp.py")
-    env.setdefault("MLP_EPOCHS", "5")
+    env.setdefault("AMY_PROFILE_TRAINING_EPOCH_SCHEDULE", "5")
     env.setdefault("TRAINING_JOB_SLA_MS", "300000")
 
     port = str(_get_free_port())
@@ -174,14 +184,13 @@ def _start_server() -> tuple[subprocess.Popen, str, Path, str]:
 
     process: subprocess.Popen | None = None
     try:
-        if not (SERVER_DIR / "dist" / "server.js").exists():
-            subprocess.run(
-                [npm_executable, "run", "build"],
-                cwd=SERVER_DIR,
-                env=env,
-                check=True,
-                stdout=subprocess.DEVNULL,
-            )
+        subprocess.run(
+            [npm_executable, "run", "build"],
+            cwd=SERVER_DIR,
+            env=env,
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
 
         process = subprocess.Popen(
             [node_executable, "dist/server.js"],
@@ -289,6 +298,10 @@ def test_training_pipeline_with_fixture_dataset() -> None:
             metadata = json.load(handle)
         assert metadata.get("version") == training_version_header
         assert metadata.get("artifact_contract", {}).get("feature_mode") is not None
+        assert metadata.get("artifact_contract", {}).get("feature_contract_version") == FEATURE_CONTRACT["version"]
+        assert metadata.get("artifact_contract", {}).get("hand_feature_normalization") == FEATURE_CONTRACT["normalization"]
+        assert metadata.get("dataset_health", {}).get("label_count", 0) >= 1
+        assert isinstance(metadata.get("dataset_health", {}).get("low_support_labels"), list)
 
         model_metadata_response = _request_json(
             f"{base_url}/api/v1/models/metadata",

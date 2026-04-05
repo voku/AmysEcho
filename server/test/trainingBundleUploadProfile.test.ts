@@ -7,6 +7,15 @@ import express from 'express';
 import { AuthService } from '../src/services/authService.js';
 
 const TEST_PROFILE_ID = '22222222-2222-4222-8222-222222222222';
+const FEATURE_CONTRACT = {
+  version: 'wrist_relative_max_abs_v1',
+  normalization: 'wrist_relative_max_abs',
+  handOrder: ['Left', 'Right'],
+  missingHandStrategy: 'zero_pad',
+  pointsPerHand: 21,
+  coordinatesPerPoint: 3,
+  vectorLength: 126,
+} as const;
 
 function buildTestLandmarks(): number[][] {
   return Array.from({ length: 42 }, (_, idx) => {
@@ -22,6 +31,7 @@ function buildTestBundle(profileId: string, label: string): Buffer {
     label,
     capturedAt: new Date().toISOString(),
     source: 'web://mediapipe',
+    featureContract: FEATURE_CONTRACT,
     modalities: {
       hands: { present: true, frameCount: 1, coverage: 1 },
       pose: { present: false, frameCount: 0, coverage: 0 },

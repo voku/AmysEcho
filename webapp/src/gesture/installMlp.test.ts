@@ -90,6 +90,7 @@ describe('installMlp', () => {
     options: {
       windowSize?: number;
       audioFeatureSize?: number;
+      counts?: number[];
       includeWindowMetadata?: boolean;
       scalarMetadata?: boolean;
       extraEntries?: Record<string, Uint8Array>;
@@ -113,7 +114,11 @@ describe('installMlp', () => {
       'w3.npy': createMockNpy(w3, [output, layer2]),
       'b3.npy': createMockNpy(b3, [output]),
       'labels.npy': createMockNpy(labels, [labels.length]),
-      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1], scalarMetadata)
+      'input_dim.npy': createMockNpy(new Float32Array([inputDim]), [1], scalarMetadata),
+      'counts.npy': createMockNpy(
+        new Float32Array(options.counts ?? labels.map(() => 20)),
+        [labels.length],
+      ),
     };
 
     if (includeWindowMetadata) {
@@ -368,6 +373,25 @@ describe('installMlp', () => {
 
     const candidateScores = res?.candidates?.map(candidate => candidate.score) ?? [];
     expect(candidateScores).toEqual([...candidateScores].sort((a, b) => b - a));
+  });
+
+  it('liest Label-Support aus counts.npy für die Top-Vorhersage', async () => {
+    const supportAwareModel = create3LayerZipB64(
+      126,
+      10,
+      5,
+      2,
+      ['trinken', 'satt'],
+      { counts: [4, 18] },
+    );
+    const ok = await window.__setMlpModelB64!(supportAwareModel);
+    expect(ok).toBe(true);
+
+    const res = window.__mlpPredict!([CONTRACT_HAND], [[{ categoryName: 'Left' }]]);
+    expect(res).not.toBeNull();
+    expect(res?.labelSupportCount).toBe(4);
+    expect(res?.candidates?.[0]?.supportCount).toBe(4);
+    expect(res?.candidates?.[1]?.supportCount).toBe(18);
   });
 
   it('bevorzugt Prototypenbank bei wenig Beispielen, wenn das dichte Modell unklar ist', async () => {

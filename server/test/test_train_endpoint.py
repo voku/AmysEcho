@@ -84,6 +84,16 @@ def _load_default_labels() -> list[str]:
 
 DEFAULT_BASELINE_LABELS = _load_default_labels()
 
+FEATURE_CONTRACT = {
+    "version": "wrist_relative_max_abs_v1",
+    "normalization": "wrist_relative_max_abs",
+    "handOrder": ["Left", "Right"],
+    "missingHandStrategy": "zero_pad",
+    "pointsPerHand": 21,
+    "coordinatesPerPoint": 3,
+    "vectorLength": 126,
+}
+
 
 def _create_training_bundle_zip(label: str, profile_id: str | None = None) -> bytes:
     """Create a ZIP file containing a training bundle with proper structure."""
@@ -102,6 +112,7 @@ def _create_training_bundle_zip(label: str, profile_id: str | None = None) -> by
         "label": label,
         "capturedAt": datetime.now(timezone.utc).isoformat(),
         "source": "test://train_endpoint",
+        "featureContract": FEATURE_CONTRACT,
     }
     # Only include profileId if it's a non-empty string
     if profile_id:

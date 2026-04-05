@@ -1,5 +1,33 @@
-export const CONTRACT_HAND_LANDMARK_COUNT = 21;
-export const CONTRACT_COORDS_PER_POINT = 3;
+import featureSchema from '../../../spec/feature_schema.json';
+
+type HandFeatureContractSchema = {
+  version: string;
+  normalization: string;
+  handOrder: string[];
+  missingHandStrategy: string;
+  vectorLength: number;
+};
+
+type FeatureSchema = {
+  coordinatesPerLandmark: number;
+  landmarks: {
+    hands: {
+      perHand: number;
+    };
+  };
+  handFeatureContract: HandFeatureContractSchema;
+};
+
+const schema = featureSchema as FeatureSchema;
+const handFeatureContract = schema.handFeatureContract;
+
+export const CONTRACT_HAND_LANDMARK_COUNT = schema.landmarks.hands.perHand;
+export const CONTRACT_COORDS_PER_POINT = schema.coordinatesPerLandmark;
+export const CONTRACT_FEATURE_VERSION = handFeatureContract.version;
+export const CONTRACT_FEATURE_NORMALIZATION = handFeatureContract.normalization;
+export const CONTRACT_HAND_ORDER = Object.freeze(handFeatureContract.handOrder.map((entry) => String(entry)));
+export const CONTRACT_MISSING_HAND_STRATEGY = handFeatureContract.missingHandStrategy;
+export const CONTRACT_VECTOR_LENGTH = handFeatureContract.vectorLength;
 
 function toPoint(point: unknown): [number, number, number] | null {
   if (!Array.isArray(point) || point.length < 2) {

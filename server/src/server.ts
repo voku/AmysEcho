@@ -294,6 +294,7 @@ type TrainingRunProfileSummary = {
 	samples: number;
 	confusionMatrix: number[][];
 	labels: string[];
+	datasetHealth?: Record<string, unknown>;
 };
 
 // Define reusable landmark validation schema at module level
@@ -1071,6 +1072,12 @@ async function runTrainingWorkflow(
 					labels: Array.isArray(labelsRaw)
 						? labelsRaw.filter((label): label is string => typeof label === "string")
 						: [],
+					datasetHealth:
+						profileReport.dataset_health &&
+						typeof profileReport.dataset_health === "object" &&
+						!Array.isArray(profileReport.dataset_health)
+							? (profileReport.dataset_health as Record<string, unknown>)
+							: undefined,
 				}];
 			})
 			.filter((entry) => entry.profileId.length > 0);

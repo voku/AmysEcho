@@ -12,6 +12,15 @@ import {
 	TRAINING_DATASETS_DIR,
 	TRAINING_UPLOADS_DIR,
 } from "../constants/modelPaths.js";
+import {
+	HAND_FEATURE_CONTRACT_VERSION,
+	HAND_FEATURE_COORDINATES_PER_POINT,
+	HAND_FEATURE_HAND_ORDER,
+	HAND_FEATURE_MISSING_HAND_STRATEGY,
+	HAND_FEATURE_NORMALIZATION,
+	HAND_FEATURE_POINTS_PER_HAND,
+	HAND_FEATURE_VECTOR_LENGTH,
+} from "../constants/landmarkFeatureContract.js";
 import { auth } from "../middleware/auth.js";
 import { logger } from "../services/logger.js";
 import { readTrainingQualityLog } from "../services/trainingBundleIngestor.js";
@@ -74,6 +83,15 @@ interface TrainingBundleMetadata {
 		suggestions?: string[];
 		qualityScore?: number;
 		confidence?: number;
+	};
+	featureContract?: {
+		version: string;
+		normalization: string;
+		handOrder: string[];
+		missingHandStrategy: string;
+		pointsPerHand: number;
+		coordinatesPerPoint: number;
+		vectorLength: number;
 	};
 	modalities?: Record<string, unknown>;
 	smoothing?: Record<string, unknown>;
@@ -158,6 +176,7 @@ type StoredTrainingProfileReport = {
 	samples?: number;
 	confusionMatrix?: number[][];
 	labels?: string[];
+	datasetHealth?: Record<string, unknown>;
 };
 
 type StoredTrainingRunReport = {
@@ -285,6 +304,18 @@ const AugmentationSchema = z
 	})
 	.passthrough();
 
+const FeatureContractSchema = z
+	.object({
+		version: z.string().min(1),
+		normalization: z.string().min(1),
+		handOrder: z.array(z.string().min(1)).min(1),
+		missingHandStrategy: z.string().min(1),
+		pointsPerHand: z.number().int().positive(),
+		coordinatesPerPoint: z.number().int().positive(),
+		vectorLength: z.number().int().positive(),
+	})
+	.strict();
+
 const CaptureContextSchema = z
 	.object({
 		signer: z
@@ -340,6 +371,7 @@ const MetadataSchema = z
 		handedness: HandednessSchema.optional(),
 		recording: RecordingSchema.optional(),
 		validationSummary: ValidationSummarySchema.optional(),
+		featureContract: FeatureContractSchema,
 		handFocus: HandFocusSchema.optional(),
 		augmentation: AugmentationSchema.optional(),
 		variationData: VariationDataSchema.optional(),
@@ -435,6 +467,52 @@ function normalizeClipFilename(value: unknown): string | null {
 		return null;
 	}
 	return trimmed;
+}
+
+function normalizeFeatureContract(
+	value: z.infer<typeof FeatureContractSchema>,
+): TrainingBundleMetadata["featureContract"] {
+	return {
+		version: value.version.trim(),
+		normalization: value.normalization.trim(),
+		handOrder: value.handOrder.map((entry) => entry.trim()),
+		missingHandStrategy: value.missingHandStrategy.trim(),
+		pointsPerHand: value.pointsPerHand,
+		coordinatesPerPoint: value.coordinatesPerPoint,
+		vectorLength: value.vectorLength,
+	};
+}
+
+function isExpectedFeatureContract(
+	featureContract: TrainingBundleMetadata["featureContract"],
+): boolean {
+	if (!featureContract) {
+		return false;
+	}
+	if (featureContract.version !== HAND_FEATURE_CONTRACT_VERSION) {
+		return false;
+	}
+	if (featureContract.normalization !== HAND_FEATURE_NORMALIZATION) {
+		return false;
+	}
+	if (featureContract.missingHandStrategy !== HAND_FEATURE_MISSING_HAND_STRATEGY) {
+		return false;
+	}
+	if (featureContract.pointsPerHand !== HAND_FEATURE_POINTS_PER_HAND) {
+		return false;
+	}
+	if (featureContract.coordinatesPerPoint !== HAND_FEATURE_COORDINATES_PER_POINT) {
+		return false;
+	}
+	if (featureContract.vectorLength !== HAND_FEATURE_VECTOR_LENGTH) {
+		return false;
+	}
+	if (featureContract.handOrder.length !== HAND_FEATURE_HAND_ORDER.length) {
+		return false;
+	}
+	return featureContract.handOrder.every(
+		(entry, index) => entry === HAND_FEATURE_HAND_ORDER[index],
+	);
 }
 
 async function readTrainingManifest(options: { strict: boolean }): Promise<TrainingBundleManifestFile> {
@@ -1323,6 +1401,12 @@ export function registerTrainingBundleRoute(
 						labels: Array.isArray(profile.labels)
 							? profile.labels.filter((label): label is string => typeof label === "string")
 							: [],
+						datasetHealth:
+							profile.datasetHealth &&
+							typeof profile.datasetHealth === "object" &&
+							!Array.isArray(profile.datasetHealth)
+								? profile.datasetHealth
+								: null,
 					}];
 				});
 			});
@@ -1637,6 +1721,16 @@ export function registerTrainingBundleRoute(
 				const incomingValidationSummary = normalizeValidationSummary(
 					parsedMetadata.validationSummary,
 				);
+				const featureContract = normalizeFeatureContract(
+					parsedMetadata.featureContract,
+				);
+				if (!isExpectedFeatureContract(featureContract)) {
+					await cleanupBundleRoot(bundleRoot);
+					await recordMetrics({ status: "rejected" });
+					return res.status(400).json({
+						error: "Trainingspaket verwendet einen nicht unterstuetzten Feature-Vertrag.",
+					});
+				}
 				const sanitizedMetadata: TrainingBundleMetadata = {
 					label,
 					profileId: resolvedProfileId ?? null,
@@ -1652,6 +1746,7 @@ export function registerTrainingBundleRoute(
 					...(incomingValidationSummary
 						? { validationSummary: incomingValidationSummary }
 						: {}),
+					featureContract,
 					...(parsedMetadata.handFocus
 						? { handFocus: parsedMetadata.handFocus }
 						: {}),

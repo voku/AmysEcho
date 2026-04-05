@@ -353,6 +353,65 @@ describe('GestureDetectionStep', () => {
     });
   });
 
+  it('rejects low-support labels unless they clear the stricter support-aware threshold', async () => {
+    const step = createStep();
+    const context = createDetectionContext({
+      landmarks: [[[0.1, 0.2, 0.3]]],
+    });
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Trinken',
+      score: 0.61,
+      labelSupportCount: 4,
+      candidates: [
+        { label: 'Trinken', score: 0.61, supportCount: 4 },
+        { label: 'Satt', score: 0.24, supportCount: 18 },
+      ],
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBeNull();
+    expect(result.metadata?.method).toBe('none');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_label_support_threshold',
+      threshold: 0.4,
+      threshold_used: 0.72,
+      score: 0.61,
+      selectedGestureBeforeMlp: null,
+    });
+  });
+
+  it('rejects low-support labels when the candidate margin is too small for sparse classes', async () => {
+    const step = createStep();
+    const context = createDetectionContext({ landmarks: [[[0.1, 0.2, 0.3]]] });
+
+    (window as any).__mlpPredict = vi.fn().mockReturnValue({
+      label: 'Satt',
+      score: 0.76,
+      labelSupportCount: 6,
+      candidates: [
+        { label: 'Satt', score: 0.76, supportCount: 6 },
+        { label: 'Trinken', score: 0.55, supportCount: 20 },
+      ],
+    });
+
+    const result = await step.execute(context as any);
+
+    expect(result.gesture).toBeNull();
+    expect(result.metadata?.method).toBe('none');
+    expect(result.metadata?.mlpDecision).toMatchObject({
+      selected: false,
+      reason: 'below_label_support_margin',
+      threshold: 0.4,
+      threshold_used: 0.72,
+      margin: 0.28,
+      top1: 0.76,
+      top2: 0.55,
+    });
+  });
+
   it('abstains instead of forcing baseline output when MLP confidence is below threshold', async () => {
     const step = createStep();
     const context = createDetectionContext({

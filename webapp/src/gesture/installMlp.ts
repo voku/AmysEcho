@@ -88,6 +88,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
     audio_feature_size?: number;
     inferredInputPlan?: ModelInputPlan;
     prototypeBank?: PrototypeBank;
+    labelSupportByLabel?: Record<string, number>;
   };
   const forwardTelemetry = (event: string, data?: Record<string, unknown>) => {
     void sendTelemetryEvent(event, data ?? {}).catch((err) => {
@@ -452,6 +453,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
       let input_dim: number | undefined;
       let audio_feature_size: number | undefined;
       let prototypeBank: PrototypeBank | undefined;
+      let labelSupportByLabel: Record<string, number> | undefined;
       
       const wsb = npzFind(map, 'window_size');
       if (wsb) {
@@ -518,6 +520,27 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         }
       }
 
+      const countsBuffer = npzFind(map, 'counts');
+      if (countsBuffer && labels.length > 0) {
+        try {
+          const parsedCounts = parseNPY(countsBuffer);
+          if (parsedCounts.data instanceof Float32Array) {
+            const nextLabelSupportByLabel: Record<string, number> = {};
+            labels.forEach((label, index) => {
+              const supportCount = parsedCounts.data[index];
+              if (typeof supportCount === 'number' && Number.isFinite(supportCount) && supportCount > 0) {
+                nextLabelSupportByLabel[label] = supportCount;
+              }
+            });
+            if (Object.keys(nextLabelSupportByLabel).length > 0) {
+              labelSupportByLabel = nextLabelSupportByLabel;
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse label counts:', e);
+        }
+      }
+
       // Validate tensor dimensions for MLP compatibility
       const inputSize = w1.shape[1] ?? 0;
       const layer1Size = w1.shape[0];
@@ -564,6 +587,7 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         ...(audio_feature_size !== undefined ? { audio_feature_size } : {}),
         inferredInputPlan,
         ...(prototypeBank ? { prototypeBank } : {}),
+        ...(labelSupportByLabel ? { labelSupportByLabel } : {}),
       };
       return true;
     } catch (e: any) {
@@ -886,8 +910,15 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         }
       }
 
+      const labelSupportByLabel = mlp.labelSupportByLabel;
       const rankedCandidates = Array.from(combinedScores.entries())
-        .map(([label, score]) => ({ label, score }))
+        .map(([label, score]) => ({
+          label,
+          score,
+          ...(typeof labelSupportByLabel?.[label] === 'number'
+            ? { supportCount: labelSupportByLabel[label] }
+            : {}),
+        }))
         .sort((a, b) => b.score - a.score);
       const topCandidate = rankedCandidates[0];
       if (!topCandidate) {
@@ -907,6 +938,9 @@ export function installMlp(customModelData?: string): Promise<boolean> {
         score: topCandidate.score,
         candidates: uiCandidates,
         mlpScore: best,
+        ...(typeof topCandidate.supportCount === 'number'
+          ? { labelSupportCount: topCandidate.supportCount }
+          : {}),
         prototype: prototypePrediction
           ? {
               label: prototypePrediction.label,

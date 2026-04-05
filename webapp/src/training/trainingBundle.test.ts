@@ -125,6 +125,9 @@ describe('createTrainingZip', () => {
       handedness: landmarks.metadata.handedness,
       featureContract: {
         version: 'wrist_relative_max_abs_v1',
+        normalization: 'wrist_relative_max_abs',
+        handOrder: ['Left', 'Right'],
+        missingHandStrategy: 'zero_pad',
         pointsPerHand: 21,
         coordinatesPerPoint: 3,
         vectorLength: 126,

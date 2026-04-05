@@ -103,7 +103,15 @@ const MetadataSchema = z.object({
 	variationData: VariationDataSchema.optional(),
 	captureContext: CaptureContextSchema.optional(),
 	recording: RecordingSchema.optional(),
-	featureContract: z.object({ version: z.string().optional() }).strict().optional(),
+	featureContract: z.object({
+		version: z.string().optional(),
+		normalization: z.string().optional(),
+		handOrder: z.array(z.string()).optional(),
+		missingHandStrategy: z.string().optional(),
+		pointsPerHand: z.number().int().positive().optional(),
+		coordinatesPerPoint: z.number().int().positive().optional(),
+		vectorLength: z.number().int().positive().optional(),
+	}).strict().optional(),
 }).strict();
 
 const StorageSchema = z.object({

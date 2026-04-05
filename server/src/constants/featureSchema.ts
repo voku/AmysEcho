@@ -16,6 +16,13 @@ type FeatureSchema = {
 		face: number;
 		multimodal: number;
 	};
+	handFeatureContract: {
+		version: string;
+		normalization: string;
+		handOrder: string[];
+		missingHandStrategy: string;
+		vectorLength: number;
+	};
 	windowSize: number;
 	windowFeatureSize: number;
 };

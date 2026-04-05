@@ -11,6 +11,15 @@ import {
 	WINDOW_SIZE,
 } from "../constants/featureSchema.js";
 import {
+	HAND_FEATURE_CONTRACT_VERSION,
+	HAND_FEATURE_COORDINATES_PER_POINT,
+	HAND_FEATURE_HAND_ORDER,
+	HAND_FEATURE_MISSING_HAND_STRATEGY,
+	HAND_FEATURE_NORMALIZATION,
+	HAND_FEATURE_POINTS_PER_HAND,
+	HAND_FEATURE_VECTOR_LENGTH,
+} from "../constants/landmarkFeatureContract.js";
+import {
 	BASELINE_MLP_MODEL_PATH,
 	MLP_MODELS_DIR,
 	SERVER_DIR,
@@ -314,6 +323,13 @@ type TrainingMetadata = {
 	};
 	artifactContract?: {
 		featureSchemaVersion?: number;
+		featureContractVersion?: string;
+		handFeatureNormalization?: string;
+		handFeatureHandOrder?: string[];
+		handFeatureMissingHandStrategy?: string;
+		handFeaturePointsPerHand?: number;
+		handFeatureCoordinatesPerPoint?: number;
+		handFeatureVectorLength?: number;
 		windowSize?: number;
 		frameFeatureSize?: number;
 		windowFeatureSize?: number;
@@ -347,6 +363,13 @@ type TrainingConfigSnapshot = {
 
 type ArtifactContractSnapshot = {
 	feature_schema_version?: number;
+	feature_contract_version?: string;
+	hand_feature_normalization?: string;
+	hand_feature_hand_order?: string[];
+	hand_feature_missing_hand_strategy?: string;
+	hand_feature_points_per_hand?: number;
+	hand_feature_coordinates_per_point?: number;
+	hand_feature_vector_length?: number;
 	window_size?: number;
 	frame_feature_size?: number;
 	window_feature_size?: number;
@@ -404,6 +427,32 @@ function normalizeArtifactContract(
 	const featureSchemaVersion = normalizeFiniteNumber(
 		record.feature_schema_version,
 	);
+	const featureContractVersion =
+		typeof record.feature_contract_version === "string"
+			? record.feature_contract_version
+			: undefined;
+	const handFeatureNormalization =
+		typeof record.hand_feature_normalization === "string"
+			? record.hand_feature_normalization
+			: undefined;
+	const handFeatureHandOrder = Array.isArray(record.hand_feature_hand_order)
+		? record.hand_feature_hand_order.filter(
+				(entry): entry is string => typeof entry === "string",
+			)
+		: undefined;
+	const handFeatureMissingHandStrategy =
+		typeof record.hand_feature_missing_hand_strategy === "string"
+			? record.hand_feature_missing_hand_strategy
+			: undefined;
+	const handFeaturePointsPerHand = normalizeFiniteNumber(
+		record.hand_feature_points_per_hand,
+	);
+	const handFeatureCoordinatesPerPoint = normalizeFiniteNumber(
+		record.hand_feature_coordinates_per_point,
+	);
+	const handFeatureVectorLength = normalizeFiniteNumber(
+		record.hand_feature_vector_length,
+	);
 	const windowSize = normalizeFiniteNumber(record.window_size);
 	const frameFeatureSize = normalizeFiniteNumber(record.frame_feature_size);
 	const windowFeatureSize = normalizeFiniteNumber(record.window_feature_size);
@@ -416,6 +465,13 @@ function normalizeArtifactContract(
 				: "unsupported";
 	if (
 		typeof featureSchemaVersion === "undefined" &&
+		typeof featureContractVersion === "undefined" &&
+		typeof handFeatureNormalization === "undefined" &&
+		typeof handFeatureHandOrder === "undefined" &&
+		typeof handFeatureMissingHandStrategy === "undefined" &&
+		typeof handFeaturePointsPerHand === "undefined" &&
+		typeof handFeatureCoordinatesPerPoint === "undefined" &&
+		typeof handFeatureVectorLength === "undefined" &&
 		typeof windowSize === "undefined" &&
 		typeof frameFeatureSize === "undefined" &&
 		typeof windowFeatureSize === "undefined" &&
@@ -426,6 +482,13 @@ function normalizeArtifactContract(
 	}
 	return {
 		featureSchemaVersion,
+		featureContractVersion,
+		handFeatureNormalization,
+		handFeatureHandOrder,
+		handFeatureMissingHandStrategy,
+		handFeaturePointsPerHand,
+		handFeatureCoordinatesPerPoint,
+		handFeatureVectorLength,
 		windowSize,
 		frameFeatureSize,
 		windowFeatureSize,
@@ -453,6 +516,48 @@ function evaluateArtifactContract(
 	}
 	if (contract.featureSchemaVersion !== FEATURE_SCHEMA.version) {
 		return { status: "invalid", reason: "schema_version_mismatch" };
+	}
+	if (
+		typeof contract.featureContractVersion !== "undefined" &&
+		contract.featureContractVersion !== HAND_FEATURE_CONTRACT_VERSION
+	) {
+		return { status: "invalid", reason: "feature_contract_version_mismatch" };
+	}
+	if (
+		typeof contract.handFeatureNormalization !== "undefined" &&
+		contract.handFeatureNormalization !== HAND_FEATURE_NORMALIZATION
+	) {
+		return { status: "invalid", reason: "feature_normalization_mismatch" };
+	}
+	if (
+		typeof contract.handFeatureMissingHandStrategy !== "undefined" &&
+		contract.handFeatureMissingHandStrategy !== HAND_FEATURE_MISSING_HAND_STRATEGY
+	) {
+		return { status: "invalid", reason: "missing_hand_strategy_mismatch" };
+	}
+	if (
+		typeof contract.handFeaturePointsPerHand !== "undefined" &&
+		contract.handFeaturePointsPerHand !== HAND_FEATURE_POINTS_PER_HAND
+	) {
+		return { status: "invalid", reason: "points_per_hand_mismatch" };
+	}
+	if (
+		typeof contract.handFeatureCoordinatesPerPoint !== "undefined" &&
+		contract.handFeatureCoordinatesPerPoint !== HAND_FEATURE_COORDINATES_PER_POINT
+	) {
+		return { status: "invalid", reason: "coordinates_per_point_mismatch" };
+	}
+	if (
+		typeof contract.handFeatureVectorLength !== "undefined" &&
+		contract.handFeatureVectorLength !== HAND_FEATURE_VECTOR_LENGTH
+	) {
+		return { status: "invalid", reason: "hand_vector_length_mismatch" };
+	}
+	if (
+		Array.isArray(contract.handFeatureHandOrder) &&
+		contract.handFeatureHandOrder.join(",") !== HAND_FEATURE_HAND_ORDER.join(",")
+	) {
+		return { status: "invalid", reason: "hand_order_mismatch" };
 	}
 	if (contract.windowSize !== WINDOW_SIZE) {
 		return { status: "invalid", reason: "window_size_mismatch" };
@@ -733,6 +838,12 @@ export function applyModelResponseHeaders(
 			res.setHeader(
 				"X-Model-Label-Count",
 				String(trainingMetadata.artifactContract.labelCount),
+			);
+		}
+		if (trainingMetadata.artifactContract?.featureContractVersion) {
+			res.setHeader(
+				"X-Model-Feature-Contract-Version",
+				trainingMetadata.artifactContract.featureContractVersion,
 			);
 		}
 		if (

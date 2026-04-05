@@ -8,6 +8,23 @@ import type { Express } from 'express';
 import type { registerTrainingBundleRoute as RegisterTrainingBundleRoute } from '../src/routes/trainingBundleRoute.js';
 import { AuthService } from '../src/services/authService.js';
 
+const FEATURE_CONTRACT = {
+  version: 'wrist_relative_max_abs_v1',
+  normalization: 'wrist_relative_max_abs',
+  handOrder: ['Left', 'Right'],
+  missingHandStrategy: 'zero_pad',
+  pointsPerHand: 21,
+  coordinatesPerPoint: 3,
+  vectorLength: 126,
+} as const;
+
+function withFeatureContract<T extends Record<string, unknown>>(metadata: T) {
+  return {
+    ...metadata,
+    featureContract: FEATURE_CONTRACT,
+  };
+}
+
 async function loadSampleLandmarks(): Promise<number[][]> {
   return Array.from({ length: 42 }, (_, idx) => {
     const base = idx / 100;
@@ -151,7 +168,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const landmarks = await loadSampleLandmarks();
 
     const zip = new AdmZip();
-    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata), null, 2)));
     zip.addFile(
       'bundle/landmarks.json',
       Buffer.from(
@@ -245,6 +262,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       clipFilename: metadata.clipFilename,
       stillFilename: metadata.stillFilename,
       recording: metadata.recording,
+      featureContract: FEATURE_CONTRACT,
       modalities: metadata.modalities,
       smoothing: expect.objectContaining({ method: 'one_euro' }),
       handedness: metadata.handedness,
@@ -325,7 +343,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const landmarks = await loadSampleLandmarks();
 
     const zip = new AdmZip();
-    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata), null, 2)));
     zip.addFile(
       'bundle/landmarks.json',
       Buffer.from(
@@ -382,7 +400,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     };
     const landmarks = await loadSampleLandmarks();
     const zip = new AdmZip();
-    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata), null, 2)));
     zip.addFile(
       'bundle/landmarks.json',
       Buffer.from(JSON.stringify({ frames: [{ landmarks }, { landmarks }] }, null, 2)),
@@ -424,7 +442,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const landmarks = await loadSampleLandmarks();
 
     const zip = new AdmZip();
-    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata), null, 2)));
     zip.addFile(
       'bundle/landmarks.json',
       Buffer.from(
@@ -496,7 +514,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const landmarks = await loadSampleLandmarks();
 
     const zip = new AdmZip();
-    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata), null, 2)));
     zip.addFile(
       'bundle/landmarks.json',
       Buffer.from(
@@ -539,7 +557,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     };
     const landmarks = await loadSampleLandmarks();
     const zip = new AdmZip();
-    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata), null, 2)));
     zip.addFile(
       'bundle/landmarks.json',
       Buffer.from(
@@ -569,7 +587,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   it('rejects bundles missing landmarks.json and removes partially extracted directory', async () => {
     const beforeEntries = await readManifestEntries();
     const zip = new AdmZip();
-    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify({ label: 'HILFE' }, null, 2)));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract({ label: 'HILFE' }), null, 2)));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
@@ -589,6 +607,28 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     }
   });
 
+  it('rejects bundles missing feature contract metadata', async () => {
+    const beforeEntries = await readManifestEntries();
+    const landmarks = await loadSampleLandmarks();
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify({ label: 'HILFE' }, null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(JSON.stringify({ frames: [{ landmarks }] }, null, 2)),
+    );
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer());
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('metadata.json validation failed');
+    const afterEntries = await readManifestEntries();
+    expect(afterEntries).toHaveLength(beforeEntries.length);
+  });
+
   it('rejects bundles with invalid nonManualFeatures payload', async () => {
     const beforeEntries = await readManifestEntries();
     const metadata = {
@@ -598,7 +638,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     const landmarks = await loadSampleLandmarks();
 
     const zip = new AdmZip();
-    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata), null, 2)));
     zip.addFile(
       'bundle/landmarks.json',
       Buffer.from(
@@ -626,7 +666,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
 
   it('rejects bundles whose landmarks.json has no frames and cleans up bundle directory', async () => {
     const beforeEntries = await readManifestEntries();
-    const metadata = { label: 'HILFE', profileId: '44444444-4444-4444-8444-444444444444' };
+    const metadata = withFeatureContract({ label: 'HILFE', profileId: '44444444-4444-4444-8444-444444444444' });
     const resolvedProfileId = getResolvedProfileId(metadata.profileId);
     const zip = new AdmZip();
     zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(metadata, null, 2)));
@@ -689,7 +729,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   it('rejects unauthenticated upload', async () => {
     const beforeEntries = await readManifestEntries();
     const zip = new AdmZip();
-    zip.addFile('metadata.json', Buffer.from(JSON.stringify({ label: 'HILFE' })));
+    zip.addFile('metadata.json', Buffer.from(JSON.stringify(withFeatureContract({ label: 'HILFE' }))));
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')
@@ -704,7 +744,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   it('rejects bundles containing traversal entries', async () => {
     const beforeEntries = await readManifestEntries();
     const zip = new AdmZip();
-    zip.addFile('../metadata.json', Buffer.from(JSON.stringify({ label: 'BAD' })));
+    zip.addFile('../metadata.json', Buffer.from(JSON.stringify(withFeatureContract({ label: 'BAD' }))));
     zip.addFile('../clip.mp4', Buffer.from('bad'));
     const entries = zip.getEntries();
     if (entries[0]) entries[0].entryName = '../metadata.json';
@@ -726,7 +766,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       label: 'HILFE',
     };
     const zip = new AdmZip();
-    zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+    zip.addFile('metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata))));
     zip.addFile('bundle.zip', Buffer.from('malicious'));
 
     const response = await request(app)
@@ -752,7 +792,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         capturedAt: `2026-03-01T12:${String(index).padStart(2, '0')}:00.000Z`,
       };
       const zip = new AdmZip();
-      zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+      zip.addFile('metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata))));
       zip.addFile(
         'landmarks.json',
         Buffer.from(
@@ -805,7 +845,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         capturedAt: `2026-03-01T13:${String(index).padStart(2, '0')}:00.000Z`,
       };
       const zip = new AdmZip();
-      zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+      zip.addFile('metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata))));
       zip.addFile(
         'landmarks.json',
         Buffer.from(
@@ -866,7 +906,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     };
     const landmarks = await loadSampleLandmarks();
     const zip = new AdmZip();
-    zip.addFile('metadata.json', Buffer.from(JSON.stringify(metadata)));
+    zip.addFile('metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata))));
     zip.addFile(
       'landmarks.json',
       Buffer.from(
@@ -1018,6 +1058,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
               samples: 20,
               confusionMatrix: [[8, 2], [3, 7]],
               labels: ['hallo', 'danke'],
+              datasetHealth: {
+                label_count: 2,
+                min_class_count: 10,
+                max_class_count: 10,
+                imbalance_ratio: 1,
+              },
             },
           ],
         },
@@ -1032,6 +1078,12 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
               samples: 30,
               confusionMatrix: [[12, 1], [2, 15]],
               labels: ['hallo', 'danke'],
+              datasetHealth: {
+                label_count: 2,
+                min_class_count: 12,
+                max_class_count: 18,
+                imbalance_ratio: 1.5,
+              },
             },
           ],
         },
@@ -1050,6 +1102,11 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
         runId: 'run-new',
         profileId: 'profile-b',
         accuracy: 0.75,
+        datasetHealth: expect.objectContaining({
+          label_count: 2,
+          min_class_count: 12,
+          max_class_count: 18,
+        }),
       }),
     );
     expect(response.body.profileTrends[0]).toEqual(

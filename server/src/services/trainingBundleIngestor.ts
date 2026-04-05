@@ -19,6 +19,15 @@ import {
 	MIN_HAND_FRAME_COVERAGE,
 	MIN_SIGN_SAMPLE_FRAMES,
 } from "../constants/trainingQuality.js";
+import {
+	HAND_FEATURE_CONTRACT_VERSION,
+	HAND_FEATURE_COORDINATES_PER_POINT,
+	HAND_FEATURE_HAND_ORDER,
+	HAND_FEATURE_MISSING_HAND_STRATEGY,
+	HAND_FEATURE_NORMALIZATION,
+	HAND_FEATURE_POINTS_PER_HAND,
+	HAND_FEATURE_VECTOR_LENGTH,
+} from "../constants/landmarkFeatureContract.js";
 import { logger } from "./logger.js";
 import {
 	appendTrainingQualityLogEntry,
@@ -215,7 +224,6 @@ function isDatasetSample(value: unknown): value is DatasetSample {
 
 const BUNDLE_SAMPLE_PREFIX = "bundle:";
 const MAX_FLATTENED_LANDMARK_POINTS = 543;
-const EXPECTED_FEATURE_CONTRACT_VERSION = "wrist_relative_max_abs_v1";
 const MAX_HANDS = 2;
 const HAND_LANDMARKS_PER_HAND = 21;
 const MAX_POSE_POINTS = POSE_LANDMARKS;
@@ -1269,22 +1277,24 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 
 		for (const entry of manifestEntries) {
 			const featureContract = entry.metadata?.featureContract as {
-				version?: unknown;
+				version?: string;
+				normalization?: string;
+				handOrder?: string[];
+				missingHandStrategy?: string;
+				pointsPerHand?: number;
+				coordinatesPerPoint?: number;
+				vectorLength?: number;
 			} | null | undefined;
-			const featureContractVersion =
-				typeof featureContract?.version === "string"
-					? featureContract.version.trim()
-					: null;
-			if (featureContractVersion !== EXPECTED_FEATURE_CONTRACT_VERSION) {
+			if (!hasExpectedFeatureContract(featureContract)) {
 				const recordedAt =
 					(typeof entry.capturedAt === "string" && entry.capturedAt) ||
 					(typeof entry.metadata?.capturedAt === "string" && entry.metadata.capturedAt) ||
 					(typeof entry.receivedAt === "string" && entry.receivedAt) ||
 					new Date().toISOString();
 				const reasons = [
-					featureContractVersion
-						? `featureContract.version '${featureContractVersion}' != '${EXPECTED_FEATURE_CONTRACT_VERSION}'`
-						: `featureContract.version missing (expected '${EXPECTED_FEATURE_CONTRACT_VERSION}')`,
+					featureContract?.version
+						? `featureContract.version '${featureContract.version.trim()}' failed shared contract validation`
+						: `featureContract.version missing (expected '${HAND_FEATURE_CONTRACT_VERSION}')`,
 				];
 				const qualityLogEntry: TrainingQualityLogEntry = {
 					bundleId: entry.id,
@@ -1391,4 +1401,49 @@ export async function ingestTrainingBundlesIntoDataset(): Promise<{
 
 	saveDgsSamples(dataset);
 	return { appended, latestCapturedAt };
+}
+function hasExpectedFeatureContract(
+	featureContract:
+		| {
+				version?: string;
+				normalization?: string;
+				handOrder?: string[];
+				missingHandStrategy?: string;
+				pointsPerHand?: number;
+				coordinatesPerPoint?: number;
+				vectorLength?: number;
+		  }
+		| null
+		| undefined,
+): boolean {
+	if (!featureContract) {
+		return false;
+	}
+	if (featureContract.version?.trim() !== HAND_FEATURE_CONTRACT_VERSION) {
+		return false;
+	}
+	if (featureContract.normalization?.trim() !== HAND_FEATURE_NORMALIZATION) {
+		return false;
+	}
+	if (featureContract.missingHandStrategy?.trim() !== HAND_FEATURE_MISSING_HAND_STRATEGY) {
+		return false;
+	}
+	if (featureContract.pointsPerHand !== HAND_FEATURE_POINTS_PER_HAND) {
+		return false;
+	}
+	if (featureContract.coordinatesPerPoint !== HAND_FEATURE_COORDINATES_PER_POINT) {
+		return false;
+	}
+	if (featureContract.vectorLength !== HAND_FEATURE_VECTOR_LENGTH) {
+		return false;
+	}
+	if (!Array.isArray(featureContract.handOrder)) {
+		return false;
+	}
+	if (featureContract.handOrder.length !== HAND_FEATURE_HAND_ORDER.length) {
+		return false;
+	}
+	return featureContract.handOrder.every(
+		(entry, index) => entry === HAND_FEATURE_HAND_ORDER[index],
+	);
 }

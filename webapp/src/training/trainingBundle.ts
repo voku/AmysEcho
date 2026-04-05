@@ -10,8 +10,13 @@ import { type ValidationCapabilities, validateLandmarkSequence } from './trainin
 import { fetchWithRetry, HttpError } from '../utils/http';
 import {
   buildDualHandFeatureVector,
+  CONTRACT_FEATURE_NORMALIZATION,
+  CONTRACT_FEATURE_VERSION,
+  CONTRACT_HAND_ORDER,
+  CONTRACT_MISSING_HAND_STRATEGY,
   CONTRACT_COORDS_PER_POINT,
   CONTRACT_HAND_LANDMARK_COUNT,
+  CONTRACT_VECTOR_LENGTH,
 } from './landmarkFeatureContract';
 import type {
   TrainingBundlePayload,
@@ -142,10 +147,13 @@ function buildMetadata(
     modalities: landmarksMetadata.modalities,
     smoothing: landmarksMetadata.smoothing,
     featureContract: {
-      version: 'wrist_relative_max_abs_v1',
+      version: CONTRACT_FEATURE_VERSION,
+      normalization: CONTRACT_FEATURE_NORMALIZATION,
+      handOrder: CONTRACT_HAND_ORDER,
+      missingHandStrategy: CONTRACT_MISSING_HAND_STRATEGY,
       pointsPerHand: CONTRACT_HAND_LANDMARK_COUNT,
       coordinatesPerPoint: CONTRACT_COORDS_PER_POINT,
-      vectorLength: CONTRACT_HAND_LANDMARK_COUNT * CONTRACT_COORDS_PER_POINT * 2,
+      vectorLength: CONTRACT_VECTOR_LENGTH,
       featurePreview: firstFrameFeaturePreview,
     },
     ...(validationSummary ? { validationSummary } : {}),

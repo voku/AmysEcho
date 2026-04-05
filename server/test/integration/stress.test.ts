@@ -5,6 +5,16 @@ import { AuthService } from '../../src/services/authService.js';
 import AdmZip from 'adm-zip';
 import path from 'path';
 
+const FEATURE_CONTRACT = {
+  version: 'wrist_relative_max_abs_v1',
+  normalization: 'wrist_relative_max_abs',
+  handOrder: ['Left', 'Right'],
+  missingHandStrategy: 'zero_pad',
+  pointsPerHand: 21,
+  coordinatesPerPoint: 3,
+  vectorLength: 126,
+} as const;
+
 describe('System Stress & Stability Integration', () => {
   let accessToken: string;
   let profiles: string[] = [];
@@ -55,7 +65,8 @@ describe('System Stress & Stability Integration', () => {
       label,
       profileId,
       capturedAt: new Date().toISOString(),
-      source: 'stress-test-integration'
+      source: 'stress-test-integration',
+      featureContract: FEATURE_CONTRACT,
     };
 
     const landmarks = {

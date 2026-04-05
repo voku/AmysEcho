@@ -20,6 +20,13 @@
     "face": 1404,
     "multimodal": 1629
   },
+  "handFeatureContract": {
+    "version": "wrist_relative_max_abs_v1",
+    "normalization": "wrist_relative_max_abs",
+    "handOrder": ["Left", "Right"],
+    "missingHandStrategy": "zero_pad",
+    "vectorLength": 126
+  },
   "windowSize": 30,
   "windowFeatureSize": 48870
 }

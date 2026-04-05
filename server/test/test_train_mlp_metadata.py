@@ -196,6 +196,11 @@ def test_run_training_pipeline_reports_sparse_label_diagnostics(monkeypatch):
     assert profile_diagnostics["satt"]["rejected_bundle_count"] == 1
     assert profile_diagnostics["trinken"]["validation_group_count"] == 1
     assert profile_diagnostics["trinken"]["confusion_scope"] == "validation"
+    assert report["global"]["dataset_health"]["low_support_label_count"] == 2
+    assert report["profiles"]["profile-1"]["dataset_health"]["low_support_labels"] == [
+        {"label": "satt", "count": 2},
+        {"label": "trinken", "count": 2},
+    ]
 
 
 def test_merge_bundle_summary_handles_sparse_entries():
