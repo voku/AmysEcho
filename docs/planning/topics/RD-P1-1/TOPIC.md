@@ -1,9 +1,10 @@
 # RD-P1-1 — Confidence calibration + abstention
 
 ## Kanban Status
-- **Column:** Backlog
-- **Owner:** Unassigned
-- **Last updated:** 2026-04-02
+- **Column:** Done
+- **Owner:** Codex (GPT-5.3-Codex)
+- **Last updated:** 2026-04-05
+- **Status authority:** `docs/planning/TODO_DONE.md` (archived completion)
 
 ## Amy impact
 - Reduces harmful wrong predictions by preferring safe abstention when uncertain.
@@ -20,10 +21,16 @@
 - Threshold policy document plus calibration artifact in benchmarks.
 
 ## Checklist
-- [ ] Discovery complete
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Evidence committed
+- [x] Discovery complete
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Evidence committed
+
+## Progress notes (2026-04-05)
+- Verified existing calibration/abstention behavior in `ProcessingSteps.ts` and related tests.
+- Published threshold policy and calibration matrix in `docs/testing/benchmarks/rd_p1_1_confidence_calibration_2026-04-05.md`.
+- Confirmed observability path with `useSignLanguageDetector` telemetry rejection assertions.
+- First command executed for this task: `rg -n "confidence|abstention|threshold" webapp/src/gesture webapp/src/hooks docs/testing/benchmarks`.
 
 ## Next command
-- `rg -n "confidence|abstention|threshold" webapp/src/gesture webapp/src/hooks docs/testing/benchmarks`
+- `rg -n "RD-P1-1|confidence calibration|abstention" docs/planning/TODO.md docs/planning/TODO_DONE.md docs/testing/benchmarks`

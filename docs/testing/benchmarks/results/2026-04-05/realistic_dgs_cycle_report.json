@@ -1,0 +1,879 @@
+{
+  "startedAt": "2026-04-05T20:26:16.535266+00:00",
+  "finishedAt": "2026-04-05T20:30:44.543768+00:00",
+  "videoSourceDirectory": "server/data/dgs_video_examples",
+  "landmarkFilesDiscovered": 117,
+  "trainFiles": [
+    "alle_main_alles_landmarks.json",
+    "alle_main_alle_landmarks.json",
+    "alle_main_jeder_landmarks.json",
+    "blau_var_blau_0_landmarks.json",
+    "blau_var_blau_1_landmarks.json",
+    "blau_main_blau_landmarks.json",
+    "essen_var_hunger_0_landmarks.json",
+    "essen_var_abendessen_0_landmarks.json",
+    "essen_var_essen_0_landmarks.json",
+    "fertig_main_fertig_landmarks.json",
+    "fertig_main_ende_landmarks.json",
+    "fertig_main_schluss_landmarks.json",
+    "gelb_main_gelb_landmarks.json",
+    "gelb_var_gelb_3_landmarks.json",
+    "gelb_var_gelb_0_landmarks.json",
+    "gruen_var_gr\u00fcn_2_landmarks.json",
+    "gruen_main_gr\u00fcn_landmarks.json",
+    "gruen_var_gr\u00fcn_1_landmarks.json",
+    "kindergarten_var_kindergarten_0_landmarks.json",
+    "kindergarten_var_kindergarten_1_landmarks.json",
+    "nochmal_var_nochmal_0_landmarks.json",
+    "nochmal_var_wiederholen_1_landmarks.json",
+    "nochmal_main_nochmal_landmarks.json",
+    "rot_var_rot_0_landmarks.json",
+    "rot_main_pink_landmarks.json",
+    "rot_var_rot_2_landmarks.json",
+    "satt_var_satt_0_landmarks.json",
+    "satt_main_voll_landmarks.json",
+    "satt_var_satt_1_landmarks.json",
+    "schwester_var_geschwister_0_landmarks.json",
+    "schwester_main_schwester_landmarks.json",
+    "schwester_var_schwester_1_landmarks.json",
+    "spielen_main_spielplatz_landmarks.json",
+    "spielen_var_spielen_0_landmarks.json",
+    "spielen_var_spielzeug_0_landmarks.json",
+    "trinken_main_getr\u00e4nk_landmarks.json",
+    "trinken_var_tee_0_landmarks.json",
+    "trinken_main_saft_landmarks.json"
+  ],
+  "evalFiles": [
+    "alle_var_alles_0_landmarks.json",
+    "blau_var_blau_2_landmarks.json",
+    "essen_var_mittagessen_1_landmarks.json",
+    "fertig_var_fertig_2_landmarks.json",
+    "gelb_var_gelb_1_landmarks.json",
+    "gruen_var_gr\u00fcn_0_landmarks.json",
+    "kindergarten_var_kindergarten_2_landmarks.json",
+    "nochmal_var_nochmal_1_landmarks.json",
+    "rot_var_rot_3_landmarks.json",
+    "satt_main_genug_landmarks.json",
+    "schwester_main_geschwister_landmarks.json",
+    "spielen_main_spielen_landmarks.json",
+    "trinken_var_trinken_0_landmarks.json"
+  ],
+  "labelTotals": {
+    "alle": 4,
+    "blau": 4,
+    "essen": 4,
+    "fertig": 4,
+    "gelb": 4,
+    "gruen": 4,
+    "kindergarten": 3,
+    "nochmal": 4,
+    "rot": 4,
+    "satt": 4,
+    "schwester": 4,
+    "spielen": 4,
+    "trinken": 4
+  },
+  "usableAccuracyThreshold": 0.5,
+  "attemptCountRequested": 1,
+  "attemptCountExecuted": 1,
+  "epochSchedule": [
+    20,
+    40,
+    80
+  ],
+  "workflowPreset": "none",
+  "timeoutSeconds": 180,
+  "baselineEvaluation": null,
+  "baselineEvaluationError": "Failed to interpret file PosixPath('/workspace/AmysEcho/server/data/models/global/amy_model.npz') as a pickle",
+  "bestAttempt": {
+    "attempt": 1,
+    "seed": 43,
+    "epochs": 20,
+    "evaluation": {
+      "model_path": "server/data/datasets/realistic_dgs_cycle_t_v7kh0_/models_attempt_1/global/amy_model.npz",
+      "sample_count": 258,
+      "known_label_samples": 258,
+      "unknown_label_samples": 0,
+      "top1_accuracy": 0.5465116279069767,
+      "macro_f1": 0.2023039137563249,
+      "label_coverage": {
+        "_NULL_": 52,
+        "alle": 1,
+        "blau": 13,
+        "essen": 1,
+        "fertig": 1,
+        "gelb": 1,
+        "gruen": 1,
+        "kindergarten": 2,
+        "nochmal": 43,
+        "rot": 3,
+        "satt": 44,
+        "schwester": 49,
+        "spielen": 46,
+        "trinken": 1
+      },
+      "skipped_labels": []
+    },
+    "meetsUsableThreshold": true
+  },
+  "allAttempts": [
+    {
+      "attempt": 1,
+      "seed": 43,
+      "epochs": 20,
+      "timeoutSeconds": 180,
+      "trainingReport": {
+        "global": {
+          "accuracy": 0.5733549083063646,
+          "f1_score": 0.4907858957892409,
+          "confusion_matrix": [
+            [
+              145,
+              0,
+              0,
+              1,
+              0,
+              3,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              3,
+              0,
+              8,
+              3,
+              1,
+              14,
+              35,
+              5,
+              13,
+              0,
+              12,
+              2,
+              3,
+              1
+            ],
+            [
+              4,
+              0,
+              130,
+              2,
+              0,
+              7,
+              5,
+              2,
+              2,
+              0,
+              3,
+              4,
+              17,
+              2
+            ],
+            [
+              0,
+              0,
+              11,
+              87,
+              0,
+              10,
+              7,
+              1,
+              0,
+              0,
+              0,
+              7,
+              0,
+              0
+            ],
+            [
+              6,
+              1,
+              6,
+              11,
+              11,
+              3,
+              9,
+              0,
+              6,
+              0,
+              5,
+              21,
+              21,
+              4
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              102,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              12,
+              0,
+              10,
+              3,
+              1,
+              7,
+              113,
+              2,
+              3,
+              0,
+              4,
+              5,
+              4,
+              2
+            ],
+            [
+              0,
+              0,
+              21,
+              3,
+              0,
+              0,
+              22,
+              51,
+              2,
+              0,
+              0,
+              3,
+              8,
+              0
+            ],
+            [
+              4,
+              0,
+              0,
+              11,
+              0,
+              7,
+              1,
+              1,
+              94,
+              0,
+              2,
+              9,
+              11,
+              0
+            ],
+            [
+              2,
+              0,
+              6,
+              5,
+              0,
+              27,
+              40,
+              4,
+              1,
+              0,
+              0,
+              7,
+              3,
+              7
+            ],
+            [
+              9,
+              0,
+              24,
+              6,
+              1,
+              1,
+              3,
+              5,
+              9,
+              0,
+              85,
+              8,
+              42,
+              1
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              102,
+              0,
+              0
+            ],
+            [
+              6,
+              0,
+              3,
+              0,
+              0,
+              0,
+              0,
+              0,
+              2,
+              0,
+              0,
+              5,
+              123,
+              0
+            ],
+            [
+              0,
+              0,
+              5,
+              12,
+              0,
+              24,
+              63,
+              4,
+              1,
+              0,
+              0,
+              12,
+              1,
+              20
+            ]
+          ],
+          "samples": 1087,
+          "labels": [
+            "_NULL_",
+            "alle",
+            "blau",
+            "essen",
+            "fertig",
+            "gelb",
+            "gruen",
+            "kindergarten",
+            "nochmal",
+            "rot",
+            "satt",
+            "schwester",
+            "spielen",
+            "trinken"
+          ],
+          "class_counts": [
+            152,
+            100,
+            178,
+            123,
+            104,
+            102,
+            166,
+            110,
+            140,
+            102,
+            194,
+            102,
+            139,
+            142
+          ],
+          "modalities": [
+            "hands"
+          ],
+          "modality_counts": {
+            "hands": 1087,
+            "pose": 0,
+            "face": 0,
+            "nonManual": 0
+          },
+          "prototype_count": 84,
+          "label_diagnostics": [
+            {
+              "label": "_NULL_",
+              "bundle_count": 4,
+              "rejected_bundle_count": 0,
+              "window_count": 152,
+              "prototype_count": 6,
+              "train_group_count": 3,
+              "validation_group_count": 1,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "gruen",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "label": "alle",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 100,
+              "prototype_count": 6,
+              "train_group_count": 85,
+              "validation_group_count": 15,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "gruen",
+                  "count": 5
+                },
+                {
+                  "label": "blau",
+                  "count": 2
+                },
+                {
+                  "label": "gelb",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "label": "blau",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 89,
+              "prototype_count": 6,
+              "train_group_count": 76,
+              "validation_group_count": 13,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "gelb",
+                  "count": 4
+                },
+                {
+                  "label": "spielen",
+                  "count": 2
+                },
+                {
+                  "label": "_NULL_",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "label": "essen",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 41,
+              "prototype_count": 6,
+              "train_group_count": 35,
+              "validation_group_count": 6,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "gelb",
+                  "count": 7
+                },
+                {
+                  "label": "blau",
+                  "count": 2
+                },
+                {
+                  "label": "schwester",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "label": "fertig",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 104,
+              "prototype_count": 6,
+              "train_group_count": 89,
+              "validation_group_count": 15,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "schwester",
+                  "count": 5
+                },
+                {
+                  "label": "essen",
+                  "count": 3
+                },
+                {
+                  "label": "spielen",
+                  "count": 3
+                }
+              ]
+            },
+            {
+              "label": "gelb",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 17,
+              "prototype_count": 6,
+              "train_group_count": 15,
+              "validation_group_count": 2,
+              "confusion_scope": "validation",
+              "top_confusions": []
+            },
+            {
+              "label": "gruen",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 83,
+              "prototype_count": 6,
+              "train_group_count": 71,
+              "validation_group_count": 12,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "_NULL_",
+                  "count": 3
+                },
+                {
+                  "label": "blau",
+                  "count": 3
+                },
+                {
+                  "label": "spielen",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "label": "kindergarten",
+              "bundle_count": 2,
+              "rejected_bundle_count": 0,
+              "window_count": 22,
+              "prototype_count": 6,
+              "train_group_count": 19,
+              "validation_group_count": 3,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "gruen",
+                  "count": 6
+                },
+                {
+                  "label": "spielen",
+                  "count": 4
+                },
+                {
+                  "label": "essen",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "label": "nochmal",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 70,
+              "prototype_count": 6,
+              "train_group_count": 60,
+              "validation_group_count": 10,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "spielen",
+                  "count": 7
+                },
+                {
+                  "label": "schwester",
+                  "count": 3
+                },
+                {
+                  "label": "_NULL_",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "label": "rot",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 51,
+              "prototype_count": 6,
+              "train_group_count": 44,
+              "validation_group_count": 7,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "gruen",
+                  "count": 10
+                },
+                {
+                  "label": "gelb",
+                  "count": 2
+                },
+                {
+                  "label": "blau",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "label": "satt",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 97,
+              "prototype_count": 6,
+              "train_group_count": 83,
+              "validation_group_count": 14,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "spielen",
+                  "count": 10
+                },
+                {
+                  "label": "schwester",
+                  "count": 4
+                },
+                {
+                  "label": "blau",
+                  "count": 3
+                }
+              ]
+            },
+            {
+              "label": "schwester",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 51,
+              "prototype_count": 6,
+              "train_group_count": 44,
+              "validation_group_count": 7,
+              "confusion_scope": "validation",
+              "top_confusions": []
+            },
+            {
+              "label": "spielen",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 139,
+              "prototype_count": 6,
+              "train_group_count": 119,
+              "validation_group_count": 20,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "schwester",
+                  "count": 3
+                },
+                {
+                  "label": "_NULL_",
+                  "count": 1
+                },
+                {
+                  "label": "nochmal",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "label": "trinken",
+              "bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 71,
+              "prototype_count": 6,
+              "train_group_count": 61,
+              "validation_group_count": 10,
+              "confusion_scope": "validation",
+              "top_confusions": [
+                {
+                  "label": "gruen",
+                  "count": 13
+                },
+                {
+                  "label": "essen",
+                  "count": 3
+                },
+                {
+                  "label": "gelb",
+                  "count": 2
+                }
+              ]
+            }
+          ]
+        },
+        "profiles": {},
+        "timestamp": "2026-04-05T20:26:33.515130+00:00",
+        "stats": {
+          "entries": 38,
+          "cache_hits": 0,
+          "cache_misses": 38,
+          "cache_writes": 0,
+          "modality_counts": {
+            "hands": 1087,
+            "pose": 0,
+            "face": 0,
+            "nonManual": 0
+          },
+          "modality_sample_total": 1087,
+          "bundle_fallback_extractions": 0,
+          "bundle_missing_landmarks": 0,
+          "bundle_contract_mismatches": 0,
+          "bundle_landmark_policy": "bundle_only",
+          "label_bundle_summary": [
+            {
+              "label": "alle",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 100,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "blau",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 89,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "essen",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 41,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "fertig",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 104,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "gelb",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 17,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "gruen",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 83,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "kindergarten",
+              "profile_id": null,
+              "manifest_bundle_count": 2,
+              "accepted_bundle_count": 2,
+              "rejected_bundle_count": 0,
+              "window_count": 22,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "nochmal",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 70,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "rot",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 51,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "satt",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 97,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "schwester",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 51,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "spielen",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 139,
+              "rejection_reasons": {}
+            },
+            {
+              "label": "trinken",
+              "profile_id": null,
+              "manifest_bundle_count": 3,
+              "accepted_bundle_count": 3,
+              "rejected_bundle_count": 0,
+              "window_count": 71,
+              "rejection_reasons": {}
+            }
+          ]
+        }
+      },
+      "evaluation": {
+        "model_path": "server/data/datasets/realistic_dgs_cycle_t_v7kh0_/models_attempt_1/global/amy_model.npz",
+        "sample_count": 258,
+        "known_label_samples": 258,
+        "unknown_label_samples": 0,
+        "top1_accuracy": 0.5465116279069767,
+        "macro_f1": 0.2023039137563249,
+        "label_coverage": {
+          "_NULL_": 52,
+          "alle": 1,
+          "blau": 13,
+          "essen": 1,
+          "fertig": 1,
+          "gelb": 1,
+          "gruen": 1,
+          "kindergarten": 2,
+          "nochmal": 43,
+          "rot": 3,
+          "satt": 44,
+          "schwester": 49,
+          "spielen": 46,
+          "trinken": 1
+        },
+        "skipped_labels": []
+      },
+      "stderrSummary": "",
+      "meetsUsableThreshold": true,
+      "modelPath": "server/data/datasets/realistic_dgs_cycle_t_v7kh0_/models_attempt_1/global/amy_model.npz"
+    }
+  ],
+  "promotedModelPath": null,
+  "gates": {
+    "holdoutSetNonEmpty": true,
+    "bestKnownLabelSamples": 258,
+    "usableAccuracyReached": true,
+    "artifactMode": "temporary"
+  }
+}

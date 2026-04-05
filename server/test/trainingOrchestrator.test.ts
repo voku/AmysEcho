@@ -58,4 +58,83 @@ describe("trainingOrchestrator", () => {
 
 		await fs.rm(tempDir, { recursive: true, force: true });
 	});
+
+	it("recovers queued/running jobs as failed after restart", async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "amy-training-orchestrator-recovery-"));
+		process.env.AMY_ECHO_DATA_DIR = tempDir;
+		const userId = randomUUID();
+		const now = new Date().toISOString();
+
+		await fs.writeFile(
+			path.join(tempDir, "training-orchestrator-jobs.json"),
+			JSON.stringify({
+				version: 1,
+				savedAt: now,
+				jobs: [
+					{
+						jobId: "job-running",
+						userId,
+						status: "running",
+						startedAt: now,
+						labels: [],
+					},
+					{
+						jobId: "job-queued",
+						userId,
+						status: "queued",
+						labels: [],
+					},
+					{
+						jobId: "job-done",
+						userId,
+						status: "completed",
+						completedAt: now,
+						labels: [],
+					},
+				],
+			}),
+		);
+
+		const { getTrainingJobStatus } = await import(
+			"../src/services/trainingOrchestrator.js"
+		);
+
+		const runningRecovered = getTrainingJobStatus("job-running");
+		const queuedRecovered = getTrainingJobStatus("job-queued");
+		const completed = getTrainingJobStatus("job-done");
+
+		expect(runningRecovered?.status).toBe("failed");
+		expect(runningRecovered?.error).toContain("Server-Neustart");
+		expect(queuedRecovered?.status).toBe("failed");
+		expect(queuedRecovered?.error).toContain("Server-Neustart");
+		expect(completed?.status).toBe("completed");
+
+		await fs.rm(tempDir, { recursive: true, force: true });
+	});
+
+	it("deduplicates concurrent queue requests for the same profile", async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "amy-training-orchestrator-dedupe-"));
+		process.env.AMY_ECHO_DATA_DIR = tempDir;
+		const userId = randomUUID();
+
+		const { queueTrainingJob } = await import(
+			"../src/services/trainingOrchestrator.js"
+		);
+
+		const firstJobId = queueTrainingJob(userId);
+		const secondJobId = queueTrainingJob(userId);
+
+		expect(secondJobId).toBe(firstJobId);
+
+		const persistedPath = path.join(tempDir, "training-orchestrator-jobs.json");
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		const persistedRaw = await fs.readFile(persistedPath, "utf8");
+		const persisted = JSON.parse(persistedRaw) as {
+			jobs?: Array<{ userId?: string; status?: string }>;
+		};
+		const jobsForUser = (persisted.jobs ?? []).filter((job) => job.userId === userId);
+		expect(jobsForUser.length).toBe(1);
+
+		await fs.rm(tempDir, { recursive: true, force: true });
+	});
 });

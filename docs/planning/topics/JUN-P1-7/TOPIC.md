@@ -1,10 +1,10 @@
 # JUN-P1-7 — Unified training-job ownership and restart recovery
 
 ## Kanban Status
-- **Column:** Backlog
-- **Owner:** Unassigned
-- **Last updated:** 2026-04-03
-- **Status authority:** `docs/planning/TODO.md`
+- **Column:** Done
+- **Owner:** Codex (GPT-5.3-Codex)
+- **Last updated:** 2026-04-05
+- **Status authority:** `docs/planning/TODO_DONE.md` (archived completion)
 
 ## Amy impact
 - Prevents silent training regressions after crashes/restarts so Amy's personalized model updates remain reliable and predictable.
@@ -27,13 +27,20 @@
 - Automated tests for concurrent trigger dedupe and restart recovery expectations.
 
 ## Checklist
-- [ ] Discovery complete
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Evidence committed
+- [x] Discovery complete
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Evidence committed
+
+## Progress notes (2026-04-05)
+- Identified split ownership risk: `server.ts` maintains one in-memory training queue while `dgsAutoPretrainService.ts` triggers a separate queue in `trainingOrchestrator.ts`.
+- Added restart-recovery persistence in `trainingOrchestrator.ts` so queued/running jobs are recovered as explicit failed states after restart instead of disappearing silently.
+- Added regression test coverage for restart recovery and concurrent dedupe in `server/test/trainingOrchestrator.test.ts`.
+- Published architecture decision and JUN-P1-6 handoff contract in `docs/planning/JUN-P1-7_TRAINING_JOB_OWNERSHIP_DECISION_2026-04-05.md`.
+- First command executed for this task: `rg -ni "queueTrainingJob|startTrainingJob|train-status|autoPretrain" server/src server/test`.
 
 ## Next command
-- `rg -ni "queueTrainingJob|startTrainingJob|train-status|autoPretrain" server/src server/test`
+- `rg -n "JUN-P1-7|training-orchestrator-jobs|restart" docs/planning/TODO_DONE.md docs/planning/JUN-P1-7_TRAINING_JOB_OWNERSHIP_DECISION_2026-04-05.md server/src/services/trainingOrchestrator.ts`
 
 ## Sync rule
 - Update `TODO.md` first for status changes, then refresh this topic file details.

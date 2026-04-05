@@ -1,6 +1,6 @@
 # Amy's Echo TODO_DONE — Completed Roadmap Archive
 
-**Last refreshed:** 2026-04-04 (updated)
+**Last refreshed:** 2026-04-05 (updated)
 **Purpose:** archive completed roadmap items moved from `docs/planning/TODO.md` by cut/paste.
 
 ## Topic board structure (Kanban-style)
@@ -102,6 +102,12 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Entry points: `docs/operations/INCIDENT_DRILL_2026-03-27.md`, `docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`
   - Evidence: refreshed drill artifact (`docs/operations/INCIDENT_DRILL_2026-04-04.md`) + updated ownership checklist (`docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`) + remediation log (`docs/operations/OPS_READINESS_REMEDIATION_LOG_2026-04.md`).
 
+- [x] **JUN-P1-7:** Consolidate training job ownership and restart recovery so post-training cron jobs have a single reliable source of truth.
+  - Topic board: `docs/planning/topics/JUN-P1-7/TOPIC.md` (details + evidence).
+  - Sequencing: foundational for `JUN-P1-6`; complete ownership/recovery contract before enabling cron reconciliation/retention/summaries.
+  - Entry points: `server/src/server.ts`, `server/src/services/trainingOrchestrator.ts`, `server/src/services/dgsAutoPretrainService.ts`, `server/test/`
+  - Evidence: architecture decision note in `docs/planning/JUN-P1-7_TRAINING_JOB_OWNERSHIP_DECISION_2026-04-05.md` plus recovery/dedupe regression coverage in `server/test/trainingOrchestrator.test.ts`, backed by persisted restart-state behavior in `server/src/services/trainingOrchestrator.ts`.
+
 - [x] **JUN-P1-1:** Expanded operations runbook with incident drill and rollback evidence.
   - Topic board: `docs/planning/topics/JUN-P1-1/TOPIC.md` (details + evidence).
   - Evidence: `docs/operations/INCIDENT_DRILL_2026-03-27.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`.
@@ -134,6 +140,18 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
 ## 5) MediaPipe + Sign-Language R&D watchlist (deep-dive refresh)
 
 ### Done
+
+- [x] **RD-P0-3:** Add signer-independent evaluation gate to few-shot workflow (no signer leakage in train/val/test manifests).
+  - Topic board: `docs/planning/topics/RD-P0-3/TOPIC.md` (details + evidence).
+  - Why now: signer leakage remains the highest-risk quality trap in sign-language ML.
+  - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`
+  - Evidence: signer leakage validator in `train_mlp.py`, required split-manifest enforcement and signer split counts in `train_mlp_sweep.py`, regression coverage in `server/test/test_train_mlp_signer_split.py`, and sweep report metrics split by known/new signer in `docs/testing/benchmarks/results/2026-04-04/rd_p0_3_signer_split_gate.md`.
+
+- [x] **RD-P1-1:** Add confidence calibration and abstention policy for low-confidence predictions.
+  - Topic board: `docs/planning/topics/RD-P1-1/TOPIC.md` (details + evidence).
+  - Why now: calibrated thresholds reduce wrong outputs in noisy conditions.
+  - Entry points: `webapp/src/gesture/installMlp.ts`, `webapp/src/gesture/modelClient.ts`, `webapp/src/hooks/useSignLanguageDetector.ts`
+  - Evidence: documented threshold policy and reliability calibration matrix in `docs/testing/benchmarks/rd_p1_1_confidence_calibration_2026-04-05.md`, backed by targeted regression suites for processing decisions, hook telemetry rejections, and install-time null suppression behavior.
 
 - [x] **RD-P1-3:** Improve runtime diagnosability by surfacing MediaPipe task/backend/error context into existing logs/health diagnostics.
   - Topic board: `docs/planning/topics/RD-P1-3/TOPIC.md` (details + evidence).
