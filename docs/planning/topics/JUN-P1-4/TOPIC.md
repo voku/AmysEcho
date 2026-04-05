@@ -1,9 +1,9 @@
 # JUN-P1-4 — Q2 accessibility verification cycle
 
 ## Kanban Status
-- **Column:** Backlog
-- **Owner:** Unassigned
-- **Last updated:** 2026-04-03
+- **Column:** Done
+- **Owner:** Webapp maintainer (rotation: Frontend on-call)
+- **Last updated:** 2026-04-04
 - **Status authority:** `docs/planning/TODO.md`
 
 ## Amy impact
@@ -21,13 +21,13 @@
 - Published `docs/testing/ACCESSIBILITY_CYCLE_2026-Q2.md` with findings and ownership.
 
 ## Checklist
-- [ ] Discovery complete
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Evidence committed
+- [x] Discovery complete
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Evidence committed
 
 ## Next command
-- `rg -n "ACCESSIBILITY_CYCLE|cadence|owner" docs/security docs/testing`
+- `npm test --prefix webapp -- accessibility`
 
 ## Sync rule
 - Update `TODO.md` first for status changes, then refresh this topic file details.

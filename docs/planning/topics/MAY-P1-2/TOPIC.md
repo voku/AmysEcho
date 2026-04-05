@@ -1,9 +1,9 @@
 # MAY-P1-2 — Signer leakage quality gate
 
 ## Kanban Status
-- **Column:** Backlog
-- **Owner:** Unassigned
-- **Last updated:** 2026-04-03
+- **Column:** Done
+- **Owner:** ML/Platform owner
+- **Last updated:** 2026-04-04
 - **Status authority:** `docs/planning/TODO.md`
 
 ## Amy impact
@@ -25,10 +25,10 @@
 - [x] Discovery complete
 - [x] Implementation complete (incremental hardening: stricter split-manifest validation plus held-out signer metrics wired into few-shot trial reports)
 - [x] Tests pass (`pytest server/test/test_train_mlp_fewshot.py server/test/test_train_mlp_sweep.py -q`)
-- [ ] Evidence committed
+- [x] Evidence committed
 
 ## Next command
-- `rg -n "signer|leakage|profile|manifest" server/src/amyserver_tools server/test`
+- `pytest server/test/test_train_mlp_fewshot.py server/test/test_train_mlp_signer_split.py server/test/test_train_mlp_sweep.py -q`
 
 ## Sync rule
 - Update `TODO.md` first for status changes, then refresh this topic file details.

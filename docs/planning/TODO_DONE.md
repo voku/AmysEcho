@@ -1,6 +1,6 @@
 # Amy's Echo TODO_DONE — Completed Roadmap Archive
 
-**Last refreshed:** 2026-04-03 (updated)
+**Last refreshed:** 2026-04-04 (updated)
 **Purpose:** archive completed roadmap items moved from `docs/planning/TODO.md` by cut/paste.
 
 ## Topic board structure (Kanban-style)
@@ -60,6 +60,12 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Entry points: `webapp/src/training/trainingBundle.ts`, `webapp/src/training/types.ts`, `server/src/routes/trainingBundleRoute.ts`, `docs/training/LANDMARK_STREAM_SCHEMA.md`
   - Evidence: schema extension for `captureContext` + tests proving persistence from client ZIP metadata to server manifest and ingested dataset samples.
 
+- [x] **MAY-P1-2:** Promote signer-leakage validation into a hard quality gate for few-shot outputs.
+  - Topic board: `docs/planning/topics/MAY-P1-2/TOPIC.md` (details + evidence).
+  - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `server/src/amyserver_tools/train_mlp_sweep.py`, `server/test/`
+  - Evidence: leakage-rejection tests + signer-split report assertions verified in `docs/testing/benchmarks/results/2026-04-04/may_p1_2_signer_leakage_gate.md`.
+
+
 ---
 
 ## 3) June 2026 — Operations hardening + accessibility cadence
@@ -78,6 +84,18 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Evidence: `docs/security/GOVERNANCE_CADENCE.md` (cadence + owners + evidence templates), `docs/testing/ACCESSIBILITY_CYCLE_2026-Q1.md` (first completed cycle artifact).
 
 ### Done (March 2026 — operations hardening)
+
+### Done (April 2026 — accessibility cadence continuation)
+
+- [x] **JUN-P1-4:** Run and publish Q2 accessibility verification cycle with ownership sign-off.
+  - Topic board: `docs/planning/topics/JUN-P1-4/TOPIC.md` (details + evidence).
+  - Entry points: `docs/security/GOVERNANCE_CADENCE.md`, `docs/testing/`
+  - Evidence: completed `docs/testing/ACCESSIBILITY_CYCLE_2026-Q2.md` report with tracked findings and ownership sign-off.
+
+- [x] **JUN-P1-5:** Execute operations readiness refresh (incident drill + rollback + monitoring ownership review).
+  - Topic board: `docs/planning/topics/JUN-P1-5/TOPIC.md` (details + evidence).
+  - Entry points: `docs/operations/INCIDENT_DRILL_2026-03-27.md`, `docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`, `docs/planning/RELEASE_0.0.2_READINESS.md`
+  - Evidence: refreshed drill artifact (`docs/operations/INCIDENT_DRILL_2026-04-04.md`) + updated ownership checklist (`docs/operations/PRODUCTION_HEALTH_MONITORING_OWNERSHIP.md`) + remediation log (`docs/operations/OPS_READINESS_REMEDIATION_LOG_2026-04.md`).
 
 - [x] **JUN-P1-1:** Expanded operations runbook with incident drill and rollback evidence.
   - Topic board: `docs/planning/topics/JUN-P1-1/TOPIC.md` (details + evidence).
