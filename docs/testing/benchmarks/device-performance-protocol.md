@@ -145,6 +145,7 @@ results/2026-04-XX/
 ├── cold_start_results.csv     # device, run, step, duration_ms
 ├── warm_restart_results.csv
 ├── camera_flip_results.csv
+├── sustained_session_summary.csv # device,mode,fps_p50,fps_p95,drop_rate_pct,frame_latency_p50_ms,frame_latency_p95_ms,memory_growth_mb,battery_drain_pct,thermal_state_20min
 ├── sustained_session/
 │   ├── galaxy_tab_a7_fps.csv  # timestamp_s, fps
 │   ├── galaxy_tab_a7_latency.csv
@@ -165,10 +166,12 @@ results/2026-04-XX/
 |--------|-----------|-----------|
 | Cold-start total | ≤ 5 000 ms | ≤ 3 000 ms |
 | Warm restart total | ≤ 2 000 ms | ≤ 1 000 ms |
+| Camera flip total | ≤ 2 000 ms | ≤ 1 000 ms |
 | Sustained FPS p50 | ≥ 15 fps | ≥ 25 fps |
 | Sustained FPS p95 | ≥ 8 fps | ≥ 15 fps |
 | Dropped frames (20 min) | ≤ 15 % | ≤ 5 % |
 | Memory growth (20 min) | ≤ 50 MB | ≤ 30 MB |
+| Battery drain (20 min) | ≤ 10 percentage points | ≤ 8 percentage points |
 | Thermal state at 20 min | ≤ warm | ≤ cool |
 
 ### 7.2 Escalation triggers
@@ -206,6 +209,25 @@ Each benchmark summary must include:
 1. A per-device gate verdict table (`Pass` / `Fail`) for G1–G4.
 2. A fleet verdict (`GO`, `CONDITIONAL GO`, or `NO-GO`) with one-sentence rationale.
 3. Explicit remediation owners and target dates for every failed gate.
+
+### 8.3 Reproducible evaluator command
+
+After the result artefacts are committed, generate the canonical summary + gate interpretation:
+
+```bash
+python3 scripts/evaluate_device_protocol_results.py \
+  --result-dir docs/testing/benchmarks/results/<YYYY-MM-DD> \
+  --gate-mode main_thread
+```
+
+The evaluator writes:
+
+- `summary.json`
+- `summary.md`
+- `apr-p0-4-gate-interpretation.md`
+
+If worker-offload rows are included in `sustained_session_summary.csv` with `mode=worker`,
+the generated `summary.md` will also include a mode-comparison appendix for APR-P0-1.
 
 ---
 

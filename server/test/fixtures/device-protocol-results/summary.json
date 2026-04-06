@@ -1,0 +1,126 @@
+{
+  "devices": [
+    {
+      "comparison_modes": {
+        "main_thread": {
+          "battery_drain_pct": 8.0,
+          "device": "Samsung Galaxy Tab A7 Lite",
+          "drop_rate_pct": 12.0,
+          "fps_p50": 16.0,
+          "fps_p95": 9.0,
+          "frame_latency_p50_ms": 39.0,
+          "frame_latency_p95_ms": 61.0,
+          "memory_growth_mb": 35.0,
+          "mode": "main_thread",
+          "thermal_state_20min": "warm"
+        }
+      },
+      "device": "Samsung Galaxy Tab A7 Lite",
+      "gates": {
+        "G1": "Pass",
+        "G2": "Pass",
+        "G3": "Pass",
+        "G4": "Pass"
+      },
+      "metrics": {
+        "battery_drain_pct": 8.0,
+        "camera_flip_dropped_frame_pct_median": 11.0,
+        "camera_flip_total_ms_median": 1550.0,
+        "cold_start_total_ms_median": 4200.0,
+        "drop_rate_pct": 12.0,
+        "fps_p50": 16.0,
+        "fps_p95": 9.0,
+        "frame_latency_p50_ms": 39.0,
+        "frame_latency_p95_ms": 61.0,
+        "gate_mode": "main_thread",
+        "memory_growth_mb": 35.0,
+        "thermal_state_20min": "warm",
+        "warm_restart_total_ms_median": 1500.0
+      },
+      "tier": "P0"
+    },
+    {
+      "comparison_modes": {
+        "main_thread": {
+          "battery_drain_pct": 9.0,
+          "device": "Moto G Power (2023+)",
+          "drop_rate_pct": 11.0,
+          "fps_p50": 17.0,
+          "fps_p95": 10.0,
+          "frame_latency_p50_ms": 37.0,
+          "frame_latency_p95_ms": 58.0,
+          "memory_growth_mb": 40.0,
+          "mode": "main_thread",
+          "thermal_state_20min": "warm"
+        }
+      },
+      "device": "Moto G Power (2023+)",
+      "gates": {
+        "G1": "Pass",
+        "G2": "Pass",
+        "G3": "Pass",
+        "G4": "Pass"
+      },
+      "metrics": {
+        "battery_drain_pct": 9.0,
+        "camera_flip_dropped_frame_pct_median": 12.0,
+        "camera_flip_total_ms_median": 1750.0,
+        "cold_start_total_ms_median": 4650.0,
+        "drop_rate_pct": 11.0,
+        "fps_p50": 17.0,
+        "fps_p95": 10.0,
+        "frame_latency_p50_ms": 37.0,
+        "frame_latency_p95_ms": 58.0,
+        "gate_mode": "main_thread",
+        "memory_growth_mb": 40.0,
+        "thermal_state_20min": "warm",
+        "warm_restart_total_ms_median": 1730.0
+      },
+      "tier": "P0"
+    },
+    {
+      "comparison_modes": {
+        "main_thread": {
+          "battery_drain_pct": 4.0,
+          "device": "MacBook Air M1",
+          "drop_rate_pct": 3.0,
+          "fps_p50": 28.0,
+          "fps_p95": 18.0,
+          "frame_latency_p50_ms": 22.0,
+          "frame_latency_p95_ms": 35.0,
+          "memory_growth_mb": 18.0,
+          "mode": "main_thread",
+          "thermal_state_20min": "cool"
+        }
+      },
+      "device": "MacBook Air M1",
+      "gates": {
+        "G1": "Pass",
+        "G2": "Pass",
+        "G3": "Pass",
+        "G4": "Pass"
+      },
+      "metrics": {
+        "battery_drain_pct": 4.0,
+        "camera_flip_dropped_frame_pct_median": 3.0,
+        "camera_flip_total_ms_median": 650.0,
+        "cold_start_total_ms_median": 2050.0,
+        "drop_rate_pct": 3.0,
+        "fps_p50": 28.0,
+        "fps_p95": 18.0,
+        "frame_latency_p50_ms": 22.0,
+        "frame_latency_p95_ms": 35.0,
+        "gate_mode": "main_thread",
+        "memory_growth_mb": 18.0,
+        "thermal_state_20min": "cool",
+        "warm_restart_total_ms_median": 580.0
+      },
+      "tier": "P1"
+    }
+  ],
+  "fleet_verdict": "GO",
+  "gate_mode": "main_thread",
+  "rationale": "All required P0 devices passed and no P1 device failed.",
+  "remediation_actions": [],
+  "result_dir": "server/test/fixtures/device-protocol-results"
+}

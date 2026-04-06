@@ -1,0 +1,28 @@
+device,run,step,duration_ms
+Samsung Galaxy Tab A7 Lite,1,route_leave_to_camera_stop,400
+Samsung Galaxy Tab A7 Lite,1,route_enter_to_camera_restart,650
+Samsung Galaxy Tab A7 Lite,1,camera_restart_to_first_detection,450
+Samsung Galaxy Tab A7 Lite,2,route_leave_to_camera_stop,420
+Samsung Galaxy Tab A7 Lite,2,route_enter_to_camera_restart,670
+Samsung Galaxy Tab A7 Lite,2,camera_restart_to_first_detection,430
+Samsung Galaxy Tab A7 Lite,3,route_leave_to_camera_stop,410
+Samsung Galaxy Tab A7 Lite,3,route_enter_to_camera_restart,640
+Samsung Galaxy Tab A7 Lite,3,camera_restart_to_first_detection,440
+Moto G Power (2023+),1,route_leave_to_camera_stop,520
+Moto G Power (2023+),1,route_enter_to_camera_restart,760
+Moto G Power (2023+),1,camera_restart_to_first_detection,470
+Moto G Power (2023+),2,route_leave_to_camera_stop,500
+Moto G Power (2023+),2,route_enter_to_camera_restart,780
+Moto G Power (2023+),2,camera_restart_to_first_detection,450
+Moto G Power (2023+),3,route_leave_to_camera_stop,510
+Moto G Power (2023+),3,route_enter_to_camera_restart,740
+Moto G Power (2023+),3,camera_restart_to_first_detection,460
+MacBook Air M1,1,route_leave_to_camera_stop,120
+MacBook Air M1,1,route_enter_to_camera_restart,280
+MacBook Air M1,1,camera_restart_to_first_detection,180
+MacBook Air M1,2,route_leave_to_camera_stop,110
+MacBook Air M1,2,route_enter_to_camera_restart,300
+MacBook Air M1,2,camera_restart_to_first_detection,170
+MacBook Air M1,3,route_leave_to_camera_stop,100
+MacBook Air M1,3,route_enter_to_camera_restart,290
+MacBook Air M1,3,camera_restart_to_first_detection,160

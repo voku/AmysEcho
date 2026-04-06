@@ -1,0 +1,10 @@
+device,run,flip_total_ms,dropped_frame_pct
+Samsung Galaxy Tab A7 Lite,1,1550,10
+Samsung Galaxy Tab A7 Lite,2,1600,12
+Samsung Galaxy Tab A7 Lite,3,1500,11
+Moto G Power (2023+),1,1750,12
+Moto G Power (2023+),2,1800,13
+Moto G Power (2023+),3,1700,12
+MacBook Air M1,1,650,3
+MacBook Air M1,2,700,4
+MacBook Air M1,3,620,3

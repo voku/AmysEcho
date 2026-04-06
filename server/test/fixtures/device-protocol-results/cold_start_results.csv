@@ -1,0 +1,28 @@
+device,run,step,duration_ms
+Samsung Galaxy Tab A7 Lite,1,page_load_to_camera_ready,1400
+Samsung Galaxy Tab A7 Lite,1,camera_ready_to_mediapipe_loaded,1700
+Samsung Galaxy Tab A7 Lite,1,mediapipe_loaded_to_first_detection,1100
+Samsung Galaxy Tab A7 Lite,2,page_load_to_camera_ready,1500
+Samsung Galaxy Tab A7 Lite,2,camera_ready_to_mediapipe_loaded,1650
+Samsung Galaxy Tab A7 Lite,2,mediapipe_loaded_to_first_detection,1050
+Samsung Galaxy Tab A7 Lite,3,page_load_to_camera_ready,1450
+Samsung Galaxy Tab A7 Lite,3,camera_ready_to_mediapipe_loaded,1600
+Samsung Galaxy Tab A7 Lite,3,mediapipe_loaded_to_first_detection,1000
+Moto G Power (2023+),1,page_load_to_camera_ready,1650
+Moto G Power (2023+),1,camera_ready_to_mediapipe_loaded,1800
+Moto G Power (2023+),1,mediapipe_loaded_to_first_detection,1250
+Moto G Power (2023+),2,page_load_to_camera_ready,1700
+Moto G Power (2023+),2,camera_ready_to_mediapipe_loaded,1750
+Moto G Power (2023+),2,mediapipe_loaded_to_first_detection,1200
+Moto G Power (2023+),3,page_load_to_camera_ready,1600
+Moto G Power (2023+),3,camera_ready_to_mediapipe_loaded,1850
+Moto G Power (2023+),3,mediapipe_loaded_to_first_detection,1150
+MacBook Air M1,1,page_load_to_camera_ready,700
+MacBook Air M1,1,camera_ready_to_mediapipe_loaded,900
+MacBook Air M1,1,mediapipe_loaded_to_first_detection,500
+MacBook Air M1,2,page_load_to_camera_ready,750
+MacBook Air M1,2,camera_ready_to_mediapipe_loaded,850
+MacBook Air M1,2,mediapipe_loaded_to_first_detection,450
+MacBook Air M1,3,page_load_to_camera_ready,720
+MacBook Air M1,3,camera_ready_to_mediapipe_loaded,870
+MacBook Air M1,3,mediapipe_loaded_to_first_detection,430

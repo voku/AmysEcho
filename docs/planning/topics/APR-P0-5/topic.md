@@ -1,7 +1,7 @@
 # APR-P0-5 — Release gate verdict refresh from real-device evidence
 
 ## Kanban Status
-- **Column:** Backlog
+- **Column:** Blocked
 - **Owner:** Unassigned
 - **Last updated:** 2026-04-06
 - **Status authority:** `docs/planning/todo.md`
@@ -34,3 +34,7 @@
 
 ## Sync rule
 - Update `todo.md` first for status changes, then refresh this topic file details.
+
+## Progress notes (2026-04-06)
+- Added a canonical evaluator path in `scripts/evaluate_device_protocol_results.py` that writes `summary.json`, `summary.md`, and `apr-p0-4-gate-interpretation.md` directly from a protocol result directory.
+- Remaining blocker: this refresh task still depends on committed APR-P0-2 real-device artefacts, which are not available in the current workspace.

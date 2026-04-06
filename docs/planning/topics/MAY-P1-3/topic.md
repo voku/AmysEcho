@@ -1,7 +1,7 @@
 # MAY-P1-3 — Few-shot baseline on current training snapshot
 
 ## Kanban Status
-- **Column:** Backlog
+- **Column:** Blocked
 - **Owner:** Unassigned
 - **Last updated:** 2026-04-06
 - **Status authority:** `docs/planning/todo.md`
@@ -34,3 +34,7 @@
 
 ## Sync rule
 - Update `todo.md` first for status changes, then refresh this topic file details.
+
+## Progress notes (2026-04-06)
+- The few-shot runner and its artifact contract are already in place from MAY-P0-1.
+- Remaining blocker: the workspace currently has no active non-fixture `training_manifest.json` snapshot to evaluate, so the required evidence for a live baseline run cannot be generated honestly from local state.

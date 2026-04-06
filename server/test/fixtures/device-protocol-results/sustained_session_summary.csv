@@ -1,0 +1,4 @@
+device,mode,fps_p50,fps_p95,drop_rate_pct,frame_latency_p50_ms,frame_latency_p95_ms,memory_growth_mb,battery_drain_pct,thermal_state_20min
+Samsung Galaxy Tab A7 Lite,main_thread,16,9,12,39,61,35,8,warm
+Moto G Power (2023+),main_thread,17,10,11,37,58,40,9,warm
+MacBook Air M1,main_thread,28,18,3,22,35,18,4,cool
