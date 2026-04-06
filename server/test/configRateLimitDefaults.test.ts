@@ -15,6 +15,9 @@ describe('config rate limit defaults', () => {
     delete process.env.TRAINING_LIMIT;
     delete process.env.MODEL_DOWNLOAD_LIMIT;
     delete process.env.TRAINING_MANIFEST_CACHE_TTL_MS;
+    delete process.env.POST_TRAINING_CADENCE_ENABLED;
+    delete process.env.POST_TRAINING_CADENCE_INTERVAL_HOURS;
+    delete process.env.POST_TRAINING_CADENCE_RETENTION_DAYS;
 
     const { config } = await import('../src/config/index.js');
 
@@ -23,5 +26,8 @@ describe('config rate limit defaults', () => {
     expect(config.trainingLimit).toBe(120);
     expect(config.modelDownloadLimit).toBe(120);
     expect(config.trainingManifestCacheTtlMs).toBe(30_000);
+    expect(config.postTrainingCadenceEnabled).toBe(false);
+    expect(config.postTrainingCadenceIntervalHours).toBe(6);
+    expect(config.postTrainingCadenceRetentionDays).toBe(14);
   });
 });

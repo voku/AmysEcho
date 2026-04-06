@@ -176,6 +176,22 @@ sudo chmod +x /usr/local/bin/amysecho-monitor
 (crontab -l 2>/dev/null; echo "*/5 * * * * /usr/local/bin/amysecho-monitor") | crontab -
 ```
 
+### Option E: Setup Post-Training Cadence
+
+This cadence performs reconciliation/retention/summary work for orchestrator-managed training jobs without blocking upload-triggered training.
+
+```bash
+# Optional: enable built-in interval scheduling in the server process
+echo "POST_TRAINING_CADENCE_ENABLED=true" >> .env
+echo "POST_TRAINING_CADENCE_INTERVAL_HOURS=6" >> .env
+echo "POST_TRAINING_CADENCE_RETENTION_DAYS=14" >> .env
+
+# Or prefer cron/systemd and run the cadence explicitly:
+(crontab -l 2>/dev/null; echo "0 */6 * * * cd /path/to/AmysEcho && /usr/bin/npm run ops:post-training-cadence --prefix server >> /var/log/amysecho-post-training-cadence.log 2>&1") | crontab -
+```
+
+Operational runbook: `docs/operations/post-training-cadence.md`
+
 ## Common Commands
 
 ```bash

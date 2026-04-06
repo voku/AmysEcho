@@ -13,6 +13,9 @@ export interface ServerConfig {
 	trainingTimeoutMs: number;
 	trainingSlaMs: number;
 	trainingManifestCacheTtlMs: number;
+	postTrainingCadenceEnabled: boolean;
+	postTrainingCadenceIntervalHours: number;
+	postTrainingCadenceRetentionDays: number;
 	backupSecret: string;
 	dbPath: string;
 	cloudApiUrl: string;
@@ -71,6 +74,16 @@ export const config: ServerConfig = {
 	trainingTimeoutMs: getEnvVarAsNumber("TRAINING_JOB_TIMEOUT_MS", 600_000),
 	trainingSlaMs: getEnvVarAsNumber("TRAINING_JOB_SLA_MS", 120_000),
 	trainingManifestCacheTtlMs: getEnvVarAsNumber("TRAINING_MANIFEST_CACHE_TTL_MS", 30_000),
+	postTrainingCadenceEnabled:
+		getEnvVar("POST_TRAINING_CADENCE_ENABLED", "false") === "true",
+	postTrainingCadenceIntervalHours: getEnvVarAsNumber(
+		"POST_TRAINING_CADENCE_INTERVAL_HOURS",
+		6,
+	),
+	postTrainingCadenceRetentionDays: getEnvVarAsNumber(
+		"POST_TRAINING_CADENCE_RETENTION_DAYS",
+		14,
+	),
 	// SECURITY: No default value for BACKUP_SECRET - must be explicitly configured
 	// to prevent using a known default password for backups
 	backupSecret: getEnvVar("BACKUP_SECRET"),

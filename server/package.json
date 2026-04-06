@@ -49,6 +49,7 @@
     "train:mlp": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" src/amyserver_tools/train_mlp.py'",
     "train:mlp:sweep": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" src/amyserver_tools/train_mlp_sweep.py'",
     "train:workflow:smoke": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" ../scripts/training_workflow_smoke.py'",
+    "ops:post-training-cadence": "node dist/tools/runPostTrainingCadence.js",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

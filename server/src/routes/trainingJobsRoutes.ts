@@ -54,6 +54,7 @@ interface RegisterTrainingJobsRoutesDeps {
 		retryAfterMs: number;
 	};
 	trainingJobs: Map<string, TrainingJob>;
+	getLatestPostTrainingCadenceSummary?: () => Promise<Record<string, unknown> | null>;
 	isProfileAuthorized: (req: Request, profileId: string) => boolean;
 }
 
@@ -151,6 +152,22 @@ export function registerTrainingJobsRoutes(
 				queueDepth,
 				...(retryAfterMs > 0 ? { retryAfterMs } : {}),
 			});
+		},
+	);
+
+	app.get(
+		"/api/v1/train-status/cadence/latest",
+		deps.authMiddleware,
+		deps.healthLimiter,
+		async (_req: Request, res: Response) => {
+			if (!deps.getLatestPostTrainingCadenceSummary) {
+				return res.status(404).json({ error: "Keine Cadence-Zusammenfassung vorhanden." });
+			}
+			const summary = await deps.getLatestPostTrainingCadenceSummary();
+			if (!summary) {
+				return res.status(404).json({ error: "Keine Cadence-Zusammenfassung vorhanden." });
+			}
+			return res.json(summary);
 		},
 	);
 

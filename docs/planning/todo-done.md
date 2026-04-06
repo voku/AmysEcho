@@ -1,6 +1,6 @@
 # Amy's Echo TODO_DONE — Completed Roadmap Archive
 
-**Last refreshed:** 2026-04-05 (updated)
+**Last refreshed:** 2026-04-06 (updated)
 **Purpose:** archive completed roadmap items moved from `docs/planning/todo.md` by cut/paste.
 
 ## Topic board structure (Kanban-style)
@@ -107,6 +107,12 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Sequencing: foundational for `JUN-P1-6`; complete ownership/recovery contract before enabling cron reconciliation/retention/summaries.
   - Entry points: `server/src/server.ts`, `server/src/services/trainingOrchestrator.ts`, `server/src/services/dgsAutoPretrainService.ts`, `server/test/`
   - Evidence: architecture decision note in `docs/planning/jun-p1-7-training-job-ownership-decision-2026-04-05.md` plus recovery/dedupe regression coverage in `server/test/trainingOrchestrator.test.ts`, backed by persisted restart-state behavior in `server/src/services/trainingOrchestrator.ts`.
+
+- [x] **JUN-P1-6:** Define and implement a cron-backed post-training operations cadence (reconciliation, retention, summaries) without delaying upload-triggered training.
+  - Topic board: `docs/planning/topics/JUN-P1-6/topic.md` (details + evidence).
+  - Sequencing: implemented on top of the `JUN-P1-7` source-of-truth job semantics so restart-interrupted jobs remain retry-eligible during cadence runs.
+  - Entry points: `server/src/server.ts`, `server/src/routes/trainingJobsRoutes.ts`, `docs/operations/post-training-cadence.md`, `docs/deployment/quickstart-server.md`
+  - Evidence: cadence service + CLI and targeted tests (`server/src/services/postTrainingCadenceService.ts`, `server/src/tools/runPostTrainingCadence.ts`, `server/test/postTrainingCadenceService.test.ts`, `server/test/trainingJobsRoutes.test.ts`), runbook and deployment docs (`docs/operations/post-training-cadence.md`, `docs/operations/production-health-monitoring-ownership.md`, `docs/deployment/quickstart-server.md`), and committed dry-run report/artifacts (`docs/operations/post-training-cadence-dry-run-2026-04-06.md`, `docs/operations/post-training-cadence-dry-run-2026-04-06-artifacts/`).
 
 - [x] **JUN-P1-1:** Expanded operations runbook with incident drill and rollback evidence.
   - Topic board: `docs/planning/topics/JUN-P1-1/topic.md` (details + evidence).

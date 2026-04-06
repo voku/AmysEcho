@@ -32,6 +32,10 @@ import {
 	withProjectPythonPath,
 } from "../utils/pythonExecutable.js";
 import { parseTrainingManifest } from "./trainingManifestSchema.js";
+import {
+	TRAINING_ORCHESTRATOR_JOB_STATE_FILE as ORCHESTRATOR_JOB_STATE_FILE,
+	TRAINING_RESTART_INTERRUPTION_REASON as RESTART_INTERRUPTION_REASON,
+} from "./trainingJobState.js";
 
 /**
  * Training job status
@@ -70,7 +74,10 @@ export interface LabelTrainingData {
 
 // In-memory job queue (simple implementation)
 const jobQueue: Map<string, TrainingJobStatus> = new Map();
-const JOB_STATE_FILE = path.join(DATA_DIR, "training-orchestrator-jobs.json");
+export const TRAINING_RESTART_INTERRUPTION_REASON =
+	RESTART_INTERRUPTION_REASON;
+export const TRAINING_ORCHESTRATOR_JOB_STATE_FILE =
+	ORCHESTRATOR_JOB_STATE_FILE;
 let jobStateLoaded = false;
 
 // Lock set to prevent TOCTOU race condition when queueing jobs
@@ -89,7 +96,7 @@ function persistJobQueue(): void {
 			return;
 		}
 		const encoded = JSON.stringify(payload, null, 2);
-		void fs.writeFile(JOB_STATE_FILE, encoded);
+		void fs.writeFile(TRAINING_ORCHESTRATOR_JOB_STATE_FILE, encoded);
 	} catch (error) {
 		console.warn("Could not persist training job state", error);
 	}
@@ -100,12 +107,12 @@ function recoverPersistedJobsOnce(): void {
 		return;
 	}
 	jobStateLoaded = true;
-	if (!existsSync(JOB_STATE_FILE)) {
+	if (!existsSync(TRAINING_ORCHESTRATOR_JOB_STATE_FILE)) {
 		return;
 	}
 
 	try {
-		const encoded = readFileSync(JOB_STATE_FILE, "utf8");
+		const encoded = readFileSync(TRAINING_ORCHESTRATOR_JOB_STATE_FILE, "utf8");
 		const parsed = JSON.parse(encoded) as {
 			jobs?: TrainingJobStatus[];
 		};
@@ -117,7 +124,7 @@ function recoverPersistedJobsOnce(): void {
 			}
 			if (job.status === "queued" || job.status === "running") {
 				job.status = "failed";
-				job.error = "Training durch Server-Neustart unterbrochen. Bitte erneut starten.";
+				job.error = TRAINING_RESTART_INTERRUPTION_REASON;
 				job.completedAt = recoveredAt;
 			}
 			jobQueue.set(job.jobId, job);
@@ -299,6 +306,11 @@ export function getTrainingJobStatus(
 export function getUserTrainingJobs(userId: string): TrainingJobStatus[] {
 	recoverPersistedJobsOnce();
 	return Array.from(jobQueue.values()).filter((job) => job.userId === userId);
+}
+
+export function listTrainingJobs(): TrainingJobStatus[] {
+	recoverPersistedJobsOnce();
+	return Array.from(jobQueue.values());
 }
 
 /**

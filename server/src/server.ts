@@ -61,6 +61,10 @@ import {
 } from "./services/mlpModelArtifacts.js";
 import { loadCustomSigns, writeProfileBackup } from "./services/profileDataService.js";
 import {
+	readLatestPostTrainingCadenceSummary,
+	runPostTrainingCadenceCycle,
+} from "./services/postTrainingCadenceService.js";
+import {
 	appendDgsSamples,
 	appendTrainingReportEntry,
 	loadDgsSamples,
@@ -555,6 +559,48 @@ databaseReady
 	})
 	.catch((error) => {
 		logger.warn("Profile backup automation skipped", { error: String(error) });
+	});
+
+databaseReady
+	.then(() => {
+		if (!config.postTrainingCadenceEnabled) {
+			return;
+		}
+		const runCadence = async (reason: "startup" | "interval") => {
+			try {
+				const summary = await runPostTrainingCadenceCycle({
+					dryRun: false,
+					retentionDays: config.postTrainingCadenceRetentionDays,
+				});
+				logger.info("Post-training cadence cycle completed", {
+					reason,
+					report: summary.outputs.latestJsonPath,
+					retryEligibleInterrupted:
+						summary.totals.retryEligibleInterrupted,
+					retentionCandidates: summary.totals.retentionCandidates,
+					removedJobIds: summary.retention.removedJobIds,
+				});
+			} catch (error) {
+				logger.warn("Post-training cadence cycle failed", {
+					reason,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		};
+
+		void runCadence("startup");
+		const timer = setInterval(
+			() => {
+				void runCadence("interval");
+			},
+			config.postTrainingCadenceIntervalHours * 60 * 60 * 1000,
+		);
+		timer.unref();
+	})
+	.catch((error) => {
+		logger.warn("Post-training cadence automation skipped", {
+			error: String(error),
+		});
 	});
 
 async function resolveProfileId(
@@ -1361,6 +1407,7 @@ registerTrainingJobsRoutes(app, {
 	multimodalLandmarks: MULTIMODAL_LANDMARKS,
 	startTrainingJob,
 	trainingJobs,
+	getLatestPostTrainingCadenceSummary: () => readLatestPostTrainingCadenceSummary(),
 	isProfileAuthorized: (req: Request, profileId: string) =>
 		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
 });

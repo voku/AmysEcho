@@ -96,6 +96,46 @@ describe("registerTrainingJobsRoutes", () => {
 			.expect(403);
 	});
 
+	it("returns the latest post-training cadence summary when configured", async () => {
+		const app = express();
+		app.use(express.json());
+
+		registerTrainingJobsRoutes(app, {
+			authMiddleware: (_req, _res, next) => next(),
+			trainingLimiter: (_req, _res, next) => next(),
+			healthLimiter: (_req, _res, next) => next(),
+			landmarkTupleSchema: z.tuple([z.number(), z.number(), z.number()]),
+			frameSchema: z.object({
+				timestampMs: z.number(),
+				landmarks: z.array(z.tuple([z.number(), z.number(), z.number()])),
+			}),
+			handLandmarksPerHand: 21,
+			totalHandLandmarks: 42,
+			multimodalLandmarks: 543,
+			startTrainingJob: () => ({
+				jobId: "job-3",
+				status: "running",
+				queueDepth: 0,
+				retryAfterMs: 0,
+			}),
+			trainingJobs: new Map(),
+			getLatestPostTrainingCadenceSummary: async () => ({
+				generatedAt: "2026-04-06T12:00:00.000Z",
+				dryRun: true,
+			}),
+			isProfileAuthorized: () => true,
+		});
+
+		const response = await request(app)
+			.get("/api/v1/train-status/cadence/latest")
+			.expect(200);
+
+		expect(response.body).toMatchObject({
+			generatedAt: "2026-04-06T12:00:00.000Z",
+			dryRun: true,
+		});
+	});
+
 	it("returns German validation error messages for empty payloads", async () => {
 		const app = express();
 		app.use(express.json());
