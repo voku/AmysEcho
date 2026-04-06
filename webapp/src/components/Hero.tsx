@@ -30,8 +30,8 @@ const AMY_LOOP_STEPS: WorkflowStep[] = [
   {
     icon: '💬',
     label: 'Kommunikation',
-    route: '/verlauf',
-    description: 'Stimme geben'
+    route: '/symbole',
+    description: 'Symbole nutzen'
   },
   {
     icon: '📚',
@@ -58,8 +58,8 @@ export const Hero: React.FC = () => {
         <span className="hero-pill">Amy's Echo hört zu</span>
         <h1 className="hero-title">Willkommen bei Amy's Echo</h1>
         <p className="hero-subtitle">
-          Die Gebärdenkamera übersetzt jede Gebärde direkt in Stimme, Symbole und Verlauf.
-          So bleibt das Gespräch mit Amy's Echo nie stehen.
+          Die Gebärdenkamera übersetzt jede Gebärde direkt in Stimme und Symbole.
+          So bleibt das Gespräch mit Amy's Echo auf die wichtigsten Schritte konzentriert.
         </p>
       </header>
 
@@ -115,14 +115,14 @@ export const Hero: React.FC = () => {
           <Link to="/hilfe" className="support-link">
             ❓ Hilfe & FAQ
           </Link>
-          <Link to="/tutorial" className="support-link">
-            📖 Anleitung
+          <Link to="/betreuung" className="support-link">
+            👨‍👩‍👧 Betreuung
           </Link>
           <Link to="/einstellungen" className="support-link">
             ⚙️ Einstellungen
           </Link>
-          <Link to="/ueber" className="support-link">
-            ℹ️ Über Amy's Echo
+          <Link to="/profile" className="support-link">
+            👤 Profile
           </Link>
         </div>
       </section>

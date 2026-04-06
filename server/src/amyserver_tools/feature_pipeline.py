@@ -1,21 +1,14 @@
+# mypy: disable-error-code=no-redef
 from __future__ import annotations
 
-import importlib
-import sys
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 
 try:
-    config_constants = importlib.import_module("config_constants")
-except ModuleNotFoundError as exc:
-    if exc.name != "config_constants":
-        raise
-    training_dir = Path(__file__).resolve().parents[2] / "training"
-    if str(training_dir) not in sys.path:
-        sys.path.append(str(training_dir))
-    config_constants = importlib.import_module("config_constants")
+    from . import config_constants
+except ImportError:
+    import config_constants
 
 MAX_AVG_FRAME_DELTA_MS = config_constants.MAX_AVG_FRAME_DELTA_MS
 MIN_AVG_FRAME_DELTA_MS = config_constants.MIN_AVG_FRAME_DELTA_MS

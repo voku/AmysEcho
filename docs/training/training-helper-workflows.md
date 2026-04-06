@@ -80,7 +80,7 @@ npm run train:mlp:realistic --prefix server
 Run these in order:
 
 ```bash
-PYTHONPATH=./server/src:./server:./server/training python -m pytest -q server/test/test_train_mlp_sweep.py
+PYTHONPATH=./server/src:./server python -m pytest -q server/test/test_train_mlp_sweep.py
 npm run test:ts --prefix server -- latestMlpModelRoute.test.ts
 npm run train:workflow:smoke --prefix server
 ```

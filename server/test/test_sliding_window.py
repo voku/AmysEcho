@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
-from config_constants import INPUT_FEATURE_SIZE, WINDOW_SIZE
-from sliding_window import create_sliding_windows, normalize_frame_sequence
+
+from amyserver_tools.config_constants import INPUT_FEATURE_SIZE, WINDOW_SIZE
+from amyserver_tools.sliding_window import create_sliding_windows, normalize_frame_sequence
 
 
 def _make_frame(value: float) -> np.ndarray:
@@ -120,7 +121,7 @@ def test_relative_delta_computed_per_window_not_globally():
     """Verify that relative_delta is computed independently per extracted window,
     so that each window's first row is always zero.  This matches the web
     inference rolling-buffer behaviour."""
-    from config_constants import WINDOW_STRIDE
+    from amyserver_tools.config_constants import WINDOW_STRIDE
 
     # Create WINDOW_SIZE + WINDOW_STRIDE distinct frames so we get 2 windows
     num_frames = WINDOW_SIZE + WINDOW_STRIDE

@@ -21,43 +21,17 @@ const CAREGIVER_SECTIONS: Array<{ title: string; items: CaregiverOption[] }> = [
       {
         title: 'Profilverwaltung',
         subtitle: 'Profile anlegen, bearbeiten oder wechseln',
+        route: '/profile'
+      },
+      {
+        title: 'Einstellungen',
+        subtitle: 'Profil, Export und lokale Daten verwalten',
         route: '/einstellungen'
-      },
-      {
-        title: 'Adminbereich',
-        subtitle: 'Technische Werkzeuge und Sicherungen verwalten',
-        route: '/admin',
-        requiresGate: true
       }
     ]
   },
   {
-    title: 'Berichte & Fortschritt',
-    items: [
-      {
-        title: 'Lernfortschritt',
-        subtitle: 'Zusammenfassung der Trainingsfortschritte',
-        route: '/bericht'
-      },
-      {
-        title: 'Analysen',
-        subtitle: 'Nutzungsübersicht und Trends einsehen',
-        route: '/dashboard'
-      },
-      {
-        title: 'Fortschrittstagebuch',
-        subtitle: 'Detailverlauf und Meilensteine verfolgen',
-        route: '/fortschritt'
-      },
-      {
-        title: 'Kommunikationsanalyse',
-        subtitle: 'Muster und Erkenntnisse in der Nutzung',
-        route: '/erkenntnisse'
-      }
-    ]
-  },
-  {
-    title: 'Unterstützung im Alltag',
+    title: 'Kernfunktionen',
     items: [
       {
         title: 'Training starten',
@@ -65,9 +39,25 @@ const CAREGIVER_SECTIONS: Array<{ title: string; items: CaregiverOption[] }> = [
         route: '/lernen'
       },
       {
-        title: 'Tutorial wiederholen',
-        subtitle: 'Die Grundlagen noch einmal durchgehen',
-        route: '/tutorial'
+        title: 'Symbole nutzen',
+        subtitle: 'Metacom-Tafel als direkte Kommunikationshilfe öffnen',
+        route: '/symbole'
+      },
+      {
+        title: 'Adminbereich',
+        subtitle: 'Technische Kernwerkzeuge für Symbole und Datensicherung',
+        route: '/admin',
+        requiresGate: true
+      }
+    ]
+  },
+  {
+    title: 'Unterstützung',
+    items: [
+      {
+        title: 'Profile auswählen',
+        subtitle: 'Zwischen aktiven Profilen und Modi wechseln',
+        route: '/auswahl'
       },
       {
         title: 'Hilfe & Kontakt',
@@ -102,7 +92,7 @@ export const CaregiverArea: React.FC = () => {
         <p>
           <strong>{profileName}</strong> steht im Mittelpunkt. 
           Wähle die Karte, die zu deiner nächsten Aufgabe passt – 
-          von Berichten bis zur Unterstützung im Alltag.
+          für Erkennung, Training und die nötige Verwaltung rundherum.
         </p>
       </div>
 

@@ -1,6 +1,6 @@
-# DGS Pre-Training Pipeline
+# DGS Baseline Bootstrap Pipeline
 
-This document describes how to run the full DGS (Deutsche Gebärdensprache) pre-training pipeline to create a baseline model for Amy's Echo.
+This document describes how to run the DGS (Deutsche Gebärdensprache) bootstrap pipeline that seeds the normal Amy's Echo training system with curated baseline examples.
 
 ## Overview
 
@@ -8,7 +8,7 @@ The pipeline consists of 4 steps:
 1. **Download videos** from signdict.org (fallback: custom sources from dgsVideoSources.json) for all 46 kid starter preset labels
 2. **Download MediaPipe models** for landmark extraction
 3. **Process videos** to extract hand/pose/face landmarks
-4. **Train MLP model** using the extracted landmarks
+4. **Train the baseline MLP model** using the extracted landmarks
 
 ## Prerequisites
 
@@ -41,8 +41,9 @@ AmysEcho/
 │   │       ├── hand_landmarker.task        # MediaPipe models
 │   │       ├── pose_landmarker.task
 │   │       └── face_landmarker.task
-│   └── training/
-│       └── train_mlp.py                    # MLP trainer
+│   └── src/
+│       └── amyserver_tools/
+│           └── train_mlp.py                # Canonical MLP trainer
 ```
 
 ---
@@ -185,10 +186,10 @@ python3 scripts/pretrain_baseline_model.py \
 **Alternative: Direct training with custom settings:**
 ```bash
 cd server
-PYTHONPATH="training:src" \
+PYTHONPATH="src" \
 MLP_EPOCHS=1000 \
 MLP_LEARNING_RATE=0.005 \
-python3 training/train_mlp.py
+python3 src/amyserver_tools/train_mlp.py
 ```
 
 **Expected output:**
@@ -208,6 +209,8 @@ kannst du den Zyklus mit gehaltenem Eval-Set verwenden. Der Lauf:
 3. trainiert mit erhöhtem Timeout,
 4. bewertet das neue temporäre Modell auf echten Frames aus den zurückgehaltenen Videos,
 5. wiederholt den Trainingsversuch mit aufsteigenden Epochen (`--epoch-schedule`) bis zum konfigurierten Qualitätsziel.
+
+Wichtig: Diese Bootstrap-Daten sind kein separates Produkt- oder API-Konzept mehr. Sie dienen nur dazu, die normale Trainingspipeline mit kuratierten Startbeispielen zu füttern.
 
 ```bash
 cd AmysEcho

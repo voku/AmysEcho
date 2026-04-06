@@ -1,23 +1,11 @@
 {
-  "generatedAt": "2026-04-02T04:55:28.357Z",
+  "generatedAt": "2026-04-06T01:37:16.740Z",
   "sourceGlobs": [
     "server/src/server.ts",
     "server/src/routes/*.ts"
   ],
-  "routeCount": 69,
+  "routeCount": 62,
   "routes": [
-    {
-      "method": "GET",
-      "path": "/api/pretraining/labels/:labelId",
-      "source": "server/src/routes/pretrainingRoutes.ts",
-      "line": 165
-    },
-    {
-      "method": "GET",
-      "path": "/api/pretraining/status",
-      "source": "server/src/routes/pretrainingRoutes.ts",
-      "line": 67
-    },
     {
       "method": "PUT",
       "path": "/api/v1/account/password",
@@ -82,49 +70,37 @@
       "method": "GET",
       "path": "/api/v1/config/normalization",
       "source": "server/src/server.ts",
-      "line": 1409
+      "line": 1436
     },
     {
       "method": "POST",
       "path": "/api/v1/corrections",
       "source": "server/src/server.ts",
-      "line": 1286
+      "line": 1312
     },
     {
       "method": "POST",
       "path": "/api/v1/crash-reports",
       "source": "server/src/server.ts",
-      "line": 1230
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/dgs-videos",
-      "source": "server/src/routes/trainingVideoRoutes.ts",
-      "line": 416
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/dgs-videos/:filename",
-      "source": "server/src/routes/trainingVideoRoutes.ts",
-      "line": 454
+      "line": 1256
     },
     {
       "method": "POST",
       "path": "/api/v1/dgs/sample-bundles",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1362
+      "line": 1512
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/sample-bundles/:id",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1312
+      "line": 1462
     },
     {
       "method": "POST",
       "path": "/api/v1/dgs/samples",
       "source": "server/src/server.ts",
-      "line": 1158
+      "line": 1184
     },
     {
       "method": "GET",
@@ -142,19 +118,19 @@
       "method": "GET",
       "path": "/api/v1/dgs/trained-labels",
       "source": "server/src/server.ts",
-      "line": 1373
+      "line": 1400
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/training-quality",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1133
+      "line": 1277
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/training-reports",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1177
+      "line": 1321
     },
     {
       "method": "GET",
@@ -166,13 +142,7 @@
       "method": "GET",
       "path": "/api/v1/labels",
       "source": "server/src/server.ts",
-      "line": 360
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/labels/:labelId/videos",
-      "source": "server/src/server.ts",
-      "line": 377
+      "line": 363
     },
     {
       "method": "DELETE",
@@ -208,7 +178,7 @@
       "method": "GET",
       "path": "/api/v1/models/latest",
       "source": "server/src/server.ts",
-      "line": 1106
+      "line": 1132
     },
     {
       "method": "GET",
@@ -232,7 +202,7 @@
       "method": "POST",
       "path": "/api/v1/negative-samples",
       "source": "server/src/server.ts",
-      "line": 1316
+      "line": 1342
     },
     {
       "method": "GET",
@@ -320,12 +290,6 @@
     },
     {
       "method": "GET",
-      "path": "/api/v1/profiles/:id/training-videos",
-      "source": "server/src/routes/trainingVideoRoutes.ts",
-      "line": 148
-    },
-    {
-      "method": "GET",
       "path": "/api/v1/profiles/:profileId/labels",
       "source": "server/src/routes/profileLabelRoutes.ts",
       "line": 71
@@ -388,31 +352,25 @@
       "method": "POST",
       "path": "/api/v1/train-model",
       "source": "server/src/routes/trainingJobsRoutes.ts",
-      "line": 100
+      "line": 101
     },
     {
       "method": "GET",
       "path": "/api/v1/train-status",
       "source": "server/src/routes/trainingJobsRoutes.ts",
-      "line": 171
+      "line": 188
     },
     {
       "method": "GET",
       "path": "/api/v1/train-status/:id",
       "source": "server/src/routes/trainingJobsRoutes.ts",
-      "line": 157
+      "line": 174
     },
     {
       "method": "GET",
-      "path": "/api/v1/training-videos/:bundleId/clip",
-      "source": "server/src/routes/trainingVideoRoutes.ts",
-      "line": 211
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/training-videos/:bundleId/still",
-      "source": "server/src/routes/trainingVideoRoutes.ts",
-      "line": 333
+      "path": "/api/v1/train-status/cadence/latest",
+      "source": "server/src/routes/trainingJobsRoutes.ts",
+      "line": 158
     },
     {
       "method": "GET",

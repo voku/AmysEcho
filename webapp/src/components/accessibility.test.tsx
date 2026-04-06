@@ -74,7 +74,7 @@ describe('Accessibility: WCAG 2.1 Compliance', () => {
     it('FloatingSupportButton has descriptive aria-label', () => {
       renderWithProviders(<FloatingSupportButton />);
       
-      const link = screen.getByLabelText(/Übersicht für Einstellungen/i);
+      const link = screen.getByLabelText(/Betreuungsbereich mit Profilen, Hilfe und Wartung öffnen/i);
       expect(link).toBeInTheDocument();
       expect(link.tagName).toBe('A');
     });

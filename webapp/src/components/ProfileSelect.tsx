@@ -58,11 +58,11 @@ export const ProfileSelect: React.FC = () => {
       <section className="select-section">
         <h3>Für Betreuende</h3>
         <div className="option-grid">
-          <Link to="/elterntor?target=/eltern" className="option-card">
+          <Link to="/elterntor?target=/betreuung" className="option-card">
             <span className="option-icon">👨‍👩‍👧</span>
             <div className="option-content">
               <strong>Elternbereich</strong>
-              <p>Einstellungen, Betreuungstools und Unterstützung für Pflegepersonen.</p>
+              <p>Profile, Hilfe und die wichtigsten Betreuungstools an einem Ort.</p>
             </div>
             <span className="gate-badge">🔒</span>
           </Link>

@@ -10,10 +10,9 @@ from pathlib import Path
 
 import numpy as np
 
-# Add src to path
-sys.path.append(str(Path(__file__).parent.parent / "training"))
-from config_constants import INPUT_FEATURE_SIZE
-from frame_normalization import _normalize_frame
+sys.path.append(str(Path(__file__).parent.parent / "src"))
+from amyserver_tools.config_constants import INPUT_FEATURE_SIZE
+from amyserver_tools.frame_normalization import _normalize_frame
 
 
 def test_normalization_sync():

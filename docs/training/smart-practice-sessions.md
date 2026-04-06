@@ -135,7 +135,7 @@ orchestratePracticeSession(targetGestures: string[]): PracticeSession {
 - Triggers practice recommendations when weaknesses detected
 - Integrates practice suggestions into normal usage
 
-### Analytics Dashboard
+### Optional Reporting View
 - Shows detailed practice session history
 - Displays learning curves and improvement trends
 - Provides caregiver insights into practice effectiveness

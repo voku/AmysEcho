@@ -317,7 +317,7 @@ Add and keep an integration test that uploads a **real video fixture** through t
 
 1. Queue/API wiring can look correct in mocks while multipart/zip payloads still fail in live requests.
 2. `metadata.recording` fields (`clipBytes`, `clipMimeType`, `clipDurationMs`) can drift and break server-side validation silently.
-3. Upload success is not enough: verify the persisted clip is streamable via `/api/v1/training-videos/:bundleId/clip` and byte-identical to the fixture.
+3. Upload success is not enough: verify the persisted bundle metadata and stored clip file remain consistent with the original fixture.
 
 Reference implementation: `integration/test/webapp-video-upload.test.ts`.
 
@@ -424,26 +424,10 @@ export const generateAmyFirstReport = (coverageData) => {
 };
 ```
 
-### Dashboard Integration
-```typescript
-// webapp/src/components/TestDashboard.tsx (example)
-export const TestDashboard = () => {
-  const [testResults, setTestResults] = useState(null);
+### Test Reporting Note
 
-  useEffect(() => {
-    // Load test results from CI/CD
-    fetchTestResults().then(setTestResults);
-  }, []);
-
-  return (
-    <View>
-      <Text>Critical Communication Tests: {testResults?.communication?.passed}/{testResults?.communication?.total}</Text>
-      <Text>Emergency Gesture Tests: {testResults?.emergency?.passed}/{testResults?.emergency?.total}</Text>
-      <Text>Recovery System Tests: {testResults?.recovery?.passed}/{testResults?.recovery?.total}</Text>
-    </View>
-  );
-};
-```
+Do not introduce a dedicated test dashboard as a product surface. Keep test
+reporting in CI output, focused docs, and targeted fixtures instead.
 
 ## 🚨 Test Failure Handling
 

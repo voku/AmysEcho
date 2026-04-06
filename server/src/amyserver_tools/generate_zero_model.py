@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# mypy: disable-error-code=no-redef
 """Generate a zero-initialized 3-layer MLP model artifact for temporal multimodal recognition."""
 
 from __future__ import annotations
@@ -10,9 +11,19 @@ from typing import Any
 
 import numpy as np
 
-try:
-    from feature_schema import DEFAULT_WINDOW_SIZE, INPUT_FEATURE_SIZE, WINDOW_FEATURE_SIZE
-except Exception:
+if __package__:
+    from . import feature_schema as _feature_schema
+else:
+    try:
+        import feature_schema as _feature_schema
+    except Exception:
+        _feature_schema = None
+
+if _feature_schema is not None:
+    INPUT_FEATURE_SIZE = _feature_schema.INPUT_FEATURE_SIZE
+    WINDOW_FEATURE_SIZE = _feature_schema.WINDOW_FEATURE_SIZE
+    DEFAULT_WINDOW_SIZE = _feature_schema.DEFAULT_WINDOW_SIZE
+else:
     INPUT_FEATURE_SIZE = 1629
     WINDOW_FEATURE_SIZE = 48870
     DEFAULT_WINDOW_SIZE = 30

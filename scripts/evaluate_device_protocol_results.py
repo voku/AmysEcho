@@ -12,7 +12,6 @@ from pathlib import Path
 from statistics import median
 from typing import Any
 
-
 THERMAL_ORDER = {
     "cool": 0,
     "warm": 1,

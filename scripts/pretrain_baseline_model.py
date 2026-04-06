@@ -2,7 +2,7 @@
 """
 Pre-train Baseline Model for Amy's Echo
 
-This script automates the DGS pre-training workflow:
+This script automates the baseline training bootstrap workflow:
 1. Creates a training manifest from existing DGS video landmarks
 2. Trains an MLP model using the landmarks
 3. Validates the model quality
@@ -11,7 +11,7 @@ This script automates the DGS pre-training workflow:
 Usage:
     python scripts/pretrain_baseline_model.py [--epochs 500] [--learning-rate 0.01]
 
-This enables Amy's Echo to work immediately with a pre-trained baseline model,
+This enables Amy's Echo to work immediately with a baseline model,
 without requiring users to record their own training videos.
 """
 
@@ -149,12 +149,12 @@ def run_training(epochs: int, learning_rate: float) -> dict:
     
     server_dir = PROJECT_ROOT / "server"
     env = os.environ.copy()
-    env["PYTHONPATH"] = f"training:src:{env.get('PYTHONPATH', '')}"
+    env["PYTHONPATH"] = f"src:{env.get('PYTHONPATH', '')}"
     env["MLP_EPOCHS"] = str(epochs)
     env["MLP_LEARNING_RATE"] = str(learning_rate)
     
     result = subprocess.run(
-        [sys.executable, "training/train_mlp.py"],
+        [sys.executable, "src/amyserver_tools/train_mlp.py"],
         cwd=server_dir,
         env=env,
         capture_output=True,

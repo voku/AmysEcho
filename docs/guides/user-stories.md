@@ -46,7 +46,7 @@ Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen →
 - **Flow**:
   1. Im Tab **Lernen** führt jede Karte über „Jetzt aufnehmen“ direkt zum **Recording**- bzw. **Training**-Flow.
   2. Der Flow zeichnet fünf Beispiele auf und speichert sie als Trainingsdaten.
-  3. Nach Abschluss kehrt die App zum Tab **Lernen** zurück; über `WorkflowSupportLinks` gelangt man bei Bedarf in den Admin- oder Familienbereich.
+  3. Nach Abschluss kehrt die App zum Tab **Lernen** zurück; bei Bedarf gelangt man über **Betreuung** in Profile, Hilfe oder Wartung.
 
 ## 7. Proactive Maintenance (HIP&nbsp;4)
 - **Story**: As Amy's signs drift over time, I want the app to gently ask for practice when accuracy drops.
@@ -54,13 +54,13 @@ Der zentrale Navigationsrahmen besteht aus der Kamera → Verlauf → Lernen →
   1. If a sign's health score is low, a non-blocking banner appears in **Learning**.
   2. Tapping **Üben** (Practice) navigates directly to the **Training** flow.
 
-## 8. Reviewing Progress
-- **Story**: As a caregiver, I want to see analytics about Amy's learning progress.
+## 8. Reviewing Training Status
+- **Story**: As a caregiver, I want to see whether training uploads and model updates succeeded.
 - **Flow**:
-  1. Über die `WorkflowSupportLinks` (z. B. auf **Kamera**, **Verlauf** oder **Lernen**) den Admin- oder Dashboard-Bereich nach dem Sicherheitsgate öffnen.
-  2. Analytics are loaded from local storage and uploaded to the server when online.
+  1. Über **Betreuung** oder direkt aus **Lernen** den Pflegebereich nach dem Sicherheitsgate öffnen.
+  2. Dort den Profil- und Trainingsstatus prüfen, ohne separate Reporting-Flächen zu benötigen.
 
 ## Screen Linking Overview
-- `webapp/src/App.tsx` definiert die Routen für **Kamera**, **Verlauf** und **Lernen** sowie sekundäre Bereiche wie **Admin**, **Profile** und **Help**.
+- `webapp/src/components/MainAppContent.tsx` definiert die unterstützten Kernrouten für **Kamera**, **Lernen**, **Training**, **Symbole**, **Betreuung**, **Profile**, **Einstellungen** und **Hilfe**.
 - `WorkflowStageHeader` stellt auf den Tabs das passende Wording sowie Navigation zum vorigen/nächsten Schritt der Schleife bereit.
-- `WorkflowSupportLinks` bündelt Familien-, Einstellungs-, Admin- und Hilfseinträge und führt über das Parental-Gate zu den jeweiligen Bereichen.
+- Der Zugang zu Profilen, Hilfe und Wartung läuft über **Betreuung** und das Parental-Gate statt über ein separates Link-Hub-Konzept.

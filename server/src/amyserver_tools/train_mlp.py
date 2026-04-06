@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# mypy: disable-error-code=no-redef
 
 """Train Amy's sign language MLP from bundle manifests.
 
@@ -27,51 +28,86 @@ import numpy as np
 
 # Add scripts directory to path for shared utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "training")))
-
-from config_constants import (
-    DROPOUT_RATE,
-    EARLY_STOPPING_MIN_DELTA,
-    EARLY_STOPPING_PATIENCE,
-    EPOCHS,
-    INPUT_FEATURE_SIZE,
-    LEARNING_RATE,
-    LOSS_EPSILON,
-    MAX_AVG_FRAME_DELTA_MS,
-    MIN_AVG_FRAME_DELTA_MS,
-    MIN_CLIP_DURATION_MS,
-    MIN_FACE_COVERAGE,
-    MIN_HANDS_COVERAGE,
-    MIN_POSE_COVERAGE,
-    MIN_SAMPLES_PER_LABEL,
-    MIN_SAMPLES_PER_PROFILE,
-    MIN_USABLE_FRAME_RATIO,
-    MLP_LAYER1_SIZE,
-    MLP_LAYER2_SIZE,
-    NULL_CLASS_LABEL,
-    STILL_FRAME_WEIGHT,
-    VALIDATION_FRACTION,
-    WINDOW_FEATURE_SIZE,
-    WINDOW_SIZE,
-)
-from feature_schema import (
-    HAND_FEATURE_CONTRACT_VERSION,
-    HAND_FEATURE_COORDINATES_PER_POINT,
-    HAND_FEATURE_HAND_ORDER,
-    HAND_FEATURE_MISSING_HAND_STRATEGY,
-    HAND_FEATURE_NORMALIZATION,
-    HAND_FEATURE_POINTS_PER_HAND,
-    HAND_FEATURE_VECTOR_LENGTH,
-    SCHEMA,
-    TOTAL_HAND_LANDMARKS,
-)
-from frame_normalization import _normalize_frame
-from sliding_window import Sample, create_sliding_windows
-
 try:
-    from feature_pipeline import augment_temporal_window
+    from .config_constants import (
+        DROPOUT_RATE,
+        EARLY_STOPPING_MIN_DELTA,
+        EARLY_STOPPING_PATIENCE,
+        EPOCHS,
+        INPUT_FEATURE_SIZE,
+        LEARNING_RATE,
+        LOSS_EPSILON,
+        MAX_AVG_FRAME_DELTA_MS,
+        MIN_AVG_FRAME_DELTA_MS,
+        MIN_CLIP_DURATION_MS,
+        MIN_FACE_COVERAGE,
+        MIN_HANDS_COVERAGE,
+        MIN_POSE_COVERAGE,
+        MIN_SAMPLES_PER_LABEL,
+        MIN_SAMPLES_PER_PROFILE,
+        MIN_USABLE_FRAME_RATIO,
+        MLP_LAYER1_SIZE,
+        MLP_LAYER2_SIZE,
+        NULL_CLASS_LABEL,
+        STILL_FRAME_WEIGHT,
+        VALIDATION_FRACTION,
+        WINDOW_FEATURE_SIZE,
+        WINDOW_SIZE,
+    )
+    from .feature_pipeline import augment_temporal_window
+    from .feature_schema import (
+        HAND_FEATURE_CONTRACT_VERSION,
+        HAND_FEATURE_COORDINATES_PER_POINT,
+        HAND_FEATURE_HAND_ORDER,
+        HAND_FEATURE_MISSING_HAND_STRATEGY,
+        HAND_FEATURE_NORMALIZATION,
+        HAND_FEATURE_POINTS_PER_HAND,
+        HAND_FEATURE_VECTOR_LENGTH,
+        SCHEMA,
+        TOTAL_HAND_LANDMARKS,
+    )
+    from .frame_normalization import _normalize_frame
+    from .sliding_window import Sample, create_sliding_windows
 except ImportError:
-    from amyserver_tools.feature_pipeline import augment_temporal_window
+    from config_constants import (
+        DROPOUT_RATE,
+        EARLY_STOPPING_MIN_DELTA,
+        EARLY_STOPPING_PATIENCE,
+        EPOCHS,
+        INPUT_FEATURE_SIZE,
+        LEARNING_RATE,
+        LOSS_EPSILON,
+        MAX_AVG_FRAME_DELTA_MS,
+        MIN_AVG_FRAME_DELTA_MS,
+        MIN_CLIP_DURATION_MS,
+        MIN_FACE_COVERAGE,
+        MIN_HANDS_COVERAGE,
+        MIN_POSE_COVERAGE,
+        MIN_SAMPLES_PER_LABEL,
+        MIN_SAMPLES_PER_PROFILE,
+        MIN_USABLE_FRAME_RATIO,
+        MLP_LAYER1_SIZE,
+        MLP_LAYER2_SIZE,
+        NULL_CLASS_LABEL,
+        STILL_FRAME_WEIGHT,
+        VALIDATION_FRACTION,
+        WINDOW_FEATURE_SIZE,
+        WINDOW_SIZE,
+    )
+    from feature_pipeline import augment_temporal_window
+    from feature_schema import (
+        HAND_FEATURE_CONTRACT_VERSION,
+        HAND_FEATURE_COORDINATES_PER_POINT,
+        HAND_FEATURE_HAND_ORDER,
+        HAND_FEATURE_MISSING_HAND_STRATEGY,
+        HAND_FEATURE_NORMALIZATION,
+        HAND_FEATURE_POINTS_PER_HAND,
+        HAND_FEATURE_VECTOR_LENGTH,
+        SCHEMA,
+        TOTAL_HAND_LANDMARKS,
+    )
+    from frame_normalization import _normalize_frame
+    from sliding_window import Sample, create_sliding_windows
 
 from ml_shared_utils import filter_by_profile_logic
 

@@ -39,12 +39,10 @@ import { createLatestMlpModelHandler } from "./routes/latestMlpModelRoute.js";
 import { registerMetacomRoutes } from "./routes/metacomRoutes.js";
 import { registerMetacomSentenceRoutes } from "./routes/metacomSentenceRoutes.js";
 import { registerModelMetadataRoutes } from "./routes/modelMetadataRoutes.js";
-import { registerPretrainingRoutes } from "./routes/pretrainingRoutes.js";
 import { registerProfileRoutes } from "./routes/profileRoutes.js";
 import { registerSymbolRoutes } from "./routes/symbolRoutes.js";
 import { registerTrainingBundleRoute } from "./routes/trainingBundleRoute.js";
 import { registerTrainingJobsRoutes } from "./routes/trainingJobsRoutes.js";
-import { registerTrainingVideoRoutes } from "./routes/trainingVideoRoutes.js";
 import { registerProfileLabelRoutes } from "./routes/profileLabelRoutes.js";
 import { registerUserRoutes } from "./routes/userRoutes.js";
 import {
@@ -78,7 +76,7 @@ import {
 	UUID_REGEX,
 } from "./services/profileRegistry.js";
 import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleIngestor.js";
-import { buildLabelManifest, getVideosForLabel, isValidLabel } from "./services/labelRegistry.js";
+import { buildLabelManifest } from "./services/labelRegistry.js";
 import { parseEpochSchedule, resolveTrainingScore } from "./services/profileTrainingTuning.js";
 import type { Correction, ManifestEntry, NegativeSample } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
@@ -379,29 +377,6 @@ app.get("/api/v1/labels", async (_req: Request, res: Response) => {
 	}
 });
 
-app.get("/api/v1/labels/:labelId/videos", async (req: Request, res: Response) => {
-	const { labelId } = req.params;
-	if (!labelId) {
-		return res.status(400).json({ error: "Label-ID erforderlich" });
-	}
-	
-	// Sanitize labelId: only allow lowercase letters, digits, German umlauts (äöüß), and hyphens
-	// German umlauts are intentionally permitted for Deutsche Gebärdensprache (DGS) labels
-	// like "grün" (green). This prevents injection attacks while supporting German vocabulary.
-	const sanitizedLabelId = labelId.toLowerCase().replace(/[^a-z0-9äöüß-]/g, "");
-	if (sanitizedLabelId.length === 0 || sanitizedLabelId.length > 64) {
-		return res.status(400).json({ error: "Ungültige Label-ID", labelId });
-	}
-	
-	const valid = await isValidLabel(sanitizedLabelId);
-	if (!valid) {
-		return res.status(404).json({ error: "Unbekanntes Label", labelId: sanitizedLabelId });
-	}
-	
-	const videos = await getVideosForLabel(sanitizedLabelId);
-	return res.json({ labelId: sanitizedLabelId, videos, count: videos.length });
-});
-
 async function processTrainingQueue(): Promise<void> {
 	if (isProcessingTrainingQueue) {
 		return;
@@ -515,7 +490,6 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 		});
 		registerMetacomRoutes(app, { authMiddleware: auth, db, registry: profileRegistry });
 		registerMetacomSentenceRoutes(app);
-		registerTrainingVideoRoutes(app, { authMiddleware: auth, db, registry: profileRegistry });
 		const emailService = createEmailService();
 		registerAuthRoutes(app, {
 			db,
@@ -538,7 +512,6 @@ export const databaseReady: Promise<Database> = setupDatabase(DB_FILE_PATH)
 			logError: (msg, meta) => logger.error(msg, meta),
 		});
 		registerSymbolRoutes(app, db, apiLimiter);
-		registerPretrainingRoutes(app);
 		return db;
 	})
 	.catch((err) => {

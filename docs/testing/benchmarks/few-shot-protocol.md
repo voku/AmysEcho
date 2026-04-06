@@ -39,7 +39,7 @@ Before running any evaluation:
    ```bash
    pip freeze > docs/testing/benchmarks/results/<YYYY-MM-DD>/pip_freeze.txt
    ```
-4. **Record key config constants** (copy from `server/training/config_constants.py`):
+4. **Record key config constants** (copy from `server/src/amyserver_tools/config_constants.py`):
    - `WINDOW_SIZE` (default 30)
    - `WINDOW_STRIDE` (default 1)
    - `INPUT_FEATURE_SIZE` (default 1 629)

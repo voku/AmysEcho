@@ -32,7 +32,7 @@ This analysis reviews the previous camera auto-start refactor (commit `e48fd6f`)
 - `docs/integration/dgs-integration-guide.md` (capture → bundle → training flow).
 - `docs/testing/gesture-recognition-testing.md` and `docs/testing/device-testing.md` (runtime validation expectations).
 - `docs/testing/benchmarks/multimodal-vs-handonly-report.md` (current benchmark status and limitations).
-- `docs/training/training-metrics-dashboard.md` (current operational metrics posture).
+- `docs/archive/training/training-metrics-dashboard.md` (historical operational metrics posture).
 - `docs/archive/holistic-vs-hands-benchmark.md` (legacy benchmark protocol still useful as checklist input).
 
 ## What we got right in the previous change

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from amyserver_tools.train_mlp import collect_manifest_signer_scope, validate_manifest_signer_split
 import amyserver_tools.train_mlp_sweep as sweep_module
+from amyserver_tools.train_mlp import collect_manifest_signer_scope, validate_manifest_signer_split
 
 
 def test_collect_manifest_signer_scope_reads_profile_from_metadata() -> None:

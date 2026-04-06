@@ -141,7 +141,7 @@ export interface NegativeSample {
 
 /**
  * Training mode for a label
- * - server_pretrain: Uses curated internet examples for training
+ * - server_pretrain: Uses curated bootstrap examples inside the normal training pipeline
  * - user_train: Uses user-recorded samples from the webapp
  */
 export type LabelTrainingMode = "server_pretrain" | "user_train";

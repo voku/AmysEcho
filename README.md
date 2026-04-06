@@ -1,9 +1,6 @@
-<!-- Generated: 2026-02-04 21:30:00 UTC -->
-
 # Amy's Echo
 
 [![Open Source – MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![100% Vibe Coded](https://img.shields.io/badge/built%20with-vibes-blueviolet)](#-open-source--vibe-coded)
 
 **This repository contains the development work for my little girl — to help her be understood, to help her learn, and to help others understand her world.**
 
@@ -13,15 +10,25 @@ This project turns those gestures into speech and symbols so she can be heard an
 
 All app UI text and error messages are written in German to match Amy's language environment.
 
----
+## Current Focus
 
-## 🎯 Purpose
+The project is being maintained in a **supported-core** mode.
 
-> Don't build for everyone. Build for one. But do it well enough that everyone could follow.
+Current first-class scope:
 
-Amy's Echo is a gesture recognition system designed to translate DGS into speech and symbols — in real time, offline if needed, and always with clarity and care.
+- caregiver auth and child profiles
+- live gesture recognition
+- low-confidence correction flow
+- training capture/upload and profile-aware model updates
+- symbol board fallback
+- the minimum settings/help/admin needed to keep those flows usable
 
-> **Turn Amy's gesture into understanding. Every time.**
+De-emphasized for now:
+
+- analytics and progress dashboards
+- tutorial/about/showcase pages
+- reference-video surfaces
+- pretraining and benchmark-heavy operator workflows as the main line of progress
 
 ---
 
@@ -55,6 +62,10 @@ Use these shell helpers for clean output during checks:
 
 ---
 
+## Supported Core
+
+The canonical scope document is [Supported Core](docs/architecture/supported-core.md).
+
 ## Key Entry Points
 
 | Component | File | Purpose |
@@ -74,21 +85,19 @@ Use these shell helpers for clean output during checks:
 |----------|----------|
 | [Project Overview](docs/project-overview.md) | Purpose, tech stack, platform support |
 | [Architecture](docs/architecture.md) | System design, component map, data flow |
+| [Supported Core](docs/architecture/supported-core.md) | Current supported product boundary |
 | [Build System](docs/build-system.md) | Build commands, configurations |
 | [Testing](docs/testing.md) | Test structure, commands, patterns |
 | [Development](docs/development.md) | Code style, workflows, patterns |
 | [Deployment](docs/deployment.md) | Server/webapp deployment, Docker |
-| [Files Catalog](docs/files.md) | Complete file reference |
 | [TODO](docs/planning/todo.md) | Current priorities, roadmap |
-| [Release Readiness v0.0.2](docs/planning/release-0.0.2-readiness.md) | Go/No-Go checklist for the next version tag |
 
 ### Detailed Guides
 
 - [Caregiver Guide](docs/guides/caregiver-guide.md) — For parents and caregivers
 - [Developer Quick Start + DB Init](docs/guides/developer-quick-start-and-db-init.md) — Local setup, verification, SQLite re-init
 - [Training Workflow](docs/training/video-recording-and-training-workflow.md) — Recording and training gestures
-- [Server Deployment](docs/deployment/SERVER_deployment.md) — Production deployment
-- [Testing Strategy](docs/testing/testing-strategy.md) — Comprehensive testing approach
+- [Testing Strategy](docs/testing/testing-strategy.md) — Core test approach
 
 ---
 
@@ -99,57 +108,6 @@ Use these shell helpers for clean output during checks:
 - **ML**: MediaPipe landmarks + Custom MLP classifier
 - **Database**: SQLite (server), IndexedDB (client)
 - **UI Language**: German (user-facing), English (developer)
-
----
-
-## 🌍 Open Source & Vibe Coded
-
-Amy's Echo is **100% open source** (MIT License) and **100% vibe coded** — every line written in partnership with AI assistants (GitHub Copilot Coding Agent), guided by one single priority: helping Amy communicate.
-
-There is no product roadmap driven by business metrics. There is only Amy. If a feature helps her be understood, it ships. If it doesn't, it doesn't.
-
-The source is public because other children deserve the same chance. If you use this to help another child, [open an issue and tell me](https://github.com/voku/AmysEcho/issues) — that matters more than any star or fork count.
-
----
-
-## 🪙 Invest Your Remaining Copilot Requests of the Month
-
-If you have a **GitHub Copilot** subscription (Individual, Business, or Enterprise), you receive a monthly allowance of Copilot **agent requests** (premium interactions). At the end of the month those credits reset — use them or lose them.
-
-**Invest the remainder in Amy.** Here's how:
-
-### Option A — Let the Agent work autonomously
-
-1. Open the [Issues tab](https://github.com/voku/AmysEcho/issues) and pick any open issue tagged **`good first issue`**, **`help wanted`**, or **`enhancement`**.
-2. In the issue comment, write:
-
-   ```
-   @github-copilot implement this
-   ```
-
-3. Copilot Coding Agent will open a pull request with a solution. Review it, leave feedback, and merge.
-
-### Option B — Assign an issue to the Agent directly
-
-1. Click **"Assign to Copilot"** from the issue sidebar (if your repo/org has the GitHub Copilot agent integration enabled).
-2. The agent will create a branch, implement the feature, and open a PR automatically.
-
-### Option C — Use the Agent in your fork
-
-1. Fork this repo, enable Copilot in your account settings, and open VS Code.
-2. Use **Copilot Chat → Agent mode** (`/implement`, `/fix`, or describe what you want).
-3. The agent makes commits on your fork — open a PR back here when done.
-
-### What to work on
-
-| Tag | Description |
-|-----|-------------|
-| [`good first issue`](https://github.com/voku/AmysEcho/labels/good%20first%20issue) | Small, well-scoped tasks — perfect for an agent with a few tokens |
-| [`help wanted`](https://github.com/voku/AmysEcho/labels/help%20wanted) | Larger improvements where AI assistance is especially welcome |
-| [`enhancement`](https://github.com/voku/AmysEcho/labels/enhancement) | New features aligned with Amy's communication needs |
-| [`bug`](https://github.com/voku/AmysEcho/labels/bug) | Reliability fixes — zero-failure is an Amy First principle |
-
-> Every token you invest here goes directly toward helping a child with 22q11 Deletion Syndrome communicate. Thank you.
 
 ---
 

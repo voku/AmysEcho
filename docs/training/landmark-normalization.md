@@ -54,7 +54,7 @@ normalized = flat / maxAbs               # all values in [-1, 1]
 
 This ensures the full hand fits in a consistent normalized volume with a fixed `[-1, 1]` range.  
 Canonical implementation: `webapp/src/training/landmarkFeatureContract.ts::normalizeHandLandmarksWristRelative`.  
-Server mirror: `server/training/frame_normalization.py::_normalize_hand`.
+Server mirror: `server/src/amyserver_tools/frame_normalization.py::_normalize_hand`.
 
 > **Note**: `webapp/src/gesture/utils/landmarkNormalizer.ts::normalizeLandmarks` uses a **different** metric — `max(|x|+|y|+|z|)` per-point (max L1-per-point). That function is only used for the streaming hand-size template matcher (`landmarkTemplateDetector.ts`). It is **not** the canonical MLP normalization; do not use it when building training features or MLP inference features.
 

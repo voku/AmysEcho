@@ -9,7 +9,6 @@ import {
 import { type ValidationCapabilities, validateLandmarkSequence } from './trainingValidator';
 import { fetchWithRetry, HttpError } from '../utils/http';
 import {
-  buildDualHandFeatureVector,
   CONTRACT_FEATURE_NORMALIZATION,
   CONTRACT_FEATURE_VERSION,
   CONTRACT_HAND_ORDER,
@@ -130,11 +129,6 @@ function buildMetadata(
       : {}),
   };
 
-  const firstHandFrame = frames.find((frame) => frame.handLandmarks?.some((hand) => hand.length > 0));
-  const firstFrameFeaturePreview = firstHandFrame
-    ? buildDualHandFeatureVector(firstHandFrame.handLandmarks).slice(0, 12)
-    : [];
-
   return {
     profileId: payload.profileId,
     label: payload.label,
@@ -154,7 +148,6 @@ function buildMetadata(
       pointsPerHand: CONTRACT_HAND_LANDMARK_COUNT,
       coordinatesPerPoint: CONTRACT_COORDS_PER_POINT,
       vectorLength: CONTRACT_VECTOR_LENGTH,
-      featurePreview: firstFrameFeaturePreview,
     },
     ...(validationSummary ? { validationSummary } : {}),
     ...(landmarksMetadata.handedness ? { handedness: landmarksMetadata.handedness } : {}),

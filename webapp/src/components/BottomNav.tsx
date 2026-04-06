@@ -113,12 +113,12 @@ export function BottomNav() {
         <span className="bottom-nav-label">Kamera</span>
       </NavLink>
       <NavLink
-        to="/verlauf"
+        to="/betreuung"
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Verlauf"
+        title="Betreuung"
       >
-        <span className="bottom-nav-icon">🗂️</span>
-        <span className="bottom-nav-label">Verlauf</span>
+        <span className="bottom-nav-icon">👨‍👩‍👧</span>
+        <span className="bottom-nav-label">Betreuung</span>
       </NavLink>
       <NavLink
         to="/lernen"
@@ -135,6 +135,14 @@ export function BottomNav() {
       >
         <span className="bottom-nav-icon">🗣️</span>
         <span className="bottom-nav-label">Symbole</span>
+      </NavLink>
+      <NavLink
+        to="/hilfe"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        title="Hilfe"
+      >
+        <span className="bottom-nav-icon">❓</span>
+        <span className="bottom-nav-label">Hilfe</span>
       </NavLink>
     </nav>
   );

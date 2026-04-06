@@ -20,17 +20,22 @@ import numpy as np
 
 try:
     from amyserver_tools import train_mlp as train_mlp_module
-    from amyserver_tools.train_mlp_sweep import _extract_score, _parse_training_report
     from amyserver_tools.train_mlp import (
         _compute_accuracy,
         _compute_f1_score,
         build_samples_from_manifest,
         dataset_to_arrays,
     )
+    from amyserver_tools.train_mlp_sweep import _extract_score, _parse_training_report
 except ModuleNotFoundError:
     import train_mlp as train_mlp_module
+    from train_mlp import (
+        _compute_accuracy,
+        _compute_f1_score,
+        build_samples_from_manifest,
+        dataset_to_arrays,
+    )
     from train_mlp_sweep import _extract_score, _parse_training_report
-    from train_mlp import _compute_accuracy, _compute_f1_score, build_samples_from_manifest, dataset_to_arrays
 
 
 NULL_CLASS_LABEL = "_null_"

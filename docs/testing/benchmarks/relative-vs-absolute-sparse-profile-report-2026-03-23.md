@@ -21,9 +21,9 @@ import json, re
 from pathlib import Path
 import numpy as np
 import sys
-sys.path.append('server/training')
-from frame_normalization import _normalize_frame
-from sliding_window import create_sliding_windows
+sys.path.append('server/src')
+from amyserver_tools.frame_normalization import _normalize_frame
+from amyserver_tools.sliding_window import create_sliding_windows
 
 video_dir=Path('server/data/dgs_video_examples')
 files=sorted(video_dir.glob('*_landmarks.json'))[:80]

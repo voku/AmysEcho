@@ -15,6 +15,16 @@ from pathlib import Path
 
 import pytest
 
+FEATURE_CONTRACT = {
+    "version": "wrist_relative_max_abs_v1",
+    "normalization": "wrist_relative_max_abs",
+    "handOrder": ["Left", "Right"],
+    "missingHandStrategy": "zero_pad",
+    "pointsPerHand": 21,
+    "coordinatesPerPoint": 3,
+    "vectorLength": 126,
+}
+
 
 def test_training_preserves_variation_metadata(monkeypatch, tmp_path):
     """
@@ -67,6 +77,7 @@ def test_training_preserves_variation_metadata(monkeypatch, tmp_path):
                 "metadata": {
                     "label": "HELLO",
                     "profileId": "amy-profile",
+                    "featureContract": FEATURE_CONTRACT,
                     "variationData": {
                         "clusterId": "cluster_abc_123",
                         "dominantCluster": "cluster_abc_123",
@@ -151,6 +162,7 @@ def test_variation_diversity_affects_training_weight(monkeypatch, tmp_path):
             "metadata": {
                 "label": "HELLO",
                 "profileId": "amy-profile",
+                "featureContract": FEATURE_CONTRACT,
                 "variationData": {
                     "clusterId": cluster_id,
                     "dominantCluster": cluster_id,
@@ -229,6 +241,7 @@ def test_canonical_templates_used_for_augmentation(monkeypatch, tmp_path):
                 "metadata": {
                     "label": "THANK_YOU",
                     "profileId": "amy-profile",
+                    "featureContract": FEATURE_CONTRACT,
                     "variationData": {
                         "canonicalTemplates": 3,  # 3 different valid ways Amy signs this
                         "variationDiversity": 0.6,
@@ -308,6 +321,7 @@ def test_per_profile_models_learn_from_variations(monkeypatch, tmp_path):
                 "metadata": {
                     "label": "HELLO",
                     "profileId": profile_id,
+                    "featureContract": FEATURE_CONTRACT,
                     "variationData": {
                         "dominantCluster": "cluster_amy_hello",
                         "variationDiversity": 0.5,
@@ -378,6 +392,7 @@ def test_variation_metadata_in_training_report(monkeypatch, tmp_path):
                 "metadata": {
                     "label": "HELLO",
                     "profileId": "amy-profile",
+                    "featureContract": FEATURE_CONTRACT,
                     "variationData": {
                         "variationDiversity": 0.7,
                         "recommendTraining": True,

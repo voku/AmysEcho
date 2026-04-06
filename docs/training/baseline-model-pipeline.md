@@ -10,7 +10,7 @@ deterministic way so the checksum can be validated in CI and production.
 
 ## Inputs
 - `server/data/datasets/training_manifest.json` (bundle manifest)
-- MLP configuration values in `server/training/config_constants.py`
+- MLP configuration values in `server/src/amyserver_tools/config_constants.py`
 
 ## Deterministic Training Steps
 1. **Pick a fixed seed**

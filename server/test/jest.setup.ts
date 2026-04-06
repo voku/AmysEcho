@@ -62,6 +62,8 @@ if (process.env.TEST_LOGS_VERBOSE !== '1') {
         msg.includes('Invalid landmarks.json in training bundle') ||
         msg.includes('Failed to extract training bundle payload') ||
         msg.includes('Error saving training bundle') ||
+        msg.includes('Training queue execution failed') ||
+        msg.includes('Training job ') ||
         msg.includes('Failed to load database, creating a new one.') ||
         msg.includes('Failed to prepare early MLP model:'))
     )

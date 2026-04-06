@@ -4,10 +4,10 @@
 import os
 import sys
 
-# Add the amyserver_tools directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'amyserver_tools'))
+# Add the server src directory so amyserver_tools can be imported as a package
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from train_mlp import extract_base_label_from_video_filename
+from amyserver_tools.train_mlp import extract_base_label_from_video_filename
 
 
 class TestExtractBaseLabelFromVideoFilename:

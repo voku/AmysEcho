@@ -282,15 +282,9 @@ test('webapp helpers upload a real repo video and server serves stored clip', as
     'bundle details should not be accessible across profiles',
   );
 
-  const clipResponse = await fetch(`${serverBaseUrl()}/api/v1/training-videos/${uploadResult.id}/clip`, {
-    headers: serverHeaders(),
-  });
-  assert.strictEqual(clipResponse.status, 200);
-  assert.strictEqual(clipResponse.headers.get('content-type'), 'video/mp4');
-
-  const downloadedClip = Buffer.from(await clipResponse.arrayBuffer());
-  assert.strictEqual(downloadedClip.length, clipBytes.length, 'served clip size should match uploaded fixture size');
-  assert.strictEqual(Buffer.compare(downloadedClip, clipBytes), 0, 'served clip should match uploaded fixture bytes exactly');
+  assert.ok(entry?.metadata?.recording, 'bundle metadata should retain recording details');
+  assert.strictEqual(entry?.metadata?.recording?.clipBytes, clipBytes.length);
+  assert.strictEqual(entry?.metadata?.recording?.clipMimeType, 'video/mp4');
 });
 
 test('real repo videos with multiple samples per label produce a profile model', async () => {

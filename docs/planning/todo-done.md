@@ -35,7 +35,7 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
 
 - [x] **APR-P0-3:** Create reproducible few-shot protocol doc with leakage-safe split contract.
   - Topic board: `docs/planning/topics/APR-P0-3/topic.md` (details + evidence).
-  - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/training/`, `docs/testing/benchmarks/`
+  - Entry points: `server/src/amyserver_tools/train_mlp.py`, `server/src/amyserver_tools/sliding_window.py`, `docs/testing/benchmarks/`
   - Evidence: `docs/testing/benchmarks/few-shot-protocol.md` including seeds, commit SHA, dataset snapshot, split-manifest requirements.
 
 ---
@@ -321,7 +321,7 @@ Recovered entries by TODO path:
   - First seen done in `docs/planning/todo.md` at commit `e5288e3` (Add high contrast mode tests (16 tests)).
 - [x] **Task:** Extend manual and automated QA for multimodal overlays: include steps/screenshots showing landmark previews (hand/pose/face), expected German guidance when modalities are missing, and the end-to-end path from preview to personalized model download.
   - First seen done in `docs/planning/todo.md` at commit `e5288e3` (Add high contrast mode tests (16 tests)).
-- [x] **Task:** Track latency and reliability: add metrics collection for capture → upload → training → download timings, and publish a weekly dashboard to ensure the full cycle stays within the kid-friendly budget (<50 ms/frame inference, fast uploads on spotty connections). _See `docs/training/training-metrics-dashboard.md`._
+- [x] **Task:** Track latency and reliability: add metrics collection for capture → upload → training → download timings, and publish a weekly dashboard to ensure the full cycle stays within the kid-friendly budget (<50 ms/frame inference, fast uploads on spotty connections). _Historical reference: `docs/archive/training/training-metrics-dashboard.md`._
   - First seen done in `docs/planning/todo.md` at commit `e5288e3` (Add high contrast mode tests (16 tests)).
 - [x] **Task:** Add audio capture service for recording speech during gesture capture
   - First seen done in `docs/planning/todo.md` at commit `e5288e3` (Add high contrast mode tests (16 tests)).
@@ -443,7 +443,7 @@ Recovered entries by TODO path:
   - First seen done in `docs/planning/todo.md` at commit `8a40691` (docs: add Amy First narrative, memory profiling analysis, update todo.md).
 - [x] **Task:** Replace the local-only gesture→meaning mapping with a single mapping layer that resolves `gesture label → symbolId → boardId` using Metacom boards (fallback to defaults when missing). _See `webapp/src/services/metacomMappingService.ts`._
   - First seen done in `docs/planning/todo.md` at commit `8a40691` (docs: add Amy First narrative, memory profiling analysis, update todo.md).
-- [x] **Task:** Use the mapping layer in recognition UI to show the Metacom symbol (emoji/color/category) and to drive TTS output consistently. _See updated `SignLanguageHistory.tsx`._
+- [x] **Task:** Use the mapping layer in recognition UI to show the Metacom symbol (emoji/color/category) and to drive TTS output consistently. _Implemented in the recognition UI and shared Metacom mapping layer._
   - First seen done in `docs/planning/todo.md` at commit `8a40691` (docs: add Amy First narrative, memory profiling analysis, update todo.md).
 - [x] **Task:** Sync imported Metacom bundles per profile (server-side storage + profile export) so symbols stay consistent across devices. _See `server/src/routes/metacomRoutes.ts` (GET/PUT/DELETE), profile export in `profileDataService.ts`._
   - First seen done in `docs/planning/todo.md` at commit `8a40691` (docs: add Amy First narrative, memory profiling analysis, update todo.md).
@@ -477,7 +477,7 @@ Recovered entries by TODO path:
   - First seen done in `docs/planning/todo.md` at commit `8e1a0dc` (Gesture Recognition: Add NULL class, Adaptive Augmentation, and IndexedDB caching).
 - [x] **Re-run targeted sparse-vocabulary verification with `satt`/`trinken` fixtures:** add regression coverage for the concrete failure mode (“peace sign collapses to `trinken`”) so threshold, prototype, and split changes are measured against a real sparse-data scenario before deeper model changes. _Implemented in `webapp/src/gesture/installMlp.test.ts` plus trainer/report tests._
   - First seen done in `docs/planning/todo.md` at commit `8e1a0dc` (Gesture Recognition: Add NULL class, Adaptive Augmentation, and IndexedDB caching).
-- [x] **Stop train/validation leakage across windows from the same clip:** preserve `sourceBundleId` (or an equivalent clip grouping key) through sliding-window sample generation in the Python trainer and switch validation planning from random window shuffle to group-aware split by bundle/clip. _Implemented in `server/training/sliding_window.py` and `server/src/amyserver_tools/train_mlp.py`._
+- [x] **Stop train/validation leakage across windows from the same clip:** preserve `sourceBundleId` (or an equivalent clip grouping key) through sliding-window sample generation in the Python trainer and switch validation planning from random window shuffle to group-aware split by bundle/clip. _Implemented in `server/src/amyserver_tools/sliding_window.py` and `server/src/amyserver_tools/train_mlp.py`._
   - First seen done in `docs/planning/todo.md` at commit `8e1a0dc` (Gesture Recognition: Add NULL class, Adaptive Augmentation, and IndexedDB caching).
 - [x] **Surface label readiness and sparse-data warnings in the webapp:** expose the new training diagnostics in the training flow so caregivers can see which label still needs cleaner samples, not just whether a bundle upload technically succeeded. _Implemented in `TrainingUpload.tsx`._
   - First seen done in `docs/planning/todo.md` at commit `8e1a0dc` (Gesture Recognition: Add NULL class, Adaptive Augmentation, and IndexedDB caching).
@@ -537,7 +537,7 @@ Recovered entries by TODO path:
   - First seen done in `docs/planning/todo.md` at commit `b615dcd` (Harden MLP artifact feature-mode contract handling).
 - [x] **Task:** Consume contract status in webapp `modelClient` and reject `invalid` profile responses to force safe fallback to global/cached models. _Extended: client now parses `X-Model-Feature-Mode`, rejects `relative_delta` by default for safety, and allows explicit opt-in experiments via `VITE_ENABLE_RELATIVE_DELTA_MODEL=1`._
   - First seen done in `docs/planning/todo.md` at commit `b615dcd` (Harden MLP artifact feature-mode contract handling).
-- [x] **Task:** Implement fixed-window normalization utility in `server/training/sliding_window.py` (`normalize_frame_sequence`) with Python tests for padding/truncation/weight validation and short-clip window generation.
+- [x] **Task:** Implement fixed-window normalization utility in `server/src/amyserver_tools/sliding_window.py` (`normalize_frame_sequence`) with Python tests for padding/truncation/weight validation and short-clip window generation.
   - First seen done in `docs/planning/todo.md` at commit `b615dcd` (Harden MLP artifact feature-mode contract handling).
 - [x] **Task:** Add unknown-threshold inference gating telemetry assertions (`mlp_prediction_rejected` with score/threshold/reason payload) in `useSignLanguageDetector` tests.
   - First seen done in `docs/planning/todo.md` at commit `b615dcd` (Harden MLP artifact feature-mode contract handling).

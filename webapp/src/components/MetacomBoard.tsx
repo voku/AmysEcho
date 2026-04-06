@@ -600,8 +600,8 @@ export function MetacomBoard() {
       </div>
 
       <nav className="metacom-toolbar" aria-label="Metacom Schnellzugriff">
-        <button className="metacom-toolbar-button" onClick={() => navigate('/verlauf')}>
-          🧾 Verlauf
+        <button className="metacom-toolbar-button" onClick={() => navigate('/')}>
+          🖐️ Kamera
         </button>
         <button className="metacom-toolbar-button" onClick={() => navigate('/einstellungen')}>
           ⚙️ Einstellungen
@@ -609,8 +609,8 @@ export function MetacomBoard() {
         <button className="metacom-toolbar-button" onClick={() => navigate('/hilfe')}>
           ❓ Hilfe
         </button>
-        <button className="metacom-toolbar-button" onClick={() => navigate('/auswahl')}>
-          👥 Profile verwalten
+        <button className="metacom-toolbar-button" onClick={() => navigate('/lernen')}>
+          🧠 Lernen
         </button>
       </nav>
     </section>

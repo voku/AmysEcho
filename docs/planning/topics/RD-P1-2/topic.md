@@ -13,7 +13,7 @@
 
 ## Entry points
 - `webapp/src/gesture/core/ProcessingSteps.ts`
-- `server/training/sliding_window.py`
+- `server/src/amyserver_tools/sliding_window.py`
 - `docs/testing/benchmarks/`
 
 ## Evidence required for Done
@@ -26,4 +26,4 @@
 - [ ] Evidence committed
 
 ## Next command
-- `rg -n "temporal|smoothing|sequence|sliding window" webapp/src/gesture server/training docs/testing/benchmarks`
+- `rg -n "temporal|smoothing|sequence|sliding window" webapp/src/gesture server/src/amyserver_tools docs/testing/benchmarks`

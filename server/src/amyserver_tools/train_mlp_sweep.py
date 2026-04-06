@@ -16,11 +16,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
 
-PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-if str(PACKAGE_ROOT) not in sys.path:
-    sys.path.insert(0, str(PACKAGE_ROOT))
+try:
+    from amyserver_tools.train_mlp import load_json, validate_manifest_signer_split
+except ModuleNotFoundError:
+    PACKAGE_ROOT = Path(__file__).resolve().parent.parent
+    if str(PACKAGE_ROOT) not in sys.path:
+        sys.path.insert(0, str(PACKAGE_ROOT))
+    from amyserver_tools.train_mlp import load_json, validate_manifest_signer_split
 
-from amyserver_tools.train_mlp import load_json, validate_manifest_signer_split
 
 @dataclass(frozen=True)
 class SweepConfig:

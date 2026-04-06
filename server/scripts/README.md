@@ -1,7 +1,7 @@
 # Server Utility Scripts
 
 Dieses Verzeichnis bündelt nicht-produktive Wartungs- und Debug-Skripte für den Server,
-damit `server/` auf Laufzeitcode (`src/`, `training/`, `test/`) fokussiert bleibt.
+damit `server/` auf Laufzeitcode (`src/`, `test/`) fokussiert bleibt.
 
 ## Struktur
 
@@ -16,7 +16,7 @@ damit `server/` auf Laufzeitcode (`src/`, `training/`, `test/`) fokussiert bleib
 ## Hinweise
 
 - Diese Skripte sind optional für Entwicklung und Fehlersuche.
-- Produktivpfade verwenden weiterhin die Implementierungen unter `server/src/` und `server/training/`.
+- Produktivpfade verwenden die Implementierungen unter `server/src/`.
 
 ## Schneller Start
 

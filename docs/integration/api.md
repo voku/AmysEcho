@@ -16,8 +16,6 @@ The route list below is machine-checked in CI against code route inventory.
 ## Route index (machine-checked)
 
 <!-- BEGIN ROUTE INDEX -->
-- GET /api/pretraining/labels/:labelId
-- GET /api/pretraining/status
 - DELETE /api/v1/auth/account
 - PUT /api/v1/account/password
 - PUT /api/v1/account/profile
@@ -31,8 +29,6 @@ The route list below is machine-checked in CI against code route inventory.
 - GET /api/v1/config/normalization
 - POST /api/v1/corrections
 - POST /api/v1/crash-reports
-- GET /api/v1/dgs-videos
-- GET /api/v1/dgs-videos/:filename
 - POST /api/v1/dgs/sample-bundles
 - GET /api/v1/dgs/sample-bundles/:id
 - POST /api/v1/dgs/samples
@@ -43,7 +39,6 @@ The route list below is machine-checked in CI against code route inventory.
 - GET /api/v1/dgs/training-reports
 - GET /api/v1/health
 - GET /api/v1/labels
-- GET /api/v1/labels/:labelId/videos
 - DELETE /api/v1/landmarks/templates
 - GET /api/v1/landmarks/templates
 - POST /api/v1/landmarks/templates
@@ -68,7 +63,6 @@ The route list below is machine-checked in CI against code route inventory.
 - PUT /api/v1/profiles/:id/metacom-bundle
 - POST /api/v1/profiles/:id/share
 - POST /api/v1/profiles/:id/sync-token
-- GET /api/v1/profiles/:id/training-videos
 - POST /api/v1/profiles/share/accept
 - POST /api/v1/profiles/sync
 - GET /api/v1/symbols
@@ -78,8 +72,7 @@ The route list below is machine-checked in CI against code route inventory.
 - POST /api/v1/train-model
 - GET /api/v1/train-status
 - GET /api/v1/train-status/:id
-- GET /api/v1/training-videos/:bundleId/clip
-- GET /api/v1/training-videos/:bundleId/still
+- GET /api/v1/train-status/cadence/latest
 - GET /api/v1/profiles/:profileId/labels
 - GET /api/v1/profiles/:profileId/labels/:labelId
 - PATCH /api/v1/profiles/:profileId/labels/:labelId
@@ -112,14 +105,11 @@ The route list below is machine-checked in CI against code route inventory.
 | `PUT /api/v1/account/profile` | Required | `{ displayName?:string(1-120) }` (`userId` forbidden) | `200 { user:{id,username,email,displayName} }` | `400`, `401`, `403`, `404`, `500` |
 | `PUT /api/v1/account/password` | Required | `{ currentPassword, newPassword }` (`userId` forbidden) | `200 { message }` | `400`, `401`, `403`, `404`, `500` |
 
-### Label registry and pretraining status
+### Label registry and profile label training
 
 | Endpoint | Auth | Request schema | Response schema | Error codes/status |
 |---|---|---|---|---|
 | `GET /api/v1/labels` | No | none | `{ version, labels, variations, stats }` | `500` load failure |
-| `GET /api/v1/labels/:labelId/videos` | No | path `labelId` sanitized to lowercase `[a-z0-9äöüß-]`, len `1..64` | `{ labelId, videos, count }` | `400` invalid id, `404` unknown label |
-| `GET /api/pretraining/status` | No | none | `{ enabled, labels:[{id,displayName,emoji,category,serverPreTrainingEnabled,videoCount,hasLandmarks,readyForTraining}], stats }` | `500` |
-| `GET /api/pretraining/labels/:labelId` | No | path `labelId` regex `^[a-zA-Z0-9_-]+$` | `{ id, displayName, emoji, category, serverPreTrainingEnabled, videoCount, videos, landmarkFiles, hasLandmarks, readyForTraining }` | `400`, `404`, `500` |
 
 ### Profile lifecycle, sharing, GDPR
 
@@ -164,6 +154,7 @@ The route list below is machine-checked in CI against code route inventory.
 | `GET /api/v1/dgs/training-quality` | Required | query `{ profileId?, limit?:1..200 }` | `{ items:[...] }` | `400` (`code: INVALID_QUERY`), `403` (`PROFILE_UNAUTHORIZED`), `500` |
 | `GET /api/v1/dgs/training-reports` | Required | query `{ profileId?, limit?:1..200 }` | `{ items:[{ runId, recordedAt, profileId, accuracy, f1Score, samples, confusionAccuracy, labels }], profileTrends:[{ profileId, latestRunId, latestRecordedAt, latestAccuracy, latestF1Score, latestSamples, accuracyDelta, f1Delta }] }` | `400` (`code: INVALID_QUERY`), `403` (`PROFILE_UNAUTHORIZED`), `500` |
 | `POST /api/v1/train-model` | Required | `{ samples?:[{signId,profileId?,landmarkData:(points[]\|frames[])}], trigger?:"bundles" }` | `202 { status, jobId, pollUrl, message, queueDepth, retryAfterMs? }` | `400`, `403`, `429`, `500` |
+| `GET /api/v1/train-status/cadence/latest` | Required | none | latest post-training cadence summary object | `404 { error:"Keine Cadence-Zusammenfassung vorhanden." }` |
 | `GET /api/v1/train-status/:id` | Required | path `id` | training job object | `404 { id, status:"not_found" }` |
 | `GET /api/v1/train-status` | Required | none | `{ error:"Training job id is required." }` | `400` |
 | `POST /api/v1/corrections` | Required | `{ sign: string \| {left,right} }` | `202 { status:"queued" }` | `400`, `500` |
@@ -179,16 +170,6 @@ The route list below is machine-checked in CI against code route inventory.
 | `GET /api/v1/models/profiles` | Required | none | `ProfileInfo[]` where each has `{ profileId, modelAvailable, signCount, lastUpdated? }` | `500` |
 | `GET /api/v1/dgs/trained-labels` | Required | query `profileId` required | `{ profileId, trainedLabels, labelDescriptors }` | `400`, `403`, `500` |
 | `GET /api/v1/config/normalization` | Required | none | config JSON from `data/config/normalization_config.json` or default `{ priority_factors:{hands,pose,face} }` | `200` |
-
-### Training videos and reference videos
-
-| Endpoint | Auth | Request schema | Response schema | Error codes/status |
-|---|---|---|---|---|
-| `GET /api/v1/profiles/:id/training-videos` | Required | path `id` (profile regex) | `{ profileId, videos:[{bundleId,label,symbolId?,capturedAt,clipUrl,stillUrl,clipDurationMs,clipMimeType}] }` | `400`, `403`, `500` |
-| `GET /api/v1/training-videos/:bundleId/clip` | Required | path `bundleId`, optional `Range` header | video stream (`200` or `206`) | `400`, `403`, `404`, `416`, `500` |
-| `GET /api/v1/training-videos/:bundleId/still` | Required | path `bundleId` | still image stream | `400`, `403`, `404`, `500` |
-| `GET /api/v1/dgs-videos` | Required | none | `{ videos:[{label,filename,clipUrl}] }` | `500` |
-| `GET /api/v1/dgs-videos/:filename` | Required | path `filename` (extension and traversal checks) + optional `Range` | video stream (`200` or `206`) | `400`, `403`, `404`, `416`, `500` |
 
 ### Profile label settings
 

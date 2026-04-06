@@ -131,7 +131,6 @@ describe('createTrainingZip', () => {
         pointsPerHand: 21,
         coordinatesPerPoint: 3,
         vectorLength: 126,
-        featurePreview: expect.any(Array),
       },
       validationSummary: expect.objectContaining({
         frameCount: 1,
@@ -141,7 +140,6 @@ describe('createTrainingZip', () => {
         suggestions: expect.any(Array),
       }),
     });
-    expect((metadata.featureContract as { featurePreview?: unknown[] }).featurePreview?.length ?? 0).toBe(12);
     expect(entries['clip.mp4']).toBeDefined();
   });
 

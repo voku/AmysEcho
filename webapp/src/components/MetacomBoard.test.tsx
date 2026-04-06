@@ -76,7 +76,7 @@ describe('MetacomBoard', () => {
     expect(screen.getByRole('button', { name: 'Essen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Satzbau-Hilfe aus' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '👥 Profile verwalten' })).toBeInTheDocument();
+    expect(screen.getByText('📁 Tafel importieren')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Navigationspfad' })).toBeInTheDocument();
   });
 

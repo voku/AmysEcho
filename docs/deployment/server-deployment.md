@@ -856,7 +856,6 @@ docker-compose logs --tail=100 amysecho-server
 
 The server writes training progress to:
 - `server/data/training-debug.log`
-- `server/training-debug.log`
 
 ```bash
 # Monitor training

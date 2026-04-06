@@ -107,7 +107,7 @@ export { HAND_FEATURES_SIZE, POSE_FEATURES_SIZE, FACE_FEATURES_SIZE, MULTIMODAL_
 
 // Density-Balanced Priority factors (Hands > Pose > Face)
 // This prevents the 1404 face features from drowning out the 126 hand features.
-// Keep in sync with server defaults in server/training/config_constants.py and
+// Keep in sync with server defaults in server/src/amyserver_tools/config_constants.py and
 // server /api/v1/config/normalization fallback.
 export let HAND_PRIORITY_FACTOR = 4.0;
 export let POSE_PRIORITY_FACTOR = 0.2;

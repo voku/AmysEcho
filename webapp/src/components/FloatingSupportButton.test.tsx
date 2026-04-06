@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FloatingSupportButton } from './FloatingSupportButton';
 
 describe('FloatingSupportButton', () => {
-  it('renders the overview link with the correct label and href', () => {
+  it('renders the caregiver link with the correct label and href', () => {
     render(
       <MemoryRouter>
         <FloatingSupportButton />
@@ -12,10 +12,10 @@ describe('FloatingSupportButton', () => {
     );
 
     const link = screen.getByRole('link', {
-      name: 'Übersicht für Einstellungen, Hilfe und Betreuung öffnen',
+      name: 'Betreuungsbereich mit Profilen, Hilfe und Wartung öffnen',
     });
 
-    expect(link).toHaveAttribute('href', '/uebersicht');
-    expect(screen.getByText('Übersicht')).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/betreuung');
+    expect(screen.getByText('Betreuung')).toBeInTheDocument();
   });
 });

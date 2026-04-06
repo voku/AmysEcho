@@ -1,7 +1,8 @@
 import importlib
 
 import numpy as np
-from sliding_window import Sample
+
+from amyserver_tools.sliding_window import Sample
 
 
 def test_save_model_omits_audio_feature_size(monkeypatch, tmp_path):

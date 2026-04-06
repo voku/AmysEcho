@@ -8,10 +8,10 @@
 
 Amy's Echo supports personalized training for each child (profile). Each label (DGS sign) can be configured independently with:
 
-1. **Server Pre-training (`server_pretrain`)**: Uses curated internet DGS examples from sources like signdict.org
+1. **Curated Bootstrap Data (`server_pretrain`)**: Uses curated DGS examples from sources like signdict.org inside the normal training pipeline
 2. **User Training (`user_train`)**: Uses samples recorded by caregivers in the webapp
 
-This enables a jump-start with a baseline model while allowing caregivers to add personalized training data.
+This enables a jump-start with baseline data while allowing caregivers to add personalized training data in the same training system.
 
 ## Data Model
 
@@ -123,7 +123,7 @@ Initializes default label settings for a new profile (all labels enabled with `u
 
 A label is **ready for training** when:
 
-### For `server_pretrain` mode:
+### For curated bootstrap mode (`server_pretrain`):
 - At least 3 server videos are available
 - Landmarks have been extracted from videos
 
@@ -155,9 +155,9 @@ When a label is not ready, the API returns reasons in German:
    - Updates `lastTrainedAt` for trained labels
 5. **Model is saved** to user-specific directory
 
-## Auto-Download for `server_pretrain`
+## Auto-download for curated bootstrap mode
 
-When a label is switched to **Auto-train (`server_pretrain`)** and enabled, the server now
+When a label is switched to the curated bootstrap mode (`server_pretrain`) and enabled, the server now
 automatically:
 
 1. **Downloads missing DGS videos** for that label from signdict.org, additional
@@ -166,8 +166,7 @@ automatically:
 3. **Syncs landmarks into the profile’s `server_pretrain` directory**
 4. **Queues a training job** so the profile model learns from the new examples
 
-This keeps the workflow child-focused: Amy’s profile gains new signs as soon as caregivers
-enable Auto mode, without manual script runs.
+This keeps the workflow child-focused: Amy’s profile gains new signs without introducing a second training product path or separate pretraining surface.
 
 ### Requirements for Auto-Download
 
@@ -200,7 +199,7 @@ can surface progress if desired:
 
 ✅ A new user can:
 1. Open label list
-2. Set some labels to Auto-train (server_pretrain)
+2. Set some labels to curated bootstrap mode (`server_pretrain`)
 3. Upload their own training for other labels (user_train)
 4. See per label: readiness, source type, counts
 5. Trigger training

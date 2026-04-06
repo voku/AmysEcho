@@ -259,8 +259,8 @@ export function LearningHub() {
 
       <div className="notice info mb-md">
         <p>
-          🎥 <strong>Neu:</strong> Schau dir aufgenommene Gebärden als Videos an, um durch Zuschauen zu lernen!{' '}
-          <Link to="/videos">Gebärdenvideos ansehen →</Link>
+          Fokus des Lernbereichs: Beispiele aufnehmen, Gebärden pflegen und das aktive Profil gezielt verbessern.
+          Für direkte Kommunikation steht jederzeit die <Link to="/symbole">Symboltafel</Link> bereit.
         </p>
       </div>
 

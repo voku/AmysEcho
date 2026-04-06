@@ -24,7 +24,7 @@ We keep only reuse patterns that improve Amy's communication reliability:
 
 **Amy implementation status:** implemented.
 
-- `server/training/sliding_window.py` performs sequence normalization and window generation.
+- `server/src/amyserver_tools/sliding_window.py` performs sequence normalization and window generation.
 - `server/src/amyserver_tools/train_mlp.py` consumes normalized windows in the training pipeline.
 - `server/src/constants/trainingQuality.ts` defines quality constraints used in preprocessing and promotion decisions.
 

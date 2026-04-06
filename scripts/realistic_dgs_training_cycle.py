@@ -30,7 +30,6 @@ STDERR_SUMMARY_LINES = 20
 
 
 def load_trainer_module() -> Any:
-    sys.path.insert(0, str(SERVER_DIR / "training"))
     sys.path.insert(0, str(SERVER_DIR / "src"))
     trainer_spec = importlib.util.spec_from_file_location("amy_train_mlp", TRAINER_SCRIPT)
     if trainer_spec is None or trainer_spec.loader is None:
@@ -41,9 +40,8 @@ def load_trainer_module() -> Any:
 
 
 def load_model_weights(model_path: Path) -> tuple[Any, list[str], dict[str, Any]]:
-    sys.path.insert(0, str(SERVER_DIR / "training"))
     sys.path.insert(0, str(SERVER_DIR / "src"))
-    from model_serialization import load_model
+    from amyserver_tools.model_serialization import load_model
 
     return load_model(model_path)
 

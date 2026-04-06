@@ -15,7 +15,6 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 DONE_PATH = Path("docs/planning/todo-done.md")
 START_MARKER = "<!-- AUTO-GENERATED-DONE-HISTORY:START -->"
@@ -35,11 +34,11 @@ class DoneEntry:
     first_seen_subject: str
 
 
-def run_git(args: List[str]) -> str:
+def run_git(args: list[str]) -> str:
     return subprocess.check_output(["git", *args], text=True).strip()
 
 
-def discover_todo_paths() -> List[str]:
+def discover_todo_paths() -> list[str]:
     # Search every reachable commit tree for files named todo.md (any directory).
     paths = set()
 
@@ -70,9 +69,9 @@ def discover_todo_paths() -> List[str]:
     return discovered
 
 
-def collect_history(todo_paths: List[str]) -> Tuple[List[DoneEntry], Dict[str, int]]:
-    entries: Dict[Tuple[str, str, str], DoneEntry] = {}
-    path_counts: Dict[str, int] = {path: 0 for path in todo_paths}
+def collect_history(todo_paths: list[str]) -> tuple[list[DoneEntry], dict[str, int]]:
+    entries: dict[tuple[str, str, str], DoneEntry] = {}
+    path_counts: dict[str, int] = dict.fromkeys(todo_paths, 0)
 
     for todo_path in todo_paths:
         log_output = run_git(
@@ -125,8 +124,8 @@ def collect_history(todo_paths: List[str]) -> Tuple[List[DoneEntry], Dict[str, i
     return sorted_entries, path_counts
 
 
-def build_markdown(entries: List[DoneEntry], todo_paths: List[str], path_counts: Dict[str, int]) -> str:
-    lines: List[str] = []
+def build_markdown(entries: list[DoneEntry], todo_paths: list[str], path_counts: dict[str, int]) -> str:
+    lines: list[str] = []
     lines.append("## 6) Historical recovery from git timeline (auto-generated)")
     lines.append("")
     lines.append(

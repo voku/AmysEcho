@@ -36,7 +36,7 @@ This replaces the previous raw upstream snapshot directory and keeps the project
 - Preserve modality-presence metadata (hands/pose/face coverage) during padding.
 
 **Implementation tasks:**
-- [x] Add a normalization utility in `server/training/` that mirrors fixed-window behavior with explicit schema-aligned output.
+- [x] Add a normalization utility in `server/src/amyserver_tools/` that mirrors fixed-window behavior with explicit schema-aligned output.
 - [x] Add tests for short clips, long clips, and empty/missing-modality frames in `server/test/`.
 
 ## 2) Runtime inference options contract
@@ -61,7 +61,7 @@ This replaces the previous raw upstream snapshot directory and keeps the project
 - Ensure deterministic first-frame behavior and benchmarking.
 
 **Implementation tasks:**
-- [x] Add `relative_delta` feature generation option in `server/training/sliding_window.py`.
+- [x] Add `relative_delta` feature generation option in `server/src/amyserver_tools/sliding_window.py`.
 - [x] Track feature mode in training report and model headers.
 - [x] Add an A/B benchmark doc under `docs/testing/benchmarks/`.
 

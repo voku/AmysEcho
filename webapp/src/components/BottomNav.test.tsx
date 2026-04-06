@@ -13,9 +13,10 @@ describe('BottomNav', () => {
     );
 
     expect(screen.getByText('Kamera')).toBeInTheDocument();
-    expect(screen.getByText('Verlauf')).toBeInTheDocument();
+    expect(screen.getByText('Betreuung')).toBeInTheDocument();
     expect(screen.getByText('Lernen')).toBeInTheDocument();
     expect(screen.getByText('Symbole')).toBeInTheDocument();
+    expect(screen.getByText('Hilfe')).toBeInTheDocument();
   });
 
   it('has navigation role', () => {
@@ -71,7 +72,7 @@ describe('BottomNav', () => {
 
     // Check that icon spans are rendered
     const iconElements = document.querySelectorAll('.bottom-nav-icon');
-    expect(iconElements.length).toBe(4);
+    expect(iconElements.length).toBe(5);
   });
 
   it('has correct links to all routes', () => {
@@ -82,10 +83,11 @@ describe('BottomNav', () => {
     );
 
     const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(4);
+    expect(links).toHaveLength(5);
     expect(links[0]).toHaveAttribute('href', '/');
-    expect(links[1]).toHaveAttribute('href', '/verlauf');
+    expect(links[1]).toHaveAttribute('href', '/betreuung');
     expect(links[2]).toHaveAttribute('href', '/lernen');
     expect(links[3]).toHaveAttribute('href', '/symbole');
+    expect(links[4]).toHaveAttribute('href', '/hilfe');
   });
 });

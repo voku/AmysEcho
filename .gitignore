@@ -22,6 +22,10 @@ server/db.json
 server/db.sqlite
 server/db.sqlite-shm
 server/db.sqlite-wal
+server/data/db.sqlite
+server/data/db.sqlite-shm
+server/data/db.sqlite-wal
+server/data/training-orchestrator-jobs.json
 server/*.migrated.backup
 server/*.test_backup
 
