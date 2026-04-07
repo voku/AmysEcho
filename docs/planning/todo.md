@@ -70,7 +70,7 @@ Execution order when hardware/data blockers clear: run `APR-P0-2` first, use the
 
 ## 3. Cleanup Follow-Ups
 
-- [ ] Move one-off evidence docs into a clearer archive location or delete them if they no longer justify their weight.
+No active cleanup follow-ups at this time.
 
 ## 4. Planning Rules
 

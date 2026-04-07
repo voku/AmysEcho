@@ -106,7 +106,7 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Topic board: `docs/planning/topics/JUN-P1-7/topic.md` (details + evidence).
   - Sequencing: foundational for `JUN-P1-6`; complete ownership/recovery contract before enabling cron reconciliation/retention/summaries.
   - Entry points: `server/src/server.ts`, `server/src/services/trainingOrchestrator.ts`, `server/src/services/dgsAutoPretrainService.ts`, `server/test/`
-  - Evidence: architecture decision note in `docs/planning/jun-p1-7-training-job-ownership-decision-2026-04-05.md` plus recovery/dedupe regression coverage in `server/test/trainingOrchestrator.test.ts`, backed by persisted restart-state behavior in `server/src/services/trainingOrchestrator.ts`.
+  - Evidence: architecture decision note in `docs/archive/planning/jun-p1-7-training-job-ownership-decision-2026-04-05.md` plus recovery/dedupe regression coverage in `server/test/trainingOrchestrator.test.ts`, backed by persisted restart-state behavior in `server/src/services/trainingOrchestrator.ts`.
 
 - [x] **JUN-P1-6:** Define and implement a cron-backed post-training operations cadence (reconciliation, retention, summaries) without delaying upload-triggered training.
   - Topic board: `docs/planning/topics/JUN-P1-6/topic.md` (details + evidence).
@@ -173,6 +173,11 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Topic board: `docs/planning/topics/supported-core-server-split/topic.md` (details + evidence).
   - Entry points: `server/src/server.ts`, `server/src/bootstrap/`, `server/src/routes/utilityRoutes.ts`
   - Evidence: bootstrap extraction (`server/src/bootstrap/expressApp.ts`, `server/src/bootstrap/rateLimiters.ts`, `server/src/bootstrap/serverPackage.ts`, `server/src/bootstrap/startServer.ts`) and utility route extraction (`server/src/routes/utilityRoutes.ts`), verified by `npm run type-check`, `npm run lint`, and `npm run test:ts:serial -- utilityRoutes.test.ts healthCheck.test.ts integration/apiIntegration.test.ts integration/stress.test.ts` in `server/`.
+
+- [x] **Supported-core cleanup:** Move one-off evidence docs into a clearer archive location or delete them if they no longer justify their weight.
+  - Topic board: `docs/planning/topics/supported-core-evidence-archive/topic.md` (details + evidence).
+  - Entry points: `docs/planning/`, `docs/archive/planning/`, `docs/planning/topics/JUN-P1-7/topic.md`
+  - Evidence: six dated planning evidence docs moved to `docs/archive/planning/` with references updated from active planning paths to archive paths; no historical evidence was deleted, and `python3 scripts/validate_docs_links.py` passes.
 
 <!-- AUTO-GENERATED-DONE-HISTORY:START -->
 

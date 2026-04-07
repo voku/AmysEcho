@@ -7,7 +7,7 @@
 - `docs/analysis/repo-inventory-2026-04-02.summary.json`
 
 > Note: commit only summarized inventory artifacts. Full per-file exports are local-only (`--include-files`) and should not be committed.
-> Detailed file-by-file action backlog: `docs/planning/repository-cleanup-file-backlog-2026-04-02.md`.
+> Detailed file-by-file action backlog: `docs/archive/planning/repository-cleanup-file-backlog-2026-04-02.md`.
 
 ## 1) Current state snapshot (from tracked Git files)
 

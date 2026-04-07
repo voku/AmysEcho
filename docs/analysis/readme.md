@@ -18,4 +18,4 @@
 
 - Keep analysis decisions in the canonical docs above.
 - Track implementation status only in `docs/planning/todo.md`.
-- Use `docs/planning/documentation-consolidation-tracker-2026-03-26.md` for additional consolidation waves.
+- Use `docs/archive/planning/documentation-consolidation-tracker-2026-03-26.md` for historical consolidation waves.

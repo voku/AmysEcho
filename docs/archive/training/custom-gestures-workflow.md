@@ -89,7 +89,7 @@ Sign IDs are automatically normalized to be server-compatible:
 5. **Quality Validation**: Training bundles pass through the ingestion quality gate before frames are promoted into `data/dgs_samples.json`. The gate enforces minimum frame counts, hand coverage, and jitter thresholds (see `server/src/constants/trainingQuality.ts`) so only stable samples contribute to the global model.
 
 ## Future Improvements
-Tracked in [`docs/planning/todo.md`](../planning/todo.md) under "Custom Sign Workflow Enhancements".
+Tracked in [`docs/planning/todo.md`](../../planning/todo.md) under "Custom Sign Workflow Enhancements".
 
 ## API Endpoints
 
@@ -139,6 +139,6 @@ Custom sign language signs must:
 
 ## Related Documentation
 
-- [Video Recording Workflow](../training/video-recording-and-training-workflow.md)
-- [ML/LLM Integration](../research/ml-llm-integration.md)
-- [Sign Language Training Loop](../planning/todo.md)
+- [Video Recording Workflow](video-recording-and-training-workflow.md)
+- [ML/LLM Integration](../../research/ml-llm-integration.md)
+- [Sign Language Training Loop](../../planning/todo.md)

@@ -36,11 +36,11 @@
 - Identified split ownership risk: `server.ts` maintains one in-memory training queue while `dgsAutoPretrainService.ts` triggers a separate queue in `trainingOrchestrator.ts`.
 - Added restart-recovery persistence in `trainingOrchestrator.ts` so queued/running jobs are recovered as explicit failed states after restart instead of disappearing silently.
 - Added regression test coverage for restart recovery and concurrent dedupe in `server/test/trainingOrchestrator.test.ts`.
-- Published architecture decision and JUN-P1-6 handoff contract in `docs/planning/jun-p1-7-training-job-ownership-decision-2026-04-05.md`.
+- Published architecture decision and JUN-P1-6 handoff contract in `docs/archive/planning/jun-p1-7-training-job-ownership-decision-2026-04-05.md`.
 - First command executed for this task: `rg -ni "queueTrainingJob|startTrainingJob|train-status|autoPretrain" server/src server/test`.
 
 ## Next command
-- `rg -n "JUN-P1-7|training-orchestrator-jobs|restart" docs/planning/todo-done.md docs/planning/jun-p1-7-training-job-ownership-decision-2026-04-05.md server/src/services/trainingOrchestrator.ts`
+- `rg -n "JUN-P1-7|training-orchestrator-jobs|restart" docs/planning/todo-done.md docs/archive/planning/jun-p1-7-training-job-ownership-decision-2026-04-05.md server/src/services/trainingOrchestrator.ts`
 
 ## Sync rule
 - Update `todo.md` first for status changes, then refresh this topic file details.

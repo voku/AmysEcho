@@ -26,7 +26,7 @@ Reduce documentation drift by consolidating highly similar documents, starting w
 | Status | Action | Result |
 |---|---|---|
 | ✅ Completed | Normalize execution source-of-truth language | Dated camera analysis now states TODO is source of truth. |
-| ✅ Completed | Add active/archived marker to dated planning analysis | `docs/planning/camera-blind-spot-analysis-2026-03-21.md` now marked as archived context. |
+| ✅ Completed | Add active/archived marker to dated planning analysis | `docs/archive/planning/camera-blind-spot-analysis-2026-03-21.md` now marked as archived context. |
 
 ### Cluster C — archived blind-spot reports
 

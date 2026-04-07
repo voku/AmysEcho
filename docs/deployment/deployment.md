@@ -9,7 +9,7 @@ Amy's Echo consists of two main components:
 1. **Webapp** (Browser-based UI) - Deployed to static hosting (GitHub Pages, Netlify, etc.)
 2. **Server** (Node.js/Python backend) - Deployed to your own infrastructure
 
-📘 **For server deployment**, see **[SERVER_deployment.md](SERVER_deployment.md)** for comprehensive step-by-step instructions including Docker, systemd, nginx, SSL, and monitoring setup.
+📘 **For server deployment**, see **[server-deployment.md](server-deployment.md)** for comprehensive step-by-step instructions including Docker, systemd, nginx, SSL, and monitoring setup.
 
 ---
 

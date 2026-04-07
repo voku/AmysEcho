@@ -62,7 +62,7 @@ anzuhängen, falls das Modell Audio enthält.
 ## 🔄 Complete Training Workflow
 
 Der vollständige Ablauf (Capture → Bundle → Upload → Training → Distribution) ist in
-[`docs/training/video-recording-and-training-workflow.md`](../training/video-recording-and-training-workflow.md)
+[`docs/archive/training/video-recording-and-training-workflow.md`](video-recording-and-training-workflow.md)
 zusammengeführt. Dieses Dokument fokussiert auf die multimodalen Datenstrukturen
 und ihre Bedeutung für DGS.
 
@@ -83,7 +83,7 @@ der Amy vom ersten Versuch bis zur sicheren Kommunikation begleitet.
 - **Schnellere Feedback-Schleifen**, die Erfolge sofort sichtbar machen.
 - **Bessere Transparenz** für Betreuungspersonen: klare Hinweise, welche Modalität gerade fehlt.
 
-Die konkreten nächsten Schritte und Prioritäten stehen in [`docs/planning/todo.md`](../planning/todo.md).
+Die konkreten nächsten Schritte und Prioritäten stehen in [`docs/planning/todo.md`](../../planning/todo.md).
 
 ## ⚡ Quick Reference
 
@@ -292,10 +292,10 @@ python server/src/amyserver_tools/train_mlp.py \
 
 ## 📚 Related Documentation
 
-- [Video Recording Workflow](../training/video-recording-and-training-workflow.md)
-- [API Documentation](../integration/api.md)
-- [Testing Strategy](../testing/testing-strategy.md)
-- [Development Workflow](../workflows/development-workflow.md)
+- [Video Recording Workflow](video-recording-and-training-workflow.md)
+- [API Documentation](../../integration/api.md)
+- [Testing Strategy](../../testing/testing-strategy.md)
+- [Development Workflow](../../workflows/development-workflow.md)
 
 ---
 
