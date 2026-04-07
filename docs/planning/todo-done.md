@@ -165,6 +165,12 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Entry points: `webapp/src/gesture/`, `server/src/routes/health.ts`, `docs/operations/`
   - Evidence: incident-style drill showing faster root-cause identification from enriched diagnostics in `docs/operations/incident-drill-rd-p1-3-2026-04-03.md`.
 
+- [x] **RD-P0-1:** Run an A/B benchmark for `ImageProcessingOptions` + ROI handling to reduce landmark jitter and crop failures.
+  - Topic board: `docs/planning/topics/RD-P0-1/topic.md` (details + evidence).
+  - Why now: ROI/crop tuning looked like a possible jitter/crop-failure mitigation, but invalid MediaPipe task options would risk detector failures during Amy's live signing.
+  - Entry points: `webapp/src/gesture/core/GestureDetector.ts`, `docs/testing/benchmarks/`
+  - Evidence: `docs/testing/benchmarks/rd-p0-1-roi-image-processing-2026-04-07.md` rejects the ROI variant before device benchmarking because JS docs do not document ROI support for these task classes and the matching Java task APIs document ROI as unsupported for gesture, pose-landmark, and face-landmark detection; current full-frame path remains unchanged.
+
 ## 6) April 2026 — Supported-core cleanup follow-ups
 
 ### Done (April 2026 — server maintainability)

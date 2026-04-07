@@ -52,10 +52,6 @@ Execution order when hardware/data blockers clear: run `APR-P0-2` first, use the
 
 ## 2. R&D Backlog
 
-- [ ] **RD-P0-1:** Run an A/B benchmark for `ImageProcessingOptions` + ROI handling to reduce landmark jitter and crop failures.
-  - Topic board: `docs/planning/topics/RD-P0-1/topic.md`
-  - Evidence target: FPS, drop-rate, and confidence-stability comparison for baseline vs tuned ROI/crop settings.
-
 - [ ] **RD-P0-2:** Evaluate `FULL_RANGE` face detector mode for non-frontal caregiver/device setups.
   - Topic board: `docs/planning/topics/RD-P0-2/topic.md`
   - Evidence target: side-angle / partial-face benchmark matrix and enable-or-keep-default recommendation.
