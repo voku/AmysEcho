@@ -1,6 +1,6 @@
 # Amy's Echo Development Workflow - Amy First Edition
 
-**Project Status:** All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. This document reflects the current state of the project and the established workflow.
+**Project Status:** Amy's Echo is in a mature, pre-live product-hardening state. All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. This document reflects the current state of the project and the established workflow.
 
 ## 🚨 CRITICAL: Amy First Development Principles
 
@@ -10,7 +10,7 @@
 - ✅ **Zero interruption** - Amy's communication never pauses
 - ✅ **Zero confusion** - Simple, clear UI always
 - ✅ **Zero delay** - Instant feedback for everything
-- ✅ **Zero failure** - Multiple fallback layers
+- ✅ **Zero failure** - Explicit recovery paths for communication-critical runtime failures
 - ✅ **Zero judgment** - Celebrate attempts, not just success
 - ✅ **Zero compromise** - Amy's needs come first
 
@@ -34,7 +34,8 @@
 3. **Add error handling** - Ensure graceful degradation
 4. **Test edge cases** - What happens when things go wrong?
 5. **Verify performance** - Does it work at 1% battery?
-6. **Update documentation** - Keep todo.md accurate
+6. **Handle breaking changes intentionally** - Because the project is not live yet, migrate callers, fixtures, and docs instead of adding legacy fallback paths for obsolete internal contracts.
+7. **Update documentation** - Keep todo.md accurate
 
 ### Phase 3: Validation
 **Before marking complete:**

@@ -27,7 +27,7 @@ When instructions conflict, apply this precedence order:
 - ✅ **Zero interruption** - Amy's communication never pauses
 - ✅ **Zero confusion** - Simple, clear UI always
 - ✅ **Zero delay** - Instant feedback for everything
-- ✅ **Zero failure** - Multiple fallback layers
+- ✅ **Zero failure** - Explicit recovery paths for communication-critical runtime failures
 - ✅ **Zero judgment** - Celebrate attempts, not just success
 - ✅ **Zero compromise** - Amy's needs come first
 
@@ -42,7 +42,9 @@ When instructions conflict, apply this precedence order:
 
 ## Project Status
 
-This project is in a mature state. All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/planning/todo.md` file serves as a living document for ongoing improvements.
+This project is in a mature, pre-live product-hardening state. All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness. The `docs/planning/todo.md` file serves as a living document for ongoing improvements.
+
+Because the project is not live yet, intentional breaking changes are acceptable when they simplify the maintained product or remove stale contracts. Prefer migrating callers, fixtures, and documentation to the current contract over adding legacy fallback paths. Keep fallbacks only when they provide active runtime resilience for Amy's communication flow, not just backward compatibility for obsolete internal shapes.
 
 ## AI Assistant Workflow
 
@@ -62,7 +64,7 @@ This project is in a mature state. All major features for Phase 1, 2 and 3 have 
   - What existing patterns you'll follow
   - How your changes integrate with current architecture
   - What tests need to be added/updated
-- **Identify potential breaking changes** and mitigation strategies
+- **Identify potential breaking changes** and migration steps; do not preserve backward compatibility solely for obsolete internal contracts.
 - **Plan your testing approach** - don't just implement features, plan how to verify they work
 
 ### 3. Implementation Phase

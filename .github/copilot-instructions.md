@@ -2,7 +2,7 @@
 
 ## Repository overview
 - **Mission:** Amy's Echo is a multimodal communication platform for non-verbal children focused on Deutsche Gebärdensprache (DGS) capture, training, and playback.
-- **Project Status:** This project is in a mature state. All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness.
+- **Project Status:** This project is in a mature, pre-live product-hardening state. All major features for Phase 1, 2 and 3 have been implemented. The focus is now on optimization, bug fixing, and production readiness.
 - **Source layout:**
   - `webapp/` React + TypeScript (Vite) UI with structured directories:
     - `src/components/` UI components
@@ -15,12 +15,12 @@
     - `src/utils/` utility functions
   - `server/` Node/TypeScript API plus Python training tools in `server/src/amyserver_tools/`.
   - `integration/` end-to-end tests that exercise the full training loop.
-  - Docs live in `docs/` (start with `docs/planning/TODO.md` for current priorities).
+  - Docs live in `docs/` (start with `docs/planning/todo.md` for current priorities).
 
 ### Additional Resources
-- **Development Workflow**: See `docs/workflows/DEVELOPMENT_WORKFLOW.md` for detailed Amy First development processes
+- **Development Workflow**: See `docs/workflows/development-workflow.md` for detailed Amy First development processes
 - **Testing Strategy**: See `docs/testing/testing-strategy.md` for comprehensive testing guidelines
-- **Current Status**: See `docs/planning/TODO.md` for up-to-date implementation status
+- **Current Status**: See `docs/planning/todo.md` for up-to-date implementation status
 
 ## 🚨 AMY FIRST DEVELOPMENT PRINCIPLES
 
@@ -30,13 +30,13 @@
 - ✅ **Zero interruption** - Amy's communication never pauses
 - ✅ **Zero confusion** - Simple, clear UI always
 - ✅ **Zero delay** - Instant feedback for everything
-- ✅ **Zero failure** - Multiple fallback layers
+- ✅ **Zero failure** - Explicit recovery paths for communication-critical runtime failures
 - ✅ **Zero judgment** - Celebrate attempts, not just success
 - ✅ **Zero compromise** - Amy's needs come first
 
 ### Pre-Implementation Checklist
 **Complete ALL items before writing code:**
-- [ ] **Read the TODO.md completely** - Understand Amy's needs
+- [ ] **Read `docs/planning/todo.md` completely** - Understand Amy's needs
 - [ ] **Identify the "Amy Impact"** - How does this help Amy communicate?
 - [ ] **Check existing implementation** - Don't duplicate work
 - [ ] **Verify against Amy First principles** - Does this enhance communication?
@@ -48,7 +48,7 @@
 **IMPORTANT**: Follow this step-by-step approach:
 
 ### 1. Discovery Phase (ALWAYS do this first)
-- **Read the `docs/planning/TODO.md` or task description completely** to understand the current priorities.
+- **Read the `docs/planning/todo.md` or task description completely** to understand the current priorities.
 - **Review the existing documentation** in the `docs/` directory to understand the project's architecture and features.
 - **Examine the existing codebase structure** using `find` or `ls` commands.
 - **Study similar existing files** - look for patterns, naming conventions, and architectural decisions.
@@ -61,7 +61,7 @@
   - What existing patterns you'll follow
   - How your changes integrate with current architecture
   - What tests need to be added/updated
-- **Identify potential breaking changes** and mitigation strategies
+- **Identify potential breaking changes** and migration steps. The project is not live yet, so prefer migrating callers, fixtures, and docs to the current contract over adding legacy fallback paths for obsolete internal shapes.
 - **Plan your testing approach** - don't just implement features, plan how to verify they work
 
 ### 3. Implementation Phase
@@ -105,7 +105,7 @@
 - Review the generated test coverage report to spot untested paths.
 
 ## Coding conventions to remember
-- Keep user-facing flows simple with instant feedback and layered fallbacks.
+- Keep user-facing flows simple with instant feedback and explicit recovery paths. Add fallbacks only when they preserve Amy's active communication flow, not merely to support stale pre-live contracts.
 - Avoid default exports in the webapp; prefer named exports that mirror existing modules.
 - Follow established component/hook/service structures; do not introduce new architecture without strong justification.
 - Minimize mocking—only mock true system boundaries (network, filesystem, etc.).
@@ -147,7 +147,7 @@ Before starting implementation, consider:
 - **Need for human oversight** – automated checks cannot replace human judgment. Ensure final review and real-world testing.
 
 ## Quick pre-PR checklist
-- [ ] I read `docs/planning/TODO.md` and aligned the change with current priorities.
+- [ ] I read `docs/planning/todo.md` and aligned the change with current priorities.
 - [ ] I followed Amy First principles and used German for all user-visible text.
 - [ ] I updated or added tests and ran the relevant commands above.
 - [ ] I updated documentation where behavior changed.
