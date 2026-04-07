@@ -3,10 +3,31 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { AppStateProvider, useAppState } from './useAppState';
 import * as profileRegistry from '../services/profileRegistry';
 
+const { gestureHistoryAddMock, gestureMeaningGetMock } = vi.hoisted(() => ({
+  gestureHistoryAddMock: vi.fn(),
+  gestureMeaningGetMock: vi.fn().mockReturnValue({
+    emoji: '🍽️',
+    category: 'grundbedürfnisse',
+    audioText: 'Ich möchte essen',
+  }),
+}));
+
 // Mock the profile registry
 vi.mock('../services/profileRegistry', () => ({
   initializeProfileRegistry: vi.fn().mockResolvedValue(undefined),
   getActiveProfile: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('../services/gestureHistoryService', () => ({
+  gestureHistoryService: {
+    addGesture: gestureHistoryAddMock,
+  },
+}));
+
+vi.mock('../services/gestureMeaningService', () => ({
+  gestureMeaningService: {
+    getMeaning: gestureMeaningGetMock,
+  },
 }));
 
 describe('useAppState', () => {
@@ -15,6 +36,11 @@ describe('useAppState', () => {
     vi.clearAllMocks();
     vi.mocked(profileRegistry.initializeProfileRegistry).mockResolvedValue(undefined);
     vi.mocked(profileRegistry.getActiveProfile).mockResolvedValue(null);
+    gestureMeaningGetMock.mockReturnValue({
+      emoji: '🍽️',
+      category: 'grundbedürfnisse',
+      audioText: 'Ich möchte essen',
+    });
   });
 
   it('provides defaults when no active profile', async () => {
@@ -71,6 +97,29 @@ describe('useAppState', () => {
 
     expect(result.current.recentSigns).toEqual(['VIER', 'SECHS', 'FÜNF', 'DREI', 'ZWEI']);
     expect(result.current.lastRecognizedSign).toBe('VIER');
+  });
+
+  it('stores recognized gestures in the shared history service', async () => {
+    const { result } = renderHook(() => useAppState(), { wrapper: AppStateProvider });
+
+    await waitFor(() => {
+      expect(profileRegistry.initializeProfileRegistry).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.recordSign('Essen');
+    });
+
+    expect(gestureMeaningGetMock).toHaveBeenCalledWith('essen');
+    expect(gestureHistoryAddMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'Essen',
+        emoji: '🍽️',
+        confidence: 1,
+        category: 'grundbedürfnisse',
+        audioResponse: 'Ich möchte essen',
+      }),
+    );
   });
 
   it('refreshes from registry', async () => {

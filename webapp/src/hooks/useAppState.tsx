@@ -1,5 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { getActiveProfile, initializeProfileRegistry, type ProfileMetadata } from '../services/profileRegistry';
+import { gestureHistoryService } from '../services/gestureHistoryService';
+import { gestureMeaningService } from '../services/gestureMeaningService';
+import type { GestureHistoryEntry } from '../services/gestureHistoryService';
+
+type RecordedSignDetails = {
+  confidence?: number;
+  emoji?: string;
+  category?: string;
+  audioResponse?: string;
+};
 
 type AppStateContextValue = {
   profileUuid: string | null;
@@ -11,7 +21,7 @@ type AppStateContextValue = {
   lastRecognizedSign: string | null;
   recentSigns: string[];
   setPreferredSign: (id: string, name: string) => void;
-  recordSign: (sign: string) => void;
+  recordSign: (sign: string, details?: RecordedSignDetails) => void;
   refreshFromRegistry: () => Promise<void>;
 };
 
@@ -47,15 +57,32 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     };
     init();
   }, []);
-  const recordSign = useCallback((sign: string) => {
+  const recordSign = useCallback((sign: string, details?: RecordedSignDetails) => {
     const normalized = sign.trim();
     if (!normalized) return;
-    
+
     setLastRecognizedSign(normalized);
     setRecentSigns((prev) => {
       const existing = prev.filter((entry) => entry !== normalized);
       return [normalized, ...existing].slice(0, 5);
     });
+
+    const meaning = gestureMeaningService.getMeaning(normalized.toLowerCase());
+    const historyEntry: Omit<GestureHistoryEntry, 'timestamp'> = {
+      id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${normalized.toLowerCase()}`,
+      label: normalized,
+      emoji: details?.emoji ?? meaning?.emoji ?? '✋',
+      confidence: details?.confidence ?? 1,
+    };
+    const category = details?.category ?? meaning?.category;
+    if (category) {
+      historyEntry.category = category;
+    }
+    const audioResponse = details?.audioResponse ?? meaning?.audioText;
+    if (audioResponse) {
+      historyEntry.audioResponse = audioResponse;
+    }
+    gestureHistoryService.addGesture(historyEntry);
     
     // Set as preferred if not already set - fallback to using name as ID for recognized signs
     if (!preferredSignId) {

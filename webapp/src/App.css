@@ -1012,6 +1012,10 @@ p {
 
 .gesture-screen__action {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   border: none;
   border-radius: var(--radius-lg);
   padding: var(--space-md) var(--space-lg);
@@ -1146,6 +1150,189 @@ p {
 .gesture-screen__diagnostics li,
 .gesture-screen__diagnostics li strong {
   color: var(--color-gesture-diagnostics-text);
+}
+
+/* ==========================================================================
+   Gesture History Screen
+   ========================================================================== */
+
+.gesture-history-page {
+  display: grid;
+  gap: var(--space-lg);
+  max-width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.gesture-history__hero {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-bright) 100%);
+  color: var(--color-inverse-text);
+  box-shadow: var(--shadow-lg);
+}
+
+.gesture-history__hero .eyebrow,
+.gesture-history__hero .muted {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.gesture-history__hero h2 {
+  margin: 0;
+  color: var(--color-inverse-text);
+}
+
+.gesture-history__hero-copy {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.gesture-history__hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.gesture-history__hero-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--color-inverse-text);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+}
+
+.gesture-history__hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.gesture-history__summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.gesture-history__stat {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  box-shadow: var(--shadow-sm);
+}
+
+.gesture-history__stat-label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+}
+
+.gesture-history__stat-value {
+  font-size: var(--font-size-title-sm);
+  color: var(--color-text);
+}
+
+.gesture-history__panel {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  box-shadow: var(--shadow-sm);
+}
+
+.gesture-history__section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.gesture-history__latest-card {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-outline-muted);
+}
+
+.gesture-history__latest-main {
+  display: grid;
+  gap: 2px;
+}
+
+.gesture-history__latest-main strong {
+  font-size: var(--font-size-title-sm);
+  color: var(--color-text);
+}
+
+.gesture-history__latest-main span,
+.gesture-history__latest-audio,
+.gesture-history__empty-copy {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.gesture-history__latest-audio {
+  font-size: var(--font-size-body);
+}
+
+.gesture-history__list {
+  display: grid;
+  gap: var(--space-sm);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.gesture-history__item {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-outline-muted);
+}
+
+.gesture-history__item-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.gesture-history__item-main strong {
+  color: var(--color-text);
+}
+
+.gesture-history__item-main .muted,
+.gesture-history__item-audio {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.gesture-history__empty {
+  display: grid;
+  gap: var(--space-md);
+  place-items: start;
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-outline);
+  background: var(--color-surface-muted);
+}
+
+.gesture-history__empty p {
+  margin: 0;
 }
 
 /* ==========================================================================
@@ -1729,7 +1916,7 @@ p {
 
   .bottom-nav-item {
     padding: var(--space-sm) var(--space-lg);
-    min-width: 70px;
+    min-width: 64px;
     min-height: 54px;
   }
 
@@ -1739,6 +1926,10 @@ p {
 
   .nav-label {
     font-size: var(--font-size-caption);
+  }
+
+  .gesture-history__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1755,6 +1946,16 @@ p {
   .gesture-screen__controls {
     padding: var(--space-lg);
     padding-bottom: calc(var(--bottom-nav-height) + var(--space-lg));
+  }
+
+  .gesture-history__hero,
+  .gesture-history__panel {
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+  }
+
+  .gesture-history__summary {
+    grid-template-columns: 1fr;
   }
 
   .app-header {
@@ -4154,8 +4355,8 @@ p {
   }
 
   .bottom-nav-item {
-    padding: 4px var(--space-sm);
-    min-width: 54px;
+    padding: 4px 6px;
+    min-width: 48px;
     min-height: 42px;
   }
 

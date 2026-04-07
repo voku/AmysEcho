@@ -9,6 +9,14 @@ const MIN_SCROLL_POSITION_PX = 24;
 // Bottom Navigation - Amy Loop Style
 // ========================================
 export function BottomNav() {
+  const navItems = [
+    { to: '/', title: 'Kamera', icon: '🖐️', label: 'Kamera', end: true },
+    { to: '/verlauf', title: 'Verlauf', icon: '📜', label: 'Verlauf' },
+    { to: '/betreuung', title: 'Betreuung', icon: '👨‍👩‍👧', label: 'Betreuung' },
+    { to: '/lernen', title: 'Lernen', icon: '🧠', label: 'Lernen' },
+    { to: '/symbole', title: 'Symbole', icon: '🗣️', label: 'Symbole' },
+    { to: '/hilfe', title: 'Hilfe', icon: '❓', label: 'Hilfe' },
+  ];
   const lastScrollY = useRef(0);
   const prefersAutoHide = useRef(false);
   const scrollTicking = useRef(false);
@@ -103,47 +111,18 @@ export function BottomNav() {
       onFocusCapture={revealNav}
       onTouchStart={revealNav}
     >
-      <NavLink
-        to="/"
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Kamera"
-        end
-      >
-        <span className="bottom-nav-icon">🖐️</span>
-        <span className="bottom-nav-label">Kamera</span>
-      </NavLink>
-      <NavLink
-        to="/betreuung"
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Betreuung"
-      >
-        <span className="bottom-nav-icon">👨‍👩‍👧</span>
-        <span className="bottom-nav-label">Betreuung</span>
-      </NavLink>
-      <NavLink
-        to="/lernen"
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Lernen"
-      >
-        <span className="bottom-nav-icon">🧠</span>
-        <span className="bottom-nav-label">Lernen</span>
-      </NavLink>
-      <NavLink
-        to="/symbole"
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Symbole"
-      >
-        <span className="bottom-nav-icon">🗣️</span>
-        <span className="bottom-nav-label">Symbole</span>
-      </NavLink>
-      <NavLink
-        to="/hilfe"
-        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
-        title="Hilfe"
-      >
-        <span className="bottom-nav-icon">❓</span>
-        <span className="bottom-nav-label">Hilfe</span>
-      </NavLink>
+      {navItems.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+          title={item.title}
+          {...(item.end ? { end: true } : {})}
+        >
+          <span className="bottom-nav-icon">{item.icon}</span>
+          <span className="bottom-nav-label">{item.label}</span>
+        </NavLink>
+      ))}
     </nav>
   );
 }

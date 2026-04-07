@@ -10,6 +10,7 @@ vi.mock('./Admin', () => ({ Admin: () => <div>Admin Mock</div> }));
 vi.mock('./CaregiverArea', () => ({ CaregiverArea: () => <div>CaregiverArea Mock</div> }));
 vi.mock('./Help', () => ({ Help: () => <div>Help Mock</div> }));
 vi.mock('./LearningHub', () => ({ LearningHub: () => <div>LearningHub Mock</div> }));
+vi.mock('./GestureHistoryPage', () => ({ GestureHistoryPage: () => <div>GestureHistory Mock</div> }));
 vi.mock('./MetacomBoard', () => ({ MetacomBoard: () => <div>MetacomBoard Mock</div> }));
 vi.mock('./ParentalGate', () => ({ ParentalGate: () => <div>ParentalGate Mock</div> }));
 vi.mock('./ProfileManager', () => ({ ProfileManager: () => <div>ProfileManager Mock</div> }));
@@ -29,5 +30,15 @@ describe('MainAppContent', () => {
     expect(screen.getByText('Recorder Mock')).toBeInTheDocument();
     expect(screen.getByText('Support Mock')).toBeInTheDocument();
     expect(screen.getByText('BottomNav Mock')).toBeInTheDocument();
+  });
+
+  it('rendert den Verlauf unter /verlauf', () => {
+    render(
+      <MemoryRouter initialEntries={['/verlauf']}>
+        <MainAppContent />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('GestureHistory Mock')).toBeInTheDocument();
   });
 });

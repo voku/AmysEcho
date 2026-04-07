@@ -328,6 +328,7 @@ export function SignLanguageRecorder() {
   } = useSignLanguageDetector(videoRef, overlayRef);
   const { notice: modelNotice, status: modelStatus, lastMeta: modelMeta } = useMlpModelInjection(profileId);
   const latestProfileIdRef = useRef<string | null>(profileId);
+  const lastConfidenceRef = useRef<number | null | undefined>(lastConfidence);
   const lastProfileModelLogRef = useRef<string>('');
   const lastFilteredPredictionLogRef = useRef<string>('');
 
@@ -372,6 +373,10 @@ export function SignLanguageRecorder() {
   useEffect(() => {
     latestProfileIdRef.current = profileId;
   }, [profileId]);
+
+  useEffect(() => {
+    lastConfidenceRef.current = lastConfidence;
+  }, [lastConfidence]);
 
   useEffect(() => {
     try {
@@ -740,7 +745,29 @@ export function SignLanguageRecorder() {
         normalizedTrainedSignLabels.has(normalizedEffectiveSign)
         && canUseProfileRecognition
       ) {
-        recordSign(canonicalizeRecordedSign(effectiveSign));
+        const meaning = gestureMeaningService.getMeaning(normalizedEffectiveSign);
+        const recordedSignDetails: {
+          confidence?: number;
+          emoji?: string;
+          category?: string;
+          audioResponse?: string;
+        } = {};
+
+        const confidence = lastConfidenceRef.current;
+        if (typeof confidence === 'number') {
+          recordedSignDetails.confidence = confidence;
+        }
+        if (meaning?.emoji) {
+          recordedSignDetails.emoji = meaning.emoji;
+        }
+        if (meaning?.category) {
+          recordedSignDetails.category = meaning.category;
+        }
+        if (meaning?.audioText) {
+          recordedSignDetails.audioResponse = meaning.audioText;
+        }
+
+        recordSign(canonicalizeRecordedSign(effectiveSign), recordedSignDetails);
         if (manualSuggestionLabel) {
           setManualSuggestionLabel(null);
         }
@@ -1174,6 +1201,13 @@ export function SignLanguageRecorder() {
           >
             Lernen
           </button>
+          <Link
+            to="/verlauf"
+            className="gesture-screen__action gesture-screen__action--alt"
+            title="Zuletzt erkannte Gebärden ansehen"
+          >
+            Verlauf
+          </Link>
         </div>
 
         <div className="gesture-screen__meta">

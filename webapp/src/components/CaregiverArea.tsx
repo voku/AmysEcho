@@ -44,6 +44,11 @@ const CAREGIVER_SECTIONS: Array<{ title: string; items: CaregiverOption[] }> = [
         route: '/symbole'
       },
       {
+        title: 'Verlauf ansehen',
+        subtitle: 'Zuletzt erkannte Gebärden prüfen',
+        route: '/verlauf'
+      },
+      {
         title: 'Adminbereich',
         subtitle: 'Technische Kernwerkzeuge für Symbole und Datensicherung',
         route: '/admin',

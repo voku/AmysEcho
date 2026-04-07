@@ -49,6 +49,7 @@ class GestureHistoryService {
   private static instance: GestureHistoryService;
   private history: GestureHistoryEntry[] = [];
   private analyticsHistory: GestureHistoryEntry[] = [];
+  private listeners: Set<() => void> = new Set();
   private readonly MAX_HISTORY = 10;
   private readonly MAX_ANALYTICS_ENTRIES = 1000;
   private readonly ANALYTICS_RETENTION_DAYS = 30;
@@ -74,6 +75,21 @@ class GestureHistoryService {
 
   ready(): Promise<void> {
     return this.hydrationPromise;
+  }
+
+  subscribe(callback: () => void): () => void {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
+
+  private notify(): void {
+    this.listeners.forEach((callback) => {
+      try {
+        callback();
+      } catch (error) {
+        logger.warn('Gesture history subscriber failed:', error);
+      }
+    });
   }
 
   /**
@@ -107,6 +123,7 @@ class GestureHistoryService {
     this.analyticsHistory = this.sanitizeAnalyticsHistory(this.analyticsHistory);
 
     void this.saveHistory();
+    this.notify();
     logger.debug('Gesture added to history:', entry.label);
   }
 
@@ -257,6 +274,7 @@ class GestureHistoryService {
       }
       this.enforceRecentHistoryRetention();
       void this.saveHistory();
+      this.notify();
       logger.debug('Last gesture removed from history:', removed.label);
     }
     return removed ?? null;
@@ -269,6 +287,7 @@ class GestureHistoryService {
     this.history = [];
     this.analyticsHistory = [];
     void this.saveHistory();
+    this.notify();
     logger.info('Gesture history cleared');
   }
 
@@ -340,11 +359,13 @@ class GestureHistoryService {
           }
         }
         this.enforceRecentHistoryRetention();
+        this.notify();
       }
     } catch (error) {
       logger.warn('Failed to load gesture history:', error);
       this.history = [];
       this.analyticsHistory = [];
+      this.notify();
     }
   }
 

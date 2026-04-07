@@ -13,6 +13,7 @@ describe('BottomNav', () => {
     );
 
     expect(screen.getByText('Kamera')).toBeInTheDocument();
+    expect(screen.getByText('Verlauf')).toBeInTheDocument();
     expect(screen.getByText('Betreuung')).toBeInTheDocument();
     expect(screen.getByText('Lernen')).toBeInTheDocument();
     expect(screen.getByText('Symbole')).toBeInTheDocument();
@@ -52,6 +53,17 @@ describe('BottomNav', () => {
     expect(lernenLink).toHaveClass('active');
   });
 
+  it('marks verlauf route as active when on /verlauf', () => {
+    render(
+      <MemoryRouter initialEntries={['/verlauf']}>
+        <BottomNav />
+      </MemoryRouter>
+    );
+
+    const verlaufLink = screen.getByText('Verlauf').closest('a');
+    expect(verlaufLink).toHaveClass('active');
+  });
+
   it('marks symbole route as active when on /symbole', () => {
     render(
       <MemoryRouter initialEntries={['/symbole']}>
@@ -72,7 +84,7 @@ describe('BottomNav', () => {
 
     // Check that icon spans are rendered
     const iconElements = document.querySelectorAll('.bottom-nav-icon');
-    expect(iconElements.length).toBe(5);
+    expect(iconElements.length).toBe(6);
   });
 
   it('has correct links to all routes', () => {
@@ -83,11 +95,12 @@ describe('BottomNav', () => {
     );
 
     const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(5);
+    expect(links).toHaveLength(6);
     expect(links[0]).toHaveAttribute('href', '/');
-    expect(links[1]).toHaveAttribute('href', '/betreuung');
-    expect(links[2]).toHaveAttribute('href', '/lernen');
-    expect(links[3]).toHaveAttribute('href', '/symbole');
-    expect(links[4]).toHaveAttribute('href', '/hilfe');
+    expect(links[1]).toHaveAttribute('href', '/verlauf');
+    expect(links[2]).toHaveAttribute('href', '/betreuung');
+    expect(links[3]).toHaveAttribute('href', '/lernen');
+    expect(links[4]).toHaveAttribute('href', '/symbole');
+    expect(links[5]).toHaveAttribute('href', '/hilfe');
   });
 });

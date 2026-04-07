@@ -6,6 +6,7 @@ import { FloatingSupportButton } from './FloatingSupportButton';
 import { Help } from './Help';
 import { LearningHub } from './LearningHub';
 import { MetacomBoard } from './MetacomBoard';
+import { GestureHistoryPage } from './GestureHistoryPage';
 import { ParentalGate } from './ParentalGate';
 import { ProfileManager } from './ProfileManager';
 import { ProfileSelect } from './ProfileSelect';
@@ -35,7 +36,7 @@ export function MainAppContent() {
           <Route path="/beibringen" element={<Teach />} />
           <Route path="/auswahl" element={<ProfileSelect />} />
           <Route path="/profile" element={<ProfileManager />} />
-          <Route path="/verlauf" element={<Navigate to="/" replace />} />
+          <Route path="/verlauf" element={<GestureHistoryPage />} />
           <Route path="/videos" element={<Navigate to="/lernen" replace />} />
           <Route path="/dashboard" element={<Navigate to="/betreuung" replace />} />
           <Route path="/erkenntnisse" element={<Navigate to="/betreuung" replace />} />

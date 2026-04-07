@@ -370,8 +370,16 @@ describe('SignLanguageRecorder', () => {
     expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
     expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
     await waitFor(() => {
-      expect(appStateMock.recordSign).toHaveBeenCalledWith('trinken');
-      expect(appStateMock.recordSign).not.toHaveBeenCalledWith('trinken?');
+      expect(appStateMock.recordSign).toHaveBeenCalledWith(
+        'trinken',
+        expect.objectContaining({
+          confidence: 0.91,
+        }),
+      );
+      expect(appStateMock.recordSign).not.toHaveBeenCalledWith(
+        'trinken?',
+        expect.anything(),
+      );
     });
   });
 
@@ -430,7 +438,13 @@ describe('SignLanguageRecorder', () => {
 
     expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
     expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
-    expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN');
+    expect(appStateMock.recordSign).toHaveBeenCalledWith(
+      'TRINKEN',
+      expect.objectContaining({
+        confidence: 0.88,
+        emoji: '🥤',
+      }),
+    );
   });
 
 
@@ -450,9 +464,14 @@ describe('SignLanguageRecorder', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
     await waitFor(() => {
-      expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN');
+      expect(appStateMock.recordSign).toHaveBeenCalledWith(
+        'TRINKEN',
+        expect.objectContaining({
+          emoji: '🥤',
+        }),
+      );
     });
-    expect(appStateMock.recordSign).not.toHaveBeenCalledWith('ESSEN');
+    expect(appStateMock.recordSign).not.toHaveBeenCalledWith('ESSEN', expect.anything());
   });
 
 
@@ -472,7 +491,7 @@ describe('SignLanguageRecorder', () => {
     renderWithProviders(<SignLanguageRecorder />);
 
     await waitFor(() => {
-      expect(appStateMock.recordSign).not.toHaveBeenCalledWith('TRINKEN');
+      expect(appStateMock.recordSign).not.toHaveBeenCalledWith('TRINKEN', expect.anything());
     });
   });
 
@@ -504,7 +523,7 @@ describe('SignLanguageRecorder', () => {
     fireEvent.click(within(diagnosticsHint).getByRole('button', { name: /Satt · 21% · trainiert/ }));
 
     await waitFor(() => {
-      expect(appStateMock.recordSign).toHaveBeenCalledWith('SATT');
+      expect(appStateMock.recordSign).toHaveBeenCalledWith('SATT', {});
     });
   });
 
@@ -938,7 +957,12 @@ describe('SignLanguageRecorder', () => {
 
     expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
     expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
-    expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN');
+    expect(appStateMock.recordSign).toHaveBeenCalledWith(
+      'TRINKEN',
+      expect.objectContaining({
+        emoji: '🥤',
+      }),
+    );
   });
 
   it('matches detector output when generated UUID suffix uses underscore separator', async () => {
@@ -957,7 +981,13 @@ describe('SignLanguageRecorder', () => {
 
     expect(screen.getByText('Erkennung arbeitet stabil')).toBeInTheDocument();
     expect(screen.queryByText('Gebärde erkannt, aber nicht im trainierten Profil')).not.toBeInTheDocument();
-    expect(appStateMock.recordSign).toHaveBeenCalledWith('TRINKEN_05d6e861-36e0-4ca2-91f1-e6d9bf591726');
+    expect(appStateMock.recordSign).toHaveBeenCalledWith(
+      'TRINKEN_05d6e861-36e0-4ca2-91f1-e6d9bf591726',
+      expect.objectContaining({
+        confidence: 0.91,
+        emoji: '🥤',
+      }),
+    );
   });
 
   it('blocks trained-sign output until the personal profile model is active', async () => {
