@@ -52,10 +52,6 @@ Execution order when hardware/data blockers clear: run `APR-P0-2` first, use the
 
 ## 2. R&D Backlog
 
-- [ ] **RD-P0-2:** Evaluate `FULL_RANGE` face detector mode for non-frontal caregiver/device setups.
-  - Topic board: `docs/planning/topics/RD-P0-2/topic.md`
-  - Evidence target: side-angle / partial-face benchmark matrix and enable-or-keep-default recommendation.
-
 - [ ] **RD-P1-2:** Prototype the temporal smoothing / sequence-modeling upgrade path with a strict latency budget.
   - Topic board: `docs/planning/topics/RD-P1-2/topic.md`
   - Evidence target: comparison report covering accuracy deltas, p95 latency, and battery/thermal impact.

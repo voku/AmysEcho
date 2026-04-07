@@ -171,6 +171,12 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Entry points: `webapp/src/gesture/core/GestureDetector.ts`, `docs/testing/benchmarks/`
   - Evidence: `docs/testing/benchmarks/rd-p0-1-roi-image-processing-2026-04-07.md` rejects the ROI variant before device benchmarking because JS docs do not document ROI support for these task classes and the matching Java task APIs document ROI as unsupported for gesture, pose-landmark, and face-landmark detection; current full-frame path remains unchanged.
 
+- [x] **RD-P0-2:** Evaluate `FULL_RANGE` face detector mode for non-frontal caregiver/device setups.
+  - Topic board: `docs/planning/topics/RD-P0-2/topic.md` (details + evidence).
+  - Why now: FULL_RANGE looked like a possible mitigation for non-frontal setups, but adding a separate face detector would change the runtime before side-angle fixture evidence exists.
+  - Entry points: `webapp/src/gesture/core/GestureDetector.ts`, `docs/testing/benchmarks/`
+  - Evidence: `docs/testing/benchmarks/rd-p0-2-full-range-face-detector-2026-04-07.md` keeps the current FaceLandmarker path and rejects standalone FULL_RANGE FaceDetector plumbing because FULL_RANGE is a separate detector model asset rather than a documented FaceLandmarker selector, and the repo has no side-angle/partial-face fixture set to justify duplicate per-frame face work.
+
 ## 6) April 2026 — Supported-core cleanup follow-ups
 
 ### Done (April 2026 — server maintainability)
