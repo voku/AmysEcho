@@ -1,10 +1,16 @@
 import { spawn } from "child_process";
 import { randomBytes } from "crypto";
-import express, { type Request, type Response } from "express";
-import rateLimit from "express-rate-limit";
+import { type Request, type Response } from "express";
 import { promises as fs } from "fs";
 import path from "path";
 import { z } from "zod";
+import {
+	createConfiguredApp,
+	errorHandler,
+} from "./bootstrap/expressApp.js";
+import { createServerRateLimiters } from "./bootstrap/rateLimiters.js";
+import { readServerPackageJson } from "./bootstrap/serverPackage.js";
+import { startServerWhenReady } from "./bootstrap/startServer.js";
 import config from "./config/index.js";
 import { DB_FILE_PATH } from "./constants/dbPaths.js";
 import {
@@ -22,11 +28,7 @@ import {
 } from "./constants/modelPaths.js";
 import { PROFILE_REGISTRY_PATH } from "./constants/profileRegistryPaths.js";
 import {
-	addCorrection,
-	addNegativeSample,
 	type Database,
-	logCorrection,
-	saveDatabase,
 	setupDatabase,
 } from "./db.js";
 import { auth } from "./middleware/auth.js";
@@ -45,10 +47,7 @@ import { registerTrainingBundleRoute } from "./routes/trainingBundleRoute.js";
 import { registerTrainingJobsRoutes } from "./routes/trainingJobsRoutes.js";
 import { registerProfileLabelRoutes } from "./routes/profileLabelRoutes.js";
 import { registerUserRoutes } from "./routes/userRoutes.js";
-import {
-	appendCrashReports,
-	type CrashReport,
-} from "./services/crashService.js";
+import { registerUtilityRoutes } from "./routes/utilityRoutes.js";
 import { createEmailService } from "./services/emailService.js";
 import logger from "./services/logger.js";
 import {
@@ -56,7 +55,7 @@ import {
 	sendBinaryModel,
 	writeMinimalMlpModel,
 } from "./services/mlpModelArtifacts.js";
-import { loadCustomSigns, writeProfileBackup } from "./services/profileDataService.js";
+import { writeProfileBackup } from "./services/profileDataService.js";
 import {
 	readLatestPostTrainingCadenceSummary,
 	runPostTrainingCadenceCycle,
@@ -75,158 +74,16 @@ import {
 	UUID_REGEX,
 } from "./services/profileRegistry.js";
 import { ingestTrainingBundlesIntoDataset } from "./services/trainingBundleIngestor.js";
-import { buildLabelManifest } from "./services/labelRegistry.js";
 import { parseEpochSchedule, resolveTrainingScore } from "./services/profileTrainingTuning.js";
-import type { Correction, ManifestEntry, NegativeSample } from "./types.js";
+import type { ManifestEntry } from "./types.js";
 import { withFileLock } from "./utils/fileLock.js";
 import { loadManifestEntries } from "./utils/manifestUtils.js";
 import { resolvePythonExecutable, withProjectPythonPath } from "./utils/pythonExecutable.js";
-import { buildTrainedLabelDescriptors, mergeTrainedLabels } from "./services/trainedLabelsService.js";
 import { isProfileAuthorized } from "./utils/profileAuthorization.js";
-import { httpsEnforcement, hstsHeaders } from "./middleware/httpsEnforcement.js";
 
-export const app = express();
-
-// Trust first proxy (Nginx) to correctly handle X-Forwarded-Proto
-app.set("trust proxy", 1);
-
-// Security middleware - must be first
-// HTTPS enforcement (production only) and HSTS headers
-app.use(httpsEnforcement);
-app.use(hstsHeaders);
-
-// Development CORS: allow local webapp origins when not in production
-if (process.env.NODE_ENV !== "production") {
-	const DEV_ORIGINS = new Set([
-		"http://localhost:5173",
-		"http://127.0.0.1:5173",
-		"http://localhost:4173",
-		"http://127.0.0.1:4173",
-		"http://localhost:3000",
-		"http://127.0.0.1:3000",
-	]);
-	app.use((req, res, next) => {
-		const origin = req.headers.origin;
-		if (origin && DEV_ORIGINS.has(origin)) {
-			res.setHeader("Access-Control-Allow-Origin", origin);
-			res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-			res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, If-None-Match");
-			res.setHeader("Access-Control-Allow-Credentials", "true");
-			res.setHeader("Access-Control-Expose-Headers", "ETag, X-Model-Feature-Mode, X-Model-Label-Count, X-Model-Contract-Status");
-			// Preflight requests complete here; no next() needed.
-			if (req.method === "OPTIONS") {
-				res.sendStatus(204);
-				return;
-			}
-		}
-		next();
-	});
-}
-
-function getErrnoCode(error: unknown): string | undefined {
-	return (error as NodeJS.ErrnoException | undefined)?.code;
-}
-
-async function readServerPackageJson(): Promise<Record<string, unknown>> {
-	const candidates = [
-		path.join(SERVER_DIR, "package.json"),
-		path.join(SERVER_DIR, "..", "package.json"),
-	];
-	for (const candidate of candidates) {
-		try {
-			const raw = await fs.readFile(candidate, "utf8");
-			const parsed = JSON.parse(raw);
-			if (parsed && typeof parsed === "object") {
-				return parsed as Record<string, unknown>;
-			}
-		} catch (error) {
-			if (getErrnoCode(error) !== "ENOENT") {
-				throw error;
-			}
-		}
-	}
-	throw new Error("package.json not found");
-}
-
-// Increase JSON body size limit to accommodate base64 images from the app
-app.use(express.json({ limit: "8mb" }));
-app.use(express.urlencoded({ extended: true, limit: "8mb" }));
-
-// Centralized error handling middleware
-const errorHandler = (
-	error: unknown,
-	req: Request,
-	res: Response,
-	_next: Function,
-) => {
-	const errorRecord = error as {
-		statusCode?: number;
-		message?: string;
-		stack?: string;
-	};
-	const statusCode =
-		typeof errorRecord.statusCode === "number" ? errorRecord.statusCode : 500;
-	const message =
-		typeof errorRecord.message === "string"
-			? errorRecord.message
-			: "Internal server error";
-
-	// Log detailed error for debugging
-	logger.error(
-		"Request error",
-		{
-			method: req.method,
-			path: req.path,
-			message: errorRecord.message,
-			stack: errorRecord.stack,
-			statusCode,
-			url: req.url,
-			userAgent: req.get("User-Agent"),
-		},
-		req.user?.id,
-	);
-
-	// Return user-friendly error message
-	res.status(statusCode).json({
-		error: statusCode === 500 ? "Internal server error" : message,
-		...(config.nodeEnv === "development" && { details: message }),
-	});
-};
-
-// Generic API rate limiter for server endpoints
-const apiLimiter = rateLimit({
-	windowMs: 60 * 1000,
-	max: config.apiLimit,
-	standardHeaders: true,
-	legacyHeaders: false,
-});
-
-const modelMetadataLimiter = rateLimit({
-	windowMs: 60 * 1000,
-	max: config.modelMetadataLimit,
-	standardHeaders: true,
-	legacyHeaders: false,
-});
-
-const trainingLimiter = rateLimit({
-	windowMs: 60 * 1000,
-	max: config.trainingLimit, // Training operations are expensive, but caregivers may upload/poll in bursts
-	standardHeaders: true,
-	legacyHeaders: false,
-	message: "Zu viele Trainingsanfragen. Bitte versuche es später erneut.",
-	handler: (_req, res, _next, optionsUsed) => {
-		const retryAfterSecs = Math.ceil(((optionsUsed.windowMs as number | undefined) ?? 60_000) / 1000);
-		res.setHeader("Retry-After", String(retryAfterSecs));
-		res.status(429).json({ error: "Zu viele Trainingsanfragen. Bitte versuche es später erneut." });
-	},
-});
-
-const healthLimiter = rateLimit({
-	windowMs: 1000,
-	max: 100,
-	standardHeaders: true,
-	legacyHeaders: false,
-});
+export const app = createConfiguredApp();
+const { apiLimiter, modelMetadataLimiter, trainingLimiter, healthLimiter } =
+	createServerRateLimiters();
 
 async function collectLabelCounts(): Promise<{
 	globalCounts: Record<string, number>;
@@ -355,25 +212,6 @@ registerDiagnosticsRoutes(app, {
 	healthLimiter,
 	getPendingTrainingJobs: () => trainingQueue.length,
 	getTrainingManifestEntries: getCachedManifestEntries,
-});
-
-// ========== Label Registry Endpoint ==========
-// Amy First: Exposes the unified label registry for training data
-app.get("/api/v1/labels", async (_req: Request, res: Response) => {
-	try {
-		const manifest = await buildLabelManifest();
-		// Convert Map to plain object for JSON serialization using idiomatic Object.fromEntries
-		const variationsObject = Object.fromEntries(manifest.variations);
-		res.json({
-			version: manifest.version,
-			labels: manifest.labels,
-			variations: variationsObject,
-			stats: manifest.stats,
-		});
-	} catch (error) {
-		console.error("Failed to load label manifest:", error);
-		res.status(500).json({ error: "Fehler beim Laden der Gebärden-Labels" });
-	}
 });
 
 async function processTrainingQueue(): Promise<void> {
@@ -1177,194 +1015,23 @@ registerLandmarkTemplateRoute(app, {
 	resolveProfileId: resolveProfileId,
 });
 
-// Add a labeled DGS sample (landmarks normalized [0..1])
-app.post("/api/v1/dgs/samples", auth, apiLimiter, async (req: Request, res: Response) => {
-	try {
-		const Body = z.object({
-			label: z.string().min(1),
-			profileId: z.string().optional(),
-			// 21 (one hand), 42 (two hands), or 543 (multimodal: 42 + 33 + 468)
-			landmarks: z
-				.array(
-					z.tuple([
-						z.number().finite(),
-						z.number().finite(),
-						z.number().finite(),
-					]),
-				)
-				.refine(
-					(pts: [number, number, number][]) =>
-						pts.length === HAND_LANDMARKS_PER_HAND ||
-						pts.length === TOTAL_HAND_LANDMARKS ||
-						pts.length === MULTIMODAL_LANDMARKS,
-					"landmarks must be 21, 42 or 543 points",
-				)
-				.refine(
-					(pts: [number, number, number][]) =>
-						pts.every(
-							([x, y, z]: [number, number, number]) =>
-								x >= 0 && x <= 1 && y >= 0 && y <= 1 && Number.isFinite(z),
-						),
-					"landmarks must be within [0,1] for x,y",
-				),
-		});
-		const parsed = Body.safeParse(req.body);
-		if (!parsed.success) {
-			return res
-				.status(400)
-				.json({
-					error:
-						"Label und gültige Landmarken (21, 42 oder 543 × [x,y,z]) erforderlich.",
-					details: parsed.error.flatten(),
-				});
-		}
-		const { label, profileId, landmarks } = parsed.data;
-		if (profileId && !PROFILE_ID_PATTERN.test(profileId)) {
-			return res.status(400).json({ error: "Ungültige Profil-ID." });
-		}
-		const resolvedProfile = await resolveProfileId(profileId ?? null);
-		const resolvedProfileId = resolvedProfile.profileId ?? undefined;
-		if (profileId && !resolvedProfileId) {
-			return res.status(404).json({ error: "Profil nicht gefunden." });
-		}
-		if (resolvedProfileId && !isProfileAuthorized(req, resolvedProfileId, dbInstance, profileRegistry)) {
-			return res.status(403).json({ error: "Zugriff verweigert." });
-		}
-			console.log(
-				`Received DGS sample: label=${label}, profileId=${resolvedProfileId}, landmarks length=${landmarks.length}`,
-			);
-			appendDgsSamples([{
-				id: genId(),
-				label,
-				profileId: resolvedProfileId,
-				landmarks,
-				ts: Date.now(),
-			}]);
-		res.json({ status: "ok" });
-	} catch (error) {
-		console.error("Error saving DGS sample:", error);
-		res
-			.status(500)
-			.json({ error: "Beispiel konnte nicht gespeichert werden." });
-	}
+registerUtilityRoutes(app, {
+	authMiddleware: auth,
+	apiLimiter,
+	dataDir: DATA_DIR,
+	dbFilePath: DB_FILE_PATH,
+	getDatabase: () => dbInstance,
+	genId,
+	getManifestEntries: getCachedManifestEntries,
+	handLandmarksPerHand: HAND_LANDMARKS_PER_HAND,
+	totalHandLandmarks: TOTAL_HAND_LANDMARKS,
+	multimodalLandmarks: MULTIMODAL_LANDMARKS,
+	profileIdPattern: PROFILE_ID_PATTERN,
+	resolveProfileId,
+	isProfileAuthorized: (req: Request, profileId: string) =>
+		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
+	withFileLock,
 });
-
-// Crash report ingestion
-app.post("/api/v1/crash-reports", auth, apiLimiter, async (req: Request, res: Response) => {
-	try {
-		const payload: unknown[] = Array.isArray(req.body) ? req.body : [req.body];
-		const valid: CrashReport[] = [];
-		for (const r of payload) {
-			if (!r || typeof r !== "object") continue;
-			const candidate = r as Record<string, unknown>;
-			if (
-				typeof candidate.message !== "string" ||
-				typeof candidate.timestamp !== "number"
-			)
-				continue;
-			valid.push({
-				id:
-					typeof candidate.id === "string"
-						? candidate.id
-						: Date.now().toString(36),
-				name: typeof candidate.name === "string" ? candidate.name : "Error",
-				message: candidate.message,
-				stack:
-					typeof candidate.stack === "string" ? candidate.stack : undefined,
-				timestamp: candidate.timestamp,
-				extra:
-					candidate.extra && typeof candidate.extra === "object"
-						? (candidate.extra as Record<string, unknown>)
-						: undefined,
-			});
-		}
-		if (!valid.length)
-			return res.status(400).json({ error: "No valid crash reports" });
-		await appendCrashReports(valid);
-		res.status(202).json({ status: "ok", saved: valid.length });
-	} catch (error) {
-		console.error("Error saving crash reports:", error);
-		res.status(500).json({ error: "Failed to save crash reports" });
-	}
-});
-
-const signToString = (g: unknown): string | null => {
-	if (typeof g === "string") return g;
-	if (g && typeof g === "object") {
-		const { left, right } = g as { left?: unknown; right?: unknown };
-		if (typeof left === "string" && typeof right === "string") {
-			return `${left}+${right}`;
-		}
-	}
-	return null;
-};
-
-const SignPayloadSchema = z.object({
-	sign: z.union([
-		z.string().min(1),
-		z.object({ left: z.string().min(1), right: z.string().min(1) }),
-	]),
-});
-
-app.post("/api/v1/corrections", auth, apiLimiter, async (req: Request, res: Response) => {
-	const parsed = SignPayloadSchema.safeParse(req.body);
-	if (!parsed.success) {
-		return res
-			.status(400)
-			.json({ error: "Invalid correction", details: parsed.error.flatten() });
-	}
-	const signStr = signToString(parsed.data.sign)!;
-	try {
-		logCorrection(dbInstance, "unknown", signStr, null);
-		const record: Correction = {
-			id: genId(),
-			predictedSign: "unknown",
-			actualSign: signStr,
-			confidence: 0,
-			timestamp: Date.now(),
-			isSynced: false,
-		};
-		addCorrection(dbInstance, record);
-		// saveDatabase is now a no-op with SQLite, but kept for API compatibility
-		await withFileLock(DB_FILE_PATH, async () =>
-			saveDatabase(dbInstance, DB_FILE_PATH),
-		);
-		res.status(202).json({ status: "queued" });
-	} catch (error) {
-		console.error("Error logging correction:", error);
-		res.status(500).json({ error: "Failed to log correction" });
-	}
-});
-
-app.post(
-	"/api/v1/negative-samples",
-	auth,
-	async (req: Request, res: Response) => {
-		const parsed = SignPayloadSchema.safeParse(req.body);
-		if (!parsed.success) {
-			return res.status(400).json({
-				error: "Invalid negative sample",
-				details: parsed.error.flatten(),
-			});
-		}
-		const signStr = signToString(parsed.data.sign)!;
-		try {
-			const record: NegativeSample = {
-				id: genId(),
-				sign: signStr,
-				timestamp: Date.now(),
-			};
-			addNegativeSample(dbInstance, record);
-			await withFileLock(DB_FILE_PATH, async () =>
-				saveDatabase(dbInstance, DB_FILE_PATH),
-			);
-			res.status(202).json({ status: "queued" });
-		} catch (error) {
-			console.error("Error logging negative sample:", error);
-			res.status(500).json({ error: "Failed to log negative sample" });
-		}
-	},
-);
 
 registerTrainingJobsRoutes(app, {
 	authMiddleware: auth,
@@ -1393,86 +1060,6 @@ registerModelMetadataRoutes(app, {
 	profileIdPattern: PROFILE_ID_PATTERN,
 });
 
-// Get labels that have at least one sample for a profile
-app.get(
-	"/api/v1/dgs/trained-labels",
-	auth,
-	async (req: Request, res: Response) => {
-		try {
-			const profileId =
-				typeof req.query.profileId === "string"
-					? req.query.profileId
-					: undefined;
-			if (!profileId) {
-				return res.status(400).json({ error: "profileId required" });
-			}
-			
-			// Check authorization before returning profile-specific data
-			if (!isProfileAuthorized(req, profileId, dbInstance, profileRegistry)) {
-				return res.status(403).json({ error: "Zugriff verweigert." });
-			}
-
-			const manifestEntries = await getCachedManifestEntries();
-			const trainedLabels = mergeTrainedLabels(profileId, manifestEntries);
-			const customSigns = await loadCustomSigns();
-			const labelDescriptors = buildTrainedLabelDescriptors(
-				profileId,
-				trainedLabels,
-				Array.isArray(customSigns.signs) ? customSigns.signs : [],
-			);
-
-			res.json({ profileId, trainedLabels, labelDescriptors });
-		} catch (error) {
-			console.error("Failed to get trained labels:", error);
-			res.status(500).json({ error: "Internal server error" });
-		}
-	},
-);
-
-// Get normalization configuration
-app.get(
-	"/api/v1/config/normalization",
-	auth,
-	async (_req: Request, res: Response) => {
-		try {
-			const configPath = path.join(
-				DATA_DIR,
-				"config",
-				"normalization_config.json",
-			);
-			const raw = await fs.readFile(configPath, "utf8");
-			res.json(JSON.parse(raw));
-		} catch {
-			// Return defaults if config missing
-			res.json({
-				priority_factors: {
-					hands: 4.0,
-					pose: 0.2,
-					face: 0.05,
-				},
-			});
-		}
-	},
-);
-
 // Add error handling middleware
 app.use(errorHandler);
-
-const port = config.port;
-const shouldAutoListen =
-	!process.env.JEST_WORKER_ID &&
-	process.env.AMY_ECHO_SKIP_LISTEN !== "1" &&
-	process.env.AMY_ECHO_SKIP_LISTEN !== "true";
-if (shouldAutoListen) {
-	databaseReady
-		.then(async () => {
-			await ensureDataDir();
-			app.listen(port);
-			logger.info("Server started successfully", { port });
-		})
-		.catch((error) => {
-			const msg = (error as Error)?.message ?? String(error);
-			logger.error("Server startup failed", { error: msg });
-			process.exit(1);
-		});
-}
+startServerWhenReady(app, databaseReady);

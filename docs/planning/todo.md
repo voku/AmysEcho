@@ -70,7 +70,6 @@ Execution order when hardware/data blockers clear: run `APR-P0-2` first, use the
 
 ## 3. Cleanup Follow-Ups
 
-- [ ] Split `server/src/server.ts` into smaller route/bootstrap modules now that supported-core route cleanup has landed.
 - [ ] Move one-off evidence docs into a clearer archive location or delete them if they no longer justify their weight.
 
 ## 4. Planning Rules
