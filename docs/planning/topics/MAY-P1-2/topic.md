@@ -4,7 +4,7 @@
 - **Column:** Done
 - **Owner:** ML/Platform owner
 - **Last updated:** 2026-04-04
-- **Status authority:** `docs/planning/todo.md`
+- **Status authority:** `docs/planning/todo-done.md` (archived completion)
 
 ## Amy impact
 - Prevents inflated metrics and protects Amy from brittle personalization quality in real-world use.

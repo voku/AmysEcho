@@ -4,7 +4,7 @@
 - **Column:** Done
 - **Owner:** Webapp maintainer (rotation: Frontend on-call)
 - **Last updated:** 2026-04-04
-- **Status authority:** `docs/planning/todo.md`
+- **Status authority:** `docs/planning/todo-done.md` (archived completion)
 
 ## Amy impact
 - Keeps communication UI accessible and stable for Amy and caregivers across real usage contexts.

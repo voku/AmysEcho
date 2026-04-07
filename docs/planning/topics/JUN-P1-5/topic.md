@@ -4,7 +4,7 @@
 - **Column:** Done
 - **Owner:** Backend on-call (ops rotation)
 - **Last updated:** 2026-04-04
-- **Status authority:** `docs/planning/todo.md`
+- **Status authority:** `docs/planning/todo-done.md` (archived completion)
 
 ## Amy impact
 - Reduces outage and recovery risk so Amy's communication remains available during incidents.

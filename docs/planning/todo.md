@@ -1,63 +1,83 @@
-# Amy's Echo TODO
+# Amy's Echo TODO - Active Roadmap
 
-**Last refreshed:** 2026-04-06
-**Current mode:** supported-core refactor
+**Last refreshed:** 2026-04-07
+**Current mode:** supported-core roadmap + cleanup
+**Done archive:** `docs/planning/todo-done.md`
 
-This file tracks only concrete cleanup work.
+This file is the execution source of truth for active roadmap items. Keep summaries here, keep deep handoff context in `docs/planning/topics/<TOPIC-ID>/topic.md`, and archive completed roadmap items in `docs/planning/todo-done.md`.
 
-Supported-core implementation status: complete.
-Remaining open items are cleanup and archive tasks, not blockers for the supported product surface.
+## 0. Current Baseline Notes From Recent Commits
 
-## 1. Route and screen cleanup
+These checked bullets summarize the current repo baseline. They are not standalone roadmap tasks to archive individually.
 
-- [x] Keep only the supported core routes first-class in the webapp router.
-- [x] Redirect old non-core routes instead of exposing them as primary navigation.
-- [x] Delete the non-core screen components once redirects and references are fully gone:
-  - `webapp/src/components/Dashboard.tsx`
-  - `webapp/src/components/CommunicationInsights.tsx`
-  - `webapp/src/components/ProgressTracker.tsx`
-  - `webapp/src/components/ProgressChart.tsx`
-  - `webapp/src/components/CaregiverReport.tsx`
-  - `webapp/src/components/SignVideoGallery.tsx`
-  - `webapp/src/components/SignLanguageHistory.tsx`
-  - `webapp/src/components/SettingsOverview.tsx`
-  - `webapp/src/components/SignLanguageTutorial.tsx`
-  - `webapp/src/components/AboutAmysEcho.tsx`
-  - `webapp/src/components/FeatureAvailability.tsx`
-- [x] Remove their tests after the components are deleted.
-- [x] Remove the corresponding CSS blocks from `webapp/src/App.css` after the component deletions land.
+- [x] Supported-core route/screen cleanup is complete: non-core webapp screens and tests were removed, old routes no longer drive primary navigation, and supporting CSS/docs were reduced.
+- [x] Backend product surface cleanup is complete enough for the supported core: non-core routes are no longer part of default bootstrap, and training gallery / pretraining route assumptions were removed.
+- [x] Python training code now uses the canonical `server/src/amyserver_tools/` path; duplicate `server/training/` code was removed.
+- [x] Post-training cadence work (`JUN-P1-6`) is done and archived with service, CLI, route, tests, runbook, and dry-run evidence in `docs/planning/todo-done.md`.
+- [x] DGS training quality was hardened with feature-contract validation, bundle ingestion checks, and recognition quality gating.
+- [x] Real-device protocol tooling now has a canonical evaluator path in `scripts/evaluate_device_protocol_results.py`.
+- [x] DGS planning was clarified with `docs/testing/benchmarks/dgs-realistic-protocol.md` and topic `RD-P1-4`.
+- [x] Training UX moved toward the one-upload flow and synchronized per-profile gesture history/navigation.
+- [x] Shared webapp utilities were hardened for telemetry, backup, and data protection behavior.
+- [x] Demo model artifacts were isolated from generated/runtime artifacts; checksum and test fixture docs were updated.
 
-## 2. Backend surface cleanup
+## 1. Blocked Execution Items
 
-- [x] Stop registering non-core server routes in the default server bootstrap.
-- [x] Remove dead imports, tests, and docs that assumed the non-core routes were part of the product:
-  - training video gallery flow
-  - separate pretraining status flow
-  - cadence/reporting endpoints presented as normal product surface
-- [ ] Split `server/src/server.ts` into smaller modules once the remaining route cleanup is finished.
+Execution order when hardware/data blockers clear: run `APR-P0-2` first, use the resulting device artifacts to decide `APR-P0-1` and `JUL-P1-1`, then refresh the release verdict in `APR-P0-5`.
 
-## 3. Training-path cleanup
+- [ ] **APR-P0-1:** Complete real-device worker-offload benchmark and publish a `keep` / `iterate` / `reject` decision.
+  - Status: Blocked on real-device main-thread vs worker-mode measurements from the APR-P0-2 cycle.
+  - Topic board: `docs/planning/topics/APR-P0-1/topic.md`
+  - Entry points: `webapp/src/gesture/workers/DetectionWorker.ts`, `webapp/src/gesture/workers/WorkerDetectionBridge.ts`, `docs/testing/benchmarks/worker-offload-2026-03-25.md`
 
-- [x] Compare `server/training/` against `server/src/amyserver_tools/`.
-- [x] Move any still-needed code from `server/training/` into `server/src/amyserver_tools/`.
-- [x] Delete `server/training/` when it is confirmed duplicate.
-- [x] Fold pretraining ideas into the normal training pipeline vocabulary; keep dataset/bootstrap logic only where it still helps training quality.
-- [x] Change docs so they reference only one canonical Python training path.
+- [ ] **APR-P0-2:** Run the full real-device performance protocol cycle and publish reproducible artifacts.
+  - Status: Blocked on P0/P1 caregiver-device artifacts not present in the workspace.
+  - Topic board: `docs/planning/topics/APR-P0-2/topic.md`
+  - Entry points: `webapp/src/hooks/useSignLanguageDetector.ts`, `webapp/src/components/TrainingRecorder.tsx`, `docs/testing/benchmarks/device-performance-protocol.md`
 
-## 4. Repo artifact cleanup
+- [ ] **APR-P0-5:** Refresh the release gate verdict from real-device evidence.
+  - Status: Blocked until committed APR-P0-2 real-device artifacts exist.
+  - Topic board: `docs/planning/topics/APR-P0-5/topic.md`
+  - Evidence target: create a new `docs/testing/benchmarks/results/<date>/apr-p0-4-gate-interpretation.md` snapshot from fresh real-device artifacts and sync `docs/planning/release-0.0.2-readiness.md`.
 
-- [x] Stop tracking local SQLite files and runtime job-state JSON.
-- [x] Remove committed dry-run and benchmark artifact trees from the active docs path:
-  - `docs/operations/post-training-cadence-dry-run-2026-04-06-artifacts/`
-  - `docs/testing/benchmarks/results/`
+- [ ] **MAY-P1-3:** Run the few-shot baseline on a current non-fixture training snapshot.
+  - Status: Blocked because the workspace has no active non-fixture `training_manifest.json` snapshot to evaluate honestly.
+  - Topic board: `docs/planning/topics/MAY-P1-3/topic.md`
+  - Entry points: `server/src/amyserver_tools/train_mlp_fewshot.py`, `docs/testing/benchmarks/few-shot-protocol.md`
+
+- [ ] **JUL-P1-1:** Publish long-session hardware baselines for target caregiver devices and compare against release gates.
+  - Status: Blocked on target-device hardware access and long-session measurements.
+  - Topic board: `docs/planning/topics/JUL-P1-1/topic.md`
+  - Evidence target: benchmark table and interpretation under `docs/testing/benchmarks/`.
+
+## 2. R&D Backlog
+
+- [ ] **RD-P0-1:** Run an A/B benchmark for `ImageProcessingOptions` + ROI handling to reduce landmark jitter and crop failures.
+  - Topic board: `docs/planning/topics/RD-P0-1/topic.md`
+  - Evidence target: FPS, drop-rate, and confidence-stability comparison for baseline vs tuned ROI/crop settings.
+
+- [ ] **RD-P0-2:** Evaluate `FULL_RANGE` face detector mode for non-frontal caregiver/device setups.
+  - Topic board: `docs/planning/topics/RD-P0-2/topic.md`
+  - Evidence target: side-angle / partial-face benchmark matrix and enable-or-keep-default recommendation.
+
+- [ ] **RD-P1-2:** Prototype the temporal smoothing / sequence-modeling upgrade path with a strict latency budget.
+  - Topic board: `docs/planning/topics/RD-P1-2/topic.md`
+  - Evidence target: comparison report covering accuracy deltas, p95 latency, and battery/thermal impact.
+
+- [ ] **RD-P1-4:** Complete the realistic DGS test and training protocol evidence loop.
+  - Topic board: `docs/planning/topics/RD-P1-4/topic.md`
+  - Evidence target: committed benchmark snapshot or fixture set following `docs/testing/benchmarks/dgs-realistic-protocol.md`, plus data-tier note for training vs test-only material.
+
+## 3. Cleanup Follow-Ups
+
+- [ ] Split `server/src/server.ts` into smaller route/bootstrap modules now that supported-core route cleanup has landed.
 - [ ] Move one-off evidence docs into a clearer archive location or delete them if they no longer justify their weight.
-- [x] Check for other tracked runtime noise with:
-  - `git ls-files | rg "db.sqlite|\\.wal$|\\.shm$|coverage|dist|debug|artifacts"`
-  - Result: no forbidden tracked runtime files remain; the remaining `artifacts` hits are intentional docs or placeholder files.
 
-## 5. Scope-doc alignment
+## 4. Planning Rules
 
-- [x] Reset `README.md` to describe the supported core instead of broad maturity claims.
-- [x] Add `docs/architecture/supported-core.md`.
-- [x] Shrink `spec/AmysEcho.md` further so it stops mixing historical ambition with current implementation truth.
-- [x] Remove or relabel roadmap/docs that still treat metrics, protocols, benchmark gates, or ops evidence as the main project story.
+1. Keep `docs/planning/todo.md` as the active roadmap status source.
+2. Keep execution detail in `docs/planning/topics/<TOPIC-ID>/topic.md`.
+3. Move completed roadmap items to `docs/planning/todo-done.md` by cut/paste; do not delete history.
+4. Mark tasks done only when evidence artifacts are committed.
+5. Use `docs/planning/topics/_template/topic-template.md` when adding new topic boards.
+6. Use lowercase planning paths only; do not recreate legacy uppercase planning filenames.
