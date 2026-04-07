@@ -51,7 +51,7 @@ deterministic way so the checksum can be validated in CI and production.
 - Validation is now planned bundle-aware instead of shuffling overlapping windows from the same clip across train/validation.
   If you inspect training output, look for `label_diagnostics` to confirm each label still has distinct train/validation groups.
 - `label_diagnostics.top_confusions` are now derived from the validation split when validation groups exist.
-  If a sparse label still shows `validation_group_count = 0`, treat the report as "not independently checked yet" rather than as evidence that the gesture is already stable.
+  If a sparse label still shows `validation_group_count = 0`, treat the report as "bootstrap only, not yet independently checked" rather than as evidence that the gesture is already stable.
 - Trained `.npz` bundles can now include `prototype_vectors`, `prototype_labels`, and `prototype_support`.
   The webapp uses them as a few-shot similarity head next to the dense MLP so new/custom gestures can work with fewer caregiver recordings.
 - Training reports now include per-label diagnostics (`bundle_count`, `rejected_bundle_count`, `window_count`, `prototype_count`, and `top_confusions`) so sparse-label failures like `satt` vs `trinken` can be debugged from real report data instead of only aggregate accuracy.

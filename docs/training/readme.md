@@ -10,23 +10,23 @@ The most common issue is **video source mismatch**:
 - Amy learned with Kestner → Videos are from SignDict → Signs don't match
 - Solution: Record custom videos matching Amy's learning
 
-**Quick fix (30 min):** [quick-start-custom-videos.md](quick-start-custom-videos.md)
+**Quick fix (30 min):** [quick-start-custom-videos.md](../archive/training/quick-start-custom-videos.md)
 
 ## Documentation Overview
 
 ### Critical Reading (Start Here)
 
-1. **[video-source-consistency.md](video-source-consistency.md)** ⚠️ CRITICAL
+1. **[video-source-consistency.md](../archive/training/video-source-consistency.md)** ⚠️ CRITICAL
    - Why different DGS resources show different signs
    - How this breaks recognition even when Amy signs correctly
    - Three solutions to fix the mismatch
 
-2. **[quick-start-custom-videos.md](quick-start-custom-videos.md)** ⚡ QUICK
+2. **[quick-start-custom-videos.md](../archive/training/quick-start-custom-videos.md)** ⚡ QUICK
    - 30-minute fast track to recording custom videos
    - Essential for Kestner users
    - Minimal equipment needed
 
-3. **[recording-custom-videos.md](recording-custom-videos.md)** 📹 DETAILED
+3. **[recording-custom-videos.md](../archive/training/recording-custom-videos.md)** 📹 DETAILED
    - Comprehensive guide to recording sign videos
    - Equipment, lighting, camera setup
    - Step-by-step process with examples
@@ -38,7 +38,7 @@ The most common issue is **video source mismatch**:
    - User-specific vs server pre-training modes
    - Training workflow and best practices
 
-5. **[dgs-cc-resources.md](dgs-cc-resources.md)**
+5. **[dgs-cc-resources.md](../archive/training/dgs-cc-resources.md)**
    - Available DGS video resources
    - Kestner, SignDict, and other sources
    - Licensing and copyright information
@@ -58,7 +58,7 @@ The most common issue is **video source mismatch**:
 **Solution:** 
 1. Record Amy's teacher demonstrating each sign
 2. Add custom videos to system
-3. See: [quick-start-custom-videos.md](quick-start-custom-videos.md)
+3. See: [quick-start-custom-videos.md](../archive/training/quick-start-custom-videos.md)
 
 ### "Recognition works sometimes, not always"
 
@@ -74,17 +74,17 @@ The most common issue is **video source mismatch**:
 3. Add more training examples with Amy
 4. Use the sparse-label path: newer trained models now include a prototype bank in addition to the MLP, so a gesture can start working earlier with fewer caregiver recordings than the dense head alone
 5. Check whether the app is really using the personal profile model or only the global fallback, and inspect the training report's label diagnostics for bundle rejections or strong confusions such as `satt` ↔ `trinken`
-6. If the training UI says a gesture is "Noch ohne unabhängige Prüfung", the profile model still needs at least one separate recording bundle for an honest validation split; the app no longer substitutes global readiness data for a profile result
+6. If the training UI says a gesture is "Noch ohne unabhängige Prüfung", the first good clip can still bootstrap a usable model state; a second independent bundle is for honest validation, not for claiming stability
 
 ### "Starting from scratch"
 
 **Recommended approach:**
 1. Identify Amy's learning source (Kestner, SignDict, school)
-2. Record 10-15 core signs matching that source
+2. Record one clean, representative core sign first
 3. Test recognition with Amy
 4. Expand gradually as Amy learns more signs
 
-See: [video-source-consistency.md](video-source-consistency.md) for full guidance
+See: [video-source-consistency.md](../archive/training/video-source-consistency.md) for full guidance
 
 ### "Want to use SignDict videos as-is"
 
@@ -101,13 +101,13 @@ See: [video-source-consistency.md](video-source-consistency.md) for full guidanc
 ## Key Principles
 
 ### 1. Consistency Over Quantity
-**Better: 10 videos matching Amy's learning**
+**Better: a few videos matching Amy's learning**
 **Worse: 100 videos from mismatched source**
 
 ### 1b. Quality Windows Beat Long Recording Sessions
 The current trainer keeps the dense MLP, but also exports a few-shot prototype bank from Amy's normalized gesture windows.
-That means a small number of clean, representative recordings is now more valuable than forcing a child through a long one-hour capture session.
-The trainer also keeps windows from the same clip together during validation now, so reported diagnostics are less likely to look artificially better than real-world recognition.
+That means a single clean, representative recording can bootstrap the first usable model state, and extra recordings improve stability instead of being a hard prerequisite.
+The trainer also keeps windows from the same clip together during validation now, so reported diagnostics are less likely to look artificially better than real-world recognition. Stable claims still need independent validation bundles.
 
 ### 2. Test With Amy
 **The only test that matters is whether Amy can communicate successfully.**
@@ -125,7 +125,7 @@ Document reviews and theoretical models are secondary to real-world testing.
 ## Getting Help
 
 ### For Recognition Issues
-1. Check [video-source-consistency.md](video-source-consistency.md)
+1. Check [video-source-consistency.md](../archive/training/video-source-consistency.md)
 2. Compare videos to Amy's learning material
 3. Record custom videos if needed
 
@@ -135,7 +135,7 @@ Document reviews and theoretical models are secondary to real-world testing.
 3. Verify landmark extraction
 
 ### For Video Recording
-1. See [recording-custom-videos.md](recording-custom-videos.md)
+1. See [recording-custom-videos.md](../archive/training/recording-custom-videos.md)
 2. Use quick start guide for basics
 3. Test with Amy after recording
 
@@ -158,17 +158,17 @@ Document reviews and theoretical models are secondary to real-world testing.
 ## Priority Reading Order
 
 **If Amy learned with Kestner (or system other than SignDict):**
-1. [video-source-consistency.md](video-source-consistency.md)
-2. [quick-start-custom-videos.md](quick-start-custom-videos.md)
-3. [recording-custom-videos.md](recording-custom-videos.md)
+1. [video-source-consistency.md](../archive/training/video-source-consistency.md)
+2. [quick-start-custom-videos.md](../archive/training/quick-start-custom-videos.md)
+3. [recording-custom-videos.md](../archive/training/recording-custom-videos.md)
 
 **If Amy's signs match SignDict:**
 1. [per-user-label-training.md](per-user-label-training.md)
-2. [dgs-cc-resources.md](dgs-cc-resources.md)
+2. [dgs-cc-resources.md](../archive/training/dgs-cc-resources.md)
 
 **For system setup/maintenance:**
 1. [README_PRETRAINING.md](../../scripts/README_PRETRAINING.md)
-2. [dgs-cc-resources.md](dgs-cc-resources.md)
+2. [dgs-cc-resources.md](../archive/training/dgs-cc-resources.md)
 
 ## Remember
 

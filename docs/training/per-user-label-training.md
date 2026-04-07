@@ -11,7 +11,7 @@ Amy's Echo supports personalized training for each child (profile). Each label (
 1. **Curated Bootstrap Data (`server_pretrain`)**: Uses curated DGS examples from sources like signdict.org inside the normal training pipeline
 2. **User Training (`user_train`)**: Uses samples recorded by caregivers in the webapp
 
-This enables a jump-start with baseline data while allowing caregivers to add personalized training data in the same training system.
+This enables a bootstrap with baseline data while allowing caregivers to add personalized training data in the same training system.
 
 ## Data Model
 
@@ -124,21 +124,21 @@ Initializes default label settings for a new profile (all labels enabled with `u
 A label is **ready for training** when:
 
 ### For curated bootstrap mode (`server_pretrain`):
-- At least 3 server videos are available
-- Landmarks have been extracted from videos
+- At least 1 server video is available
+- Landmarks have been extracted from the video
 
 ### For `user_train` mode:
-- At least 5 user samples have been recorded
-- Landmarks are available for all samples
+- At least 1 user sample has been recorded
+- Landmarks are available for the sample
 - The label is enabled
 
 ### Readiness Reasons
 
 When a label is not ready, the API returns reasons in German:
 
-- `"Zu wenige Server-Videos (2/3)"` - Not enough server videos
-- `"Zu wenige Benutzeraufnahmen (3/5)"` - Not enough user samples
-- `"Landmarks fehlen (2/5)"` - Missing landmarks
+- `"Zu wenige Server-Videos (0/1)"` - Not enough server videos
+- `"Zu wenige Benutzeraufnahmen (0/1)"` - Not enough user samples
+- `"Landmarks fehlen (0/1)"` - Missing landmarks
 - `"Label ist deaktiviert"` - Label is disabled
 
 ## Training Flow
@@ -154,6 +154,13 @@ When a label is not ready, the API returns reasons in German:
    - Uses the correct data source based on mode
    - Updates `lastTrainedAt` for trained labels
 5. **Model is saved** to user-specific directory
+6. **Bootstrap behavior**: the first good upload can already create a usable model state; later uploads retrain and refine it.
+
+### Bootstrap vs stable
+
+- **Bootstrap** means the model can start from one clean upload and keep improving from there.
+- **Stable** means the label has been validated by an independent bundle and no longer relies on a single recording.
+- The UI should describe the first state as usable but not yet independently proven.
 
 ## Auto-download for curated bootstrap mode
 
@@ -200,10 +207,11 @@ can surface progress if desired:
 ✅ A new user can:
 1. Open label list
 2. Set some labels to curated bootstrap mode (`server_pretrain`)
-3. Upload their own training for other labels (user_train)
-4. See per label: readiness, source type, counts
-5. Trigger training
-6. The resulting model is trained on:
+3. Upload one good clip and immediately start a first model update
+4. Upload their own training for other labels (`user_train`)
+5. See per label: readiness, source type, counts
+6. Trigger training again later to refine the same label
+7. The resulting model is trained on:
    - Internet data for auto-train labels
    - User data for manual labels
    - Nothing else
