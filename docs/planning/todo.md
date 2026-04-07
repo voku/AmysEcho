@@ -52,10 +52,6 @@ Execution order when hardware/data blockers clear: run `APR-P0-2` first, use the
 
 ## 2. R&D Backlog
 
-- [ ] **RD-P1-2:** Prototype the temporal smoothing / sequence-modeling upgrade path with a strict latency budget.
-  - Topic board: `docs/planning/topics/RD-P1-2/topic.md`
-  - Evidence target: comparison report covering accuracy deltas, p95 latency, and battery/thermal impact.
-
 - [ ] **RD-P1-4:** Complete the realistic DGS test and training protocol evidence loop.
   - Topic board: `docs/planning/topics/RD-P1-4/topic.md`
   - Evidence target: committed benchmark snapshot or fixture set following `docs/testing/benchmarks/dgs-realistic-protocol.md`, plus data-tier note for training vs test-only material.

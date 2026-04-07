@@ -160,6 +160,7 @@ describe('MultiScaleTemporalFeatureExtractor', () => {
       const firstVel = velocityFeatures[0];
       if (firstVel) {
         expect(firstVel.averageVelocity).toBeGreaterThan(0);
+        expect(firstVel.featureVelocities).toHaveLength(21);
       }
     });
 

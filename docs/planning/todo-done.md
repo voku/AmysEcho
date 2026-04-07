@@ -177,6 +177,12 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Entry points: `webapp/src/gesture/core/GestureDetector.ts`, `docs/testing/benchmarks/`
   - Evidence: `docs/testing/benchmarks/rd-p0-2-full-range-face-detector-2026-04-07.md` keeps the current FaceLandmarker path and rejects standalone FULL_RANGE FaceDetector plumbing because FULL_RANGE is a separate detector model asset rather than a documented FaceLandmarker selector, and the repo has no side-angle/partial-face fixture set to justify duplicate per-frame face work.
 
+- [x] **RD-P1-2:** Prototype the temporal smoothing / sequence-modeling upgrade path with a strict latency budget.
+  - Topic board: `docs/planning/topics/RD-P1-2/topic.md` (details + evidence).
+  - Why now: the existing smoother/analyzer/extractor path needed an explicit latency and jitter-proxy comparison before considering heavier sequence models.
+  - Entry points: `webapp/src/gesture/utils/MultimodalSmoother.ts`, `webapp/src/gesture/utils/TemporalGestureAnalyzer.ts`, `webapp/src/gesture/utils/MultiScaleTemporalFeatureExtractor.ts`, `webapp/scripts/benchmark-temporal-smoothing.ts`
+  - Evidence: `docs/testing/benchmarks/rd-p1-2-temporal-smoothing-prototype-2026-04-07.md` keeps the lightweight prototype path with synthetic p95 `1.175 ms/frame` and 13.49% jitter-proxy reduction, while rejecting heavier production sequence-model enablement until labeled DGS accuracy data and target-device battery/thermal evidence exist.
+
 ## 6) April 2026 — Supported-core cleanup follow-ups
 
 ### Done (April 2026 — server maintainability)
