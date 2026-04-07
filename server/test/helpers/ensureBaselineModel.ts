@@ -30,13 +30,13 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function resolveBaselinePath(): Promise<string> {
-  const { BASELINE_MLP_MODEL_PATH } = await import("../../src/constants/modelPaths.js");
-  return BASELINE_MLP_MODEL_PATH;
-}
-
 export async function ensureBaselineModelFixture(explicitPath?: string): Promise<void> {
-  const baselinePath = explicitPath ?? (await resolveBaselinePath());
+  if (!explicitPath) {
+    throw new Error(
+      "ensureBaselineModelFixture requires an explicit temp path; tests must not mutate the global demo model.",
+    );
+  }
+  const baselinePath = explicitPath;
   if (await fileExists(baselinePath)) {
     return;
   }

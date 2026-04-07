@@ -9,14 +9,12 @@ import { randomUUID } from "crypto";
 import express, { type Express } from "express";
 import request from "supertest";
 import path from "path";
+import os from "os";
 import { promises as fs } from "fs";
 import { registerProfileLabelRoutes } from "../src/routes/profileLabelRoutes";
 import { closeDatabase, initializeDatabase } from "../src/sqliteDb";
 import type { Database } from "../src/db";
 import type { ProfileRegistry } from "../src/services/profileRegistry";
-
-// Create mock dependencies
-const TEST_DB_PATH = path.join(__dirname, "../data/test-user-label-routes.sqlite");
 
 describe("Profile Label Routes API", () => {
 	let app: Express;
@@ -24,15 +22,11 @@ describe("Profile Label Routes API", () => {
 	let testProfileId: string;
 	let mockDb: Database;
 	let mockRegistry: ProfileRegistry;
+	let testDbDir: string;
 
 	beforeAll(async () => {
-		// Clean up test database
-		try {
-			await fs.unlink(TEST_DB_PATH);
-		} catch {
-			// File may not exist
-		}
-		await initializeDatabase(TEST_DB_PATH);
+		testDbDir = await fs.mkdtemp(path.join(os.tmpdir(), "amy-label-routes-"));
+		await initializeDatabase(path.join(testDbDir, "labels.sqlite"));
 
 		testProfileId = randomUUID();
 
@@ -141,8 +135,11 @@ describe("Profile Label Routes API", () => {
 		});
 	});
 
-	afterAll(() => {
+	afterAll(async () => {
 		closeDatabase();
+		if (testDbDir) {
+			await fs.rm(testDbDir, { recursive: true, force: true });
+		}
 	});
 
 	describe("POST /api/v1/profiles/:profileId/labels/initialize", () => {

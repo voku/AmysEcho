@@ -57,6 +57,7 @@ describe('GET /latest-mlp-model', () => {
   const knownProfileId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const unauthorizedProfileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   const deniedProfiles = new Set<string>();
+  const expectedLabels = ['alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen', 'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken'];
   async function expectValidModelResponse(response: request.Response) {
     const body: Buffer = response.body as Buffer;
     expect(Buffer.isBuffer(body)).toBe(true);
@@ -121,6 +122,14 @@ describe('GET /latest-mlp-model', () => {
     expect(response.headers['x-model-contract-status']).toBe('missing');
   }
 
+  async function copyBaselineFixtureTo(destination: string) {
+    if (path.resolve(destination) === path.resolve(modelPaths.BASELINE_MLP_MODEL_PATH)) {
+      await ensureBaselineModelFixture(destination);
+      return;
+    }
+    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, destination);
+  }
+
   beforeAll(async () => {
     dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'amy-mlp-endpoint-'));
     originalDataDir = process.env.AMY_ECHO_DATA_DIR;
@@ -157,7 +166,6 @@ describe('GET /latest-mlp-model', () => {
 
     const handler = createLatestMlpModelHandler({
       getMlpModelPath: modelPaths.getMlpModelPath,
-      seedBaselineModel: artifacts.seedBaselineModel,
       sendBinaryModel: artifacts.sendBinaryModel,
       applyModelHeaders: artifacts.applyModelResponseHeaders,
       logTraining,
@@ -204,7 +212,7 @@ describe('GET /latest-mlp-model', () => {
     }
   });
 
-  it('seeds a baseline model when none exists and returns a valid NPZ bundle', async () => {
+  it('returns the global demo model when present', async () => {
     const response = await request(app)
       .get('/latest-mlp-model')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -218,11 +226,11 @@ describe('GET /latest-mlp-model', () => {
   it('returns training metadata headers when available', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const trainingMetadata = {
       version: '2025-02-10T08:00:00Z',
-      labels: ['alle', 'blau', 'essen', 'fertig', 'gelb', 'gruen', 'nochmal', 'rot', 'satt', 'schwester', 'spielen', 'trinken'],
+      labels: expectedLabels,
       modalities: ['hands', 'pose'],
       modality_counts: {
         hands: 12,
@@ -271,7 +279,7 @@ describe('GET /latest-mlp-model', () => {
   it('returns invalid contract headers when label count mismatches labels list length', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const trainingMetadata = {
       labels: ['alle', 'blau', 'essen'],
@@ -303,9 +311,7 @@ describe('GET /latest-mlp-model', () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     const modelDir = path.dirname(storedModelPath);
     await fs.mkdir(modelDir, { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
-    await fs.rm(path.join(modelDir, 'sign_lang_label_map.txt'), { force: true });
-
+    await copyBaselineFixtureTo(storedModelPath);
     const trainingMetadata = {
       labels: [],
       artifact_contract: {
@@ -332,11 +338,11 @@ describe('GET /latest-mlp-model', () => {
     expect(response.headers['x-model-contract-reason']).toBe('label_count_mismatch');
   });
 
-  it('uses sign_lang_label_map.txt when metadata labels are missing', async () => {
+  it('requires metadata labels when artifact contract declares labels', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     const modelDir = path.dirname(storedModelPath);
     await fs.mkdir(modelDir, { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const trainingMetadata = {
       artifact_contract: {
@@ -350,8 +356,6 @@ describe('GET /latest-mlp-model', () => {
     };
     const metadataPath = path.join(modelDir, 'training_metadata.json');
     await fs.writeFile(metadataPath, JSON.stringify(trainingMetadata, null, 2), 'utf8');
-    const labelMapPath = path.join(modelDir, 'sign_lang_label_map.txt');
-    await fs.writeFile(labelMapPath, 'eins\nzwei\ndrei\n', 'utf8');
 
     const response = await request(app)
       .get('/latest-mlp-model')
@@ -361,17 +365,18 @@ describe('GET /latest-mlp-model', () => {
       .parse(binaryParser)
       .expect(200);
 
-    expect(response.headers['x-model-contract-status']).toBe('valid');
-    expect(response.headers['x-model-contract-reason']).toBeUndefined();
+    expect(response.headers['x-model-contract-status']).toBe('invalid');
+    expect(response.headers['x-model-contract-reason']).toBe('missing_labels');
     expect(response.headers['x-model-label-count']).toBe('3');
   });
 
   it('returns invalid contract headers when artifact contract mismatches local schema', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const trainingMetadata = {
+      labels: expectedLabels,
       artifact_contract: {
         feature_schema_version: 999,
         window_size: 30,
@@ -398,9 +403,10 @@ describe('GET /latest-mlp-model', () => {
   it('returns invalid contract headers for unsupported feature mode metadata', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const trainingMetadata = {
+      labels: expectedLabels,
       artifact_contract: {
         feature_schema_version: 1,
         window_size: 30,
@@ -429,9 +435,10 @@ describe('GET /latest-mlp-model', () => {
   it('returns invalid contract headers when feature mode is missing', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const trainingMetadata = {
+      labels: expectedLabels,
       artifact_contract: {
         feature_schema_version: 1,
         window_size: 30,
@@ -460,9 +467,10 @@ describe('GET /latest-mlp-model', () => {
     process.env.MLP_ALLOW_RELATIVE_FEATURE_MODE = '0';
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const trainingMetadata = {
+      labels: expectedLabels,
       artifact_contract: {
         feature_schema_version: 1,
         window_size: 30,
@@ -491,7 +499,7 @@ describe('GET /latest-mlp-model', () => {
     process.env.MLP_REQUIRE_VALID_CONTRACT = '1';
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const trainingMetadata = {
       artifact_contract: {
@@ -520,7 +528,7 @@ describe('GET /latest-mlp-model', () => {
     process.env.MLP_REQUIRE_VALID_CONTRACT = '1';
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     // Write metadata WITHOUT artifact_contract → contract status = "missing"
     const trainingMetadata = { version: 'v-no-contract' };
@@ -541,7 +549,7 @@ describe('GET /latest-mlp-model', () => {
   it('returns 304 for matching If-None-Match after a model upload', async () => {
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     const firstResponse = await request(app)
       .get('/latest-mlp-model')
@@ -571,7 +579,7 @@ describe('GET /latest-mlp-model', () => {
     process.env.MLP_REQUIRE_VALID_CONTRACT = '1';
     const storedModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(storedModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, storedModelPath);
+    await copyBaselineFixtureTo(storedModelPath);
 
     // Write metadata with a mismatched schema so contract is "invalid"
     const trainingMetadata = {
@@ -611,22 +619,7 @@ describe('GET /latest-mlp-model', () => {
     expect(decoded).toEqual({ error: 'Model not found' });
   });
 
-  it('returns 404 when baseline seeding fails', async () => {
-    const copySpy = jest.spyOn(fs, 'copyFile').mockRejectedValue(new Error('missing baseline'));
-    try {
-      const response = await request(app)
-        .get('/latest-mlp-model')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(404);
-
-      expect(response.body).toEqual({ error: 'Modell nicht gefunden.' });
-      await expect(fs.stat(modelPaths.getMlpModelPath())).rejects.toHaveProperty('code', 'ENOENT');
-    } finally {
-      copySpy.mockRestore();
-    }
-  });
-
-  it('returns 404 when the baseline artifact is absent in non-strict mode', async () => {
+  it('returns 404 when the global demo model is absent', async () => {
     await fs.rm(modelPaths.BASELINE_MLP_MODEL_PATH, { force: true });
 
     const response = await request(app)
@@ -641,7 +634,7 @@ describe('GET /latest-mlp-model', () => {
     const profileId = knownProfileId;
     const profileModelPath = modelPaths.getMlpModelPath(profileId);
     await fs.mkdir(path.dirname(profileModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, profileModelPath);
+    await copyBaselineFixtureTo(profileModelPath);
 
     // Test passes because we're using a mock that always authorizes
     // In production, authorization is checked via isProfileAuthorized()
@@ -661,7 +654,7 @@ describe('GET /latest-mlp-model', () => {
     const profileId = knownProfileId;
     const globalModelPath = modelPaths.getMlpModelPath();
     await fs.mkdir(path.dirname(globalModelPath), { recursive: true });
-    await fs.copyFile(modelPaths.BASELINE_MLP_MODEL_PATH, globalModelPath);
+    await copyBaselineFixtureTo(globalModelPath);
 
     const response = await request(app)
       .get(`/latest-mlp-model?profileId=${profileId}`)

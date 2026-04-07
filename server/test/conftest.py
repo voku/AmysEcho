@@ -51,7 +51,7 @@ class ServerContext:
 
 
 def ensure_baseline_model() -> None:
-    baseline_path = resolve_data_dir() / "amy_model.npz"
+    baseline_path = resolve_data_dir() / "models" / "global" / "amy_model.npz"
     if baseline_path.exists():
         return
 

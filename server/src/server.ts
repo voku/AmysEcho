@@ -53,7 +53,6 @@ import { createEmailService } from "./services/emailService.js";
 import logger from "./services/logger.js";
 import {
 	applyModelResponseHeaders,
-	seedBaselineModel,
 	sendBinaryModel,
 	writeMinimalMlpModel,
 } from "./services/mlpModelArtifacts.js";
@@ -755,12 +754,9 @@ async function runTrainingWorkflow(
 	const profileIds = Array.from(profileIdSet);
 
 	try {
-		const baseModel = getMlpModelPath();
-		await writeMinimalMlpModel(baseModel, globalCounts, logTraining);
-		await logTraining(`job ${id}: seeded global MLP`);
 		for (const pid of profileIds) {
 			const dest = getMlpModelPath(pid);
-			const counts = profileCounts.get(pid) ?? globalCounts;
+			const counts = profileCounts.get(pid) ?? {};
 			await writeMinimalMlpModel(dest, counts, logTraining);
 			await logTraining(`job ${id}: seeded MLP for ${pid}`);
 		}
@@ -917,6 +913,7 @@ async function runTrainingWorkflow(
 				fewShotTestProfileFraction,
 				"--promote-best-model-dir",
 				MLP_MODELS_DIR,
+				"--preserve-global-model",
 			];
 			await logTraining(
 				`job ${id}: few-shot runner enabled (shots=${fewShotShots}, seeds=${fewShotSeeds})`,
@@ -954,6 +951,7 @@ async function runTrainingWorkflow(
 				const epochs = trainingSchedule[attemptIndex];
 				const attemptArgs = [
 					...scriptArgs,
+					"--skip-global-output",
 					"--epochs",
 					String(epochs),
 					"--seed",
@@ -1121,7 +1119,6 @@ async function runTrainingWorkflow(
 // Serve per-profile MLP models (NPZ) with containment checks
 const latestMlpModelHandler = createLatestMlpModelHandler({
 	getMlpModelPath,
-	seedBaselineModel,
 	sendBinaryModel,
 	applyModelHeaders: applyModelResponseHeaders,
 	logTraining,

@@ -180,6 +180,52 @@ def test_promote_best_model_copies_directory(tmp_path: Path) -> None:
     assert result["promoted"] is True
 
 
+def test_promote_best_model_can_preserve_existing_global_demo(tmp_path: Path) -> None:
+    source = tmp_path / "source_models"
+    (source / "global").mkdir(parents=True)
+    (source / "profile-1").mkdir(parents=True)
+    (source / "global" / "amy_model.npz").write_text("new-global", encoding="utf-8")
+    (source / "profile-1" / "amy_model.npz").write_text("profile", encoding="utf-8")
+
+    destination = tmp_path / "dest_models"
+    (destination / "global").mkdir(parents=True)
+    (destination / "old-profile").mkdir(parents=True)
+    (destination / "global" / "amy_model.npz").write_text("demo-global", encoding="utf-8")
+    (destination / "old-profile" / "amy_model.npz").write_text("old-profile", encoding="utf-8")
+
+    result = _promote_best_model(
+        {"model_output_dir": str(source)},
+        destination,
+        preserve_global_model=True,
+    )
+
+    assert result["promoted"] is True
+    assert result["preserved_global"] is True
+    assert (destination / "global" / "amy_model.npz").read_text(encoding="utf-8") == "demo-global"
+    assert (destination / "profile-1" / "amy_model.npz").read_text(encoding="utf-8") == "profile"
+    assert not (destination / "old-profile").exists()
+
+
+def test_promote_best_model_skips_trial_global_when_destination_is_new(tmp_path: Path) -> None:
+    source = tmp_path / "source_models"
+    (source / "global").mkdir(parents=True)
+    (source / "profile-1").mkdir(parents=True)
+    (source / "global" / "amy_model.npz").write_text("trial-global", encoding="utf-8")
+    (source / "profile-1" / "amy_model.npz").write_text("profile", encoding="utf-8")
+
+    destination = tmp_path / "dest_models"
+    result = _promote_best_model(
+        {"model_output_dir": str(source)},
+        destination,
+        preserve_global_model=True,
+    )
+
+    assert result["promoted"] is True
+    assert result["preserved_global"] is True
+    assert not (destination / "global").exists()
+    assert (destination / "profile-1" / "amy_model.npz").read_text(encoding="utf-8") == "profile"
+
+
 def test_extract_trial_metrics_falls_back_to_zero_without_required_schema() -> None:
     assert _extract_trial_metrics({"status": "ok"}) == (0.0, 0.0, True)
 

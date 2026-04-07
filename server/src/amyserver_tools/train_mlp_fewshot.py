@@ -312,7 +312,12 @@ def _render_summary_markdown(summary: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _promote_best_model(best_trial: dict[str, Any], destination_dir: Path) -> dict[str, Any]:
+def _promote_best_model(
+    best_trial: dict[str, Any],
+    destination_dir: Path,
+    *,
+    preserve_global_model: bool = False,
+) -> dict[str, Any]:
     model_output_dir = best_trial.get("model_output_dir")
     if not isinstance(model_output_dir, str) or not model_output_dir:
         raise ValueError("Best trial is missing model_output_dir")
@@ -320,6 +325,25 @@ def _promote_best_model(best_trial: dict[str, Any], destination_dir: Path) -> di
     source = Path(model_output_dir)
     if not source.exists():
         return {"promoted": False, "reason": "missing_model_output_dir", "source": str(source)}
+
+    if preserve_global_model:
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        for child in destination_dir.iterdir():
+            if child.name == "global":
+                continue
+            if child.is_dir():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        for child in source.iterdir():
+            if child.name == "global":
+                continue
+            target = destination_dir / child.name
+            if child.is_dir():
+                shutil.copytree(child, target)
+            else:
+                shutil.copy2(child, target)
+        return {"promoted": True, "source": str(source), "destination": str(destination_dir), "preserved_global": True}
 
     if destination_dir.exists():
         shutil.rmtree(destination_dir)
@@ -335,6 +359,7 @@ def _build_train_command(
     output_dir: Path,
     seed: int,
     skip_examples: bool,
+    skip_global_output: bool,
 ) -> list[str]:
     command = [
         sys.executable,
@@ -350,6 +375,8 @@ def _build_train_command(
     ]
     if skip_examples:
         command.append("--skip-examples")
+    if skip_global_output:
+        command.append("--skip-global-output")
     return command
 
 
@@ -453,6 +480,7 @@ def main() -> None:
     parser.add_argument("--test-profile-fraction", type=float, default=0.2)
     parser.add_argument("--skip-examples", action="store_true")
     parser.add_argument("--promote-best-model-dir", type=Path, default=None)
+    parser.add_argument("--preserve-global-model", action="store_true")
     args = parser.parse_args()
 
     shots = _parse_int_list(args.shots)
@@ -537,6 +565,7 @@ def main() -> None:
                 output_dir=run_output_dir,
                 seed=seed,
                 skip_examples=args.skip_examples,
+                skip_global_output=False,
             )
             run = subprocess.run(
                 command,
@@ -586,7 +615,11 @@ def main() -> None:
     promotion_result: dict[str, Any] = {"promoted": False, "reason": "promotion_not_requested"}
     best_trial = _select_best_trial(trial_results)
     if args.promote_best_model_dir is not None:
-        promotion_result = _promote_best_model(best_trial, args.promote_best_model_dir)
+        promotion_result = _promote_best_model(
+            best_trial,
+            args.promote_best_model_dir,
+            preserve_global_model=args.preserve_global_model,
+        )
 
     summary = {
         "protocol": "few_shot_v1",

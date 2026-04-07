@@ -3,7 +3,6 @@ import type { Request, Response } from "express";
 import { createReadStream, promises as fs } from "fs";
 import { PROFILE_ID_PATTERN } from "../constants/modelPaths.js";
 import type {
-	BaselineSeedMessages,
 	ModelResponseMetadata,
 	PrecomputedModelPayload,
 } from "../services/mlpModelArtifacts.js";
@@ -13,11 +12,6 @@ type LatestMlpModelDeps = {
 	resolveProfileId: (
 		profileId?: string,
 	) => Promise<{ profileId?: string | null }>;
-	seedBaselineModel: (
-		filePath: string,
-		messages: BaselineSeedMessages,
-		logTraining: (message: string) => Promise<void>,
-	) => Promise<boolean>;
 	sendBinaryModel: (
 		res: Response,
 		filePath: string,
@@ -99,15 +93,8 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 					await fs.stat(globalPath);
 					globalAvailable = true;
 				} catch {
-					const messages: BaselineSeedMessages = {
-						success: (dest) => `latest-mlp-model seeded baseline into ${dest}`,
-						failure: (dest, error) =>
-							`latest-mlp-model failed to seed baseline into ${dest}: ${String(error)}`,
-					};
-					globalAvailable = await deps.seedBaselineModel(
-						globalPath,
-						messages,
-						deps.logTraining,
+					await deps.logTraining(
+						`latest-mlp-model global demo model missing at ${globalPath}`,
 					);
 				}
 

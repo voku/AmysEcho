@@ -108,12 +108,13 @@ def test_latest_mlp_model_requires_authorization(model_file, running_server, bas
     status = fetch_latest_mlp_model(base_url, profile_id="22222222-2222-4222-8222-222222222222")
     assert status == 401
 
-def test_latest_mlp_model_seeds_baseline_when_missing(missing_data_dir, running_server, base_url, auth_header):
+def test_latest_mlp_model_returns_404_when_global_demo_model_missing(missing_data_dir, running_server, base_url, auth_header):
+    model_path = get_global_mlp_model_path(missing_data_dir)
+    model_path.unlink(missing_ok=True)
+
     status = fetch_latest_mlp_model(base_url, auth_header=auth_header)
-    assert status == 200
-    seeded_path = get_global_mlp_model_path(missing_data_dir)
-    assert seeded_path.exists()
-    assert seeded_path.stat().st_size > 0
+    assert status == 404
+    assert not model_path.exists()
 
 def test_latest_mlp_model_returns_200_for_authorized_owner(model_file, running_server, base_url, auth_header):
     create_profile(base_url, auth_header, "22222222-2222-4222-8222-222222222222", "Test Profile")

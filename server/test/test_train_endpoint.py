@@ -246,7 +246,8 @@ def test_train_endpoint():
         proc, access_token, data_dir, port = start_server()
         
         # Upload a training bundle via the sample-bundles endpoint
-        bundle_zip = _create_training_bundle_zip("g1")
+        profile_id = "11111111-1111-4111-8111-111111111111"
+        bundle_zip = _create_training_bundle_zip("g1", profile_id)
         upload_url = f"http://localhost:{port}/api/v1/dgs/sample-bundles"
         headers = {
             **_make_auth_headers(access_token),
@@ -270,8 +271,8 @@ def test_train_endpoint():
         report = final_info.get("report", {})
         assert report.get("global", {}).get("samples", 0) >= 1
 
-        # verify MLP model files created
-        npz = data_dir / "models" / "global" / "amy_model.npz"
+        # verify profile MLP model files created without mutating the global demo model
+        npz = data_dir / "models" / profile_id / "amy_model.npz"
         assert npz.exists()
         with np.load(npz, allow_pickle=False) as model:
             assert "labels" in model
@@ -280,16 +281,18 @@ def test_train_endpoint():
 
         # ensure MLP model downloadable
         mlp_req = urllib.request.Request(
-            f"http://localhost:{port}/api/v1/models/latest",
-            headers=_make_auth_headers(access_token),
+            f"http://localhost:{port}/api/v1/models/latest?profileId={profile_id}",
+            headers={
+                **_make_auth_headers(access_token),
+                "x-profile-id": profile_id,
+            },
         )
         with urllib.request.urlopen(mlp_req, timeout=10) as mlp_resp:
             assert mlp_resp.getcode() == 200
             buf = mlp_resp.read()
             assert len(buf) > 0
         
-        # Note: Profile-specific model access is tested in test_latest_mlp_model.py
-        # which uses the running_server fixture with proper profile setup
+        assert not (data_dir / "models" / "global" / "amy_model.npz").exists()
     finally:
         if proc is not None:
             stop_server(proc)
@@ -317,12 +320,7 @@ def test_train_endpoint_without_baseline_file():
         final_info = wait_for_training_completion(job_id, access_token, port)
         assert final_info.get("status") == "completed"
         global_model = data_dir / "models" / "global" / "amy_model.npz"
-        assert global_model.exists()
-        with np.load(global_model, allow_pickle=False) as model:
-            labels = model["labels"].tolist()
-            counts = model["counts"].tolist()
-        assert labels == DEFAULT_BASELINE_LABELS
-        assert all(float(value) == 0.0 for value in counts)
+        assert not global_model.exists()
     finally:
         if proc is not None:
             stop_server(proc)

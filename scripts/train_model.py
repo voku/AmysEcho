@@ -393,7 +393,7 @@ def deploy_model(model_path: str, _app_assets_dir: str) -> bool:
 def main():
     parser = argparse.ArgumentParser(description="Train and evaluate the gesture recognition model with multimodal support and advanced validation.")
     parser.add_argument('--manifest', default='server/data/datasets/training_manifest.json')
-    parser.add_argument('--output-model', default='data/amy_model.npz')
+    parser.add_argument('--output-model', default='server/data/models/global/amy_model.npz')
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--hidden-size', type=int, default=512)
     parser.add_argument('--hidden-size-2', type=int, default=256)
@@ -509,4 +509,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

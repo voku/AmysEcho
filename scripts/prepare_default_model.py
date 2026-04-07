@@ -16,7 +16,7 @@ The script will:
 2. Use fallback sample data if videos are not processed
 3. Train the model with optimized parameters
 4. Validate model performance
-5. Save the model to data/amy_model.npz
+5. Save the model to server/data/models/global/amy_model.npz
 """
 
 import json
@@ -32,8 +32,9 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 VIDEO_DIR = PROJECT_ROOT / "app" / "assets" / "videos"
 DATA_DIR = PROJECT_ROOT / "data"
+MODEL_DIR = PROJECT_ROOT / "server" / "data" / "models" / "global"
 SAMPLES_FILE = DATA_DIR / "dgs_samples.json"
-MODEL_FILE = DATA_DIR / "amy_model.npz"
+MODEL_FILE = MODEL_DIR / "amy_model.npz"
 
 def check_existing_data():
     """Check if processed landmark data already exists"""
@@ -280,8 +281,9 @@ def main():
     """Main preparation workflow"""
     print("=== Amy's Echo Default Model Preparation ===\n")
 
-    # Ensure data directory exists
+    # Ensure data directories exist
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
     # Step 1: Try to process videos
     if not process_videos_if_needed():

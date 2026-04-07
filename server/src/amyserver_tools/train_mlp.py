@@ -227,7 +227,6 @@ WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, 
 
 MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
-SIGN_LANG_LABEL_MAP_FILENAME = "sign_lang_label_map.txt"
 PROTOTYPE_MAX_VECTORS_PER_LABEL = int(
     os.environ.get("MLP_PROTOTYPE_MAX_VECTORS_PER_LABEL", "6")
 )
@@ -2871,18 +2870,6 @@ def _write_training_metadata(
     except OSError:
         pass
 
-    label_map_path = model_dir / SIGN_LANG_LABEL_MAP_FILENAME
-    label_map_tmp_path = label_map_path.with_suffix(label_map_path.suffix + ".tmp")
-    with label_map_tmp_path.open("w", encoding="utf-8") as handle:
-        handle.write("\n".join(unique_labels))
-        handle.write("\n")
-    os.replace(label_map_tmp_path, label_map_path)
-    try:
-        os.chmod(label_map_path, 0o640)
-    except OSError:
-        pass
-
-
 def _hash_training_sources(paths: list[Path], base_path: Path | None = None) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in paths:
@@ -3206,6 +3193,7 @@ def run_training_pipeline(
     *,
     config: TrainingConfig | None = None,
     output_dir: Path | None = None,
+    write_global_model: bool = True,
     rng: np.random.RandomState | np.random.Generator | None = None,
     metadata_context: dict[str, object] | None = None,
 ) -> dict[str, object]:
@@ -3328,7 +3316,7 @@ def run_training_pipeline(
             "dataset_health": global_dataset_health,
             "training_mode": "single_label_seeded",
         }
-        if output_dir:
+        if output_dir and write_global_model:
             global_dir = output_dir / "global"
             save_model(
                 global_dir / "amy_model.npz",
@@ -3537,7 +3525,7 @@ def run_training_pipeline(
         **metadata_payload,
         "dataset_health": global_dataset_health,
     }
-    if output_dir:
+    if output_dir and write_global_model:
         global_dir = output_dir / "global"
         save_model(
             global_dir / "amy_model.npz",
@@ -3737,6 +3725,11 @@ def main() -> None:
         help="Directory to write trained weight files (defaults to models dir)",
     )
     parser.add_argument(
+        "--skip-global-output",
+        action="store_true",
+        help="Do not write the global demo model; still write profile-specific models.",
+    )
+    parser.add_argument(
         "--epochs",
         type=int,
         help="Maximum training epochs",
@@ -3810,6 +3803,7 @@ def main() -> None:
             samples,
             config=config,
             output_dir=MODELS_DIR,
+            write_global_model=not args.skip_global_output,
             rng=rng,
             metadata_context=metadata_context,
         )

@@ -1,5 +1,6 @@
 import path from "path";
 import {
+	BASELINE_MLP_MODEL_PATH,
 	getMlpModelPath,
 	MLP_MODELS_DIR,
 	TRAINED_MLP_MODEL_PATH,
@@ -8,6 +9,9 @@ import {
 describe("getMlpModelPath", () => {
 	it("returns global path when no profileId provided", () => {
 		expect(getMlpModelPath()).toBe(TRAINED_MLP_MODEL_PATH);
+	});
+	it("uses the global demo model as the baseline alias", () => {
+		expect(BASELINE_MLP_MODEL_PATH).toBe(TRAINED_MLP_MODEL_PATH);
 	});
 	it("returns profile-specific path when profileId provided", () => {
 		expect(getMlpModelPath("11111111-1111-4111-8111-111111111111")).toBe(

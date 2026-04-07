@@ -278,7 +278,7 @@ def test_training_pipeline_with_fixture_dataset() -> None:
         assert final_status.get("metrics", {}).get("fewShotPromoted") == expected["fewShotPromoted"]
 
         model_download_request = urllib.request.Request(
-            f"{base_url}/api/v1/models/latest",
+            f"{base_url}/api/v1/models/latest?profileId={PROFILE_ID}",
             headers=_auth_headers(token),
         )
         with _open_http_request(model_download_request, timeout=20) as model_response:
@@ -288,10 +288,11 @@ def test_training_pipeline_with_fixture_dataset() -> None:
             training_version_header = model_response.headers.get("X-Training-Version")
             assert training_version_header is not None
 
-        model_path = data_dir / "models" / "global" / "amy_model.npz"
-        metadata_path = data_dir / "models" / "global" / "training_metadata.json"
+        model_path = data_dir / "models" / PROFILE_ID / "amy_model.npz"
+        metadata_path = data_dir / "models" / PROFILE_ID / "training_metadata.json"
         assert model_path.exists()
         assert metadata_path.exists()
+        assert not (data_dir / "models" / "global" / "amy_model.npz").exists()
         _assert_runtime_inference_shape_compatibility(model_path)
 
         with metadata_path.open("r", encoding="utf-8") as handle:
@@ -304,7 +305,7 @@ def test_training_pipeline_with_fixture_dataset() -> None:
         assert isinstance(metadata.get("dataset_health", {}).get("low_support_labels"), list)
 
         model_metadata_response = _request_json(
-            f"{base_url}/api/v1/models/metadata",
+            f"{base_url}/api/v1/models/metadata?profileId={PROFILE_ID}",
             headers=_auth_headers(token),
         )
         assert isinstance(model_metadata_response.get("version"), str)

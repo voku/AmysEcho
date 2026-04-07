@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import AdmZip from 'adm-zip';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { ensureBaselineModelFixture } from './helpers/ensureBaselineModel.js';
 import { BASELINE_MLP_MODEL_PATH } from '../src/constants/modelPaths.js';
 
 const pathExists = async (p: string): Promise<boolean> => {
@@ -34,8 +33,6 @@ describe('MediaPipe Integration Tests', () => {
   beforeEach(async () => {
     // Ensure test bundles directory exists
     await fs.mkdir(testBundlesDir, { recursive: true });
-    // Ensure baseline model exists
-    await ensureBaselineModelFixture();
   });
 
   afterEach(async () => {

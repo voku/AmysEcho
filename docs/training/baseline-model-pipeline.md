@@ -1,12 +1,15 @@
 # Baseline Model Generation Pipeline (Deterministic)
 
-This document describes how to generate the global baseline MLP artifact in a
-deterministic way so the checksum can be validated in CI and production.
+This document describes how to generate the global demo MLP artifact in a
+deterministic way so the checksum can be validated in CI and production. Runtime
+profile training must not overwrite this bundle.
 
 ## Goals
 - Deterministic training outputs with a fixed random seed.
 - Auditable provenance with dataset hashes and config snapshots.
 - Training stats captured in `training_metadata.json` (including modality stats).
+- A complete committed bundle under `server/data/models/global/`:
+  `amy_model.npz`, `amy_model.npz.sha256`, and `training_metadata.json`.
 
 ## Inputs
 - `server/data/datasets/training_manifest.json` (bundle manifest)
@@ -37,7 +40,7 @@ deterministic way so the checksum can be validated in CI and production.
 4. **Write checksum**
    `train_mlp.py` writes `server/data/models/global/amy_model.npz.sha256` alongside
    the output model. Use `scripts/update_baseline_checksum.py` only when you need
-   to refresh an existing baseline without running the trainer.
+   to validate and refresh an existing demo bundle without running the trainer.
 
 5. **Verify checksum**
    The CI test `server/test/baselineModelChecksum.test.ts` ensures the checksum
@@ -45,6 +48,8 @@ deterministic way so the checksum can be validated in CI and production.
 
 ## Notes
 - Keep `MLP_RANDOM_SEED` pinned for reproducible baselines.
+- Use `--skip-global-output` for runtime/user training jobs that should produce
+  only profile-specific models.
 - If you change feature sizes, update `spec/feature_schema.json` and re-run the
   checksum step.
 - Episodic sampling can be enabled through `TrainingConfig` (`sampling_mode="episodic"`) for N-way/K-shot training on sparse labels.

@@ -179,22 +179,21 @@ async function loadLandmarkFile(fileName: string): Promise<RepoLandmarkFile> {
 async function ensureProfileModelReady(): Promise<void> {
   if (!ensureProfileModelReadyPromise) {
     ensureProfileModelReadyPromise = (async () => {
-      const uploads = await Promise.all(
-        PROFILE_MODEL_TRAINING_FIXTURES.map(([clipName, landmarksName, label]) =>
-          createBundleFromRepoVideo(clipName, landmarksName, label),
-        ),
-      );
+      const pollUrls: string[] = [];
 
-      const pollUrls = uploads
-        .map((upload) => upload.trainingJob?.pollUrl)
-        .filter((pollUrl): pollUrl is string => typeof pollUrl === 'string' && pollUrl.length > 0)
-        .map((pollUrl) => new URL(pollUrl, serverBaseUrl()).href);
+      for (const [clipName, landmarksName, label] of PROFILE_MODEL_TRAINING_FIXTURES) {
+        const upload = await createBundleFromRepoVideo(clipName, landmarksName, label);
+        const pollUrl = upload.trainingJob?.pollUrl;
+        assert.ok(
+          typeof pollUrl === 'string' && pollUrl.length > 0,
+          'bundle upload should return a training poll URL',
+        );
+        const absolutePollUrl = new URL(pollUrl, serverBaseUrl()).href;
+        pollUrls.push(absolutePollUrl);
+        await waitForTrainingCompletion(absolutePollUrl);
+      }
 
       assert.ok(pollUrls.length > 0, 'bundle uploads should return at least one training poll URL');
-      const uniquePollUrls = Array.from(new Set(pollUrls));
-      const latestPollUrl = uniquePollUrls[uniquePollUrls.length - 1];
-      assert.ok(latestPollUrl, 'latest poll URL must be available after uploads');
-      await waitForTrainingCompletion(latestPollUrl);
     })().catch((error) => {
       ensureProfileModelReadyPromise = null;
       throw error;
@@ -261,6 +260,9 @@ test('webapp helpers upload a real repo video and server serves stored clip', as
   });
 
   assert.ok(uploadResult.id.length > 0, 'server should return bundle id');
+  if (uploadResult.trainingJob?.pollUrl) {
+    await waitForTrainingCompletion(new URL(uploadResult.trainingJob.pollUrl, serverBaseUrl()).href);
+  }
 
   const bundleResponse = await fetch(`${serverBaseUrl()}/api/v1/dgs/sample-bundles/${uploadResult.id}`, {
     headers: serverHeaders({ 'X-Profile-Id': profileId }),

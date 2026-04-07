@@ -72,7 +72,9 @@ export function getMlpModelPath(profileId?: string): string {
 	}
 	return path.join(MLP_MODELS_DIR, profileId, "amy_model.npz");
 }
-export const BASELINE_MLP_MODEL_PATH = path.join(DATA_DIR, "amy_model.npz");
+// The global model is the demo/baseline bundle. Keep this alias while older
+// call sites are migrated away from the former DATA_DIR/amy_model.npz seed.
+export const BASELINE_MLP_MODEL_PATH = TRAINED_MLP_MODEL_PATH;
 
 export const TRAINING_UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 export const TRAINING_DATASETS_DIR = path.join(DATA_DIR, "datasets");

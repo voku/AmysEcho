@@ -7,6 +7,7 @@
 
 import { randomUUID } from "crypto";
 import path from "path";
+import os from "os";
 import { promises as fs } from "fs";
 import {
 	closeDatabase,
@@ -20,21 +21,19 @@ import {
 } from "../src/sqliteDb";
 import type { UserLabelSetting } from "../src/types";
 
-const TEST_DB_PATH = path.join(__dirname, "../data/test-user-labels.sqlite");
-
 describe("User Label Settings (SQLite)", () => {
+	let testDbDir: string;
+
 	beforeAll(async () => {
-		// Clean up and initialize test database
-		try {
-			await fs.unlink(TEST_DB_PATH);
-		} catch {
-			// File may not exist
-		}
-		await initializeDatabase(TEST_DB_PATH);
+		testDbDir = await fs.mkdtemp(path.join(os.tmpdir(), "amy-label-settings-"));
+		await initializeDatabase(path.join(testDbDir, "labels.sqlite"));
 	});
 
-	afterAll(() => {
+	afterAll(async () => {
 		closeDatabase();
+		if (testDbDir) {
+			await fs.rm(testDbDir, { recursive: true, force: true });
+		}
 	});
 
 	const testUserId = randomUUID();

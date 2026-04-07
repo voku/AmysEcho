@@ -102,7 +102,6 @@ const EXPECTED_BASELINE_SHA = (
 	process.env.MLP_BASELINE_SHA256 ?? ""
 ).toLowerCase();
 const TRAINING_METADATA_FILENAME = "training_metadata.json";
-const SIGN_LANG_LABEL_MAP_FILENAME = "sign_lang_label_map.txt";
 const MODALITY_KEYS = ["hands", "pose", "face"] as const;
 type ModalityKey = (typeof MODALITY_KEYS)[number];
 
@@ -141,7 +140,7 @@ async function ensureBaselinePresent(): Promise<boolean> {
 
 	if (!exists && REQUIRE_BASELINE_ARTIFACT) {
 		throw new Error(
-			`Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}. Stelle das geprüfte Artefakt bereit oder setze MLP_REQUIRE_BASELINE=0 für Entwicklungszwecke.`,
+			`Demo-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}. Stelle das geprüfte Artefakt bereit oder setze MLP_REQUIRE_BASELINE=0 für Entwicklungszwecke.`,
 		);
 	}
 
@@ -163,10 +162,14 @@ export async function seedBaselineModel(
 			await logTraining(
 				messages.failure(
 					filePath,
-					new Error(`Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}`),
+					new Error(`Demo-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}`),
 				),
 			);
 			return false;
+		}
+		if (path.resolve(filePath) === path.resolve(BASELINE_MLP_MODEL_PATH)) {
+			await logTraining(messages.success(filePath));
+			return true;
 		}
 		await fs.mkdir(path.dirname(filePath), { recursive: true });
 		await fs.copyFile(BASELINE_MLP_MODEL_PATH, filePath);
@@ -247,33 +250,14 @@ export async function writeMinimalMlpModel(
 	);
 
 	if (!hasCounts) {
-		const baselineExists = await ensureBaselinePresent();
-		if (baselineExists) {
-			const seeded = await seedBaselineModel(
-				filePath,
-				{
-					success: (dest) => `seeded MLP from baseline into ${dest}`,
-					failure: (dest, error) =>
-						`failed to copy baseline MLP into ${dest}: ${String(error)}`,
-				},
-				logTraining,
-			);
-			if (!seeded) {
-				throw new Error(
-					`Failed to seed baseline MLP model at ${filePath}. Provide ${BASELINE_MLP_MODEL_PATH} via your deployment process.`,
-				);
-			}
-			return;
-		}
-
 		if (REQUIRE_BASELINE_ARTIFACT) {
 			throw new Error(
-				`Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}. Stelle ein geprüftes Artefakt bereit, damit Trainingsjobs nicht mit neutralen Gewichten starten.`,
+				`Keine Trainingsdaten für ${filePath}; persönliches Modell wird nicht aus dem globalen Demo-Modell kopiert.`,
 			);
 		}
 
 		await logTraining(
-			`Baseline-MLP fehlt unter ${BASELINE_MLP_MODEL_PATH}; erstelle neutrales Modell in ${filePath} (Labels=${DEFAULT_BASELINE_LABELS.length})`,
+			`Keine Trainingsdaten für ${filePath}; erstelle neutrales Entwicklungsmodell (Labels=${DEFAULT_BASELINE_LABELS.length})`,
 		);
 		const labelCount = await writeZeroInitializedModel(
 			filePath,
@@ -576,6 +560,12 @@ function evaluateArtifactContract(
 	}
 	if (
 		typeof contract.labelCount === "number" &&
+		!Array.isArray(labels)
+	) {
+		return { status: "invalid", reason: "missing_labels" };
+	}
+	if (
+		typeof contract.labelCount === "number" &&
 		Array.isArray(labels) &&
 		contract.labelCount !== labels.length
 	) {
@@ -602,10 +592,6 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 		path.dirname(filePath),
 		TRAINING_METADATA_FILENAME,
 	);
-	const labelMapPath = path.join(
-		path.dirname(filePath),
-		SIGN_LANG_LABEL_MAP_FILENAME,
-	);
 	try {
 		const raw = fsSync.readFileSync(metadataPath, "utf8");
 		const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -617,16 +603,12 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 				)
 			: undefined;
 		const rawLabels = parsed.labels;
-		const hasExplicitLabels = Array.isArray(rawLabels);
-		let labels = hasExplicitLabels
+		const labels = Array.isArray(rawLabels)
 			? rawLabels
 					.filter((entry): entry is string => typeof entry === "string")
 					.map((entry) => entry.trim())
 					.filter((entry) => entry.length > 0)
 			: undefined;
-		if (!hasExplicitLabels && (!labels || labels.length === 0)) {
-			labels = readSignLangLabelMap(labelMapPath) ?? undefined;
-		}
 		const modalityCounts =
 			normalizeModalityCounts(parsed.modality_counts) ?? undefined;
 		const configSnapshot =
@@ -658,28 +640,6 @@ function readTrainingMetadata(filePath: string): TrainingMetadata | null {
 		if (process.env.NODE_ENV !== "production") {
 			console.warn(
 				`[mlpModelArtifacts] Failed to read training metadata at ${metadataPath}:`,
-				error,
-			);
-		}
-		return null;
-	}
-}
-
-function readSignLangLabelMap(filePath: string): string[] | null {
-	try {
-		const raw = fsSync.readFileSync(filePath, "utf8");
-		const labels = raw
-			.split(/\r?\n/u)
-			.map((entry) => entry.trim())
-			.filter((entry) => entry.length > 0);
-		return labels.length > 0 ? labels : null;
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
-			return null;
-		}
-		if (process.env.NODE_ENV !== "production") {
-			console.warn(
-				`[mlpModelArtifacts] Failed to read label map at ${filePath}:`,
 				error,
 			);
 		}
