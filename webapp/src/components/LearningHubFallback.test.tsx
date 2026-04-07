@@ -89,7 +89,7 @@ describe('LearningHub Fallback', () => {
 
   it('renders API symbols instead of fallback when they are available', async () => {
     const customSymbols = [
-      { id: 'custom-1', name: 'Custom Symbol', category: 'custom', emoji: '🌟', sampleCount: 0, samplesNeeded: 5, isReady: false, status: 'registered' as const }
+      { id: 'custom-1', name: 'Custom Symbol', category: 'custom', emoji: '🌟', sampleCount: 0, samplesNeeded: 1, isReady: false, status: 'registered' as const }
     ];
     
     // Simulate API response with one symbol

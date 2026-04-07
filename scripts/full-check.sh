@@ -25,6 +25,8 @@ run_step() {
 
 # Ensure tests run non-interactively
 export CI="${CI:-true}"
+# Make user-installed Python tools available after pip install --user.
+export PATH="$HOME/.local/bin:$PATH"
 
 # Ensure Node dependencies are installed
 # Clear npm proxy settings to avoid warnings in CI
@@ -110,11 +112,7 @@ EOF
 # Run lint/type-check/tests for the browser webapp
 run_step "Lint webapp" npm run lint --prefix webapp
 run_step "Type-check webapp" npm run type-check --prefix webapp
-if [ "${SKIP_WEBAPP_TEST:-false}" = "true" ]; then
-  echo "Skipping webapp tests because SKIP_WEBAPP_TEST=true"
-else
-  run_step "Test webapp" npm test --prefix webapp
-fi
+run_step "Test webapp" npm test --prefix webapp
 run_step "Build webapp" npm run build --prefix webapp
 
 # Install backend Python deps (if needed)

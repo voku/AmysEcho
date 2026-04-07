@@ -28,7 +28,7 @@ const mockSaveSymbol = vi.fn().mockResolvedValue({
 const mockShowToast = vi.fn();
 
 const mockSymbols = [
-  { id: 'alle', name: 'Alle', category: 'basic', emoji: '👐', sampleCount: 0, samplesNeeded: 5, isReady: false, status: 'registered' },
+  { id: 'alle', name: 'Alle', category: 'basic', emoji: '👐', sampleCount: 0, samplesNeeded: 1, isReady: false, status: 'registered' },
 ];
 
 vi.mock('../../context/SymbolStore', async () => {

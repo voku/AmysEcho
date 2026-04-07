@@ -43,8 +43,8 @@ export const BACKGROUND_MODEL_UPDATE_EVENT = 'amysecho:background-model-update';
  * 
  * Signs go through phases:
  * 1. draft - Just registered, needs training samples
- * 2. training - Has some samples (3+), collecting more
- * 3. active - Has enough samples (10+), ready for recognition
+ * 2. training - Has a bootstrap sample, collecting more
+ * 3. active - Has enough samples for stable recognition
  * 4. disabled - Temporarily deactivated
  */
 class CustomGestureRegistry {
@@ -53,8 +53,8 @@ class CustomGestureRegistry {
   private modelUpdateListeners: Set<(event: BackgroundModelUpdateEvent) => void> = new Set();
   
   // Thresholds for triggering background model updates
-  private readonly TRAINING_THRESHOLD = 3;  // Trigger training after 3 samples
-  private readonly ACTIVE_THRESHOLD = 10;   // Auto-activate after 10 samples
+  private readonly TRAINING_THRESHOLD = 1;  // Trigger training after the first good sample
+  private readonly ACTIVE_THRESHOLD = 3;     // Auto-activate after a small bootstrap set
 
   constructor() {
     this.loadFromStorage();
@@ -201,8 +201,8 @@ class CustomGestureRegistry {
   /**
    * Increment training sample count for a DGS sign.
    * Automatically transitions sign status based on sample count:
-   * - 3+ samples: draft → training (triggers background model update)
-   * - 10+ samples: training → active (ready for recognition)
+   * - 1+ samples: draft → training (triggers background model update)
+   * - 3+ samples: training → active (ready for recognition)
    */
   incrementTrainingSamples(id: string): void {
     const gesture = this.gestures.get(id);
@@ -225,7 +225,7 @@ class CustomGestureRegistry {
       this.notify();
       
       // Request background model update when the status changes due to meeting a sample threshold.
-      // Status changes only occur when crossing TRAINING_THRESHOLD (3) or ACTIVE_THRESHOLD (10).
+      // Status changes only occur when crossing TRAINING_THRESHOLD (1) or ACTIVE_THRESHOLD (3).
       if (statusChanged) {
         this.requestBackgroundModelUpdate(gesture, 'samples_threshold');
       }

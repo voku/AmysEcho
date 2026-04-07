@@ -54,9 +54,9 @@ export async function apiRequest<T = unknown>(
 		signal: AbortSignal.timeout(timeout),
 	};
 
-	if (body && typeof body === "object") {
+	if (body !== undefined && body !== null && typeof body === "object") {
 		requestOptions.body = JSON.stringify(body);
-	} else if (body) {
+	} else if (body !== undefined && body !== null) {
 		requestOptions.body = body as BodyInit;
 	}
 

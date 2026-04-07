@@ -29,7 +29,7 @@ const mockSymbolStoreState = {
 };
 
 const mockSymbols: SymbolDefinition[] = [
-  { id: 'alle', name: 'Alle', category: 'basic', emoji: '👐', sampleCount: 0, samplesNeeded: 5, isReady: false, status: 'registered' },
+  { id: 'alle', name: 'Alle', category: 'basic', emoji: '👐', sampleCount: 0, samplesNeeded: 1, isReady: false, status: 'registered' },
   { id: 'essen', name: 'Essen', category: 'food', emoji: '🍽️', sampleCount: 2, samplesNeeded: 3, isReady: false, status: 'training' },
   { id: 'trinken', name: 'Trinken', category: 'food', emoji: '🥤', sampleCount: 5, samplesNeeded: 0, isReady: true, status: 'ready' },
 ];

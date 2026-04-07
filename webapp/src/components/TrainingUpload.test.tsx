@@ -192,13 +192,13 @@ describe('TrainingUpload', () => {
             label_diagnostics: [
               {
                 label: 'satt',
-                bundle_count: 2,
-                rejected_bundle_count: 1,
+                bundle_count: 1,
+                rejected_bundle_count: 0,
                 window_count: 6,
-                prototype_count: 2,
+                prototype_count: 0,
                 train_group_count: 1,
-                validation_group_count: 1,
-                confusion_scope: 'validation',
+                validation_group_count: 0,
+                confusion_scope: 'none',
                 top_confusions: [{ label: 'trinken', count: 2 }],
               },
             ],
@@ -217,10 +217,11 @@ describe('TrainingUpload', () => {
     expect(screen.getByText(/Für dieses Profil läuft die Erkennung derzeit auf dem globalen Ersatzmodell/)).toBeInTheDocument();
     expect(screen.getByText(/Label-Bereitschaft/)).toBeInTheDocument();
     expect(screen.getByText(/Datensatz-Check/)).toBeInTheDocument();
-    expect(screen.getByText(/Wenig Beispiele: satt \(2\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Bootstrap gestartet/)).toBeInTheDocument();
+    expect(screen.getByText(/Ein guter Clip reicht für den ersten Modellstand/)).toBeInTheDocument();
     expect(screen.getByText(/Häufige Verwechslungen: satt → trinken \(2\)/)).toBeInTheDocument();
     expect(screen.getAllByText(/satt/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Mehr saubere Aufnahmen empfohlen/)).toBeInTheDocument();
+    expect(screen.queryByText(/Mehr saubere Aufnahmen empfohlen/)).not.toBeInTheDocument();
   });
 
   it('does not fall back to global label diagnostics inside a profile training result', async () => {
@@ -300,6 +301,6 @@ describe('TrainingUpload', () => {
     );
 
     expect(screen.getByText(/Noch ohne unabhängige Prüfung/)).toBeInTheDocument();
-    expect(screen.getByText(/Mindestens zwei unterschiedliche Aufnahmen helfen/)).toBeInTheDocument();
+    expect(screen.getByText(/Eine zweite unabhängige Aufnahme macht die Qualitätsaussage ehrlicher/)).toBeInTheDocument();
   });
 });

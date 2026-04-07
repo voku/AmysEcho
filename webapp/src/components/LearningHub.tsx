@@ -6,7 +6,7 @@ import { useAppState } from '../hooks/useAppState';
 import { dedupeSymbolsByName, normalizeSymbolName } from '../utils/symbolDedup';
 import LoadingIndicator from './LoadingIndicator';
 
-const MIN_SAMPLES_FOR_READY = 5;
+const MIN_SAMPLES_FOR_READY = 1;
 
 const BASELINE_GESTURES: SymbolDefinition[] = [
   { id: 'alle', name: 'Alle', emoji: '👥', color: '#94a3b8', category: 'person' },

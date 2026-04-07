@@ -35,10 +35,10 @@ import type {
 } from "../types.js";
 import { loadBaselineLabels, loadDgsManifest } from "./labelRegistry.js";
 
-// Minimum videos required for server_pretrain mode
-const MIN_VIDEOS_FOR_SERVER_PRETRAIN = 3;
-// Minimum samples required for user_train mode
-const MIN_SAMPLES_FOR_USER_TRAIN = 5;
+// Bootstrap-friendly thresholds:
+// one clean recording should start a usable model entry, more uploads improve it.
+const MIN_VIDEOS_FOR_SERVER_PRETRAIN = 1;
+const MIN_SAMPLES_FOR_USER_TRAIN = 1;
 
 /**
  * Get all label settings for a profile

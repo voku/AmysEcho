@@ -360,16 +360,16 @@ function resolveLabelReadiness(entry: ReportLabelDiagnostic): { title: string; h
       hint: `${entry.rejectedBundleCount} Aufnahme(n) wurden verworfen. Bitte auf Bildausschnitt, Licht und klare Bewegung achten.`,
     };
   }
-  if (entry.prototypeCount <= 0 || entry.bundleCount < 2) {
+  if (entry.bundleCount <= 1) {
     return {
-      title: 'Wenig Beispiele',
-      hint: 'Die Gebärde ist im Modell, hat aber noch sehr wenig eigenständige Beispiele.',
+      title: 'Bootstrap gestartet',
+      hint: 'Ein guter Clip reicht für den ersten Modellstand. Weitere Uploads verbessern Stabilität, Prototypen und unabhängige Prüfung.',
     };
   }
   if (entry.validationGroupCount <= 0 || entry.confusionScope !== 'validation') {
     return {
       title: 'Noch ohne unabhängige Prüfung',
-      hint: 'Für diese Gebärde gibt es noch keine getrennte Prüf-Aufnahme. Mindestens zwei unterschiedliche Aufnahmen helfen für eine ehrlichere Qualitätsaussage.',
+      hint: 'Für diese Gebärde gibt es noch keine getrennte Prüf-Aufnahme. Eine zweite unabhängige Aufnahme macht die Qualitätsaussage ehrlicher, ohne den ersten Modellstand zu blockieren.',
     };
   }
   if (entry.topConfusions.length > 0) {

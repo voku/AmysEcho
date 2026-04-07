@@ -31,7 +31,6 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Run full check
         env:
-          SKIP_WEBAPP_TEST: "true"
           INTEGRATION_TEST_PROFILE: "fast"
         run: NODE_OPTIONS=--max_old_space_size=4096 ./scripts/full-check.sh
 

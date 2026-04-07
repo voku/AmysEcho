@@ -7,7 +7,8 @@ import {
 import {
 	parseTrainingManifest,
 	parseTrainingManifestEntry,
-	type TrainingManifest
+	type TrainingManifest,
+	type TrainingManifestEntry,
 } from "./trainingManifestSchema.js";
 
 const TRAINING_MANIFEST_KEY = "training.manifest";
@@ -47,40 +48,36 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return !!value && typeof value === "object";
 }
 
-function normalizeEntriesPayload(value: unknown): TrainingManifest {
+function readArrayField<T>(value: unknown, key: string): T[] {
+	if (!isRecord(value)) {
+		return [];
+	}
+	const field = value[key];
+	return Array.isArray(field) ? (field as T[]) : [];
+}
+
+function normalizeEntriesPayload(value: unknown): TrainingManifestFile<TrainingManifestEntry> {
 	return parseTrainingManifest(value);
 }
 
 function normalizeSamplesPayload<TSample>(value: unknown): DgsSamplesFile<TSample> {
-	if (!isRecord(value)) {
-		return { samples: [] };
-	}
-	const samples = (value as { samples?: unknown }).samples;
-	return { samples: Array.isArray(samples) ? (samples as TSample[]) : [] };
+	return { samples: readArrayField<TSample>(value, "samples") };
 }
 
 function normalizeSignsPayload<TSign>(value: unknown): CustomSignsFile<TSign> {
-	if (!isRecord(value)) {
-		return { signs: [] };
-	}
-	const signs = (value as { signs?: unknown }).signs;
-	return { signs: Array.isArray(signs) ? (signs as TSign[]) : [] };
+	return { signs: readArrayField<TSign>(value, "signs") };
 }
 
 function normalizeQualityPayload<TEntry>(value: unknown): TrainingQualityLogFile<TEntry> {
-	if (!isRecord(value)) {
-		return { entries: [] };
-	}
-	const entries = (value as { entries?: unknown }).entries;
-	return { entries: Array.isArray(entries) ? (entries as TEntry[]) : [] };
+	return { entries: readArrayField<TEntry>(value, "entries") };
 }
 
-export function loadTrainingManifest<TEntry = Record<string, unknown>>(): TrainingManifestFile<TEntry> {
+export function loadTrainingManifest<TEntry = TrainingManifestEntry>(): TrainingManifestFile<TEntry> {
 	assertDatabaseInitialized();
 	const parsed = normalizeEntriesPayload(
 		getJsonCollection(TRAINING_MANIFEST_KEY, { entries: [] }),
 	);
-	return parsed as unknown as TrainingManifestFile<TEntry>;
+	return { ...parsed, entries: parsed.entries as TEntry[] };
 }
 
 export function loadTrainingManifestRaw(): unknown {
@@ -95,16 +92,16 @@ export function saveTrainingManifest<TEntry = Record<string, unknown>>(
 	setJsonCollection(TRAINING_MANIFEST_KEY, normalizeEntriesPayload(manifest));
 }
 
-export function appendTrainingManifestEntry<TEntry>(entry: TEntry): TrainingManifestFile<TEntry> {
+export function appendTrainingManifestEntry(entry: TrainingManifestEntry): TrainingManifestFile<TrainingManifestEntry> {
 	assertDatabaseInitialized();
 	const parsedEntry = parseTrainingManifestEntry(entry);
-	return mutateJsonCollection<TrainingManifestFile<TEntry>>(
+	return mutateJsonCollection<TrainingManifestFile<TrainingManifestEntry>>(
 		TRAINING_MANIFEST_KEY,
 		{ entries: [] },
 		(current) => {
 			const normalized = normalizeEntriesPayload(current);
 			normalized.entries.push(parsedEntry);
-			return normalized as unknown as TrainingManifestFile<TEntry>;
+			return normalized;
 		},
 	);
 }
