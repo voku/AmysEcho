@@ -51,6 +51,21 @@ def test_extract_label_from_landmark_file_keeps_underscores() -> None:
     assert module.extract_label_from_landmark_file(Path("hallo_welt_var_2_landmarks.json")) == "hallo_welt"
 
 
+def test_build_entries_adds_feature_contract() -> None:
+    entries = module.build_entries([Path("/tmp/hallo_var_2_landmarks.json")])
+
+    assert entries[0]["id"] == "hallo_var_2_landmarks"
+    assert entries[0]["metadata"]["featureContract"] == {
+        "version": "wrist_relative_max_abs_v1",
+        "normalization": "wrist_relative_max_abs",
+        "handOrder": ["Left", "Right"],
+        "missingHandStrategy": "zero_pad",
+        "pointsPerHand": 21,
+        "coordinatesPerPoint": 3,
+        "vectorLength": 126,
+    }
+
+
 def test_resolve_epoch_for_attempt_uses_last_value_for_overflow() -> None:
     assert module.resolve_epoch_for_attempt([20, 40, 80], 0) == 20
     assert module.resolve_epoch_for_attempt([20, 40, 80], 2) == 80

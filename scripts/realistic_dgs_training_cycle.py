@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
+import importlib
 import json
 import random
 import shutil
@@ -26,17 +26,13 @@ SERVER_DATA = SERVER_DIR / "data"
 VIDEO_DIR = SERVER_DATA / "dgs_video_examples"
 TRAINER_SCRIPT = SERVER_DIR / "src" / "amyserver_tools" / "train_mlp.py"
 BASELINE_MODEL_PATH = SERVER_DATA / "models" / "global" / "amy_model.npz"
+FEATURE_SCHEMA_PATH = PROJECT_ROOT / "spec" / "feature_schema.json"
 STDERR_SUMMARY_LINES = 20
 
 
 def load_trainer_module() -> Any:
     sys.path.insert(0, str(SERVER_DIR / "src"))
-    trainer_spec = importlib.util.spec_from_file_location("amy_train_mlp", TRAINER_SCRIPT)
-    if trainer_spec is None or trainer_spec.loader is None:
-        raise RuntimeError(f"Unable to load trainer module from {TRAINER_SCRIPT}")
-    trainer_module = importlib.util.module_from_spec(trainer_spec)
-    trainer_spec.loader.exec_module(trainer_module)
-    return trainer_module
+    return importlib.import_module("amyserver_tools.train_mlp")
 
 
 def load_model_weights(model_path: Path) -> tuple[Any, list[str], dict[str, Any]]:
@@ -103,11 +99,27 @@ def landmark_file_has_signal(path: Path) -> bool:
     return False
 
 
+def load_hand_feature_contract() -> dict[str, Any]:
+    schema = json.loads(FEATURE_SCHEMA_PATH.read_text(encoding="utf-8"))
+    contract = schema["handFeatureContract"]
+    return {
+        "version": contract["version"],
+        "normalization": contract["normalization"],
+        "handOrder": contract["handOrder"],
+        "missingHandStrategy": contract["missingHandStrategy"],
+        "pointsPerHand": schema["landmarks"]["hands"]["perHand"],
+        "coordinatesPerPoint": schema["coordinatesPerLandmark"],
+        "vectorLength": contract["vectorLength"],
+    }
+
+
 def build_entries(landmark_files: list[Path]) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
+    feature_contract = load_hand_feature_contract()
     for landmark_file in landmark_files:
         entries.append(
             {
+                "id": landmark_file.stem,
                 "label": extract_label_from_landmark_file(landmark_file),
                 "profileId": None,
                 "storage": {
@@ -117,6 +129,7 @@ def build_entries(landmark_files: list[Path]) -> list[dict[str, Any]]:
                 "metadata": {
                     "source": "realistic_dgs_training_cycle",
                     "landmarkFile": landmark_file.name,
+                    "featureContract": feature_contract,
                     "validationSummary": {"landmarksPath": landmark_file.name},
                 },
             }

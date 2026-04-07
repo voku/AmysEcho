@@ -183,6 +183,12 @@ Completed items should keep a topic board reference in `docs/planning/topics/<TO
   - Entry points: `webapp/src/gesture/utils/MultimodalSmoother.ts`, `webapp/src/gesture/utils/TemporalGestureAnalyzer.ts`, `webapp/src/gesture/utils/MultiScaleTemporalFeatureExtractor.ts`, `webapp/scripts/benchmark-temporal-smoothing.ts`
   - Evidence: `docs/testing/benchmarks/rd-p1-2-temporal-smoothing-prototype-2026-04-07.md` keeps the lightweight prototype path with synthetic p95 `1.175 ms/frame` and 13.49% jitter-proxy reduction, while rejecting heavier production sequence-model enablement until labeled DGS accuracy data and target-device battery/thermal evidence exist.
 
+- [x] **RD-P1-4:** Complete the realistic DGS test and training protocol evidence loop.
+  - Topic board: `docs/planning/topics/RD-P1-4/topic.md` (details + evidence).
+  - Why now: after the DGS protocol doc existed, the repo still needed a committed fixture-level snapshot following that protocol and a data-tier note.
+  - Entry points: `docs/testing/benchmarks/dgs-realistic-protocol.md`, `scripts/realistic_dgs_training_cycle.py`, `server/test/test_realistic_dgs_training_cycle.py`
+  - Evidence: `docs/testing/benchmarks/rd-p1-4-realistic-dgs-cycle-2026-04-07.md` records a repository-fixture cycle with best top-1 accuracy `0.3161764706` and macro-F1 `0.1430683307`, below the `0.35` usable threshold; keep as fixture-level workflow evidence, not signer-independent production proof.
+
 ## 6) April 2026 — Supported-core cleanup follow-ups
 
 ### Done (April 2026 — server maintainability)

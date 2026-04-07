@@ -1,9 +1,9 @@
 # RD-P1-4 — Realistic DGS test and training protocol
 
 ## Kanban Status
-- **Column:** Backlog
-- **Owner:** Unassigned
-- **Last updated:** 2026-04-06
+- **Column:** Done
+- **Owner:** Team
+- **Last updated:** 2026-04-07
 - **Status authority:** `docs/planning/todo.md` for shared cleanup context, `docs/planning/topics/` for this topic
 
 ## Amy impact
@@ -34,9 +34,15 @@
 
 ## Checklist
 - [x] Discovery complete
-- [ ] Implementation complete
-- [ ] Tests pass
-- [ ] Evidence committed
+- [x] Implementation complete
+- [x] Tests pass
+- [x] Evidence committed
+
+## Evidence
+- Protocol doc: `docs/testing/benchmarks/dgs-realistic-protocol.md`
+- Benchmark snapshot: `docs/testing/benchmarks/rd-p1-4-realistic-dgs-cycle-2026-04-07.md`
+- Outcome: repository-fixture cycle now runs under the current feature-contract trainer gate, but best top-1 accuracy was `0.3161764706`, below the `0.35` usable threshold; keep this as fixture-level workflow evidence, not production training proof.
+- Verification: `python3 -m pytest -q server/test/test_realistic_dgs_training_cycle.py`; `python3 scripts/realistic_dgs_training_cycle.py --workflow-preset chat-validated-2026-03 --timeout-seconds 600 --report-path /tmp/rd-p1-4-realistic-dgs-cycle-report.json`.
 
 ## Next command
 - `rg -n "signer|leakage|split|snapshot|DGS" docs/testing/benchmarks docs/training server/src/amyserver_tools server/test`

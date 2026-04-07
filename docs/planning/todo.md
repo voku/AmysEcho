@@ -52,9 +52,7 @@ Execution order when hardware/data blockers clear: run `APR-P0-2` first, use the
 
 ## 2. R&D Backlog
 
-- [ ] **RD-P1-4:** Complete the realistic DGS test and training protocol evidence loop.
-  - Topic board: `docs/planning/topics/RD-P1-4/topic.md`
-  - Evidence target: committed benchmark snapshot or fixture set following `docs/testing/benchmarks/dgs-realistic-protocol.md`, plus data-tier note for training vs test-only material.
+No active R&D backlog follow-ups at this time.
 
 ## 3. Cleanup Follow-Ups
 

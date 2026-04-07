@@ -108,3 +108,7 @@ for robustness, but they are not a safe default training source.
 3. Run the current landmark baseline on that snapshot.
 4. Add a second evaluation set for real-world broadcast material.
 5. Keep the legal/privacy review attached to the dataset manifest.
+
+## Fixture Snapshot Log
+
+- 2026-04-07: `docs/testing/benchmarks/rd-p1-4-realistic-dgs-cycle-2026-04-07.md` records a repository-fixture cycle against `server/data/dgs_video_examples`. It validates the current training workflow and split mechanics, but the best attempt did not meet the usable threshold and the fixture set does not provide signer-independent production evidence.
