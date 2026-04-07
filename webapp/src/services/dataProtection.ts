@@ -7,14 +7,14 @@ export interface GestureData {
   sessionId: string;
 }
 
-interface AnonymizedGestureData {
+export interface AnonymizedGestureData {
   gestureClass: string;
   confidence: number;
   timestamp: number;
   sessionId: string;
 }
 
-interface StoredRecord {
+export interface StoredRecord {
   data: string;
   expires: number;
 }

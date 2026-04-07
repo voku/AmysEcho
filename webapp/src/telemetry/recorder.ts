@@ -63,11 +63,13 @@ export class TelemetryRecorder {
   }
 
   private isTelemetryEvent(value: unknown): value is TelemetryEvent {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    const candidate = value as Record<string, unknown>;
     return (
-      typeof value === 'object' &&
-      value !== null &&
-      typeof (value as any).timestamp === 'number' &&
-      typeof (value as any).event === 'string'
+      typeof candidate['timestamp'] === 'number' &&
+      typeof candidate['event'] === 'string'
     );
   }
 

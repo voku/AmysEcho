@@ -1,10 +1,16 @@
 const DEFAULT_SAMPLE_INTERVAL_MS_2000 = 2000;
 
+type DebugWindow = Window & {
+  __gestureDebug?: boolean;
+  __DEBUG__?: boolean;
+};
+
 const isDebugEnabled = (): boolean => {
   if (typeof window === 'undefined') {
     return false;
   }
-  return Boolean((window as any).__gestureDebug ?? (window as any).__DEBUG__ ?? false);
+  const debugWindow = window as DebugWindow;
+  return Boolean(debugWindow.__gestureDebug ?? debugWindow.__DEBUG__ ?? false);
 };
 
 const lastLogTimes = new Map<string, number>();

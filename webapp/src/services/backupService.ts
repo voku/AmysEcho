@@ -1,5 +1,9 @@
 import { decryptJson, encryptJson, generateKeyBase64 } from './cryptoUtils';
-import { gestureDataProtector } from './dataProtection';
+import {
+  gestureDataProtector,
+  type AnonymizedGestureData,
+  type StoredRecord,
+} from './dataProtection';
 import { logger } from './logger';
 
 const PROTECTED_GESTURES_KEY = 'protectedGestures';
@@ -11,9 +15,16 @@ export interface BackupArtifact {
   fileName: string;
 }
 
+function isStoredRecord(value: unknown): value is StoredRecord {
+  return !!value && typeof value === 'object'
+    && typeof (value as StoredRecord).data === 'string'
+    && typeof (value as StoredRecord).expires === 'number';
+}
+
 async function readBlobText(blob: Blob): Promise<string> {
-  if (typeof (blob as Blob & { text?: () => Promise<string> }).text === 'function') {
-    return (blob as Blob & { text: () => Promise<string> }).text();
+  const typedBlob = blob as Blob & { text?: () => Promise<string> };
+  if (typeof typedBlob.text === 'function') {
+    return typedBlob.text();
   }
   return new Response(blob).text();
 }
@@ -29,8 +40,9 @@ async function getOrCreateKey(): Promise<string> {
 function createDownload(payload: string, fileName: string, mime = 'application/octet-stream'): BackupArtifact {
   const blob = new Blob([payload], { type: mime });
   // Polyfill for test environments (e.g., jsdom) where Blob.text might be missing
-  if (typeof (blob as any).text !== 'function') {
-    (blob as any).text = async () => payload;
+  const typedBlob = blob as Blob & { text?: () => Promise<string> };
+  if (typeof typedBlob.text !== 'function') {
+    typedBlob.text = async () => payload;
   }
   const url = URL.createObjectURL(blob);
   return { url, fileName };
@@ -130,17 +142,18 @@ export const backupService = {
       throw new Error('Export nicht möglich, Daten beschädigt.');
     }
 
-    if (!Array.isArray(records)) {
+    const storedRecords = Array.isArray(records) ? records.filter(isStoredRecord) : [];
+    if (storedRecords.length === 0) {
       logger.error('Invalid data structure for export');
       throw new Error('Export nicht möglich, Daten beschädigt.');
     }
 
-    const decryptPromises = (records as any[]).map((r) =>
-      typeof r?.data === 'string' ? gestureDataProtector.decryptGesture(r.data) : Promise.resolve(null),
+    const decryptPromises: Array<Promise<AnonymizedGestureData | null>> = storedRecords.map((record) =>
+      gestureDataProtector.decryptGesture(record.data),
     );
 
     const results = await Promise.allSettled(decryptPromises);
-    const decrypted: any[] = [];
+    const decrypted: AnonymizedGestureData[] = [];
     results.forEach((res) => {
       if (res.status === 'fulfilled' && res.value) {
         decrypted.push(res.value);

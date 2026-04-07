@@ -16,6 +16,20 @@ interface TelemetryMessage {
   [key: string]: unknown;
 }
 
+type ReactNativeBridge = {
+  postMessage?: (message: string) => void;
+} | ((message: string) => void);
+
+function getReactNativeBridge(): ReactNativeBridge | undefined {
+  const globalBridge = globalThis as typeof globalThis & {
+    ReactNativeWebView?: ReactNativeBridge;
+  };
+  if (typeof window !== 'undefined' && 'ReactNativeWebView' in window) {
+    return (window as typeof window & { ReactNativeWebView?: ReactNativeBridge }).ReactNativeWebView;
+  }
+  return globalBridge.ReactNativeWebView;
+}
+
 export async function sendTelemetryEvent(event: string, payload: TelemetryPayload = {}): Promise<void> {
   const { latencyMs, source, timestamp, ...details } = payload;
   const message: TelemetryMessage = {
@@ -28,9 +42,7 @@ export async function sendTelemetryEvent(event: string, payload: TelemetryPayloa
   };
 
   try {
-    const bridge =
-      (typeof window !== 'undefined' && (window as any).ReactNativeWebView) ||
-      (globalThis as any).ReactNativeWebView;
+    const bridge = getReactNativeBridge();
     if (typeof bridge === 'function') {
       bridge(JSON.stringify(message));
     } else if (typeof bridge?.postMessage === 'function') {
