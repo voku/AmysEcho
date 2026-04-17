@@ -38,7 +38,7 @@
     "jest": "^30.3.0",
     "supertest": "^7.0.0",
     "ts-node": "10.9.2",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   },
   "scripts": {
     "test": "sh -c 'npm run test:ts -- \"$@\" && npm run test:py' sh \"$@\"",
