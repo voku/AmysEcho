@@ -534,6 +534,9 @@ def main() -> None:
         if should_promote:
             BASELINE_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(best_model_path, BASELINE_MODEL_PATH)
+            source_metadata = best_model_path.parent / "training_metadata.json"
+            if source_metadata.exists():
+                shutil.copy2(source_metadata, BASELINE_MODEL_PATH.parent / "training_metadata.json")
             promoted_model_path = str(BASELINE_MODEL_PATH.relative_to(PROJECT_ROOT))
 
         artifact_mode = "retained" if args.keep_attempt_artifacts else "temporary"
