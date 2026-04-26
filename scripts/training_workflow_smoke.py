@@ -107,6 +107,7 @@ def main() -> None:
     model_path = PROJECT_ROOT / str(model_rel)
     metadata_path = model_path.parent / "training_metadata.json"
     manifest_path = model_path.parents[2] / "train_manifest.json"
+    heldout_manifest_path = model_path.parents[2] / "eval_manifest.json"
 
     if not model_path.exists():
         raise RuntimeError(f"Generated model missing: {model_path}")
@@ -114,6 +115,8 @@ def main() -> None:
         raise RuntimeError(f"Generated training metadata missing: {metadata_path}")
     if not manifest_path.exists():
         raise RuntimeError(f"Generated train manifest missing: {manifest_path}")
+    if not heldout_manifest_path.exists():
+        raise RuntimeError(f"Generated heldout manifest missing: {heldout_manifest_path}")
 
     required_keys = {"w1", "b1", "w2", "b2", "w3", "b3", "labels"}
     with np.load(model_path, allow_pickle=False) as model_data:
@@ -139,8 +142,10 @@ def main() -> None:
     sweep_command = [
         sys.executable,
         str(SWEEP_SCRIPT),
-        "--manifest",
+        "--train-manifest",
         str(manifest_path),
+        "--heldout-manifest",
+        str(heldout_manifest_path),
         "--data-dir",
         str(PROJECT_ROOT / "server" / "data"),
         "--epochs",
@@ -154,6 +159,7 @@ def main() -> None:
         "--trials",
         "1",
         "--skip-examples",
+        "--skip-signer-split-validation",
     ]
     sweep_stdout = run_command(sweep_command)
     sweep_summary = parse_json_output(sweep_stdout)
@@ -166,6 +172,7 @@ def main() -> None:
         "reportPath": str(report_path),
         "modelPath": str(model_path),
         "trainManifestPath": str(manifest_path),
+        "heldoutManifestPath": str(heldout_manifest_path),
         "labelsCount": len(labels),
         "contractLabelCount": label_count,
         "sweepBest": sweep_summary["best"],

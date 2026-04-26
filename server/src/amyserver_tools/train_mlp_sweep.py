@@ -139,6 +139,11 @@ def main() -> None:
     parser.add_argument("--trials", type=int, default=2)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--skip-examples", action="store_true")
+    parser.add_argument(
+        "--skip-signer-split-validation",
+        action="store_true",
+        help="Skip the signer-leakage hard gate. Use only for reference/synthetic data without real profile IDs.",
+    )
     args = parser.parse_args()
     if args.trials < 1:
         parser.error("--trials must be >= 1")
@@ -149,10 +154,14 @@ def main() -> None:
         raise ValueError(f"Could not read training manifest: {args.train_manifest}")
     if not isinstance(heldout_manifest_payload, dict):
         raise ValueError(f"Could not read heldout manifest: {args.heldout_manifest}")
-    signer_split_validation = validate_manifest_signer_split(
-        train_manifest=train_manifest_payload,
-        test_manifest=heldout_manifest_payload,
-    )
+    signer_split_validation: dict[str, int] | None
+    if args.skip_signer_split_validation:
+        signer_split_validation = None
+    else:
+        signer_split_validation = validate_manifest_signer_split(
+            train_manifest=train_manifest_payload,
+            test_manifest=heldout_manifest_payload,
+        )
 
     train_script = _resolve_train_script()
     epochs_values = _parse_int_list(args.epochs)
