@@ -183,7 +183,7 @@ describe('useAppState', () => {
   });
 
   it('keeps the previous state when refreshFromRegistry fails', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const mockProfile = {
       uuid: 'stable-uuid',
       profileId: 'stable-profile',

@@ -153,7 +153,7 @@ describe("registerTrainingJobsRoutes", () => {
 			totalHandLandmarks: 42,
 			multimodalLandmarks: 543,
 			startTrainingJob: () => ({
-				jobId: "job-4",
+				jobId: "job-exists",
 				status: "queued",
 				queueDepth: 0,
 				retryAfterMs: 0,
