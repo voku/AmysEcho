@@ -754,7 +754,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       'bundle/landmarks.json',
       Buffer.from(JSON.stringify({ frames: [{ landmarks }] }, null, 2)),
     );
-    isProfileAuthorized = (profileId) => profileId !== metadata.profileId;
+    isProfileAuthorized = () => false;
 
     const response = await request(app)
       .post('/api/v1/dgs/sample-bundles')

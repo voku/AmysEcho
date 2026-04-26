@@ -43,7 +43,7 @@ describe("registerModelMetadataRoutes", () => {
 			.expect(403);
 	});
 
-	it("returns 400 for invalid profile resolution and 403 for paths outside the data directory", async () => {
+	it("returns 400 when profile resolution fails", async () => {
 		const invalidProfileApp = express();
 		registerModelMetadataRoutes(invalidProfileApp, {
 			authMiddleware: (_req, _res, next) => next(),
@@ -61,7 +61,9 @@ describe("registerModelMetadataRoutes", () => {
 			.get("/api/v1/models/metadata?profileId=bad-profile")
 			.expect(400);
 		expect(invalidProfileResponse.body).toEqual({ error: "Ungültige Profil-ID." });
+	});
 
+	it("returns 403 when model metadata resolves outside the data directory", async () => {
 		const traversalApp = express();
 		registerModelMetadataRoutes(traversalApp, {
 			authMiddleware: (_req, _res, next) => next(),
