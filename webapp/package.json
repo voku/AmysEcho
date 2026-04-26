@@ -47,7 +47,7 @@
     "typescript": "^5.2.2",
     "vite": "7.3.2",
     "vitest": "^4.1.4",
-    "vite-node": "^5.3.0"
+    "vite-node": "^6.0.0"
   },
   "overrides": {
     "minimatch": "^10.2.2"
