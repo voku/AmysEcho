@@ -122,6 +122,41 @@ describe('useAppState', () => {
     );
   });
 
+  it('ignores empty sign input and leaves recent state untouched', async () => {
+    const { result } = renderHook(() => useAppState(), { wrapper: AppStateProvider });
+
+    await waitFor(() => {
+      expect(profileRegistry.initializeProfileRegistry).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.recordSign('   ');
+    });
+
+    expect(result.current.lastRecognizedSign).toBeNull();
+    expect(result.current.recentSigns).toEqual([]);
+    expect(gestureHistoryAddMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the recognized sign when no preferred sign is set', async () => {
+    const { result } = renderHook(() => useAppState(), { wrapper: AppStateProvider });
+
+    await waitFor(() => {
+      expect(profileRegistry.initializeProfileRegistry).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.setPreferredSign('', '');
+    });
+
+    act(() => {
+      result.current.recordSign('Bitte');
+    });
+
+    expect(result.current.preferredSignId).toBe('bitte');
+    expect(result.current.preferredSignName).toBe('Bitte');
+  });
+
   it('refreshes from registry', async () => {
     const mockProfile = {
       uuid: 'new-uuid-456',
@@ -145,5 +180,42 @@ describe('useAppState', () => {
     expect(result.current.profileId).toBe('new-profile');
     expect(result.current.displayName).toBe('New User');
     expect(result.current.profileMetadata).toEqual({});
+  });
+
+  it('keeps the previous state when refreshFromRegistry fails', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const mockProfile = {
+      uuid: 'stable-uuid',
+      profileId: 'stable-profile',
+      displayName: 'Stable User',
+      createdAt: new Date().toISOString(),
+      metadata: { notes: 'stable' },
+      securityToken: 'token',
+    };
+
+    vi.mocked(profileRegistry.getActiveProfile)
+      .mockResolvedValueOnce(mockProfile)
+      .mockRejectedValueOnce(new Error('registry offline'));
+
+    const { result } = renderHook(() => useAppState(), { wrapper: AppStateProvider });
+
+    await waitFor(() => {
+      expect(result.current.profileUuid).toBe('stable-uuid');
+    });
+
+    await act(async () => {
+      await result.current.refreshFromRegistry();
+    });
+
+    expect(result.current.profileUuid).toBe('stable-uuid');
+    expect(result.current.profileId).toBe('stable-profile');
+    expect(result.current.displayName).toBe('Stable User');
+    expect(result.current.profileMetadata).toEqual({ notes: 'stable' });
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[AppState] Failed to refresh from registry:',
+      expect.any(Error),
+    );
+
+    warnSpy.mockRestore();
   });
 });

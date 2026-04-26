@@ -136,6 +136,90 @@ describe("registerTrainingJobsRoutes", () => {
 		});
 	});
 
+	it("returns 404 when the requested training job is unknown", async () => {
+		const app = express();
+		app.use(express.json());
+
+		registerTrainingJobsRoutes(app, {
+			authMiddleware: (_req, _res, next) => next(),
+			trainingLimiter: (_req, _res, next) => next(),
+			healthLimiter: (_req, _res, next) => next(),
+			landmarkTupleSchema: z.tuple([z.number(), z.number(), z.number()]),
+			frameSchema: z.object({
+				timestampMs: z.number(),
+				landmarks: z.array(z.tuple([z.number(), z.number(), z.number()])),
+			}),
+			handLandmarksPerHand: 21,
+			totalHandLandmarks: 42,
+			multimodalLandmarks: 543,
+			startTrainingJob: () => ({
+				jobId: "job-4",
+				status: "queued",
+				queueDepth: 0,
+				retryAfterMs: 0,
+			}),
+			trainingJobs: new Map(),
+			isProfileAuthorized: () => true,
+		});
+
+		const response = await request(app)
+			.get("/api/v1/train-status/job-missing")
+			.expect(404);
+
+		expect(response.body).toEqual({ id: "job-missing", status: "not_found" });
+	});
+
+	it("returns the stored training job payload for status lookups", async () => {
+		const app = express();
+		app.use(express.json());
+		const trainingJobs = new Map<string, TrainingJob>([
+			[
+				"job-5",
+				{
+					id: "job-5",
+					status: "running",
+					progress: 42,
+					queueDepth: 1,
+					retryAfterMs: 1200,
+					message: "Trainingslauf läuft",
+				},
+			],
+		]);
+
+		registerTrainingJobsRoutes(app, {
+			authMiddleware: (_req, _res, next) => next(),
+			trainingLimiter: (_req, _res, next) => next(),
+			healthLimiter: (_req, _res, next) => next(),
+			landmarkTupleSchema: z.tuple([z.number(), z.number(), z.number()]),
+			frameSchema: z.object({
+				timestampMs: z.number(),
+				landmarks: z.array(z.tuple([z.number(), z.number(), z.number()])),
+			}),
+			handLandmarksPerHand: 21,
+			totalHandLandmarks: 42,
+			multimodalLandmarks: 543,
+			startTrainingJob: () => ({
+				jobId: "job-5",
+				status: "running",
+				queueDepth: 1,
+				retryAfterMs: 1200,
+			}),
+			trainingJobs,
+			isProfileAuthorized: () => true,
+		});
+
+		const response = await request(app).get("/api/v1/train-status/job-5").expect(200);
+
+		expect(response.body).toEqual({
+			id: "job-5",
+			status: "running",
+			progress: 42,
+			queueDepth: 1,
+			retryAfterMs: 1200,
+			message: "Trainingslauf läuft",
+		});
+	});
+
 	it("returns German validation error messages for empty payloads", async () => {
 		const app = express();
 		app.use(express.json());

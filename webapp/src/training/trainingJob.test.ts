@@ -32,6 +32,28 @@ describe('extractTrainingJob', () => {
       retryAfterMs: 1500,
     });
   });
+
+  it('gibt undefined zurück, wenn keine brauchbare Job-ID vorhanden ist', () => {
+    expect(extractTrainingJob({ trainingJob: { jobId: '   ' } })).toBeUndefined();
+    expect(extractTrainingJob({ data: { status: 'running' } })).toBeUndefined();
+  });
+
+  it('normalisiert Status-Aliase und optionale Felder aus der Wurzelantwort', () => {
+    const job = extractTrainingJob({
+      id: ' job-2 ',
+      status: 'success',
+      pollUrl: '  /api/v1/train-status/job-2  ',
+      queueDepth: Number.NaN,
+      retryAfterMs: 2500,
+    });
+
+    expect(job).toEqual({
+      jobId: 'job-2',
+      status: 'completed',
+      pollUrl: '/api/v1/train-status/job-2',
+      retryAfterMs: 2500,
+    });
+  });
 });
 
 describe('triggerTrainingJob', () => {
@@ -60,4 +82,32 @@ describe('triggerTrainingJob', () => {
     );
   });
 
+  it('gibt null zurück, wenn keine API-Basis gesetzt ist', async () => {
+    const result = await triggerTrainingJob('   ', 'token-123');
+
+    expect(result).toBeNull();
+    expect(fetchWithRetryMock).not.toHaveBeenCalled();
+  });
+
+  it('wirft einen HTTP-Fehler bei nicht erfolgreicher Antwort', async () => {
+    fetchWithRetryMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: 'boom' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(triggerTrainingJob('https://api.example.com', 'token-123')).rejects.toMatchObject({
+      status: 503,
+      message: 'Training-Trigger fehlgeschlagen (HTTP 503).',
+    });
+  });
+
+  it('übersetzt Abbrüche in eine deutsche Timeout-Fehlermeldung', async () => {
+    fetchWithRetryMock.mockRejectedValue(new DOMException('aborted', 'AbortError'));
+
+    await expect(triggerTrainingJob('https://api.example.com', 'token-123')).rejects.toThrow(
+      'Trainings-Trigger wurde wegen einer Zeitüberschreitung abgebrochen.',
+    );
+  });
 });

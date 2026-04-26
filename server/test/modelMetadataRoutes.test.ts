@@ -43,6 +43,42 @@ describe("registerModelMetadataRoutes", () => {
 			.expect(403);
 	});
 
+	it("returns 400 for invalid profile resolution and 403 for paths outside the data directory", async () => {
+		const invalidProfileApp = express();
+		registerModelMetadataRoutes(invalidProfileApp, {
+			authMiddleware: (_req, _res, next) => next(),
+			modelMetadataLimiter: (_req, _res, next) => next(),
+			readServerPackageJson: async () => ({ version: "1.0.0" }),
+			collectLabelCounts: async () => ({ profileCounts: new Map() }),
+			getMlpModelPath: () => {
+				throw new Error("invalid profile");
+			},
+			isProfileAuthorized: () => true,
+			profileIdPattern: /^[a-z-]+$/,
+		});
+
+		const invalidProfileResponse = await request(invalidProfileApp)
+			.get("/api/v1/models/metadata?profileId=bad-profile")
+			.expect(400);
+		expect(invalidProfileResponse.body).toEqual({ error: "Ungültige Profil-ID." });
+
+		const traversalApp = express();
+		registerModelMetadataRoutes(traversalApp, {
+			authMiddleware: (_req, _res, next) => next(),
+			modelMetadataLimiter: (_req, _res, next) => next(),
+			readServerPackageJson: async () => ({ version: "1.0.0" }),
+			collectLabelCounts: async () => ({ profileCounts: new Map() }),
+			getMlpModelPath: () => "/tmp/outside-data-dir.npz",
+			isProfileAuthorized: () => true,
+			profileIdPattern: /^[a-z-]+$/,
+		});
+
+		const traversalResponse = await request(traversalApp)
+			.get("/api/v1/models/metadata")
+			.expect(403);
+		expect(traversalResponse.body).toEqual({ error: "Zugriff verweigert." });
+	});
+
 	it("returns 404 for missing model file and 500 for version lookup errors", async () => {
 		const app = express();
 		registerModelMetadataRoutes(app, {

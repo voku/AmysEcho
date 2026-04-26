@@ -741,6 +741,35 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     expect(afterEntries).toHaveLength(beforeEntries.length);
   });
 
+  it('rejects uploads for unauthorized profiles before writing manifest entries', async () => {
+    const beforeEntries = await readManifestEntries();
+    const metadata = {
+      profileId: '22222222-2222-4222-8222-222222222222',
+      label: 'HALLO',
+    };
+    const landmarks = await loadSampleLandmarks();
+    const zip = new AdmZip();
+    zip.addFile('bundle/metadata.json', Buffer.from(JSON.stringify(withFeatureContract(metadata), null, 2)));
+    zip.addFile(
+      'bundle/landmarks.json',
+      Buffer.from(JSON.stringify({ frames: [{ landmarks }] }, null, 2)),
+    );
+    isProfileAuthorized = (profileId) => profileId !== metadata.profileId;
+
+    const response = await request(app)
+      .post('/api/v1/dgs/sample-bundles')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('Content-Type', 'application/zip')
+      .send(zip.toBuffer())
+      .expect(403);
+
+    expect(response.body).toEqual({ error: 'Kein Zugriff auf dieses Profil.' });
+    expect(triggerCalls).toEqual([]);
+    expect(manifestUpdatedCalls).toBe(0);
+    const afterEntries = await readManifestEntries();
+    expect(afterEntries).toHaveLength(beforeEntries.length);
+  });
+
   it('rejects bundles containing traversal entries', async () => {
     const beforeEntries = await readManifestEntries();
     const zip = new AdmZip();
