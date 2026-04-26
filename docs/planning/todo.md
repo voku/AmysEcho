@@ -1,6 +1,6 @@
 # Amy's Echo TODO - Active Roadmap
 
-**Last refreshed:** 2026-04-07
+**Last refreshed:** 2026-04-26
 **Current mode:** supported-core roadmap + cleanup
 **Done archive:** `docs/planning/todo-done.md`
 
@@ -20,6 +20,7 @@ These checked bullets summarize the current repo baseline. They are not standalo
 - [x] Training UX moved toward the one-upload flow and synchronized per-profile gesture history/navigation.
 - [x] Shared webapp utilities were hardened for telemetry, backup, and data protection behavior.
 - [x] Demo model artifacts were isolated from generated/runtime artifacts; checksum and test fixture docs were updated.
+- [x] Main workflow output-contract coverage was hardened for training trigger parsing, app-state hook branches, training-status route responses, model metadata rejection paths, and bundle-upload profile authorization.
 
 ## 1. Blocked Execution Items
 
@@ -56,7 +57,9 @@ No active R&D backlog follow-ups at this time.
 
 ## 3. Cleanup Follow-Ups
 
-No active cleanup follow-ups at this time.
+- [ ] **APR-QA-1:** Close the remaining supported-core workflow output-contract gaps flagged by the 2026-04-26 audit.
+  - Status: Core branch coverage is improved for webapp training/app-state and server training/model metadata routes, but profile route contracts and some integration fallback assertions still need explicit tests.
+  - Remaining gaps to close next: `server/test/profileRoutes.test.ts`, `integration/test/training-flow.test.ts`, `integration/test/multimodal-training-flow.test.ts`, `integration/test/webapp-video-upload.test.ts`, `integration/test/contract-smoke.test.ts`
 
 ## 4. Planning Rules
 
