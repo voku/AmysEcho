@@ -2,8 +2,8 @@
   "name": "integration-tests",
   "dependencies": {
     "@types/adm-zip": {
-      "version": "0.5.7",
-      "resolved": "https://registry.npmjs.org/@types/adm-zip/-/adm-zip-0.5.7.tgz",
+      "version": "0.5.8",
+      "resolved": "https://registry.npmjs.org/@types/adm-zip/-/adm-zip-0.5.8.tgz",
       "overridden": false,
       "dependencies": {
         "@types/node": {
@@ -39,8 +39,8 @@
       }
     },
     "adm-zip": {
-      "version": "0.5.16",
-      "resolved": "https://registry.npmjs.org/adm-zip/-/adm-zip-0.5.16.tgz",
+      "version": "0.5.17",
+      "resolved": "https://registry.npmjs.org/adm-zip/-/adm-zip-0.5.17.tgz",
       "overridden": false
     },
     "fflate": {
