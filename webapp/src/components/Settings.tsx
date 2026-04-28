@@ -13,7 +13,7 @@ import { UserSettings } from './UserSettings';
 export function Settings() {
   const { profileId, displayName } = useAppState();
   const { apiBaseUrl, apiToken } = useApiConfig();
-  const commitHash = import.meta.env['VITE_APP_COMMIT_SHA']?.trim() || 'unbekannt';
+  const commitHash = (import.meta.env as { VITE_APP_COMMIT_SHA?: string }).VITE_APP_COMMIT_SHA?.trim() || 'unbekannt';
 
   const handleExportServerProfileData = useCallback(() => {
     if (!profileId || !apiToken) {

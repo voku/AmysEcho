@@ -132,7 +132,7 @@ class GestureHistoryService {
       logger.warn('Konnte keine sichere Sitzungs-ID generieren, verwende Fallback.');
       return `fallback-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
     }
-    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    const bytes = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(16)));
     const b6 = bytes[6];
     const b8 = bytes[8];
     if (b6 !== undefined && b8 !== undefined) {

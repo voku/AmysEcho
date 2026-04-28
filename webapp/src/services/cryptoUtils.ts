@@ -21,7 +21,7 @@ const btoaImpl = getBtoa();
 const atobImpl = getAtob();
 
 export function generateKeyBase64(): string {
-  const bytes = new Uint8Array(32);
+  const bytes = new Uint8Array(new ArrayBuffer(32));
   crypto.getRandomValues(bytes);
   return bytesToBase64(bytes);
 }
@@ -56,7 +56,7 @@ export async function sha256Base64(input: string): Promise<string> {
 
 export async function encryptJson<T>(payload: T, base64Key: string): Promise<string> {
   const key = await importAesKey(base64Key);
-  const iv = new Uint8Array(12);
+  const iv = new Uint8Array(new ArrayBuffer(12));
   crypto.getRandomValues(iv);
   const cipherBuffer = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(JSON.stringify(payload)));
   return `${bytesToBase64(iv)}:${bytesToBase64(new Uint8Array(cipherBuffer))}`;
