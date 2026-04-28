@@ -334,7 +334,7 @@ describe('useApiConfig', () => {
   });
 
   it('clears corrupted persisted tokens so the hook can recover', async () => {
-    const cryptoKeyBytes = new Uint8Array(32);
+    const cryptoKeyBytes = new Uint8Array(new ArrayBuffer(32));
     webcrypto.getRandomValues(cryptoKeyBytes);
     window.localStorage.setItem('webapp:api-config:version', CURRENT_STORAGE_VERSION);
     window.localStorage.setItem('webapp:api-config', JSON.stringify({ apiBaseUrl: 'https://broken.example.com', persistToken: true }));

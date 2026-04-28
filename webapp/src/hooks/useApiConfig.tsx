@@ -143,7 +143,9 @@ async function getPersistedCryptoKey(): Promise<CryptoKey> {
   }
   const createKey = () => {
     const currentStoredKey = window.localStorage.getItem(PERSISTED_CRYPTO_KEY);
-    const rawBytes = currentStoredKey ? fromBase64(currentStoredKey) : new Uint8Array(32);
+    const rawBytes = currentStoredKey
+      ? new Uint8Array(fromBase64(currentStoredKey))
+      : new Uint8Array(new ArrayBuffer(32));
     if (!currentStoredKey) {
       window.crypto.getRandomValues(rawBytes);
       window.localStorage.setItem(PERSISTED_CRYPTO_KEY, toBase64(rawBytes));
@@ -184,7 +186,9 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
   }
   const createKey = () => {
     const currentStoredKey = window.sessionStorage.getItem(SESSION_CRYPTO_KEY);
-    const rawBytes = currentStoredKey ? fromBase64(currentStoredKey) : new Uint8Array(32);
+    const rawBytes = currentStoredKey
+      ? new Uint8Array(fromBase64(currentStoredKey))
+      : new Uint8Array(new ArrayBuffer(32));
     if (!currentStoredKey) {
       window.crypto.getRandomValues(rawBytes);
       window.sessionStorage.setItem(SESSION_CRYPTO_KEY, toBase64(rawBytes));
@@ -209,7 +213,7 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
 
 async function encryptToken(value: string, source: StoredEncryptedToken['source']): Promise<EncryptedToken> {
   const key = source === 'session' ? await getSessionCryptoKey() : await getPersistedCryptoKey();
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const iv = window.crypto.getRandomValues(new Uint8Array(new ArrayBuffer(12)));
   const encoded = new TextEncoder().encode(value);
   const ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
   return { ciphertext: toBase64(ciphertext), iv: toBase64(iv) };

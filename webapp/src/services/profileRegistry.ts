@@ -71,7 +71,7 @@ async function encryptRegistrySecret(plain: string): Promise<string | null> {
     return null;
   }
   const enc = new TextEncoder();
-  const iv = new Uint8Array(12);
+  const iv = new Uint8Array(new ArrayBuffer(12));
   crypto.getRandomValues(iv);
   const ciphertext = await crypto.subtle.encrypt(
     {
@@ -135,7 +135,7 @@ async function getRegistrySecret(): Promise<string> {
     }
 
     // Generate a fresh 256-bit random secret
-    const bytes = new Uint8Array(32);
+    const bytes = new Uint8Array(new ArrayBuffer(32));
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
       crypto.getRandomValues(bytes);
       const secret = Array.from(bytes)
@@ -226,7 +226,7 @@ function generateUuid(): string {
   }
   // Fallback using crypto.getRandomValues for older browsers without randomUUID
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const bytes = new Uint8Array(16);
+    const bytes = new Uint8Array(new ArrayBuffer(16));
     crypto.getRandomValues(bytes);
     // Set version 4 bits
     if (bytes[6] !== undefined) {

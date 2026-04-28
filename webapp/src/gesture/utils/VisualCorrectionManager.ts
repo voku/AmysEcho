@@ -237,7 +237,7 @@ export class VisualCorrectionManager {
         ? (globalThis as unknown as { crypto?: Crypto }).crypto
         : undefined;
     if (cryptoObj?.getRandomValues) {
-      const array = new Uint8Array(lengthBytes);
+      const array = new Uint8Array(new ArrayBuffer(lengthBytes));
       cryptoObj.getRandomValues(array);
       return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
     }
