@@ -118,12 +118,12 @@ function toBase64(data: ArrayBuffer | Uint8Array): string {
   return btoa(binary);
 }
 
-function fromBase64(value: string): Uint8Array {
+function fromBase64(value: string): Uint8Array<ArrayBuffer> {
   if (typeof Buffer !== 'undefined') {
     return new Uint8Array(Buffer.from(value, 'base64'));
   }
   const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
   for (let i = 0; i < binary.length; i += 1) {
     bytes[i] = binary.charCodeAt(i);
   }
@@ -143,9 +143,7 @@ async function getPersistedCryptoKey(): Promise<CryptoKey> {
   }
   const createKey = () => {
     const currentStoredKey = window.localStorage.getItem(PERSISTED_CRYPTO_KEY);
-    const rawBytes = currentStoredKey
-      ? new Uint8Array(fromBase64(currentStoredKey))
-      : new Uint8Array(new ArrayBuffer(32));
+    const rawBytes = currentStoredKey ? fromBase64(currentStoredKey) : new Uint8Array(new ArrayBuffer(32));
     if (!currentStoredKey) {
       window.crypto.getRandomValues(rawBytes);
       window.localStorage.setItem(PERSISTED_CRYPTO_KEY, toBase64(rawBytes));
@@ -186,9 +184,7 @@ async function getSessionCryptoKey(): Promise<CryptoKey> {
   }
   const createKey = () => {
     const currentStoredKey = window.sessionStorage.getItem(SESSION_CRYPTO_KEY);
-    const rawBytes = currentStoredKey
-      ? new Uint8Array(fromBase64(currentStoredKey))
-      : new Uint8Array(new ArrayBuffer(32));
+    const rawBytes = currentStoredKey ? fromBase64(currentStoredKey) : new Uint8Array(new ArrayBuffer(32));
     if (!currentStoredKey) {
       window.crypto.getRandomValues(rawBytes);
       window.sessionStorage.setItem(SESSION_CRYPTO_KEY, toBase64(rawBytes));
