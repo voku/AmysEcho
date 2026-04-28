@@ -11,6 +11,7 @@
       "vitest/globals"
     ],
     "resolveJsonModule": true,
+    "rootDir": ".",
     "outDir": "../assets",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
