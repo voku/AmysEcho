@@ -9,6 +9,9 @@ import type {
 
 type LatestMlpModelDeps = {
 	getMlpModelPath: (profileId?: string) => string;
+	listAuthorizedProfileModelPaths?: (
+		req: Request,
+	) => Promise<Array<{ profileId: string; filePath: string; mtimeMs: number }>>;
 	resolveProfileId: (
 		profileId?: string,
 	) => Promise<{ profileId?: string | null }>;
@@ -72,6 +75,7 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 			const profiledPath = deps.getMlpModelPath(profileId);
 			const globalPath = deps.getMlpModelPath();
 			let chosen: string | undefined;
+			let chosenProfileId = profileId;
 
 			if (profileId) {
 				try {
@@ -83,6 +87,22 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 				} catch {
 					await deps.logTraining(
 						`latest-mlp-model profile model not found at ${profiledPath}, falling back to global`,
+					);
+				}
+			}
+
+			if (!chosen && !profileId && deps.listAuthorizedProfileModelPaths) {
+				const authorizedProfileModels = await deps.listAuthorizedProfileModelPaths(req);
+				if (authorizedProfileModels.length > 0) {
+					const newestAuthorizedProfileModel = [...authorizedProfileModels].sort(
+						(left, right) =>
+							right.mtimeMs - left.mtimeMs ||
+							left.profileId.localeCompare(right.profileId),
+					)[0];
+					chosen = newestAuthorizedProfileModel.filePath;
+					chosenProfileId = newestAuthorizedProfileModel.profileId;
+					await deps.logTraining(
+						`latest-mlp-model serving newest authorized profile file ${chosen} (${chosenProfileId})`,
 					);
 				}
 			}
@@ -113,8 +133,8 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 				return res.status(404).json({ error: "Modell nicht gefunden." });
 			}
 
-			const downloadName = profileId
-				? `dgs_model_${profileId}.npz`
+			const downloadName = chosenProfileId
+				? `dgs_model_${chosenProfileId}.npz`
 				: "amy_model.npz";
 			const precomputed = await loadModelForResponse(chosen);
 			const ifNoneMatchHeader = req.headers["if-none-match"];

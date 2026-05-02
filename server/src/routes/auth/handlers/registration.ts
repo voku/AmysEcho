@@ -43,6 +43,7 @@ export async function handleRegistration(
 	const password = parsed.data.password;
 	const email = normalizeEmail(parsed.data.email);
 	const defaultDisplayName = parsed.data.username.trim();
+	const autoVerifyEmail = process.env.DEV_AUTO_VERIFY_EMAIL === "true";
 	const verificationToken = randomBytes(TOKEN_BYTE_LENGTH).toString("hex");
 	const verificationTokenHash = hashToken(verificationToken);
 	const verificationExpiresAt = Date.now() + EMAIL_VERIFICATION_TTL_MS;
@@ -69,9 +70,10 @@ export async function handleRegistration(
 				displayName: defaultDisplayName,
 				role: "caregiver",
 				createdAt: Date.now(),
-				emailVerificationTokenHash: verificationTokenHash,
-				emailVerificationExpiresAt: verificationExpiresAt,
-				emailVerificationSentAt: Date.now(),
+				emailVerifiedAt: autoVerifyEmail ? Date.now() : undefined,
+				emailVerificationTokenHash: autoVerifyEmail ? undefined : verificationTokenHash,
+				emailVerificationExpiresAt: autoVerifyEmail ? undefined : verificationExpiresAt,
+				emailVerificationSentAt: autoVerifyEmail ? undefined : Date.now(),
 			};
 			addUser(deps.db, user);
 			addProfile(deps.db, {
@@ -101,6 +103,16 @@ export async function handleRegistration(
 			return res
 				.status(409)
 				.json({ error: "Benutzername oder E-Mail-Adresse bereits vergeben." });
+		}
+
+		if (autoVerifyEmail) {
+			logger.info("User registered (auto-verified in development mode)", {
+				userId: result.user.id,
+			});
+			return res.status(201).json({
+				message:
+					"Registrierung erfolgreich. Die E-Mail-Adresse wurde im Entwicklungsmodus automatisch bestätigt.",
+			});
 		}
 
 		// Wrap email send in try-catch

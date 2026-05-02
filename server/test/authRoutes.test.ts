@@ -30,6 +30,7 @@ describe('auth routes', () => {
   });
 
   beforeEach(async () => {
+    delete process.env.DEV_AUTO_VERIFY_EMAIL;
     db = createDatabase();
     dbFilePath = path.join(tmpDir, `db-${Date.now()}.json`);
     registryPath = path.join(tmpDir, `registry-${Date.now()}.json`);
@@ -104,6 +105,34 @@ describe('auth routes', () => {
     const savedProfile = savedRegistry.profiles.find((profile) => profile.id === db.users[0].id);
     expect(savedProfile?.displayName).toBe('amy');
     expect(emailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('auto-verifies registrations in development mode without sending email', async () => {
+    process.env.DEV_AUTO_VERIFY_EMAIL = 'true';
+
+    const registrationResponse = await request(app)
+      .post('/api/v1/auth/register')
+      .send({ username: 'amy-dev', email: 'amy-dev@example.com', password: 'super-secure-password' })
+      .expect(201);
+
+    expect(registrationResponse.body.message).toBe(
+      'Registrierung erfolgreich. Die E-Mail-Adresse wurde im Entwicklungsmodus automatisch bestätigt.',
+    );
+    expect(db.users).toHaveLength(1);
+    expect(db.users[0].emailVerifiedAt).toBeDefined();
+    expect(db.users[0].emailVerificationTokenHash).toBeUndefined();
+    expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+
+    const loginResponse = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ username: 'amy-dev', password: 'super-secure-password' })
+      .expect(200);
+
+    expect(loginResponse.body.user).toEqual({
+      id: db.users[0].id,
+      username: 'amy-dev',
+      role: 'caregiver',
+    });
   });
 
   it('logs in an existing user with valid credentials', async () => {

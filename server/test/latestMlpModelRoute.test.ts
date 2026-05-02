@@ -166,6 +166,28 @@ describe('GET /latest-mlp-model', () => {
 
     const handler = createLatestMlpModelHandler({
       getMlpModelPath: modelPaths.getMlpModelPath,
+      listAuthorizedProfileModelPaths: async (_req) => {
+        const candidates = await Promise.all(
+          [knownProfileId, unauthorizedProfileId].map(async (profileId) => {
+            if (deniedProfiles.has(profileId)) {
+              return null;
+            }
+            const filePath = modelPaths.getMlpModelPath(profileId);
+            try {
+              const stat = await fs.stat(filePath);
+              return { profileId, filePath, mtimeMs: stat.mtimeMs };
+            } catch {
+              return null;
+            }
+          }),
+        );
+        return candidates.filter(
+          (
+            candidate,
+          ): candidate is { profileId: string; filePath: string; mtimeMs: number } =>
+            candidate !== null,
+        );
+      },
       sendBinaryModel: artifacts.sendBinaryModel,
       applyModelHeaders: artifacts.applyModelResponseHeaders,
       logTraining,
@@ -658,6 +680,53 @@ describe('GET /latest-mlp-model', () => {
 
     const response = await request(app)
       .get(`/latest-mlp-model?profileId=${profileId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-source']).toBe('global');
+    expect(response.headers['x-model-profile']).toBeUndefined();
+  });
+
+  it('prefers the newest authorized profile model when no profile is requested', async () => {
+    const globalModelPath = modelPaths.getMlpModelPath();
+    const profileModelPath = modelPaths.getMlpModelPath(knownProfileId);
+    await fs.mkdir(path.dirname(globalModelPath), { recursive: true });
+    await fs.mkdir(path.dirname(profileModelPath), { recursive: true });
+    await copyBaselineFixtureTo(globalModelPath);
+    await copyBaselineFixtureTo(profileModelPath);
+    const now = Date.now();
+    await fs.utimes(globalModelPath, new Date(now - 10_000), new Date(now - 10_000));
+    await fs.utimes(profileModelPath, new Date(now), new Date(now));
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .buffer(true)
+      .maxResponseSize(200 * 1024 * 1024)
+      .parse(binaryParser)
+      .expect(200);
+
+    expect(response.headers['x-model-source']).toBe('profile');
+    expect(response.headers['x-model-profile']).toBe(knownProfileId);
+  });
+
+  it('skips unauthorized profile models and falls back to global for unscoped requests', async () => {
+    const globalModelPath = modelPaths.getMlpModelPath();
+    const profileModelPath = modelPaths.getMlpModelPath(unauthorizedProfileId);
+    deniedProfiles.add(unauthorizedProfileId);
+    await fs.mkdir(path.dirname(globalModelPath), { recursive: true });
+    await fs.mkdir(path.dirname(profileModelPath), { recursive: true });
+    await copyBaselineFixtureTo(globalModelPath);
+    await copyBaselineFixtureTo(profileModelPath);
+    const now = Date.now();
+    await fs.utimes(globalModelPath, new Date(now - 10_000), new Date(now - 10_000));
+    await fs.utimes(profileModelPath, new Date(now), new Date(now));
+
+    const response = await request(app)
+      .get('/latest-mlp-model')
       .set('Authorization', `Bearer ${accessToken}`)
       .buffer(true)
       .maxResponseSize(200 * 1024 * 1024)
