@@ -19,7 +19,7 @@ export function findReusableBundleTrainingJob(
 		return null;
 	}
 	const job = trainingJobs.get(activeBundleTrainingJobId);
-	if (!isActiveBundleTrainingJob(job) || !job) {
+	if (!job || !isActiveBundleTrainingJob(job)) {
 		return null;
 	}
 	return job;

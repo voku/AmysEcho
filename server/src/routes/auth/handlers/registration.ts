@@ -43,7 +43,9 @@ export async function handleRegistration(
 	const password = parsed.data.password;
 	const email = normalizeEmail(parsed.data.email);
 	const defaultDisplayName = parsed.data.username.trim();
-	const autoVerifyEmail = process.env.DEV_AUTO_VERIFY_EMAIL === "true";
+	const autoVerifyEmail =
+		process.env.DEV_AUTO_VERIFY_EMAIL === "true" &&
+		process.env.NODE_ENV !== "production";
 	const verificationToken = randomBytes(TOKEN_BYTE_LENGTH).toString("hex");
 	const verificationTokenHash = hashToken(verificationToken);
 	const verificationExpiresAt = Date.now() + EMAIL_VERIFICATION_TTL_MS;

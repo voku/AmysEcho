@@ -94,11 +94,14 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 			if (!chosen && !profileId && deps.listAuthorizedProfileModelPaths) {
 				const authorizedProfileModels = await deps.listAuthorizedProfileModelPaths(req);
 				if (authorizedProfileModels.length > 0) {
-					const newestAuthorizedProfileModel = [...authorizedProfileModels].sort(
-						(left, right) =>
-							right.mtimeMs - left.mtimeMs ||
-							left.profileId.localeCompare(right.profileId),
-					)[0];
+					const newestAuthorizedProfileModel = authorizedProfileModels.reduce(
+						(newest, candidate) =>
+							candidate.mtimeMs > newest.mtimeMs ||
+							(candidate.mtimeMs === newest.mtimeMs &&
+								candidate.profileId.localeCompare(newest.profileId) < 0)
+								? candidate
+								: newest,
+					);
 					chosen = newestAuthorizedProfileModel.filePath;
 					chosenProfileId = newestAuthorizedProfileModel.profileId;
 					await deps.logTraining(
@@ -120,6 +123,7 @@ export function createLatestMlpModelHandler(deps: LatestMlpModelDeps) {
 
 				if (globalAvailable) {
 					chosen = globalPath;
+					chosenProfileId = undefined;
 					await deps.logTraining(
 						`latest-mlp-model serving global file ${globalPath}`,
 					);
