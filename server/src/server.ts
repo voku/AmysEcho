@@ -55,6 +55,10 @@ import {
 	sendBinaryModel,
 	writeMinimalMlpModel,
 } from "./services/mlpModelArtifacts.js";
+import {
+	findReusableBundleTrainingJob,
+	releaseCompletedBundleTrainingJob,
+} from "./services/bundleTrainingJobState.js";
 import { writeProfileBackup } from "./services/profileDataService.js";
 import {
 	readLatestPostTrainingCadenceSummary,
@@ -185,6 +189,7 @@ interface TrainingQueueEntry {
 
 const trainingQueue: TrainingQueueEntry[] = [];
 let isProcessingTrainingQueue = false;
+let activeBundleTrainingJobId: string | null = null;
 
 let trainingManifestCache: {
 	entries: ManifestEntry[];
@@ -265,6 +270,10 @@ async function executeTrainingQueueEntry(
 		console.error(`Training job ${job.id} failed:`, error);
 		await logTraining(`job ${job.id}: failed ${message}`);
 	} finally {
+		activeBundleTrainingJobId = releaseCompletedBundleTrainingJob(
+			activeBundleTrainingJobId,
+			job,
+		);
 		trainingJobs.set(job.id, job);
 		entry.resolve(job);
 	}
@@ -493,6 +502,21 @@ function startTrainingJob(
 	const runningJobs = isProcessingTrainingQueue ? 1 : 0;
 	const queueDepth = queuedBefore + runningJobs;
 	const retryAfterMs = queueDepth > 0 ? 1000 : 0;
+	if (trigger === "bundles") {
+		const reusableBundleJob = findReusableBundleTrainingJob(
+			activeBundleTrainingJobId,
+			trainingJobs,
+		);
+		if (reusableBundleJob) {
+			return {
+				jobId: reusableBundleJob.id,
+				status: reusableBundleJob.status,
+				completion: Promise.resolve(reusableBundleJob as TrainingJob),
+				queueDepth: reusableBundleJob.queueDepth ?? queueDepth,
+				retryAfterMs: reusableBundleJob.retryAfterMs ?? retryAfterMs,
+			};
+		}
+	}
 	const id = genId();
 	const initialStatus: TrainStatus = isQueueIdle ? "running" : "queued";
 	const job: TrainingJob = {
@@ -503,6 +527,9 @@ function startTrainingJob(
 		retryAfterMs: retryAfterMs || undefined,
 	};
 	trainingJobs.set(id, job);
+	if (trigger === "bundles") {
+		activeBundleTrainingJobId = id;
+	}
 
 	let resolveCompletion: (job: TrainingJob) => void = () => {};
 	const completion = new Promise<TrainingJob>((resolve) => {
@@ -957,6 +984,36 @@ async function runTrainingWorkflow(
 // Serve per-profile MLP models (NPZ) with containment checks
 const latestMlpModelHandler = createLatestMlpModelHandler({
 	getMlpModelPath,
+	listAuthorizedProfileModelPaths: async (req: Request) => {
+		if (!profileRegistry) {
+			return [];
+		}
+		const candidates = await Promise.all(
+			profileRegistry.profiles.map(async (profile) => {
+				if (!isProfileAuthorized(req, profile.id, dbInstance, profileRegistry)) {
+					return null;
+				}
+				const filePath = getMlpModelPath(profile.id);
+				try {
+					const stat = await fs.stat(filePath);
+					if (!stat.isFile()) {
+						return null;
+					}
+					return {
+						profileId: profile.id,
+						filePath,
+						mtimeMs: stat.mtimeMs,
+					};
+				} catch {
+					return null;
+				}
+			}),
+		);
+		return candidates.filter(
+			(candidate): candidate is { profileId: string; filePath: string; mtimeMs: number } =>
+				candidate !== null,
+		);
+	},
 	sendBinaryModel,
 	applyModelHeaders: applyModelResponseHeaders,
 	logTraining,
