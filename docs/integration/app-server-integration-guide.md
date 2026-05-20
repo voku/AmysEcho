@@ -33,16 +33,14 @@ This guide explains how to verify end-to-end communication between the Amy's Ech
    In the webapp open the Training page, record a sample, and submit it.
    The server console should log the upload.
 5. **Check training status**
-   Capture the `pollUrl` from the upload response (or the matching server log entry) and request that exact job URL:
    ```bash
-   curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-     http://localhost:5000/api/v1/train-status/<jobId>
+   curl -H "Authorization: Bearer ${ACCESS_TOKEN}" http://localhost:5000/api/v1/train-status
    ```
 6. **Download the model**
    After training reaches 100%:
    ```bash
    curl -H "Authorization: Bearer ${ACCESS_TOKEN}" -o amy_model.npz \
-     "http://localhost:5000/api/v1/models/latest?profileId=<profileId>"
+     http://localhost:5000/latest-mlp-model
    ```
 7. **Refresh the webapp**
    Reload the webapp or trigger a refresh so the new model is used.

@@ -235,7 +235,7 @@ can surface progress if desired:
 
 ## Verbesserter Workflow für personalisierte Kind-Modelle
 
-Die `/api/v1/train-model`-Pipeline nutzt jetzt einen mehrstufigen Trainingslauf auch für personalisierte Modelle:
+Die `/train-model` Pipeline nutzt jetzt einen mehrstufigen Trainingslauf auch für personalisierte Modelle:
 
 - Standard-Trainingsplan: `20,40,80` Epochen (über `AMY_PROFILE_TRAINING_EPOCH_SCHEDULE` anpassbar)
 - Nutzbarkeitsschwelle: `0.35` (über `AMY_PROFILE_TRAINING_USABLE_ACCURACY` anpassbar)

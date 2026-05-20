@@ -16,7 +16,7 @@ legacy React Native/WebView architecture and points to the canonical workflow do
    `server/data/datasets/training_manifest.json`.
 4. **Train**: `server/src/amyserver_tools/train_mlp.py` trains global and per-profile
    `.npz` models from the manifest.
-5. **Distribute**: `GET /api/v1/models/latest?profileId=...` serves the latest model; the webapp
+5. **Distribute**: `GET /latest-mlp-model?profileId=...` serves the latest model; the webapp
    injects weights via `webapp/src/hooks/useMlpModelInjection.ts`.
 
 ## API Endpoints (Server)
@@ -24,8 +24,8 @@ legacy React Native/WebView architecture and points to the canonical workflow do
 See [`docs/integration/api.md`](../integration/api.md) for full payload specs.
 
 - `POST /api/v1/dgs/sample-bundles` — upload training bundles
-- `POST /api/v1/train-model` — trigger training
-- `GET /api/v1/models/latest?profileId=...` — download latest weights
+- `POST /train-model` — trigger training
+- `GET /latest-mlp-model?profileId=...` — download latest weights
 - `GET /api/v1/train-status/:jobId` — check training job status
 
 ## Canonical Workflow Docs

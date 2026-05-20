@@ -21,12 +21,12 @@ Use this checklist before every production release to confirm the full training 
   - [ ] `landmarks.json` contains frames with `handLandmarks`, `poseLandmarks`, `faceLandmarks`, and `handedness`.
 
 ## Train
-- [ ] Trigger training via `/api/v1/train-model` (or confirm auto-trigger after bundle upload).
+- [ ] Trigger training via `/train-model` (or confirm auto-trigger after bundle upload).
 - [ ] Monitor `/api/v1/train-status/<jobId>` until `completed`.
 - [ ] Verify `data/datasets/training_manifest.json` includes the new bundle entry with `validationSummary`.
 
 ## Download Personalized Model
-- [ ] Request `/api/v1/models/latest?profileId=<profileId>` from the webapp.
+- [ ] Request `/latest-mlp-model?profileId=<profileId>` from the webapp.
 - [ ] Confirm the response headers indicate a personalized model (and not the global fallback).
 - [ ] Validate the model file checksum differs from the previous version after training.
 

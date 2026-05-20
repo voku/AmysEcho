@@ -53,7 +53,7 @@ This guide explains how to deploy both the webapp and the backend server.
 6. Reverse proxy or containerize the service as needed for your environment.
 
 ## Updating Models
-- Trigger a new training run when fresh samples are available. Obtain an access token via `/api/v1/auth/login` first and pass it as a Bearer token to `/api/v1/train-model`:
+- Trigger a new training run when fresh samples are available. Obtain an access token via `/api/v1/auth/login` first and pass it as a Bearer token to `/train-model`:
   ```bash
   ACCESS_TOKEN=$(curl -s -X POST http://<server-host>:5000/api/v1/auth/login \
     -H "Content-Type: application/json" \
@@ -61,7 +61,7 @@ This guide explains how to deploy both the webapp and the backend server.
 
   curl -X POST -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
-    http://<server-host>:5000/api/v1/train-model -d '{"samples": [], "trigger": "bundles"}'
+    http://<server-host>:5000/train-model -d '{"samples": [], "trigger": "manual"}'
   ```
 - Monitor progress via `GET /api/v1/train-status/<jobId>` and redeploy the resulting NPZ files if you are distributing the server statically.
 

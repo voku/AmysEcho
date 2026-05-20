@@ -83,13 +83,13 @@ The canonical scope document is [Supported Core](docs/architecture/supported-cor
 
 | Document | Contents |
 |----------|----------|
-| [Documentation Hub](docs/readme.md) | Canonical doc index and entry points |
-| [Architecture](docs/architecture/codebase-overview.md) | System design, component map, data flow |
+| [Project Overview](docs/project-overview.md) | Purpose, tech stack, platform support |
+| [Architecture](docs/architecture.md) | System design, component map, data flow |
 | [Supported Core](docs/architecture/supported-core.md) | Current supported product boundary |
-| [Build + Test](docs/workflows/build-and-test.md) | Build commands, verification flow |
-| [Testing Strategy](docs/testing/testing-strategy.md) | Test structure, commands, patterns |
-| [Development Workflow](docs/workflows/development-workflow.md) | Code style, workflows, patterns |
-| [Deployment](docs/deployment/deployment.md) | Server/webapp deployment, Docker |
+| [Build System](docs/build-system.md) | Build commands, configurations |
+| [Testing](docs/testing.md) | Test structure, commands, patterns |
+| [Development](docs/development.md) | Code style, workflows, patterns |
+| [Deployment](docs/deployment.md) | Server/webapp deployment, Docker |
 | [TODO](docs/planning/todo.md) | Current priorities, roadmap |
 
 ### Detailed Guides

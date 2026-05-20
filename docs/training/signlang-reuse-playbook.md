@@ -34,7 +34,7 @@ We keep only reuse patterns that improve Amy's communication reliability:
 
 **Amy implementation status:** implemented and surfaced.
 
-- `/api/v1/models/latest` serves explicit model headers including schema and runtime configuration metadata.
+- `/latest-mlp-model` serves explicit model headers including schema and runtime configuration metadata.
 - `webapp/src/gesture/modelClient.ts` validates response metadata and rejects incompatible profile artifacts for safe fallback.
 
 ## 3) Unknown-threshold confidence gating

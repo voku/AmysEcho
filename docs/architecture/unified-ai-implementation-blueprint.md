@@ -11,7 +11,7 @@ multimodal training pipeline in the webapp.
    uses MLP weights injected at runtime to classify gestures.
 3. **Training** — `webapp/src/training/trainingBundle.ts` packages multimodal
    samples for server ingestion.
-4. **Distribution** — `GET /api/v1/models/latest?profileId=...` serves updated
+4. **Distribution** — `GET /latest-mlp-model?profileId=...` serves updated
    models that the webapp injects via `useMlpModelInjection`.
 
 ## Canonical References

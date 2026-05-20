@@ -20,7 +20,7 @@
 | --- | --- | --- | --- |
 | Health endpoint availability | < 99.5% daily success | < 99.0% daily success | Incident triage, rollback assessment |
 | `/api/v1/train-model` p95 latency | > 5s (3 consecutive samples) | > 8s (3 consecutive samples) | Investigate queue/process contention |
-| `/api/v1/models/latest` p95 latency | > 2s (3 consecutive samples) | > 4s (3 consecutive samples) | Verify model registry/file IO path |
+| `/api/v1/latest-mlp-model` p95 latency | > 2s (3 consecutive samples) | > 4s (3 consecutive samples) | Verify model registry/file IO path |
 | Auth refresh failure rate | > 1.0% daily | > 2.0% daily | Investigate token/session regression |
 | Integration critical-flow pass rate | < 100% on release candidate | < 100% on main for 2 runs | Block release; assign fix owner |
 | Gesture runtime drop rate (benchmark sessions) | > 3% dropped frames | > 5% dropped frames | Re-run performance drill and tune pipeline |

@@ -135,7 +135,7 @@ npm test --prefix integration
 
 **What the suite covers**:
 - Boots the production Express server via `npm run build --prefix server`.
-- Exercises `/api/v1/train-model`, `/api/v1/models/latest`, `/api/v1/models/version`, and the
+- Exercises `/train-model`, `/latest-mlp-model`, `/model-version`, and the
   training bundle upload endpoint end-to-end.
 - Waits for the Python trainer to finish and verifies a real `.npz` model can
   be downloaded and decoded.

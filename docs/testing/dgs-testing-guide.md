@@ -12,12 +12,12 @@ This Node test boots the production server build, provisions a throwaway
 training dataset, and makes real HTTP requests against the Express app. It
 verifies:
 
-- **Training endpoints** – `POST /api/v1/train-model` rejects malformed payloads and
+- **Training endpoints** – `POST /train-model` rejects malformed payloads and
   accepts valid landmark arrays.
 - **Training jobs** – `/api/v1/train-status/:id` reaches the `completed` state before
   the timeout expires and returns the progress payload expected by the app.
-- **Model distribution** – `GET /api/v1/models/version` and
-  `GET /api/v1/models/latest?profileId=` return the binary `.npz` contents and the
+- **Model distribution** – `GET /model-version` and
+  `GET /latest-mlp-model?profileId=` return the binary `.npz` contents and the
   accompanying metadata so the webapp cache stays consistent.
 - **Bundle ingestion** – `POST /api/v1/dgs/sample-bundles` accepts the same zip
   structure that the webapp uploads and automatically schedules a new training
@@ -82,7 +82,7 @@ Useful log markers:
 - `Received DGS sample` – upload succeeded and the bundle hit disk.
 - `Training job completed` – the Python script produced weights.
 - `latest-mlp-model serving global file ...` or `latest-mlp-model resolved
-  profile file ...` – `/api/v1/models/latest` streamed bytes from disk and the
+  profile file ...` – `/latest-mlp-model` streamed bytes from disk and the
   trainer cache updated.
 
 ## Manual QA & Accessibility
