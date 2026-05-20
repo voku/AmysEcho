@@ -48,7 +48,7 @@ This replaces the previous raw upstream snapshot directory and keeps the project
 - Keep profile-specific overrides possible.
 
 **Implementation tasks:**
-- [x] Expose active model/runtime metadata in `/latest-mlp-model` headers.
+- [x] Expose active model/runtime metadata in `/api/v1/models/latest` headers.
 - [x] Consume and validate contract metadata in webapp model loading.
 - [x] Add threshold behavior test assertions for low-confidence predictions.
 
@@ -89,7 +89,7 @@ This replaces the previous raw upstream snapshot directory and keeps the project
 **Implementation tasks:**
 - [x] Extend model manifest/metadata validation in model-serving path.
 - [x] Reject invalid profile artifacts in webapp model loader and fallback safely.
-- [x] Persist label lists in `training_metadata.json` and reject `label_count` mismatches in `/latest-mlp-model` contract validation.
+- [x] Persist label lists in `training_metadata.json` and reject `label_count` mismatches in `/api/v1/models/latest` contract validation.
 - [x] Expand server tests with explicit label-count/label-list mismatch fixtures.
 
 ---

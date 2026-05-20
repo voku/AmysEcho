@@ -24,7 +24,7 @@ There is no secondary cloud validator anymore; all confidence handling happens l
 2. **Bundle Upload** – `webapp/src/training/trainingBundle.ts` zips `{metadata.json, landmarks.json, still.jpg, clip.*}` and sends it to `/api/v1/dgs/sample-bundles`.
 3. **Server Ingest** – `server/src/routes/trainingBundleRoute.ts` validates uploads, expands them under `server/data/uploads/`, and registers entries in `data/datasets/training_manifest.json`.
 4. **Training Jobs** – `server/src/server.ts` and `server/src/amyserver_tools/train_mlp.py` retrain the global + per-profile MLP weights for DGS recognition, writing artifacts into `data/models/`.
-5. **Distribution** – the app polls `/latest-mlp-model` (optionally with `?profileId=`) and hot-swaps weights through the injection hook, enabling immediate recognition of newly trained signs.
+5. **Distribution** – the app polls `/api/v1/models/latest` (optionally with `?profileId=`) and hot-swaps weights through the injection hook, enabling immediate recognition of newly trained signs.
 
 ### Per-User and Global Models
 - **Global Model** (`data/models/global/amy_model.npz`): Baseline DGS vocabulary that all users can recognize
@@ -43,7 +43,7 @@ Camera → MediaPipe (hand landmarks) → MLP inference (DGS recognition) → Re
 - **Landmark extraction**: <30 ms (MediaPipe hand tracking)
 - **MLP inference**: <20 ms (Webapp JavaScript for DGS classification)
 - **End-to-end loop**: <500 ms from frame to spoken feedback
-- **Training cadence**: whenever caregivers upload sign bundles or trigger `/train-model`
+- **Training cadence**: whenever caregivers upload sign bundles or trigger `/api/v1/train-model`
 - **Model distribution**: automatic download when new version available
 
 ## 🎯 Sign Language Training Quality

@@ -58,8 +58,8 @@ No active R&D backlog follow-ups at this time.
 ## 3. Cleanup Follow-Ups
 
 - [ ] **APR-QA-1:** Close the remaining supported-core workflow output-contract gaps flagged by the 2026-04-26 audit.
-  - Status: Core branch coverage is improved for webapp training/app-state and server training/model metadata routes, but profile route contracts and some integration fallback assertions still need explicit tests.
-  - Remaining gaps to close next: `server/test/profileRoutes.test.ts`, `integration/test/training-flow.test.ts`, `integration/test/multimodal-training-flow.test.ts`, `integration/test/webapp-video-upload.test.ts`, `integration/test/contract-smoke.test.ts`
+  - Status: Core branch coverage is improved for webapp training/app-state and server training/model metadata routes. The named profile/integration suites already exist; the remaining work is to tighten their fallback and output-contract assertions where the 2026-04-26 audit still found ambiguity.
+  - Tighten assertions next in: `server/test/profileRoutes.test.ts`, `integration/test/training-flow.test.ts`, `integration/test/multimodal-training-flow.test.ts`, `integration/test/webapp-video-upload.test.ts`, `integration/test/contract-smoke.test.ts`
 
 ## 4. Planning Rules
 

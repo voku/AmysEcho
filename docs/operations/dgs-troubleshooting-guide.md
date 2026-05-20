@@ -20,7 +20,7 @@ ls -la server/data/models/global/amy_model.npz
 tail -f server/data/training-debug.log
 
 # 4. Test API endpoints (if server is running)
-curl -H "Authorization: Bearer demo-token" http://localhost:5000/model-metadata
+curl -H "Authorization: Bearer demo-token" http://localhost:5000/api/v1/models/metadata
 ```
 
 ## Model Training Issues
@@ -276,10 +276,11 @@ tail -f server/logs/server.log | grep -i model
 2. **Test API Endpoints**:
 ```bash
 # Test model metadata
-curl -v http://localhost:5000/model-metadata
+curl -v http://localhost:5000/api/v1/models/metadata \
+  -H "Authorization: Bearer demo-token"
 
 # Test model download
-curl -v http://localhost:5000/latest-mlp-model \
+curl -v http://localhost:5000/api/v1/models/latest \
   -H "Authorization: Bearer demo-token" \
   -o test_model.npz
 ```
@@ -299,7 +300,7 @@ const headers = {
 2. **Handle Profile Authorization**:
 ```bash
 # For profile-specific models
-curl http://localhost:5000/latest-mlp-model?profileId=user123 \
+curl http://localhost:5000/api/v1/models/latest?profileId=user123 \
   -H "Authorization: Bearer token" \
   -H "X-Profile-Id: user123"
 ```
@@ -532,7 +533,7 @@ npm ci --prefix server
 npm ci --prefix integration
 
 # 4. Trigger training if needed
-curl -X POST http://localhost:5000/train-model \
+curl -X POST http://localhost:5000/api/v1/train-model \
   -H "Authorization: Bearer demo-token" \
   -H "Content-Type: application/json" \
   -d '{"trigger":"bundles"}'

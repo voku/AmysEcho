@@ -31,8 +31,8 @@ This document summarizes the repository in key areas with concrete file referenc
 
 ## 5. Server Architecture
 - Node/Express server in `server/src/`
-- Training endpoints: `/api/v1/dgs/sample-bundles` for uploads, `/train-model` for training
-- Model serving: `/latest-mlp-model` with optional `?profileId=` for personalized models
+- Training endpoints: `/api/v1/dgs/sample-bundles` for uploads, `/api/v1/train-model` for training
+- Model serving: `/api/v1/models/latest` with optional `?profileId=` for personalized models
 - Python training scripts in `server/src/amyserver_tools/`
 
 ## 6. Performance Budget

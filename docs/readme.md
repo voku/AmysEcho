@@ -9,7 +9,7 @@ Use this file as the primary entry point for documentation.
 - **Build + test commands**: `docs/workflows/build-and-test.md`
 - **Architecture**: `docs/architecture/codebase-overview.md`, `docs/architecture/system-architecture-map.md`
 - **Testing strategy**: `docs/testing/testing-strategy.md`
-- **Deployment**: `docs/deployment/deployment.md`, `docs/deployment/SERVER_deployment.md`
+- **Deployment**: `docs/deployment/deployment.md`, `docs/deployment/server-deployment.md`
 - **Developer quick start + DB init**: `docs/guides/developer-quick-start-and-db-init.md`
 - **Training pipeline**: `docs/training/readme.md`
 - **Blind-spot decisions**: `docs/analysis/readme.md`

@@ -24,7 +24,7 @@ npm start --prefix server
 - Grant camera permissions.
 - Verify overlay landmarks track hands/pose/face.
 - Record a training sample and ensure it queues/uploads.
-- Trigger `/train-model` and download the updated model.
+- Trigger `/api/v1/train-model` and download the updated model from `/api/v1/models/latest`.
 - Confirm recognition uses the personalized model (if available).
 
 ### Debugging Tips
