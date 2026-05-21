@@ -53,6 +53,7 @@ interface TrainingBundleRouteDeps {
 		context: TrainingJobTriggerContext,
 	) => TriggerTrainingJobResult | null | undefined;
 	onManifestUpdated?: () => void | Promise<void>;
+	getDatasetReadinessSummary?: () => Promise<Record<string, unknown>>;
 	resolveProfileId?: (
 		profileId: string | null,
 	) => Promise<{ profileId: string | null }>;
@@ -1456,6 +1457,21 @@ export function registerTrainingBundleRoute(
 		} catch (error) {
 			logger.error("Failed to load training reports", { error });
 			res.status(500).json({ error: "Trainingsberichte konnten nicht geladen werden" });
+		}
+	});
+
+	app.get("/api/v1/dgs/dataset-readiness", auth, async (_req: Request, res: Response) => {
+		if (!deps.getDatasetReadinessSummary) {
+			res.status(404).json({ error: "Keine Datensatz-Auswertung vorhanden." });
+			return;
+		}
+
+		try {
+			const summary = await deps.getDatasetReadinessSummary();
+			res.json(summary);
+		} catch (error) {
+			logger.error("Failed to evaluate dataset readiness", { error });
+			res.status(500).json({ error: "Datensatz-Bereitschaft konnte nicht geladen werden." });
 		}
 	});
 

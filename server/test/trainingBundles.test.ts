@@ -47,6 +47,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let accessToken: string;
   let dbPath: string;
   let isProfileAuthorized: (profileId: string) => boolean;
+  let datasetReadinessSummary: Record<string, unknown>;
   const resolveProfileId = async (profileId: string | null) => ({
     profileId,
   });
@@ -91,6 +92,22 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     triggerCalls = [];
     triggerOverride = null;
     manifestUpdatedCalls = 0;
+    datasetReadinessSummary = {
+      status: 'partial',
+      manifest: {
+        entry_count: 4,
+        accepted_bundle_count: 3,
+      },
+      shots: [
+        {
+          shot: 1,
+          ready: true,
+          ready_label_count: 2,
+          total_label_count: 2,
+          missing_labels: [],
+        },
+      ],
+    };
     registerRoute(app, () => `bundle-${++counter}`, {
       triggerTrainingJob: (context: TriggerCall) => {
         triggerCalls.push(context);
@@ -103,6 +120,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       onManifestUpdated: () => {
         manifestUpdatedCalls += 1;
       },
+      getDatasetReadinessSummary: async () => datasetReadinessSummary,
       resolveProfileId,
       isProfileAuthorized: (_req, profileId) => isProfileAuthorized(profileId),
     });
@@ -118,6 +136,22 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     triggerOverride = null;
     isProfileAuthorized = () => true;
     manifestUpdatedCalls = 0;
+    datasetReadinessSummary = {
+      status: 'partial',
+      manifest: {
+        entry_count: 4,
+        accepted_bundle_count: 3,
+      },
+      shots: [
+        {
+          shot: 1,
+          ready: true,
+          ready_label_count: 2,
+          total_label_count: 2,
+          missing_labels: [],
+        },
+      ],
+    };
   });
 
   afterAll(async () => {
@@ -1211,6 +1245,21 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   it('verweigert Training-Report-Antworten ohne Anmeldung', async () => {
     await request(app)
       .get('/api/v1/dgs/training-reports?profileId=profile-b')
+      .expect(401);
+  });
+
+  it('liefert die Datensatz-Bereitschaft über GET /api/v1/dgs/dataset-readiness', async () => {
+    const response = await request(app)
+      .get('/api/v1/dgs/dataset-readiness')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual(datasetReadinessSummary);
+  });
+
+  it('verweigert die Datensatz-Bereitschaft ohne Anmeldung', async () => {
+    await request(app)
+      .get('/api/v1/dgs/dataset-readiness')
       .expect(401);
   });
 

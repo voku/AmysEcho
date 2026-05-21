@@ -158,3 +158,46 @@ export interface TrainingQualityLogEntry {
   };
   recordedAt: string;
 }
+
+export interface DatasetReadinessMissingLabel {
+  label: string;
+  missingAcceptedBundles: number;
+  missingProfiles: number;
+}
+
+export interface DatasetReadinessShot {
+  shot: number;
+  ready: boolean;
+  readyLabelCount: number;
+  totalLabelCount: number;
+  missingLabels: DatasetReadinessMissingLabel[];
+}
+
+export interface DatasetReadinessLabel {
+  label: string;
+  manifestBundleCount: number;
+  acceptedBundleCount: number;
+  acceptedProfileCount: number;
+  windowCount: number;
+  readyShots: number[];
+}
+
+export interface DatasetReadinessSummary {
+  status: 'ready' | 'partial' | 'blocked';
+  blockers: string[];
+  warnings: string[];
+  manifest: {
+    entryCount: number;
+    acceptedBundleCount: number;
+    acceptedLabelCount: number;
+    acceptedProfileCount: number;
+    rejectedBundleCount: number;
+  };
+  holdout: {
+    ready: boolean;
+    acceptedProfileCount: number;
+    missingProfileCount: number;
+  };
+  shots: DatasetReadinessShot[];
+  labels: DatasetReadinessLabel[];
+}

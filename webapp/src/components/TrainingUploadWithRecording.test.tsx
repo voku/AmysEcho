@@ -87,6 +87,34 @@ describe('TrainingUploadWithRecording', () => {
     mockMetacomSymbols = [];
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
+      if (url.includes('/api/v1/dgs/dataset-readiness')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: 'partial',
+            blockers: [],
+            warnings: [],
+            manifest: {
+              entry_count: 4,
+              accepted_bundle_count: 3,
+              accepted_label_count: 2,
+              accepted_profile_count: 2,
+              rejected_bundle_count: 1,
+            },
+            holdout: {
+              ready: true,
+              accepted_profile_count: 2,
+              missing_profile_count: 0,
+            },
+            shots: [
+              { shot: 1, ready: true, ready_label_count: 2, total_label_count: 2, missing_labels: [] },
+            ],
+            labels: [],
+          }),
+          headers: new Headers(),
+        } as any;
+      }
       if (url.includes('/api/v1/dgs/training-quality')) {
         return {
           ok: true,
