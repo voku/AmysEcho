@@ -38,3 +38,7 @@
 ## Progress notes (2026-04-06)
 - The few-shot runner and its artifact contract are already in place from MAY-P0-1.
 - Remaining blocker: the workspace currently has no active non-fixture `training_manifest.json` snapshot to evaluate, so the required evidence for a live baseline run cannot be generated honestly from local state.
+
+## Progress notes (2026-05-21)
+- Added a dataset-readiness evaluator at `server/src/amyserver_tools/evaluate_dataset_readiness.py` plus the authenticated route `GET /api/v1/dgs/dataset-readiness`.
+- The readiness gate now materializes the current manifest snapshot, checks signer-safe holdout feasibility, validates bundle usability against the current feature contract, and reports 1/3/5/10-shot gaps before running the few-shot baseline.

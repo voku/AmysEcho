@@ -218,6 +218,28 @@ A few-shot result is **valid** only when:
 - [ ] No manual data curation was applied between snapshot and training
       (prevent cherry-picking easy samples).
 
+### Pre-run readiness gate
+
+Before starting a new live benchmark run, generate a readiness snapshot so the
+current workspace can answer whether the manifest is honest enough for the
+protocol:
+
+```bash
+python server/src/amyserver_tools/evaluate_dataset_readiness.py \
+  --manifest server/data/datasets/training_manifest.json \
+  --data-dir server/data \
+  --output-dir docs/testing/benchmarks/results/<YYYY-MM-DD>/dataset-readiness
+```
+
+The readiness summary must confirm:
+
+- a real manifest snapshot exists,
+- at least 2 usable profiles remain for signer-safe holdout,
+- the target shot count has at least 2 ready labels after reserving one bundle
+  per label for held-out evaluation,
+- unusable bundles (missing landmarks, bad feature contracts, no generated
+  windows) are called out explicitly before the run.
+
 ---
 
 ## 8) Known limitations

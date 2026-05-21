@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-04-06T01:37:16.740Z",
+  "generatedAt": "2026-05-21T20:46:10.488Z",
   "sourceGlobs": [
     "server/src/server.ts",
     "server/src/routes/*.ts"
   ],
-  "routeCount": 62,
+  "routeCount": 63,
   "routes": [
     {
       "method": "PUT",
@@ -69,38 +69,44 @@
     {
       "method": "GET",
       "path": "/api/v1/config/normalization",
-      "source": "server/src/server.ts",
-      "line": 1436
+      "source": "server/src/routes/utilityRoutes.ts",
+      "line": 299
     },
     {
       "method": "POST",
       "path": "/api/v1/corrections",
-      "source": "server/src/server.ts",
-      "line": 1312
+      "source": "server/src/routes/utilityRoutes.ts",
+      "line": 199
     },
     {
       "method": "POST",
       "path": "/api/v1/crash-reports",
-      "source": "server/src/server.ts",
-      "line": 1256
+      "source": "server/src/routes/utilityRoutes.ts",
+      "line": 154
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/dgs/dataset-readiness",
+      "source": "server/src/routes/trainingBundleRoute.ts",
+      "line": 1463
     },
     {
       "method": "POST",
       "path": "/api/v1/dgs/sample-bundles",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1512
+      "line": 1528
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/sample-bundles/:id",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1462
+      "line": 1478
     },
     {
       "method": "POST",
       "path": "/api/v1/dgs/samples",
-      "source": "server/src/server.ts",
-      "line": 1184
+      "source": "server/src/routes/utilityRoutes.ts",
+      "line": 81
     },
     {
       "method": "GET",
@@ -117,20 +123,20 @@
     {
       "method": "GET",
       "path": "/api/v1/dgs/trained-labels",
-      "source": "server/src/server.ts",
-      "line": 1400
+      "source": "server/src/routes/utilityRoutes.ts",
+      "line": 266
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/training-quality",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1277
+      "line": 1278
     },
     {
       "method": "GET",
       "path": "/api/v1/dgs/training-reports",
       "source": "server/src/routes/trainingBundleRoute.ts",
-      "line": 1321
+      "line": 1322
     },
     {
       "method": "GET",
@@ -141,8 +147,8 @@
     {
       "method": "GET",
       "path": "/api/v1/labels",
-      "source": "server/src/server.ts",
-      "line": 363
+      "source": "server/src/routes/utilityRoutes.ts",
+      "line": 66
     },
     {
       "method": "DELETE",
@@ -178,7 +184,7 @@
       "method": "GET",
       "path": "/api/v1/models/latest",
       "source": "server/src/server.ts",
-      "line": 1132
+      "line": 1025
     },
     {
       "method": "GET",
@@ -201,8 +207,8 @@
     {
       "method": "POST",
       "path": "/api/v1/negative-samples",
-      "source": "server/src/server.ts",
-      "line": 1342
+      "source": "server/src/routes/utilityRoutes.ts",
+      "line": 235
     },
     {
       "method": "GET",
