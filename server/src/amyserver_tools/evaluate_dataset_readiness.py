@@ -438,6 +438,8 @@ def _summarize_shots(
             )
 
         missing_labels.sort(
+            # Prefer labels that still need more signer diversity before pure
+            # bundle-volume gaps so the next recording effort improves holdout honesty first.
             key=lambda item: (
                 item["missing_profiles"],
                 item["missing_accepted_bundles"],
@@ -571,26 +573,26 @@ def build_dataset_readiness_summary(
     warnings: list[str] = []
     if not holdout_ready:
         blockers.append(
-            "Signer-safe holdout is blocked because fewer than 2 profiles have usable bundles."
+            "Signer-sicherer Holdout ist blockiert, weil weniger als 2 Profile nutzbare Bundles haben."
         )
     if accepted_label_count < 2:
         blockers.append(
-            "At least 2 labels need usable bundles before an honest few-shot baseline can run."
+            "Mindestens 2 Labels brauchen nutzbare Bundles, bevor eine ehrliche Few-Shot-Baseline laufen kann."
         )
     if not any(shot["ready"] for shot in shot_summaries):
         blockers.append(
-            "No target shot count currently has at least 2 holdout-safe labels."
+            "Keine Ziel-Shot-Anzahl hat derzeit mindestens 2 Holdout-sichere Labels."
         )
     elif not all(shot["ready"] for shot in shot_summaries):
         warnings.append(
-            "Only part of the 1/3/5/10-shot sweep is currently feasible with honest holdout."
+            "Nur ein Teil des 1/3/5/10-Shot-Durchlaufs ist derzeit mit ehrlichem Holdout machbar."
         )
     if manifest_payload["rejected_bundle_count"] > 0:
         warnings.append(
-            f"{manifest_payload['rejected_bundle_count']} bundle(s) are present in the manifest but unusable for training."
+            f"{manifest_payload['rejected_bundle_count']} Bundle(s) stehen im Manifest, sind aber fürs Training unbrauchbar."
         )
     if warning_counts:
-        warnings.append("Some accepted bundles still carry timing or modality quality warnings.")
+        warnings.append("Einige akzeptierte Bundles haben noch Timing- oder Modalitätsqualitätswarnungen.")
 
     summary["blockers"] = blockers
     summary["warnings"] = warnings

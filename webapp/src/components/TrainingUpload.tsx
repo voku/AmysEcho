@@ -835,7 +835,7 @@ interface DatasetReadinessCardProps {
 }
 
 function DatasetReadinessCard({ summary, loading, error }: DatasetReadinessCardProps) {
-  const topShot = summary?.shots.find((entry) => !entry.ready);
+  const firstUnreadyShot = summary?.shots.find((entry) => !entry.ready);
   return (
     <div className="card mt-md">
       <p className="eyebrow">Few-Shot-Bereitschaft</p>
@@ -873,9 +873,9 @@ function DatasetReadinessCard({ summary, loading, error }: DatasetReadinessCardP
               {summary.blockers[0]}
             </div>
           ) : null}
-          {topShot && topShot.missingLabels.length > 0 ? (
+          {firstUnreadyShot && firstUnreadyShot.missingLabels.length > 0 ? (
             <p className="muted small">
-              Nächster Engpass: {topShot.missingLabels
+              Nächster Engpass: {firstUnreadyShot.missingLabels
                 .slice(0, 3)
                 .map((entry) => {
                   const parts = [];
