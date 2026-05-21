@@ -910,7 +910,7 @@ export type FetchDatasetReadinessOptions = {
 };
 
 export async function fetchDatasetReadiness(options: FetchDatasetReadinessOptions): Promise<DatasetReadinessSummary> {
-  const endpoint = options.endpoint?.trim();
+  const endpoint = options.endpoint.trim();
   if (!endpoint) {
     throw new Error('API-Endpunkt fehlt für Datensatz-Bereitschaft.');
   }

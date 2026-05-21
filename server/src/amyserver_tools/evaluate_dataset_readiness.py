@@ -62,7 +62,10 @@ DEFAULT_SHOTS = (1, 3, 5, 10)
 
 def _parse_int_list(raw: str) -> list[int]:
     values = [item.strip() for item in raw.split(",") if item.strip()]
-    return [int(value) for value in values]
+    try:
+        return [int(value) for value in values]
+    except ValueError as error:
+        raise ValueError(f"Invalid integer list: {raw}") from error
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
@@ -79,6 +82,16 @@ def _safe_float(value: Any) -> float | None:
     if isinstance(value, (int, float)) and math.isfinite(value):
         return float(value)
     return None
+
+
+def _safe_entry_label(entry: dict[str, Any]) -> str:
+    try:
+        return _entry_label(entry)
+    except ValueError:
+        raw = entry.get("label")
+        if isinstance(raw, str) and raw.strip():
+            return train_mlp_module.normalize_training_label(raw)
+        return "unknown"
 
 
 def _empty_summary(manifest_path: Path, data_dir: Path, shots: list[int]) -> dict[str, Any]:
@@ -473,16 +486,11 @@ def build_dataset_readiness_summary(
             continue
         try:
             bundle_analyses.append(_analyze_bundle(entry, data_dir))
-        except Exception as error:  # pragma: no cover - defensive summary path
-            fallback_label = (
-                str(entry.get("label")).strip().lower()
-                if isinstance(entry.get("label"), str)
-                else "unknown"
-            )
+        except (json.JSONDecodeError, KeyError, OSError, TypeError, ValueError) as error:
             bundle_analyses.append(
                 {
                     "bundle_id": str(entry.get("id") or "unknown-bundle"),
-                    "label": fallback_label or "unknown",
+                    "label": _safe_entry_label(entry),
                     "profile_id": _entry_profile(entry),
                     "accepted_for_training": False,
                     "window_count": 0,
