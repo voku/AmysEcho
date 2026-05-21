@@ -53,7 +53,12 @@ interface TrainingBundleRouteDeps {
 		context: TrainingJobTriggerContext,
 	) => TriggerTrainingJobResult | null | undefined;
 	onManifestUpdated?: () => void | Promise<void>;
-	getDatasetReadinessSummary?: () => Promise<Record<string, unknown>>;
+	getDatasetReadinessSummary?: (
+		options?: {
+			manifest?: { entries: Record<string, unknown>[] };
+			cacheKey?: string;
+		},
+	) => Promise<Record<string, unknown>>;
 	resolveProfileId?: (
 		profileId: string | null,
 	) => Promise<{ profileId: string | null }>;
@@ -1467,7 +1472,24 @@ export function registerTrainingBundleRoute(
 		}
 
 		try {
-			const summary = await deps.getDatasetReadinessSummary();
+			const manifestEntries = loadTrainingManifest<Record<string, unknown>>().entries;
+			const filteredEntries = deps.isProfileAuthorized
+				? manifestEntries.filter((entry) => {
+					const profileId = typeof entry.profileId === "string" ? entry.profileId : null;
+					return profileId ? deps.isProfileAuthorized?.(_req, profileId) : false;
+				})
+				: manifestEntries;
+			const cacheKey = JSON.stringify(
+				filteredEntries.map((entry) => ({
+					id: entry.id,
+					profileId: entry.profileId,
+					label: entry.label,
+				})),
+			);
+			const summary = await deps.getDatasetReadinessSummary({
+				manifest: { entries: filteredEntries },
+				cacheKey,
+			});
 			res.json(summary);
 		} catch (error) {
 			logger.error("Failed to evaluate dataset readiness", { error });

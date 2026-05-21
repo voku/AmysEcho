@@ -48,6 +48,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
   let dbPath: string;
   let isProfileAuthorized: (profileId: string) => boolean;
   let datasetReadinessSummary: Record<string, unknown>;
+  let datasetReadinessCalls: Array<Record<string, unknown>>;
   const resolveProfileId = async (profileId: string | null) => ({
     profileId,
   });
@@ -92,6 +93,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     triggerCalls = [];
     triggerOverride = null;
     manifestUpdatedCalls = 0;
+    datasetReadinessCalls = [];
     datasetReadinessSummary = {
       status: 'partial',
       manifest: {
@@ -120,7 +122,10 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       onManifestUpdated: () => {
         manifestUpdatedCalls += 1;
       },
-      getDatasetReadinessSummary: async () => datasetReadinessSummary,
+      getDatasetReadinessSummary: async (options) => {
+        datasetReadinessCalls.push((options ?? {}) as Record<string, unknown>);
+        return datasetReadinessSummary;
+      },
       resolveProfileId,
       isProfileAuthorized: (_req, profileId) => isProfileAuthorized(profileId),
     });
@@ -136,6 +141,7 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
     triggerOverride = null;
     isProfileAuthorized = () => true;
     manifestUpdatedCalls = 0;
+    datasetReadinessCalls = [];
     datasetReadinessSummary = {
       status: 'partial',
       manifest: {
@@ -1255,6 +1261,52 @@ describe('POST /api/v1/dgs/sample-bundles', () => {
       .expect(200);
 
     expect(response.body).toEqual(datasetReadinessSummary);
+    expect(datasetReadinessCalls).toHaveLength(1);
+  });
+
+  it('filtert die Datensatz-Bereitschaft auf autorisierte Profile', async () => {
+    const { saveTrainingManifest } = await import('../src/services/trainingJsonStore.js');
+    saveTrainingManifest({
+      entries: [
+        {
+          id: 'bundle-a',
+          profileId: 'profile-a',
+          label: 'HALLO',
+          storage: { directory: 'training_uploads/profile-a/bundle-a', files: ['landmarks.json'] },
+        },
+        {
+          id: 'bundle-b',
+          profileId: 'profile-b',
+          label: 'BITTE',
+          storage: { directory: 'training_uploads/profile-b/bundle-b', files: ['landmarks.json'] },
+        },
+      ],
+    });
+    isProfileAuthorized = (profileId) => profileId === 'profile-b';
+
+    await request(app)
+      .get('/api/v1/dgs/dataset-readiness')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(datasetReadinessCalls).toHaveLength(1);
+    expect(datasetReadinessCalls[0]).toEqual({
+      manifest: {
+        entries: [
+          expect.objectContaining({
+            id: 'bundle-b',
+            profileId: 'profile-b',
+          }),
+        ],
+      },
+      cacheKey: JSON.stringify([
+        {
+          id: 'bundle-b',
+          profileId: 'profile-b',
+          label: 'BITTE',
+        },
+      ]),
+    });
   });
 
   it('verweigert die Datensatz-Bereitschaft ohne Anmeldung', async () => {

@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,6 +32,7 @@ try:
         _entry_label,
         _entry_profile,
         _load_manifest_entries,
+        _partition_profiles,
     )
 except ModuleNotFoundError:
     import train_mlp as train_mlp_module
@@ -54,10 +55,14 @@ except ModuleNotFoundError:
         _entry_label,
         _entry_profile,
         _load_manifest_entries,
+        _partition_profiles,
     )
 
 
+PROTOCOL_VERSION = "dataset_readiness_v1"
 DEFAULT_SHOTS = (1, 3, 5, 10)
+DEFAULT_SEEDS = (42, 1337, 2025)
+DEFAULT_TEST_PROFILE_FRACTION = 0.2
 
 
 def _parse_int_list(raw: str) -> list[int]:
@@ -65,7 +70,7 @@ def _parse_int_list(raw: str) -> list[int]:
     try:
         return [int(value) for value in values]
     except ValueError as error:
-        raise ValueError(f"Invalid integer list: {raw}") from error
+        raise ValueError(f"Ungültige Ganzzahlliste: {raw}") from error
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
@@ -94,18 +99,56 @@ def _safe_entry_label(entry: dict[str, Any]) -> str:
         return "unknown"
 
 
-def _empty_summary(manifest_path: Path, data_dir: Path, shots: list[int]) -> dict[str, Any]:
+def _build_thresholds(
+    *,
+    shots: list[int],
+    seeds: list[int],
+    min_profiles: int,
+    min_labels: int,
+) -> dict[str, Any]:
+    return {
+        "shots": shots,
+        "seeds": seeds,
+        "test_profile_fraction": DEFAULT_TEST_PROFILE_FRACTION,
+        "min_profiles": min_profiles,
+        "min_labels": min_labels,
+        "required_feature_contract_version": HAND_FEATURE_CONTRACT_VERSION,
+        "expected_frame_feature_size": INPUT_FEATURE_SIZE,
+        "expected_window_feature_size": WINDOW_FEATURE_SIZE,
+        "min_usable_frame_ratio": float(MIN_USABLE_FRAME_RATIO),
+        "min_clip_duration_ms": float(MIN_CLIP_DURATION_MS),
+        "min_hands_coverage": float(MIN_HANDS_COVERAGE),
+        "min_pose_coverage": float(MIN_POSE_COVERAGE),
+        "min_face_coverage": float(MIN_FACE_COVERAGE),
+        "min_avg_frame_delta_ms": float(MIN_AVG_FRAME_DELTA_MS),
+        "max_avg_frame_delta_ms": float(MAX_AVG_FRAME_DELTA_MS),
+    }
+
+
+def _empty_summary(
+    *,
+    manifest_path: Path,
+    data_dir: Path,
+    shots: list[int],
+    seeds: list[int],
+    min_profiles: int,
+    min_labels: int,
+) -> dict[str, Any]:
     shot_summaries = [
         {
             "shot": shot,
+            "configured_seed_count": len(seeds),
             "ready": False,
+            "ready_for_some_seeds": False,
             "ready_label_count": 0,
+            "ready_label_count_for_some_seeds": 0,
             "total_label_count": 0,
             "missing_labels": [],
         }
         for shot in shots
     ]
     return {
+        "protocol": PROTOCOL_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "status": "blocked",
         "manifest": {
@@ -124,7 +167,7 @@ def _empty_summary(manifest_path: Path, data_dir: Path, shots: list[int]) -> dic
         "holdout": {
             "ready": False,
             "accepted_profile_count": 0,
-            "missing_profile_count": 2,
+            "missing_profile_count": max(0, min_profiles),
         },
         "shots": shot_summaries,
         "labels": [],
@@ -133,20 +176,12 @@ def _empty_summary(manifest_path: Path, data_dir: Path, shots: list[int]) -> dic
             "warning_bundle_count": 0,
             "warning_counts": {},
         },
-        "thresholds": {
-            "shots": shots,
-            "min_profiles_for_holdout": 2,
-            "required_feature_contract_version": HAND_FEATURE_CONTRACT_VERSION,
-            "expected_frame_feature_size": INPUT_FEATURE_SIZE,
-            "expected_window_feature_size": WINDOW_FEATURE_SIZE,
-            "min_usable_frame_ratio": float(MIN_USABLE_FRAME_RATIO),
-            "min_clip_duration_ms": float(MIN_CLIP_DURATION_MS),
-            "min_hands_coverage": float(MIN_HANDS_COVERAGE),
-            "min_pose_coverage": float(MIN_POSE_COVERAGE),
-            "min_face_coverage": float(MIN_FACE_COVERAGE),
-            "min_avg_frame_delta_ms": float(MIN_AVG_FRAME_DELTA_MS),
-            "max_avg_frame_delta_ms": float(MAX_AVG_FRAME_DELTA_MS),
-        },
+        "thresholds": _build_thresholds(
+            shots=shots,
+            seeds=seeds,
+            min_profiles=min_profiles,
+            min_labels=min_labels,
+        ),
         "blockers": [],
         "warnings": [],
         "artifact_paths": {},
@@ -346,14 +381,18 @@ def _analyze_bundle(entry: dict[str, Any], data_dir: Path) -> dict[str, Any]:
     return analysis
 
 
-def _summarize_labels(
+def _build_label_counts(
     bundle_analyses: list[dict[str, Any]],
-    shots: list[int],
-) -> list[dict[str, Any]]:
-    label_map: dict[str, dict[str, Any]] = {}
+) -> tuple[
+    dict[str, dict[str, int]],
+    dict[str, dict[str, Any]],
+]:
+    counts_by_label_profile: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    label_meta: dict[str, dict[str, Any]] = {}
     for bundle in bundle_analyses:
         label = str(bundle["label"])
-        current = label_map.setdefault(
+        profile_id = str(bundle["profile_id"])
+        current = label_meta.setdefault(
             label,
             {
                 "label": label,
@@ -366,31 +405,146 @@ def _summarize_labels(
             },
         )
         current["manifest_bundle_count"] += 1
-        if bundle.get("accepted_for_training"):
-            current["accepted_bundle_count"] += 1
-            current["window_count"] += _safe_int(bundle.get("window_count"))
-            current["accepted_profile_ids"].add(str(bundle["profile_id"]))
         for reason in bundle.get("rejection_reasons", []):
             current["rejection_reasons"][str(reason)] += 1
         for warning in bundle.get("warning_codes", []):
             current["quality_warning_counts"][str(warning)] += 1
+        if bundle.get("accepted_for_training"):
+            current["accepted_bundle_count"] += 1
+            current["window_count"] += _safe_int(bundle.get("window_count"))
+            current["accepted_profile_ids"].add(profile_id)
+            counts_by_label_profile[label][profile_id] += 1
+    return counts_by_label_profile, label_meta
 
+
+def _compute_shot_seed_status(
+    *,
+    profiles: list[str],
+    per_profile_counts: dict[str, int],
+    shot: int,
+    seeds: list[int],
+) -> dict[str, Any]:
+    seed_results: list[dict[str, Any]] = []
+    for seed in seeds:
+        if len(profiles) < 2:
+            seed_results.append(
+                {
+                    "seed": seed,
+                    "ready": False,
+                    "reason": "insufficient_profiles_for_split",
+                    "train_bundle_count": 0,
+                    "heldout_profile_ids": [],
+                    "missing_train_bundles": shot,
+                    "missing_heldout_profiles": 1,
+                }
+            )
+            continue
+
+        train_profiles, test_profiles = _partition_profiles(
+            profiles=profiles,
+            seed=seed,
+            explicit_test_profiles=[],
+            test_fraction=DEFAULT_TEST_PROFILE_FRACTION,
+        )
+        heldout_profile_ids = [
+            profile_id
+            for profile_id in test_profiles
+            if _safe_int(per_profile_counts.get(profile_id)) > 0
+        ]
+        train_bundle_count = sum(
+            _safe_int(per_profile_counts.get(profile_id))
+            for profile_id in train_profiles
+        )
+        ready = len(heldout_profile_ids) > 0 and train_bundle_count >= shot
+        seed_results.append(
+            {
+                "seed": seed,
+                "ready": ready,
+                "reason": "ready"
+                if ready
+                else (
+                    "missing_heldout_profile"
+                    if len(heldout_profile_ids) == 0
+                    else "insufficient_train_bundles"
+                ),
+                "train_bundle_count": train_bundle_count,
+                "heldout_profile_ids": heldout_profile_ids,
+                "missing_train_bundles": max(0, shot - train_bundle_count),
+                "missing_heldout_profiles": 0 if len(heldout_profile_ids) > 0 else 1,
+            }
+        )
+
+    ready_seed_count = sum(1 for result in seed_results if result["ready"])
+    failing_results = [result for result in seed_results if not result["ready"]]
+    return {
+        "configured_seed_count": len(seeds),
+        "ready_seed_count": ready_seed_count,
+        "ready_for_all_seeds": len(seeds) > 0 and ready_seed_count == len(seeds),
+        "ready_for_some_seeds": ready_seed_count > 0,
+        "ready_seeds": [result["seed"] for result in seed_results if result["ready"]],
+        "failing_seeds": failing_results,
+        "max_missing_train_bundles": max(
+            [result["missing_train_bundles"] for result in failing_results],
+            default=0,
+        ),
+        "max_missing_heldout_profiles": max(
+            [result["missing_heldout_profiles"] for result in failing_results],
+            default=0,
+        ),
+    }
+
+
+def _summarize_labels(
+    *,
+    label_meta: dict[str, dict[str, Any]],
+    counts_by_label_profile: dict[str, dict[str, int]],
+    accepted_profiles: list[str],
+    shots: list[int],
+    seeds: list[int],
+    min_profiles: int,
+) -> tuple[list[dict[str, Any]], dict[int, list[dict[str, Any]]]]:
     labels: list[dict[str, Any]] = []
-    for label, item in sorted(label_map.items()):
+    missing_samples_by_shot: dict[int, list[dict[str, Any]]] = {shot: [] for shot in shots}
+
+    for label, item in sorted(label_meta.items()):
         accepted_profile_count = len(item["accepted_profile_ids"])
         ready_shots: list[int] = []
-        missing_by_shot: list[dict[str, int]] = []
+        partially_ready_shots: list[int] = []
+        shot_readiness: dict[str, dict[str, Any]] = {}
+
+        per_profile_counts = counts_by_label_profile.get(label, {})
         for shot in shots:
-            missing_accepted_bundles = max(0, (shot + 1) - int(item["accepted_bundle_count"]))
-            missing_profiles = max(0, 2 - accepted_profile_count)
-            if missing_accepted_bundles == 0 and missing_profiles == 0:
+            seed_status = _compute_shot_seed_status(
+                profiles=accepted_profiles,
+                per_profile_counts=per_profile_counts,
+                shot=shot,
+                seeds=seeds,
+            )
+            shot_key = str(shot)
+            overall_missing_profiles = max(0, min_profiles - accepted_profile_count)
+            shot_readiness[shot_key] = {
+                **seed_status,
+                "missing_profiles_overall": overall_missing_profiles,
+            }
+            if seed_status["ready_for_all_seeds"] and overall_missing_profiles == 0:
                 ready_shots.append(shot)
-            else:
-                missing_by_shot.append(
+            elif seed_status["ready_for_some_seeds"]:
+                partially_ready_shots.append(shot)
+
+            if not seed_status["ready_for_all_seeds"] or overall_missing_profiles > 0:
+                missing_samples_by_shot[shot].append(
                     {
-                        "shot": shot,
-                        "missing_accepted_bundles": missing_accepted_bundles,
-                        "missing_profiles": missing_profiles,
+                        "label": label,
+                        "accepted_bundle_count": int(item["accepted_bundle_count"]),
+                        "accepted_profile_count": accepted_profile_count,
+                        "configured_seed_count": seed_status["configured_seed_count"],
+                        "ready_seed_count": seed_status["ready_seed_count"],
+                        "ready_for_all_seeds": seed_status["ready_for_all_seeds"],
+                        "ready_for_some_seeds": seed_status["ready_for_some_seeds"],
+                        "missing_train_bundles": seed_status["max_missing_train_bundles"],
+                        "missing_heldout_profiles": seed_status["max_missing_heldout_profiles"],
+                        "missing_profiles_overall": overall_missing_profiles,
+                        "failing_seeds": seed_status["failing_seeds"],
                     }
                 )
 
@@ -402,38 +556,54 @@ def _summarize_labels(
                 "accepted_profile_count": accepted_profile_count,
                 "window_count": int(item["window_count"]),
                 "ready_shots": ready_shots,
-                "missing_by_shot": missing_by_shot,
+                "partially_ready_shots": partially_ready_shots,
+                "shot_readiness": shot_readiness,
                 "rejection_reasons": dict(sorted(item["rejection_reasons"].items())),
                 "quality_warning_counts": dict(sorted(item["quality_warning_counts"].items())),
             }
         )
 
-    return labels
+    return labels, missing_samples_by_shot
 
 
 def _summarize_shots(
+    *,
     labels: list[dict[str, Any]],
     shots: list[int],
+    seeds: list[int],
     holdout_ready: bool,
+    min_labels: int,
 ) -> list[dict[str, Any]]:
     summaries: list[dict[str, Any]] = []
     total_label_count = len(labels)
+
     for shot in shots:
-        missing_labels: list[dict[str, Any]] = []
         ready_label_count = 0
+        partially_ready_label_count = 0
+        missing_labels: list[dict[str, Any]] = []
+        shot_key = str(shot)
+
         for label in labels:
-            accepted_bundle_count = _safe_int(label.get("accepted_bundle_count"))
-            accepted_profile_count = _safe_int(label.get("accepted_profile_count"))
-            missing_accepted_bundles = max(0, (shot + 1) - accepted_bundle_count)
-            missing_profiles = max(0, 2 - accepted_profile_count)
-            if missing_accepted_bundles == 0 and missing_profiles == 0:
+            shot_readiness = label.get("shot_readiness", {}).get(shot_key, {})
+            if shot_readiness.get("ready_for_all_seeds") and _safe_int(
+                shot_readiness.get("missing_profiles_overall")
+            ) == 0:
                 ready_label_count += 1
                 continue
+            if shot_readiness.get("ready_for_some_seeds"):
+                partially_ready_label_count += 1
             missing_labels.append(
                 {
                     "label": label["label"],
-                    "missing_accepted_bundles": missing_accepted_bundles,
-                    "missing_profiles": missing_profiles,
+                    "configured_seed_count": _safe_int(shot_readiness.get("configured_seed_count")),
+                    "ready_seed_count": _safe_int(shot_readiness.get("ready_seed_count")),
+                    "ready_for_all_seeds": bool(shot_readiness.get("ready_for_all_seeds")),
+                    "ready_for_some_seeds": bool(shot_readiness.get("ready_for_some_seeds")),
+                    "missing_train_bundles": _safe_int(shot_readiness.get("max_missing_train_bundles")),
+                    "missing_heldout_profiles": _safe_int(
+                        shot_readiness.get("max_missing_heldout_profiles")
+                    ),
+                    "missing_profiles": _safe_int(shot_readiness.get("missing_profiles_overall")),
                 }
             )
 
@@ -442,7 +612,8 @@ def _summarize_shots(
             # bundle-volume gaps so the next recording effort improves holdout honesty first.
             key=lambda item: (
                 item["missing_profiles"],
-                item["missing_accepted_bundles"],
+                item["missing_heldout_profiles"],
+                item["missing_train_bundles"],
                 item["label"],
             ),
             reverse=True,
@@ -450,8 +621,12 @@ def _summarize_shots(
         summaries.append(
             {
                 "shot": shot,
-                "ready": holdout_ready and ready_label_count >= 2,
+                "configured_seed_count": len(seeds),
+                "ready": holdout_ready and ready_label_count >= min_labels,
+                "ready_for_some_seeds": holdout_ready
+                and (ready_label_count + partially_ready_label_count) >= min_labels,
                 "ready_label_count": ready_label_count,
+                "ready_label_count_for_some_seeds": ready_label_count + partially_ready_label_count,
                 "total_label_count": total_label_count,
                 "missing_labels": missing_labels,
             }
@@ -460,27 +635,62 @@ def _summarize_shots(
     return summaries
 
 
+def _build_missing_samples_payload(
+    *,
+    summary: dict[str, Any],
+    missing_samples_by_shot: dict[int, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    shot_items = []
+    for shot in summary["thresholds"]["shots"]:
+        shot_items.append(
+            {
+                "shot": shot,
+                "labels": missing_samples_by_shot.get(shot, []),
+            }
+        )
+    return {
+        "protocol": PROTOCOL_VERSION,
+        "generated_at": summary["generated_at"],
+        "shots": shot_items,
+    }
+
+
 def build_dataset_readiness_summary(
     *,
     manifest_path: Path,
     data_dir: Path,
     shots: list[int],
-) -> dict[str, Any]:
-    summary = _empty_summary(manifest_path, data_dir, shots)
+    seeds: list[int],
+    min_profiles: int,
+    min_labels: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    summary = _empty_summary(
+        manifest_path=manifest_path,
+        data_dir=data_dir,
+        shots=shots,
+        seeds=seeds,
+        min_profiles=min_profiles,
+        min_labels=min_labels,
+    )
+    empty_missing_samples = _build_missing_samples_payload(
+        summary=summary,
+        missing_samples_by_shot={shot: [] for shot in shots},
+    )
+
     if not manifest_path.exists():
-        summary["blockers"].append("No training manifest snapshot exists at the requested path.")
-        return summary
+        summary["blockers"].append("Kein Trainings-Manifest unter dem angeforderten Pfad gefunden.")
+        return summary, empty_missing_samples
 
     try:
         entries = _load_manifest_entries(manifest_path)
     except (OSError, ValueError, json.JSONDecodeError) as error:
-        summary["blockers"].append(f"Training manifest could not be parsed: {error}")
-        return summary
+        summary["blockers"].append(f"Trainings-Manifest konnte nicht gelesen werden: {error}")
+        return summary, empty_missing_samples
 
     if not entries:
         summary["manifest"]["exists"] = True
-        summary["blockers"].append("Training manifest exists but contains no entries.")
-        return summary
+        summary["blockers"].append("Trainings-Manifest ist vorhanden, enthält aber keine Einträge.")
+        return summary, empty_missing_samples
 
     bundle_analyses: list[dict[str, Any]] = []
     for entry in entries:
@@ -505,14 +715,23 @@ def build_dataset_readiness_summary(
                 }
             )
 
-    labels = _summarize_labels(bundle_analyses, shots)
-    accepted_profile_ids = sorted(
+    counts_by_label_profile, label_meta = _build_label_counts(bundle_analyses)
+    accepted_profiles = sorted(
         {
             str(bundle["profile_id"])
             for bundle in bundle_analyses
             if bundle.get("accepted_for_training")
         }
     )
+    labels, missing_samples_by_shot = _summarize_labels(
+        label_meta=label_meta,
+        counts_by_label_profile=counts_by_label_profile,
+        accepted_profiles=accepted_profiles,
+        shots=shots,
+        seeds=seeds,
+        min_profiles=min_profiles,
+    )
+
     accepted_label_count = sum(
         1 for label in labels if _safe_int(label.get("accepted_bundle_count")) > 0
     )
@@ -531,8 +750,14 @@ def build_dataset_readiness_summary(
         for warning in bundle.get("warning_codes", []):
             warning_counts[str(warning)] += 1
 
-    holdout_ready = len(accepted_profile_ids) >= 2
-    shot_summaries = _summarize_shots(labels, shots, holdout_ready)
+    holdout_ready = len(accepted_profiles) >= min_profiles
+    shot_summaries = _summarize_shots(
+        labels=labels,
+        shots=shots,
+        seeds=seeds,
+        holdout_ready=holdout_ready,
+        min_labels=min_labels,
+    )
 
     manifest_payload = summary["manifest"]
     manifest_payload["exists"] = True
@@ -542,7 +767,7 @@ def build_dataset_readiness_summary(
         1 for bundle in bundle_analyses if bundle.get("accepted_for_training")
     )
     manifest_payload["accepted_label_count"] = accepted_label_count
-    manifest_payload["accepted_profile_count"] = len(accepted_profile_ids)
+    manifest_payload["accepted_profile_count"] = len(accepted_profiles)
     manifest_payload["rejected_bundle_count"] = len(rejected_bundles)
     manifest_payload["missing_landmark_bundle_count"] = sum(
         1 for bundle in bundle_analyses if "missing_landmarks" in bundle.get("issue_codes", [])
@@ -558,8 +783,8 @@ def build_dataset_readiness_summary(
 
     summary["holdout"] = {
         "ready": holdout_ready,
-        "accepted_profile_count": len(accepted_profile_ids),
-        "missing_profile_count": max(0, 2 - len(accepted_profile_ids)),
+        "accepted_profile_count": len(accepted_profiles),
+        "missing_profile_count": max(0, min_profiles - len(accepted_profiles)),
     }
     summary["labels"] = labels
     summary["shots"] = shot_summaries
@@ -573,20 +798,29 @@ def build_dataset_readiness_summary(
     warnings: list[str] = []
     if not holdout_ready:
         blockers.append(
-            "Signer-sicherer Holdout ist blockiert, weil weniger als 2 Profile nutzbare Bundles haben."
+            f"Signer-sicherer Holdout ist blockiert, weil weniger als {min_profiles} Profile nutzbare Bundles haben."
         )
-    if accepted_label_count < 2:
+    if accepted_label_count < min_labels:
         blockers.append(
-            "Mindestens 2 Labels brauchen nutzbare Bundles, bevor eine ehrliche Few-Shot-Baseline laufen kann."
+            f"Mindestens {min_labels} Labels brauchen nutzbare Bundles, bevor eine ehrliche Few-Shot-Baseline laufen kann."
         )
     if not any(shot["ready"] for shot in shot_summaries):
         blockers.append(
-            "Keine Ziel-Shot-Anzahl hat derzeit mindestens 2 Holdout-sichere Labels."
+            "Keine Ziel-Shot-Anzahl hat derzeit genug Holdout-sichere Labels für alle konfigurierten Seeds."
         )
     elif not all(shot["ready"] for shot in shot_summaries):
         warnings.append(
-            "Nur ein Teil des 1/3/5/10-Shot-Durchlaufs ist derzeit mit ehrlichem Holdout machbar."
+            "Nur ein Teil des 1/3/5/10-Shot-Durchlaufs ist derzeit für alle konfigurierten Seeds machbar."
         )
+
+    if any(
+        not shot["ready"] and shot["ready_for_some_seeds"]
+        for shot in shot_summaries
+    ):
+        warnings.append(
+            "Mindestens eine Shot-Stufe ist nur für einige Seeds machbar und nicht für alle Holdout-Aufteilungen."
+        )
+
     if manifest_payload["rejected_bundle_count"] > 0:
         warnings.append(
             f"{manifest_payload['rejected_bundle_count']} Bundle(s) stehen im Manifest, sind aber fürs Training unbrauchbar."
@@ -602,7 +836,12 @@ def build_dataset_readiness_summary(
         summary["status"] = "partial"
     else:
         summary["status"] = "ready"
-    return summary
+
+    missing_samples = _build_missing_samples_payload(
+        summary=summary,
+        missing_samples_by_shot=missing_samples_by_shot,
+    )
+    return summary, missing_samples
 
 
 def _render_summary_markdown(summary: dict[str, Any]) -> str:
@@ -611,6 +850,7 @@ def _render_summary_markdown(summary: dict[str, Any]) -> str:
     lines = [
         "# Dataset readiness summary",
         "",
+        f"- Protocol: `{summary['protocol']}`",
         f"- Generated at: `{summary['generated_at']}`",
         f"- Status: `{summary['status']}`",
         f"- Manifest path: `{manifest['path']}`",
@@ -646,14 +886,19 @@ def _render_summary_markdown(summary: dict[str, Any]) -> str:
             "",
             "## Shot readiness",
             "",
-            "| Shot | Ready | Ready labels | Total labels |",
-            "| --- | --- | ---: | ---: |",
+            "| Shot | Ready for all seeds | Ready for some seeds | Ready labels | Ready labels (some seeds) | Total labels |",
+            "| --- | --- | --- | ---: | ---: | ---: |",
         ]
     )
     for shot in summary.get("shots", []):
         lines.append(
-            f"| {shot['shot']} | {'yes' if shot['ready'] else 'no'} | "
-            f"{shot['ready_label_count']} | {shot['total_label_count']} |"
+            "| "
+            f"{shot['shot']} | "
+            f"{'yes' if shot['ready'] else 'no'} | "
+            f"{'yes' if shot['ready_for_some_seeds'] else 'no'} | "
+            f"{shot['ready_label_count']} | "
+            f"{shot['ready_label_count_for_some_seeds']} | "
+            f"{shot['total_label_count']} |"
         )
 
     lines.extend(
@@ -661,22 +906,16 @@ def _render_summary_markdown(summary: dict[str, Any]) -> str:
             "",
             "## Label gaps",
             "",
-            "| Label | Accepted bundles | Accepted profiles | Ready shots | Missing next requirements |",
+            "| Label | Accepted bundles | Accepted profiles | Ready shots | Partially ready shots |",
             "| --- | ---: | ---: | --- | --- |",
         ]
     )
     for label in summary.get("labels", []):
-        next_gap = label.get("missing_by_shot", [])
-        next_gap_text = ", ".join(
-            [
-                f"{gap['shot']}-shot: +{gap['missing_accepted_bundles']} bundles / +{gap['missing_profiles']} profiles"
-                for gap in next_gap[:2]
-            ]
-        )
         ready_shots = ",".join(str(value) for value in label.get("ready_shots", [])) or "-"
+        partial_shots = ",".join(str(value) for value in label.get("partially_ready_shots", [])) or "-"
         lines.append(
             f"| {label['label']} | {label['accepted_bundle_count']} | {label['accepted_profile_count']} | "
-            f"{ready_shots} | {next_gap_text or '-'} |"
+            f"{ready_shots} | {partial_shots} |"
         )
 
     if summary.get("rejected_bundles"):
@@ -688,22 +927,32 @@ def _render_summary_markdown(summary: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _write_outputs(output_dir: Path, summary: dict[str, Any]) -> dict[str, str]:
+def _write_outputs(
+    output_dir: Path,
+    summary: dict[str, Any],
+    missing_samples: dict[str, Any],
+) -> dict[str, str]:
     output_dir.mkdir(parents=True, exist_ok=True)
     summary_path = output_dir / "summary.json"
     markdown_path = output_dir / "summary.md"
     latest_json_path = output_dir / "latest.json"
     latest_markdown_path = output_dir / "latest.md"
+    missing_samples_path = output_dir / "missing_samples.json"
     markdown = _render_summary_markdown(summary)
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
     markdown_path.write_text(markdown, encoding="utf-8")
     latest_json_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
     latest_markdown_path.write_text(markdown, encoding="utf-8")
+    missing_samples_path.write_text(
+        json.dumps(missing_samples, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
     return {
         "summary_json": str(summary_path),
         "summary_markdown": str(markdown_path),
         "latest_json": str(latest_json_path),
         "latest_markdown": str(latest_markdown_path),
+        "missing_samples_json": str(missing_samples_path),
     }
 
 
@@ -713,18 +962,31 @@ def main() -> None:
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--shots", default="1,3,5,10")
+    parser.add_argument("--min-profiles", type=int, default=2)
+    parser.add_argument("--min-labels", type=int, default=2)
     args = parser.parse_args()
 
-    shots = _parse_int_list(args.shots)
+    shots = sorted(set(_parse_int_list(args.shots)))
     if not shots:
         parser.error("--shots must include at least one integer")
+    if args.min_profiles <= 0:
+        parser.error("--min-profiles must be a positive integer")
+    if args.min_labels <= 0:
+        parser.error("--min-labels must be a positive integer")
 
-    summary = build_dataset_readiness_summary(
+    summary, missing_samples = build_dataset_readiness_summary(
         manifest_path=args.manifest.resolve(),
         data_dir=args.data_dir.resolve(),
         shots=shots,
+        seeds=list(DEFAULT_SEEDS),
+        min_profiles=args.min_profiles,
+        min_labels=args.min_labels,
     )
-    summary["artifact_paths"] = _write_outputs(args.output_dir.resolve(), summary)
+    summary["artifact_paths"] = _write_outputs(
+        args.output_dir.resolve(),
+        summary,
+        missing_samples,
+    )
     print(json.dumps(summary, indent=2, sort_keys=True))
 
 
