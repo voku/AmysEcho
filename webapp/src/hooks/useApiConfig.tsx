@@ -1,29 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { normalizeConfiguredApiBase } from '../utils/resolveApiUrl';
+import { normalizeConfiguredApiBase, resolveApiUrl } from '../utils/resolveApiUrl';
 
 const STORAGE_KEY = 'webapp:api-config';
 const STORAGE_VERSION_KEY = 'webapp:api-config:version';
-export const CURRENT_STORAGE_VERSION = '2';
+export const CURRENT_STORAGE_VERSION = '3';
 const PERSISTED_TOKEN_KEY = 'webapp:api-config:persisted-token';
 const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
 const SESSION_CRYPTO_KEY = 'webapp:api-config:session:key';
 const DEFAULT_NON_PROD_API_BASE = 'http://localhost:5000';
-const DEFAULT_PROD_API_BASE = 'https://amysecho.moelleken.org';
-const DEV_ORIGINS = new Set([
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'https://localhost:5173',
-  'https://127.0.0.1:5173',
-  'http://localhost:4173',
-  'http://127.0.0.1:4173',
-  'https://localhost:4173',
-  'https://127.0.0.1:4173',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'https://localhost:3000',
-  'https://127.0.0.1:3000',
-]);
+const GITHUB_PAGES_FALLBACK_API_BASE = 'https://amysecho.moelleken.org';
 
 export function resolveFallbackApiBase(
   env: Pick<ImportMetaEnv, 'MODE'> & { VITE_API_URL?: string } = import.meta.env,
@@ -33,18 +19,16 @@ export function resolveFallbackApiBase(
   const envBase = env['VITE_API_URL'] as string | undefined;
   if (envBase?.trim()) return normalizeConfiguredApiBase(envBase) || DEFAULT_NON_PROD_API_BASE;
   const runtimeOrigin = runtimeWindow?.location?.origin;
-  const isValidRuntimeOrigin =
-    runtimeOrigin &&
-    runtimeOrigin !== 'null' &&
-    /^https?:\/\//i.test(runtimeOrigin) &&
-    !DEV_ORIGINS.has(runtimeOrigin);
-  if (isValidRuntimeOrigin) {
-    if (/github\.io$/i.test(new URL(runtimeOrigin).hostname)) {
-      return DEFAULT_PROD_API_BASE;
+  const isValidRuntimeOrigin = runtimeOrigin && runtimeOrigin !== 'null' && /^https?:\/\//i.test(runtimeOrigin);
+  if (env.MODE === 'production') {
+    if (isValidRuntimeOrigin) {
+      if (/github\.io$/i.test(new URL(runtimeOrigin).hostname)) {
+        return GITHUB_PAGES_FALLBACK_API_BASE;
+      }
+      return '';
     }
-    return runtimeOrigin.replace(/\/$/, '');
+    return '';
   }
-  if (env.MODE === 'production') return DEFAULT_PROD_API_BASE;
   return DEFAULT_NON_PROD_API_BASE;
 }
 
@@ -466,7 +450,7 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
 
     const refreshPromise = (async () => {
       try {
-        const response = await fetch(`${normalizeApiBase(config.apiBaseUrl)}/api/v1/auth/refresh`, {
+        const response = await fetch(resolveApiUrl('/api/v1/auth/refresh', config.apiBaseUrl), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: currentRefreshToken }),
@@ -504,9 +488,9 @@ export function ApiConfigProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<ApiConfigContextValue>(() => {
     const normalizedBase = normalizeApiBase(config.apiBaseUrl);
-    const uploadEndpoint = `${normalizedBase}/api/v1/dgs/sample-bundles`;
-    const modelEndpoint = `${normalizedBase}/api/v1/models/latest`;
-    const sentenceImproveEndpoint = `${normalizedBase}/api/v1/metacom/sentence-improve`;
+    const uploadEndpoint = resolveApiUrl('/api/v1/dgs/sample-bundles', normalizedBase);
+    const modelEndpoint = resolveApiUrl('/api/v1/models/latest', normalizedBase);
+    const sentenceImproveEndpoint = resolveApiUrl('/api/v1/metacom/sentence-improve', normalizedBase);
     return {
       apiBaseUrl: normalizedBase,
       apiToken: config.tokens.accessToken,
@@ -556,10 +540,9 @@ export function resolvePollUrl(baseUrl: string, pollUrl: string | undefined, job
     return trimmedPollUrl;
   }
 
-  const trimmedBase = normalizeApiBase(baseUrl);
   if (trimmedPollUrl) {
-    return `${trimmedBase}/${trimmedPollUrl.replace(/^\/+/, '')}`;
+    return resolveApiUrl(trimmedPollUrl.replace(/^\/+/, '/'), baseUrl);
   }
 
-  return `${trimmedBase}/api/v1/train-status/${encodeURIComponent(jobId)}`;
+  return resolveApiUrl(`/api/v1/train-status/${encodeURIComponent(jobId)}`, baseUrl);
 }

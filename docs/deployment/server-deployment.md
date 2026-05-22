@@ -2,6 +2,8 @@
 
 This guide provides step-by-step instructions for deploying the Amy's Echo server on your own infrastructure.
 
+> **Recommended production mode:** build the webapp and server together with `./scripts/build-single-domain.sh`, let Express serve `server/public/`, and put one reverse proxy in front of the single Node.js service. Split-domain hosting with GitHub Pages remains possible, but it is now a secondary/demo setup.
+
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -524,23 +526,7 @@ server {
         access_log off;
     }
 
-    # CORS headers for the public webapp + reverse proxy to Node.js
-    # Adjust the allowed origin list to match your deployment (example: https://voku.github.io)
-    set $amysecho_cors_origin "";
-    if ($http_origin = "https://voku.github.io") {
-        set $amysecho_cors_origin $http_origin;
-    }
-
     location / {
-        add_header 'Access-Control-Allow-Origin' $amysecho_cors_origin always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
-        add_header 'Access-Control-Max-Age' 86400 always;
-
-        if ($request_method = OPTIONS) {
-            return 204;
-        }
-
         proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -587,18 +573,6 @@ If your virtual server is managed through ISPConfig, you can keep ISPConfig in p
        proxy_read_timeout 300s;
        proxy_connect_timeout 300s;
 
-       # CORS for the hosted webapp
-       add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
-       add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
-       add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
-
-       if ($request_method = OPTIONS) {
-           add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
-           add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
-           add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
-           add_header 'Access-Control-Max-Age' 86400 always;
-           return 204;
-       }
    }
    ```
 
@@ -636,24 +610,22 @@ The commands below match the directory layout shown in the provided context (`/v
    ```bash
    cd /var/www/amysecho.moelleken.org/home/voku_amysecho
    git clone https://github.com/voku/AmysEcho.git
-   cd AmysEcho/server
+   cd AmysEcho
    ```
 
-3. **Install server dependencies and build (use a venv to avoid PEP 668 errors):**
+3. **Build the same-domain bundle (and install Python deps when you need training on the host):**
    ```bash
-   # Install full deps so TypeScript (tsc) is available for the build
-   npm ci
+   cd /var/www/amysecho.moelleken.org/home/voku_amysecho/AmysEcho
+   ./scripts/build-single-domain.sh
 
-   # Create and enter a local virtual environment for Python deps
+   # If the host should also run Python-backed training workflows:
+   cd server
    python3 -m venv .venv
    source .venv/bin/activate
    pip install --upgrade pip
    pip install -r requirements.txt
    deactivate
 
-   npm run build
-   # (Optional) trim dev dependencies after the build if you want a leaner runtime
-   npm ci --omit=dev
    mkdir -p data/models/global data/uploads
    ```
 
@@ -731,18 +703,6 @@ The commands below match the directory layout shown in the provided context (`/v
        proxy_read_timeout 300s;
        proxy_connect_timeout 300s;
 
-       # CORS for the hosted webapp
-       add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
-       add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
-       add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
-
-       if ($request_method = OPTIONS) {
-           add_header 'Access-Control-Allow-Origin' 'https://voku.github.io' always;
-           add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
-           add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, x-profile-id' always;
-           add_header 'Access-Control-Max-Age' 86400 always;
-           return 204;
-       }
    }
    ```
    **Wichtig in ISPConfig:** `Enable PROXY Protocol` muss deaktiviert sein.
@@ -1179,7 +1139,7 @@ sudo /opt/amysecho/backup.sh
 
 # Update
 cd /opt/amysecho/app && git pull
-cd server && npm ci && npm run build
+./scripts/build-single-domain.sh
 sudo systemctl restart amysecho
 ```
 
@@ -1187,22 +1147,28 @@ sudo systemctl restart amysecho
 
 ## Next Steps
 
-1. **Configure the webapp** to point to your server:
+1. **Recommended:** build the single-domain bundle:
+   - Run `./scripts/build-single-domain.sh` from the repository root
+   - Leave `VITE_API_URL` unset so the webapp uses same-origin `/api/v1/*`
+   - Proxy the whole domain to the Node.js service
+
+2. **Legacy / demo mode:** configure a split-domain webapp:
    - Set `VITE_API_URL=https://your-domain.com` when building the webapp
+   - Keep CORS enabled only for that split-domain setup
    - See `docs/deployment/deployment.md` for webapp deployment
 
-2. **Test the full workflow:**
+3. **Test the full workflow:**
    - Record a gesture in the webapp
    - Verify upload to server
    - Check training logs
    - Download updated model
 
-3. **Setup monitoring:**
+4. **Setup monitoring:**
    - Configure health check monitoring
    - Setup log aggregation (optional)
    - Configure alerts for failures
 
-4. **Regular maintenance:**
+5. **Regular maintenance:**
    - Monitor disk usage in `data/` directory
    - Review logs periodically
    - Keep system and dependencies updated

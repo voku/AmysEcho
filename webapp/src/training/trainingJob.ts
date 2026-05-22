@@ -94,10 +94,6 @@ export async function triggerTrainingJob(
   signal?: AbortSignal,
 ): Promise<TrainingJobInfo | null> {
   const base = normalizeApiBase(apiBaseUrl);
-  if (!base) {
-    return null;
-  }
-
   const endpoint = resolveApiUrl('/api/v1/train-model', base);
 
   let response: Response;

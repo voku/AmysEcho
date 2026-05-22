@@ -19,6 +19,7 @@ export function ApiConfigBar() {
   const [password, setPassword] = useState('');
   const [authMessage, setAuthMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const resolvedApiBaseLabel = apiBaseUrl || 'gleicher Ursprung (/api)';
 
   const handleBaseChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -97,11 +98,11 @@ export function ApiConfigBar() {
         <div>
           <h2>API-Konfiguration</h2>
           <p className="muted small" role="status">
-            Aktuelle Backend-URL: {apiBaseUrl}
+            Aktuelle Backend-URL: {resolvedApiBaseLabel}
           </p>
         </div>
-        <div className="status-chip" data-state={apiBaseUrl ? 'idle' : 'error'}>
-          {apiBaseUrl ? 'Verbunden' : 'URL fehlt'}
+        <div className="status-chip" data-state="idle">
+          Verbunden
         </div>
       </div>
 

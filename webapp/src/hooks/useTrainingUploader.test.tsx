@@ -62,7 +62,15 @@ describe('useTrainingUploader', () => {
     const fetchSpy = vi
       .fn()
       .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'bundle-401', status: 'queued' }) });
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: 'bundle-401',
+          status: 'queued',
+          trainingJob: { jobId: 'job-401', status: 'completed' },
+        }),
+      });
     (globalThis as any).fetch = fetchSpy;
     const refreshMock = vi.fn().mockResolvedValue('new-token');
 
@@ -386,7 +394,14 @@ describe('useTrainingUploader', () => {
     expect(stored).not.toBeNull();
     if (!stored) return;
 
-    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'bundle-resend' }) });
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: 'bundle-resend',
+        trainingJob: { jobId: 'job-resend', status: 'completed' },
+      }),
+    });
     (globalThis as any).fetch = fetchSpy;
 
     const { result } = renderHook(() => useTrainingUploader());

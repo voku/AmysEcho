@@ -49,7 +49,7 @@ describe('useApiConfig', () => {
       { location: { origin: 'http://localhost:5173' } } as any,
     );
 
-    expect(fallbackBase).toBe('https://amysecho.moelleken.org');
+    expect(fallbackBase).toBe('');
   });
 
   it('uses production backend fallback for github pages runtime origins', () => {
@@ -71,8 +71,8 @@ describe('useApiConfig', () => {
       { location: { origin: 'null' } } as any,
     );
 
-    expect(fileOriginBase).toBe('https://amysecho.moelleken.org');
-    expect(nullOriginBase).toBe('https://amysecho.moelleken.org');
+    expect(fileOriginBase).toBe('');
+    expect(nullOriginBase).toBe('');
   });
 
   it('uses runtime origin when running in production without override', () => {
@@ -81,7 +81,7 @@ describe('useApiConfig', () => {
       { location: { origin: 'https://amysecho.example.com' } } as any,
     );
 
-    expect(fallbackBase).toBe('https://amysecho.example.com');
+    expect(fallbackBase).toBe('');
   });
 
   it('overwrites persisted localhost base when environment demands production backend', async () => {
@@ -112,8 +112,20 @@ describe('useApiConfig', () => {
     const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
 
     await waitFor(() => {
-      expect(result.current.apiBaseUrl).toBe('https://amysecho.moelleken.org');
+      expect(result.current.apiBaseUrl).toBe('');
     });
+  });
+
+  it('uses same-origin relative endpoints in production without an API override', () => {
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_API_URL', '');
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    expect(result.current.apiBaseUrl).toBe('');
+    expect(result.current.uploadEndpoint).toBe('/api/v1/dgs/sample-bundles');
+    expect(result.current.modelEndpoint).toBe('/api/v1/models/latest');
+    expect(result.current.sentenceImproveEndpoint).toBe('/api/v1/metacom/sentence-improve');
   });
 
   it('normalizes API base URL by removing trailing slashes', () => {
@@ -314,6 +326,37 @@ describe('useApiConfig', () => {
     );
   });
 
+  it('refreshes tokens against same-origin auth endpoint in production without override', async () => {
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_API_URL', '');
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ tokens: { accessToken: 'next-access', refreshToken: 'next-refresh' } }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useApiConfig(), { wrapper: ApiConfigProvider });
+
+    await act(async () => {
+      result.current.setTokens({ accessToken: 'access-1', refreshToken: 'refresh-1' });
+    });
+
+    await act(async () => {
+      const refreshed = await result.current.refreshAccessToken();
+      expect(refreshed).toBe('next-access');
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/auth/refresh',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
   it('regenerates persisted crypto key when stored key is invalid', async () => {
     window.localStorage.setItem('webapp:api-config:persisted-key', 'invalid-key');
 
@@ -498,6 +541,11 @@ describe('resolvePollUrl', () => {
     expect(resolvePollUrl('https://api.example.com/', undefined, 'job-1')).toBe(
       'https://api.example.com/api/v1/train-status/job-1',
     );
+  });
+
+  it('returns same-origin relative poll URLs when base URL is empty', () => {
+    expect(resolvePollUrl('', undefined, 'job-1')).toBe('/api/v1/train-status/job-1');
+    expect(resolvePollUrl('', '/api/v1/train-status/job-1', 'job-1')).toBe('/api/v1/train-status/job-1');
   });
 
   it('handles http and https protocols in absolute URLs', () => {

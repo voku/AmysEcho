@@ -1032,13 +1032,6 @@ export function TrainingUploadWithRecording() {
 
 
   useEffect(() => {
-    if (!apiBaseUrl) {
-      setDatasetReadiness(null);
-      setDatasetReadinessError(null);
-      setDatasetReadinessLoading(false);
-      return;
-    }
-
     const endpoint = resolveApiUrl('/api/v1/dgs/dataset-readiness', apiBaseUrl);
     let cancelled = false;
     setDatasetReadinessLoading(true);
@@ -1072,7 +1065,7 @@ export function TrainingUploadWithRecording() {
   }, [apiBaseUrl, apiToken, lastResult?.id]);
 
   useEffect(() => {
-    if (!apiBaseUrl || !profileId) {
+    if (!profileId) {
       setQualityEntries([]);
       setQualityError(null);
       setQualityLoading(false);

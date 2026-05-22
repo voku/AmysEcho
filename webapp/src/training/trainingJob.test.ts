@@ -82,11 +82,25 @@ describe('triggerTrainingJob', () => {
     );
   });
 
-  it('gibt null zurück, wenn keine API-Basis gesetzt ist', async () => {
+  it('verwendet bei leerer API-Basis denselben Ursprung', async () => {
+    fetchWithRetryMock.mockResolvedValue(
+      new Response(JSON.stringify({ jobId: 'job-relative', status: 'queued' }), {
+        status: 202,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
     const result = await triggerTrainingJob('   ', 'token-123');
 
-    expect(result).toBeNull();
-    expect(fetchWithRetryMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ jobId: 'job-relative', status: 'queued' });
+    expect(fetchWithRetryMock).toHaveBeenCalledWith(
+      '/api/v1/train-model',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'Bearer token-123' }),
+      }),
+      expect.any(Object),
+    );
   });
 
   it('wirft einen HTTP-Fehler bei nicht erfolgreicher Antwort', async () => {

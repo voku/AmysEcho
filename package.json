@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build:single-domain": "./scripts/build-single-domain.sh"
+  },
   "devDependencies": {
     "tsx": "^4.21.0"
   }
