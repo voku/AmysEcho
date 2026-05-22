@@ -30,6 +30,8 @@ function shouldServeSpaFallback(req: Request): boolean {
 		return false;
 	}
 
+	// Backend and private runtime namespaces must stay as API/404 responses and
+	// must never fall through to the SPA shell.
 	if (RESERVED_BACKEND_PREFIXES.some((prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`))) {
 		return false;
 	}

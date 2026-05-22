@@ -9,7 +9,7 @@ const PERSISTED_CRYPTO_KEY = 'webapp:api-config:persisted-key';
 const SESSION_STORAGE_KEY = 'webapp:api-config:session';
 const SESSION_CRYPTO_KEY = 'webapp:api-config:session:key';
 const DEFAULT_NON_PROD_API_BASE = 'http://localhost:5000';
-const DEFAULT_GITHUB_PAGES_API_BASE = 'https://amysecho.moelleken.org';
+const GITHUB_PAGES_FALLBACK_API_BASE = 'https://amysecho.moelleken.org';
 
 export function resolveFallbackApiBase(
   env: Pick<ImportMetaEnv, 'MODE'> & { VITE_API_URL?: string } = import.meta.env,
@@ -23,7 +23,7 @@ export function resolveFallbackApiBase(
   if (env.MODE === 'production') {
     if (isValidRuntimeOrigin) {
       if (/github\.io$/i.test(new URL(runtimeOrigin).hostname)) {
-        return DEFAULT_GITHUB_PAGES_API_BASE;
+        return GITHUB_PAGES_FALLBACK_API_BASE;
       }
       return '';
     }
