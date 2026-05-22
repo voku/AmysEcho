@@ -7,6 +7,7 @@ import {
 } from '../hooks/useTrainingUploader';
 import { hasAutomaticUploadAttemptsRemaining } from '../training/trainingQueue';
 import type {
+  DatasetReadinessSummary,
   TrainingBundlePayload,
   TrainingJobInfo,
   TrainingQualityLogEntry,
@@ -17,7 +18,7 @@ import { useAppState } from '../hooks/useAppState';
 import { useApiConfig } from '../hooks/useApiConfig';
 import { resolveApiUrl } from '../utils/resolveApiUrl';
 import { HttpError } from '../utils/http';
-import { fetchTrainingQualityLog } from '../training/trainingBundle';
+import { fetchDatasetReadiness, fetchTrainingQualityLog } from '../training/trainingBundle';
 import { TrainingQueueList } from './TrainingQueueList';
 import { useMlpModelInjection } from '../hooks/useMlpModelInjection';
 import { useMetacomBundle } from '../hooks/useMetacomBundle';
@@ -827,6 +828,74 @@ function TrainingQualityLogCard({ entries, loading, error }: TrainingQualityLogC
   );
 }
 
+interface DatasetReadinessCardProps {
+  summary: DatasetReadinessSummary | null;
+  loading: boolean;
+  error: string | null;
+}
+
+function DatasetReadinessCard({ summary, loading, error }: DatasetReadinessCardProps) {
+  const firstUnreadyShot = summary?.shots.find((entry) => !entry.ready);
+  return (
+    <div className="card mt-md">
+      <p className="eyebrow">Few-Shot-Bereitschaft</p>
+      <p className="muted small">
+        Dieser Check zeigt, ob der aktuelle Trainingsstand für ehrliche 1/3/5/10-Shot-Vergleiche reicht.
+      </p>
+      {loading ? <p className="muted small">Datensatz-Bereitschaft wird geladen…</p> : null}
+      {error ? <div className="notice warning">{error}</div> : null}
+      {!loading && !error && !summary ? (
+        <div className="notice info">Noch keine Datensatz-Auswertung verfügbar.</div>
+      ) : null}
+      {summary ? (
+        <>
+          <p className="value">
+            {summary.status === 'ready'
+              ? 'Bereit für 1/3/5/10-Shot'
+              : summary.status === 'partial'
+              ? 'Teilweise bereit'
+              : 'Noch nicht bereit'}
+          </p>
+          <p className="muted small">
+            Bundles: {summary.manifest.acceptedBundleCount} nutzbar von {summary.manifest.entryCount}
+            {` · Labels: ${summary.manifest.acceptedLabelCount}`}
+            {` · Profile: ${summary.manifest.acceptedProfileCount}`}
+          </p>
+          <ul className="muted small bullets">
+            {summary.shots.map((shot) => (
+              <li key={shot.shot}>
+                <strong>{shot.shot}-Shot</strong>: {shot.ready ? 'bereit' : 'noch nicht bereit'} ({shot.readyLabelCount}/{shot.totalLabelCount} Labels)
+              </li>
+            ))}
+          </ul>
+          {summary.blockers.length > 0 ? (
+            <div className="notice warning">
+              {summary.blockers[0]}
+            </div>
+          ) : null}
+          {firstUnreadyShot && firstUnreadyShot.missingLabels.length > 0 ? (
+            <p className="muted small">
+              Nächster Engpass: {firstUnreadyShot.missingLabels
+                .slice(0, 3)
+                .map((entry) => {
+                  const parts = [];
+                  if (entry.missingAcceptedBundles > 0) {
+                    parts.push(`+${entry.missingAcceptedBundles} Bundle(s)`);
+                  }
+                  if (entry.missingProfiles > 0) {
+                    parts.push(`+${entry.missingProfiles} Profil(e)`);
+                  }
+                  return `${entry.label} (${parts.join(', ')})`;
+                })
+                .join(', ')}.
+            </p>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 // Wrapper component with recording-first experience
 export function TrainingUploadWithRecording() {
   const { apiBaseUrl, apiToken, refreshToken, uploadEndpoint, refreshAccessToken } = useApiConfig();
@@ -925,6 +994,9 @@ export function TrainingUploadWithRecording() {
   const [qualityEntries, setQualityEntries] = useState<TrainingQualityLogEntry[]>([]);
   const [qualityLoading, setQualityLoading] = useState<boolean>(false);
   const [qualityError, setQualityError] = useState<string | null>(null);
+  const [datasetReadiness, setDatasetReadiness] = useState<DatasetReadinessSummary | null>(null);
+  const [datasetReadinessLoading, setDatasetReadinessLoading] = useState<boolean>(false);
+  const [datasetReadinessError, setDatasetReadinessError] = useState<string | null>(null);
   const hasProfileContext = !!profileId && profileId.trim().length > 0;
   const hasGestureSelection = preferredSignIdValue.trim().length > 0;
   const metadataReady = hasProfileContext && hasGestureSelection;
@@ -958,6 +1030,46 @@ export function TrainingUploadWithRecording() {
   }, [modelInjection.notice]);
 
 
+
+  useEffect(() => {
+    if (!apiBaseUrl) {
+      setDatasetReadiness(null);
+      setDatasetReadinessError(null);
+      setDatasetReadinessLoading(false);
+      return;
+    }
+
+    const endpoint = resolveApiUrl('/api/v1/dgs/dataset-readiness', apiBaseUrl);
+    let cancelled = false;
+    setDatasetReadinessLoading(true);
+    fetchDatasetReadiness({
+      endpoint,
+      token: apiToken,
+    })
+      .then((summary) => {
+        if (cancelled) return;
+        setDatasetReadiness(summary);
+        setDatasetReadinessError(null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        if (error instanceof HttpError) {
+          setDatasetReadinessError(error.message);
+          return;
+        }
+        const details = error instanceof Error ? error.message : String(error);
+        setDatasetReadinessError(`Datensatz-Bereitschaft konnte nicht geladen werden: ${details}`);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setDatasetReadinessLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBaseUrl, apiToken, lastResult?.id]);
 
   useEffect(() => {
     if (!apiBaseUrl || !profileId) {
@@ -1250,6 +1362,11 @@ export function TrainingUploadWithRecording() {
 
 
 
+      <DatasetReadinessCard
+        summary={datasetReadiness}
+        loading={datasetReadinessLoading}
+        error={datasetReadinessError}
+      />
       <TrainingQualityLogCard entries={qualityEntries} loading={qualityLoading} error={qualityError} />
 
       {lastResult && (

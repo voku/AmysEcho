@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { unzipSync, strFromU8 } from 'fflate';
 import {
   createTrainingZip,
+  fetchDatasetReadiness,
   fetchTrainingQualityLog,
   normalizeTrainingJobStatus,
   resolveTrainingUploadTimeoutMs,
@@ -663,6 +664,109 @@ describe('fetchTrainingQualityLog', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+  });
+
+  describe('fetchDatasetReadiness', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('parst die Datensatz-Bereitschaft aus der Serverantwort', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: 'partial',
+          blockers: [],
+          warnings: ['Only part of the sweep is ready.'],
+          manifest: {
+            entry_count: 5,
+            accepted_bundle_count: 4,
+            accepted_label_count: 2,
+            accepted_profile_count: 2,
+            rejected_bundle_count: 1,
+          },
+          holdout: {
+            ready: true,
+            accepted_profile_count: 2,
+            missing_profile_count: 0,
+          },
+          shots: [
+            {
+              shot: 1,
+              ready: true,
+              ready_label_count: 2,
+              total_label_count: 2,
+              missing_labels: [],
+            },
+            {
+              shot: 3,
+              ready: false,
+              ready_label_count: 1,
+              total_label_count: 2,
+              missing_labels: [
+                {
+                  label: 'hilfe',
+                  missing_accepted_bundles: 1,
+                  missing_profiles: 0,
+                },
+              ],
+            },
+          ],
+          labels: [
+            {
+              label: 'hilfe',
+              manifest_bundle_count: 3,
+              accepted_bundle_count: 3,
+              accepted_profile_count: 2,
+              window_count: 90,
+              ready_shots: [1],
+            },
+          ],
+        }),
+        headers: new Headers(),
+      });
+
+      vi.stubGlobal('fetch', fetchSpy as any);
+
+      const result = await fetchDatasetReadiness({
+        endpoint: 'https://api.example.org/api/v1/dgs/dataset-readiness',
+        token: 'token-1',
+      });
+
+      expect(result.status).toBe('partial');
+      expect(result.manifest.acceptedBundleCount).toBe(4);
+      expect(result.shots[1]?.missingLabels[0]).toEqual({
+        label: 'hilfe',
+        missingAcceptedBundles: 1,
+        missingProfiles: 0,
+      });
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.example.org/api/v1/dgs/dataset-readiness',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({ Authorization: 'Bearer token-1' }),
+        }),
+      );
+    });
+
+    it('liefert bei ungültiger Antwort eine verständliche Fehlermeldung', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: 'partial' }),
+        headers: new Headers(),
+      });
+
+      vi.stubGlobal('fetch', fetchSpy as any);
+
+      await expect(
+        fetchDatasetReadiness({
+          endpoint: 'https://api.example.org/api/v1/dgs/dataset-readiness',
+          token: 'token-1',
+        }),
+      ).rejects.toThrow('Serverantwort zur Datensatz-Bereitschaft ist ungültig.');
+    });
   });
 
   it('lädt und filtert Quality-Log-Einträge', async () => {

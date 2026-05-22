@@ -75,6 +75,34 @@ vi.mock('../context/SymbolStore', () => ({
 }));
 
 vi.mock('../training/trainingBundle', () => ({
+  fetchDatasetReadiness: vi.fn().mockResolvedValue({
+    status: 'partial',
+    blockers: [],
+    warnings: [],
+    manifest: {
+      entryCount: 4,
+      acceptedBundleCount: 3,
+      acceptedLabelCount: 2,
+      acceptedProfileCount: 2,
+      rejectedBundleCount: 1,
+    },
+    holdout: {
+      ready: true,
+      acceptedProfileCount: 2,
+      missingProfileCount: 0,
+    },
+    shots: [
+      { shot: 1, ready: true, readyLabelCount: 2, totalLabelCount: 2, missingLabels: [] },
+      {
+        shot: 3,
+        ready: false,
+        readyLabelCount: 1,
+        totalLabelCount: 2,
+        missingLabels: [{ label: 'hilfe', missingAcceptedBundles: 1, missingProfiles: 0 }],
+      },
+    ],
+    labels: [],
+  }),
   fetchTrainingQualityLog: vi.fn().mockResolvedValue([]),
 }));
 
@@ -213,10 +241,13 @@ describe('TrainingUpload', () => {
       </MemoryRouter>,
     );
 
+    await screen.findByText(/Few-Shot-Bereitschaft/);
     expect(screen.getByText(/Aktive Modellquelle: Globales Ersatzmodell/)).toBeInTheDocument();
     expect(screen.getByText(/Für dieses Profil läuft die Erkennung derzeit auf dem globalen Ersatzmodell/)).toBeInTheDocument();
     expect(screen.getByText(/Label-Bereitschaft/)).toBeInTheDocument();
     expect(screen.getByText(/Datensatz-Check/)).toBeInTheDocument();
+    expect(screen.getByText(/Few-Shot-Bereitschaft/)).toBeInTheDocument();
+    expect(screen.getByText(/Teilweise bereit/)).toBeInTheDocument();
     expect(screen.getByText(/Bootstrap gestartet/)).toBeInTheDocument();
     expect(screen.getByText(/Ein guter Clip reicht für den ersten Modellstand/)).toBeInTheDocument();
     expect(screen.getByText(/Häufige Verwechslungen: satt → trinken \(2\)/)).toBeInTheDocument();

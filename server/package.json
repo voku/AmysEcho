@@ -47,6 +47,7 @@
     "pretest:py": "npm run build",
     "test:py": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && PYTHONPATH=./src:./ \"$PY_BIN\" -m pytest -q'",
     "train:mlp": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" src/amyserver_tools/train_mlp.py'",
+    "dataset:readiness": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" src/amyserver_tools/evaluate_dataset_readiness.py --manifest data/datasets/training_manifest.json --data-dir data --output-dir data/dataset-readiness'",
     "train:mlp:sweep": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" src/amyserver_tools/train_mlp_sweep.py'",
     "train:workflow:smoke": "sh -c 'PY_BIN=$(node ./scripts/resolve-python-bin.mjs) && \"$PY_BIN\" ../scripts/training_workflow_smoke.py'",
     "ops:post-training-cadence": "node dist/tools/runPostTrainingCadence.js",

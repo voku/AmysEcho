@@ -53,6 +53,12 @@ interface TrainingBundleRouteDeps {
 		context: TrainingJobTriggerContext,
 	) => TriggerTrainingJobResult | null | undefined;
 	onManifestUpdated?: () => void | Promise<void>;
+	getDatasetReadinessSummary?: (
+		options?: {
+			manifest?: { entries: Record<string, unknown>[] };
+			cacheKey?: string;
+		},
+	) => Promise<Record<string, unknown>>;
 	resolveProfileId?: (
 		profileId: string | null,
 	) => Promise<{ profileId: string | null }>;
@@ -1456,6 +1462,38 @@ export function registerTrainingBundleRoute(
 		} catch (error) {
 			logger.error("Failed to load training reports", { error });
 			res.status(500).json({ error: "Trainingsberichte konnten nicht geladen werden" });
+		}
+	});
+
+	app.get("/api/v1/dgs/dataset-readiness", auth, async (_req: Request, res: Response) => {
+		if (!deps.getDatasetReadinessSummary) {
+			res.status(404).json({ error: "Keine Datensatz-Auswertung vorhanden." });
+			return;
+		}
+
+		try {
+			const manifestEntries = loadTrainingManifest<Record<string, unknown>>().entries;
+			const filteredEntries = deps.isProfileAuthorized
+				? manifestEntries.filter((entry) => {
+					const profileId = typeof entry.profileId === "string" ? entry.profileId : null;
+					return profileId ? deps.isProfileAuthorized?.(_req, profileId) : false;
+				})
+				: manifestEntries;
+			const cacheKey = JSON.stringify(
+				filteredEntries.map((entry) => ({
+					id: entry.id,
+					profileId: entry.profileId,
+					label: entry.label,
+				})),
+			);
+			const summary = await deps.getDatasetReadinessSummary({
+				manifest: { entries: filteredEntries },
+				cacheKey,
+			});
+			res.json(summary);
+		} catch (error) {
+			logger.error("Failed to evaluate dataset readiness", { error });
+			res.status(500).json({ error: "Datensatz-Bereitschaft konnte nicht geladen werden." });
 		}
 	});
 

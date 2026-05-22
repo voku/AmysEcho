@@ -64,6 +64,7 @@ import {
 	readLatestPostTrainingCadenceSummary,
 	runPostTrainingCadenceCycle,
 } from "./services/postTrainingCadenceService.js";
+import { runDatasetReadinessEvaluation } from "./services/datasetReadinessService.js";
 import {
 	appendDgsSamples,
 	appendTrainingReportEntry,
@@ -1046,6 +1047,7 @@ registerTrainingBundleRoute(app, genId, {
 		}
 	},
 	onManifestUpdated: invalidateTrainingManifestCache,
+	getDatasetReadinessSummary: () => runDatasetReadinessEvaluation(),
 	resolveProfileId: resolveProfileId,
 	isProfileAuthorized: (req: Request, profileId: string) =>
 		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),

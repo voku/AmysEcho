@@ -19,6 +19,10 @@ import {
 } from './landmarkFeatureContract';
 import type {
   TrainingBundlePayload,
+  DatasetReadinessLabel,
+  DatasetReadinessMissingLabel,
+  DatasetReadinessShot,
+  DatasetReadinessSummary,
   TrainingFrame,
   TrainingJobInfo,
   TrainingJobMetrics,
@@ -290,6 +294,180 @@ function parseTrainingQualityLogEntry(raw: unknown): TrainingQualityLogEntry | n
       ...(typeof metrics['overallQualityScore'] === 'number' ? { overallQualityScore: metrics['overallQualityScore'] } : {}),
     },
     recordedAt,
+  };
+}
+
+function parseDatasetReadinessMissingLabel(raw: unknown): DatasetReadinessMissingLabel | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const entry = raw as Record<string, unknown>;
+  const label = entry['label'];
+  const missingAcceptedBundles = entry['missing_accepted_bundles'];
+  const missingProfiles = entry['missing_profiles'];
+  if (typeof label !== 'string' || label.trim().length === 0) return null;
+  if (
+    typeof missingAcceptedBundles !== 'number'
+    || !Number.isFinite(missingAcceptedBundles)
+    || typeof missingProfiles !== 'number'
+    || !Number.isFinite(missingProfiles)
+  ) {
+    return null;
+  }
+  return {
+    label: label.trim(),
+    missingAcceptedBundles,
+    missingProfiles,
+  };
+}
+
+function parseDatasetReadinessShot(raw: unknown): DatasetReadinessShot | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const entry = raw as Record<string, unknown>;
+  const shot = entry['shot'];
+  const ready = entry['ready'];
+  const readyLabelCount = entry['ready_label_count'];
+  const totalLabelCount = entry['total_label_count'];
+  const missingLabelsRaw = entry['missing_labels'];
+  if (
+    typeof shot !== 'number'
+    || !Number.isFinite(shot)
+    || typeof ready !== 'boolean'
+    || typeof readyLabelCount !== 'number'
+    || !Number.isFinite(readyLabelCount)
+    || typeof totalLabelCount !== 'number'
+    || !Number.isFinite(totalLabelCount)
+  ) {
+    return null;
+  }
+  const missingLabels = Array.isArray(missingLabelsRaw)
+    ? missingLabelsRaw
+        .map((item) => parseDatasetReadinessMissingLabel(item))
+        .filter((item): item is DatasetReadinessMissingLabel => item !== null)
+    : [];
+  return {
+    shot,
+    ready,
+    readyLabelCount,
+    totalLabelCount,
+    missingLabels,
+  };
+}
+
+function parseDatasetReadinessLabel(raw: unknown): DatasetReadinessLabel | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const entry = raw as Record<string, unknown>;
+  const label = entry['label'];
+  const manifestBundleCount = entry['manifest_bundle_count'];
+  const acceptedBundleCount = entry['accepted_bundle_count'];
+  const acceptedProfileCount = entry['accepted_profile_count'];
+  const windowCount = entry['window_count'];
+  const readyShotsRaw = entry['ready_shots'];
+  if (
+    typeof label !== 'string'
+    || label.trim().length === 0
+    || typeof manifestBundleCount !== 'number'
+    || !Number.isFinite(manifestBundleCount)
+    || typeof acceptedBundleCount !== 'number'
+    || !Number.isFinite(acceptedBundleCount)
+    || typeof acceptedProfileCount !== 'number'
+    || !Number.isFinite(acceptedProfileCount)
+    || typeof windowCount !== 'number'
+    || !Number.isFinite(windowCount)
+  ) {
+    return null;
+  }
+  const readyShots = Array.isArray(readyShotsRaw)
+    ? readyShotsRaw.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    : [];
+  return {
+    label: label.trim(),
+    manifestBundleCount,
+    acceptedBundleCount,
+    acceptedProfileCount,
+    windowCount,
+    readyShots,
+  };
+}
+
+function parseDatasetReadinessSummary(raw: unknown): DatasetReadinessSummary | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const payload = raw as Record<string, unknown>;
+  const status = payload['status'];
+  const blockersRaw = payload['blockers'];
+  const warningsRaw = payload['warnings'];
+  const manifestRaw = payload['manifest'];
+  const holdoutRaw = payload['holdout'];
+  const shotsRaw = payload['shots'];
+  const labelsRaw = payload['labels'];
+
+  if (status !== 'ready' && status !== 'partial' && status !== 'blocked') {
+    return null;
+  }
+  if (!manifestRaw || typeof manifestRaw !== 'object' || !holdoutRaw || typeof holdoutRaw !== 'object') {
+    return null;
+  }
+
+  const manifest = manifestRaw as Record<string, unknown>;
+  const holdout = holdoutRaw as Record<string, unknown>;
+  const entryCount = manifest['entry_count'];
+  const acceptedBundleCount = manifest['accepted_bundle_count'];
+  const acceptedLabelCount = manifest['accepted_label_count'];
+  const acceptedProfileCount = manifest['accepted_profile_count'];
+  const rejectedBundleCount = manifest['rejected_bundle_count'];
+  const holdoutReady = holdout['ready'];
+  const holdoutAcceptedProfileCount = holdout['accepted_profile_count'];
+  const missingProfileCount = holdout['missing_profile_count'];
+
+  if (
+    typeof entryCount !== 'number'
+    || !Number.isFinite(entryCount)
+    || typeof acceptedBundleCount !== 'number'
+    || !Number.isFinite(acceptedBundleCount)
+    || typeof acceptedLabelCount !== 'number'
+    || !Number.isFinite(acceptedLabelCount)
+    || typeof acceptedProfileCount !== 'number'
+    || !Number.isFinite(acceptedProfileCount)
+    || typeof rejectedBundleCount !== 'number'
+    || !Number.isFinite(rejectedBundleCount)
+    || typeof holdoutReady !== 'boolean'
+    || typeof holdoutAcceptedProfileCount !== 'number'
+    || !Number.isFinite(holdoutAcceptedProfileCount)
+    || typeof missingProfileCount !== 'number'
+    || !Number.isFinite(missingProfileCount)
+  ) {
+    return null;
+  }
+
+  const blockers = Array.isArray(blockersRaw)
+    ? blockersRaw.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+  const warnings = Array.isArray(warningsRaw)
+    ? warningsRaw.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+  const shots = Array.isArray(shotsRaw)
+    ? shotsRaw.map((item) => parseDatasetReadinessShot(item)).filter((item): item is DatasetReadinessShot => item !== null)
+    : [];
+  const labels = Array.isArray(labelsRaw)
+    ? labelsRaw.map((item) => parseDatasetReadinessLabel(item)).filter((item): item is DatasetReadinessLabel => item !== null)
+    : [];
+
+  return {
+    status,
+    blockers,
+    warnings,
+    manifest: {
+      entryCount,
+      acceptedBundleCount,
+      acceptedLabelCount,
+      acceptedProfileCount,
+      rejectedBundleCount,
+    },
+    holdout: {
+      ready: holdoutReady,
+      acceptedProfileCount: holdoutAcceptedProfileCount,
+      missingProfileCount,
+    },
+    shots,
+    labels,
   };
 }
 
@@ -724,4 +902,43 @@ export async function fetchTrainingQualityLog(options: FetchTrainingQualityOptio
   return items
     .map((item) => parseTrainingQualityLogEntry(item))
     .filter((item): item is TrainingQualityLogEntry => item !== null);
+}
+
+export type FetchDatasetReadinessOptions = {
+  endpoint: string;
+  token?: string;
+};
+
+export async function fetchDatasetReadiness(options: FetchDatasetReadinessOptions): Promise<DatasetReadinessSummary> {
+  const endpoint = options.endpoint.trim();
+  if (!endpoint) {
+    throw new Error('API-Endpunkt fehlt für Datensatz-Bereitschaft.');
+  }
+
+  const response = await fetchWithRateLimitRetry(
+    endpoint,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+      },
+    },
+    { retries: 1, retryDelayMs: 300, timeoutMs: 15000 },
+    MAX_RATE_LIMIT_RETRIES,
+  );
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new HttpError(429, 'Zu viele Anfragen. Bitte versuche es später erneut.');
+    }
+    throw new HttpError(response.status, `Datensatz-Bereitschaft konnte nicht geladen werden (HTTP ${response.status}).`);
+  }
+
+  const payload = await response.json();
+  const summary = parseDatasetReadinessSummary(payload);
+  if (!summary) {
+    throw new Error('Serverantwort zur Datensatz-Bereitschaft ist ungültig.');
+  }
+  return summary;
 }

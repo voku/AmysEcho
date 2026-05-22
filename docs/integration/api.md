@@ -34,6 +34,7 @@ The route list below is machine-checked in CI against code route inventory.
 - POST /api/v1/dgs/samples
 - GET /api/v1/dgs/signs
 - POST /api/v1/dgs/signs
+- GET /api/v1/dgs/dataset-readiness
 - GET /api/v1/dgs/trained-labels
 - GET /api/v1/dgs/training-quality
 - GET /api/v1/dgs/training-reports
@@ -151,6 +152,7 @@ The route list below is machine-checked in CI against code route inventory.
 | `POST /api/v1/dgs/samples` | Required | `{ label, profileId?, landmarks:[ [x,y,z], ... ] }` where length is `21` or `42` or `543`; `x,y in [0,1]` | `{ status:"ok" }` | `400`, `403`, `404`, `500` |
 | `POST /api/v1/dgs/sample-bundles` | Required | raw ZIP (`application/zip`/octet-stream), must include `metadata.json` validated by `MetadataSchema` and valid `landmarks.json` | `202 { status:"queued", id, trainingJob?, validationSummary, qualityGate }` | `400`, `403`, `422`, `500` |
 | `GET /api/v1/dgs/sample-bundles/:id` | Required | path `id`, optional header `X-Profile-Id` used for scoped bundles | `{ id,status,label,profileId,receivedAt,metadata,validationSummary,qualityGate }` | `400`, `403`, `404`, `500` |
+| `GET /api/v1/dgs/dataset-readiness` | Required | none | dataset readiness summary with manifest counts, holdout status, shot readiness, blockers, and warnings; result is cached briefly per authorized manifest scope so repeated polling does not rerun the evaluator every time | `404` when evaluator is unavailable, `500` when the summary cannot be generated |
 | `GET /api/v1/dgs/training-quality` | Required | query `{ profileId?, limit?:1..200 }` | `{ items:[...] }` | `400` (`code: INVALID_QUERY`), `403` (`PROFILE_UNAUTHORIZED`), `500` |
 | `GET /api/v1/dgs/training-reports` | Required | query `{ profileId?, limit?:1..200 }` | `{ items:[{ runId, recordedAt, profileId, accuracy, f1Score, samples, confusionAccuracy, labels }], profileTrends:[{ profileId, latestRunId, latestRecordedAt, latestAccuracy, latestF1Score, latestSamples, accuracyDelta, f1Delta }] }` | `400` (`code: INVALID_QUERY`), `403` (`PROFILE_UNAUTHORIZED`), `500` |
 | `POST /api/v1/train-model` | Required | `{ samples?:[{signId,profileId?,landmarkData:(points[]\|frames[])}], trigger?:"bundles" }` | `202 { status, jobId, pollUrl, message, queueDepth, retryAfterMs? }` | `400`, `403`, `429`, `500` |
