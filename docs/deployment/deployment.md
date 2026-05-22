@@ -6,16 +6,56 @@ This document describes how to deploy Amy's Echo.
 
 Amy's Echo consists of two main components:
 
-1. **Webapp** (Browser-based UI) - Deployed to static hosting (GitHub Pages, Netlify, etc.)
-2. **Server** (Node.js/Python backend) - Deployed to your own infrastructure
+1. **Webapp** (Browser-based UI) - Built with Vite and, for production, preferably served by the Node/Express server on the same domain
+2. **Server** (Node.js/Python backend) - Handles `/api/v1/*`, `/health`, model delivery, and can also serve the built webapp
 
 📘 **For server deployment**, see **[server-deployment.md](server-deployment.md)** for comprehensive step-by-step instructions including Docker, systemd, nginx, SSL, and monitoring setup.
 
 ---
 
+# Recommended Production Deployment (Single Domain)
+
+Primary production mode is a **single-domain deployment**:
+
+```txt
+https://amysecho.moelleken.org/            -> webapp index.html
+https://amysecho.moelleken.org/assets/...  -> built webapp assets
+https://amysecho.moelleken.org/api/v1/...  -> Express API
+https://amysecho.moelleken.org/health      -> Express health endpoint
+```
+
+This keeps the deployed webapp and server on the same origin, removes production CORS requirements, and avoids stale absolute API URLs in browser storage.
+
+## Build the single-domain bundle
+
+Run from the repository root:
+
+```bash
+./scripts/build-single-domain.sh
+```
+
+or:
+
+```bash
+npm run build:single-domain
+```
+
+The script:
+
+- installs webapp and server dependencies
+- runs webapp and server type checks
+- builds the webapp with `VITE_BASE_PATH=/`
+- builds the server
+- copies `webapp/dist/` into `server/public/`
+- prints the commit SHA baked into the webapp build
+
+In this production mode, leave `VITE_API_URL` unset so the webapp uses same-origin relative API routes such as `/api/v1/...`.
+
+---
+
 # Webapp Deployment Guide
 
-This section describes how to deploy Amy's Echo webapp to GitHub Pages or other hosting platforms.
+This section describes the secondary/demo webapp-only hosting options such as GitHub Pages or Netlify.
 
 ## GitHub Pages Deployment
 
@@ -27,7 +67,7 @@ The webapp is automatically deployed to GitHub Pages when:
 
 **Live URL:** https://voku.github.io/AmysEcho/
 
-**Default API for the live app:** https://amysecho.moelleken.org (override with `VITE_API_URL` for other servers).
+**Default API for the live app:** `https://amysecho.moelleken.org` via `VITE_API_URL`.
 
 ### Setup Requirements
 
@@ -56,6 +96,8 @@ base: process.env.VITE_BASE_PATH || '/AmysEcho/',
 ```
 
 For local development, the base path defaults to `/AmysEcho/`. For custom domains, set `VITE_BASE_PATH=/`.
+
+For the recommended same-domain production build, use `./scripts/build-single-domain.sh`, which already sets `VITE_BASE_PATH=/`.
 
 ## Local Development
 
@@ -120,6 +162,8 @@ VITE_API_URL=https://your-server.com
 
 For local development, set `VITE_API_URL=http://localhost:5000` to target a locally running backend.
 
+For the recommended same-domain production deployment, leave `VITE_API_URL` unset so the built webapp talks to `/api/v1/*` on the same origin.
+
 ## Browser Requirements
 
 - Modern browser with WebRTC support (camera access)
@@ -152,8 +196,8 @@ Tested browsers:
    - **Solution:** This is working as intended. Simply log in again. Your credentials will be saved if you enabled "Remember me"
 
 2. **Wrong API URL stored**
-   - Old development URL (`http://localhost:5000`) may be cached in localStorage
-   - **Solution:** Clear browser localStorage manually or wait for automatic migration
+   - Old split-domain or development URLs may be cached in localStorage
+   - **Solution:** Clear browser localStorage manually or let the storage version migration reset the API config
    ```javascript
    // Open browser console and run:
    localStorage.clear();
@@ -171,7 +215,7 @@ Tested browsers:
 
 ### LocalStorage Schema Version
 
-The webapp uses a versioning system for localStorage (current version: `2`) to ensure clean state across deployments:
+The webapp uses a versioning system for localStorage (current version: `3`) to ensure clean state across deployments:
 
 - **Key:** `webapp:api-config:version`
 - **Behavior:** When version changes, all API configuration storage is cleared
@@ -205,12 +249,18 @@ For other hosts, configure the server to serve index.html for all routes:
 - Do NOT commit `.env.local` to git
 - API URL defaults to localhost:5000 when not set
 
-**For Production (GitHub Pages):**
+**For Production (single-domain, recommended):**
+- Build with `./scripts/build-single-domain.sh`
+- Leave `VITE_API_URL` unset
+- The app uses same-origin `/api/v1/*`
+- Reverse proxy the whole domain to the Node/Express server
+
+**For Production (GitHub Pages / split-domain demo mode):**
 - Set `VITE_API_URL` in GitHub Actions workflow (already configured)
 - Set `VITE_BASE_PATH=/AmysEcho/` for repository deployment
 - Environment variables are baked into the build, not runtime
 
-**For Production (Custom Domain):**
+**For Production (custom split-domain hosting):**
 - Set `VITE_API_URL` to your backend server URL
 - Set `VITE_BASE_PATH=/` for root deployment
-- Consider using same domain for API and webapp to avoid CORS
+- Expect to configure CORS on the backend or reverse proxy

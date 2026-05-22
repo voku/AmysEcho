@@ -10,6 +10,7 @@ import {
 } from "./bootstrap/expressApp.js";
 import { createServerRateLimiters } from "./bootstrap/rateLimiters.js";
 import { readServerPackageJson } from "./bootstrap/serverPackage.js";
+import { registerStaticWebapp } from "./bootstrap/staticWebapp.js";
 import { startServerWhenReady } from "./bootstrap/startServer.js";
 import config from "./config/index.js";
 import { DB_FILE_PATH } from "./constants/dbPaths.js";
@@ -1118,6 +1119,8 @@ registerModelMetadataRoutes(app, {
 		isProfileAuthorized(req, profileId, dbInstance, profileRegistry),
 	profileIdPattern: PROFILE_ID_PATTERN,
 });
+
+registerStaticWebapp(app);
 
 // Add error handling middleware
 app.use(errorHandler);
