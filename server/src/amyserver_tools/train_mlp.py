@@ -1265,6 +1265,23 @@ def _forward_mlp(
     return probs, a1, a2, z1, z2
 
 
+
+def _cross_entropy_from_probs(
+    probs: np.ndarray,
+    y: np.ndarray,
+    *,
+    sample_weights: np.ndarray | None = None,
+    weight_sum: float | None = None,
+) -> float:
+    """Return cross-entropy for precomputed probabilities and optional sample weights."""
+
+    p = np.clip(probs[np.arange(y.shape[0]), y], LOSS_EPSILON, 1.0 - LOSS_EPSILON)
+    losses = -np.log(p)
+    if sample_weights is not None and weight_sum:
+        return float(np.sum(losses * sample_weights) / weight_sum)
+    return float(np.sum(losses) / y.shape[0])
+
+
 def train_mlp(
     X: np.ndarray,
     y: np.ndarray,
@@ -1428,12 +1445,12 @@ def train_mlp(
         )
 
         # 3. Compute training loss (cross-entropy)
-        p = np.clip(probs[np.arange(num_samples), y], LOSS_EPSILON, 1.0 - LOSS_EPSILON)
-        log_probs = -np.log(p)
-        if train_weights is not None:
-            loss = float(np.sum(log_probs * train_weights) / train_weight_sum)
-        else:
-            loss = float(np.sum(log_probs) / num_samples)
+        loss = _cross_entropy_from_probs(
+            probs,
+            y,
+            sample_weights=train_weights,
+            weight_sum=train_weight_sum,
+        )
 
         # 4. Compute validation loss (if available)
         validation_loss = None
@@ -1441,16 +1458,12 @@ def train_mlp(
             val_probs, _, _, _, _ = _forward_mlp(
                 validation_X, w1, b1, w2, b2, w3, b3
             )
-            v = np.clip(
-                val_probs[np.arange(validation_y.shape[0]), validation_y],
-                LOSS_EPSILON,
-                1.0 - LOSS_EPSILON,
+            validation_loss = _cross_entropy_from_probs(
+                val_probs,
+                validation_y,
+                sample_weights=validation_weights,
+                weight_sum=validation_weight_sum,
             )
-            val_logs = -np.log(v)
-            if validation_weights is not None and validation_weight_sum:
-                validation_loss = float(np.sum(val_logs * validation_weights) / validation_weight_sum)
-            else:
-                validation_loss = float(np.sum(val_logs) / validation_y.shape[0])
 
         # 5. Progress logging
         monitor_loss = validation_loss if validation_loss is not None else loss
@@ -1465,31 +1478,6 @@ def train_mlp(
                         **({"validationLoss": f"{validation_loss:.4f}"} if validation_loss is not None else {}),
                     }
                 )
-
-        # 6. Early stopping check
-        stop_after_epoch = False
-        if monitor_loss < best_loss - min_delta:
-            best_loss = monitor_loss
-            best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy(), w3.copy(), b3.copy())
-            best_epoch = current_epoch
-            epochs_without_improvement = 0
-        else:
-            if patience_enabled:
-                epochs_without_improvement += 1
-                if epochs_without_improvement >= early_stopping_patience:
-                    _emit_event(
-                        {
-                            "type": "early_stop",
-                            "epoch": current_epoch,
-                            "bestLoss": f"{best_loss:.4f}",
-                            "bestEpoch": best_epoch,
-                            "config": {
-                                "patience": early_stopping_patience,
-                                "minDelta": f"{min_delta:.6f}",
-                            },
-                        }
-                    )
-                    stop_after_epoch = True
 
         # ========== BACKPROPAGATION (CHAIN RULE) ==========
 
@@ -1536,8 +1524,51 @@ def train_mlp(
 
         final_epoch = current_epoch
 
-        if stop_after_epoch:
-            break
+        # 6. Early stopping check
+        updated_loss = loss
+        updated_validation_loss = validation_loss
+
+        if validation_X is not None and validation_y is not None and validation_X.size:
+            updated_val_probs, _, _, _, _ = _forward_mlp(
+                validation_X, w1, b1, w2, b2, w3, b3
+            )
+            updated_validation_loss = _cross_entropy_from_probs(
+                updated_val_probs,
+                validation_y,
+                sample_weights=validation_weights,
+                weight_sum=validation_weight_sum,
+            )
+        elif not use_dropout:
+            updated_probs, _, _, _, _ = _forward_mlp(X, w1, b1, w2, b2, w3, b3)
+            updated_loss = _cross_entropy_from_probs(
+                updated_probs,
+                y,
+                sample_weights=train_weights,
+                weight_sum=train_weight_sum,
+            )
+
+        monitor_loss = updated_validation_loss if updated_validation_loss is not None else updated_loss
+        if monitor_loss < best_loss - min_delta:
+            best_loss = monitor_loss
+            best_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy(), w3.copy(), b3.copy())
+            best_epoch = current_epoch
+            epochs_without_improvement = 0
+        elif patience_enabled:
+            epochs_without_improvement += 1
+            if epochs_without_improvement >= early_stopping_patience:
+                _emit_event(
+                    {
+                        "type": "early_stop",
+                        "epoch": current_epoch,
+                        "bestLoss": f"{best_loss:.4f}",
+                        "bestEpoch": best_epoch,
+                        "config": {
+                            "patience": early_stopping_patience,
+                            "minDelta": f"{min_delta:.6f}",
+                        },
+                    }
+                )
+                break
 
     # ========== RETURN BEST WEIGHTS ==========
     final_weights = (w1.copy(), b1.copy(), w2.copy(), b2.copy(), w3.copy(), b3.copy())

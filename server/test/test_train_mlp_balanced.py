@@ -46,18 +46,18 @@ def test_validation_loss_guides_best_weights():
     module = importlib.import_module("amyserver_tools.train_mlp")
 
     rng = np.random.RandomState(0)
-    X = rng.randn(4, 6)
-    y = np.array([0, 1, 0, 1], dtype=np.int64)
+    X = rng.randn(6, 5)
+    y = np.array([0, 1, 0, 1, 0, 1], dtype=np.int64)
 
     X_val = X.copy()
-    y_val = np.array([1, 0, 1, 0], dtype=np.int64)  # inverted labels raise validation loss after updates
+    y_val = 1 - y  # inverted labels raise validation loss after updates
 
     snapshot = module.train_mlp(
         X,
         y,
         2,
-        epochs=5,
-        learning_rate=5.0,
+        epochs=6,
+        learning_rate=0.2,
         dropout_rate=0.0,
         early_stopping_patience=2,
         early_stopping_min_delta=0.0,
