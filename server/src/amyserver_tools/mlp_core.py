@@ -22,12 +22,12 @@ def relu(x: np.ndarray) -> np.ndarray:
 
 
 def relu_derivative(x: np.ndarray) -> np.ndarray:
-    return np.where(x > 0, 1, 0)
+    return (x > 0).astype(x.dtype, copy=False)
 
 
 def softmax(x: np.ndarray) -> np.ndarray:
-    e_x = np.exp(x - np.max(x, axis=1, keepdims=True))
-    return e_x / np.sum(e_x, axis=1, keepdims=True)
+    e_x = np.exp(x - np.max(x, axis=-1, keepdims=True))
+    return e_x / np.sum(e_x, axis=-1, keepdims=True)
 
 
 def forward_mlp(
@@ -68,6 +68,9 @@ def cross_entropy_from_probs(
 ) -> float:
     """Return cross-entropy for precomputed probabilities and optional weights."""
 
+    if y.shape[0] == 0:
+        return 0.0
+
     p = np.clip(probs[np.arange(y.shape[0]), y], LOSS_EPSILON, 1.0 - LOSS_EPSILON)
     losses = -np.log(p)
     if sample_weights is not None and weight_sum:
@@ -87,6 +90,9 @@ def resolve_loss_weights(
 
     candidate = np.asarray(sample_weights, dtype=np.float32)
     if candidate.ndim != 1 or candidate.shape[0] != expected_length or candidate.size == 0:
+        return None, fallback_sum
+
+    if not np.all(np.isfinite(candidate)) or np.any(candidate < 0):
         return None, fallback_sum
 
     weight_sum = float(np.sum(candidate))
