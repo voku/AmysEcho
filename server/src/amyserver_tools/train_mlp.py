@@ -29,6 +29,7 @@ import numpy as np
 # Add scripts directory to path for shared utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "scripts")))
 try:
+    from . import mlp_core as _mlp_core
     from .config_constants import (
         DROPOUT_RATE,
         EARLY_STOPPING_MIN_DELTA,
@@ -36,7 +37,6 @@ try:
         EPOCHS,
         INPUT_FEATURE_SIZE,
         LEARNING_RATE,
-        LOSS_EPSILON,
         MAX_AVG_FRAME_DELTA_MS,
         MIN_AVG_FRAME_DELTA_MS,
         MIN_CLIP_DURATION_MS,
@@ -69,6 +69,7 @@ try:
     from .frame_normalization import _normalize_frame
     from .sliding_window import Sample, create_sliding_windows
 except ImportError:
+    import mlp_core as _mlp_core
     from config_constants import (
         DROPOUT_RATE,
         EARLY_STOPPING_MIN_DELTA,
@@ -76,7 +77,6 @@ except ImportError:
         EPOCHS,
         INPUT_FEATURE_SIZE,
         LEARNING_RATE,
-        LOSS_EPSILON,
         MAX_AVG_FRAME_DELTA_MS,
         MIN_AVG_FRAME_DELTA_MS,
         MIN_CLIP_DURATION_MS,
@@ -110,6 +110,27 @@ except ImportError:
     from sliding_window import Sample, create_sliding_windows
 
 from ml_shared_utils import filter_by_profile_logic
+
+LOSS_EPSILON = _mlp_core.LOSS_EPSILON
+WeightTuple = _mlp_core.WeightTuple
+_cross_entropy_from_probs = _mlp_core.cross_entropy_from_probs
+_forward_mlp = _mlp_core.forward_mlp
+_resolve_loss_weights = _mlp_core.resolve_loss_weights
+_sample_from_rng = _mlp_core.sample_standard_normal
+_uniform_from_rng = _mlp_core.sample_uniform
+relu = _mlp_core.relu
+relu_derivative = _mlp_core.relu_derivative
+softmax = _mlp_core.softmax
+
+__all__ = [
+    "LOSS_EPSILON",
+    "WeightTuple",
+    "_cross_entropy_from_probs",
+    "_forward_mlp",
+    "relu",
+    "relu_derivative",
+    "softmax",
+]
 
 # Re-export architecture constants for module-level access (needed for tests)
 MLP_LAYER1_SIZE = MLP_LAYER1_SIZE
@@ -223,7 +244,6 @@ if FEATURE_MODE not in {"absolute", "relative_delta"}:
 LANDMARKS_PER_HAND = TOTAL_HAND_LANDMARKS // 2
 SECONDARY_HAND_WEIGHT = 0.3  # Weight for non-dominant hand in asymmetric gestures
 
-WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
 MODALITY_KEYS = ("hands", "pose", "face", "nonManual")
 TRAINING_METADATA_FILENAME = "training_metadata.json"
@@ -1210,76 +1230,7 @@ class TrainingSnapshots:
     final_epoch: int
 
 
-# --- MLP implementation (unchanged core) ------------------------------------
-
-
-def relu(x):
-    return np.maximum(0, x)
-
-
-def relu_derivative(x):
-    return np.where(x > 0, 1, 0)
-
-
-def softmax(x):
-    e_x = np.exp(x - np.max(x, axis=1, keepdims=True))
-    return e_x / np.sum(e_x, axis=1, keepdims=True)
-
-
-def _forward_mlp(
-    X: np.ndarray,
-    w1: np.ndarray, b1: np.ndarray,
-    w2: np.ndarray, b2: np.ndarray,
-    w3: np.ndarray, b3: np.ndarray,
-    dropout_mask1: np.ndarray | None = None,
-    dropout_mask2: np.ndarray | None = None
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Three-layer MLP forward pass with optional dropout. 
-    
-    Architecture: Input(48870) → 512 → 256 → Output(num_classes)
-    
-    Returns:
-        probs: Softmax probabilities (N, num_classes)
-        a1: Layer 1 activations (N, 512)
-        a2: Layer 2 activations (N, 256)
-        z1: Layer 1 pre-activation (needed for backprop)
-        z2: Layer 2 pre-activation (needed for backprop)
-    """
-    # Layer 1: Input → 512
-    z1 = np.dot(X, w1) + b1
-    a1 = relu(z1)
-    if dropout_mask1 is not None:
-        a1 *= dropout_mask1
-
-    # Layer 2: 512 → 256
-    z2 = np.dot(a1, w2) + b2
-    a2 = relu(z2)
-    if dropout_mask2 is not None:
-        a2 *= dropout_mask2
-
-    # Layer 3: 512 → Output (logits)
-    z3 = np.dot(a2, w3) + b3
-    probs = softmax(z3)
-
-    return probs, a1, a2, z1, z2
-
-
-
-def _cross_entropy_from_probs(
-    probs: np.ndarray,
-    y: np.ndarray,
-    *,
-    sample_weights: np.ndarray | None = None,
-    weight_sum: float | None = None,
-) -> float:
-    """Return cross-entropy for precomputed probabilities and optional sample weights."""
-
-    p = np.clip(probs[np.arange(y.shape[0]), y], LOSS_EPSILON, 1.0 - LOSS_EPSILON)
-    losses = -np.log(p)
-    if sample_weights is not None and weight_sum:
-        return float(np.sum(losses * sample_weights) / weight_sum)
-    return float(np.sum(losses) / y.shape[0])
+# --- MLP implementation ------------------------------------------------------
 
 
 def train_mlp(
@@ -1343,26 +1294,6 @@ def train_mlp(
     # ========== WEIGHT INITIALIZATION (He Initialization) ==========
     random_source = np.random if rng is None else rng
 
-    def _sample_from_rng(rs, shape):
-        """Helper to handle different RNG types."""
-        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
-            # Generator uses 'standard_normal', RandomState uses 'standard_normal' too
-            # but RandomState.standard_normal takes 'size' as kwarg or first arg
-            return rs.standard_normal(size=shape)
-        if hasattr(rs, "randn"):
-            return rs.randn(*shape)
-        return np.random.standard_normal(size=shape)
-
-    def _uniform_from_rng(rs, shape):
-        """Helper for uniform [0, 1) sampling across RNG types."""
-        if isinstance(rs, (np.random.Generator, np.random.RandomState)):
-            if hasattr(rs, "random"):
-                return rs.random(size=shape)
-            return rs.random_sample(size=shape)
-        if hasattr(rs, "rand"):
-            return rs.rand(*shape)
-        return np.random.random(size=shape)
-
     # He initialization: scale = sqrt(2 / fan_in)
     scale1 = np.sqrt(2.0 / input_dim)
     w1 = _sample_from_rng(random_source, (input_dim, layer1_size)).astype(np.float32) * scale1
@@ -1383,15 +1314,7 @@ def train_mlp(
     use_dropout = keep_prob < 1.0
 
     # Weighted loss handling
-    train_weights = None
-    train_weight_sum = float(num_samples)
-    if sample_weights is not None:
-        candidate = np.asarray(sample_weights, dtype=np.float32)
-        if candidate.shape[0] == num_samples and candidate.size > 0:
-            weight_sum = float(np.sum(candidate))
-            if weight_sum > 0:
-                train_weights = candidate
-                train_weight_sum = weight_sum
+    train_weights, train_weight_sum = _resolve_loss_weights(sample_weights, num_samples)
 
     # Validation data
     validation_X: np.ndarray | None = None
@@ -1401,13 +1324,10 @@ def train_mlp(
     if validation_data is not None:
         validation_X, validation_y = validation_data
         if validation_X.size and validation_y.size:
-            if validation_sample_weights is not None:
-                candidate_val = np.asarray(validation_sample_weights, dtype=np.float32)
-                if candidate_val.shape[0] == validation_y.shape[0]:
-                    val_sum = float(np.sum(candidate_val))
-                    if val_sum > 0:
-                        validation_weights = candidate_val
-                        validation_weight_sum = val_sum
+            validation_weights, validation_weight_sum = _resolve_loss_weights(
+                validation_sample_weights,
+                int(validation_y.shape[0]),
+            )
 
     # Early stopping
     best_loss = math.inf
@@ -3480,6 +3400,7 @@ def run_training_pipeline(
                 "prototype_count": len(global_prototype_labels),
                 "label_diagnostics": global_label_diagnostics,
                 "dataset_health": global_dataset_health,
+                "augmentation_provenance": augmentation_audit,
                 "training_mode": "single_label_seeded",
             },
             "profiles": profile_reports,
@@ -3729,6 +3650,7 @@ def run_training_pipeline(
             "prototype_count": len(global_prototype_labels),
             "label_diagnostics": global_label_diagnostics,
             "dataset_health": global_dataset_health,
+            "augmentation_provenance": augmentation_audit,
         },
         "profiles": profile_reports,
         "timestamp": training_version
