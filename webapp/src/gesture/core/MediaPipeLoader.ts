@@ -54,7 +54,7 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
   async function resolvePinnedBase() {
     const pinnedVersion = (window as any).__mediapipeVersion;
     if (typeof pinnedVersion === 'string' && pinnedVersion.length) {
-      return { base: 'https://cdn.jsdelivr.net/npm', version: pinnedVersion };
+      return { base: MEDIAPIPE_TASKS_VISION_CDN_BASE, version: pinnedVersion };
     }
     return {
       base: MEDIAPIPE_TASKS_VISION_CDN_BASE,

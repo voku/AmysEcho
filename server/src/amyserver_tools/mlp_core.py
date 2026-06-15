@@ -7,13 +7,12 @@ focused on data loading, reporting, and persistence.
 
 from __future__ import annotations
 
-from importlib import import_module
-
 import numpy as np
 
-_config_module_name = ".config_constants" if __package__ else "config_constants"
-_config_constants = import_module(_config_module_name, package=__package__)
-LOSS_EPSILON = _config_constants.LOSS_EPSILON
+try:
+    from .config_constants import LOSS_EPSILON
+except ImportError:  # pragma: no cover - script-mode fallback
+    from config_constants import LOSS_EPSILON  # type: ignore[no-redef]
 
 WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
