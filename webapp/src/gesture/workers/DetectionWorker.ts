@@ -43,9 +43,9 @@ export interface WorkerDetectRequest {
 
 export interface WorkerInitRequest {
   type: 'init';
-  /** Tasks Vision bundle URL, e.g. https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs */
+  /** Tasks Vision bundle URL, e.g. https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/vision_bundle.mjs */
   visionBundleUrl: string;
-  /** Tasks Vision WASM CDN base URL, e.g. https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm */
+  /** Tasks Vision WASM CDN base URL, e.g. https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm */
   wasmBase: string;
   /** GestureRecognizer model URL. */
   gestureModelUrl: string;

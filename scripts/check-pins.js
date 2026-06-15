@@ -26,6 +26,7 @@ const criticalWebappDeps = [
   'react',
   'react-dom',
   'vite',
+  '@mediapipe/tasks-vision',
 ];
 const criticalServerDeps = ['express', 'express-rate-limit'];
 
