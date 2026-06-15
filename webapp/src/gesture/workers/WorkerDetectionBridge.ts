@@ -15,6 +15,8 @@
  *   bridge.dispose(); // cleanup on stop
  */
 
+import { buildMediaPipeTasksVisionUrl } from '../config/MediaPipeDependencies';
+
 import type {
   WorkerDetectResponse,
   WorkerDetectionResult,
@@ -59,7 +61,7 @@ export class WorkerDetectionBridge {
 
   constructor(options: WorkerBridgeOptions) {
     this.options = {
-      visionBundleUrl: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs',
+      visionBundleUrl: buildMediaPipeTasksVisionUrl('vision_bundle.mjs'),
       minDetectionConfidence: 0.7,
       minTrackingConfidence: 0.5,
       numHands: 2,

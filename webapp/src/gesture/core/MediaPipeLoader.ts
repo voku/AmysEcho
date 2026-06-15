@@ -4,6 +4,10 @@
  */
 
 import { logger } from '../../services/logger';
+import {
+  MEDIAPIPE_TASKS_VISION_CDN_BASE,
+  MEDIAPIPE_TASKS_VISION_VERSION,
+} from '../config/MediaPipeDependencies';
 
 // Types for MediaPipe components
 export interface MediaPipeComponents {
@@ -50,41 +54,12 @@ export async function loadTasksVision(): Promise<MediaPipeComponents> {
   async function resolvePinnedBase() {
     const pinnedVersion = (window as any).__mediapipeVersion;
     if (typeof pinnedVersion === 'string' && pinnedVersion.length) {
-      return { base: 'https://cdn.jsdelivr.net/npm', version: pinnedVersion };
+      return { base: MEDIAPIPE_TASKS_VISION_CDN_BASE, version: pinnedVersion };
     }
-    const cdns = ['https://cdn.jsdelivr.net/npm', 'https://unpkg.com'];
-    const controllers = cdns.map(() => new AbortController());
-    const fetches = cdns.map((base, i) =>
-      (async () => {
-        try {
-          const ac = controllers[i];
-          if (!ac) throw new Error('AbortController not found');
-          const t = setTimeout(() => ac.abort(), 8000); // LOAD_TIMEOUT_MS
-          const pkg = await fetch(base + '/@mediapipe/tasks-vision/package.json', {
-            method: 'GET',
-            signal: ac.signal,
-            cache: 'no-store',
-          }).finally(() => clearTimeout(t));
-          if (pkg.ok) {
-            const json = await pkg.json().catch(() => null);
-            const v = json?.version;
-            if (typeof v === 'string' && v.length) {
-              controllers.forEach((c, j) => {
-                if (j !== i) c.abort();
-              });
-              return { base, version: v };
-            }
-          }
-        } catch (err) {
-          if ((err as any)?.name !== 'AbortError') {
-            console.warn('Fetch failed:', base, err);
-          }
-        }
-        return null;
-      })(),
-    );
-    const results = await Promise.all(fetches);
-    return results.find(Boolean) || null;
+    return {
+      base: MEDIAPIPE_TASKS_VISION_CDN_BASE,
+      version: MEDIAPIPE_TASKS_VISION_VERSION,
+    };
   }
 
   function tryLoadScript(src: string, integrity?: string, timeoutMs = 8000) {

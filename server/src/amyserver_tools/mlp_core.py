@@ -12,7 +12,7 @@ import numpy as np
 try:
     from .config_constants import LOSS_EPSILON
 except ImportError:  # pragma: no cover - script-mode fallback
-    from config_constants import LOSS_EPSILON
+    from config_constants import LOSS_EPSILON  # type: ignore[no-redef]
 
 WeightTuple = tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
 
