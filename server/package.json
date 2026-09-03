@@ -17,7 +17,7 @@
     "express": "5.2.1",
     "express-rate-limit": "8.4.1",
     "jsonwebtoken": "9.0.3",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^9.0.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {
