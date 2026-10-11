@@ -1,4 +1,4 @@
-numpy
+numpy<2.5  # NumPy 2.5 stubs require PEP 695; mypy targets Python 3.10
 pytest
 mediapipe==0.10.35
 opencv-python
