@@ -5,6 +5,7 @@ on:
       - fix/webapp-npm-audit-20261107
     paths:
       - '.github/workflows/server-lock-repair-candidate.yml'
+      - 'server/package.json'
 
 permissions:
   contents: write
