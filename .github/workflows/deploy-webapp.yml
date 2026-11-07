@@ -31,10 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_BASE_PATH: /AmysEcho/
-      # SECURITY: Use GitHub secret for API URL to avoid exposing infrastructure details
-      # Set this in Repository Settings -> Secrets and variables -> Actions
-      # If not set, falls back to the public demo URL
-      VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://amysecho.moelleken.org' }}
+      # Tests intentionally run without a deployment API override.
+      # VITE_API_URL is provided only to the production build below.
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -61,6 +59,9 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: webapp
+        env:
+          # This value is a public client-side build setting, not a server secret.
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://amysecho.moelleken.org' }}
       
       - name: Setup Pages
         uses: actions/configure-pages@v6
