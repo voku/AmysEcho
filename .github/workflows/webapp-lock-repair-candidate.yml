@@ -1,0 +1,45 @@
+name: TEMP webapp npm audit candidate repair
+on:
+  push:
+    branches:
+      - fix/webapp-npm-audit-20261107
+
+permissions:
+  contents: write
+
+jobs:
+  repair-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.15.0'
+      - name: Update only npm-compatible lockfile resolutions
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          npm audit fix --prefix webapp --package-lock-only --ignore-scripts --no-fund
+          audit_fix_exit=$?
+          set -e
+          echo "npm audit fix exit: $audit_fix_exit (nonzero means further fixes are needed)"
+          echo "::group::Current security audit findings"
+          npm audit --prefix webapp --audit-level=high || true
+          echo "::endgroup::"
+          echo "::group::Changes"
+          git status --short
+          git diff --stat
+          echo "::endgroup::"
+          git add -- webapp/package.json webapp/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No compatible npm lockfile updates available"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(security): refresh compatible webapp npm lock resolutions'
+          git push origin HEAD:fix/webapp-npm-audit-20261107
