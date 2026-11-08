@@ -14,7 +14,8 @@ const conceptDefinitions: ConceptV1[] = [
   { version: 1, id: "mehr", labelDe: "Mehr", speechDe: "Ich möchte mehr.", symbolPath: "./icons/mehr.svg" },
   { version: 1, id: "fertig", labelDe: "Fertig", speechDe: "Ich bin fertig.", symbolPath: "./icons/fertig.svg" },
 ];
-\nexport const CONCEPTS: readonly ConceptV1[] = Object.freeze(conceptDefinitions.map((concept) => Object.freeze(concept)));
+
+export const CONCEPTS: readonly ConceptV1[] = Object.freeze(conceptDefinitions.map((concept) => Object.freeze(concept)));
 
 export function findConcept(id: string): ConceptV1 | null {
   return CONCEPTS.find((concept) => concept.id === id) ?? null;
