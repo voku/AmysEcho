@@ -3,11 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'">
+    <meta name="theme-color" content="#174e6c">
     <title>Amy's Echo NG</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="manifest" href="./manifest.webmanifest">
     <script type="module" src="./main.js"></script>
   </head>
   <body>
-    <main id="app" aria-live="polite"></main>
+    <main id="app"></main>
   </body>
 </html>

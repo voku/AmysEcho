@@ -3,26 +3,33 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { once } from "node:events";
 
-// Loopback-only asset smoke: this does NOT claim a fully installed offline PWA.
-const files = new Map([
-  ["/", ["../dist/index.html", "text/html; charset=utf-8"]],
-  ["/main.js", ["../dist/main.js", "text/javascript; charset=utf-8"]],
-  ["/status.js", ["../dist/status.js", "text/javascript; charset=utf-8"]],
+const routes = new Map([
+  ["/", ["index.html", "text/html; charset=utf-8"]],
+  ["/index.html", ["index.html", "text/html; charset=utf-8"]],
+  ["/main.js", ["main.js", "text/javascript; charset=utf-8"]],
+  ["/status.js", ["status.js", "text/javascript; charset=utf-8"]],
+  ["/board.js", ["board.js", "text/javascript; charset=utf-8"]],
+  ["/concepts.js", ["concepts.js", "text/javascript; charset=utf-8"]],
+  ["/speech.js", ["speech.js", "text/javascript; charset=utf-8"]],
+  ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
+  ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
+  ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json"]],
+  ...["hilfe", "trinken", "pause", "mehr", "fertig", "app"].map((id) =>
+    [`/icons/${id}.svg`, [`icons/${id}.svg`, "image/svg+xml"]]),
 ]);
 
 const server = createServer(async (request, response) => {
-  const file = files.get(request.url ?? "");
-  if (!file) {
+  const entry = routes.get(request.url ?? "");
+  if (entry === undefined) {
     response.writeHead(404);
     response.end();
     return;
   }
-
-  const [path, type] = file;
   try {
-    const content = await readFile(new URL(path, import.meta.url));
+    const [path, type] = entry;
+    const file = await readFile(new URL(`../dist/${path}`, import.meta.url));
     response.writeHead(200, { "content-type": type, "cache-control": "no-store" });
-    response.end(content);
+    response.end(file);
   } catch {
     response.writeHead(500);
     response.end();
@@ -34,12 +41,12 @@ try {
   await once(server, "listening");
   const address = server.address();
   assert.ok(address && typeof address !== "string");
-  for (const route of files.keys()) {
+  for (const route of routes.keys()) {
     const response = await fetch(`http://127.0.0.1:${address.port}${route}`);
-    assert.equal(response.status, 200, `missing local asset: ${route}`);
+    assert.equal(response.status, 200, `missing locally bundled asset: ${route}`);
     assert.ok((await response.text()).length > 0);
   }
-  console.log("NG local asset smoke passed (browser offline/PWA proof remains S1)");
+  console.log("NG local bundle smoke OK; browser offline and actual speech are unverified");
 } finally {
   server.close();
 }

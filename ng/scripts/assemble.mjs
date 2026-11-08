@@ -1,6 +1,8 @@
-import { copyFile } from "node:fs/promises";
+import { cp } from "node:fs/promises";
 
-await copyFile(
-  new URL("../public/index.html", import.meta.url),
-  new URL("../dist/index.html", import.meta.url),
+// Include every local SVG/style/manifest/service-worker asset in production output.
+await cp(
+  new URL("../public/", import.meta.url),
+  new URL("../dist/", import.meta.url),
+  { recursive: true },
 );

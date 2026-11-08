@@ -1,10 +1,10 @@
-# Amy's Echo NG: independent S0b bootstrap
+# Amy's Echo NG: independent greenfield proof
 
-This is a **greenfield, locally built NG implementation**. The former `webapp/`, `server/`, and `integration/` are **read-only reference material** and must not be imported or installed for NG. Parent plan: [#1176](https://github.com/voku/AmysEcho/issues/1176); S0b: [#1179](https://github.com/voku/AmysEcho/issues/1179).
+This folder is not a migration of the old webapp/server/integration tree. NG relies on no legacy imports or runtime. Parent: [#1176](https://github.com/voku/AmysEcho/issues/1176); bootstrap: [#1179](https://github.com/voku/AmysEcho/issues/1179); board acceptance: [#1180](https://github.com/voku/AmysEcho/issues/1180).
 
-## Run from a clean checkout
+## Local development
 
-Node **24.15.0** or compatible Node 24. Uses the exact, independently recorded `ng/package-lock.json`.
+Use Node 24.15.0 or a compatible Node 24 release.
 
 ```sh
 npm ci --prefix ng --ignore-scripts
@@ -14,14 +14,16 @@ npm --prefix ng test
 npm --prefix ng run smoke:offline
 ```
 
-Open `ng/dist/index.html` using a local static HTTP server to view the temporary bootstrap. No backend is required. The S0b bootstrap is plain TypeScript on purpose: S1 will select and justify the actual accessible React/PWA shell. This is **not** a gesture recognizer or a deployable offline AAC product.
+Serve `ng/dist/` from a local HTTP origin (`localhost` works for development), open the page, and select one of **five synthetic, not caregiver-approved** concept examples. Each emits German text with a bundled, original placeholder SVG. The application never requests camera access, and output remains visible if speech is unavailable or fails.
 
-The smoke test serves exactly three local files on a loopback HTTP port and checks responses. It is **not** proof of browser offline caching, installed voices, real device support, or the S1 communication workflow.
+The speech adapter **only attempts** a voice when the browser advertises a German voice marked `localService`. It does not infer true offline TTS support from that flag. Speech errors are visible. Test with airplane mode on the approved actual device, not by counting CI checks.
 
-## Security / isolation / CI
+A scoped service worker pre-caches the local HTML/CSS/JS/SVG/manifest bundle after installation. The CI asset smoke serves local assets, checks type-safety and exercises board clicks with `fetch` denied; **it does not prove physical-browser installation, cold-start offline capability, offline voice playback, browser storage persistence, or useful communication with a child**.
 
-- NG CI is path-scoped to `ng/**` and `.github/workflows/ng-ci.yml`. Type checking, build, tests, loopback smoke and dependency audit must run; no `continue-on-error` or skipped assertions.
-- Legacy `CI` ignores *NG-only* path changes. DGS integration CI is already path-scoped. Changing legacy files still triggers their existing checks/security audits unchanged.
-- Never commit personal samples, raw video, landmark sequences or profile exports. Local-only data belongs in ignored `ng/local-data/` or `ng/private/`; this is no substitute for a pre-commit privacy review.
-- No CI artifact contains private samples, secrets or biometric features.
-- **Branch protection:** the GitHub app returned 403 reading `main` protection, while GET rulesets returned an empty list. This does **not** prove no required checks exist. Verify that NG CI may be merged without legacy `CI` being required/pending before final merge.
+The current S1a UI intentionally has no profile persistence, export/restore/delete, or personal gesture capture. These are **required before S1 acceptance**, not optional 1.0 features. No real child data, samples or diagnostic logs may be committed or uploaded.
+
+Before release, record caregiver-approved concept selection, offline device observations, a 5–10 attempt private communication session, effective accessible labels, profile isolation and recovery, and a verified no-camera/no-network cold start. See [S0a contract #1192](https://github.com/voku/AmysEcho/pull/1192).
+
+## NG CI and privacy boundary
+
+NG CI is independently path-scoped. The existing legacy CI is not suppressed for legacy code changes. Personal child data is excluded from the repository and public artifacts. Branch-protection/required-status semantics are not verified by this README; the bootstrap PR remains subject to that check.

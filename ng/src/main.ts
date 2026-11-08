@@ -1,16 +1,17 @@
+import { mountBoard } from "./board.js";
 import { getBootstrapState } from "./status.js";
 
 const root = document.querySelector<HTMLElement>("#app");
-
 if (root === null) {
   throw new Error("NG shell mount point is missing");
 }
-
-const heading = document.createElement("h1");
-heading.textContent = "Amy's Echo NG";
-
-const message = document.createElement("p");
-message.textContent = "Neuer Kommunikationsbereich. Die Bedienoberfläche folgt in S1.";
-
-root.replaceChildren(heading, message);
+mountBoard(root);
 root.dataset.bootstrap = getBootstrapState();
+
+// The board always works without a service worker. Registration failure is
+// not mistaken for successful offline installation.
+if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+  void navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch((error: unknown) => {
+    console.warn("Offline installation unavailable:", error);
+  });
+}
