@@ -10,6 +10,10 @@ This project turns those gestures into speech and symbols so she can be heard an
 
 All app UI text and error messages are written in German to match Amy's language environment.
 
+## Amy's Echo NG (greenfield)
+
+The new implementation is tracked in [NG epic #1176](https://github.com/voku/AmysEcho/issues/1176) and starts with the [independent `ng/` bootstrap](ng/README.md). The original webapp/server below are legacy reference material for the NG project, not its deployment target.
+
 ## Current Focus
 
 The project is being maintained in a **supported-core** mode.

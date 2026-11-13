@@ -1,0 +1,46 @@
+name: NG CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ng/**'
+      - '.github/workflows/ng-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ng/**'
+      - '.github/workflows/ng-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ng:
+    name: NG bootstrap (Node 24)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.15.0'
+          cache: npm
+          cache-dependency-path: ng/package-lock.json
+      - name: Deterministic dependency install
+        run: npm ci --prefix ng --ignore-scripts
+      - name: TypeScript static checks
+        run: npm --prefix ng run typecheck
+      - name: Build independent NG shell
+        run: npm --prefix ng run build
+      - name: Test NG bootstrap
+        run: npm --prefix ng test
+      - name: Verify local asset serving
+        run: npm --prefix ng run smoke:offline
+      - name: Audit dependencies
+        run: npm audit --prefix ng --audit-level=high

@@ -1,0 +1,8 @@
+/node_modules/
+/dist/
+/private/
+/local-data/
+*.recording.json
+*.landmarks.json
+*.webm
+*.mp4
