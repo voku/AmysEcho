@@ -1,6 +1,6 @@
 # NumPy 2.5+ uses PEP 695 `type` aliases in stubs; mypy targets Python 3.10.
 # Keep the type-checker's supported target without relaxing the Python floor.
-numpy<2.5
+numpy<2.6
 pytest
 mediapipe==0.10.35
 opencv-python
