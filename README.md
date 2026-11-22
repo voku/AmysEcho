@@ -23,9 +23,12 @@ Early rebuild. What exists today:
   German wording and text-only custom concepts), as library code tested in Node against an
   in-memory store ([docs/storage.md](docs/storage.md));
 - a board that waits for local storage at start (up to 1.5 s, an unmeasured value) and then shows
-  the active profile's concepts. The example concepts appear only when no profile is stored, when
-  storage cannot be opened, or when it does not answer in time. Unreadable profiles, no active
-  profile, and a profile without loadable concepts show a message and no buttons.
+  the active profile's own concepts, with the wording stored when they were chosen. Whenever the
+  own board cannot be shown (no profile stored or chosen, no concepts chosen or loadable,
+  unreadable profiles, storage that fails or answers late) the example concepts stand in, under a
+  German sentence that says they are examples and why. The board does not show the child's name;
+- an app shell with a board region, an empty region reserved for the caregiver area, and a
+  controller that owns the page's one profile store and can re-mount the board without a reload.
 
 Not built yet: a caregiver screen. Nothing in the app can create, choose or edit a profile, so in
 practice the board still shows the examples. Also not built: symbols for custom concepts, camera

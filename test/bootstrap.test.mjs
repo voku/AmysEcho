@@ -20,36 +20,57 @@ test("NG shell state is ready", () => {
   assert.equal(getBootstrapState(), "ready");
 });
 
-test("built UI displays synthetic concepts and remains usable without TTS/network/camera/storage", async () => {
+test("built UI starts in the board region only and remains usable without TTS/network/camera/storage", async () => {
   const previousDocument = globalThis.document;
   const previousFetch = globalThis.fetch;
   const previousWarn = console.warn;
+  // The page as index.html delivers it: #app with a board region (static line) and the caregiver region.
+  const staticLine = fakeElement("p");
+  staticLine.textContent = "Die Tafel ist noch nicht gestartet.";
+  const region = fakeElement("section");
+  region.children = [staticLine];
+  const caregiver = fakeElement("section");
   const root = fakeElement("main");
+  root.children = [region, caregiver];
+  root.replaceChildren = () => assert.fail("#app itself must keep its structure");
+  root.append = () => assert.fail("#app itself must keep its structure");
   const mounts = [];
-  root.replaceChildren = (...nodes) => { root.children = nodes; mounts.push(nodes); };
+  region.replaceChildren = (...nodes) => { region.children = nodes; mounts.push(nodes); };
   const warnings = [];
+  const selectors = [];
   globalThis.document = {
-    querySelector(selector) { assert.equal(selector, "#app"); return root; },
+    querySelector(selector) {
+      selectors.push(selector);
+      return { "#app": root, "#board-region": region }[selector] ?? assert.fail(`unexpected selector ${selector}`);
+    },
     createElement: fakeElement,
   };
   globalThis.fetch = () => { throw new Error("Unexpected network request from board"); };
   console.warn = (...parts) => { warnings.push(parts); };
-  const part = (className) => root.children.find((child) => child.className === className);
+  const part = (className) => region.children.find((child) => child.className === className);
 
   try {
-    await import(new URL("../dist/main.js?board-smoke", import.meta.url));
-    // Node has no IndexedDB: storage is unavailable, and the board must stay a working example board.
-    for (let i = 0; i < 1000 && root.dataset.startup === "pending"; i += 1) await new Promise((resolve) => setImmediate(resolve));
+    const main = await import(new URL("../dist/main.js?board-smoke", import.meta.url));
+    await main.app.started;
+    assert.deepEqual(selectors.sort(), ["#app", "#board-region"]);
     assert.equal(root.dataset.bootstrap, "ready");
-    assert.equal(root.dataset.startup, "demo-unavailable");
+    // Node has no IndexedDB: storage is unavailable, and the examples stand in with the reason.
+    assert.equal(await main.app.store(), null);
+    assert.equal(region.dataset.startup, "demo-unavailable");
+    assert.equal(region.dataset.boardFallback, "storage-unavailable");
     assert.equal(warnings.length, 1);
-    // Mounted twice: a waiting line with nothing to tap, then one board. No timer is left running.
+    // Mounted twice: a waiting line that replaces the static line at once, then one board. No timer is left running.
     assert.equal(mounts.length, 2);
     assert.deepEqual(mounts[0].map((child) => child.tagName), ["h1", "p"]);
     assert.equal(mounts[0][1].textContent, "Die Tafel wird geladen.");
-    assert.equal("startupLate" in root.dataset, false);
-    assert.match(root.children[1].textContent, /Testoberfläche/);
-    assert.match(root.children[2].textContent, /Speicher.*nicht erreichbar/);
+    assert.ok(!mounts[0].includes(staticLine));
+    assert.equal("startupLate" in region.dataset, false);
+    // #app and the caregiver region are untouched.
+    assert.deepEqual(root.children, [region, caregiver]);
+    assert.deepEqual(caregiver.children, []);
+    assert.deepEqual(Object.keys(root.dataset), ["bootstrap"]);
+
+    assert.match(region.children[1].textContent, /Speicher.*nicht erreichbar.*Beispiele/);
     const board = part("concept-board");
     const output = part("message");
     const retry = part("retry");
@@ -69,6 +90,23 @@ test("built UI displays synthetic concepts and remains usable without TTS/networ
     globalThis.fetch = previousFetch;
     console.warn = previousWarn;
   }
+});
+
+test("index.html has the stable regions and a static German line for when scripts do not start", async () => {
+  const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
+  const app = /<main id="app">([\s\S]*)<\/main>/.exec(html)?.[1] ?? "";
+  const board = /<section id="board-region"[^>]*>([\s\S]*?)<\/section>/.exec(app)?.[1] ?? "";
+  // The two regions, in this order, directly inside #app.
+  assert.match(app, /^\s*<section id="board-region"[^>]*>[\s\S]*?<\/section>\s*<section id="caregiver-region"[^>]*\shidden>\s*<\/section>\s*$/);
+  // A plain line that is visible until the script replaces it, and one for a browser without scripts.
+  const plain = board.replace(/<noscript>[\s\S]*?<\/noscript>/, "");
+  assert.match(plain, /<p class="board-notice">Die Tafel ist noch nicht gestartet\.[^<]*<\/p>/);
+  assert.match(board, /<noscript><p class="board-notice">Diese Seite braucht JavaScript\.[^<]*<\/p><\/noscript>/);
+  // Without a running script nothing may claim that the board is loading.
+  assert.doesNotMatch(board, /wird geladen|lädt/);
+  // Still no inline script or style, and the same policy.
+  assert.match(html, /<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; connect-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'">/);
+  assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)[^>]*>|<style|\sstyle=|\son[a-z]+=/i);
 });
 
 for (const concept of CONCEPTS) {
@@ -121,7 +159,7 @@ test("service-worker pre-cache includes the full local concept bundle", async ()
   const worker = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const modules = await reachableModules("main.js");
   // The walk really follows imports, including into a subdirectory and through a re-export-free chain.
-  for (const expected of ["main.js", "board.js", "concepts.js", "speech.js", "startup.js", "status.js", "board-data.js", "profiles/store.js", "profiles/profile.js", "profiles/backend.js", "profiles/indexeddb-backend.js"]) {
+  for (const expected of ["main.js", "app.js", "board.js", "concepts.js", "speech.js", "startup.js", "status.js", "board-data.js", "profiles/store.js", "profiles/profile.js", "profiles/backend.js", "profiles/indexeddb-backend.js"]) {
     assert.ok(modules.includes(expected), `import walk did not reach ${expected}`);
   }
   // Test-only code is not part of the app.
@@ -138,7 +176,7 @@ test("service-worker install fetches the pre-cache list past the HTTP cache, und
   const source = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
   // Names already shipped; a changed asset list or install step needs a name that is none of them.
-  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1"].includes(name), `cache name ${name}`);
+  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2"].includes(name), `cache name ${name}`);
 
   // Run the worker with a fake scope and look at what install hands to the cache.
   const listeners = {};

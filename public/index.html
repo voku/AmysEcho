@@ -11,6 +11,13 @@
     <script type="module" src="./main.js"></script>
   </head>
   <body>
-    <main id="app"></main>
+    <main id="app">
+      <section id="board-region" class="board-region" aria-label="Tafel">
+        <h1>Amy's Echo NG</h1>
+        <p class="board-notice">Die Tafel ist noch nicht gestartet. Wenn das so bleibt, lade bitte die Seite neu oder gib einer Bezugsperson Bescheid.</p>
+        <noscript><p class="board-notice">Diese Seite braucht JavaScript. Ohne JavaScript kann die Tafel nicht starten.</p></noscript>
+      </section>
+      <section id="caregiver-region" class="caregiver-region" aria-label="Bereich für Bezugspersonen" hidden></section>
+    </main>
   </body>
 </html>

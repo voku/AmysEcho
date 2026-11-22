@@ -1,22 +1,22 @@
-import { createBoardHost } from "./board.js";
+import { createApp } from "./app.js";
 import { CONCEPTS } from "./concepts.js";
 import { openIndexedDbBackend } from "./profiles/indexeddb-backend.js";
-import { loadStartupView, runStartup } from "./startup.js";
 import { getBootstrapState } from "./status.js";
 
 const root = document.querySelector<HTMLElement>("#app");
-if (root === null) {
+const boardRegion = document.querySelector<HTMLElement>("#board-region");
+if (root === null || boardRegion === null) {
   throw new Error("NG shell mount point is missing");
 }
 
-// `runStartup` shows a waiting line first, without anything to tap, and then
-// mounts one board: what storage says this device should show, or the example
-// board with a notice when storage fails or does not answer in time. A late
-// answer never replaces a board that is in use. See src/startup.ts.
-// The IndexedDB adapter behind `loadStartupView` has no automated test yet (card NG-14).
-void runStartup(loadStartupView(() => openIndexedDbBackend(), CONCEPTS, (error) => {
-  console.warn("Profile storage unavailable:", error);
-}), createBoardHost(root));
+// The app writes into the board region only; see src/app.ts and src/startup.ts
+// for the start-up sequence. The caregiver area (card NG-13) will get `app`.
+// The IndexedDB adapter has no automated test yet (card NG-14).
+export const app = createApp(boardRegion, {
+  openBackend: () => openIndexedDbBackend(),
+  catalogue: CONCEPTS,
+  report: (error) => console.warn("Profile storage unavailable:", error),
+});
 root.dataset.bootstrap = getBootstrapState();
 
 // The board always works without a service worker. Registration failure is

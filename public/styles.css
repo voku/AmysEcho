@@ -7,7 +7,7 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .concept:focus-visible, .retry:focus-visible { outline: 5px solid #cf681e; outline-offset: 3px; }
 .concept:active { background: #dceff4; }
 .concept-text { font-size: 1.6rem; overflow-wrap: anywhere; text-align: center; }
-.board-owner { font-size: 1.2rem; font-weight: 700; }
+.board-fallback { padding: .8rem 1rem; border-left: 6px solid #cf681e; background: #fff6ec; border-radius: .4rem; }
 .board-notice { max-width: 40rem; font-size: 1.1rem; line-height: 1.5; }
 .concept img { width: 64px; height: 64px; }
 .message { min-height: 3rem; padding: 1.2rem; background: #e0f2ec; border-radius: 1rem; font-size: clamp(1.5rem, 5vw, 2.4rem); font-weight: 700; overflow-wrap: anywhere; }
