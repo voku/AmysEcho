@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:52de1f6b375c3867a54ee3015823aa1f753828c7",
+    "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
     "contract_revision": 1,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
     "history": [
         {
@@ -181,6 +181,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:2:ea45d168",
                 "summary": "Usage record can drift with two stores on one backend (store.ts:346-358) and is trusted forever; docs and comments claim export can always succeed. Also untyped RangeError in set, no shrinking overwrite when over limit.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:26:02+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:26:02+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+                "context_id": "claude-subagent-ng25-build-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:01971cf0",
+                "summary": "Third build: usage() and export recount and repair the record, guarantee limited to one store instance, typed error for oversized values, shrinking writes allowed over the limit, NFC on read; verify passes with 90 tests",
                 "task_id": "NG-25",
                 "validation_references": []
             }
