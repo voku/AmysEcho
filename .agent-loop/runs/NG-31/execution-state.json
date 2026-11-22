@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -66,6 +66,46 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:69079140",
                 "summary": "Sticky header with after-closing line and Fertig, Escape, profile cards with rename and two-step delete, two-list board editor with focus rules and undo, short notice with details, 12-tile warning, help section, no-board line without reload; walked in Chromium at five sizes; verify passes with 348 tests",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T17:34:42+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T17:34:42+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:3203b7fc123e57765f80caec7d56391b9ac0d1ea7d9996ba114959e0d0b1aee7",
+                    "execution-evidence:sha256:d68a4dc8789b7e239069f847d1356d96755a9991059a937e6f8dc8ef4ea6d09f",
+                    "execution-evidence:sha256:eeecac571201a9a515ee718328f55e164cbdd20bf5dc24826c335b86258f0ce9"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:3203b7fc123e57765f80caec7d56391b9ac0d1ea7d9996ba114959e0d0b1aee7",
+                    "execution-evidence:sha256:d68a4dc8789b7e239069f847d1356d96755a9991059a937e6f8dc8ef4ea6d09f",
+                    "execution-evidence:sha256:eeecac571201a9a515ee718328f55e164cbdd20bf5dc24826c335b86258f0ce9"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:60bd06257417c5caf958bfc5b8c98a8990feb99d",
+                "context_id": "claude-subagent-ng31-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:94b8d9a5",
+                "summary": "caregiver.ts:527-530 after a failed Entfernen or Hinzufügen focus moves to another row's button so a retry acts on the wrong concept; blind-spot: at 640x360 a double tap on Löschen hits Endgültig löschen (caregiver.ts:846-852,894), a double tap on Entfernen removes two concepts with undo for one, and Tafel bearbeiten visibly does nothing because the editor is below the fold",
                 "task_id": "NG-31",
                 "validation_references": []
             }
