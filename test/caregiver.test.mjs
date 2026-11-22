@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
-import { HOLD_DURATION_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
+import { CLOSE_WAIT_MS, HOLD_DURATION_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import { MemoryBackend } from "../dist/profiles/memory-backend.js";
 import { ProfileStore } from "../dist/profiles/store.js";
@@ -477,13 +477,12 @@ test("area: closing hides and empties it, shows the board again, refreshes it fr
     assert.equal(refreshes.count, 0);
     button("Schließen").click();
     assert.equal(handle.isOpen(), false);
+    await handle.close();
     assert.equal(caregiverRegion.hidden, true);
     assert.deepEqual(caregiverRegion.children, []);
     assert.equal(boardRegion.hidden, false);
     assert.equal(entry.hidden, false);
     assert.equal(focused.current, opener);
-    await handle.close();
-    await app.refreshBoard();
     assert.equal(refreshes.count, 1);
     assert.equal(boardRegion.dataset.startup, "profile");
     assert.deepEqual(tiles(), ["Fertig", "Hilfe"]);
@@ -1037,5 +1036,109 @@ test("area: what was asked for before closing does not draw into the closed area
     assert.deepEqual(caregiverRegion.children, []);
     // The write that was under way finished first, so the board already has it.
     assert.deepEqual(tiles(), ["Hilfe"]);
+  });
+});
+
+/** The area on a fake app whose refresh the test settles by hand; the board region holds one "old" tile. */
+async function withSlowRefresh(callback) {
+  const fakes = installFakes();
+  try {
+    const boardRegion = fakes.fakeElement("section");
+    boardRegion.dataset.startup = "profile";
+    const oldTile = fakes.fakeElement("button");
+    oldTile.textContent = "Alte Tafel";
+    boardRegion.children = [oldTile];
+    const caregiverRegion = fakes.fakeElement("section");
+    caregiverRegion.hidden = true;
+    const entry = fakes.fakeElement("footer");
+    const refresh = { calls: 0, settle: () => undefined };
+    const app = {
+      store: async () => null,
+      refreshBoard: () => { refresh.calls += 1; return new Promise((resolve) => { refresh.settle = resolve; }); },
+    };
+    const clock = fakeClock();
+    const handle = mountCaregiver({ app, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS, setTimer: clock.setTimer, onPageHidden: () => undefined });
+    const opener = entry.children[0];
+    assert.equal(handle.open(), true);
+    await handle.settled();
+    /** True when a tile of the board can be reached: the region is shown. */
+    const boardReachable = () => !boardRegion.hidden;
+    await callback({ ...fakes, boardRegion, caregiverRegion, entry, opener, handle, clock, refresh, oldTile, boardReachable });
+  } finally {
+    fakes.restore();
+  }
+}
+const turn = () => new Promise((resolve) => setImmediate(resolve));
+
+test("closing: while the refresh is running the board stays hidden under a German waiting line, and the opening control cannot be used", async () => {
+  await withSlowRefresh(async ({ boardRegion, caregiverRegion, entry, opener, handle, clock, refresh, focused, boardReachable }) => {
+    let closed = false;
+    void handle.close().then(() => { closed = true; });
+    await turn();
+    assert.equal(refresh.calls, 1);
+    assert.equal(handle.isOpen(), false);
+    // The previous board is still what the region holds, so it must not be reachable.
+    assert.equal(boardReachable(), false);
+    assert.equal(entry.hidden, true);
+    assert.equal(caregiverRegion.hidden, false);
+    assert.deepEqual(textsIn(caregiverRegion), ["Die Tafel wird geladen."]);
+    assert.equal(caregiverRegion.children[0].role, "status");
+    assert.deepEqual(buttonsIn(caregiverRegion), []);
+    assert.notEqual(focused.current, opener);
+    assert.equal(closed, false);
+    // Neither the handle nor a hold opens the area again before the board is back.
+    assert.equal(handle.open(), false);
+    opener.dispatch("pointerdown", { button: 0 });
+    clock.advance(CLOSE_WAIT_MS - 1);
+    assert.equal(handle.isOpen(), false);
+    assert.equal(boardReachable(), false);
+    assert.equal(boardRegion.hidden, true);
+  });
+});
+
+test("closing: once the refresh has settled the board is shown, the waiting line is gone and focus is on the opening control", async () => {
+  await withSlowRefresh(async ({ boardRegion, caregiverRegion, entry, opener, handle, clock, refresh, focused, boardReachable }) => {
+    const closing = handle.close();
+    await turn();
+    assert.equal(boardReachable(), false);
+    // The app mounts the new board, then its refresh resolves.
+    const newTile = { ...boardRegion.children[0], textContent: "Neue Tafel" };
+    boardRegion.children = [newTile];
+    refresh.settle();
+    await closing;
+    assert.equal(boardReachable(), true);
+    assert.deepEqual(textsIn(boardRegion), ["Neue Tafel"]);
+    assert.equal(caregiverRegion.hidden, true);
+    assert.deepEqual(caregiverRegion.children, []);
+    assert.equal(entry.hidden, false);
+    assert.equal(focused.current, opener);
+    assert.equal(clock.waiting(), 0, "the bound is not left running");
+    // The area can be opened again now.
+    assert.equal(handle.open(), true);
+  });
+});
+
+test("closing: when the refresh never settles the board is shown after the bound, with focus on the opening control", async () => {
+  await withSlowRefresh(async ({ boardRegion, caregiverRegion, entry, opener, handle, clock, refresh, focused }) => {
+    assert.equal(CLOSE_WAIT_MS, 2500);
+    const closing = handle.close();
+    await turn();
+    clock.advance(CLOSE_WAIT_MS - 1);
+    assert.equal(boardRegion.hidden, true);
+    assert.notEqual(focused.current, opener);
+    clock.advance(1);
+    await closing;
+    assert.equal(boardRegion.hidden, false);
+    assert.equal(entry.hidden, false);
+    assert.equal(caregiverRegion.hidden, true);
+    assert.deepEqual(caregiverRegion.children, []);
+    assert.equal(focused.current, opener);
+    // A refresh that answers after all changes nothing more: an area opened since stays open.
+    assert.equal(handle.open(), true);
+    refresh.settle();
+    await turn();
+    assert.equal(handle.isOpen(), true);
+    assert.equal(boardRegion.hidden, true);
+    assert.equal(caregiverRegion.hidden, false);
   });
 });

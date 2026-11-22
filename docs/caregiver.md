@@ -61,8 +61,21 @@ Limits, stated plainly:
 ## Inside the area
 
 While the area is open the board region and the opening control are hidden and running speech is
-stopped. Focus moves to the heading. "Schließen" hides and empties the area, shows the board
-region, returns focus to the opening control and calls `app.refreshBoard()`.
+stopped. Focus moves to the heading.
+
+"Schließen" empties the area and calls `app.refreshBoard()`, after any write that is still under
+way. Until that refresh has settled, the board region and the opening control stay hidden and the
+caregiver region shows only "Die Tafel wird geladen.": the board region may still hold the board
+of the profile that was active before, and that must not be tappable. Then the board region is
+shown, the caregiver region is hidden and emptied, and focus returns to the opening control. The
+area cannot be opened again before that.
+
+The wait has its own bound, `CLOSE_WAIT_MS` (2.5 s: the refresh bound of 1.5 s plus a margin),
+because a refresh waits behind start-up and start-up may never be answered by storage. After the
+bound the board region is shown anyway. When start-up never answered, what is on screen then is
+the start-up fallback, the examples, and that is acceptable. The bound can also fire when storage
+answered at start-up but a write or the refresh behind it now hangs for longer than the bound;
+then the board from before the area was opened is shown. Not seen on a device.
 
 **Storage.** The area uses the page's one store (`await app.store()`). If there is none, it shows
 one sentence that storage cannot be reached and nothing can be changed, plus "Tafel neu laden" and
@@ -125,9 +138,6 @@ with assistive technology.
 
 ## Known gaps
 
-- After closing, the board region is shown at once and the refresh follows. For the moment in
-  between (bounded by the refresh time-out, 1.5 s) the previous board is on screen, and it may be
-  the board of the profile that was active before.
 - "Tafel neu laden" and closing wait for `app.refreshBoard()`. If storage never answered at
   start-up, a refresh never finishes (see docs/storage.md), and actions asked for after it wait
   with it. The area can still be closed.

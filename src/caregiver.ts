@@ -19,11 +19,19 @@ import { MAX_CONCEPT_IDS, MAX_DISPLAY_NAME_LENGTH, ProfileFormatError } from "./
 import type { ProfileV1 } from "./profiles/profile.js";
 import { ProfileSizeError, UnknownProfileError } from "./profiles/store.js";
 import type { ProfileStore } from "./profiles/store.js";
+import { STARTUP_WAIT_MS } from "./startup.js";
 
 /** How long the opening control has to be held. A guess; not tried with a child (card NG-14). */
 export const HOLD_DURATION_MS = 3000;
 /** How often the countdown is redrawn while holding. */
 export const HOLD_TICK_MS = 100;
+
+/**
+ * How long closing waits for the board to be refreshed before it shows the
+ * board region anyway: the bound of a refresh plus a margin. A refresh waits
+ * behind start-up, which may never answer, so closing needs a bound of its own.
+ */
+export const CLOSE_WAIT_MS = STARTUP_WAIT_MS + 1000;
 
 /** Calls `callback` once after `milliseconds`; the returned function cancels that. */
 export type SetTimer = (callback: () => void, milliseconds: number) => () => void;
@@ -116,20 +124,22 @@ export interface CaregiverOptions {
   /** Outside both regions; gets the opening control, its progress bar and its one line of text. */
   readonly entry: HTMLElement;
   readonly catalogue: readonly CatalogueConcept[];
-  /** Replaces the timer of the hold; for tests. */
+  /** Replaces the timer of the hold and of the wait after closing; for tests. */
   readonly setTimer?: SetTimer;
   /** Registers a callback for "the page was hidden"; for tests. Default: the document's `visibilitychange`. */
   readonly onPageHidden?: (callback: () => void) => void;
 }
 
 export interface CaregiverHandle {
-  /** Opens the area. Returns false, and opens nothing, while the board is still starting. */
+  /** Opens the area. Returns false, and opens nothing, while the board is still starting or a closing still waits for the board. */
   open(): boolean;
   /**
-   * Closes the area, shows the board region again and refreshes the board,
-   * after what the area was still asked to do. Resolves when the refresh
-   * has; while the area is closed, that is the refresh of the last closing.
-   * Never rejects.
+   * Closes the area and refreshes the board, after what the area was still
+   * asked to do. The board region and the opening control stay hidden, under
+   * a waiting line, until the refresh has settled or `CLOSE_WAIT_MS` have
+   * passed; then the board region is shown and focus returns to the opening
+   * control. Resolves at that moment; while the area is closed, the promise
+   * is that of the last closing. Never rejects.
    */
   close(): Promise<void>;
   isOpen(): boolean;
@@ -145,6 +155,7 @@ const holdLine = (seconds: number): string => `Weiter halten … ${seconds}`;
 const STORAGE_UNREACHABLE = "Der Speicher dieses Geräts ist gerade nicht erreichbar. Deshalb kann hier im Moment nichts geändert werden.";
 const READ_FAILED = "Die gespeicherten Profile können gerade nicht gelesen werden. Deshalb kann hier im Moment nichts geändert werden.";
 const READING = "Der Speicher wird gelesen.";
+const BOARD_LOADING = "Die Tafel wird geladen.";
 const NO_PROFILES = "Auf diesem Gerät gibt es noch kein Profil.";
 const ACTIVE_MARK = "Aktive Tafel";
 const ACTIVATE = "Als aktive Tafel verwenden";
@@ -265,8 +276,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let session = 0;
   /** The session in which the running task was asked for. */
   let acting = 0;
-  /** The refresh of the last closing; what `close()` returns while the area is closed. */
+  /** The last closing; what `close()` returns while the area is closed. */
   let closing: Promise<void> = Promise.resolve();
+  /** True from closing until the board region is shown again. */
+  let returning = false;
+  const setTimer = options.setTimer ?? defaultTimer;
   let work: Promise<void> = Promise.resolve();
   let store: ProfileStore | null = null;
   let selectedId: string | null = null;
@@ -561,23 +575,44 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const running = work;
     isOpen = false;
     session += 1;
-    caregiverRegion.hidden = true;
-    // Names do not stay in the page behind a hidden attribute.
-    caregiverRegion.replaceChildren();
+    returning = true;
+    // Names do not stay in the page. Until the board is the refreshed one,
+    // nothing can be tapped: what the board region holds may be the board of
+    // the profile that was active before.
+    const waiting = element("p", "caregiver-notice", BOARD_LOADING);
+    waiting.setAttribute("role", "status");
+    caregiverRegion.replaceChildren(waiting);
     heading = null;
     status = null;
     body = null;
     focusables = new Map();
-    boardRegion.hidden = false;
-    entry.hidden = false;
-    opener.focus();
-    // A write that is still under way finishes first, so the board is read after it.
-    closing = running.then(() => app.refreshBoard()).catch(() => undefined);
+    closing = new Promise((resolve) => {
+      let cancelTimer = (): void => undefined;
+      const showBoard = (): void => {
+        if (!returning) return;
+        returning = false;
+        cancelTimer();
+        caregiverRegion.hidden = true;
+        caregiverRegion.replaceChildren();
+        boardRegion.hidden = false;
+        entry.hidden = false;
+        opener.focus();
+        resolve();
+      };
+      try {
+        cancelTimer = setTimer(showBoard, CLOSE_WAIT_MS);
+      } catch {
+        // Without a timer closing waits for the refresh.
+      }
+      // A write that is still under way finishes first, so the board is read after it.
+      void running.then(() => app.refreshBoard()).catch(() => undefined).then(showBoard);
+    });
     return closing;
   };
 
   const open = (): boolean => {
     if (isOpen) return true;
+    if (returning) return false;
     const startup = boardRegion.dataset["startup"];
     if (startup === undefined || startup === "pending") return false;
     isOpen = true;
@@ -620,7 +655,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     hint.textContent = line;
   };
   const hold = createHold({
-    setTimer: options.setTimer ?? defaultTimer,
+    setTimer,
     onProgress: (elapsedMs, remainingSeconds) => {
       progress.hidden = false;
       progress.value = elapsedMs;
