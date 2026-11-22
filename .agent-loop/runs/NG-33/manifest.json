@@ -1,0 +1,167 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "perform the approved host-native implementation for NG-33 before calling agent-loop finish NG-33",
+    "next_action_invocation": null,
+    "next_action_kind": "host_work",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T21:20:55+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 1,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-33/contract.json",
+                "sha256": "sha256:d75a84dc1b60fadae345ac241f6286a2215716548a8ab6b0b1c70cc7d110db3a"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-33",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "7610b686ed45260849e070e47fa097c69ea9592da07768c2e899177c4f7303f4",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-33.md",
+                "sha256": "sha256:7610b686ed45260849e070e47fa097c69ea9592da07768c2e899177c4f7303f4"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A caregiver can change label and sentence of a concept on the board; the stored wording is what the child's board shows after closing",
+                "A reworded catalogue concept can be reset to the catalogue wording with one confirmed action",
+                "An entry a newer app wrote shows no reword or reset control and says that the app needs an update",
+                "Refusals (too long, empty, forbidden characters, profile too large) are explained in German and the typed text is kept",
+                "No other row moves when a wording is saved, and ids this version cannot edit keep their place"
+            ],
+            "goal": "On a profile's board a caregiver changes the label and the spoken sentence of a concept and can go back to the catalogue wording; after closing, the child's board shows and speaks the new wording.",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 1,
+            "run_revision": 1,
+            "source": {
+                "path": ".agent-loop/contracts/NG-33/contract.json",
+                "sha256": "sha256:d75a84dc1b60fadae345ac241f6286a2215716548a8ab6b0b1c70cc7d110db3a"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 1,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-33/contract.json",
+                "sha256": "sha256:d75a84dc1b60fadae345ac241f6286a2215716548a8ab6b0b1c70cc7d110db3a"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "review_observations": [],
+            "run_id": "run:NG-33:18a006734411e387",
+            "state": "missing"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "snapshot": "sha256:f8c5485bf95a8e7b6af6c13daabed3a944e3d49c55aedf4c1afd0c0c00f6c940",
+            "source": {
+                "path": ".agent-loop/map/php-symbols.json",
+                "sha256": "sha256:57d61c7a4f457b3f241b9e1766deecdea83f136d9141dc571e268bf75df5172c"
+            },
+            "state": "ready"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-33:18a006734411e387",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "b9649c9b2d7b58db907fa099529ac86d3f0b067ed7d10619c7f4aefad31700b2",
+            "compilation_id": "compilation.NG-33.2026-11-22-212055.a7c5a05e",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "287b3dd6740f6f8ecc1494e2fc78dcf1dfb32c3b21a6141a5942c5940d3f4370",
+            "source": {
+                "path": ".agent-loop/recall/NG-33/meta.json",
+                "sha256": "sha256:85b42742e8f6c8641f1ba5a03aa4352879412536a3ab67b6bee8cab404897b5e"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "path": ".agent-loop/recall/NG-33/reviews/NG-33.blindspots.json",
+            "state": "missing"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "missing"
+        },
+        "session": {
+            "base_commit": "4915794fdd5f6baa4e0e51f956fc68384072536a",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-33-r1-d47d8e45",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-33-r1-d47d8e45/session.json",
+                "sha256": "sha256:a3cbb8b4bf960deae909e73cc8c225b5fc81f9e9889ab6a0b7561a884834d45c"
+            },
+            "state": "active",
+            "task_id": "NG-33"
+        },
+        "verification": {
+            "action": "agent-loop workflow status NG-33 --format=json",
+            "action_invocation": {
+                "arguments": [
+                    "workflow",
+                    "status",
+                    "NG-33",
+                    "--format=json"
+                ],
+                "executable": "agent-loop",
+                "template": false
+            },
+            "gate": "execution_review",
+            "implementation_snapshot": "sha256:0f09fd3bf14135e87feb58c0ddb3001430fef1c8817c255c40af3c46402d8fdc",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "reason": "independent review pipeline is incomplete at stage investigate",
+            "recall_outcome_draft": null,
+            "repair_action": null,
+            "repair_invocation": null,
+            "state": "blocked",
+            "validation_failed": false
+        }
+    },
+    "run_id": "run:NG-33:18a006734411e387",
+    "schema_version": "1.0",
+    "state": "incomplete",
+    "task_id": "NG-33"
+}

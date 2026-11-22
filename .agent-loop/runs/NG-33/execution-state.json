@@ -1,0 +1,48 @@
+{
+    "attention": null,
+    "candidate_revision": "4915794fdd5f6baa4e0e51f956fc68384072536a",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "build",
+    "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T21:21:35+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:21:35+00:00",
+                "artifact_references": [],
+                "candidate_revision": "4915794fdd5f6baa4e0e51f956fc68384072536a",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "4915794fdd5f6baa4e0e51f956fc68384072536a",
+                "context_id": "investigate-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "completed",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:9c982d3a",
+                "summary": "setWording and clearWording in src/board-data.ts cover the storage side with one write each; refusals arrive as BoardDataError kinds (invalid-text, unsupported-entry, unknown-concept, retired-concept, custom-concept) and need German lines like nameErrorLine; own wording is detectable by comparing the resolved entry with the catalogue; the rename mode in src/caregiver.ts is the pattern for a form that keeps drafts through redraws.",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-33:18a006734411e387",
+    "schema_version": "1.0",
+    "task_id": "NG-33"
+}
