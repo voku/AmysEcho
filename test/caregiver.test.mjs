@@ -3,13 +3,15 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { createApp } from "../dist/app.js";
 import { BOARD_COMFORT_MAX, CLOSE_WAIT_MS, DELETE_HOLD_MS, GUARD_MS, HOLD_SLOP_PX, SHIELD_GRACE_MS, HOLD_DURATION_MS, IDLE_CLOSE_MS, STORE_WAIT_MS, createHold, mountCaregiver } from "../dist/caregiver.js";
-import { setBoardConcepts, setWording } from "../dist/board-data.js";
+import { resolveBoard, setBoardConcepts, setWording } from "../dist/board-data.js";
 import { CONCEPTS } from "../dist/concepts.js";
 import { MemoryBackend } from "../dist/profiles/memory-backend.js";
 import { ProfileStore } from "../dist/profiles/store.js";
 
 const chr = (...codePoints) => String.fromCodePoint(...codePoints);
 const NOT_EDITABLE = "Dieser Begriff kann in dieser Version nicht bearbeitet werden.";
+const LOCKED_PLACE = "Dieser Begriff kann hier nicht verschoben oder entfernt werden.";
+const NEWER_ENTRY = "Diese Taste wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren.";
 
 // --- A minimal document, as in board.test.mjs; no DOM library. All fixtures are synthetic. ---
 
@@ -237,6 +239,7 @@ async function withArea(options, callback) {
             note: row.children.find((child) => child.tagName === "p")?.textContent ?? null,
             up: buttonNamed(row, "nach oben") ?? null, down: buttonNamed(row, "nach unten") ?? null,
             remove: buttonNamed(row, "Entfernen") ?? null, add: buttonNamed(row, "Hinzufügen") ?? null,
+            reword: buttonNamed(row, "Text ändern") ?? null,
             buttons: buttonsIn(row).map((element) => element.textContent),
           };
         })),
@@ -278,6 +281,26 @@ async function withArea(options, callback) {
       async create(name) {
         area.nameInput().value = name;
         await area.act(() => area.createForm().dispatch("submit"));
+      },
+      /** The rewording of a concept while it is the body of the area, or null. */
+      rewording() {
+        const view = byClass(caregiverRegion, "caregiver-takeover");
+        if (view === undefined) return null;
+        const find = (id) => tree(view).find((element) => element.id === id) ?? null;
+        return {
+          view, texts: textsIn(view), form: byClass(view, "caregiver-reword") ?? null,
+          label: find("caregiver-reword-label"), speech: find("caregiver-reword-speech"),
+          cancel: buttonNamed(view, "Abbrechen"), reset: buttonNamed(view, "Text der App wiederherstellen") ?? null,
+          confirmReset: buttonNamed(view, "Wiederherstellen") ?? null,
+        };
+      },
+      /** Opens the rewording of a concept, types both texts and sends the form. */
+      async reword(name, label, speech) {
+        await area.act(() => area.concept(name).reword.click());
+        const fields = area.rewording();
+        fields.label.value = label;
+        fields.speech.value = speech;
+        await area.act(() => fields.form.dispatch("submit"));
       },
       renameInput: () => tree(caregiverRegion).find((element) => element.tagName === "input" && element.id === "caregiver-rename-name") ?? null,
       /** Opens the rename field of a profile, types `to` and sends the form. */
@@ -906,7 +929,7 @@ test("board editor: adding, moving and removing is saved at once and is on the c
     assert.deepEqual(onBoard(), ["Pause", "Hilfe", "Fertig"]);
     assert.deepEqual(more(), ["Trinken", "Mehr"]);
     const boardRows = () => concepts().filter((row) => row.onBoard);
-    assert.deepEqual(boardRows().map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Entfernen"]));
+    assert.deepEqual(boardRows().map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Text ändern", "Entfernen"]));
     assert.deepEqual(boardRows().map((row) => [row.name, row.sentence, row.picture]), [
       ["Pause", "Ich brauche eine Pause.", "./icons/pause.svg"], ["Hilfe", "Ich brauche Hilfe.", "./icons/hilfe.svg"], ["Fertig", "Ich bin fertig.", "./icons/fertig.svg"],
     ]);
@@ -1006,18 +1029,20 @@ test("board editor: a mixed board shows editable rows with buttons and each kind
     assert.deepEqual(concepts().map((row) => [row.name, row.onBoard, row.locked, row.note]), [
       ["Hilfe", true, false, null],
       ["Begriff „mein.ball“", true, true, NOT_EDITABLE],
-      ["Begriff „neu“", true, true, NOT_EDITABLE],
+      ["Begriff „neu“", true, true, NEWER_ENTRY],
       ["Trinken", true, false, null],
       ["Begriff „geist“", true, true, NOT_EDITABLE],
-      ["Schaukel", true, true, `Dieser Begriff ist nicht mehr in der Auswahl. ${NOT_EDITABLE}`],
-      ["Ball", true, true, NOT_EDITABLE],
+      ["Schaukel", true, true, `Dieser Begriff ist nicht mehr in der Auswahl. ${LOCKED_PLACE}`],
+      ["Ball", true, true, LOCKED_PLACE],
       ["Pause", true, false, null],
       ["Mehr", false, false, null],
       ["Fertig", false, false, null],
     ]);
-    // A locked row cannot be moved or taken off: it has no button at all.
-    for (const row of concepts().filter((candidate) => candidate.locked)) assert.deepEqual(row.buttons, []);
-    assert.deepEqual(concepts().filter((row) => row.onBoard && !row.locked).map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Entfernen"]));
+    // A locked row cannot be moved or taken off. One that the board shows can be reworded; one that it cannot show has no button at all.
+    assert.deepEqual(concepts().filter((candidate) => candidate.locked).map((row) => [row.name, row.buttons]), [
+      ["Begriff „mein.ball“", []], ["Begriff „neu“", []], ["Begriff „geist“", []], ["Schaukel", ["Text ändern"]], ["Ball", ["Text ändern"]],
+    ]);
+    assert.deepEqual(concepts().filter((row) => row.onBoard && !row.locked).map((row) => row.buttons), Array(3).fill(["nach oben", "nach unten", "Text ändern", "Entfernen"]));
     assert.equal(concepts().find((row) => row.name === "Schaukel").sentence, "Ich möchte schaukeln.");
     assert.equal(concepts().find((row) => row.name === "Ball").sentence, "Ich möchte mit dem Ball spielen.");
     // "nach oben" / "nach unten" end at the ends of the editable sequence, not of the list.
@@ -1637,7 +1662,7 @@ test("auto-close: the idle period of an earlier opening touches neither a hold i
 
 const NAME_SHORT = "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ein Vorname oder Spitzname genügt.";
 const NAME_NOTICE = "Dies ist eine Testversion. Ein Vorname oder Spitzname genügt; bitte keinen Nachnamen. "
-  + "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. "
+  + "Der Name, die ausgewählten Begriffe und eigene Texte dazu werden nur in diesem Browser auf diesem Gerät gespeichert. "
   + "Die App sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
   + "Ein Profil kann hier umbenannt und gelöscht werden; eine Sicherung gibt es noch nicht. "
   + "Wer die Website-Daten im Browser löscht, entfernt alle Profile in diesem Browser und die Offline-Kopie der App. "
@@ -3140,7 +3165,7 @@ test("the stylesheet keeps the top block in place with a solid background, gives
   assert.match(rule(".caregiver-button"), /min-width: 44px;/);
   assert.match(rule(".caregiver-details summary"), /min-height: 44px;/);
   assert.match(rule(".caregiver-profile-actions, .caregiver-row-actions"), /flex-wrap: wrap; gap: \.6rem;/);
-  assert.match(rule(".caregiver-create, .caregiver-rename"), /gap: \.6rem;/);
+  assert.match(rule(".caregiver-create, .caregiver-rename, .caregiver-reword"), /gap: \.6rem;/);
   // Cards and rows are blocks; long names and sentences wrap instead of widening the page.
   for (const selector of [".caregiver-profile-name", ".caregiver-concept-name", ".caregiver-concept-sentence", ".caregiver-after-close", ".caregiver-status"]) {
     assert.match(rule(selector), /overflow-wrap: anywhere;/, selector);
@@ -4893,4 +4918,440 @@ test("the stylesheet reserves the height of the line under 'Endgültig löschen'
   // Three lines of 1.4: the countdown is one line, the instruction up to three; the button above must not move when one replaces the other.
   assert.match(css, /^\.caregiver-confirm-hint \{[^}]*line-height: 1\.4;/m);
   assert.match(css, /@media \(max-width: 639px\) \{\n  \.caregiver-confirm-hint \{ min-height: 4\.2em; \}\n\}/);
+});
+
+// --- Rewording a concept (card NG-33) ---
+
+/** Mia (active) with Hilfe, Trinken and Pause, each with the catalogue wording stored as a copy. */
+const seedThree = async (store) => {
+  const mia = await createMia(store);
+  await setBoardConcepts(store, mia.id, ["hilfe", "trinken", "pause"], CONCEPTS);
+  return mia;
+};
+const entryOf = (backend, profile, id) => backend.snapshot()[`profile/${profile.id}/data/concept.${id}`];
+
+test("reword: 'Text ändern' is on every row of the board and on no row of 'Weitere Begriffe'; it opens fields that take over the body", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, act, concepts, concept, rewording, caregiverRegion, focused, profiles }) => {
+    await holdOpen();
+    assert.deepEqual(concepts().map((row) => [row.onBoard, row.reword !== null]), [[true, true], [true, true], [true, true], [false, false], [false, false]]);
+    assert.equal(concept("Trinken").reword["aria-label"], "Text ändern: Trinken");
+    assert.equal(rewording(), null);
+    await act(() => concept("Trinken").reword.click());
+    const open = rewording();
+    assert.deepEqual(open.texts, [
+      "Text für „Trinken“ auf der Tafel von „Mia“", "Wort auf der Taste", "Gesprochener Satz",
+      "Text der App: „Trinken“ – „Ich möchte etwas trinken.“", "Speichern", "Abbrechen",
+    ]);
+    assert.equal(open.label.value, "Trinken");
+    assert.equal(open.speech.value, "Ich möchte etwas trinken.");
+    assert.equal(open.speech.tagName, "textarea");
+    assert.equal(focused.current, open.label);
+    for (const field of [open.label, open.speech]) {
+      assert.equal(tree(open.view).find((element) => element.tagName === "label" && element.htmlFor === field.id) !== undefined, true);
+      assert.deepEqual([field.autocomplete, field.spellcheck, field.autocapitalize, field.autocorrect], ["off", false, "off", "off"]);
+    }
+    // The whole body: no card, no list, no help; and no reset where the wording is the app's.
+    assert.deepEqual(byClass(caregiverRegion, "caregiver-body").children, [open.view]);
+    assert.deepEqual(profiles(), []);
+    assert.equal(byClass(caregiverRegion, "caregiver-help").hidden, true);
+    assert.equal(open.reset, null);
+  });
+});
+
+test("reword: saving stores the wording through board data; the lists keep their order, and the child's board shows and speaks it after closing", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, concept, onBoard, more, status, store, seeded, backend, focused, rewording, handle, tiles, boardRegion, speech, caregiverRegion }) => {
+    await holdOpen();
+    const idsBefore = (await (await store()).get(seeded.id)).conceptIds;
+    await reword("Trinken", "  Saft ", "Ich möchte Saft, bitte.");
+    assert.equal(status(), "Gespeichert: neuer Text für „Saft“.");
+    assert.ok(!hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), { version: 1, labelDe: "Saft", speechDe: "Ich möchte Saft, bitte." });
+    const board = await resolveBoard(await store(), seeded.id, CONCEPTS);
+    assert.deepEqual(board.entries.map((entry) => [entry.id, entry.labelDe, entry.speechDe, entry.source]), [
+      ["hilfe", "Hilfe", "Ich brauche Hilfe.", "catalogue"], ["trinken", "Saft", "Ich möchte Saft, bitte.", "catalogue"], ["pause", "Pause", "Ich brauche eine Pause.", "catalogue"],
+    ]);
+    // Back in the editor, drawn from the store: the row is where it was, with its picture, and has the focus on "Text ändern".
+    assert.equal(rewording(), null);
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, idsBefore);
+    assert.deepEqual(onBoard(), ["Hilfe", "Saft", "Pause"]);
+    assert.deepEqual(more(), ["Mehr", "Fertig"]);
+    assert.equal(concept("Saft").sentence, "Ich möchte Saft, bitte.");
+    assert.equal(concept("Saft").picture, "./icons/trinken.svg");
+    assert.equal(focused.current, concept("Saft").reword);
+    await handle.close();
+    assert.deepEqual(tiles(), ["Hilfe", "Saft", "Pause"]);
+    const board2 = boardRegion.children.find((child) => child.className.split(" ")[0] === "concept-board");
+    board2.children.filter((child) => child.tagName === "button")[1].click();
+    assert.deepEqual(speech.spoken.slice(-1), ["Ich möchte Saft, bitte."]);
+  });
+});
+
+test("reword: on a mixed board no id changes its place, the other entries stay byte-identical, and a custom and a retired concept can be reworded but not reset", async () => {
+  await withArea({ seed: seedMixedBoard }, async ({ holdOpen, reword, act, concept, concepts, rewording, store, seeded, backend, handle, tiles }) => {
+    await holdOpen();
+    const others = () => JSON.stringify(["neu", "alt", "ball", "hilfe"].map((id) => entryOf(backend, seeded, id)));
+    const before = others();
+    const names = () => concepts().map((row) => row.name);
+    const order = names();
+    await reword("Trinken", "Saft", "Saft, bitte.");
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, MIXED_IDS);
+    assert.equal(others(), before);
+    assert.deepEqual(names(), order.map((name) => (name === "Trinken" ? "Saft" : name)));
+    // A custom concept: stays custom, has no text of the app to show or to go back to.
+    await act(() => concept("Ball").reword.click());
+    assert.deepEqual(rewording().texts, ["Text für „Ball“ auf der Tafel von „Mia“", "Wort auf der Taste", "Gesprochener Satz", "Speichern", "Abbrechen"]);
+    await act(() => rewording().cancel.click());
+    await reword("Ball", "Fußball", "Ich möchte Fußball spielen.");
+    assert.deepEqual(entryOf(backend, seeded, "ball"), { version: 1, labelDe: "Fußball", speechDe: "Ich möchte Fußball spielen.", custom: true });
+    await act(() => concept("Fußball").reword.click());
+    assert.equal(rewording().reset, null);
+    await act(() => rewording().cancel.click());
+    // A retired concept: the fields say that it is no longer in the selection.
+    await act(() => concept("Schaukel").reword.click());
+    assert.ok(rewording().texts.includes("Dieser Begriff ist nicht mehr in der Auswahl."));
+    assert.equal(rewording().reset, null);
+    await act(() => rewording().cancel.click());
+    await reword("Schaukel", "Schaukeln", "Ich will schaukeln.");
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, MIXED_IDS);
+    assert.deepEqual(names(), order.map((name) => ({ Trinken: "Saft", Ball: "Fußball", Schaukel: "Schaukeln" }[name] ?? name)));
+    await handle.close();
+    assert.deepEqual(tiles(), ["Hilfe", "Saft", "Schaukeln", "Fußball", "Pause"]);
+  });
+});
+
+test("reword: saving text that is what is stored writes nothing, says nothing and returns to the row", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, concept, status, backend, focused, rewording }) => {
+    await holdOpen();
+    const before = JSON.stringify(backend.snapshot());
+    await reword("Trinken", " Trinken", "Ich möchte etwas trinken.\n");
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    assert.equal(status(), "");
+    assert.equal(rewording(), null);
+    assert.equal(focused.current, concept("Trinken").reword);
+  });
+});
+
+const REWORD_REFUSALS = [
+  ["an empty word", "   ", "Satz.", "label", "Bitte gib ein Wort für die Taste ein."],
+  ["an empty sentence", "Saft", " \n ", "speech", "Bitte gib einen Satz ein, den das Gerät sprechen soll."],
+  ["a word of 41 characters", "x".repeat(41), "Satz.", "label", "Das Wort ist zu lang. Es darf höchstens 40 Zeichen haben."],
+  ["a sentence of 201 characters", "Saft", "x".repeat(201), "speech", "Der Satz ist zu lang. Er darf höchstens 200 Zeichen haben."],
+  ["a word of only invisible characters", `${chr(0x200b)}${chr(0xad)}`, "Satz.", "label", "Bitte gib ein Wort für die Taste ein."],
+  ["a control character in the word", "Sa\u0007ft", "Satz.", "label", "Das Wort enthält Zeichen, die nicht erlaubt sind (unsichtbare Zeichen oder Steuerzeichen). Bitte tippe den Text neu ein."],
+  ["a right-to-left override in the sentence", "Saft", `${chr(0x202e)}Satz.`, "speech", "Der Satz enthält Zeichen, die nicht erlaubt sind (unsichtbare Zeichen oder Steuerzeichen). Bitte tippe den Text neu ein."],
+];
+for (const [what, label, speech, field, sentence] of REWORD_REFUSALS) {
+  test(`reword: ${what} is refused in German, as an error; the fields stay open with what was typed, and the focus is in the field`, async () => {
+    await withArea({ seed: seedThree }, async ({ holdOpen, reword, status, backend, rewording, focused, texts, caregiverRegion }) => {
+      await holdOpen();
+      const before = JSON.stringify(backend.snapshot());
+      await reword("Trinken", label, speech);
+      assert.equal(status(), sentence);
+      assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+      assert.equal(JSON.stringify(backend.snapshot()), before);
+      const open = rewording();
+      assert.equal(open.label.value, label);
+      assert.equal(open.speech.value, speech);
+      assert.equal(focused.current, open[field]);
+      assert.ok(!texts().some((text) => /labelDe|speechDe|Error|must|characters/.test(text)));
+    });
+  });
+}
+
+test("reword: 40 and 200 characters, counted as characters, are accepted", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, backend, seeded }) => {
+    await holdOpen();
+    await reword("Trinken", "😀".repeat(40), "ä".repeat(200));
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), { version: 1, labelDe: "😀".repeat(40), speechDe: "ä".repeat(200) });
+  });
+});
+
+test("reword: a profile that is full refuses in German and says what frees room; a failed write says so; both keep the text", async () => {
+  const backend = new MemoryBackend();
+  const store = await ProfileStore.open(backend, { limits: { maxDataNames: 0 } });
+  // A board made without stored wording: the first own wording needs room for an entry, and there is none.
+  const mia = await store.create("Mia", ["trinken"]);
+  await store.setActive(mia.id);
+  const app = { store: async () => store, refreshBoard: async () => undefined };
+  await withArea({ backend, app }, async ({ holdOpen, reword, status, rewording, caregiverRegion }) => {
+    await holdOpen();
+    await reword("Trinken", "Saft", "Saft, bitte.");
+    assert.equal(status(), "Der Platz für dieses Profil ist voll. Der Text wurde nicht gespeichert. Entferne Begriffe oder kürze Texte, dann ist wieder Platz.");
+    assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+    assert.deepEqual([rewording().label.value, rewording().speech.value], ["Saft", "Saft, bitte."]);
+  });
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, act, status, rewording, backend, seeded, concept }) => {
+    await holdOpen();
+    const before = entryOf(backend, seeded, "trinken");
+    backend.failWrite(1);
+    await reword("Trinken", "Saft", "Saft, bitte.");
+    assert.equal(status(), "Das konnte gerade nicht gespeichert werden. Bitte versuche es noch einmal. Der Text ist unverändert.");
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), before);
+    assert.deepEqual([rewording().label.value, rewording().speech.value], ["Saft", "Saft, bitte."]);
+    // A second try, without typing again, saves.
+    await act(() => rewording().form.dispatch("submit"));
+    assert.equal(status(), "Gespeichert: neuer Text für „Saft“.");
+    assert.equal(concept("Saft").sentence, "Saft, bitte.");
+  });
+});
+
+test("reword: what cannot be seen in pasted text is taken out before it is checked; line breaks and tabs become one space; an emoji sequence stays whole", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, backend, seeded, status }) => {
+    await holdOpen();
+    const family = `👨${chr(0x200d)}👩${chr(0x200d)}👧`;
+    await reword("Trinken", `${chr(0xfeff)}Sa${chr(0xad)}ft${chr(0x200b)} ${chr(0x200d)}${family}${chr(0x2060)}`, "Ich\tmöchte \r\n Saft,\nbitte.\n");
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), { version: 1, labelDe: `Saft ${family}`, speechDe: "Ich möchte Saft, bitte." });
+    assert.equal(status(), `Gespeichert: neuer Text für „Saft ${family}“.`);
+  });
+});
+
+test("reword: 'Text der App wiederherstellen' is offered only for an own wording, shows what comes back, and resets with a second press", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, act, concept, rewording, focused, backend, seeded, status, onBoard, store }) => {
+    await holdOpen();
+    await reword("Trinken", "Saft", "Saft, bitte.");
+    await act(() => concept("Saft").reword.click());
+    const open = rewording();
+    assert.notEqual(open.reset, null);
+    assert.ok(open.texts.includes("Text der App: „Trinken“ – „Ich möchte etwas trinken.“"));
+    // Typed, then the reset is looked at and left: the fields come back with what was typed.
+    open.label.value = "Apfelsaft";
+    const worded = entryOf(backend, seeded, "trinken");
+    await act(() => open.reset.click());
+    const second = rewording();
+    assert.deepEqual(second.texts, [
+      "Text der App für „Saft“ wiederherstellen?", "Danach steht auf der Taste „Trinken“, und das Gerät spricht „Ich möchte etwas trinken.“.",
+      "Abbrechen", "Wiederherstellen",
+    ]);
+    assert.equal(focused.current, second.cancel);
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), worded, "the first press resets nothing");
+    await act(() => second.cancel.click());
+    assert.equal(rewording().label.value, "Apfelsaft");
+    assert.equal(focused.current, rewording().reset);
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), worded);
+    // And confirmed: twice pressed is one reset.
+    await act(() => rewording().reset.click());
+    rewording().confirmReset.click();
+    await act(() => rewording().confirmReset.click());
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), { version: 1, labelDe: "Trinken", speechDe: "Ich möchte etwas trinken.", copied: true });
+    assert.equal(status(), "„Trinken“ hat wieder den Text der App.");
+    assert.equal(rewording(), null);
+    assert.deepEqual(onBoard(), ["Hilfe", "Trinken", "Pause"]);
+    assert.equal(focused.current, concept("Trinken").reword);
+    assert.deepEqual((await (await store()).get(seeded.id)).conceptIds, ["hilfe", "trinken", "pause"]);
+    // Nothing to go back to any more.
+    await act(() => concept("Trinken").reword.click());
+    assert.equal(rewording().reset, null);
+  });
+});
+
+test("reword: an entry that a newer app wrote has no 'Text ändern' and says that the app needs an update", async () => {
+  const seed = async (store) => {
+    const mia = await seedThree(store);
+    await store.data(mia.id).set("concept.trinken", { version: 2, labelDe: "Saft", speechDe: "Saft.", tone: "freundlich" });
+    return mia;
+  };
+  await withArea({ seed }, async ({ holdOpen, concept, concepts }) => {
+    await holdOpen();
+    // The board shows the app's text for it; it can still be moved and taken off.
+    const row = concept("Trinken");
+    assert.deepEqual(row.buttons, ["nach oben", "nach unten", "Entfernen"]);
+    assert.equal(row.note, NEWER_ENTRY);
+    assert.deepEqual(concepts().filter((other) => other.onBoard && other.name !== "Trinken").map((other) => [other.reword !== null, other.note]), [[true, null], [true, null]]);
+  });
+});
+
+test("reword: when the entry turns out to be a newer app's only at saving, that is said, nothing is overwritten and the text stays", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, act, concept, rewording, status, store, seeded, backend, caregiverRegion }) => {
+    await holdOpen();
+    await act(() => concept("Trinken").reword.click());
+    const newer = { version: 2, labelDe: "Saft", speechDe: "Saft.", tone: "freundlich" };
+    await (await store()).data(seeded.id).set("concept.trinken", newer);
+    rewording().label.value = "Wasser";
+    rewording().speech.value = "Wasser, bitte.";
+    await act(() => rewording().form.dispatch("submit"));
+    assert.equal(status(), `${NEWER_ENTRY} Der Text wurde nicht geändert.`);
+    assert.ok(hasClass(statusElement(caregiverRegion), "caregiver-status-error"));
+    assert.deepEqual(entryOf(backend, seeded, "trinken"), newer);
+    assert.deepEqual([rewording().label.value, rewording().speech.value], ["Wasser", "Wasser, bitte."]);
+  });
+});
+
+test("reword: what is typed survives a redraw that an earlier action still had in the queue", async () => {
+  const { inner, gate, backend } = gatedBackend();
+  await seedThree(await ProfileStore.open(inner));
+  await withArea({ backend }, async ({ holdOpen, concept, rewording, handle, caregiverRegion }) => {
+    await holdOpen();
+    const body = byClass(caregiverRegion, "caregiver-body");
+    const swap = body.replaceChildren.bind(body);
+    let holdNext = true;
+    body.replaceChildren = (...nodes) => {
+      swap(...nodes);
+      if (holdNext) gate.hold();
+      holdNext = false;
+    };
+    // A move is under way when "Text ändern" is pressed: its redraw already shows the fields, and the redraw for the press follows.
+    concept("Pause").up.click();
+    concept("Trinken").reword.click();
+    for (let round = 0; round < 40; round += 1) await turn();
+    const first = rewording();
+    first.label.value = "Sa";
+    first.label.dispatch("input");
+    first.speech.value = "Saft, bi";
+    first.speech.dispatch("input");
+    gate.release();
+    await handle.settled();
+    const second = rewording();
+    assert.notEqual(second.label, first.label);
+    assert.deepEqual([second.label.value, second.speech.value], ["Sa", "Saft, bi"]);
+  });
+});
+
+test("reword: Escape leaves the fields and drops what was typed, as for a rename; in the second step of a reset it goes back to the fields", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, reword, act, concept, rewording, key, handle, backend, focused }) => {
+    await holdOpen();
+    await reword("Trinken", "Saft", "Saft, bitte.");
+    const before = JSON.stringify(backend.snapshot());
+    await act(() => concept("Saft").reword.click());
+    rewording().label.value = "Wasser";
+    await act(() => rewording().reset.click());
+    await act(() => { assert.equal(key("Escape"), 1); });
+    assert.equal(rewording().label.value, "Wasser");
+    assert.equal(rewording().confirmReset, null);
+    await act(() => { assert.equal(key("Escape", rewording().label), 1); });
+    assert.equal(rewording(), null);
+    assert.equal(handle.isOpen(), true);
+    assert.equal(focused.current, concept("Saft").reword);
+    assert.equal(JSON.stringify(backend.snapshot()), before);
+    // Opened again, the fields start from what is stored.
+    await act(() => concept("Saft").reword.click());
+    assert.equal(rewording().label.value, "Saft");
+    await act(() => rewording().cancel.click());
+    key("Escape");
+    assert.equal(handle.isOpen(), false);
+  });
+});
+
+test("reword: 'Speichern' pressed twice is one write, and another action closes the fields without saving", async () => {
+  const inner = new MemoryBackend();
+  const slow = () => new Promise((resolve) => setImmediate(resolve));
+  const dataWrites = [];
+  const backend = {
+    get: async (key) => { await slow(); return inner.get(key); },
+    keys: async (prefix) => { await slow(); return inner.keys(prefix); },
+    async write(batch) {
+      await slow();
+      for (const key of Object.keys(batch.set ?? {})) if (key.includes("/data/")) dataWrites.push(key);
+      return inner.write(batch);
+    },
+  };
+  await seedThree(await ProfileStore.open(inner));
+  await withArea({ backend }, async ({ holdOpen, act, remove, concept, rewording, handle, status, undo, onBoard }) => {
+    await holdOpen();
+    await act(() => concept("Trinken").reword.click());
+    dataWrites.length = 0;
+    const fields = rewording();
+    fields.label.value = "Saft";
+    fields.speech.value = "Saft, bitte.";
+    fields.form.dispatch("submit");
+    fields.form.dispatch("submit");
+    await handle.settled();
+    assert.equal(dataWrites.length, 1);
+    assert.equal(status(), "Gespeichert: neuer Text für „Saft“.");
+    // The same for the second step of a reset.
+    await act(() => concept("Saft").reword.click());
+    await act(() => rewording().reset.click());
+    dataWrites.length = 0;
+    rewording().confirmReset.click();
+    rewording().confirmReset.click();
+    await handle.settled();
+    assert.equal(dataWrites.length, 1);
+    await act(() => concept("Trinken").reword.click());
+    rewording().label.value = "Saft";
+    await act(() => rewording().form.dispatch("submit"));
+    // "Rückgängig" in the block at the top is the one other action on screen while the fields are open.
+    await remove("Hilfe");
+    await act(() => concept("Saft").reword.click());
+    rewording().label.value = "Wasser";
+    dataWrites.length = 0;
+    await act(() => undo().click());
+    assert.equal(rewording(), null);
+    assert.deepEqual(onBoard(), ["Hilfe", "Saft", "Pause"]);
+    assert.equal(dataWrites.filter((key) => key.endsWith("concept.trinken")).length, 0);
+  });
+});
+
+test("reword: the form is not sent, and no button of it acts, while it has only just appeared", async () => {
+  const wall = wallClock();
+  await withArea({ seed: seedThree, now: wall.now }, async ({ holdOpen, reword, concept, rewording, handle, backend, seeded }) => {
+    await holdOpen();
+    wall.t += 1000;
+    concept("Trinken").reword.click();
+    await handle.settled();
+    const fields = rewording();
+    fields.label.value = "Saft";
+    wall.t += SHIELD_GRACE_MS - 1;
+    fields.form.dispatch("submit");
+    fields.cancel.click();
+    await handle.settled();
+    assert.equal(rewording().label, fields.label, "neither sent nor left");
+    assert.equal(entryOf(backend, seeded, "trinken").labelDe, "Trinken");
+    wall.t += 1;
+    fields.form.dispatch("submit");
+    await handle.settled();
+    assert.equal(entryOf(backend, seeded, "trinken").labelDe, "Saft");
+    // The reset button and its second step are content that has just appeared as well.
+    wall.t += 1000;
+    concept("Saft").reword.click();
+    await handle.settled();
+    wall.t += 1000;
+    rewording().reset.click();
+    await handle.settled();
+    wall.t += SHIELD_GRACE_MS - 1;
+    rewording().confirmReset.click();
+    await handle.settled();
+    assert.equal(entryOf(backend, seeded, "trinken").labelDe, "Saft");
+    wall.t += 1;
+    rewording().confirmReset.click();
+    await handle.settled();
+    assert.equal(entryOf(backend, seeded, "trinken").labelDe, "Trinken");
+  });
+});
+
+test("reword: a profile that is gone when the text is saved is answered in German; and neither the profile's name nor its id leaves the caregiver region", async () => {
+  await withArea({ seed: seedThree }, async ({ holdOpen, act, concept, rewording, status, store, seeded, profiles }) => {
+    await holdOpen();
+    await act(() => concept("Trinken").reword.click());
+    await (await store()).remove(seeded.id);
+    rewording().label.value = "Saft";
+    await act(() => rewording().form.dispatch("submit"));
+    assert.equal(status(), PROFILE_GONE);
+    assert.equal(rewording(), null);
+    assert.deepEqual(profiles(), []);
+  });
+  await withArea({ seed: async (store) => { const mia = await seedThree(store); await store.rename(mia.id, "Mia Musterkind"); return mia; } }, async ({ holdOpen, reword, act, concept, rewording, handle, boardRegion, entry, caregiverRegion, seeded }) => {
+    const leaks = () => [...stringsIn(boardRegion), ...stringsIn(entry)].filter((text) => text.includes("Musterkind") || text.includes(seeded.id));
+    await holdOpen();
+    await act(() => concept("Trinken").reword.click());
+    assert.ok(stringsIn(caregiverRegion).some((text) => text.includes("Mia Musterkind")));
+    assert.deepEqual(leaks(), []);
+    await act(() => rewording().cancel.click());
+    await reword("Hilfe", "Hilf mir", "Hilf mir bitte.");
+    assert.equal(concept("Hilf mir").sentence, "Hilf mir bitte.");
+    await handle.close();
+    assert.deepEqual(leaks(), []);
+    assert.deepEqual(stringsIn(caregiverRegion).filter((text) => text.includes("Musterkind")), []);
+  });
+});
+
+test("reword: the fields are brought to just under the block at the top, also when the row was further down", async () => {
+  const layout = fakeLayout();
+  layout.at = (element) => (hasClass(element, "caregiver-takeover") ? 400 : 1000);
+  await withArea({ seed: seedThree, rect: layout.rect }, async ({ holdOpen, act, concept, caregiverRegion, rewording, focused }) => {
+    layout.region = caregiverRegion;
+    await holdOpen();
+    caregiverRegion.scrollTop = 0;
+    await act(() => concept("Pause").reword.click());
+    assert.equal(focused.current, rewording().label);
+    assert.equal(caregiverRegion.scrollTop, 400 - UNDER_BLOCK);
+  });
 });

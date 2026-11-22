@@ -78,7 +78,9 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .caregiver-danger-quiet { border-color: #a3261a; color: #8c1f14; }
 .caregiver-button:disabled, .caregiver-button[aria-disabled="true"] { border-color: #b7c4ca; background: white; color: #7b8a91; cursor: default; }
 .caregiver-input { width: 100%; font-weight: 400; }
-.caregiver-create, .caregiver-rename { display: grid; gap: .6rem; max-width: 30rem; }
+.caregiver-create, .caregiver-rename, .caregiver-reword { display: grid; gap: .6rem; max-width: 30rem; }
+textarea.caregiver-input { min-height: 5.5rem; line-height: 1.4; resize: vertical; }
+.caregiver-takeover > .caregiver-button { margin-top: 1.2rem; }
 .caregiver-create { margin-top: 1.2rem; }
 .caregiver-create > .caregiver-button { justify-self: start; }
 .caregiver-rename { flex: 1 1 100%; }

@@ -382,7 +382,7 @@ Under the field is one short line, which is also the field's description (`aria-
 "Wird nur in diesem Browser auf diesem Gerät gespeichert. Ein Vorname oder Spitzname genügt."
 The full notice is behind "Was wird gespeichert?" (a `<details>`): this is a test version; a first
 name or nickname is enough and no surname should be entered (owner decision on card NG-7); the
-name and the chosen concepts are stored only in this browser on this device; the app sends
+name, the chosen concepts and own texts for them are stored only in this browser on this device; the app sends
 nothing, but the device's keyboard may process what is typed on its own; a profile can be renamed
 and deleted here and there is no backup; clearing the website data in the browser removes all
 profiles in this browser and the offline copy of the app; the browser may remove the data on its
@@ -446,20 +446,61 @@ who notices a wrong removal a few steps later can still take it back, and the pl
 the stored list, not remembered. A concept that is added back by hand leaves the stack; if it is
 back on the board by other means, its restore writes nothing and it leaves the stack.
 
+**Rewording a concept** (card NG-33). Every row of "Auf der Tafel" that the board shows has
+"Text ändern" (not the rows of "Weitere Begriffe"). It opens fields that take over the body, as the
+delete confirmation does: a heading that names the concept and the profile, "Wort auf der Taste",
+"Gesprochener Satz" (a text area), for a catalogue concept the line "Text der App: „…“ – „…“",
+"Speichern" and "Abbrechen". The fields start from the stored wording. What is typed lives in the
+open mode and survives a redraw. "Abbrechen" and Escape leave without a change and drop what was
+typed (rule 18).
+
+- **Saving** is one queued write through `setWording`. Before that the text is cleaned: soft
+  hyphens, zero-width spaces, word joiners and byte order marks are taken out, a zero-width
+  (non-)joiner stays only between two visible characters, line breaks and tabs become one space,
+  and the ends are trimmed. Then it is checked, and board data has the last word. Afterwards the
+  area is drawn from the store, the editor is back with focus on that row's "Text ändern", and
+  the status line says "Gespeichert: neuer Text für „<label>“." Text that equals what is stored
+  is not written, and nothing is said. A second press on "Speichern" while the first is under way
+  is not a second write.
+- **Refusals** are errors in German, the fields stay open with the text as typed, and focus goes
+  to the field concerned: no word, no sentence, too long (40 characters for the word, 200 for the
+  sentence, counted as characters), characters that are not allowed; a full profile ("… Entferne
+  Begriffe oder kürze Texte, dann ist wieder Platz."); a write that failed.
+- **Reset.** When the stored wording of a catalogue concept differs from the catalogue's, the
+  fields also offer "Text der App wiederherstellen". It leads to a second step that shows the
+  wording that comes back, with "Abbrechen" first and focused and "Wiederherstellen"; "Abbrechen"
+  and Escape go back to the fields. It is a tap, not a hold: the own text can be typed again.
+  The reset goes through `clearWording`, which stores the catalogue wording as a copy. A custom
+  and a retired concept have no reset.
+- **An entry a newer app wrote** (`resolveBoard` reports damage `unsupported-version` for the id)
+  gets no "Text ändern", and its row says "Diese Taste wurde mit einer neueren Version
+  gespeichert. Bitte die App aktualisieren." If that only shows when saving (`setWording` refuses
+  with `unsupported-entry`), the same sentence and "Der Text wurde nicht geändert." are shown and
+  the fields stay open with the text.
+- No id changes its place, no other entry is written, and the profile's name stays inside the
+  caregiver region.
+
+Rules for later slices: wording is written only through `setWording` and `clearWording`, as one
+queued write, with text that went through `cleanWordingText` and `checkedWording`; no English
+message of board data reaches the screen; an entry of a newer app is never overwritten or reset;
+a view that takes over the body returns to the control that opened it.
+
 **A large board.** When the board has more than `BOARD_COMFORT_MAX` (12) concepts that can be
 shown, a line says "Mehr als 12 Begriffe: Auf einem Handy werden die Felder klein und die Tafel
 muss gescrollt werden." (docs/board.md, tile sizes). Ids that cannot be shown do not count.
 Nothing is refused.
 
-**Locked rows.** Ids on the board that this screen does not edit are shown at their real place in
-"Auf der Tafel", without buttons, with "Dieser Begriff kann in dieser Version nicht bearbeitet
-werden.":
+**Locked rows.** Ids on the board that this screen does not move or take off are shown at their
+real place in "Auf der Tafel":
 
-- a custom concept (shown with its label and sentence), also one under a catalogue id;
-- a retired concept (stored label and sentence, and "Dieser Begriff ist nicht mehr in der
-  Auswahl.");
-- an id `resolveBoard` leaves off the board: no entry, an unreadable entry, an entry written by a
-  newer app version, or an id board data cannot address (shown as "Begriff „<id>“").
+- a custom concept (shown with its label and sentence), also one under a catalogue id, and a
+  retired concept (stored label and sentence, and "Dieser Begriff ist nicht mehr in der
+  Auswahl."): "Dieser Begriff kann hier nicht verschoben oder entfernt werden.", and the one
+  button "Text ändern";
+- an id `resolveBoard` leaves off the board (no entry, an unreadable entry, or an id board data
+  cannot address, shown as "Begriff „<id>“"): no button, and "Dieser Begriff kann in dieser
+  Version nicht bearbeitet werden."; for an entry written by a newer app version instead "Diese
+  Taste wurde mit einer neueren Version gespeichert. Bitte die App aktualisieren."
 
 Such an id is not dropped and not moved by this screen: add and move leave it at its index, and a
 removal or an undo of another concept shifts it only as far as that one id takes or gives room.
@@ -499,7 +540,9 @@ countdown. None of this was checked with assistive technology.
 
 ## Deliberately missing
 
-- Rewording a concept, custom concepts, symbols for them (NG-27).
+- Creating own concepts and symbols for them (NG-34). A custom concept that is already on a board
+  can be reworded only.
+- Hearing a wording before it is saved ("listen"); the caregiver hears it on the child's board.
 - Export, import and backup (NG-22). Deleting a profile is final.
 - Deleting or repairing damaged profiles and unreadable concept entries.
 - Undo for anything but removals of concepts during the visit; an add or a move is taken back by
@@ -631,8 +674,8 @@ countdown. None of this was checked with assistive technology.
 17. A board is named by its profile's name, in the header, the editor and the confirmation: keep
     names unique in the area, and use the label with the suffix wherever a name is shown.
 18. Escape leaves the innermost thing and does not throw away typed text at the first press, with
-    one exception: in a rename field it cancels the rename, and what was typed there is dropped
-    (the stored name is unchanged, and "Abbrechen" does the same).
+    one exception: in a rename field and in the fields of a rewording it cancels, and what was
+    typed there is dropped (what is stored is unchanged, and "Abbrechen" does the same).
 19. A message for the status line has a kind. A refusal or failure is an error and stays through
     scrolling; do not report one as plain information.
 20. A press must be aimed at what is on screen ("A press must be aimed…", rules A to D). A new
