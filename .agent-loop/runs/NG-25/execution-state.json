@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+    "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "blindspot-review",
+    "current_attempt": 5,
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
     "history": [
         {
@@ -339,6 +339,78 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:4:a34d5e94",
                 "summary": "Pass: best-effort correction and recount-before-refusal verified by probes and a 300-round fuzz against an independent model; verify passes with 92 tests",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:33:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:33:26+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:baed81a48eb377e2cff5eb0bc2838090f8f30d681a95269180496fc8d25a5f55",
+                    "execution-evidence:sha256:0120935e5cc66125d73f602347f4a0f7db7d81e213c5fa1f2424e4fee67f39d4",
+                    "execution-evidence:sha256:4894ce22aa23d291692e330db7a0a1df5701bc91edde586c2adf076ac9cf96bf"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:baed81a48eb377e2cff5eb0bc2838090f8f30d681a95269180496fc8d25a5f55",
+                    "execution-evidence:sha256:0120935e5cc66125d73f602347f4a0f7db7d81e213c5fa1f2424e4fee67f39d4",
+                    "execution-evidence:sha256:4894ce22aa23d291692e330db7a0a1df5701bc91edde586c2adf076ac9cf96bf"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "context_id": "claude-subagent-ng25-blindspot-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "changes_required",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:a33f01f3",
+                "summary": "docs/storage.md:204-205 promises importProfile accepts a raised-limit export with the same higher limits; restoreProfile checks the store's own limits (store.ts:455) and test/profiles-backup.test.mjs:405 asserts the refusal. Wording only; code fixes hold.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:33:46+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:33:46+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "context_id": "claude-main-ng25-build-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:93168f64",
+                "summary": "Fifth build: wording only in docs/storage.md and two doc comments; no behaviour change; verify passes with 92 tests",
                 "task_id": "NG-25",
                 "validation_references": []
             }
