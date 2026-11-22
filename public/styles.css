@@ -25,6 +25,8 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .caregiver-status:empty { visibility: hidden; }
 .caregiver-notice { max-width: 40rem; }
 .caregiver-damaged { padding: .6rem .9rem; border-left: 6px solid #cf681e; border-radius: .4rem; background: #fff6ec; }
+.caregiver-warning { padding: .6rem .9rem; border-left: 6px solid #cf681e; border-radius: .4rem; background: #fff6ec; font-weight: 600; }
+.caregiver-name-notice { flex-basis: 100%; margin: 0; font-size: .95rem; color: #3d5666; }
 .caregiver-section { margin-block: 1.5rem; }
 .caregiver-profiles, .caregiver-concepts { margin: 0; padding: 0; list-style: none; }
 .caregiver-profile, .caregiver-concept { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .6rem 0; border-bottom: 1px solid #c9dbe2; }

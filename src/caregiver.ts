@@ -27,11 +27,16 @@ export const HOLD_DURATION_MS = 3000;
 export const HOLD_TICK_MS = 100;
 
 /**
- * How long closing waits for the board to be refreshed before it shows the
- * board region anyway: the bound of a refresh plus a margin. A refresh waits
- * behind start-up, which may never answer, so closing needs a bound of its own.
+ * How long closing, and "Tafel neu laden", wait for the board to be refreshed
+ * before they stop waiting: the bound of a refresh plus a margin. A refresh
+ * waits behind start-up, which may never answer, so they need a bound of
+ * their own.
  */
 export const CLOSE_WAIT_MS = STARTUP_WAIT_MS + 1000;
+/** How long the area waits for `app.store()` before it treats storage as unreachable. */
+export const STORE_WAIT_MS = STARTUP_WAIT_MS + 1000;
+/** The area closes by itself after this long without a pointer or key event inside it. A guess. */
+export const IDLE_CLOSE_MS = 2 * 60 * 1000;
 
 /** Calls `callback` once after `milliseconds`; the returned function cancels that. */
 export type SetTimer = (callback: () => void, milliseconds: number) => () => void;
@@ -124,9 +129,12 @@ export interface CaregiverOptions {
   /** Outside both regions; gets the opening control, its progress bar and its one line of text. */
   readonly entry: HTMLElement;
   readonly catalogue: readonly CatalogueConcept[];
-  /** Replaces the timer of the hold and of the wait after closing; for tests. */
+  /** Replaces the timer of the hold and of every wait of the area; for tests. */
   readonly setTimer?: SetTimer;
-  /** Registers a callback for "the page was hidden"; for tests. Default: the document's `visibilitychange`. */
+  /**
+   * Registers a callback for "the page was hidden", which resets a hold and
+   * closes an open area; for tests. Default: the document's `visibilitychange`.
+   */
   readonly onPageHidden?: (callback: () => void) => void;
 }
 
@@ -135,11 +143,15 @@ export interface CaregiverHandle {
   open(): boolean;
   /**
    * Closes the area and refreshes the board, after what the area was still
-   * asked to do. The board region and the opening control stay hidden, under
-   * a waiting line, until the refresh has settled or `CLOSE_WAIT_MS` have
-   * passed; then the board region is shown and focus returns to the opening
-   * control. Resolves at that moment; while the area is closed, the promise
-   * is that of the last closing. Never rejects.
+   * asked to do. The board region stays hidden under a waiting line until
+   * that refresh has settled; then it is shown and focus returns to the
+   * opening control. If the refresh has not settled after `CLOSE_WAIT_MS`,
+   * the board region stays hidden (what it holds may be another child's
+   * board), and a line, a "Tafel neu laden" button and the opening control
+   * are shown instead; the board is shown as soon as a refresh settles.
+   * Resolves when the board is shown or the bound has passed, whichever
+   * comes first; while the area is closed, the promise is that of the last
+   * closing. Never rejects.
    */
   close(): Promise<void>;
   isOpen(): boolean;
@@ -156,6 +168,18 @@ const STORAGE_UNREACHABLE = "Der Speicher dieses Geräts ist gerade nicht erreic
 const READ_FAILED = "Die gespeicherten Profile können gerade nicht gelesen werden. Deshalb kann hier im Moment nichts geändert werden.";
 const READING = "Der Speicher wird gelesen.";
 const BOARD_LOADING = "Die Tafel wird geladen.";
+const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wird gerade keine Tafel gezeigt. Bitte „Tafel neu laden“ drücken oder die Seite neu laden.";
+const NAME_NOTICE = "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. Die App sendet nichts. "
+  + "Diese Version kann ein Profil noch nicht umbenennen oder löschen; nur das Löschen der Website-Daten im Browser entfernt es. "
+  + "Ein Vorname oder Spitzname genügt.";
+const NONE_ACTIVE = "Gerade ist keine Tafel aktiv. Das Kind sieht Beispiele, bis eine Tafel als aktive Tafel verwendet wird.";
+const EDITED_NOT_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht eine andere Tafel.";
+const EDITED_NONE_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht Beispiele.";
+const ACTIVE_WITHOUT_CONCEPTS = "Auf dieser Tafel ist noch kein Begriff, der gezeigt werden kann. Das Kind sieht Beispiele, bis mindestens ein Begriff angekreuzt ist.";
+const CONCEPT_HELP = "Angekreuzte Begriffe sind auf der Tafel, in dieser Reihenfolge. Jede Änderung wird sofort gespeichert. "
+  + "Ein Begriff, der neu angekreuzt wird, kommt ans Ende der Tafel.";
+const RELOAD_NO_STORAGE = "Der Speicher dieses Geräts ist gerade nicht erreichbar. Die Tafel zeigt deshalb Beispiele.";
+const RELOAD_NOT_DRAWN = "Die Tafel kann gerade nicht angezeigt werden. Bitte versuche es noch einmal.";
 const NO_PROFILES = "Auf diesem Gerät gibt es noch kein Profil.";
 const ACTIVE_MARK = "Aktive Tafel";
 const ACTIVATE = "Als aktive Tafel verwenden";
@@ -198,7 +222,7 @@ function nameErrorLine(error: unknown, input: string): string {
 /** One German sentence for a refused or failed change of a board. */
 function boardErrorLine(error: unknown): string {
   if (error instanceof Refusal) return error.message;
-  if (error instanceof ProfileSizeError) return "Der Platz für dieses Profil ist voll. Der Begriff wurde nicht gespeichert.";
+  if (error instanceof ProfileSizeError) return "Der Platz für dieses Profil ist voll. Die Änderung wurde nicht gespeichert.";
   if (error instanceof UnknownProfileError || error instanceof ProfileFormatError) return PROFILE_GONE;
   if (error instanceof BoardDataError) {
     if (error.kind === "duplicate-concept") return "Ein Begriff kann nur einmal auf der Tafel sein. Es wurde nichts geändert.";
@@ -278,9 +302,29 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let acting = 0;
   /** The last closing; what `close()` returns while the area is closed. */
   let closing: Promise<void> = Promise.resolve();
-  /** True from closing until the board region is shown again. */
-  let returning = false;
+  /** Counts closings. Only the latest one may show the board; an answer for an earlier one is out of date. */
+  let closingNo = 0;
+  /**
+   * Where the page is after a closing. "waiting": the board is hidden under
+   * the waiting line and nothing can be opened. "stalled": the bound has
+   * passed; the board is still hidden, and the retry button and the opening
+   * control are there. "no": the board is shown, or the area is open.
+   */
+  let away: "no" | "waiting" | "stalled" = "no";
   const setTimer = options.setTimer ?? defaultTimer;
+  let cancelIdle = (): void => undefined;
+  const TIMED_OUT = Symbol("timed out");
+  /** `promise`, or `TIMED_OUT` when it has not settled after `milliseconds` or rejects. Never rejects. */
+  const within = <T>(promise: Promise<T>, milliseconds: number): Promise<T | typeof TIMED_OUT> => new Promise((resolve) => {
+    let cancel = (): void => undefined;
+    try {
+      cancel = setTimer(() => resolve(TIMED_OUT), milliseconds);
+    } catch {
+      // Without a timer this waits for the promise.
+    }
+    promise.then((value) => { cancel(); resolve(value); }, () => { cancel(); resolve(TIMED_OUT); });
+  });
+  const refreshBoard = (): Promise<void> => Promise.resolve().then(() => app.refreshBoard()).catch(() => undefined);
   let work: Promise<void> = Promise.resolve();
   let store: ProfileStore | null = null;
   let selectedId: string | null = null;
@@ -317,16 +361,18 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   };
 
   /** Reads the store again and replaces the body. `focus` names the controls to try, in order, for the focus. */
-  const draw = async (focus: readonly string[] | null, draftName = ""): Promise<void> => {
+  const draw = async (focus: readonly string[] | null, draftName?: string): Promise<void> => {
     const mine = acting;
     if (!isOpen || mine !== session) return;
+    // A name that is typed but not sent yet survives the redraw after another action.
+    const typed = draftName ?? (focusables.get("create-name") as HTMLInputElement | undefined)?.value ?? "";
     const nextFocusables = new Map<string, HTMLElement & { disabled?: boolean }>();
     let content: HTMLElement[];
     if (store === null) {
       content = [element("p", "caregiver-notice", STORAGE_UNREACHABLE)];
     } else {
       try {
-        content = await build(store, nextFocusables, draftName);
+        content = await build(store, nextFocusables, typed);
       } catch {
         nextFocusables.clear();
         content = [element("p", "caregiver-notice", READ_FAILED)];
@@ -358,7 +404,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         }
       }
       say(line);
-      await draw(["create-name"]);
+      await draw(["create-name"], "");
     } catch (error) {
       say(nameErrorLine(error, raw));
       await draw(["create-name"], raw);
@@ -477,9 +523,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     return row;
   };
 
-  const conceptSection = async (current: ProfileStore, profile: ProfileV1, register: Map<string, HTMLElement>): Promise<HTMLElement> => {
+  const conceptSection = async (
+    current: ProfileStore, profile: ProfileV1, activeId: string | null, register: Map<string, HTMLElement>,
+  ): Promise<HTMLElement> => {
     const section = element("section", "caregiver-section");
     section.append(element("h2", "", `Begriffe für ${quoted(profile.displayName)}`));
+    // Which board the child sees must not depend on a status line that the next action replaces.
+    if (profile.id !== activeId) {
+      section.append(element("p", "caregiver-notice caregiver-warning", activeId === null ? EDITED_NONE_ACTIVE : EDITED_NOT_ACTIVE));
+    }
     let board: ResolvedBoard;
     try {
       board = await resolveBoard(current, profile.id, catalogue);
@@ -487,7 +539,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       section.append(element("p", "caregiver-notice", BOARD_UNREADABLE));
       return section;
     }
-    section.append(element("p", "caregiver-notice", "Angekreuzte Begriffe sind auf der Tafel, in dieser Reihenfolge. Jede Änderung wird sofort gespeichert."));
+    if (profile.id === activeId && board.entries.length === 0) section.append(element("p", "caregiver-notice caregiver-warning", ACTIVE_WITHOUT_CONCEPTS));
+    section.append(element("p", "caregiver-notice", CONCEPT_HELP));
     const ids = board.profile.conceptIds;
     const editable = editableIds(board);
     const editableOrder = ids.filter((id) => editable.has(id));
@@ -545,6 +598,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
         list.append(item);
       }
       profileSection.append(list);
+      if (activeId === null) profileSection.append(element("p", "caregiver-notice caregiver-warning", NONE_ACTIVE));
     }
 
     const form = element("form", "caregiver-create");
@@ -554,6 +608,13 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     nameInput.type = "text";
     nameInput.id = "caregiver-new-name";
     nameInput.autocomplete = "off";
+    // Spell checking and correction can send typed text to a service; a name stays here.
+    nameInput.spellcheck = false;
+    nameInput.setAttribute("autocapitalize", "off");
+    nameInput.setAttribute("autocorrect", "off");
+    const nameNotice = element("p", "caregiver-notice caregiver-name-notice", NAME_NOTICE);
+    nameNotice.id = "caregiver-new-name-notice";
+    nameInput.setAttribute("aria-describedby", nameNotice.id);
     nameInput.value = draftName;
     const submit = element("button", "caregiver-button", "Profil anlegen");
     submit.type = "submit";
@@ -561,12 +622,12 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       event.preventDefault();
       createProfile(nameInput);
     });
-    form.append(nameLabel, nameInput, submit);
+    form.append(nameLabel, nameInput, submit, nameNotice);
     register.set("create-name", nameInput);
     profileSection.append(form);
 
     const selected = profiles.find((profile) => profile.id === selectedId);
-    if (selected !== undefined) return [profileSection, await conceptSection(current, selected, register)];
+    if (selected !== undefined) return [profileSection, await conceptSection(current, selected, activeId, register)];
     return profiles.length === 0 ? [profileSection] : [profileSection, element("p", "caregiver-notice", SELECT_PROFILE)];
   };
 
@@ -575,46 +636,96 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const running = work;
     isOpen = false;
     session += 1;
-    returning = true;
+    cancelIdle();
+    // The next opening edits the active profile again, whatever was picked this time.
+    selectedId = null;
+    closingNo += 1;
+    const mine = closingNo;
+    away = "waiting";
     // Names do not stay in the page. Until the board is the refreshed one,
-    // nothing can be tapped: what the board region holds may be the board of
-    // the profile that was active before.
-    const waiting = element("p", "caregiver-notice", BOARD_LOADING);
-    waiting.setAttribute("role", "status");
-    caregiverRegion.replaceChildren(waiting);
+    // nothing of it can be tapped: what the board region holds may be the
+    // board of the profile that was active before.
+    const line = element("p", "caregiver-notice", BOARD_LOADING);
+    line.setAttribute("role", "status");
+    line.setAttribute("aria-live", "polite");
+    caregiverRegion.replaceChildren(line);
     heading = null;
     status = null;
     body = null;
     focusables = new Map();
     closing = new Promise((resolve) => {
-      let cancelTimer = (): void => undefined;
+      let cancelBound = (): void => undefined;
+      /** Only while this closing is the latest and the area has not been opened since. */
       const showBoard = (): void => {
-        if (!returning) return;
-        returning = false;
-        cancelTimer();
-        caregiverRegion.hidden = true;
-        caregiverRegion.replaceChildren();
-        boardRegion.hidden = false;
-        entry.hidden = false;
-        opener.focus();
+        cancelBound();
+        if (mine === closingNo && away !== "no") {
+          away = "no";
+          caregiverRegion.hidden = true;
+          caregiverRegion.replaceChildren();
+          boardRegion.hidden = false;
+          entry.hidden = false;
+          opener.focus();
+        }
+        resolve();
+      };
+      /** The bound has passed: no board rather than a board that may be out of date. */
+      const stall = (): void => {
+        if (mine === closingNo && away === "waiting") {
+          away = "stalled";
+          line.textContent = NO_BOARD_YET;
+          const retry = button("Tafel neu laden");
+          let attempt = 0;
+          retry.addEventListener("click", () => {
+            attempt += 1;
+            const thisAttempt = attempt;
+            line.textContent = BOARD_LOADING;
+            // Any refresh asked for now reads what is stored now, so its answer may show the board.
+            void within(refreshBoard(), CLOSE_WAIT_MS).then((answer) => {
+              if (answer !== TIMED_OUT) showBoard();
+              else if (mine === closingNo && away === "stalled" && thisAttempt === attempt) line.textContent = NO_BOARD_YET;
+            });
+          });
+          caregiverRegion.replaceChildren(line, retry);
+          entry.hidden = false;
+          retry.focus();
+        }
         resolve();
       };
       try {
-        cancelTimer = setTimer(showBoard, CLOSE_WAIT_MS);
+        cancelBound = setTimer(stall, CLOSE_WAIT_MS);
       } catch {
         // Without a timer closing waits for the refresh.
       }
       // A write that is still under way finishes first, so the board is read after it.
-      void running.then(() => app.refreshBoard()).catch(() => undefined).then(showBoard);
+      void running.then(refreshBoard).then(showBoard);
     });
     return closing;
   };
 
+  /** Starts the idle period again; when it passes without another event, the area closes. */
+  const restartIdle = (): void => {
+    cancelIdle();
+    cancelIdle = () => undefined;
+    if (!isOpen) return;
+    const mine = session;
+    try {
+      cancelIdle = setTimer(() => {
+        if (isOpen && mine === session) void close();
+      }, IDLE_CLOSE_MS);
+    } catch {
+      // Without a timer the area stays open until it is closed by hand.
+    }
+  };
+  caregiverRegion.addEventListener("pointerdown", restartIdle);
+  caregiverRegion.addEventListener("keydown", restartIdle);
+  caregiverRegion.addEventListener("input", restartIdle);
+
   const open = (): boolean => {
     if (isOpen) return true;
-    if (returning) return false;
+    if (away === "waiting") return false;
     const startup = boardRegion.dataset["startup"];
     if (startup === undefined || startup === "pending") return false;
+    away = "no";
     isOpen = true;
     session += 1;
     cancelRunningSpeech();
@@ -629,8 +740,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     const reload = button("Tafel neu laden");
     reload.addEventListener("click", () => run(async () => {
       say(RELOADING);
-      await app.refreshBoard();
-      say(boardRegion.dataset["startup"] === "refresh-timeout" ? RELOAD_FAILED : RELOADED);
+      const answer = await within(refreshBoard(), CLOSE_WAIT_MS);
+      // The board answers a failed refresh with the examples; that is not "reloaded".
+      const startup = boardRegion.dataset["startup"];
+      const fallback = boardRegion.dataset["boardFallback"];
+      if (answer === TIMED_OUT || startup === "refresh-timeout") say(RELOAD_FAILED);
+      else if (startup === "demo-unavailable" || fallback === "storage-unavailable") say(RELOAD_NO_STORAGE);
+      else if (startup === "failed" || startup === "unrenderable" || fallback === "render-failed") say(RELOAD_NOT_DRAWN);
+      else say(RELOADED);
     }));
     const closer = button("Schließen");
     closer.addEventListener("click", () => void close());
@@ -641,8 +758,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     caregiverRegion.replaceChildren(heading, status, body, actions);
     caregiverRegion.hidden = false;
     heading.focus();
+    restartIdle();
     run(async () => {
-      store = await app.store();
+      // A store that does not answer must not leave the area on "wird gelesen" for good.
+      const answer = await within(app.store(), STORE_WAIT_MS);
+      store = answer === TIMED_OUT ? null : answer;
       say("");
       await draw(null);
     });
@@ -690,7 +810,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   opener.addEventListener("keyup", (event) => {
     if (isHoldKey(event.key)) hold.release(`key:${event.key}`);
   });
-  (options.onPageHidden ?? defaultPageHidden)(() => hold.cancel());
+  // An open area must not be left behind on a device that is put away or handed to the child.
+  (options.onPageHidden ?? defaultPageHidden)(() => {
+    hold.cancel();
+    if (isOpen) void close();
+  });
 
   entry.replaceChildren(opener, progress, hint);
   entry.hidden = false;

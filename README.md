@@ -46,6 +46,12 @@ in the app. The caregiver area is tested in Node against a fake DOM, not in a br
 browser storage adapter has no automated test. Nothing here has been verified on a physical
 device or with a child.
 
+**Do not enter a real child's name yet.** Two recorded preconditions for real data are still
+open: the retention and authorised-caregiver decision (card NG-7; section 6 of the product
+contract says to decide before personal data is stored), and the browser verification of the
+IndexedDB adapter (card NG-14 says it must not be wired to real data until then). There is no
+in-app removal: only clearing the site data of the browser removes a profile.
+
 ## Principles
 
 - **The board always works.** Camera, recognition and network are optional.
