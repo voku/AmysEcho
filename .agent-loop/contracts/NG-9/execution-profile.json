@@ -1,0 +1,13 @@
+{
+    "contract_revision": 1,
+    "contract_source": {
+        "path": ".agent-loop/contracts/NG-9/contract.json",
+        "sha256": "sha256:e67dd0ed3a795bf393f06da5c5f286966e9d6a98551f25a308aa21b490f4f8c2"
+    },
+    "kind": "execution_profile_selection",
+    "profile": "manual",
+    "schema_version": "1.0",
+    "selected_at": "2026-11-22T08:25:57+00:00",
+    "selected_by": "Lars Moelleken (delegated to Claude for this session)",
+    "task_id": "NG-9"
+}

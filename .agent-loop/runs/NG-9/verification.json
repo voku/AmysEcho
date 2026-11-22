@@ -1,0 +1,22 @@
+{
+    "contract_revision": 1,
+    "contract_sha256": "sha256:e67dd0ed3a795bf393f06da5c5f286966e9d6a98551f25a308aa21b490f4f8c2",
+    "implementation_snapshot": "sha256:2556384c4a56c74860ae239be5c0b8d76ca027352901a3fd63df2131883fda65",
+    "kind": "run_verification_receipt",
+    "obligations": [
+        {
+            "command": "npm ci --ignore-scripts && npm run build && npm test",
+            "duration_ms": 12079,
+            "executed_at": "2026-11-22T08:26:09+00:00",
+            "exit_code": 0,
+            "recorded_by": "agent-loop.finish",
+            "status": "passed"
+        }
+    ],
+    "run_id": "run:NG-9:8939d305960bff37",
+    "schema_version": "1.1",
+    "source_session_id": "2026-11-22-ng-9-r1-1d0df714",
+    "task_id": "NG-9",
+    "verdict": "satisfied",
+    "verified_at": "2026-11-22T08:26:10+00:00"
+}

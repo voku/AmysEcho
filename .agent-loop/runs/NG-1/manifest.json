@@ -1,0 +1,160 @@
+{
+    "disagreements": [],
+    "mode": "governed",
+    "next_action": "none",
+    "next_action_invocation": null,
+    "next_action_kind": "none",
+    "references": {
+        "approval": {
+            "approved_at": "2026-11-22T08:06:43+00:00",
+            "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+            "contract_revision": 2,
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "source": {
+                "path": ".agent-loop/contracts/NG-1/contract.json",
+                "sha256": "sha256:88417c0240bebf40b55e0f37c48e9f585750b59177487fe02e23e364bb6cad91"
+            },
+            "state": "current"
+        },
+        "board": {
+            "card_id": "NG-1",
+            "configuration": {
+                "mode": "json",
+                "source": {
+                    "path": ".agent-loop/todo/kanban.config.json",
+                    "sha256": "sha256:9c0dfbf309e05af19f146eb324c424fc6a97a99d00180178a1155a769f0c507f"
+                }
+            },
+            "lane": "READY",
+            "observation_mode": "checked",
+            "owner": "agent-kanban",
+            "revision": "7e1a7659e15dc39d683c6cdfcfef34e66cebc400dfa9f8fb6784f4b1f59874fd",
+            "source": {
+                "path": ".agent-loop/todo/cards/NG-1.md",
+                "sha256": "sha256:7e1a7659e15dc39d683c6cdfcfef34e66cebc400dfa9f8fb6784f4b1f59874fd"
+            },
+            "state": "linked",
+            "status": ""
+        },
+        "contract": {
+            "acceptance_criteria": [
+                "A sequence close to a stored example of gesture A is recognised as A; a sequence unlike any example returns unknown",
+                "Evaluation trains on some simulated sessions and tests on others, and npm test prints top-1, top-3, unknown recall and false-accept rate",
+                "Incompatible feature schema versions and malformed sequences are rejected, not guessed",
+                "No runtime dependency is added and no network or DOM API is used by src/recognition"
+            ],
+            "goal": "Per-profile gesture matching core in pure TypeScript: versioned landmark feature sequences, DTW nearest-example matcher with a first-class unknown result, and a seeded synthetic evaluation that reports top-1, top-3 and false-accept rate split by simulated recording session",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "rejected_at": null,
+            "rejected_by": null,
+            "rejection_reason": null,
+            "revision": 2,
+            "run_revision": 2,
+            "source": {
+                "path": ".agent-loop/contracts/NG-1/contract.json",
+                "sha256": "sha256:88417c0240bebf40b55e0f37c48e9f585750b59177487fe02e23e364bb6cad91"
+            },
+            "state": "approved"
+        },
+        "edit": {
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "state": "none"
+        },
+        "execution_contract": {
+            "contract_revision": 2,
+            "contract_source": {
+                "path": ".agent-loop/contracts/NG-1/contract.json",
+                "sha256": "sha256:88417c0240bebf40b55e0f37c48e9f585750b59177487fe02e23e364bb6cad91"
+            },
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "required": false,
+            "state": "not_required"
+        },
+        "learning": {
+            "decided_at": "2026-11-22T08:25:33+00:00",
+            "decided_by": "Lars Moelleken (delegated to Claude for this session)",
+            "decision": "follow_up_required",
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-1:9d8873459ffe28cf",
+            "source": {
+                "path": ".agent-loop/learning/history/run-learning/737a27f026305917b975592fc0ca0c0e35c37828ace4b89875fdd2a358b64957.json",
+                "sha256": "sha256:ae67a5bbf9cd881f9d350a06a0ac5644450620892593e75b174eaf91023570f7"
+            },
+            "state": "decided"
+        },
+        "map": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/php-symbols.json",
+            "state": "missing"
+        },
+        "outcome_lineage": {
+            "observation_mode": "checked",
+            "owner": "agent-learning",
+            "run_id": "run:NG-1:9d8873459ffe28cf",
+            "state": "run_bound"
+        },
+        "recall": {
+            "bundle_sha256": "c98bdfae13afd53b4a99e928ec6ee5cb97347700bd815da7da56730cb2317eb1",
+            "compilation_id": "compilation.NG-1.2026-11-22-080643.a01502f7",
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "snapshot_sha256": "de3cd1453611a0b2de29ce359c7f3bd4a0587351cf067db3ebc1f51096a9d257",
+            "source": {
+                "path": ".agent-loop/recall/NG-1/meta.json",
+                "sha256": "sha256:0511511792c19574d513029af4863938c77b3cec4270ed047de6827ca6f28985"
+            },
+            "state": "compiled"
+        },
+        "review": {
+            "observation_mode": "checked",
+            "owner": "agent-recall-compiler",
+            "source": {
+                "path": ".agent-loop/recall/NG-1/reviews/NG-1.blindspots.json",
+                "sha256": "sha256:f16300a72fa47063b026e6f1fa9acbecf58b0e34b9358f75a2bf5cbbfbf67efe"
+            },
+            "state": "warn"
+        },
+        "search_index": {
+            "observation_mode": "checked",
+            "owner": "agent-map",
+            "path": ".agent-loop/map/search.sqlite",
+            "state": "unavailable"
+        },
+        "session": {
+            "base_commit": "db13293dc4f9418d02e53437573baaedc16eb61c",
+            "ephemeral": false,
+            "observation_mode": "checked",
+            "owner": "agent-session",
+            "session_id": "2026-11-22-ng-1-r2-54a80d87",
+            "source": {
+                "path": ".agent-loop/sessions/2026-11-22-ng-1-r2-54a80d87/session.json",
+                "sha256": "sha256:62bcce4a93501a7ded95d1f1be6d83bd507fd76b8e75ce7d562039c1838539db"
+            },
+            "state": "done",
+            "task_id": "NG-1"
+        },
+        "verification": {
+            "contract_revision": 2,
+            "implementation_snapshot": "sha256:ed474480cc28f067d0711bf5c9d86667ba8a76ebcf88c518d9be700edd7c836e",
+            "observation_mode": "checked",
+            "owner": "agent-loop",
+            "run_id": "run:NG-1:9d8873459ffe28cf",
+            "source": {
+                "path": ".agent-loop/runs/NG-1/verification.json",
+                "sha256": "sha256:5b47175f9c10183febac65225fffda5cac322ed095b51b5f76b5638bf3c0038f"
+            },
+            "source_session_id": "2026-11-22-ng-1-r2-54a80d87",
+            "state": "passed"
+        }
+    },
+    "run_id": "run:NG-1:9d8873459ffe28cf",
+    "schema_version": "1.0",
+    "state": "complete",
+    "task_id": "NG-1"
+}

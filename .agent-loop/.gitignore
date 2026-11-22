@@ -5,3 +5,5 @@
 /runs/*/*.lock
 /.init-language.lock
 /tool-inventory.json
+/contracts/*.lock
+/runs/**/*.lock
