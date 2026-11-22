@@ -79,8 +79,10 @@ function checkSize(check: () => void): void {
  * `importProfile` would refuse for its size. A profile written through one
  * `ProfileStore` instance with these limits never gets there. It can happen
  * when two instances (two tabs) wrote to the profile at the same time, or
- * when data was put into storage another way. The usage record is corrected
- * either way, and passing higher `options.limits` still produces the export.
+ * when data was put into storage another way. A correction of the usage
+ * record is attempted either way, and passing higher `options.limits` still
+ * produces the export. Importing that document needs a store opened with the
+ * same higher limits.
  */
 export async function exportProfile(store: ProfileStore, id: string, options: ExportOptions = {}): Promise<ProfileExportV1> {
   const { profile, data, usage } = await store.readProfile(id);

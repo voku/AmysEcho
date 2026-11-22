@@ -22,7 +22,8 @@
  * each have their own instance and are not coordinated with each other. Two
  * instances writing to the same profile at the same time can leave a usage
  * record that is too low or too high, and data beyond the limits. `usage(id)`
- * and `readProfile` (so every export) count again and correct the record.
+ * and `readProfile` (so every export) count again and try to correct the
+ * record; the count is returned even when that write fails.
  */
 import { cloneJson, cloneJsonRecord, ownValue } from "./backend.js";
 import type { KeyValueBackend } from "./backend.js";
@@ -109,8 +110,9 @@ export interface ProfileContents {
 export interface ProfileData {
   get(name: string): Promise<unknown | undefined>;
   /**
-   * Rejects with `ProfileSizeError`, changing nothing, when the profile would
-   * outgrow one export. A write that adds neither a name nor bytes is always
+   * Rejects with `ProfileSizeError`, changing no data, when the profile would
+   * outgrow one export. A refusal counts the whole profile and may correct a
+   * wrong usage record. A write that adds neither a name nor bytes is always
    * accepted, so a profile that is over the limit can be made smaller.
    */
   set(name: string, value: unknown): Promise<void>;

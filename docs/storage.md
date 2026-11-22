@@ -162,10 +162,12 @@ up. Two instances writing at the same time are not coordinated; see "Two tabs" b
   name, plus 4 (two quotes, a colon and a comma, as the entry appears in an export).
 - `data(id).set` and `delete` update the record in the same atomic batch as the value. `create` and
   restore write it too. Overwriting a name counts the difference to the old value.
-- A write is refused with `ProfileSizeError`, and nothing changes, when it would give the profile
+- A write is refused with `ProfileSizeError`, and no data changes, when it would give the profile
   more than 10,000 names or more than 64 MiB minus 34 KiB of counted bytes. Restore applies the same
   rule; `importProfile` reports it as `ExportSizeError` before anything is written. A value whose
-  JSON text is too long for the JavaScript engine to build is refused the same way.
+  JSON text is too long for the JavaScript engine to build is refused the same way. A refusal may
+  correct a usage record that was wrong, and it reads the whole profile to count it, so do not
+  retry a refused write in a loop.
 - A write that adds neither a name nor bytes is always accepted, also for a profile that is already
   over a limit, so such a profile can be made smaller. A write that would add to a profile that is
   already over a limit is refused with a message saying so and that entries must be deleted.
@@ -176,6 +178,7 @@ up. Two instances writing at the same time are not coordinated; see "Two tabs" b
   within 64 MiB but leaves less than the reserve free is refused on import.
 - `set` and `delete` trust the stored record. If it is missing or cannot be right (data written
   before the record existed, negative or non-integer numbers), they count again from the data.
+  `set` also counts again before it refuses a write for size (see "Two tabs" below).
 - `store.usage(id)` returns `{ names, bytes, maxNames, maxBytes }`, where `maxBytes` is the most
   `bytes` may reach. Use it to warn a carer well before a write is refused (card NG-19). It is the
   authoritative and slow call: it reads all of the profile's data, counts it, and writes the record
@@ -202,7 +205,11 @@ record that is too low lets the profile grow past the limits. Nothing notices th
 - If the profile really is over a limit, `exportProfile` fails with `ExportSizeError`, further
   growth is refused, and deleting or shrinking entries is accepted until it fits again.
 - The data is not lost in the meantime: `exportProfile(store, id, { limits })` with higher limits
-  still produces the document, and `importProfile` accepts it with the same higher limits.
+  still produces the document. `importProfile` accepts that document only into a store that was
+  itself opened with those higher limits (`ProfileStore.open(backend, { limits })`); passing the
+  limits to `importProfile` alone is not enough, and a store with the built-in limits refuses it.
+  No part of the app opens a store with raised limits yet; a way to restore such a backup is part
+  of card NG-22.
 - `usage(id)` reads the whole profile, so it is slow for a large one. Call it deliberately (when a
   storage view opens, before a teaching session), not on every render, and do not rely on a value
   cached from an earlier call.
