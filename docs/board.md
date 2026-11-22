@@ -142,10 +142,16 @@ No text while speech was asked for normally. One small line appears only when th
 "Tap again" is said once where tapping again may help, and not a second time in a row. An empty
 voice list cannot be told apart from one that has not loaded yet, so the first such tap gets the
 benefit of the doubt and the second does not; that count has no time in it, so a quick double tap
-uses it up. A failure is treated the same way: the first says to tap again, a second one before
-any sentence reached its end says to fetch a caregiver, and a sentence that ends (also one the app
-interrupted) starts that count again. Any other result, and a voice that arrives, starts that count again. The line is
-cleared by the next request that the engine accepts. It is a polite live region.
+uses it up. Any other result, and a voice that arrives, starts the empty-list count again.
+
+A failure has a count of its own: the first says to tap again, a second one before any sentence
+reached its end says to fetch a caregiver. Only two things start the failure count again: the end
+of the sentence that is the current one (also when that sentence was cut off from outside the
+board, as when the caregiver area opens), and a new board. A request the engine merely took, a
+no-voice result, an arriving voice and the end of a sentence that another tap has already replaced
+do not: no sentence was heard in between.
+
+The line is cleared by the next request that the engine accepts. It is a polite live region.
 
 An utterance that was stopped is not a failure: when the engine reports the error `interrupted`
 or `canceled` (speech is cancelled when the caregiver area opens, for instance), the sentence
@@ -191,7 +197,7 @@ room the bar has anyway, so the tiles do not move when it appears: a tile that m
 finger is a wrong word. That holds for a sentence of one line, and of two lines on a phone held
 upright; a longer sentence makes the bar grow by one small line. In a browser without `:has()`
 the line stands under the bar and the board gets that much lower. The line is one line
-(`white-space: nowrap`); all three texts fit a 320 px wide window at the normal text size
+(`white-space: nowrap`); all four texts fit a 320 px wide window at the normal text size
 (measured, below). With larger text the end is cut off with an ellipsis.
 
 ## A sentence that is still being spoken
@@ -312,10 +318,11 @@ the notice in text lines.
 | `render-failed` | 3 | 158x114 | yes |
 | `refresh-timeout` | 3 | 158x114 | yes |
 
-The three speech lines on their one line, text width / room in px: "Keine Stimme. Bitte noch
+The four speech lines on their one line, text width / room in px: "Keine Stimme. Bitte noch
 einmal tippen." 209 / 272 at 320 px and 229 / 312 at 360 px; "Keine deutsche Stimme. Hol eine
 Bezugsperson." 256 / 272 and 280 / 312; "Vorlesen ging nicht. Bitte noch einmal tippen."
-239 / 272 and 261 / 312. None is cut off.
+239 / 272 and 261 / 312; "Vorlesen geht nicht. Hol eine Bezugsperson." 235 / 272 and 256 / 312.
+None is cut off there. In a 320x480 window the room is 222 px and the lines end in an ellipsis.
 
 Also looked at:
 

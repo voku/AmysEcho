@@ -1849,6 +1849,13 @@ test("screen: the speech line is empty for a normal request, says what to do for
     buttons[2].click();
     assert.equal(speechStatus.textContent, SPEECH_FAILS);
     engine.speak = speakNormally;
+    // The end of a sentence that another tap has replaced is not a sentence that was heard.
+    buttons[2].click();
+    const replaced = speech.utterances.at(-1);
+    buttons[1].click();
+    replaced.onend();
+    speech.utterances.at(-1).onerror();
+    assert.equal(speechStatus.textContent, SPEECH_FAILS);
     assert.doesNotMatch(NO_GERMAN_VOICE, /tippen/, "no advice that cannot help");
     for (const line of [NO_VOICE, SPEECH_FAILED]) assert.match(line, /Bitte noch einmal tippen\.$/);
     assert.doesNotMatch(SPEECH_FAILS, /tippen/);
