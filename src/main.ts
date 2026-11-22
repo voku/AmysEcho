@@ -1,4 +1,5 @@
 import { createApp } from "./app.js";
+import { mountCaregiver } from "./caregiver.js";
 import { CONCEPTS } from "./concepts.js";
 import { openIndexedDbBackend } from "./profiles/indexeddb-backend.js";
 import { getBootstrapState } from "./status.js";
@@ -10,7 +11,7 @@ if (root === null || boardRegion === null) {
 }
 
 // The app writes into the board region only; see src/app.ts and src/startup.ts
-// for the start-up sequence. The caregiver area (card NG-13) will get `app`.
+// for the start-up sequence.
 // The IndexedDB adapter has no automated test yet (card NG-14).
 export const app = createApp(boardRegion, {
   openBackend: () => openIndexedDbBackend(),
@@ -18,6 +19,17 @@ export const app = createApp(boardRegion, {
   report: (error) => console.warn("Profile storage unavailable:", error),
 });
 root.dataset.bootstrap = getBootstrapState();
+
+// The caregiver area (src/caregiver.ts, docs/caregiver.md) is an addition: the
+// board must work also when its mount points are missing or it fails to mount.
+const caregiverRegion = document.querySelector<HTMLElement>("#caregiver-region");
+const caregiverEntry = document.querySelector<HTMLElement>("#caregiver-entry");
+try {
+  if (caregiverRegion === null || caregiverEntry === null) throw new Error("mount point is missing");
+  mountCaregiver({ app, boardRegion, caregiverRegion, entry: caregiverEntry, catalogue: CONCEPTS });
+} catch (error) {
+  console.warn("Caregiver area unavailable:", error);
+}
 
 // The board always works without a service worker. Registration failure is
 // not mistaken for successful offline installation.

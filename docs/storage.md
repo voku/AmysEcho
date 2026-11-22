@@ -247,9 +247,11 @@ the list of this call and not on the board when the call starts.
   as long as the caller passes the full `conceptIds` of the profile. An id that is already on the
   board may stay in the list whatever state its entry is in, also an id that `resolveBoard` leaves
   off and an id that board data cannot address at all (with `.` or `_`, or longer than 40
-  characters; such an id can only be newly put on a board through `store.setConceptIds` or an
-  import, and it leaves a board by being left out of the list); a caller that builds the new order from `resolveBoard().entries` drops such an id and its
-  problem report with it. A newly chosen id outside the catalogue still needs a readable entry.
+  characters). Such an id can only be newly put on a board through `store.create`,
+  `store.setConceptIds` or an import, and it leaves a board by being left out of the list. A
+  caller that builds the new order from `resolveBoard().entries` drops such an id and its problem
+  report with it. A newly chosen id outside the catalogue still needs a readable entry. The
+  caregiver area keeps to this ([caregiver.md](caregiver.md)).
 - The one case in which a concept on the board gets an entry is the first row: a board from before
   wording was copied (or made with `store.create` / `store.setConceptIds`) has none, and the first
   call stores the wording it shows. A call that only reorders a board whose concepts all have an
@@ -348,7 +350,8 @@ An entry is read strictly: exactly the fields above, version 1, text already in 
 ### The page: regions and the app controller
 
 `index.html` gives `#app` a fixed structure: `#board-region` and `#caregiver-region` (empty and
-hidden until card NG-13). `createApp(boardRegion, options)` in `src/app.ts` writes only into the
+hidden until the caregiver area is opened; see [caregiver.md](caregiver.md)). After `#app` comes
+`#caregiver-entry`, which the script fills with the control that opens the area. `createApp(boardRegion, options)` in `src/app.ts` writes only into the
 board region: its children and its `data-startup`, `data-startup-late`, `data-board-fallback` and
 `data-board-problems` attributes. Nothing replaces the children of `#app`.
 
@@ -533,11 +536,11 @@ or for a board that was replaced, is ignored.
   from the grid rule (140 px minimum tile width, 0.8 rem gap, 1 rem page padding, and 1 rem padding
   plus a 6 px border for the frame), not rendered: at 360 px width the examples show one column
   where an own board shows two, at 480 px two where an own board shows three.
-- For card NG-13: reading a board costs sequential backend reads, two per concept plus three (83
-  for a board of 40 concepts), at start-up and on every refresh. The 1.5 s bound is unmeasured, so
-  on a slow device it may fire on every profile switch and show the examples instead of the new
-  board. The caregiver area must offer a retry, or the app must accept a late answer when no newer
-  refresh has started.
+- Reading a board costs sequential backend reads, two per concept plus three (83 for a board of
+  40 concepts), at start-up and on every refresh. The 1.5 s bound is unmeasured, so on a slow
+  device it may fire on every profile switch and show the examples instead of the new board. The
+  caregiver area offers a retry ("Tafel neu laden", [caregiver.md](caregiver.md)); whether the app
+  should also accept a late answer when no newer refresh has started is open.
 - After a refresh ran into its bound, the examples stay until the next `refreshBoard()`. Whether
   the app should try again by itself is not decided.
 
@@ -683,14 +686,15 @@ no permanence guarantee. The export file is the backup.
   `docs/s0a-product-contract-v0.1.md` has no such field. The two differ until the contract is
   updated or the field is removed here. That is an owner decision and is not made in this module.
 - Section 6 of the product contract says an authorised caregiver and a retention policy must be
-  decided before personal data is stored (board card NG-7). That decision is pending. The app reads
-  storage at start but has no screen that creates a profile or writes profile data, so no personal
-  data is stored today.
+  decided before personal data is stored (board card NG-7). That decision is pending. Since the
+  caregiver area ([caregiver.md](caregiver.md)) a profile can be created in the app, so a display
+  name and a choice of concepts are stored on the device once a caregiver does that.
 - Deletion is logical. After `remove`, the keys are gone for the app, but the browser may keep
   remnants in its on-disk database files until it compacts them. No secure erase is attempted.
 - No encryption at rest and no export password (human decision pending; card NG-22).
 - No `navigator.storage.persist()` request and no quota handling.
-- No user interface: profile selection, export, restore and delete controls come with card NG-13.
+- The caregiver area ([caregiver.md](caregiver.md)) creates and activates profiles and sets their
+  boards. Export, restore, rename and delete controls are not built (card NG-13).
 - No stored gesture examples (card NG-19).
 - No real-browser test of the IndexedDB adapter (card NG-14).
 - No coordination between two open tabs. One `ProfileStore` runs its operations one after another;

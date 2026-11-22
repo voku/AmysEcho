@@ -30,6 +30,9 @@ test("built UI starts in the board region only and remains usable without TTS/ne
   const region = fakeElement("section");
   region.children = [staticLine];
   const caregiver = fakeElement("section");
+  // The element outside #app that gets the control which opens the caregiver area.
+  const entry = fakeElement("footer");
+  entry.hidden = true;
   const root = fakeElement("main");
   root.children = [region, caregiver];
   root.replaceChildren = () => assert.fail("#app itself must keep its structure");
@@ -38,12 +41,15 @@ test("built UI starts in the board region only and remains usable without TTS/ne
   region.replaceChildren = (...nodes) => { region.children = nodes; mounts.push(nodes); };
   const warnings = [];
   const selectors = [];
+  const documentEvents = [];
   globalThis.document = {
     querySelector(selector) {
       selectors.push(selector);
-      return { "#app": root, "#board-region": region }[selector] ?? assert.fail(`unexpected selector ${selector}`);
+      return { "#app": root, "#board-region": region, "#caregiver-region": caregiver, "#caregiver-entry": entry }[selector]
+        ?? assert.fail(`unexpected selector ${selector}`);
     },
     createElement: fakeElement,
+    addEventListener(name) { documentEvents.push(name); },
   };
   globalThis.fetch = () => { throw new Error("Unexpected network request from board"); };
   console.warn = (...parts) => { warnings.push(parts); };
@@ -52,7 +58,7 @@ test("built UI starts in the board region only and remains usable without TTS/ne
   try {
     const main = await import(new URL("../dist/main.js?board-smoke", import.meta.url));
     await main.app.started;
-    assert.deepEqual(selectors.sort(), ["#app", "#board-region"]);
+    assert.deepEqual(selectors.sort(), ["#app", "#board-region", "#caregiver-entry", "#caregiver-region"]);
     assert.equal(root.dataset.bootstrap, "ready");
     // Node has no IndexedDB: storage is unavailable, and the examples stand in with the reason.
     assert.equal(await main.app.store(), null);
@@ -68,6 +74,12 @@ test("built UI starts in the board region only and remains usable without TTS/ne
     // #app and the caregiver region are untouched.
     assert.deepEqual(root.children, [region, caregiver]);
     assert.deepEqual(caregiver.children, []);
+    // The opening control is in its own element, visible once the script runs, and it only reacts to holding.
+    assert.equal(entry.hidden, false);
+    assert.deepEqual(entry.children.map((child) => child.tagName), ["button", "progress", "p"]);
+    assert.equal(entry.children[0].textContent, "Für Bezugspersonen");
+    assert.equal(entry.children[0].handlers.click, undefined);
+    assert.deepEqual(documentEvents, ["visibilitychange"]);
     assert.deepEqual(Object.keys(root.dataset), ["bootstrap"]);
 
     assert.match(region.children[1].textContent, /Speicher.*nicht erreichbar.*Beispiele/);
@@ -101,6 +113,8 @@ test("index.html has the stable regions and a static German line for when script
   const board = /<section id="board-region"[^>]*>([\s\S]*?)<\/section>/.exec(app)?.[1] ?? "";
   // The two regions, in this order, directly inside #app.
   assert.match(app, /^\s*<section id="board-region"[^>]*>[\s\S]*?<\/section>\s*<section id="caregiver-region"[^>]*\shidden>\s*<\/section>\s*$/);
+  // The opening control of the caregiver area gets its own element after #app; empty and hidden until the script fills it.
+  assert.match(html, /<\/main>\s*<footer id="caregiver-entry" class="caregiver-entry" hidden><\/footer>\s*<\/body>/);
   // A plain line that is visible until the script replaces it, and one for a browser without scripts.
   const plain = board.replace(/<noscript>[\s\S]*?<\/noscript>/, "");
   assert.match(plain, /<p class="board-notice">Die Tafel ist noch nicht gestartet\.[^<]*<\/p>/);
@@ -162,7 +176,7 @@ test("service-worker pre-cache includes the full local concept bundle", async ()
   const worker = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const modules = await reachableModules("main.js");
   // The walk really follows imports, including into a subdirectory and through a re-export-free chain.
-  for (const expected of ["main.js", "app.js", "board.js", "concepts.js", "speech.js", "startup.js", "status.js", "board-data.js", "profiles/store.js", "profiles/profile.js", "profiles/backend.js", "profiles/indexeddb-backend.js"]) {
+  for (const expected of ["main.js", "app.js", "board.js", "concepts.js", "speech.js", "startup.js", "status.js", "board-data.js", "caregiver.js", "profiles/store.js", "profiles/profile.js", "profiles/backend.js", "profiles/indexeddb-backend.js"]) {
     assert.ok(modules.includes(expected), `import walk did not reach ${expected}`);
   }
   // Test-only code is not part of the app.
@@ -179,7 +193,7 @@ test("service-worker install fetches the pre-cache list past the HTTP cache, und
   const source = await readFile(new URL("../dist/sw.js", import.meta.url), "utf8");
   const name = /const CACHE_NAME = CACHE_PREFIX \+ "([^"]+)";/.exec(source)?.[1];
   // Names already shipped; a changed asset list or install step needs a name that is none of them.
-  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1"].includes(name), `cache name ${name}`);
+  assert.ok(name !== undefined && !["board-s1a-v1", "board-s1b-v1", "board-s1b-v2", "board-s1c-v1", "board-s1c-v2"].includes(name), `cache name ${name}`);
 
   // Run the worker with a fake scope and look at what install hands to the cache.
   const listeners = {};
