@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ExportFormatError, exportProfile, importProfile } from "../dist/profiles/backup.js";
+import { JsonValueError, MAX_JSON_DEPTH } from "../dist/profiles/backend.js";
+import {
+  EXPORT_ENVELOPE_RESERVE, ExportFormatError, ExportSizeError, MAX_EXPORT_BYTES, MAX_EXPORT_DATA_NAMES, exportProfile, importProfile,
+} from "../dist/profiles/backup.js";
 import { InjectedWriteError, MemoryBackend } from "../dist/profiles/memory-backend.js";
-import { ProfileConflictError, ProfileStore } from "../dist/profiles/store.js";
+import { ProfileConflictError, ProfileSizeError, ProfileStore } from "../dist/profiles/store.js";
 
 const now = () => new Date("2026-03-04T05:06:07.089Z");
 const openStore = async () => {
@@ -43,7 +46,7 @@ test("export, wipe, import reproduces the profile and its data exactly", async (
   const source = await filled();
   const text = JSON.stringify(source.exported);
   const ownedBefore = profileKeys(source.backend.snapshot(), source.profile.id);
-  assert.equal(Object.keys(ownedBefore).length, 5);
+  assert.equal(Object.keys(ownedBefore).length, 6);
 
   // Restore into a brand new store, from the JSON text a caregiver would keep.
   const target = await openStore();
@@ -104,6 +107,10 @@ test("malformed, truncated and incompatible documents are rejected and change no
     "exportedAt not a timestamp": { ...good(), exportedAt: "yesterday" },
     "exportedAt not UTC": { ...good(), exportedAt: "2026-03-04T05:06:07+01:00" },
     "exportedAt impossible date": { ...good(), exportedAt: "2026-13-45T05:06:07Z" },
+    "data is a getter": Object.defineProperty(without("data"), "data", { get: () => assert.fail("getter was called"), enumerable: true }),
+    "data value is a getter": Object.defineProperty(good(), "data", { value: Object.defineProperty({}, "x", { get: () => assert.fail("getter was called"), enumerable: true }), enumerable: true }),
+    "profile field is a getter": { ...good(), profile: Object.defineProperty({ ...good().profile }, "displayName", { get: () => assert.fail("getter was called"), enumerable: true }) },
+    "symbol field": { ...good(), [Symbol("extra")]: 1 },
     "profile version 2": { ...good(), profile: { ...good().profile, version: 2 } },
     "profile extra field": { ...good(), profile: { ...good().profile, birthDate: "2020-01-01" } },
     "profile bad id": { ...good(), profile: { ...good().profile, id: "../app" } },
@@ -248,4 +255,257 @@ test("the imported document and the exported one are not tied to stored state", 
   source.exported.data.settings.flags.push("changed");
   assert.deepEqual(await exportProfile(target.store, source.profile.id, { now }), JSON.parse(JSON.stringify({ ...source.exported, data: DATA })));
   assert.deepEqual(await exportProfile(source.store, source.profile.id, { now }), { ...source.exported, data: DATA });
+});
+
+const chr = (...codePoints) => String.fromCodePoint(...codePoints);
+const nested = (levels, leaf = "leaf") => {
+  let value = leaf;
+  for (let i = 0; i < levels; i += 1) value = i % 2 === 0 ? [value] : { inner: value };
+  return value;
+};
+/** set -> export -> JSON text -> import into a new store -> get */
+const roundTrip = async (values) => {
+  const source = await openStore();
+  const profile = await source.store.create("Mia", []);
+  for (const [name, value] of Object.entries(values)) await source.store.data(profile.id).set(name, value);
+  const stored = Object.fromEntries(await Promise.all(Object.keys(values).map(async (name) => [name, await source.store.data(profile.id).get(name)])));
+  const text = JSON.stringify(await exportProfile(source.store, profile.id, { now }));
+  const target = await openStore();
+  await importProfile(target.store, JSON.parse(text));
+  const restored = Object.fromEntries(await Promise.all(Object.keys(values).map(async (name) => [name, await target.store.data(profile.id).get(name)])));
+  return { stored, restored, source, target, profile };
+};
+
+test("a value at the maximum nesting depth can be stored, exported and restored", async () => {
+  assert.equal(MAX_JSON_DEPTH, 64);
+  const deepest = nested(MAX_JSON_DEPTH);
+  const { stored, restored, target, profile } = await roundTrip({ deepest, "almost-deepest": nested(MAX_JSON_DEPTH - 1), flat: 1 });
+  assert.deepEqual(stored.deepest, deepest);
+  assert.deepEqual(restored, stored);
+  assert.deepEqual(restored.deepest, deepest);
+
+  // One level more is refused everywhere, starting where the value would be stored.
+  const tooDeep = nested(MAX_JSON_DEPTH + 1);
+  const before = target.backend.snapshot();
+  await assert.rejects(target.store.data(profile.id).set("x", tooDeep), JsonValueError);
+  await assert.rejects(target.store.restoreProfile({ profile, data: { x: tooDeep } }, "replace"), JsonValueError);
+  const document = { ...(await exportProfile(target.store, profile.id, { now })), data: { x: tooDeep } };
+  await assert.rejects(importProfile(target.store, document, { onConflict: "replace" }), ExportFormatError);
+  assert.deepEqual(target.backend.snapshot(), before);
+  // The limit is per value in restore as well.
+  await target.store.restoreProfile({ profile, data: { deepest } }, "replace");
+  assert.deepEqual(await target.store.data(profile.id).get("deepest"), deepest);
+});
+
+test("whatever set accepts comes back unchanged from export and import", async () => {
+  const awkward = {
+    "null": null,
+    "empty-object": {},
+    "empty-array": [],
+    "empty-string": "",
+    "booleans": [true, false],
+    "nested-empties": { a: [], b: {}, c: [[], {}, [{}]] },
+    "float-limits": [Number.MAX_VALUE, -Number.MAX_VALUE, Number.MIN_VALUE, -Number.MIN_VALUE, Number.EPSILON, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, 2 ** 53, 0.1 + 0.2, 1e21, 1e-7, 123456789.12345679, 5e-324, 0],
+    "long-string": "abcdefghij".repeat(20_000),
+    "unicode": [chr(0xe4, 0xf6, 0xfc, 0xdf), chr(0x1f98a), chr(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467), chr(0x65, 0x301), chr(0x202e), chr(0x2028, 0x2029), chr(0xfeff), chr(0xffff), chr(0x10ffff), "\u0000\u0001\u001f\u007f", "\"\\/\b\f\n\r\t", String.fromCharCode(0xd800), `a${String.fromCharCode(0xdfff)}b`],
+    "awkward-keys": { "": 1, " ": 2, "__proto__": 3, constructor: 4, toJSON: 5, "a/b": 6, "../x": 7, [chr(0x1f98a)]: 8, [chr(0x65, 0x301)]: 9, [chr(0xe9)]: 10, 0: 11, length: 12 },
+    "deep-at-limit": nested(MAX_JSON_DEPTH - 2, { leaf: [1.5, null, "x"] }),
+    "wide": Array.from({ length: 5000 }, (_, i) => [i, -(i + 1) / 7, String(i)]),
+    "x": 0,
+    "0": "digit name",
+    ["n".repeat(64)]: "longest name",
+    "a.b_c-d": { schemaVersion: 1, steps: [[0.25, -1.5], [3, 4e-7]] },
+  };
+  const { stored, restored, source, target, profile } = await roundTrip(awkward);
+  assert.deepEqual(stored, awkward);
+  assert.deepEqual(restored, awkward);
+  assert.deepEqual(Object.keys(restored["awkward-keys"]), Object.keys(awkward["awkward-keys"]));
+  assert.equal(Object.getPrototypeOf(restored["awkward-keys"]), Object.prototype);
+  assert.deepEqual(await target.store.data(profile.id).names(), await source.store.data(profile.id).names());
+  assert.deepEqual(await exportProfile(target.store, profile.id, { now }), await exportProfile(source.store, profile.id, { now }));
+
+  // Negative zero is the one value that is stored differently, and that happens at set, not in the backup.
+  const zero = await roundTrip({ zero: [-0, { z: -0 }] });
+  assert.deepEqual(zero.stored, { zero: [0, { z: 0 }] });
+  assert.deepEqual(zero.restored, zero.stored);
+});
+
+test("exportedAt must be a real UTC calendar timestamp", async () => {
+  const source = await filled();
+  const withStamp = (exportedAt) => ({ ...JSON.parse(JSON.stringify(source.exported)), exportedAt });
+  for (const exportedAt of ["2026-03-04T05:06:07.089Z", "2026-03-04T05:06:07Z", "2024-02-29T23:59:59.999Z", "0000-01-01T00:00:00.000Z", "9999-12-31T23:59:59.999Z", new Date().toISOString()]) {
+    const target = await openStore();
+    await importProfile(target.store, withStamp(exportedAt));
+  }
+  const target = await openStore();
+  for (const exportedAt of [
+    "2026-02-31T00:00:00Z", "2026-02-29T00:00:00Z", "2026-02-30T12:00:00.000Z", "2026-04-31T00:00:00Z", "2026-01-01T24:00:00Z", "2026-01-01T24:00:00.000Z",
+    "2026-13-01T00:00:00Z", "2026-00-10T00:00:00Z", "2026-01-00T00:00:00Z", "2026-01-32T00:00:00Z", "2026-01-01T23:60:00Z", "2026-01-01T23:59:60Z", "2026-01-01T25:00:00Z",
+    "2026-01-01T00:00:00.1Z", "2026-01-01T00:00:00.1234Z", "2026-01-01T00:00:00", "2026-01-01T00:00:00+00:00", "2026-01-01 00:00:00Z", "2026-01-01", "+002026-01-01T00:00:00.000Z",
+    " 2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z\n", "", 1767225600000, null, ["2026-01-01T00:00:00Z"],
+  ]) {
+    await assert.rejects(importProfile(target.store, withStamp(exportedAt)), ExportFormatError, JSON.stringify(exportedAt));
+  }
+  assert.deepEqual(target.backend.snapshot(), { "app/schema": 1 });
+
+  // The exporter never writes a timestamp the importer refuses.
+  await assert.rejects(exportProfile(source.store, source.profile.id, { now: () => new Date(Date.UTC(10000, 0, 1)) }), ExportFormatError);
+  await assert.rejects(exportProfile(source.store, source.profile.id, { now: () => new Date(NaN) }), ExportFormatError);
+  for (const instant of [0, 1, 999, 951782400000, Date.UTC(9999, 11, 31, 23, 59, 59, 999)]) {
+    const exported = await exportProfile(source.store, source.profile.id, { now: () => new Date(instant) });
+    await importProfile((await openStore()).store, JSON.parse(JSON.stringify(exported)));
+  }
+});
+
+const entryBytes = (name, value) => Buffer.byteLength(JSON.stringify(value), "utf8") + name.length + 4;
+const countedBytes = (data) => Object.entries(data).reduce((sum, [name, value]) => sum + entryBytes(name, value), 0);
+const documentBytes = (document) => Buffer.byteLength(JSON.stringify(document), "utf8");
+
+test("imports over the documented size limits are rejected and change nothing", async () => {
+  assert.equal(MAX_EXPORT_DATA_NAMES, 10_000);
+  assert.equal(MAX_EXPORT_BYTES, 64 * 1024 * 1024);
+  assert.equal(EXPORT_ENVELOPE_RESERVE, 34 * 1024);
+
+  const source = await openStore();
+  const profile = await source.store.create(`Zo${chr(0xeb)}`, ["hilfe"]);
+  // 1-, 2-, 3- and 4-byte characters, so that bytes and characters differ.
+  const values = { one: "plain", two: chr(0xe4, 0xdf), three: chr(0x20ac, 0x4e2d), four: [chr(0x1f98a), chr(0x10ffff)] };
+  for (const [name, value] of Object.entries(values)) await source.store.data(profile.id).set(name, value);
+  const exported = await exportProfile(source.store, profile.id, { now });
+  const text = JSON.stringify(exported);
+  const counted = countedBytes(values);
+  assert.equal((await source.store.usage(profile.id)).bytes, counted);
+  const countedInCharacters = Object.entries(values).reduce((sum, [name, value]) => sum + JSON.stringify(value).length + name.length + 4, 0);
+  assert.ok(counted >= countedInCharacters + 8, "bytes, not characters");
+  const fits = EXPORT_ENVELOPE_RESERVE + counted;
+
+  const target = await openStore();
+  const other = await target.store.create("Other", []);
+  await target.store.data(other.id).set("settings", 1);
+  const before = target.backend.snapshot();
+  for (const limits of [{ maxDataNames: 3 }, { maxDataNames: 0 }, { maxBytes: fits - 1 }, { maxBytes: EXPORT_ENVELOPE_RESERVE }, { maxDataNames: 3, maxBytes: fits - 1 }]) {
+    for (const onConflict of ["reject", "replace", "copy"]) {
+      await assert.rejects(importProfile(target.store, JSON.parse(text), { onConflict, limits }), ExportSizeError, JSON.stringify(limits));
+    }
+    // Export refuses to write what import would refuse to read.
+    await assert.rejects(exportProfile(source.store, profile.id, { now, limits }), ExportSizeError, JSON.stringify(limits));
+  }
+  assert.deepEqual(target.backend.snapshot(), before);
+  assert.ok(new ExportSizeError("x") instanceof ExportFormatError);
+
+  // Exactly at the limits both directions work.
+  const limits = { maxDataNames: 4, maxBytes: fits };
+  assert.deepEqual(await exportProfile(source.store, profile.id, { now, limits }), exported);
+  assert.deepEqual(await importProfile(target.store, JSON.parse(text), { limits }), profile);
+  assert.deepEqual(await exportProfile(target.store, profile.id, { now }), exported);
+
+  // A store with lower limits of its own applies them to imports without being told.
+  const small = await ProfileStore.open(new MemoryBackend(), { limits: { maxBytes: fits - 1 } });
+  await assert.rejects(importProfile(small, JSON.parse(text)), ExportSizeError);
+  await assert.rejects(importProfile(small, JSON.parse(text), { limits: { maxBytes: fits } }), ExportSizeError);
+  assert.deepEqual(await small.list(), { profiles: [], damaged: [] });
+
+  // The built-in limit on names, with a document that is small in bytes.
+  const many = (count) => ({ ...JSON.parse(text), data: Object.fromEntries(Array.from({ length: count }, (_, i) => [`n${i}`, i])) });
+  const fresh = await openStore();
+  await assert.rejects(importProfile(fresh.store, many(MAX_EXPORT_DATA_NAMES + 1)), ExportSizeError);
+  assert.deepEqual(fresh.backend.snapshot(), { "app/schema": 1 });
+  await importProfile(fresh.store, many(MAX_EXPORT_DATA_NAMES));
+  assert.equal((await fresh.store.data(profile.id).names()).length, MAX_EXPORT_DATA_NAMES);
+  await assert.rejects(fresh.store.data(profile.id).set("one-more", 1), ProfileSizeError);
+  await exportProfile(fresh.store, profile.id, { now });
+});
+
+test("the reserve covers the largest possible profile record, so counted bytes bound the export size", async () => {
+  // Worst cases for the part of an export that is not data.
+  const conceptIds = Array.from({ length: 500 }, (_, i) => `${String(i).padStart(3, "0")}${"z".repeat(61)}`);
+  const widestNames = [chr(0x10ffff).repeat(40), String.fromCharCode(0xd800).repeat(40), '"'.repeat(40), "\\".repeat(40), chr(0xffff).repeat(40)];
+  let largest = 0;
+  for (const displayName of widestNames) {
+    const { store } = await openStore();
+    const profile = await store.create(displayName, conceptIds);
+    const empty = await exportProfile(store, profile.id, { now });
+    assert.ok(documentBytes(empty) <= EXPORT_ENVELOPE_RESERVE, `${documentBytes(empty)} bytes without data`);
+    largest = Math.max(largest, documentBytes(empty));
+  }
+  assert.ok(largest > EXPORT_ENVELOPE_RESERVE - 1024, "the reserve is not needlessly large");
+
+  // Fill such a profile to the last counted byte: the document is still within the limit.
+  for (const [dataBytes, maxDataNames] of [[300, 30], [37, 3], [7, 1]]) {
+    const maxBytes = EXPORT_ENVELOPE_RESERVE + dataBytes;
+    const backend = new MemoryBackend();
+    const store = await ProfileStore.open(backend, { limits: { maxDataNames, maxBytes } });
+    const profile = await store.create(widestNames[1], conceptIds);
+    let i = 0;
+    for (;;) {
+      const { names, bytes } = await store.usage(profile.id);
+      const room = dataBytes - bytes - 1 - 4 - 2; // one-character name, overhead, two quotes
+      if (names === maxDataNames || room < 0) break;
+      await store.data(profile.id).set("abcdefghijklmnopqrstuvwxyz0123456789"[i], "x".repeat(names === maxDataNames - 1 ? room : Math.min(room, 3)));
+      i += 1;
+    }
+    const usage = await store.usage(profile.id);
+    assert.equal(usage.bytes, usage.maxBytes, "filled exactly");
+    await assert.rejects(store.data(profile.id).set("a", "x".repeat(200)), ProfileSizeError);
+    const exported = await exportProfile(store, profile.id, { now });
+    assert.ok(documentBytes(exported) <= maxBytes, `${documentBytes(exported)} > ${maxBytes}`);
+    const target = await ProfileStore.open(new MemoryBackend(), { limits: { maxDataNames, maxBytes } });
+    await importProfile(target, JSON.parse(JSON.stringify(exported)));
+    assert.deepEqual(await exportProfile(target, profile.id, { now }), exported);
+    assert.deepEqual(await target.usage(profile.id), usage);
+  }
+});
+
+test("any sequence of writes leaves a profile that can be exported and restored, with exact usage", async () => {
+  const limits = { maxDataNames: 5, maxBytes: EXPORT_ENVELOPE_RESERVE + 160 };
+  for (let seed = 1; seed <= 25; seed += 1) {
+    let state = seed * 7919;
+    const random = (n) => (state = (state * 48271) % 2147483647) % n;
+    const backend = new MemoryBackend();
+    const store = await ProfileStore.open(backend, { limits });
+    const profile = await store.create("Mia", ["hilfe"]);
+    const model = new Map();
+    const values = [
+      () => null, () => random(1000) / 7, () => "x".repeat(random(70)), () => chr(0xe4, 0x20ac, 0x1f98a).repeat(random(8)),
+      () => Array.from({ length: random(12) }, () => random(100)), () => ({ [chr(0xe9)]: "q\"\\\n".repeat(random(5)), n: [{}] }),
+      () => String.fromCharCode(0xd800).repeat(random(4)),
+    ];
+    let accepted = 0;
+    let rejected = 0;
+    for (let step = 0; step < 60; step += 1) {
+      const name = `n${random(8)}`;
+      const before = backend.snapshot();
+      if (random(4) === 0) {
+        await store.data(profile.id).delete(name);
+        model.delete(name);
+      } else {
+        const value = values[random(values.length)]();
+        try {
+          await store.data(profile.id).set(name, value);
+          model.set(name, value);
+          accepted += 1;
+        } catch (error) {
+          assert.ok(error instanceof ProfileSizeError, String(error));
+          assert.deepEqual(backend.snapshot(), before, "a refused write changes nothing");
+          rejected += 1;
+        }
+      }
+      const data = Object.fromEntries([...model].sort(([a], [b]) => (a < b ? -1 : 1)));
+      const label = `seed ${seed}, step ${step}`;
+      const usage = await store.usage(profile.id);
+      assert.deepEqual({ names: usage.names, bytes: usage.bytes }, { names: model.size, bytes: countedBytes(data) }, label);
+      assert.deepEqual(backend.snapshot()[`profile/${profile.id}/usage`], { names: model.size, bytes: countedBytes(data) }, label);
+      assert.ok(usage.names <= limits.maxDataNames && usage.bytes <= 160, label);
+      const exported = await exportProfile(store, profile.id, { now });
+      assert.deepEqual(exported.data, data, label);
+      assert.ok(documentBytes(exported) <= limits.maxBytes, label);
+      if (step % 6 === 5) {
+        const target = await ProfileStore.open(new MemoryBackend(), { limits });
+        await importProfile(target, JSON.parse(JSON.stringify(exported)));
+        assert.deepEqual(await exportProfile(target, profile.id, { now }), exported, label);
+        assert.deepEqual(await target.usage(profile.id), usage, label);
+      }
+    }
+    assert.ok(accepted > 5 && rejected > 5, `seed ${seed}: ${accepted} accepted, ${rejected} rejected`);
+  }
 });

@@ -1,0 +1,47 @@
+{
+    "acceptance_criteria": [
+        "Any value that data(id).set accepts survives export and import unchanged, including a value at the maximum nesting depth; the depth limit is applied per data value in store, import and restore",
+        "An exportedAt value that is not a real calendar timestamp is rejected",
+        "cloneJson rejects objects with accessor properties, non-enumerable own properties and arrays with extra properties instead of dropping or evaluating them",
+        "restoreProfile validates its data argument itself; getActive never returns the id of a profile whose stored record is unreadable; a damaged entry with a malformed id segment can be removed",
+        "Display names are stored NFC-normalised and names with bidirectional or format control characters are rejected",
+        "An import larger than a documented limit on data names or total size is rejected without changing the store",
+        "docs/storage.md states that ProfileV1 carries a display name unlike the product contract section 3 shape, and that storing personal data awaits the caregiver decision of card NG-7"
+    ],
+    "acceptance_observations": [],
+    "approved_at": "2026-11-22T12:00:24+00:00",
+    "approved_by": "Lars Moelleken (delegated to Claude for this session)",
+    "base_commit": "6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa",
+    "behavior_anchors": [],
+    "created_at": "2026-11-22T12:00:24+00:00",
+    "goal": "Close the defects the NG-2 reviews found in src/profiles before anything stores real data: every export must be restorable, and input edge cases are rejected instead of altered",
+    "kind": "task_contract",
+    "non_goals": [
+        "The IndexedDB adapter, cross-tab coordination, export version 2, any user interface"
+    ],
+    "operating_prompt_manifest": null,
+    "operating_prompts": [],
+    "planned_by": "claude",
+    "rejected_at": null,
+    "rejected_by": null,
+    "rejection_reason": null,
+    "revision": 1,
+    "schema_version": "1.0",
+    "scope": [
+        "src/profiles/backend.ts",
+        "src/profiles/backup.ts",
+        "src/profiles/store.ts",
+        "src/profiles/profile.ts",
+        "test/profiles.test.mjs",
+        "test/profiles-backup.test.mjs",
+        "docs/storage.md"
+    ],
+    "status": "approved",
+    "tags": [],
+    "task_id": "NG-25",
+    "updated_at": "2026-11-22T12:00:24+00:00",
+    "validation": [
+        "npm ci --ignore-scripts",
+        "npm run verify"
+    ]
+}

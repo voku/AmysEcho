@@ -1,0 +1,14 @@
+{
+    "actor": "Lars Moelleken (delegated to Claude for this session)",
+    "attempt": 3,
+    "attention_id": "attention:34651a5b2cc7c1ec",
+    "contract_revision": 1,
+    "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+    "kind": "execution_attention_resolution",
+    "resolved_at": "2026-11-22T12:29:27+00:00",
+    "response": null,
+    "run_id": "run:NG-25:947884823683544c",
+    "schema_version": "1.0",
+    "stage_id": "correctness-review",
+    "task_id": "NG-25"
+}

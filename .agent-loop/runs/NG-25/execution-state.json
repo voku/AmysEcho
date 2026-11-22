@@ -1,0 +1,570 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+    "contract_revision": 1,
+    "current_attempt": 0,
+    "current_stage_id": null,
+    "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T12:00:25+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:00:25+00:00",
+                "artifact_references": [],
+                "candidate_revision": "6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:584a0a49",
+                "summary": "Located in the merged NG-2 code: backup.ts line 72 and store.ts line 226 clone the whole data dictionary (one nesting level more than the per-value clone in store.ts line 183), reproduced as depth 64 exporting but not importing; EXPORTED_AT_PATTERN plus Date.parse accepts 2026-02-31; cloneJson in backend.ts uses Object.entries; profile.ts validates display names without normalisation.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:07:46+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:07:46+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da8c56ccc6bcb694a03fc770feee55a0481ffd88",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da8c56ccc6bcb694a03fc770feee55a0481ffd88",
+                "context_id": "claude-subagent-ng2-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:d80bffba",
+                "summary": "All seven hardening items implemented with tests: per-value depth limit in set, import and restore; exportedAt must be a real UTC timestamp; cloneJson rejects accessors, hidden properties, symbol keys and decorated arrays; restoreProfile validates its data, getActive returns null for unreadable records, removeDamaged removes a damaged entry by exact segment; display names NFC-normalised with format characters rejected; import and export size limits; docs updated. npm run verify passes with 78 tests.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:12:00+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:12:00+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6857c8f5cc7f713922348cd41be8d1e3f7d1d3f8fecd4fe591a07d6c8a5831ee",
+                    "execution-evidence:sha256:d1baedd01a537b0218a16ffa760b8f754e51c178f3ef5fb57712bb1c5f934dfb",
+                    "execution-evidence:sha256:138f3739842bad117d61492a7770ef47fb35f01369d66ffebcd08055c89a7072",
+                    "execution-evidence:sha256:641ef9ad7bc0cee0470c4dd48f8bc7fa2cd690b5562ae8527db78a16f445a92c"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da8c56ccc6bcb694a03fc770feee55a0481ffd88",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6857c8f5cc7f713922348cd41be8d1e3f7d1d3f8fecd4fe591a07d6c8a5831ee",
+                    "execution-evidence:sha256:d1baedd01a537b0218a16ffa760b8f754e51c178f3ef5fb57712bb1c5f934dfb",
+                    "execution-evidence:sha256:138f3739842bad117d61492a7770ef47fb35f01369d66ffebcd08055c89a7072",
+                    "execution-evidence:sha256:641ef9ad7bc0cee0470c4dd48f8bc7fa2cd690b5562ae8527db78a16f445a92c"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da8c56ccc6bcb694a03fc770feee55a0481ffd88",
+                "context_id": "claude-subagent-ng25-correctness-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "changes_required",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:16739cc3",
+                "summary": "data(id).set in src/profiles/store.ts accepts values that exportProfile in src/profiles/backup.ts then refuses for size (one 64 MiB string, or 10,001 names), so a profile can silently become impossible to back up, while docs/storage.md and a store.ts comment claim anything set accepted can be exported. Blind-spot review adds: src/profiles/profile.ts rejects correctly spelled Persian and Indic names that need U+200C or U+200D, and docs/storage.md offers removeDamaged without saying that a record written by a newer app version is listed as damaged and that removal is unrecoverable. All other acceptance criteria passed under probes.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:18:56+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:18:56+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:52de1f6b375c3867a54ee3015823aa1f753828c7",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:52de1f6b375c3867a54ee3015823aa1f753828c7",
+                "context_id": "claude-subagent-ng25-build-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:2:722950c6",
+                "summary": "Second build: usage record enforces export limits at write, joiner rule for names, damaged kind, boundary hardening; npm run verify passes with 88 tests",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:23:05+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:23:05+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:998072288fb181961d938f0ed2d8998e27aa88378b20855a7336e68173f81c4f",
+                    "execution-evidence:sha256:b605065276b03482caa9d80240ca83a4d150c68f7e457ac4b79300e4576a804f",
+                    "execution-evidence:sha256:76352eec9f0fb3d73f8ea57ec767f6b1db57f0086bfa7313d9b70683b54ba47e",
+                    "execution-evidence:sha256:5db3681f8bae297c4054d2b61ba798c43f2642293cde5d42b13a103f175bb012"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:52de1f6b375c3867a54ee3015823aa1f753828c7",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:998072288fb181961d938f0ed2d8998e27aa88378b20855a7336e68173f81c4f",
+                    "execution-evidence:sha256:b605065276b03482caa9d80240ca83a4d150c68f7e457ac4b79300e4576a804f",
+                    "execution-evidence:sha256:76352eec9f0fb3d73f8ea57ec767f6b1db57f0086bfa7313d9b70683b54ba47e",
+                    "execution-evidence:sha256:5db3681f8bae297c4054d2b61ba798c43f2642293cde5d42b13a103f175bb012"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:52de1f6b375c3867a54ee3015823aa1f753828c7",
+                "context_id": "claude-subagent-ng25-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "changes_required",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:ea45d168",
+                "summary": "Usage record can drift with two stores on one backend (store.ts:346-358) and is trusted forever; docs and comments claim export can always succeed. Also untyped RangeError in set, no shrinking overwrite when over limit.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:26:02+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:26:02+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+                "context_id": "claude-subagent-ng25-build-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:01971cf0",
+                "summary": "Third build: usage() and export recount and repair the record, guarantee limited to one store instance, typed error for oversized values, shrinking writes allowed over the limit, NFC on read; verify passes with 90 tests",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:29:10+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:29:10+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:1d0373a3b3b08ed3df661ab1049b2f7bdfd69c782ab9774385cc27273a9b9526",
+                    "execution-evidence:sha256:21e57837df708ab994d79c68d3a8d0d034658223a62821a2b31a93d259be432b",
+                    "execution-evidence:sha256:8cd18c556a8020e45ad8ead4a7582d3eb1794dd90b084cf8afaed6d01328f3ac"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:1d0373a3b3b08ed3df661ab1049b2f7bdfd69c782ab9774385cc27273a9b9526",
+                    "execution-evidence:sha256:21e57837df708ab994d79c68d3a8d0d034658223a62821a2b31a93d259be432b",
+                    "execution-evidence:sha256:8cd18c556a8020e45ad8ead4a7582d3eb1794dd90b084cf8afaed6d01328f3ac"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:da7c064aec73fb3cf9e5d067ac30459f9179f3ce",
+                "context_id": "claude-subagent-ng25-correctness-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "changes_required",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:e146ee4b",
+                "summary": "readProfile's correcting usage write (store.ts:430,484-488) is unguarded, so export fails when storage refuses writes; backup.ts:32-34 still claims a store-written profile never hits ExportSizeError; a too-high record makes set refuse data that fits.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:30:50+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:30:50+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "context_id": "claude-subagent-ng25-build-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:31198e4d",
+                "summary": "Fourth build: correcting usage write is best-effort, set recounts before a size refusal, wording qualified; verify passes with 92 tests",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:32:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:32:59+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:6c27ec0e4e417d07d83f418dd59a91311672eea793b3036661c7c80abd2d18de",
+                    "execution-evidence:sha256:8e53f438fbd33dfd24049c498045de522a54ea39b159c5d90694a4defe9bc59a",
+                    "execution-evidence:sha256:a1fe939ad0deba3672e66ad632bf4a5e908d4b3a587a66e9918ac9f95362bcde",
+                    "execution-evidence:sha256:a375f864794bbdcfd9e7e973b50ec20829e81c13d33fa12754dee9e15399a60b",
+                    "execution-evidence:sha256:c60e19ac91a4ca21a37e031628990f6b3deaedf25da9b9f5c77fb77a2e1972c7",
+                    "execution-evidence:sha256:43be5b89bafc0d71f307d36ad4dcaba3e08deb0b891c0969962a24b60a993cfb",
+                    "execution-evidence:sha256:1efc09d6cb21ac2f79df3b4321012c7b4af838ed026ebc6c64abb784403ad2ae"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:6c27ec0e4e417d07d83f418dd59a91311672eea793b3036661c7c80abd2d18de",
+                    "execution-evidence:sha256:8e53f438fbd33dfd24049c498045de522a54ea39b159c5d90694a4defe9bc59a",
+                    "execution-evidence:sha256:a1fe939ad0deba3672e66ad632bf4a5e908d4b3a587a66e9918ac9f95362bcde",
+                    "execution-evidence:sha256:a375f864794bbdcfd9e7e973b50ec20829e81c13d33fa12754dee9e15399a60b",
+                    "execution-evidence:sha256:c60e19ac91a4ca21a37e031628990f6b3deaedf25da9b9f5c77fb77a2e1972c7",
+                    "execution-evidence:sha256:43be5b89bafc0d71f307d36ad4dcaba3e08deb0b891c0969962a24b60a993cfb",
+                    "execution-evidence:sha256:1efc09d6cb21ac2f79df3b4321012c7b4af838ed026ebc6c64abb784403ad2ae"
+                ],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "context_id": "claude-subagent-ng25-correctness-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "observations": [
+                    "backup.ts:82 and store.ts:25 say the usage record is corrected; it is only attempted",
+                    "docs/storage.md:165 and store.ts:112 'nothing changes' on a size refusal holds for data only; the usage record may be corrected",
+                    "store.ts:496 .catch does not cover a backend whose write throws synchronously; no shipped backend does",
+                    "test/profiles.test.mjs:1000 asserts a stale snapshot; no test asserts the accepted set path does no extra reads"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:4:a34d5e94",
+                "summary": "Pass: best-effort correction and recount-before-refusal verified by probes and a 300-round fuzz against an independent model; verify passes with 92 tests",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:33:26+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:33:26+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:baed81a48eb377e2cff5eb0bc2838090f8f30d681a95269180496fc8d25a5f55",
+                    "execution-evidence:sha256:0120935e5cc66125d73f602347f4a0f7db7d81e213c5fa1f2424e4fee67f39d4",
+                    "execution-evidence:sha256:4894ce22aa23d291692e330db7a0a1df5701bc91edde586c2adf076ac9cf96bf"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:baed81a48eb377e2cff5eb0bc2838090f8f30d681a95269180496fc8d25a5f55",
+                    "execution-evidence:sha256:0120935e5cc66125d73f602347f4a0f7db7d81e213c5fa1f2424e4fee67f39d4",
+                    "execution-evidence:sha256:4894ce22aa23d291692e330db7a0a1df5701bc91edde586c2adf076ac9cf96bf"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:bfb93cd77c0021edd1b094ef3b7e4c02d55dab1c",
+                "context_id": "claude-subagent-ng25-blindspot-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "changes_required",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:1:a33f01f3",
+                "summary": "docs/storage.md:204-205 promises importProfile accepts a raised-limit export with the same higher limits; restoreProfile checks the store's own limits (store.ts:455) and test/profiles-backup.test.mjs:405 asserts the refusal. Wording only; code fixes hold.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:33:46+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:33:46+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "context_id": "claude-main-ng25-build-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "completed",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "build",
+                "submission_id": "submission:build:5:93168f64",
+                "summary": "Fifth build: wording only in docs/storage.md and two doc comments; no behaviour change; verify passes with 92 tests",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:35:44+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:35:44+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:e517470347816b736ce6a005a3c6c87e824399c71c43730e8315a3e5cb682893",
+                    "execution-evidence:sha256:8d7ee3cee9042325bbd663e088b0d5bc5c3e00cac82b3a9c7a2ca8d3cca9a20e",
+                    "execution-evidence:sha256:e011d74e96786ee2429c82419ed5a0b23e288fdeeaba857c934c6bbe4ed5123a",
+                    "execution-evidence:sha256:726cc47e7f7d6fb15de64df6b5f736f6f643411752ad95b434a54faa58d92e92",
+                    "execution-evidence:sha256:61788bc4aa2f7afb718feebc04b0a807a549a0ae086e6dbeb63b081ebce67eea",
+                    "execution-evidence:sha256:1869b5094efea42011eabb847fa537b2e716f859857d32c088393c8ccff667ac",
+                    "execution-evidence:sha256:a5aa43e9d13a3c4137470c0865028284f42085a0cc3ce648980e0a9ed653ae3b"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:e517470347816b736ce6a005a3c6c87e824399c71c43730e8315a3e5cb682893",
+                    "execution-evidence:sha256:8d7ee3cee9042325bbd663e088b0d5bc5c3e00cac82b3a9c7a2ca8d3cca9a20e",
+                    "execution-evidence:sha256:e011d74e96786ee2429c82419ed5a0b23e288fdeeaba857c934c6bbe4ed5123a",
+                    "execution-evidence:sha256:726cc47e7f7d6fb15de64df6b5f736f6f643411752ad95b434a54faa58d92e92",
+                    "execution-evidence:sha256:61788bc4aa2f7afb718feebc04b0a807a549a0ae086e6dbeb63b081ebce67eea",
+                    "execution-evidence:sha256:1869b5094efea42011eabb847fa537b2e716f859857d32c088393c8ccff667ac",
+                    "execution-evidence:sha256:a5aa43e9d13a3c4137470c0865028284f42085a0cc3ce648980e0a9ed653ae3b"
+                ],
+                "attempt": 5,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "context_id": "claude-subagent-ng25-correctness-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "observations": [
+                    "docs/storage.md:168-170 and store.ts:114 'a refusal reads the whole profile' is exact only for data.set limit refusals",
+                    "store.ts:240 still says options.limits lowers the limits; docs now also describe raising them",
+                    "no test covers a failing correction write through a synchronously throwing backend"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:5:7fae105c",
+                "summary": "Pass: 771f466 changes comments and docs only; every changed statement checked against code and tests; verify passes with 92 tests. The reviewer's one finding (docs name card NG-22 for restoring raised-limit backups while the card did not say so) is resolved by recording that follow-up on the NG-22 card, as the reviewer offered.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:35:45+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:35:45+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:026fff4010bcc96ee4784650825f9095508fab9d7000922459056bf722a80689",
+                    "execution-evidence:sha256:c4c9838e01d2e8a85d2770787a56b6edf46535d11cfdc4f8ee9fa0dfc59b108c",
+                    "execution-evidence:sha256:af2c80d1a202a02ae31a46c1ea87069c8ccd134bc45246c4792acba2900dd2a0",
+                    "execution-evidence:sha256:af22d05b3f5d07db8a955140fb09a1ed2b542bdba68fc835f3478467c8a0e820",
+                    "execution-evidence:sha256:39cead93a0af9d714a6f0f9924be1ae323af7b70cc41e2eadc663b94186769c0",
+                    "execution-evidence:sha256:4693e30896d12bb6f4c189098eebcaeff292410884d8f6e4888525311052e88f",
+                    "execution-evidence:sha256:300ebcdfc037f6ec6d51221fba473548e6ca5adf9aa7a55872f2d5c8ac81b980"
+                ],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:026fff4010bcc96ee4784650825f9095508fab9d7000922459056bf722a80689",
+                    "execution-evidence:sha256:c4c9838e01d2e8a85d2770787a56b6edf46535d11cfdc4f8ee9fa0dfc59b108c",
+                    "execution-evidence:sha256:af2c80d1a202a02ae31a46c1ea87069c8ccd134bc45246c4792acba2900dd2a0",
+                    "execution-evidence:sha256:af22d05b3f5d07db8a955140fb09a1ed2b542bdba68fc835f3478467c8a0e820",
+                    "execution-evidence:sha256:39cead93a0af9d714a6f0f9924be1ae323af7b70cc41e2eadc663b94186769c0",
+                    "execution-evidence:sha256:4693e30896d12bb6f4c189098eebcaeff292410884d8f6e4888525311052e88f",
+                    "execution-evidence:sha256:300ebcdfc037f6ec6d51221fba473548e6ca5adf9aa7a55872f2d5c8ac81b980"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "context_id": "claude-subagent-ng25-blindspot-5",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "observations": [
+                    "backup.ts:49 ImportOptions.limits can only tighten, never raise; comment is imprecise",
+                    "follow-ups carried to cards NG-12, NG-13, NG-14, NG-19, NG-22"
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:2939689d",
+                "summary": "Pass: prior blocker resolved; no statement is stronger than code and tests support; raised-limit import, refusal wording and best-effort correction match store.ts and backup.ts.",
+                "task_id": "NG-25",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:36:01+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:36:01+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-25:947884823683544c",
+                "schema_version": "1.0",
+                "task_id": "NG-25",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:c5d887aea0d8b883f0c3c547199147cb24ecb8b33e194bcc9724a1efdefc4f10",
+                    "execution-evidence:sha256:04ebcd7f4c9d3518ab7b87c9037f13c08dd420376bd62c85d851498770d554d3"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:6d8b13d87d08634a5bdbcd1116d0ec1a855a1efa:af5bffd8346e0619e242e85df79efaaf529ea45e",
+                "consistency_references": [
+                    "execution-evidence:sha256:c6d7f631413802e208a96c6ecc39425ec645632727cd63fc940ec39d657480e9"
+                ],
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:f4c976fb3aecbf2ce36fa2cc8db1fea0ffd447adc5b2c6152361fe4139a0ea06",
+                "outcome": "pass",
+                "run_id": "run:NG-25:947884823683544c",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:9afbc96f5a3d791de206c7dd3fffe0ff93906ae6c68b8643b308c53e39202355",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-25: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-25 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-25:947884823683544c binds active Session 2026-11-22-ng-25-r1-92b5c3c9 to approved Contract revision 1\n[OK] sessions: 1 session(s) parsed, 1 active and consistent\n[OK] learning root: validated /home/user/AmysEcho/.agent-loop/learning (0 finding(s), 0 proposal(s), outcome/decision history parsed)\n[OK] task scope: NG-25 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run verify",
+                "task_id": "NG-25",
+                "validation_references": [
+                    "execution-evidence:sha256:c5d887aea0d8b883f0c3c547199147cb24ecb8b33e194bcc9724a1efdefc4f10",
+                    "execution-evidence:sha256:04ebcd7f4c9d3518ab7b87c9037f13c08dd420376bd62c85d851498770d554d3"
+                ]
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-25:947884823683544c",
+    "schema_version": "1.0",
+    "task_id": "NG-25"
+}
