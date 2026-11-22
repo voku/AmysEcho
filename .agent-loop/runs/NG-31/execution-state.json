@@ -1,9 +1,9 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:793b1dad99b398d1a1459a5692d0c1fc4b9d7fd3",
+    "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
     "contract_revision": 1,
     "current_attempt": 3,
-    "current_stage_id": "build",
+    "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -176,6 +176,38 @@
                 "stage_id": "correctness-review",
                 "submission_id": "submission:correctness-review:2:264fddec",
                 "summary": "caregiver.ts:667-671 the Entfernen guard is counted from the end of the write, not from the redraw, against docs/caregiver.md:233-235; caregiver.ts:794 a cancelled confirmation can still be confirmed before the redraw; blind-spot: a swallowed press does not restart the guard, so a third tap on Löschen at 360 px width deletes a profile",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T19:09:17+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T19:09:17+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:0b18af57cd8533ee6f729df58705fd08612dd8e6",
+                "context_id": "claude-subagent-ng31-build-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "completed",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "build",
+                "submission_id": "submission:build:3:5d73cf68",
+                "summary": "Third build: Endgültig löschen is a two-second hold and requires its confirmation to be the open one; Entfernen and Rückgängig guards counted from the redraw and restarted by a swallowed press with a wait message; errors survive scrolling; duplicate-name example; Escape on the document; tap probes in Chromium at seven sizes deleted nothing; verify passes with 391 tests",
                 "task_id": "NG-31",
                 "validation_references": []
             }
