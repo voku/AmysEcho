@@ -1,0 +1,80 @@
+{
+    "attention": null,
+    "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+    "contract_revision": 1,
+    "current_attempt": 1,
+    "current_stage_id": "correctness-review",
+    "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+    "history": [
+        {
+            "accepted_at": "2026-11-22T12:40:07+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:40:07+00:00",
+                "artifact_references": [],
+                "candidate_revision": "80594e7d97e9933850aa91f875f95e15602472ec",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "from_stage": "investigate",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "schema_version": "1.0",
+                "task_id": "NG-24",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "80594e7d97e9933850aa91f875f95e15602472ec",
+                "context_id": "claude-main-ng24-investigate",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "outcome": "completed",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "stage_id": "investigate",
+                "submission_id": "submission:investigate:1:97a8eeed",
+                "summary": "node --test exits 0 when the glob matches nothing; cards NG-6 and NG-7 are human-domain cards with manual validation; AGENTS.md managed block is lines 1-18",
+                "task_id": "NG-24",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T12:40:07+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T12:40:07+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "schema_version": "1.0",
+                "task_id": "NG-24",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:80594e7d97e9933850aa91f875f95e15602472ec:5cee9d028999fb14ecab9931894c575478288932",
+                "context_id": "claude-main-ng24-build-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:32314f162124c58cd933db8a4e0f78c3821ca21d8f5f2dea53fac09c026d2c1a",
+                "outcome": "completed",
+                "run_id": "run:NG-24:be3db0ed42f98fe6",
+                "stage_id": "build",
+                "submission_id": "submission:build:1:8af64e8a",
+                "summary": "scripts/run-tests.mjs replaces the bare glob and fails on zero files or zero passing tests; test/validation-gate.test.mjs covers the runner and the card rule; README and AGENTS.md updated; verify passes with 99 tests",
+                "task_id": "NG-24",
+                "validation_references": []
+            }
+        }
+    ],
+    "kind": "governed_execution_state",
+    "last_attention_id": null,
+    "recovery_history": [],
+    "run_id": "run:NG-24:be3db0ed42f98fe6",
+    "schema_version": "1.0",
+    "task_id": "NG-24"
+}
