@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
     "history": [
         {
@@ -66,6 +66,44 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:a03f157a",
                 "summary": "Rewording built: takeover view with label and sentence, reset in two steps, German refusals, no control for newer-app entries; 447 tests pass; Chromium probes at four sizes",
+                "task_id": "NG-33",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T21:46:14+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T21:46:14+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:c8c9f23380e21e5a93464f4c15138b38c48315abdb82711ca6bf02dd3b9f2201",
+                    "execution-evidence:sha256:fe67b2f1ce220b92a245ba518c70a8e09ad3f3e79c6510de47f923bbd6b1a71e"
+                ],
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-33:18a006734411e387",
+                "schema_version": "1.0",
+                "task_id": "NG-33",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:c8c9f23380e21e5a93464f4c15138b38c48315abdb82711ca6bf02dd3b9f2201",
+                    "execution-evidence:sha256:fe67b2f1ce220b92a245ba518c70a8e09ad3f3e79c6510de47f923bbd6b1a71e"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:4915794fdd5f6baa4e0e51f956fc68384072536a:6979f1bb3d1bdc1c912fe253bc41a49107d2e6ab",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:b26dbfa5d57202d2756534839fbf522e1a06025a5ec6c895af731650457e2f4c",
+                "outcome": "changes_required",
+                "run_id": "run:NG-33:18a006734411e387",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:1746f84a",
+                "summary": "A queued save or reset is not tied to the mode that asked for it and draft.busy is never cleared on success: reset then Escape still resets and leaves Speichern dead. Doc claims the fields stay open on an unsupported entry, true only for catalogue ids.",
                 "task_id": "NG-33",
                 "validation_references": []
             }
