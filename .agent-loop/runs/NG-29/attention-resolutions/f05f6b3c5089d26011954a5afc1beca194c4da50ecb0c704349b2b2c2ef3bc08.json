@@ -1,0 +1,14 @@
+{
+    "actor": "Lars Moelleken (delegated to Claude for this session)",
+    "attempt": 3,
+    "attention_id": "attention:a0828f63e0690285",
+    "contract_revision": 1,
+    "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+    "kind": "execution_attention_resolution",
+    "resolved_at": "2026-11-22T15:01:19+00:00",
+    "response": "Continue: remaining items are text only — the name notice follows the owner decision that first names are fine, one stale doc comment, and known gaps to document.",
+    "run_id": "run:NG-29:da89ee8418a74855",
+    "schema_version": "1.0",
+    "stage_id": "correctness-review",
+    "task_id": "NG-29"
+}

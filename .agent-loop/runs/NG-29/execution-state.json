@@ -1,8 +1,8 @@
 {
     "attention": null,
-    "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:ed20b16129b201d4b0b52944fdc2d2e81b0f17bb",
+    "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
     "contract_revision": 1,
-    "current_attempt": 3,
+    "current_attempt": 4,
     "current_stage_id": "correctness-review",
     "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
     "history": [
@@ -274,10 +274,82 @@
                 "task_id": "NG-29",
                 "validation_references": []
             }
+        },
+        {
+            "accepted_at": "2026-11-22T15:01:14+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T15:01:14+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:b1638b495b31d721721231ede833217433777634d2b8efd7fcc05dcdf2307ec9",
+                    "execution-evidence:sha256:b290bb283a1afd46372adf06c610464d3924648491f05dc3b253381515cd1c45",
+                    "execution-evidence:sha256:b91676035ba09852865eab12d38f497de7b76f3708035cf8dbf0c0707bb2e421"
+                ],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:ed20b16129b201d4b0b52944fdc2d2e81b0f17bb",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:b1638b495b31d721721231ede833217433777634d2b8efd7fcc05dcdf2307ec9",
+                    "execution-evidence:sha256:b290bb283a1afd46372adf06c610464d3924648491f05dc3b253381515cd1c45",
+                    "execution-evidence:sha256:b91676035ba09852865eab12d38f497de7b76f3708035cf8dbf0c0707bb2e421"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:ed20b16129b201d4b0b52944fdc2d2e81b0f17bb",
+                "context_id": "claude-subagent-ng29-correctness-3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "outcome": "changes_required",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:5a2b6512",
+                "summary": "caregiver.ts:729-732 with app.ts:118 a board shown at the bound is re-mounted under the child when the queued refresh answers later, undocumented; caregiver.ts:144-155 the close() comment describes the old bound behaviour; blind-spot: notice, docs and README forbid a real name against the owner decision on NG-7 that first names are fine",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T15:02:09+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T15:02:09+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "from_stage": "build",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "schema_version": "1.0",
+                "task_id": "NG-29",
+                "to_stage": "correctness-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 4,
+                "candidate_revision": "git-tree-v1:05947ccd08be83869530506228ec0503ce7a6b51:f9606f4e5fd4e229cd68f20f6c93a32b4cfb9bd2",
+                "context_id": "claude-main-ng29-build-4",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:826c5b8ebabbaefac0bcd58c522625c1b8253755aeb11b06cfa04e583e7f2897",
+                "outcome": "completed",
+                "run_id": "run:NG-29:da89ee8418a74855",
+                "stage_id": "build",
+                "submission_id": "submission:build:4:3437962f",
+                "summary": "Fourth build, text only: the name notice follows the owner decision that first names are fine and adds the missing backup and browser-eviction facts; close() comment matches the bound rule; docs and README record the decision, the late replacement of a board shown at the bound, and the by-this-page limit; cache name bumped; verify passes with 268 tests",
+                "task_id": "NG-29",
+                "validation_references": []
+            }
         }
     ],
     "kind": "governed_execution_state",
-    "last_attention_id": null,
+    "last_attention_id": "attention:a0828f63e0690285",
     "recovery_history": [],
     "run_id": "run:NG-29:da89ee8418a74855",
     "schema_version": "1.0",
