@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:793b1dad99b398d1a1459a5692d0c1fc4b9d7fd3",
     "contract_revision": 1,
-    "current_attempt": 2,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 3,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
     "history": [
         {
@@ -138,6 +138,44 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:2:b3ca276d",
                 "summary": "Second build: 800 ms guard on Endgültig löschen and on Entfernen after a removal with Abbrechen first, undo stack per visit, first-use focus and scroll to the editor, focus kept after a failed write, reveal under the sticky block and three-line status clamp, status cleared on action and scroll, duplicate names refused, Escape keeps typed text; double-tap probes in Chromium at five sizes; verify passes with 370 tests",
+                "task_id": "NG-31",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T18:18:29+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T18:18:29+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:87368c2c4a81bfdbc877d14cba069d9bd3af1646032882d2382f3c130fb54feb",
+                    "execution-evidence:sha256:7084ebc9aeca5ab155646a7c42298f3fa73e38d284c0bc61e14d0fb91a038e32"
+                ],
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:793b1dad99b398d1a1459a5692d0c1fc4b9d7fd3",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "schema_version": "1.0",
+                "task_id": "NG-31",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:87368c2c4a81bfdbc877d14cba069d9bd3af1646032882d2382f3c130fb54feb",
+                    "execution-evidence:sha256:7084ebc9aeca5ab155646a7c42298f3fa73e38d284c0bc61e14d0fb91a038e32"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:2634ee38c05443cd971db3cb441c0b8419938885:793b1dad99b398d1a1459a5692d0c1fc4b9d7fd3",
+                "context_id": "claude-subagent-ng31-correctness-2",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:61f231f1192a8c16aae6ec4b157c048dc50698a33906d6bb96ce41fc30420905",
+                "outcome": "changes_required",
+                "run_id": "run:NG-31:e21389d8d0abe454",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:2:264fddec",
+                "summary": "caregiver.ts:667-671 the Entfernen guard is counted from the end of the write, not from the redraw, against docs/caregiver.md:233-235; caregiver.ts:794 a cancelled confirmation can still be confirmed before the redraw; blind-spot: a swallowed press does not restart the guard, so a third tap on Löschen at 360 px width deletes a profile",
                 "task_id": "NG-31",
                 "validation_references": []
             }
