@@ -63,7 +63,12 @@ export type FallbackCause =
   | "timeout" | "timeout-kept" | "render-failed" | "refresh-timeout";
 
 /** What a board can be asked to show: a view from storage, or the examples for a cause that does not come from storage. */
-export type BoardView = StartupView | { readonly kind: "fallback"; readonly cause: "timeout" | "timeout-kept" | "render-failed" | "refresh-timeout" };
+export type BoardView = StartupView | {
+  readonly kind: "fallback";
+  readonly cause: "timeout" | "timeout-kept" | "render-failed" | "refresh-timeout";
+  /** Problems of the own board that is not shown ("timeout-kept"); traced like those of a profile view. */
+  readonly problems?: readonly BoardProblem[];
+};
 
 /**
  * A board problem that changes what the child sees. A custom concept under
@@ -227,7 +232,10 @@ export function runStartup(view: Promise<StartupView>, host: StartupHost, waitMs
       host.setData("startup", stateOf(resolved));
       host.setData("startupLate", "same-board");
     } else if (shown !== null && shown.hasSelection()) {
-      shown.restate({ kind: "fallback", cause: "timeout-kept" });
+      // The own board is not shown, but its problems are traced: this is when a caregiver is fetched.
+      shown.restate(resolved.kind === "profile"
+        ? { kind: "fallback", cause: "timeout-kept", problems: resolved.problems }
+        : { kind: "fallback", cause: "timeout-kept" });
       host.setData("startupLate", "kept");
     } else {
       mountStartupView(host, resolved);

@@ -133,6 +133,7 @@ export type BoardDataErrorKind =
   | "catalogue-collision"
   | "custom-concept"
   | "retired-concept"
+  | "unsupported-entry"
   | "catalogue-concept";
 
 /** Caregiver input was refused; nothing was written. `kind` says why. */
@@ -233,6 +234,13 @@ function inCatalogue(catalogue: readonly CatalogueConcept[], id: string): Catalo
   return catalogue.find((concept) => concept.id === id) ?? null;
 }
 
+/** An entry with a higher version was written by a newer app and may be intact: this version does not overwrite or delete it by rewording or clearing. */
+function refuseNewerEntry(stored: StoredEntry, id: string): void {
+  if (stored.state === "damaged" && stored.damage === "unsupported-version") {
+    throw new BoardDataError("unsupported-entry", `the entry for "${id}" was written by a newer app version and is left as it is`);
+  }
+}
+
 async function readStored(store: ProfileStore, profileId: string, conceptId: string): Promise<StoredEntry> {
   // An id this module could not have written has no entry; do not build a data name from it.
   if (!isBoardConceptId(conceptId)) return { state: "missing" };
@@ -308,10 +316,15 @@ export async function listCustomConcepts(store: ProfileStore, profileId: string)
  *   that is chosen (again) gets the wording of that moment. A copy of a
  *   concept that stays on the board is left alone, so reordering never
  *   changes a sentence;
- * - its entry is unreadable: choosing repairs it.
+ * - its entry is unreadable (damage "unreadable", not "unsupported-version")
+ *   and the concept is not on the board yet: choosing it repairs it.
  *
- * A caregiver's own wording (an entry without `copied`) and a custom concept
- * are never touched.
+ * Every other existing entry is left exactly as it is: a caregiver's own
+ * wording (an entry without `copied`), a custom concept, any entry of a
+ * concept that is already on the board, and any entry written by a newer app
+ * version. The last two keep being reported by `resolveBoard` when they
+ * cannot be read. So a call that only reorders a board whose concepts all
+ * have an entry writes `conceptIds` and nothing else.
  *
  * Every id must be a catalogue concept or have a readable entry in this
  * profile (a custom concept, or the stored wording of a concept the catalogue
@@ -343,9 +356,14 @@ export async function setBoardConcepts(store: ProfileStore, profileId: string, i
       if (stored.state !== "ok") throw new BoardDataError("unknown-concept", `"${id}" is not a catalogue concept and this profile has no readable entry for it`);
     } else if (isBoardConceptId(id)) {
       const wording = normalizeWording(known);
-      const stale = stored.state === "ok" && stored.copied && !onBoard.includes(id)
+      const newlyChosen = !onBoard.includes(id);
+      const stale = stored.state === "ok" && stored.copied && newlyChosen
         && (stored.wording.labelDe !== wording.labelDe || stored.wording.speechDe !== wording.speechDe);
-      if (stored.state !== "ok" || stale) copies.push({ id, wording });
+      // An entry this version cannot read is replaced only when it is plainly
+      // broken and the concept is being chosen now. One written by a newer
+      // app version may be a caregiver's intact wording and is never replaced.
+      const repair = stored.state === "damaged" && stored.damage === "unreadable" && newlyChosen;
+      if (stored.state === "missing" || stale || repair) copies.push({ id, wording });
     }
   }
   const data = store.data(profileId);
@@ -358,7 +376,9 @@ export async function setBoardConcepts(store: ProfileStore, profileId: string, i
  * other concept gets a caregiver's own wording (an entry without `copied`,
  * which choosing never refreshes). The id must be a catalogue
  * concept or have a readable entry in this profile; otherwise it is refused
- * with "unknown-concept". One store write.
+ * with "unknown-concept". An unreadable entry under a catalogue id is
+ * replaced: rewording is a deliberate act. An entry written by a newer app
+ * version is not ("unsupported-entry"). One store write.
  */
 export async function setWording(
   store: ProfileStore, profileId: string, conceptId: string, wording: { readonly labelDe: unknown; readonly speechDe: unknown },
@@ -367,6 +387,7 @@ export async function setWording(
   const id = requireConceptId(conceptId);
   const text = normalizeWording(wording);
   const stored = await readStored(store, profileId, id);
+  refuseNewerEntry(stored, id);
   const custom = stored.state === "ok" && stored.custom;
   if (stored.state !== "ok" && inCatalogue(catalogue, id) === null) {
     throw new BoardDataError("unknown-concept", `"${id}" is not a catalogue concept and this profile has no readable entry for it`);
@@ -380,8 +401,12 @@ export async function setWording(
  *
  * - A catalogue concept that is on the board gets the current catalogue
  *   wording stored again, marked as a copy, so the board keeps a stored wording.
- * - A catalogue concept that is not on the board, and an unreadable entry
- *   under any id, is deleted. Clearing what is not there is fine.
+ *   That holds for a readable and for an unreadable entry.
+ * - The entry of a catalogue concept that is not on the board is deleted,
+ *   readable or not, and so is an unreadable entry under an id the catalogue
+ *   does not have. Clearing what is not there is fine.
+ * - An entry written by a newer app version is refused ("unsupported-entry")
+ *   and stays as it is.
  * - A custom concept is refused ("custom-concept"), and so is the readable
  *   stored wording of a concept the catalogue has dropped ("retired-concept"):
  *   that wording is all there is of the concept. Use `removeCustomConcept`.
@@ -389,6 +414,7 @@ export async function setWording(
 export async function clearWording(store: ProfileStore, profileId: string, conceptId: string, catalogue: readonly CatalogueConcept[]): Promise<void> {
   const id = requireConceptId(conceptId);
   const stored = await readStored(store, profileId, id);
+  refuseNewerEntry(stored, id);
   if (stored.state === "ok" && stored.custom) throw new BoardDataError("custom-concept", `"${id}" is a custom concept; remove it instead of clearing its wording`);
   const known = inCatalogue(catalogue, id);
   if (known === null && stored.state === "ok") throw new BoardDataError("retired-concept", `"${id}" is no longer in the catalogue; its stored wording cannot be cleared, only removed`);
@@ -403,7 +429,8 @@ export async function clearWording(store: ProfileStore, profileId: string, conce
 /**
  * Creates or replaces a custom concept of this profile. The id must not be a
  * catalogue id ("catalogue-collision"). The concept is not put on the board;
- * add its id with `setBoardConcepts`. One store write.
+ * add its id with `setBoardConcepts`. An entry written by a newer app version
+ * is not replaced ("unsupported-entry"). One store write.
  */
 export async function putCustomConcept(
   store: ProfileStore, profileId: string, conceptId: string, wording: { readonly labelDe: unknown; readonly speechDe: unknown },
@@ -412,6 +439,7 @@ export async function putCustomConcept(
   const id = requireConceptId(conceptId);
   if (inCatalogue(catalogue, id) !== null) throw new BoardDataError("catalogue-collision", `"${id}" is a catalogue concept; choose another id`);
   const text = normalizeWording(wording);
+  refuseNewerEntry(await readStored(store, profileId, id), id);
   await store.data(profileId).set(dataName(id), { version: BOARD_ENTRY_VERSION, ...text, custom: true });
   return { id, ...text };
 }

@@ -746,7 +746,8 @@ test("setBoardConcepts: under an id the catalogue does not have, a readable entr
   const before = backend.snapshot();
   for (const refused of ["fehlt", "kaputt", "neuer"]) {
     await rejectsWith(setBoardConcepts(store, mia.id, ["hilfe", "ball", refused], CONCEPTS), "unknown-concept");
-    await rejectsWith(setWording(store, mia.id, refused, BALL, CONCEPTS), "unknown-concept");
+    // An entry of a newer app version is refused as such: it is not overwritten.
+    await rejectsWith(setWording(store, mia.id, refused, BALL, CONCEPTS), refused === "neuer" ? "unsupported-entry" : "unknown-concept");
   }
   // A refusal comes before the first write: "hilfe" was not copied either.
   assert.deepEqual(backend.snapshot(), before);
@@ -958,6 +959,12 @@ test("render: the fallback sentence of a board of examples can change in place; 
     assert.deepEqual(parts(root).notices, ["Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben."]);
     assert.equal("boardFallback" in root.dataset, false);
 
+    // A view that is a profile's own board cannot be shown by changing a sentence: nothing changes.
+    handle.restate({ ...MIA_VIEW, problems: [{ kind: "unknown-concept", conceptId: "einhorn" }] });
+    assert.deepEqual(parts(root).notices, ["Testoberfläche mit Beispielen. Die Begriffe sind noch nicht freigegeben."]);
+    assert.equal("boardProblems" in root.dataset, false);
+    assert.deepEqual(parts(root).labels, EXAMPLE_LABELS);
+
     // A handle of a board that has been replaced must not write into the new one.
     const own = mountBoard(root, MIA_VIEW);
     handle.restate({ kind: "damaged", count: 1 });
@@ -1094,6 +1101,21 @@ test("start: a late answer never replaces examples the child has already used; t
     assert.equal(mounts.length, 2);
     // The sentence that is being spoken is not cut off either.
     assert.equal(speech.cancelled, cancelled);
+    assert.equal(root.dataset.boardProblems, "0");
+  });
+  // The own board that is not shown has problems: they are traced all the same, since now a caregiver is fetched.
+  await withStartup(async ({ root, host, mounts, fireTimer, view, answer, now, warnings }) => {
+    const done = runStartup(view, host);
+    fireTimer();
+    now().buttons[0].click();
+    answer({ ...MIA_VIEW, problems: [{ kind: "unknown-concept", conceptId: "einhorn" }, { kind: "damaged-wording", conceptId: "hilfe", damage: "unsupported-version" }] });
+    await done;
+    assert.equal(root.dataset.startupLate, "kept");
+    assert.equal(now().fallback, "timeout-kept");
+    assert.deepEqual(now().labels, EXAMPLE_LABELS);
+    assert.equal(mounts.length, 2);
+    assert.equal(root.dataset.boardProblems, "2");
+    assert.deepEqual(warnings, ['Board problem: unknown-concept for concept "einhorn"', 'Board problem: damaged-wording for concept "hilfe" (unsupported-version)']);
   });
 });
 
@@ -1481,6 +1503,7 @@ test("app: a refresh that storage does not answer in time takes the previous boa
     await store.setActive(first.id);
     await app.refreshBoard();
     assert.deepEqual(now().labels, ["Ball"]);
+    assert.equal(timers.at(-1).cancelled, true, "an answered refresh leaves no timer running");
     const before = mounts.length;
 
     // The next read hangs. The refresh is bounded like start-up.
@@ -1497,7 +1520,7 @@ test("app: a refresh that storage does not answer in time takes the previous boa
     assert.deepEqual(now().labels, EXAMPLE_LABELS);
     assert.equal(now().fallback, "refresh-timeout");
     assert.equal(root.dataset.startup, "refresh-timeout");
-    assert.match(now().notices[0], /^Die Tafel konnte gerade nicht neu geladen werden\. Deshalb werden Beispiele gezeigt\./);
+    assert.match(now().notices[0], /^Die Tafel konnte gerade nicht neu geladen werden\. Deshalb werden Beispiele gezeigt\. Die eigene Tafel erscheint wieder, wenn die Seite neu geladen wird\.$/);
     assert.doesNotMatch(now().text, /Ball/);
     assert.equal(mounts.length, before + 1);
 
@@ -1641,17 +1664,74 @@ test("choosing a concept again refreshes a copy from the catalogue of that momen
   assert.equal((await resolveBoard(store, mia.id, CONCEPTS)).entries[3].speechDe, "Fertig!");
 });
 
-test("choosing replaces an unreadable entry under a catalogue id with a fresh copy", async () => {
-  const { store } = await openStore();
-  const mia = await store.create("Mia", ["hilfe", "mehr"]);
+test("choosing never overwrites an entry it cannot read, except a plainly unreadable one of a concept that is newly chosen", async () => {
+  const { backend, store } = await openStore();
+  // A board without entries for "mehr" and "fertig", so that only the entries under test exist.
+  const mia = await store.create("Mia", ["hilfe", "trinken", "mehr"]);
   const data = store.data(mia.id);
-  await data.set("concept.hilfe", { version: 1, labelDe: "", speechDe: "Leer." });
-  await data.set("concept.pause", { version: 7, labelDe: "Später", speechDe: "Von später." });
-  assert.deepEqual((await resolveBoard(store, mia.id, CONCEPTS)).problems, [{ kind: "damaged-wording", conceptId: "hilfe", damage: "unreadable" }]);
-  await setBoardConcepts(store, mia.id, ["hilfe", "mehr", "pause"], CONCEPTS);
-  assert.deepEqual(await data.get("concept.hilfe"), { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe.", copied: true });
-  assert.deepEqual(await data.get("concept.pause"), { version: 1, labelDe: "Pause", speechDe: "Ich brauche eine Pause.", copied: true });
-  const board = await resolveBoard(store, mia.id, CONCEPTS);
-  assert.deepEqual(board.problems, []);
-  assert.deepEqual(board.entries.map((entry) => entry.labelDe), ["Hilfe", "Mehr", "Pause"]);
+  const broken = { version: 1, labelDe: "", speechDe: "Leer." };
+  const newer = { version: 7, labelDe: "Später", speechDe: "Von einer neueren App.", extra: true };
+  await data.set("concept.hilfe", broken); // on the board, unreadable
+  await data.set("concept.trinken", newer); // on the board, newer version
+  await data.set("concept.mehr", { version: 1, labelDe: "Mehr", speechDe: "Ich möchte mehr.", copied: true });
+  await data.set("concept.pause", broken); // off the board, unreadable
+  await data.set("concept.fertig", newer); // off the board, newer version
+  const problemsOnBoard = [
+    { kind: "damaged-wording", conceptId: "hilfe", damage: "unreadable" },
+    { kind: "damaged-wording", conceptId: "trinken", damage: "unsupported-version" },
+  ];
+  const dataOf = () => Object.fromEntries(Object.entries(backend.snapshot()).filter(([key]) => key.includes("/data/")));
+  const before = dataOf();
+
+  // A pure reorder: one write, the concept ids. A second write would fail here.
+  backend.failWrite(2);
+  await setBoardConcepts(store, mia.id, ["mehr", "trinken", "hilfe"], CONCEPTS);
+  assert.deepEqual(dataOf(), before);
+  assert.deepEqual((await resolveBoard(store, mia.id, CONCEPTS)).problems, [problemsOnBoard[1], problemsOnBoard[0]]);
+
+  // Newly choosing a concept whose entry a newer app wrote: the entry stays, the problem is reported.
+  // Again one write only; the concepts already on the board keep their entries and their problems.
+  backend.failWrite(2);
+  await setBoardConcepts(store, mia.id, ["hilfe", "trinken", "mehr", "fertig"], CONCEPTS);
+  assert.deepEqual(dataOf(), before);
+  const withNewer = await resolveBoard(store, mia.id, CONCEPTS);
+  assert.deepEqual(withNewer.problems, [...problemsOnBoard, { kind: "damaged-wording", conceptId: "fertig", damage: "unsupported-version" }]);
+  assert.equal(withNewer.entries[3].speechDe, "Ich bin fertig.");
+
+  // Newly choosing a concept whose entry is plainly unreadable repairs that one entry and nothing else.
+  backend.failWrite(0); // disarm
+  await setBoardConcepts(store, mia.id, ["hilfe", "trinken", "mehr", "fertig", "pause"], CONCEPTS);
+  const repaired = { ...before, [`profile/${mia.id}/data/concept.pause`]: { version: 1, labelDe: "Pause", speechDe: "Ich brauche eine Pause.", copied: true } };
+  assert.deepEqual(dataOf(), repaired);
+  assert.deepEqual((await resolveBoard(store, mia.id, CONCEPTS)).problems, [...problemsOnBoard, { kind: "damaged-wording", conceptId: "fertig", damage: "unsupported-version" }]);
 });
+
+test("an entry written by a newer app version is not overwritten or deleted by rewording, clearing or a custom concept of the same id", async () => {
+  const { backend, store } = await openStore();
+  const mia = await store.create("Mia", ["hilfe"]);
+  const data = store.data(mia.id);
+  const newer = { version: 7, labelDe: "Später", speechDe: "Von einer neueren App.", extra: true };
+  await data.set("concept.hilfe", newer); // catalogue id, on the board
+  await data.set("concept.mehr", newer); // catalogue id, off the board
+  await data.set("concept.einhorn", newer); // not a catalogue id
+  const before = backend.snapshot();
+  for (const id of ["hilfe", "mehr", "einhorn"]) {
+    await rejectsWith(setWording(store, mia.id, id, BALL, CONCEPTS), "unsupported-entry");
+    await rejectsWith(clearWording(store, mia.id, id, CONCEPTS), "unsupported-entry");
+  }
+  await rejectsWith(putCustomConcept(store, mia.id, "einhorn", BALL, CONCEPTS), "unsupported-entry");
+  assert.deepEqual(backend.snapshot(), before);
+
+  // A plainly unreadable entry may be replaced by these deliberate actions.
+  const broken = { version: 1, labelDe: "", speechDe: "Leer." };
+  await data.set("concept.hilfe", broken);
+  await setWording(store, mia.id, "hilfe", { labelDe: "Hilf mir", speechDe: "Bitte hilf mir." }, CONCEPTS);
+  assert.deepEqual(await data.get("concept.hilfe"), { version: 1, labelDe: "Hilf mir", speechDe: "Bitte hilf mir." });
+  await data.set("concept.hilfe", broken);
+  await clearWording(store, mia.id, "hilfe", CONCEPTS); // on the board: re-copied
+  assert.deepEqual(await data.get("concept.hilfe"), { version: 1, labelDe: "Hilfe", speechDe: "Ich brauche Hilfe.", copied: true });
+  await data.set("concept.mehr", broken);
+  await clearWording(store, mia.id, "mehr", CONCEPTS); // off the board: deleted
+  assert.equal(await data.get("concept.mehr"), undefined);
+});
+

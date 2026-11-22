@@ -30,7 +30,7 @@ const FALLBACK_LINES: Record<FallbackCause, string> = {
   "timeout": "Das Laden dauert gerade länger. Deshalb werden Beispiele gezeigt.",
   "timeout-kept": "Hier werden noch Beispiele gezeigt. Die eigene Tafel ist bereit und erscheint, wenn die Seite neu geladen wird.",
   "render-failed": "Die eigene Tafel kann gerade nicht angezeigt werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
-  "refresh-timeout": "Die Tafel konnte gerade nicht neu geladen werden. Deshalb werden Beispiele gezeigt. Bitte gib einer Bezugsperson Bescheid.",
+  "refresh-timeout": "Die Tafel konnte gerade nicht neu geladen werden. Deshalb werden Beispiele gezeigt. Die eigene Tafel erscheint wieder, wenn die Seite neu geladen wird.",
 };
 
 function fallbackLine(cause: FallbackCause | null): string {
@@ -54,17 +54,18 @@ function cancelRunningSpeech(): void {
 
 /**
  * Leaves a trace of board problems for the caregiver: the count on the region
- * (`data-board-problems`, absent when the view is not a profile's board) and one
+ * (`data-board-problems`, absent when the view carries no problem list) and one
  * console line per problem with its kind and concept id. No wording and no
  * profile name is logged.
  */
 function reportProblems(root: HTMLElement, view: BoardView): void {
-  if (view.kind !== "profile") {
+  const problems = view.kind === "profile" || view.kind === "fallback" ? view.problems : undefined;
+  if (problems === undefined) {
     delete root.dataset["boardProblems"];
     return;
   }
-  root.dataset["boardProblems"] = String(view.problems.length);
-  for (const problem of view.problems) {
+  root.dataset["boardProblems"] = String(problems.length);
+  for (const problem of problems) {
     console.warn(`Board problem: ${problem.kind} for concept "${problem.conceptId}"${problem.damage === undefined ? "" : ` (${problem.damage})`}`);
   }
 }

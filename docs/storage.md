@@ -169,7 +169,9 @@ An entry has exactly one of these three key sets. Anything else reads as unreada
   the entry unreadable.
 - The board reads a copy and a caregiver's wording the same way. The marker exists so that copies
   can be found and refreshed without touching what a caregiver wrote: when a concept is chosen
-  again (below), for a later fix of a catalogue typo, or to reverse the copy decision.
+  again (below), for a later fix of a catalogue typo, or to reverse the copy decision. One limit
+  for the last two uses: under an id the current catalogue no longer has, a copy is all that is
+  left of the tile. It cannot be refreshed, and removing it removes the tile.
 - No released app version has written a profile, so there are no entries from before the marker.
 - A custom concept exists as soon as its entry is stored. It is on the board only when its id is in
   `conceptIds`.
@@ -221,29 +223,44 @@ All writes validate first and store nothing when they refuse. A refusal by this 
 | Function | Does | Store writes |
 | --- | --- | --- |
 | `setBoardConcepts(store, id, ids, catalogue)` | Sets the board and its order, and stores a copy of the catalogue wording where one is due (below). Every id must be a catalogue concept or have a readable entry in this profile (custom or retired); no duplicates. | one per wording to store, then 1 |
-| `setWording(store, id, conceptId, wording, catalogue)` | Rewords a catalogue concept, a custom concept (it stays custom) or a retired concept. The result is a caregiver's wording, without `copied`. | 1 |
-| `clearWording(store, id, conceptId, catalogue)` | For a catalogue concept on the board: stores the current catalogue wording again, as a copy. For one that is not on the board, and for an unreadable entry: deletes the entry. Refuses a custom concept (`custom-concept`) and a readable retired one (`retired-concept`). | 1 |
-| `putCustomConcept(store, id, conceptId, wording, catalogue)` | Creates or replaces a custom concept. Does not put it on the board. | 1 |
+| `setWording(store, id, conceptId, wording, catalogue)` | Rewords a catalogue concept, a custom concept (it stays custom) or a retired concept. The result is a caregiver's wording, without `copied`. Replaces an unreadable entry under a catalogue id. Refuses an entry written by a newer app version (`unsupported-entry`). | 1 |
+| `clearWording(store, id, conceptId, catalogue)` | For a catalogue concept on the board: stores the current catalogue wording again, as a copy, whether the entry was readable or unreadable. For a catalogue concept that is not on the board: deletes the entry, readable or unreadable. Under an id the catalogue does not have: deletes an unreadable entry. Refuses a custom concept (`custom-concept`), a readable retired one (`retired-concept`) and an entry written by a newer app version (`unsupported-entry`). | 1 |
+| `putCustomConcept(store, id, conceptId, wording, catalogue)` | Creates or replaces a custom concept. Does not put it on the board. Refuses to replace an entry written by a newer app version (`unsupported-entry`). | 1 |
 | `removeCustomConcept(store, id, conceptId, catalogue)` | Takes a custom or retired concept off the board and deletes its entry. Also clears an unreadable or missing entry, but only under an id that is not in the catalogue. | 2 |
 | `listCustomConcepts(store, id)` | Read only: the profile's custom concepts (not the retired ones), and the ids of unreadable entries. | 0 |
 
-When `setBoardConcepts` stores a copy for a chosen catalogue concept:
+When `setBoardConcepts` stores a copy for a chosen catalogue concept. "Newly chosen" means: in
+the list of this call and not on the board when the call starts.
 
-- The profile has no entry for it.
-- Its entry is a copy and the concept is not on the board at the time of the call. So a concept
-  that is taken off the board and chosen again later gets the wording of the moment it is chosen
-  again. A copy of a concept that stays on the board is not touched: reordering, or adding another
-  concept, never changes a sentence that is on the board.
-- Its entry is unreadable. Choosing repairs it. (Until then such a concept shows the current
-  catalogue wording with a `damaged-wording` problem.)
+| Entry in the profile | Concept already on the board | Concept newly chosen |
+| --- | --- | --- |
+| none | copy stored | copy stored |
+| a copy (`copied: true`) | left as it is | refreshed when the catalogue wording differs |
+| a caregiver's wording, or a custom concept | left as it is | left as it is |
+| unreadable, damage `unreadable` | left as it is; still reported | replaced by a copy (repair) |
+| unreadable, damage `unsupported-version` | left as it is; still reported | left as it is; still reported |
 
-A caregiver's own wording and a custom concept are never overwritten by choosing. When nothing is
-due, a call writes the concept ids only.
+- So a concept that is taken off the board and chosen again later gets the wording of the moment
+  it is chosen again, unless a caregiver worded it.
+- No existing entry of a concept that is already on the board is ever written by this function.
+  Reordering, or adding another concept, changes no stored sentence and removes no problem report.
+- The one case in which a concept on the board gets an entry is the first row: a board from before
+  wording was copied (or made with `store.create` / `store.setConceptIds`) has none, and the first
+  call stores the wording it shows. A call that only reorders a board whose concepts all have an
+  entry writes the concept ids and nothing else.
+- An entry with a higher `version` was written by a newer app and may be a caregiver's intact
+  wording. No function here overwrites it, and only `removeCustomConcept` (under an id that is not
+  in the catalogue) and `store.data(id).delete` delete it. The concept shows the current catalogue
+  wording with a `damaged-wording` problem, or is left off under a non-catalogue id, until an app
+  version that can read the entry runs.
+- An unreadable entry of a concept on the board is replaced only by a deliberate act: `setWording`
+  or `clearWording`.
 
 Cleaning up unreadable entries:
 
-- Under a catalogue id: `clearWording`. `removeCustomConcept` refuses such an id
-  (`catalogue-concept`) unless the entry is a readable custom concept.
+- Under a catalogue id: `clearWording` (on the board the entry is replaced by a copy, off the
+  board it is deleted; an entry of a newer app version is refused). `removeCustomConcept` refuses
+  such an id (`catalogue-concept`) unless the entry is a readable custom concept.
 - Under an id that is not in the catalogue: `removeCustomConcept`.
 - An entry whose name is `concept.` followed by something that is not a valid concept id (listed in
   `unreadableIds`) cannot be addressed by this module. Only `store.data(id).delete(name)` removes it.
@@ -341,8 +358,10 @@ The controller owns the page's one `ProfileStore`:
   stops running speech. Calls are carried out one after another in call order, each after start-up
   has finished; the last one decides what is shown.
 - A refresh is bounded like start-up (`waitMs`, default `STARTUP_WAIT_MS`). If storage has not
-  answered by then, the board is replaced by the examples with the `refresh-timeout` sentence
-  (`data-startup="refresh-timeout"`) and the call resolves. The previous board does not stay: on a
+  answered by then, the board is replaced by the examples with the `refresh-timeout` sentence,
+  which also says that the own board appears again when the page is loaded again
+  (`data-startup="refresh-timeout"`), and the call resolves. This swaps a correct own board for
+  the examples too, when the profile did not change and storage was only slow. The previous board does not stay: on a
   shared device it may be the board of a child who is no longer the active profile. The answer of a
   refresh that ran into the bound is dropped, so it cannot replace a board mounted since. Nothing
   re-mounts by itself afterwards; the next `refreshBoard()` reads again. While storage still hangs,
@@ -411,7 +430,8 @@ The sequence (`runStartup` in `src/startup.ts`, run by `createApp`):
    - The view is a profile's own board and no concept has been chosen yet: the board is replaced
      (`data-startup-late="replaced"`, `data-startup="profile"`).
    - The view is a profile's own board and the child has already chosen something: the examples
-     stay, with the `timeout-kept` sentence saying that the own board appears when the page is
+     stay and the own board's problems are traced (`data-board-problems`, console lines), with
+     the `timeout-kept` sentence saying that the own board appears when the page is
      loaded again (`data-startup-late="kept"`, `data-startup` stays `demo-timeout`). So a child
      with a profile on a slow device can be left on the examples for that session.
 5. If a view cannot be drawn, the examples are shown with the `render-failed` sentence
@@ -447,6 +467,11 @@ or for a board that was replaced, is ignored.
      examples first, and keeps them for the session after tapping one (`timeout-kept`).
    - The dashed frame, the tint and the "Beispiele" badge are the only non-text difference.
 
+   What the alternative costs: with a message and no buttons a child cannot say anything in
+   those states, also not "Hilfe", until a caregiver has repaired the device. That is against the
+   principle "The board always works" in `README.md`. With the examples the child can say
+   something, at the price of the look-alike tiles described above.
+
    To reverse (a message without buttons for some or all causes):
    - `mountBoard` in `src/board.ts`: for those causes render heading and sentence only, and
      return a handle whose `hasSelection()` is false; adjust `FALLBACK_LINES`.
@@ -465,11 +490,19 @@ or for a board that was replaced, is ignored.
      them changes and its problems are traced"; "render: nothing that identifies the child is in
      the board region, neither as text nor in an attribute" (it taps a tile in each view); and in
      `test/bootstrap.test.mjs` "built UI starts in the board region only and remains usable
-     without TTS/network/camera/storage".
+     without TTS/network/camera/storage". If `refresh-timeout` is among the reversed causes, also
+     "app: a refresh that storage does not answer in time takes the previous board off the screen,
+     does not block later refreshes, and its late answer is dropped" and "app: a read that fails
+     during refreshBoard is reported and shows the examples with the storage sentence; the next
+     refresh recovers".
+   - Text to update: the status paragraph in `README.md` and the table under "What the board
+     shows" in this file.
 2. **Wording is copied into the profile when a concept is chosen.** To reverse: remove the copy
    loop in `setBoardConcepts` and let `clearWording` delete the entry for a board concept
    (`src/board-data.ts`). Entries already stored keep overriding the catalogue; the ones to remove
-   are exactly those with `copied: true`. Entries without the marker are caregiver wording and stay.
+   are those with `copied: true` under an id the current catalogue has. A copy under an id the
+   catalogue no longer has is all that is left of that tile and must stay, or the tile is lost.
+   Entries without the marker are caregiver wording and stay.
 3. **The display name is not shown on the board.** To reverse: add a line with `view.displayName` to
    the profile branch of `mountBoard`.
 
@@ -487,6 +520,15 @@ or for a board that was replaced, is ignored.
   stored label and sentence under the new picture.
 - A copy that is on a board is never refreshed by itself, so a catalogue typo that was copied stays
   on that board. The `copied` marker makes such entries findable; nothing refreshes them yet.
+- For card NG-14: the frame of the examples board costs a column on narrow screens. Calculated
+  from the grid rule (140 px minimum tile width, 0.8 rem gap, 1 rem page padding, and 1 rem padding
+  plus a 6 px border for the frame), not rendered: at 360 px width the examples show one column
+  where an own board shows two, at 480 px two where an own board shows three.
+- For card NG-13: reading a board costs sequential backend reads, two per concept plus three (83
+  for a board of 40 concepts), at start-up and on every refresh. The 1.5 s bound is unmeasured, so
+  on a slow device it may fire on every profile switch and show the examples instead of the new
+  board. The caregiver area must offer a retry, or the app must accept a late answer when no newer
+  refresh has started.
 - After a refresh ran into its bound, the examples stay until the next `refreshBoard()`. Whether
   the app should try again by itself is not decided.
 
