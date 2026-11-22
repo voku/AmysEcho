@@ -248,7 +248,7 @@ const afterDamagedLine = (count: number): string => (count === 1
 const NAME_TAKEN = "Diesen Namen gibt es schon. Bitte wähle einen anderen";
 const PLEASE_WAIT = "Bitte kurz warten.";
 const DELETE_HOLD_HINT = `Zum Löschen ${DELETE_HOLD_MS / 1000} Sekunden gedrückt halten.`;
-const RELEASE_TO_DELETE = "Loslassen zum Löschen.";
+const RELEASE_TO_DELETE = "Loslassen zum Löschen. Zum Abbrechen den Finger wegziehen.";
 const DELETING = "Wird gelöscht …";
 const AFTER_NONE_ACTIVE = `${AFTER_CLOSE} Beispiele – es ist keine Tafel aktiv.`;
 const AFTER_ACTIVE_EMPTY = `${AFTER_CLOSE} Beispiele – die aktive Tafel hat noch keinen Begriff.`;
@@ -334,6 +334,7 @@ const isHoldKey = (key: string): boolean => key === "Enter" || key === " " || ke
 
 /** A button that has to be held. `cancel` ends a hold that is running, or one that is complete and waits for the release. */
 interface HeldButton {
+  readonly control: HTMLElement;
   cancel(): void;
 }
 
@@ -510,7 +511,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   let createDraft = "";
   /** True from a press that retires the message until the redraw for that press: the text keeps its place meanwhile. */
   let statusStale = false;
-  const now = options.now ?? (() => Date.now());
+  // Monotonic where the platform has it: a wall clock that is set back would leave every button dead until it caught up.
+  const now = options.now ?? (typeof performance !== "undefined" && typeof performance.now === "function" ? () => performance.now() : () => Date.now());
   /** When what is on screen was last put there or moved: a swap of the body, of the undo button, or a change of the status line. */
   let swappedAt = Number.NEGATIVE_INFINITY;
   const markSwap = (): void => {
@@ -681,7 +683,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     control.addEventListener("keyup", (event) => {
       if (isHoldKey(event.key)) finish(`key:${event.key}`);
     });
-    return { cancel: abort };
+    return { control, cancel: abort };
   };
 
   /** What every press of a button starts with: the earlier message goes, and so does an open rename field or confirmation unless the press belongs to it. */
@@ -1539,10 +1541,15 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
             attempt += 1;
             const thisAttempt = attempt;
             line.textContent = BOARD_LOADING;
+            // The line changes its height, and with it the place of the button.
+            markSwap();
             // Any refresh asked for now reads what is stored now, so its answer may show the board.
             void within(refreshBoard(), CLOSE_WAIT_MS).then((answer) => {
               if (answer !== TIMED_OUT) showBoard();
-              else if (mine === closingNo && away === "stalled" && thisAttempt === attempt) line.textContent = NO_BOARD_YET;
+              else if (mine === closingNo && away === "stalled" && thisAttempt === attempt) {
+                line.textContent = NO_BOARD_YET;
+                markSwap();
+              }
             });
           });
           caregiverRegion.replaceChildren(line, retry);
@@ -1589,6 +1596,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (pointerPresses.size > 32) pointerPresses.clear();
     if (typeof event.pointerId === "number") pointerPresses.set(event.pointerId, at);
     lastPointerPress = at;
+    // A second finger anywhere else is the way to back out of a hold: it ends every hold but one on the button it lands on.
+    for (const held of bodyHolds) if (event.target !== held.control) held.cancel();
   }, true);
   caregiverRegion.addEventListener("keydown", (event) => {
     if (!isHoldKey(event.key)) return;
@@ -1602,6 +1611,9 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     if (isHoldKey(event.key) && keyPress !== null) keyPress.upAt = now();
   }, true);
   caregiverRegion.addEventListener("click", (event) => {
+    // The summaries only fold and unfold text: nothing is lost by a press that was not aimed.
+    const target = event.target as Partial<Element> | null;
+    if (String(target?.tagName ?? "").toLowerCase() === "summary" || (typeof target?.closest === "function" && target.closest("summary") !== null)) return;
     const at = now();
     const id = (event as Partial<PointerEvent>).pointerId;
     const byPointer = typeof id === "number" ? id >= 0 : event.detail > 0;

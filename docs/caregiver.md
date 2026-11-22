@@ -148,7 +148,9 @@ at what was there before. Four rules keep such a press from acting on something 
 
 - **A. The press shield.** The area notes when content was last put on screen or moved (every
   swap of the body, a new or removed undo button, a change of the status line, the lines shown
-  while and after closing). A click counts only if its press began at least `SHIELD_GRACE_MS`
+  while and after closing, also each time the line of the state without a board changes). The
+  time is monotonic (`performance.now()`, the wall clock only where that is missing), so a clock
+  that is set back does not leave the buttons dead. A click counts only if its press began at least `SHIELD_GRACE_MS`
   (300 ms) after that: for a pointer the moment it went down, for a key the first key-down (a
   repeat is not a new press; Space clicks on the key-up and is judged by its key-down), for a
   click without a press of its own (assistive technology) the moment it arrives. A pointer whose
@@ -266,7 +268,7 @@ later taps of someone tapping on one spot. So the button works like the opening 
 (`heldButton`, `createHold`, the injected timer): it has no `click` handler and has to be pressed
 and held for `DELETE_HOLD_MS` (2 seconds), with a pointer or with Enter or Space. While holding,
 a progress bar fills and the line counts down ("Weiter halten … 2"). When the time is up the line
-says "Loslassen zum Löschen." and nothing happens yet: the profile is deleted when the finger, or
+says "Loslassen zum Löschen. Zum Abbrechen den Finger wegziehen." and nothing happens yet: the profile is deleted when the finger, or
 the key, is let go **on the button**. That way the redraw after the delete never happens under a
 finger that is down, and its lift cannot press what the redraw put there. A tap, in any number
 and rhythm, shows the line and deletes nothing.
@@ -277,6 +279,11 @@ and rhythm, shows the line and deletes nothing.
   the release of the key that started it counts.
 - "Abbrechen", Escape, any other action, a redraw that replaces the button (rule B) and the area
   closing (also by itself, on a hidden page) end it as well.
+- So does a second finger: any pointer that goes down in the area on something other than the
+  held button ends the hold, also a completed one, and the first finger's lift then deletes
+  nothing. If that second finger taps "Abbrechen", the confirmation is left as by any tap.
+- On a screen narrower than 640 px the line under the button keeps room for three lines, so the
+  button does not move (and end the hold by rule C) when the countdown replaces the instruction.
 - A hold does not start while the confirmation has only just appeared (rule A).
 - The delete is carried out only if the confirmation for that profile is the open one when the
   button is let go, and still is when the queued delete starts: one that waited behind a slow
@@ -537,6 +544,16 @@ countdown. None of this was checked with assistive technology.
 - While removals are stacked, the undo row makes the block at the top one row taller.
 - Scrolling by keyboard or by dragging a scroll bar does not clear the status line.
 - Not tried on a touch screen with a finger, and not with a caregiver.
+- A confirmed delete that still waits behind a slow write is dropped without a message when the
+  area closes first ("Fertig", a hidden page, the idle close); the profile stays.
+- How the shield tells a pointer click from a key click or one from assistive technology was
+  checked in Chromium only.
+- Enter and Space share one key-press slot in the shield.
+- Enlarged text was looked at for the delete confirmation only, up to 130 %. With text at about
+  200 % the block at the top can take the whole screen, and the line under the opening control
+  can make its row grow while holding; both untested.
+- After "Bitte kurz warten." ends, the line changes, and presses are ignored for the grace time
+  of the shield without a word.
 - At 320 to 390 px width the three buttons of a board row do not fit one line; "Entfernen" wraps
   under the two move buttons.
 - The catalogue has a concept labelled "Fertig", and the button that closes is "Fertig" too. The

@@ -3637,7 +3637,7 @@ function tap(control, clock, heldMs = 60) {
   control.dispatch("pointerup");
   control.click();
 }
-const RELEASE_TO_DELETE = "Loslassen zum Löschen.";
+const RELEASE_TO_DELETE = "Loslassen zum Löschen. Zum Abbrechen den Finger wegziehen.";
 
 for (const [what, gaps] of [
   ["three taps at 0, 400 and 900 ms", [400, 500]],
@@ -4714,6 +4714,23 @@ test("shield: 'Tafel neu laden' in the state without a board has only just appea
     retry.click();
     await turn();
     assert.equal(refresh.calls, 2);
+    // The line became short ("wird geladen"), and long again when that attempt ran into its bound: both move the button.
+    wall.t += SHIELD_GRACE_MS - 1;
+    retry.click();
+    await turn();
+    assert.equal(refresh.calls, 2, "pressed too soon after the line changed");
+    wall.t += CLOSE_WAIT_MS;
+    area.clock.advance(CLOSE_WAIT_MS);
+    await turn();
+    assert.equal(caregiverRegion.children[0].textContent, NO_BOARD_YET);
+    wall.t += SHIELD_GRACE_MS - 1;
+    retry.click();
+    await turn();
+    assert.equal(refresh.calls, 2, "pressed too soon after the line came back");
+    wall.t += 1;
+    retry.click();
+    await turn();
+    assert.equal(refresh.calls, 3);
   }, { now: wall.now, open: false });
 });
 
@@ -4737,4 +4754,140 @@ test("delete: a completed hold deletes only the profile whose confirmation is th
     assert.deepEqual(await names(), ["Ben", "Mia"]);
     assert.deepEqual(confirmation().texts.slice(0, 1), ["Profil „Mia“ löschen?"]);
   });
+});
+
+// --- Fifth round ---
+
+for (const stage of ["under way", "complete and waits for the release"]) {
+  test(`delete: a second finger that goes down anywhere else ends a hold that is ${stage}; the first finger's lift deletes nothing`, async () => {
+    await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation, clock, handle, store }) => {
+      await holdOpen();
+      const names = async () => (await (await store()).list()).profiles.map((stored) => stored.displayName).sort();
+      await act(() => profile("Ben").remove.click());
+      const { confirm, cancel, hint, progress, view } = confirmation();
+      for (const other of [cancel, view.children[0], view]) {
+        confirm.dispatch("pointerdown", { button: 0, pointerId: 1 });
+        clock.advance(stage === "under way" ? DELETE_HOLD_MS - 1 : DELETE_HOLD_MS);
+        if (stage !== "under way") assert.equal(hint.textContent, RELEASE_TO_DELETE);
+        other.dispatch("pointerdown", { button: 0, pointerId: 2 });
+        assert.equal(hint.textContent, DELETE_HOLD_HINT);
+        assert.equal(progress.hidden, true);
+        clock.advance(DELETE_HOLD_MS);
+        confirm.dispatch("pointerup", { pointerId: 1 });
+        await handle.settled();
+        assert.deepEqual(await names(), ["Ben", "Mia"]);
+      }
+      // The second finger's tap on "Abbrechen" is a tap like any other: it leaves the confirmation.
+      confirm.dispatch("pointerdown", { button: 0, pointerId: 1 });
+      clock.advance(DELETE_HOLD_MS);
+      cancel.dispatch("pointerdown", { button: 0, pointerId: 2 });
+      cancel.click({ pointerId: 2, detail: 1 });
+      confirm.dispatch("pointerup", { pointerId: 1 });
+      await handle.settled();
+      assert.equal(confirmation(), null);
+      assert.deepEqual(await names(), ["Ben", "Mia"]);
+    });
+  });
+}
+
+test("delete: a pointer that goes down on 'Endgültig löschen' itself does not end its own hold", async () => {
+  await withArea({ seed: seedMiaAndBen }, async ({ holdOpen, act, profile, confirmation, clock, handle, store }) => {
+    await holdOpen();
+    await act(() => profile("Ben").remove.click());
+    const { confirm, hint } = confirmation();
+    confirm.dispatch("pointerdown", { button: 0, pointerId: 1 });
+    clock.advance(1000);
+    confirm.dispatch("pointerdown", { button: 0, pointerId: 2 });
+    assert.equal(hint.textContent, "Weiter halten … 1");
+    clock.advance(1000);
+    confirm.dispatch("pointerup", { pointerId: 1 });
+    await handle.settled();
+    assert.deepEqual((await (await store()).list()).profiles.map((stored) => stored.displayName), ["Mia"]);
+  });
+});
+
+test("shield: the two summaries are not shielded, a button next to them is", async () => {
+  const wall = wallClock();
+  await withArea({ seed: createMia, now: wall.now }, async ({ holdOpen, concept, handle, onBoard, caregiverRegion, button, refreshes }) => {
+    await holdOpen();
+    wall.t += 1000;
+    concept("Trinken").add.click();
+    await handle.settled();
+    // Right after that redraw: a summary still gets its click (the browser folds or unfolds it) ...
+    const summaries = tree(caregiverRegion).filter((element) => element.tagName === "summary");
+    assert.deepEqual(summaries.map((element) => element.textContent), ["Was wird gespeichert?", "Hilfe bei Problemen"]);
+    let heard = 0;
+    let prevented = 0;
+    for (const summary of summaries) {
+      summary.addEventListener("click", () => { heard += 1; });
+      summary.click({ pointerId: 99, detail: 1, preventDefault() { prevented += 1; } });
+      summary.click({ preventDefault() { prevented += 1; } });
+    }
+    assert.equal(heard, 4);
+    assert.equal(prevented, 0);
+    // ... and the button inside the help section does not act yet.
+    button("Tafel neu laden").click();
+    concept("Pause").add.click();
+    await handle.settled();
+    assert.equal(refreshes.count, 0);
+    assert.deepEqual(onBoard(), ["Trinken"]);
+  });
+});
+
+test("shield: without an injected clock it runs on monotonic time, so a wall clock that is set back does not leave the buttons dead", async () => {
+  const fakes = installFakes();
+  const realDateNow = Date.now;
+  const realPerformance = globalThis.performance;
+  try {
+    const store = await ProfileStore.open(new MemoryBackend());
+    await createMia(store);
+    const mount = () => {
+      const boardRegion = fakes.fakeElement("section");
+      boardRegion.dataset.startup = "profile";
+      const caregiverRegion = fakes.fakeElement("section");
+      const handle = mountCaregiver({
+        app: { store: async () => store, refreshBoard: async () => undefined }, boardRegion, caregiverRegion, entry: fakes.fakeElement("footer"),
+        catalogue: CONCEPTS, setTimer: () => () => undefined, onPageHidden: () => undefined,
+      });
+      return { handle, caregiverRegion };
+    };
+    const time = { monotonic: 5000, wall: 1_000_000 };
+    Object.defineProperty(globalThis, "performance", { value: { now: () => time.monotonic }, configurable: true, writable: true });
+    Date.now = () => time.wall;
+    const first = mount();
+    first.handle.open();
+    await first.handle.settled();
+    // Half a second later by the monotonic clock; the wall clock was set back by an hour meanwhile.
+    time.monotonic += 500;
+    time.wall -= 3_600_000;
+    buttonNamed(first.caregiverRegion, "Hinzufügen").click();
+    await first.handle.settled();
+    assert.deepEqual((await store.list()).profiles[0].conceptIds, ["hilfe"]);
+    // And it is that clock that the grace time is counted on.
+    time.monotonic += SHIELD_GRACE_MS - 1;
+    time.wall += 7_200_000;
+    buttonNamed(first.caregiverRegion, "Hinzufügen").click();
+    await first.handle.settled();
+    assert.deepEqual((await store.list()).profiles[0].conceptIds, ["hilfe"]);
+    // Where the platform has no such clock, the wall clock has to do.
+    Object.defineProperty(globalThis, "performance", { value: undefined, configurable: true, writable: true });
+    const second = mount();
+    second.handle.open();
+    await second.handle.settled();
+    time.wall += SHIELD_GRACE_MS;
+    buttonNamed(second.caregiverRegion, "Hinzufügen").click();
+    await second.handle.settled();
+    assert.deepEqual((await store.list()).profiles[0].conceptIds, ["hilfe", "trinken"]);
+  } finally {
+    Date.now = realDateNow;
+    Object.defineProperty(globalThis, "performance", { value: realPerformance, configurable: true, writable: true });
+    fakes.restore();
+  }
+});
+
+test("the stylesheet reserves the height of the line under 'Endgültig löschen' on a narrow screen", async () => {
+  const css = await readFile(new URL("../dist/styles.css", import.meta.url), "utf8");
+  // Three lines of 1.4: the countdown is one line, the instruction up to three; the button above must not move when one replaces the other.
+  assert.match(css, /^\.caregiver-confirm-hint \{[^}]*line-height: 1\.4;/m);
+  assert.match(css, /@media \(max-width: 639px\) \{\n  \.caregiver-confirm-hint \{ min-height: 4\.2em; \}\n\}/);
 });

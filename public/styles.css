@@ -90,7 +90,7 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .caregiver-confirm-text { margin: .4rem 0 0; }
 .caregiver-hold { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .caregiver-delete-progress { display: block; width: 100%; height: .4rem; margin: .6rem 0 0; }
-.caregiver-confirm-hint { margin: .4rem 0 0; font-size: .95rem; }
+.caregiver-confirm-hint { margin: .4rem 0 0; font-size: .95rem; line-height: 1.4; }
 .caregiver-concept:focus { outline: none; border-color: #cf681e; }
 .caregiver-concept-text { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .caregiver-concept-pictured { position: relative; min-height: 48px; padding-left: calc(48px + .7rem); }
@@ -101,6 +101,10 @@ h1 { font-size: clamp(1.5rem, 4vw, 2.3rem); }
 .caregiver-concept-locked { background: #f3f5f6; }
 .caregiver-concept-locked .caregiver-concept-text { color: #55656d; }
 .caregiver-open:focus-visible, .caregiver-button:focus-visible, .caregiver-input:focus-visible, .caregiver-details summary:focus-visible { outline: 5px solid #cf681e; outline-offset: 3px; }
+/* The line under "Endgültig löschen" keeps its height when its text changes: a button that moved would end the hold on it. */
+@media (max-width: 639px) {
+  .caregiver-confirm-hint { min-height: 4.2em; }
+}
 @media (min-width: 640px) {
   .caregiver-concept { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1rem; }
   .caregiver-concept-text { flex: 1 1 14rem; }
