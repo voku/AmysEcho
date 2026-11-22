@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:de5de365f31fa269fc2576bb3357f7cb5d71afe7",
     "contract_revision": 2,
-    "current_attempt": 3,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 0,
+    "current_stage_id": null,
     "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
     "history": [
         {
@@ -264,6 +264,164 @@
                 "summary": "Documentation-only change in docs/recognition.md: added the input contract (isotropic coordinates, stable left/right meaning, matching anchors), stated that FeatureSequenceV1 is the matcher payload and that constant changes bump the schema version, added the unknown-accepted column, and listed the segmentation, anchor-mismatch and two-example limits. No code changed; 39 tests pass.",
                 "task_id": "NG-1",
                 "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T08:24:31+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T08:24:31+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:1e4cad17192f8411fd80ae16a61a78dd327c88e44c717eee24bb1ee22343ef15",
+                    "execution-evidence:sha256:133579e7b498a8f97afacf2acfc1d6ebc7dfd9225e62e0d4a1ac1fa0eec34859",
+                    "execution-evidence:sha256:eace629d9d20c353558c4cb889a1783b66fe3c15a2c6a400b773b4b0077a16f3",
+                    "execution-evidence:sha256:0e20553b7b5c10b729c59cc0f14d2cd7fe6a74fab02d827f83579b499456a7da",
+                    "execution-evidence:sha256:399a5ee441ec27760e02d91bb584753241e6936eb30568f9b74004c929624b37",
+                    "execution-evidence:sha256:22e48a0ec99dd883950d67455a82af1d63f4c7a0aaab3f221049c75677637e10",
+                    "execution-evidence:sha256:1dbf3392c8ca3a2cfd7a181f16820bdccc02229db11abd47e343919917d1a4e3",
+                    "execution-evidence:sha256:5247da949ca135fbf412067a3866ab47cf003b17f72996e8e9529ec51e28d4cf"
+                ],
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:de5de365f31fa269fc2576bb3357f7cb5d71afe7",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "schema_version": "1.0",
+                "task_id": "NG-1",
+                "to_stage": "blindspot-review",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:1e4cad17192f8411fd80ae16a61a78dd327c88e44c717eee24bb1ee22343ef15",
+                    "execution-evidence:sha256:133579e7b498a8f97afacf2acfc1d6ebc7dfd9225e62e0d4a1ac1fa0eec34859",
+                    "execution-evidence:sha256:eace629d9d20c353558c4cb889a1783b66fe3c15a2c6a400b773b4b0077a16f3",
+                    "execution-evidence:sha256:0e20553b7b5c10b729c59cc0f14d2cd7fe6a74fab02d827f83579b499456a7da",
+                    "execution-evidence:sha256:399a5ee441ec27760e02d91bb584753241e6936eb30568f9b74004c929624b37",
+                    "execution-evidence:sha256:22e48a0ec99dd883950d67455a82af1d63f4c7a0aaab3f221049c75677637e10",
+                    "execution-evidence:sha256:1dbf3392c8ca3a2cfd7a181f16820bdccc02229db11abd47e343919917d1a4e3",
+                    "execution-evidence:sha256:5247da949ca135fbf412067a3866ab47cf003b17f72996e8e9529ec51e28d4cf"
+                ],
+                "attempt": 3,
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:de5de365f31fa269fc2576bb3357f7cb5d71afe7",
+                "context_id": "claude-subagent-correctness-review-3",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "observations": [
+                    "docs/recognition.md: the 31 percent figure is for stretching the y axis; stretching x by 16:9 gives about 2 percent top-1.",
+                    "docs/recognition.md: a per-frame 10 percent label swap was rejected 38.7 percent in the reviewer probe, not 23 percent; the flicker model is unspecified.",
+                    "docs/recognition.md: with two examples the limit reaches 1.5 only when they are at least 1.2 apart.",
+                    "docs/recognition.md: the informal cost figure measured 6.7 ms on the reviewer run, not 3.5 ms."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:3:a81dc627",
+                "summary": "Fresh-context review of all eight candidate files (docs/recognition.md, src/recognition/dtw.ts, evaluate.ts, features.ts, matcher.ts, synthetic.ts, test/recognition-eval.test.mjs, test/recognition.test.mjs): only docs changed since the last pass; build succeeds, 39 of 39 tests pass, table equals printed diagnostics, no doc statement is contradicted by the code.",
+                "task_id": "NG-1",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T08:24:41+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T08:24:41+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:cf3b9d1615962807bd2461c3d0a86c9ea7f85e84fc3099cfd9a6273fe39bd522",
+                    "execution-evidence:sha256:c4cb030b0569f5bd8807a134f4efbf59963a6aec645b14b838f90c9ca2c9fc76",
+                    "execution-evidence:sha256:6bd9e90cddc9d617109dfe162526ee724be9c7f3ea4aeef20d85c8749cad2713",
+                    "execution-evidence:sha256:feecb75304e688efc6eb0797f7df92bbd35d0fe99014109d9e687ebfd6bd01f5",
+                    "execution-evidence:sha256:9ae42a66a4f2338aadd2b794f7f824bfdb200a73bb50710ed2c69b370407ed2a",
+                    "execution-evidence:sha256:0a9a47f67ab4a170142ecbb89b64b940b8fab37217734c169882878b9fe22466",
+                    "execution-evidence:sha256:38864dd22679a6f18d1b9b66207a0c89d52e042fadcd8cff1d0e8f57f301093e",
+                    "execution-evidence:sha256:4bba11851807b9c0a74082573a5ffff09754fe0a5e685833bc36785137f73f91"
+                ],
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:de5de365f31fa269fc2576bb3357f7cb5d71afe7",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "from_stage": "blindspot-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "schema_version": "1.0",
+                "task_id": "NG-1",
+                "to_stage": "verify",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:cf3b9d1615962807bd2461c3d0a86c9ea7f85e84fc3099cfd9a6273fe39bd522",
+                    "execution-evidence:sha256:c4cb030b0569f5bd8807a134f4efbf59963a6aec645b14b838f90c9ca2c9fc76",
+                    "execution-evidence:sha256:6bd9e90cddc9d617109dfe162526ee724be9c7f3ea4aeef20d85c8749cad2713",
+                    "execution-evidence:sha256:feecb75304e688efc6eb0797f7df92bbd35d0fe99014109d9e687ebfd6bd01f5",
+                    "execution-evidence:sha256:9ae42a66a4f2338aadd2b794f7f824bfdb200a73bb50710ed2c69b370407ed2a",
+                    "execution-evidence:sha256:0a9a47f67ab4a170142ecbb89b64b940b8fab37217734c169882878b9fe22466",
+                    "execution-evidence:sha256:38864dd22679a6f18d1b9b66207a0c89d52e042fadcd8cff1d0e8f57f301093e",
+                    "execution-evidence:sha256:4bba11851807b9c0a74082573a5ffff09754fe0a5e685833bc36785137f73f91"
+                ],
+                "attempt": 2,
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:de5de365f31fa269fc2576bb3357f7cb5d71afe7",
+                "context_id": "claude-subagent-blindspot-review-2",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "observations": [
+                    "Two quoted probe figures in docs/recognition.md (16:9 stretch 31 percent, label flicker 23 percent) did not reproduce exactly; soften or commit the probes.",
+                    "no_examples covers both nothing-taught and anchor mismatch; the UI needs a distinct reason.",
+                    "With mixed-anchor examples an attempt is silently compared against a subset of concepts; a single frame with shoulders switches the whole capture to the shoulder anchor.",
+                    "docs/recognition.md names slice S3 but does not mention that the product contract blocks S2/S3 until the S1 device gate."
+                ],
+                "outcome": "pass",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "stage_id": "blindspot-review",
+                "submission_id": "submission:blindspot-review:2:4adbb525",
+                "summary": "Fresh-context blind-spot re-review of all eight candidate files (docs/recognition.md, src/recognition/dtw.ts, evaluate.ts, features.ts, matcher.ts, synthetic.ts, test/recognition-eval.test.mjs, test/recognition.test.mjs): all five required statements are present in docs/recognition.md and match the code; nothing misleading enough to block.",
+                "task_id": "NG-1",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T08:25:15+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T08:25:15+00:00",
+                "artifact_references": [],
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:de5de365f31fa269fc2576bb3357f7cb5d71afe7",
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "from_stage": "verify",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "schema_version": "1.0",
+                "task_id": "NG-1",
+                "to_stage": null,
+                "validation_references": [
+                    "execution-evidence:sha256:37bca572358e6d61378237eae63816044d13d6067e47db81b13bdd0cb1e3cdd1",
+                    "execution-evidence:sha256:d9c7c93829fb57fb60f7440ff02179bcaf8a429d57392b765caea5ca3325cca8",
+                    "execution-evidence:sha256:df04cc46dc237a8e72a138735470176d0a2d7411bb5306f46ebde47ba9760e30",
+                    "execution-evidence:sha256:5c0f36fb83c59c06886af0436f538234b45cd3c0ef7ab4ddb5befbc119842b2c",
+                    "execution-evidence:sha256:8151d1aad98a515a3e71c8e2462e92547bde82a3581eb0463646a151dc2895c2"
+                ]
+            },
+            "result": {
+                "artifact_references": [],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:db13293dc4f9418d02e53437573baaedc16eb61c:de5de365f31fa269fc2576bb3357f7cb5d71afe7",
+                "consistency_references": [
+                    "execution-evidence:sha256:220835a3a248f75c3ef5d16c1aa2d3b7adce3485914d7f3a9bf13931365e2427"
+                ],
+                "contract_revision": 2,
+                "execution_plan_digest": "sha256:da92aff5d14a7cec27f135840e69886e7db8c4f14285a745d275fcfd2bf6097a",
+                "outcome": "pass",
+                "run_id": "run:NG-1:9d8873459ffe28cf",
+                "stage_id": "verify",
+                "submission_id": "deterministic:sha256:2c2ae53c2f147ec465fe833c1ade8acdc04d462ab998eb3915fdc1c373c05221",
+                "summary": "agent-loop verify - cross-package consistency check\n\nScoped to task NG-1: unrelated task-local drift will not fail this run.\n\n[OK] package delegates: board, learn, map, recall, review, session, workflow commands all resolve to an installed package\n[SKIP] tasks: no directory at /home/user/AmysEcho/.agent-loop/tasks\n[OK] board: task NG-1 and board-wide policy verified (delegated to voku/agent-kanban)\n[OK] governed run: run:NG-1:9d8873459ffe28cf binds active Session 2026-11-22-ng-1-r2-54a80d87 to approved Contract revision 2\n[OK] sessions: 2 session(s) parsed, 1 active and consistent\n[SKIP] learning root: no configured or detected directory found\n[OK] task scope: NG-1 has an exact task Markdown or durable Contract\n\n[OK] agent-loop verify: no drift detected.\n\n[OK] npm ci --ignore-scripts\n\n[OK] npm run typecheck\n\n[OK] npm run build\n\n[OK] npm test\n\n[OK] npm run smoke:offline",
+                "task_id": "NG-1",
+                "validation_references": [
+                    "execution-evidence:sha256:37bca572358e6d61378237eae63816044d13d6067e47db81b13bdd0cb1e3cdd1",
+                    "execution-evidence:sha256:d9c7c93829fb57fb60f7440ff02179bcaf8a429d57392b765caea5ca3325cca8",
+                    "execution-evidence:sha256:df04cc46dc237a8e72a138735470176d0a2d7411bb5306f46ebde47ba9760e30",
+                    "execution-evidence:sha256:5c0f36fb83c59c06886af0436f538234b45cd3c0ef7ab4ddb5befbc119842b2c",
+                    "execution-evidence:sha256:8151d1aad98a515a3e71c8e2462e92547bde82a3581eb0463646a151dc2895c2"
+                ]
             }
         }
     ],
