@@ -2,8 +2,8 @@
     "attention": null,
     "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
     "contract_revision": 1,
-    "current_attempt": 1,
-    "current_stage_id": "correctness-review",
+    "current_attempt": 2,
+    "current_stage_id": "build",
     "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
     "history": [
         {
@@ -66,6 +66,42 @@
                 "stage_id": "build",
                 "submission_id": "submission:build:1:9aac3c61",
                 "summary": "Gesture cut by movement, hand kind by presence and movement, gaps bridged up to 500 ms, like compared with like, schema 2; evaluation with one-hand, two-hand and mixed profiles; wrong-concept rate 0 in every cell; 467 tests pass",
+                "task_id": "NG-18",
+                "validation_references": []
+            }
+        },
+        {
+            "accepted_at": "2026-11-22T23:16:59+00:00",
+            "handoff": {
+                "accepted_at": "2026-11-22T23:16:59+00:00",
+                "artifact_references": [
+                    "execution-evidence:sha256:cb9f136b5bf365e11ec619ad03bd2badc1b4decea130153c95c6af58d887e2ee"
+                ],
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "from_stage": "correctness-review",
+                "kind": "execution_handoff",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "schema_version": "1.0",
+                "task_id": "NG-18",
+                "to_stage": "build",
+                "validation_references": []
+            },
+            "result": {
+                "artifact_references": [
+                    "execution-evidence:sha256:cb9f136b5bf365e11ec619ad03bd2badc1b4decea130153c95c6af58d887e2ee"
+                ],
+                "attempt": 1,
+                "candidate_revision": "git-tree-v1:70bf62b8c196d05758863b5e5390672b72815b40:9a19ed275c593bee49dc14cadc0e666087a146e0",
+                "context_id": "correctness-review-1",
+                "contract_revision": 1,
+                "execution_plan_digest": "sha256:9ce17dddf4b726cc8dd9975bdc6a73662fd88b20ece6ec9fc0463457ecf896da",
+                "outcome": "changes_required",
+                "run_id": "run:NG-18:3da5f471dc313675",
+                "stage_id": "correctness-review",
+                "submission_id": "submission:correctness-review:1:2f4bc137",
+                "summary": "A signing hand that does not move is dropped when the other hand moves (features.ts:311-313): with one contaminated example, known signs are spoken as the wrong concept in 80 of 80 attempts, 0 before. Fail closed and add the case to tests and evaluation.",
                 "task_id": "NG-18",
                 "validation_references": []
             }
