@@ -168,13 +168,18 @@ const STORAGE_UNREACHABLE = "Der Speicher dieses Geräts ist gerade nicht erreic
 const READ_FAILED = "Die gespeicherten Profile können gerade nicht gelesen werden. Deshalb kann hier im Moment nichts geändert werden.";
 const READING = "Der Speicher wird gelesen.";
 const BOARD_LOADING = "Die Tafel wird geladen.";
-const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wird gerade keine Tafel gezeigt. Bitte „Tafel neu laden“ drücken oder die Seite neu laden.";
-const NAME_NOTICE = "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. Die App sendet nichts. "
-  + "Diese Version kann ein Profil noch nicht umbenennen oder löschen; nur das Löschen der Website-Daten im Browser entfernt es. "
-  + "Ein Vorname oder Spitzname genügt.";
+const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wird gerade keine Tafel gezeigt. "
+  + "Bitte drücke „Tafel neu laden“, lade die Seite neu oder gib einer Bezugsperson Bescheid.";
+const NAME_NOTICE = "Dies ist eine Testversion. Bitte trage noch keinen echten Namen ein; ein Spitzname genügt. "
+  + "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. "
+  + "Die App selbst sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
+  + "Diese Version kann ein einzelnes Profil noch nicht umbenennen oder löschen. "
+  + "Wer die Website-Daten im Browser löscht, entfernt alle Profile auf diesem Gerät und die Offline-Kopie der App.";
 const NONE_ACTIVE = "Gerade ist keine Tafel aktiv. Das Kind sieht Beispiele, bis eine Tafel als aktive Tafel verwendet wird.";
 const EDITED_NOT_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht eine andere Tafel.";
 const EDITED_NONE_ACTIVE = "Diese Tafel ist gerade nicht aktiv. Das Kind sieht Beispiele.";
+const EDITED_NOT_ACTIVE_UNKNOWN = "Diese Tafel ist gerade nicht aktiv.";
+const ONLY_DAMAGED = "Kein gespeichertes Profil kann in dieser Version gelesen werden. Das Kind sieht Beispiele.";
 const ACTIVE_WITHOUT_CONCEPTS = "Auf dieser Tafel ist noch kein Begriff, der gezeigt werden kann. Das Kind sieht Beispiele, bis mindestens ein Begriff angekreuzt ist.";
 const CONCEPT_HELP = "Angekreuzte Begriffe sind auf der Tafel, in dieser Reihenfolge. Jede Änderung wird sofort gespeichert. "
   + "Ein Begriff, der neu angekreuzt wird, kommt ans Ende der Tafel.";
@@ -324,7 +329,32 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
     promise.then((value) => { cancel(); resolve(value); }, () => { cancel(); resolve(TIMED_OUT); });
   });
-  const refreshBoard = (): Promise<void> => Promise.resolve().then(() => app.refreshBoard()).catch(() => undefined);
+  // Whether the mounted board may be out of date. `writes` counts store
+  // writes that succeeded; `refreshedUpTo` is the count a settled refresh
+  // had seen when it was asked for; `intents` counts writing actions that
+  // were asked for and have not ended, which may still succeed.
+  let writes = 0;
+  let refreshedUpTo = 0;
+  let intents = 0;
+  /** `app.refreshBoard()`, never rejecting. A refresh that settles has mounted every write that had succeeded when it was asked for. */
+  const refreshBoard = (): Promise<void> => {
+    const seen = writes;
+    return Promise.resolve().then(() => app.refreshBoard()).then(() => {
+      refreshedUpTo = Math.max(refreshedUpTo, seen);
+    }, () => undefined);
+  };
+  /**
+   * True when what the board region holds may be the board of a profile
+   * that is no longer the one to show: a profile's own board is mounted,
+   * and something was written (or may still be) that no settled refresh has
+   * seen. Examples are never out of date in that sense, and without a write
+   * nothing can have changed.
+   */
+  const boardMayBeStale = (): boolean => {
+    const startup = boardRegion.dataset["startup"] ?? "";
+    const examples = boardRegion.dataset["boardFallback"] !== undefined || startup.startsWith("demo-") || startup === "unrenderable";
+    return !examples && (writes > refreshedUpTo || intents > 0);
+  };
   let work: Promise<void> = Promise.resolve();
   let store: ProfileStore | null = null;
   let selectedId: string | null = null;
@@ -360,6 +390,18 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     });
   };
 
+  /** `run` for an action that writes: it counts as "may still write" from the moment it is asked for until it has ended. */
+  const runWrite = (task: () => Promise<void>): void => {
+    intents += 1;
+    run(async () => {
+      try {
+        await task();
+      } finally {
+        intents -= 1;
+      }
+    });
+  };
+
   /** Reads the store again and replaces the body. `focus` names the controls to try, in order, for the focus. */
   const draw = async (focus: readonly string[] | null, draftName?: string): Promise<void> => {
     const mine = acting;
@@ -386,13 +428,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     (target ?? heading)?.focus();
   };
 
-  const createProfile = (input: HTMLInputElement): void => run(async () => {
+  /** `raw` is the name as it was when the form was sent, not what the field holds when the queue gets here. */
+  const createProfile = (raw: string): void => runWrite(async () => {
     if (store === null) return;
-    const raw = input.value;
     try {
       const before = await store.list();
       const first = before.profiles.length === 0 && before.damaged.length === 0;
       const profile = await store.create(raw, []);
+      writes += 1;
       selectedId = profile.id;
       let line = `Das Profil ${quoted(profile.displayName)} wurde angelegt. Es ist noch nicht die aktive Tafel.`;
       if (first) {
@@ -411,10 +454,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     }
   });
 
-  const activate = (profile: ProfileV1): void => run(async () => {
+  const activate = (profile: ProfileV1): void => runWrite(async () => {
     if (store === null) return;
     try {
       await store.setActive(profile.id);
+      writes += 1;
       say(`${quoted(profile.displayName)} ist jetzt die aktive Tafel.`);
     } catch (error) {
       say(error instanceof UnknownProfileError || error instanceof ProfileFormatError ? PROFILE_GONE : WRITE_FAILED);
@@ -436,13 +480,14 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   const changeBoard = (
     profileId: string, focus: readonly string[], done: string,
     change: (ids: readonly string[], editable: ReadonlySet<string>) => string[] | null,
-  ): void => run(async () => {
+  ): void => runWrite(async () => {
     if (store === null) return;
     try {
       const board = await resolveBoard(store, profileId, catalogue);
       const next = change(board.profile.conceptIds, editableIds(board));
       if (next !== null) {
         await setBoardConcepts(store, profileId, next, catalogue);
+        writes += 1;
         say(done);
       }
     } catch (error) {
@@ -526,11 +571,20 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
   const conceptSection = async (
     current: ProfileStore, profile: ProfileV1, activeId: string | null, register: Map<string, HTMLElement>,
   ): Promise<HTMLElement> => {
+    // What the child sees while another profile is edited: that profile's board, or examples when it has nothing to show.
+    let notActive = EDITED_NONE_ACTIVE;
+    if (activeId !== null && activeId !== profile.id) {
+      try {
+        notActive = (await resolveBoard(current, activeId, catalogue)).entries.length === 0 ? EDITED_NONE_ACTIVE : EDITED_NOT_ACTIVE;
+      } catch {
+        notActive = EDITED_NOT_ACTIVE_UNKNOWN;
+      }
+    }
     const section = element("section", "caregiver-section");
     section.append(element("h2", "", `Begriffe für ${quoted(profile.displayName)}`));
     // Which board the child sees must not depend on a status line that the next action replaces.
     if (profile.id !== activeId) {
-      section.append(element("p", "caregiver-notice caregiver-warning", activeId === null ? EDITED_NONE_ACTIVE : EDITED_NOT_ACTIVE));
+      section.append(element("p", "caregiver-notice caregiver-warning", notActive));
     }
     let board: ResolvedBoard;
     try {
@@ -574,7 +628,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     profileSection.append(element("h2", "", "Profile"));
     if (listing.damaged.length > 0) profileSection.append(element("p", "caregiver-notice caregiver-damaged", damagedLine(listing.damaged.length)));
     if (profiles.length === 0) {
-      profileSection.append(element("p", "caregiver-notice", NO_PROFILES));
+      // Damaged entries are not "no profile yet": the device is not new.
+      profileSection.append(element("p", "caregiver-notice", listing.damaged.length > 0 ? ONLY_DAMAGED : NO_PROFILES));
     } else {
       const list = element("ul", "caregiver-profiles");
       for (const profile of profiles) {
@@ -620,7 +675,7 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
     submit.type = "submit";
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      createProfile(nameInput);
+      createProfile(nameInput.value);
     });
     form.append(nameLabel, nameInput, submit, nameNotice);
     register.set("create-name", nameInput);
@@ -671,6 +726,11 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       /** The bound has passed: no board rather than a board that may be out of date. */
       const stall = (): void => {
         if (mine === closingNo && away === "waiting") {
+          if (!boardMayBeStale()) {
+            // Nothing can have changed what the board shows, or it shows examples: back to it.
+            showBoard();
+            return;
+          }
           away = "stalled";
           line.textContent = NO_BOARD_YET;
           const retry = button("Tafel neu laden");
@@ -748,6 +808,8 @@ export function mountCaregiver(options: CaregiverOptions): CaregiverHandle {
       else if (startup === "demo-unavailable" || fallback === "storage-unavailable") say(RELOAD_NO_STORAGE);
       else if (startup === "failed" || startup === "unrenderable" || fallback === "render-failed") say(RELOAD_NOT_DRAWN);
       else say(RELOADED);
+      // Also after a read that failed earlier: the area shows what the store holds now.
+      await draw(null);
     }));
     const closer = button("Schließen");
     closer.addEventListener("click", () => void close());

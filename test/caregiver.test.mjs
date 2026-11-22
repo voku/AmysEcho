@@ -1046,7 +1046,10 @@ test("area: what was asked for before closing does not draw into the closed area
 /**
  * The area on a fake app whose refreshes the test settles by hand
  * (`refresh.settle(n)`, counted from 0); the board region holds one "old" tile.
- * `options.store` is what `app.store()` gives (a function), default: no storage.
+ * `options.store` is what `app.store()` gives (a function). By default it is a
+ * real store with two profiles, and one of them is made the active board
+ * right after opening (`write()`), so that the mounted board may be out of
+ * date when the area closes; `options.write: false` leaves that out.
  */
 async function withSlowRefresh(callback, options = {}) {
   const fakes = installFakes();
@@ -1059,23 +1062,32 @@ async function withSlowRefresh(callback, options = {}) {
     const caregiverRegion = fakes.fakeElement("section");
     caregiverRegion.hidden = true;
     const entry = fakes.fakeElement("footer");
+    const realStore = await ProfileStore.open(new MemoryBackend());
+    await createMia(realStore);
+    await realStore.create("Ben", []);
     const resolvers = [];
     const refresh = { get calls() { return resolvers.length; }, settle(index) { resolvers[index](); } };
     const app = {
-      store: options.store ?? (async () => null),
+      store: options.store ?? (async () => realStore),
       refreshBoard: () => new Promise((resolve) => { resolvers.push(resolve); }),
     };
     const clock = fakeClock();
     const page = { hide: () => undefined };
     const handle = mountCaregiver({ app, boardRegion, caregiverRegion, entry, catalogue: CONCEPTS, setTimer: options.setTimer ?? clock.setTimer, onPageHidden: (hidden) => { page.hide = hidden; } });
     const [opener, , hint] = entry.children;
+    /** Makes the profile that is not active the active one: a write that succeeds. */
+    const write = async () => {
+      buttonNamed(caregiverRegion, "Als aktive Tafel verwenden").click();
+      await handle.settled();
+    };
     if (options.open !== false) {
       assert.equal(handle.open(), true);
       await handle.settled();
+      if (options.store === undefined && options.write !== false) await write();
     }
     /** True when a tile of the board can be reached: the region is shown. */
     const boardReachable = () => !boardRegion.hidden;
-    await callback({ ...fakes, boardRegion, caregiverRegion, entry, opener, hint, handle, clock, refresh, oldTile, boardReachable, page });
+    await callback({ ...fakes, boardRegion, caregiverRegion, entry, opener, hint, handle, clock, refresh, oldTile, boardReachable, page, write, realStore });
   } finally {
     fakes.restore();
   }
@@ -1130,7 +1142,8 @@ test("closing: once the refresh has settled the board is shown, the waiting line
   });
 });
 
-const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wird gerade keine Tafel gezeigt. Bitte „Tafel neu laden“ drücken oder die Seite neu laden.";
+const NO_BOARD_YET = "Die Tafel konnte noch nicht neu geladen werden. Deshalb wird gerade keine Tafel gezeigt. "
+  + "Bitte drücke „Tafel neu laden“, lade die Seite neu oder gib einer Bezugsperson Bescheid.";
 
 test("closing: when the refresh has not settled at the bound, no board is shown: a German line, 'Tafel neu laden' and the opening control instead", async () => {
   await withSlowRefresh(async ({ boardRegion, caregiverRegion, entry, opener, handle, clock, refresh, focused, boardReachable }) => {
@@ -1212,7 +1225,7 @@ test("closing: the area can be opened from the state without a board, and a late
 
 for (const second of ["its own refresh", "its own bound"]) {
   test(`closing: the late refresh of an earlier closing does not show the board of a later closing, which ends with ${second}`, async () => {
-    await withSlowRefresh(async ({ boardRegion, caregiverRegion, entry, opener, handle, clock, refresh, focused }) => {
+    await withSlowRefresh(async ({ boardRegion, caregiverRegion, entry, opener, handle, clock, refresh, focused, write }) => {
       // Closing #1 runs into the bound; the area is opened and closed again.
       const first = handle.close();
       await turn();
@@ -1220,6 +1233,7 @@ for (const second of ["its own refresh", "its own bound"]) {
       await first;
       assert.equal(handle.open(), true);
       await handle.settled();
+      await write();
       let resolved = false;
       const secondClosing = handle.close();
       void secondClosing.then(() => { resolved = true; });
@@ -1350,9 +1364,11 @@ test("auto-close: the idle period of an earlier opening touches neither a hold i
 
 // --- Notices ---
 
-const NAME_NOTICE = "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. Die App sendet nichts. "
-  + "Diese Version kann ein Profil noch nicht umbenennen oder löschen; nur das Löschen der Website-Daten im Browser entfernt es. "
-  + "Ein Vorname oder Spitzname genügt.";
+const NAME_NOTICE = "Dies ist eine Testversion. Bitte trage noch keinen echten Namen ein; ein Spitzname genügt. "
+  + "Der Name und die ausgewählten Begriffe werden nur in diesem Browser auf diesem Gerät gespeichert. "
+  + "Die App selbst sendet nichts; die Tastatur des Geräts kann Eingaben aber selbst verarbeiten. "
+  + "Diese Version kann ein einzelnes Profil noch nicht umbenennen oder löschen. "
+  + "Wer die Website-Daten im Browser löscht, entfernt alle Profile auf diesem Gerät und die Offline-Kopie der App.";
 
 test("create: next to the name field one paragraph says where the name is stored and that it cannot be renamed or deleted yet", async () => {
   await withArea({}, async ({ holdOpen, caregiverRegion, nameInput }) => {
@@ -1724,5 +1740,297 @@ test("area: the message of an action from an earlier opening is not shown in the
     assert.deepEqual((await store.get(mia.id)).conceptIds, ["hilfe"], "the action itself was carried out");
     assert.deepEqual(said.filter((text) => text !== ""), []);
     assert.equal(concept("Hilfe").checked, true);
+  });
+});
+
+// --- When the state without a board applies ---
+
+/** Closes, lets the bound pass without an answer of the refresh, and waits for close() to resolve. */
+async function closeIntoBound({ handle, clock }) {
+  const closing = handle.close();
+  await turn();
+  clock.advance(CLOSE_WAIT_MS);
+  await closing;
+}
+const boardIsBack = ({ boardRegion, caregiverRegion, entry, opener, focused }) => {
+  assert.equal(boardRegion.hidden, false);
+  assert.equal(caregiverRegion.hidden, true);
+  assert.deepEqual(caregiverRegion.children, []);
+  assert.equal(entry.hidden, false);
+  assert.equal(focused.current, opener);
+};
+const noBoard = ({ boardRegion, caregiverRegion, entry }) => {
+  assert.equal(boardRegion.hidden, true);
+  assert.deepEqual(textsIn(caregiverRegion), [NO_BOARD_YET, "Tafel neu laden"]);
+  assert.equal(entry.hidden, false);
+};
+
+test("no-board state: storage that never answers at start-up, a hold and the idle close end on the examples board with a usable opening control", async () => {
+  await withArea({ openBackend: () => new Promise(() => undefined), waitForStart: false }, async (area) => {
+    const { opener, clock, handle, boardRegion, appTimers, tiles, refreshes } = area;
+    for (const timer of appTimers) timer();
+    assert.equal(boardRegion.dataset.startup, "demo-timeout");
+    opener.dispatch("pointerdown", { button: 0 });
+    clock.advance(HOLD_DURATION_MS);
+    opener.dispatch("pointerup");
+    assert.equal(handle.isOpen(), true);
+    // The area waits for the store, gives up at its bound, and is then left alone.
+    await turn();
+    clock.advance(STORE_WAIT_MS);
+    await handle.settled();
+    clock.advance(IDLE_CLOSE_MS - STORE_WAIT_MS);
+    assert.equal(handle.isOpen(), false);
+    await turn();
+    // The refresh queues behind a start-up that never finishes, so the bound decides.
+    assert.equal(refreshes.count, 1);
+    assert.equal(boardRegion.hidden, true);
+    clock.advance(CLOSE_WAIT_MS);
+    await handle.close();
+    boardIsBack(area);
+    assert.deepEqual(tiles(), CONCEPTS.map((concept) => concept.labelDe));
+    // And the way in works again.
+    opener.dispatch("pointerdown", { button: 0 });
+    clock.advance(HOLD_DURATION_MS);
+    assert.equal(handle.isOpen(), true);
+  });
+});
+
+test("no-board state: without storage nothing can have changed, so the bound shows the mounted board", async () => {
+  await withSlowRefresh(async (area) => {
+    await closeIntoBound(area);
+    boardIsBack(area);
+  }, { store: async () => null });
+});
+
+test("no-board state: an opening in which nothing was written shows the previous board at the bound", async () => {
+  await withSlowRefresh(async (area) => {
+    // Looking around is not writing: another profile is picked for editing, nothing is saved.
+    buttonsIn(area.caregiverRegion).filter((element) => element.textContent === "Begriffe auswählen")[0].click();
+    await area.handle.settled();
+    await closeIntoBound(area);
+    boardIsBack(area);
+    assert.deepEqual(textsIn(area.boardRegion), ["Alte Tafel"]);
+  }, { write: false });
+});
+
+test("no-board state: after another profile was made the active board, a refresh that hangs leaves no board, a line and the button", async () => {
+  await withSlowRefresh(async (area) => {
+    await closeIntoBound(area);
+    noBoard(area);
+  });
+});
+
+for (const [what, change] of [
+  ["a concept was ticked", (region) => {
+    const checkbox = tree(region).find((element) => element.tagName === "input" && element.type === "checkbox");
+    checkbox.checked = true;
+    checkbox.dispatch("change");
+  }],
+  ["a profile was created", (region) => {
+    tree(region).find((element) => element.tagName === "input" && element.type === "text").value = "Cleo";
+    tree(region).find((element) => element.tagName === "form").dispatch("submit");
+  }],
+]) {
+  test(`no-board state: after ${what}, a refresh that hangs leaves no board`, async () => {
+    await withSlowRefresh(async (area) => {
+      change(area.caregiverRegion);
+      await area.handle.settled();
+      assert.match(area.caregiverRegion.children[1].textContent, /^Gespeichert|wurde angelegt/);
+      await closeIntoBound(area);
+      noBoard(area);
+    }, { write: false });
+  });
+}
+
+for (const [what, mount] of [
+  ["a fallback cause", (region) => { region.dataset.boardFallback = "no-active"; }],
+  ["a demo start-up state", (region) => { region.dataset.startup = "demo-empty"; }],
+]) {
+  test(`no-board state: a board of examples (${what}) is shown at the bound also after a write`, async () => {
+    await withSlowRefresh(async (area) => {
+      mount(area.boardRegion);
+      await closeIntoBound(area);
+      boardIsBack(area);
+    });
+  });
+}
+
+test("no-board state: a write that failed does not count", async () => {
+  const backend = new MemoryBackend();
+  const store = await ProfileStore.open(backend);
+  await createMia(store);
+  await store.create("Ben", []);
+  await withSlowRefresh(async (area) => {
+    backend.failWrite(1);
+    await area.write();
+    assert.equal(area.caregiverRegion.children[1].textContent, "Das konnte gerade nicht gespeichert werden. Bitte versuche es noch einmal.");
+    await closeIntoBound(area);
+    boardIsBack(area);
+  }, { store: async () => store, write: false });
+});
+
+test("no-board state: a write that is still running when the bound passes counts as possibly done", async () => {
+  const inner = new MemoryBackend();
+  let holdWrites = false;
+  const backend = {
+    get: (key) => inner.get(key),
+    keys: (prefix) => inner.keys(prefix),
+    async write(batch) {
+      if (holdWrites) await new Promise(() => undefined);
+      return inner.write(batch);
+    },
+  };
+  const store = await ProfileStore.open(backend);
+  await createMia(store);
+  await store.create("Ben", []);
+  await withSlowRefresh(async (area) => {
+    holdWrites = true;
+    buttonNamed(area.caregiverRegion, "Als aktive Tafel verwenden").click();
+    await turn();
+    await closeIntoBound(area);
+    noBoard(area);
+    assert.equal(area.refresh.calls, 0, "the refresh waits behind the write");
+  }, { store: async () => store, write: false });
+});
+
+test("no-board state: it lasts across an opening without a write, until a refresh has answered", async () => {
+  await withSlowRefresh(async (area) => {
+    const { handle, refresh } = area;
+    await closeIntoBound(area);
+    noBoard(area);
+    // Opened and closed again without a change: the mounted board is still the one from before the write.
+    assert.equal(handle.open(), true);
+    await handle.settled();
+    await closeIntoBound(area);
+    noBoard(area);
+    // A refresh that was asked for after the write answers: from now on the mounted board is current.
+    refresh.settle(1);
+    await turn();
+    boardIsBack(area);
+    assert.equal(handle.open(), true);
+    await handle.settled();
+    await closeIntoBound(area);
+    boardIsBack(area);
+  });
+});
+
+test("'Tafel neu laden' in the state without a board: the bound of a first attempt does not put the line back while a second attempt still waits", async () => {
+  await withSlowRefresh(async (area) => {
+    const { caregiverRegion, clock, boardRegion } = area;
+    await closeIntoBound(area);
+    const retry = buttonNamed(caregiverRegion, "Tafel neu laden");
+    const line = () => caregiverRegion.children[0].textContent;
+    retry.click();
+    clock.advance(1000);
+    retry.click();
+    // The first attempt's bound passes here; the second one has a second left.
+    clock.advance(CLOSE_WAIT_MS - 1000);
+    await turn();
+    assert.equal(line(), "Die Tafel wird geladen.");
+    clock.advance(1000);
+    await turn();
+    assert.equal(line(), NO_BOARD_YET);
+    assert.equal(boardRegion.hidden, true);
+  });
+});
+
+test("auto-close: the idle timer of an earlier opening, firing although it was cancelled, does not close the next opening", async () => {
+  const timers = [];
+  const setTimer = (callback, milliseconds) => { timers.push({ callback, milliseconds }); return () => undefined; };
+  await withSlowRefresh(async ({ handle, refresh, caregiverRegion }) => {
+    const firstIdle = timers.find((timer) => timer.milliseconds === IDLE_CLOSE_MS);
+    const closing = handle.close();
+    await turn();
+    refresh.settle(0);
+    await closing;
+    assert.equal(handle.open(), true);
+    await handle.settled();
+    firstIdle.callback();
+    assert.equal(handle.isOpen(), true);
+    assert.equal(caregiverRegion.children[0].textContent, "Für Bezugspersonen");
+    // The idle timer of this opening does close it.
+    timers.findLast((timer) => timer.milliseconds === IDLE_CLOSE_MS).callback();
+    assert.equal(handle.isOpen(), false);
+  }, { setTimer });
+});
+
+// --- Precision ---
+
+test("active board: while the active profile has nothing to show, the line on another edited profile says that the child sees examples", async () => {
+  const seed = async (store) => {
+    await createMia(store);
+    await store.create("Ben", ["hilfe"]);
+  };
+  await withArea({ seed }, async ({ holdOpen, act, profiles, texts, toggle }) => {
+    await holdOpen();
+    await act(() => profiles()[0].edit.click());
+    assert.ok(texts().includes("Begriffe für „Ben“"));
+    assert.ok(texts().includes("Diese Tafel ist gerade nicht aktiv. Das Kind sieht Beispiele."));
+    assert.ok(!texts().includes(EDITED_NOT_ACTIVE));
+    // Once the active profile has a concept, the child sees that board.
+    await act(() => profiles()[1].edit.click());
+    await toggle("Pause");
+    await act(() => profiles()[0].edit.click());
+    assert.ok(texts().includes(EDITED_NOT_ACTIVE));
+  });
+});
+
+test("create: the profile gets the name as it was when the form was sent, not what the field holds when its turn comes", async () => {
+  const inner = new MemoryBackend();
+  const slow = () => new Promise((resolve) => setImmediate(resolve));
+  const backend = {
+    get: async (key) => { await slow(); return inner.get(key); },
+    keys: async (prefix) => { await slow(); return inner.keys(prefix); },
+    write: async (batch) => { await slow(); return inner.write(batch); },
+  };
+  const seedStore = await ProfileStore.open(inner);
+  await createMia(seedStore);
+  await withArea({ backend }, async ({ holdOpen, concept, nameInput, caregiverRegion, handle, profiles }) => {
+    await holdOpen();
+    // A tick is under way; the form is sent behind it and the caregiver types on.
+    const row = concept("Hilfe");
+    row.checkbox.checked = true;
+    row.checkbox.dispatch("change");
+    const field = nameInput();
+    field.value = "Ben";
+    tree(caregiverRegion).find((element) => element.tagName === "form").dispatch("submit");
+    field.value = "Benjamin Blümchen";
+    await handle.settled();
+    assert.deepEqual(profiles().map((profile) => profile.name), ["Ben", "Mia"]);
+  });
+});
+
+test("'Tafel neu laden': after a read that failed, a reload that works draws the area from the store again", async () => {
+  const inner = new MemoryBackend();
+  let failing = false;
+  const backend = {
+    get: async (key) => { if (failing) throw new Error("read failed"); return inner.get(key); },
+    keys: async (prefix) => { if (failing) throw new Error("read failed"); return inner.keys(prefix); },
+    write: (batch) => inner.write(batch),
+  };
+  const seedStore = await ProfileStore.open(inner);
+  await createMia(seedStore);
+  await withArea({ backend }, async ({ holdOpen, act, button, texts, status, profiles }) => {
+    failing = true;
+    await holdOpen();
+    const unread = "Die gespeicherten Profile können gerade nicht gelesen werden. Deshalb kann hier im Moment nichts geändert werden.";
+    assert.ok(texts().includes(unread));
+    failing = false;
+    await act(() => button("Tafel neu laden").click());
+    assert.equal(status(), "Die Tafel wurde neu geladen.");
+    assert.ok(!texts().includes(unread));
+    assert.deepEqual(profiles().map((profile) => profile.name), ["Mia"]);
+  });
+});
+
+test("profiles: with damaged entries only, the area does not say that there is no profile yet", async () => {
+  const seed = async (store, backend) => {
+    await backend.write({ set: { [`profile/${"a".repeat(32)}/meta`]: "kaputt" } });
+  };
+  await withArea({ seed }, async ({ holdOpen, texts }) => {
+    await holdOpen();
+    assert.ok(texts().includes("Ein gespeichertes Profil kann in dieser Version nicht gelesen werden. Es bleibt unverändert gespeichert. Eine spätere Version hilft dabei."));
+    assert.ok(texts().includes("Kein gespeichertes Profil kann in dieser Version gelesen werden. Das Kind sieht Beispiele."));
+    assert.ok(!texts().includes("Auf diesem Gerät gibt es noch kein Profil."));
   });
 });

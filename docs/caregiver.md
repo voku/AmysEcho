@@ -56,7 +56,8 @@ Limits, stated plainly:
   open: the retention and authorised-caregiver decision (card NG-7; section 6 of the product
   contract says to decide before personal data is stored), and the browser verification of the
   IndexedDB adapter (card NG-14 says it must not be wired to real data until then). There is no
-  in-app removal: only clearing the site data of the browser removes a profile.
+  in-app removal of a single profile. Clearing the site data of the browser removes **all**
+  profiles on this device and the offline copy of the app.
 
 - **This is not security.** There is no password or PIN. It is a hurdle for a small child who
   taps; anyone who can read the line and hold for three seconds gets in. A child can learn it.
@@ -82,25 +83,42 @@ shown, the caregiver region is hidden and emptied, and focus returns to the open
 area cannot be opened again while it waits. On closing, the edited profile is forgotten: the next
 opening edits the active profile again.
 
-**The state without a board.** The wait has its own bound, `CLOSE_WAIT_MS` (2.5 s: the refresh
-bound of 1.5 s plus a margin), because a refresh waits behind start-up and start-up may never be
-answered by storage. When the bound passes before the refresh has settled, the board region stays
-hidden. The caregiver region shows one line ("Die Tafel konnte noch nicht neu geladen werden.
-Deshalb wird gerade keine Tafel gezeigt. …") and a "Tafel neu laden" button, and the opening
+**At the bound.** The wait has its own bound, `CLOSE_WAIT_MS` (2.5 s: the refresh bound of 1.5 s
+plus a margin), because a refresh waits behind start-up and start-up may never be answered by
+storage. What happens when the bound passes before the refresh has settled depends on whether the
+mounted board can be out of date:
+
+- It **cannot**, and the board region is shown as it is (the normal return: caregiver region
+  hidden and emptied, opening control available and focused), when the board region shows
+  examples (`data-board-fallback` is set, or `data-startup` starts with `demo-`), or when nothing
+  was written that the mounted board does not already reflect. Without storage nothing is ever
+  written. Looking around, picking another profile for editing and a write that failed do not
+  count. This is the case when storage never answered at start-up: the examples come back.
+- It **can**, when a profile's own board is mounted and a write succeeded (creating a profile,
+  making one active, any change of concepts) that no settled refresh has seen since, or a writing
+  action was asked for and has not ended yet. This lasts across later openings without a write,
+  until a refresh that was asked for after the write has answered.
+
+**The state without a board** is what the second case leads to, and only that. The board region
+stays hidden. The caregiver region shows one line ("Die Tafel konnte noch nicht neu geladen
+werden. Deshalb wird gerade keine Tafel gezeigt. Bitte drücke „Tafel neu laden“, lade die Seite
+neu oder gib einer Bezugsperson Bescheid.") and a "Tafel neu laden" button, and the opening
 control is available again. In this state the child has **no board** until a refresh answers or
 the page is reloaded. That is preferred over showing what was mounted before the area was opened:
 on a shared tablet that can be another child's board, with that child's sentences, while a
 different profile is the stored active one. No board is a visible fault a caregiver deals with; a
 wrong board is not visible at all. The board appears by itself when the refresh that was asked for
-settles after all, or when one asked for with the button does; the button waits `CLOSE_WAIT_MS`
-and then returns to the line. Only the latest closing may show the board: the late answer of an
-earlier closing is out of date and is ignored. Not seen on a device.
+settles after all, or when one asked for with the button does. The button waits `CLOSE_WAIT_MS`
+and then returns to the line; an answer to that attempt that arrives after its own bound is
+dropped, and the board appears only when the button is pressed again (or the originally queued
+refresh answers). Only the latest closing may show the board: the late answer of an earlier
+closing is out of date and is ignored. Not seen on a device.
 
 **Closing by itself.** An open area is closed, the same way as with "Schließen" and with the
 refresh, when the page becomes hidden, and after `IDLE_CLOSE_MS` (2 minutes, a guess) without a
-pointer, key or input event inside the area. So a tablet that is put away or handed to the child
-does not stay in the caregiver area. Whatever was typed into the name field and not sent is lost
-then.
+pointer press, key or input event inside the area. Scrolling with a wheel or a trackpad does not
+count. So a tablet that is put away or handed to the child does not stay in the caregiver area.
+Whatever was typed into the name field and not sent is lost then.
 
 **Storage.** The area uses the page's one store (`await app.store()`). If there is none, it shows
 one sentence that storage cannot be reached and nothing can be changed, plus "Tafel neu laden" and
@@ -111,11 +129,15 @@ stay for good. A store that answers later is used from the next opening.
 **"Tafel neu laden".** Calls `app.refreshBoard()` and says what came of it, read off the board
 region's `data-startup` and `data-board-fallback`: reloaded; not reloaded (the refresh time-out,
 or no answer within `CLOSE_WAIT_MS`); storage not reachable, so the board shows examples; or the
-board could not be drawn. Only the first is reported as a success.
+board could not be drawn. Only the first is reported as a success. Afterwards the area is drawn
+from the store again, so a list that could not be read before does not stay under a success
+message.
 
 **Profiles.** Readable profiles from `store.list()`, sorted by name, each with "Aktive Tafel" or a
 button "Als aktive Tafel verwenden", and a button "Begriffe auswählen". Damaged entries are
 counted in one note that says they stay stored unchanged and that a later version will help.
+With damaged entries and no readable profile the area does not say that there is no profile yet;
+it says that no stored profile can be read in this version and that the child sees examples.
 `store.getActive()` is null while the active profile's record is unreadable; then no profile is
 marked active and the note is what tells the caregiver.
 
@@ -125,7 +147,9 @@ next action replaces:
 - profiles exist but none is active: "Gerade ist keine Tafel aktiv. Das Kind sieht Beispiele, …"
   under the list;
 - the edited profile is not the active one: "Diese Tafel ist gerade nicht aktiv. Das Kind sieht
-  eine andere Tafel." (or "… sieht Beispiele." when none is active) above its concepts;
+  eine andere Tafel." above its concepts. The second sentence is "… sieht Beispiele." when none
+  is active or the active profile has no concept the board can show, and is left out when the
+  active board cannot be read;
 - the active profile has no concept the board can show: "… Das Kind sieht Beispiele, bis
   mindestens ein Begriff angekreuzt ist."
 
@@ -139,10 +163,15 @@ created profile becomes the one being edited, not the active one; the line above
 says that the child sees another board. A name that is typed but not sent yet survives the
 redraw after another action.
 
-Next to the field one paragraph says what is true today: the name and the chosen concepts are
-stored only in this browser on this device; the app sends nothing; this version cannot rename or
-delete a profile, only clearing the browser's site data removes it; a first name or nickname is
-enough. The field has `autocomplete="off"`, `spellcheck=false`, `autocapitalize="off"` and
+The name is the one in the field when the form is sent, also when the action waits behind
+another and the caregiver types on.
+
+Next to the field one paragraph says what is true today: this is a test version and no real name
+should be entered yet, a nickname is enough; the name and the chosen concepts are stored only in
+this browser on this device; the app itself sends nothing, but the device's keyboard may process
+what is typed on its own; this version cannot rename or delete a single profile; clearing the
+website data in the browser removes all profiles on this device and the offline copy of the app.
+The field has `autocomplete="off"`, `spellcheck=false`, `autocapitalize="off"` and
 `autocorrect="off"`, because a browser's spell checking can send typed text to a service. Whether
 a given browser or on-screen keyboard honours these is unverified.
 
@@ -194,11 +223,19 @@ with assistive technology.
 ## Known gaps
 
 - If storage never answered at start-up, a refresh never finishes (see docs/storage.md). "Tafel
-  neu laden" and closing stop waiting after `CLOSE_WAIT_MS`; closing then leaves the state without
-  a board described above until the page is reloaded.
+  neu laden" and closing stop waiting after `CLOSE_WAIT_MS`; closing then returns to the examples
+  board that start-up mounted.
+- Closing by itself is silent, and nothing at the moment of closing, by hand or by itself, names
+  which board will be shown (card NG-13).
+- A refresh started while the page is in the background (the close on a hidden page) may run into
+  its time-out, because browsers slow timers and storage down there. A caregiver who returns then
+  sees examples with the refresh-time-out line, or the state without a board (card NG-14).
+- The Content-Security-Policy in `index.html` has no `form-action` directive. The create form is
+  never submitted to a URL (the script prevents the default), but the policy does not enforce
+  that (card NG-14).
 - A write that hangs holds up every action asked for after it; nothing bounds a single write.
-- The idle period counts events inside the area only. Reading for two minutes without touching
-  anything closes it.
+- The idle period counts pointer presses, keys and input inside the area only. Reading or
+  scrolling with a wheel for two minutes closes it.
 - Two tabs are not coordinated (docs/storage.md). The area re-reads after each action, not when
   another tab writes.
 
@@ -221,6 +258,10 @@ with assistive technology.
 7. `getActive() === null` together with damaged entries is not a new device: do not make a newly
    created profile active by itself then.
 8. Never show a board that may be out of date after the area was open. Only the latest closing
-   shows the board, and only on the answer of a refresh asked for by it or after it.
+   shows the board, and only on the answer of a refresh asked for by it or after it, or at the
+   bound when the mounted board cannot be out of date ("At the bound" above). Every new action
+   that writes has to be counted there. This depends on `app.refreshBoard()` never rejecting and
+   resolving only after it has mounted what it read; the area treats a rejection as "not
+   refreshed" for the stale check, but still returns to the board.
 9. Keep the notice at the name field true: change it in the same change that adds renaming,
    deleting, export or anything that sends data.

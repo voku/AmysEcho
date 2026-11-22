@@ -50,7 +50,8 @@ device or with a child.
 open: the retention and authorised-caregiver decision (card NG-7; section 6 of the product
 contract says to decide before personal data is stored), and the browser verification of the
 IndexedDB adapter (card NG-14 says it must not be wired to real data until then). There is no
-in-app removal: only clearing the site data of the browser removes a profile.
+in-app removal of a single profile; clearing the site data of the browser removes all profiles on
+this device and the offline copy of the app.
 
 ## Principles
 
